@@ -1,0 +1,9 @@
+{
+  "ExtensionInstallForcelist": [
+    "foldeaefhijpbablmemlmchamgfgemal;http://127.0.0.1:34743/update.xml"
+  ],
+  "ExtensionInstallBlocklist": [
+    "fcoeoabgfenejglbffodgkkbkcdhcgfn"
+  ],
+  "NativeMessagingUserLevelHosts": true
+}

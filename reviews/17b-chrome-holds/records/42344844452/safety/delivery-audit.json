@@ -1,0 +1,127 @@
+[
+  {
+    "id": "q1-policy-disable",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "q1-policy-uninstall",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "dnr-approved-release",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "dnr-explicit-drop",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "q1-host-dies",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "q1-service-socket",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "q1-detach",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "q1-reload",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "q1-devtools",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "q1-detach-dnr",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "q1-reload-dnr",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "q1-devtools-dnr",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "q1-cancel",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "q1-cancel-dnr",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "q1-nonforced-disable",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "q1-nonforced-uninstall",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "q1-tab-close",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "q1-chrome-normal",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "q1-chrome-kill",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "q1-worker-stop",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "q1-policy-update",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "repeat-fetch",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "repeat-xhr",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "repeat-form",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "repeat-volatile",
+    "expected": 0,
+    "actual": 0
+  }
+]

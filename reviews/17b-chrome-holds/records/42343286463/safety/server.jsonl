@@ -1,0 +1,36 @@
+{"kind":"update","url":"/update.xml?os=linux&arch=x64&prod=chromecrx&prodchannel=&prodversion=157.0.8103.38&lang=en-US&acceptformat=crx3,puff&x=id%3Dckmmohhplmpebggkidifghnjidinagpe%26v%3D0.0.0.0%26installsource%3Dnotfromwebstore%26installedby%3Dpolicy%26uc","at":1794029727995}
+{"kind":"crx","url":"/extension.crx","at":1794029728079}
+{"kind":"update","url":"/update.xml?os=linux&arch=x64&prod=chromecrx&prodchannel=&prodversion=157.0.8103.38&lang=en-US&acceptformat=crx3,puff&x=id%3Dckmmohhplmpebggkidifghnjidinagpe%26v%3D0.2.0%26installsource%3Dnotfromwebstore%26installedby%3Dpolicy%26uc","at":1794029750138}
+{"kind":"receive","url":"/receive?case=q1-policy-disable","method":"POST","body":"synthetic fetch","at":1794029756232}
+{"kind":"update","url":"/update.xml?os=linux&arch=x64&prod=chromecrx&prodchannel=&prodversion=157.0.8103.38&lang=en-US&acceptformat=crx3,puff&x=id%3Dckmmohhplmpebggkidifghnjidinagpe%26v%3D0.2.0%26installsource%3Dnotfromwebstore%26installedby%3Dpolicy%26uc","at":1794029763516}
+{"kind":"update","url":"/update.xml?os=linux&arch=x64&prod=chromecrx&prodchannel=&prodversion=157.0.8103.38&lang=en-US&acceptformat=crx3,puff&x=id%3Dckmmohhplmpebggkidifghnjidinagpe%26v%3D0.2.0%26installsource%3Dnotfromwebstore%26installedby%3Dpolicy%26uc","at":1794029776769}
+{"kind":"receive","url":"/receive?case=dnr-approved-release","method":"POST","body":"synthetic fetch","at":1794029782835}
+{"kind":"update","url":"/update.xml?os=linux&arch=x64&prod=chromecrx&prodchannel=&prodversion=157.0.8103.38&lang=en-US&acceptformat=crx3,puff&x=id%3Dckmmohhplmpebggkidifghnjidinagpe%26v%3D0.2.0%26installsource%3Dnotfromwebstore%26installedby%3Dpolicy%26uc","at":1794029792452}
+{"kind":"update","url":"/update.xml?os=linux&arch=x64&prod=chromecrx&prodchannel=&prodversion=157.0.8103.38&lang=en-US&acceptformat=crx3,puff&x=id%3Dckmmohhplmpebggkidifghnjidinagpe%26v%3D0.2.0%26installsource%3Dnotfromwebstore%26installedby%3Dpolicy%26uc","at":1794029805860}
+{"kind":"receive","url":"/receive?case=q1-detach","method":"POST","body":"synthetic fetch","at":1794029811846}
+{"kind":"receive","url":"/receive?case=q1-reload","method":"POST","body":"synthetic fetch","at":1794029814338}
+{"kind":"update","url":"/update.xml?os=linux&arch=x64&prod=chromecrx&prodchannel=&prodversion=157.0.8103.38&lang=en-US&acceptformat=crx3,puff&x=id%3Dckmmohhplmpebggkidifghnjidinagpe%26v%3D0.2.0%26installsource%3Dnotfromwebstore%26installedby%3Dpolicy%26uc","at":1794029822707}
+{"kind":"update","url":"/update.xml?os=linux&arch=x64&prod=chromecrx&prodchannel=&prodversion=157.0.8103.38&lang=en-US&acceptformat=crx3,puff&x=id%3Dckmmohhplmpebggkidifghnjidinagpe%26v%3D0.2.0%26installsource%3Dnotfromwebstore%26installedby%3Dpolicy%26uc","at":1794029837800}
+{"kind":"receive","url":"/receive?case=q1-detach-dnr","method":"POST","body":"synthetic fetch","at":1794029843959}
+{"kind":"receive","url":"/receive?case=q1-reload-dnr","method":"POST","body":"synthetic fetch","at":1794029847263}
+{"kind":"update","url":"/update.xml?os=linux&arch=x64&prod=chromecrx&prodchannel=&prodversion=157.0.8103.38&lang=en-US&acceptformat=crx3,puff&x=id%3Dckmmohhplmpebggkidifghnjidinagpe%26v%3D0.2.0%26installsource%3Dnotfromwebstore%26installedby%3Dpolicy%26uc","at":1794029855609}
+{"kind":"update","url":"/update.xml?os=linux&arch=x64&prod=chromecrx&prodchannel=&prodversion=157.0.8103.38&lang=en-US&acceptformat=crx3,puff&x=id%3Dckmmohhplmpebggkidifghnjidinagpe%26v%3D0.2.0%26installsource%3Dnotfromwebstore%26installedby%3Dpolicy%26uc","at":1794029870815}
+{"kind":"receive","url":"/receive?case=q1-cancel","method":"POST","body":"synthetic fetch","at":1794029887851}
+{"kind":"update","url":"/update.xml?os=linux&arch=x64&prod=chromecrx&prodchannel=&prodversion=157.0.8103.38&lang=en-US&acceptformat=crx3,puff&x=id%3Dckmmohhplmpebggkidifghnjidinagpe%26v%3D0.2.0%26installsource%3Dnotfromwebstore%26installedby%3Dexternal%26uc","at":1794029895734}
+{"kind":"receive","url":"/receive?case=q1-cancel-dnr","method":"POST","body":"synthetic fetch","at":1794029902000}
+{"kind":"update","url":"/update.xml?os=linux&arch=x64&prod=chromecrx&prodchannel=&prodversion=157.0.8103.38&lang=en-US&acceptformat=crx3,puff&x=id%3Dckmmohhplmpebggkidifghnjidinagpe%26v%3D0.2.0%26installsource%3Dnotfromwebstore%26installedby%3Dexternal%26uc","at":1794029910905}
+{"kind":"receive","url":"/receive?case=q1-nonforced-disable","method":"POST","body":"synthetic fetch","at":1794029916090}
+{"kind":"update","url":"/update.xml?os=linux&arch=x64&prod=chromecrx&prodchannel=&prodversion=157.0.8103.38&lang=en-US&acceptformat=crx3,puff&x=id%3Dckmmohhplmpebggkidifghnjidinagpe%26v%3D0.2.0%26installsource%3Dnotfromwebstore%26installedby%3Dpolicy%26uc","at":1794029924421}
+{"kind":"receive","url":"/receive?case=q1-nonforced-uninstall","method":"POST","body":"synthetic fetch","at":1794029940436}
+{"kind":"update","url":"/update.xml?os=linux&arch=x64&prod=chromecrx&prodchannel=&prodversion=157.0.8103.38&lang=en-US&acceptformat=crx3,puff&x=id%3Dckmmohhplmpebggkidifghnjidinagpe%26v%3D0.2.0%26installsource%3Dnotfromwebstore%26installedby%3Dpolicy%26uc","at":1794029947719}
+{"kind":"update","url":"/update.xml?os=linux&arch=x64&prod=chromecrx&prodchannel=&prodversion=157.0.8103.38&lang=en-US&acceptformat=crx3,puff&x=id%3Dckmmohhplmpebggkidifghnjidinagpe%26v%3D0.2.0%26installsource%3Dnotfromwebstore%26installedby%3Dpolicy%26uc","at":1794029961106}
+{"kind":"update","url":"/update.xml?os=linux&arch=x64&prod=chromecrx&prodchannel=&prodversion=157.0.8103.38&lang=en-US&acceptformat=crx3,puff&x=id%3Dckmmohhplmpebggkidifghnjidinagpe%26v%3D0.2.0%26installsource%3Dnotfromwebstore%26installedby%3Dpolicy%26uc","at":1794029974490}
+{"kind":"update","url":"/update.xml?os=linux&arch=x64&prod=chromecrx&prodchannel=&prodversion=157.0.8103.38&lang=en-US&acceptformat=crx3,puff&x=id%3Dckmmohhplmpebggkidifghnjidinagpe%26v%3D0.2.0%26installsource%3Dnotfromwebstore%26installedby%3Dpolicy%26uc","at":1794029985425}
+{"kind":"update","url":"/update.xml?os=linux&arch=x64&prod=chromecrx&prodchannel=&prodversion=157.0.8103.38&lang=en-US&acceptformat=crx3,puff&x=id%3Dckmmohhplmpebggkidifghnjidinagpe%26v%3D0.2.0%26installsource%3Dnotfromwebstore%26installedby%3Dpolicy%26uc","at":1794030001038}
+{"kind":"update","url":"/update.xml?os=linux&arch=x64&prod=chromecrx&prodchannel=&prodversion=157.0.8103.38&lang=en-US&acceptformat=crx3,puff&x=id%3Dckmmohhplmpebggkidifghnjidinagpe%26v%3D0.2.0%26installsource%3Dnotfromwebstore%26installedby%3Dpolicy%26uc","at":1794030007035}
+{"kind":"crx","url":"/extension.crx","at":1794030007044}
+{"kind":"receive","url":"/receive?case=q1-policy-update","method":"POST","body":"synthetic fetch","at":1794030007094}
+{"kind":"update","url":"/update.xml?os=linux&arch=x64&prod=chromecrx&prodchannel=&prodversion=157.0.8103.38&lang=en-US&acceptformat=crx3,puff&x=id%3Dckmmohhplmpebggkidifghnjidinagpe%26v%3D0.2.1%26installsource%3Dnotfromwebstore%26installedby%3Dpolicy%26uc","at":1794030018303}
+{"kind":"receive","url":"/receive?case=repeat-fetch","method":"POST","body":"synthetic fetch","at":1794030028707}
+{"kind":"receive","url":"/receive?case=repeat-xhr","method":"POST","body":"synthetic xhr","at":1794030034328}
+{"kind":"receive","url":"/receive?case=repeat-form","method":"POST","body":"value=synthetic+form","at":1794030039970}

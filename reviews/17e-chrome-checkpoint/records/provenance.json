@@ -1,0 +1,528 @@
+{
+  "run": {
+    "conclusion": "success",
+    "createdAt": "2026-11-07T12:13:09Z",
+    "databaseId": 42371496987,
+    "event": "push",
+    "headSha": "e535ecbfa690965311972db54db5c4cc0cb972c8",
+    "jobs": [
+      {
+        "completedAt": "2026-11-07T12:20:03Z",
+        "conclusion": "success",
+        "databaseId": 128401309107,
+        "name": "chrome (core)",
+        "startedAt": "2026-11-07T12:17:27Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-11-07T12:17:28Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-11-07T12:17:27Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-07T12:17:35Z",
+            "conclusion": "success",
+            "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "number": 2,
+            "startedAt": "2026-11-07T12:17:28Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-07T12:17:36Z",
+            "conclusion": "success",
+            "name": "Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+            "number": 3,
+            "startedAt": "2026-11-07T12:17:35Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-07T12:18:02Z",
+            "conclusion": "success",
+            "name": "Install official Google Chrome stable and X display helpers",
+            "number": 4,
+            "startedAt": "2026-11-07T12:17:36Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-07T12:18:03Z",
+            "conclusion": "success",
+            "name": "Install pinned check dependencies (no browser download)",
+            "number": 5,
+            "startedAt": "2026-11-07T12:18:02Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-07T12:18:08Z",
+            "conclusion": "success",
+            "name": "Install pinned loopback WebTransport fixture dependency",
+            "number": 6,
+            "startedAt": "2026-11-07T12:18:03Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-07T12:18:23Z",
+            "conclusion": "success",
+            "name": "Install pinned checkpoint dependencies",
+            "number": 7,
+            "startedAt": "2026-11-07T12:18:08Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-07T12:20:01Z",
+            "conclusion": "success",
+            "name": "Run headed fixture checks with Chrome sandbox enabled",
+            "number": 8,
+            "startedAt": "2026-11-07T12:18:23Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-07T12:20:02Z",
+            "conclusion": "success",
+            "name": "Upload synthetic logs and structural page views",
+            "number": 9,
+            "startedAt": "2026-11-07T12:20:01Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-07T12:20:02Z",
+            "conclusion": "success",
+            "name": "Post Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+            "number": 17,
+            "startedAt": "2026-11-07T12:20:02Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-07T12:20:02Z",
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "number": 18,
+            "startedAt": "2026-11-07T12:20:02Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-07T12:20:02Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 19,
+            "startedAt": "2026-11-07T12:20:02Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/Ares-Empire/AresOS/actions/runs/42371496987/job/128401309107"
+      },
+      {
+        "completedAt": "2026-11-07T12:22:59Z",
+        "conclusion": "success",
+        "databaseId": 128401309212,
+        "name": "chrome (lifecycle)",
+        "startedAt": "2026-11-07T12:17:27Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-11-07T12:17:28Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-11-07T12:17:27Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-07T12:17:35Z",
+            "conclusion": "success",
+            "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "number": 2,
+            "startedAt": "2026-11-07T12:17:28Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-07T12:17:35Z",
+            "conclusion": "success",
+            "name": "Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+            "number": 3,
+            "startedAt": "2026-11-07T12:17:35Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-07T12:18:06Z",
+            "conclusion": "success",
+            "name": "Install official Google Chrome stable and X display helpers",
+            "number": 4,
+            "startedAt": "2026-11-07T12:17:35Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-07T12:18:08Z",
+            "conclusion": "success",
+            "name": "Install pinned check dependencies (no browser download)",
+            "number": 5,
+            "startedAt": "2026-11-07T12:18:06Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-07T12:18:13Z",
+            "conclusion": "success",
+            "name": "Install pinned loopback WebTransport fixture dependency",
+            "number": 6,
+            "startedAt": "2026-11-07T12:18:08Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-07T12:18:27Z",
+            "conclusion": "success",
+            "name": "Install pinned checkpoint dependencies",
+            "number": 7,
+            "startedAt": "2026-11-07T12:18:13Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-07T12:22:57Z",
+            "conclusion": "success",
+            "name": "Run headed fixture checks with Chrome sandbox enabled",
+            "number": 8,
+            "startedAt": "2026-11-07T12:18:27Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-07T12:22:57Z",
+            "conclusion": "success",
+            "name": "Upload synthetic logs and structural page views",
+            "number": 9,
+            "startedAt": "2026-11-07T12:22:57Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-07T12:22:58Z",
+            "conclusion": "success",
+            "name": "Post Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+            "number": 17,
+            "startedAt": "2026-11-07T12:22:57Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-07T12:22:58Z",
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "number": 18,
+            "startedAt": "2026-11-07T12:22:58Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-07T12:22:58Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 19,
+            "startedAt": "2026-11-07T12:22:58Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/Ares-Empire/AresOS/actions/runs/42371496987/job/128401309212"
+      },
+      {
+        "completedAt": "2026-11-07T12:21:17Z",
+        "conclusion": "success",
+        "databaseId": 128401309296,
+        "name": "chrome (transports)",
+        "startedAt": "2026-11-07T12:17:27Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-11-07T12:17:28Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-11-07T12:17:28Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-07T12:17:36Z",
+            "conclusion": "success",
+            "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "number": 2,
+            "startedAt": "2026-11-07T12:17:28Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-07T12:17:38Z",
+            "conclusion": "success",
+            "name": "Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+            "number": 3,
+            "startedAt": "2026-11-07T12:17:36Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-07T12:18:14Z",
+            "conclusion": "success",
+            "name": "Install official Google Chrome stable and X display helpers",
+            "number": 4,
+            "startedAt": "2026-11-07T12:17:38Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-07T12:18:16Z",
+            "conclusion": "success",
+            "name": "Install pinned check dependencies (no browser download)",
+            "number": 5,
+            "startedAt": "2026-11-07T12:18:14Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-07T12:18:21Z",
+            "conclusion": "success",
+            "name": "Install pinned loopback WebTransport fixture dependency",
+            "number": 6,
+            "startedAt": "2026-11-07T12:18:16Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-07T12:18:34Z",
+            "conclusion": "success",
+            "name": "Install pinned checkpoint dependencies",
+            "number": 7,
+            "startedAt": "2026-11-07T12:18:21Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-07T12:21:13Z",
+            "conclusion": "success",
+            "name": "Run headed fixture checks with Chrome sandbox enabled",
+            "number": 8,
+            "startedAt": "2026-11-07T12:18:34Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-07T12:21:15Z",
+            "conclusion": "success",
+            "name": "Upload synthetic logs and structural page views",
+            "number": 9,
+            "startedAt": "2026-11-07T12:21:13Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-07T12:21:15Z",
+            "conclusion": "success",
+            "name": "Post Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+            "number": 17,
+            "startedAt": "2026-11-07T12:21:15Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-07T12:21:15Z",
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "number": 18,
+            "startedAt": "2026-11-07T12:21:15Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-07T12:21:15Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 19,
+            "startedAt": "2026-11-07T12:21:15Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/Ares-Empire/AresOS/actions/runs/42371496987/job/128401309296"
+      },
+      {
+        "completedAt": "2026-11-07T12:21:36Z",
+        "conclusion": "success",
+        "databaseId": 128401309330,
+        "name": "chrome (public)",
+        "startedAt": "2026-11-07T12:17:27Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-11-07T12:17:28Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-11-07T12:17:27Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-07T12:17:34Z",
+            "conclusion": "success",
+            "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "number": 2,
+            "startedAt": "2026-11-07T12:17:28Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-07T12:17:35Z",
+            "conclusion": "success",
+            "name": "Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+            "number": 3,
+            "startedAt": "2026-11-07T12:17:34Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-07T12:18:01Z",
+            "conclusion": "success",
+            "name": "Install official Google Chrome stable and X display helpers",
+            "number": 4,
+            "startedAt": "2026-11-07T12:17:35Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-07T12:18:02Z",
+            "conclusion": "success",
+            "name": "Install pinned check dependencies (no browser download)",
+            "number": 5,
+            "startedAt": "2026-11-07T12:18:01Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-07T12:18:05Z",
+            "conclusion": "success",
+            "name": "Install pinned loopback WebTransport fixture dependency",
+            "number": 6,
+            "startedAt": "2026-11-07T12:18:02Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-07T12:18:17Z",
+            "conclusion": "success",
+            "name": "Install pinned checkpoint dependencies",
+            "number": 7,
+            "startedAt": "2026-11-07T12:18:05Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-07T12:21:32Z",
+            "conclusion": "success",
+            "name": "Run headed fixture checks with Chrome sandbox enabled",
+            "number": 8,
+            "startedAt": "2026-11-07T12:18:17Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-07T12:21:34Z",
+            "conclusion": "success",
+            "name": "Upload synthetic logs and structural page views",
+            "number": 9,
+            "startedAt": "2026-11-07T12:21:32Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-07T12:21:34Z",
+            "conclusion": "success",
+            "name": "Post Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+            "number": 17,
+            "startedAt": "2026-11-07T12:21:34Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-07T12:21:34Z",
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "number": 18,
+            "startedAt": "2026-11-07T12:21:34Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-07T12:21:34Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 19,
+            "startedAt": "2026-11-07T12:21:34Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/Ares-Empire/AresOS/actions/runs/42371496987/job/128401309330"
+      }
+    ],
+    "status": "completed",
+    "updatedAt": "2026-11-07T12:22:59Z",
+    "url": "https://github.com/Ares-Empire/AresOS/actions/runs/42371496987"
+  },
+  "artifacts": [
+    {
+      "id": 13574545707,
+      "name": "chrome-check-42371496987-1-public",
+      "size_in_bytes": 4239367,
+      "digest": "sha256:3a3243755646971c5e3d1aa7642719e3f064eba7a29960b32f5d4ca714bec8d0",
+      "expired": false
+    },
+    {
+      "id": 13574416736,
+      "name": "chrome-check-42371496987-1-lifecycle",
+      "size_in_bytes": 288463,
+      "digest": "sha256:d6bc507dec3db90a8f1ef288e97c6ce8c50a3ca9f34b9379c1aa66a3a07e9bd3",
+      "expired": false
+    },
+    {
+      "id": 13574156936,
+      "name": "chrome-check-42371496987-1-transports",
+      "size_in_bytes": 810352,
+      "digest": "sha256:04fcc88162c2cc6094d714e7877b9f79abe2631f7181f746e287575666271766",
+      "expired": false
+    },
+    {
+      "id": 13573773903,
+      "name": "chrome-check-42371496987-1-core",
+      "size_in_bytes": 303029,
+      "digest": "sha256:da260750caed0f4d319393a2c7f8ab987f29e207be708dbc74fe21c7b7818b18",
+      "expired": false
+    }
+  ],
+  "sourceFiles": {
+    ".github/workflows/control-chrome-check.yml": "06ec9e9b7dbf79dafbd9d44d6e8c1f972b1c5ea61a7b249def094db0978b2347",
+    "control/checks/17e-chrome/README.md": "6cf8b110b2b0d13544a81fefed0d7d99804c29488bf514fa0aa3d2aaabe188b3",
+    "control/checks/17e-chrome/checkpoint.py": "286d3ae90d40c23466a33bb4ec9638d15f854b053e729ea7b2f7b9a0ba9b440b",
+    "control/checks/17e-chrome/core.mjs": "fc56beac40d2adb4ad028c7a7991d8f01c55940d91b75466d5f9004aebb7ec37",
+    "control/checks/17e-chrome/extension/background.js": "c35db91be9178cc95c6ad1d3ae8e35ec59af0590216eea56442c4fc4252d8128",
+    "control/checks/17e-chrome/extension/manifest.json": "30e4c7047c855096a65d2f42e9ea687ea4c9a50c90c95a303fb635943530ab0f",
+    "control/checks/17e-chrome/extension/select.html": "ac0ce0769b4156441e3c11ab8918167f7cd42ce88e4308d925e61c059a05dd45",
+    "control/checks/17e-chrome/extension/select.js": "e558ee662a8e5617a9e384f65987fc455047bfe56efecaeccae06e2b5bcf57ce",
+    "control/checks/17e-chrome/fixture.mjs": "064a9d832473b538c7ca4b02142500c924c41166c790ea49ed8d51e2a78be306",
+    "control/checks/17e-chrome/lifecycle.mjs": "4586fb9ade9ea9ca0c665f10ca51f112c5475491ea174570ca08db4938f3a56b",
+    "control/checks/17e-chrome/notification.mjs": "eec0a2fc08d6c619f725f8a3ca381da7841ae56f3d2a51946081429e2ea24fc6",
+    "control/checks/17e-chrome/public.mjs": "e9a7fad6bb832109a503d8819ce9acc312a9572f952af2f86ae0aa4cc4e54981",
+    "control/checks/17e-chrome/requirements.lock": "210e5f532b717bfce4b8fb5669577167a9f8f689592f1ee87e36f201775444e6",
+    "control/checks/17e-chrome/requirements.txt": "abb992dfaefe1a59a02b818b1b3f0ca7f6e323d575d1b7726c3322dbdf88a453",
+    "control/checks/17e-chrome/rtc-peer.py": "b5c70ff724a906e48ca147931af382a33f5743bd04bdab6b5d20f00aa0106565",
+    "control/checks/17e-chrome/run.mjs": "c3e33d19064851015a35ef75a961b9ef75aea50c21029835c79691e8166e9558",
+    "control/checks/17e-chrome/setup.sh": "b9587c099fc2f52785f883881002dfdaca9fda3462e9ca6633409eeec1c81f61",
+    "control/checks/17e-chrome/transports.mjs": "f3faf5b6b6c50efd32177f3ea20706af0dc96838d7b06429600cbca760f83c80",
+    "control/checks/17e-chrome/webtransport.py": "38ac7c25bf0132f71014ed55a7cc0fa47fcb01d6be3186e6d7631067555f210f",
+    "control/checks/17e-chrome/wire.mjs": "bbe3a477dc28112a0463d050bafc8dfd343e6411144f4f65ac09c104997147f8"
+  },
+  "baseline": "ba656bc",
+  "scopeChanges": [
+    ".github/workflows/control-chrome-check.yml",
+    "control/checks/17e-chrome/README.md",
+    "control/checks/17e-chrome/checkpoint.py",
+    "control/checks/17e-chrome/core.mjs",
+    "control/checks/17e-chrome/extension/background.js",
+    "control/checks/17e-chrome/extension/manifest.json",
+    "control/checks/17e-chrome/extension/select.html",
+    "control/checks/17e-chrome/extension/select.js",
+    "control/checks/17e-chrome/fixture.mjs",
+    "control/checks/17e-chrome/lifecycle.mjs",
+    "control/checks/17e-chrome/notification.mjs",
+    "control/checks/17e-chrome/public.mjs",
+    "control/checks/17e-chrome/requirements.lock",
+    "control/checks/17e-chrome/requirements.txt",
+    "control/checks/17e-chrome/rtc-peer.py",
+    "control/checks/17e-chrome/run.mjs",
+    "control/checks/17e-chrome/setup.sh",
+    "control/checks/17e-chrome/transports.mjs",
+    "control/checks/17e-chrome/webtransport.py",
+    "control/checks/17e-chrome/wire.mjs"
+  ],
+  "retainedEvidenceNormalization": {
+    "*/chrome-version.txt": "Removed the trailing ASCII space emitted by google-chrome-stable --version; version text unchanged. Raw output remains in workflow artifacts.",
+    "lifecycle/summary.json": "The two Q10 stored/persisted diagnostic fields originally echoed an eight-byte synthetic outbox constant. Replace only those values with UTF-8 length and SHA-256; independent receiver logs and all measured comparisons/results are unchanged. Earlier workflow logs and the earlier review commit contain the fixture constant, without any real account data."
+  },
+  "postEvidenceChanges": {
+    "control/checks/17e-chrome/lifecycle.mjs": {
+      "previousSha256": "4586fb9ade9ea9ca0c665f10ca51f112c5475491ea174570ca08db4938f3a56b",
+      "currentSha256": "2cbac2e8fcf1b58392c41edcf15c5d43a2f2b788ffaa96ff7fa0324675c1f8a3",
+      "change": "Only diagnostic representation and failure presentation: raw queue values remain in RAM for an exact key/value comparison, but successful/failing assertions do not print them. The final corrected head is verified twice and linked in the PR."
+    }
+  }
+}

@@ -1,0 +1,136 @@
+[
+  {
+    "command": [
+      "node",
+      "--check",
+      "control/checks/17e-chrome/core.mjs"
+    ],
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "node",
+      "--check",
+      "control/checks/17e-chrome/extension/background.js"
+    ],
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "node",
+      "--check",
+      "control/checks/17e-chrome/extension/select.js"
+    ],
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "node",
+      "--check",
+      "control/checks/17e-chrome/fixture.mjs"
+    ],
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "node",
+      "--check",
+      "control/checks/17e-chrome/lifecycle.mjs"
+    ],
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "node",
+      "--check",
+      "control/checks/17e-chrome/notification.mjs"
+    ],
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "node",
+      "--check",
+      "control/checks/17e-chrome/public.mjs"
+    ],
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "node",
+      "--check",
+      "control/checks/17e-chrome/run.mjs"
+    ],
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "node",
+      "--check",
+      "control/checks/17e-chrome/transports.mjs"
+    ],
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "node",
+      "--check",
+      "control/checks/17e-chrome/wire.mjs"
+    ],
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "python3",
+      "-m",
+      "py_compile",
+      "control/checks/17e-chrome/checkpoint.py",
+      "control/checks/17e-chrome/rtc-peer.py",
+      "control/checks/17e-chrome/webtransport.py"
+    ],
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "bash",
+      "-n",
+      "control/checks/17e-chrome/setup.sh"
+    ],
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "node",
+      "control/checks/17e-chrome/run.mjs"
+    ],
+    "exit": 1,
+    "stdout": "",
+    "stderr": "file://<worktree>/control/checks/17e-chrome/run.mjs:8\nif(process.platform!=='linux'||process.env.GITHUB_ACTIONS!=='true')throw Error('Browser runs only on GitHub Linux runners');\n                                                                         ^\n\nError: Browser runs only on GitHub Linux runners\n    at file://<worktree>/control/checks/17e-chrome/run.mjs:8:74\n    at ModuleJob.run (node:internal/modules/esm/module_job:447:25)\n    at async node:internal/modules/esm/loader:646:26\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)\n\nNode.js v26.4.0\n",
+    "expected": "refusal before browser helper imports on macOS",
+    "redaction": "Local checkout path replaced with <worktree>; diagnostic and exit code unchanged."
+  }
+]

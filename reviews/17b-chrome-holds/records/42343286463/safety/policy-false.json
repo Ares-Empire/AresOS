@@ -1,0 +1,9 @@
+{
+  "ExtensionInstallForcelist": [
+    "ckmmohhplmpebggkidifghnjidinagpe;http://127.0.0.1:38919/update.xml"
+  ],
+  "ExtensionInstallBlocklist": [
+    "fcoeoabgfenejglbffodgkkbkcdhcgfn"
+  ],
+  "NativeMessagingUserLevelHosts": false
+}

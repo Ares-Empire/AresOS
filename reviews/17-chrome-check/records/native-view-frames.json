@@ -1,0 +1,275 @@
+{
+  "format": "aresos-check-ax-layout-v1",
+  "frames": [
+    {
+      "id": "82240ACF613AAC258B30D2234C7A19FD",
+      "parent": null,
+      "url": "http://127.0.0.1:40009/frames",
+      "document": "7384B6571AC59541724321E0129D3A59",
+      "coordinates": "frame viewport CSS pixels",
+      "viewport": {
+        "height": 857,
+        "visibility": "visible",
+        "width": 1440
+      },
+      "text": "Frame test"
+    },
+    {
+      "id": "315161B107B2B03FC41B66D23A556124",
+      "parent": "82240ACF613AAC258B30D2234C7A19FD",
+      "url": "http://127.0.0.1:40009/frame?name=same",
+      "document": "393533882241553AC050EA50BA295A63",
+      "coordinates": "frame viewport CSS pixels",
+      "viewport": {
+        "height": 150,
+        "visibility": "visible",
+        "width": 300
+      },
+      "text": "same frame\nFrame note\nFrame action\nframe-original"
+    },
+    {
+      "id": "E5D1C134B2FA99D06C22DD2B7D70744C",
+      "parent": "82240ACF613AAC258B30D2234C7A19FD",
+      "url": "http://localhost:37863/frame?name=cross",
+      "document": "0EAF52F6AA8F57903E73040699B474BC",
+      "coordinates": "frame viewport CSS pixels",
+      "viewport": {
+        "height": 150,
+        "visibility": "visible",
+        "width": 300
+      },
+      "text": "cross frame\nFrame note\nFrame action\nframe-original"
+    }
+  ],
+  "elements": [
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:7384B6571AC59541724321E0129D3A59:278",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "RootWebArea",
+      "name": "Frames",
+      "state": {
+        "focused": true
+      },
+      "box": [
+        0,
+        0,
+        1440,
+        857
+      ],
+      "inViewport": true,
+      "onScreen": true
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:7384B6571AC59541724321E0129D3A59:286",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "heading",
+      "name": "Frame test",
+      "state": {},
+      "box": [
+        32,
+        32,
+        850,
+        37
+      ],
+      "inViewport": true,
+      "onScreen": true
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:7384B6571AC59541724321E0129D3A59:287",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "Iframe",
+      "name": "Same origin",
+      "state": {},
+      "box": [
+        32,
+        90.4375,
+        304,
+        154
+      ],
+      "inViewport": true,
+      "onScreen": true
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:7384B6571AC59541724321E0129D3A59:288",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "Iframe",
+      "name": "Cross origin",
+      "state": {},
+      "box": [
+        336,
+        90.4375,
+        304,
+        154
+      ],
+      "inViewport": true,
+      "onScreen": true
+    },
+    {
+      "ref": "root:315161B107B2B03FC41B66D23A556124:393533882241553AC050EA50BA295A63:290",
+      "frame": "315161B107B2B03FC41B66D23A556124",
+      "role": "RootWebArea",
+      "name": "Frame same",
+      "state": {},
+      "box": [
+        0,
+        0,
+        300,
+        150
+      ],
+      "inViewport": true,
+      "onScreen": true
+    },
+    {
+      "ref": "root:315161B107B2B03FC41B66D23A556124:393533882241553AC050EA50BA295A63:303",
+      "frame": "315161B107B2B03FC41B66D23A556124",
+      "role": "heading",
+      "name": "same frame",
+      "state": {},
+      "box": [
+        32,
+        32,
+        221,
+        28
+      ],
+      "inViewport": true,
+      "onScreen": true
+    },
+    {
+      "ref": "root:315161B107B2B03FC41B66D23A556124:393533882241553AC050EA50BA295A63:305",
+      "frame": "315161B107B2B03FC41B66D23A556124",
+      "role": "LabelText",
+      "name": "",
+      "state": {},
+      "box": [
+        44,
+        79.90625,
+        197,
+        42
+      ],
+      "inViewport": true,
+      "onScreen": true
+    },
+    {
+      "ref": "root:315161B107B2B03FC41B66D23A556124:393533882241553AC050EA50BA295A63:307",
+      "frame": "315161B107B2B03FC41B66D23A556124",
+      "role": "button",
+      "name": "Frame action",
+      "state": {
+        "invalid": "false"
+      },
+      "box": [
+        32,
+        133.90625,
+        109.375,
+        24
+      ],
+      "inViewport": true,
+      "onScreen": true
+    },
+    {
+      "ref": "root:315161B107B2B03FC41B66D23A556124:393533882241553AC050EA50BA295A63:289",
+      "frame": "315161B107B2B03FC41B66D23A556124",
+      "role": "textbox",
+      "name": "Frame note",
+      "value": "frame-original",
+      "state": {
+        "required": false,
+        "invalid": "false"
+      },
+      "box": [
+        44,
+        97.90625,
+        215,
+        24
+      ],
+      "inViewport": true,
+      "onScreen": true
+    },
+    {
+      "ref": "E2769A4D0997E2738D83401A46B0A7AF:E5D1C134B2FA99D06C22DD2B7D70744C:0EAF52F6AA8F57903E73040699B474BC:2",
+      "frame": "E5D1C134B2FA99D06C22DD2B7D70744C",
+      "role": "RootWebArea",
+      "name": "Frame cross",
+      "state": {},
+      "box": [
+        0,
+        0,
+        300,
+        150
+      ],
+      "inViewport": true,
+      "onScreen": true
+    },
+    {
+      "ref": "E2769A4D0997E2738D83401A46B0A7AF:E5D1C134B2FA99D06C22DD2B7D70744C:0EAF52F6AA8F57903E73040699B474BC:12",
+      "frame": "E5D1C134B2FA99D06C22DD2B7D70744C",
+      "role": "heading",
+      "name": "cross frame",
+      "state": {},
+      "box": [
+        32,
+        32,
+        221,
+        28
+      ],
+      "inViewport": true,
+      "onScreen": true
+    },
+    {
+      "ref": "E2769A4D0997E2738D83401A46B0A7AF:E5D1C134B2FA99D06C22DD2B7D70744C:0EAF52F6AA8F57903E73040699B474BC:14",
+      "frame": "E5D1C134B2FA99D06C22DD2B7D70744C",
+      "role": "LabelText",
+      "name": "",
+      "state": {},
+      "box": [
+        44,
+        79.90625,
+        197,
+        42
+      ],
+      "inViewport": true,
+      "onScreen": true
+    },
+    {
+      "ref": "E2769A4D0997E2738D83401A46B0A7AF:E5D1C134B2FA99D06C22DD2B7D70744C:0EAF52F6AA8F57903E73040699B474BC:16",
+      "frame": "E5D1C134B2FA99D06C22DD2B7D70744C",
+      "role": "button",
+      "name": "Frame action",
+      "state": {
+        "invalid": "false"
+      },
+      "box": [
+        32,
+        133.90625,
+        109.375,
+        24
+      ],
+      "inViewport": true,
+      "onScreen": true
+    },
+    {
+      "ref": "E2769A4D0997E2738D83401A46B0A7AF:E5D1C134B2FA99D06C22DD2B7D70744C:0EAF52F6AA8F57903E73040699B474BC:1",
+      "frame": "E5D1C134B2FA99D06C22DD2B7D70744C",
+      "role": "textbox",
+      "name": "Frame note",
+      "value": "frame-original",
+      "state": {
+        "required": false,
+        "invalid": "false"
+      },
+      "box": [
+        44,
+        97.90625,
+        215,
+        24
+      ],
+      "inViewport": true,
+      "onScreen": true
+    }
+  ],
+  "offset": 0,
+  "total": 14,
+  "next": null,
+  "errors": [],
+  "ms": 18.14
+}

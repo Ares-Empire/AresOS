@@ -1,0 +1,1512 @@
+{
+  "phase": "live-public",
+  "longHold": false,
+  "run": "42344844452",
+  "head": "9b5dd7846e6fccd66ce82f22c8015da5211559a1",
+  "cases": [
+    {
+      "name": "CONNECTED",
+      "tabId": 2142287199,
+      "group": 720773577,
+      "version": "0.2.0",
+      "host": "user"
+    },
+    {
+      "name": "Q5_POLICY_INSTALL",
+      "info": {
+        "description": "",
+        "enabled": true,
+        "homepageUrl": "",
+        "hostPermissions": [
+          "<all_urls>"
+        ],
+        "id": "bbakikpjpafacfddaobfckebkcihcmlk",
+        "installType": "admin",
+        "isApp": false,
+        "mayDisable": false,
+        "name": "AresOS 17b holds CHECK ONLY",
+        "offlineEnabled": false,
+        "optionsUrl": "chrome-extension://bbakikpjpafacfddaobfckebkcihcmlk/select.html",
+        "permissions": [
+          "debugger",
+          "declarativeNetRequest",
+          "management",
+          "nativeMessaging",
+          "storage",
+          "tabGroups",
+          "tabs"
+        ],
+        "shortName": "AresOS 17b holds CHECK ONLY",
+        "type": "extension",
+        "updateUrl": "http://127.0.0.1:36893/update.xml",
+        "version": "0.2.0",
+        "versionName": ""
+      },
+      "policy": {
+        "ExtensionInstallForcelist": [
+          "bbakikpjpafacfddaobfckebkcihcmlk;http://127.0.0.1:36893/update.xml"
+        ],
+        "ExtensionInstallBlocklist": [
+          "fcoeoabgfenejglbffodgkkbkcdhcgfn"
+        ],
+        "NativeMessagingUserLevelHosts": true
+      }
+    },
+    {
+      "name": "Q5_HOST_DEFAULT",
+      "starts": "user\n"
+    },
+    {
+      "name": "CONNECTED",
+      "tabId": 2142287260,
+      "group": 708555826,
+      "version": "0.2.0",
+      "host": "system"
+    },
+    {
+      "name": "Q5_HOST_POLICY_FALSE",
+      "starts": "user\nsystem\n"
+    },
+    {
+      "name": "Q4_WS_HANDSHAKE",
+      "pending": [],
+      "socketPauses": [],
+      "server": [
+        {
+          "kind": "ws-open",
+          "at": 1794031165652
+        }
+      ],
+      "events": [
+        {
+          "at": 1794031165653,
+          "method": "Network.webSocketCreated",
+          "params": {
+            "initiator": {
+              "stack": {
+                "callFrames": [
+                  {
+                    "columnNumber": 36,
+                    "functionName": "window.connectWS",
+                    "lineNumber": 12,
+                    "scriptId": "3",
+                    "url": "http://127.0.0.1:36893/"
+                  }
+                ]
+              },
+              "type": "script"
+            },
+            "requestId": "4419.3",
+            "url": "ws://127.0.0.1:36893/socket"
+          }
+        },
+        {
+          "at": 1794031165653,
+          "method": "Network.webSocketWillSendHandshakeRequest",
+          "params": {
+            "request": {
+              "headers": {
+                "Accept-Encoding": "gzip, deflate, br, zstd",
+                "Accept-Language": "en-US,en;q=0.9",
+                "Cache-Control": "no-cache",
+                "Connection": "Upgrade",
+                "Host": "127.0.0.1:36893",
+                "Origin": "http://127.0.0.1:36893",
+                "Pragma": "no-cache",
+                "Sec-WebSocket-Extensions": "permessage-deflate; client_max_window_bits",
+                "Sec-WebSocket-Version": "13",
+                "Upgrade": "websocket",
+                "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36"
+              }
+            },
+            "requestId": "4419.3",
+            "timestamp": 89.837335,
+            "wallTime": 1794031165.651719
+          }
+        },
+        {
+          "at": 1794031165653,
+          "method": "Network.webSocketHandshakeResponseReceived",
+          "params": {
+            "requestId": "4419.3",
+            "response": {
+              "headers": {
+                "Connection": "Upgrade",
+                "Upgrade": "websocket"
+              },
+              "requestHeaders": {
+                "Accept-Encoding": "gzip, deflate, br, zstd",
+                "Accept-Language": "en-US,en;q=0.9",
+                "Cache-Control": "no-cache",
+                "Connection": "Upgrade",
+                "Host": "127.0.0.1:36893",
+                "Origin": "http://127.0.0.1:36893",
+                "Pragma": "no-cache",
+                "Sec-WebSocket-Extensions": "permessage-deflate; client_max_window_bits",
+                "Sec-WebSocket-Version": "13",
+                "Upgrade": "websocket",
+                "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36"
+              },
+              "status": 101,
+              "statusText": "Switching Protocols"
+            },
+            "timestamp": 89.838666
+          }
+        }
+      ]
+    },
+    {
+      "0": {
+        "readyState": 1,
+        "url": "ws://127.0.0.1:36893/socket"
+      },
+      "name": "Q4_WS_IDLE_INVENTORY",
+      "status": "observed"
+    },
+    {
+      "name": "Q4_WS_PREATTACH",
+      "readyState": 1,
+      "inventory": [
+        {
+          "readyState": 1,
+          "url": "ws://127.0.0.1:36893/socket"
+        }
+      ],
+      "events": [
+        {
+          "at": 1794031167890,
+          "method": "Network.webSocketFrameSent",
+          "params": {
+            "requestId": "4419.3",
+            "response": {
+              "mask": true,
+              "opcode": 1,
+              "payloadData": "synthetic preattach"
+            },
+            "timestamp": 92.075108
+          }
+        },
+        {
+          "at": 1794031167890,
+          "method": "Network.webSocketFrameReceived",
+          "params": {
+            "requestId": "4419.3",
+            "response": {
+              "mask": false,
+              "opcode": 1,
+              "payloadData": "echo"
+            },
+            "timestamp": 92.075604
+          }
+        }
+      ],
+      "server": [
+        {
+          "kind": "ws-open",
+          "at": 1794031165652
+        },
+        {
+          "kind": "ws-frame",
+          "body": "synthetic socket",
+          "at": 1794031166858
+        },
+        {
+          "kind": "ws-frame",
+          "body": "synthetic preattach",
+          "at": 1794031167889
+        }
+      ]
+    },
+    {
+      "name": "Q4_MEDIA_DOMAIN",
+      "status": "probe-error",
+      "error": "Error: Media.enable: \"Error: {\\\"code\\\":-32601,\\\"message\\\":\\\"'Media.enable' wasn't found\\\"}\"\n    at Protocol.accept (file:///home/runner/work/AresOS/AresOS/control/checks/17-chrome/protocol.mjs:13:33)\n    at Socket.<anonymous> (file:///home/runner/work/AresOS/AresOS/control/checks/17-chrome/protocol.mjs:31:153)\n    at Socket.emit (node:events:519:28)\n    at addChunk (node:internal/streams/readable:561:12)\n    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)\n    at Readable.push (node:internal/streams/readable:392:5)\n    at Pipe.onStreamRead (node:internal/stream_base_commons:189:23)"
+    },
+    {
+      "0": {
+        "label": "fixture",
+        "readyState": "open"
+      },
+      "1": {
+        "label": "fixture",
+        "readyState": "open"
+      },
+      "name": "Q4_RTC_IDLE_INVENTORY",
+      "status": "observed"
+    },
+    {
+      "name": "Q4_WEBRTC",
+      "status": "observed",
+      "media": {
+        "error": "Media.enable: \"Error: {\\\"code\\\":-32601,\\\"message\\\":\\\"'Media.enable' wasn't found\\\"}\""
+      },
+      "inventory": [
+        {
+          "label": "fixture",
+          "readyState": "open"
+        },
+        {
+          "label": "fixture",
+          "readyState": "open"
+        }
+      ],
+      "events": [
+        {
+          "at": 1794031167890,
+          "method": "Network.webSocketFrameSent",
+          "params": {
+            "requestId": "4419.3",
+            "response": {
+              "mask": true,
+              "opcode": 1,
+              "payloadData": "synthetic preattach"
+            },
+            "timestamp": 92.075108
+          }
+        },
+        {
+          "at": 1794031167890,
+          "method": "Network.webSocketFrameReceived",
+          "params": {
+            "requestId": "4419.3",
+            "response": {
+              "mask": false,
+              "opcode": 1,
+              "payloadData": "echo"
+            },
+            "timestamp": 92.075604
+          }
+        }
+      ],
+      "afterReattachEvents": [],
+      "readyState": "open",
+      "states": [
+        {
+          "at": 1794031165653,
+          "s": "ws open"
+        },
+        {
+          "at": 1794031166858,
+          "s": "echo"
+        },
+        {
+          "at": 1794031167890,
+          "s": "echo"
+        },
+        {
+          "at": 1794031168403,
+          "s": "rtc synthetic rtc"
+        },
+        {
+          "at": 1794031168723,
+          "s": "rtc synthetic preattach rtc"
+        }
+      ]
+    },
+    {
+      "0": {
+        "closed": false,
+        "ready": true
+      },
+      "name": "Q4_WT_IDLE_INVENTORY",
+      "status": "observed"
+    },
+    {
+      "name": "Q4_WEBTRANSPORT",
+      "status": "observed",
+      "inventory": [
+        {
+          "closed": false,
+          "ready": true
+        }
+      ],
+      "events": [
+        {
+          "at": 1794031169028,
+          "method": "Network.webTransportCreated",
+          "params": {
+            "initiator": {
+              "stack": {
+                "callFrames": [
+                  {
+                    "columnNumber": 17,
+                    "functionName": "",
+                    "lineNumber": 0,
+                    "scriptId": "18",
+                    "url": ""
+                  }
+                ]
+              },
+              "type": "script"
+            },
+            "timestamp": 93.213978,
+            "transportId": "4419.4",
+            "url": "https://127.0.0.1:4433/check"
+          }
+        },
+        {
+          "at": 1794031169034,
+          "method": "Network.webTransportConnectionEstablished",
+          "params": {
+            "timestamp": 93.219233,
+            "transportId": "4419.4"
+          }
+        }
+      ],
+      "afterReattachEvents": [],
+      "states": [
+        {
+          "at": 1794031165653,
+          "s": "ws open"
+        },
+        {
+          "at": 1794031166858,
+          "s": "echo"
+        },
+        {
+          "at": 1794031167890,
+          "s": "echo"
+        },
+        {
+          "at": 1794031168403,
+          "s": "rtc synthetic rtc"
+        },
+        {
+          "at": 1794031168723,
+          "s": "rtc synthetic preattach rtc"
+        },
+        {
+          "at": 1794031169033,
+          "s": "wt open"
+        }
+      ],
+      "server": "{\"kind\": \"connect\", \"at\": 1794031169033.102, \"headers\": {\":scheme\": \"https\", \":method\": \"CONNECT\", \":authority\": \"127.0.0.1:4433\", \":path\": \"/check\", \":protocol\": \"webtransport\", \"sec-webtransport-http3-draft02\": \"1\", \"origin\": \"http://127.0.0.1:36893\"}}\n{\"kind\": \"datagram\", \"at\": 1794031169133.0852, \"body\": \"synthetic transport\"}\n{\"kind\": \"datagram\", \"at\": 1794031169818.1416, \"body\": \"synthetic preattach transport\"}\n"
+    },
+    {
+      "name": "Q4_TRANSPORT_DIAGNOSTIC",
+      "states": [
+        {
+          "at": 1794031165653,
+          "s": "ws open"
+        },
+        {
+          "at": 1794031166858,
+          "s": "echo"
+        },
+        {
+          "at": 1794031167890,
+          "s": "echo"
+        },
+        {
+          "at": 1794031168403,
+          "s": "rtc synthetic rtc"
+        },
+        {
+          "at": 1794031168723,
+          "s": "rtc synthetic preattach rtc"
+        },
+        {
+          "at": 1794031169033,
+          "s": "wt open"
+        }
+      ],
+      "events": [
+        {
+          "at": 1794031167890,
+          "method": "Network.webSocketFrameSent",
+          "params": {
+            "requestId": "4419.3",
+            "response": {
+              "mask": true,
+              "opcode": 1,
+              "payloadData": "synthetic preattach"
+            },
+            "timestamp": 92.075108
+          }
+        },
+        {
+          "at": 1794031167890,
+          "method": "Network.webSocketFrameReceived",
+          "params": {
+            "requestId": "4419.3",
+            "response": {
+              "mask": false,
+              "opcode": 1,
+              "payloadData": "echo"
+            },
+            "timestamp": 92.075604
+          }
+        },
+        {
+          "at": 1794031169028,
+          "method": "Network.webTransportCreated",
+          "params": {
+            "initiator": {
+              "stack": {
+                "callFrames": [
+                  {
+                    "columnNumber": 17,
+                    "functionName": "",
+                    "lineNumber": 0,
+                    "scriptId": "18",
+                    "url": ""
+                  }
+                ]
+              },
+              "type": "script"
+            },
+            "timestamp": 93.213978,
+            "transportId": "4419.4",
+            "url": "https://127.0.0.1:4433/check"
+          }
+        },
+        {
+          "at": 1794031169034,
+          "method": "Network.webTransportConnectionEstablished",
+          "params": {
+            "timestamp": 93.219233,
+            "transportId": "4419.4"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Q4_TYPED",
+      "id": "typed-0-5000",
+      "encoding": 0,
+      "delayMs": 5072,
+      "settleMs": 500,
+      "outsideSettle": true,
+      "preview": {
+        "networkId": "4419.7",
+        "headerHash": "640251ac0e9f7d08acbf4adc1a3de362064491e2e9947ef2d2f665445094e59b",
+        "headers": {
+          "Accept": "*/*",
+          "Content-Type": "text/plain;charset=UTF-8",
+          "Origin": "http://127.0.0.1:36893",
+          "Referer": "http://127.0.0.1:36893/",
+          "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+          "sec-ch-ua-mobile": "?0",
+          "sec-ch-ua-platform": "\"Linux\"",
+          "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36"
+        },
+        "url": "http://127.0.0.1:36893/receive?case=typed-0-5000",
+        "method": "POST",
+        "body": "Synthetic 17b \"a+b\" / ✓",
+        "type": "XHR",
+        "typed": [
+          "Synthetic 17b \"a+b\" / ✓"
+        ],
+        "source": {
+          "tabId": 2142287260
+        },
+        "id": "interception-job-3.0",
+        "at": 1794031175853
+      }
+    },
+    {
+      "name": "Q4_TYPED",
+      "id": "typed-0-10000",
+      "encoding": 0,
+      "delayMs": 10052,
+      "settleMs": 500,
+      "outsideSettle": true,
+      "preview": {
+        "networkId": "4419.8",
+        "headerHash": "640251ac0e9f7d08acbf4adc1a3de362064491e2e9947ef2d2f665445094e59b",
+        "headers": {
+          "Accept": "*/*",
+          "Content-Type": "text/plain;charset=UTF-8",
+          "Origin": "http://127.0.0.1:36893",
+          "Referer": "http://127.0.0.1:36893/",
+          "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+          "sec-ch-ua-mobile": "?0",
+          "sec-ch-ua-platform": "\"Linux\"",
+          "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36"
+        },
+        "url": "http://127.0.0.1:36893/receive?case=typed-0-10000",
+        "method": "POST",
+        "body": "Synthetic 17b \"a+b\" / ✓",
+        "type": "XHR",
+        "typed": [
+          "Synthetic 17b \"a+b\" / ✓"
+        ],
+        "source": {
+          "tabId": 2142287260
+        },
+        "id": "interception-job-4.0",
+        "at": 1794031185922
+      }
+    },
+    {
+      "name": "Q4_TYPED",
+      "id": "typed-1-5000",
+      "encoding": 1,
+      "delayMs": 5099,
+      "settleMs": 500,
+      "outsideSettle": true,
+      "preview": {
+        "networkId": "4419.9",
+        "headerHash": "640251ac0e9f7d08acbf4adc1a3de362064491e2e9947ef2d2f665445094e59b",
+        "headers": {
+          "Accept": "*/*",
+          "Content-Type": "text/plain;charset=UTF-8",
+          "Origin": "http://127.0.0.1:36893",
+          "Referer": "http://127.0.0.1:36893/",
+          "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+          "sec-ch-ua-mobile": "?0",
+          "sec-ch-ua-platform": "\"Linux\"",
+          "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36"
+        },
+        "url": "http://127.0.0.1:36893/receive?case=typed-1-5000",
+        "method": "POST",
+        "body": "Synthetic%2017b%20%22a%2Bb%22%20%2F%20%E2%9C%93",
+        "type": "XHR",
+        "typed": [
+          "Synthetic 17b \"a+b\" / ✓"
+        ],
+        "source": {
+          "tabId": 2142287260
+        },
+        "id": "interception-job-5.0",
+        "at": 1794031191128
+      }
+    },
+    {
+      "name": "Q4_TYPED",
+      "id": "typed-1-10000",
+      "encoding": 1,
+      "delayMs": 10046,
+      "settleMs": 500,
+      "outsideSettle": true,
+      "preview": {
+        "networkId": "4419.10",
+        "headerHash": "640251ac0e9f7d08acbf4adc1a3de362064491e2e9947ef2d2f665445094e59b",
+        "headers": {
+          "Accept": "*/*",
+          "Content-Type": "text/plain;charset=UTF-8",
+          "Origin": "http://127.0.0.1:36893",
+          "Referer": "http://127.0.0.1:36893/",
+          "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+          "sec-ch-ua-mobile": "?0",
+          "sec-ch-ua-platform": "\"Linux\"",
+          "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36"
+        },
+        "url": "http://127.0.0.1:36893/receive?case=typed-1-10000",
+        "method": "POST",
+        "body": "Synthetic%2017b%20%22a%2Bb%22%20%2F%20%E2%9C%93",
+        "type": "XHR",
+        "typed": [
+          "Synthetic 17b \"a+b\" / ✓"
+        ],
+        "source": {
+          "tabId": 2142287260
+        },
+        "id": "interception-job-6.0",
+        "at": 1794031201227
+      }
+    },
+    {
+      "name": "Q4_TYPED",
+      "id": "typed-2-5000",
+      "encoding": 2,
+      "delayMs": 5076,
+      "settleMs": 500,
+      "outsideSettle": true,
+      "preview": {
+        "networkId": "4419.11",
+        "headerHash": "640251ac0e9f7d08acbf4adc1a3de362064491e2e9947ef2d2f665445094e59b",
+        "headers": {
+          "Accept": "*/*",
+          "Content-Type": "text/plain;charset=UTF-8",
+          "Origin": "http://127.0.0.1:36893",
+          "Referer": "http://127.0.0.1:36893/",
+          "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+          "sec-ch-ua-mobile": "?0",
+          "sec-ch-ua-platform": "\"Linux\"",
+          "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36"
+        },
+        "url": "http://127.0.0.1:36893/receive?case=typed-2-5000",
+        "method": "POST",
+        "body": "Synthetic+17b+%22a%2Bb%22+%2F+%E2%9C%93",
+        "type": "XHR",
+        "typed": [
+          "Synthetic 17b \"a+b\" / ✓"
+        ],
+        "source": {
+          "tabId": 2142287260
+        },
+        "id": "interception-job-7.0",
+        "at": 1794031206272
+      }
+    },
+    {
+      "name": "Q4_TYPED",
+      "id": "typed-2-10000",
+      "encoding": 2,
+      "delayMs": 10039,
+      "settleMs": 500,
+      "outsideSettle": true,
+      "preview": {
+        "networkId": "4419.12",
+        "headerHash": "640251ac0e9f7d08acbf4adc1a3de362064491e2e9947ef2d2f665445094e59b",
+        "headers": {
+          "Accept": "*/*",
+          "Content-Type": "text/plain;charset=UTF-8",
+          "Origin": "http://127.0.0.1:36893",
+          "Referer": "http://127.0.0.1:36893/",
+          "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+          "sec-ch-ua-mobile": "?0",
+          "sec-ch-ua-platform": "\"Linux\"",
+          "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36"
+        },
+        "url": "http://127.0.0.1:36893/receive?case=typed-2-10000",
+        "method": "POST",
+        "body": "Synthetic+17b+%22a%2Bb%22+%2F+%E2%9C%93",
+        "type": "XHR",
+        "typed": [
+          "Synthetic 17b \"a+b\" / ✓"
+        ],
+        "source": {
+          "tabId": 2142287260
+        },
+        "id": "interception-job-8.0",
+        "at": 1794031216349
+      }
+    },
+    {
+      "name": "Q4_TYPED",
+      "id": "typed-3-5000",
+      "encoding": 3,
+      "delayMs": 5077,
+      "settleMs": 500,
+      "outsideSettle": true,
+      "preview": {
+        "networkId": "4419.13",
+        "headerHash": "640251ac0e9f7d08acbf4adc1a3de362064491e2e9947ef2d2f665445094e59b",
+        "headers": {
+          "Accept": "*/*",
+          "Content-Type": "text/plain;charset=UTF-8",
+          "Origin": "http://127.0.0.1:36893",
+          "Referer": "http://127.0.0.1:36893/",
+          "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+          "sec-ch-ua-mobile": "?0",
+          "sec-ch-ua-platform": "\"Linux\"",
+          "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36"
+        },
+        "url": "http://127.0.0.1:36893/receive?case=typed-3-5000",
+        "method": "POST",
+        "body": "Synthetic 17b \\\"a+b\\\" / ✓",
+        "type": "XHR",
+        "typed": [
+          "Synthetic 17b \"a+b\" / ✓"
+        ],
+        "source": {
+          "tabId": 2142287260
+        },
+        "id": "interception-job-9.0",
+        "at": 1794031221388
+      }
+    },
+    {
+      "name": "Q4_TYPED",
+      "id": "typed-3-10000",
+      "encoding": 3,
+      "delayMs": 10056,
+      "settleMs": 500,
+      "outsideSettle": true,
+      "preview": {
+        "networkId": "4419.14",
+        "headerHash": "640251ac0e9f7d08acbf4adc1a3de362064491e2e9947ef2d2f665445094e59b",
+        "headers": {
+          "Accept": "*/*",
+          "Content-Type": "text/plain;charset=UTF-8",
+          "Origin": "http://127.0.0.1:36893",
+          "Referer": "http://127.0.0.1:36893/",
+          "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+          "sec-ch-ua-mobile": "?0",
+          "sec-ch-ua-platform": "\"Linux\"",
+          "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36"
+        },
+        "url": "http://127.0.0.1:36893/receive?case=typed-3-10000",
+        "method": "POST",
+        "body": "Synthetic 17b \\\"a+b\\\" / ✓",
+        "type": "XHR",
+        "typed": [
+          "Synthetic 17b \"a+b\" / ✓"
+        ],
+        "source": {
+          "tabId": 2142287260
+        },
+        "id": "interception-job-10.0",
+        "at": 1794031231466
+      }
+    },
+    {
+      "name": "Q4_TYPED",
+      "id": "typed-4-5000",
+      "encoding": 4,
+      "delayMs": 5084,
+      "settleMs": 500,
+      "outsideSettle": true,
+      "preview": {
+        "networkId": "4419.15",
+        "headerHash": "640251ac0e9f7d08acbf4adc1a3de362064491e2e9947ef2d2f665445094e59b",
+        "headers": {
+          "Accept": "*/*",
+          "Content-Type": "text/plain;charset=UTF-8",
+          "Origin": "http://127.0.0.1:36893",
+          "Referer": "http://127.0.0.1:36893/",
+          "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+          "sec-ch-ua-mobile": "?0",
+          "sec-ch-ua-platform": "\"Linux\"",
+          "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36"
+        },
+        "url": "http://127.0.0.1:36893/receive?case=typed-4-5000",
+        "method": "POST",
+        "body": "U3ludGhldGljIDE3YiAiYStiIiAvIOKckw==",
+        "type": "XHR",
+        "typed": [
+          "Synthetic 17b \"a+b\" / ✓"
+        ],
+        "source": {
+          "tabId": 2142287260
+        },
+        "id": "interception-job-11.0",
+        "at": 1794031236523
+      }
+    },
+    {
+      "name": "Q4_TYPED",
+      "id": "typed-4-10000",
+      "encoding": 4,
+      "delayMs": 10051,
+      "settleMs": 500,
+      "outsideSettle": true,
+      "preview": {
+        "networkId": "4419.16",
+        "headerHash": "640251ac0e9f7d08acbf4adc1a3de362064491e2e9947ef2d2f665445094e59b",
+        "headers": {
+          "Accept": "*/*",
+          "Content-Type": "text/plain;charset=UTF-8",
+          "Origin": "http://127.0.0.1:36893",
+          "Referer": "http://127.0.0.1:36893/",
+          "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+          "sec-ch-ua-mobile": "?0",
+          "sec-ch-ua-platform": "\"Linux\"",
+          "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36"
+        },
+        "url": "http://127.0.0.1:36893/receive?case=typed-4-10000",
+        "method": "POST",
+        "body": "U3ludGhldGljIDE3YiAiYStiIiAvIOKckw==",
+        "type": "XHR",
+        "typed": [
+          "Synthetic 17b \"a+b\" / ✓"
+        ],
+        "source": {
+          "tabId": 2142287260
+        },
+        "id": "interception-job-12.0",
+        "at": 1794031246607
+      }
+    },
+    {
+      "name": "Q4_TYPED_IMAGE",
+      "preview": {
+        "networkId": "4419.17",
+        "headerHash": "dcd21eb38cccc7019cbde855151bf41ddd3cc249fab7b85129d25ffb3f8fbeff",
+        "headers": {
+          "Accept": "image/jxl,image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+          "Referer": "http://127.0.0.1:36893/",
+          "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+          "sec-ch-ua-mobile": "?0",
+          "sec-ch-ua-platform": "\"Linux\"",
+          "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36"
+        },
+        "url": "http://127.0.0.1:36893/receive?case=typed-image&text=Synthetic%2017b%20%22a%2Bb%22%20%2F%20%E2%9C%93",
+        "method": "GET",
+        "body": null,
+        "type": "Image",
+        "typed": [
+          "Synthetic 17b \"a+b\" / ✓"
+        ],
+        "source": {
+          "tabId": 2142287260
+        },
+        "id": "interception-job-13.0",
+        "at": 1794031246659
+      }
+    },
+    {
+      "name": "Q4_TYPED_NEGATIVE",
+      "preview": {
+        "networkId": "4419.18",
+        "headerHash": "640251ac0e9f7d08acbf4adc1a3de362064491e2e9947ef2d2f665445094e59b",
+        "headers": {
+          "Accept": "*/*",
+          "Content-Type": "text/plain;charset=UTF-8",
+          "Origin": "http://127.0.0.1:36893",
+          "Referer": "http://127.0.0.1:36893/",
+          "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+          "sec-ch-ua-mobile": "?0",
+          "sec-ch-ua-platform": "\"Linux\"",
+          "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36"
+        },
+        "url": "http://127.0.0.1:36893/receive?case=typed-negative",
+        "method": "POST",
+        "body": "synthetic fetch",
+        "type": "XHR",
+        "typed": [],
+        "source": {
+          "tabId": 2142287260
+        },
+        "id": "interception-job-14.0",
+        "at": 1794031247315
+      }
+    },
+    {
+      "name": "Q5_GROUP_OPEN",
+      "opened": {
+        "active": true,
+        "audible": false,
+        "autoDiscardable": true,
+        "discarded": false,
+        "frozen": false,
+        "groupId": 708555826,
+        "height": 913,
+        "highlighted": true,
+        "id": 2142287268,
+        "incognito": false,
+        "index": 1,
+        "lastAccessed": 1794031248049.882,
+        "mutedInfo": {
+          "muted": false
+        },
+        "pendingUrl": "http://127.0.0.1:36893/new",
+        "pinned": false,
+        "selected": true,
+        "splitViewId": -1,
+        "status": "loading",
+        "title": "",
+        "url": "",
+        "width": 1440,
+        "windowId": 2142287259
+      },
+      "tabs": [
+        {
+          "active": false,
+          "audible": false,
+          "autoDiscardable": true,
+          "discarded": false,
+          "frozen": false,
+          "groupId": 708555826,
+          "height": 913,
+          "highlighted": false,
+          "id": 2142287260,
+          "incognito": false,
+          "index": 0,
+          "lastAccessed": 1794031170326.702,
+          "mutedInfo": {
+            "muted": false
+          },
+          "pinned": false,
+          "selected": false,
+          "splitViewId": -1,
+          "status": "complete",
+          "title": "17b synthetic fixture",
+          "url": "http://127.0.0.1:36893/",
+          "width": 1440,
+          "windowId": 2142287259
+        },
+        {
+          "active": true,
+          "audible": false,
+          "autoDiscardable": true,
+          "discarded": false,
+          "frozen": false,
+          "groupId": 708555826,
+          "height": 913,
+          "highlighted": true,
+          "id": 2142287268,
+          "incognito": false,
+          "index": 1,
+          "lastAccessed": 1794031248049.882,
+          "mutedInfo": {
+            "muted": false
+          },
+          "pinned": false,
+          "selected": true,
+          "splitViewId": -1,
+          "status": "complete",
+          "title": "17b synthetic fixture",
+          "url": "http://127.0.0.1:36893/new",
+          "width": 1440,
+          "windowId": 2142287259
+        },
+        {
+          "active": false,
+          "audible": false,
+          "autoDiscardable": true,
+          "discarded": false,
+          "favIconUrl": "",
+          "frozen": false,
+          "groupId": -1,
+          "height": 913,
+          "highlighted": false,
+          "id": 2142287267,
+          "incognito": false,
+          "index": 2,
+          "lastAccessed": 1794031163615.356,
+          "mutedInfo": {
+            "muted": false
+          },
+          "pinned": false,
+          "selected": false,
+          "splitViewId": -1,
+          "status": "complete",
+          "title": "Choose fixture tab",
+          "url": "chrome-extension://bbakikpjpafacfddaobfckebkcihcmlk/select.html?url=http%3A%2F%2F127.0.0.1%3A36893%2F",
+          "width": 1440,
+          "windowId": 2142287259
+        }
+      ]
+    },
+    {
+      "name": "Q5_OUTSIDE_REFUSED",
+      "refused": true
+    },
+    {
+      "name": "Q5_GROUP_OUT",
+      "previews": [
+        {
+          "networkId": "4419.21",
+          "headerHash": "640251ac0e9f7d08acbf4adc1a3de362064491e2e9947ef2d2f665445094e59b",
+          "headers": {
+            "Accept": "*/*",
+            "Content-Type": "text/plain;charset=UTF-8",
+            "Origin": "http://127.0.0.1:36893",
+            "Referer": "http://127.0.0.1:36893/",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Linux\"",
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36"
+          },
+          "url": "http://127.0.0.1:36893/receive?case=group-out",
+          "method": "POST",
+          "body": "synthetic fetch",
+          "type": "XHR",
+          "typed": [],
+          "source": {
+            "tabId": 2142287260
+          },
+          "id": "interception-job-17.0",
+          "at": 1794031248614
+        },
+        {
+          "networkId": "4419.22",
+          "headerHash": "640251ac0e9f7d08acbf4adc1a3de362064491e2e9947ef2d2f665445094e59b",
+          "headers": {
+            "Accept": "*/*",
+            "Content-Type": "text/plain;charset=UTF-8",
+            "Origin": "http://127.0.0.1:36893",
+            "Referer": "http://127.0.0.1:36893/",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Linux\"",
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36"
+          },
+          "url": "http://127.0.0.1:36893/receive?case=group-out-second",
+          "method": "POST",
+          "body": "synthetic fetch",
+          "type": "XHR",
+          "typed": [],
+          "source": {
+            "tabId": 2142287260
+          },
+          "id": "interception-job-18.0",
+          "at": 1794031248616
+        }
+      ],
+      "arrivals": [],
+      "secondArrivals": [],
+      "state": {
+        "selected": 2142287260,
+        "group": 708555826,
+        "groupInfo": {
+          "collapsed": false,
+          "color": "blue",
+          "id": 708555826,
+          "shared": false,
+          "title": "Claude",
+          "windowId": 2142287259
+        },
+        "pending": [],
+        "history": [
+          {
+            "method": "check.decision",
+            "params": {
+              "id": "interception-job-3.0",
+              "release": false
+            },
+            "at": 1794031175918
+          },
+          {
+            "method": "check.decision",
+            "params": {
+              "id": "interception-job-4.0",
+              "release": false
+            },
+            "at": 1794031185971
+          },
+          {
+            "method": "check.decision",
+            "params": {
+              "id": "interception-job-5.0",
+              "release": false
+            },
+            "at": 1794031191223
+          },
+          {
+            "method": "check.decision",
+            "params": {
+              "id": "interception-job-6.0",
+              "release": false
+            },
+            "at": 1794031201269
+          },
+          {
+            "method": "check.decision",
+            "params": {
+              "id": "interception-job-7.0",
+              "release": false
+            },
+            "at": 1794031206346
+          },
+          {
+            "method": "check.decision",
+            "params": {
+              "id": "interception-job-8.0",
+              "release": false
+            },
+            "at": 1794031216385
+          },
+          {
+            "method": "check.decision",
+            "params": {
+              "id": "interception-job-9.0",
+              "release": false
+            },
+            "at": 1794031221463
+          },
+          {
+            "method": "check.decision",
+            "params": {
+              "id": "interception-job-10.0",
+              "release": false
+            },
+            "at": 1794031231520
+          },
+          {
+            "method": "check.decision",
+            "params": {
+              "id": "interception-job-11.0",
+              "release": false
+            },
+            "at": 1794031236603
+          },
+          {
+            "method": "check.decision",
+            "params": {
+              "id": "interception-job-12.0",
+              "release": false
+            },
+            "at": 1794031246655
+          },
+          {
+            "method": "check.decision",
+            "params": {
+              "id": "interception-job-13.0",
+              "release": false
+            },
+            "at": 1794031246660
+          },
+          {
+            "method": "check.decision",
+            "params": {
+              "id": "interception-job-14.0",
+              "release": false
+            },
+            "at": 1794031247317
+          },
+          {
+            "method": "check.held",
+            "params": {
+              "networkId": "4419.21",
+              "headerHash": "640251ac0e9f7d08acbf4adc1a3de362064491e2e9947ef2d2f665445094e59b",
+              "headers": {
+                "Accept": "*/*",
+                "Content-Type": "text/plain;charset=UTF-8",
+                "Origin": "http://127.0.0.1:36893",
+                "Referer": "http://127.0.0.1:36893/",
+                "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+                "sec-ch-ua-mobile": "?0",
+                "sec-ch-ua-platform": "\"Linux\"",
+                "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36"
+              },
+              "url": "http://127.0.0.1:36893/receive?case=group-out",
+              "method": "POST",
+              "body": "synthetic fetch",
+              "type": "XHR",
+              "typed": [],
+              "source": {
+                "tabId": 2142287260
+              },
+              "id": "interception-job-17.0",
+              "at": 1794031248614
+            },
+            "at": 1794031248614
+          },
+          {
+            "method": "check.held",
+            "params": {
+              "networkId": "4419.22",
+              "headerHash": "640251ac0e9f7d08acbf4adc1a3de362064491e2e9947ef2d2f665445094e59b",
+              "headers": {
+                "Accept": "*/*",
+                "Content-Type": "text/plain;charset=UTF-8",
+                "Origin": "http://127.0.0.1:36893",
+                "Referer": "http://127.0.0.1:36893/",
+                "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+                "sec-ch-ua-mobile": "?0",
+                "sec-ch-ua-platform": "\"Linux\"",
+                "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36"
+              },
+              "url": "http://127.0.0.1:36893/receive?case=group-out-second",
+              "method": "POST",
+              "body": "synthetic fetch",
+              "type": "XHR",
+              "typed": [],
+              "source": {
+                "tabId": 2142287260
+              },
+              "id": "interception-job-18.0",
+              "at": 1794031248616
+            },
+            "at": 1794031248616
+          },
+          {
+            "method": "check.decision",
+            "params": {
+              "id": "interception-job-17.0",
+              "release": false
+            },
+            "at": 1794031248885
+          },
+          {
+            "method": "check.decision",
+            "params": {
+              "id": "interception-job-18.0",
+              "release": false
+            },
+            "at": 1794031248886
+          },
+          {
+            "method": "check.controlEnded",
+            "params": {
+              "tabId": 2142287260,
+              "reason": "left Claude group"
+            },
+            "at": 1794031248887
+          }
+        ],
+        "errors": [],
+        "version": "0.2.0",
+        "rules": []
+      }
+    },
+    {
+      "name": "Q5_GROUP_CLOSE",
+      "arrivals": []
+    },
+    {
+      "name": "CONNECTED",
+      "tabId": 2142287324,
+      "group": 175736621,
+      "version": "0.2.0",
+      "host": "system"
+    },
+    {
+      "name": "Q4_PUBLIC_wikipedia",
+      "status": "observed",
+      "title": "Wikipedia, the free encyclopedia",
+      "action": {
+        "form": true,
+        "found": true,
+        "name": "search",
+        "placeholder": "Search Wikipedia",
+        "type": "search"
+      },
+      "expected": {
+        "action": "https://en.wikipedia.org/w/index.php",
+        "fields": [
+          [
+            "search",
+            "SyntheticFixture17b value+% ☃"
+          ],
+          [
+            "title",
+            "Special:Search"
+          ]
+        ],
+        "method": "GET"
+      },
+      "observedFormMiss": false,
+      "loadTypedFalseAlarms": 0,
+      "elapsedMs": 15844,
+      "textRequests": 1,
+      "ruleMisses": 0,
+      "unlabelledRequests": 17,
+      "repeat": [
+        [
+          "{\"url\":\"https://en.wikipedia.org/w/index.php?search=SyntheticFixture17b+value%2B%25+%E2%98%83&title=Special%3ASearch\",\"method\":\"GET\",\"body\":null,\"headerHash\":\"649418ef6823bfa9aa0c79c4b88bcbe4434b6071adc145dbf390b3296ecc6c2e\"}"
+        ]
+      ],
+      "ignoredVolatileFields": [],
+      "actionStarts": [
+        1794031267324
+      ],
+      "settleWindows": [
+        {
+          "start": 1794031267324,
+          "end": 1794031267836
+        }
+      ],
+      "outsideActionSettle": 0,
+      "requestCount": 18,
+      "typedCarrierRequests": [
+        {
+          "networkId": "AC7611E07DF3787AED68AC9755F0F912",
+          "headerHash": "649418ef6823bfa9aa0c79c4b88bcbe4434b6071adc145dbf390b3296ecc6c2e",
+          "url": "https://en.wikipedia.org/w/index.php?search=SyntheticFixture17b+value%2B%25+%E2%98%83&title=Special%3ASearch",
+          "method": "GET",
+          "body": null,
+          "type": "Document",
+          "typed": [
+            "SyntheticFixture17b value+% ☃"
+          ],
+          "source": {
+            "tabId": 2142287324
+          },
+          "block": true,
+          "at": 1794031267337
+        }
+      ],
+      "guardOnlyDrops": 0,
+      "repeatComparisons": 0,
+      "exactRepeatMatches": 0
+    },
+    {
+      "name": "Q4_PUBLIC_news",
+      "status": "observed",
+      "title": "BBC News - Breaking news, video and the latest top stories from the U.S. and around the world",
+      "action": {
+        "form": false,
+        "found": true,
+        "name": "",
+        "placeholder": "Search news, topics and more",
+        "type": "text"
+      },
+      "expected": null,
+      "observedFormMiss": null,
+      "loadTypedFalseAlarms": 0,
+      "elapsedMs": 16165,
+      "textRequests": 0,
+      "ruleMisses": null,
+      "unlabelledRequests": 100,
+      "repeat": [],
+      "ignoredVolatileFields": [],
+      "actionStarts": [
+        1794031283197
+      ],
+      "settleWindows": [
+        {
+          "start": 1794031283197,
+          "end": 1794031283697
+        }
+      ],
+      "outsideActionSettle": 0,
+      "requestCount": 100,
+      "typedCarrierRequests": [],
+      "guardOnlyDrops": 1,
+      "repeatComparisons": 0,
+      "exactRepeatMatches": 0
+    },
+    {
+      "name": "Q4_PUBLIC_demo",
+      "status": "observed",
+      "title": "Web form",
+      "action": {
+        "form": true,
+        "found": true,
+        "name": "my-text",
+        "placeholder": "",
+        "type": "text"
+      },
+      "expected": {
+        "action": "https://www.selenium.dev/selenium/web/submitted-form.html",
+        "fields": [
+          [
+            "my-text",
+            "SyntheticFixture17b value+% ☃"
+          ],
+          [
+            "my-password",
+            ""
+          ],
+          [
+            "my-textarea",
+            ""
+          ],
+          [
+            "my-readonly",
+            "Readonly input"
+          ],
+          [
+            "my-select",
+            "Open this select menu"
+          ],
+          [
+            "my-datalist",
+            ""
+          ],
+          [
+            "my-file",
+            {}
+          ],
+          [
+            "my-check",
+            "on"
+          ],
+          [
+            "my-radio",
+            "on"
+          ],
+          [
+            "my-colors",
+            "#563d7c"
+          ],
+          [
+            "my-date",
+            ""
+          ],
+          [
+            "my-range",
+            "5"
+          ],
+          [
+            "my-hidden",
+            ""
+          ]
+        ],
+        "method": "GET"
+      },
+      "observedFormMiss": false,
+      "loadTypedFalseAlarms": 0,
+      "elapsedMs": 21137,
+      "textRequests": 3,
+      "ruleMisses": 0,
+      "unlabelledRequests": 19,
+      "repeat": [
+        [
+          "{\"url\":\"https://www.selenium.dev/selenium/web/submitted-form.html?my-text=SyntheticFixture17b+value%2B%25+%E2%98%83&my-password=&my-textarea=&my-readonly=Readonly+input&my-select=Open+this+select+menu&my-datalist=&my-file=&my-check=on&my-radio=on&my-colors=%23563d7c&my-date=&my-range=5&my-hidden=\",\"method\":\"GET\",\"body\":null,\"headerHash\":\"28addf88e956ca890f82069b7211018ca02971068d2f5bf170cf8edf9320f7ed\"}"
+        ],
+        [
+          "{\"url\":\"https://www.selenium.dev/selenium/web/submitted-form.html?my-text=SyntheticFixture17b+value%2B%25+%E2%98%83&my-password=&my-textarea=&my-readonly=Readonly+input&my-select=Open+this+select+menu&my-datalist=&my-file=&my-check=on&my-radio=on&my-colors=%23563d7c&my-date=&my-range=5&my-hidden=\",\"method\":\"GET\",\"body\":null,\"headerHash\":\"28addf88e956ca890f82069b7211018ca02971068d2f5bf170cf8edf9320f7ed\"}"
+        ],
+        [
+          "{\"url\":\"https://www.selenium.dev/selenium/web/submitted-form.html?my-text=SyntheticFixture17b+value%2B%25+%E2%98%83&my-password=&my-textarea=&my-readonly=Readonly+input&my-select=Open+this+select+menu&my-datalist=&my-file=&my-check=on&my-radio=on&my-colors=%23563d7c&my-date=&my-range=5&my-hidden=\",\"method\":\"GET\",\"body\":null,\"headerHash\":\"28addf88e956ca890f82069b7211018ca02971068d2f5bf170cf8edf9320f7ed\"}"
+        ]
+      ],
+      "ignoredVolatileFields": [],
+      "actionStarts": [
+        1794031299602,
+        1794031302124,
+        1794031304644
+      ],
+      "settleWindows": [
+        {
+          "start": 1794031299602,
+          "end": 1794031300114
+        },
+        {
+          "start": 1794031302124,
+          "end": 1794031302629
+        },
+        {
+          "start": 1794031304644,
+          "end": 1794031305149
+        }
+      ],
+      "outsideActionSettle": 0,
+      "requestCount": 22,
+      "typedCarrierRequests": [
+        {
+          "networkId": "9158DE86ABD8FFBF09710439B8C61890",
+          "headerHash": "28addf88e956ca890f82069b7211018ca02971068d2f5bf170cf8edf9320f7ed",
+          "url": "https://www.selenium.dev/selenium/web/submitted-form.html?my-text=SyntheticFixture17b+value%2B%25+%E2%98%83&my-password=&my-textarea=&my-readonly=Readonly+input&my-select=Open+this+select+menu&my-datalist=&my-file=&my-check=on&my-radio=on&my-colors=%23563d7c&my-date=&my-range=5&my-hidden=",
+          "method": "GET",
+          "body": null,
+          "type": "Document",
+          "typed": [
+            "SyntheticFixture17b value+% ☃"
+          ],
+          "source": {
+            "tabId": 2142287324
+          },
+          "block": true,
+          "at": 1794031299615
+        },
+        {
+          "networkId": "2048CD9828DC0F59E77F9DC2B620F0FD",
+          "headerHash": "28addf88e956ca890f82069b7211018ca02971068d2f5bf170cf8edf9320f7ed",
+          "url": "https://www.selenium.dev/selenium/web/submitted-form.html?my-text=SyntheticFixture17b+value%2B%25+%E2%98%83&my-password=&my-textarea=&my-readonly=Readonly+input&my-select=Open+this+select+menu&my-datalist=&my-file=&my-check=on&my-radio=on&my-colors=%23563d7c&my-date=&my-range=5&my-hidden=",
+          "method": "GET",
+          "body": null,
+          "type": "Document",
+          "typed": [
+            "SyntheticFixture17b value+% ☃"
+          ],
+          "source": {
+            "tabId": 2142287324
+          },
+          "block": true,
+          "at": 1794031302130
+        },
+        {
+          "networkId": "CDDEEF1EE16323074511432F7D7C3BE5",
+          "headerHash": "28addf88e956ca890f82069b7211018ca02971068d2f5bf170cf8edf9320f7ed",
+          "url": "https://www.selenium.dev/selenium/web/submitted-form.html?my-text=SyntheticFixture17b+value%2B%25+%E2%98%83&my-password=&my-textarea=&my-readonly=Readonly+input&my-select=Open+this+select+menu&my-datalist=&my-file=&my-check=on&my-radio=on&my-colors=%23563d7c&my-date=&my-range=5&my-hidden=",
+          "method": "GET",
+          "body": null,
+          "type": "Document",
+          "typed": [
+            "SyntheticFixture17b value+% ☃"
+          ],
+          "source": {
+            "tabId": 2142287324
+          },
+          "block": true,
+          "at": 1794031304650
+        }
+      ],
+      "guardOnlyDrops": 0,
+      "repeatComparisons": 2,
+      "exactRepeatMatches": 2
+    },
+    {
+      "name": "FINAL_DELIVERY_AUDIT",
+      "status": "PASS",
+      "cases": 15
+    }
+  ]
+}

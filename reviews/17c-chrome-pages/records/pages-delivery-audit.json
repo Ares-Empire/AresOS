@@ -1,0 +1,502 @@
+[
+  {
+    "id": "hold-fetch-true",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "hold-fetch-false",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "hold-xhr-true",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "hold-xhr-false",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "hold-beacon-true",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "hold-beacon-false",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "hold-form-submit-true",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "hold-form-submit-false",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "hold-form-request-true",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "hold-form-request-false",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "hold-form-event-true",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "hold-form-event-false",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "hold-ws-true",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "hold-ws-false",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "hold-rtc-true",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "hold-rtc-false",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "hold-writer-true",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "hold-writer-false",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "aborted-call",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "changed-form",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "old-document",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "new-document",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "frame-same-true",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "frame-blank-true",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "frame-srcdoc-true",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "frame-same-false",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "frame-blank-false",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "frame-srcdoc-false",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "frame-cross-true",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "frame-cross-false",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "hostile-original",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "hostile-fresh-frame",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "hostile-prototype",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "hostile-toString",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "hostile-blob-worker",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "hostile-live",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "fallback-repeat",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "end-page-reload-fetch",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "end-page-reload-xhr",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "end-page-reload-beacon",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "end-page-reload-form-request",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "end-page-reload-ws",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "end-page-reload-rtc",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "end-page-reload-writer",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "end-detach-fetch",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "end-detach-xhr",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "end-detach-beacon",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "end-detach-form-request",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "end-detach-ws",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "end-detach-rtc",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "end-detach-writer",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "end-stop-fetch",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "end-stop-xhr",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "end-stop-beacon",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "end-stop-form-request",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "end-stop-ws",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "end-stop-rtc",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "end-stop-writer",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "end-reload-fetch",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "end-reload-xhr",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "end-reload-beacon",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "end-reload-form-request",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "end-reload-ws",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "end-reload-rtc",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "end-reload-writer",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "end-update-fetch",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "end-update-xhr",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "end-update-beacon",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "end-update-form-request",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "end-update-ws",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "end-update-rtc",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "end-update-writer",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "end-host-loss-fetch",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "end-host-loss-xhr",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "end-host-loss-beacon",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "end-host-loss-form-request",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "end-host-loss-ws",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "end-host-loss-rtc",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "end-host-loss-writer",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "end-chrome-normal-fetch",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "end-chrome-normal-xhr",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "end-chrome-normal-beacon",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "end-chrome-normal-form-request",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "end-chrome-normal-ws",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "end-chrome-normal-rtc",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "end-chrome-normal-writer",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "end-chrome-kill-fetch",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "end-chrome-kill-xhr",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "end-chrome-kill-beacon",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "end-chrome-kill-form-request",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "end-chrome-kill-ws",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "end-chrome-kill-rtc",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "end-chrome-kill-writer",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "end-disable-fetch",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "end-disable-xhr",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "end-disable-beacon",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "end-disable-form-request",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "end-disable-ws",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "end-disable-rtc",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "end-disable-writer",
+    "expected": 0,
+    "actual": 0
+  }
+]

@@ -1,0 +1,1514 @@
+[
+  {
+    "id": "e-kernel-127-0-0-1-control",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-kernel-127-0-0-1-control",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-kernel-vv1-control",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-kernel-vv1-control",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-kernel-localhost-control",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-kernel-localhost-control",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-kernel-169-254-17-1-control",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-kernel-169-254-17-1-control",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-kernel-127-0-0-1-blocked",
+    "kind": "headers",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-kernel-127-0-0-1-blocked",
+    "kind": "http",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-kernel-127-0-0-1-blocked",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-kernel-127-0-0-1-blocked",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-kernel-vv1-blocked",
+    "kind": "headers",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-kernel-vv1-blocked",
+    "kind": "http",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-kernel-vv1-blocked",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-kernel-vv1-blocked",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-kernel-localhost-blocked",
+    "kind": "headers",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-kernel-localhost-blocked",
+    "kind": "http",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-kernel-localhost-blocked",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-kernel-localhost-blocked",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-kernel-169-254-17-1-blocked",
+    "kind": "headers",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-kernel-169-254-17-1-blocked",
+    "kind": "http",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-kernel-169-254-17-1-blocked",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-kernel-169-254-17-1-blocked",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-basic-control",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-basic-control",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-basic-held",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-basic-held",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-basic-held",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-basic-held",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-handshake-control",
+    "kind": "ws-open",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-handshake-held",
+    "kind": "headers",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-handshake-held",
+    "kind": "http",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-handshake-held",
+    "kind": "ws-open",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-handshake-held",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-ipv4-control",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-ipv4-control",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-ipv4-held",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-ipv4-held",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-ipv4-held",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-ipv4-held",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-ipv6-control",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-ipv6-control",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-ipv6-held",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-ipv6-held",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-ipv6-held",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-ipv6-held",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-localhost-control",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-localhost-control",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-localhost-held",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-localhost-held",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-localhost-held",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-localhost-held",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-linklocal-control",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-linklocal-control",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-linklocal-held",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-linklocal-held",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-linklocal-held",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-linklocal-held",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-redirect-control",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-redirect-control",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-redirect-held",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-redirect-held",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-redirect-held",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-redirect-held",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-dedicated-control",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-dedicated-control",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-dedicated-socket",
+    "kind": "ws-open",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-dedicated-ws-control",
+    "kind": "ws-message",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-dedicated-held",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-dedicated-held",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-dedicated-held",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-dedicated-held",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-dedicated-ws-held",
+    "kind": "ws-message",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-dedicated-close-held",
+    "kind": "ws-close",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-shared-control",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-shared-control",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-shared-socket",
+    "kind": "ws-open",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-shared-ws-control",
+    "kind": "ws-message",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-shared-held",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-shared-held",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-shared-held",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-shared-held",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-shared-ws-held",
+    "kind": "ws-message",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-shared-close-held",
+    "kind": "ws-close",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-service-control",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-service-control",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-service-socket",
+    "kind": "ws-open",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-service-ws-control",
+    "kind": "ws-message",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-service-held",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-service-held",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-service-held",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-service-held",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-service-ws-held",
+    "kind": "ws-message",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-service-close-held",
+    "kind": "ws-close",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-page-socket",
+    "kind": "ws-open",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-page-ws-control",
+    "kind": "ws-message",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-page-ws-held",
+    "kind": "ws-message",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-h2-control",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-h2-control",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-h2-held",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-h2-held",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-h2-held",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-h2-held",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-forged",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-forged",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-forged",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-forged",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-missing",
+    "kind": "headers",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-missing",
+    "kind": "http",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-missing",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-missing",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-stale",
+    "kind": "headers",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-stale",
+    "kind": "http",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-stale",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-stale",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-frame-foreign-control",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-frame-foreign-control",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-frame-foreign-held",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-frame-foreign-held",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-frame-foreign-held",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-frame-foreign-held",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-frame-opaque-control",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-frame-opaque-control",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-frame-opaque-held",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-frame-opaque-held",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-frame-opaque-held",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-frame-opaque-held",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-context-old",
+    "kind": "headers",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-context-old",
+    "kind": "http",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-context-old",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-context-old",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-race-same-control",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-race-same-control",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-race-same-approved",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-race-same-approved",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-race-same-approved",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-race-same-approved",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-race-same-competitor",
+    "kind": "headers",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-race-same-competitor",
+    "kind": "http",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-race-same-competitor",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-race-same-competitor",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-race-body-control",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-race-body-control",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-race-body-approved",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-race-body-approved",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-race-body-approved",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-race-body-approved",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-race-body-competitor",
+    "kind": "headers",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-race-body-competitor",
+    "kind": "http",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-race-body-competitor",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-race-body-competitor",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-race-headers-control",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-race-headers-control",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-race-headers-approved",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-race-headers-approved",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-race-headers-approved",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-race-headers-approved",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-race-headers-competitor",
+    "kind": "headers",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-race-headers-competitor",
+    "kind": "http",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-race-headers-competitor",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-race-headers-competitor",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-race-account-control",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-race-account-control",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-race-account-approved",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-race-account-approved",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-race-account-approved",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-race-account-approved",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-race-account-competitor",
+    "kind": "headers",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-race-account-competitor",
+    "kind": "http",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-race-account-competitor",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-race-account-competitor",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-identical",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-identical",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-body-binary-control",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-body-binary-control",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-body-binary-held",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-body-binary-held",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-body-binary-held",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-body-binary-held",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-body-multipart-control",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-body-multipart-control",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-body-multipart-held",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-body-multipart-held",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-body-multipart-held",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-body-multipart-held",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-body-large-control",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-body-large-control",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-body-large-held",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-body-large-held",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-body-large-held",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-body-large-held",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-body-compressed-control",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-body-compressed-control",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-body-compressed-held",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-body-compressed-held",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-body-compressed-held",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-body-compressed-held",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-buffer-limit-0",
+    "kind": "headers",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-buffer-limit-0",
+    "kind": "http",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-buffer-limit-0",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-buffer-limit-0",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-buffer-limit-1",
+    "kind": "headers",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-buffer-limit-1",
+    "kind": "http",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-buffer-limit-1",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-buffer-limit-1",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-buffer-limit-2",
+    "kind": "headers",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-buffer-limit-2",
+    "kind": "http",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-buffer-limit-2",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-buffer-limit-2",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-oversized",
+    "kind": "headers",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-oversized",
+    "kind": "http",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-oversized",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-oversized",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-proxy-down-navigation-control",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-proxy-down-navigation-control",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-proxy-down",
+    "kind": "headers",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-proxy-down",
+    "kind": "http",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-proxy-down",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-proxy-down",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-proxy-down-navigation",
+    "kind": "headers",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-proxy-down-navigation",
+    "kind": "http",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-proxy-down-navigation",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-proxy-down-navigation",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-oversized-control",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-oversized-control",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-chunked-control",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-chunked-control",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-chunked-held",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-chunked-held",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-chunked-held",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-chunked-held",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-incomplete",
+    "kind": "headers",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-incomplete",
+    "kind": "http",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-incomplete",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-incomplete",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-fragment-control",
+    "kind": "ws-open",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-fragment-control",
+    "kind": "ws-message",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-fragment-held",
+    "kind": "ws-open",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-fragment-held",
+    "kind": "ws-message",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-ledger-full",
+    "kind": "headers",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-ledger-full",
+    "kind": "http",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-ledger-full",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-ledger-full",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-memory-full",
+    "kind": "headers",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-memory-full",
+    "kind": "http",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-memory-full",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-memory-full",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-addon-failure",
+    "kind": "headers",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-addon-failure",
+    "kind": "http",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-addon-failure",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-addon-failure",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  }
+]

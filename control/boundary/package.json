@@ -1,0 +1,9 @@
+{
+  "name": "aresos-control-boundary",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@anthropic-ai/claude-code": "2.1.319",
+    "@anthropic-ai/sandbox-runtime": "0.0.81"
+  }
+}

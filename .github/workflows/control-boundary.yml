@@ -1,0 +1,71 @@
+name: Control boundary
+on:
+  push:
+    branches: ['pkg/18b-control-boundary', main]
+    paths:
+      - 'control/boundary/**'
+      - 'control/settings/**'
+      - 'reviews/18b-control-boundary/**'
+      - '.github/workflows/control-boundary.yml'
+  pull_request:
+    paths:
+      - 'control/boundary/**'
+      - 'control/settings/**'
+      - 'reviews/18b-control-boundary/**'
+      - '.github/workflows/control-boundary.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  hostile:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Build pinned disposable Linux environment
+        id: build
+        run: docker build -f control/boundary/Dockerfile -t aresos-boundary .
+      - name: Permit unprivileged namespaces on this disposable runner
+        run: |
+          mkdir -p evidence
+          sysctl -n kernel.apparmor_restrict_unprivileged_userns > evidence/userns-before.txt
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      - name: Hostile programs with and without seccomp
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p evidence/present evidence/absent
+          result=0
+          for mode in present absent; do
+            if ! docker run --rm --network none \
+              --cap-add SYS_PTRACE \
+              --security-opt seccomp=unconfined --security-opt apparmor=unconfined \
+              --security-opt systempaths=unconfined \
+              -e FILTER_MODE="$mode" \
+              -v "$PWD/evidence/$mode:/evidence" aresos-boundary \
+              2>&1 | tee "evidence/$mode-console.txt"; then
+              result=1
+            fi
+          done
+          exit "$result"
+      - name: Separate coding policy and user
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: bash control/boundary/isolation.sh
+      - name: Run identity
+        if: always()
+        run: |
+          printf 'RUN=%s ATTEMPT=%s HEAD=%s\n' "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$GITHUB_SHA" | tee evidence/identity.txt
+      - name: Restore runner namespace policy
+        if: always()
+        run: |
+          if test -f evidence/userns-before.txt; then
+            sudo sysctl -w "kernel.apparmor_restrict_unprivileged_userns=$(cat evidence/userns-before.txt)"
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: control-boundary-${{ github.run_id }}-${{ github.run_attempt }}
+          path: evidence/
+          retention-days: 30

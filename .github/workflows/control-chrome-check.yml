@@ -1,0 +1,114 @@
+name: Control Chrome check
+on:
+  push:
+    branches: [pkg/17-chrome-check, pkg/17b-chrome-holds, pkg/17c-chrome-pages, pkg/17d-chrome-floor, pkg/17e-chrome-checkpoint]
+    paths:
+      - control/checks/17-chrome/**
+      - control/checks/17b-chrome/**
+      - control/checks/17e-chrome/**
+      - reviews/17e-chrome-checkpoint/**
+      - control/checks/17d-chrome/**
+      - reviews/17d-chrome-floor/**
+      - control/checks/17c-chrome/**
+      - reviews/17c-chrome-pages/**
+      - reviews/17b-chrome-holds/**
+      - .github/workflows/control-chrome-check.yml
+      - reviews/17-chrome-check/**
+  workflow_dispatch:
+    inputs:
+      long_hold:
+        description: Run the one 10-minute hold (final verification only)
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: chrome-check-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  chrome:
+    runs-on: ${{ github.ref_name == 'pkg/17e-chrome-checkpoint' && 'ubuntu-24.04' || 'ubuntu-latest' }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        phase: ${{ github.ref_name == 'pkg/17e-chrome-checkpoint' && fromJSON('["core","lifecycle","transports","public"]') || github.ref_name == 'pkg/17d-chrome-floor' && fromJSON('["floor","workers","allowances","storage","public"]') || github.ref_name == 'pkg/17c-chrome-pages' && fromJSON('["pages","guards","public"]') || github.ref_name == 'pkg/17b-chrome-holds' && fromJSON('["safety","workers-long","live-public"]') || fromJSON('["baseline"]') }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - name: Install official Google Chrome stable and X display helpers
+        run: |
+          mkdir -p .work/17-chrome/artifacts .work/17-chrome/config
+          curl --fail --location --retry 3 https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb -o .work/17-chrome/chrome.deb
+          sudo apt-get update -qq
+          sudo apt-get install -y ./.work/17-chrome/chrome.deb xvfb xdotool x11-utils ripgrep openbox imagemagick dunst suckless-tools
+          rm .work/17-chrome/chrome.deb
+          google-chrome-stable --version | tee .work/17-chrome/artifacts/chrome-version.txt
+          uname -a > .work/17-chrome/artifacts/platform.txt
+          cat /etc/os-release >> .work/17-chrome/artifacts/platform.txt
+          git rev-parse HEAD | tee .work/17-chrome/artifacts/head.txt
+          printf '%s attempt %s\n' "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" | tee .work/17-chrome/artifacts/run.txt
+      - name: Install pinned check dependencies (no browser download)
+        working-directory: control/checks/17-chrome
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm ls --json > ../../../.work/17-chrome/artifacts/dependencies.json
+      - name: Install pinned loopback WebTransport fixture dependency
+        if: github.ref_name == 'pkg/17e-chrome-checkpoint' || github.ref_name == 'pkg/17b-chrome-holds' || github.ref_name == 'pkg/17c-chrome-pages' || github.ref_name == 'pkg/17d-chrome-floor'
+        run: |
+          python3 -m venv .work/17b-chrome/venv
+          .work/17b-chrome/venv/bin/pip install aioquic==1.3.0
+          .work/17b-chrome/venv/bin/pip freeze > .work/17-chrome/artifacts/python-dependencies.txt
+      - name: Install pinned checkpoint dependencies
+        if: github.ref_name == 'pkg/17e-chrome-checkpoint'
+        run: |
+          sudo apt-get install -y nftables=1.0.9-1ubuntu0.1 coturn=4.6.1-1build4 libevent-extra-2.1-7t64=2.1.12-stable-9ubuntu2.2 libevent-openssl-2.1-7t64=2.1.12-stable-9ubuntu2.2 libhiredis1.1.0=1.2.0-6ubuntu3
+          python3 -m venv .work/17e-chrome/venv
+          .work/17e-chrome/venv/bin/pip install -r control/checks/17e-chrome/requirements.lock
+          .work/17e-chrome/venv/bin/pip freeze > .work/17-chrome/artifacts/python-dependencies.txt
+          dpkg-query -W nftables coturn > .work/17-chrome/artifacts/network-packages.txt
+      - name: Run headed fixture checks with Chrome sandbox enabled
+        env:
+          LONG_HOLD: ${{ inputs.long_hold || false }}
+          CHECK_BRANCH: ${{ github.ref_name }}
+          CHECK_PHASE: ${{ matrix.phase }}
+          XDG_CONFIG_HOME: ${{ github.workspace }}/.work/17-chrome/config
+        run: |
+          set -o pipefail
+          dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1000x24' bash -c '
+            openbox > .work/17-chrome/artifacts/openbox.log 2>&1 &
+            dunst > .work/17-chrome/artifacts/dunst.log 2>&1 &
+            for wm_attempt in $(seq 1 100); do
+              if xprop -root _NET_SUPPORTING_WM_CHECK | rg -q "window id"; then break; fi
+              sleep 0.1
+            done
+            xprop -root _NET_SUPPORTING_WM_CHECK | rg -q "window id" || exit 1
+            if [ "$CHECK_BRANCH" = "pkg/17e-chrome-checkpoint" ]; then
+              timeout --kill-after=15s 25m node control/checks/17e-chrome/run.mjs
+            elif [ "$CHECK_BRANCH" = "pkg/17d-chrome-floor" ]; then
+              timeout --kill-after=15s 25m node control/checks/17d-chrome/run.mjs
+            elif [ "$CHECK_BRANCH" = "pkg/17c-chrome-pages" ]; then
+              timeout --kill-after=15s 25m node control/checks/17c-chrome/run.mjs
+            elif [ "$CHECK_BRANCH" = "pkg/17b-chrome-holds" ]; then
+              timeout --kill-after=15s 25m node control/checks/17b-chrome/run.mjs
+            else
+              timeout --kill-after=15s 20m node control/checks/17-chrome/run.mjs
+            fi
+          ' 2>&1 | tee .work/17-chrome/artifacts/check.log
+      - name: Upload synthetic logs and structural page views
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: chrome-check-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.phase }}
+          path: |
+            .work/17-chrome/artifacts/
+            .work/17b-chrome/artifacts/
+            .work/17c-chrome/artifacts/
+            .work/17d-chrome/artifacts/
+            .work/17e-chrome/artifacts/
+          retention-days: 14
+          if-no-files-found: error

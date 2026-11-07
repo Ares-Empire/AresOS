@@ -1,0 +1,8 @@
+{
+  "run": "42343286463",
+  "artifact": "chrome-check-42343286463-1-safety",
+  "source_summary_sha256": "edf68fa6bd61d1ac82ecd8214853f9ab4c293d8b39cda110c3d5fc7cb81265b5",
+  "reduction": "Public requests reduced to synthetic carriers/counts/fingerprints; unrelated hold history and ephemeral WS handshake keys omitted",
+  "source_chrome_version_sha256": "110a77e1e84248e63d70a24b03762d751c5e03ccd78c6f935266fea8a9bb6ea7",
+  "chrome_version_normalization": "Trailing whitespace trimmed; raw stdout remains in CI artifact"
+}

@@ -1,0 +1,216 @@
+{"kind": "ready", "at": 1794053951800.8364, "guard": false, "addressSpaceLimit": 805306368, "recovered": []}
+{"kind": "service-traffic", "at": 1794053954246.358, "host": "clients2.google.com", "method": "GET", "guarded": false}
+{"kind": "service-response", "at": 1794053954337.6648, "host": "clients2.google.com", "status": 200}
+{"kind": "client-tls-failure", "at": 1794053954343.8826, "host": "redirector.gvt1.com", "category": "disconnect"}
+{"kind": "client-tls-failure", "at": 1794053954349.2886, "host": "accounts.google.com", "category": "disconnect"}
+{"kind": "client-tls-failure", "at": 1794053954370.0833, "host": "www.gstatic.com", "category": "disconnect"}
+{"kind": "client-tls-failure", "at": 1794053954370.4968, "host": "redirector.gvt1.com", "category": "disconnect"}
+{"kind": "client-tls-failure", "at": 1794053954370.7793, "host": "clientservices.googleapis.com", "category": "disconnect"}
+{"kind": "client-tls-failure", "at": 1794053954371.141, "host": "www.google.com", "category": "disconnect"}
+{"kind": "client-tls-failure", "at": 1794053954371.5503, "host": "accounts.google.com", "category": "disconnect"}
+{"kind": "client-tls-failure", "at": 1794053954532.568, "host": "www.gstatic.com", "category": "certificate"}
+{"kind": "client-tls-failure", "at": 1794053954533.6086, "host": "clientservices.googleapis.com", "category": "certificate"}
+{"kind": "client-tls-failure", "at": 1794053954537.5654, "host": "update.googleapis.com", "category": "certificate"}
+{"kind": "service-traffic", "at": 1794053954540.606, "host": "www.google.com", "method": "GET", "guarded": false}
+{"kind": "service-traffic", "at": 1794053954541.9673, "host": "accounts.google.com", "method": "POST", "guarded": false}
+{"kind": "service-traffic", "at": 1794053954545.344, "host": "clients2.google.com", "method": "GET", "guarded": false}
+{"kind": "service-traffic", "at": 1794053954547.2646, "host": "update.googleapis.com", "method": "POST", "guarded": false}
+{"kind": "service-response", "at": 1794053954588.1768, "host": "www.google.com", "status": 200}
+{"kind": "service-response", "at": 1794053954620.3687, "host": "clients2.google.com", "status": 200}
+{"kind": "service-response", "at": 1794053954639.9849, "host": "update.googleapis.com", "status": 200}
+{"kind": "service-response", "at": 1794053954663.6963, "host": "accounts.google.com", "status": 200}
+{"kind": "client-tls-failure", "at": 1794053956526.3293, "host": "update.googleapis.com", "category": "certificate"}
+{"kind": "service-traffic", "at": 1794053956541.1455, "host": "update.googleapis.com", "method": "POST", "guarded": false}
+{"kind": "service-response", "at": 1794053956582.977, "host": "update.googleapis.com", "status": 200}
+{"kind": "service-traffic", "at": 1794053958229.787, "host": "www.google.com", "method": "GET", "guarded": false}
+{"kind": "service-traffic", "at": 1794053958255.5342, "host": "www.google.com", "method": "GET", "guarded": false}
+{"kind": "service-response", "at": 1794053958276.2568, "host": "www.google.com", "status": 200}
+{"kind": "service-response", "at": 1794053958288.0542, "host": "www.google.com", "status": 200}
+{"kind": "service-traffic", "at": 1794053958289.8901, "host": "www.google.com", "method": "GET", "guarded": false}
+{"kind": "service-traffic", "at": 1794053958290.1956, "host": "www.google.com", "method": "GET", "guarded": false}
+{"kind": "service-traffic", "at": 1794053958294.1956, "host": "www.google.com", "method": "GET", "guarded": false}
+{"kind": "service-response", "at": 1794053958323.984, "host": "www.google.com", "status": 200}
+{"kind": "service-response", "at": 1794053958325.0618, "host": "www.google.com", "status": 200}
+{"kind": "service-response", "at": 1794053958333.4165, "host": "www.google.com", "status": 200}
+{"kind": "client-tls-failure", "at": 1794053958365.4797, "host": "fonts.gstatic.com", "category": "disconnect"}
+{"kind": "client-tls-failure", "at": 1794053958365.6538, "host": "fonts.gstatic.com", "category": "disconnect"}
+{"kind": "service-traffic", "at": 1794053958464.8418, "host": "www.google.com", "method": "GET", "guarded": false}
+{"kind": "service-traffic", "at": 1794053960254.4548, "host": "www.google.com", "method": "GET", "guarded": false}
+{"kind": "service-traffic", "at": 1794053960274.8262, "host": "www.google.com", "method": "GET", "guarded": false}
+{"kind": "service-response", "at": 1794053960282.6921, "host": "www.google.com", "status": 200}
+{"kind": "service-traffic", "at": 1794053960298.3467, "host": "www.google.com", "method": "GET", "guarded": false}
+{"kind": "service-response", "at": 1794053960304.8804, "host": "www.google.com", "status": 200}
+{"kind": "service-traffic", "at": 1794053960334.2039, "host": "www.google.com", "method": "GET", "guarded": false}
+{"kind": "service-traffic", "at": 1794053960337.763, "host": "www.google.com", "method": "GET", "guarded": false}
+{"kind": "service-response", "at": 1794053960360.8625, "host": "www.google.com", "status": 200}
+{"kind": "service-response", "at": 1794053960366.813, "host": "www.google.com", "status": 200}
+{"kind": "service-response", "at": 1794053960375.4941, "host": "www.google.com", "status": 200}
+{"kind": "service-traffic", "at": 1794053960502.0662, "host": "ogads-pa.clients6.google.com", "method": "OPTIONS", "guarded": false}
+{"kind": "service-traffic", "at": 1794053960513.3179, "host": "www.google.com", "method": "GET", "guarded": false}
+{"kind": "service-traffic", "at": 1794053960592.4292, "host": "play.google.com", "method": "POST", "guarded": false}
+{"kind": "service-response", "at": 1794053960606.6753, "host": "ogads-pa.clients6.google.com", "status": 200}
+{"kind": "service-response", "at": 1794053960711.1436, "host": "play.google.com", "status": 200}
+{"kind": "barrier", "at": 1794053962442.258, "enabled": false}
+{"kind": "barrier", "at": 1794053962501.842, "enabled": false}
+{"kind": "upstream-tls-failure", "at": 1794053962516.5908, "host": "127.0.0.1"}
+{"kind": "client-tls-failure", "at": 1794053964219.8914, "host": "optimizationguide-pa.googleapis.com", "category": "certificate"}
+{"kind": "barrier", "at": 1794053965485.731, "enabled": false}
+{"kind": "client-tls-failure", "at": 1794053965790.809, "host": "update.googleapis.com", "category": "certificate"}
+{"kind": "service-traffic", "at": 1794054011399.8684, "host": "clients2.google.com", "method": "GET", "guarded": false}
+{"kind": "service-response", "at": 1794054011461.525, "host": "clients2.google.com", "status": 200}
+{"kind": "client-tls-failure", "at": 1794054011508.6467, "host": "accounts.google.com", "category": "disconnect"}
+{"kind": "client-tls-failure", "at": 1794054011509.1362, "host": "www.google.com", "category": "disconnect"}
+{"kind": "client-tls-failure", "at": 1794054011510.7168, "host": "clientservices.googleapis.com", "category": "disconnect"}
+{"kind": "service-traffic", "at": 1794054011525.111, "host": "accounts.google.com", "method": "POST", "guarded": false}
+{"kind": "client-tls-failure", "at": 1794054011531.2502, "host": "clientservices.googleapis.com", "category": "certificate"}
+{"kind": "service-traffic", "at": 1794054011531.6104, "host": "www.google.com", "method": "GET", "guarded": false}
+{"kind": "client-tls-failure", "at": 1794054011539.841, "host": "update.googleapis.com", "category": "certificate"}
+{"kind": "service-traffic", "at": 1794054011546.4478, "host": "update.googleapis.com", "method": "POST", "guarded": false}
+{"kind": "service-response", "at": 1794054011575.9036, "host": "www.google.com", "status": 200}
+{"kind": "service-response", "at": 1794054011616.2139, "host": "update.googleapis.com", "status": 200}
+{"kind": "service-response", "at": 1794054011645.4146, "host": "accounts.google.com", "status": 200}
+{"kind": "service-traffic", "at": 1794054015345.3508, "host": "www.google.com", "method": "GET", "guarded": false}
+{"kind": "service-response", "at": 1794054015373.1943, "host": "www.google.com", "status": 200}
+{"kind": "service-traffic", "at": 1794054015386.2617, "host": "www.google.com", "method": "GET", "guarded": false}
+{"kind": "service-traffic", "at": 1794054015387.685, "host": "www.google.com", "method": "GET", "guarded": false}
+{"kind": "service-traffic", "at": 1794054015401.9998, "host": "www.google.com", "method": "GET", "guarded": false}
+{"kind": "service-response", "at": 1794054015404.8066, "host": "www.google.com", "status": 200}
+{"kind": "service-response", "at": 1794054015412.792, "host": "www.google.com", "status": 200}
+{"kind": "service-traffic", "at": 1794054015432.9495, "host": "www.google.com", "method": "GET", "guarded": false}
+{"kind": "service-traffic", "at": 1794054015433.7542, "host": "www.google.com", "method": "GET", "guarded": false}
+{"kind": "service-response", "at": 1794054015446.9678, "host": "www.google.com", "status": 200}
+{"kind": "service-response", "at": 1794054015461.3726, "host": "www.google.com", "status": 200}
+{"kind": "service-response", "at": 1794054015462.8223, "host": "www.google.com", "status": 200}
+{"kind": "service-traffic", "at": 1794054015522.3745, "host": "ogads-pa.clients6.google.com", "method": "OPTIONS", "guarded": false}
+{"kind": "service-response", "at": 1794054015591.9287, "host": "ogads-pa.clients6.google.com", "status": 200}
+{"kind": "service-traffic", "at": 1794054015600.119, "host": "ogads-pa.clients6.google.com", "method": "POST", "guarded": false}
+{"kind": "service-traffic", "at": 1794054015608.6128, "host": "www.google.com", "method": "GET", "guarded": false}
+{"kind": "service-response", "at": 1794054015689.4424, "host": "ogads-pa.clients6.google.com", "status": 200}
+{"kind": "service-traffic", "at": 1794054015853.599, "host": "play.google.com", "method": "POST", "guarded": false}
+{"kind": "service-response", "at": 1794054015909.344, "host": "play.google.com", "status": 200}
+{"kind": "barrier", "at": 1794054017325.532, "enabled": true}
+{"kind": "held", "at": 1794054017851.8123, "id": "7f0e29e6b06c447787811fd124e4fc81", "case": "unlabelled", "capturedAt": 1794054017851.2385, "originState": "absent", "length": 612, "sha256": "56d23c3602c166fb5badbaa07bd5a85e860b3bdbdd71b97ae04a54892650a465", "context": 2, "attribution": "uncertain", "bodySha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", "method": "GET", "operationKind": "http"}
+{"kind": "service-traffic", "at": 1794054017857.6343, "host": "update.googleapis.com", "method": "POST", "guarded": true}
+{"kind": "held", "at": 1794054017858.5647, "id": "5ec5e261e2fd4569b3b5389d2781cd98", "case": "unlabelled", "capturedAt": 1794054017857.7441, "originState": "absent", "length": 1735, "sha256": "c19062a3a613d803bcde04c52cd64eda5d22361586c8f55c45c8b0d32382298e", "context": 2, "attribution": "uncertain", "bodySha256": "6a3da7b7759d5b1f43e66e4a8f9244884f0a4cae08c62e4a784d918291fd35c0", "method": "POST", "operationKind": "http"}
+{"kind": "client-tls-failure", "at": 1794054021373.9397, "host": "optimizationguide-pa.googleapis.com", "category": "certificate"}
+{"kind": "barrier", "at": 1794054048386.41, "enabled": false}
+{"kind": "service-traffic", "at": 1794054049217.2761, "host": "www.google.com", "method": "GET", "guarded": false}
+{"kind": "service-response", "at": 1794054049247.0156, "host": "www.google.com", "status": 200}
+{"kind": "service-traffic", "at": 1794054049254.5593, "host": "www.google.com", "method": "GET", "guarded": false}
+{"kind": "service-traffic", "at": 1794054049256.2505, "host": "www.google.com", "method": "GET", "guarded": false}
+{"kind": "service-traffic", "at": 1794054049270.049, "host": "www.google.com", "method": "GET", "guarded": false}
+{"kind": "service-response", "at": 1794054049271.547, "host": "www.google.com", "status": 200}
+{"kind": "service-response", "at": 1794054049274.1833, "host": "www.google.com", "status": 200}
+{"kind": "service-traffic", "at": 1794054049313.079, "host": "www.google.com", "method": "GET", "guarded": false}
+{"kind": "service-traffic", "at": 1794054049313.6829, "host": "www.google.com", "method": "GET", "guarded": false}
+{"kind": "service-response", "at": 1794054049315.7207, "host": "www.google.com", "status": 200}
+{"kind": "service-response", "at": 1794054049334.4543, "host": "www.google.com", "status": 200}
+{"kind": "service-response", "at": 1794054049335.677, "host": "www.google.com", "status": 200}
+{"kind": "service-traffic", "at": 1794054049381.6575, "host": "ogads-pa.clients6.google.com", "method": "POST", "guarded": false}
+{"kind": "service-response", "at": 1794054049431.3096, "host": "ogads-pa.clients6.google.com", "status": 200}
+{"kind": "service-traffic", "at": 1794054049479.244, "host": "www.google.com", "method": "GET", "guarded": false}
+{"kind": "service-traffic", "at": 1794054049551.1084, "host": "play.google.com", "method": "POST", "guarded": false}
+{"kind": "service-response", "at": 1794054049586.479, "host": "play.google.com", "status": 200}
+{"kind": "client-tls-failure", "at": 1794054051175.7456, "host": "update.googleapis.com", "category": "certificate"}
+{"kind": "service-traffic", "at": 1794054051176.7917, "host": "update.googleapis.com", "method": "POST", "guarded": false}
+{"kind": "service-response", "at": 1794054051216.95, "host": "update.googleapis.com", "status": 200}
+{"kind": "service-traffic", "at": 1794054055094.0642, "host": "www.google.com", "method": "GET", "guarded": false}
+{"kind": "service-traffic", "at": 1794054057728.5662, "host": "www.google.com", "method": "GET", "guarded": false}
+{"kind": "service-traffic", "at": 1794054061390.1233, "host": "www.google.com", "method": "GET", "guarded": false}
+{"kind": "service-response", "at": 1794054061474.7068, "host": "www.google.com", "status": 200}
+{"kind": "service-traffic", "at": 1794054061495.9236, "host": "www.google.com", "method": "GET", "guarded": false}
+{"kind": "service-traffic", "at": 1794054061500.0671, "host": "www.google.com", "method": "GET", "guarded": false}
+{"kind": "service-traffic", "at": 1794054061500.4495, "host": "www.google.com", "method": "POST", "guarded": false}
+{"kind": "service-response", "at": 1794054061515.0618, "host": "www.google.com", "status": 200}
+{"kind": "service-response", "at": 1794054061516.9287, "host": "www.google.com", "status": 200}
+{"kind": "service-response", "at": 1794054061518.0217, "host": "www.google.com", "status": 204}
+{"kind": "service-traffic", "at": 1794054061539.964, "host": "www.google.com", "method": "GET", "guarded": false}
+{"kind": "service-traffic", "at": 1794054061549.1887, "host": "www.google.com", "method": "GET", "guarded": false}
+{"kind": "service-traffic", "at": 1794054061551.314, "host": "www.google.com", "method": "POST", "guarded": false}
+{"kind": "service-response", "at": 1794054061566.337, "host": "www.google.com", "status": 204}
+{"kind": "service-response", "at": 1794054061566.7036, "host": "www.google.com", "status": 204}
+{"kind": "service-response", "at": 1794054061574.2231, "host": "www.google.com", "status": 200}
+{"kind": "service-traffic", "at": 1794054061659.742, "host": "www.google.com", "method": "POST", "guarded": false}
+{"kind": "service-traffic", "at": 1794054061666.5728, "host": "www.google.com", "method": "POST", "guarded": false}
+{"kind": "service-traffic", "at": 1794054061668.4502, "host": "content-autofill.googleapis.com", "method": "GET", "guarded": false}
+{"kind": "service-traffic", "at": 1794054061671.128, "host": "www.google.com", "method": "GET", "guarded": false}
+{"kind": "service-traffic", "at": 1794054061674.166, "host": "www.google.com", "method": "GET", "guarded": false}
+{"kind": "service-traffic", "at": 1794054061674.5322, "host": "www.google.com", "method": "POST", "guarded": false}
+{"kind": "service-response", "at": 1794054061676.2805, "host": "www.google.com", "status": 204}
+{"kind": "service-response", "at": 1794054061680.044, "host": "www.google.com", "status": 200}
+{"kind": "service-response", "at": 1794054061681.5461, "host": "www.google.com", "status": 204}
+{"kind": "service-response", "at": 1794054061692.2075, "host": "www.google.com", "status": 204}
+{"kind": "service-response", "at": 1794054061696.5107, "host": "www.google.com", "status": 200}
+{"kind": "service-traffic", "at": 1794054061726.6177, "host": "ogads-pa.clients6.google.com", "method": "OPTIONS", "guarded": false}
+{"kind": "service-traffic", "at": 1794054061733.9404, "host": "www.google.com", "method": "GET", "guarded": false}
+{"kind": "service-traffic", "at": 1794054061737.871, "host": "www.google.com", "method": "POST", "guarded": false}
+{"kind": "service-traffic", "at": 1794054061739.351, "host": "www.google.com", "method": "POST", "guarded": false}
+{"kind": "service-response", "at": 1794054061740.791, "host": "www.google.com", "status": 200}
+{"kind": "service-traffic", "at": 1794054061749.08, "host": "www.google.com", "method": "GET", "guarded": false}
+{"kind": "service-traffic", "at": 1794054061751.9475, "host": "www.google.com", "method": "GET", "guarded": false}
+{"kind": "service-response", "at": 1794054061755.341, "host": "www.google.com", "status": 204}
+{"kind": "service-response", "at": 1794054061758.2551, "host": "content-autofill.googleapis.com", "status": 200}
+{"kind": "service-response", "at": 1794054061758.6204, "host": "www.google.com", "status": 204}
+{"kind": "service-traffic", "at": 1794054061764.042, "host": "www.google.com", "method": "GET", "guarded": false}
+{"kind": "service-traffic", "at": 1794054061766.4097, "host": "www.google.com", "method": "GET", "guarded": false}
+{"kind": "service-traffic", "at": 1794054061766.688, "host": "www.google.com", "method": "GET", "guarded": false}
+{"kind": "service-traffic", "at": 1794054061769.7498, "host": "www.google.com", "method": "POST", "guarded": false}
+{"kind": "service-response", "at": 1794054061770.911, "host": "www.google.com", "status": 200}
+{"kind": "service-response", "at": 1794054061776.2205, "host": "www.google.com", "status": 200}
+{"kind": "service-response", "at": 1794054061778.1213, "host": "www.google.com", "status": 200}
+{"kind": "service-response", "at": 1794054061779.713, "host": "www.google.com", "status": 200}
+{"kind": "service-response", "at": 1794054061784.4822, "host": "www.google.com", "status": 204}
+{"kind": "service-traffic", "at": 1794054061788.273, "host": "www.google.com", "method": "GET", "guarded": false}
+{"kind": "service-response", "at": 1794054061793.054, "host": "www.google.com", "status": 200}
+{"kind": "service-response", "at": 1794054061798.122, "host": "ogads-pa.clients6.google.com", "status": 200}
+{"kind": "service-traffic", "at": 1794054061805.4993, "host": "ogads-pa.clients6.google.com", "method": "POST", "guarded": false}
+{"kind": "service-response", "at": 1794054061818.7466, "host": "www.google.com", "status": 200}
+{"kind": "service-traffic", "at": 1794054061825.8347, "host": "www.google.com", "method": "GET", "guarded": false}
+{"kind": "service-traffic", "at": 1794054061828.0386, "host": "www.google.com", "method": "GET", "guarded": false}
+{"kind": "service-traffic", "at": 1794054061829.6108, "host": "www.google.com", "method": "POST", "guarded": false}
+{"kind": "service-traffic", "at": 1794054061829.913, "host": "www.google.com", "method": "GET", "guarded": false}
+{"kind": "service-response", "at": 1794054061832.8547, "host": "www.google.com", "status": 200}
+{"kind": "service-response", "at": 1794054061842.8547, "host": "www.google.com", "status": 200}
+{"kind": "service-traffic", "at": 1794054061844.5693, "host": "www.google.com", "method": "POST", "guarded": false}
+{"kind": "service-response", "at": 1794054061845.86, "host": "www.google.com", "status": 204}
+{"kind": "service-response", "at": 1794054061848.7332, "host": "www.google.com", "status": 204}
+{"kind": "service-traffic", "at": 1794054061851.1143, "host": "www.google.com", "method": "GET", "guarded": false}
+{"kind": "service-traffic", "at": 1794054061852.388, "host": "www.google.com", "method": "GET", "guarded": false}
+{"kind": "service-response", "at": 1794054061857.2026, "host": "www.google.com", "status": 200}
+{"kind": "service-response", "at": 1794054061859.874, "host": "www.google.com", "status": 204}
+{"kind": "service-response", "at": 1794054061867.1726, "host": "www.google.com", "status": 200}
+{"kind": "service-traffic", "at": 1794054061873.8152, "host": "www.google.com", "method": "GET", "guarded": false}
+{"kind": "service-traffic", "at": 1794054061876.242, "host": "www.google.com", "method": "GET", "guarded": false}
+{"kind": "service-response", "at": 1794054061881.0928, "host": "www.google.com", "status": 200}
+{"kind": "service-response", "at": 1794054061887.274, "host": "ogads-pa.clients6.google.com", "status": 200}
+{"kind": "service-response", "at": 1794054061890.8403, "host": "www.google.com", "status": 200}
+{"kind": "service-traffic", "at": 1794054061901.1267, "host": "www.google.com", "method": "GET", "guarded": false}
+{"kind": "service-response", "at": 1794054061906.3684, "host": "www.google.com", "status": 200}
+{"kind": "service-traffic", "at": 1794054062712.1829, "host": "play.google.com", "method": "OPTIONS", "guarded": false}
+{"kind": "service-response", "at": 1794054062779.0386, "host": "play.google.com", "status": 200}
+{"kind": "service-traffic", "at": 1794054062786.0059, "host": "play.google.com", "method": "POST", "guarded": false}
+{"kind": "service-response", "at": 1794054062840.5862, "host": "play.google.com", "status": 200}
+{"kind": "service-traffic", "at": 1794054063251.013, "host": "safebrowsing.googleapis.com", "method": "GET", "guarded": false}
+{"kind": "service-response", "at": 1794054063356.1924, "host": "safebrowsing.googleapis.com", "status": 404}
+{"kind": "service-traffic", "at": 1794054063374.5269, "host": "www.google.com", "method": "POST", "guarded": false}
+{"kind": "client-tls-failure", "at": 1794054063380.7043, "host": "www.google.com", "category": "disconnect"}
+{"kind": "service-traffic", "at": 1794054063383.406, "host": "www.google.com", "method": "GET", "guarded": false}
+{"kind": "service-traffic", "at": 1794054063383.706, "host": "www.google.com", "method": "GET", "guarded": false}
+{"kind": "service-response", "at": 1794054063390.1897, "host": "www.google.com", "status": 204}
+{"kind": "service-response", "at": 1794054063406.1604, "host": "www.google.com", "status": 200}
+{"kind": "service-response", "at": 1794054063411.686, "host": "www.google.com", "status": 200}
+{"kind": "service-traffic", "at": 1794054063415.8135, "host": "safebrowsing.googleapis.com", "method": "GET", "guarded": false}
+{"kind": "service-response", "at": 1794054063434.2563, "host": "safebrowsing.googleapis.com", "status": 404}
+{"kind": "service-traffic", "at": 1794054065082.2131, "host": "clients2.google.com", "method": "GET", "guarded": false}
+{"kind": "service-response", "at": 1794054065163.9155, "host": "clients2.google.com", "status": 200}
+{"kind": "service-traffic", "at": 1794054065186.639, "host": "clients2.google.com", "method": "GET", "guarded": false}
+{"kind": "service-response", "at": 1794054065198.6824, "host": "clients2.google.com", "status": 200}
+{"kind": "service-traffic", "at": 1794054066888.579, "host": "update.googleapis.com", "method": "GET", "guarded": false}
+{"kind": "service-response", "at": 1794054066970.3276, "host": "update.googleapis.com", "status": 400}
+{"kind": "service-traffic", "at": 1794054066986.062, "host": "update.googleapis.com", "method": "GET", "guarded": false}
+{"kind": "service-response", "at": 1794054067097.225, "host": "update.googleapis.com", "status": 404}
+{"kind": "barrier", "at": 1794054069416.067, "enabled": false}
+{"kind": "barrier", "at": 1794054069957.419, "enabled": true}
+{"kind": "held", "at": 1794054069964.9724, "id": "47952b43e9774f928990b03b66365a6b", "case": "e-service-page-send", "capturedAt": 1794054069964.4087, "originState": "present", "length": 750, "sha256": "f9a7915c7ed49a941ba18816401ea3e5cf6aebf499887eafdd54173f98661646", "context": 2, "attribution": "uncertain", "bodySha256": "b3cc0475bb78a5026098858e9889acf666d31062d513d303314eca31d36e72f2", "method": "POST", "operationKind": "http"}
+{"kind": "cancelled", "at": 1794054070259.4446, "id": "47952b43e9774f928990b03b66365a6b"}
+{"kind": "client-tls-failure", "at": 1794054070569.0933, "host": "update.googleapis.com", "category": "certificate"}

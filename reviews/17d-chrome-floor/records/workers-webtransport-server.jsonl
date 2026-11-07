@@ -1,0 +1,1 @@
+{"kind": "connect", "at": 1794046275586.546, "headers": {":scheme": "https", ":method": "CONNECT", ":authority": "127.0.0.1:4433", ":path": "/check?case=wt-control", ":protocol": "webtransport", "sec-webtransport-http3-draft02": "1", "origin": "http://127.0.0.1:41917"}}

@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "defaultMode": "plan"
+  },
+  "sandbox": {
+    "enabled": true
+  }
+}

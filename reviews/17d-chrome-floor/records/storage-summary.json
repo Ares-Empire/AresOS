@@ -1,0 +1,1955 @@
+{
+  "phase": "storage",
+  "head": "4f34936b90e9891f5abe2f1f30a6f019b4f85712",
+  "run": "42362681610",
+  "cases": [
+    {
+      "name": "CONNECTED",
+      "tabId": 2086230432,
+      "group": 71457096,
+      "version": "0.4.0"
+    },
+    {
+      "name": "Q6_SUBSCRIBE_DOMStorage.enable",
+      "status": "unavailable",
+      "error": "Error: Check.command: \"Error: {\\\"code\\\":-32601,\\\"message\\\":\\\"'DOMStorage.enable' wasn't found\\\"}\"\n    at Protocol.accept (file:///home/runner/work/AresOS/AresOS/control/checks/17-chrome/protocol.mjs:13:33)\n    at Socket.<anonymous> (file:///home/runner/work/AresOS/AresOS/control/checks/17d-chrome/bridge.mjs:10:137)\n    at Socket.emit (node:events:519:28)\n    at addChunk (node:internal/streams/readable:561:12)\n    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)\n    at Readable.push (node:internal/streams/readable:392:5)\n    at Pipe.onStreamRead (node:internal/stream_base_commons:189:23)"
+    },
+    {
+      "name": "Q6_SUBSCRIBE_Storage.trackIndexedDBForOrigin",
+      "status": "observed",
+      "result": {}
+    },
+    {
+      "name": "Q6_SUBSCRIBE_Storage.trackCacheStorageForOrigin",
+      "status": "observed",
+      "result": {}
+    },
+    {
+      "name": "Q6_SUBSCRIBE_ServiceWorker.enable",
+      "status": "unavailable",
+      "error": "Error: Check.command: \"Error: {\\\"code\\\":-32601,\\\"message\\\":\\\"'ServiceWorker.enable' wasn't found\\\"}\"\n    at Protocol.accept (file:///home/runner/work/AresOS/AresOS/control/checks/17-chrome/protocol.mjs:13:33)\n    at Socket.<anonymous> (file:///home/runner/work/AresOS/AresOS/control/checks/17d-chrome/bridge.mjs:10:137)\n    at Socket.emit (node:events:519:28)\n    at addChunk (node:internal/streams/readable:561:12)\n    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)\n    at Readable.push (node:internal/streams/readable:392:5)\n    at Pipe.onStreamRead (node:internal/stream_base_commons:189:23)"
+    },
+    {
+      "name": "Q6_SUBSCRIBE_BackgroundService.startObserving",
+      "status": "unavailable",
+      "error": "Error: Check.command: \"Error: {\\\"code\\\":-32601,\\\"message\\\":\\\"'BackgroundService.startObserving' wasn't found\\\"}\"\n    at Protocol.accept (file:///home/runner/work/AresOS/AresOS/control/checks/17-chrome/protocol.mjs:13:33)\n    at Socket.<anonymous> (file:///home/runner/work/AresOS/AresOS/control/checks/17d-chrome/bridge.mjs:10:137)\n    at Socket.emit (node:events:519:28)\n    at addChunk (node:internal/streams/readable:561:12)\n    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)\n    at Readable.push (node:internal/streams/readable:392:5)\n    at Pipe.onStreamRead (node:internal/stream_base_commons:189:23)"
+    },
+    {
+      "name": "Q6_SUBSCRIBE_BackgroundService.startObserving",
+      "status": "unavailable",
+      "error": "Error: Check.command: \"Error: {\\\"code\\\":-32601,\\\"message\\\":\\\"'BackgroundService.startObserving' wasn't found\\\"}\"\n    at Protocol.accept (file:///home/runner/work/AresOS/AresOS/control/checks/17-chrome/protocol.mjs:13:33)\n    at Socket.<anonymous> (file:///home/runner/work/AresOS/AresOS/control/checks/17d-chrome/bridge.mjs:10:137)\n    at Socket.emit (node:events:519:28)\n    at addChunk (node:internal/streams/readable:561:12)\n    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)\n    at Readable.push (node:internal/streams/readable:392:5)\n    at Pipe.onStreamRead (node:internal/stream_base_commons:189:23)"
+    },
+    {
+      "name": "Q6_PAGE_WRITE",
+      "kind": "namedStorage",
+      "result": {
+        "at": 1794046177626,
+        "done": 1794046177627,
+        "kind": "namedStorage",
+        "result": "ok"
+      },
+      "readback": "deletion 42",
+      "browser": [],
+      "script": [],
+      "latencies": []
+    },
+    {
+      "name": "Q6_PAGE_WRITE",
+      "kind": "localStorage",
+      "result": {
+        "at": 1794046178635,
+        "done": 1794046178636,
+        "kind": "localStorage",
+        "result": "ok"
+      },
+      "browser": [],
+      "script": [
+        {
+          "method": "check.script",
+          "params": {
+            "event": "write-or-handoff",
+            "api": "webStorage.setItem",
+            "at": 1794046178635,
+            "source": {
+              "tabId": 2086230432,
+              "frameId": 0,
+              "documentId": "2DD4D97E6782F38334F8A9E248C679D8"
+            }
+          },
+          "at": 1794046178637
+        }
+      ],
+      "latencies": []
+    },
+    {
+      "name": "Q6_PAGE_WRITE",
+      "kind": "sessionStorage",
+      "result": {
+        "at": 1794046179642,
+        "done": 1794046179642,
+        "kind": "sessionStorage",
+        "result": "ok"
+      },
+      "browser": [],
+      "script": [
+        {
+          "method": "check.script",
+          "params": {
+            "event": "write-or-handoff",
+            "api": "webStorage.setItem",
+            "at": 1794046179642,
+            "source": {
+              "tabId": 2086230432,
+              "frameId": 0,
+              "documentId": "2DD4D97E6782F38334F8A9E248C679D8"
+            }
+          },
+          "at": 1794046179643
+        }
+      ],
+      "latencies": []
+    },
+    {
+      "name": "Q6_PAGE_WRITE",
+      "kind": "indexedDB",
+      "result": {
+        "at": 1794046180648,
+        "done": 1794046180657,
+        "kind": "indexedDB",
+        "result": "ok"
+      },
+      "browser": [
+        {
+          "method": "Storage.indexedDBListUpdated",
+          "params": {
+            "source": {
+              "tabId": 2086230432
+            },
+            "bucketId": "6",
+            "origin": "http://127.0.0.1:39729",
+            "storageKey": "http://127.0.0.1:39729/"
+          },
+          "at": 1794046180654
+        },
+        {
+          "method": "Storage.indexedDBListUpdated",
+          "params": {
+            "source": {
+              "tabId": 2086230432
+            },
+            "bucketId": "6",
+            "origin": "http://127.0.0.1:39729",
+            "storageKey": "http://127.0.0.1:39729/"
+          },
+          "at": 1794046180656
+        },
+        {
+          "method": "Storage.indexedDBContentUpdated",
+          "params": {
+            "source": {
+              "tabId": 2086230432
+            },
+            "bucketId": "6",
+            "databaseName": "synthetic17d",
+            "objectStoreName": "outbox",
+            "origin": "http://127.0.0.1:39729",
+            "storageKey": "http://127.0.0.1:39729/"
+          },
+          "at": 1794046180656
+        },
+        {
+          "method": "Storage.indexedDBListUpdated",
+          "params": {
+            "source": {
+              "tabId": 2086230432
+            },
+            "bucketId": "6",
+            "origin": "http://127.0.0.1:39729",
+            "storageKey": "http://127.0.0.1:39729/"
+          },
+          "at": 1794046180657
+        }
+      ],
+      "script": [
+        {
+          "method": "check.script",
+          "params": {
+            "event": "write-or-handoff",
+            "api": "indexedDB.put",
+            "at": 1794046180656,
+            "source": {
+              "tabId": 2086230432,
+              "frameId": 0,
+              "documentId": "2DD4D97E6782F38334F8A9E248C679D8"
+            }
+          },
+          "at": 1794046180657
+        }
+      ],
+      "latencies": [
+        {
+          "method": "Storage.indexedDBListUpdated",
+          "ms": 6
+        },
+        {
+          "method": "Storage.indexedDBListUpdated",
+          "ms": 8
+        },
+        {
+          "method": "Storage.indexedDBContentUpdated",
+          "ms": 8
+        },
+        {
+          "method": "Storage.indexedDBListUpdated",
+          "ms": 9
+        }
+      ]
+    },
+    {
+      "name": "Q6_PAGE_WRITE",
+      "kind": "cache",
+      "result": {
+        "at": 1794046181667,
+        "done": 1794046181672,
+        "kind": "cache",
+        "result": "ok"
+      },
+      "browser": [
+        {
+          "method": "Storage.cacheStorageListUpdated",
+          "params": {
+            "source": {
+              "tabId": 2086230432
+            },
+            "bucketId": "6",
+            "origin": "http://127.0.0.1:39729",
+            "storageKey": "http://127.0.0.1:39729/"
+          },
+          "at": 1794046181669
+        },
+        {
+          "method": "Storage.cacheStorageContentUpdated",
+          "params": {
+            "source": {
+              "tabId": 2086230432
+            },
+            "bucketId": "6",
+            "cacheName": "synthetic17d",
+            "origin": "http://127.0.0.1:39729",
+            "storageKey": "http://127.0.0.1:39729/"
+          },
+          "at": 1794046181673
+        }
+      ],
+      "script": [
+        {
+          "method": "check.script",
+          "params": {
+            "event": "write-or-handoff",
+            "api": "cache.put",
+            "at": 1794046181669,
+            "source": {
+              "tabId": 2086230432,
+              "frameId": 0,
+              "documentId": "2DD4D97E6782F38334F8A9E248C679D8"
+            }
+          },
+          "at": 1794046181671
+        }
+      ],
+      "latencies": [
+        {
+          "method": "Storage.cacheStorageListUpdated",
+          "ms": 2
+        },
+        {
+          "method": "Storage.cacheStorageContentUpdated",
+          "ms": 6
+        }
+      ]
+    },
+    {
+      "name": "Q6_PAGE_WRITE",
+      "kind": "cookie",
+      "result": {
+        "at": 1794046182678,
+        "done": 1794046182679,
+        "kind": "cookie",
+        "result": "ok"
+      },
+      "browser": [],
+      "script": [
+        {
+          "method": "check.script",
+          "params": {
+            "event": "write-or-handoff",
+            "api": "cookie.set",
+            "at": 1794046182679,
+            "source": {
+              "tabId": 2086230432,
+              "frameId": 0,
+              "documentId": "2DD4D97E6782F38334F8A9E248C679D8"
+            }
+          },
+          "at": 1794046182680
+        }
+      ],
+      "latencies": []
+    },
+    {
+      "name": "Q6_PAGE_WRITE",
+      "kind": "opfs",
+      "result": {
+        "at": 1794046183688,
+        "done": 1794046183697,
+        "kind": "opfs",
+        "result": "ok"
+      },
+      "browser": [],
+      "script": [
+        {
+          "method": "check.script",
+          "params": {
+            "event": "write-or-handoff",
+            "api": "opfs.getDirectory",
+            "at": 1794046183688,
+            "source": {
+              "tabId": 2086230432,
+              "frameId": 0,
+              "documentId": "2DD4D97E6782F38334F8A9E248C679D8"
+            }
+          },
+          "at": 1794046183689
+        },
+        {
+          "method": "check.script",
+          "params": {
+            "event": "write-or-handoff",
+            "api": "opfs.createWritable",
+            "at": 1794046183694,
+            "source": {
+              "tabId": 2086230432,
+              "frameId": 0,
+              "documentId": "2DD4D97E6782F38334F8A9E248C679D8"
+            }
+          },
+          "at": 1794046183695
+        },
+        {
+          "method": "check.script",
+          "params": {
+            "event": "write-or-handoff",
+            "api": "opfs.write",
+            "at": 1794046183695,
+            "source": {
+              "tabId": 2086230432,
+              "frameId": 0,
+              "documentId": "2DD4D97E6782F38334F8A9E248C679D8"
+            }
+          },
+          "at": 1794046183696
+        }
+      ],
+      "latencies": []
+    },
+    {
+      "name": "Q6_PAGE_WRITE",
+      "kind": "broadcast",
+      "result": {
+        "at": 1794046184703,
+        "done": 1794046184703,
+        "kind": "broadcast",
+        "result": "ok"
+      },
+      "browser": [],
+      "script": [
+        {
+          "method": "check.script",
+          "params": {
+            "event": "write-or-handoff",
+            "api": "broadcast.postMessage",
+            "at": 1794046184703,
+            "source": {
+              "tabId": 2086230432,
+              "frameId": 0,
+              "documentId": "2DD4D97E6782F38334F8A9E248C679D8"
+            }
+          },
+          "at": 1794046184704
+        }
+      ],
+      "latencies": []
+    },
+    {
+      "name": "Q6_PAGE_WRITE",
+      "kind": "window",
+      "result": {
+        "at": 1794046185709,
+        "done": 1794046185732,
+        "kind": "window",
+        "result": "ok"
+      },
+      "browser": [],
+      "script": [
+        {
+          "method": "check.script",
+          "params": {
+            "event": "write-or-handoff",
+            "api": "window.postMessage",
+            "at": 1794046185732,
+            "source": {
+              "tabId": 2086230432,
+              "frameId": 21,
+              "documentId": "CD4F532CFDEA8C96CA2ECA68EE88BA10"
+            }
+          },
+          "at": 1794046185734
+        }
+      ],
+      "latencies": []
+    },
+    {
+      "name": "Q6_PAGE_WRITE",
+      "kind": "dedicated",
+      "result": {
+        "at": 1794046186738,
+        "done": 1794046186738,
+        "kind": "dedicated",
+        "result": "ok"
+      },
+      "browser": [],
+      "script": [
+        {
+          "method": "check.script",
+          "params": {
+            "event": "write-or-handoff",
+            "api": "worker.postMessage",
+            "at": 1794046186738,
+            "source": {
+              "tabId": 2086230432,
+              "frameId": 0,
+              "documentId": "2DD4D97E6782F38334F8A9E248C679D8"
+            }
+          },
+          "at": 1794046186740
+        }
+      ],
+      "latencies": []
+    },
+    {
+      "name": "Q6_PAGE_WRITE",
+      "kind": "shared",
+      "result": {
+        "at": 1794046187745,
+        "done": 1794046187746,
+        "kind": "shared",
+        "result": "ok"
+      },
+      "browser": [],
+      "script": [
+        {
+          "method": "check.script",
+          "params": {
+            "event": "write-or-handoff",
+            "api": "port.postMessage",
+            "at": 1794046187745,
+            "source": {
+              "tabId": 2086230432,
+              "frameId": 0,
+              "documentId": "2DD4D97E6782F38334F8A9E248C679D8"
+            }
+          },
+          "at": 1794046187747
+        }
+      ],
+      "latencies": []
+    },
+    {
+      "name": "Q6_PAGE_WRITE",
+      "kind": "registration",
+      "result": {
+        "at": 1794046188753,
+        "done": 1794046188766,
+        "kind": "registration",
+        "result": "ok"
+      },
+      "browser": [],
+      "script": [
+        {
+          "method": "check.script",
+          "params": {
+            "event": "write-or-handoff",
+            "api": "serviceWorker.register",
+            "at": 1794046188753,
+            "source": {
+              "tabId": 2086230432,
+              "frameId": 0,
+              "documentId": "2DD4D97E6782F38334F8A9E248C679D8"
+            }
+          },
+          "at": 1794046188754
+        }
+      ],
+      "latencies": []
+    },
+    {
+      "name": "Q6_PAGE_WRITE",
+      "kind": "sync",
+      "result": {
+        "at": 1794046189774,
+        "done": 1794046189775,
+        "kind": "sync",
+        "result": "ok"
+      },
+      "browser": [],
+      "script": [
+        {
+          "method": "check.script",
+          "params": {
+            "event": "write-or-handoff",
+            "api": "sync.register",
+            "at": 1794046189774,
+            "source": {
+              "tabId": 2086230432,
+              "frameId": 0,
+              "documentId": "2DD4D97E6782F38334F8A9E248C679D8"
+            }
+          },
+          "at": 1794046189775
+        }
+      ],
+      "latencies": []
+    },
+    {
+      "name": "Q6_PAGE_WRITE",
+      "kind": "periodicSync",
+      "result": {
+        "at": 1794046190783,
+        "done": 1794046190784,
+        "kind": "periodicSync",
+        "result": "NotAllowedError: Permission denied."
+      },
+      "browser": [],
+      "script": [
+        {
+          "method": "check.script",
+          "params": {
+            "event": "write-or-handoff",
+            "api": "periodicSync.register",
+            "at": 1794046190783,
+            "source": {
+              "tabId": 2086230432,
+              "frameId": 0,
+              "documentId": "2DD4D97E6782F38334F8A9E248C679D8"
+            }
+          },
+          "at": 1794046190784
+        }
+      ],
+      "latencies": []
+    },
+    {
+      "name": "Q6_WORKER_WRITE",
+      "kind": "indexedDB",
+      "target": {
+        "attached": false,
+        "id": "B4CFABB524438B0D633217D2DD81522B",
+        "title": "",
+        "type": "worker",
+        "url": "http://127.0.0.1:39729/worker.js?shared&case=handoff-shared"
+      },
+      "result": {
+        "result": {
+          "type": "object",
+          "value": {
+            "at": 1794046191795,
+            "result": "ok"
+          }
+        }
+      },
+      "subscribed": [
+        {
+          "method": "Storage.trackIndexedDBForOrigin",
+          "ok": true
+        },
+        {
+          "method": "Storage.trackCacheStorageForOrigin",
+          "ok": true
+        }
+      ],
+      "events": [
+        {
+          "method": "Storage.indexedDBListUpdated",
+          "params": {
+            "source": {
+              "tabId": 2086230432
+            },
+            "bucketId": "6",
+            "origin": "http://127.0.0.1:39729",
+            "storageKey": "http://127.0.0.1:39729/"
+          },
+          "at": 1794046191797
+        },
+        {
+          "method": "Storage.indexedDBListUpdated",
+          "params": {
+            "source": {
+              "targetId": "B4CFABB524438B0D633217D2DD81522B"
+            },
+            "bucketId": "6",
+            "origin": "http://127.0.0.1:39729",
+            "storageKey": "http://127.0.0.1:39729/"
+          },
+          "at": 1794046191797
+        },
+        {
+          "method": "Storage.indexedDBListUpdated",
+          "params": {
+            "source": {
+              "tabId": 2086230432
+            },
+            "bucketId": "6",
+            "origin": "http://127.0.0.1:39729",
+            "storageKey": "http://127.0.0.1:39729/"
+          },
+          "at": 1794046191799
+        },
+        {
+          "method": "Storage.indexedDBListUpdated",
+          "params": {
+            "source": {
+              "targetId": "B4CFABB524438B0D633217D2DD81522B"
+            },
+            "bucketId": "6",
+            "origin": "http://127.0.0.1:39729",
+            "storageKey": "http://127.0.0.1:39729/"
+          },
+          "at": 1794046191799
+        },
+        {
+          "method": "check.script",
+          "params": {
+            "source": {
+              "targetId": "B4CFABB524438B0D633217D2DD81522B"
+            },
+            "event": "write-or-handoff",
+            "api": "indexedDB.put",
+            "at": 1794046191799
+          },
+          "at": 1794046191800
+        },
+        {
+          "method": "Storage.indexedDBContentUpdated",
+          "params": {
+            "source": {
+              "tabId": 2086230432
+            },
+            "bucketId": "6",
+            "databaseName": "synthetic-worker17d",
+            "objectStoreName": "outbox",
+            "origin": "http://127.0.0.1:39729",
+            "storageKey": "http://127.0.0.1:39729/"
+          },
+          "at": 1794046191800
+        },
+        {
+          "method": "Storage.indexedDBContentUpdated",
+          "params": {
+            "source": {
+              "targetId": "B4CFABB524438B0D633217D2DD81522B"
+            },
+            "bucketId": "6",
+            "databaseName": "synthetic-worker17d",
+            "objectStoreName": "outbox",
+            "origin": "http://127.0.0.1:39729",
+            "storageKey": "http://127.0.0.1:39729/"
+          },
+          "at": 1794046191800
+        },
+        {
+          "method": "Storage.indexedDBListUpdated",
+          "params": {
+            "source": {
+              "tabId": 2086230432
+            },
+            "bucketId": "6",
+            "origin": "http://127.0.0.1:39729",
+            "storageKey": "http://127.0.0.1:39729/"
+          },
+          "at": 1794046191800
+        },
+        {
+          "method": "Storage.indexedDBListUpdated",
+          "params": {
+            "source": {
+              "targetId": "B4CFABB524438B0D633217D2DD81522B"
+            },
+            "bucketId": "6",
+            "origin": "http://127.0.0.1:39729",
+            "storageKey": "http://127.0.0.1:39729/"
+          },
+          "at": 1794046191800
+        }
+      ]
+    },
+    {
+      "name": "Q6_WORKER_WRITE",
+      "kind": "cache",
+      "target": {
+        "attached": false,
+        "id": "B4CFABB524438B0D633217D2DD81522B",
+        "title": "",
+        "type": "worker",
+        "url": "http://127.0.0.1:39729/worker.js?shared&case=handoff-shared"
+      },
+      "result": {
+        "result": {
+          "type": "object",
+          "value": {
+            "at": 1794046192806,
+            "result": "ok"
+          }
+        }
+      },
+      "subscribed": [
+        {
+          "method": "Storage.trackIndexedDBForOrigin",
+          "ok": true
+        },
+        {
+          "method": "Storage.trackCacheStorageForOrigin",
+          "ok": true
+        }
+      ],
+      "events": [
+        {
+          "method": "Storage.cacheStorageListUpdated",
+          "params": {
+            "source": {
+              "tabId": 2086230432
+            },
+            "bucketId": "6",
+            "origin": "http://127.0.0.1:39729",
+            "storageKey": "http://127.0.0.1:39729/"
+          },
+          "at": 1794046192807
+        },
+        {
+          "method": "Storage.cacheStorageListUpdated",
+          "params": {
+            "source": {
+              "targetId": "B4CFABB524438B0D633217D2DD81522B"
+            },
+            "bucketId": "6",
+            "origin": "http://127.0.0.1:39729",
+            "storageKey": "http://127.0.0.1:39729/"
+          },
+          "at": 1794046192808
+        },
+        {
+          "method": "check.script",
+          "params": {
+            "source": {
+              "targetId": "B4CFABB524438B0D633217D2DD81522B"
+            },
+            "event": "write-or-handoff",
+            "api": "cache.put",
+            "at": 1794046192808
+          },
+          "at": 1794046192808
+        },
+        {
+          "method": "Storage.cacheStorageContentUpdated",
+          "params": {
+            "source": {
+              "tabId": 2086230432
+            },
+            "bucketId": "6",
+            "cacheName": "synthetic-worker17d",
+            "origin": "http://127.0.0.1:39729",
+            "storageKey": "http://127.0.0.1:39729/"
+          },
+          "at": 1794046192810
+        },
+        {
+          "method": "Storage.cacheStorageContentUpdated",
+          "params": {
+            "source": {
+              "targetId": "B4CFABB524438B0D633217D2DD81522B"
+            },
+            "bucketId": "6",
+            "cacheName": "synthetic-worker17d",
+            "origin": "http://127.0.0.1:39729",
+            "storageKey": "http://127.0.0.1:39729/"
+          },
+          "at": 1794046192810
+        }
+      ]
+    },
+    {
+      "name": "Q6_WORKER_WRITE",
+      "kind": "opfs",
+      "target": {
+        "attached": false,
+        "id": "B4CFABB524438B0D633217D2DD81522B",
+        "title": "",
+        "type": "worker",
+        "url": "http://127.0.0.1:39729/worker.js?shared&case=handoff-shared"
+      },
+      "result": {
+        "result": {
+          "type": "object",
+          "value": {
+            "at": 1794046193817,
+            "result": "ok"
+          }
+        }
+      },
+      "subscribed": [
+        {
+          "method": "Storage.trackIndexedDBForOrigin",
+          "ok": true
+        },
+        {
+          "method": "Storage.trackCacheStorageForOrigin",
+          "ok": true
+        }
+      ],
+      "events": [
+        {
+          "method": "check.script",
+          "params": {
+            "source": {
+              "targetId": "B4CFABB524438B0D633217D2DD81522B"
+            },
+            "event": "write-or-handoff",
+            "api": "opfs.getDirectory",
+            "at": 1794046193817
+          },
+          "at": 1794046193817
+        },
+        {
+          "method": "check.script",
+          "params": {
+            "source": {
+              "targetId": "B4CFABB524438B0D633217D2DD81522B"
+            },
+            "event": "write-or-handoff",
+            "api": "opfs.createWritable",
+            "at": 1794046193818
+          },
+          "at": 1794046193819
+        },
+        {
+          "method": "check.script",
+          "params": {
+            "source": {
+              "targetId": "B4CFABB524438B0D633217D2DD81522B"
+            },
+            "event": "write-or-handoff",
+            "api": "opfs.write",
+            "at": 1794046193819
+          },
+          "at": 1794046193820
+        }
+      ]
+    },
+    {
+      "name": "Q6_WORKER_WRITE",
+      "kind": "broadcast",
+      "target": {
+        "attached": false,
+        "id": "B4CFABB524438B0D633217D2DD81522B",
+        "title": "",
+        "type": "worker",
+        "url": "http://127.0.0.1:39729/worker.js?shared&case=handoff-shared"
+      },
+      "result": {
+        "result": {
+          "type": "object",
+          "value": {
+            "at": 1794046194829,
+            "result": "ok"
+          }
+        }
+      },
+      "subscribed": [
+        {
+          "method": "Storage.trackIndexedDBForOrigin",
+          "ok": true
+        },
+        {
+          "method": "Storage.trackCacheStorageForOrigin",
+          "ok": true
+        }
+      ],
+      "events": [
+        {
+          "method": "check.script",
+          "params": {
+            "source": {
+              "targetId": "B4CFABB524438B0D633217D2DD81522B"
+            },
+            "event": "write-or-handoff",
+            "api": "broadcast.postMessage",
+            "at": 1794046194829
+          },
+          "at": 1794046194829
+        }
+      ]
+    },
+    {
+      "name": "Q6_WORKER_WRITE",
+      "kind": "cookie",
+      "target": {
+        "attached": false,
+        "id": "B4CFABB524438B0D633217D2DD81522B",
+        "title": "",
+        "type": "worker",
+        "url": "http://127.0.0.1:39729/worker.js?shared&case=handoff-shared"
+      },
+      "result": {
+        "result": {
+          "type": "object",
+          "value": {
+            "at": 1794046195837,
+            "result": "ReferenceError: cookieStore is not defined"
+          }
+        }
+      },
+      "subscribed": [
+        {
+          "method": "Storage.trackIndexedDBForOrigin",
+          "ok": true
+        },
+        {
+          "method": "Storage.trackCacheStorageForOrigin",
+          "ok": true
+        }
+      ],
+      "events": []
+    },
+    {
+      "name": "Q6_WORKER_WRITE",
+      "kind": "localStorage",
+      "target": {
+        "attached": false,
+        "id": "B4CFABB524438B0D633217D2DD81522B",
+        "title": "",
+        "type": "worker",
+        "url": "http://127.0.0.1:39729/worker.js?shared&case=handoff-shared"
+      },
+      "result": {
+        "result": {
+          "type": "object",
+          "value": {
+            "at": 1794046196845,
+            "result": "ReferenceError: localStorage is not defined"
+          }
+        }
+      },
+      "subscribed": [
+        {
+          "method": "Storage.trackIndexedDBForOrigin",
+          "ok": true
+        },
+        {
+          "method": "Storage.trackCacheStorageForOrigin",
+          "ok": true
+        }
+      ],
+      "events": []
+    },
+    {
+      "name": "Q6_WORKER_WRITE",
+      "kind": "sync",
+      "target": {
+        "attached": false,
+        "id": "B4CFABB524438B0D633217D2DD81522B",
+        "title": "",
+        "type": "worker",
+        "url": "http://127.0.0.1:39729/worker.js?shared&case=handoff-shared"
+      },
+      "result": {
+        "result": {
+          "type": "object",
+          "value": {
+            "at": 1794046197849,
+            "result": "ReferenceError: registration is not defined"
+          }
+        }
+      },
+      "subscribed": [
+        {
+          "method": "Storage.trackIndexedDBForOrigin",
+          "ok": true
+        },
+        {
+          "method": "Storage.trackCacheStorageForOrigin",
+          "ok": true
+        }
+      ],
+      "events": []
+    },
+    {
+      "name": "Q6_WORKER_WRITE",
+      "kind": "periodicSync",
+      "target": {
+        "attached": false,
+        "id": "B4CFABB524438B0D633217D2DD81522B",
+        "title": "",
+        "type": "worker",
+        "url": "http://127.0.0.1:39729/worker.js?shared&case=handoff-shared"
+      },
+      "result": {
+        "result": {
+          "type": "object",
+          "value": {
+            "at": 1794046198854,
+            "result": "ReferenceError: registration is not defined"
+          }
+        }
+      },
+      "subscribed": [
+        {
+          "method": "Storage.trackIndexedDBForOrigin",
+          "ok": true
+        },
+        {
+          "method": "Storage.trackCacheStorageForOrigin",
+          "ok": true
+        }
+      ],
+      "events": []
+    },
+    {
+      "name": "Q6_WORKER_WRITE",
+      "kind": "port",
+      "target": {
+        "attached": false,
+        "id": "B4CFABB524438B0D633217D2DD81522B",
+        "title": "",
+        "type": "worker",
+        "url": "http://127.0.0.1:39729/worker.js?shared&case=handoff-shared"
+      },
+      "result": {
+        "result": {
+          "type": "object",
+          "value": {
+            "at": 1794046199862,
+            "result": "ok"
+          }
+        }
+      },
+      "subscribed": [
+        {
+          "method": "Storage.trackIndexedDBForOrigin",
+          "ok": true
+        },
+        {
+          "method": "Storage.trackCacheStorageForOrigin",
+          "ok": true
+        }
+      ],
+      "events": [
+        {
+          "method": "check.script",
+          "params": {
+            "source": {
+              "targetId": "B4CFABB524438B0D633217D2DD81522B"
+            },
+            "event": "write-or-handoff",
+            "api": "port.postMessage",
+            "at": 1794046199862
+          },
+          "at": 1794046199862
+        }
+      ]
+    },
+    {
+      "name": "Q6_WORKER_WRITE",
+      "kind": "client",
+      "target": {
+        "attached": false,
+        "id": "B4CFABB524438B0D633217D2DD81522B",
+        "title": "",
+        "type": "worker",
+        "url": "http://127.0.0.1:39729/worker.js?shared&case=handoff-shared"
+      },
+      "result": {
+        "result": {
+          "type": "object",
+          "value": {
+            "at": 1794046200869,
+            "result": "ReferenceError: clients is not defined"
+          }
+        }
+      },
+      "subscribed": [
+        {
+          "method": "Storage.trackIndexedDBForOrigin",
+          "ok": true
+        },
+        {
+          "method": "Storage.trackCacheStorageForOrigin",
+          "ok": true
+        }
+      ],
+      "events": []
+    },
+    {
+      "name": "Q6_WORKER_WRITES",
+      "status": "observed"
+    },
+    {
+      "name": "Q6_WORKER_WRITE",
+      "kind": "indexedDB",
+      "target": {
+        "attached": false,
+        "id": "B68D70857B4CB67B249B32BD2693E4E5",
+        "title": "Service Worker http://127.0.0.1:39729/sw.js?case=storage-sw",
+        "type": "worker",
+        "url": "http://127.0.0.1:39729/sw.js?case=storage-sw"
+      },
+      "result": {
+        "result": {
+          "type": "object",
+          "value": {
+            "at": 1794046201882,
+            "result": "ok"
+          }
+        }
+      },
+      "subscribed": [
+        {
+          "method": "Storage.trackIndexedDBForOrigin",
+          "ok": true
+        },
+        {
+          "method": "Storage.trackCacheStorageForOrigin",
+          "ok": true
+        }
+      ],
+      "events": [
+        {
+          "method": "Storage.indexedDBListUpdated",
+          "params": {
+            "source": {
+              "tabId": 2086230432
+            },
+            "bucketId": "6",
+            "origin": "http://127.0.0.1:39729",
+            "storageKey": "http://127.0.0.1:39729/"
+          },
+          "at": 1794046201884
+        },
+        {
+          "method": "Storage.indexedDBListUpdated",
+          "params": {
+            "source": {
+              "targetId": "B4CFABB524438B0D633217D2DD81522B"
+            },
+            "bucketId": "6",
+            "origin": "http://127.0.0.1:39729",
+            "storageKey": "http://127.0.0.1:39729/"
+          },
+          "at": 1794046201884
+        },
+        {
+          "method": "Storage.indexedDBListUpdated",
+          "params": {
+            "source": {
+              "targetId": "B68D70857B4CB67B249B32BD2693E4E5"
+            },
+            "bucketId": "6",
+            "origin": "http://127.0.0.1:39729",
+            "storageKey": "http://127.0.0.1:39729/"
+          },
+          "at": 1794046201884
+        },
+        {
+          "method": "check.script",
+          "params": {
+            "source": {
+              "targetId": "B68D70857B4CB67B249B32BD2693E4E5"
+            },
+            "event": "write-or-handoff",
+            "api": "indexedDB.put",
+            "at": 1794046201884
+          },
+          "at": 1794046201884
+        },
+        {
+          "method": "Storage.indexedDBContentUpdated",
+          "params": {
+            "source": {
+              "tabId": 2086230432
+            },
+            "bucketId": "6",
+            "databaseName": "synthetic-worker17d",
+            "objectStoreName": "outbox",
+            "origin": "http://127.0.0.1:39729",
+            "storageKey": "http://127.0.0.1:39729/"
+          },
+          "at": 1794046201885
+        },
+        {
+          "method": "Storage.indexedDBContentUpdated",
+          "params": {
+            "source": {
+              "targetId": "B4CFABB524438B0D633217D2DD81522B"
+            },
+            "bucketId": "6",
+            "databaseName": "synthetic-worker17d",
+            "objectStoreName": "outbox",
+            "origin": "http://127.0.0.1:39729",
+            "storageKey": "http://127.0.0.1:39729/"
+          },
+          "at": 1794046201885
+        },
+        {
+          "method": "Storage.indexedDBContentUpdated",
+          "params": {
+            "source": {
+              "targetId": "B68D70857B4CB67B249B32BD2693E4E5"
+            },
+            "bucketId": "6",
+            "databaseName": "synthetic-worker17d",
+            "objectStoreName": "outbox",
+            "origin": "http://127.0.0.1:39729",
+            "storageKey": "http://127.0.0.1:39729/"
+          },
+          "at": 1794046201885
+        },
+        {
+          "method": "Storage.indexedDBListUpdated",
+          "params": {
+            "source": {
+              "tabId": 2086230432
+            },
+            "bucketId": "6",
+            "origin": "http://127.0.0.1:39729",
+            "storageKey": "http://127.0.0.1:39729/"
+          },
+          "at": 1794046201885
+        },
+        {
+          "method": "Storage.indexedDBListUpdated",
+          "params": {
+            "source": {
+              "targetId": "B4CFABB524438B0D633217D2DD81522B"
+            },
+            "bucketId": "6",
+            "origin": "http://127.0.0.1:39729",
+            "storageKey": "http://127.0.0.1:39729/"
+          },
+          "at": 1794046201885
+        },
+        {
+          "method": "Storage.indexedDBListUpdated",
+          "params": {
+            "source": {
+              "targetId": "B68D70857B4CB67B249B32BD2693E4E5"
+            },
+            "bucketId": "6",
+            "origin": "http://127.0.0.1:39729",
+            "storageKey": "http://127.0.0.1:39729/"
+          },
+          "at": 1794046201885
+        }
+      ]
+    },
+    {
+      "name": "Q6_WORKER_WRITE",
+      "kind": "cache",
+      "target": {
+        "attached": false,
+        "id": "B68D70857B4CB67B249B32BD2693E4E5",
+        "title": "Service Worker http://127.0.0.1:39729/sw.js?case=storage-sw",
+        "type": "worker",
+        "url": "http://127.0.0.1:39729/sw.js?case=storage-sw"
+      },
+      "result": {
+        "result": {
+          "type": "object",
+          "value": {
+            "at": 1794046202892,
+            "result": "ok"
+          }
+        }
+      },
+      "subscribed": [
+        {
+          "method": "Storage.trackIndexedDBForOrigin",
+          "ok": true
+        },
+        {
+          "method": "Storage.trackCacheStorageForOrigin",
+          "ok": true
+        }
+      ],
+      "events": [
+        {
+          "method": "check.script",
+          "params": {
+            "source": {
+              "targetId": "B68D70857B4CB67B249B32BD2693E4E5"
+            },
+            "event": "write-or-handoff",
+            "api": "cache.put",
+            "at": 1794046202893
+          },
+          "at": 1794046202893
+        },
+        {
+          "method": "Storage.cacheStorageContentUpdated",
+          "params": {
+            "source": {
+              "tabId": 2086230432
+            },
+            "bucketId": "6",
+            "cacheName": "synthetic-worker17d",
+            "origin": "http://127.0.0.1:39729",
+            "storageKey": "http://127.0.0.1:39729/"
+          },
+          "at": 1794046202895
+        },
+        {
+          "method": "Storage.cacheStorageContentUpdated",
+          "params": {
+            "source": {
+              "targetId": "B4CFABB524438B0D633217D2DD81522B"
+            },
+            "bucketId": "6",
+            "cacheName": "synthetic-worker17d",
+            "origin": "http://127.0.0.1:39729",
+            "storageKey": "http://127.0.0.1:39729/"
+          },
+          "at": 1794046202895
+        },
+        {
+          "method": "Storage.cacheStorageContentUpdated",
+          "params": {
+            "source": {
+              "targetId": "B68D70857B4CB67B249B32BD2693E4E5"
+            },
+            "bucketId": "6",
+            "cacheName": "synthetic-worker17d",
+            "origin": "http://127.0.0.1:39729",
+            "storageKey": "http://127.0.0.1:39729/"
+          },
+          "at": 1794046202895
+        },
+        {
+          "method": "Storage.cacheStorageContentUpdated",
+          "params": {
+            "source": {
+              "tabId": 2086230432
+            },
+            "bucketId": "6",
+            "cacheName": "synthetic-worker17d",
+            "origin": "http://127.0.0.1:39729",
+            "storageKey": "http://127.0.0.1:39729/"
+          },
+          "at": 1794046202896
+        },
+        {
+          "method": "Storage.cacheStorageContentUpdated",
+          "params": {
+            "source": {
+              "targetId": "B4CFABB524438B0D633217D2DD81522B"
+            },
+            "bucketId": "6",
+            "cacheName": "synthetic-worker17d",
+            "origin": "http://127.0.0.1:39729",
+            "storageKey": "http://127.0.0.1:39729/"
+          },
+          "at": 1794046202896
+        },
+        {
+          "method": "Storage.cacheStorageContentUpdated",
+          "params": {
+            "source": {
+              "targetId": "B68D70857B4CB67B249B32BD2693E4E5"
+            },
+            "bucketId": "6",
+            "cacheName": "synthetic-worker17d",
+            "origin": "http://127.0.0.1:39729",
+            "storageKey": "http://127.0.0.1:39729/"
+          },
+          "at": 1794046202896
+        }
+      ]
+    },
+    {
+      "name": "Q6_WORKER_WRITE",
+      "kind": "opfs",
+      "target": {
+        "attached": false,
+        "id": "B68D70857B4CB67B249B32BD2693E4E5",
+        "title": "Service Worker http://127.0.0.1:39729/sw.js?case=storage-sw",
+        "type": "worker",
+        "url": "http://127.0.0.1:39729/sw.js?case=storage-sw"
+      },
+      "result": {
+        "result": {
+          "type": "object",
+          "value": {
+            "at": 1794046203902,
+            "result": "ok"
+          }
+        }
+      },
+      "subscribed": [
+        {
+          "method": "Storage.trackIndexedDBForOrigin",
+          "ok": true
+        },
+        {
+          "method": "Storage.trackCacheStorageForOrigin",
+          "ok": true
+        }
+      ],
+      "events": [
+        {
+          "method": "check.script",
+          "params": {
+            "source": {
+              "targetId": "B68D70857B4CB67B249B32BD2693E4E5"
+            },
+            "event": "write-or-handoff",
+            "api": "opfs.getDirectory",
+            "at": 1794046203902
+          },
+          "at": 1794046203902
+        },
+        {
+          "method": "check.script",
+          "params": {
+            "source": {
+              "targetId": "B68D70857B4CB67B249B32BD2693E4E5"
+            },
+            "event": "write-or-handoff",
+            "api": "opfs.createWritable",
+            "at": 1794046203904
+          },
+          "at": 1794046203904
+        },
+        {
+          "method": "check.script",
+          "params": {
+            "source": {
+              "targetId": "B68D70857B4CB67B249B32BD2693E4E5"
+            },
+            "event": "write-or-handoff",
+            "api": "opfs.write",
+            "at": 1794046203905
+          },
+          "at": 1794046203905
+        }
+      ]
+    },
+    {
+      "name": "Q6_WORKER_WRITE",
+      "kind": "broadcast",
+      "target": {
+        "attached": false,
+        "id": "B68D70857B4CB67B249B32BD2693E4E5",
+        "title": "Service Worker http://127.0.0.1:39729/sw.js?case=storage-sw",
+        "type": "worker",
+        "url": "http://127.0.0.1:39729/sw.js?case=storage-sw"
+      },
+      "result": {
+        "result": {
+          "type": "object",
+          "value": {
+            "at": 1794046204913,
+            "result": "ok"
+          }
+        }
+      },
+      "subscribed": [
+        {
+          "method": "Storage.trackIndexedDBForOrigin",
+          "ok": true
+        },
+        {
+          "method": "Storage.trackCacheStorageForOrigin",
+          "ok": true
+        }
+      ],
+      "events": [
+        {
+          "method": "check.script",
+          "params": {
+            "source": {
+              "targetId": "B68D70857B4CB67B249B32BD2693E4E5"
+            },
+            "event": "write-or-handoff",
+            "api": "broadcast.postMessage",
+            "at": 1794046204913
+          },
+          "at": 1794046204914
+        }
+      ]
+    },
+    {
+      "name": "Q6_WORKER_WRITE",
+      "kind": "cookie",
+      "target": {
+        "attached": false,
+        "id": "B68D70857B4CB67B249B32BD2693E4E5",
+        "title": "Service Worker http://127.0.0.1:39729/sw.js?case=storage-sw",
+        "type": "worker",
+        "url": "http://127.0.0.1:39729/sw.js?case=storage-sw"
+      },
+      "result": {
+        "result": {
+          "type": "object",
+          "value": {
+            "at": 1794046205920,
+            "result": "ok"
+          }
+        }
+      },
+      "subscribed": [
+        {
+          "method": "Storage.trackIndexedDBForOrigin",
+          "ok": true
+        },
+        {
+          "method": "Storage.trackCacheStorageForOrigin",
+          "ok": true
+        }
+      ],
+      "events": [
+        {
+          "method": "check.script",
+          "params": {
+            "source": {
+              "targetId": "B68D70857B4CB67B249B32BD2693E4E5"
+            },
+            "event": "write-or-handoff",
+            "api": "cookieStore.set",
+            "at": 1794046205921
+          },
+          "at": 1794046205921
+        }
+      ]
+    },
+    {
+      "name": "Q6_WORKER_WRITE",
+      "kind": "localStorage",
+      "target": {
+        "attached": false,
+        "id": "B68D70857B4CB67B249B32BD2693E4E5",
+        "title": "Service Worker http://127.0.0.1:39729/sw.js?case=storage-sw",
+        "type": "worker",
+        "url": "http://127.0.0.1:39729/sw.js?case=storage-sw"
+      },
+      "result": {
+        "result": {
+          "type": "object",
+          "value": {
+            "at": 1794046206930,
+            "result": "ReferenceError: localStorage is not defined"
+          }
+        }
+      },
+      "subscribed": [
+        {
+          "method": "Storage.trackIndexedDBForOrigin",
+          "ok": true
+        },
+        {
+          "method": "Storage.trackCacheStorageForOrigin",
+          "ok": true
+        }
+      ],
+      "events": []
+    },
+    {
+      "name": "Q6_WORKER_WRITE",
+      "kind": "sync",
+      "target": {
+        "attached": false,
+        "id": "B68D70857B4CB67B249B32BD2693E4E5",
+        "title": "Service Worker http://127.0.0.1:39729/sw.js?case=storage-sw",
+        "type": "worker",
+        "url": "http://127.0.0.1:39729/sw.js?case=storage-sw"
+      },
+      "result": {
+        "result": {
+          "type": "object",
+          "value": {
+            "at": 1794046207936,
+            "result": "ok"
+          }
+        }
+      },
+      "subscribed": [
+        {
+          "method": "Storage.trackIndexedDBForOrigin",
+          "ok": true
+        },
+        {
+          "method": "Storage.trackCacheStorageForOrigin",
+          "ok": true
+        }
+      ],
+      "events": [
+        {
+          "method": "check.script",
+          "params": {
+            "source": {
+              "targetId": "B68D70857B4CB67B249B32BD2693E4E5"
+            },
+            "event": "write-or-handoff",
+            "api": "sync.register",
+            "at": 1794046207936
+          },
+          "at": 1794046207937
+        },
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "http://127.0.0.1:39729/receive?case=storage-sw-v1-sync",
+            "method": "POST",
+            "type": "xmlhttprequest",
+            "tabId": -1,
+            "initiator": "http://127.0.0.1:39729",
+            "requestId": "57",
+            "at": 1794046207940.139
+          },
+          "at": 1794046207941
+        },
+        {
+          "method": "check.webError",
+          "params": {
+            "url": "http://127.0.0.1:39729/receive?case=storage-sw-v1-sync",
+            "method": "POST",
+            "error": "net::ERR_BLOCKED_BY_CLIENT",
+            "tabId": -1
+          },
+          "at": 1794046207941
+        },
+        {
+          "method": "Network.requestWillBeSent",
+          "params": {
+            "source": {
+              "targetId": "B68D70857B4CB67B249B32BD2693E4E5"
+            },
+            "requestId": "3959.28",
+            "url": "http://127.0.0.1:39729/receive?case=storage-sw-v1-sync",
+            "method": "POST",
+            "hasPostData": true,
+            "postData": {
+              "missing": false,
+              "length": 16,
+              "sha256": "615ee23c674a6a10388e2c1f1c388646f990598e218f2e54838fa392a523e480",
+              "preview": "synthetic worker",
+              "syntheticDiskFilePresent": false
+            },
+            "entries": [
+              {
+                "bytesPresent": true,
+                "base64Length": 24
+              }
+            ]
+          },
+          "at": 1794046207943
+        },
+        {
+          "method": "Network.loadingFailed",
+          "params": {
+            "source": {
+              "targetId": "B68D70857B4CB67B249B32BD2693E4E5"
+            },
+            "blockedReason": "other",
+            "canceled": false,
+            "errorText": "net::ERR_BLOCKED_BY_CLIENT",
+            "requestId": "3959.28",
+            "timestamp": 167.507612,
+            "type": "Fetch"
+          },
+          "at": 1794046207944
+        },
+        {
+          "method": "check.getPostData",
+          "params": {
+            "requestId": "3959.28",
+            "length": 16,
+            "sha256": "615ee23c674a6a10388e2c1f1c388646f990598e218f2e54838fa392a523e480",
+            "preview": "synthetic worker",
+            "syntheticDiskFilePresent": false
+          },
+          "at": 1794046207945
+        }
+      ]
+    },
+    {
+      "name": "Q6_WORKER_WRITE",
+      "kind": "periodicSync",
+      "target": {
+        "attached": false,
+        "id": "B68D70857B4CB67B249B32BD2693E4E5",
+        "title": "Service Worker http://127.0.0.1:39729/sw.js?case=storage-sw",
+        "type": "worker",
+        "url": "http://127.0.0.1:39729/sw.js?case=storage-sw"
+      },
+      "result": {
+        "result": {
+          "type": "object",
+          "value": {
+            "at": 1794046208946,
+            "result": "NotAllowedError: Permission denied."
+          }
+        }
+      },
+      "subscribed": [
+        {
+          "method": "Storage.trackIndexedDBForOrigin",
+          "ok": true
+        },
+        {
+          "method": "Storage.trackCacheStorageForOrigin",
+          "ok": true
+        }
+      ],
+      "events": [
+        {
+          "method": "check.script",
+          "params": {
+            "source": {
+              "targetId": "B68D70857B4CB67B249B32BD2693E4E5"
+            },
+            "event": "write-or-handoff",
+            "api": "periodicSync.register",
+            "at": 1794046208946
+          },
+          "at": 1794046208946
+        }
+      ]
+    },
+    {
+      "name": "Q6_WORKER_WRITE",
+      "kind": "port",
+      "target": {
+        "attached": false,
+        "id": "B68D70857B4CB67B249B32BD2693E4E5",
+        "title": "Service Worker http://127.0.0.1:39729/sw.js?case=storage-sw",
+        "type": "worker",
+        "url": "http://127.0.0.1:39729/sw.js?case=storage-sw"
+      },
+      "result": {
+        "result": {
+          "type": "object",
+          "value": {
+            "at": 1794046209954,
+            "result": "ReferenceError: testPort is not defined"
+          }
+        }
+      },
+      "subscribed": [
+        {
+          "method": "Storage.trackIndexedDBForOrigin",
+          "ok": true
+        },
+        {
+          "method": "Storage.trackCacheStorageForOrigin",
+          "ok": true
+        }
+      ],
+      "events": []
+    },
+    {
+      "name": "Q6_WORKER_WRITE",
+      "kind": "client",
+      "target": {
+        "attached": false,
+        "id": "B68D70857B4CB67B249B32BD2693E4E5",
+        "title": "Service Worker http://127.0.0.1:39729/sw.js?case=storage-sw",
+        "type": "worker",
+        "url": "http://127.0.0.1:39729/sw.js?case=storage-sw"
+      },
+      "result": {
+        "result": {
+          "type": "object",
+          "value": {
+            "at": 1794046210961,
+            "result": "ok"
+          }
+        }
+      },
+      "subscribed": [
+        {
+          "method": "Storage.trackIndexedDBForOrigin",
+          "ok": true
+        },
+        {
+          "method": "Storage.trackCacheStorageForOrigin",
+          "ok": true
+        }
+      ],
+      "events": [
+        {
+          "method": "check.script",
+          "params": {
+            "source": {
+              "targetId": "B68D70857B4CB67B249B32BD2693E4E5"
+            },
+            "event": "write-or-handoff",
+            "api": "client.postMessage",
+            "at": 1794046210961
+          },
+          "at": 1794046210962
+        }
+      ]
+    },
+    {
+      "name": "Q6_WORKER_WRITES",
+      "status": "observed"
+    },
+    {
+      "name": "Q6_OFFLINE_OUTBOX",
+      "evidence": [
+        {
+          "method": "Storage.indexedDBListUpdated",
+          "params": {
+            "source": {
+              "tabId": 2086230432
+            },
+            "bucketId": "6",
+            "origin": "http://127.0.0.1:39729",
+            "storageKey": "http://127.0.0.1:39729/"
+          },
+          "at": 1794046212749
+        },
+        {
+          "method": "Storage.indexedDBListUpdated",
+          "params": {
+            "source": {
+              "targetId": "B4CFABB524438B0D633217D2DD81522B"
+            },
+            "bucketId": "6",
+            "origin": "http://127.0.0.1:39729",
+            "storageKey": "http://127.0.0.1:39729/"
+          },
+          "at": 1794046212749
+        },
+        {
+          "method": "Storage.indexedDBListUpdated",
+          "params": {
+            "source": {
+              "targetId": "B68D70857B4CB67B249B32BD2693E4E5"
+            },
+            "bucketId": "6",
+            "origin": "http://127.0.0.1:39729",
+            "storageKey": "http://127.0.0.1:39729/"
+          },
+          "at": 1794046212749
+        },
+        {
+          "method": "Storage.indexedDBContentUpdated",
+          "params": {
+            "source": {
+              "tabId": 2086230432
+            },
+            "bucketId": "6",
+            "databaseName": "synthetic17d",
+            "objectStoreName": "outbox",
+            "origin": "http://127.0.0.1:39729",
+            "storageKey": "http://127.0.0.1:39729/"
+          },
+          "at": 1794046212750
+        },
+        {
+          "method": "Storage.indexedDBContentUpdated",
+          "params": {
+            "source": {
+              "targetId": "B4CFABB524438B0D633217D2DD81522B"
+            },
+            "bucketId": "6",
+            "databaseName": "synthetic17d",
+            "objectStoreName": "outbox",
+            "origin": "http://127.0.0.1:39729",
+            "storageKey": "http://127.0.0.1:39729/"
+          },
+          "at": 1794046212750
+        },
+        {
+          "method": "Storage.indexedDBContentUpdated",
+          "params": {
+            "source": {
+              "targetId": "B68D70857B4CB67B249B32BD2693E4E5"
+            },
+            "bucketId": "6",
+            "databaseName": "synthetic17d",
+            "objectStoreName": "outbox",
+            "origin": "http://127.0.0.1:39729",
+            "storageKey": "http://127.0.0.1:39729/"
+          },
+          "at": 1794046212750
+        },
+        {
+          "method": "check.script",
+          "params": {
+            "event": "write-or-handoff",
+            "api": "indexedDB.put",
+            "at": 1794046212749,
+            "source": {
+              "tabId": 2086230432,
+              "frameId": 0,
+              "documentId": "EEC6295FFDA1B6D0D147C5F8473A907F"
+            }
+          },
+          "at": 1794046212751
+        },
+        {
+          "method": "Storage.indexedDBListUpdated",
+          "params": {
+            "source": {
+              "tabId": 2086230432
+            },
+            "bucketId": "6",
+            "origin": "http://127.0.0.1:39729",
+            "storageKey": "http://127.0.0.1:39729/"
+          },
+          "at": 1794046212751
+        },
+        {
+          "method": "Storage.indexedDBListUpdated",
+          "params": {
+            "source": {
+              "targetId": "B4CFABB524438B0D633217D2DD81522B"
+            },
+            "bucketId": "6",
+            "origin": "http://127.0.0.1:39729",
+            "storageKey": "http://127.0.0.1:39729/"
+          },
+          "at": 1794046212751
+        },
+        {
+          "method": "Storage.indexedDBListUpdated",
+          "params": {
+            "source": {
+              "targetId": "B68D70857B4CB67B249B32BD2693E4E5"
+            },
+            "bucketId": "6",
+            "origin": "http://127.0.0.1:39729",
+            "storageKey": "http://127.0.0.1:39729/"
+          },
+          "at": 1794046212751
+        }
+      ],
+      "receiver": [],
+      "laterPage": [],
+      "guardKept": true
+    },
+    {
+      "name": "FINAL_DELIVERY_AUDIT",
+      "status": "PASS",
+      "cases": 10
+    }
+  ]
+}

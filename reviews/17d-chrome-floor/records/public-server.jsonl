@@ -1,0 +1,14 @@
+{"kind":"document","url":"/","host":"127.0.0.1:34939","at":1794046159070}
+{"kind":"document","url":"/favicon.ico","host":"127.0.0.1:34939","at":1794046159122}
+{"kind":"document","url":"/","host":"127.0.0.1:34939","at":1794046167005}
+{"kind":"document","url":"/favicon.ico","host":"127.0.0.1:34939","at":1794046167023}
+{"kind":"http","case":"owner-notification","method":"POST","url":"/receive?case=owner-notification","length":15,"sha256":"dc0aca5e81cccf3f43411c454bfb644c448f888afd7e73fd40d0e0990c50ed10","body":"synthetic owner","headers":{"host":"127.0.0.1:34939","connection":"keep-alive","content-length":"15","sec-ch-ua-platform":"\"Linux\"","user-agent":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36","sec-ch-ua":"\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"","content-type":"text/plain;charset=UTF-8","sec-ch-ua-mobile":"?0","accept":"*/*","origin":"http://127.0.0.1:34939","sec-fetch-site":"same-origin","sec-fetch-mode":"cors","sec-fetch-dest":"empty","referer":"http://127.0.0.1:34939/","accept-encoding":"gzip, deflate, br, zstd","accept-language":"en-US,en;q=0.9"},"at":1794046169433}
+{"kind":"ws-open","case":"reached-ws","at":1794046170554}
+{"kind":"worker-script","url":"/worker.js?shared&case=public-shared","version":1,"at":1794046171063}
+{"kind":"worker-script","url":"/sw.js?case=public-service","version":1,"at":1794046171064}
+{"kind":"attempt","case":"public-shared-v1-first","at":1794046171071}
+{"kind":"attempt","case":"public-service-v1-first","at":1794046171073}
+{"kind":"ws-open","case":"public-shared-v1-first","at":1794046171073}
+{"kind":"ws-message","case":"public-shared-v1-first","body":"{\"case\":\"public-shared-v1-first\"}","at":1794046171075}
+{"kind":"ws-open","case":"public-service-v1-first","at":1794046171085}
+{"kind":"ws-message","case":"public-service-v1-first","body":"{\"case\":\"public-service-v1-first\"}","at":1794046171085}

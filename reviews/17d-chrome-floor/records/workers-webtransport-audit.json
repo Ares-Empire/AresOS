@@ -1,0 +1,73 @@
+{
+  "rows": [
+    {
+      "kind": "connect",
+      "at": 1794046275586.546,
+      "headers": {
+        ":scheme": "https",
+        ":method": "CONNECT",
+        ":authority": "127.0.0.1:4433",
+        ":path": "/check?case=wt-control",
+        ":protocol": "webtransport",
+        "sec-webtransport-http3-draft02": "1",
+        "origin": "http://127.0.0.1:41917"
+      }
+    }
+  ],
+  "pageBlockedArrivals": 0,
+  "workerHandshakeArrivals": 0,
+  "workerReports": [
+    {
+      "target": {
+        "attached": false,
+        "id": "3A5F4E6ED6439526B3872B37990703E8",
+        "title": "",
+        "type": "worker",
+        "url": "http://127.0.0.1:41917/worker.js?shared&case=worker-wt-shared"
+      },
+      "result": {
+        "result": {
+          "type": "object",
+          "value": {
+            "available": "function",
+            "results": [
+              {
+                "at": 1794046279205,
+                "attempt": "first"
+              },
+              "TypeError",
+              "ws-open",
+              "wt-WebTransportError"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "target": {
+        "attached": false,
+        "id": "484DCE25663DEF9658AADF3ECD402554",
+        "title": "Service Worker http://127.0.0.1:41917/sw.js?case=worker-wt-service",
+        "type": "worker",
+        "url": "http://127.0.0.1:41917/sw.js?case=worker-wt-service"
+      },
+      "result": {
+        "result": {
+          "type": "object",
+          "value": {
+            "available": "function",
+            "results": [
+              {
+                "at": 1794046279203,
+                "attempt": "first"
+              },
+              "TypeError",
+              "wt-WebTransportError",
+              "ws-open"
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

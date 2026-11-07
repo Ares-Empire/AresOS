@@ -1,0 +1,15 @@
+{"kind":"update","url":"/update.xml?os=linux&arch=x64&prod=chromecrx&prodchannel=&prodversion=157.0.8103.38&lang=en-US&acceptformat=crx3,puff&x=id%3Dkddnbghnpdkppoididhacindhbdaoppd%26v%3D0.0.0.0%26installsource%3Dnotfromwebstore%26installedby%3Dpolicy%26uc","at":1794029725874}
+{"kind":"crx","url":"/extension.crx","at":1794029725939}
+{"kind":"update","url":"/update.xml?os=linux&arch=x64&prod=chromecrx&prodchannel=&prodversion=157.0.8103.38&lang=en-US&acceptformat=crx3,puff&x=id%3Dkddnbghnpdkppoididhacindhbdaoppd%26v%3D0.2.0%26installsource%3Dnotfromwebstore%26installedby%3Dpolicy%26uc","at":1794029749106}
+{"kind":"receive","url":"/receive?case=sw-page-fetch-true","method":"POST","body":"synthetic fetch","at":1794029754912}
+{"kind":"receive","url":"/receive?case=sw-page-xhr-true","method":"POST","body":"synthetic xhr","at":1794029759468}
+{"kind":"receive","url":"/receive?case=sw-page-form-true","method":"POST","body":"value=synthetic+form","at":1794029764040}
+{"kind":"receive","url":"/receive?case=sw-own-true","method":"POST","body":"synthetic worker","at":1794029768514}
+{"kind":"receive","url":"/receive?case=sw-sync-true","method":"POST","body":"synthetic sync","at":1794029773866}
+{"kind":"receive","url":"/receive?case=bypass-fetch-true","method":"POST","body":"synthetic fetch","at":1794029778720}
+{"kind":"receive","url":"/receive?case=bypass-xhr-true","method":"POST","body":"synthetic xhr","at":1794029781066}
+{"kind":"receive","url":"/receive?case=bypass-form-true","method":"POST","body":"value=synthetic+form","at":1794029783522}
+{"kind":"receive","url":"/receive?case=long-retry&attempt=2","method":"POST","body":"synthetic retry","at":1794029787551}
+{"kind":"receive","url":"/receive?case=long-30000","method":"POST","body":"synthetic fetch","at":1794029816515}
+{"kind":"receive","url":"/receive?case=long-120000","method":"POST","body":"synthetic fetch","at":1794029906517}
+{"kind":"receive","url":"/receive?case=long-form","method":"POST","body":"value=synthetic+form","at":1794029939212}

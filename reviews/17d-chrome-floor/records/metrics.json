@@ -1,0 +1,2501 @@
+{
+  "naturalAllowance": {
+    "addAcknowledgedAt": 1794046193553,
+    "gateReportedAt": 1794046193555,
+    "firstMatchRemovedAt": 1794046193555,
+    "answerReportedAt": 1794046193557,
+    "acknowledgedAddToGateReportedMs": 2,
+    "gateReportedToAnswerReportedMs": 2,
+    "clock": "Date.now, millisecond resolution; extension observation points, not browser-internal pause times"
+  },
+  "races": [
+    {
+      "id": "race-false-0-0",
+      "revoke": false,
+      "pause": 0,
+      "added": {
+        "before": 1794046172570,
+        "after": 1794046172570
+      },
+      "gate": {
+        "method": "check.gate",
+        "params": {
+          "source": {
+            "tabId": 1449777704
+          },
+          "requestId": "interception-job-12.0",
+          "url": "http://127.0.0.1:37515/receive?case=race-false-0-0",
+          "method": "POST",
+          "headers": {
+            "Accept": "*/*",
+            "Content-Type": "text/plain;charset=UTF-8",
+            "Origin": "http://127.0.0.1:37515",
+            "Referer": "http://127.0.0.1:37515/",
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+            "X-Check": "synthetic",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Linux\""
+          },
+          "hasPostData": true,
+          "postData": {
+            "missing": false,
+            "length": 20,
+            "sha256": "c0b7f8c975237fc2b3d43d507113036cfb5ea1bda839fa44dc8ad14b617d4e32",
+            "preview": "synthetic wrong-body",
+            "syntheticDiskFilePresent": false
+          },
+          "entries": [
+            {
+              "bytesPresent": true,
+              "base64Length": 28
+            }
+          ],
+          "enteredAt": 1794046172575
+        },
+        "at": 1794046172575
+      },
+      "endedAt": 1794046173030,
+      "rows": [
+        {
+          "kind": "http",
+          "case": "race-false-0-0",
+          "method": "POST",
+          "url": "/receive?case=race-false-0-0",
+          "length": 20,
+          "sha256": "c0b7f8c975237fc2b3d43d507113036cfb5ea1bda839fa44dc8ad14b617d4e32",
+          "body": "synthetic wrong-body",
+          "headers": {
+            "host": "127.0.0.1:37515",
+            "connection": "keep-alive",
+            "content-length": "20",
+            "sec-ch-ua-platform": "\"Linux\"",
+            "x-check": "synthetic",
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "content-type": "text/plain;charset=UTF-8",
+            "sec-ch-ua-mobile": "?0",
+            "accept": "*/*",
+            "origin": "http://127.0.0.1:37515",
+            "sec-fetch-site": "same-origin",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-dest": "empty",
+            "referer": "http://127.0.0.1:37515/",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9"
+          },
+          "at": 1794046172729
+        }
+      ]
+    },
+    {
+      "id": "race-false-0-1",
+      "revoke": false,
+      "pause": 0,
+      "added": {
+        "before": 1794046173288,
+        "after": 1794046173289
+      },
+      "gate": {
+        "method": "check.gate",
+        "params": {
+          "source": {
+            "tabId": 1449777704
+          },
+          "requestId": "interception-job-13.0",
+          "url": "http://127.0.0.1:37515/receive?case=race-false-0-1",
+          "method": "POST",
+          "headers": {
+            "Accept": "*/*",
+            "Content-Type": "text/plain;charset=UTF-8",
+            "Origin": "http://127.0.0.1:37515",
+            "Referer": "http://127.0.0.1:37515/",
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+            "X-Check": "synthetic",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Linux\""
+          },
+          "hasPostData": true,
+          "postData": {
+            "missing": false,
+            "length": 20,
+            "sha256": "c0b7f8c975237fc2b3d43d507113036cfb5ea1bda839fa44dc8ad14b617d4e32",
+            "preview": "synthetic wrong-body",
+            "syntheticDiskFilePresent": false
+          },
+          "entries": [
+            {
+              "bytesPresent": true,
+              "base64Length": 28
+            }
+          ],
+          "enteredAt": 1794046173293
+        },
+        "at": 1794046173293
+      },
+      "endedAt": 1794046173748,
+      "rows": [
+        {
+          "kind": "http",
+          "case": "race-false-0-1",
+          "method": "POST",
+          "url": "/receive?case=race-false-0-1",
+          "length": 20,
+          "sha256": "c0b7f8c975237fc2b3d43d507113036cfb5ea1bda839fa44dc8ad14b617d4e32",
+          "body": "synthetic wrong-body",
+          "headers": {
+            "host": "127.0.0.1:37515",
+            "connection": "keep-alive",
+            "content-length": "20",
+            "sec-ch-ua-platform": "\"Linux\"",
+            "x-check": "synthetic",
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "content-type": "text/plain;charset=UTF-8",
+            "sec-ch-ua-mobile": "?0",
+            "accept": "*/*",
+            "origin": "http://127.0.0.1:37515",
+            "sec-fetch-site": "same-origin",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-dest": "empty",
+            "referer": "http://127.0.0.1:37515/",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9"
+          },
+          "at": 1794046173449
+        }
+      ]
+    },
+    {
+      "id": "race-false-0-2",
+      "revoke": false,
+      "pause": 0,
+      "added": {
+        "before": 1794046174006,
+        "after": 1794046174006
+      },
+      "gate": {
+        "method": "check.gate",
+        "params": {
+          "source": {
+            "tabId": 1449777704
+          },
+          "requestId": "interception-job-14.0",
+          "url": "http://127.0.0.1:37515/receive?case=race-false-0-2",
+          "method": "POST",
+          "headers": {
+            "Accept": "*/*",
+            "Content-Type": "text/plain;charset=UTF-8",
+            "Origin": "http://127.0.0.1:37515",
+            "Referer": "http://127.0.0.1:37515/",
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+            "X-Check": "synthetic",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Linux\""
+          },
+          "hasPostData": true,
+          "postData": {
+            "missing": false,
+            "length": 20,
+            "sha256": "c0b7f8c975237fc2b3d43d507113036cfb5ea1bda839fa44dc8ad14b617d4e32",
+            "preview": "synthetic wrong-body",
+            "syntheticDiskFilePresent": false
+          },
+          "entries": [
+            {
+              "bytesPresent": true,
+              "base64Length": 28
+            }
+          ],
+          "enteredAt": 1794046174010
+        },
+        "at": 1794046174010
+      },
+      "endedAt": 1794046174465,
+      "rows": [
+        {
+          "kind": "http",
+          "case": "race-false-0-2",
+          "method": "POST",
+          "url": "/receive?case=race-false-0-2",
+          "length": 20,
+          "sha256": "c0b7f8c975237fc2b3d43d507113036cfb5ea1bda839fa44dc8ad14b617d4e32",
+          "body": "synthetic wrong-body",
+          "headers": {
+            "host": "127.0.0.1:37515",
+            "connection": "keep-alive",
+            "content-length": "20",
+            "sec-ch-ua-platform": "\"Linux\"",
+            "x-check": "synthetic",
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "content-type": "text/plain;charset=UTF-8",
+            "sec-ch-ua-mobile": "?0",
+            "accept": "*/*",
+            "origin": "http://127.0.0.1:37515",
+            "sec-fetch-site": "same-origin",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-dest": "empty",
+            "referer": "http://127.0.0.1:37515/",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9"
+          },
+          "at": 1794046174166
+        }
+      ]
+    },
+    {
+      "id": "race-false-25-0",
+      "revoke": false,
+      "pause": 25,
+      "added": {
+        "before": 1794046174723,
+        "after": 1794046174723
+      },
+      "gate": {
+        "method": "check.gate",
+        "params": {
+          "source": {
+            "tabId": 1449777704
+          },
+          "requestId": "interception-job-15.0",
+          "url": "http://127.0.0.1:37515/receive?case=race-false-25-0",
+          "method": "POST",
+          "headers": {
+            "Accept": "*/*",
+            "Content-Type": "text/plain;charset=UTF-8",
+            "Origin": "http://127.0.0.1:37515",
+            "Referer": "http://127.0.0.1:37515/",
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+            "X-Check": "synthetic",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Linux\""
+          },
+          "hasPostData": true,
+          "postData": {
+            "missing": false,
+            "length": 20,
+            "sha256": "c0b7f8c975237fc2b3d43d507113036cfb5ea1bda839fa44dc8ad14b617d4e32",
+            "preview": "synthetic wrong-body",
+            "syntheticDiskFilePresent": false
+          },
+          "entries": [
+            {
+              "bytesPresent": true,
+              "base64Length": 28
+            }
+          ],
+          "enteredAt": 1794046174752
+        },
+        "at": 1794046174752
+      },
+      "endedAt": 1794046175206,
+      "rows": [
+        {
+          "kind": "http",
+          "case": "race-false-25-0",
+          "method": "POST",
+          "url": "/receive?case=race-false-25-0",
+          "length": 20,
+          "sha256": "c0b7f8c975237fc2b3d43d507113036cfb5ea1bda839fa44dc8ad14b617d4e32",
+          "body": "synthetic wrong-body",
+          "headers": {
+            "host": "127.0.0.1:37515",
+            "connection": "keep-alive",
+            "content-length": "20",
+            "sec-ch-ua-platform": "\"Linux\"",
+            "x-check": "synthetic",
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "content-type": "text/plain;charset=UTF-8",
+            "sec-ch-ua-mobile": "?0",
+            "accept": "*/*",
+            "origin": "http://127.0.0.1:37515",
+            "sec-fetch-site": "same-origin",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-dest": "empty",
+            "referer": "http://127.0.0.1:37515/",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9"
+          },
+          "at": 1794046174907
+        }
+      ]
+    },
+    {
+      "id": "race-false-25-1",
+      "revoke": false,
+      "pause": 25,
+      "added": {
+        "before": 1794046175463,
+        "after": 1794046175464
+      },
+      "gate": {
+        "method": "check.gate",
+        "params": {
+          "source": {
+            "tabId": 1449777704
+          },
+          "requestId": "interception-job-16.0",
+          "url": "http://127.0.0.1:37515/receive?case=race-false-25-1",
+          "method": "POST",
+          "headers": {
+            "Accept": "*/*",
+            "Content-Type": "text/plain;charset=UTF-8",
+            "Origin": "http://127.0.0.1:37515",
+            "Referer": "http://127.0.0.1:37515/",
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+            "X-Check": "synthetic",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Linux\""
+          },
+          "hasPostData": true,
+          "postData": {
+            "missing": false,
+            "length": 20,
+            "sha256": "c0b7f8c975237fc2b3d43d507113036cfb5ea1bda839fa44dc8ad14b617d4e32",
+            "preview": "synthetic wrong-body",
+            "syntheticDiskFilePresent": false
+          },
+          "entries": [
+            {
+              "bytesPresent": true,
+              "base64Length": 28
+            }
+          ],
+          "enteredAt": 1794046175493
+        },
+        "at": 1794046175493
+      },
+      "endedAt": 1794046175947,
+      "rows": [
+        {
+          "kind": "http",
+          "case": "race-false-25-1",
+          "method": "POST",
+          "url": "/receive?case=race-false-25-1",
+          "length": 20,
+          "sha256": "c0b7f8c975237fc2b3d43d507113036cfb5ea1bda839fa44dc8ad14b617d4e32",
+          "body": "synthetic wrong-body",
+          "headers": {
+            "host": "127.0.0.1:37515",
+            "connection": "keep-alive",
+            "content-length": "20",
+            "sec-ch-ua-platform": "\"Linux\"",
+            "x-check": "synthetic",
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "content-type": "text/plain;charset=UTF-8",
+            "sec-ch-ua-mobile": "?0",
+            "accept": "*/*",
+            "origin": "http://127.0.0.1:37515",
+            "sec-fetch-site": "same-origin",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-dest": "empty",
+            "referer": "http://127.0.0.1:37515/",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9"
+          },
+          "at": 1794046175648
+        }
+      ]
+    },
+    {
+      "id": "race-false-25-2",
+      "revoke": false,
+      "pause": 25,
+      "added": {
+        "before": 1794046176205,
+        "after": 1794046176205
+      },
+      "gate": {
+        "method": "check.gate",
+        "params": {
+          "source": {
+            "tabId": 1449777704
+          },
+          "requestId": "interception-job-17.0",
+          "url": "http://127.0.0.1:37515/receive?case=race-false-25-2",
+          "method": "POST",
+          "headers": {
+            "Accept": "*/*",
+            "Content-Type": "text/plain;charset=UTF-8",
+            "Origin": "http://127.0.0.1:37515",
+            "Referer": "http://127.0.0.1:37515/",
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+            "X-Check": "synthetic",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Linux\""
+          },
+          "hasPostData": true,
+          "postData": {
+            "missing": false,
+            "length": 20,
+            "sha256": "c0b7f8c975237fc2b3d43d507113036cfb5ea1bda839fa44dc8ad14b617d4e32",
+            "preview": "synthetic wrong-body",
+            "syntheticDiskFilePresent": false
+          },
+          "entries": [
+            {
+              "bytesPresent": true,
+              "base64Length": 28
+            }
+          ],
+          "enteredAt": 1794046176235
+        },
+        "at": 1794046176235
+      },
+      "endedAt": 1794046176689,
+      "rows": [
+        {
+          "kind": "http",
+          "case": "race-false-25-2",
+          "method": "POST",
+          "url": "/receive?case=race-false-25-2",
+          "length": 20,
+          "sha256": "c0b7f8c975237fc2b3d43d507113036cfb5ea1bda839fa44dc8ad14b617d4e32",
+          "body": "synthetic wrong-body",
+          "headers": {
+            "host": "127.0.0.1:37515",
+            "connection": "keep-alive",
+            "content-length": "20",
+            "sec-ch-ua-platform": "\"Linux\"",
+            "x-check": "synthetic",
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "content-type": "text/plain;charset=UTF-8",
+            "sec-ch-ua-mobile": "?0",
+            "accept": "*/*",
+            "origin": "http://127.0.0.1:37515",
+            "sec-fetch-site": "same-origin",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-dest": "empty",
+            "referer": "http://127.0.0.1:37515/",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9"
+          },
+          "at": 1794046176389
+        }
+      ]
+    },
+    {
+      "id": "race-false-100-0",
+      "revoke": false,
+      "pause": 100,
+      "added": {
+        "before": 1794046176947,
+        "after": 1794046176947
+      },
+      "gate": {
+        "method": "check.gate",
+        "params": {
+          "source": {
+            "tabId": 1449777704
+          },
+          "requestId": "interception-job-18.0",
+          "url": "http://127.0.0.1:37515/receive?case=race-false-100-0",
+          "method": "POST",
+          "headers": {
+            "Accept": "*/*",
+            "Content-Type": "text/plain;charset=UTF-8",
+            "Origin": "http://127.0.0.1:37515",
+            "Referer": "http://127.0.0.1:37515/",
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+            "X-Check": "synthetic",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Linux\""
+          },
+          "hasPostData": true,
+          "postData": {
+            "missing": false,
+            "length": 20,
+            "sha256": "c0b7f8c975237fc2b3d43d507113036cfb5ea1bda839fa44dc8ad14b617d4e32",
+            "preview": "synthetic wrong-body",
+            "syntheticDiskFilePresent": false
+          },
+          "entries": [
+            {
+              "bytesPresent": true,
+              "base64Length": 28
+            }
+          ],
+          "enteredAt": 1794046177050
+        },
+        "at": 1794046177050
+      },
+      "endedAt": 1794046177506,
+      "rows": [
+        {
+          "kind": "http",
+          "case": "race-false-100-0",
+          "method": "POST",
+          "url": "/receive?case=race-false-100-0",
+          "length": 20,
+          "sha256": "c0b7f8c975237fc2b3d43d507113036cfb5ea1bda839fa44dc8ad14b617d4e32",
+          "body": "synthetic wrong-body",
+          "headers": {
+            "host": "127.0.0.1:37515",
+            "connection": "keep-alive",
+            "content-length": "20",
+            "sec-ch-ua-platform": "\"Linux\"",
+            "x-check": "synthetic",
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "content-type": "text/plain;charset=UTF-8",
+            "sec-ch-ua-mobile": "?0",
+            "accept": "*/*",
+            "origin": "http://127.0.0.1:37515",
+            "sec-fetch-site": "same-origin",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-dest": "empty",
+            "referer": "http://127.0.0.1:37515/",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9"
+          },
+          "at": 1794046177206
+        }
+      ]
+    },
+    {
+      "id": "race-false-100-1",
+      "revoke": false,
+      "pause": 100,
+      "added": {
+        "before": 1794046177763,
+        "after": 1794046177764
+      },
+      "gate": {
+        "method": "check.gate",
+        "params": {
+          "source": {
+            "tabId": 1449777704
+          },
+          "requestId": "interception-job-19.0",
+          "url": "http://127.0.0.1:37515/receive?case=race-false-100-1",
+          "method": "POST",
+          "headers": {
+            "Accept": "*/*",
+            "Content-Type": "text/plain;charset=UTF-8",
+            "Origin": "http://127.0.0.1:37515",
+            "Referer": "http://127.0.0.1:37515/",
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+            "X-Check": "synthetic",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Linux\""
+          },
+          "hasPostData": true,
+          "postData": {
+            "missing": false,
+            "length": 20,
+            "sha256": "c0b7f8c975237fc2b3d43d507113036cfb5ea1bda839fa44dc8ad14b617d4e32",
+            "preview": "synthetic wrong-body",
+            "syntheticDiskFilePresent": false
+          },
+          "entries": [
+            {
+              "bytesPresent": true,
+              "base64Length": 28
+            }
+          ],
+          "enteredAt": 1794046177868
+        },
+        "at": 1794046177868
+      },
+      "endedAt": 1794046178322,
+      "rows": [
+        {
+          "kind": "http",
+          "case": "race-false-100-1",
+          "method": "POST",
+          "url": "/receive?case=race-false-100-1",
+          "length": 20,
+          "sha256": "c0b7f8c975237fc2b3d43d507113036cfb5ea1bda839fa44dc8ad14b617d4e32",
+          "body": "synthetic wrong-body",
+          "headers": {
+            "host": "127.0.0.1:37515",
+            "connection": "keep-alive",
+            "content-length": "20",
+            "sec-ch-ua-platform": "\"Linux\"",
+            "x-check": "synthetic",
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "content-type": "text/plain;charset=UTF-8",
+            "sec-ch-ua-mobile": "?0",
+            "accept": "*/*",
+            "origin": "http://127.0.0.1:37515",
+            "sec-fetch-site": "same-origin",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-dest": "empty",
+            "referer": "http://127.0.0.1:37515/",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9"
+          },
+          "at": 1794046178023
+        }
+      ]
+    },
+    {
+      "id": "race-false-100-2",
+      "revoke": false,
+      "pause": 100,
+      "added": {
+        "before": 1794046178580,
+        "after": 1794046178580
+      },
+      "gate": {
+        "method": "check.gate",
+        "params": {
+          "source": {
+            "tabId": 1449777704
+          },
+          "requestId": "interception-job-20.0",
+          "url": "http://127.0.0.1:37515/receive?case=race-false-100-2",
+          "method": "POST",
+          "headers": {
+            "Accept": "*/*",
+            "Content-Type": "text/plain;charset=UTF-8",
+            "Origin": "http://127.0.0.1:37515",
+            "Referer": "http://127.0.0.1:37515/",
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+            "X-Check": "synthetic",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Linux\""
+          },
+          "hasPostData": true,
+          "postData": {
+            "missing": false,
+            "length": 20,
+            "sha256": "c0b7f8c975237fc2b3d43d507113036cfb5ea1bda839fa44dc8ad14b617d4e32",
+            "preview": "synthetic wrong-body",
+            "syntheticDiskFilePresent": false
+          },
+          "entries": [
+            {
+              "bytesPresent": true,
+              "base64Length": 28
+            }
+          ],
+          "enteredAt": 1794046178684
+        },
+        "at": 1794046178684
+      },
+      "endedAt": 1794046179142,
+      "rows": [
+        {
+          "kind": "http",
+          "case": "race-false-100-2",
+          "method": "POST",
+          "url": "/receive?case=race-false-100-2",
+          "length": 20,
+          "sha256": "c0b7f8c975237fc2b3d43d507113036cfb5ea1bda839fa44dc8ad14b617d4e32",
+          "body": "synthetic wrong-body",
+          "headers": {
+            "host": "127.0.0.1:37515",
+            "connection": "keep-alive",
+            "content-length": "20",
+            "sec-ch-ua-platform": "\"Linux\"",
+            "x-check": "synthetic",
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "content-type": "text/plain;charset=UTF-8",
+            "sec-ch-ua-mobile": "?0",
+            "accept": "*/*",
+            "origin": "http://127.0.0.1:37515",
+            "sec-fetch-site": "same-origin",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-dest": "empty",
+            "referer": "http://127.0.0.1:37515/",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9"
+          },
+          "at": 1794046178843
+        }
+      ]
+    },
+    {
+      "id": "race-false-500-0",
+      "revoke": false,
+      "pause": 500,
+      "added": {
+        "before": 1794046179400,
+        "after": 1794046179401
+      },
+      "gate": {
+        "method": "check.gate",
+        "params": {
+          "source": {
+            "tabId": 1449777704
+          },
+          "requestId": "interception-job-21.0",
+          "url": "http://127.0.0.1:37515/receive?case=race-false-500-0",
+          "method": "POST",
+          "headers": {
+            "Accept": "*/*",
+            "Content-Type": "text/plain;charset=UTF-8",
+            "Origin": "http://127.0.0.1:37515",
+            "Referer": "http://127.0.0.1:37515/",
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+            "X-Check": "synthetic",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Linux\""
+          },
+          "hasPostData": true,
+          "postData": {
+            "missing": false,
+            "length": 20,
+            "sha256": "c0b7f8c975237fc2b3d43d507113036cfb5ea1bda839fa44dc8ad14b617d4e32",
+            "preview": "synthetic wrong-body",
+            "syntheticDiskFilePresent": false
+          },
+          "entries": [
+            {
+              "bytesPresent": true,
+              "base64Length": 28
+            }
+          ],
+          "enteredAt": 1794046179905
+        },
+        "at": 1794046179905
+      },
+      "endedAt": 1794046180362,
+      "rows": [
+        {
+          "kind": "http",
+          "case": "race-false-500-0",
+          "method": "POST",
+          "url": "/receive?case=race-false-500-0",
+          "length": 20,
+          "sha256": "c0b7f8c975237fc2b3d43d507113036cfb5ea1bda839fa44dc8ad14b617d4e32",
+          "body": "synthetic wrong-body",
+          "headers": {
+            "host": "127.0.0.1:37515",
+            "connection": "keep-alive",
+            "content-length": "20",
+            "sec-ch-ua-platform": "\"Linux\"",
+            "x-check": "synthetic",
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "content-type": "text/plain;charset=UTF-8",
+            "sec-ch-ua-mobile": "?0",
+            "accept": "*/*",
+            "origin": "http://127.0.0.1:37515",
+            "sec-fetch-site": "same-origin",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-dest": "empty",
+            "referer": "http://127.0.0.1:37515/",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9"
+          },
+          "at": 1794046180063
+        }
+      ]
+    },
+    {
+      "id": "race-false-500-1",
+      "revoke": false,
+      "pause": 500,
+      "added": {
+        "before": 1794046180621,
+        "after": 1794046180621
+      },
+      "gate": {
+        "method": "check.gate",
+        "params": {
+          "source": {
+            "tabId": 1449777704
+          },
+          "requestId": "interception-job-22.0",
+          "url": "http://127.0.0.1:37515/receive?case=race-false-500-1",
+          "method": "POST",
+          "headers": {
+            "Accept": "*/*",
+            "Content-Type": "text/plain;charset=UTF-8",
+            "Origin": "http://127.0.0.1:37515",
+            "Referer": "http://127.0.0.1:37515/",
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+            "X-Check": "synthetic",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Linux\""
+          },
+          "hasPostData": true,
+          "postData": {
+            "missing": false,
+            "length": 20,
+            "sha256": "c0b7f8c975237fc2b3d43d507113036cfb5ea1bda839fa44dc8ad14b617d4e32",
+            "preview": "synthetic wrong-body",
+            "syntheticDiskFilePresent": false
+          },
+          "entries": [
+            {
+              "bytesPresent": true,
+              "base64Length": 28
+            }
+          ],
+          "enteredAt": 1794046181125
+        },
+        "at": 1794046181125
+      },
+      "endedAt": 1794046181579,
+      "rows": [
+        {
+          "kind": "http",
+          "case": "race-false-500-1",
+          "method": "POST",
+          "url": "/receive?case=race-false-500-1",
+          "length": 20,
+          "sha256": "c0b7f8c975237fc2b3d43d507113036cfb5ea1bda839fa44dc8ad14b617d4e32",
+          "body": "synthetic wrong-body",
+          "headers": {
+            "host": "127.0.0.1:37515",
+            "connection": "keep-alive",
+            "content-length": "20",
+            "sec-ch-ua-platform": "\"Linux\"",
+            "x-check": "synthetic",
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "content-type": "text/plain;charset=UTF-8",
+            "sec-ch-ua-mobile": "?0",
+            "accept": "*/*",
+            "origin": "http://127.0.0.1:37515",
+            "sec-fetch-site": "same-origin",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-dest": "empty",
+            "referer": "http://127.0.0.1:37515/",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9"
+          },
+          "at": 1794046181280
+        }
+      ]
+    },
+    {
+      "id": "race-false-500-2",
+      "revoke": false,
+      "pause": 500,
+      "added": {
+        "before": 1794046181837,
+        "after": 1794046181838
+      },
+      "gate": {
+        "method": "check.gate",
+        "params": {
+          "source": {
+            "tabId": 1449777704
+          },
+          "requestId": "interception-job-23.0",
+          "url": "http://127.0.0.1:37515/receive?case=race-false-500-2",
+          "method": "POST",
+          "headers": {
+            "Accept": "*/*",
+            "Content-Type": "text/plain;charset=UTF-8",
+            "Origin": "http://127.0.0.1:37515",
+            "Referer": "http://127.0.0.1:37515/",
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+            "X-Check": "synthetic",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Linux\""
+          },
+          "hasPostData": true,
+          "postData": {
+            "missing": false,
+            "length": 20,
+            "sha256": "c0b7f8c975237fc2b3d43d507113036cfb5ea1bda839fa44dc8ad14b617d4e32",
+            "preview": "synthetic wrong-body",
+            "syntheticDiskFilePresent": false
+          },
+          "entries": [
+            {
+              "bytesPresent": true,
+              "base64Length": 28
+            }
+          ],
+          "enteredAt": 1794046182343
+        },
+        "at": 1794046182343
+      },
+      "endedAt": 1794046182800,
+      "rows": [
+        {
+          "kind": "http",
+          "case": "race-false-500-2",
+          "method": "POST",
+          "url": "/receive?case=race-false-500-2",
+          "length": 20,
+          "sha256": "c0b7f8c975237fc2b3d43d507113036cfb5ea1bda839fa44dc8ad14b617d4e32",
+          "body": "synthetic wrong-body",
+          "headers": {
+            "host": "127.0.0.1:37515",
+            "connection": "keep-alive",
+            "content-length": "20",
+            "sec-ch-ua-platform": "\"Linux\"",
+            "x-check": "synthetic",
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "content-type": "text/plain;charset=UTF-8",
+            "sec-ch-ua-mobile": "?0",
+            "accept": "*/*",
+            "origin": "http://127.0.0.1:37515",
+            "sec-fetch-site": "same-origin",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-dest": "empty",
+            "referer": "http://127.0.0.1:37515/",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9"
+          },
+          "at": 1794046182499
+        }
+      ]
+    },
+    {
+      "id": "race-true-0-0",
+      "revoke": true,
+      "pause": 0,
+      "added": {
+        "before": 1794046183058,
+        "after": 1794046183059
+      },
+      "gate": {
+        "method": "check.gate",
+        "params": {
+          "source": {
+            "tabId": 1449777704
+          },
+          "requestId": "interception-job-24.0",
+          "url": "http://127.0.0.1:37515/receive?case=race-true-0-0",
+          "method": "POST",
+          "headers": {
+            "Accept": "*/*",
+            "Content-Type": "text/plain;charset=UTF-8",
+            "Origin": "http://127.0.0.1:37515",
+            "Referer": "http://127.0.0.1:37515/",
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+            "X-Check": "synthetic",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Linux\""
+          },
+          "hasPostData": true,
+          "postData": {
+            "missing": false,
+            "length": 20,
+            "sha256": "c0b7f8c975237fc2b3d43d507113036cfb5ea1bda839fa44dc8ad14b617d4e32",
+            "preview": "synthetic wrong-body",
+            "syntheticDiskFilePresent": false
+          },
+          "entries": [
+            {
+              "bytesPresent": true,
+              "base64Length": 28
+            }
+          ],
+          "enteredAt": 1794046183062
+        },
+        "at": 1794046183062
+      },
+      "endedAt": 1794046183518,
+      "rows": [
+        {
+          "kind": "http",
+          "case": "race-true-0-0",
+          "method": "POST",
+          "url": "/receive?case=race-true-0-0",
+          "length": 20,
+          "sha256": "c0b7f8c975237fc2b3d43d507113036cfb5ea1bda839fa44dc8ad14b617d4e32",
+          "body": "synthetic wrong-body",
+          "headers": {
+            "host": "127.0.0.1:37515",
+            "connection": "keep-alive",
+            "content-length": "20",
+            "sec-ch-ua-platform": "\"Linux\"",
+            "x-check": "synthetic",
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "content-type": "text/plain;charset=UTF-8",
+            "sec-ch-ua-mobile": "?0",
+            "accept": "*/*",
+            "origin": "http://127.0.0.1:37515",
+            "sec-fetch-site": "same-origin",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-dest": "empty",
+            "referer": "http://127.0.0.1:37515/",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9"
+          },
+          "at": 1794046183218
+        }
+      ]
+    },
+    {
+      "id": "race-true-0-1",
+      "revoke": true,
+      "pause": 0,
+      "added": {
+        "before": 1794046183775,
+        "after": 1794046183776
+      },
+      "gate": {
+        "method": "check.gate",
+        "params": {
+          "source": {
+            "tabId": 1449777704
+          },
+          "requestId": "interception-job-25.0",
+          "url": "http://127.0.0.1:37515/receive?case=race-true-0-1",
+          "method": "POST",
+          "headers": {
+            "Accept": "*/*",
+            "Content-Type": "text/plain;charset=UTF-8",
+            "Origin": "http://127.0.0.1:37515",
+            "Referer": "http://127.0.0.1:37515/",
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+            "X-Check": "synthetic",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Linux\""
+          },
+          "hasPostData": true,
+          "postData": {
+            "missing": false,
+            "length": 20,
+            "sha256": "c0b7f8c975237fc2b3d43d507113036cfb5ea1bda839fa44dc8ad14b617d4e32",
+            "preview": "synthetic wrong-body",
+            "syntheticDiskFilePresent": false
+          },
+          "entries": [
+            {
+              "bytesPresent": true,
+              "base64Length": 28
+            }
+          ],
+          "enteredAt": 1794046183780
+        },
+        "at": 1794046183780
+      },
+      "endedAt": 1794046184237,
+      "rows": [
+        {
+          "kind": "http",
+          "case": "race-true-0-1",
+          "method": "POST",
+          "url": "/receive?case=race-true-0-1",
+          "length": 20,
+          "sha256": "c0b7f8c975237fc2b3d43d507113036cfb5ea1bda839fa44dc8ad14b617d4e32",
+          "body": "synthetic wrong-body",
+          "headers": {
+            "host": "127.0.0.1:37515",
+            "connection": "keep-alive",
+            "content-length": "20",
+            "sec-ch-ua-platform": "\"Linux\"",
+            "x-check": "synthetic",
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "content-type": "text/plain;charset=UTF-8",
+            "sec-ch-ua-mobile": "?0",
+            "accept": "*/*",
+            "origin": "http://127.0.0.1:37515",
+            "sec-fetch-site": "same-origin",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-dest": "empty",
+            "referer": "http://127.0.0.1:37515/",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9"
+          },
+          "at": 1794046183936
+        }
+      ]
+    },
+    {
+      "id": "race-true-0-2",
+      "revoke": true,
+      "pause": 0,
+      "added": {
+        "before": 1794046184495,
+        "after": 1794046184496
+      },
+      "gate": {
+        "method": "check.gate",
+        "params": {
+          "source": {
+            "tabId": 1449777704
+          },
+          "requestId": "interception-job-26.0",
+          "url": "http://127.0.0.1:37515/receive?case=race-true-0-2",
+          "method": "POST",
+          "headers": {
+            "Accept": "*/*",
+            "Content-Type": "text/plain;charset=UTF-8",
+            "Origin": "http://127.0.0.1:37515",
+            "Referer": "http://127.0.0.1:37515/",
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+            "X-Check": "synthetic",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Linux\""
+          },
+          "hasPostData": true,
+          "postData": {
+            "missing": false,
+            "length": 20,
+            "sha256": "c0b7f8c975237fc2b3d43d507113036cfb5ea1bda839fa44dc8ad14b617d4e32",
+            "preview": "synthetic wrong-body",
+            "syntheticDiskFilePresent": false
+          },
+          "entries": [
+            {
+              "bytesPresent": true,
+              "base64Length": 28
+            }
+          ],
+          "enteredAt": 1794046184500
+        },
+        "at": 1794046184500
+      },
+      "endedAt": 1794046184956,
+      "rows": [
+        {
+          "kind": "http",
+          "case": "race-true-0-2",
+          "method": "POST",
+          "url": "/receive?case=race-true-0-2",
+          "length": 20,
+          "sha256": "c0b7f8c975237fc2b3d43d507113036cfb5ea1bda839fa44dc8ad14b617d4e32",
+          "body": "synthetic wrong-body",
+          "headers": {
+            "host": "127.0.0.1:37515",
+            "connection": "keep-alive",
+            "content-length": "20",
+            "sec-ch-ua-platform": "\"Linux\"",
+            "x-check": "synthetic",
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "content-type": "text/plain;charset=UTF-8",
+            "sec-ch-ua-mobile": "?0",
+            "accept": "*/*",
+            "origin": "http://127.0.0.1:37515",
+            "sec-fetch-site": "same-origin",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-dest": "empty",
+            "referer": "http://127.0.0.1:37515/",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9"
+          },
+          "at": 1794046184656
+        }
+      ]
+    },
+    {
+      "id": "race-true-25-0",
+      "revoke": true,
+      "pause": 25,
+      "added": {
+        "before": 1794046185213,
+        "after": 1794046185214
+      },
+      "gate": {
+        "method": "check.gate",
+        "params": {
+          "source": {
+            "tabId": 1449777704
+          },
+          "requestId": "interception-job-27.0",
+          "url": "http://127.0.0.1:37515/receive?case=race-true-25-0",
+          "method": "POST",
+          "headers": {
+            "Accept": "*/*",
+            "Content-Type": "text/plain;charset=UTF-8",
+            "Origin": "http://127.0.0.1:37515",
+            "Referer": "http://127.0.0.1:37515/",
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+            "X-Check": "synthetic",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Linux\""
+          },
+          "hasPostData": true,
+          "postData": {
+            "missing": false,
+            "length": 20,
+            "sha256": "c0b7f8c975237fc2b3d43d507113036cfb5ea1bda839fa44dc8ad14b617d4e32",
+            "preview": "synthetic wrong-body",
+            "syntheticDiskFilePresent": false
+          },
+          "entries": [
+            {
+              "bytesPresent": true,
+              "base64Length": 28
+            }
+          ],
+          "enteredAt": 1794046185242
+        },
+        "at": 1794046185242
+      },
+      "endedAt": 1794046185699,
+      "rows": [
+        {
+          "kind": "http",
+          "case": "race-true-25-0",
+          "method": "POST",
+          "url": "/receive?case=race-true-25-0",
+          "length": 20,
+          "sha256": "c0b7f8c975237fc2b3d43d507113036cfb5ea1bda839fa44dc8ad14b617d4e32",
+          "body": "synthetic wrong-body",
+          "headers": {
+            "host": "127.0.0.1:37515",
+            "connection": "keep-alive",
+            "content-length": "20",
+            "sec-ch-ua-platform": "\"Linux\"",
+            "x-check": "synthetic",
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "content-type": "text/plain;charset=UTF-8",
+            "sec-ch-ua-mobile": "?0",
+            "accept": "*/*",
+            "origin": "http://127.0.0.1:37515",
+            "sec-fetch-site": "same-origin",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-dest": "empty",
+            "referer": "http://127.0.0.1:37515/",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9"
+          },
+          "at": 1794046185399
+        }
+      ]
+    },
+    {
+      "id": "race-true-25-1",
+      "revoke": true,
+      "pause": 25,
+      "added": {
+        "before": 1794046185956,
+        "after": 1794046185957
+      },
+      "gate": {
+        "method": "check.gate",
+        "params": {
+          "source": {
+            "tabId": 1449777704
+          },
+          "requestId": "interception-job-28.0",
+          "url": "http://127.0.0.1:37515/receive?case=race-true-25-1",
+          "method": "POST",
+          "headers": {
+            "Accept": "*/*",
+            "Content-Type": "text/plain;charset=UTF-8",
+            "Origin": "http://127.0.0.1:37515",
+            "Referer": "http://127.0.0.1:37515/",
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+            "X-Check": "synthetic",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Linux\""
+          },
+          "hasPostData": true,
+          "postData": {
+            "missing": false,
+            "length": 20,
+            "sha256": "c0b7f8c975237fc2b3d43d507113036cfb5ea1bda839fa44dc8ad14b617d4e32",
+            "preview": "synthetic wrong-body",
+            "syntheticDiskFilePresent": false
+          },
+          "entries": [
+            {
+              "bytesPresent": true,
+              "base64Length": 28
+            }
+          ],
+          "enteredAt": 1794046185985
+        },
+        "at": 1794046185985
+      },
+      "endedAt": 1794046186441,
+      "rows": [
+        {
+          "kind": "http",
+          "case": "race-true-25-1",
+          "method": "POST",
+          "url": "/receive?case=race-true-25-1",
+          "length": 20,
+          "sha256": "c0b7f8c975237fc2b3d43d507113036cfb5ea1bda839fa44dc8ad14b617d4e32",
+          "body": "synthetic wrong-body",
+          "headers": {
+            "host": "127.0.0.1:37515",
+            "connection": "keep-alive",
+            "content-length": "20",
+            "sec-ch-ua-platform": "\"Linux\"",
+            "x-check": "synthetic",
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "content-type": "text/plain;charset=UTF-8",
+            "sec-ch-ua-mobile": "?0",
+            "accept": "*/*",
+            "origin": "http://127.0.0.1:37515",
+            "sec-fetch-site": "same-origin",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-dest": "empty",
+            "referer": "http://127.0.0.1:37515/",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9"
+          },
+          "at": 1794046186142
+        }
+      ]
+    },
+    {
+      "id": "race-true-25-2",
+      "revoke": true,
+      "pause": 25,
+      "added": {
+        "before": 1794046186699,
+        "after": 1794046186700
+      },
+      "gate": {
+        "method": "check.gate",
+        "params": {
+          "source": {
+            "tabId": 1449777704
+          },
+          "requestId": "interception-job-29.0",
+          "url": "http://127.0.0.1:37515/receive?case=race-true-25-2",
+          "method": "POST",
+          "headers": {
+            "Accept": "*/*",
+            "Content-Type": "text/plain;charset=UTF-8",
+            "Origin": "http://127.0.0.1:37515",
+            "Referer": "http://127.0.0.1:37515/",
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+            "X-Check": "synthetic",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Linux\""
+          },
+          "hasPostData": true,
+          "postData": {
+            "missing": false,
+            "length": 20,
+            "sha256": "c0b7f8c975237fc2b3d43d507113036cfb5ea1bda839fa44dc8ad14b617d4e32",
+            "preview": "synthetic wrong-body",
+            "syntheticDiskFilePresent": false
+          },
+          "entries": [
+            {
+              "bytesPresent": true,
+              "base64Length": 28
+            }
+          ],
+          "enteredAt": 1794046186729
+        },
+        "at": 1794046186729
+      },
+      "endedAt": 1794046187184,
+      "rows": [
+        {
+          "kind": "http",
+          "case": "race-true-25-2",
+          "method": "POST",
+          "url": "/receive?case=race-true-25-2",
+          "length": 20,
+          "sha256": "c0b7f8c975237fc2b3d43d507113036cfb5ea1bda839fa44dc8ad14b617d4e32",
+          "body": "synthetic wrong-body",
+          "headers": {
+            "host": "127.0.0.1:37515",
+            "connection": "keep-alive",
+            "content-length": "20",
+            "sec-ch-ua-platform": "\"Linux\"",
+            "x-check": "synthetic",
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "content-type": "text/plain;charset=UTF-8",
+            "sec-ch-ua-mobile": "?0",
+            "accept": "*/*",
+            "origin": "http://127.0.0.1:37515",
+            "sec-fetch-site": "same-origin",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-dest": "empty",
+            "referer": "http://127.0.0.1:37515/",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9"
+          },
+          "at": 1794046186885
+        }
+      ]
+    },
+    {
+      "id": "race-true-100-0",
+      "revoke": true,
+      "pause": 100,
+      "added": {
+        "before": 1794046187441,
+        "after": 1794046187442
+      },
+      "gate": {
+        "method": "check.gate",
+        "params": {
+          "source": {
+            "tabId": 1449777704
+          },
+          "requestId": "interception-job-30.0",
+          "url": "http://127.0.0.1:37515/receive?case=race-true-100-0",
+          "method": "POST",
+          "headers": {
+            "Accept": "*/*",
+            "Content-Type": "text/plain;charset=UTF-8",
+            "Origin": "http://127.0.0.1:37515",
+            "Referer": "http://127.0.0.1:37515/",
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+            "X-Check": "synthetic",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Linux\""
+          },
+          "hasPostData": true,
+          "postData": {
+            "missing": false,
+            "length": 20,
+            "sha256": "c0b7f8c975237fc2b3d43d507113036cfb5ea1bda839fa44dc8ad14b617d4e32",
+            "preview": "synthetic wrong-body",
+            "syntheticDiskFilePresent": false
+          },
+          "entries": [
+            {
+              "bytesPresent": true,
+              "base64Length": 28
+            }
+          ],
+          "enteredAt": 1794046187546
+        },
+        "at": 1794046187546
+      },
+      "endedAt": 1794046188001,
+      "rows": [
+        {
+          "kind": "http",
+          "case": "race-true-100-0",
+          "method": "POST",
+          "url": "/receive?case=race-true-100-0",
+          "length": 20,
+          "sha256": "c0b7f8c975237fc2b3d43d507113036cfb5ea1bda839fa44dc8ad14b617d4e32",
+          "body": "synthetic wrong-body",
+          "headers": {
+            "host": "127.0.0.1:37515",
+            "connection": "keep-alive",
+            "content-length": "20",
+            "sec-ch-ua-platform": "\"Linux\"",
+            "x-check": "synthetic",
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "content-type": "text/plain;charset=UTF-8",
+            "sec-ch-ua-mobile": "?0",
+            "accept": "*/*",
+            "origin": "http://127.0.0.1:37515",
+            "sec-fetch-site": "same-origin",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-dest": "empty",
+            "referer": "http://127.0.0.1:37515/",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9"
+          },
+          "at": 1794046187703
+        }
+      ]
+    },
+    {
+      "id": "race-true-100-1",
+      "revoke": true,
+      "pause": 100,
+      "added": {
+        "before": 1794046188258,
+        "after": 1794046188259
+      },
+      "gate": {
+        "method": "check.gate",
+        "params": {
+          "source": {
+            "tabId": 1449777704
+          },
+          "requestId": "interception-job-31.0",
+          "url": "http://127.0.0.1:37515/receive?case=race-true-100-1",
+          "method": "POST",
+          "headers": {
+            "Accept": "*/*",
+            "Content-Type": "text/plain;charset=UTF-8",
+            "Origin": "http://127.0.0.1:37515",
+            "Referer": "http://127.0.0.1:37515/",
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+            "X-Check": "synthetic",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Linux\""
+          },
+          "hasPostData": true,
+          "postData": {
+            "missing": false,
+            "length": 20,
+            "sha256": "c0b7f8c975237fc2b3d43d507113036cfb5ea1bda839fa44dc8ad14b617d4e32",
+            "preview": "synthetic wrong-body",
+            "syntheticDiskFilePresent": false
+          },
+          "entries": [
+            {
+              "bytesPresent": true,
+              "base64Length": 28
+            }
+          ],
+          "enteredAt": 1794046188363
+        },
+        "at": 1794046188363
+      },
+      "endedAt": 1794046188819,
+      "rows": [
+        {
+          "kind": "http",
+          "case": "race-true-100-1",
+          "method": "POST",
+          "url": "/receive?case=race-true-100-1",
+          "length": 20,
+          "sha256": "c0b7f8c975237fc2b3d43d507113036cfb5ea1bda839fa44dc8ad14b617d4e32",
+          "body": "synthetic wrong-body",
+          "headers": {
+            "host": "127.0.0.1:37515",
+            "connection": "keep-alive",
+            "content-length": "20",
+            "sec-ch-ua-platform": "\"Linux\"",
+            "x-check": "synthetic",
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "content-type": "text/plain;charset=UTF-8",
+            "sec-ch-ua-mobile": "?0",
+            "accept": "*/*",
+            "origin": "http://127.0.0.1:37515",
+            "sec-fetch-site": "same-origin",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-dest": "empty",
+            "referer": "http://127.0.0.1:37515/",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9"
+          },
+          "at": 1794046188519
+        }
+      ]
+    },
+    {
+      "id": "race-true-100-2",
+      "revoke": true,
+      "pause": 100,
+      "added": {
+        "before": 1794046189076,
+        "after": 1794046189077
+      },
+      "gate": {
+        "method": "check.gate",
+        "params": {
+          "source": {
+            "tabId": 1449777704
+          },
+          "requestId": "interception-job-32.0",
+          "url": "http://127.0.0.1:37515/receive?case=race-true-100-2",
+          "method": "POST",
+          "headers": {
+            "Accept": "*/*",
+            "Content-Type": "text/plain;charset=UTF-8",
+            "Origin": "http://127.0.0.1:37515",
+            "Referer": "http://127.0.0.1:37515/",
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+            "X-Check": "synthetic",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Linux\""
+          },
+          "hasPostData": true,
+          "postData": {
+            "missing": false,
+            "length": 20,
+            "sha256": "c0b7f8c975237fc2b3d43d507113036cfb5ea1bda839fa44dc8ad14b617d4e32",
+            "preview": "synthetic wrong-body",
+            "syntheticDiskFilePresent": false
+          },
+          "entries": [
+            {
+              "bytesPresent": true,
+              "base64Length": 28
+            }
+          ],
+          "enteredAt": 1794046189180
+        },
+        "at": 1794046189180
+      },
+      "endedAt": 1794046189638,
+      "rows": [
+        {
+          "kind": "http",
+          "case": "race-true-100-2",
+          "method": "POST",
+          "url": "/receive?case=race-true-100-2",
+          "length": 20,
+          "sha256": "c0b7f8c975237fc2b3d43d507113036cfb5ea1bda839fa44dc8ad14b617d4e32",
+          "body": "synthetic wrong-body",
+          "headers": {
+            "host": "127.0.0.1:37515",
+            "connection": "keep-alive",
+            "content-length": "20",
+            "sec-ch-ua-platform": "\"Linux\"",
+            "x-check": "synthetic",
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "content-type": "text/plain;charset=UTF-8",
+            "sec-ch-ua-mobile": "?0",
+            "accept": "*/*",
+            "origin": "http://127.0.0.1:37515",
+            "sec-fetch-site": "same-origin",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-dest": "empty",
+            "referer": "http://127.0.0.1:37515/",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9"
+          },
+          "at": 1794046189338
+        }
+      ]
+    },
+    {
+      "id": "race-true-500-0",
+      "revoke": true,
+      "pause": 500,
+      "added": {
+        "before": 1794046189896,
+        "after": 1794046189896
+      },
+      "gate": {
+        "method": "check.gate",
+        "params": {
+          "source": {
+            "tabId": 1449777704
+          },
+          "requestId": "interception-job-33.0",
+          "url": "http://127.0.0.1:37515/receive?case=race-true-500-0",
+          "method": "POST",
+          "headers": {
+            "Accept": "*/*",
+            "Content-Type": "text/plain;charset=UTF-8",
+            "Origin": "http://127.0.0.1:37515",
+            "Referer": "http://127.0.0.1:37515/",
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+            "X-Check": "synthetic",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Linux\""
+          },
+          "hasPostData": true,
+          "postData": {
+            "missing": false,
+            "length": 20,
+            "sha256": "c0b7f8c975237fc2b3d43d507113036cfb5ea1bda839fa44dc8ad14b617d4e32",
+            "preview": "synthetic wrong-body",
+            "syntheticDiskFilePresent": false
+          },
+          "entries": [
+            {
+              "bytesPresent": true,
+              "base64Length": 28
+            }
+          ],
+          "enteredAt": 1794046190401
+        },
+        "at": 1794046190401
+      },
+      "endedAt": 1794046190857,
+      "rows": [
+        {
+          "kind": "http",
+          "case": "race-true-500-0",
+          "method": "POST",
+          "url": "/receive?case=race-true-500-0",
+          "length": 20,
+          "sha256": "c0b7f8c975237fc2b3d43d507113036cfb5ea1bda839fa44dc8ad14b617d4e32",
+          "body": "synthetic wrong-body",
+          "headers": {
+            "host": "127.0.0.1:37515",
+            "connection": "keep-alive",
+            "content-length": "20",
+            "sec-ch-ua-platform": "\"Linux\"",
+            "x-check": "synthetic",
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "content-type": "text/plain;charset=UTF-8",
+            "sec-ch-ua-mobile": "?0",
+            "accept": "*/*",
+            "origin": "http://127.0.0.1:37515",
+            "sec-fetch-site": "same-origin",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-dest": "empty",
+            "referer": "http://127.0.0.1:37515/",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9"
+          },
+          "at": 1794046190557
+        }
+      ]
+    },
+    {
+      "id": "race-true-500-1",
+      "revoke": true,
+      "pause": 500,
+      "added": {
+        "before": 1794046191115,
+        "after": 1794046191115
+      },
+      "gate": {
+        "method": "check.gate",
+        "params": {
+          "source": {
+            "tabId": 1449777704
+          },
+          "requestId": "interception-job-34.0",
+          "url": "http://127.0.0.1:37515/receive?case=race-true-500-1",
+          "method": "POST",
+          "headers": {
+            "Accept": "*/*",
+            "Content-Type": "text/plain;charset=UTF-8",
+            "Origin": "http://127.0.0.1:37515",
+            "Referer": "http://127.0.0.1:37515/",
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+            "X-Check": "synthetic",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Linux\""
+          },
+          "hasPostData": true,
+          "postData": {
+            "missing": false,
+            "length": 20,
+            "sha256": "c0b7f8c975237fc2b3d43d507113036cfb5ea1bda839fa44dc8ad14b617d4e32",
+            "preview": "synthetic wrong-body",
+            "syntheticDiskFilePresent": false
+          },
+          "entries": [
+            {
+              "bytesPresent": true,
+              "base64Length": 28
+            }
+          ],
+          "enteredAt": 1794046191619
+        },
+        "at": 1794046191619
+      },
+      "endedAt": 1794046192076,
+      "rows": [
+        {
+          "kind": "http",
+          "case": "race-true-500-1",
+          "method": "POST",
+          "url": "/receive?case=race-true-500-1",
+          "length": 20,
+          "sha256": "c0b7f8c975237fc2b3d43d507113036cfb5ea1bda839fa44dc8ad14b617d4e32",
+          "body": "synthetic wrong-body",
+          "headers": {
+            "host": "127.0.0.1:37515",
+            "connection": "keep-alive",
+            "content-length": "20",
+            "sec-ch-ua-platform": "\"Linux\"",
+            "x-check": "synthetic",
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "content-type": "text/plain;charset=UTF-8",
+            "sec-ch-ua-mobile": "?0",
+            "accept": "*/*",
+            "origin": "http://127.0.0.1:37515",
+            "sec-fetch-site": "same-origin",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-dest": "empty",
+            "referer": "http://127.0.0.1:37515/",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9"
+          },
+          "at": 1794046191777
+        }
+      ]
+    },
+    {
+      "id": "race-true-500-2",
+      "revoke": true,
+      "pause": 500,
+      "added": {
+        "before": 1794046192333,
+        "after": 1794046192333
+      },
+      "gate": {
+        "method": "check.gate",
+        "params": {
+          "source": {
+            "tabId": 1449777704
+          },
+          "requestId": "interception-job-35.0",
+          "url": "http://127.0.0.1:37515/receive?case=race-true-500-2",
+          "method": "POST",
+          "headers": {
+            "Accept": "*/*",
+            "Content-Type": "text/plain;charset=UTF-8",
+            "Origin": "http://127.0.0.1:37515",
+            "Referer": "http://127.0.0.1:37515/",
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+            "X-Check": "synthetic",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Linux\""
+          },
+          "hasPostData": true,
+          "postData": {
+            "missing": false,
+            "length": 20,
+            "sha256": "c0b7f8c975237fc2b3d43d507113036cfb5ea1bda839fa44dc8ad14b617d4e32",
+            "preview": "synthetic wrong-body",
+            "syntheticDiskFilePresent": false
+          },
+          "entries": [
+            {
+              "bytesPresent": true,
+              "base64Length": 28
+            }
+          ],
+          "enteredAt": 1794046192837
+        },
+        "at": 1794046192837
+      },
+      "endedAt": 1794046193295,
+      "rows": [
+        {
+          "kind": "http",
+          "case": "race-true-500-2",
+          "method": "POST",
+          "url": "/receive?case=race-true-500-2",
+          "length": 20,
+          "sha256": "c0b7f8c975237fc2b3d43d507113036cfb5ea1bda839fa44dc8ad14b617d4e32",
+          "body": "synthetic wrong-body",
+          "headers": {
+            "host": "127.0.0.1:37515",
+            "connection": "keep-alive",
+            "content-length": "20",
+            "sec-ch-ua-platform": "\"Linux\"",
+            "x-check": "synthetic",
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "content-type": "text/plain;charset=UTF-8",
+            "sec-ch-ua-mobile": "?0",
+            "accept": "*/*",
+            "origin": "http://127.0.0.1:37515",
+            "sec-fetch-site": "same-origin",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-dest": "empty",
+            "referer": "http://127.0.0.1:37515/",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9"
+          },
+          "at": 1794046192995
+        }
+      ]
+    }
+  ],
+  "storageLatencies": [
+    {
+      "context": "page",
+      "kind": "namedStorage",
+      "result": "ok",
+      "browser": [],
+      "script": []
+    },
+    {
+      "context": "page",
+      "kind": "localStorage",
+      "result": "ok",
+      "browser": [],
+      "script": [
+        {
+          "api": "webStorage.setItem",
+          "ms": 2
+        }
+      ]
+    },
+    {
+      "context": "page",
+      "kind": "sessionStorage",
+      "result": "ok",
+      "browser": [],
+      "script": [
+        {
+          "api": "webStorage.setItem",
+          "ms": 1
+        }
+      ]
+    },
+    {
+      "context": "page",
+      "kind": "indexedDB",
+      "result": "ok",
+      "browser": [
+        {
+          "method": "Storage.indexedDBListUpdated",
+          "ms": 6
+        },
+        {
+          "method": "Storage.indexedDBListUpdated",
+          "ms": 8
+        },
+        {
+          "method": "Storage.indexedDBContentUpdated",
+          "ms": 8
+        },
+        {
+          "method": "Storage.indexedDBListUpdated",
+          "ms": 9
+        }
+      ],
+      "script": [
+        {
+          "api": "indexedDB.put",
+          "ms": 9
+        }
+      ]
+    },
+    {
+      "context": "page",
+      "kind": "cache",
+      "result": "ok",
+      "browser": [
+        {
+          "method": "Storage.cacheStorageListUpdated",
+          "ms": 2
+        },
+        {
+          "method": "Storage.cacheStorageContentUpdated",
+          "ms": 6
+        }
+      ],
+      "script": [
+        {
+          "api": "cache.put",
+          "ms": 4
+        }
+      ]
+    },
+    {
+      "context": "page",
+      "kind": "cookie",
+      "result": "ok",
+      "browser": [],
+      "script": [
+        {
+          "api": "cookie.set",
+          "ms": 2
+        }
+      ]
+    },
+    {
+      "context": "page",
+      "kind": "opfs",
+      "result": "ok",
+      "browser": [],
+      "script": [
+        {
+          "api": "opfs.getDirectory",
+          "ms": 1
+        },
+        {
+          "api": "opfs.createWritable",
+          "ms": 7
+        },
+        {
+          "api": "opfs.write",
+          "ms": 8
+        }
+      ]
+    },
+    {
+      "context": "page",
+      "kind": "broadcast",
+      "result": "ok",
+      "browser": [],
+      "script": [
+        {
+          "api": "broadcast.postMessage",
+          "ms": 1
+        }
+      ]
+    },
+    {
+      "context": "page",
+      "kind": "window",
+      "result": "ok",
+      "browser": [],
+      "script": [
+        {
+          "api": "window.postMessage",
+          "ms": 25
+        }
+      ]
+    },
+    {
+      "context": "page",
+      "kind": "dedicated",
+      "result": "ok",
+      "browser": [],
+      "script": [
+        {
+          "api": "worker.postMessage",
+          "ms": 2
+        }
+      ]
+    },
+    {
+      "context": "page",
+      "kind": "shared",
+      "result": "ok",
+      "browser": [],
+      "script": [
+        {
+          "api": "port.postMessage",
+          "ms": 2
+        }
+      ]
+    },
+    {
+      "context": "page",
+      "kind": "registration",
+      "result": "ok",
+      "browser": [],
+      "script": [
+        {
+          "api": "serviceWorker.register",
+          "ms": 1
+        }
+      ]
+    },
+    {
+      "context": "page",
+      "kind": "sync",
+      "result": "ok",
+      "browser": [],
+      "script": [
+        {
+          "api": "sync.register",
+          "ms": 1
+        }
+      ]
+    },
+    {
+      "context": "page",
+      "kind": "periodicSync",
+      "result": "NotAllowedError: Permission denied.",
+      "browser": [],
+      "script": [
+        {
+          "api": "periodicSync.register",
+          "ms": 1
+        }
+      ]
+    },
+    {
+      "context": "http://127.0.0.1:39729/worker.js?shared&case=handoff-shared",
+      "kind": "indexedDB",
+      "result": {
+        "at": 1794046191795,
+        "result": "ok"
+      },
+      "browser": [
+        {
+          "method": "Storage.indexedDBListUpdated",
+          "ms": 2
+        },
+        {
+          "method": "Storage.indexedDBListUpdated",
+          "ms": 2
+        },
+        {
+          "method": "Storage.indexedDBListUpdated",
+          "ms": 4
+        },
+        {
+          "method": "Storage.indexedDBListUpdated",
+          "ms": 4
+        },
+        {
+          "method": "Storage.indexedDBContentUpdated",
+          "ms": 5
+        },
+        {
+          "method": "Storage.indexedDBContentUpdated",
+          "ms": 5
+        },
+        {
+          "method": "Storage.indexedDBListUpdated",
+          "ms": 5
+        },
+        {
+          "method": "Storage.indexedDBListUpdated",
+          "ms": 5
+        }
+      ],
+      "script": [
+        {
+          "api": "indexedDB.put",
+          "ms": 5
+        }
+      ]
+    },
+    {
+      "context": "http://127.0.0.1:39729/worker.js?shared&case=handoff-shared",
+      "kind": "cache",
+      "result": {
+        "at": 1794046192806,
+        "result": "ok"
+      },
+      "browser": [
+        {
+          "method": "Storage.cacheStorageListUpdated",
+          "ms": 1
+        },
+        {
+          "method": "Storage.cacheStorageListUpdated",
+          "ms": 2
+        },
+        {
+          "method": "Storage.cacheStorageContentUpdated",
+          "ms": 4
+        },
+        {
+          "method": "Storage.cacheStorageContentUpdated",
+          "ms": 4
+        }
+      ],
+      "script": [
+        {
+          "api": "cache.put",
+          "ms": 2
+        }
+      ]
+    },
+    {
+      "context": "http://127.0.0.1:39729/worker.js?shared&case=handoff-shared",
+      "kind": "opfs",
+      "result": {
+        "at": 1794046193817,
+        "result": "ok"
+      },
+      "browser": [],
+      "script": [
+        {
+          "api": "opfs.getDirectory",
+          "ms": 0
+        },
+        {
+          "api": "opfs.createWritable",
+          "ms": 2
+        },
+        {
+          "api": "opfs.write",
+          "ms": 3
+        }
+      ]
+    },
+    {
+      "context": "http://127.0.0.1:39729/worker.js?shared&case=handoff-shared",
+      "kind": "broadcast",
+      "result": {
+        "at": 1794046194829,
+        "result": "ok"
+      },
+      "browser": [],
+      "script": [
+        {
+          "api": "broadcast.postMessage",
+          "ms": 0
+        }
+      ]
+    },
+    {
+      "context": "http://127.0.0.1:39729/worker.js?shared&case=handoff-shared",
+      "kind": "cookie",
+      "result": {
+        "at": 1794046195837,
+        "result": "ReferenceError: cookieStore is not defined"
+      },
+      "browser": [],
+      "script": []
+    },
+    {
+      "context": "http://127.0.0.1:39729/worker.js?shared&case=handoff-shared",
+      "kind": "localStorage",
+      "result": {
+        "at": 1794046196845,
+        "result": "ReferenceError: localStorage is not defined"
+      },
+      "browser": [],
+      "script": []
+    },
+    {
+      "context": "http://127.0.0.1:39729/worker.js?shared&case=handoff-shared",
+      "kind": "sync",
+      "result": {
+        "at": 1794046197849,
+        "result": "ReferenceError: registration is not defined"
+      },
+      "browser": [],
+      "script": []
+    },
+    {
+      "context": "http://127.0.0.1:39729/worker.js?shared&case=handoff-shared",
+      "kind": "periodicSync",
+      "result": {
+        "at": 1794046198854,
+        "result": "ReferenceError: registration is not defined"
+      },
+      "browser": [],
+      "script": []
+    },
+    {
+      "context": "http://127.0.0.1:39729/worker.js?shared&case=handoff-shared",
+      "kind": "port",
+      "result": {
+        "at": 1794046199862,
+        "result": "ok"
+      },
+      "browser": [],
+      "script": [
+        {
+          "api": "port.postMessage",
+          "ms": 0
+        }
+      ]
+    },
+    {
+      "context": "http://127.0.0.1:39729/worker.js?shared&case=handoff-shared",
+      "kind": "client",
+      "result": {
+        "at": 1794046200869,
+        "result": "ReferenceError: clients is not defined"
+      },
+      "browser": [],
+      "script": []
+    },
+    {
+      "context": "http://127.0.0.1:39729/sw.js?case=storage-sw",
+      "kind": "indexedDB",
+      "result": {
+        "at": 1794046201882,
+        "result": "ok"
+      },
+      "browser": [
+        {
+          "method": "Storage.indexedDBListUpdated",
+          "ms": 2
+        },
+        {
+          "method": "Storage.indexedDBListUpdated",
+          "ms": 2
+        },
+        {
+          "method": "Storage.indexedDBListUpdated",
+          "ms": 2
+        },
+        {
+          "method": "Storage.indexedDBContentUpdated",
+          "ms": 3
+        },
+        {
+          "method": "Storage.indexedDBContentUpdated",
+          "ms": 3
+        },
+        {
+          "method": "Storage.indexedDBContentUpdated",
+          "ms": 3
+        },
+        {
+          "method": "Storage.indexedDBListUpdated",
+          "ms": 3
+        },
+        {
+          "method": "Storage.indexedDBListUpdated",
+          "ms": 3
+        },
+        {
+          "method": "Storage.indexedDBListUpdated",
+          "ms": 3
+        }
+      ],
+      "script": [
+        {
+          "api": "indexedDB.put",
+          "ms": 2
+        }
+      ]
+    },
+    {
+      "context": "http://127.0.0.1:39729/sw.js?case=storage-sw",
+      "kind": "cache",
+      "result": {
+        "at": 1794046202892,
+        "result": "ok"
+      },
+      "browser": [
+        {
+          "method": "Storage.cacheStorageContentUpdated",
+          "ms": 3
+        },
+        {
+          "method": "Storage.cacheStorageContentUpdated",
+          "ms": 3
+        },
+        {
+          "method": "Storage.cacheStorageContentUpdated",
+          "ms": 3
+        },
+        {
+          "method": "Storage.cacheStorageContentUpdated",
+          "ms": 4
+        },
+        {
+          "method": "Storage.cacheStorageContentUpdated",
+          "ms": 4
+        },
+        {
+          "method": "Storage.cacheStorageContentUpdated",
+          "ms": 4
+        }
+      ],
+      "script": [
+        {
+          "api": "cache.put",
+          "ms": 1
+        }
+      ]
+    },
+    {
+      "context": "http://127.0.0.1:39729/sw.js?case=storage-sw",
+      "kind": "opfs",
+      "result": {
+        "at": 1794046203902,
+        "result": "ok"
+      },
+      "browser": [],
+      "script": [
+        {
+          "api": "opfs.getDirectory",
+          "ms": 0
+        },
+        {
+          "api": "opfs.createWritable",
+          "ms": 2
+        },
+        {
+          "api": "opfs.write",
+          "ms": 3
+        }
+      ]
+    },
+    {
+      "context": "http://127.0.0.1:39729/sw.js?case=storage-sw",
+      "kind": "broadcast",
+      "result": {
+        "at": 1794046204913,
+        "result": "ok"
+      },
+      "browser": [],
+      "script": [
+        {
+          "api": "broadcast.postMessage",
+          "ms": 1
+        }
+      ]
+    },
+    {
+      "context": "http://127.0.0.1:39729/sw.js?case=storage-sw",
+      "kind": "cookie",
+      "result": {
+        "at": 1794046205920,
+        "result": "ok"
+      },
+      "browser": [],
+      "script": [
+        {
+          "api": "cookieStore.set",
+          "ms": 1
+        }
+      ]
+    },
+    {
+      "context": "http://127.0.0.1:39729/sw.js?case=storage-sw",
+      "kind": "localStorage",
+      "result": {
+        "at": 1794046206930,
+        "result": "ReferenceError: localStorage is not defined"
+      },
+      "browser": [],
+      "script": []
+    },
+    {
+      "context": "http://127.0.0.1:39729/sw.js?case=storage-sw",
+      "kind": "sync",
+      "result": {
+        "at": 1794046207936,
+        "result": "ok"
+      },
+      "browser": [],
+      "script": [
+        {
+          "api": "sync.register",
+          "ms": 1
+        }
+      ]
+    },
+    {
+      "context": "http://127.0.0.1:39729/sw.js?case=storage-sw",
+      "kind": "periodicSync",
+      "result": {
+        "at": 1794046208946,
+        "result": "NotAllowedError: Permission denied."
+      },
+      "browser": [],
+      "script": [
+        {
+          "api": "periodicSync.register",
+          "ms": 0
+        }
+      ]
+    },
+    {
+      "context": "http://127.0.0.1:39729/sw.js?case=storage-sw",
+      "kind": "port",
+      "result": {
+        "at": 1794046209954,
+        "result": "ReferenceError: testPort is not defined"
+      },
+      "browser": [],
+      "script": []
+    },
+    {
+      "context": "http://127.0.0.1:39729/sw.js?case=storage-sw",
+      "kind": "client",
+      "result": {
+        "at": 1794046210961,
+        "result": "ok"
+      },
+      "browser": [],
+      "script": [
+        {
+          "api": "client.postMessage",
+          "ms": 1
+        }
+      ]
+    }
+  ]
+}

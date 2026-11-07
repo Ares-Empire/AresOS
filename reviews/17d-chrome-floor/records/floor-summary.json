@@ -1,0 +1,1732 @@
+{
+  "phase": "floor",
+  "head": "4f34936b90e9891f5abe2f1f30a6f019b4f85712",
+  "run": "42362681610",
+  "cases": [
+    {
+      "name": "CONNECTED",
+      "tabId": 198902897,
+      "group": 1182158838,
+      "version": "0.4.0"
+    },
+    {
+      "name": "Q1_BLOCK",
+      "id": "floor-fetch-false",
+      "kind": "fetch",
+      "cross": false,
+      "gate": [],
+      "events": [
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "http://127.0.0.1:36959/receive?case=floor-fetch-false",
+            "method": "POST",
+            "type": "xmlhttprequest",
+            "tabId": 198902897,
+            "initiator": "http://127.0.0.1:36959",
+            "requestId": "80",
+            "at": 1794046173854.666
+          },
+          "at": 1794046173854
+        },
+        {
+          "method": "check.webError",
+          "params": {
+            "url": "http://127.0.0.1:36959/receive?case=floor-fetch-false",
+            "method": "POST",
+            "error": "net::ERR_BLOCKED_BY_CLIENT",
+            "tabId": 198902897
+          },
+          "at": 1794046173854
+        },
+        {
+          "method": "Network.requestWillBeSent",
+          "params": {
+            "source": {
+              "tabId": 198902897
+            },
+            "requestId": "4253.45",
+            "url": "http://127.0.0.1:36959/receive?case=floor-fetch-false",
+            "method": "POST",
+            "hasPostData": true,
+            "postData": {
+              "missing": false,
+              "length": 15,
+              "sha256": "b41c397da25103e8399c09a11f9c8f11d5f8836b6403b49030bc7126ef940fc0",
+              "preview": "synthetic fetch",
+              "syntheticDiskFilePresent": false
+            },
+            "entries": [
+              {
+                "bytesPresent": true,
+                "base64Length": 20
+              }
+            ]
+          },
+          "at": 1794046173855
+        },
+        {
+          "method": "Network.loadingFailed",
+          "params": {
+            "source": {
+              "tabId": 198902897
+            },
+            "blockedReason": "other",
+            "canceled": false,
+            "errorText": "net::ERR_BLOCKED_BY_CLIENT",
+            "requestId": "4253.45",
+            "timestamp": 260.495276,
+            "type": "Fetch"
+          },
+          "at": 1794046173855
+        },
+        {
+          "method": "check.getPostData",
+          "params": {
+            "requestId": "4253.45",
+            "length": 15,
+            "sha256": "b41c397da25103e8399c09a11f9c8f11d5f8836b6403b49030bc7126ef940fc0",
+            "preview": "synthetic fetch",
+            "syntheticDiskFilePresent": false
+          },
+          "at": 1794046173856
+        }
+      ],
+      "arrivals": []
+    },
+    {
+      "name": "Q1_BLOCK",
+      "id": "floor-fetch-true",
+      "kind": "fetch",
+      "cross": true,
+      "gate": [],
+      "events": [
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "http://localhost:36959/receive?case=floor-fetch-true",
+            "method": "POST",
+            "type": "xmlhttprequest",
+            "tabId": 198902897,
+            "initiator": "http://127.0.0.1:36959",
+            "requestId": "84",
+            "at": 1794046175223.939
+          },
+          "at": 1794046175224
+        },
+        {
+          "method": "check.webError",
+          "params": {
+            "url": "http://localhost:36959/receive?case=floor-fetch-true",
+            "method": "POST",
+            "error": "net::ERR_BLOCKED_BY_CLIENT",
+            "tabId": 198902897
+          },
+          "at": 1794046175224
+        },
+        {
+          "method": "Network.requestWillBeSent",
+          "params": {
+            "source": {
+              "tabId": 198902897
+            },
+            "requestId": "4253.50",
+            "url": "http://localhost:36959/receive?case=floor-fetch-true",
+            "method": "POST",
+            "hasPostData": true,
+            "postData": {
+              "missing": false,
+              "length": 15,
+              "sha256": "b41c397da25103e8399c09a11f9c8f11d5f8836b6403b49030bc7126ef940fc0",
+              "preview": "synthetic fetch",
+              "syntheticDiskFilePresent": false
+            },
+            "entries": [
+              {
+                "bytesPresent": true,
+                "base64Length": 20
+              }
+            ]
+          },
+          "at": 1794046175224
+        },
+        {
+          "method": "Network.loadingFailed",
+          "params": {
+            "source": {
+              "tabId": 198902897
+            },
+            "blockedReason": "other",
+            "canceled": false,
+            "errorText": "net::ERR_BLOCKED_BY_CLIENT",
+            "requestId": "4253.50",
+            "timestamp": 261.864168,
+            "type": "Fetch"
+          },
+          "at": 1794046175224
+        },
+        {
+          "method": "check.getPostData",
+          "params": {
+            "requestId": "4253.50",
+            "length": 15,
+            "sha256": "b41c397da25103e8399c09a11f9c8f11d5f8836b6403b49030bc7126ef940fc0",
+            "preview": "synthetic fetch",
+            "syntheticDiskFilePresent": false
+          },
+          "at": 1794046175225
+        }
+      ],
+      "arrivals": []
+    },
+    {
+      "name": "Q1_BLOCK",
+      "id": "floor-xhr-false",
+      "kind": "xhr",
+      "cross": false,
+      "gate": [],
+      "events": [
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "http://127.0.0.1:36959/receive?case=floor-xhr-false",
+            "method": "POST",
+            "type": "xmlhttprequest",
+            "tabId": 198902897,
+            "initiator": "http://127.0.0.1:36959",
+            "requestId": "88",
+            "at": 1794046176594.765
+          },
+          "at": 1794046176594
+        },
+        {
+          "method": "check.webError",
+          "params": {
+            "url": "http://127.0.0.1:36959/receive?case=floor-xhr-false",
+            "method": "POST",
+            "error": "net::ERR_BLOCKED_BY_CLIENT",
+            "tabId": 198902897
+          },
+          "at": 1794046176595
+        },
+        {
+          "method": "Network.requestWillBeSent",
+          "params": {
+            "source": {
+              "tabId": 198902897
+            },
+            "requestId": "4253.55",
+            "url": "http://127.0.0.1:36959/receive?case=floor-xhr-false",
+            "method": "POST",
+            "hasPostData": true,
+            "postData": {
+              "missing": false,
+              "length": 13,
+              "sha256": "a0254712f30cfdf56cd79ba200de3f483328226c44c5841cd2ebe79f7d3a5f6b",
+              "preview": "synthetic xhr",
+              "syntheticDiskFilePresent": false
+            },
+            "entries": [
+              {
+                "bytesPresent": true,
+                "base64Length": 20
+              }
+            ]
+          },
+          "at": 1794046176595
+        },
+        {
+          "method": "Network.loadingFailed",
+          "params": {
+            "source": {
+              "tabId": 198902897
+            },
+            "blockedReason": "other",
+            "canceled": false,
+            "errorText": "net::ERR_BLOCKED_BY_CLIENT",
+            "requestId": "4253.55",
+            "timestamp": 263.235042,
+            "type": "XHR"
+          },
+          "at": 1794046176595
+        },
+        {
+          "method": "check.getPostData",
+          "params": {
+            "requestId": "4253.55",
+            "length": 13,
+            "sha256": "a0254712f30cfdf56cd79ba200de3f483328226c44c5841cd2ebe79f7d3a5f6b",
+            "preview": "synthetic xhr",
+            "syntheticDiskFilePresent": false
+          },
+          "at": 1794046176596
+        }
+      ],
+      "arrivals": []
+    },
+    {
+      "name": "Q1_BLOCK",
+      "id": "floor-xhr-true",
+      "kind": "xhr",
+      "cross": true,
+      "gate": [],
+      "events": [
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "http://localhost:36959/receive?case=floor-xhr-true",
+            "method": "POST",
+            "type": "xmlhttprequest",
+            "tabId": 198902897,
+            "initiator": "http://127.0.0.1:36959",
+            "requestId": "92",
+            "at": 1794046177964.197
+          },
+          "at": 1794046177964
+        },
+        {
+          "method": "check.webError",
+          "params": {
+            "url": "http://localhost:36959/receive?case=floor-xhr-true",
+            "method": "POST",
+            "error": "net::ERR_BLOCKED_BY_CLIENT",
+            "tabId": 198902897
+          },
+          "at": 1794046177964
+        },
+        {
+          "method": "Network.requestWillBeSent",
+          "params": {
+            "source": {
+              "tabId": 198902897
+            },
+            "requestId": "4253.60",
+            "url": "http://localhost:36959/receive?case=floor-xhr-true",
+            "method": "POST",
+            "hasPostData": true,
+            "postData": {
+              "missing": false,
+              "length": 13,
+              "sha256": "a0254712f30cfdf56cd79ba200de3f483328226c44c5841cd2ebe79f7d3a5f6b",
+              "preview": "synthetic xhr",
+              "syntheticDiskFilePresent": false
+            },
+            "entries": [
+              {
+                "bytesPresent": true,
+                "base64Length": 20
+              }
+            ]
+          },
+          "at": 1794046177964
+        },
+        {
+          "method": "Network.loadingFailed",
+          "params": {
+            "source": {
+              "tabId": 198902897
+            },
+            "blockedReason": "other",
+            "canceled": false,
+            "errorText": "net::ERR_BLOCKED_BY_CLIENT",
+            "requestId": "4253.60",
+            "timestamp": 264.604465,
+            "type": "XHR"
+          },
+          "at": 1794046177964
+        },
+        {
+          "method": "check.getPostData",
+          "params": {
+            "requestId": "4253.60",
+            "length": 13,
+            "sha256": "a0254712f30cfdf56cd79ba200de3f483328226c44c5841cd2ebe79f7d3a5f6b",
+            "preview": "synthetic xhr",
+            "syntheticDiskFilePresent": false
+          },
+          "at": 1794046177965
+        }
+      ],
+      "arrivals": []
+    },
+    {
+      "name": "Q1_BLOCK",
+      "id": "floor-beacon-false",
+      "kind": "beacon",
+      "cross": false,
+      "gate": [],
+      "events": [
+        {
+          "method": "Network.requestWillBeSent",
+          "params": {
+            "source": {
+              "tabId": 198902897
+            },
+            "requestId": "4253.65",
+            "url": "http://127.0.0.1:36959/receive?case=floor-beacon-false",
+            "method": "POST",
+            "hasPostData": true,
+            "postData": {
+              "missing": false,
+              "length": 16,
+              "sha256": "a6e2e5cc67066db3265fa41fd5aab7af0b36f44ee077380b78a3932efc18d119",
+              "preview": "synthetic beacon",
+              "syntheticDiskFilePresent": false
+            },
+            "entries": [
+              {
+                "bytesPresent": true,
+                "base64Length": 24
+              }
+            ]
+          },
+          "at": 1794046179333
+        },
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "http://127.0.0.1:36959/receive?case=floor-beacon-false",
+            "method": "POST",
+            "type": "ping",
+            "tabId": 198902897,
+            "initiator": "http://127.0.0.1:36959",
+            "requestId": "96",
+            "at": 1794046179333.647
+          },
+          "at": 1794046179333
+        },
+        {
+          "method": "check.webError",
+          "params": {
+            "url": "http://127.0.0.1:36959/receive?case=floor-beacon-false",
+            "method": "POST",
+            "error": "net::ERR_BLOCKED_BY_CLIENT",
+            "tabId": 198902897
+          },
+          "at": 1794046179333
+        },
+        {
+          "method": "Network.loadingFailed",
+          "params": {
+            "source": {
+              "tabId": 198902897
+            },
+            "blockedReason": "other",
+            "canceled": false,
+            "errorText": "net::ERR_BLOCKED_BY_CLIENT",
+            "requestId": "4253.65",
+            "timestamp": 265.973983,
+            "type": "Ping"
+          },
+          "at": 1794046179334
+        },
+        {
+          "method": "check.getPostData",
+          "params": {
+            "requestId": "4253.65",
+            "length": 16,
+            "sha256": "a6e2e5cc67066db3265fa41fd5aab7af0b36f44ee077380b78a3932efc18d119",
+            "preview": "synthetic beacon",
+            "syntheticDiskFilePresent": false
+          },
+          "at": 1794046179334
+        }
+      ],
+      "arrivals": []
+    },
+    {
+      "name": "Q1_BLOCK",
+      "id": "floor-beacon-true",
+      "kind": "beacon",
+      "cross": true,
+      "gate": [],
+      "events": [
+        {
+          "method": "Network.requestWillBeSent",
+          "params": {
+            "source": {
+              "tabId": 198902897
+            },
+            "requestId": "4253.70",
+            "url": "http://localhost:36959/receive?case=floor-beacon-true",
+            "method": "POST",
+            "hasPostData": true,
+            "postData": {
+              "missing": false,
+              "length": 16,
+              "sha256": "a6e2e5cc67066db3265fa41fd5aab7af0b36f44ee077380b78a3932efc18d119",
+              "preview": "synthetic beacon",
+              "syntheticDiskFilePresent": false
+            },
+            "entries": [
+              {
+                "bytesPresent": true,
+                "base64Length": 24
+              }
+            ]
+          },
+          "at": 1794046180703
+        },
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "http://localhost:36959/receive?case=floor-beacon-true",
+            "method": "POST",
+            "type": "ping",
+            "tabId": 198902897,
+            "initiator": "http://127.0.0.1:36959",
+            "requestId": "100",
+            "at": 1794046180703.289
+          },
+          "at": 1794046180703
+        },
+        {
+          "method": "check.webError",
+          "params": {
+            "url": "http://localhost:36959/receive?case=floor-beacon-true",
+            "method": "POST",
+            "error": "net::ERR_BLOCKED_BY_CLIENT",
+            "tabId": 198902897
+          },
+          "at": 1794046180703
+        },
+        {
+          "method": "Network.loadingFailed",
+          "params": {
+            "source": {
+              "tabId": 198902897
+            },
+            "blockedReason": "other",
+            "canceled": false,
+            "errorText": "net::ERR_BLOCKED_BY_CLIENT",
+            "requestId": "4253.70",
+            "timestamp": 267.343626,
+            "type": "Ping"
+          },
+          "at": 1794046180704
+        },
+        {
+          "method": "check.getPostData",
+          "params": {
+            "requestId": "4253.70",
+            "length": 16,
+            "sha256": "a6e2e5cc67066db3265fa41fd5aab7af0b36f44ee077380b78a3932efc18d119",
+            "preview": "synthetic beacon",
+            "syntheticDiskFilePresent": false
+          },
+          "at": 1794046180704
+        }
+      ],
+      "arrivals": []
+    },
+    {
+      "name": "Q1_BLOCK",
+      "id": "floor-ping-false",
+      "kind": "ping",
+      "cross": false,
+      "gate": [],
+      "events": [
+        {
+          "method": "Network.requestWillBeSent",
+          "params": {
+            "source": {
+              "tabId": 198902897
+            },
+            "requestId": "4253.75",
+            "url": "http://127.0.0.1:36959/receive?case=floor-ping-false",
+            "method": "POST",
+            "hasPostData": true,
+            "postData": {
+              "missing": false,
+              "length": 4,
+              "sha256": "906055e56391a9362ff2e354e21a9e0ded69135ecadbea28eabcdf931686acbd",
+              "preview": "PING",
+              "syntheticDiskFilePresent": false
+            },
+            "entries": [
+              {
+                "bytesPresent": true,
+                "base64Length": 8
+              }
+            ]
+          },
+          "at": 1794046182072
+        },
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "http://127.0.0.1:36959/receive?case=floor-ping-false",
+            "method": "POST",
+            "type": "ping",
+            "tabId": 198902897,
+            "initiator": "http://127.0.0.1:36959",
+            "requestId": "104",
+            "at": 1794046182072.314
+          },
+          "at": 1794046182072
+        },
+        {
+          "method": "check.webError",
+          "params": {
+            "url": "http://127.0.0.1:36959/receive?case=floor-ping-false",
+            "method": "POST",
+            "error": "net::ERR_BLOCKED_BY_CLIENT",
+            "tabId": 198902897
+          },
+          "at": 1794046182072
+        },
+        {
+          "method": "Network.loadingFailed",
+          "params": {
+            "source": {
+              "tabId": 198902897
+            },
+            "blockedReason": "other",
+            "canceled": false,
+            "errorText": "net::ERR_BLOCKED_BY_CLIENT",
+            "requestId": "4253.75",
+            "timestamp": 268.715545,
+            "type": "Ping"
+          },
+          "at": 1794046182076
+        },
+        {
+          "method": "check.getPostData",
+          "params": {
+            "requestId": "4253.75",
+            "length": 4,
+            "sha256": "906055e56391a9362ff2e354e21a9e0ded69135ecadbea28eabcdf931686acbd",
+            "preview": "PING",
+            "syntheticDiskFilePresent": false
+          },
+          "at": 1794046182077
+        }
+      ],
+      "arrivals": []
+    },
+    {
+      "name": "Q1_BLOCK",
+      "id": "floor-ping-true",
+      "kind": "ping",
+      "cross": true,
+      "gate": [],
+      "events": [
+        {
+          "method": "Network.requestWillBeSent",
+          "params": {
+            "source": {
+              "tabId": 198902897
+            },
+            "requestId": "4253.81",
+            "url": "http://localhost:36959/receive?case=floor-ping-true",
+            "method": "POST",
+            "hasPostData": true,
+            "postData": {
+              "missing": false,
+              "length": 4,
+              "sha256": "906055e56391a9362ff2e354e21a9e0ded69135ecadbea28eabcdf931686acbd",
+              "preview": "PING",
+              "syntheticDiskFilePresent": false
+            },
+            "entries": [
+              {
+                "bytesPresent": true,
+                "base64Length": 8
+              }
+            ]
+          },
+          "at": 1794046183444
+        },
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "http://localhost:36959/receive?case=floor-ping-true",
+            "method": "POST",
+            "type": "ping",
+            "tabId": 198902897,
+            "initiator": "http://127.0.0.1:36959",
+            "requestId": "109",
+            "at": 1794046183444.915
+          },
+          "at": 1794046183445
+        },
+        {
+          "method": "check.webError",
+          "params": {
+            "url": "http://localhost:36959/receive?case=floor-ping-true",
+            "method": "POST",
+            "error": "net::ERR_BLOCKED_BY_CLIENT",
+            "tabId": 198902897
+          },
+          "at": 1794046183445
+        },
+        {
+          "method": "Network.loadingFailed",
+          "params": {
+            "source": {
+              "tabId": 198902897
+            },
+            "blockedReason": "other",
+            "canceled": false,
+            "errorText": "net::ERR_BLOCKED_BY_CLIENT",
+            "requestId": "4253.81",
+            "timestamp": 270.087994,
+            "type": "Ping"
+          },
+          "at": 1794046183448
+        },
+        {
+          "method": "check.getPostData",
+          "params": {
+            "requestId": "4253.81",
+            "length": 4,
+            "sha256": "906055e56391a9362ff2e354e21a9e0ded69135ecadbea28eabcdf931686acbd",
+            "preview": "PING",
+            "syntheticDiskFilePresent": false
+          },
+          "at": 1794046183450
+        }
+      ],
+      "arrivals": []
+    },
+    {
+      "name": "Q1_BLOCK",
+      "id": "floor-ws-false",
+      "kind": "ws",
+      "cross": false,
+      "gate": [],
+      "events": [
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "ws://127.0.0.1:36959/socket?case=floor-ws-false",
+            "method": "GET",
+            "type": "websocket",
+            "tabId": 198902897,
+            "initiator": "http://127.0.0.1:36959",
+            "requestId": "114",
+            "at": 1794046184817.272
+          },
+          "at": 1794046184817
+        }
+      ],
+      "arrivals": []
+    },
+    {
+      "name": "Q1_BLOCK",
+      "id": "floor-ws-true",
+      "kind": "ws",
+      "cross": true,
+      "gate": [],
+      "events": [
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "ws://127.0.0.1:36959/socket?case=floor-ws-true",
+            "method": "GET",
+            "type": "websocket",
+            "tabId": 198902897,
+            "initiator": "http://127.0.0.1:36959",
+            "requestId": "118",
+            "at": 1794046186186.249
+          },
+          "at": 1794046186186
+        }
+      ],
+      "arrivals": []
+    },
+    {
+      "name": "Q1_BLOCK",
+      "id": "floor-form-false",
+      "kind": "form",
+      "cross": false,
+      "gate": [],
+      "events": [
+        {
+          "method": "Network.requestWillBeSent",
+          "params": {
+            "source": {
+              "tabId": 198902897
+            },
+            "requestId": "CA0BAD9682DC88A1F130021B646321E4",
+            "url": "http://127.0.0.1:36959/receive?case=floor-form-false",
+            "method": "POST",
+            "hasPostData": true,
+            "postData": {
+              "missing": false,
+              "length": 19,
+              "sha256": "a1c2e61f1abb511b538466a4734ade9ce278dfc9e3be121feb4b898897c94325",
+              "preview": "data=synthetic+form",
+              "syntheticDiskFilePresent": false
+            },
+            "entries": [
+              {
+                "bytesPresent": true,
+                "base64Length": 28
+              }
+            ]
+          },
+          "at": 1794046187559
+        },
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "http://127.0.0.1:36959/receive?case=floor-form-false",
+            "method": "POST",
+            "type": "main_frame",
+            "tabId": 198902897,
+            "initiator": "http://127.0.0.1:36959",
+            "requestId": "122",
+            "at": 1794046187559.762
+          },
+          "at": 1794046187559
+        },
+        {
+          "method": "check.webError",
+          "params": {
+            "url": "http://127.0.0.1:36959/receive?case=floor-form-false",
+            "method": "POST",
+            "error": "net::ERR_BLOCKED_BY_CLIENT",
+            "tabId": 198902897
+          },
+          "at": 1794046187560
+        },
+        {
+          "method": "Network.loadingFailed",
+          "params": {
+            "source": {
+              "tabId": 198902897
+            },
+            "blockedReason": "other",
+            "canceled": false,
+            "errorText": "net::ERR_BLOCKED_BY_CLIENT",
+            "requestId": "CA0BAD9682DC88A1F130021B646321E4",
+            "timestamp": 274.200487,
+            "type": "Document"
+          },
+          "at": 1794046187560
+        },
+        {
+          "method": "check.getPostData",
+          "params": {
+            "requestId": "CA0BAD9682DC88A1F130021B646321E4",
+            "length": 19,
+            "sha256": "a1c2e61f1abb511b538466a4734ade9ce278dfc9e3be121feb4b898897c94325",
+            "preview": "data=synthetic+form",
+            "syntheticDiskFilePresent": false
+          },
+          "at": 1794046187596
+        }
+      ],
+      "arrivals": []
+    },
+    {
+      "name": "Q1_BLOCK",
+      "id": "floor-form-true",
+      "kind": "form",
+      "cross": true,
+      "gate": [],
+      "events": [
+        {
+          "method": "Network.requestWillBeSent",
+          "params": {
+            "source": {
+              "tabId": 198902897
+            },
+            "requestId": "D6AAEE4088464D97E1432B4653F4F1EC",
+            "url": "http://localhost:36959/receive?case=floor-form-true",
+            "method": "POST",
+            "hasPostData": true,
+            "postData": {
+              "missing": false,
+              "length": 19,
+              "sha256": "a1c2e61f1abb511b538466a4734ade9ce278dfc9e3be121feb4b898897c94325",
+              "preview": "data=synthetic+form",
+              "syntheticDiskFilePresent": false
+            },
+            "entries": [
+              {
+                "bytesPresent": true,
+                "base64Length": 28
+              }
+            ]
+          },
+          "at": 1794046188941
+        },
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "http://localhost:36959/receive?case=floor-form-true",
+            "method": "POST",
+            "type": "main_frame",
+            "tabId": 198902897,
+            "initiator": "http://127.0.0.1:36959",
+            "requestId": "126",
+            "at": 1794046188942.383
+          },
+          "at": 1794046188943
+        },
+        {
+          "method": "check.webError",
+          "params": {
+            "url": "http://localhost:36959/receive?case=floor-form-true",
+            "method": "POST",
+            "error": "net::ERR_BLOCKED_BY_CLIENT",
+            "tabId": 198902897
+          },
+          "at": 1794046188943
+        },
+        {
+          "method": "Network.loadingFailed",
+          "params": {
+            "source": {
+              "tabId": 198902897
+            },
+            "blockedReason": "other",
+            "canceled": false,
+            "errorText": "net::ERR_BLOCKED_BY_CLIENT",
+            "requestId": "D6AAEE4088464D97E1432B4653F4F1EC",
+            "timestamp": 275.583629,
+            "type": "Document"
+          },
+          "at": 1794046188943
+        },
+        {
+          "method": "check.getPostData",
+          "params": {
+            "requestId": "D6AAEE4088464D97E1432B4653F4F1EC",
+            "length": 19,
+            "sha256": "a1c2e61f1abb511b538466a4734ade9ce278dfc9e3be121feb4b898897c94325",
+            "preview": "data=synthetic+form",
+            "syntheticDiskFilePresent": false
+          },
+          "at": 1794046188998
+        }
+      ],
+      "arrivals": []
+    },
+    {
+      "name": "Q1_FOREIGN_FRAME",
+      "frames": [
+        {
+          "documentId": "4A6CA3D5D3B0FE33B2FA4DB1678E00EF",
+          "frameId": 0,
+          "result": "http://127.0.0.1:36959/"
+        },
+        {
+          "documentId": "BF48813C2FF7DB22991D3D3BFCE2A2C9",
+          "frameId": 21,
+          "result": "http://localhost:36959/"
+        }
+      ],
+      "events": [
+        {
+          "method": "Network.requestWillBeSent",
+          "params": {
+            "source": {
+              "tabId": 198902897
+            },
+            "requestId": "D6AAEE4088464D97E1432B4653F4F1EC",
+            "url": "http://localhost:36959/receive?case=floor-form-true",
+            "method": "POST",
+            "hasPostData": true,
+            "postData": {
+              "missing": false,
+              "length": 19,
+              "sha256": "a1c2e61f1abb511b538466a4734ade9ce278dfc9e3be121feb4b898897c94325",
+              "preview": "data=synthetic+form",
+              "syntheticDiskFilePresent": false
+            },
+            "entries": [
+              {
+                "bytesPresent": true,
+                "base64Length": 28
+              }
+            ]
+          },
+          "at": 1794046188941
+        },
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "http://localhost:36959/receive?case=floor-form-true",
+            "method": "POST",
+            "type": "main_frame",
+            "tabId": 198902897,
+            "initiator": "http://127.0.0.1:36959",
+            "requestId": "126",
+            "at": 1794046188942.383
+          },
+          "at": 1794046188943
+        },
+        {
+          "method": "check.webError",
+          "params": {
+            "url": "http://localhost:36959/receive?case=floor-form-true",
+            "method": "POST",
+            "error": "net::ERR_BLOCKED_BY_CLIENT",
+            "tabId": 198902897
+          },
+          "at": 1794046188943
+        },
+        {
+          "method": "Network.loadingFailed",
+          "params": {
+            "source": {
+              "tabId": 198902897
+            },
+            "blockedReason": "other",
+            "canceled": false,
+            "errorText": "net::ERR_BLOCKED_BY_CLIENT",
+            "requestId": "D6AAEE4088464D97E1432B4653F4F1EC",
+            "timestamp": 275.583629,
+            "type": "Document"
+          },
+          "at": 1794046188943
+        },
+        {
+          "method": "check.getPostData",
+          "params": {
+            "requestId": "D6AAEE4088464D97E1432B4653F4F1EC",
+            "length": 19,
+            "sha256": "a1c2e61f1abb511b538466a4734ade9ce278dfc9e3be121feb4b898897c94325",
+            "preview": "data=synthetic+form",
+            "syntheticDiskFilePresent": false
+          },
+          "at": 1794046188998
+        },
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "http://localhost:36959/receive?case=foreign-frame",
+            "method": "POST",
+            "type": "xmlhttprequest",
+            "tabId": 198902897,
+            "initiator": "http://localhost:36959",
+            "requestId": "132",
+            "at": 1794046191022.104
+          },
+          "at": 1794046191022
+        },
+        {
+          "method": "check.webError",
+          "params": {
+            "url": "http://localhost:36959/receive?case=foreign-frame",
+            "method": "POST",
+            "error": "net::ERR_BLOCKED_BY_CLIENT",
+            "tabId": 198902897
+          },
+          "at": 1794046191022
+        }
+      ]
+    },
+    {
+      "name": "Q1_END",
+      "ending": "detach",
+      "before": [],
+      "after": [],
+      "zero": true
+    },
+    {
+      "name": "CONNECTED",
+      "tabId": 198902952,
+      "group": 1322629343,
+      "version": "0.4.0"
+    },
+    {
+      "name": "Q1_END",
+      "ending": "reload",
+      "before": [],
+      "after": [],
+      "zero": true
+    },
+    {
+      "name": "CONNECTED",
+      "tabId": 198902952,
+      "group": 1236968646,
+      "version": "0.4.0"
+    },
+    {
+      "name": "UPDATE_REQUEST",
+      "status": "update_available",
+      "details": {
+        "version": "0.4.1"
+      }
+    },
+    {
+      "name": "Q1_END",
+      "ending": "update",
+      "before": [],
+      "after": [],
+      "zero": true
+    },
+    {
+      "name": "CONNECTED",
+      "tabId": 198902952,
+      "group": 573859651,
+      "version": "0.4.1"
+    },
+    {
+      "name": "Q1_END",
+      "ending": "worker-crash",
+      "before": [],
+      "after": [],
+      "zero": true
+    },
+    {
+      "name": "CONNECTED",
+      "tabId": 198902952,
+      "group": 1162212762,
+      "version": "0.4.1"
+    },
+    {
+      "name": "Q1_END",
+      "ending": "host-loss",
+      "before": [],
+      "after": [],
+      "zero": true
+    },
+    {
+      "name": "CONNECTED",
+      "tabId": 198902952,
+      "group": 337139978,
+      "version": "0.4.1"
+    },
+    {
+      "name": "Q1_END",
+      "ending": "normal",
+      "before": [],
+      "after": [],
+      "zero": true
+    },
+    {
+      "name": "CONNECTED",
+      "tabId": 198903035,
+      "group": 1206534607,
+      "version": "0.4.1"
+    },
+    {
+      "name": "Q1_END",
+      "ending": "kill",
+      "before": [],
+      "after": [],
+      "zero": true
+    },
+    {
+      "name": "CONNECTED",
+      "tabId": 198903035,
+      "group": 911973670,
+      "version": "0.4.1"
+    },
+    {
+      "name": "Q1_POLICY_UNLOADED",
+      "same": [
+        {
+          "kind": "http",
+          "case": "policy-unloaded-same",
+          "method": "POST",
+          "url": "/receive?case=policy-unloaded-same",
+          "length": 15,
+          "sha256": "592d7dc2921cfebbb2b6b1db076ac4c3040506a054ae3bebb98741dc88a5d76c",
+          "body": "synthetic first",
+          "headers": {
+            "host": "127.0.0.1:36959",
+            "connection": "keep-alive",
+            "content-length": "15",
+            "sec-ch-ua-platform": "\"Linux\"",
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "content-type": "text/plain;charset=UTF-8",
+            "sec-ch-ua-mobile": "?0",
+            "accept": "*/*",
+            "origin": "http://127.0.0.1:36959",
+            "sec-fetch-site": "same-origin",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-dest": "empty",
+            "referer": "http://127.0.0.1:36959/startup?prefix=policy-unloaded",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9"
+          },
+          "at": 1794046272749
+        }
+      ],
+      "cross": [
+        {
+          "kind": "http",
+          "case": "policy-unloaded-cross",
+          "method": "POST",
+          "url": "/receive?case=policy-unloaded-cross",
+          "length": 21,
+          "sha256": "b15831717831921aeed6277523f0398c0b040320ffc26f1f9edb3d5051c1222e",
+          "body": "synthetic first cross",
+          "headers": {
+            "host": "localhost:36959",
+            "connection": "keep-alive",
+            "content-length": "21",
+            "sec-ch-ua-platform": "\"Linux\"",
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "content-type": "text/plain;charset=UTF-8",
+            "sec-ch-ua-mobile": "?0",
+            "accept": "*/*",
+            "origin": "http://127.0.0.1:36959",
+            "sec-fetch-site": "cross-site",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-dest": "empty",
+            "referer": "http://127.0.0.1:36959/",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9"
+          },
+          "at": 1794046272750
+        }
+      ]
+    },
+    {
+      "name": "Q1_END",
+      "ending": "policy",
+      "before": [],
+      "after": [],
+      "zero": true
+    },
+    {
+      "name": "FRESH_PROFILE_AFTER_POLICY",
+      "label": "after-policy",
+      "reason": "Policy uninstalls the custom CRX; do not interpret the next installation as rule survival."
+    },
+    {
+      "name": "CONNECTED",
+      "tabId": 196370228,
+      "group": 452447933,
+      "version": "0.4.1"
+    },
+    {
+      "name": "Q2_BEFORE_ATTACH",
+      "label": "restored-false",
+      "at": 1794046289686,
+      "rows": [
+        {
+          "kind": "document",
+          "url": "/favicon.ico",
+          "host": "127.0.0.1:36959",
+          "at": 1794046251212
+        },
+        {
+          "kind": "document",
+          "url": "/",
+          "host": "127.0.0.1:36959",
+          "at": 1794046257093
+        },
+        {
+          "kind": "document",
+          "url": "/favicon.ico",
+          "host": "127.0.0.1:36959",
+          "at": 1794046257118
+        },
+        {
+          "kind": "document",
+          "url": "/",
+          "host": "127.0.0.1:36959",
+          "at": 1794046261711
+        },
+        {
+          "kind": "document",
+          "url": "/favicon.ico",
+          "host": "127.0.0.1:36959",
+          "at": 1794046261789
+        },
+        {
+          "kind": "document",
+          "url": "/",
+          "host": "127.0.0.1:36959",
+          "at": 1794046267587
+        },
+        {
+          "kind": "document",
+          "url": "/favicon.ico",
+          "host": "127.0.0.1:36959",
+          "at": 1794046267609
+        },
+        {
+          "kind": "document",
+          "url": "/startup?prefix=policy-unloaded",
+          "host": "127.0.0.1:36959",
+          "at": 1794046272724
+        },
+        {
+          "kind": "http",
+          "case": "policy-unloaded-same",
+          "method": "POST",
+          "url": "/receive?case=policy-unloaded-same",
+          "length": 15,
+          "sha256": "592d7dc2921cfebbb2b6b1db076ac4c3040506a054ae3bebb98741dc88a5d76c",
+          "body": "synthetic first",
+          "headers": {
+            "host": "127.0.0.1:36959",
+            "connection": "keep-alive",
+            "content-length": "15",
+            "sec-ch-ua-platform": "\"Linux\"",
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "content-type": "text/plain;charset=UTF-8",
+            "sec-ch-ua-mobile": "?0",
+            "accept": "*/*",
+            "origin": "http://127.0.0.1:36959",
+            "sec-fetch-site": "same-origin",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-dest": "empty",
+            "referer": "http://127.0.0.1:36959/startup?prefix=policy-unloaded",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9"
+          },
+          "at": 1794046272749
+        },
+        {
+          "kind": "http",
+          "case": "policy-unloaded-cross",
+          "method": "POST",
+          "url": "/receive?case=policy-unloaded-cross",
+          "length": 21,
+          "sha256": "b15831717831921aeed6277523f0398c0b040320ffc26f1f9edb3d5051c1222e",
+          "body": "synthetic first cross",
+          "headers": {
+            "host": "localhost:36959",
+            "connection": "keep-alive",
+            "content-length": "21",
+            "sec-ch-ua-platform": "\"Linux\"",
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "content-type": "text/plain;charset=UTF-8",
+            "sec-ch-ua-mobile": "?0",
+            "accept": "*/*",
+            "origin": "http://127.0.0.1:36959",
+            "sec-fetch-site": "cross-site",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-dest": "empty",
+            "referer": "http://127.0.0.1:36959/",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9"
+          },
+          "at": 1794046272750
+        },
+        {
+          "kind": "attempt",
+          "case": "policy-unloaded-executed",
+          "at": 1794046272753
+        },
+        {
+          "kind": "document",
+          "url": "/favicon.ico",
+          "host": "127.0.0.1:36959",
+          "at": 1794046272774
+        },
+        {
+          "kind": "document",
+          "url": "/",
+          "host": "127.0.0.1:36959",
+          "at": 1794046275726
+        },
+        {
+          "kind": "document",
+          "url": "/favicon.ico",
+          "host": "127.0.0.1:36959",
+          "at": 1794046275830
+        },
+        {
+          "kind": "document",
+          "url": "/startup",
+          "host": "127.0.0.1:36959",
+          "at": 1794046281558
+        },
+        {
+          "kind": "attempt",
+          "case": "startup-executed",
+          "at": 1794046281578
+        },
+        {
+          "kind": "document",
+          "url": "/favicon.ico",
+          "host": "127.0.0.1:36959",
+          "at": 1794046281587
+        },
+        {
+          "kind": "document",
+          "url": "/startup",
+          "host": "127.0.0.1:36959",
+          "at": 1794046285983
+        },
+        {
+          "kind": "attempt",
+          "case": "startup-executed",
+          "at": 1794046286017
+        },
+        {
+          "kind": "document",
+          "url": "/favicon.ico",
+          "host": "127.0.0.1:36959",
+          "at": 1794046286047
+        }
+      ]
+    },
+    {
+      "name": "CONNECTED",
+      "tabId": 196370290,
+      "group": 256630689,
+      "version": "0.4.1"
+    },
+    {
+      "name": "Q2_RESTART",
+      "killed": false,
+      "dynamic": [
+        {
+          "action": {
+            "type": "block"
+          },
+          "condition": {
+            "excludedRequestMethods": [
+              "get",
+              "head"
+            ],
+            "initiatorDomains": [
+              "127.0.0.1"
+            ],
+            "resourceTypes": [
+              "main_frame",
+              "sub_frame",
+              "stylesheet",
+              "script",
+              "image",
+              "font",
+              "object",
+              "xmlhttprequest",
+              "ping",
+              "csp_report",
+              "media",
+              "websocket",
+              "webtransport",
+              "webbundle",
+              "other"
+            ]
+          },
+          "id": 101,
+          "priority": 10
+        },
+        {
+          "action": {
+            "type": "block"
+          },
+          "condition": {
+            "initiatorDomains": [
+              "127.0.0.1"
+            ],
+            "resourceTypes": [
+              "websocket",
+              "webtransport"
+            ]
+          },
+          "id": 102,
+          "priority": 10
+        }
+      ],
+      "ready": [
+        {
+          "method": "check.ready",
+          "params": {
+            "tabId": 196370290,
+            "url": "http://127.0.0.1:36959/startup"
+          },
+          "at": 1794046291701
+        }
+      ],
+      "documents": [
+        {
+          "kind": "document",
+          "url": "/startup",
+          "host": "127.0.0.1:36959",
+          "at": 1794046281558
+        },
+        {
+          "kind": "document",
+          "url": "/startup",
+          "host": "127.0.0.1:36959",
+          "at": 1794046285983
+        }
+      ],
+      "arrivals": []
+    },
+    {
+      "name": "Q2_RESTORE_UI",
+      "label": "restored-true",
+      "at": 1794046305419,
+      "action": "Chrome native Restore button, before debugger attach"
+    },
+    {
+      "name": "Q2_BEFORE_ATTACH",
+      "label": "restored-true",
+      "at": 1794046305520,
+      "rows": [
+        {
+          "kind": "document",
+          "url": "/favicon.ico",
+          "host": "127.0.0.1:36959",
+          "at": 1794046267609
+        },
+        {
+          "kind": "document",
+          "url": "/startup?prefix=policy-unloaded",
+          "host": "127.0.0.1:36959",
+          "at": 1794046272724
+        },
+        {
+          "kind": "http",
+          "case": "policy-unloaded-same",
+          "method": "POST",
+          "url": "/receive?case=policy-unloaded-same",
+          "length": 15,
+          "sha256": "592d7dc2921cfebbb2b6b1db076ac4c3040506a054ae3bebb98741dc88a5d76c",
+          "body": "synthetic first",
+          "headers": {
+            "host": "127.0.0.1:36959",
+            "connection": "keep-alive",
+            "content-length": "15",
+            "sec-ch-ua-platform": "\"Linux\"",
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "content-type": "text/plain;charset=UTF-8",
+            "sec-ch-ua-mobile": "?0",
+            "accept": "*/*",
+            "origin": "http://127.0.0.1:36959",
+            "sec-fetch-site": "same-origin",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-dest": "empty",
+            "referer": "http://127.0.0.1:36959/startup?prefix=policy-unloaded",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9"
+          },
+          "at": 1794046272749
+        },
+        {
+          "kind": "http",
+          "case": "policy-unloaded-cross",
+          "method": "POST",
+          "url": "/receive?case=policy-unloaded-cross",
+          "length": 21,
+          "sha256": "b15831717831921aeed6277523f0398c0b040320ffc26f1f9edb3d5051c1222e",
+          "body": "synthetic first cross",
+          "headers": {
+            "host": "localhost:36959",
+            "connection": "keep-alive",
+            "content-length": "21",
+            "sec-ch-ua-platform": "\"Linux\"",
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "content-type": "text/plain;charset=UTF-8",
+            "sec-ch-ua-mobile": "?0",
+            "accept": "*/*",
+            "origin": "http://127.0.0.1:36959",
+            "sec-fetch-site": "cross-site",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-dest": "empty",
+            "referer": "http://127.0.0.1:36959/",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9"
+          },
+          "at": 1794046272750
+        },
+        {
+          "kind": "attempt",
+          "case": "policy-unloaded-executed",
+          "at": 1794046272753
+        },
+        {
+          "kind": "document",
+          "url": "/favicon.ico",
+          "host": "127.0.0.1:36959",
+          "at": 1794046272774
+        },
+        {
+          "kind": "document",
+          "url": "/",
+          "host": "127.0.0.1:36959",
+          "at": 1794046275726
+        },
+        {
+          "kind": "document",
+          "url": "/favicon.ico",
+          "host": "127.0.0.1:36959",
+          "at": 1794046275830
+        },
+        {
+          "kind": "document",
+          "url": "/startup",
+          "host": "127.0.0.1:36959",
+          "at": 1794046281558
+        },
+        {
+          "kind": "attempt",
+          "case": "startup-executed",
+          "at": 1794046281578
+        },
+        {
+          "kind": "document",
+          "url": "/favicon.ico",
+          "host": "127.0.0.1:36959",
+          "at": 1794046281587
+        },
+        {
+          "kind": "document",
+          "url": "/startup",
+          "host": "127.0.0.1:36959",
+          "at": 1794046285983
+        },
+        {
+          "kind": "attempt",
+          "case": "startup-executed",
+          "at": 1794046286017
+        },
+        {
+          "kind": "document",
+          "url": "/favicon.ico",
+          "host": "127.0.0.1:36959",
+          "at": 1794046286047
+        },
+        {
+          "kind": "document",
+          "url": "/startup",
+          "host": "127.0.0.1:36959",
+          "at": 1794046292369
+        },
+        {
+          "kind": "attempt",
+          "case": "startup-executed",
+          "at": 1794046292393
+        },
+        {
+          "kind": "document",
+          "url": "/favicon.ico",
+          "host": "127.0.0.1:36959",
+          "at": 1794046292400
+        },
+        {
+          "kind": "document",
+          "url": "/startup",
+          "host": "127.0.0.1:36959",
+          "at": 1794046305420
+        },
+        {
+          "kind": "attempt",
+          "case": "startup-executed",
+          "at": 1794046305444
+        },
+        {
+          "kind": "document",
+          "url": "/favicon.ico",
+          "host": "127.0.0.1:36959",
+          "at": 1794046305463
+        }
+      ]
+    },
+    {
+      "name": "CONNECTED",
+      "tabId": 196370372,
+      "group": 315836901,
+      "version": "0.4.1"
+    },
+    {
+      "name": "Q2_RESTART",
+      "killed": true,
+      "dynamic": [
+        {
+          "action": {
+            "type": "block"
+          },
+          "condition": {
+            "excludedRequestMethods": [
+              "get",
+              "head"
+            ],
+            "initiatorDomains": [
+              "127.0.0.1"
+            ],
+            "resourceTypes": [
+              "main_frame",
+              "sub_frame",
+              "stylesheet",
+              "script",
+              "image",
+              "font",
+              "object",
+              "xmlhttprequest",
+              "ping",
+              "csp_report",
+              "media",
+              "websocket",
+              "webtransport",
+              "webbundle",
+              "other"
+            ]
+          },
+          "id": 101,
+          "priority": 10
+        },
+        {
+          "action": {
+            "type": "block"
+          },
+          "condition": {
+            "initiatorDomains": [
+              "127.0.0.1"
+            ],
+            "resourceTypes": [
+              "websocket",
+              "webtransport"
+            ]
+          },
+          "id": 102,
+          "priority": 10
+        }
+      ],
+      "ready": [
+        {
+          "method": "check.ready",
+          "params": {
+            "tabId": 196370372,
+            "url": "http://127.0.0.1:36959/startup"
+          },
+          "at": 1794046307497
+        }
+      ],
+      "documents": [
+        {
+          "kind": "document",
+          "url": "/startup",
+          "host": "127.0.0.1:36959",
+          "at": 1794046281558
+        },
+        {
+          "kind": "document",
+          "url": "/startup",
+          "host": "127.0.0.1:36959",
+          "at": 1794046285983
+        },
+        {
+          "kind": "document",
+          "url": "/startup",
+          "host": "127.0.0.1:36959",
+          "at": 1794046292369
+        },
+        {
+          "kind": "document",
+          "url": "/startup",
+          "host": "127.0.0.1:36959",
+          "at": 1794046305420
+        }
+      ],
+      "arrivals": []
+    },
+    {
+      "name": "FINAL_DELIVERY_AUDIT",
+      "status": "PASS",
+      "cases": 39
+    }
+  ]
+}

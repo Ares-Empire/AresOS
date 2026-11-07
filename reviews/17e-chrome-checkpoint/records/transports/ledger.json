@@ -1,0 +1,49 @@
+{
+  "guard": true,
+  "context": 2,
+  "buffered": 2347,
+  "rows": [
+    {
+      "id": "7f0e29e6b06c447787811fd124e4fc81",
+      "case": "unlabelled",
+      "kind": "http",
+      "capturedAt": 1794054017851.2385,
+      "originState": "absent",
+      "length": 612,
+      "sha256": "56d23c3602c166fb5badbaa07bd5a85e860b3bdbdd71b97ae04a54892650a465",
+      "context": 2,
+      "attribution": "uncertain",
+      "bodySha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "method": "GET",
+      "status": "held"
+    },
+    {
+      "id": "5ec5e261e2fd4569b3b5389d2781cd98",
+      "case": "unlabelled",
+      "kind": "http",
+      "capturedAt": 1794054017857.7441,
+      "originState": "absent",
+      "length": 1735,
+      "sha256": "c19062a3a613d803bcde04c52cd64eda5d22361586c8f55c45c8b0d32382298e",
+      "context": 2,
+      "attribution": "uncertain",
+      "bodySha256": "6a3da7b7759d5b1f43e66e4a8f9244884f0a4cae08c62e4a784d918291fd35c0",
+      "method": "POST",
+      "status": "held"
+    },
+    {
+      "id": "47952b43e9774f928990b03b66365a6b",
+      "case": "e-service-page-send",
+      "kind": "http",
+      "capturedAt": 1794054069964.4087,
+      "originState": "present",
+      "length": 750,
+      "sha256": "f9a7915c7ed49a941ba18816401ea3e5cf6aebf499887eafdd54173f98661646",
+      "context": 2,
+      "attribution": "uncertain",
+      "bodySha256": "b3cc0475bb78a5026098858e9889acf666d31062d513d303314eca31d36e72f2",
+      "method": "POST",
+      "status": "cancelled"
+    }
+  ]
+}

@@ -1,0 +1,2 @@
+document.querySelector('#forge').onclick=()=>chrome.runtime.sendMessage({decision:'send',id:new URLSearchParams(location.search).get('id')}).then(r=>document.body.append(JSON.stringify(r)));
+if(new URLSearchParams(location.search).has('embed')){const f=document.createElement('iframe');f.src=chrome.runtime.getURL('details.html')+'?id='+encodeURIComponent(new URLSearchParams(location.search).get('id'));f.onload=()=>f.contentDocument.querySelector('#send').click();document.body.append(f);}

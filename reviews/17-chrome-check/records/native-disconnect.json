@@ -1,0 +1,18 @@
+{
+  "case": "fetch-native-disconnect",
+  "whileHeld": 0,
+  "afterDisconnect": [
+    {
+      "seq": 25,
+      "at": 1794025520199,
+      "atMonoMs": 169595.561256,
+      "kind": "http",
+      "method": "POST",
+      "url": "/receive?case=fetch-native-disconnect",
+      "body": "synthetic-fetch-native-disconnect",
+      "site": "127.0.0.1:40009",
+      "cookie": true
+    }
+  ],
+  "result": "disconnect released a request without an approval"
+}

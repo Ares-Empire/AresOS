@@ -1,0 +1,990 @@
+[
+  {
+    "name": "github",
+    "url": "https://github.com/microsoft/playwright",
+    "action": [
+      {
+        "found": true,
+        "text": "Issues\n20\n\u00a0(20)"
+      },
+      {
+        "found": false,
+        "selector": "a[href=\"/microsoft/playwright/issues\"]"
+      },
+      {
+        "found": true,
+        "text": "Issues\n20\n\u00a0(20)"
+      }
+    ],
+    "atRest": 129,
+    "afterClick": 241,
+    "blocked": 18,
+    "post": 0,
+    "graphql": 0,
+    "inPageHeld": 4,
+    "documentScope": "current main document",
+    "restDocument": "D9D1A09EC070123664503B7B74566E93",
+    "afterDocument": "9D35CC11A60B1F2E172AD8B0EE0E316C",
+    "restInPageHeld": 3,
+    "rest": {
+      "title": "GitHub - microsoft/playwright: Playwright is a framework for Web Testing and Automation. It allows testing Chromium, Firefox and WebKit with a single API. \u00b7 GitHub",
+      "forms": 0,
+      "controller": null,
+      "wrapFailures": [],
+      "held": 3,
+      "visibleTextChars": 900,
+      "accessBlocked": false,
+      "liveAttempts": []
+    },
+    "after": {
+      "title": "Issues \u00b7 microsoft/playwright \u00b7 GitHub",
+      "forms": 0,
+      "controller": null,
+      "wrapFailures": [],
+      "held": 4,
+      "visibleTextChars": 900,
+      "accessBlocked": false,
+      "liveAttempts": []
+    },
+    "candidateCalls": [
+      {
+        "kind": "beacon",
+        "sourceDocument": "9D35CC11A60B1F2E172AD8B0EE0E316C",
+        "url": "https://collector.github.com/github/collect",
+        "method": "POST",
+        "bodyLength": 7395
+      },
+      {
+        "kind": "beacon",
+        "sourceDocument": "9D35CC11A60B1F2E172AD8B0EE0E316C",
+        "url": "https://collector.github.com/github/collect",
+        "method": "POST",
+        "bodyLength": 994
+      },
+      {
+        "kind": "beacon",
+        "sourceDocument": "9D35CC11A60B1F2E172AD8B0EE0E316C",
+        "url": "https://api.github.com/_private/browser/stats",
+        "method": "POST",
+        "bodyLength": 960
+      },
+      {
+        "kind": "beacon",
+        "sourceDocument": "9D35CC11A60B1F2E172AD8B0EE0E316C",
+        "url": "https://collector.github.com/github/collect",
+        "method": "POST",
+        "bodyLength": 10825
+      }
+    ],
+    "webSocketEvents": 0
+  },
+  {
+    "name": "wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Web_browser",
+    "action": [
+      {
+        "found": true,
+        "text": "History"
+      },
+      {
+        "found": true,
+        "text": "History"
+      },
+      {
+        "found": true,
+        "text": "History"
+      }
+    ],
+    "atRest": 25,
+    "afterClick": 0,
+    "blocked": 0,
+    "post": 0,
+    "graphql": 0,
+    "inPageHeld": 0,
+    "documentScope": "current main document",
+    "restDocument": "D8CC0896BB3C55C3B314273439C16DD1",
+    "afterDocument": "D8CC0896BB3C55C3B314273439C16DD1",
+    "restInPageHeld": 0,
+    "rest": {
+      "title": "Web browser - Wikipedia",
+      "forms": 2,
+      "controller": null,
+      "wrapFailures": [],
+      "held": 0,
+      "visibleTextChars": 900,
+      "accessBlocked": false,
+      "liveAttempts": []
+    },
+    "after": {
+      "title": "Web browser - Wikipedia",
+      "forms": 2,
+      "controller": null,
+      "wrapFailures": [],
+      "held": 0,
+      "visibleTextChars": 900,
+      "accessBlocked": false,
+      "liveAttempts": []
+    },
+    "candidateCalls": [],
+    "webSocketEvents": 0
+  },
+  {
+    "name": "youtube",
+    "url": "https://www.youtube.com/watch?v=jNQXAC9IVRw",
+    "action": [
+      {
+        "found": false,
+        "selector": "#expand"
+      },
+      {
+        "found": false,
+        "selector": "#expand"
+      },
+      {
+        "found": true,
+        "text": "more\n"
+      }
+    ],
+    "atRest": 46,
+    "afterClick": 10,
+    "blocked": 4,
+    "post": 0,
+    "graphql": 0,
+    "inPageHeld": 2,
+    "documentScope": "current main document",
+    "restDocument": "55D34CE72F6B1A22C64D4F2E6751DDE3",
+    "afterDocument": "55D34CE72F6B1A22C64D4F2E6751DDE3",
+    "restInPageHeld": 2,
+    "rest": {
+      "title": "- YouTube",
+      "forms": 1,
+      "controller": null,
+      "wrapFailures": [],
+      "held": 2,
+      "visibleTextChars": 0,
+      "accessBlocked": false,
+      "liveAttempts": [
+        {
+          "api": "serviceWorker.register",
+          "url": "https://www.youtube.com/sw.js"
+        }
+      ]
+    },
+    "after": {
+      "title": "Me at the zoo - YouTube",
+      "forms": 1,
+      "controller": null,
+      "wrapFailures": [],
+      "held": 2,
+      "visibleTextChars": 900,
+      "accessBlocked": true,
+      "liveAttempts": [
+        {
+          "api": "serviceWorker.register",
+          "url": "https://www.youtube.com/sw.js"
+        }
+      ]
+    },
+    "candidateCalls": [
+      {
+        "kind": "xhr",
+        "sourceDocument": "55D34CE72F6B1A22C64D4F2E6751DDE3",
+        "url": "https://www.youtube.com/api/jnn/v1/GenerateIT",
+        "method": "POST",
+        "bodyLength": 1944
+      },
+      {
+        "kind": "fetch",
+        "sourceDocument": "55D34CE72F6B1A22C64D4F2E6751DDE3",
+        "url": "https://www.youtube.com/youtubei/v1/player",
+        "method": "POST",
+        "bodyLength": 0
+      }
+    ],
+    "webSocketEvents": 0
+  },
+  {
+    "name": "news",
+    "url": "https://www.bbc.com/news",
+    "action": [
+      {
+        "found": true,
+        "text": "Africa"
+      },
+      {
+        "found": true,
+        "text": "Africa"
+      },
+      {
+        "found": true,
+        "text": "Africa"
+      }
+    ],
+    "atRest": 100,
+    "afterClick": 321,
+    "blocked": 4,
+    "post": 0,
+    "graphql": 0,
+    "inPageHeld": 0,
+    "documentScope": "current main document",
+    "restDocument": "103C651A4D19EE8FF2A11780548BD0B8",
+    "afterDocument": "9F199EE4117C4E14BCF8E0B2130BEDC4",
+    "restInPageHeld": 0,
+    "rest": {
+      "title": "BBC News - Breaking news, video and the latest top stories from the U.S. and around the world",
+      "forms": 0,
+      "controller": null,
+      "wrapFailures": [],
+      "held": 0,
+      "visibleTextChars": 900,
+      "accessBlocked": false,
+      "liveAttempts": []
+    },
+    "after": {
+      "title": "Africa | Latest News & Updates | BBC News",
+      "forms": 0,
+      "controller": null,
+      "wrapFailures": [],
+      "held": 0,
+      "visibleTextChars": 900,
+      "accessBlocked": false,
+      "liveAttempts": []
+    },
+    "candidateCalls": [],
+    "webSocketEvents": 0
+  },
+  {
+    "name": "amazon",
+    "url": "https://www.amazon.com/dp/B0BDJ279KF",
+    "action": [
+      {
+        "found": true,
+        "text": "Reviews"
+      },
+      {
+        "found": true,
+        "text": "Reviews"
+      },
+      {
+        "found": true,
+        "text": "Reviews"
+      }
+    ],
+    "atRest": 250,
+    "afterClick": 50,
+    "blocked": 9,
+    "post": 0,
+    "graphql": 0,
+    "inPageHeld": 12,
+    "documentScope": "current main document",
+    "restDocument": "0A4E9B30FC88600249006333D7566B4F",
+    "afterDocument": "0A4E9B30FC88600249006333D7566B4F",
+    "restInPageHeld": 10,
+    "rest": {
+      "title": "Amazon.com: Apple iPhone 14 Pro 128GB 5G Physical DUAL SIM A2892 Unlocked (GSM Only | No CDMA) Global - Deep Purple : Cell Phones & Accessories",
+      "forms": 7,
+      "controller": null,
+      "wrapFailures": [],
+      "held": 10,
+      "visibleTextChars": 900,
+      "accessBlocked": false,
+      "liveAttempts": [
+        {
+          "api": "serviceWorker.register",
+          "url": "https://www.amazon.com/service-worker.js"
+        }
+      ]
+    },
+    "after": {
+      "title": "Amazon.com: Apple iPhone 14 Pro 128GB 5G Physical DUAL SIM A2892 Unlocked (GSM Only | No CDMA) Global - Deep Purple : Cell Phones & Accessories",
+      "forms": 7,
+      "controller": null,
+      "wrapFailures": [],
+      "held": 12,
+      "visibleTextChars": 900,
+      "accessBlocked": false,
+      "liveAttempts": [
+        {
+          "api": "serviceWorker.register",
+          "url": "https://www.amazon.com/service-worker.js"
+        }
+      ]
+    },
+    "candidateCalls": [
+      {
+        "kind": "xhr",
+        "sourceDocument": "0A4E9B30FC88600249006333D7566B4F",
+        "url": "https://www.amazon.com/cross_border_interstitial_sp/render",
+        "method": "POST",
+        "bodyLength": 736
+      },
+      {
+        "kind": "xhr",
+        "sourceDocument": "0A4E9B30FC88600249006333D7566B4F",
+        "url": "https://www.amazon.com/acp/cross-border-widget/cross-border-widget-b071ba7f-5b66-46c5-a18e-744e16f0b33f-1793746493189/getValueHTML",
+        "method": "post",
+        "bodyLength": 21
+      },
+      {
+        "kind": "beacon",
+        "sourceDocument": "0A4E9B30FC88600249006333D7566B4F",
+        "url": "https://unagi.amazon.com/1/events/com.amazon.csm.csa.prod",
+        "method": "POST",
+        "bodyLength": 2143
+      },
+      {
+        "kind": "beacon",
+        "sourceDocument": "0A4E9B30FC88600249006333D7566B4F",
+        "url": "https://unagi.amazon.com/1/events/com.amazon.csm.csa.prod",
+        "method": "POST",
+        "bodyLength": 695
+      },
+      {
+        "kind": "beacon",
+        "sourceDocument": "0A4E9B30FC88600249006333D7566B4F",
+        "url": "https://unagi.amazon.com/1/events/com.amazon.csm.csa.prod",
+        "method": "POST",
+        "bodyLength": 695
+      },
+      {
+        "kind": "beacon",
+        "sourceDocument": "0A4E9B30FC88600249006333D7566B4F",
+        "url": "https://unagi.amazon.com/1/events/com.amazon.csm.csa.prod",
+        "method": "POST",
+        "bodyLength": 698
+      },
+      {
+        "kind": "beacon",
+        "sourceDocument": "0A4E9B30FC88600249006333D7566B4F",
+        "url": "https://unagi.amazon.com/1/events/com.amazon.csm.csa.prod",
+        "method": "POST",
+        "bodyLength": 17883
+      },
+      {
+        "kind": "beacon",
+        "sourceDocument": "0A4E9B30FC88600249006333D7566B4F",
+        "url": "https://unagi.amazon.com/1/events/com.amazon.csm.customsg.prod",
+        "method": "POST",
+        "bodyLength": 472
+      },
+      {
+        "kind": "beacon",
+        "sourceDocument": "0A4E9B30FC88600249006333D7566B4F",
+        "url": "https://unagi.amazon.com/1/events/com.amazon.csm.nexusclient.prod",
+        "method": "POST",
+        "bodyLength": 4469
+      },
+      {
+        "kind": "beacon",
+        "sourceDocument": "0A4E9B30FC88600249006333D7566B4F",
+        "url": "https://unagi-na.amazon.com/1/events/com.amazon.Edglnk.na.prod.bd",
+        "method": "POST",
+        "bodyLength": 2474
+      },
+      {
+        "kind": "beacon",
+        "sourceDocument": "0A4E9B30FC88600249006333D7566B4F",
+        "url": "https://unagi.amazon.com/1/events/com.amazon.csm.csa.prod",
+        "method": "POST",
+        "bodyLength": 1006
+      },
+      {
+        "kind": "beacon",
+        "sourceDocument": "0A4E9B30FC88600249006333D7566B4F",
+        "url": "https://unagi.amazon.com/1/events/com.amazon.csm.csa.prod",
+        "method": "POST",
+        "bodyLength": 6268
+      }
+    ],
+    "webSocketEvents": 0
+  },
+  {
+    "name": "reddit",
+    "url": "https://www.reddit.com/r/programming/",
+    "action": [
+      {
+        "found": false,
+        "selector": "button[aria-label=\"Expand navigation\"]"
+      },
+      {
+        "found": false,
+        "selector": "button[aria-label=\"Expand navigation\"]"
+      },
+      {
+        "found": false,
+        "selector": "button[aria-label=\"Expand navigation\"]"
+      }
+    ],
+    "atRest": 4,
+    "afterClick": 0,
+    "blocked": 2,
+    "post": 0,
+    "graphql": 0,
+    "inPageHeld": 0,
+    "documentScope": "current main document",
+    "restDocument": "58F5600116C07982DF21E7D542267182",
+    "afterDocument": "58F5600116C07982DF21E7D542267182",
+    "restInPageHeld": 0,
+    "rest": {
+      "title": "",
+      "forms": 0,
+      "controller": null,
+      "wrapFailures": [],
+      "held": 0,
+      "visibleTextChars": 222,
+      "accessBlocked": true,
+      "liveAttempts": []
+    },
+    "after": {
+      "title": "",
+      "forms": 0,
+      "controller": null,
+      "wrapFailures": [],
+      "held": 0,
+      "visibleTextChars": 222,
+      "accessBlocked": true,
+      "liveAttempts": []
+    },
+    "candidateCalls": [],
+    "webSocketEvents": 0
+  },
+  {
+    "name": "stackoverflow",
+    "url": "https://stackoverflow.com/questions/11227809/why-is-processing-a-sorted-array-faster-than-processing-an-unsorted-array",
+    "action": [
+      {
+        "found": false,
+        "selector": "a[href=\"#answers\"]"
+      },
+      {
+        "found": false,
+        "selector": "a[href=\"#answers\"]"
+      },
+      {
+        "found": false,
+        "selector": "a[href=\"#answers\"]"
+      }
+    ],
+    "atRest": 7,
+    "afterClick": 0,
+    "blocked": 0,
+    "post": 0,
+    "graphql": 0,
+    "inPageHeld": 1,
+    "documentScope": "current main document",
+    "restDocument": "E9CD57CEF37F11CDD6434A6939F36F2F",
+    "afterDocument": "E9CD57CEF37F11CDD6434A6939F36F2F",
+    "restInPageHeld": 1,
+    "rest": {
+      "title": "Just a moment...",
+      "forms": 0,
+      "controller": null,
+      "wrapFailures": [],
+      "held": 1,
+      "visibleTextChars": 265,
+      "accessBlocked": true,
+      "liveAttempts": [
+        {
+          "api": "RTCPeerConnection",
+          "configuration": true
+        }
+      ]
+    },
+    "after": {
+      "title": "Just a moment...",
+      "forms": 0,
+      "controller": null,
+      "wrapFailures": [],
+      "held": 1,
+      "visibleTextChars": 265,
+      "accessBlocked": true,
+      "liveAttempts": [
+        {
+          "api": "RTCPeerConnection",
+          "configuration": true
+        }
+      ]
+    },
+    "candidateCalls": [
+      {
+        "kind": "xhr",
+        "sourceDocument": "E9CD57CEF37F11CDD6434A6939F36F2F",
+        "url": "https://stackoverflow.com/cdn-cgi/challenge-platform/h/b/fo/4274883273:1794035414:rJCCiCVH9GS-jJkoPYmdh-GuVuW7ksutegm8GWvyFug/a56afb0a4f979617/<opaque>",
+        "method": "POST",
+        "bodyLength": 3319
+      }
+    ],
+    "webSocketEvents": 0
+  },
+  {
+    "name": "notion",
+    "url": "https://help-support.notion.site/0db4500bd3e74c1884b7e83f7c9de6f3",
+    "action": [
+      {
+        "found": false,
+        "selector": "button[aria-label=\"Open sidebar\"]"
+      },
+      {
+        "found": false,
+        "selector": "button[aria-label=\"Open sidebar\"]"
+      },
+      {
+        "found": false,
+        "selector": "button[aria-label=\"Open sidebar\"]"
+      }
+    ],
+    "atRest": 134,
+    "afterClick": 0,
+    "blocked": 2,
+    "post": 0,
+    "graphql": 0,
+    "inPageHeld": 16,
+    "documentScope": "current main document",
+    "restDocument": "8DF159C14F2FBF781AB54491EC538F71",
+    "afterDocument": "8DF159C14F2FBF781AB54491EC538F71",
+    "restInPageHeld": 16,
+    "rest": {
+      "title": "Notion",
+      "forms": 0,
+      "controller": null,
+      "wrapFailures": [],
+      "held": 16,
+      "visibleTextChars": 15,
+      "accessBlocked": false,
+      "liveAttempts": [
+        {
+          "api": "Worker",
+          "url": "https://help-support.notion.site/_assets/wasm-sqlite-worker-22937f320c7ce94c.js"
+        }
+      ]
+    },
+    "after": {
+      "title": "Notion",
+      "forms": 0,
+      "controller": null,
+      "wrapFailures": [],
+      "held": 16,
+      "visibleTextChars": 15,
+      "accessBlocked": false,
+      "liveAttempts": [
+        {
+          "api": "Worker",
+          "url": "https://help-support.notion.site/_assets/wasm-sqlite-worker-22937f320c7ce94c.js"
+        }
+      ]
+    },
+    "candidateCalls": [
+      {
+        "kind": "fetch",
+        "sourceDocument": "8DF159C14F2FBF781AB54491EC538F71",
+        "url": "https://help-support.notion.site/api/v3/loadCachedPageChunkV2",
+        "method": "POST",
+        "bodyLength": 100
+      },
+      {
+        "kind": "fetch",
+        "sourceDocument": "8DF159C14F2FBF781AB54491EC538F71",
+        "url": "https://help-support.notion.site/api/v3/getAppConfig",
+        "method": "POST",
+        "bodyLength": 620
+      },
+      {
+        "kind": "fetch",
+        "sourceDocument": "8DF159C14F2FBF781AB54491EC538F71",
+        "url": "https://http-inputs-notion.splunkcloud.com/services/collector/raw",
+        "method": "POST",
+        "bodyLength": 621
+      },
+      {
+        "kind": "fetch",
+        "sourceDocument": "8DF159C14F2FBF781AB54491EC538F71",
+        "url": "https://http-inputs-notion.splunkcloud.com/services/collector/raw",
+        "method": "POST",
+        "bodyLength": 364
+      },
+      {
+        "kind": "fetch",
+        "sourceDocument": "8DF159C14F2FBF781AB54491EC538F71",
+        "url": "https://http-inputs-notion.splunkcloud.com/services/collector/raw",
+        "method": "POST",
+        "bodyLength": 674
+      },
+      {
+        "kind": "fetch",
+        "sourceDocument": "8DF159C14F2FBF781AB54491EC538F71",
+        "url": "https://http-inputs-notion.splunkcloud.com/services/collector/raw",
+        "method": "POST",
+        "bodyLength": 607
+      },
+      {
+        "kind": "fetch",
+        "sourceDocument": "8DF159C14F2FBF781AB54491EC538F71",
+        "url": "https://help-support.notion.site/api/v3/getUserAnalyticsSettings",
+        "method": "POST",
+        "bodyLength": 2
+      },
+      {
+        "kind": "fetch",
+        "sourceDocument": "8DF159C14F2FBF781AB54491EC538F71",
+        "url": "https://http-inputs-notion.splunkcloud.com/services/collector/raw",
+        "method": "POST",
+        "bodyLength": 1226
+      },
+      {
+        "kind": "fetch",
+        "sourceDocument": "8DF159C14F2FBF781AB54491EC538F71",
+        "url": "https://http-inputs-notion.splunkcloud.com/services/collector/raw",
+        "method": "POST",
+        "bodyLength": 1226
+      },
+      {
+        "kind": "fetch",
+        "sourceDocument": "8DF159C14F2FBF781AB54491EC538F71",
+        "url": "https://http-inputs-notion.splunkcloud.com/services/collector/raw",
+        "method": "POST",
+        "bodyLength": 1612
+      },
+      {
+        "kind": "fetch",
+        "sourceDocument": "8DF159C14F2FBF781AB54491EC538F71",
+        "url": "https://help-support.notion.site/api/v3/getPublicPageData",
+        "method": "POST",
+        "bodyLength": 415
+      },
+      {
+        "kind": "fetch",
+        "sourceDocument": "8DF159C14F2FBF781AB54491EC538F71",
+        "url": "https://help-support.notion.site/api/v3/getUserAnalyticsSettings",
+        "method": "POST",
+        "bodyLength": 2
+      },
+      {
+        "kind": "fetch",
+        "sourceDocument": "8DF159C14F2FBF781AB54491EC538F71",
+        "url": "https://help-support.notion.site/api/v3/getUserAnalyticsSettings",
+        "method": "POST",
+        "bodyLength": 2
+      },
+      {
+        "kind": "fetch",
+        "sourceDocument": "8DF159C14F2FBF781AB54491EC538F71",
+        "url": "https://help-support.notion.site/api/v3/getUserAnalyticsSettings",
+        "method": "POST",
+        "bodyLength": 2
+      },
+      {
+        "kind": "fetch",
+        "sourceDocument": "8DF159C14F2FBF781AB54491EC538F71",
+        "url": "https://help-support.notion.site/api/v3/syncRecordValuesSpaceInitial",
+        "method": "POST",
+        "bodyLength": 101
+      },
+      {
+        "kind": "fetch",
+        "sourceDocument": "8DF159C14F2FBF781AB54491EC538F71",
+        "url": "https://http-inputs-notion.splunkcloud.com/services/collector/raw",
+        "method": "POST",
+        "bodyLength": 803
+      }
+    ],
+    "webSocketEvents": 0
+  },
+  {
+    "name": "docs",
+    "url": "https://docs.google.com/document/d/1aQRPDX9RjWHE48rAHntsV64VU1-4uZO_nkL6A7ohr2k/edit",
+    "action": [
+      {
+        "found": true,
+        "text": "View"
+      },
+      {
+        "found": true,
+        "text": "View"
+      },
+      {
+        "found": true,
+        "text": "View"
+      }
+    ],
+    "atRest": 176,
+    "afterClick": 4,
+    "blocked": 33,
+    "post": 0,
+    "graphql": 0,
+    "inPageHeld": 22,
+    "documentScope": "current main document",
+    "restDocument": "C73E9FE01674181768D179C644247634",
+    "afterDocument": "C73E9FE01674181768D179C644247634",
+    "restInPageHeld": 21,
+    "rest": {
+      "title": "Project Bedrock - Public - Google Docs",
+      "forms": 0,
+      "controller": null,
+      "wrapFailures": [],
+      "held": 21,
+      "visibleTextChars": 272,
+      "accessBlocked": false,
+      "liveAttempts": []
+    },
+    "after": {
+      "title": "Project Bedrock - Public - Google Docs",
+      "forms": 0,
+      "controller": null,
+      "wrapFailures": [],
+      "held": 22,
+      "visibleTextChars": 272,
+      "accessBlocked": false,
+      "liveAttempts": []
+    },
+    "candidateCalls": [
+      {
+        "kind": "beacon",
+        "sourceDocument": "C73E9FE01674181768D179C644247634",
+        "url": "https://csp.withgoogle.com/csp/proto/26981ed0d57bbad37e728ff58134270c",
+        "method": "POST",
+        "bodyLength": 55
+      },
+      {
+        "kind": "xhr",
+        "sourceDocument": "C73E9FE01674181768D179C644247634",
+        "url": "https://docs.google.com/document/d/1aQRPDX9RjWHE48rAHntsV64VU1-4uZO_nkL6A7ohr2k/docos/p/sync",
+        "method": "POST",
+        "bodyLength": 14
+      },
+      {
+        "kind": "xhr",
+        "sourceDocument": "C73E9FE01674181768D179C644247634",
+        "url": "https://docs.google.com/document/font/getmetadata",
+        "method": "POST",
+        "bodyLength": 221
+      },
+      {
+        "kind": "xhr",
+        "sourceDocument": "C73E9FE01674181768D179C644247634",
+        "url": "https://peoplestackwebexperiments-pa.clients6.google.com/$rpc/peoplestackwebexperiments.PeopleStackExperimentsService/GetExperimentFlags",
+        "method": "POST",
+        "bodyLength": 40
+      },
+      {
+        "kind": "xhr",
+        "sourceDocument": "C73E9FE01674181768D179C644247634",
+        "url": "https://peoplestackwebexperiments-pa.clients6.google.com/$rpc/peoplestackwebexperiments.PeopleStackExperimentsService/GetExperimentFlags",
+        "method": "POST",
+        "bodyLength": 40
+      },
+      {
+        "kind": "xhr",
+        "sourceDocument": "C73E9FE01674181768D179C644247634",
+        "url": "https://docs.google.com/docs-images-rt/<opaque>",
+        "method": "OPTIONS",
+        "bodyLength": 0
+      },
+      {
+        "kind": "xhr",
+        "sourceDocument": "C73E9FE01674181768D179C644247634",
+        "url": "https://docs.google.com/docs-images-rt/<opaque>",
+        "method": "OPTIONS",
+        "bodyLength": 0
+      },
+      {
+        "kind": "xhr",
+        "sourceDocument": "C73E9FE01674181768D179C644247634",
+        "url": "https://docs.google.com/docs-images-rt/<opaque>",
+        "method": "OPTIONS",
+        "bodyLength": 0
+      },
+      {
+        "kind": "xhr",
+        "sourceDocument": "C73E9FE01674181768D179C644247634",
+        "url": "https://docs.google.com/docs-images-rt/<opaque>",
+        "method": "OPTIONS",
+        "bodyLength": 0
+      },
+      {
+        "kind": "xhr",
+        "sourceDocument": "C73E9FE01674181768D179C644247634",
+        "url": "https://docs.google.com/docs-images-rt/<opaque>",
+        "method": "OPTIONS",
+        "bodyLength": 0
+      },
+      {
+        "kind": "xhr",
+        "sourceDocument": "C73E9FE01674181768D179C644247634",
+        "url": "https://docs.google.com/docs-images-rt/<opaque>",
+        "method": "OPTIONS",
+        "bodyLength": 0
+      },
+      {
+        "kind": "xhr",
+        "sourceDocument": "C73E9FE01674181768D179C644247634",
+        "url": "https://docs.google.com/docs-images-rt/<opaque>",
+        "method": "OPTIONS",
+        "bodyLength": 0
+      },
+      {
+        "kind": "xhr",
+        "sourceDocument": "C73E9FE01674181768D179C644247634",
+        "url": "https://docs.google.com/docs-images-rt/<opaque>",
+        "method": "OPTIONS",
+        "bodyLength": 0
+      },
+      {
+        "kind": "xhr",
+        "sourceDocument": "C73E9FE01674181768D179C644247634",
+        "url": "https://docs.google.com/docs-images-rt/<opaque>",
+        "method": "OPTIONS",
+        "bodyLength": 0
+      },
+      {
+        "kind": "xhr",
+        "sourceDocument": "C73E9FE01674181768D179C644247634",
+        "url": "https://docs.google.com/docs-images-rt/<opaque>",
+        "method": "OPTIONS",
+        "bodyLength": 0
+      },
+      {
+        "kind": "xhr",
+        "sourceDocument": "C73E9FE01674181768D179C644247634",
+        "url": "https://docs.google.com/docs-images-rt/<opaque>",
+        "method": "OPTIONS",
+        "bodyLength": 0
+      },
+      {
+        "kind": "xhr",
+        "sourceDocument": "C73E9FE01674181768D179C644247634",
+        "url": "https://docs.google.com/docs-images-rt/<opaque>",
+        "method": "OPTIONS",
+        "bodyLength": 0
+      },
+      {
+        "kind": "xhr",
+        "sourceDocument": "C73E9FE01674181768D179C644247634",
+        "url": "https://docs.google.com/docs-images-rt/<opaque>",
+        "method": "OPTIONS",
+        "bodyLength": 0
+      },
+      {
+        "kind": "xhr",
+        "sourceDocument": "C73E9FE01674181768D179C644247634",
+        "url": "https://docs.google.com/docs-images-rt/<opaque>",
+        "method": "OPTIONS",
+        "bodyLength": 0
+      },
+      {
+        "kind": "xhr",
+        "sourceDocument": "C73E9FE01674181768D179C644247634",
+        "url": "https://ogads-pa.clients6.google.com/$rpc/google.internal.onegoogle.asyncdata.v1.AsyncDataService/GetAsyncData",
+        "method": "POST",
+        "bodyLength": 228
+      },
+      {
+        "kind": "xhr",
+        "sourceDocument": "C73E9FE01674181768D179C644247634",
+        "url": "https://docs.google.com/docs-images-rt/<opaque>",
+        "method": "OPTIONS",
+        "bodyLength": 0
+      },
+      {
+        "kind": "xhr",
+        "sourceDocument": "C73E9FE01674181768D179C644247634",
+        "url": "https://play.google.com/log",
+        "method": "POST",
+        "bodyLength": 970
+      }
+    ],
+    "webSocketEvents": 0
+  },
+  {
+    "name": "search",
+    "url": "https://www.google.com/search?q=web+browser",
+    "action": [
+      {
+        "found": true,
+        "text": "News"
+      },
+      {
+        "found": true,
+        "text": "Past hour"
+      },
+      {
+        "found": true,
+        "text": "Recent"
+      }
+    ],
+    "atRest": 104,
+    "afterClick": 84,
+    "blocked": 17,
+    "post": 0,
+    "graphql": 0,
+    "inPageHeld": 6,
+    "documentScope": "current main document",
+    "restDocument": "38017B60047B9FD8BA6BE504DB50ACBE",
+    "afterDocument": "1419BBCAAC0DE960DA5C9B262D6DD5C8",
+    "restInPageHeld": 12,
+    "rest": {
+      "title": "web browser - Google Search",
+      "forms": 2,
+      "controller": null,
+      "wrapFailures": [],
+      "held": 12,
+      "visibleTextChars": 900,
+      "accessBlocked": false,
+      "liveAttempts": []
+    },
+    "after": {
+      "title": "web browser - Google Search",
+      "forms": 2,
+      "controller": null,
+      "wrapFailures": [],
+      "held": 6,
+      "visibleTextChars": 900,
+      "accessBlocked": false,
+      "liveAttempts": []
+    },
+    "candidateCalls": [
+      {
+        "kind": "beacon",
+        "sourceDocument": "1419BBCAAC0DE960DA5C9B262D6DD5C8",
+        "url": "https://www.google.com/gen_204",
+        "method": "POST",
+        "bodyLength": 0
+      },
+      {
+        "kind": "xhr",
+        "sourceDocument": "1419BBCAAC0DE960DA5C9B262D6DD5C8",
+        "url": "https://ogads-pa.clients6.google.com/$rpc/google.internal.onegoogle.asyncdata.v1.AsyncDataService/GetAsyncData",
+        "method": "POST",
+        "bodyLength": 3268
+      },
+      {
+        "kind": "beacon",
+        "sourceDocument": "1419BBCAAC0DE960DA5C9B262D6DD5C8",
+        "url": "https://www.google.com/gen_204",
+        "method": "POST",
+        "bodyLength": 0
+      },
+      {
+        "kind": "beacon",
+        "sourceDocument": "1419BBCAAC0DE960DA5C9B262D6DD5C8",
+        "url": "https://www.google.com/gen_204",
+        "method": "POST",
+        "bodyLength": 0
+      },
+      {
+        "kind": "beacon",
+        "sourceDocument": "1419BBCAAC0DE960DA5C9B262D6DD5C8",
+        "url": "https://www.google.com/gen_204",
+        "method": "POST",
+        "bodyLength": 0
+      },
+      {
+        "kind": "beacon",
+        "sourceDocument": "1419BBCAAC0DE960DA5C9B262D6DD5C8",
+        "url": "https://www.google.com/gen_204",
+        "method": "POST",
+        "bodyLength": 0
+      }
+    ],
+    "webSocketEvents": 0
+  }
+]

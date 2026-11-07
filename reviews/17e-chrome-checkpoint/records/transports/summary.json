@@ -1,0 +1,295 @@
+{
+  "phase": "transports",
+  "head": "e535ecbfa690965311972db54db5c4cc0cb972c8",
+  "run": "42371496987",
+  "cases": [
+    {
+      "name": "CHECKPOINT_READY",
+      "guard": false,
+      "context": 0,
+      "buffered": 0,
+      "rows": []
+    },
+    {
+      "name": "BROWSER_READY",
+      "label": "initial",
+      "mode": true,
+      "selected": 1258225644
+    },
+    {
+      "name": "GUARD_BARRIER",
+      "guard": false,
+      "at": 1794053962442.2915
+    },
+    {
+      "name": "Q9_TLS",
+      "label": "valid",
+      "result": {
+        "status": 200
+      },
+      "receiver": [
+        {
+          "at": 1794053962475,
+          "kind": "headers",
+          "case": "e-tls-valid",
+          "method": "POST",
+          "protocol": "2.0",
+          "authenticated": false,
+          "attributionPresent": false,
+          "accountHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "headerHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "at": 1794053962475,
+          "kind": "first-byte",
+          "case": "e-tls-valid"
+        },
+        {
+          "at": 1794053962475,
+          "kind": "http",
+          "case": "e-tls-valid",
+          "length": 3,
+          "sha256": "b7e651cbb43ba0ca3498759c8c3596c3a11a199004cd9e5a198d50d4585ec8c5",
+          "diskMarker": false
+        }
+      ]
+    },
+    {
+      "name": "GUARD_BARRIER",
+      "guard": false,
+      "at": 1794053962501.9053
+    },
+    {
+      "name": "Q9_TLS",
+      "label": "invalid",
+      "result": {
+        "error": "TypeError"
+      },
+      "receiver": []
+    },
+    {
+      "name": "Q9_HSTS",
+      "page": {
+        "title": "",
+        "url": "https://fixture.test:18443/hsts"
+      }
+    },
+    {
+      "name": "GUARD_BARRIER",
+      "guard": false,
+      "at": 1794053965485.7632
+    },
+    {
+      "name": "BROWSER_READY",
+      "label": "transport-direct",
+      "mode": false,
+      "selected": 1258225711
+    },
+    {
+      "name": "Q9_BROWSER_SERVICES_UI",
+      "mode": "direct",
+      "action": "First focusable component control via Tab/Return; Safe Browsing internal state and Google test URL, no warning bypass."
+    },
+    {
+      "name": "Q8_WEBTRANSPORT_DIRECT",
+      "result": {
+        "wt": "delivered"
+      }
+    },
+    {
+      "name": "Q8_WEBRTC",
+      "label": "e-rtc-tcp-control",
+      "tls": false,
+      "state": {
+        "channel": "open",
+        "errors": [],
+        "gathering": "complete",
+        "ice": "connected",
+        "state": "connected"
+      },
+      "receiver": [
+        {
+          "kind": "data",
+          "case": "e-rtc-tcp-control",
+          "length": 17,
+          "sha256": "66e09069dc6a61991a55d822d9d50eff1712b3629bbe2682ff6b98c40ee453ba",
+          "at": 1794053991919.396
+        }
+      ]
+    },
+    {
+      "name": "Q8_WEBRTC",
+      "label": "e-rtc-tls-control",
+      "tls": true,
+      "state": {
+        "channel": "open",
+        "errors": [],
+        "gathering": "complete",
+        "ice": "connected",
+        "state": "connected"
+      },
+      "receiver": [
+        {
+          "kind": "data",
+          "case": "e-rtc-tls-control",
+          "length": 17,
+          "sha256": "d12f045fc31f453ac0d434fbf0bc1fc2559dd3e923a45d3b55751325659c2bba",
+          "at": 1794054003055.6584
+        }
+      ]
+    },
+    {
+      "name": "BROWSER_READY",
+      "label": "transport-checkpoint",
+      "mode": true,
+      "selected": 1258225790
+    },
+    {
+      "name": "GUARD_BARRIER",
+      "guard": true,
+      "at": 1794054017325.559
+    },
+    {
+      "name": "Q8_WEBTRANSPORT_BLOCKED",
+      "result": {
+        "wt": "WebTransportError:Opening handshake failed."
+      },
+      "receiver": [
+        {
+          "kind": "connect",
+          "at": 1794053986325.573,
+          "case": "e-webtransport"
+        },
+        {
+          "kind": "datagram",
+          "at": 1794053986326.4866,
+          "length": 14,
+          "sha256": "8e407c0b6fa131b1fa4255425b8605d4469348fbf161f937f4acda8aaac51064"
+        }
+      ]
+    },
+    {
+      "name": "Q8_WEBRTC",
+      "label": "e-rtc-tcp-held",
+      "tls": false,
+      "state": {
+        "channel": "connecting",
+        "errors": [],
+        "gathering": "gathering",
+        "ice": "new",
+        "state": "new"
+      },
+      "receiver": []
+    },
+    {
+      "name": "Q8_WEBRTC",
+      "label": "e-rtc-tls-held",
+      "tls": true,
+      "state": {
+        "channel": "connecting",
+        "errors": [],
+        "gathering": "gathering",
+        "ice": "new",
+        "state": "new"
+      },
+      "receiver": []
+    },
+    {
+      "name": "GUARD_BARRIER",
+      "guard": false,
+      "at": 1794054048386.4402
+    },
+    {
+      "name": "Q9_BROWSER_SERVICES_UI",
+      "mode": "checkpoint",
+      "action": "First focusable component control via Tab/Return; Safe Browsing internal state and Google test URL, no warning bypass."
+    },
+    {
+      "name": "Q9_SERVICE_PAGE",
+      "host": "www.google.com",
+      "page": {
+        "certificateError": false,
+        "title": "Google",
+        "url": "https://www.google.com"
+      }
+    },
+    {
+      "name": "Q9_SERVICE_PAGE",
+      "host": "safebrowsing.googleapis.com",
+      "page": {
+        "certificateError": false,
+        "title": "Error 404 (Not Found)!!1",
+        "url": "https://safebrowsing.googleapis.com"
+      }
+    },
+    {
+      "name": "Q9_SERVICE_PAGE",
+      "host": "clients2.google.com",
+      "page": {
+        "certificateError": false,
+        "title": "",
+        "url": "https://clients2.google.com"
+      }
+    },
+    {
+      "name": "Q9_SERVICE_PAGE",
+      "host": "update.googleapis.com",
+      "page": {
+        "certificateError": false,
+        "title": "Bad Request",
+        "url": "https://update.googleapis.com"
+      }
+    },
+    {
+      "name": "GUARD_BARRIER",
+      "guard": false,
+      "at": 1794054069416.0952
+    },
+    {
+      "name": "GUARD_BARRIER",
+      "guard": true,
+      "at": 1794054069957.4485
+    },
+    {
+      "name": "Q9_NO_SERVICE_EXCEPTION",
+      "held": {
+        "id": "47952b43e9774f928990b03b66365a6b",
+        "case": "e-service-page-send",
+        "kind": "http",
+        "capturedAt": 1794054069964.4087,
+        "originState": "present",
+        "length": 750,
+        "sha256": "f9a7915c7ed49a941ba18816401ea3e5cf6aebf499887eafdd54173f98661646",
+        "context": 2,
+        "attribution": "uncertain",
+        "bodySha256": "b3cc0475bb78a5026098858e9889acf666d31062d513d303314eca31d36e72f2",
+        "method": "POST",
+        "status": "held"
+      },
+      "fixtureOnly": true,
+      "receiver": []
+    },
+    {
+      "name": "Q9_SERVICE_LIMIT",
+      "notChecked": [
+        "account-backed sync",
+        "authenticated push"
+      ],
+      "reason": "No accounts or real submissions allowed. Page loads are not browser-service qualification."
+    },
+    {
+      "name": "FINAL_RECEIVER_AUDIT",
+      "status": "PASS",
+      "assertions": 12,
+      "receiverRows": 6
+    },
+    {
+      "name": "chrome-console.log",
+      "bytes": 27277
+    },
+    {
+      "name": "proxy-console.log",
+      "bytes": 0
+    }
+  ]
+}
