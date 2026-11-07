@@ -29,7 +29,7 @@ async function decide(id,release){
     if(p.kind==='form'){body=new URLSearchParams(JSON.parse(d.fields)).toString();if(method==='GET'){url+=(url.includes('?')?'&':'?')+body;body=null;}}
     allowance={url,method,body,source:p.source,inPage:true};allowances.push(allowance);
   }
-  try{const result=await pageCall(p,release);if(release&&!(Array.isArray(result)?result[0]?.result:result.result?.value))throw Error('CALL_GONE_OR_CHANGED');}catch(e){const i=allowances.indexOf(allowance);if(i>=0)allowances.splice(i,1);if(!release&&/No document with id|No frame with id|No session with given id|Target closed/.test(String(e)))emit('check.dropGone',{id,error:String(e)});else throw e;}emit('check.decision',{id,release});
+  try{const result=await pageCall(p,release);if(release&&!(Array.isArray(result)?result[0]?.result:result.result?.value))throw Error('CALL_GONE_OR_CHANGED');}catch(e){const i=allowances.indexOf(allowance);if(i>=0)allowances.splice(i,1);if(!release&&/No document with id|No frame with (?:id|ID)|No session with given id|Target closed/i.test(String(e)))emit('check.dropGone',{id,error:String(e)});else throw e;}emit('check.decision',{id,release});
 }
 async function stop(reason){active=false;for(const p of [...pending.values()]){try{await decide(p.id,false);await pageCall(p,false,true)}catch(e){emit('check.dropGone',{id:p.id,error:String(e)})}}await badge(false);for(const s of attached.values())await cmd(s,'Runtime.evaluate',{expression:'globalThis.__hold17?.end()'}).catch(()=>{});for(const s of attached.values())await chrome.debugger.detach(s).catch(()=>{});attached.clear();allowances.length=0;emit('check.stopped',{reason});}
 async function gate(source,p){
@@ -99,7 +99,7 @@ chrome.runtime.onMessage.addListener((m,s,reply)=>{
     const exact=name=>s.id===chrome.runtime.id&&s.url?.split('?')[0]===chrome.runtime.getURL(name)&&s.frameId===0;
     if(m.attach&&exact('select.html')){await rpc('Check.attach',{tabId:m.attach});connect();return {attached:selected};}
     if(m.report&&s.tab&&(safe(s.url)||safe(s.origin))){await report(m.report,{tabId:s.tab.id,frameId:s.frameId,documentId:s.documentId});return {};}
-    if(m.stop&&exact('popup.html')){await stop('popup Stop');return {stopped:true};}
+    if(m.stop){const contexts=await chrome.runtime.getContexts({contextTypes:['POPUP'],documentUrls:[chrome.runtime.getURL('popup.html')]});emit('check.stopSender',{sender:{id:s.id,url:s.url,frameId:s.frameId,documentId:s.documentId},contexts});if(s.id===chrome.runtime.id&&s.url===chrome.runtime.getURL('popup.html')&&contexts.some(c=>c.documentId===s.documentId&&c.frameId===0)){await stop('popup Stop');return {stopped:true};}throw Error('UNTRUSTED_STOP');}
     const ownDetails=s.id===chrome.runtime.id&&s.url?.startsWith(chrome.runtime.getURL('details.html')+'?id=')&&s.frameId===0;
     if(m.preview&&ownDetails)return {pending:pending.get(m.preview),unresolved:[...guards]};
     if(m.decision){if(!ownDetails){emit('check.forgeryRefused',{sender:{id:s.id,url:s.url,frameId:s.frameId}});throw Error('UNTRUSTED_DECISION');}if(m.decision==='retire'){guards.clear();await chrome.storage.local.set({guards:[]});return {retired:true};}await decide(m.id,m.decision==='send');return {accepted:true};}
