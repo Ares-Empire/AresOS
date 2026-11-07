@@ -1,6 +1,6 @@
 # The control layer: design
 
-**Status:** draft 11, 2026-11-07. Covers the shared base, Mail and Chrome. The frontier review
+**Status:** draft 12, 2026-11-07. Covers the shared base, Mail and Chrome. The frontier review
 ([`REVIEW`](../../reviews/control-design/2026-11-07-REVIEW.md), 8 blocking) and five re-checks
 ([1](../../reviews/control-design/2026-11-07-RECHECK.md), [2](../../reviews/control-design/2026-11-07-RECHECK-2.md),
 [3](../../reviews/control-design/2026-11-07-RECHECK-3.md), [4](../../reviews/control-design/2026-11-07-RECHECK-4.md),
@@ -19,7 +19,10 @@ after the phone tests (open: the owner decides). The eighth re-check
 ([8](../../reviews/control-design/2026-11-07-RECHECK-8.md)) found six blocking points in draft 10, and draft 11
 answers them: uncertain reading held until the checkpoint is ready, clicks that may delete local data ask first, what
 a recognised action is, three separate users with no shared files, every place the root is installed, and the exact
-upstream TLS checks with what is lost. Points marked *checked* name the check that showed them; points marked
+upstream TLS checks with what is lost. The ninth re-check ([9](../../reviews/control-design/2026-11-07-RECHECK-9.md))
+closed three of them and found one new point; draft 12 records every input before it reaches Chrome, makes unlabelled
+local-only deletion an owner question, checks upstream certificates with Chrome's own current data, and bounds a
+destructive action approved in advance. Points marked *checked* name the check that showed them; points marked
 *brief 20* must be shown by the Chrome build's own tests before anything relies on them.
 
 The plan, the owner's decisions and who does what: [`docs/control/PLAN.md`](../control/PLAN.md). The owner's

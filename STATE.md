@@ -101,9 +101,10 @@ Updated 2026-11-07. The live truth is `git log`, `gh pr list` and `git worktree 
      own question (MCP elicitation) never reached the phone; in the terminal at the laptop the prompt is readable. The
      owner decides on the proposed approval screen in Aresus (`docs/design/CONTROL.md`, section 7).
    - **In progress:** Mail (brief 19, PR #9: package review SAFE, frontier security review in its third round);
-     design draft 11 (re-check 8's six blocking points: GET and HEAD while attribution is lost, local-only deletion,
-     what a recognised action is, three separate users, every trust location, the exact upstream TLS checks).
+     design draft 12 (re-check 9's open points: every input recorded before it reaches Chrome, unlabelled local-only
+     deletion as an owner question, Chrome's own current certificate data for the upstream checks, a bounded advance
+     approval for destructive actions).
    - **Next:** brief 18c (first end-to-end test on a throwaway CI image; no owner OK needed under the 2026-11-07
-     rule), then brief 20 (Chrome) on draft 10.
+     rule), then brief 20 (Chrome) on the final design draft, once a re-check finds no blocking point.
 
 Codex Pro runs until 2026-11-21.

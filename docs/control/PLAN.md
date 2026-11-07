@@ -307,3 +307,12 @@ tasks at any time.
   owner question before everyday use. Should-fixes too: attribution before anything reaches Claude, sign-in data
   redacted, the Aresus approval protocol in full, ending a call only on his answer, and brief 20's added tests.
   Re-check 9 next.
+- **2026-11-07, 17:49:** frontier re-check 9 of draft 11
+  ([RECHECK-9](../../reviews/control-design/2026-11-07-RECHECK-9.md)): three of the six points closed (recognised
+  actions, the shared-file route, root removal), three partly, one new. Design draft 12 on the same branch: every
+  acting input is recorded and acknowledged by the checkpoint before it reaches Chrome; an unlabelled control that may
+  delete data kept only in the browser is a new owner question (recommended: such clicks stay free); the upstream
+  checks use Chrome's own current revocation list, root list, CT log list and pins from its component folders, with
+  age limits, and match Chrome 157 on stapling; a destructive action approved in advance is one bounded advance
+  operation, used once; plus the should-fixes (safe-field descriptions, unattributed sends to his approval surface,
+  `chrome_end_call` for all calls as one set, real firewall tests, the Aresus adversarial tests). Re-check 10 next.
