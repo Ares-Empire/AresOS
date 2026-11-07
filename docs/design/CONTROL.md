@@ -357,7 +357,9 @@ Two byte-identical competitors get different ids and only the approved one goes;
 fails (*checked*, 17e Q5). Before release the service checks that the page's document and signed-in account are
 still the ones the description names; a change means a new approval (*brief 20*: 17e Q5 checked an explicit change
 of context, not an arbitrary site's account). Messages on one live connection keep their order: approving one
-forwards the earlier held messages on that connection with it, and its description lists them (*brief 20*).
+forwards the earlier held messages on that connection with it, and its description lists them (*brief 20*). Earlier
+messages never inherit a later message's freedom: a message that would go without asking waits behind earlier held
+messages on its connection until those are decided.
 
 **Fail-stop, never replay, unknown stays unknown.** If anything in the checkpoint fails, it stops; it never logs the
 error and carries on (mitmproxy's default for an add-on error is to log and continue; 17e replaced that with stopping
@@ -636,13 +638,12 @@ site, and the service sorts each by cause and content, never by timing alone:
   may open at all is the next part.
 - **The page's own activity goes** only in a document Claude hasn't acted on: requests the page makes by itself
   (when it loads, on its own timers, after the owner's own clicks) that carry none of Claude's text.
-- **Reading through POST.** Many apps load data with POST (GraphQL queries, Notion, Google's apps). A GraphQL request
-  counts as reading only when its operation is written out in the request (not a stored or batched one), is a query,
-  and its variables carry none of Claude's text; everything else about it is judged like any other request
-  (*checked* on fixtures in the page, 17c: a stored query, a batch, a mutation and Claude's text inline or in
-  variables were all held; the checkpoint applies the same rule to the bytes it captured, *brief 20*). Other apps
-  need a site adapter to tell reading from sending. Without one, their requests after Claude acted are held, so
-  working in those apps asks until their adapter exists. *Checked* on ten public sites without signing in (17c and
+- **Reading through POST.** Many apps load data with POST (GraphQL queries, Notion, Google's apps). Such a request
+  counts as reading only when a qualified site adapter recognises it as reading ("recognised", below). That a
+  GraphQL request is written out as a `query` is a hint, not proof that the server changes nothing (re-check 8);
+  stored queries, batches, mutations and Claude's text inline or in variables are never reading (*checked* on
+  fixtures in the page, 17c: all were held). Without an adapter, such requests after Claude acted are held like any
+  other POST, so working in those apps asks until their adapter exists. *Checked* on ten public sites without signing in (17c and
   17d, provisional: workers and live connections were switched off for safety, visits were short, and counts cover
   the main document; they are what the after-acting rule would hold, not prompts): GitHub, Wikipedia and a news site
   stayed usable with a few holds at most; Amazon and Google search held about a dozen each, mostly telemetry, which
@@ -800,23 +801,27 @@ surface (section 7).
 plain reading, not only those that look like Claude's leftover (same address, Claude's text). 17c showed why that
 narrower match isn't safe: a page's timer that empties Claude's queue leaves no traceable chain, and a shared worker's
 send has no trace of whose click caused it, so a page can send Claude's queued deletion to another address than the
-one that was held. What keeps the notifications few: site adapters for his usual sites that recognise reading and the
-site's own housekeeping, guards that end when an adapter shows nothing is left, and his one click when Claude is done
-on a site without one. Known tracking requests are dropped, not asked. The tool-user rounds count these notifications
+one that was held. What keeps the notifications few: site adapters for his usual sites that recognise reading (which
+then goes without a question), guards that end when an adapter shows nothing is left, and his one click when Claude is
+done on a site without one. Known tracking requests are dropped, not asked. The tool-user rounds count these notifications
 on an ordinary day (section 8); the target is close to zero.
 
 ### "Don't ask again" (decision 7)
 
 The owner can free a kind of action from asking, within these limits:
 
-- **Only for kinds a site adapter recognises** and names, such as "Deezer: add to playlist" or "GitHub: star". Never
-  for a send the tool doesn't recognise: one POST to `/graphql` looks like any other, so freeing "this address"
-  would free everything sent there. Never for deleting or paying. Never for sending mail: every mail send asks, in the
-  Mail tools and in Gmail in Chrome alike. A kind that sends a message to other people names the conversation
-  ("WhatsApp: send a message to this chat"), never "any chat".
-- **Bound to the site, the signed-in account the adapter establishes, and the kind.** An entry never covers another
-  account or site, and each release still checks that the captured bytes are that kind for that account; anything
-  else asks.
+- **Only for kinds a site adapter recognises** (as defined under "Site adapters", below) and names, such as "Deezer:
+  add to playlist" or "GitHub: star". Never for a send the tool doesn't recognise: one POST to `/graphql` looks like
+  any other, so freeing "this address" would free everything sent there. Never for deleting or paying. Never for
+  sending mail: every mail send asks, in the Mail tools and in Gmail in Chrome alike. A kind that sends a message to
+  other people names one conversation whose identity the adapter validates in the captured bytes, never "any chat";
+  where the page encrypts its messages itself (WhatsApp Web), nothing can be validated, so no such kind exists there.
+- **Bound to its exact scope:** the site, the signed-in account, the target where the kind has one, the action, the
+  permitted parameters and the adapter contract's version. Each release validates the complete captured operation
+  against that scope again; anything else asks. An entry never covers another account or site.
+- **Adapter updates never widen an entry.** A new adapter version applies to an existing entry only where its
+  contract for that kind is the same or narrower; where it is wider, the entry is suspended (those sends ask) until
+  the owner confirms it again.
 - **He sets it himself, at or right after an approval, through a channel Claude can't use.** Where exactly depends on
   the approval surface (section 7, open: the owner decides). Under the proposal there, a "Don't ask again" button on
   the Aresus approval screen (signed with his phone's key) and in the laptop's approval window. In any case: the
@@ -845,28 +850,40 @@ queued work (for the guard's end). Adapters are described and tested against fix
 an adapter's reading is supporting evidence for the description, while the checkpoint still holds and releases the
 bytes.
 
+**What "recognised" means.** An operation is recognised only when its complete captured form validates against a
+qualified adapter contract for that site: the signed-in account; a stable identity of the target or conversation (an
+id from the site's own data, not a name or a position on the page); the action; parameters within what the contract
+permits; and this for every request or message the operation consists of. Unknown fields, a batch that mixes kinds,
+and a protocol version the contract doesn't know make it unrecognised: it asks, or is refused where a question can't
+describe it truthfully. A contract is qualified by receiver tests against fixtures and the owner's test accounts, and
+it is versioned. Hints (timing, sizes, the page's own state, what the page script reports, a GraphQL operation written
+as `query`) can make a description clearer; they never make an operation recognised. Everything that goes without a
+question of its own needs recognition: reading through POST, the sends an adapter groups under one approved action, a
+destructive action approved in advance, and "don't ask again".
+
 His usual signed-in sites are the first adapter targets: WhatsApp Web, Gemini, Gmail and Deezer (more to come). What
 each likely needs, to be confirmed when its adapter is built:
 
 - **WhatsApp Web.** Messages go over a live connection whose content the page encrypts itself, so the checkpoint can
   hold each outgoing message but can't read it; its connection may also run in a worker, the kind of send that got
   past Chrome's own rules in 17d and needed the checkpoint. The description has to come from the adapter's reading
-  of the page: the conversation, the text, the message shown as waiting; the approval binds that to the messages
-  Enter caused. The site also sends things that reach other people without being messages: read receipts when a chat
-  is opened, "typing…" while text is entered, presence. They count as sends; the adapter has to tell them apart by
-  what it can see (timing, size, the page's own state), and where it can't, they ask. The hardest of the four, and
-  possibly a site where Claude fills in and the owner sends.
+  of the page: the conversation, the text, the message shown as waiting. The site also sends things that reach other
+  people without being messages: read receipts when a chat is opened, "typing…" while text is entered, presence.
+  What the adapter can see of the encrypted bytes (timing, size, the page's own state) only describes; it can't
+  recognise anything, so every send there after Claude acted asks, and none can be "don't ask again". The hardest of
+  the four, and likely a site where Claude fills in and the owner sends.
 - **Gemini.** Google's app talks through POST calls in Google's own format, reading included (loading a chat), like
   Google Docs in 17c. The adapter decodes the call names to tell reading from sending: asking a question (which sends
   Claude's text to Google), deleting a chat, sharing one. "Ask a question" is a candidate for "don't ask again".
 - **Gmail.** Also POST calls, reading included. Opening a mail marks it read and saving a draft keeps it in his
-  account (both changes, free); sending is a mail send: always asks, never "don't ask again". The adapter decodes the
+  account (both changes, free once the adapter recognises them); sending is a mail send: always asks, never "don't ask
+  again". The adapter decodes the
   recipients (Bcc included), subject and text so the approval reads like a mail (decision 11), and follows the "undo
   send" delay: the send leaves when the delay ends, and is held then. His main mail goes through the Mail tools
   (section 5).
 - **Deezer.** Its web calls likely name each method in the address, so reading (search, lists, playing) and changing
-  (add to a playlist, like, follow) can be told apart; reports of what was played go to his own account and are
-  marked as the site's housekeeping. "Add to playlist" is a candidate for "don't ask again".
+  (add to a playlist, like, follow) can be told apart; reports of what was played are sends to his own account, which
+  the adapter groups with the play action. "Add to playlist" is a candidate for "don't ask again".
 
 ### What the checkpoint can't hold, and what happens there
 
