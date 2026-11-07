@@ -53,17 +53,39 @@
   "sandbox": {
     "enabled": true,
     "failIfUnavailable": true,
+    "autoAllowBashIfSandboxed": false,
     "allowUnsandboxedCommands": false,
     "excludedCommands": [],
     "enableWeakerNestedSandbox": false,
+    "allowNestedUserNamespaces": false,
+    "bwrapPath": "/usr/bin/bwrap",
+    "socatPath": "/usr/bin/socat",
+    "ripgrep": {
+      "command": "/usr/bin/rg",
+      "args": []
+    },
+    "ignoreViolations": {},
+    "credentials": {
+      "files": [],
+      "envVars": [],
+      "allowPlaintextInject": false,
+      "awsPairs": [],
+      "sigv4": {
+        "streaming": "deny",
+        "presigned": "deny",
+        "sigv4a": "deny"
+      }
+    },
     "network": {
       "allowManagedDomainsOnly": true,
+      "strictAllowlist": true,
       "allowedDomains": [],
       "deniedDomains": [],
       "allowAllUnixSockets": false,
       "allowLocalBinding": false
     },
     "filesystem": {
+      "disabled": false,
       "allowManagedReadPathsOnly": true,
       "denyRead": [
         "/home",
