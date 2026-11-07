@@ -192,8 +192,10 @@ def launcher_checks():
                 assert bad.returncode == 78 and 'hash mismatch' in bad.stderr and 'LAUNCHED' not in bad.stdout
             finally:
                 helper.write_bytes(original)
-            bad = run(['/usr/local/bin/aresos-assistant', '--plugin-dir', '/untrusted'], 'launcher-options', required=False)
-            assert bad.returncode == 78
+            for name, args in [('plugin', ['--plugin-dir', '/untrusted']),
+                               ('bypass', ['--dangerously-skip-permissions'])]:
+                bad = run(['/usr/local/bin/aresos-assistant', *args], 'launcher-options-' + name, required=False)
+                assert bad.returncode == 78
             registry = Path('/home/assistant/.claude/plugins/installed_plugins.json')
             put(registry, '{"version":2,"plugins":{"unknown@old-marketplace":[{"installPath":"/untrusted"}]}}')
             try:
@@ -239,16 +241,19 @@ def settings_checks():
         if result.returncode == 0 or 'disableSideloadFlags' not in result.stdout + result.stderr:
             errors.append(flag)
     # The auth preflight otherwise stops at /login before checking bypass.
-    # A synthetic noncredential plus a local stub endpoint exercises startup
-    # validation without a model or real provider. Any API request is a failure.
-    stub_before = (OUT / 'stub.txt').read_text()
+    # A synthetic noncredential plus a local stub endpoint exposes the actual
+    # permissionMode in the session-init event, without a model or real provider.
+    # Native 2.1.319 clamps the mode instead of rejecting the flag at startup.
     offline = dict(ENV, ANTHROPIC_API_KEY='SYNTHETIC_BOUNDARY_NONCREDENTIAL',
                    ANTHROPIC_BASE_URL='http://127.0.0.1:18080')
-    result = run(['/usr/local/bin/claude', '--dangerously-skip-permissions', '-p', 'do not call a model'],
+    result = run(['/usr/local/bin/claude', '--dangerously-skip-permissions',
+                  '--output-format', 'stream-json', '--verbose', '-p', 'do not call a model'],
                  'bypass-disabled', env=offline, required=False)
-    if result.returncode == 0 or 'disableBypassPermissionsMode' not in result.stdout + result.stderr:
+    events = [json.loads(line) for line in result.stdout.splitlines() if line.startswith('{')]
+    init = [event for event in events if event.get('type') == 'system' and event.get('subtype') == 'init']
+    if len(init) != 1 or init[0].get('permissionMode') != 'default':
         errors.append('bypass-disabled')
-    assert (OUT / 'stub.txt').read_text() == stub_before, 'CLI reached fake model endpoint before policy rejection'
+    assert result.returncode != 0, 'fake endpoint must never produce a model response'
     assert not errors, errors
     print('SETTINGS_OK mcp_exclusive marketplace_lock sideload_flags', flush=True)
 

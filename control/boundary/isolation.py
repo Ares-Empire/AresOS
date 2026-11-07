@@ -42,4 +42,14 @@ else:
     result = subprocess.run(['/usr/local/bin/claude', 'mcp', 'list'], capture_output=True, text=True, timeout=45)
     print(result.stdout + result.stderr)
     assert result.returncode == 0 and 'No MCP servers' in result.stdout + result.stderr
+    # This flag is rejected before auth by the assistant's managed policy.
+    # In the coding container it reaches the signed-out auth preflight instead,
+    # demonstrating that the native CLI actually reads the distinct policy.
+    policy_probe = subprocess.run(
+        ['/usr/local/bin/claude', '--agents', '{}', '-p', 'do not call a model'],
+        capture_output=True, text=True, timeout=45)
+    output = policy_probe.stdout + policy_probe.stderr
+    print('CODING_POLICY_PROBE exit=' + str(policy_probe.returncode) + '\n' + output)
+    assert policy_probe.returncode != 0 and 'Not logged in' in output
+    assert 'disableSideloadFlags' not in output
     print('ISOLATION_OK uid=10003 policy=plan no_assistant_home no_transcripts no_credentials no_tool_sockets no_app_mcp')
