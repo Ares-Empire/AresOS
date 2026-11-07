@@ -1,0 +1,233 @@
+# Package 18: control base
+
+## Done
+
+**run — [42345618339](https://github.com/Ares-Empire/AresOS/actions/runs/42345618339),
+[42345624053](https://github.com/Ares-Empire/AresOS/actions/runs/42345624053)**:
+the product tree at `9cf8a11397d6e5d68963d593e9f28403269d6299` passed twice.
+This report is the only change after that product commit. The draft
+[PR #6](https://github.com/Ares-Empire/AresOS/pull/6) records the final report-inclusive
+head and both of its completed workflow runs in its validation section. Those ids
+are recorded there after the final push so recording evidence does not change the
+commit being tested.
+
+- `control/aresos_control/definitions.py`, `generate.py`, `generated/`,
+  `settings/ask-rules.json` and `docs/control/TOOLS.md`: one catalogue for action
+  names, effects, closed input schemas, per-action result schemas, descriptions,
+  owner-only status, wire tool lists, CLI help and ask rules. Generation validates
+  the supported schema subset. Tests compare every committed generated artifact
+  and validate successful result contracts with the SDK's JSON Schema dependency.
+- `daemon.py`, `protocol.py`, `engine.py`, `storage.py`, `blobs.py`: serialized
+  Unix-only service, kernel peer credentials, operation state machine, independently
+  retained fsynced event/commit record, SQLite full-sync mirror, generation/restore
+  handling, immutable blobs, audit outcomes, pending catalogue, cancellation/expiry,
+  adapter submission/evidence/drop/repair hooks. No automatic submission or retry.
+- `files.py`, `proxy.py`, `cli.py`, `hooks.py`, `launch.py`: caller-side file
+  movement, official SDK stdio MCP server, definition-driven terminal interface,
+  both reminder hooks, isolated root-owned executable/import/config chain.
+- `testapp.py`: exact item references and revisions, read/flag/send/delete,
+  preparation returning the full authoritative approval, status and local repair.
+  A separate durable fixture receiver records **every** arrival without deduplication,
+  recipient refusals, lost answers, and later Sent-copy/answered-flag failures.
+- `control/packaging/` and `control/settings/`: explicitly marked drafts for
+  systemd, sysusers, tmpfiles, fixed launchers, MCP, hooks and the generated ask
+  list. Draft owner UID zero deliberately prevents unconfigured service startup.
+- `.github/workflows/control-base.yml`, `control/ci/`, `control/tests/`:
+  disposable Fedora container verification on branch pushes and PRs. No image
+  build, model, real account, or changes to `os/` or `mod/`.
+
+The protocol, backup boundary, installation layout, adapter contract and extended
+builder guide are in [control/README.md](../../control/README.md).
+
+## Verified
+
+**run — 42345618339 and 42345624053:** GitHub Linux runners, pinned Fedora 45
+x86_64 manifest
+`sha256:79dd6556b8fe1a559051fad5159d4987ead218f1914e7a5bd20350d9ea0f9e52`.
+The container printed:
+
+```text
+Python 3.15.0
+Fedora release 45 (Forty Five)
+Generated artifacts match definitions
+Ran 33 tests in 14.544s
+OK
+Control base suite PASS
+```
+
+The PR run printed `Ran 33 tests in 10.416s`, `OK` and `Control base suite PASS`.
+Each test's exact output is retained in the runs and their
+`control-base-<run-id>-1` artifacts. The workflow runs this command with `pipefail`:
+
+```sh
+docker run --rm -v "$PWD:/workspace" -w /workspace registry.fedoraproject.org/fedora:45-x86_64@sha256:79dd6556b8fe1a559051fad5159d4987ead218f1914e7a5bd20350d9ea0f9e52 bash control/ci/test.sh
+```
+
+Inside that disposable container, `control/ci/test.sh` installs Python/pip and
+util-linux, copies the root-owned executable/configuration drafts to the test
+prefix, installs the entire locked dependency closure using
+`python3 -m pip install --no-cache-dir --require-hashes --only-binary=:all: --target /usr/lib/aresos-control/vendor -r control/requirements.lock`,
+then runs `python3 control/generate.py --check` and
+`python3 -m unittest discover -s control/tests -v`. The container is removed afterward.
+
+**run — earlier iterations:** 42344886399 and 42344901796 failed the same MCP
+attachment test: traversal opened search-only ancestor directories for reading.
+The correction uses `O_PATH` on intermediate directories, retaining `O_NOFOLLOW`
+and the restricted user permissions. No assertion was weakened. Runs 42345190445
+and 42345195539 then passed 29 tests; 42345359611 and 42345362883 passed 32 tests.
+The final product pair above passed 33 tests. The final report-inclusive pair is
+recorded on PR #6. Total expected workflow executions for this package: ten,
+including the two initial failures and final pair; no model executions.
+
+**read — local completion checks:** `git diff --check` printed nothing and exited
+zero. All pushes used normal `git push origin pkg/18-control-base`; no verification
+bypass or force push was used. Commit trailers name the required model. No Gradle
+process was started. A Python walk of `.work/`, selecting files over 500,000,000
+bytes, printed `Remaining .work files over 500 MB: []`. No ISO, image layer or
+extracted system image remains there. These are local inspections, not container
+test claims.
+
+## Rule → code → test mapping
+
+All test names below are methods in `control/tests/`. **run — 42345618339,
+42345624053** applies to every row. Provider/browser-specific semantics remain
+adapter qualification, as explained under Not verified.
+
+| Design rule | Code | Executed evidence |
+| --- | --- | --- |
+| §3: single definition; name/app/effect; input/result schemas; descriptions; generated tools/help/reference/ask list; owner-only | `definitions.py`, `generate.py`, `cli.py`, `proxy.py`, `engine.dispatch` | `Generated.test_artifact_drift_effects_ask_rules_and_owner_only_absent`; result-schema validation in `support.EngineCase.data`; `Integration.test_cli_generated_help_admin_and_today_log`; `test_all_socket_peer_credentials_even_permissive_modes`; real MCP tool listing |
+| §4.1: authoritative full asking input, account/all recipients/Bcc/full written text/immutable file references, exact target metadata; state binding; escaping; size refusal | `common.approval_input/visible`; `Engine.reserve/submit`; `TestApp.prepare/revalidate`; `Blobs.read` | `Operations.test_truthful_escape_full_text_size_refusal_and_far_side_evidence`; `test_runtime_revalidates_metadata_even_without_revision`; `test_service_refuses_caller_paths_and_descriptions_do_not_authorize_reuse`; `Files.test_import_immutable_hash_bytes_even_after_source_replacement`; oversize preparation leaves no new reservation |
+| §4.2: exact references, stale failures | `TestApp.reference/item/listing`; snapshot-bound cursors in `Engine.page` | `Operations.test_exact_references_metadata_and_delete_targets`; `test_runtime_revalidates_metadata_even_without_revision`; `test_read_is_unchanged_bounded_untrusted_and_errors_actionable` |
+| §4.3: reserved before act, hash binding, per-target/stage durability, truthful outcomes, idempotency, cancellation/expiry boundary | `Store.write`; `Engine.reserve/submit/stage/expire`; `TestApp.execute`; separate `Receiver` | `Operations.test_idempotency_hash_and_restart`; `test_cancel_expire_only_reserved_and_notices`; `test_partial_refused_recipients_lost_answer_and_failures`; `Integration.test_simultaneous_same_id_calls_submit_once`; `Crashes.test_kill9_every_send_boundary_never_resubmits`; `test_kill9_reservation_boundaries_never_sends`; `test_kill9_every_delete_target_and_stage_no_resume` |
+| §4.3: restart, separate restore record, owner confirmation, generation invalidation, missing operations unknown with descriptions, history/evidence readable | `Store._read_journal/_apply/confirm_restore`; restart transition to unknown; owner-only `control_restore_confirm` | `Operations.test_restore_older_log_rejects_earlier_ids_missing_ops_unknown`; `Crashes.test_kill9_during_restore_confirmation_can_be_confirmed_again`; submitting restart in `test_cancel_expire_only_reserved_and_notices` |
+| §4.3: new repair operation points to old; no resubmission; far-side identity/evidence hook and preflight guard | `adapters.py`; `Engine.repair`; `TestApp.evidence/has_submission_evidence/repair/repaired_outcome`; receiver's operation-derived Message-ID | `Operations.test_repair_new_operation_never_submits`; `test_truthful_escape_full_text_size_refusal_and_far_side_evidence`; `Crashes.test_kill9_repair_no_submit_after_restart`; receiver arrival counts unchanged after repair/restart |
+| §4.4: caller-side allowlisted imports/exports, no dotfiles/config/credentials, descriptor walk without links, regular/single-link files, size cap, real path, immutable hash bytes, exclusive saves and races | `FilePolicy`; private byte framing in `Proxy.call/Engine.request`; `Blobs` | All seven `Files` tests: regular/size/path, forbidden paths/symlinks/hard links/FIFO, source/parent races, immutable import after replacement and corruption refusal, exclusive saves/config/traversal, destination/link races, hash/metadata checks; `Integration.test_real_mcp_stdio_list_prepare_send_attachment_save_and_hooks` |
+| §4.5: reading changes nothing | `TestApp.listing/evidence`; `Engine.pending/page`; no read audit writes | `Operations.test_read_is_unchanged_bounded_untrusted_and_errors_actionable` compares flags, complete item state and event head before/after reads |
+| §4.6: structured bounded results, paging/cursors | action result schemas; `Engine.request/page`; `TestApp.listing` | `Operations.test_read_is_unchanged_bounded_untrusted_and_errors_actionable`; `test_result_cap_refuses_instead_of_truncating`; stale cursor test; official SDK end-to-end output validation |
+| §4.7: actionable errors | `Refused`; catalogue descriptions; adapter/proxy/protocol error messages | Invalid bounds/unknown fields/stale metadata/reused id/file refusal/partial/unknown cases across `Operations`, `Files`, `Integration`; assertions inspect codes and recovery text |
+| §4.8: app content is untrusted data; effects still gate asking names | `untrusted_content` in `TestApp.listing`; descriptions in `definitions.py`; generated ask rules | Read test asserts the marker; drift test checks descriptions and exact equality of ask set with every public send/delete |
+| §4.9: changes logged with time/action/input summary/outcome; today's terminal log | `Store.write`; `Engine.dispatch(control_log)`; CLI `log` alias; export intent/completion | `Operations.test_changes_logged_and_pending_in_every_result_and_hooks`; `Integration.test_cli_generated_help_admin_and_today_log`; flag/import/export/repair/send stages exercise audit events |
+| §4.10: pending in following app results; Stop and next-prompt reminders; bounded waiting, drop without send, retained expiry notices | `Engine.pending/expire`; cancellation/drop hook; `hooks.py`; managed hooks draft | `Operations.test_changes_logged_and_pending_in_every_result_and_hooks`; `test_expiry_and_cancel_drop_only_reserved_never_release`; `test_cancel_expire_only_reserved_and_notices`; real hook subprocesses, independent service expiry and next-prompt notice in `Integration.test_real_mcp_stdio_list_prepare_send_attachment_save_and_hooks` |
+
+**run — the same pair:** §2's socket identities are tested with genuine separate
+processes for owner, another UID, root and service UID on all three sockets. Tests
+also deliberately make every socket mode 0666 to prove that the peer check is
+independent of path modes. Admin is refused on act and ordinary actions refused
+on admin; chrome always refuses. The real MCP server fetches its tool catalogue
+from act, transfers an attachment, prepares/sends once, saves bytes and refuses a
+save collision. Its fixed launcher ignores planted current-directory modules,
+`PYTHONPATH`, `PYTHONHOME`, user-site and vendor `.pth`/customization files; writable
+code or missing `-S` is refused.
+
+## Adding a Mail or Chrome adapter
+
+**read — implementation at the tested product commit:**
+
+1. Define its actions/schemas/effects/descriptions, then implement and register
+   the `Adapter` interface. Public app names derive from the definitions. Run
+   `python3 control/generate.py` and commit the artifacts. Keep secrets and bridge
+   configuration on the service side, never in caller files.
+2. Implement `prepare` to store immutable payloads and return a service-built
+   description. Use `Engine.reserve` for send/delete preparations and late holds.
+   `revalidate` must check every approval-relevant fact before irreversible work.
+   Use exact provider/browser references; refuse on stale state or unqualified
+   concurrent-change protection.
+3. Implement `execute` with a stage call after each recipient/target and later
+   step. Only an adapter that proves nothing left may raise `NothingLeft`; all
+   unqualified uncertainty becomes unknown. Every send/delete effect goes through
+   the shared submission engine, regardless of verb name.
+4. Implement evidence and local-only repair. Mail derives Message-ID from the id
+   and checks Sent before submission; not finding it proves nothing. Chrome binds
+   the description to the actual held request bytes and the relevant browser state.
+   Repairs create a new operation referencing the old one and must contain no
+   submission transport. The adapter decides whether local repairs can resolve
+   partial; never infer that unknown delivery is done from missing evidence.
+5. Reuse caller-side file framing, pending hooks and expiry. Chrome's bridge must
+   itself fail closed and discard holds on timeout, disconnect or restore lockout;
+   implement `drop`, never release traffic from it. Add fixtures and kill points
+   for every adapter-specific stage, then qualify its actual provider/bridge.
+
+See the longer guide in `control/README.md` before building briefs 19/20.
+
+## Not verified
+
+- **assumed, not claimed run:** actual desktop or phone permission-prompt rendering
+  at the chosen 16 KiB limit, the managed permission prompt itself, skip-permissions
+  behavior, and resistance to disabling an ask rule. This package never starts
+  Claude Code or a model. These remain owner/image qualification gates.
+- **assumed, not claimed run:** actual Bazzite installation, systemd hardening,
+  backup-tool exclusions, power-loss/storage-controller durability, the sandbox,
+  hostile programs outside it, egress/approval surfaces, plugins/LSP/helpers and
+  final managed policy. Container tests prove the implemented service/import
+  contracts, not the complete §7 security boundary; that is brief 18b.
+- **assumed, not claimed run:** real Mail/Chrome semantics, accounts, IMAP/SMTP,
+  browser sessions/holds, remote server evidence, and compatibility with other
+  architectures/Python versions/filesystems. Python 3.14 has locked wheels but
+  this package's executed suite is Python 3.15.0 only. The fake adapter's independent
+  local SQLite receiver is not evidence about any real provider.
+- No screenshots: this package creates no visual application or model session.
+  The future owner phone check must supply actual display evidence.
+
+## JUDGMENT-CALL
+
+- **read / assumed:** defaults are 120 seconds for reserved approval expiry,
+  16 KiB canonical asking input, 1 MiB per file, 48 KiB model-facing result, 6 MiB
+  transfer frame, and at most ten entries per requested page. Chosen as bounded,
+  conservative fake-app defaults; rejected unbounded prompts/transfers and silent
+  truncation. The owner must qualify phone display and useful file/hold sizes
+  before real deployment. Raising hard caps changes constants/schema bounds and
+  requires regeneration/retesting; lowering configured file limits or changing
+  TTL needs only root-owned configuration.
+- **read:** act mode 0666 with strict peer credentials, inside a service-owned
+  0711 directory. A non-root service cannot chown a socket to the owner; rejected
+  adding service privileges merely for socket ownership. Tests prove identity
+  refusal even with permissive modes. Changing to an ACL or owner group later is
+  a packaging choice, with peer checking retained.
+- **read:** use `-I -S`, and explicitly add a root-owned vendor tree instead of
+  normal site loading. `-I` alone still permits system `.pth` execution. This
+  changes installation layout, not the action protocol; packaging must preserve it.
+- **read:** hard-linked source files, unusual save basenames, and unsupported
+  `O_TMPFILE` filesystems are refused. Rejected permissive link following and
+  check-then-overwrite saves. ASCII basenames and one-link imports may inconvenience
+  the owner; relaxing them needs equivalent race/credential protections and tests.
+- **read:** torn/corrupt independent records fail startup instead of being
+  discarded, and the append-only journal has no compaction yet. Rejected recovery
+  that could lose operation tombstones or create a replay window. Owner recovery
+  tooling and safe retention/compaction would be separate follow-up work.
+- **read:** the Stop hook blocks once, then honors `stop_hook_active`, allowing
+  Claude to report an unknown outcome rather than looping indefinitely. Persistent
+  pending records, the next-prompt hook and service/adapter expiry remain in effect.
+  Changing this later is a hook policy change; hooks never authorize submission.
+- **read:** CLI inputs use the definition's JSON object with `--input`, instead of
+  inventing flags for nested recipient/reference/attachment structures. The command
+  tree, help and schemas still come from the catalogue. Friendlier generated flags
+  can be added later without changing service actions or their approval contract.
+
+## PLAN-GAP
+
+- **read:** draft 5 §8 calls for the owner to inspect a fake send prompt on his
+  phone in brief 18, while this brief forbids running Claude Code/models and requires
+  unattended container work. Therefore the base supports the full asking input and
+  refuses oversized preparation, but actual terminal/phone display remains an
+  explicit unrun owner gate. No rendering or permission-enforcement claim is made.
+- **read:** the design's §7 still attributes some boundary checks to brief 18;
+  this brief explicitly moves sandbox/hostile-program work to 18b. Only the protected
+  proxy/hook launch chain, socket identities and settings drafts are implemented
+  here. Exact managed policy still follows owner decision 3.
+- **read:** there is no defined backup program or retention policy yet. The separate
+  directory and restore fence are implemented and tested, but packaging must exclude
+  the independent record from database/data rollback. Restoring both together is
+  outside this guarantee. Journal corruption recovery/compaction needs a separate
+  design that preserves operation tombstones.
+
+## Open questions
+
+- **assumed / owner qualification:** what prompt cap renders completely on both
+  the actual terminal and phone, and what TTL/file cap suits normal use?
+- **assumed / owner decision 3:** actual owner UID/home/allowed folders and final
+  managed settings, plus the image's policy and backup integration in 18b.
+- **assumed / future adapters:** exact provider and bridge capabilities must be
+  established by briefs 19/20; no account information is needed or stored here.
+
+No mid-run answer is needed to review this base. PR #6 remains a draft and is not
+merged.
