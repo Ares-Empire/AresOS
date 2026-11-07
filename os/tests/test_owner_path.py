@@ -425,8 +425,8 @@ class OwnerPathTest(unittest.TestCase):
         self.assertIn('owner as first reader', status)
         self.assertIn('maintainer (Claude) checking each stage', status)
         for label,state in (('Stage A — preparation','CHECKED 2026-11-05'),
-                            ('Stage B — fitting','RELEASED — A checked 2026-11-05'),
-                            ('Stage C — installation','NOT RELEASED')):
+                            ('Stage B — fitting','CHECKED 2026-11-07'),
+                            ('Stage C — installation','RELEASED 2026-11-07')):
             row=next(line for line in status.splitlines() if line.startswith('| '+label+' |'))
             self.assertIn('**'+state+'**',row)
         c=next(line for line in status.splitlines() if line.startswith('| Stage C —'))
@@ -434,6 +434,13 @@ class OwnerPathTest(unittest.TestCase):
                      'maintainer has updated this table','each step'):
             self.assertIn(term,c)
         self.assertNotIn('Until it permits physical installation, read only',guide)
+        # The guide's step 4 header must agree with the Stage C row.
+        step4=section(guide,'4-install-and-prepare-corrected-stock')
+        if '**RELEASED' in c:
+            self.assertNotIn('NOT RELEASED',step4)
+            self.assertIn('Stage C — released',step4)
+        else:
+            self.assertIn('Stage C — NOT RELEASED',step4)
         for anchor in ('1-backups-recovery-and-windows-preparation','3-fit-and-identify-both-drives',
                        '4-install-and-prepare-corrected-stock'):
             self.assertIn('stop here and send your records to the maintainer',section(guide,anchor))
@@ -442,6 +449,10 @@ class OwnerPathTest(unittest.TestCase):
         fitting=next(line for line in status.splitlines() if line.startswith('| Fitting,'))
         for term in ('seating and battery photos','firmware screen showing both drives',
                      'after-fit','2026-11-09','qualified repairer first'):
+            self.assertIn(term,fitting)
+        # The negative fitting trials stay visible until the maintainer checks their results.
+        for term in ('Expendable fitting trial','Damaged-battery photograph','**before screw**',
+                     '**before connectors/reconnection**'):
             self.assertIn(term,fitting)
         gates=('Media pins','LOQ shortcuts and recovery menu','Live KDE / installed keyboard',
                'Tools-stick physical lifecycle','NVIDIA deferred Flatpak work',
@@ -626,7 +637,7 @@ class OwnerPathTest(unittest.TestCase):
             self.assertNotIn('/actions/runs/', text)
             self.assertNotIn('40184846815', text)
         status = documents()['INSTALL-STATUS.md']
-        for phrase in ('NOT RELEASED', 'FnLock states', 'Damaged-battery', 'Unaided-reader',
+        for phrase in ('Physical gates close through checked step evidence', 'FnLock states', 'Damaged-battery', 'Unaided-reader',
                        'Expendable-media', 'protected-second', 'not qualified protected-first',
                        'US-then-stock rollback was not run', 'Qualification 21 PASSED'):
             self.assertIn(phrase, status)
