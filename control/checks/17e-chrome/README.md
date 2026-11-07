@@ -26,6 +26,11 @@ the public websocket_end hook is too late. This seam needs requalification on
 every mitmproxy update. Unsupported opaque TCP tunnels are disabled.
 Unexpected addon or event-loop errors stop the entire checkpoint: upstream's
 default log-and-continue behavior cannot be used for this boundary.
+Upstream certificate sniffing is disabled so generating a browser-facing leaf
+does not require contacting the destination before its held request is approved.
+Known oversized finite uploads are discarded in bounded chunks and receive 413;
+they never become an empty-body approval. This uses another small pinned HTTP
+layer seam, since an early close left Chrome's upload promise pending in CI.
 
 Approval identifies a RAM-held flow by an independent operation ID. SQLite
 WAL/FULL consumption precedes forwarding. Restart marks consumed operations

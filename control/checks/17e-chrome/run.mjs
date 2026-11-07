@@ -64,7 +64,7 @@ async function control(action,params={}){
 }
 async function startProxy(){
  const fd=fs.openSync(work+'/proxy-console.log','a');
- proxy=spawn('sudo',['-u','aresproxy','env','CHECKPOINT_PRIVATE='+work+'/private','MALLOC_ARENA_MAX=2','prlimit','--as=805306368','--',work+'/venv/bin/mitmdump','-q','--listen-host','127.0.0.1','--listen-port','18080','--set','confdir='+work+'/private','--set','connection_strategy=lazy','--set','ssl_verify_upstream_trusted_ca='+work+'/upstream-roots.pem','--set','body_size_limit=32m','--set','rawtcp=false','--set','termlog_verbosity=error','-s',here+'/checkpoint.py'],{stdio:['ignore',fd,fd]});
+ proxy=spawn('sudo',['-u','aresproxy','env','CHECKPOINT_PRIVATE='+work+'/private','MALLOC_ARENA_MAX=2','prlimit','--as=805306368','--',work+'/venv/bin/mitmdump','-q','--listen-host','127.0.0.1','--listen-port','18080','--set','confdir='+work+'/private','--set','connection_strategy=lazy','--set','upstream_cert=false','--set','ssl_verify_upstream_trusted_ca='+work+'/upstream-roots.pem','--set','body_size_limit=32m','--set','rawtcp=false','--set','termlog_verbosity=error','-s',here+'/checkpoint.py'],{stdio:['ignore',fd,fd]});
  try{await eventually(()=>control('state'),'checkpoint ready',15000)}catch(e){console.error(fs.readFileSync(work+'/proxy-console.log','utf8').slice(-8000));throw e;}log('CHECKPOINT_READY',await control('state'));
 }
 async function stopProxy(){
