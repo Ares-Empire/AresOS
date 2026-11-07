@@ -8,7 +8,7 @@ export default async function(c){
   const start=Date.now();await rpc('Page.navigate',{url});await delay(5500);
   const result=await ev(`(()=>{const text=document.body?.innerText||'',n=performance.getEntriesByType('navigation')[0];return {host:location.hostname,title:document.title,bytes:text.length,robot:/captcha|verify you are human|unusual traffic|checking your browser|robot check|not a robot|not a bot|security verification|just a moment/i.test(document.title+text),blocked:/access denied|request blocked|temporarily blocked|blocked by network security|ERR_|can't be reached/i.test(text),certificateError:/Your connection is not private/.test(text),loadMs:n?.loadEventEnd||null,domMs:n?.domContentLoadedEventEnd||null,protocol:n?.nextHopProtocol||null,readingText:text.slice(0,160)}})()`);
   // Save classifications/timing, never cookies, credentials, storage or bodies.
-  delete result.readingText;const row={site:name,mode,elapsedMs:Date.now()-start,...result};results.push(row);log('Q11_PUBLIC',row);if(name!=='fingerprint')await c.screenshot(c.out,mode+'-'+name);
+  delete result.readingText;const row={site:name,mode,elapsedMs:Date.now()-start,...result};results.push(row);log('Q11_PUBLIC',row);if(!['fingerprint','docs'].includes(name))await c.screenshot(c.out,mode+'-'+name);
  }
  await guard(false);
  for(const mode of ['direct','checkpoint']){

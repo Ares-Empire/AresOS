@@ -20,6 +20,7 @@ from urllib.parse import urlsplit, parse_qs
 
 from mitmproxy import addonmanager, ctx, http
 from mitmproxy.proxy import commands, events
+from mitmproxy.proxy.layers import http as http_layer
 from mitmproxy.proxy.layers import websocket as ws_layer
 
 ROOT = pathlib.Path(os.environ['CHECKPOINT_PRIVATE'])
@@ -38,6 +39,20 @@ def fatal_addon_error():
 
 
 addonmanager.safecall = fatal_addon_error
+
+original_body_size = http_layer.HttpStream.check_body_size
+
+
+def body_size(self, request):
+    result = yield from original_body_size(self, request)
+    if request and self.flow.metadata.pop('checkpoint_oversized', False):
+        # The stock HTTP/1 size error can leave a large uploader pending while
+        # its unread body is backpressured. End this client connection explicitly.
+        yield commands.CloseConnection(self.context.client)
+    return result
+
+
+http_layer.HttpStream.check_body_size = body_size
 
 
 def fail_closed(handler):
@@ -281,6 +296,7 @@ class Checkpoint:
         declared = flow.request.headers.get('content-length')
         if declared is not None and int(declared) > MAX_BODY:
             self.record('refused', case=self.case(flow), reason='declared-body-limit', limit=MAX_BODY)
+            flow.metadata['checkpoint_oversized'] = True
             # A synthetic response still waits for the unstreamed upload to
             # finish. Kill at the headers hook to give the page a prompt failure.
             flow.kill()
