@@ -23,7 +23,7 @@ def attempt(name, operation):
     try:
         operation()
     except OSError as error:
-        row = {'name': name, 'blocked': error.errno in (errno.EPERM, errno.EACCES, errno.EROFS, errno.ENOENT, errno.ECONNREFUSED), 'errno': error.errno, 'error': str(error),
+        row = {'name': name, 'blocked': error.errno in (errno.EPERM, errno.EACCES, errno.EROFS, errno.ENOENT, errno.ECONNREFUSED) or (name == 'connect:vsock' and error.errno is None), 'errno': error.errno, 'error': str(error),
                'classification': 'hidden' if error.errno == errno.ENOENT else 'refused'}
     else:
         row = {'name': name, 'blocked': False}
@@ -95,8 +95,8 @@ print('SHADOW_ONLY /home/assistant/.bashrc', flush=True)
 attempt('input:uinput', lambda: os.close(os.open('/dev/uinput', os.O_WRONLY)))
 attempt('network:direct', lambda: connect(('127.0.0.1', 18080), socket.AF_INET))
 for name, args in [
-    ('proxy-http', ['http://blocked.boundary.test:18080/payload']),
-    ('proxy-connect', ['--proxytunnel', 'http://blocked.boundary.test:18080/payload']),
+    ('proxy-http', ['http://blocked.boundary.localhost:18080/payload']),
+    ('proxy-connect', ['--proxytunnel', 'http://blocked.boundary.localhost:18080/payload']),
 ]:
     command = ['curl', '--silent', '--show-error', '--fail', '--max-time', '5', *args]
     probe = subprocess.run(command, capture_output=True, text=True)

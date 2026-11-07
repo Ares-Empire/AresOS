@@ -115,10 +115,97 @@ def invoke(run, blocks, name, launcher=True, env=None):
 
 
 def native_checks(run, put, mode, snapshots, stub):
+    binary = Path('/usr/local/bin/claude').resolve().read_bytes()
+    for needle in [b'argv0:', b'apply-seccomp', b'autoConnectIde', b'workspaceFolders', b'ideName']:
+        snippets = []
+        start = 0
+        while len(snippets) < 30:
+            position = binary.find(needle, start)
+            if position < 0:
+                break
+            snippets.append(binary[max(0, position-300):position+500].decode('utf-8', errors='replace'))
+            start = position + len(needle)
+        (OUT / ('native-discovery-' + needle.decode().replace(':','') + '.txt')).write_text('\n'.join(snippets))
     print('CONTAINER_IDENTITY ' + json.dumps({n: os.readlink('/proc/self/ns/' + n) for n in ('net', 'mnt')}), flush=True)
     # First run exercises the native resolver; absent mode deliberately bypasses
     # launcher checks with the launcher's exact environment/cwd/uid/CLI arguments.
     result, rows = invoke(run, [tool('Bash', {'command': '/usr/bin/python3 -I /opt/aresos-control/hostile.py',
-                                            'timeout': 30000}, 'hostile')], 'native-hostile', mode == 'present')
+                                            'timeout': 30000}, 'hostile'),
+                               tool('Bash', {'command': '/usr/bin/python3 -I /opt/aresos-control/socket-state.py'}, 'socket-state')], 'native-hostile', mode == 'present')
     assert rows, 'native CLI never returned tool results'
     print('NATIVE_DISCOVERY mode=' + mode, flush=True)
+    ide_checks(run, put, mode)
+    if mode == 'present':
+        file_tool_checks(run)
+
+
+
+def file_tool_checks(run):
+    fixtures = json.loads((ROOT / 'fixtures.json').read_text())
+    blocks = []
+    mapping = {}
+    for name in ('Edit', 'Write', 'NotebookEdit'):
+        for index, path in enumerate(fixtures['writes'] + ['/home/assistant/outside.txt']):
+            identifier = name + '-' + str(index)
+            inputs = {'file_path': path, 'old_string': 'synthetic fixture', 'new_string': 'HOSTILE_FILE_TOOL'}
+            if name == 'Write':
+                inputs = {'file_path': path, 'content': 'HOSTILE_FILE_TOOL'}
+            elif name == 'NotebookEdit':
+                inputs = {'notebook_path': path, 'new_source': 'HOSTILE_FILE_TOOL',
+                          'cell_type': 'code', 'edit_mode': 'insert'}
+            mapping[identifier] = path
+            blocks.append(tool(name, inputs, identifier))
+    for index, path in enumerate(fixtures['reads']):
+        blocks.append(tool('Read', {'file_path': path}, 'Read-' + str(index)))
+    blocks += [tool('WebFetch', {'url': 'http://blocked.boundary.localhost:18080/payload',
+                                'prompt': 'Read this fixed synthetic page.'}, 'WebFetch'),
+               tool('WebSearch', {'query': 'fixed boundary synthetic query'}, 'WebSearch'),
+               tool('Bash', {'command': '/usr/bin/python3 -I /opt/aresos-control/socket-state.py',
+                             'dangerouslyDisableSandbox': True}, 'disable-sandbox')]
+    result, rows = invoke(run, blocks, 'native-file-tools')
+    (OUT / 'native-file-tool-paths.json').write_text(json.dumps(mapping, indent=2))
+    print('NATIVE_FILE_DISCOVERY ' + str(len(rows)), flush=True)
+
+
+def ide_checks(run, put, mode):
+    import base64
+    import hashlib
+    class IDE(BaseHTTPRequestHandler):
+        arrivals = []
+        def log_message(self, *args):
+            pass
+        def do_GET(self):
+            IDE.arrivals.append(dict(self.headers))
+            key = self.headers.get('Sec-WebSocket-Key', '')
+            accept = base64.b64encode(hashlib.sha1((key + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11').encode()).digest()).decode()
+            self.send_response(101)
+            self.send_header('Upgrade', 'websocket')
+            self.send_header('Connection', 'Upgrade')
+            self.send_header('Sec-WebSocket-Accept', accept)
+            self.end_headers()
+    server = ThreadingHTTPServer(('127.0.0.1', 18082), IDE)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    config = Path('/home/assistant/.claude.json')
+    original = config.read_bytes()
+    put(config, json.dumps({'autoConnectIde': True, 'hasCompletedOnboarding': True}))
+    lock = Path('/home/assistant/.claude/ide/18082.lock')
+    put(lock, json.dumps({'pid': os.getpid(), 'workspaceFolders': ['/home/assistant/work'],
+                          'ideName': 'Visual Studio Code', 'transport': 'ws',
+                          'authToken': 'SYNTHETIC_IDE_TOKEN', 'runningInWindows': False}))
+    try:
+        from check import ENV
+        positive_env = dict(ENV)
+        positive_env.pop('CLAUDE_CODE_AUTO_CONNECT_IDE')
+        invoke(run, [], 'ide-positive', launcher=False, env=positive_env)
+        positive = len(IDE.arrivals)
+        invoke(run, [], 'ide-launcher', launcher=mode == 'present')
+        (OUT / 'ide-arrivals.json').write_text(json.dumps({'positive': positive, 'after_launcher': len(IDE.arrivals),
+                                                          'requests': IDE.arrivals}, indent=2))
+        print('IDE_DISCOVERY positive=' + str(positive) + ' launched=' + str(len(IDE.arrivals)-positive), flush=True)
+    finally:
+        config.write_bytes(original)
+        lock.unlink()
+        server.shutdown()
+        server.server_close()
+        thread.join()

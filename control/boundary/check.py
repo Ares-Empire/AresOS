@@ -72,7 +72,7 @@ def main():
         put(path + '.boundary-replacement', 'replacement\n', uid=0 if path.startswith(('/etc/', '/opt/')) else 10001)
     # Deterministic receiver hostname: the proxy lives outside the sandbox netns.
     with open('/etc/hosts', 'a') as hosts:
-        hosts.write('\n127.0.0.1 blocked.boundary.test\n')
+        hosts.write('\n127.0.0.1 blocked.boundary.localhost\n')
     # Every directory under the synthetic home belongs to the owner, so DAC
     # cannot falsely make an owner-writable startup path look sandbox-protected.
     for folder, dirs, files in os.walk('/home/assistant'):
@@ -117,21 +117,26 @@ def main():
                 run(['/usr/bin/python3', '-I', '-c', f'open({path!r},"ab").close()'], 'positive-write-' + str(FIXTURES['writes'].index(path)))
         # Identical same-directory rename succeeds with owner rights outside containment.
         for index, path in enumerate(FIXTURES['writes']):
+            code = f'import os; p={path!r}; s=p+".boundary-replacement"; os.replace(s,p); os.replace(p,s)'
+            original = Path(path).read_bytes()
             if path.startswith('/home/'):
-                code = f'import os; p={path!r}; s=p+".boundary-replacement"; os.replace(s,p); os.replace(p,s)'
-                original = Path(path).read_bytes()
                 run(['/usr/bin/python3', '-I', '-c', code], 'positive-replace-' + str(index))
-                put(path, original.decode())
+            else:
+                # Root-owned image files are already protected by DAC. Root is
+                # the only identity with a valid outside replacement control.
+                subprocess.run(['/usr/bin/python3', '-I', '-c', code], check=True)
+                print('POSITIVE_REPLACE_ROOT ' + path, flush=True)
+            put(path, original.decode(), uid=10001 if path.startswith('/home/') else 0)
         from native import native_checks
         # Run network positive controls before the zero-arrival observation window.
         config = ROOT / 'sandbox.json'
         original = config.read_bytes()
         allowed = json.loads(original)
-        allowed['network']['allowedDomains'] = ['blocked.boundary.test']
+        allowed['network']['allowedDomains'] = ['blocked.boundary.localhost']
         config.write_text(json.dumps(allowed))
         try:
             for suffix, tunnel in [('http', ''), ('connect', '--proxytunnel ')]:
-                command = 'curl --silent --show-error --fail --max-time 5 ' + tunnel + 'http://blocked.boundary.test:18080/payload'
+                command = 'curl --silent --show-error --fail --max-time 5 ' + tunnel + 'http://blocked.boundary.localhost:18080/payload'
                 positive = run(['/usr/local/bin/node', str(ROOT / 'run.mjs'), command], 'positive-proxy-' + suffix)
                 assert positive.stdout.strip() == 'OK'
         finally:
