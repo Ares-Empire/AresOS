@@ -294,3 +294,16 @@ tasks at any time.
   approval screen in Aresus, end-to-end encrypted and signed on the phone, with a local approval window at the laptop;
   alternative: approving only at the laptop) is open for the owner. Frontier re-check 8 of the diff next, then brief
   20.
+- **2026-11-07, 17:38:** frontier re-check 8 of draft 10: CHANGES-NEEDED, six blocking points
+  ([RECHECK-8](../../reviews/control-design/2026-11-07-RECHECK-8.md)). Design draft 11 answers them on the same
+  branch: everything, GET and HEAD included, held at every checkpoint start until the guards and Claude's entered text
+  (kept encrypted) are restored, then an uncertain GET or HEAD passes only when the entered-text check clears it;
+  clicks on controls labelled as destructive (English and German) ask before the click, with the unlabelled ones
+  named as a gap; "recognised" means the complete operation validates against a qualified adapter contract, so a
+  GraphQL query is not reading by itself and WhatsApp Web's sends always ask; three users (owner, assistant, coding
+  user `coder`) with nothing the assistant writes readable by coding sessions; every place the root is installed,
+  reconciled at each start and removed at stop, with Chrome restarted whenever the root changes; the exact upstream
+  TLS checks, with what is lost (Chrome's urgent revocation list, updates between images, client certificates) as an
+  owner question before everyday use. Should-fixes too: attribution before anything reaches Claude, sign-in data
+  redacted, the Aresus approval protocol in full, ending a call only on his answer, and brief 20's added tests.
+  Re-check 9 next.
