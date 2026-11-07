@@ -5,10 +5,10 @@ export default async function(c){
  for(const [method,params]of [['DOMStorage.enable',{}],['Storage.trackIndexedDBForOrigin',{origin:f.base}],['Storage.trackCacheStorageForOrigin',{origin:f.base}],['ServiceWorker.enable',{}],['BackgroundService.startObserving',{service:'backgroundSync'}],['BackgroundService.startObserving',{service:'periodicBackgroundSync'}]]){
   subscriptions.push(await probe('Q6_SUBSCRIBE_'+method,async()=>({result:await rpc('Check.command',{method,params})})));
  }
- for(const kind of ['localStorage','sessionStorage','indexedDB','cache','cookie','opfs','broadcast','window','dedicated','shared','registration','sync','periodicSync']){
+ for(const kind of ['namedStorage','localStorage','sessionStorage','indexedDB','cache','cookie','opfs','broadcast','window','dedicated','shared','registration','sync','periodicSync']){
   await rpc('Check.clear');const result=await ev(`write17('${kind}')`);await delay(1000);const h=(await state()).history;
   const browser=h.filter(e=>!e.method.startsWith('check.')),script=h.filter(e=>e.method==='check.script'&&e.params.event==='write-or-handoff');
-  log('Q6_PAGE_WRITE',{kind,result,browser,script,latencies:browser.map(e=>({method:e.method,ms:e.at-result.at}))});
+  log('Q6_PAGE_WRITE',{kind,result,...(kind==='namedStorage'?{readback:await ev('localStorage.syntheticNamed17d')}:{}),browser,script,latencies:browser.map(e=>({method:e.method,ms:e.at-result.at}))});
  }
  for(const id of ['handoff-dedicated','handoff-shared','storage-sw'])for(const suffix of ['first','message','sync'])c.discovery(id+'-v1-'+suffix,'worker websocket coverage during storage experiments');
  // Direct worker subscription/injection after startup; no claim of pre-first-line coverage.

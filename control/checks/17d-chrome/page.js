@@ -20,6 +20,7 @@ document.querySelector('#signout').onclick=()=>setAccount17('synthetic-signed-ou
 window.write17=async kind=>{
  const at=Date.now();let result='ok';
  try{
+  if(kind==='namedStorage')localStorage.syntheticNamed17d='deletion 42';
   if(kind==='localStorage')localStorage.setItem('synthetic17d','deletion 42');
   if(kind==='sessionStorage')sessionStorage.setItem('synthetic17d','deletion 42');
   if(kind==='indexedDB')await queue17();
