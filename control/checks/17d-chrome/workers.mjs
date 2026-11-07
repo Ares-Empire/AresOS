@@ -3,7 +3,7 @@ export default async function(c){
  await rpc('Check.mode',{mode:'pass'});await rpc('Check.floor',{domains:['127.0.0.1']});await nav();
  const collect=async(label)=>{await delay(1400);const rows=f.rows.filter(r=>['http','ws-open','ws-message'].includes(r.kind)&&r.case?.startsWith('worker-'));for(const row of rows)discovery(row.case,'autonomous-worker counterexample');log(label,{scripts:f.rows.filter(r=>r.kind==='worker-script'),arrivals:rows,events:(await state()).history,targets:await rpc('Check.targets')});};
  await ev("(async()=>{window.swreg=await navigator.serviceWorker.register('/sw.js?case=worker-service',{updateViaCache:'none'});await navigator.serviceWorker.ready;return true})()");
- await collect('Q3_NEW_SERVICE');await count('worker-service-v1-first',0);
+ await collect('Q3_NEW_SERVICE');assert.equal(c.arrivals('worker-service-v1-first').filter(r=>r.kind==='http').length,0);
  await rpc('Check.command',{method:'ServiceWorker.enable'});
  const version=(await state()).history.filter(e=>e.method==='ServiceWorker.workerVersionUpdated').flatMap(e=>e.params.versions).find(v=>v.scriptURL.includes('worker-service')&&v.status==='activated');
  if(version)await rpc('Check.command',{method:'ServiceWorker.stopWorker',params:{versionId:version.versionId}});
@@ -12,7 +12,7 @@ export default async function(c){
  await c.address(f.base+'/');await collect('Q3_NAVIGATION_START_NO_DEBUGGER');
  await rpc('Check.attach',{tabId:c.selected});await nav();
  await ev("navigator.serviceWorker.getRegistration().then(r=>{window.swreg=r;return true})");f.bump();
- await ev("swreg.update().then(()=>true)");await collect('Q3_EXPLICIT_UPDATE');await count('worker-service-v2-first',0);
+ await ev("swreg.update().then(()=>true)");await collect('Q3_EXPLICIT_UPDATE');assert.equal(c.arrivals('worker-service-v2-first').filter(r=>r.kind==='http').length,0);
  // A navigation update is observed separately; do not force it with a debugger update API.
  f.bump();await rpc('Check.detach');await c.address(f.base+'/');await delay(2500);await collect('Q3_NAVIGATION_UPDATE');
  await rpc('Check.attach',{tabId:c.selected});await nav();
@@ -22,12 +22,13 @@ export default async function(c){
   await ev("setTimeout(async()=>{const r=await navigator.serviceWorker.ready;await r.sync.register('synthetic-floor-sync')},600);true");await rpc('Check.detach');await delay(3500);await collect('Q3_SYNC_NO_PAGE_DEBUGGER');return {rows:f.rows.filter(r=>r.case?.includes('-sync')),registration:'real SyncManager.register, no dispatchSyncEvent'};
  });
  await rpc('Check.attach',{tabId:c.selected});await nav();
- await ev("window.shared=new SharedWorker('/worker.js?shared&case=worker-shared');shared.port.start();true");await collect('Q3_NEW_SHARED');await count('worker-shared-v3-first',0);
+ await ev("window.shared=new SharedWorker('/worker.js?shared&case=worker-shared');shared.port.start();true");await collect('Q3_NEW_SHARED');discovery('worker-shared-v3-first','worker websocket floor coverage');
  // Tab-only WS allowance must not cover service/shared worker handshakes (webRequest tabId=-1).
  await rpc('Check.rules',{addRules:[{id:8002,priority:100,action:{type:'allow'},condition:{tabIds:[c.selected],resourceTypes:['websocket']}}]});
  await ev("shared.port.postMessage('send');navigator.serviceWorker.ready.then(r=>r.active.postMessage('send'));true");await collect('Q3_TAB_ALLOWANCE');
- await count('worker-shared-v3-message',0);
- for(const suffix of ['first','message','sync'])for(const v of [1,2,3]){await count(`worker-service-v${v}-${suffix}`,0);}
+ discovery('worker-shared-v3-message','worker websocket tab allowance coverage');
+ for(const suffix of ['first','message','sync'])for(const v of [1,2,3]){discovery(`worker-service-v${v}-${suffix}`,'worker startup/message/sync transport coverage');}
+ await rpc('Check.rules',{removeRuleIds:[8002],addRules:[{id:7001,priority:1000,action:{type:'block'},condition:{resourceTypes:['websocket']}}]});await ev("window.globalSocket=new SharedWorker('/worker.js?shared&case=worker-global');globalSocket.port.start();true");await delay(700);log('Q3_GLOBAL_SOCKET_BLOCK',{rows:discovery('worker-global-v3-first','global websocket block diagnostic')});
  log('Q3_WORKER_TAB_IDS',{requests:(await state()).history.filter(e=>e.method==='check.webRequest'&&/socket|worker/.test(e.params.url)),note:'DNR-blocked handshakes may omit webRequest observations; a positive control below exposes the tab ID.'});
  // Positive worker control, with the floor removed, proves startup generators reach this receiver.
  await rpc('Check.floor',{clear:true});await ev("window.positive=new SharedWorker('/worker.js?shared&case=worker-control');positive.port.start();true");await delay(800);

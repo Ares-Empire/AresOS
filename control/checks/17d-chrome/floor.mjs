@@ -9,10 +9,7 @@ export default async function(c){
  }
  // Session rule covers a foreign frame, even when its initiator is not guarded.
  await nav();await rpc('Check.floor',{tabId:c.selected});await ev(`window.foreign=document.createElement('iframe');foreign.src='${f.base.replace('127.0.0.1','localhost')}/';document.body.append(foreign);true`);await delay(700);
- await rpc('Check.command',{method:'Runtime.evaluate',params:{expression:`true`}});
- const frames=await rpc('Page.getFrameTree'),foreign=frames.frameTree.childFrames[0].frame.id;
- const world=await rpc('Page.createIsolatedWorld',{frameId:foreign,worldName:'17d-frame'});
- await rpc('Runtime.evaluate',{expression:`fetch('/receive?case=foreign-frame',{method:'POST',body:'synthetic foreign'}).catch(()=>{});true`,contextId:world.executionContextId,returnByValue:true});await count('foreign-frame',0);log('Q1_FOREIGN_FRAME',{frames,events:(await state()).history.slice(-20)});
+ const frames=await rpc('Check.frameProbe');c.assert.ok(frames.some(r=>r.result?.includes('localhost')),'foreign frame actually executed');await count('foreign-frame',0);log('Q1_FOREIGN_FRAME',{frames,events:(await state()).history.slice(-20)});
  // Park at Fetch if Chrome exposes it, then break control while producers keep running.
  for(const ending of ['detach','reload','update','worker-crash','host-loss','normal','kill','policy']){
   await nav();await rpc('Check.floor',{domains:['127.0.0.1']});await rpc('Check.mode',{mode:'park'});await rpc('Check.clear');const id='ending-'+ending;

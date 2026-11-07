@@ -15,7 +15,7 @@ async function floor({domains=[],tabId,clear=false}){
  const dnr=chrome.declarativeNetRequest;
  if(clear){await dnr.updateDynamicRules({removeRuleIds:(await dnr.getDynamicRules()).map(r=>r.id)});await dnr.updateSessionRules({removeRuleIds:(await dnr.getSessionRules()).map(r=>r.id)});return {};}
  const base=tabId?{tabIds:[tabId]}:{initiatorDomains:domains};
- const rules=[{id:tabId?201:101,priority:10,action:{type:'block'},condition:{...base,excludedRequestMethods:['get','head']}},{id:tabId?202:102,priority:10,action:{type:'block'},condition:{...base,resourceTypes:['websocket','webtransport']}}];
+ const rules=[{id:tabId?201:101,priority:10,action:{type:'block'},condition:{...base,excludedRequestMethods:['get','head'],excludedResourceTypes:[]}},{id:tabId?202:102,priority:10,action:{type:'block'},condition:{...base,resourceTypes:['websocket','webtransport']}}];
  if(tabId)await dnr.updateSessionRules({removeRuleIds:[201,202],addRules:rules});
  else await dnr.updateDynamicRules({removeRuleIds:[101,102],addRules:rules});
  return rules;
@@ -23,7 +23,7 @@ async function floor({domains=[],tabId,clear=false}){
 async function attach(tabId){
  const tab=await chrome.tabs.get(tabId);if(!/^https?:/.test(tab.url))throw Error('FORBIDDEN_PAGE');
  selected=tabId;if(!group){group=await chrome.tabs.group({tabIds:[tabId]});await chrome.tabGroups.update(group,{title:'Claude',color:'blue'});}
- const s={tabId};if(!attached.has(tabId)){await chrome.debugger.attach(s,'1.3');attached.set(tabId,s);await cmd(s,'Runtime.enable');await cmd(s,'Page.enable');await cmd(s,'Network.enable',{maxPostDataSize:65536});await cmd(s,'Fetch.enable',{patterns:[{urlPattern:'*',requestStage:'Request'}]});emit('check.ready',{tabId,url:tab.url});}
+ const s={tabId};if(!attached.has(tabId)){try{await chrome.debugger.attach(s,'1.3')}catch(e){if(!String(e).includes('already attached'))throw e;emit('check.recoveredDebugger',{tabId,error:String(e)})}attached.set(tabId,s);await cmd(s,'Runtime.enable');await cmd(s,'Page.enable');await cmd(s,'Network.enable',{maxPostDataSize:65536});await cmd(s,'Fetch.enable',{patterns:[{urlPattern:'*',requestStage:'Request'}]});emit('check.ready',{tabId,url:tab.url});}
  return {tabId,group};
 }
 async function gate(s,p){
@@ -57,6 +57,7 @@ async function rpc(m,p={}){
  if(m==='Check.attach')return attach(p.tabId);
  if(m==='Check.floor')return floor(p);
  if(m==='Check.rules')return chrome.declarativeNetRequest.updateSessionRules(p);
+ if(m==='Check.frameProbe')return chrome.scripting.executeScript({target:{tabId:selected,allFrames:true},world:'MAIN',func:()=>{if(location.hostname==='localhost')fetch('/receive?case=foreign-frame',{method:'POST',body:'synthetic foreign'}).catch(()=>{});return location.href;}});
  if(m==='Check.mode'){gateMode=p.mode||'fail';delayMs=p.delayMs||0;owner=!!p.owner;return {};}
  if(m==='Check.allow'){
   expected=p;const condition={regexFilter:'^'+p.url.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'$',requestMethods:[p.method.toLowerCase()],...(p.site?{initiatorDomains:[p.site]}:{tabIds:[p.tabId||selected]})};

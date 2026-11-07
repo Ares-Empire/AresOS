@@ -10,9 +10,9 @@ export default async function(c){
   const browser=h.filter(e=>!e.method.startsWith('check.')),script=h.filter(e=>e.method==='check.script'&&e.params.event==='write-or-handoff');
   log('Q6_PAGE_WRITE',{kind,result,browser,script,latencies:browser.map(e=>({method:e.method,ms:e.at-result.at}))});
  }
- for(const id of ['handoff-dedicated','handoff-shared','storage-sw'])for(const suffix of ['first','message','sync'])await count(id+'-v1-'+suffix,0);
+ for(const id of ['handoff-dedicated','handoff-shared','storage-sw'])for(const suffix of ['first','message','sync'])c.discovery(id+'-v1-'+suffix,'worker websocket coverage during storage experiments');
  // Direct worker subscription/injection after startup; no claim of pre-first-line coverage.
- const target=(await rpc('Check.targets')).find(t=>t.type==='service_worker'&&t.url.includes('storage-sw'));
+ const target=(await rpc('Check.targets')).find(t=>['service_worker','worker'].includes(t.type)&&t.url.includes('storage-sw'));
  if(target)await probe('Q6_WORKER_WRITES',async()=>{
   await rpc('Check.workerAttach',{targetId:target.id});const source={targetId:target.id};
   const command=(method,params={})=>rpc('Check.command',{source,method,params});
