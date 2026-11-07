@@ -464,60 +464,104 @@ requirement here, with how it is met and how brief 20 tests it.
    checkpoint refuses to start if the port is taken or if ordinary users may open low ports.
    *Test:* the owner's, the assistant's and a coding user's programs can't connect to the port or the socket; a
    program of theirs can't open the port; the checkpoint refuses to start when the port is taken.
-2. **Nothing it sees leaves the machine.** It sends nothing anywhere except the browser's own traffic to the address
-   Chrome asked for: no telemetry, no updates of its own, no remote logs, no web interface (mitmproxy's core only).
-   Captured bytes stay in its memory: no core dumps of its process, its memory kept out of swap, no temporary files.
-   What it tells the tool service about a held operation (site, address, method, decoded data, hash) reaches Claude
-   only for operations from Claude's tabs and guarded sites, which Claude could read on those pages anyway. What it
-   holds only because attribution was uncertain, and anything of the owner's unrelated tabs, is shown to the owner
-   and never described to Claude.
+2. **Nothing it sees leaves the machine.** This means the checkpoint adds no way out of its own. It sends nothing
+   anywhere except the browser's own traffic to the address Chrome asked for: no telemetry, no updates of its own, no
+   remote logs, no exports, no web interface (mitmproxy's core only). Captured bytes stay in its memory: no core dumps
+   of its process, its memory kept out of swap, no temporary files. On disk it keeps only its record: the guards, the
+   consumed captures, and Claude's entered text encrypted at rest. Two flows are explicit and limited, and not what
+   "nothing leaves" covers: descriptions in Claude's tool results, which reach Claude's model (it runs at Anthropic),
+   and, if he takes that proposal, descriptions sent to his phone for approval, encrypted end to end (section 7).
+   - **Affirmative attribution before anything reaches Claude.** A held operation is described to Claude only when it
+     is attributed to a context Claude is authorised for: a Claude tab Claude acted in (by its current tag), or an
+     operation a site adapter ties to Claude's action. Being on a guarded site is not enough. The owner's own tabs
+     there, everything held only because attribution was uncertain, and Chrome's own service sends are shown to the
+     owner only, never described to Claude.
+   - **Sign-in material is never shown.** Cookies, authorisation headers, and tokens and passwords in headers,
+     addresses or bodies are replaced by "[sign-in data, N bytes]" in every description, to Claude and to the owner,
+     and in the tool service's approval log; the hash still covers the real bytes. The tool recognises the common
+     forms (cookies, `Authorization`, token and anti-forgery fields and parameters) and an adapter adds a site's own;
+     a token in a form neither knows can still show (brief 20 lists the forms recognised).
    *Test:* every outgoing connection of the checkpoint matches one Chrome asked for; it writes no file outside its
-   state folder; core dumps are off; Claude's tools return no content of an unrelated tab's held operation.
+   state folder; core dumps are off; Claude's tools return nothing of an operation held in the owner's own tab on a
+   guarded site, held for uncertain attribution, or sent by Chrome's services; marker tokens in cookies, headers,
+   addresses and bodies never appear in a description or the approval log.
 3. **No bodies, cookies or secrets in logs.** Its logs and its record hold ids, lengths, hashes, states, the site and
-   the method; never bodies, header values, cookies, passwords, query strings or socket messages. Messages of the
-   proxy core are filtered the same way (errors only, addresses cut to the site). The record of what was approved
-   (the description the owner saw, as for mail) is the tool service's operation log, in its own private store; it is
-   not a checkpoint log.
+   the method; never bodies, header values, cookies, passwords, query strings or socket messages. Claude's entered
+   text is in the record only encrypted (above). Messages of the proxy core are filtered the same way (errors only,
+   addresses cut to the site). The record of what was approved (the description the owner saw, as for mail, with
+   sign-in data replaced) is the tool service's operation log, in its own private store; it is not a checkpoint log.
    *Test:* runs with marker strings in cookies, headers, bodies, query strings and socket messages; afterwards no log,
-   journal entry, record, crash output or temporary file contains a marker. (17e did this for its own records and
-   found and fixed one leak of a fixture value: *checked*, 17e Q11.)
-4. **Full upstream TLS checks.** The checkpoint checks every connection to a site itself: the certificate chain
-   against the system's list of roots (the checkpoint's own root is never added to that list), the host name and the
-   dates; current TLS versions only; any failure ends the connection with an error page in Chrome, never a fallback
-   and never "accept anyway" (*checked*, 17e Q9: an invalid upstream certificate gave a failure and zero requests at
-   the receiver; HSTS kept working; a Google address that Chrome pins worked through the local root, as Chrome
-   documents). What moves, named plainly: Chrome's own extra checks on the outside connection (Certificate
-   Transparency, its own revocation list, pinned keys) no longer apply, because Chrome exempts a locally added root
-   from them (re-check 7, Chrome's security FAQ); the checkpoint does the chain, name and date checks, and brief 20
-   adds revocation checks where the core supports them. Sites that ask the browser for a client certificate don't
-   work.
-   *Test:* expired, wrong-name, self-signed, unknown-root and old-protocol upstreams all fail with zero requests;
-   HSTS; the checkpoint's root is absent from the system's list.
+   journal entry, record, crash output or temporary file contains a marker in readable form. (17e did this for its
+   own records and found and fixed one leak of a fixture value: *checked*, 17e Q11.)
+4. **Upstream TLS: the exact checks, and what is lost.** Before any byte of a request goes to a site, the checkpoint
+   checks that site's connection itself. Any failure ends it with an error page in Chrome; there is no fallback and
+   no "accept anyway".
+   - **Chain:** to a root in Chrome's own root list (the Chrome Root Store as Chrome 157 ships it, with its limits per
+     root, such as roots trusted only for certificates issued before a date), updated with the image. The checkpoint's
+     own root is in no list but Chrome's (requirement 5).
+   - **Name and dates:** the host name against the certificate's names (no fallback to the common name); every
+     certificate in the chain within its dates and meant for its use; Chrome's minimum key sizes and signature
+     algorithms.
+   - **Protocol:** TLS 1.2 or 1.3 only.
+   - **Certificate Transparency:** Chrome's CT policy: the number of signed certificate timestamps from distinct log
+     operators that Chrome requires for the certificate's lifetime, each checked against Chrome's list of logs,
+     shipped with the image.
+   - **Pinned keys:** Chrome's built-in pin list (the keys Chrome expects for certain sites, Google's among them),
+     shipped with the image.
+   - **Revocation:** a stapled OCSP answer is checked when the site sends one: a valid answer saying revoked ends the
+     connection; an invalid or out-of-date one counts as none. A certificate marked "must staple" fails without a
+     valid stapled answer (Chrome itself doesn't enforce that mark). No online revocation lookups: Chrome doesn't make
+     them either, and they would tell the issuer which sites he visits.
+   - *Checked* (17e Q9): an invalid upstream certificate gave a failure and zero requests at the receiver; HSTS kept
+     working; a Google address that Chrome pins worked through the local root, as Chrome documents. Everything else
+     here is *brief 20*.
+
+   **What is lost, in plain words.** Chrome exempts a locally added root from its own CT and pin checks (re-check 7,
+   Chrome's security FAQ); the checkpoint does those checks on the outside connection instead, as above. What it
+   can't replicate, to be accepted by the owner before everyday use (section 10):
+   - **Chrome's urgent revocation list (CRLSets).** Chrome downloads a short list of certificates revoked in a hurry,
+     usually because a site's key was stolen, and refuses them. The checkpoint can't use that list, so such a
+     certificate is accepted until it expires, unless the site staples a revocation answer. It protects against
+     someone who has stolen a site's key and can also get between him and that site. Rare: the list itself covers
+     only a small number of urgent cases.
+   - **Updates between images.** Chrome updates its root list, its CT log list and its pin list in the background;
+     the checkpoint's copies are as new as the image. An authority Chrome stops trusting after the image was built is
+     still trusted until the next image. Chrome drops a whole authority about once a year; image updates come much
+     more often.
+   - **Client certificates:** sites that ask the browser for one don't work.
+   *Test:* expired, wrong-name, self-signed, unknown-root, distrusted-root, missing or invalid timestamps, wrong
+   pinned key, a revoked stapled answer, "must staple" without a staple, and an old protocol each fail with zero
+   requests at the receiver; HSTS; the checkpoint's root is in no trust list but Chrome's.
 5. **A key that rotates and can issue nothing while the checkpoint is stopped.**
-   - **A fresh root per start.** A root-owned start step runs before the checkpoint: it makes a new root key and
-     certificate (allowed only to sign site certificates, valid a few days at most), writes the certificate into
-     Chrome's policy (`CACertificates`) and into the place Chrome's own services read trust (next part), and hands
-     the key to the checkpoint as a service credential: memory that isn't swapped, readable only by the checkpoint's
-     user, gone when the service stops. The start step deletes its own copy; the key is never on disk.
+   - **Every place the root goes, and nowhere else:** (a) Chrome's policy `CACertificates`, which the profile's
+     network contexts read and re-read while Chrome runs (Chrome 157's policy definition: `dynamic_refresh: true`,
+     `per_profile: true`; the profile service watches it: re-check 8); (b) the place Chrome's own network context reads
+     trust, for its services (Safe Browsing, component updates), for the browser user only. The candidate for (b) is
+     that user's own certificate database, which re-check 8 calls plausible but not yet shown to work for that context
+     (*brief 20*). Chrome's own context has no way to update trust while running (re-check 8, Chromium 157 source), so
+     it learns a new root only when Chrome starts.
+   - **A fresh root per start.** A root-owned start step runs before the checkpoint. It first reconciles: it removes
+     every root that isn't this run's from both places (left over from a crash or a power loss). Then it makes a new
+     root key and certificate (allowed only to sign site certificates, valid a few days at most), writes the
+     certificate into both places, and hands the key to the checkpoint as a service credential: memory that isn't
+     swapped, readable only by the checkpoint's user, gone when the service stops. It deletes its own copy; the key is
+     never on disk.
    - **Only in memory.** The checkpoint keeps the key and the site certificates it makes only in memory.
    - **Stopped means nothing can issue.** When the checkpoint stops or crashes, the key is gone with it, and the stop
-     step removes the certificate from Chrome's policy. Nothing can make a certificate Chrome trusts while the
-     checkpoint is stopped: the old key no longer exists, and a new one exists only once a new run starts.
-   - **How Chrome takes a new root.** `CACertificates` is a per-profile policy that Chrome also re-reads while
-     running (Chrome 157's policy definition: `dynamic_refresh: true`, `per_profile: true`), not one read only at
-     start. When the checkpoint restarts with a new root, a running Chrome at first still trusts only the old one, so
-     every new TLS connection fails (the new checkpoint signs with a root Chrome doesn't know yet): that fails
-     closed. Once Chrome re-reads its policy, the new root works and the old one is no longer trusted. How quickly
-     that happens, and what happens to Chrome's own services, which don't read this policy at all (17e Q9), is
-     *brief 20*. The design doesn't rely on it: the launcher starts the checkpoint first and Chrome only once the new
-     root is in place, and when the checkpoint restarts while Chrome runs, the launcher closes Chrome and starts it
-     again with its tabs restored. Typing the owner hadn't sent in his own tabs can be lost; the extension says why
-     Chrome restarted. Brief 20 decides, from measurements, whether the policy refresh is reliable enough to skip
-     that restart.
+     step removes the root from both places (after a power loss, the next start's reconciliation does). Nothing can
+     make a certificate Chrome trusts while the checkpoint is stopped: the old key no longer exists, and a new one
+     exists only once a new run starts.
+   - **Cached trust and open connections.** Chrome keeps open connections and earlier verification results, and its
+     own context can't take a new root while running. So whenever the root changes (stop, crash, rotation, the
+     pass-through switch in either direction), the launcher closes Chrome and starts it again only once the new root
+     is in place, with its tabs restored. A running Chrome that still trusts an old root meanwhile reaches nothing: the
+     new checkpoint signs with a root it doesn't know, which fails closed. Typing the owner hadn't sent in his own tabs
+     can be lost; the extension says why Chrome restarted.
    - **Renewal.** Before a root expires, the checkpoint is restarted with a new one at a moment when nothing is held.
-   *Test:* a new root at every start; no key material on disk, in swap or in a crash file; after a stop, the old
-   root is gone from the policy and no certificate it signed is accepted; a running Chrome's behaviour when the root
-   changes, and the launcher's restart.
+   *Test:* a new root at every start; no key material on disk, in swap or in a crash file; after a stop, a crash, a
+   rotation and the pass-through switch, the old root is gone from both places, and the profile's contexts and Chrome's
+   own context both refuse a certificate it signed and accept the new root's; after a kill that skips the stop step,
+   the next start removes the leftover root.
 
 ### Chrome's own services through the checkpoint
 
@@ -526,15 +570,17 @@ Chrome's client services, the optimization guide, a Google static host), because
 Chrome's own services use a separate network context that doesn't read it (*checked*, 17e Q9; re-check 7). The fix is
 trust, never an exemption: no host is passed through unopened and none is let through by name, because either would
 give a page an unchecked way out. The start step puts the root also where Chrome's own network context reads trust,
-for the browser user only and never in the machine's trust store (on Linux, the candidate is the user's own
-certificate database that Chrome reads for locally added roots; *brief 20* finds and proves the place). Brief 20 then
-shows, through the checkpoint:
+for the browser user only and never in the machine's trust store (requirement 5, place b). Brief 20 then shows,
+through the checkpoint, with no guard on and again while guards are on, also while attribution is lost:
 
 - Safe Browsing warning on its official test page, with a positive control: Safe Browsing on by policy and its lists
   loaded before the test (in 17e even the direct run showed no warning, so the control was missing);
 - a fresh component download, not only "up to date" on a component already there;
 - the extension's own updates, and sync;
-- no certificate failures in Chrome's service connections.
+- no certificate failures in Chrome's service connections;
+- that recognising a service's protocol frees only that service: imitations of those requests made by a page, by a
+  worker and through a send a page makes Chrome do are held, because a protocol's shape doesn't prove where a request
+  came from or that its content is harmless (re-check 8).
 
 Chrome features that send page text or typed text to a server of Chrome's own (enhanced spell check, page
 translation, search suggestions as Claude types an address) could carry Claude's text in a form the entered-text check
@@ -962,15 +1008,17 @@ Until all five hold, the fallback is the one in the plan: Claude fills in, the o
    sends of a frame's site, Chrome's own services) is measured on his usual sites, in the tool-user rounds and after
    the first boot; the target is zero, and each stall is counted with its cause.
 2. **Chrome's own protection works:** Safe Browsing with a positive control, and component updates with a fresh
-   download, through the checkpoint and with no exemptions (Chrome's own services, above).
+   download, through the checkpoint and with no exemptions, also while guards are on (Chrome's own services, above);
+   and he has accepted the TLS checks the checkpoint can't replicate (requirement 4, section 10).
 3. **A way out of a fault.** An owner-only switch, `sudo aresos admin chrome checkpoint pass-through` (and a menu
    entry that runs it with his password), sets Chrome's policy to direct connections, lifts the firewall rule for the
-   browser user and stops the checkpoint, which destroys its key. It works even when the checkpoint is broken. It
+   browser user, stops the checkpoint, which destroys its key, removes the root from every place it was installed and
+   restarts Chrome (requirement 5). It works even when the checkpoint is broken. It
    needs no guard holding leftovers: where leftovers exist, they are shown first (on which site, what of Claude's may
    be left), and he ends those guards knowingly before the switch goes through. While it is on, Claude's Chrome tools
    are off ("checkpoint off: Chrome tools off until it is repaired"). Switching back starts the checkpoint with a new
    root and restarts Chrome, so that no connection opened without the checkpoint survives; Claude's tools return
-   once the guard list is loaded.
+   once the checkpoint reports ready.
 4. **About one decision per real action.** Adapters and grouping for his usual sites bring the 18 separate decisions
    of 17e's fixture (twelve background requests and six live messages without an adapter) down to about one per real
    action: one approval for "send this message", not one per frame.
