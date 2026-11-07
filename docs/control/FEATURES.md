@@ -29,7 +29,7 @@ Effects: read, change, send (asks), delete (asks). Tools are in
 | Whole conversation across folders | `mail_thread` | read | first |
 | Save an attachment, or a whole mail as `.eml`, to an allowed folder | `mail_attachment_save` | change | first |
 | Write a new mail; reply; reply all; forward (inline or as attachment) | `mail_compose`, then `mail_send` | change, then send | first |
-| "Don't ask again" for mails to an exact set of recipients (for example to himself) | a free send action checking the owner-only list | send, free | the owner decides (CONTROL.md section 10; recommended: offer); until then every mail asks |
+| "Don't ask again" for mails to an exact set of recipients (for example to himself) | a free send action checking the owner-only list | send, free | first (decision 15); every other mail asks |
 | Formatted mail (bold, lists, links) and plain mail | `mail_compose` | change | first; the default is the owner's habit |
 | Signature | `mail_compose` from the account's configuration | change | first; text from the owner |
 | Attach local files, or attachments of other mails | `mail_compose` | change | first |
@@ -54,9 +54,11 @@ Effects: read, change, send (asks), delete (asks). Tools are in
 
 | Feature | Tool | Effect | State |
 |---|---|---|---|
-| Read files in folders the owner shares | rule 4.4 on the caller's side | read | first, read-only |
-| Save attachments and downloads | into the assistant's own folders, which he can read and coding sessions can't | change | first |
-| Create, rename, move, replace and delete files in folders of his | through the tool service, with rule 4.4's limits | change (never onto an existing name); replacing and deleting ask | the owner decides which folders, if any (CONTROL.md section 10; recommended: he picks some, and coding sessions lose read access to them first) |
+| Read and change everything in his home folders, except hidden settings and start-up places | Claude's file tools and the tool service's file actions, with rule 4.4's limits | read, change | first (decision 17) |
+| Save new files, create folders, rename and move within his folders (never onto an existing name), edit a file in place (the previous version kept) | the same | change | first, without asking |
+| Overwrite a file (replace it, or move or rename onto an existing name); delete (to the Trash or for good) | the same | delete | first, asking |
+| Its terminal: run commands without prompts | Claude Code's sandbox (`autoAllowBashIfSandboxed: true`) | | first: reads his folders, writes only its own work and temporary folders; his files change through the file tools |
+| Coding sessions reading what the assistant wrote | | | never: code lives in the coding user's own home, which has no access to his |
 
 ## Chrome
 
@@ -77,9 +79,9 @@ Effects: read, change, send (asks), delete (asks). Tools are in
 | Downloads: list, save into an allowed folder | `chrome_downloads` | read, change | first |
 | Bookmarks and history: find addresses | `chrome_bookmarks`, `chrome_history` | read | first |
 | Submit a form, post, send a message, any request that sends | `chrome_submit` | send | first: the send waits at the checkpoint outside Chrome, and only the approved captured send goes, at most once (a crash while sending can leave it not sent or sent in part: `unknown`, never repeated) |
-| Typing and Enter on chat sites (messages on a live connection) | `chrome_fill`, `chrome_press`, then `chrome_submit` | change, then send | first: the message waits at the checkpoint, also on connections opened before Claude started; chats that encrypt in the page (WhatsApp Web) need an adapter for a readable description; there each message asks usually once (sometimes a second time for late frames), as one approval of the bounded set of encrypted frames captured from the start of composing until shortly after Send, described "as the page shows it" (weaker than a verified send: the page's display is trusted); "Claude fills in, he sends" is an option he can choose |
-| Click a control that may delete data kept only in the browser (labelled delete, remove, discard, clear, empty or trash, in English or German; Delete or Backspace outside plain text editing, also on an object selected in an editable area) | `chrome_click_destructive` | delete | first: asks before the click; with a qualified adapter, one bounded advance approval per operation; an unlabelled control that deletes such data: the owner decides (CONTROL.md section 10) |
-| "Don't ask again" for a kind of action | `chrome_submit_trusted` | send, free | first, for kinds a site adapter recognises by validating the complete operation ("Deezer: add to playlist"), set and revoked only by the owner; never for unrecognised sends; for mail (bound to an exact recipient set), deleting and paying the owner decides (CONTROL.md section 10; until then not offered); never on WhatsApp Web (the checkpoint can't read its encrypted messages); an adapter update that widens a kind asks him again |
+| Typing and Enter on chat sites (messages on a live connection) | `chrome_fill`, `chrome_press`, then `chrome_submit` | change, then send | first: the message waits at the checkpoint, also on connections opened before Claude started; chats that encrypt in the page (WhatsApp Web) need an adapter for a readable description; there each message asks usually once (sometimes a second time for late frames), as one approval of the bounded set of encrypted frames captured from the start of composing until shortly after Send, described "as the page shows it" (weaker than a verified send: the page's display is trusted; decision 16) |
+| Click a control that may delete data kept only in the browser (labelled delete, remove, discard, clear, empty or trash, in English or German; Delete or Backspace outside plain text editing, also on an object selected in an editable area) | `chrome_click_destructive` | delete | first: asks before the click; with a qualified adapter, one bounded advance approval per operation; an unlabelled control that deletes such data stays free (decision 14, the gap accepted) |
+| "Don't ask again" for a kind of action | `chrome_submit_trusted` | send, free | first, for kinds a site adapter recognises by validating the complete operation ("Deezer: add to playlist"), set and revoked only by the owner; never for unrecognised sends, deleting or paying, and never on WhatsApp Web (the checkpoint can't read its encrypted messages); for mail see Mail (decision 15); an adapter update that widens a kind asks him again |
 | See and revoke "don't ask again" entries | `chrome_sites`; the extension's details page | owner | owner: Claude can't write the list |
 | Searches on the owner's usual sites | `chrome_fill`, `chrome_press` | send, free | first: free there (decision 7; the list of usual sites is the owner's); elsewhere a search carrying Claude's text asks |
 | Apps that read through POST (Gemini, Gmail, Notion, Google's apps, GraphQL sites) | site adapter | | first for the owner's usual sites (17c: Notion and Google Docs need one); a GraphQL `query` is not reading by itself; elsewhere Claude's clicks there ask until an adapter exists |
@@ -90,13 +92,13 @@ Effects: read, change, send (asks), delete (asks). Tools are in
 | Sites that need WebRTC data channels; sites that need WebTransport | | | WebRTC: refused while a guard is on, works otherwise; WebTransport: doesn't work through the checkpoint at all (Chrome refuses it with a proxy) |
 | Popups and new tabs a page opens | joins the Claude group | | first |
 | Sign in to a site | | owner | owner: Claude stops and asks him to sign in; passwords never pass through Claude |
-| Pay, order, transfer money | `chrome_submit` | send | first, always asking; "don't ask again" for paying: the owner decides (recommended: always ask) |
+| Pay, order, transfer money | `chrome_submit` | send | first, always asking (decision 15) |
 | Drag and drop, hover menus | `chrome_drag`, `chrome_hover` | change | later: after the tool-user rounds show where they're needed |
 | Canvas editors and maps (text drawn, not in the page structure) | site adapter, or a last-resort picture | | later: per site, as the rounds show |
 | Save or print a page as PDF | `chrome_export_pdf` to an allowed folder | change | later |
 | Add and remove bookmarks | `chrome_bookmarks` | change | later |
 | Windows: move tabs between windows | | | later |
 | Site adapters for the owner's usual sites | per site | | first: WhatsApp Web, Gemini, Gmail, Deezer (decision 9); more after the tool-user rounds |
-| Gmail in Chrome: send a mail | `chrome_submit` through the Gmail adapter | send | first, asking, the approval reading like a mail; "don't ask again" bound to an exact recipient set: the owner decides (recommended: offer) |
+| Gmail in Chrome: send a mail | `chrome_submit` through the Gmail adapter | send | first, asking, the approval reading like a mail; "don't ask again" bound to an exact recipient set, validated in the captured send (decision 15) |
 | Chrome's settings, passwords, extensions; claude.ai | | | never: these could change Claude's own limits or approve its own actions |
 | Screenshots as the way to see a page | | | never as the main path (owner); a picture only where a site adapter says it's the last resort |
