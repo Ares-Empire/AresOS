@@ -244,6 +244,8 @@ class Checkpoint:
     async def request(self, flow):
         if flow.response:
             return
+        if flow.request.host.endswith(('.googleapis.com', '.google.com')):
+            self.record('service-traffic', host=flow.request.host, method=flow.request.method, guarded=self.guard)
         body = flow.request.raw_content
         if body is None:
             flow.response = http.Response.make(413, b'Incomplete operation refused')
@@ -274,6 +276,12 @@ class Checkpoint:
             if op['flow'] is flow and not op['future'].done():
                 op['future'].set_result(False)
                 self.record('observed-cancellation', id=oid)
+
+    def tls_failed_client(self, data):
+        self.record('client-tls-failure', host=data.context.client.sni)
+
+    def tls_failed_server(self, data):
+        self.record('upstream-tls-failure', host=data.context.server.sni)
 
     def response(self, flow):
         # A response is evidence of a response, not business success.

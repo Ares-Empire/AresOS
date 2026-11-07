@@ -43,7 +43,14 @@ function policy(mode=true,extension=true){
 }
 function firewall(on=true){
  try{sudo('nft','delete','table','inet','e17')}catch{}
- if(on){const uid=sh('id',['-u','areschrome']).trim();const rules=`table inet e17 { chain output { type filter hook output priority 0; policy accept; meta skuid ${uid} ip daddr 127.0.0.1 tcp dport 18080 counter accept; meta skuid ${uid} counter reject with icmpx type admin-prohibited; } }`;
+ if(on){const uid=sh('id',['-u','areschrome']).trim();const rules=`table inet e17 {
+ chain output {
+  type filter hook output priority 0; policy accept;
+  meta skuid ${uid} ip daddr 127.0.0.1 tcp dport 18080 counter accept;
+  meta skuid ${uid} counter reject with icmpx type admin-prohibited;
+ }
+}
+`;
  fs.writeFileSync(work+'/rules.nft',rules);sudo('nft','-f',work+'/rules.nft');save('nftables',{rules: sudo('nft','list','table','inet','e17')});}
 }
 async function control(action,params={}){
@@ -65,7 +72,7 @@ async function connect(){
  const r=await Promise.race([ready,delay(15000).then(()=>{throw Error('Extension did not connect')})]);selected=r.tabId;await rpc('Page.bringToFront');return r;
 }
 async function boot(label,mode=true){
- policy(mode);firewall(mode);bridge=await nativeBridge(socket);sudo('chown','areschrome:areschrome',socket);fs.chmodSync(socket,0o600);
+ policy(mode);firewall(mode);bridge=await nativeBridge(socket);sudo('chown','areschrome:areschrome',socket);
  const args=[`--user-data-dir=${profile}`,'--no-first-run','--no-default-browser-check','--password-store=basic','--start-maximized','--gtk-version=3','--disable-background-mode',f.base+'/'];
  save('args-'+label,args);const fd=fs.openSync(work+'/chrome-console.log','a');
  chrome=spawn('sudo',['-u','areschrome','env','DISPLAY='+process.env.DISPLAY,'XAUTHORITY='+work+'/browser-home/Xauthority','XDG_CONFIG_HOME='+work+'/config', '/usr/bin/google-chrome-stable',...args],{stdio:['ignore',fd,fd]});
