@@ -2,6 +2,145 @@
 
 Builds on draft PR #6. No merge, force push, real account or model run.
 
+## Review fixes, round 3
+
+**read — scope:** closes findings 1–2 in `REVIEW-3.md` on `5180db3` and adds
+the independent final guard required by `briefs/19-review-fixes-3.md`.
+Only Mail implementation/tests and this report change. `control/tests/`, the
+review files and all other protected paths remain untouched.
+
+- **Finding 1 — saved-mail detection:** `codec.is_mail` accepts the full printable
+  ASCII field-name range except colon, including whitespace before the colon.
+  It scans past malformed lines and an initial mbox envelope until the first
+  empty line, requiring From plus an identifying header (now also Bcc,
+  Resent-Bcc or X-AresOS-Authored). Uncertain mail-like files are refused.
+  Tests: `HeaderAndEncoding.test_review3_1_full_field_syntax_scan_past_damage_and_mbox`
+  covers every allowed field-name character and each new identifying header;
+  `ReviewFixes3.test_review3_1_export_punctuation_malformed_and_mbox_refused_by_real_proxy`
+  exports a marked 21,000-character draft and a Bcc-bearing Sent copy through
+  the actual distinct-UID daemon/proxy, adds punctuation/malformed/mbox headers,
+  renames them `.txt`, and checks refusal. Ordinary PDF/text files still send
+  unchanged. The round-2 detector test's two ordinary-file fixtures now put
+  their example headers after an empty line; their exact old bytes are asserted
+  to be mail-like in the new test, as the new scan-past-damage rule requires.
+- **Finding 2 — decoded nested mail:** `codec._outgoing` strictly decodes each
+  encapsulated RFC822/global message before parsing, sanitizing or inspecting
+  provenance. It also enters mail and frozen MIME entities inside opaque or
+  text parts, removes Bcc/Resent-Bcc recursively, normalizes encoded wrappers,
+  and freezes the resulting attachment bytes before hashing. Approval text is
+  collected from that normalized content. Ancestor markers survive extraction
+  of individual plain/HTML parts, including an explicit marker on the emitted
+  attachment. Source read/save exports retain their original bytes.
+  Tests: `HeaderAndEncoding.test_review3_2_recursive_encoding_and_provenance_before_text_classification`;
+  `ReviewFixes3.test_review3_2_received_two_level_encoded_messages_in_all_composition_modes`
+  sends all 24 type/encoding/mode combinations (new, reply, reply-all, both
+  forwards, draft), independently decodes every received level, checks both
+  private headers/addresses are absent, checks full marked text is approved,
+  and compares received attachment hashes with the approved bytes;
+  `ReviewFixes3.test_review3_2_large_encoded_marked_draft_is_not_approved_by_hash`
+  checks all four 21,000-character encoded sources exceed the approval limit;
+  `ReviewFixes3.test_review3_guard_extracted_marked_body_keeps_ancestor_provenance`
+  covers extracted plain/HTML bodies and refuses missing disclosure.
+- **Independent final guard:** `guard.py` walks the actual wire bytes with a
+  header-only parser, its own transfer decoding and raw multipart-boundary
+  traversal. It does not call the sanitizer, its tree traversal, `decoded`,
+  `parts` or `approval_texts`. It enters declared messages, detected mail,
+  frozen MIME containers and mail-named files. It refuses any private header
+  or undisclosed marked text. Generated body text is checked against the exact
+  composition, including immutable quoted bytes; ordinary incoming quotes
+  retain their existing approval-by-reference rule. HTML line endings are
+  normalized before readable-text comparison. Checks run after compose builds
+  MIME, during prepare, before send stages and immediately before SMTP DATA
+  on the same bytes. A send-time refusal becomes `NothingLeft` and durable
+  `failed`, without DATA or retry. Local draft storage permits its root Bcc
+  for draft recipients; nested private headers remain forbidden, and SMTP
+  never uses that exception.
+  Tests: `ReviewFixes3.test_review3_guard_bypassed_sanitizer_refuses_compose_prepare_and_send_without_data`
+  injects hand-built MIME with encoded Bcc or undisclosed marked text directly
+  through the MIME builder. Compose/prepare refuse; send records failed and
+  replay stays failed. Bypassing the earlier check too still reaches the
+  independent guard at the real TLS SMTP envelope boundary: the SMTP DATA
+  method is never called and the non-deduplicating fixture has zero arrivals.
+  `HeaderAndEncoding.test_review3_guard_frozen_mime_container_and_headerless_eml_are_checked`
+  additionally covers mail without From and frozen multipart containers.
+
+**read — refusal coverage / JUDGMENT-CALL:** malformed or ambiguous MIME/header
+blocks, unknown/broken encodings, encoded multipart containers, unsupported
+`message/*` subtypes, undecodable text and nesting beyond 40 levels are refused
+instead of guessed. Parser-exposed descendants inside encoded messages are not
+stable decoded paths, so callers attach the enclosing part or whole source.
+Tests: `HeaderAndEncoding.test_review3_2_unknown_broken_ambiguous_and_defective_mail_refused`,
+`ReviewFixes3.test_review3_2_broken_encoding_and_nested_header_defects_refuse_compose`
+and the extracted-body regression above. Supporting more cases later requires
+matching decoder/guard changes and received-byte regressions. Keeping encoded
+wrappers opaque or passing unsupported subtypes through was rejected because
+it repeats the review's disclosure failure. Normalizing encoded messages may
+change folding and wrapper bytes even without a private header; their approved
+hashes always bind the emitted bytes. Client presentation remains an owner gate.
+
+**run — local checks:** `PYTHONDONTWRITEBYTECODE=1
+PYTHONPATH=control:control/mail_tests python3 -m unittest
+test_review_fixes_3.HeaderAndEncoding test_review_fixes_2.LocalMailDetection -v`
+printed `Ran 5 tests` and `OK`. `python3 control/generate.py --check` printed
+`Generated artifacts match definitions`; AST parsing all `control/**/*.py`
+printed `Python syntax OK`; `git diff --check` printed nothing.
+`PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/mail_tests python3
+.work/round3-regressions.py` loaded `5180db3`'s codec/adapter and reproduced
+the punctuation bypass and encoded Bcc/provenance failures for both types and
+encodings, then printed current detector/recursive-codec PASS, all 24 adapter
+mode/encoding combinations PASS, empty/plain/formatted guard PASS and injected
+MIME refusal PASS. These use synthetic local message lookup, not real servers.
+A separate local extracted-body check printed `Extracted plain/HTML bodies
+retain ancestor provenance; missing disclosure refused PASS`. Earlier local
+checks exposed an obsolete-From parser ambiguity, the boundary's own CRLF and
+HTML CRLF differences; the implementation was corrected. The QP fixture now
+encodes header names as well, so it actually reproduces the opaque parser case.
+Docker reported `Cannot connect to the Docker daemon`; no host software was
+installed. The scope check printed `Protected-path check PASS`; the size scan
+printed `Remaining .work files over 500 MB: []`.
+
+**read — final-head validation location:** final report-inclusive head, both
+Mail workflow IDs and both independent base attempts are recorded in
+[draft PR #9's validation section](https://github.com/Ares-Empire/AresOS/pull/9)
+after the final push. That stable link records subsequently allocated run IDs
+without changing the tested commit to insert its own IDs. Each final Mail
+execution includes the whole base suite and all ten new round-3 tests; no
+passing result is inferred from the initial runs below.
+
+**run — initial head `ce4eea96d126b4b194c2d358c471653cae2e3d4b`:**
+
+| Workflow | Exact relevant output |
+| --- | --- |
+| [Mail push 42367538434](https://github.com/Ares-Empire/AresOS/actions/runs/42367538434) | `Ran 57 tests in 48.435s`; `Control base suite PASS`; `Ran 74 tests in 176.756s`; `FAILED (failures=5)` |
+| [Mail PR 42367542355](https://github.com/Ares-Empire/AresOS/actions/runs/42367542355) | `Ran 57 tests in 46.707s`; `Control base suite PASS`; `Ran 74 tests in 170.272s`; `FAILED (failures=5)` |
+| [Independent base 42367542361](https://github.com/Ares-Empire/AresOS/actions/runs/42367542361) | `Ran 57 tests in 50.876s`; `OK`; `Control base suite PASS` |
+
+**read — corrections after those runs:** four failures were the unchanged
+round-1 moved/copied-draft inline-forward regression: the conservative detector
+recognized the displayed forwarding header block as a file-like mail. The
+guard now checks constructed body text exactly against the composition and
+quote blobs before interpreting attachment contents. The fifth was the new
+export-byte assertion: base64 fixture lines used LF while IMAP APPEND normalizes
+them to CRLF. The fixture now emits CRLF before APPEND; the exact-byte assertion
+remains. The new attachment-only codec fixture explicitly names its attachment
+disposition. No assertion was removed or relaxed. The final head additionally
+tests ancestor provenance for extracted parts and refuses ambiguous boundary
+suffixes; these are within the same nested-message/disclosure class.
+
+**read — protocol references, 2026-11-07:**
+[RFC 5322 §3.6.8](https://www.rfc-editor.org/rfc/rfc5322#section-3.6.8)
+defines the field-name range;
+[RFC 2045 §6.4](https://www.rfc-editor.org/rfc/rfc2045#section-6.4)
+restricts multipart transfer encodings;
+[RFC 2046 §5.1.1](https://www.rfc-editor.org/rfc/rfc2046#section-5.1.1)
+assigns the delimiter's preceding CRLF to the boundary. Compatibility evidence
+is the pinned container suite, not an assumption about every recipient client.
+
+**read — PLAN-GAP:** the deliberately deferred ordinary local-file class and
+the round-2 saved-mail JUDGMENT-CALL remain unchanged. No additional feature or
+design-gap implementation is included. **assumed / owner gate:** real-account,
+mail-client presentation and tool-user qualification below remain unverified.
+
 ## Review fixes, round 2
 
 **read — scope:** closes only findings 1–3 in `REVIEW-2.md` on `300cd06`,
