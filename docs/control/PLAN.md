@@ -55,8 +55,8 @@ acting):
     image rules.
 11. **Approval on the phone must read like a mail (#71):** the first phone test showed the raw tool call ("code
     basically, not a clean email"). Phone test 2 compares the tool asking him itself (MCP elicitation) with a
-    readable summary in Claude Code's prompt; decision 1 changes with its result. (All phone tests done; the surface
-    is still open as board #78, `CONTROL.md` section 7.)
+    readable summary in Claude Code's prompt; decision 1 changes with its result. (Settled by decision 21: decision 1
+    stands, with a `question` sentence first in every asking input.)
 
 **Answers of 2026-11-07, evening** (relayed by the lead, his words in quotes):
 
@@ -82,6 +82,14 @@ acting):
 20. **Merging, a new rule: "A safe merge shouldnt need permission should it?"** From now on the lead merges a PR
     without asking once its review says SAFE (or READY for a design), CI is green twice, and he has answered its
     judgment calls. Anything under "Owner decides" in `CLAUDE.md` still asks.
+21. **The approval surface (#78): "okay we will use it as is, no need for a request",** after six phone tests.
+    Approvals stay Claude Code's own permission prompt, in the terminal and through Remote Control on his phone. The
+    phone shows an MCP tool's input as fields and values, there is no supported way to give it a header and text of
+    its own, and MCP elicitation doesn't reach the phone. So every asking input starts with a `question` field: one
+    plain sentence the tool service writes (for a mail the recipients with the hidden Bcc, the subject, the length
+    and the attachments; for a deletion which messages; for Chrome the site, the action and what is sent), passed
+    through unchanged and verified, followed by the full content fields. An approval screen in Aresus is not planned;
+    a possible later improvement only if he asks.
 
 ## How sending stays under the owner's control
 
@@ -242,8 +250,8 @@ tasks at any time.
 - How the CI virtual machine gets the AresOS image for step 5 (the private image needs read access the owner
   restores, or a fresh unpublished build in the job): decided in the design.
 - The mail provider and account details stay out of this public repo.
-- **Owner questions still open:** #78, the approval surface (`CONTROL.md` sections 7 and 10). Everything else in
-  section 10 was answered on 2026-11-07 (decisions 14 to 19).
+- **Owner questions still open:** none. Everything in `CONTROL.md` section 10 was answered on 2026-11-07 (decisions
+  14 to 19 and 21).
 
 **Follow-ups** (from the 18b merge-fix review, `gpt-6.1-sol` high, SAFE; for the next base or boundary brief):
 
@@ -385,3 +393,13 @@ tasks at any time.
   tool service's version store (refused if that fails), and only deleting asks; every gating hook blocks when it
   fails; coding programs holding his files open are ended before the assistant's writes are switched on; the
   terminal's own folders are disposable scratch.
+- **2026-11-07, 19:42:** PR #12 (the owner's answers and re-check 15's fixes) merged as `b84833c`. The owner decided
+  the approval surface after six phone tests (decision 21, #78): Claude Code's own prompt, at the laptop and through
+  Remote Control, with every asking input starting with the tool service's `question` sentence, verified. Written
+  into the design on branch `control/approval-surface`; the Aresus approval screen is not planned. No owner question
+  is open.
+- **2026-11-07, 19:46:** frontier re-check 17 of decision 21: recorded faithfully, two leftovers fixed. Approval
+  descriptions reach his phone through Claude Code and Remote Control, with no extra encryption promised; the
+  approval deadline is 15 minutes from the service's reservation at prepare time, and a later call is refused; the
+  `question` field is checked on the original arguments, escaped and bounded with exact counts; the laptop-only
+  handling of his own unattributed sends is marked as the writer's judgment call, to confirm with him.

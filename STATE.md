@@ -95,16 +95,12 @@ Updated 2026-11-07. The live truth is `git log`, `gh pr list` and `git worktree 
      `6b2667f`) and the Chrome checks 17 to 17e (PRs #3, #4, #7, #8, #10). Check 17e showed that a local checkpoint
      outside Chrome holds every tested send; the owner chose it (with hard security requirements, `PLAN.md` decisions
      6 to 13).
-   - **Done, not merged:** all three phone approval tests (2026-11-07). On the phone, Claude Code's prompt reads as
-     code in every shape tried (the raw tool call, a hook's readable reason, one readable text field), and the tool's
-     own question (MCP elicitation) never reached the phone; in the terminal at the laptop the prompt is readable. The
-     approval surface is the one owner question still open (#78; `docs/design/CONTROL.md`, section 7).
+   - **Decided:** the approval surface (decision 21, after six phone tests): Claude Code's own prompt, at the laptop
+     and through Remote Control on his phone, with every asking input starting with the tool service's `question`
+     sentence. No owner question on the control layer is open.
    - **In progress:** Mail (brief 19, PR #9: package review SAFE, frontier security review in its third round);
-     the owner's answers of 2026-11-07 written into the design (`PLAN.md` decisions 14 to 20, branch
-     `control/owner-answers-1107`): unlabelled local-only deletion stays free, "don't ask again" for mail bound to
-     exact recipients, WhatsApp asks per message, the assistant may change everything in his home folders but hidden
-     settings and start-up places, searches free, the certificate limits accepted, and safe merges need no
-     permission.
+     the approval surface written into the design (decision 21, branch `control/approval-surface`). On main since
+     PR #12 (`b84833c`): the owner's answers of 2026-11-07 (decisions 14 to 20).
    - **Next:** brief 18c (first end-to-end test on a throwaway CI image; no owner OK needed under the 2026-11-07
      rule), then brief 20 (Chrome) on the final design draft, once a re-check finds no blocking point.
 
