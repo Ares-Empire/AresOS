@@ -10,14 +10,14 @@ export class Protocol extends EventEmitter {
     if(message.id){
       const p=this.pending.get(message.id);if(!p)return;
       clearTimeout(p.timer);this.pending.delete(message.id);
-      if(message.error)p.reject(new Error(JSON.stringify(message.error)));else p.resolve(message.result||{});
+      if(message.error)p.reject(new Error(p.method+': '+JSON.stringify(message.error)));else p.resolve(message.result||{});
     }else{this.emit(message.method,message.params||{},message.sessionId);this.emit('event',message);}
   }
   send(method,params={},sessionId){
     const id=++this.sequence;
     return new Promise((resolve,reject)=>{
       const timer=setTimeout(()=>{this.pending.delete(id);reject(new Error(`CDP timeout: ${method}`));},20000);
-      this.pending.set(id,{resolve,reject,timer});
+      this.pending.set(id,{resolve,reject,timer,method});
       this.write({id,method,params,...(sessionId?{sessionId}:{})});
     });
   }

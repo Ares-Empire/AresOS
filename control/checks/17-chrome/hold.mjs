@@ -26,7 +26,7 @@ export class Hold extends EventEmitter {
     if(this.publicMode){
       // Independent guard: background APIs are dropped even when this candidate rule misses them.
       const drop=!!reason||['XHR','Fetch','Ping','WebSocket'].includes(p.resourceType);
-      this.history.push({url:p.request.url,method:p.request.method,type:p.resourceType,reason,decision:drop?'drop':'allow-read'});
+      this.history.push({url:p.request.url,method:p.request.method,type:p.resourceType,phase:this.phase||'load',reason,decision:drop?'drop':'allow-read'});
       await this.cdp.send(drop?'Fetch.failRequest':'Fetch.continueRequest',drop?{requestId:p.requestId,errorReason:'Aborted'}:{requestId:p.requestId});return;
     }
     if(!isFixture||this.trusted.has(new URL(p.request.url).origin)){

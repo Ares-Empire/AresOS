@@ -58,6 +58,7 @@ export async function readAndAct(cdp,fixture,out,route,aria,frameSessions){
   await view.act(ref(v,'Start date'),'fill','2026-11-07');
   const upload=`${out}/synthetic-upload.txt`;fs.writeFileSync(upload,'Synthetic fixture attachment only.\n');
   await view.act(ref(v,'Local file'),'file',upload);
+  assert.equal(await evaluate(cdp,'document.querySelector("#file").files[0].text()'),fs.readFileSync(upload,'utf8'));
   assert.deepEqual(await evaluate(cdp,'({name:document.querySelector("#name").value,region:document.querySelector("#region").value,updates:document.querySelector("#updates").checked,date:document.querySelector("#date").value,file:document.querySelector("#file").files[0].name})'),{name:'Synthetic Reader',region:'South',updates:false,date:'2026-11-07',file:'synthetic-upload.txt'});
   await view.act(ref(v,'Display name'),'focus');await press(cdp,'End');await cdp.send('Input.insertText',{text:'!'});
   assert.equal(await evaluate(cdp,'document.querySelector("#name").value'),'Synthetic Reader!');
@@ -78,6 +79,7 @@ export async function readAndAct(cdp,fixture,out,route,aria,frameSessions){
   await view.act(owned,'fill','still-bound-to-original');
   assert.equal(await evaluate(cdp,'document.querySelector("#note").value'),'still-bound-to-original');
   console.log('ACTIONS PASS',route,'fill/select/check/date/file/key/scroll/frames/shadow-read/stale/tab-switch');
+  save(out,`${route}-actions`,{fileUploads:view.fileUploadResults,staleRemoved:'rejected',staleDocument:'rejected',tabBinding:'original retained'});
   save(out,`${route}-metrics`,metrics);view.close();return metrics;
 }
 
@@ -167,25 +169,31 @@ export async function holdChecks(cdp,fixture,out,route){
 export async function publicChecks(cdp,out,route){
   const hold=new Hold(cdp);hold.publicMode=true;await hold.enable();
   const results=[];
-  for(const [name,url]of [['wikipedia','https://en.wikipedia.org/wiki/Main_Page'],['news','https://www.bbc.com/news'],['demo-form','https://httpbin.org/forms/post']]){
+  for(const [name,url]of [['wikipedia','https://en.wikipedia.org/wiki/Main_Page'],['news','https://www.bbc.com/news'],['demo-form','https://www.selenium.dev/selenium/web/web-form.html']]){
     const start=hold.history.length;
     const record={name,url};
     try{
+      hold.phase='load';
       await navigate(cdp,url);await delay(2000);
       record.title=await evaluate(cdp,'document.title');
       record.textSample=(await evaluate(cdp,'document.body.innerText')).slice(0,800);
       if(name==='wikipedia'){
+        hold.phase='action';
         hold.intent={form:true,typing:true};
         record.action=await evaluate(cdp,`(()=>{const input=document.querySelector('input[name=search]');if(!input)return 'no search field';input.value='synthetic fixture query';input.form.requestSubmit();return 'search submitted to request gate'})()`);
         await delay(700);
       }
       if(name==='demo-form'){
+        hold.phase='action';
         hold.intent={form:true};record.action=await evaluate(cdp,`(()=>{const form=document.querySelector('form');if(!form)return 'no form';form.querySelector('input').value='Synthetic fixture';form.requestSubmit();return 'form submitted to request gate'})()`);
         await delay(700);
       }
     }catch(e){record.error=e.message;}
     record.requests=hold.history.slice(start);results.push(record);
-    console.log('PUBLIC',name,record.title||record.error,'requests='+record.requests.length,'candidateAlarms='+record.requests.filter(r=>r.reason).length,record.action||'');
+    record.loadFalseAlarms=record.requests.filter(r=>r.reason&&r.phase==='load').length;
+    record.actionCandidates=record.requests.filter(r=>r.reason&&r.phase==='action').length;
+    record.guardOnlyDrops=record.requests.filter(r=>!r.reason&&r.decision==='drop').length;
+    console.log('PUBLIC',name,record.title||record.error,'requests='+record.requests.length,'loadFalseAlarms='+record.loadFalseAlarms,'actionCandidates='+record.actionCandidates,'guardOnlyDrops='+record.guardOnlyDrops,record.action||'');
     hold.intent={};
   }
   save(out,`${route}-public-sites`,results);await hold.close();return results;

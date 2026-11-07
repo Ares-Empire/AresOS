@@ -1,10 +1,14 @@
 import {performance} from 'node:perf_hooks';
 import {session} from './protocol.mjs';
+import fs from 'node:fs';
+import path from 'node:path';
+import {createHash} from 'node:crypto';
 
 // Use Chrome's accessibility names and roles, with DOM layout joined by backend node ID.
 // References are document + frame + backend-node identities, never ordinal selectors.
 export class PageView {
   refs=new Map(); children=new Map();
+  fileUploadResults=[];
   constructor(cdp,frameSessions){
     this.cdp=cdp;this.frameSessions=frameSessions;
     this.onAttached=p=>{
@@ -79,7 +83,23 @@ export class PageView {
   }
   async act(ref,action,value){
     const r=await this.resolve(ref);
-    if(action==='file')return r.cdp.send('DOM.setFileInputFiles',{backendNodeId:r.backendNodeId,files:[value]});
+    if(action==='file'){
+      const payload=fs.readFileSync(value);
+      const proof={name:path.basename(value),bytes:payload.length,sha256:createHash('sha256').update(payload).digest('hex')};
+      try{
+        await r.cdp.send('DOM.setFileInputFiles',{backendNodeId:r.backendNodeId,files:[value]});
+        proof.method='DOM.setFileInputFiles';
+      }catch(e){
+        // chrome.debugger denies local-path reads unless the extension has file access.
+        // Transfer only the explicitly supplied fixture bytes; grant no broad file permission.
+        proof.pathError=e.message;
+        const result=await r.cdp.send('Runtime.callFunctionOn',{objectId:r.objectId,functionDeclaration:'function(name,base64){const bytes=Uint8Array.from(atob(base64),c=>c.charCodeAt(0));const transfer=new DataTransfer();transfer.items.add(new File([bytes],name,{type:"text/plain"}));this.files=transfer.files;this.dispatchEvent(new Event("input",{bubbles:true}));this.dispatchEvent(new Event("change",{bubbles:true}));return this.files[0].size;}',arguments:[{value:path.basename(value)},{value:payload.toString('base64')}],returnByValue:true});
+        if(result.exceptionDetails)throw new Error(JSON.stringify(result.exceptionDetails));
+        if(result.result.value!==payload.length)throw Error('File byte transfer failed');
+        proof.method='explicit file bytes via File + DataTransfer';
+      }
+      this.fileUploadResults.push(proof);console.log('FILE_UPLOAD',JSON.stringify(proof));return proof;
+    }
     const functions={
       click:'function(){this.scrollIntoView({block:"center"});this.click();}',
       focus:'function(){this.focus();}',
