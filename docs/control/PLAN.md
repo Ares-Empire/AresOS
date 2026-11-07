@@ -289,5 +289,8 @@ tasks at any time.
   the launcher restarts Chrome with the checkpoint); Chrome's own services trusted without exemptions; the strict
   guard; "don't ask again" for recognised kinds only; his four usual sites as the first adapters; the residuals in
   plain words; the five conditions before everyday use, and calls only while no guard is on. Section 7 adds the
-  assistant apart from coding sessions and the approval surface, left open until the phone test. Frontier re-check 8
-  of the diff next, then brief 20.
+  assistant apart from coding sessions, and the approval surface: the phone tests are done (on the phone, Claude
+  Code's prompt reads as code in every shape tried; the tool's own question never arrived), and the proposal (an
+  approval screen in Aresus, end-to-end encrypted and signed on the phone, with a local approval window at the laptop;
+  alternative: approving only at the laptop) is open for the owner. Frontier re-check 8 of the diff next, then brief
+  20.
