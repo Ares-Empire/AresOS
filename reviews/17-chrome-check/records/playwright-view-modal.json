@@ -1,0 +1,126 @@
+{
+  "format": "aresos-check-ax-layout-v1",
+  "frames": [
+    {
+      "id": "730405918A35500527F067EF726198B6",
+      "parent": null,
+      "url": "http://127.0.0.1:40009/modal",
+      "document": "E5C9D1B1C3C57FE51212ECFDCAA9B9CD",
+      "coordinates": "frame viewport CSS pixels",
+      "viewport": {
+        "height": 857,
+        "visibility": "visible",
+        "width": 1440
+      },
+      "text": "Confirm synthetic action\nReason\nCancel"
+    }
+  ],
+  "elements": [
+    {
+      "ref": "root:730405918A35500527F067EF726198B6:E5C9D1B1C3C57FE51212ECFDCAA9B9CD:345",
+      "frame": "730405918A35500527F067EF726198B6",
+      "role": "RootWebArea",
+      "name": "Modal",
+      "state": {
+        "focused": true
+      },
+      "box": [
+        0,
+        0,
+        1440,
+        857
+      ],
+      "inViewport": true,
+      "onScreen": true
+    },
+    {
+      "ref": "root:730405918A35500527F067EF726198B6:E5C9D1B1C3C57FE51212ECFDCAA9B9CD:354",
+      "frame": "730405918A35500527F067EF726198B6",
+      "role": "dialog",
+      "name": "Confirm synthetic action",
+      "state": {
+        "modal": true
+      },
+      "box": [
+        539.921875,
+        331.59375,
+        360.15625,
+        193.8125
+      ],
+      "inViewport": true,
+      "onScreen": true
+    },
+    {
+      "ref": "root:730405918A35500527F067EF726198B6:E5C9D1B1C3C57FE51212ECFDCAA9B9CD:355",
+      "frame": "730405918A35500527F067EF726198B6",
+      "role": "heading",
+      "name": "Confirm synthetic action",
+      "state": {},
+      "box": [
+        572.921875,
+        384.5,
+        294.15625,
+        28
+      ],
+      "inViewport": true,
+      "onScreen": true
+    },
+    {
+      "ref": "root:730405918A35500527F067EF726198B6:E5C9D1B1C3C57FE51212ECFDCAA9B9CD:356",
+      "frame": "730405918A35500527F067EF726198B6",
+      "role": "LabelText",
+      "name": "",
+      "state": {},
+      "box": [
+        584.921875,
+        432.40625,
+        270.15625,
+        24
+      ],
+      "inViewport": true,
+      "onScreen": true
+    },
+    {
+      "ref": "root:730405918A35500527F067EF726198B6:E5C9D1B1C3C57FE51212ECFDCAA9B9CD:358",
+      "frame": "730405918A35500527F067EF726198B6",
+      "role": "button",
+      "name": "Cancel",
+      "state": {
+        "invalid": "false"
+      },
+      "box": [
+        572.921875,
+        468.40625,
+        65.8125,
+        24
+      ],
+      "inViewport": true,
+      "onScreen": true
+    },
+    {
+      "ref": "root:730405918A35500527F067EF726198B6:E5C9D1B1C3C57FE51212ECFDCAA9B9CD:344",
+      "frame": "730405918A35500527F067EF726198B6",
+      "role": "textbox",
+      "name": "Reason",
+      "value": "",
+      "state": {
+        "required": true,
+        "invalid": "false",
+        "focused": true
+      },
+      "box": [
+        640.078125,
+        432.40625,
+        215,
+        24
+      ],
+      "inViewport": true,
+      "onScreen": true
+    }
+  ],
+  "offset": 0,
+  "total": 6,
+  "next": null,
+  "errors": [],
+  "ms": 11.46
+}

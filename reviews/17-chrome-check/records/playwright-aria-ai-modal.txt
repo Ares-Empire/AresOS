@@ -1,0 +1,9 @@
+- generic [ref=f7e1] [box=32,32,850,82]:
+  - heading "Dialog test" [level=1] [ref=f7e2] [box=32,32,850,37]
+  - button "Behind dialog" [ref=f7e3] [box=32,90,113,24]
+  - dialog "Confirm synthetic action" [ref=f7e4] [box=540,332,360,194]:
+    - heading "Confirm synthetic action" [level=2] [ref=f7e5] [box=573,385,294,28]
+    - generic [ref=f7e6] [box=585,432,270,24]:
+      - text: Reason
+      - textbox "Reason" [active] [ref=f7e7] [box=640,432,215,24]
+    - button "Cancel" [ref=f7e8] [box=573,468,66,24]

@@ -1,0 +1,18 @@
+{
+  "case": "fetch-playwright-disconnect",
+  "whileHeld": 0,
+  "afterDisconnect": [
+    {
+      "seq": 48,
+      "at": 1794025584346,
+      "atMonoMs": 233743.334974,
+      "kind": "http",
+      "method": "POST",
+      "url": "/receive?case=fetch-playwright-disconnect",
+      "body": "synthetic-fetch-playwright-disconnect",
+      "site": "127.0.0.1:40009",
+      "cookie": true
+    }
+  ],
+  "result": "disconnect released a request without an approval"
+}

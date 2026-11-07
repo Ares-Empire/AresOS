@@ -1,0 +1,76 @@
+[
+  {
+    "name": "wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Main_Page",
+    "title": "Wikipedia, the free encyclopedia",
+    "action": "search submitted to request gate",
+    "visitRequests": 27,
+    "visitLoadFalseAlarms": 1,
+    "loadFalseAlarms": 1,
+    "actionCandidates": 1,
+    "guardOnlyDrops": 0,
+    "sourceOriginRequests": 27,
+    "candidateRequests": [
+      {
+        "method": "POST",
+        "type": "Ping",
+        "phase": "load",
+        "reason": "non-read method",
+        "decision": "drop",
+        "addressWithoutQuery": "https://en.wikipedia.org/ins-502b/v2/events"
+      },
+      {
+        "method": "GET",
+        "type": "Document",
+        "phase": "action",
+        "reason": "form submission, including GET",
+        "decision": "drop",
+        "addressWithoutQuery": "https://en.wikipedia.org/w/index.php"
+      }
+    ]
+  },
+  {
+    "name": "news",
+    "url": "https://www.bbc.com/news",
+    "title": "Home - BBC News",
+    "action": null,
+    "visitRequests": 196,
+    "visitLoadFalseAlarms": 1,
+    "loadFalseAlarms": 1,
+    "actionCandidates": 0,
+    "guardOnlyDrops": 3,
+    "sourceOriginRequests": 84,
+    "candidateRequests": [
+      {
+        "method": "POST",
+        "type": "XHR",
+        "phase": "load",
+        "reason": "non-read method",
+        "decision": "drop",
+        "addressWithoutQuery": "https://c2-eu.piano.io/xbuilder/experience/execute"
+      }
+    ]
+  },
+  {
+    "name": "demo-form",
+    "url": "https://www.selenium.dev/selenium/web/web-form.html",
+    "title": "Web form",
+    "action": "form submitted to request gate",
+    "visitRequests": 7,
+    "visitLoadFalseAlarms": 0,
+    "loadFalseAlarms": 0,
+    "actionCandidates": 1,
+    "guardOnlyDrops": 0,
+    "sourceOriginRequests": 7,
+    "candidateRequests": [
+      {
+        "method": "GET",
+        "type": "Document",
+        "phase": "action",
+        "reason": "form submission, including GET",
+        "decision": "drop",
+        "addressWithoutQuery": "https://www.selenium.dev/selenium/web/submitted-form.html"
+      }
+    ]
+  }
+]
