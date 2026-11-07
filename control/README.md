@@ -376,3 +376,40 @@ external network, and attaches it with pinned GreenMail and Dovecot to a private
 `--internal` network. No ports are published. TLS keys and synthetic mailboxes are
 discarded; only test output/server logs are uploaded. The Mail workflow runs on this
 branch and its PR; the base workflow still runs independently on the PR.
+
+### Mail round 7: reviewed roles, draft exports and decoded headers
+
+Before moves/copies, deletion, draft save, folder changes, draft decisions and send
+preflight, current LIST SPECIAL-USE roles must be complete (Sent, Drafts, Trash,
+Junk, Archive), unique and match owner setup. A server role change refuses these
+operations. The owner fixes missing/duplicate roles on the server, then runs:
+
+```
+sudo aresos admin mail account_folders --input '{"id":"ACCOUNT"}'
+sudo aresos admin mail account_folders --input '{"id":"ACCOUNT","roles_hash":"HASH_FROM_REVIEW"}'
+```
+
+The first command shows escaped, untrusted folder names and a hash, without
+recording changes. The second re-reads and records only the reviewed mapping;
+no probe mail or account re-add is needed. Earlier Trash and Drafts folders and
+their descendants stay protected after refresh. This does not enable incomplete
+onboarding or change the server's folder deletion qualification.
+
+Claude cannot save any draft part or its source through `mail_attachment_save`,
+including HTML and binary attachments. The owner saves draft attachments in his
+mail program; Claude can compose the draft itself with `mode=draft`. Ordinary
+received and sent parts still export their original bytes, after inspection that
+refuses nested draft provenance and unsupported structures.
+
+Write outgoing header values as decoded Unicode. Claude-written encoded words,
+C0/C1 controls, bidi and invisible formatting characters refuse. Original-mail
+subjects and recipients are decoded before storage; derived formatting characters
+are escaped in approvals. Display names appear beside their addresses. Independent
+validation decodes exact outgoing Subject/From/To/Cc bytes and compares names,
+addresses and the complete To/Cc/Bcc SMTP envelope with approval, at compose and
+again before DATA. A mismatch fails without submission or replay.
+
+Mail audit summaries use service-written text. External values, recipient stage
+keys and caller save paths are structured inside escaped `untrusted_content`;
+`control_log` and `aresos log` also mark historical Mail summaries. A mail's
+instructions never become instructions from the audit service.

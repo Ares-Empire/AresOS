@@ -42,18 +42,25 @@ def is_mail(raw):
         b"bcc", b"resent-bcc", b"x-aresos-authored"})
 
 
-def clean_header(value):
-    if any(ord(c) < 32 or ord(c) == 127 for c in value):
+def clean_header(value, authored=True):
+    if any(ord(c) < 32 or 127 <= ord(c) <= 159 for c in value):
         raise Refused("invalid_input", "Header contains a control character; use a single line.")
+    if authored and (re.search(r"=\?[^\r\n]*?\?=", value) or any(
+            0x200b <= ord(c) <= 0x200f or 0x202a <= ord(c) <= 0x202e
+            or 0x2060 <= ord(c) <= 0x2064 or 0x2066 <= ord(c) <= 0x2069
+            or ord(c) in {0x061c, 0xfeff} for c in value)):
+        raise Refused("invalid_input", "Write decoded Unicode header values without encoded words, bidi or invisible formatting characters.")
     return value
 
 
-def address(value, utf8=False):
-    clean_header(value)
+def address(value, utf8=False, authored=True):
+    clean_header(value, authored)
     pairs = getaddresses([value])
     if len(pairs) != 1 or not pairs[0][1] or pairs[0][1].count("@") != 1:
         raise Refused("invalid_input", "Use one explicit mailbox per address, including its domain.")
     name, addr = pairs[0]
+    clean_header(name, authored)
+    clean_header(addr, authored)
     local, domain = addr.rsplit("@", 1)
     if not local or any(c in local for c in '<> ,;:()\\"'):
         raise Refused("invalid_input", "This mailbox syntax is unsupported; use a simple explicit address.")

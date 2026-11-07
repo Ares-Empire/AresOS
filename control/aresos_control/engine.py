@@ -79,7 +79,11 @@ class Engine:
         if op["app"] == "mail":
             outcome = self.adapters["mail"].stage_outcome(op, name, outcome)
         op["stages"][name] = outcome
-        self.store.write({"op:" + op_id: op}, op["action"], "stage " + visible(name) + ": " + outcome, op_id)
+        if op["app"] == "mail":
+            self.store.write({"op:" + op_id: op}, op["action"], "Mail operation stage recorded", op_id,
+                             untrusted_content={"stage": name, "outcome": outcome})
+        else:
+            self.store.write({"op:" + op_id: op}, op["action"], "stage " + visible(name) + ": " + outcome, op_id)
         self.store.checkpoint("stage:" + name)
 
     def submit(self, action, args):
@@ -179,8 +183,18 @@ class Engine:
             return self.pending(args=args)
         if name == "control_log":
             day = time.strftime("%Y-%m-%d", time.localtime())
-            entries = [{k: event[k] for k in ("seq", "time", "action", "summary", "outcome", "operation_id")} for event in self.store.audit()
-                       if time.strftime("%Y-%m-%d", time.localtime(event["time"])) == day]
+            entries = []
+            for event in self.store.audit():
+                if time.strftime("%Y-%m-%d", time.localtime(event["time"])) != day:
+                    continue
+                entry = {k: event[k] for k in ("seq", "time", "action", "summary", "outcome", "operation_id")}
+                if event["action"].startswith("mail_"):
+                    # Historical Mail summaries may predate structured marking.
+                    entry["summary"] = "Mail audit event"
+                    entry["untrusted_content"] = {"summary": visible(event["summary"]), **event.get("untrusted_content", {})}
+                elif "untrusted_content" in event:
+                    entry["untrusted_content"] = event["untrusted_content"]
+                entries.append(entry)
             return self.page(entries, args, "log:" + day)
         app, verb = action.app, action.verb
         adapter = self.adapters[app]
@@ -302,8 +316,9 @@ class Engine:
                     data = {"sha256": key, "size": len(data_bytes)}
                     self.store.write({}, app + "_file_save", "export blob " + key + "; caller must report save outcome", outcome="started")
                 else:
-                    self.store.write({}, app + "_file_save", "caller reports save " + visible(str(request.get("outcome")))[:512],
-                                     outcome="refused" if request.get("outcome") == "refused" else "done")
+                    self.store.write({}, app + "_file_save", "caller reported file save outcome",
+                                     outcome="refused" if request.get("outcome") == "refused" else "done",
+                                     untrusted_content={"save": request.get("outcome")})
                     data = {"recorded": True}
             else:
                 raise Refused("invalid_input", "Unknown method or wrong socket; inspect the protocol.")

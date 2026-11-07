@@ -8,7 +8,7 @@ import sqlite3
 import time
 import uuid
 
-from .common import Refused, canonical, digest
+from .common import Refused, canonical, digest, visible
 
 
 def sync_directory(path):
@@ -21,6 +21,8 @@ def sync_directory(path):
 
 def short_description(operation):
     description = operation["approval"]["description"]
+    if operation.get("app") == "mail" and "untrusted_content" in description:
+        return copy.deepcopy(description)
     result = {k: copy.deepcopy(description[k]) for k in
               ("action", "account", "to", "cc", "bcc", "subject", "title") if k in description}
     result.setdefault("action", operation["action"])
@@ -35,6 +37,8 @@ def short_description(operation):
         result["targets"] = [copy.deepcopy(description["target"])]
     if "repair_of" in operation:
         result["targets"] = [operation["repair_of"]]
+    if operation.get("app") == "mail":
+        return {"action": result.pop("action"), "untrusted_content": visible(result)}
     return result
 
 
@@ -142,7 +146,7 @@ class Store:
         self.committed = record["seq"]
         self.checkpoint("journal_committed")
 
-    def write(self, changes, action, summary, operation_id=None, restoring=False, outcome="done"):
+    def write(self, changes, action, summary, operation_id=None, restoring=False, outcome="done", untrusted_content=None):
         if self.locked and not restoring:
             raise Refused("restore_required", "Older log detected; sudo aresos admin control restore_confirm must invalidate earlier approvals first.")
         operations = {v["id"]: v for k, v in changes.items() if k.startswith("op:")}
@@ -158,6 +162,8 @@ class Store:
         event = {"seq": record["seq"], "time": record["time"], "action": action, "summary": summary,
                  "outcome": operation["state"] if operation else outcome, "operation_id": operation_id,
                  "set": changes, "record": record}
+        if untrusted_content is not None:
+            event["untrusted_content"] = visible(untrusted_content)
         # Fence the write before even its prepared event can enter a backup.
         # A crash here may need owner confirmation: compact metadata cannot
         # reconstruct the full event, and absence cannot prove no restore.

@@ -65,12 +65,12 @@ def onboard(engine, args, password):
     with mail.transport.imap(account) as client:
         account["capabilities"] = sorted(client.capabilities)
         listed = folders(client)
-        mapping = {"\\Sent": "sent", "\\Drafts": "drafts", "\\Trash": "trash", "\\Junk": "junk", "\\Archive": "archive"}
-        for flag, kind in mapping.items():
-            matches = [f["name"] for f in listed if flag.casefold() in {v.casefold() for v in f["flags"]}]
-            if len(matches) == 1:
-                account["special"][kind] = matches[0]
-        account["delimiter"] = next((f["delimiter"] for f in listed if f["name"] == "INBOX"), None)
+        from .roles import resolve
+        try:
+            account.update(resolve(listed))
+        except Refused as exc:
+            engine.store.write({"mail:account:" + account_id: account}, "mail_account_add", "special-folder configuration incomplete", outcome="refused")
+            raise Refused("unsupported_server", "Server lacks complete, unique SPECIAL-USE roles; owner must configure folders before onboarding.") from exc
     with mail.transport.smtp(account) as smtp:
         account["smtp_capabilities"] = sorted(smtp.esmtp_features)
     # Missing special use is never guessed from English mailbox names.

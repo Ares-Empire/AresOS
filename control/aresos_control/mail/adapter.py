@@ -17,6 +17,7 @@ from ..adapters import NothingLeft, Uncertain
 from ..blobs import Blobs
 from ..common import Refused, canonical, digest, sha256, visible
 from . import codec
+from .roles import resolve, SETUP
 from .transport import Transport, folders, select, fetch, fetch_headers, uids, ok, quote, context, nonempty_refusal
 
 
@@ -39,7 +40,17 @@ class Mail:
     def public_account(self, account):
         return {k: account[k] for k in ("id", "addresses", "capabilities", "smtp_capabilities", "special", "sent_policy", "safe_folder_delete", "format", "signature", "ready")} | {"folder_delete_reason": account.get("folder_delete_reason", "Not qualified by onboarding.")}
 
+    def fresh_roles(self, account, client=None):
+        if client is None:
+            with self.transport.imap(account) as conn:
+                return self.fresh_roles(account, conn)
+        current = resolve(folders(client))
+        if current != {k: account.get(k) for k in ("special", "delimiter")}:
+            raise Refused("special_folders_changed", "SPECIAL-USE roles differ from owner setup. " + SETUP)
+        return current
+
     def authored(self, message):
+        self.fresh_roles(self.account(message["reference"]["account"]))
         # message() fetches FLAGS with BODY.PEEK for this exact, validated reference.
         return (any(flag.casefold() == "\\draft" for flag in message["flags"])
                 or self.under(self.account(message["reference"]["account"]), message["reference"]["folder"], "drafts")
@@ -100,9 +111,9 @@ class Mail:
             return read(conn)
 
     def under(self, account, name, kind):
-        root = account["special"].get(kind)
-        delimiter = account.get("delimiter")
-        return bool(root and (name == root or (delimiter and name.startswith(root + delimiter))))
+        roots = [(account["special"].get(kind), account.get("delimiter"))]
+        roots += [(v["folder"], v["delimiter"]) for v in account.get("protected_special", {}).get(kind, [])]
+        return any(root and (name == root or (delimiter and name.startswith(root + delimiter))) for root, delimiter in roots)
 
     def page(self, values, args, state, scope):
         token = digest([scope, state])
@@ -230,6 +241,9 @@ class Mail:
 
     def attachment(self, args, outgoing=False):
         m = self.message(args["reference"])
+        if self.authored(m):
+            reason = codec.DRAFT_ATTACHMENT_REASON if outgoing else 'Draft parts and source cannot be saved by Claude; the owner saves draft attachments in his mail program, or Claude sends the draft itself with mode=draft.'
+            raise Refused("file_refused", reason)
         if args["part"] == "source":
             data, name, content_type = m["raw"], "message.eml", "message/rfc822"
         else:
@@ -238,9 +252,16 @@ class Mail:
                 raise Refused("stale_reference", "MIME part is stale, read again.")
             data, name, content_type = codec.decoded(part), part.get_filename() or "attachment", part.get_content_type()
         texts, mail_source = [], args["part"] == "source"
+        selected = "1" if mail_source else args["part"]
+        if not outgoing:
+            raw, _, _, ancestor_authored, default_type = codec.source_part(m["raw"], selected)
+            try:
+                codec.rebuild(raw, ancestor_authored, default_type)
+            except Refused as exc:
+                if codec.DRAFT_ATTACHMENT_REASON in str(exc):
+                    raise Refused("file_refused", 'Draft parts and source cannot be saved by Claude; the owner saves draft attachments in his mail program, or Claude sends the draft itself with mode=draft.') from exc
+                raise
         if outgoing:
-            if self.authored(m):
-                raise Refused("file_refused", codec.DRAFT_ATTACHMENT_REASON)
             selected = "1" if mail_source else args["part"]
             raw, headers, payload, ancestor_authored, default_type = codec.source_part(m["raw"], selected)
             authored = self.authored(m) or ancestor_authored
@@ -276,6 +297,7 @@ class Mail:
 
     def compose(self, args):
         account = self.account(args["account"])
+        self.fresh_roles(account)
         mode = args.get("mode", "new")
         original = None
         if mode != "new":
@@ -285,7 +307,8 @@ class Mail:
         elif "reference" in args:
             raise Refused("invalid_input", "New mail has no original reference; choose reply/forward/draft explicitly.")
         utf8 = "smtputf8" in account["smtp_capabilities"]
-        normal = lambda values: [codec.address(v, utf8) for v in values]
+        def normal(values, derived=False):
+            return [codec.address(v, utf8, authored=not derived) for v in values]
         own = {codec.mailbox(v).casefold() for v in account["addresses"]}
         sender = codec.address(args.get("from", account["addresses"][0]), utf8)
         if codec.mailbox(sender).casefold() not in own:
@@ -353,16 +376,18 @@ class Mail:
                 if self.authored(original):
                     part["text"] = quote_text
                 generated.append(part)
+        subject = codec.clean_header(subject, authored="subject" in args or not original)
         seen = set()
-        def unique(values):
+        def unique(values, derived=False):
             out = []
-            for value in normal(values):
+            for value in normal(values, derived):
                 key = codec.mailbox(value).casefold()
                 if key not in seen:
                     out.append(value)
                     seen.add(key)
             return out
-        to, cc, bcc = unique(to), unique(cc), unique(bcc)
+        to, cc, bcc = (unique(values, derived=bool(original) and ((mode in {"reply", "reply_all"} and key in {"to", "cc"}) or (mode == "draft" and key not in args)))
+                       for key, values in (("to", to), ("cc", cc), ("bcc", bcc)))
         for item in args.get("attachments", []):
             if "reference" in item:
                 _, att = self.attachment(item, outgoing=True)
@@ -384,12 +409,14 @@ class Mail:
             if att["type"].startswith(("message/", "multipart/")):
                 att["source_type"], att["type"] = att["type"], "application/octet-stream"
         mail = {"account": account["id"], "from": sender, "to": to, "cc": cc, "bcc": bcc,
-                "subject": codec.clean_header(subject), "text": args.get("text", ""), "format": args.get("format", "formatted" if any(p["kind"] == "draft_html" for p in generated) else account["format"]),
+                "subject": subject, "text": args.get("text", ""), "format": args.get("format", "formatted" if any(p["kind"] == "draft_html" for p in generated) else account["format"]),
                 "signature": "" if mode == "draft" and "text" not in args else account["signature"], "generated_parts": generated, "attachments": attachment_refs,
                 "in_reply_to": reply_ids[-1] if reply_ids else "", "references": [],
                 "answered_reference": original["reference"] if mode in {"reply", "reply_all"} else None}
         if reply_ids:
             mail["references"] = list(dict.fromkeys(codec.message_ids(original["msg"].get("References")) + reply_ids))
+        for value in [mail["in_reply_to"], *mail["references"]]:
+            codec.clean_header(value, authored=False)
         # Validate formatting before storing; MIME size also bounds total attachment work.
         if mail["format"] == "formatted":
             codec.formatted(mail["text"])
@@ -452,6 +479,8 @@ class Mail:
         if all("text" in part for part in mail["generated_parts"] if part["kind"] != "draft_html"):
             disclosed.extend(root_texts)
         check(raw, root_texts, disclosed, draft)
+        from .guard import check_headers
+        check_headers(raw, mail, [codec.mailbox(v) for v in mail["to"] + mail["cc"] + mail["bcc"]], draft=draft)
 
     def message_id(self, operation_id):
         return "<" + operation_id.replace(":", ".") + "@mail.aresos.invalid>"
@@ -471,6 +500,7 @@ class Mail:
                 raise Refused("stale_approval", "Message sender, subject or date differs: stale, search again before deleting.")
 
     def safe_folder(self, account, folder, empty=False):
+        self.fresh_roles(account)
         if folder == "INBOX" or any(self.under(account, folder, k) for k in account["special"]):
             raise Refused("refused", "Special folders and their descendants cannot be renamed/deleted by these tools.")
         with self.transport.imap(account) as client:
@@ -505,6 +535,7 @@ class Mail:
         if verb == "delete":
             self.check_items(args["items"])
             account = self.account(args["items"][0]["reference"]["account"])
+            self.fresh_roles(account)
             capability = "MOVE" if args["mode"] == "trash" else "UIDPLUS"
             if capability not in account["capabilities"] or (args["mode"] == "trash" and not account["special"].get("trash")):
                 raise Refused("unsupported_server", "Delete needs " + capability + " and an identified Trash for trash mode; ask owner to use his mail program.")
@@ -553,6 +584,7 @@ class Mail:
             if comp["mail"]["answered_reference"]:
                 self.message(comp["mail"]["answered_reference"])
         elif action == "mail_delete":
+            self.fresh_roles(self.account(payload["items"][0]["reference"]["account"]))
             self.check_items(payload["items"])
         elif action == "mail_folder_delete":
             current = self.safe_folder(self.account(payload["account"]), payload["folder"], empty=True)
@@ -567,6 +599,7 @@ class Mail:
                 self.composition({"composition_id": comp["id"], "composition_hash": comp["hash"]})
 
     def sent_matches(self, account, message_id):
+        self.fresh_roles(account)
         folder = account["special"].get("sent")
         if not folder:
             raise Refused("unsupported_server", "SPECIAL-USE Sent missing; sending cannot safely check Message-ID evidence.")
@@ -618,6 +651,7 @@ class Mail:
     def send_smtp(self, operation, comp, raw, stage):
         mail = comp["mail"]
         account = self.account(mail["account"])
+        self.fresh_roles(account)
         accepted, refused = [], []
         started_data = False
         try:
@@ -635,7 +669,10 @@ class Mail:
                     (accepted if code in {250, 251, 252} else refused).append(recipient)
                 if not accepted:
                     raise NothingLeft("All recipients refused; no DATA sent.")
+                self.fresh_roles(account)
                 self.check_mime(comp, raw)
+                from .guard import check_headers
+                check_headers(raw, mail, recipients)
                 stage("smtp_data", "attempting")
                 started_data = True
                 code, _ = smtp.data(raw)
@@ -681,6 +718,7 @@ class Mail:
             key = operation["stages"].get("wire_sha256")
             if key is None:
                 raise Refused("refused", "Exact wire bytes absent after restore; cannot recreate a Sent copy.")
+            self.fresh_roles(account)
             self.append(account, account["special"]["sent"], self.wires.read(operation["stages"].get("sent_wire_sha256", key)), "(\\Seen)")
             self.store.checkpoint("mail_sent_copy")
             return "done"
@@ -716,6 +754,7 @@ class Mail:
                 marked = False
                 try:
                     with self.transport.imap(account) as client:
+                        self.fresh_roles(account, client)
                         m = self.message(ref, writable=True, client=client)
                         if any(str(m["msg"].get(k, "")) != target[k] for k in ("from", "subject", "date")):
                             raise Uncertain("Target changed during deletion; inspect per-target stages.")
@@ -745,6 +784,7 @@ class Mail:
             account = self.account(payload["account"])
             self.revalidate(operation)
             with self.transport.imap(account) as client:
+                self.fresh_roles(account, client)
                 if client.delete(quote(payload["folder"]))[0] != "OK":
                     stage("folder", "refused")
                     return "refused", "Server refused DELETE (possibly concurrent new mail); refresh folders."
@@ -818,20 +858,39 @@ class Mail:
         if verb == "account_add":
             raise Refused("terminal_required", "Owner must run sudo aresos admin mail account add; password is read only from terminal over admin.sock.")
         read = verb in {"accounts", "folders", "search", "read", "thread", "contacts"}
-        summary = canonical({k: v for k, v in args.items() if k in {"account", "id", "reference", "references", "target", "name", "folder", "part", "composition_id", "previous", "add", "remove"}})
+        summary = {k: v for k, v in args.items() if k in {"account", "id", "reference", "references", "target", "name", "folder", "part", "composition_id", "previous", "add", "remove"}}
         if not read:
-            self.store.write({}, "mail_" + verb, "starting Mail change " + visible(summary), outcome="started")
+            self.store.write({}, "mail_" + verb, "starting Mail change", outcome="started", untrusted_content=summary)
         try:
             result = self._call(verb, args)
         except Exception:
             if not read:
-                self.store.write({}, "mail_" + verb, "Mail change incomplete; inspect server before repeating", outcome="unknown")
+                self.store.write({}, "mail_" + verb, "Mail change incomplete; inspect server before repeating", outcome="unknown", untrusted_content=summary)
             raise
         if not read:
-            self.store.write({}, "mail_" + verb, "Mail change completed " + visible(summary), outcome="done")
+            self.store.write({}, "mail_" + verb, "Mail change completed", outcome="done", untrusted_content=summary)
         return result
 
     def _call(self, verb, args):
+        if verb == "account_folders":
+            account = self.account(args["id"], ready=False)
+            with self.transport.imap(account) as client:
+                current = resolve(folders(client))
+            roles_hash = digest(current)
+            if "roles_hash" in args:
+                if args["roles_hash"] != roles_hash:
+                    raise Refused("stale_approval", "Folder roles changed since owner review; inspect account_folders again.")
+                protected = account.setdefault("protected_special", {})
+                for kind in ("trash", "drafts"):
+                    values = protected.setdefault(kind, [])
+                    for mapping in ({k: account.get(k) for k in ("special", "delimiter")}, current):
+                        if mapping["special"].get(kind):
+                            value = {"folder": mapping["special"][kind], "delimiter": mapping["delimiter"]}
+                            if value not in values:
+                                values.append(value)
+                account.update(current)
+                self.store.write({"mail:account:" + args["id"]: account}, "mail_account_folders", "owner recorded current special-folder roles")
+            return {"untrusted_content": visible(current), "roles_hash": roles_hash, "recorded": "roles_hash" in args}
         if verb == "account_settings":
             account = self.account(args["id"], ready=False)
             if "sent_policy" in args:
@@ -874,6 +933,7 @@ class Mail:
         if verb == "draft_save":
             comp = self.composition(args)
             account = self.account(comp["mail"]["account"])
+            self.fresh_roles(account)
             if "previous" in args:
                 if args["previous"]["account"] != account["id"] or not self.under(account, args["previous"]["folder"], "drafts"):
                     raise Refused("invalid_input", "Previous must name a draft in this account.")
@@ -888,12 +948,14 @@ class Mail:
                     "next": "Delete previous only via named delete approval."}
         if verb in {"folder_create", "folder_rename"}:
             account = self.account(args["account"])
+            self.fresh_roles(account)
             quote(args["name"])
             if any(self.under(account, args["name"], kind) for kind in account["special"]):
                 raise Refused("refused", "Destination is a special folder or its descendant.")
             if verb == "folder_rename":
                 self.safe_folder(account, args["folder"])
             with self.transport.imap(account) as client:
+                self.fresh_roles(account, client)
                 if verb == "folder_create":
                     ok(client.create(quote(args["name"])), "Create folder")
                 else:
@@ -904,6 +966,8 @@ class Mail:
             if not refs or len({r["account"] for r in refs}) != 1 or len({canonical(r) for r in refs}) != len(refs):
                 raise Refused("invalid_input", "Name distinct references from exactly one account.")
             account = self.account(refs[0]["account"])
+            if verb != "flag":
+                self.fresh_roles(account)
             # Check the complete set before any UID mutation, including mixed batches.
             # An unmarked owner's draft would lose provenance outside this folder.
             if verb != "flag" and any(self.under(account, ref["folder"], "drafts") for ref in refs):
@@ -915,6 +979,7 @@ class Mail:
             result = []
             with self.transport.imap(account) as client:
                 if verb != "flag":
+                    self.fresh_roles(account, client)
                     if args["target"] not in [f["name"] for f in folders(client) if "\\Noselect" not in f["flags"]]:
                         raise Refused("stale_reference", "Target folder is stale, search again.")
                     if "UIDPLUS" not in client.capabilities or (verb == "move" and "MOVE" not in client.capabilities):

@@ -209,3 +209,39 @@ def check(raw, root_texts, disclosed_texts, draft=False):
                 walk(candidate, False, depth + 1)
 
     walk(raw, root_body=True)
+
+
+def check_headers(raw, approved, envelope, draft=False):
+    """Decode the exact wire headers and compare semantic names and addresses."""
+    from email.utils import getaddresses
+
+    def refuse():
+        raise Refused("file_refused", "Outgoing header guard: decoded headers or SMTP envelope differ from approval; nothing submitted.")
+
+    head = re.split(rb"\r\n\r\n|\n\n|\r\r", raw, maxsplit=1)[0]
+    headers = BytesHeaderParser(policy=policy.default).parsebytes(head + b"\r\n\r\n")
+    if headers.defects:
+        refuse()
+    for key in ("Subject", "From", "To", "Cc", "Bcc"):
+        values = headers.get_all(key, [])
+        expected = approved[key.lower()]
+        if len(values) > 1 or any(v.defects for v in values):
+            refuse()
+        if key == "Subject":
+            actual = str(values[0]) if values else ""
+            if actual != expected:
+                refuse()
+        else:
+            expected_values = [expected] if key == "From" else expected
+            if key == "Bcc" and not draft:
+                expected_values = []
+            actual = [(a.display_name, a.addr_spec) for v in values for a in v.addresses]
+            wanted = getaddresses(expected_values) if expected_values else []
+            if actual != wanted:
+                refuse()
+        for v in values:
+            if any(ord(c) < 32 or 127 <= ord(c) <= 159 for c in str(v)):
+                refuse()
+    wanted_envelope = [addr for _, addr in getaddresses(approved["to"] + approved["cc"] + approved["bcc"])]
+    if list(envelope) != wanted_envelope:
+        refuse()
