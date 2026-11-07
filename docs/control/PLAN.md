@@ -77,8 +77,8 @@ Three places, each with one job:
      for same-site tabs and workers outside the group; how much background and reading-through-POST everyday sites
      produce (which of the owner's usual sites need an adapter); delayed sends and popups. Raised by `mac-capacity`
      and the design review.
-1. **Design** (`docs/design/CONTROL.md`): draft 3 after the frontier review (8 blocking) and its re-check (7 still
-   partly open); the same reviewer checks draft 3. The feature list ([`FEATURES.md`](FEATURES.md)) goes to the owner
+1. **Design** (`docs/design/CONTROL.md`): draft 4 after the frontier review (8 blocking) and two re-checks (7, then
+   4 still open); the same reviewer checks draft 4. The feature list ([`FEATURES.md`](FEATURES.md)) goes to the owner
    with it.
 2. **Base and boundary (brief 18):** the operation log, the generic MCP proxy and terminal command, a fake app with a
    send and a delete, file transfer on the caller's side, the managed settings draft, the sandbox boundary on Linux

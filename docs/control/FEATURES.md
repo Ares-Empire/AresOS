@@ -22,7 +22,7 @@ Effects: read, change, send (asks), delete (asks). Tools are in
 | Add an account, set or change its password | `aresos admin mail account …` | owner | owner: passwords never pass through Claude |
 | Folders with counts | `mail_folders` | read | first |
 | Create, rename a folder | `mail_folder_create`, `mail_folder_rename` | change | first |
-| Delete a folder (empty, without subfolders; its mails deleted first) | `mail_folder_delete` | delete | first |
+| Delete a folder (empty, without subfolders; its mails deleted first) | `mail_folder_delete` | delete | first where the server refuses deleting a folder that holds mail (checked at onboarding); elsewhere the owner deletes the empty folder in his mail program |
 | Search by sender, recipient, subject, text, dates, flags, attachments | `mail_search` | read | first |
 | Read a mail: headers, text, HTML as readable text, attachments list | `mail_read` | read | first |
 | Read the raw source of a mail | `mail_read` (part `source`) | read | first |
