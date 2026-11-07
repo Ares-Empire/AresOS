@@ -19,9 +19,10 @@ export default async function(c){
  // Natural delay is separate from the intentional diagnostic pause above.
  await rpc('Check.mode',{mode:'fail'});await rpc('Check.clear');await allow('natural-window');await send('natural-window');await delay(600);log('Q4_NATURAL_WINDOW',{rows:discovery('natural-window','natural allowance window'),history:(await state()).history});
  for(const cleanup of [false,true])for(const ending of ['reload','update','worker-crash','policy']){
-  await nav();await rpc('Check.floor',{domains:['127.0.0.1']});await rpc('Check.mode',{mode:'fail'});await rpc('Check.cleanup',{enabled:cleanup});await allow('leftover-'+cleanup+'-'+ending);const before=await state();await end(ending);
+  await nav();await rpc('Check.floor',{domains:['127.0.0.1']});await rpc('Check.mode',{mode:'fail'});await rpc('Check.cleanup',{enabled:cleanup});await allow('leftover-'+cleanup+'-'+ending);const before=await state();if(ending==='policy')await ev(`setTimeout(()=>attempt('policy-unloaded-${cleanup}'),7000);true`);await end(ending);
+  if(ending==='policy'){await delay(7500);log('Q4_POLICY_UNLOADED',{cleanup,rows:await count('policy-unloaded-'+cleanup,1)});}
   if(ending==='policy')await restart('leftover-'+cleanup+'-'+ending);else await c.connect();
-  const after=await state();log('Q4_LIFETIME',{cleanup,ending,before:before.session,after:after.session,dynamic:after.dynamic,startup:after.startup,version:after.manifest.version});
+  const after=await state();log('Q4_LIFETIME',{cleanup,ending,sameProfile:ending!=='policy',before:before.session,after:after.session,dynamic:after.dynamic,startup:after.startup,version:after.manifest.version});
   // If a leftover remains, detach the gate and deliberately try it, proving the receiver consequence.
   const id='leftover-'+cleanup+'-'+ending;await rpc('Check.mode',{mode:'pass'});await send(id);await delay(400);log('Q4_LEFTOVER_RECEIVER',{id,rows:discovery(id,'remaining allowance consequence')});await rpc('Check.rules',{removeRuleIds:[8001]});
  }

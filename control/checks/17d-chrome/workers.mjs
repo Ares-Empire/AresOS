@@ -4,10 +4,8 @@ export default async function(c){
  const collect=async(label)=>{await delay(1400);const rows=f.rows.filter(r=>['http','ws-open','ws-message'].includes(r.kind)&&r.case?.startsWith('worker-'));for(const row of rows)discovery(row.case,'autonomous-worker counterexample');log(label,{scripts:f.rows.filter(r=>r.kind==='worker-script'),arrivals:rows,events:(await state()).history,targets:await rpc('Check.targets')});};
  await ev("(async()=>{window.swreg=await navigator.serviceWorker.register('/sw.js?case=worker-service',{updateViaCache:'none'});await navigator.serviceWorker.ready;return true})()");
  await collect('Q3_NEW_SERVICE');assert.equal(c.arrivals('worker-service-v1-first').filter(r=>r.kind==='http').length,0);
- await rpc('Check.command',{method:'ServiceWorker.enable'});
- const version=(await state()).history.filter(e=>e.method==='ServiceWorker.workerVersionUpdated').flatMap(e=>e.params.versions).find(v=>v.scriptURL.includes('worker-service')&&v.status==='activated');
- if(version)await rpc('Check.command',{method:'ServiceWorker.stopWorker',params:{versionId:version.versionId}});
- await rpc('Check.detach');
+ await probe('Q3_SERVICE_WORKER_DOMAIN',async()=>({result:await rpc('Check.command',{method:'ServiceWorker.enable'})}));
+ await rpc('Check.detach');await delay(35000);log('Q3_IDLE_TARGETS',{targets:await rpc('Check.targets')});
  // The browser, rather than an auto-attaching debugger, reaches this worker on navigation.
  await c.address(f.base+'/');await collect('Q3_NAVIGATION_START_NO_DEBUGGER');
  await rpc('Check.attach',{tabId:c.selected});await nav();
@@ -17,8 +15,6 @@ export default async function(c){
  f.bump();await rpc('Check.detach');await c.address(f.base+'/');await delay(2500);await collect('Q3_NAVIGATION_UPDATE');
  await rpc('Check.attach',{tabId:c.selected});await nav();
  await probe('Q3_BACKGROUND_SYNC',async()=>{
-  await rpc('Check.command',{method:'ServiceWorker.enable'});const versions=(await state()).history.filter(e=>e.method==='ServiceWorker.workerVersionUpdated').flatMap(e=>e.params.versions),last=versions.filter(v=>v.status==='activated').at(-1);
-  if(last)await rpc('Check.command',{method:'ServiceWorker.stopWorker',params:{versionId:last.versionId}});
   await ev("setTimeout(async()=>{const r=await navigator.serviceWorker.ready;await r.sync.register('synthetic-floor-sync')},600);true");await rpc('Check.detach');await delay(3500);await collect('Q3_SYNC_NO_PAGE_DEBUGGER');return {rows:f.rows.filter(r=>r.case?.includes('-sync')),registration:'real SyncManager.register, no dispatchSyncEvent'};
  });
  await rpc('Check.attach',{tabId:c.selected});await nav();

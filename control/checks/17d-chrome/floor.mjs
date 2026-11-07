@@ -13,7 +13,8 @@ export default async function(c){
  // Park at Fetch if Chrome exposes it, then break control while producers keep running.
  for(const ending of ['detach','reload','update','worker-crash','host-loss','normal','kill','policy']){
   await nav();await rpc('Check.floor',{domains:['127.0.0.1']});await rpc('Check.mode',{mode:'park'});await rpc('Check.clear');const id='ending-'+ending;
-  await ev(`attempt('${id}');setTimeout(()=>attempt('${id}-after'),600);true`);await delay(150);save(id+'-before',await state());await end(ending);await delay(800);
+  await ev(`attempt('${id}');setTimeout(()=>attempt('${id}-after'),600);${ending==='policy'?"setTimeout(()=>attempt('policy-unloaded'),7000);":''}true`);await delay(150);save(id+'-before',await state());await end(ending);await delay(800);
+  if(ending==='policy'){await delay(7000);log('Q1_POLICY_UNLOADED',{rows:await count('policy-unloaded',1)});}
   log('Q1_END',{ending,before:discovery(id,'ending-control diagnostic'),after:discovery(id+'-after','requests while/after ending control'),zero:arrivals(id).length+arrivals(id+'-after').length===0});await restart('after-'+ending);
  }
  // Persisted dynamic guard; no automatic debugger attach at extension/browser start.

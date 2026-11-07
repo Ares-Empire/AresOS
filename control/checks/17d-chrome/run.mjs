@@ -15,7 +15,7 @@ const phase=process.env.CHECK_PHASE,summary={phase,head:process.env.GITHUB_SHA,r
 const save=(name,data)=>fs.writeFileSync(out+'/'+name+'.json',JSON.stringify(data,null,2));
 const log=(name,data)=>{summary.cases.push({name,...data});save('summary',summary);console.log(name,JSON.stringify(data));};
 let chrome,bridge,selected,extId,version='0.4.0',wt;
-const profile=work+'/profile',socket=work+'/native.sock';process.env.CHROME_CHECK_SOCKET=socket;
+let profile=work+'/profile',profileNumber=0;const socket=work+'/native.sock';process.env.CHROME_CHECK_SOCKET=socket;
 const f=await fixture(out,work,()=>`<?xml version="1.0"?><gupdate xmlns="http://www.google.com/update2/response" protocol="2.0"><app appid="${extId}"><updatecheck codebase="${f.base}/extension.crx" version="${version}"/></app></gupdate>`);
 const kp=generateKeyPairSync('rsa',{modulusLength:2048});extId=idFor(kp.publicKey.export({type:'spki',format:'der'}));
 const ext=work+'/extension';fs.cpSync(here+'/extension',ext,{recursive:true});
@@ -44,7 +44,7 @@ async function end(ending){
  if(ending==='normal'||ending==='kill')await close(ending==='kill');
  await delay(1500);
 }
-async function restart(label,kill=true){await close(kill);policy();await boot(label);}
+async function restart(label,kill=true){await close(kill);if(label.includes('policy')){profile=work+'/profile-after-policy-'+(++profileNumber);selected=undefined;log('FRESH_PROFILE_AFTER_POLICY',{label,reason:'Policy uninstalls the custom CRX; do not interpret the next installation as rule survival.'});}policy();await boot(label);}
 async function click(selector){await rpc('Page.bringToFront');await delay(200);const b=await ev(`(()=>{const b=document.querySelector(${JSON.stringify(selector)}).getBoundingClientRect();return {x:b.x+b.width/2,y:b.y+b.height/2}})()`);await rpc('Input.dispatchMouseEvent',{type:'mousePressed',button:'left',clickCount:1,...b});await rpc('Input.dispatchMouseEvent',{type:'mouseReleased',button:'left',clickCount:1,...b});}
 const ctx={fs,assert,execFileSync,spawn,here,work,out,f,save,log,probe,delay,eventually,ev,rpc,state,nav,count,discovery,arrivals,audit,boot,close,restart,connect,end,click,address,key,x,screenshot,hash:s=>createHash('sha256').update(s).digest('hex'),get selected(){return selected;}};
 try{

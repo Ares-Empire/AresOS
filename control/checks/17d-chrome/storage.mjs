@@ -27,4 +27,5 @@ export default async function(c){
  await nav();await rpc('Check.clear');const start=f.rows.length;await c.click('#queue');await c.eventually(()=>ev("events.some(e=>e.kind==='queued')"),'offline deletion committed');await delay(250);
  const evidence=(await state()).history;assert.ok(evidence.some(e=>e.method==='Storage.indexedDBContentUpdated'),'debugger must report offline outbox write');assert.equal(f.rows.slice(start).filter(r=>r.kind==='http').length,0);
  const owner=await rpc('Check.open',{url:f.base+'/'});await delay(600);await rpc('Check.attach',{tabId:owner.id});await ev("flush17('offline-later');true");await count('offline-later',0);log('Q6_OFFLINE_OUTBOX',{evidence,receiver:[],laterPage:await ev('events'),guardKept:true});
+ for(const id of ['handoff-dedicated','handoff-shared','storage-sw'])for(const suffix of ['first','message','sync'])c.discovery(id+'-v1-'+suffix,'worker socket experiments, including the later worker sync registration');
 }
