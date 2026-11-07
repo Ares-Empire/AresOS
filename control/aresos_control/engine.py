@@ -94,8 +94,20 @@ class Engine:
         adapter = self.adapters[action.app]
         adapter.revalidate(op)
         if adapter.has_submission_evidence(op["id"]):
+            op.update(state="unknown", reason="Far-side submission evidence already exists; inspect evidence, never submit again.")
+            op["stages"]["preflight_evidence"] = "present"
+            # Persist the positive finding before another adapter call can fail.
+            self.store.write({"op:" + op["id"]: op}, action.name, "existing submission evidence: unknown", op["id"])
+            op = self.operation(op["id"])
+            op["stages"]["preflight_evidence"] = adapter.evidence(op["id"])
+            self.store.write({"op:" + op["id"]: op}, action.name, "record preflight evidence", op["id"])
             raise Refused("refused", "Far-side evidence already exists; inspect status, never submit again.")
         self.store.checkpoint("revalidated")
+        if time.time() >= op["expires"]:
+            op.update(state="failed", reason="expired: nothing submitted", notice=True)
+            self.store.write({"op:" + op["id"]: op}, action.name, "approval expired after adapter checks", op["id"])
+            adapter.drop(op)
+            return {"operation": self.public_operation(op)}
         op["state"], op["reason"] = "submitting", "Durably submitting; do not cancel or retry."
         self.store.write({"op:" + op["id"]: op}, action.name, "submitting", op["id"])
         self.store.checkpoint("submitting")

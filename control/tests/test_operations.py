@@ -100,7 +100,6 @@ class Operations(EngineCase):
         self.assertIn("refused before acting", refused["operation"]["reason"])
 
     def test_expiry_and_cancel_drop_only_reserved_never_release(self):
-        from unittest.mock import Mock
         adapter = self.engine.adapters["testapp"]
         adapter.drop = Mock()
         cancelled = self.reserve()
@@ -210,6 +209,22 @@ class Operations(EngineCase):
                 self.assertEqual(self.engine.operation(op_id)["state"], "unknown")
                 self.assertEqual(self.data("testapp_send", duplicate)["operation"], op)
                 self.assertEqual(self.engine.receiver.evidence(op_id), evidence)
+
+    def test_positive_preflight_finding_survives_evidence_detail_failure(self):
+        approval = self.reserve()
+        op_id = approval["operation_id"]
+        self.engine.receiver.accept(op_id, "alpha", {})
+        adapter = self.engine.adapters["testapp"]
+        with patch.object(adapter, "has_submission_evidence", return_value=True), \
+             patch.object(adapter, "evidence", side_effect=Refused("refused", "fixture: evidence details unavailable")):
+            self.assertFalse(self.call("testapp_send", approval)["ok"])
+        self.restart()
+        op = self.engine.operation(op_id)
+        self.assertEqual(op["state"], "unknown")
+        self.assertEqual(op["stages"]["preflight_evidence"], "present")
+        self.assertFalse(self.call("testapp_operation_cancel", {"operation_id": op_id})["ok"])
+        self.assertEqual(self.data("testapp_send", approval)["operation"], self.engine.public_operation(op))
+        self.assertEqual(self.engine.receiver.evidence(op_id)["arrivals"], ["alpha"])
 
     def test_read_is_unchanged_bounded_untrusted_and_errors_actionable(self):
         initial = self.engine.store.get("testapp")
