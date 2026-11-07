@@ -107,8 +107,9 @@ class TestApp:
         if verb == "flag":
             return self.flag(args)
         if verb == "fixture_configure":
-            self.store.write({}, "testapp_fixture_configure", "configure fake receiver")
+            self.store.write({}, "testapp_fixture_configure", "configure fake receiver", outcome="started")
             self.receiver.configure(args)
+            self.store.write({}, "testapp_fixture_configure", "configured fake receiver", outcome="done")
             return args
         raise Refused("invalid_input", "Unsupported adapter action; inspect its tool list.")
 
@@ -152,6 +153,10 @@ class TestApp:
         if operation["state"] == "partial" and stages.get("sent_copy") == stages.get("answered_flag") == "done" and all(v == "accepted" for k, v in stages.items() if k.startswith("recipient:")):
             return "done", "Accepted recipients and repaired local stages; never resubmitted."
         return operation["state"], operation["reason"]
+
+    def drop(self, operation):
+        # The fake holds only immutable data; expiry never contacts the receiver.
+        pass
 
     def execute(self, operation, stage):
         payload = operation["payload"]

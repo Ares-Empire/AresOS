@@ -91,6 +91,28 @@ class Operations(EngineCase):
         self.restart()
         self.data("testapp_operation_repair", {"operation_id": approval["operation_id"], "stage": "sent_copy"})
         self.assertEqual(self.engine.receiver.evidence(approval["operation_id"])["arrivals"], evidence)
+        ref = self.data("testapp_list")["items"][0]["reference"]
+        deleted = self.data("testapp_prepare_delete", {"references": [ref]})["approval"]
+        self.data("testapp_delete", deleted)
+        refused = self.data("testapp_operation_repair", {"operation_id": deleted["operation_id"], "stage": "sent_copy"})
+        self.assertEqual(refused["operation"]["state"], "failed")
+        self.assertIn("refused before acting", refused["operation"]["reason"])
+
+    def test_expiry_and_cancel_drop_only_reserved_never_release(self):
+        from unittest.mock import Mock
+        adapter = self.engine.adapters["testapp"]
+        adapter.drop = Mock()
+        cancelled = self.reserve()
+        self.data("testapp_operation_cancel", {"operation_id": cancelled["operation_id"]})
+        self.assertEqual(adapter.drop.call_count, 1)
+        self.engine.ttl = -1
+        expired = self.reserve()
+        self.engine.expire()
+        self.assertEqual(adapter.drop.call_count, 2)
+        self.data("testapp_send", expired)
+        self.engine.expire()
+        self.assertEqual(adapter.drop.call_count, 2)
+        self.assertEqual(self.engine.receiver.evidence(expired["operation_id"])["arrivals"], [])
 
     def test_exact_references_metadata_and_delete_targets(self):
         listing = self.data("testapp_list", {"limit": 2})

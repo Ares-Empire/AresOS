@@ -2,7 +2,7 @@ import base64
 import time
 import uuid
 
-from .adapters import NothingLeft, Uncertain
+from .adapters import NothingLeft
 from .blobs import Blobs
 from .common import RESULT_LIMIT, Refused, approval_input, canonical, digest, sha256, validate, visible
 from .definitions import APPS, BY_NAME, tools_for
@@ -57,6 +57,7 @@ class Engine:
             if op["state"] == "reserved" and time.time() >= op["expires"]:
                 op.update(state="failed", reason="expired: nothing submitted", notice=True)
                 self.store.write({key: op}, op["action"], "approval expired without submission", op["id"])
+                self.adapters[op["app"]].drop(op)
 
     def reserve(self, app, verb, arguments):
         adapter = self.adapters[app]
@@ -88,6 +89,7 @@ class Engine:
         if time.time() >= op["expires"]:
             op.update(state="failed", reason="expired: nothing submitted", notice=True)
             self.store.write({"op:" + op["id"]: op}, action.name, "approval expired", op["id"])
+            self.adapters[op["app"]].drop(op)
             return {"operation": self.public_operation(op)}
         adapter = self.adapters[action.app]
         adapter.revalidate(op)
@@ -119,10 +121,13 @@ class Engine:
         if old["state"] not in {"partial", "unknown", "done"}:
             raise Refused("refused", "Repair requires accepted-send evidence and a completed submission attempt; inspect status.")
         op_id = self.store.generation + ":" + uuid.uuid4().hex
+        approval = approval_input(op_id, {"repair_of": old["id"], "stage": args["stage"]})
         repair = {"id": op_id, "generation": self.store.generation, "app": app, "action": app + "_operation_repair",
-                  "approval": {"description": {"repair_of": old["id"], "stage": args["stage"]}}, "payload": {},
-                  "state": "submitting", "stages": {}, "reason": "Repairing local stage only.", "expires": 0,
+                  "approval": approval, "input_hash": digest(args), "payload": args,
+                  "state": "reserved", "stages": {}, "reason": "Reserved local repair only.", "expires": time.time() + self.ttl,
                   "repair_of": old["id"]}
+        self.store.write({"op:" + op_id: repair}, repair["action"], "reserved local repair of " + old["id"], op_id)
+        repair.update(state="submitting", reason="Repairing local stage only.")
         self.store.write({"op:" + op_id: repair}, repair["action"], "local repair of " + old["id"], op_id)
         try:
             result = self.adapters[app].repair(old, args["stage"])
@@ -130,6 +135,9 @@ class Engine:
             old["state"], old["reason"] = self.adapters[app].repaired_outcome(old)
             repair["state"], repair["reason"] = "done", "Local repair completed; never submitted."
             changes = {"op:" + op_id: repair, "op:" + old["id"]: old}
+        except Refused as exc:
+            repair["state"], repair["reason"] = "failed", "Local repair refused before acting: " + str(exc)
+            changes = {"op:" + op_id: repair}
         except Exception:
             repair["state"], repair["reason"] = "unknown", "Local repair uncertain; inspect far-side stage evidence. Never submit."
             changes = {"op:" + op_id: repair}
@@ -173,6 +181,7 @@ class Engine:
                 raise Refused("refused", "Only reserved operations can be cancelled; inspect operation_status.")
             op.update(state="failed", reason="cancelled: nothing submitted", notice=True)
             self.store.write({"op:" + op["id"]: op}, name, "cancelled before submission", op["id"])
+            adapter.drop(op)
             return {"operation": self.public_operation(op)}
         if verb == "notice_ack":
             op = self.operation(args["operation_id"], app)

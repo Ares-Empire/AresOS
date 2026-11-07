@@ -193,7 +193,11 @@ is run by this package. MCP contract **read**:
    stage-specific repair evidence as needed. Do not turn `unknown` into `done` from
    absence of evidence or a single recipient's receipt.
 6. Use the caller file actions/byte protocol, never a path opened by the service.
-   Give any Chrome hold an expiry that drops bytes without release. Return holds and
+   Represent a late hold by a reserved operation via `Engine.reserve`; give the
+   bridge its own fail-closed expiry and implement `drop` to discard held bytes on
+   cancellation/expiry without release. A bridge must also drop on loss of service,
+   including restore lockout; `drop` may never submit or unblock a request by sending.
+   Return holds and
    incomplete work through the shared pending catalogue so both hooks can find it.
 7. Add provider/bridge fixtures, crash checkpoints for every new stage, exact-state
    approval races, read-without-change tests, partial outcomes and restore tests.
