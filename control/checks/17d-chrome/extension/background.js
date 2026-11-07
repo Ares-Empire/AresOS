@@ -15,7 +15,7 @@ async function floor({domains=[],tabId,clear=false}){
  const dnr=chrome.declarativeNetRequest;
  if(clear){await dnr.updateDynamicRules({removeRuleIds:(await dnr.getDynamicRules()).map(r=>r.id)});await dnr.updateSessionRules({removeRuleIds:(await dnr.getSessionRules()).map(r=>r.id)});return {};}
  const base=tabId?{tabIds:[tabId]}:{initiatorDomains:domains};
- const rules=[{id:tabId?201:101,priority:10,action:{type:'block'},condition:{...base,excludedRequestMethods:['get','head'],excludedResourceTypes:[]}},{id:tabId?202:102,priority:10,action:{type:'block'},condition:{...base,resourceTypes:['websocket','webtransport']}}];
+ const rules=[{id:tabId?201:101,priority:10,action:{type:'block'},condition:{...base,excludedRequestMethods:['get','head'],resourceTypes:['main_frame','sub_frame','stylesheet','script','image','font','object','xmlhttprequest','ping','csp_report','media','websocket','webtransport','webbundle','other']}},{id:tabId?202:102,priority:10,action:{type:'block'},condition:{...base,resourceTypes:['websocket','webtransport']}}];
  if(tabId)await dnr.updateSessionRules({removeRuleIds:[201,202],addRules:rules});
  else await dnr.updateDynamicRules({removeRuleIds:[101,102],addRules:rules});
  return rules;
@@ -60,7 +60,7 @@ async function rpc(m,p={}){
  if(m==='Check.frameProbe')return chrome.scripting.executeScript({target:{tabId:selected,allFrames:true},world:'MAIN',func:()=>{if(location.hostname==='localhost')fetch('/receive?case=foreign-frame',{method:'POST',body:'synthetic foreign'}).catch(()=>{});return location.href;}});
  if(m==='Check.mode'){gateMode=p.mode||'fail';delayMs=p.delayMs||0;owner=!!p.owner;return {};}
  if(m==='Check.allow'){
-  expected=p;const condition={regexFilter:'^'+p.url.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'$',requestMethods:[p.method.toLowerCase()],...(p.site?{initiatorDomains:[p.site]}:{tabIds:[p.tabId||selected]})};
+  expected=p;const condition={resourceTypes:['main_frame','sub_frame','stylesheet','script','image','font','object','xmlhttprequest','ping','csp_report','media','websocket','webtransport','webbundle','other'],regexFilter:'^'+p.url.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'$',requestMethods:[p.method.toLowerCase()],...(p.site?{initiatorDomains:[p.site]}:{tabIds:[p.tabId||selected]})};
   const before=Date.now();await chrome.declarativeNetRequest.updateSessionRules({removeRuleIds:[8001],addRules:[{id:8001,priority:100,action:{type:'allow'},condition}]});emit('check.allowAdded',{...p,before,after:Date.now()});return {before,after:Date.now()};
  }
  if(m==='Check.cleanup'){await chrome.storage.local.set({autoClean:p.enabled});return {};}

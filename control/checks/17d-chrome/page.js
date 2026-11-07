@@ -1,5 +1,6 @@
 // Synthetic fixture, never loaded on a public site.
 window.events=[];const mark=(kind,value)=>{events.push({kind,value,at:Date.now()});document.querySelector('#status').textContent=JSON.stringify(events.slice(-4));};
+document.addEventListener('click',e=>mark('click',{id:e.target.id,trusted:e.isTrusted}),true);
 window.attempt=(id,kind='fetch',cross=false)=>{
  const url=(cross?'http://localhost:'+location.port:'')+'/receive?case='+id;mark('attempt',{id,kind,cross});
  if(kind==='xhr'){const r=new XMLHttpRequest();r.open('POST',url);r.onload=()=>mark('xhr-ok',id);r.onerror=()=>mark('xhr-error',id);r.send('synthetic xhr');}
@@ -14,6 +15,8 @@ window.db17=()=>new Promise((resolve,reject)=>{const r=indexedDB.open('synthetic
 window.queue17=async()=>{const db=await db17();await new Promise((resolve,reject)=>{const t=db.transaction('outbox','readwrite');t.objectStore('outbox').put({delete:42},'pending');t.oncomplete=resolve;t.onerror=reject});db.close();mark('queued',42);};
 window.flush17=async id=>{const db=await db17();const value=await new Promise(r=>{const q=db.transaction('outbox').objectStore('outbox').get('pending');q.onsuccess=()=>r(q.result)});db.close();return fetch('/receive?case='+id,{method:'POST',body:JSON.stringify(value)}).catch(()=>{});};
 document.querySelector('#queue').onclick=()=>queue17();document.querySelector('#owner').onclick=()=>fetch('/receive?case=owner-notification',{method:'POST',body:'synthetic owner'}).then(()=>mark('owner-sent',true));
+window.setAccount17=async account=>{const data=await (await fetch('/session?account='+account)).json();document.querySelector('#account').textContent=data.account;return true;};
+document.querySelector('#signout').onclick=()=>setAccount17('synthetic-signed-out');document.querySelector('#signinB').onclick=()=>setAccount17('synthetic-B');
 window.write17=async kind=>{
  const at=Date.now();let result='ok';
  try{

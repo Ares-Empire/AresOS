@@ -3,8 +3,8 @@ export default async function(c){
  await nav();await rpc('Check.floor',{domains:['127.0.0.1']});await rpc('Check.mode',{mode:'fail'});
  const send=(id,body='synthetic approved',headers={'X-Check':'synthetic'})=>ev(`fetch('/receive?case=${id}',{method:'POST',headers:${JSON.stringify(headers)},body:${JSON.stringify(body)}}).catch(()=>{});true`);
  const allow=(id,body='synthetic approved',more={})=>rpc('Check.allow',{url:f.base+'/receive?case='+id,method:'POST',sha256:hash(body),headers:{'X-Check':'synthetic'},...more});
- await allow('one');await send('one');await delay(600);log('Q4_ONCE',{rows:discovery('one','one-time allowance ordering'),history:(await state()).history});
- await send('one');await delay(400);log('Q4_SECOND',{rows:discovery('one','one-time allowance ordering and second request'),history:(await state()).history});
+ await allow('one');await send('one');await delay(600);log('Q4_ONCE',{rows:await count('one',1),history:(await state()).history});
+ await send('one');await delay(400);log('Q4_SECOND',{rows:await count('one',1),history:(await state()).history});
  await allow('wrong-body');await send('wrong-body','synthetic DIFFERENT');await count('wrong-body',0);log('Q4_BODY_MISMATCH',{history:(await state()).history.slice(-15)});
  await allow('wrong-header');await send('wrong-header','synthetic approved',{'X-Check':'changed'});await count('wrong-header',0);log('Q4_HEADER_MISMATCH',{history:(await state()).history.slice(-15)});
  // Exact URL/method and tab/site scope, with a positive recipient available.
@@ -39,6 +39,9 @@ export default async function(c){
   await ev(`__floor.enabled=true;testBody=${expression};fetch('/receive?case=wrap-${kind}',{method:'POST',body:testBody,${kind==='stream'?"duplex:'half',":''}}).catch(e=>events.push(e.name));true`);await delay(1000);await count('wrap-'+kind,0);
   const wrapper=(await state()).history.filter(e=>e.method==='check.script'&&['held','stream-refused'].includes(e.params.event));assert.ok(wrapper.length,'wrapper body outcome '+kind);
   log('Q5_BODY',{kind,network,wrapper,page:await ev('events')});
+  if(['1mb','25mb'].includes(kind)){
+   await rpc('Network.enable',{maxPostDataSize:32*1024*1024});await rpc('Check.clear');await ev(`__floor.enabled=false;fetch('/receive?case=large-event-${kind}',{method:'POST',body:${expression}}).catch(()=>{});true`);await delay(1000);await count('large-event-'+kind,0);log('Q5_LARGE_EVENT_LIMIT',{kind,maxPostDataSize:32*1024*1024,events:(await state()).history});await rpc('Network.enable',{maxPostDataSize:65536});
+  }
   if(kind!=='stream'){
    const held=(await state()).pending.find(p=>p.description.url.includes('wrap-'+kind));assert.ok(held);
    if(kind==='multipart')await ev("testBody.append('later','must not reach receiver');true");
@@ -48,8 +51,8 @@ export default async function(c){
   }
  }
  // Account fingerprint uses both HttpOnly cookies (debugger) and the page's displayed label.
- await nav();await rpc('Network.setCookie',{name:'synthetic-session',value:'synthetic-A',url:f.base,httpOnly:true});await ev("__floor.enabled=true;fetch('/receive?case=account-change',{method:'POST',body:'synthetic deletion'}).catch(()=>{});true");await delay(500);
+ await nav();await ev("setAccount17('synthetic-A')");await ev("__floor.enabled=true;fetch('/receive?case=account-change',{method:'POST',body:'synthetic deletion'}).catch(()=>{});true");await delay(500);
  const held=(await state()).pending.find(p=>p.description.url.includes('account-change'));assert.ok(held);const before=await rpc('Check.account');
- await rpc('Network.setCookie',{name:'synthetic-session',value:'synthetic-B',url:f.base,httpOnly:true});await ev("document.querySelector('#account').textContent='synthetic-B';true");
+ await c.click('#signout');await c.eventually(()=>ev("document.querySelector('#account').textContent==='synthetic-signed-out'"),'fixture signed out');await c.click('#signinB');await c.eventually(()=>ev("document.querySelector('#account').textContent==='synthetic-B'"),'fixture signed in as B');
  await assert.rejects(()=>rpc('Check.release',{id:held.id}),/ACCOUNT_CHANGED/);await count('account-change',0);log('Q8_ACCOUNT_CHANGE',{before,after:await rpc('Check.account'),refused:true});
 }

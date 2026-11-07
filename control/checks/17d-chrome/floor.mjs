@@ -5,7 +5,7 @@ export default async function(c){
  for(const kind of ['fetch','xhr','beacon','ping','ws','form']){await nav();const id='control-'+kind;await ev(`attempt('${id}','${kind}')`);await count(id,1);}
  await nav();await rpc('Check.floor',{domains:['127.0.0.1']});await rpc('Check.mode',{mode:'fail'});
  for(const kind of ['fetch','xhr','beacon','ping','ws','form'])for(const cross of [false,true]){
-  await nav();await rpc('Check.clear');const id='floor-'+kind+'-'+cross;await ev(`attempt('${id}','${kind}',${cross})`);await delay(600);await count(id,0);const s=await state();log('Q1_BLOCK',{id,kind,cross,gate:s.history.filter(e=>e.method==='check.gate'),events:s.history,arrivals:arrivals(id)});
+  await nav();await rpc('Check.clear');const id='floor-'+kind+'-'+cross;await ev(`attempt('${id}','${kind}',${cross})`);await delay(600);await count(id,0);const s=await state();c.assert.equal(s.history.filter(e=>e.method==='check.gate').length,0,'DNR must precede Fetch: '+id);log('Q1_BLOCK',{id,kind,cross,gate:s.history.filter(e=>e.method==='check.gate'),events:s.history,arrivals:arrivals(id)});
  }
  // Session rule covers a foreign frame, even when its initiator is not guarded.
  await nav();await rpc('Check.floor',{tabId:c.selected});await ev(`window.foreign=document.createElement('iframe');foreign.src='${f.base.replace('127.0.0.1','localhost')}/';document.body.append(foreign);true`);await delay(700);

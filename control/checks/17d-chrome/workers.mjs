@@ -42,7 +42,11 @@ export default async function(c){
    await nav();await rpc('Check.floor',{clear:true});
    const attempt=id=>ev(`(()=>{const t=new WebTransport('${info.url}?case=${id}',{serverCertificateHashes:[{algorithm:'sha-256',value:new Uint8Array(${JSON.stringify(info.hash)})}]});t.ready.then(()=>{t.close();events.push('wt-open')}).catch(e=>events.push(e.name));return true})()`);
    await attempt('wt-control');await delay(1800);const before=rows().length;assert.ok(before>0,'positive HTTP/3 handshake');
-   await rpc('Check.floor',{domains:['127.0.0.1']});await attempt('wt-blocked');await delay(1800);assert.equal(rows().length,before);save('webtransport-audit',{rows:rows(),blockedArrivals:0});return {control:before,blocked:0,events:(await state()).history.filter(e=>/webTransport/i.test(e.method))};
+   await rpc('Check.floor',{domains:['127.0.0.1']});await attempt('wt-blocked');await delay(1800);assert.equal(rows().length,before);
+   f.setTransport(info);await ev("window.wtShared=new SharedWorker('/worker.js?shared&case=worker-wt-shared');wtShared.port.start();navigator.serviceWorker.register('/sw.js?case=worker-wt-service');true");await delay(1800);
+   for(const id of ['worker-wt-shared-v3-first','worker-wt-service-v3-first'])discovery(id,'worker WebSocket alongside WebTransport');
+   const all=rows();for(const row of all)assert.match(row.headers[':path'],/case=(wt-control|worker-wt-shared|worker-wt-service)$/,'registered HTTP/3 receiver case');
+   save('webtransport-audit',{rows:all,pageBlockedArrivals:0,workerHandshakeArrivals:all.length-before});return {control:before,blocked:0,workerHandshakeArrivals:all.length-before,rows:all,events:(await state()).history.filter(e=>/webTransport/i.test(e.method))};
   }finally{wt.kill();}
  });
 }
