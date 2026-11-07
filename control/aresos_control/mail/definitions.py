@@ -44,7 +44,8 @@ RESULTS = {
     "copy":obj({"items":array(REFERENCE,20), "state":TEXT, "reason":TEXT, "untrusted_content":OBJECT}, ["items", "state"]),
     "flag":obj({"items":array(obj({"reference":REFERENCE,"flags":array(TEXT,1000)}),20)}),
     "folder_create":obj({"account":ACCOUNT,"folder":string(512)}),
-    "folder_rename":obj({"account":ACCOUNT,"folder":string(512)}),
+    "folder_rename":obj({"account":ACCOUNT,"folder":string(512), "state":TEXT,
+                         "reason":TEXT, "untrusted_content":OBJECT}, ['account', 'folder']),
 }
 
 
@@ -80,7 +81,7 @@ def actions(Action):
           "Add/remove literal IMAP system flags \\Seen, \\Flagged, \\Answered (case-sensitive), or bare custom keywords, on exact references. Cannot add or remove \\Draft, Deleted or Recent: use delete/draft tools. A \\Draft flag marks a draft in every folder. Returns current flags; reading alone never sets Seen."),
         a("folder_create", "change", obj({"account": ACCOUNT, "name": string(512)}), "Create a non-special folder; returns exact name. Does not send or delete mail."),
         a("folder_rename", "change", obj({"account": ACCOUNT, "folder": string(512), "name": string(512)}),
-          "Rename one non-special leaf folder; subfolders/special folders/Trash descendants refused. Old message references become stale; search new folder again. No mail removed."),
+          "Rename one non-special leaf folder within its current parent. Supply only the new last name, without the hierarchy separator; move folders between parents in your mail program. Subfolders/special folders/Trash descendants refused. LIST checks the new name after RENAME; any assigned special role produces a persistent bounded filing warning. Old message references become stale; search new folder again. No mail removed."),
         a("prepare_delete", "change", obj({"items": array(ITEM, 20), "mode": {"type": "string", "enum": ["trash", "permanent"]}}),
           "Reserve deletion of a nonempty exact named set. Supply reference, from, subject and date from untrusted_content unchanged; service checks all before reserving and again before acting. Trash uses MOVE; permanent needs UIDPLUS and expunges only named UIDs. Returns whole approval; pass unchanged to delete. To empty Trash, page/search and name each item.", PREPARED_RESULT),
         a("delete", "delete", APPROVAL,

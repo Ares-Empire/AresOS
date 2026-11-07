@@ -1041,19 +1041,34 @@ class Mail:
                     "next": "Delete previous only via named delete approval."}
         if verb in {"folder_create", "folder_rename"}:
             account = self.account(args["account"])
+            target = args['name']
+            if verb == 'folder_rename':
+                with self.transport.imap(account) as client:
+                    entry = next((f for f in folders(client) if f['name'] == args['folder']), None)
+                if entry is None:
+                    raise Refused('stale_reference', 'Folder is stale, search again.')
+                delimiter = entry['delimiter']
+                if delimiter and delimiter in target:
+                    raise Refused('refused', 'Use only a new last name; move folders between parents in your mail program.')
+                parent = args['folder'].rpartition(delimiter)[0] if delimiter else ''
+                target = parent + delimiter + target if parent else target
+                if len(target) > 512:
+                    raise Refused('invalid_input', 'The complete folder name exceeds 512 characters.')
+                args = {**args, 'name': target}
             names = [args['name']] + ([args['folder']] if verb == 'folder_rename' else [])
             self.fresh_roles(account, names=names)
             quote(args["name"])
             if any(self.under(account, args["name"], kind) for kind in account["special"]):
                 raise Refused("refused", "Destination is a special folder or its descendant.")
             if verb == "folder_rename":
-                self.safe_folder(account, args["folder"])
+                source = self.safe_folder(account, args["folder"])
             with self.transport.imap(account) as client:
                 self.fresh_roles(account, client, names=names)
                 if verb == "folder_create":
                     ok(client.create(quote(args["name"])), "Create folder")
                 else:
-                    ok(client.rename(quote(args["folder"]), quote(args["name"])), "Rename folder")
+                    from .filing import rename_folder
+                    return rename_folder(self, account, client, source, target)
             return {"account": account["id"], "folder": args["name"]}
         if verb in {"move", "copy", "flag"}:
             refs = args["references"]
