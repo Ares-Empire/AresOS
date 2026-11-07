@@ -236,13 +236,15 @@ class Mail:
             data, name, content_type = codec.decoded(part), part.get_filename() or "attachment", part.get_content_type()
         texts, mail_source = [], args["part"] == "source"
         if outgoing:
+            if self.authored(m):
+                raise Refused("file_refused", codec.DRAFT_ATTACHMENT_REASON)
             selected = "1" if mail_source else args["part"]
             raw, headers, payload, ancestor_authored, default_type = codec.source_part(m["raw"], selected)
             authored = self.authored(m) or ancestor_authored
             content_type = "message/rfc822" if mail_source else headers.get_content_type()
             mail_source = (mail_source or headers.get_content_maintype() in {"message", "multipart"}
                            or name.lower().endswith((".eml", ".msg"))
-                           or codec.possible_entity(codec._transfer(headers, payload)))
+                           or (headers.get_content_maintype() != "text" and codec.possible_entity(codec._transfer(headers, payload))))
             clean, texts = codec.rebuild(raw, authored, default_type)
             clean_headers, clean_payload = codec.entity(clean, default_type)
             data = clean if args["part"] == "source" or headers.get_content_maintype() in {"message", "multipart"} else codec._transfer(clean_headers, clean_payload)
@@ -318,8 +320,8 @@ class Mail:
                         _, att = self.attachment({"reference": original["reference"], "part": item["part"]}, outgoing=True)
                         attachment_refs.append(att)
             else:
-                if not self.under(account, original["reference"]["folder"], "drafts"):
-                    raise Refused("invalid_input", "mode=draft requires a message in SPECIAL-USE Drafts.")
+                if not self.authored(original):
+                    raise Refused("invalid_input", "mode=draft requires the draft marker or SPECIAL-USE Drafts.")
                 to = args.get("to", codec.addresses(msg, "To"))
                 cc = args.get("cc", codec.addresses(msg, "Cc"))
                 bcc = args.get("bcc", codec.addresses(msg, "Bcc"))
@@ -397,7 +399,6 @@ class Mail:
         mail = comp["mail"]
         utf8 = any(not codec.mailbox(v).isascii() for v in [mail["from"]] + mail["to"] + mail["cc"] + mail["bcc"])
         msg = EmailMessage(policy=codec.SMTP_POLICY.clone(utf8=utf8))
-        msg[codec.AUTHORED_HEADER] = "1"
         for key, value in (("From", mail["from"]), ("To", ", ".join(mail["to"])), ("Cc", ", ".join(mail["cc"])),
                            ("Subject", mail["subject"]), ("Message-ID", message_id), ("Date", formatdate(localtime=False))):
             if value:
@@ -427,8 +428,6 @@ class Mail:
             if item["type"] == "message/rfc822":
                 major, minor = "application", "octet-stream"
             msg.add_attachment(data, maintype=major, subtype=minor, filename=codec.clean_header(item["name"]), cte="base64")
-            if item.get("authored"):
-                msg.get_payload()[-1][codec.AUTHORED_HEADER] = "1"
         raw = msg.as_bytes()
         if len(raw) > self.wires.limit:
             raise Refused("file_refused", "Encoded whole mail exceeds 64 MiB limit; reduce attachments.")
@@ -880,6 +879,7 @@ class Mail:
             if not folder or "UIDPLUS" not in account["capabilities"]:
                 raise Refused("unsupported_server", "Draft save needs SPECIAL-USE Drafts and UIDPLUS for exact APPEND reference.")
             raw = self.mime(comp, "<draft." + uuid.uuid4().hex + "@mail.aresos.invalid>", draft=True)
+            raw = b"X-AresOS-Authored: 1\r\n" + raw
             self.check_mime(comp, raw, draft=True)
             return {"reference": self.append(account, folder, raw, "(\\Draft)"), "previous_retained": args.get("previous"),
                     "next": "Delete previous only via named delete approval."}

@@ -178,8 +178,8 @@ def _transfer(msg, payload):
     raise Refused("file_refused", "Unknown mail transfer encoding; cannot inspect outgoing attachment safely.")
 
 
-# Rebuilt messages never inherit a source header block. Provenance uses an allowed
-# MIME description so dropping the private source marker cannot erase disclosure.
+# Rebuilt messages never inherit a source header block. Draft provenance is checked
+# on the original bytes, before any headers can be dropped.
 MESSAGE_HEADERS = frozenset(name.lower() for name in (
     "From", "Sender", "Reply-To", "To", "Cc", "Date", "Subject", "Message-ID",
     "In-Reply-To", "References", "MIME-Version"))
@@ -187,6 +187,7 @@ MIME_HEADERS = frozenset(name.lower() for name in (
     "Content-Type", "Content-Transfer-Encoding", "Content-Disposition", "Content-ID",
     "Content-Description", "Content-Language"))
 AUTHORED_DESCRIPTION = "AresOS authored text; full approval required"
+DRAFT_ATTACHMENT_REASON = 'Drafts cannot be attachments or attached parts; send the draft itself (mode=draft), or forward it inline.'
 INSPECTION_LIMIT = 64 * 1024 * 1024
 WORK_LIMIT = 256 * 1024 * 1024
 
@@ -247,9 +248,17 @@ def multipart_children(headers, payload):
 
 
 def possible_entity(data):
-    head, _ = split_entity(mail_content(data))
-    return is_mail(data) or bool(re.search(
-        rb"(?im)^(?:content-(?:type|transfer-encoding)[ \t]*:|bcc[ \t]*:|resent-bcc[ \t]*:|x-aresos-authored[ \t]*:)", head))
+    data = mail_content(data)
+    head, payload = split_entity(data)
+    # Speculative parsing of opaque bytes requires a complete, valid block.
+    # A text leaf never calls this detector, even when its prose resembles mail.
+    if not head or len(head) == len(data):
+        return False
+    try:
+        headers, _ = entity(data)
+    except Refused:
+        return False
+    return bool(headers.keys())
 
 
 def source_part(raw, path):
@@ -297,6 +306,8 @@ def rebuild(raw, authored=False, default_type="text/plain", message=True):
             raise Refused("file_refused", "Mail exceeds the safe rebuild depth or size limit.")
         headers, payload = entity(data, default)
         marked = inherited or AUTHORED_HEADER in headers or str(headers.get("Content-Description", "")) == AUTHORED_DESCRIPTION
+        if marked or re.search(rb"(?im)^[ \t]*x-aresos-authored[ \t]*:", split_entity(data)[0]):
+            raise Refused("file_refused", DRAFT_ATTACHMENT_REASON)
         fresh = EmailMessage(policy=SMTP_POLICY)
         allowed = MIME_HEADERS | (MESSAGE_HEADERS if full_message else frozenset())
         for name, value in headers.raw_items():
@@ -325,16 +336,10 @@ def rebuild(raw, authored=False, default_type="text/plain", message=True):
                 if kind not in {"message/rfc822", "message/global"}:
                     raise Refused("file_refused", "Unsupported encapsulated message type; cannot rebuild it safely.")
                 decoded_data, texts = build(decoded_data, marked, "text/plain", True, depth + 1)
-            elif possible_entity(decoded_data) or (headers.get_filename() or "").lower().endswith((".eml", ".msg")):
+            elif major != "text" and possible_entity(decoded_data):
                 decoded_data, texts = build(mail_content(decoded_data), marked, "text/plain", True, depth + 1)
-            elif marked and major == "text":
-                try:
-                    text = decoded_data.decode(headers.get_content_charset() or "utf8", "strict")
-                except (UnicodeError, LookupError) as exc:
-                    raise Refused("file_refused", "Authored text cannot be decoded exactly for approval.") from exc
-                texts = [html_text(text) if kind == "text/html" else text]
-                del fresh["Content-Description"]
-                fresh["Content-Description"] = AUTHORED_DESCRIPTION
+            if re.search(rb"(?im)^[ \t]*x-aresos-authored[ \t]*:", decoded_data):
+                raise Refused("file_refused", DRAFT_ATTACHMENT_REASON)
             # Binary bytes never pass through an email generator. Retain valid
             # wire encodings when unchanged; otherwise base64 the decoded bytes.
             if decoded_data == original_data and encoding != "binary" and b"\r" not in payload.replace(b"\r\n", b"") and b"\n" not in payload.replace(b"\r\n", b""):

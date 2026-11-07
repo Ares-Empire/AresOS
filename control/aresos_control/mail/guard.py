@@ -79,7 +79,7 @@ def check(raw, root_texts, disclosed_texts, draft=False):
             if not private_allowed and re.match(rb"[ \t]*(?:bcc|resent-bcc)[ \t]*:", line, re.I):
                 refuse("Bcc or Resent-Bcc line in decoded content (even a literal text-file line is refused)")
             if not marker_allowed and re.match(rb"[ \t]*x-aresos-authored[ \t]*:", line, re.I):
-                refuse("authored marker is not shown in full in the approval")
+                refuse("authored marker outside the fully disclosed main body; drafts cannot be attachments")
 
     def readable(headers, payload):
         try:
@@ -88,7 +88,23 @@ def check(raw, root_texts, disclosed_texts, draft=False):
             refuse("text cannot be decoded exactly for disclosure")
         return html_text(text) if headers.get_content_type() == "text/html" else text
 
-    def walk(data, inherited=False, root_body=False, depth=0, default="text/plain"):
+    def complete_entity(data):
+        head, _ = split(data)
+        if not head or len(head) == len(data):
+            return False
+        continuation = False
+        for index, line in enumerate(re.split(rb"\r\n|\n|\r", head.rstrip(b"\r\n"))):
+            if index == 0 and line.startswith(b"From ") and not re.match(rb"From[ \t]*:", line):
+                continue
+            if line[:1] in (b" ", b"\t") and continuation:
+                continue
+            if not re.fullmatch(rb"[\x21-\x39\x3b-\x7e]+:[^\r\n]*", line):
+                return False
+            continuation = True
+        parsed = BytesHeaderParser(policy=policy.default).parsebytes(head + b"\r\n\r\n")
+        return bool(parsed.keys()) and not parsed.defects and not any(value.defects for value in parsed.values())
+
+    def walk(data, root_body=False, depth=0, default="text/plain"):
         nonlocal work
         work += len(data)
         if depth > MAX_DEPTH or len(data) > MAX_BYTES or work > MAX_WORK:
@@ -112,13 +128,13 @@ def check(raw, root_texts, disclosed_texts, draft=False):
         for name in ("Content-Type", "Content-Transfer-Encoding", "Content-Disposition", "Content-Description"):
             if len(headers.get_all(name, [])) > 1:
                 refuse("ambiguous MIME headers")
-        lines(head, marker_allowed=True, private_allowed=draft and depth == 0)
+        lines(head, marker_allowed=draft and depth == 0, private_allowed=draft and depth == 0)
+        if any(name.lower().startswith("x-aresos") for name in headers
+               if not (draft and depth == 0 and name.lower() == "x-aresos-authored")):
+            refuse("private X-AresOS header in outgoing mail")
         attached = headers.get_content_disposition() == "attachment" or headers.get_filename() is not None
         if root_body and attached:
-            inherited, root_body = False, False
-        own_marker = bool(re.search(rb"(?im)^[ \t]*x-aresos-authored[ \t]*:", head))
-        described = str(headers.get("Content-Description", "")) == "AresOS authored text; full approval required"
-        marked = inherited or own_marker or described
+            root_body = False
         encoding = str(headers.get("Content-Transfer-Encoding", "7bit")).lower().strip()
         major = headers.get_content_maintype()
         if major == "multipart" and encoding not in {"7bit", "8bit", "binary"}:
@@ -136,7 +152,8 @@ def check(raw, root_texts, disclosed_texts, draft=False):
             refuse("unknown transfer encoding")
         elif major != "multipart" and encoding == "7bit" and not payload.isascii():
             refuse("non-ASCII bytes declared as 7bit")
-        # Private header-shaped lines are refused anywhere, including plain files.
+        # Scan private lines at every decoded level. Marker checks on multipart
+        # bytes wait for children, so literal, fully disclosed main text is allowed.
         lines(payload, marker_allowed=True)
         if major == "multipart":
             boundary = headers.get_boundary()
@@ -164,33 +181,31 @@ def check(raw, root_texts, disclosed_texts, draft=False):
             lines(payload[end:])
             child_default = "message/rfc822" if headers.get_content_type() == "multipart/digest" else "text/plain"
             for chunk in chunks:
-                walk(chunk, marked, root_body, depth + 1, child_default)
+                walk(chunk, root_body, depth + 1, child_default)
             return
         if major == "message":
             if headers.get_content_type() not in {"message/rfc822", "message/global"}:
                 refuse("unsupported encapsulated message type")
-            walk(payload, marked if not root_body else own_marker, False, depth + 1)
+            walk(payload, False, depth + 1)
             return
-        allowed_texts = root_texts if root_body else disclosed_texts
-        if root_body and major == "text":
-            if normalized(readable(headers, payload)) not in root_texts:
+        if major == "text":
+            text = readable(headers, payload)
+            if root_body and normalized(text) not in root_texts:
                 refuse("generated body differs from the approved composition")
-        # Every decoded leaf is parsed again, regardless of its filename/type.
-        # A non-entity stays opaque only after both line scanning and this parse.
-        candidate = content(payload)
-        nested_head, _ = split(candidate)
-        nested = BytesHeaderParser(policy=policy.default).parsebytes(nested_head + b"\r\n\r\n")
-        if nested.keys() or re.search(rb"(?im)^[ \t]*(?:content-(?:type|transfer-encoding)|x-aresos-authored)[ \t]*:", nested_head):
-            walk(candidate, marked if not root_body else False, False, depth + 1)
+            # Text stays text, including complete From/Subject-looking prose.
+            # Approval by reference is insufficient for a literal marker line.
+            marker_allowed = root_body and normalized(text) in disclosed_texts
+            lines(payload, marker_allowed=marker_allowed)
+            try:
+                decoded_text = payload.decode(headers.get_content_charset() or "utf8", "strict")
+            except (UnicodeError, LookupError):
+                refuse("text cannot be decoded exactly for disclosure")
+            lines(decoded_text.encode("utf8"), marker_allowed=marker_allowed)
+            lines(text.encode("utf8"), marker_allowed=marker_allowed)
         else:
-            if marked and major == "text" and not root_body and normalized(readable(headers, payload)) not in disclosed_texts:
-                refuse("authored text is not shown in full in the approval")
-            marker_allowed = major == "text" and normalized(readable(headers, payload)) in allowed_texts if (own_marker or re.search(rb"(?im)^[ \t]*x-aresos-authored[ \t]*:", payload)) else False
-            # Expected body bytes may include quotes approved only by reference.
-            # A literal marker in those bytes needs actual full disclosure too.
-            payload_disclosed = major == "text" and normalized(readable(headers, payload)) in disclosed_texts
-            lines(payload, marker_allowed=payload_disclosed)
-            if own_marker and not marker_allowed:
-                refuse("marked non-text payload cannot be disclosed safely")
+            lines(payload)
+            candidate = content(payload)
+            if complete_entity(candidate):
+                walk(candidate, False, depth + 1)
 
     walk(raw, root_body=True)
