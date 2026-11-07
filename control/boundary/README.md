@@ -8,19 +8,23 @@ The Mac is used only to edit, inspect documentation, and submit CI runs.
 `package-lock.json` pins Claude Code **2.1.319**, the published
 `@anthropic-ai/sandbox-runtime` **0.0.81**, and their transitive npm dependencies
 with integrity hashes. `pins.json` additionally pins the x64 seccomp helper.
-The same pinned runtime is exposed at the global npm lookup path so the native
-CLI's documented helper-discovery fallback can find it; this is a symlink,
-not another copy of the helper. Missing-helper tests remove its shared target.
+The runtime is also exposed at the global npm fallback path by one symlink.
+Native 2.1.319 actually uses its embedded multicall seccomp stage through
+`/proc/self/fd/3`; it does not need that external helper. Missing-helper tests
+remove the external binaries and retain this distinction.
 The Docker image is x86-64 only. No model, authentication or real account is used.
 
 ## Reproduction and its limits
 
 [Anthropic's sandbox documentation](https://code.claude.com/docs/en/sandboxing)
 identifies its open-source runtime and Linux bubblewrap/seccomp implementation.
-No documented model-free Claude Code command runs one sandboxed Bash command.
-The native CLI does not publish its embedded runtime's exact revision. We test
-the independently published runtime above through its public `SandboxManager`
-API; we do **not** assert its version matches the native CLI's embedded copy.
+The native CLI does not publish its embedded runtime's exact revision.
+`native.py` drives its real tools with fixed streaming Messages responses from a
+local test double. Root adds only its loopback base URL and synthetic key through
+a test-only managed `env` entry; the launcher accepts no test arguments. Native
+Python calls remain approval-gated under the draft, after three real attempts.
+The brief explicitly permits retaining the independently published runtime as
+the hostile-program answer in this case; no equivalence is assumed.
 
 `configure.py` translates the draft's explicit network and filesystem lists,
 expands `~/` for the fixed assistant home, and disables weaker/nested user
@@ -29,8 +33,10 @@ automatic Read/Edit permission projection, worktree discovery, implicit temp
 directories or dynamic policy updates. Read/Edit restrictions are already covered
 by the stronger explicit home/work masks in this draft. We prepare `/tmp/claude`
 as the assistant's private scratch directory, which Claude normally provides.
-An end-to-end model test in the image must compare `/sandbox` Config with this
-reproduction before the design is qualified.
+An approved end-to-end hostile run in the image remains necessary. The native
+probe records its returned permission denials rather than pretending the Python
+program ran. Simple native Bash calls and the native compiled filter are tested
+separately; their evidence does not qualify an unexecuted script.
 
 Linux write-deny rules cannot exclude recursive patterns like `**/.envrc`.
 Consequently, this conservative draft makes the terminal's entire home work tree
@@ -78,13 +84,21 @@ Positive controls prove each listener is alive (root alone connects to admin),
 owner secrets are readable outside the sandbox, and startup files are writable.
 The sandbox must finish the exact fixed attack count, read a work file and write
 scratch space. The supervisor checks every attack result, listener liveness,
-zero new arrivals and unchanged SHA-256 hashes. New files, replacement, deletion,
-fresh subdirectories and a symlink socket alias are tested too. AF_VSOCK's denial
-without a filter can be host unavailability, not policy; the launcher refuses
-the unfiltered session regardless. `/dev/uinput` is a synthetic regular file,
+zero new arrivals and unchanged SHA-256 hashes. Proxy controls use a live
+`blocked.boundary.localhost` receiver, explicitly disable curl's no-proxy bypass,
+and prove HTTP and CONNECT arrivals with the name allowed. With the draft, only
+curl exit 22 with HTTP 403 qualifies; any other failure fails the check. Running
+the identical hostile harness with the name allowed must detect the two open
+network routes. The container retains `--network none`. New files, replacement, deletion,
+fresh subdirectories and a symlink socket alias are tested too. AF_VSOCK without a filter has no qualified host endpoint: a timeout is explicitly
+`unqualified`, not a policy refusal; the launcher refuses that session regardless. `/dev/uinput` is a synthetic regular file,
 hidden by bubblewrap's private `/dev`; no actual input event is generated.
 
 For an existing startup target, the mutation test opens without `O_CREAT`.
+Every replacement source is prepared beside its target before containment. The
+identical rename succeeds outside containment (as the owner for home files, root
+for root-owned image files). EXDEV is never containment evidence; ENOENT is
+reported as hidden separately from EROFS/EACCES/EPERM refusals.
 Creating a same-named file under the hidden home would only create a tmpfs shadow,
 which the owner's outside shell cannot see. A separate `SHADOW_ONLY` control
 deliberately creates that shadow and the supervisor still requires the real
@@ -101,14 +115,22 @@ fallback, then separately requires the launcher to refuse it.
 `launcher.c` is statically linked, root-owned and never setuid. It preserves the
 assistant uid, closes inherited fds >=3, supplies a fixed environment and invokes
 isolated Python. `launch.py` checks trusted paths, the helper hash, absence of
-installed plugins, and effective EPERM on AF_UNIX and AF_VSOCK through the real
-runtime before `execve` of the fixed CLI with `--setting-sources ''`. It accepts
+installed plugins, and effective EPERM on AF_UNIX and AF_VSOCK through both the standalone runtime
+and the native embedded stage before `execve` of the fixed CLI with
+`--setting-sources ''`. The native canary inherits no standalone socket filter.
+Its trusted wrapper allows the compiled helper to create its namespace; the
+assistant command always uses the original managed restrictions. Native hashes
+come from a root-owned build manifest over the integrity-pinned npm artifact. It accepts
 no CLI options or configurable paths. Tests temporarily replace only the
 root-owned CLI target with an environment recorder, then restore it. Real
 LD_PRELOAD, Node require and Python sitecustomize fixtures prove code would load
 without sanitization and remains unexecuted through the launcher. Missing and
 corrupt helpers, pre-existing plugins and injected launcher flags must refuse.
-No real Claude model session is claimed by these recorder tests.
+Native-binary corruption is rejected too. Recorder substitution changes only a
+root-owned CLI-target hash in the disposable image; the canonical native binary
+and its separate hash remain checked. The static environment forces
+`CLAUDE_CODE_AUTO_CONNECT_IDE=false`. A fake discoverable IDE, global auto-connect
+setting, native WebSocket positive control and TTY launcher startup test it.
 
 `settings_checks` tests user/project MCP suppression, blocked additions,
 marketplace policy and sideload flags with the actual native CLI, without login.
@@ -134,3 +156,31 @@ the hostile-program zero-arrival snapshot. They are not hostile network arrivals
 Vendor built-ins remain listed in that native init event; this package does not
 claim to disable all built-in mods. The report records those names and the later
 qualification requirement.
+
+
+## Native scripted checks
+
+`native.py` retains every tool result the CLI sends back to the fixed endpoint,
+including failed validations. Its outside file observer hashes protected files
+immediately before dispatch and after tool results, after legitimate CLI startup
+metadata writes. Edit, Write and NotebookEdit are attempted twice for each target;
+valid notebook fixtures exercise read-before-write validation as well. Permission
+denials, extension/read-first failures and unexecuted Bash are distinct evidence.
+WebFetch/WebSearch must return approval denials and produce zero receiver arrivals.
+
+Positive source controls explicitly enable user/project/local settings and remove
+the two managed source gates. Hooks, a status line, an apiKeyHelper and a normal
+Write grant then leave observable effects. Through the launcher the same planted
+settings grant no Write and leave no markers. A cached enabled-plugin fixture is
+also planted; its nonempty registry refuses launcher startup. Unexercised plugin
+loading and individually shadowed command settings remain model-test work.
+
+The native probe also samples a fixed `sleep` process from outside the sandbox,
+with stdout supplied by the root supervisor. Sampling starts at tool dispatch,
+after launcher canaries, so these processes cannot be confused. Namespace IDs,
+Seccomp/Seccomp_filters and process ancestry are retained. The full hostile Python
+program remains approval-gated; its namespace report is never invented.
+
+See the report for exact run IDs, failures, final-head validation and remaining
+model-driven gates. A successful workflow means its explicit assertions passed,
+including the documented unqualified VSOCK fallback; it does not erase those gates.
