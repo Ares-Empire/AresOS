@@ -92,5 +92,15 @@ Updated 2026-11-07. The live truth is `git log`, `gh pr list` and `git worktree 
    `reviews/councils/2026-11-07-control-layer/OWNER-SCOPE.md` (wins over that council's VERDICT). Led by the Claude
    session `mac-aresos-control`; it changes nothing under `os/`, `mod/` or the install docs without telling
    `laptop-aresos` first.
+   - **On main (owner's "merge", 2026-11-07):** the plan and design (PR #2, design draft 9), the shared base (brief
+     18, PR #6) and the Chrome checks 17 to 17e (PRs #3, #4, #7, #8, #10). Check 17e showed that a local checkpoint
+     outside Chrome holds every tested send; the owner chose it (with hard security requirements, `PLAN.md`
+     decisions 6 to 13).
+   - **In progress:** the sandbox boundary (brief 18b, PR #5: a small test fix after merging with brief 18); Mail
+     (brief 19, PR #9: package review SAFE, frontier security review in its third round); the phone approval check
+     (the first test showed the raw tool call, not a readable mail; the tool's own question never reached the
+     phone); design draft 10 (the checkpoint, "don't ask again", the assistant apart from coding sessions).
+   - **Next:** brief 18c (first end-to-end test on a throwaway CI image; no owner OK needed under the 2026-11-07
+     rule), then brief 20 (Chrome) on draft 10.
 
 Codex Pro runs until 2026-11-21.
