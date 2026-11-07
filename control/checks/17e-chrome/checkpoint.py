@@ -281,7 +281,10 @@ class Checkpoint:
         declared = flow.request.headers.get('content-length')
         if declared is not None and int(declared) > MAX_BODY:
             self.record('refused', case=self.case(flow), reason='declared-body-limit', limit=MAX_BODY)
-            flow.response = http.Response.make(413, b'Checkpoint: operation exceeds 32 MiB limit')
+            # A synthetic response still waits for the unstreamed upload to
+            # finish. Kill at the headers hook to give the page a prompt failure.
+            flow.kill()
+            return
         # Reject a page's arbitrary CONNECT tunnel. Chrome's outer CONNECT is
         # handled by the proxy before this decrypted HTTP request hook.
         if flow.request.method == 'CONNECT':

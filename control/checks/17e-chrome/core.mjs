@@ -75,7 +75,7 @@ export default async function(c){
  await guard();await ev("for(let i=0;i<3;i++)send('e-buffer-limit-'+i,new Uint8Array(25*1024*1024).fill(42));true");
  const limited=await c.eventually(()=>{const events=c.sudo('cat',c.work+'/private/events.jsonl').trim().split('\n').map(JSON.parse);return events.find(r=>r.case?.startsWith('e-buffer-limit-')&&r.reason==='buffer-limit')},'aggregate buffer refusal');
  const buffered=(await control('state')).rows.filter(r=>r.case.startsWith('e-buffer-limit-')&&r.status==='held');assert.equal(buffered.length,2);for(let i=0;i<3;i++)await zero('e-buffer-limit-'+i);for(const op of buffered)await control('cancel',{id:op.id});log('Q11_AGGREGATE_BUFFER_LIMIT',{held:buffered.length,refusal:limited,positiveControl:'e-body-large-control'});
- await ev("send('e-oversized',new Uint8Array(34*1024*1024));true");await delay(1500);await zero('e-oversized');log('Q4_OVERSIZE',{page:await ev("results['e-oversized']"),receiver:rows('e-oversized')});
+ await ev("send('e-oversized',new Uint8Array(34*1024*1024));true");await c.eventually(()=>ev("typeof results['e-oversized']==='string'"),'oversized input visibly fails to the page');await zero('e-oversized');log('Q4_OVERSIZE',{page:await ev("results['e-oversized']"),receiver:rows('e-oversized')});
  // Proxy outage has no direct fallback.
  await c.stopProxy();await send('e-proxy-down');await delay(900);await zero('e-proxy-down');log('Q1_PROXY_DOWN',{page:await ev("results['e-proxy-down']"),receiver:rows('e-proxy-down')});await c.startProxy();assert.equal((await control('state')).guard,true);
  await (await import('./wire.mjs')).default(c);
