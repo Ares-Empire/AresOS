@@ -25,7 +25,7 @@ PAGE = obj({"cursor": string(512), "limit": {"type": "integer", "minimum": 1, "m
 RESULT = obj({"ok": {"type": "boolean"}, "data": {"type": "object"}, "error": {"type": "object"},
               "pending": {"type": "object"}}, ["ok", "pending"])
 PUBLIC_OPERATION = obj({"id": string(80), "generation": string(32), "app": string(64), "action": string(128),
-    "approval": {"type": "object"}, "state": {"type": "string", "enum": ["reserved", "submitting", "done", "partial", "failed", "unknown"]},
+    "approval": {"type": "object"}, "state": {"type": "string", "enum": ["reserved", "submitting", "done", "partial", "refused", "failed", "unknown"]},
     "expires": {"type": "number"}, "stages": {"type": "object"}, "reason": string(4096),
     "notice": {"type": "boolean"}, "ack": {"type": "boolean"}, "repair_of": string(80)},
     ["id", "generation", "app", "action", "approval", "state", "expires", "stages", "reason"])

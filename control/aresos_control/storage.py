@@ -29,6 +29,10 @@ def short_description(operation):
     if "items" in description:
         result["targets"] = [{k: copy.deepcopy(item[k]) for k in ("reference", "subject", "title") if k in item}
                              for item in description["items"]]
+    if "folder" in description:
+        result["targets"] = [{k: copy.deepcopy(description[k]) for k in ("folder", "uidvalidity") if k in description}]
+    if "target" in description:
+        result["targets"] = [copy.deepcopy(description["target"])]
     if "repair_of" in operation:
         result["targets"] = [operation["repair_of"]]
     return result

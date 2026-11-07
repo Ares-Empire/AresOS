@@ -10,11 +10,13 @@ class Reading(MailCase):
     def test_every_read_action_preserves_flags(self):
         ref = self.fixture(attachments=[('invoice.pdf', b'%PDF-synthetic', 'application/pdf')])
         self.fixture(self.account['special']['archive'], headers={'In-Reply-To':ref['message_id']})
+        approval = self.approval()
         before = self.all_flags()
         for verb, args in [('accounts', {}), ('folders', {'account':'box'}), ('search', {'account':'box'}),
                            ('read', {'reference':ref}), ('read', {'reference':ref, 'part':'source'}),
                            ('read', {'reference':ref, 'part':'1.1'}), ('thread', {'reference':ref}),
-                           ('contacts', {'account':'box', 'text':'alice'})]:
+                           ('contacts', {'account':'box', 'text':'alice'}),
+                           ('operation_status', {'operation_id':approval['operation_id']})]:
             with self.subTest(action=verb, args=args):
                 self.data(verb, args)
                 self.assertEqual(before, self.all_flags())

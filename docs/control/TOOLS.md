@@ -765,6 +765,7 @@ Result data:
             "submitting",
             "done",
             "partial",
+            "refused",
             "failed",
             "unknown"
           ]
@@ -971,6 +972,7 @@ Result data:
             "submitting",
             "done",
             "partial",
+            "refused",
             "failed",
             "unknown"
           ]
@@ -1081,6 +1083,7 @@ Result data:
             "submitting",
             "done",
             "partial",
+            "refused",
             "failed",
             "unknown"
           ]
@@ -1195,6 +1198,7 @@ Result data:
             "submitting",
             "done",
             "partial",
+            "refused",
             "failed",
             "unknown"
           ]
@@ -1313,6 +1317,7 @@ Result data:
             "submitting",
             "done",
             "partial",
+            "refused",
             "failed",
             "unknown"
           ]
@@ -1386,6 +1391,7 @@ Result data:
             "submitting",
             "done",
             "partial",
+            "refused",
             "failed",
             "unknown"
           ]
@@ -1497,6 +1503,7 @@ Result data:
             "submitting",
             "done",
             "partial",
+            "refused",
             "failed",
             "unknown"
           ]
@@ -2628,6 +2635,7 @@ Result data:
             "submitting",
             "done",
             "partial",
+            "refused",
             "failed",
             "unknown"
           ]
@@ -3177,6 +3185,7 @@ Result data:
             "submitting",
             "done",
             "partial",
+            "refused",
             "failed",
             "unknown"
           ]
@@ -3359,6 +3368,7 @@ Result data:
             "submitting",
             "done",
             "partial",
+            "refused",
             "failed",
             "unknown"
           ]
@@ -3571,6 +3581,7 @@ Result data:
             "submitting",
             "done",
             "partial",
+            "refused",
             "failed",
             "unknown"
           ]
@@ -3681,6 +3692,7 @@ Result data:
             "submitting",
             "done",
             "partial",
+            "refused",
             "failed",
             "unknown"
           ]
@@ -3803,6 +3815,7 @@ Result data:
             "submitting",
             "done",
             "partial",
+            "refused",
             "failed",
             "unknown"
           ]
@@ -3876,6 +3889,7 @@ Result data:
             "submitting",
             "done",
             "partial",
+            "refused",
             "failed",
             "unknown"
           ]
@@ -3987,6 +4001,7 @@ Result data:
             "submitting",
             "done",
             "partial",
+            "refused",
             "failed",
             "unknown"
           ]
@@ -4097,6 +4112,7 @@ Result data:
             "submitting",
             "done",
             "partial",
+            "refused",
             "failed",
             "unknown"
           ]
@@ -4260,6 +4276,7 @@ Result data:
             "submitting",
             "done",
             "partial",
+            "refused",
             "failed",
             "unknown"
           ]

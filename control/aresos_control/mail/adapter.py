@@ -54,6 +54,7 @@ class Mail:
                 names = selected
             for folder in sorted(names):
                 validity = select(client, folder)
+                modseq = client.response("HIGHESTMODSEQ")[1] if b"CONDSTORE" in client.capabilities else None
                 ids = uids(client)
                 if len(ids) + len(messages) > self.SCAN_LIMIT:
                     raise Refused("scan_too_large", "History exceeds scan limit; search selected smaller folders or use owner's mail program.")
@@ -63,7 +64,7 @@ class Mail:
                     ref = {"account": account_id, "folder": folder, "uidvalidity": validity, "uid": uid,
                            "message_id": str(msg.get("Message-ID", ""))}
                     messages.append({"reference": ref, "raw": raw, "msg": msg, "flags": flags})
-                state.append([folder, validity, ids])
+                state.append([folder, validity, ids, [v.decode("ascii") for v in (modseq or []) if v]])
         # Includes flags and bytes, not just UIDNEXT: works without CONDSTORE/QRESYNC.
         version = digest([state, [[m["reference"], sha256(m["raw"]), m["flags"]] for m in messages]])
         return messages, version
@@ -148,7 +149,7 @@ class Mail:
         msg, raw = m["msg"], m["raw"]
         part = args.get("part", "body")
         if part == "source":
-            text = raw.decode("utf8", "replace")
+            text = raw.decode("latin1")
         elif part == "body":
             text = codec.body(msg)
         else:
@@ -167,10 +168,13 @@ class Mail:
         return {"reference": args["reference"], "flags": m["flags"], "untrusted_content": {"headers": headers, "text": text[offset:end], "attachments": codec.attachments(msg), "unsubscribe": self.unsubscribe_choices(msg)},
                 "part": part, "offset": offset, "next_offset": end if end < len(text) else None,
                 "cursor": token if end < len(text) else None, "total_characters": len(text), "source_sha256": sha256(raw),
-                "thread_reference": args["reference"]}
+                "thread_reference": args["reference"], "source_encoding": "latin1 byte mapping" if part == "source" else None}
 
     def thread(self, args):
         seed = self.message(args["reference"])
+        account = self.account(args["reference"]["account"])
+        if any(self.under(account, args["reference"]["folder"], k) for k in ("trash", "junk")):
+            raise Refused("refused", "Threads exclude Trash/Junk; read this mail directly or move it back first.")
         messages, version = self.snapshot(args["reference"]["account"])
         def ids(m):
             return set(codec.message_ids(" ".join(str(m["msg"].get(h, "")) for h in ("Message-ID", "In-Reply-To", "References"))))
@@ -327,7 +331,7 @@ class Mail:
             codec.formatted(mail["text"])
         comp = {"id": uuid.uuid4().hex, "hash": digest(mail), "mail": mail}
         self.store.write({"mail:composition:" + comp["id"]: comp}, "mail_compose", "stored immutable composition " + comp["id"])
-        return {"composition_id": comp["id"], "composition_hash": comp["hash"], "mail": visible(mail)}
+        return {"composition_id": comp["id"], "composition_hash": comp["hash"], "mail": visible(mail), "untrusted_content": {"derived_mail_fields": True}}
 
     def mime(self, comp, message_id, draft=False):
         mail = comp["mail"]

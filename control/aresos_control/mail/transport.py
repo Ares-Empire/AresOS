@@ -78,6 +78,9 @@ class Transport:
             # TLS construction/hostname validation finished before the password is read.
             ok(client.login(account["username"], self.password(account)), "IMAP login")
             client.capabilities = tuple(x.upper() for x in b" ".join(ok(client.capability(), "CAPABILITY")).split())
+            if b"CONDSTORE" in client.capabilities and b"ENABLE" in client.capabilities:
+                # Read HIGHESTMODSEQ where available; full re-reads remain authoritative.
+                client.enable("CONDSTORE")
             yield client
         finally:
             if client is not None:

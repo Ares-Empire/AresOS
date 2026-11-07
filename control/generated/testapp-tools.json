@@ -647,6 +647,7 @@
                     "submitting",
                     "done",
                     "partial",
+                    "refused",
                     "failed",
                     "unknown"
                   ]
@@ -883,6 +884,7 @@
                     "submitting",
                     "done",
                     "partial",
+                    "refused",
                     "failed",
                     "unknown"
                   ]
@@ -1008,6 +1010,7 @@
                     "submitting",
                     "done",
                     "partial",
+                    "refused",
                     "failed",
                     "unknown"
                   ]
@@ -1137,6 +1140,7 @@
                     "submitting",
                     "done",
                     "partial",
+                    "refused",
                     "failed",
                     "unknown"
                   ]
@@ -1270,6 +1274,7 @@
                     "submitting",
                     "done",
                     "partial",
+                    "refused",
                     "failed",
                     "unknown"
                   ]
@@ -1343,6 +1348,7 @@
                     "submitting",
                     "done",
                     "partial",
+                    "refused",
                     "failed",
                     "unknown"
                   ]
@@ -1469,6 +1475,7 @@
                     "submitting",
                     "done",
                     "partial",
+                    "refused",
                     "failed",
                     "unknown"
                   ]

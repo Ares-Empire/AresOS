@@ -1,6 +1,6 @@
 """Small real TLS SMTP failure server; never relays, no automatic deduplication."""
 import base64
-from contextlib import contextmanager
+from contextlib import closing
 import json
 import socketserver
 import sqlite3
@@ -13,8 +13,9 @@ from support import CERT
 class SMTPFixture:
     def __init__(self, root, mode='normal', on_data=None):
         self.database = root / 'smtp.sqlite'
-        with sqlite3.connect(self.database) as db:
+        with closing(sqlite3.connect(self.database)) as db:
             db.execute('CREATE TABLE IF NOT EXISTS arrivals(id INTEGER PRIMARY KEY, recipients TEXT, raw BLOB)')
+            db.commit()
         self.mode, self.on_data, self.auth_count = mode, on_data, 0
         self.context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         self.context.load_cert_chain(CERT / 'tls.crt', CERT / 'tls.key')
@@ -59,8 +60,9 @@ class SMTPFixture:
                                 break
                             chunks.append(data[1:] if data.startswith(b'..') else data)
                         raw = b''.join(chunks)
-                        with sqlite3.connect(fixture.database) as db:
+                        with closing(sqlite3.connect(fixture.database)) as db:
                             db.execute('INSERT INTO arrivals(recipients,raw) VALUES (?,?)', (json.dumps(recipients),raw))
+                            db.commit()
                         if fixture.on_data:
                             fixture.on_data(raw)
                         if fixture.mode == 'lost_answer':
@@ -88,7 +90,7 @@ class SMTPFixture:
         self.thread.start()
 
     def arrivals(self):
-        with sqlite3.connect(self.database) as db:
+        with closing(sqlite3.connect(self.database)) as db:
             return [(json.loads(r), bytes(raw)) for r,raw in db.execute('SELECT recipients,raw FROM arrivals ORDER BY id')]
 
     def close(self):

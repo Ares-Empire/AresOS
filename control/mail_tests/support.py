@@ -92,7 +92,7 @@ class MailCase(unittest.TestCase):
 
     def all_flags(self):
         messages, _ = self.mail.snapshot(self.account['id'], list(self.account['special'].values()))
-        return {canonical(m['reference']): [f for f in m['flags'] if f != '\\Recent'] for m in messages}
+        return {canonical(m['reference']): m['flags'] for m in messages}
 
     def arrivals(self, recipient, mid):
         account = {**self.account, 'imap_host':'greenmail', 'imap_port':3993, 'username':recipient}
