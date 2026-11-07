@@ -101,6 +101,17 @@ class TestApp:
         self.store.write({"testapp": data}, "testapp_flag", "flag exact item " + item["id"])
         return {"reference": self.reference(item), "flagged": item["flagged"]}
 
+    def call(self, verb, args):
+        if verb == "list":
+            return self.listing(args)
+        if verb == "flag":
+            return self.flag(args)
+        if verb == "fixture_configure":
+            self.store.write({}, "testapp_fixture_configure", "configure fake receiver")
+            self.receiver.configure(args)
+            return args
+        raise Refused("invalid_input", "Unsupported adapter action; inspect its tool list.")
+
     def prepare(self, verb, args):
         if verb == "send":
             recipients = args["to"] + args["cc"] + args["bcc"]
@@ -132,6 +143,15 @@ class TestApp:
 
     def evidence(self, operation_id):
         return self.receiver.evidence(operation_id)
+
+    def has_submission_evidence(self, operation_id):
+        return bool(self.evidence(operation_id)["arrivals"])
+
+    def repaired_outcome(self, operation):
+        stages = operation["stages"]
+        if operation["state"] == "partial" and stages.get("sent_copy") == stages.get("answered_flag") == "done" and all(v == "accepted" for k, v in stages.items() if k.startswith("recipient:")):
+            return "done", "Accepted recipients and repaired local stages; never resubmitted."
+        return operation["state"], operation["reason"]
 
     def execute(self, operation, stage):
         payload = operation["payload"]

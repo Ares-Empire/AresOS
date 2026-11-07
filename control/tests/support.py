@@ -4,6 +4,7 @@ import tempfile
 import unittest
 
 from aresos_control.engine import Engine
+from aresos_control.definitions import BY_NAME
 
 ROOT = Path(__file__).resolve().parents[2]
 WORK = ROOT / "control" / "test-work"
@@ -35,6 +36,8 @@ class EngineCase(unittest.TestCase):
     def data(self, name, args=None, admin=False):
         result = self.call(name, args, admin)
         self.assertTrue(result["ok"], result)
+        from jsonschema import Draft202012Validator
+        Draft202012Validator(BY_NAME[name].tool()["outputSchema"]).validate(result)
         return result["data"]
 
     def reserve(self, **changes):

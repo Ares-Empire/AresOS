@@ -3,14 +3,14 @@ import base64
 import json
 
 from .common import Refused, canonical, validate
-from .definitions import BY_NAME
+from .definitions import APPS, BY_NAME
 from .files import FilePolicy
 from .protocol import Client
 
 
 class Proxy:
     def __init__(self, app, config, admin=False):
-        if app not in {"testapp", "control"}:
+        if app not in APPS:
             raise Refused("invalid_input", "Unknown app; use a configured MCP server.")
         self.app, self.admin = app, admin
         self.client = Client(config["admin_socket"] if admin else config["act_socket"])

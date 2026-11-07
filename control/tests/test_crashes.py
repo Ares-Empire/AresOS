@@ -77,3 +77,27 @@ class Crashes(EngineCase):
         self.assertEqual(len(repairs), 1)
         self.assertEqual(repairs[0]["state"], "unknown")
         self.assertEqual(self.engine.receiver.evidence(approval["operation_id"])["arrivals"], evidence)
+
+    def test_kill9_during_restore_confirmation_can_be_confirmed_again(self):
+        import sqlite3
+        for point in ("journal_appended", "sqlite_committed", "journal_committed"):
+            with self.subTest(point=point):
+                approval = self.reserve()
+                backup = sqlite3.connect(self.root / "backup.sqlite")
+                self.engine.store.db.backup(backup)
+                backup.close()
+                recent = self.reserve(subject="restore crash " + point)
+                self.data("testapp_send", recent)
+                self.engine.close()
+                (self.root / "state/control.sqlite").write_bytes((self.root / "backup.sqlite").read_bytes())
+                self.engine = Engine(self.root / "state", self.root / "independent")
+                self.assertTrue(self.engine.store.locked)
+                self.kill_at(point, "restore", {})
+                if self.engine.store.locked:
+                    self.data("control_restore_confirm", {"confirm": "invalidate earlier approvals"}, admin=True)
+                self.assertFalse(self.call("testapp_send", approval)["ok"])
+                self.assertFalse(self.call("testapp_send", recent)["ok"])
+                self.restart()
+                self.assertFalse(self.engine.store.locked)
+                self.assertEqual(self.engine.operation(recent["operation_id"])["state"], "unknown")
+                self.assertEqual(len(self.engine.receiver.evidence(recent["operation_id"])["arrivals"]), 3)

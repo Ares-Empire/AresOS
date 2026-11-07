@@ -26,7 +26,42 @@
           "type": "boolean"
         },
         "data": {
-          "type": "object"
+          "type": "object",
+          "properties": {
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              },
+              "maxItems": 10
+            },
+            "total": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "cursor": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 512
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "restore_required": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "items",
+            "total",
+            "cursor",
+            "restore_required"
+          ],
+          "additionalProperties": false
         },
         "error": {
           "type": "object"
@@ -75,7 +110,38 @@
           "type": "boolean"
         },
         "data": {
-          "type": "object"
+          "type": "object",
+          "properties": {
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              },
+              "maxItems": 10
+            },
+            "total": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "cursor": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 512
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "items",
+            "total",
+            "cursor"
+          ],
+          "additionalProperties": false
         },
         "error": {
           "type": "object"

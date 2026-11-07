@@ -5,7 +5,7 @@ import uuid
 from .adapters import NothingLeft, Uncertain
 from .blobs import Blobs
 from .common import RESULT_LIMIT, Refused, approval_input, canonical, digest, sha256, validate, visible
-from .definitions import BY_NAME, tools_for
+from .definitions import APPS, BY_NAME, tools_for
 from .storage import Store
 from .testapp import Receiver, TestApp
 
@@ -91,7 +91,7 @@ class Engine:
             return {"operation": self.public_operation(op)}
         adapter = self.adapters[action.app]
         adapter.revalidate(op)
-        if adapter.evidence(op["id"])["arrivals"]:
+        if adapter.has_submission_evidence(op["id"]):
             raise Refused("refused", "Far-side evidence already exists; inspect status, never submit again.")
         self.store.checkpoint("revalidated")
         op["state"], op["reason"] = "submitting", "Durably submitting; do not cancel or retry."
@@ -101,7 +101,7 @@ class Engine:
             state, reason = adapter.execute(op, lambda name, outcome: self.stage(op["id"], name, outcome))
         except NothingLeft as exc:
             state, reason = "failed", str(exc)
-        except (Uncertain, Exception) as exc:
+        except Exception as exc:
             # Unqualified adapter errors cannot prove that the far side did nothing.
             state, reason = "unknown", "Submission outcome uncertain; inspect evidence, never retry. " + str(exc)
         op = self.operation(op["id"])
@@ -127,8 +127,7 @@ class Engine:
         try:
             result = self.adapters[app].repair(old, args["stage"])
             old["stages"][args["stage"]] = result
-            if old["state"] == "partial" and old["stages"].get("sent_copy") == old["stages"].get("answered_flag") == "done" and all(v == "accepted" for k, v in old["stages"].items() if k.startswith("recipient:")):
-                old["state"], old["reason"] = "done", "Accepted recipients and repaired local stages; never resubmitted."
+            old["state"], old["reason"] = self.adapters[app].repaired_outcome(old)
             repair["state"], repair["reason"] = "done", "Local repair completed; never submitted."
             changes = {"op:" + op_id: repair, "op:" + old["id"]: old}
         except Exception:
@@ -159,13 +158,9 @@ class Engine:
             return self.page(entries, args, "log:" + day)
         app, verb = action.app, action.verb
         adapter = self.adapters[app]
-        if verb == "list":
-            return adapter.listing(args)
-        if verb == "flag":
-            return adapter.flag(args)
         if verb.startswith("prepare_"):
             return self.reserve(app, verb.removeprefix("prepare_"), args)
-        if verb in {"send", "delete"}:
+        if action.effect in {"send", "delete"}:
             return self.submit(action, args)
         if verb == "operation_status":
             op = self.operation(args["operation_id"], app)
@@ -186,11 +181,9 @@ class Engine:
             op["ack"] = True
             self.store.write({"op:" + op["id"]: op}, name, "notice acknowledged", op["id"])
             return {"operation": self.public_operation(op)}
-        if verb == "fixture_configure":
-            self.store.write({}, name, "configure fake receiver")
-            adapter.receiver.configure(args)
-            return args
-        raise Refused("proxy_required", "File transfer must run on the caller side through aresos-mcp or aresos; the service never opens home paths.")
+        if verb in {"file_import", "file_save"}:
+            raise Refused("proxy_required", "File transfer must run on the caller side through aresos-mcp or aresos; the service never opens home paths.")
+        return adapter.call(verb, args)
 
     def request(self, request, admin=False):
         app = None
@@ -200,7 +193,7 @@ class Engine:
             method = request.get("method")
             if method == "tools":
                 app = request.get("app")
-                if app not in {"testapp", "control"}:
+                if app not in APPS:
                     raise Refused("invalid_input", "Unknown app; inspect configured MCP servers.")
                 data = {"tools": tools_for(app)}
             elif method == "call":

@@ -44,7 +44,7 @@ class Integration(unittest.TestCase):
             path.mkdir(mode=0o711 if name == "sockets" else 0o700)
             os.chown(path, SERVICE, SERVICE)
         self.service_config = {"owner_uid": OWNER, "state_dir": str(self.root / "state"),
-                               "evidence_dir": str(self.root / "independent"), "socket_dir": str(self.root / "sockets"), "approval_ttl": 2}
+                               "evidence_dir": str(self.root / "independent"), "socket_dir": str(self.root / "sockets"), "approval_ttl": 120}
         self.proxy_config = {"act_socket": str(self.root / "sockets/act.sock"), "admin_socket": str(self.root / "sockets/admin.sock"),
                              "home": str(self.home), "folders": [str(self.home / name) for name in ("Documents", "Downloads", "Desktop")]}
         Path("/etc/aresos-control/service.json").write_text(canonical(self.service_config))
@@ -158,8 +158,26 @@ class Integration(unittest.TestCase):
         op_id = asyncio.run(conversation())
         status = self.call(OWNER, "testapp_operation_status", {"operation_id": op_id})
         self.assertEqual(status["data"]["evidence"]["arrivals"], ["alpha", "beta", "hidden"])
-        prepared = self.call(OWNER, "testapp_prepare_send", message())["data"]["approval"]
-        time.sleep(2.1)
+        # Reload a short TTL only for the independent expiry check, so normal
+        # end-to-end work does not race a two-second approval on a slow runner.
+        self.daemon.terminate()
+        self.daemon.wait(timeout=8)
+        self.service_config["approval_ttl"] = 0.2
+        Path("/etc/aresos-control/service.json").write_text(canonical(self.service_config))
+        self.daemon = subprocess.Popen(["/usr/bin/python3", "-I", "-S", LAUNCH, "service"],
+                                       preexec_fn=identity(SERVICE), stdout=self.output, stderr=subprocess.STDOUT)
+        deadline = time.monotonic() + 8
+        while True:
+            try:
+                prepared_result = self.call(OWNER, "testapp_prepare_send", message())
+                break
+            except AssertionError:
+                if time.monotonic() >= deadline:
+                    raise
+                time.sleep(0.03)
+        self.assertTrue(prepared_result["ok"], prepared_result)
+        prepared = prepared_result["data"]["approval"]
+        time.sleep(0.4)
         status = self.call(OWNER, "testapp_operation_status", {"operation_id": prepared["operation_id"]})
         self.assertEqual(status["data"]["operation"]["state"], "failed")
         prompt_input = {"hook_event_name": "UserPromptSubmit", "session_id": "fixture-session", "prompt": "owner message", "cwd": str(self.home)}

@@ -22,6 +22,8 @@ if mode == "reserve":
     engine.dispatch("testapp_prepare_send", json.loads((root / "arguments.json").read_text()))
 elif mode == "repair":
     engine.dispatch("testapp_operation_repair", json.loads((root / "arguments.json").read_text()))
+elif mode == "restore":
+    engine.dispatch("control_restore_confirm", {"confirm": "invalidate earlier approvals"}, admin=True)
 else:
     engine.dispatch("testapp_" + mode, json.loads((root / "approval.json").read_text()))
 raise SystemExit("Checkpoint was never reached: " + point)

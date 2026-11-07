@@ -8,7 +8,25 @@ from aresos_control.definitions import ACTIONS, tools_for
 ROOT = Path(__file__).resolve().parent.parent
 
 
+def schema_check(schema):
+    allowed = {"type", "properties", "required", "additionalProperties", "items", "enum", "minItems", "maxItems",
+               "minLength", "maxLength", "minimum", "maximum", "anyOf"}
+    if not isinstance(schema, dict) or not schema.keys() <= allowed:
+        raise ValueError("Schema uses an unsupported keyword: " + str(schema))
+    if schema.get("type") not in {None, "object", "array", "string", "integer", "number", "boolean", "null"}:
+        raise ValueError("Unsupported schema type")
+    for child in [*schema.get("properties", {}).values(), *schema.get("anyOf", [])]:
+        schema_check(child)
+    if "items" in schema:
+        schema_check(schema["items"])
+
+
 def generated():
+    for action in ACTIONS:
+        if action.result is None:
+            raise ValueError("Missing result schema: " + action.name)
+        schema_check(action.input)
+        schema_check(action.tool()["outputSchema"])
     apps = sorted({a.app for a in ACTIONS})
     files = {}
     for app in apps:
@@ -20,9 +38,9 @@ def generated():
     for a in ACTIONS:
         command = f"aresos {'admin ' if a.owner_only else ''}{a.app} {a.verb}"
         help_text += f"  {command} [{a.effect}]\n"
-        doc += f"## `{a.name}`\n\n`{command}`; effect **{a.effect}**; owner-only **{a.owner_only}**.\n\n{a.description}\n\nInput:\n```json\n{json.dumps(a.input, indent=2)}\n```\n\n"
+        doc += f"## `{a.name}`\n\n`{command}`; effect **{a.effect}**; owner-only **{a.owner_only}**.\n\n{a.description}\n\nInput:\n```json\n{json.dumps(a.input, indent=2)}\n```\n\nResult data:\n```json\n{json.dumps(a.result, indent=2)}\n```\n\n"
     files["control/generated/cli-help.txt"] = help_text
-    files["docs/control/TOOLS.md"] = doc + "All results use the bounded envelope `ok`, `data` or `error`, and `pending`. Result JSON schema:\n\n```json\n" + json.dumps(ACTIONS[0].tool()["outputSchema"], indent=2) + "\n```\n"
+    files["docs/control/TOOLS.md"] = doc + "All results use the bounded envelope `ok`, `data` or `error`, and `pending`. Each generated MCP tool includes its complete output schema.\n"
     return files
 
 

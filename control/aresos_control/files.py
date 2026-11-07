@@ -55,10 +55,12 @@ class FilePolicy:
 
     def directory(self, path):
         # Opening from '/' protects the configured root itself as well as children.
-        fd = os.open("/", os.O_RDONLY | os.O_DIRECTORY)
+        fd = os.open("/", os.O_PATH | os.O_DIRECTORY)
         try:
-            for part in safe_parts(str(path).lstrip("/")):
-                new_fd = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=fd)
+            parts = safe_parts(str(path).lstrip("/"))
+            for index, part in enumerate(parts):
+                access = os.O_RDONLY if index == len(parts) - 1 else os.O_PATH
+                new_fd = os.open(part, access | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=fd)
                 os.close(fd)
                 fd = new_fd
             return fd

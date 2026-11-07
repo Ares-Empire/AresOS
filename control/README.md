@@ -171,11 +171,11 @@ is run by this package. MCP contract **read**:
    result contract, exact references, and a description explaining use, output and
    recovery. Owner-only actions stay off act/MCP. Generate and commit artifacts;
    every new send/delete must appear in the generated ask list.
-2. Implement the `Adapter` contract and register it in `Engine.adapters`. Add app
-   registration to the generic app catalogue checks in Engine/Proxy. Keep platform,
-   provider and browser code in the adapter. Public verbs dispatch to that adapter;
-   extend the dispatcher for its read/change verbs rather than executing tool names
-   dynamically. `TestApp` demonstrates the contract and fake far-side fixture.
+2. Implement the `Adapter` contract and register it in `Engine.adapters`. App names
+   come from the definitions. Keep platform, provider and browser code in the adapter.
+   Its `call` method dispatches its read/change verbs, while every send/delete effect
+   goes through the shared submission engine. `TestApp` demonstrates the contract
+   and fake far-side fixture.
 3. `prepare` must build the service's authoritative description and immutable
    payload. Keep all Claude-written content in the approval, and generated material
    by immutable size/hash reference. Reference checks must fail stale. `revalidate`

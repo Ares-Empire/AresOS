@@ -1,4 +1,5 @@
 """SQLite mirror plus an independently retained, append-only, fsynced operation journal."""
+import copy
 import fcntl
 import json
 import os
@@ -122,9 +123,16 @@ class Store:
     def confirm_restore(self):
         if not self.locked:
             raise Refused("refused", "No older log is awaiting confirmation.")
+        if len(self.events) > self.committed:
+            # A restore confirmation may itself have died before its commit marker.
+            # The owner is confirming again: retain that evidence, never append over
+            # an uncommitted tail and never replay app work from the older database.
+            last = self.events[-1]
+            self._append({"commit": last["seq"], "hash": last["hash"]})
+            self.committed = last["seq"]
         latest = {}
         for event in self.events:
-            latest.update({k: v for k, v in event["set"].items() if k.startswith("op:")})
+            latest.update({k: copy.deepcopy(v) for k, v in event["set"].items() if k.startswith("op:")})
         changes = {"generation": uuid.uuid4().hex}
         for key, known in latest.items():
             old = self.get(key)

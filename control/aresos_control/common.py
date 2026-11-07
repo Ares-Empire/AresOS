@@ -47,9 +47,18 @@ def approval_input(operation_id, description):
 
 def validate(value, schema, path="input"):
     """The closed schema subset used by definitions; unknown schema keywords fail generation."""
+    if "anyOf" in schema:
+        for option in schema["anyOf"]:
+            try:
+                validate(value, option, path)
+                return
+            except Refused:
+                pass
+        raise Refused("invalid_input", f"{path}: value does not match any allowed schema.")
     kind = schema.get("type")
     valid = {"object": type(value) is dict, "array": type(value) is list,
              "string": type(value) is str, "integer": type(value) is int,
+             "number": type(value) in {int, float},
              "boolean": type(value) is bool, "null": value is None}
     if kind and not valid[kind]:
         raise Refused("invalid_input", f"{path}: expected {kind}; inspect the tool schema.")
