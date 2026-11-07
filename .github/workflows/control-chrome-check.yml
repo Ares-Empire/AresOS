@@ -41,7 +41,7 @@ jobs:
           XDG_CONFIG_HOME: ${{ github.workspace }}/.work/17-chrome/config
         run: |
           set -o pipefail
-          xvfb-run -a -s '-screen 0 1440x1000x24' bash -c 'openbox > .work/17-chrome/artifacts/openbox.log 2>&1 & node control/checks/17-chrome/run.mjs' 2>&1 | tee .work/17-chrome/artifacts/check.log
+          dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1000x24' bash -c 'openbox > .work/17-chrome/artifacts/openbox.log 2>&1 & timeout --kill-after=15s 20m node control/checks/17-chrome/run.mjs' 2>&1 | tee .work/17-chrome/artifacts/check.log
       - name: Upload synthetic logs and structural page views
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

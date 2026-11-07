@@ -24,8 +24,10 @@ export class Hold extends EventEmitter {
     const isFixture=new URL(p.request.url).pathname==='/receive';
     const reason=classify(p,this.intent||{});
     if(this.publicMode){
-      this.history.push({url:p.request.url,method:p.request.method,type:p.resourceType,reason,decision:reason?'drop':'allow-read'});
-      await this.cdp.send(reason?'Fetch.failRequest':'Fetch.continueRequest',reason?{requestId:p.requestId,errorReason:'Aborted'}:{requestId:p.requestId});return;
+      // Independent guard: background APIs are dropped even when this candidate rule misses them.
+      const drop=!!reason||['XHR','Fetch','Ping','WebSocket'].includes(p.resourceType);
+      this.history.push({url:p.request.url,method:p.request.method,type:p.resourceType,reason,decision:drop?'drop':'allow-read'});
+      await this.cdp.send(drop?'Fetch.failRequest':'Fetch.continueRequest',drop?{requestId:p.requestId,errorReason:'Aborted'}:{requestId:p.requestId});return;
     }
     if(!isFixture||this.trusted.has(new URL(p.request.url).origin)){
       await this.cdp.send('Fetch.continueRequest',{requestId:p.requestId});return;
@@ -43,7 +45,7 @@ export class Hold extends EventEmitter {
     if(!entry||entry.state!=='held')throw new Error('NOT_PENDING: decision already consumed or unknown');
     if(entry.hash!==hash)throw new Error('PREVIEW_MISMATCH');
     // Consume before the call: a transport failure means unknown, never automatic retry.
-    this.pending.delete(id);entry.state='unknown';
+    this.pending.delete(id);entry.state='unknown';entry.decidedAt=Date.now();
     await this.cdp.send(decision==='release'?'Fetch.continueRequest':'Fetch.failRequest',decision==='release'?{requestId:id}:{requestId:id,errorReason:'Aborted'});
     entry.state=decision==='release'?'released':'dropped';
   }

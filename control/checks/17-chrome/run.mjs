@@ -54,6 +54,8 @@ try {
   summary.routes=await otherRoutes({here,work,out,profile,fixture});
   assert.equal(fixture.arrivals.filter(r=>r.url?.includes('other-tab-mutated')).length,0);
   console.log('ALL CHECKS COMPLETE');
+} catch(error){
+  await screenshot(out,'failure');throw error;
 } finally {
   save(out,'summary',summary);
   if(chrome)await stopChrome(chrome);

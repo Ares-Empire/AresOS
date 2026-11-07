@@ -14,20 +14,22 @@ export async function loadUnpacked(dir,out,label){
   // Fixed 1440x1000 CI display, maximized Chrome. Evidence images record this UI.
   if(!developerEnabled){x('mousemove',1415,134,'click',1);await delay(500);developerEnabled=true;}
   await screenshot(out,`extensions-dev-${label}`);
-  x('mousemove',80,190,'click',1);await delay(600);
+  x('mousemove',80,190,'click',1);await delay(1800);
   await screenshot(out,`extensions-dialog-${label}`);
-  await key('ctrl+l');x('type','--delay','1',dir);await key('Return');await delay(500);await key('Return');await delay(1200);
+  await key('ctrl+l');x('type','--delay','1',dir+'/');await delay(300);await key('Return');await delay(1500);
+  await screenshot(out,`extensions-folder-${label}`);
+  await key('alt+o');await delay(1800);
   await screenshot(out,`install-${label}`);
 }
 export function launch(profile,url,log,extra=[]){
-  const args=[`--user-data-dir=${profile}`,'--no-first-run','--no-default-browser-check','--password-store=basic','--start-maximized','--disable-background-networking','--disable-component-update',...extra,url];
+  const args=[`--user-data-dir=${profile}`,'--no-first-run','--no-default-browser-check','--password-store=basic','--start-maximized','--disable-background-mode','--disable-background-networking','--disable-component-update',...extra,url];
   if(args.some(a=>a==='--no-sandbox'||a.startsWith('--remote-debugging'))) throw new Error('Forbidden launch flag');
   fs.writeFileSync(`${log}.args.json`,JSON.stringify(args,null,2));
   const fd=fs.openSync(log,'a');
   return spawn('/usr/bin/google-chrome-stable',args,{stdio:['ignore',fd,fd]});
 }
 export async function stopChrome(child){
-  await key('ctrl+shift+q');await delay(1500);
+  await key('ctrl+shift+w');await delay(1500);
   if(child.exitCode===null) child.kill('SIGTERM');
   await delay(1000);
 }
