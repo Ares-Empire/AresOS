@@ -14,7 +14,7 @@ export async function loadUnpacked(dir,out,label){
   // Fixed 1440x1000 CI display, maximized Chrome. Evidence images record this UI.
   if(!developerEnabled){x('mousemove',1415,134,'click',1);await delay(500);developerEnabled=true;}
   await screenshot(out,`extensions-dev-${label}`);
-  x('mousemove',80,177,'click',1);await delay(600);
+  x('mousemove',80,190,'click',1);await delay(600);
   await screenshot(out,`extensions-dialog-${label}`);
   await key('ctrl+l');x('type','--delay','1',dir);await key('Return');await delay(500);await key('Return');await delay(1200);
   await screenshot(out,`install-${label}`);

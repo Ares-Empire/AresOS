@@ -38,7 +38,7 @@ export async function nativeBridge(socketPath){
 }
 export async function websocket(endpoint){
   const client=new Protocol();
-  const ws=new WebSocket(endpoint,{origin:'http://localhost'});
+  const ws=new WebSocket(endpoint);
   ws.on('message',data=>client.accept(JSON.parse(data.toString())));
   ws.on('close',()=>client.rejectAll());
   client.write=m=>ws.send(JSON.stringify(m));
