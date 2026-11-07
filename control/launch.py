@@ -39,6 +39,9 @@ def main():
     with (CONFIG / ("service.json" if mode == "service" else "proxy.json")).open() as stream:
         config = json.load(stream)
     if mode == "proxy" and len(sys.argv) == 3:
+        owner_uid = json.loads((CONFIG / "service.json").read_text())["owner_uid"]
+        if owner_uid <= 0 or os.getuid() != owner_uid:
+            raise SystemExit("AresOS MCP proxy requires the configured assistant user.")
         from aresos_control.proxy import main as proxy_main
         proxy_main(sys.argv[2], config)
     elif mode == "cli":

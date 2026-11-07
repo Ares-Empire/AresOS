@@ -403,6 +403,15 @@ print(json.dumps(results))
         hook = self.launch(OWNER, ["hook", "UserPromptSubmit"], input=canonical({"hook_event_name": "UserPromptSubmit"}))
         self.assertEqual((hook.returncode, hook.stdout, hook.stderr), (0, "", ""))
 
+    def test_proxy_refuses_other_users_before_loading_sdk(self):
+        for uid in (OTHER, SERVICE, 0):
+            for app in ("testapp", "control"):
+                with self.subTest(uid=uid, app=app):
+                    result = self.launch(uid, ["proxy", app], input="")
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertEqual(result.stdout, "")
+                    self.assertEqual(result.stderr, "AresOS MCP proxy requires the configured assistant user.\n")
+
     def test_proxy_isolated_from_planted_code_environment_and_pth(self):
         poison = self.home / "Documents/poison"
         poison.mkdir()
