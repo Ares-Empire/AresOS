@@ -32,7 +32,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        phase: ${{ github.ref_name == 'pkg/17e-chrome-checkpoint' && fromJSON('["core"]') || github.ref_name == 'pkg/17d-chrome-floor' && fromJSON('["floor","workers","allowances","storage","public"]') || github.ref_name == 'pkg/17c-chrome-pages' && fromJSON('["pages","guards","public"]') || github.ref_name == 'pkg/17b-chrome-holds' && fromJSON('["safety","workers-long","live-public"]') || fromJSON('["baseline"]') }}
+        phase: ${{ github.ref_name == 'pkg/17e-chrome-checkpoint' && fromJSON('["core","lifecycle","transports","public"]') || github.ref_name == 'pkg/17d-chrome-floor' && fromJSON('["floor","workers","allowances","storage","public"]') || github.ref_name == 'pkg/17c-chrome-pages' && fromJSON('["pages","guards","public"]') || github.ref_name == 'pkg/17b-chrome-holds' && fromJSON('["safety","workers-long","live-public"]') || fromJSON('["baseline"]') }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -66,7 +66,7 @@ jobs:
       - name: Install pinned checkpoint dependencies
         if: github.ref_name == 'pkg/17e-chrome-checkpoint'
         run: |
-          sudo apt-get install -y nftables=1.0.9-1build1 coturn=4.6.1-1build4
+          sudo apt-get install -y nftables=1.0.9-1ubuntu0.1 coturn=4.6.1-1build4
           python3 -m venv .work/17e-chrome/venv
           .work/17e-chrome/venv/bin/pip install -r control/checks/17e-chrome/requirements.txt
           .work/17e-chrome/venv/bin/pip freeze > .work/17-chrome/artifacts/python-dependencies.txt

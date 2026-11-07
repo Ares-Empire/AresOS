@@ -13,6 +13,7 @@ async function rpc(m,p){
  if(m==='Check.state')return {selected,browserGeneration,documents:[...documents.values()],manifest:chrome.runtime.getManifest()};
  if(m==='Check.tag')return {token:await tag(selected,p.documentId)};
  if(m==='Check.untag'){await chrome.declarativeNetRequest.updateSessionRules({removeRuleIds:(await chrome.declarativeNetRequest.getSessionRules()).map(r=>r.id)});return {};}
+ if(m==='Check.safety'){await chrome.declarativeNetRequest.updateDynamicRules({removeRuleIds:[1,2],addRules:[{id:1,priority:2000,action:{type:'block'},condition:{excludedRequestMethods:['get','head'],resourceTypes:['main_frame','sub_frame','stylesheet','script','image','font','object','xmlhttprequest','ping','csp_report','media','websocket','webtransport','webbundle','other']}},{id:2,priority:2000,action:{type:'block'},condition:{resourceTypes:['websocket','webtransport']}}]});return {};}
  if(m==='Check.reload'){setTimeout(()=>chrome.runtime.reload(),100);return {};}
  if(m==='Check.open')return chrome.tabs.create(p);
  if(m==='Check.attach')return attach(p.tabId);
