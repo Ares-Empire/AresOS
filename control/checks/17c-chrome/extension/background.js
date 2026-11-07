@@ -87,7 +87,7 @@ async function rpc(m,p){
   if(m==='Check.workerCommand')return cmd({targetId:p.targetId},p.method,p.params);
   if(m==='Check.reload'){setTimeout(()=>chrome.runtime.reload(),100);return {};}
   if(m==='Check.update')return new Promise(resolve=>chrome.runtime.requestUpdateCheck((status,details)=>resolve({status,details})));
-  if(m==='Check.contentForge')return chrome.tabs.sendMessage(selected,{probeForge:true,id:p.id});
+  if(m==='Check.contentForge')return chrome.tabs.sendMessage(selected,{probeForge:true,id:p.id,decision:p.decision});
   if(m==='Check.details')return chrome.tabs.create({url:chrome.runtime.getURL('details.html')+'?id='+encodeURIComponent(p.id)});
   if(m==='Check.retire'){if(p.evidence!=='adapter-resolved-all')throw Error('UNRESOLVED_SITE');guards.clear();await chrome.storage.local.set({guards:[]});emit('check.retired',{reason:'synthetic adapter evidence'});return {};}
   if(!(await chrome.tabs.get(selected)).groupId|| (await chrome.tabs.get(selected)).groupId!==group)throw Error('OUTSIDE_CLAUDE_GROUP');
