@@ -231,3 +231,55 @@ See the longer guide in `control/README.md` before building briefs 19/20.
 
 No mid-run answer is needed to review this base. PR #6 remains a draft and is not
 merged.
+
+## Review fixes
+
+**run — regressions observed before fixes:** test-only commit `dca0785` ran the
+implementation from reviewed head `a684496`. `git diff --exit-code a684496 dca0785
+-- control/aresos_control control/launch.py .github/workflows/control-base.yml`
+printed nothing and exited zero. Workflows
+[42346954191](https://github.com/Ares-Empire/AresOS/actions/runs/42346954191) and
+[42346958869](https://github.com/Ares-Empire/AresOS/actions/runs/42346958869)
+each printed `Ran 37 tests` and `FAILED (failures=10)`. I saw every finding fail:
+cleanup deleted the replacement, the outside alias retained `b'exported'`, all four
+deadline cases returned `done`, both evidence cases remained `reserved`, and both
+large hook inputs raised `JSONDecodeError`.
+
+| Finding | Fix and regression evidence |
+| --- | --- |
+| 1: failed-save cleanup | `files.py` truncates/fsyncs the pinned inode, clearing renamed/hard-linked aliases without unlinking any pathname. Refusals identify the empty inode, link count, original path and current pinned folder; rollback I/O failure is explicitly `save_incomplete`. `Files.test_failed_save_cleanup_preserves_a_racing_replacement` preserves replacement bytes and metadata; `test_failed_save_clears_hardlink_alias_outside_allowed_folders` requires the outside alias to be empty. `test_failed_save_reports_rollback_storage_failures_honestly` injects truncation/sync failures. |
+| 2: expiry after adapter checks | `Engine.submit` checks the deadline after both checks, immediately before recording `submitting`; expiry records `failed`, calls `drop`, and executes nothing. `Operations.test_deadline_crossed_during_adapter_checks_never_submits` covers both checks for send/delete, no arrivals or deletions, one drop, repeated approval and restart. |
+| 3: positive preflight evidence | `Engine.submit` durably records `unknown` and the positive finding before fetching evidence details, then persists those details. Extended `test_truthful_escape_full_text_size_refusal_and_far_side_evidence` covers cancellation, expiry, restart and replay without another arrival. `test_positive_preflight_finding_survives_evidence_detail_failure` also checks failed detail retrieval. |
+| 4: large hook input | `hooks.main` reads complete input inside error handling. `Integration.test_large_hook_inputs_still_remind_about_pending_work` runs both installed hooks with over 190 KiB of valid input and a pending reservation. `test_malformed_hook_input_gives_explicit_failure_feedback` checks exit 2/stderr feedback without a traceback. |
+
+**run — after fixes:** product head `35a05d5` passed twice in the unchanged pinned
+Fedora container: [42347178528](https://github.com/Ares-Empire/AresOS/actions/runs/42347178528)
+printed `Ran 40 tests in 16.358s`; [42347182054](https://github.com/Ares-Empire/AresOS/actions/runs/42347182054)
+printed `Ran 40 tests in 11.912s`. Both printed `Generated artifacts match definitions`,
+`OK` and `Control base suite PASS`, using the Docker command and test script recorded
+above. All 33 existing test methods remain; no tests were skipped or deleted.
+This appended section is the only change after that product head. The final
+report-inclusive head and both completed workflow IDs are recorded in PR #6's
+validation section after its final push, preserving the exact tested commit.
+Six workflow executions for this follow-up: the regression pair, fixed-product
+pair and final-head pair.
+
+**JUDGMENT-CALL — read/run:** failed published saves leave reported zero-byte
+directory entries. Linux's pathname unlink cannot condition deletion on inode
+identity; deleting after a stat can remove a replacement. The old race assertions
+that checked only name removal now require empty output/aliases and explicit
+residue reporting. Retrying unsafe unlink was rejected; clearing the pinned inode
+protects every alias. Arbitrarily renamed/hard-linked paths cannot be enumerated,
+so feedback identifies the inode and known original/current folder locations and
+states that limit. Later automatic removal needs a separately qualified publication
+design; empty remnants can be removed manually. README describes this behavior.
+
+**read / not verified:** rechecked the [Anthropic hook reference](https://code.claude.com/docs/en/hooks)
+for long prompt/final-message inputs and exit-2 feedback; the target remains Claude
+Code 2.1.319. No Claude/model or physical storage-failure test was run. Existing
+owner/image qualification gates above remain. Locally, syntax parsing printed
+`Python syntax OK`, artifact checking printed `Generated artifacts match definitions`,
+and `git diff --check` printed nothing. Docker's local daemon was unavailable;
+container evidence comes from GitHub. The `.work/` size scan printed
+`Remaining .work files over 500 MB: []`. Pushes used the normal pre-push hook, with
+no bypass or force push. No additional PLAN-GAP or open question.
