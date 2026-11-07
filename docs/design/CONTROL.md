@@ -1,6 +1,6 @@
 # The control layer: design
 
-**Status:** draft 10, 2026-11-07. Covers the shared base, Mail and Chrome. The frontier review
+**Status:** draft 11, 2026-11-07. Covers the shared base, Mail and Chrome. The frontier review
 ([`REVIEW`](../../reviews/control-design/2026-11-07-REVIEW.md), 8 blocking) and five re-checks
 ([1](../../reviews/control-design/2026-11-07-RECHECK.md), [2](../../reviews/control-design/2026-11-07-RECHECK-2.md),
 [3](../../reviews/control-design/2026-11-07-RECHECK-3.md), [4](../../reviews/control-design/2026-11-07-RECHECK-4.md),
@@ -15,8 +15,12 @@ seventh re-check ([7](../../reviews/control-design/2026-11-07-RECHECK-7.md)) rec
 which brief 17e showed holds. Draft 10 rebuilds section 6 on that checkpoint (with the owner's hard requirements for
 it, decision 6), makes the site guard strict (decision 12), adds "don't ask again" (decision 7) and his usual sites
 (decision 9), and adds to section 7 the assistant apart from coding sessions (decision 8) and the approval surface
-after the phone tests (open: the owner decides). Points marked *checked* name the check that showed them; points
-marked *brief 20* must be shown by the Chrome build's own tests before anything relies on them.
+after the phone tests (open: the owner decides). The eighth re-check
+([8](../../reviews/control-design/2026-11-07-RECHECK-8.md)) found six blocking points in draft 10, and draft 11
+answers them: uncertain reading held until the checkpoint is ready, clicks that may delete local data ask first, what
+a recognised action is, three separate users with no shared files, every place the root is installed, and the exact
+upstream TLS checks with what is lost. Points marked *checked* name the check that showed them; points marked
+*brief 20* must be shown by the Chrome build's own tests before anything relies on them.
 
 The plan, the owner's decisions and who does what: [`docs/control/PLAN.md`](../control/PLAN.md). The owner's
 picture: [`OWNER-SCOPE.md`](../../reviews/councils/2026-11-07-control-layer/OWNER-SCOPE.md). The council's 13 gaps
@@ -1057,43 +1061,62 @@ qualify the mechanism, not arbitrary real sites. Brief 20 must show, building on
    service-worker sockets; input only after the barrier is confirmed.
 3. **Conservative attribution** (17e Q3): forged, stale and missing tags, opaque origins, foreign frames, hand-offs
    across origins, the extension removed; tab-less workers of a frame's site; Claude's entered text held in any tab;
-   the page-made Chrome sends (push subscription, passkey, payment) refused on a guarded site.
-4. **Complete operations** (17e Q4) with the product's read, drain and size limits.
-5. **One approval, one capture, and the context still the same** (17e Q5): competitors held; the account and document
+   the page-made Chrome sends (push subscription, passkey, payment) refused on a guarded site; real web-push delivery
+   from an independent publisher to a guarded site's worker, held.
+4. **Readiness and uncertain reading:** everything, GET and HEAD included, held at every start until the guards and
+   Claude's entered text are restored; Chrome and Claude's tools only after the ready report; afterwards an uncertain
+   GET or HEAD carrying Claude's entered text held, across restarts of the checkpoint, the service and the browser
+   and loss of the extension; a damaged record never reports ready.
+5. **Complete operations** (17e Q4) with the product's read, drain and size limits, including WebSocket ping and pong
+   frames that carry data (17e gated them at its seam; brief 20 shows them held by a receiver test).
+6. **One approval, one capture, and the context still the same** (17e Q5): competitors held; the account and document
    checked again up to forwarding, on fixtures with a real sign-out and sign-in (17d Q8) and through each usual-site
    adapter.
-6. **Every crash point** (17e Q6): no arrival before forwarding, no replay, `unknown` after a cut-off forward; the
+7. **Every crash point** (17e Q6): no arrival before forwarding, no replay, `unknown` after a cut-off forward; the
    tool service's operation log and the checkpoint's record agree after each crash.
-7. **Cancellation:** an HTTP/2 stream reset seen and recorded as cancelled (open in 17e); abort, tab closing, expiry
-   and the page script's cancel; a late approval refused.
-8. **Other transports and calls:** WebTransport refused always and WebRTC while a guard is on, with a clear error
+8. **Cancellation and the 15-minute lifecycle:** an HTTP/2 stream reset seen and recorded as cancelled (open in 17e);
+   abort, tab closing, expiry and the page script's cancel; a late approval refused; a hold waiting the full 15
+   minutes for an approval, with HTTP/2 cancellation along the way, ending as `failed` with nothing sent.
+9. **Other transports and calls:** WebTransport refused always and WebRTC while a guard is on, with a clear error
    where the page script can give one; a call through a relay over TCP and TLS working while no guard is on
-   (positive control on a real call service), cut at the barrier; the acting refusal while a call runs.
-9. **The owner's five requirements** (above), each with its test, including what a running Chrome does when the root
-   changes and the launcher's restart.
-10. **Chrome's own services** (above): trust in Chrome's own network context with no exemptions; Safe Browsing with a
-    positive control; a fresh component download; the extension's update; sync; the list of features that send text.
-11. **The strict guard:** adapter-based ending for the four usual sites; the one-click end; guards across checkpoint
+   (positive control on a real call service), cut at the barrier; the acting refusal while a call runs, and acting
+   only after the owner's answer to `chrome_end_call`.
+10. **The owner's five requirements** (above), each with its test: every trust location after stop, crash, rotation
+    and pass-through, in the profile's contexts and Chrome's own; the exact upstream TLS cases; attribution before
+    anything reaches Claude and sign-in data redacted.
+11. **Chrome's own services** (above), with no guard and under active guards, also with attribution lost: trust in
+    Chrome's own network context with no exemptions; Safe Browsing with a working positive control; a fresh component
+    download; the extension's update; sync; page-made imitations of their requests held; the list of features that
+    send text.
+12. **The strict guard:** adapter-based ending for the four usual sites; the one-click end; guards across checkpoint
     and Chrome restarts; storage and hand-offs keeping the guard (17e Q10).
-12. **Bounded resources** (17e Q11): memory, capture count, total size, a full record, the memory ceiling; exhaustion
+13. **Clicks that may delete local data:** labelled controls in English and German refused by `chrome_click` and
+    asking through `chrome_click_destructive` before the click; Delete and Backspace outside text fields; an
+    adapter's advance approval described exactly, and its follow-up sends released only when they validate.
+14. **Bounded resources** (17e Q11): memory, capture count, total size, a full record, the memory ceiling; exhaustion
     never forwards.
-13. **The pass-through switch** (condition 3): only through the owner's channel; leftovers shown first; Claude's
-    Chrome tools off; Chrome restarted when the checkpoint is back.
-14. **"Don't ask again":** set only through the owner's channels; Claude can't write the list (hostile test);
-    revocation takes effect; refused for unrecognised sends, deleting, paying and mail; Claude Code's own "don't ask
-    again" stays inert.
-15. **The separate browser user on Fedora with KDE,** with the owner's profile and sign-ins moved once: display,
+15. **The pass-through switch** (condition 3): only through the owner's channel; leftovers shown first; Claude's
+    Chrome tools off; the root removed everywhere; Chrome restarted when the checkpoint is back.
+16. **Recognised actions and "don't ask again":** set only through the owner's channels; Claude can't write the list
+    (hostile test); unknown fields, mixed batches and unknown protocol versions ask; a free operation batched with or
+    preceded by unapproved ones doesn't take them along; an adapter update that widens a kind suspends the entry;
+    revocation racing a release (the release either happened before the revocation was recorded or is refused);
+    refused for unrecognised sends, deleting, paying, mail and WhatsApp Web; Claude Code's own "don't ask again"
+    stays inert.
+17. **The separate browser user on Fedora with KDE,** with the owner's profile and sign-ins moved once: display,
     sound, camera and microphone, notifications (the owner's own-send notifications reach his desktop), the file
     chooser, the keyring, downloads; the native host as that user; the launcher always used (desktop entry, links
     from other apps).
-16. **The cost** for conditions 1 and 4: stalls of unrelated tabs and decisions per action on the test sites, speed,
-    memory, robot checks; then on his own sites after the first boot (condition 5).
-17. **Upgrades:** 17e gates WebSocket control frames at a seam inside mitmproxy 12.2.1 that its public hooks don't
+18. **The cost** for conditions 1 and 4: stalls of unrelated tabs (including the whole-browser holds while
+    attribution is lost, and frames' tab-less workers) and decisions per action on the test sites, speed, memory,
+    robot checks; then on his own sites after the first boot (condition 5).
+19. **Upgrades:** 17e gates WebSocket control frames at a seam inside mitmproxy 12.2.1 that its public hooks don't
     offer; that seam and the fail-stop handling are checked again on every upgrade of the core.
 
-Hostile tests (section 7) add: reaching `chrome.sock`, `checkpoint.sock` or the checkpoint's port from the sandbox,
-the assistant's user or a coding user; a user-level native messaging manifest; editing the profile, Chrome's policies
-or the owner's allow list; acting in a tab outside the Claude group; opening extension pages.
+The whole set runs twice on the recorded Chrome version, as 17d and 17e did, and again on every upgrade of Chrome or
+of the proxy core. Hostile tests (section 7) add: reaching `chrome.sock`, `checkpoint.sock` or the checkpoint's port
+from the sandbox, the assistant's user or a coding user; a user-level native messaging manifest; editing the profile,
+Chrome's policies or the owner's allow list; acting in a tab outside the Claude group; opening extension pages.
 
 ## 7. No way around the tools
 
@@ -1355,6 +1378,14 @@ Decision 1 ruled out a separate Aresus screen; this proposal reopens it, and the
   checkpoint. Recommended: the same data rule as in Chrome, so a fetched address Claude composed and every search
   ask first; a fetch of an address he or a page gave stays free. Until he answers, both ask on every call (section 7).
 
+- **The TLS checks the checkpoint can't replicate** (section 6, requirement 4), needed before Chrome with the
+  checkpoint becomes his everyday browser. Lost: Chrome's urgent revocation list (a certificate revoked in a hurry,
+  usually after its key was stolen, is accepted until it expires unless the site staples a revocation answer; it
+  matters only if someone has a stolen key and can get between him and the site); updates of Chrome's root, log and
+  pin lists between images (an authority Chrome drops, about once a year, stays trusted until the next image); and
+  sites that need a client certificate. Recommended: accept. The cases are rare, and the checkpoint keeps Chrome's
+  root list, CT and pin checks on the outside connection.
+
 **Answered on 2026-11-07 and built into this draft:** data leaving in Chrome (decision 7: searches on his usual sites
 are free, anything else that could carry Claude's text asks; section 6); the central session apart from coding work
 (decision 8; section 7); Claude in Chrome kept for his own use and the machine-wide rules (decision 10; sections 6
@@ -1369,8 +1400,8 @@ and 7); the checkpoint with his hard requirements (decision 6; section 6); the s
 - The feature list in [`FEATURES.md`](../control/FEATURES.md): anything missing, and what can wait.
 - **What the checkpoint costs, with brief 20's numbers.** He agreed "if that's not a security risk". Before it becomes
   his everyday browser, the costs named in section 6 ("What changes for the owner") go back to him with brief 20's
-  measurements, in particular Chrome's own extra certificate checks moving to the checkpoint, calls stopping while a
-  guard is on, and how often a strict guard waits for his click.
+  measurements, in particular calls stopping while a guard is on, how often a strict guard waits for his click, and
+  how often the whole browser waits while attribution is lost.
 
 **Settled by this design, for the re-check:**
 
