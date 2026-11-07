@@ -349,3 +349,9 @@ tasks at any time.
   whole, said plainly to be weaker than a verified send; "don't ask again" is never offered there (a technical limit).
   Folder option (b) separates saving new files from approved replacement and removes the coding user's access first;
   "Claude fills in, he sends" says his Send is still held while the site is guarded. Re-check 13 next.
+- **2026-11-07, 18:15:** frontier re-check 13 of draft 15
+  ([RECHECK-13](../../reviews/control-design/2026-11-07-RECHECK-13.md)): one WhatsApp timing point open. Design draft
+  16: after Send, a short collection phase gathers the message the page produces a little later, then the set freezes
+  and he is asked; late frames form a separate set with its own question; frames held before composing never go with
+  a set's release. Opening a chat has its own collection deadline and approval expiry. Folder option (b) says plainly
+  that coding programs holding files open are ended at the switch. Re-check 14 next.

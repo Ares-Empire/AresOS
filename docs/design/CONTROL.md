@@ -1,6 +1,6 @@
 # The control layer: design
 
-**Status:** draft 15, 2026-11-07. Covers the shared base, Mail and Chrome. The frontier review
+**Status:** draft 16, 2026-11-07. Covers the shared base, Mail and Chrome. The frontier review
 ([`REVIEW`](../../reviews/control-design/2026-11-07-REVIEW.md), 8 blocking) and five re-checks
 ([1](../../reviews/control-design/2026-11-07-RECHECK.md), [2](../../reviews/control-design/2026-11-07-RECHECK-2.md),
 [3](../../reviews/control-design/2026-11-07-RECHECK-3.md), [4](../../reviews/control-design/2026-11-07-RECHECK-4.md),
@@ -31,8 +31,9 @@ discloses option (b)'s exceptions, counts only evidence as freshness, ties recov
 turns three points settled more narrowly than the owner asked into owner questions (his folders, the scope of "don't
 ask again", WhatsApp Web). After the twelfth re-check ([12](../../reviews/control-design/2026-11-07-RECHECK-12.md)),
 draft 15 defines WhatsApp Web's approval as one page-trusting approval of a bounded set of encrypted captures and
-removes "don't ask again" there. Points marked *checked* name the check that showed them; points marked *brief 20*
-must be shown by the Chrome build's own tests before anything relies on them.
+removes "don't ask again" there; draft 16 (re-check [13](../../reviews/control-design/2026-11-07-RECHECK-13.md)) adds
+a short collection phase after Send and separate sets for late frames. Points marked *checked* name the check that
+showed them; points marked *brief 20* must be shown by the Chrome build's own tests before anything relies on them.
 
 The plan, the owner's decisions and who does what: [`docs/control/PLAN.md`](../control/PLAN.md). The owner's
 picture: [`OWNER-SCOPE.md`](../../reviews/councils/2026-11-07-control-layer/OWNER-SCOPE.md). The council's 13 gaps
@@ -392,7 +393,8 @@ still the ones the description names; a change means a new approval (*brief 20*:
 of context, not an arbitrary site's account). Messages on one live connection keep their order: approving one
 forwards the earlier held messages on that connection with it, and its description lists them (*brief 20*). Earlier
 messages never inherit a later message's freedom: a message that would go without asking waits behind earlier held
-messages on its connection until those are decided.
+messages on its connection until those are decided. On WhatsApp Web, an approval covers exactly its set (site
+adapters, below); earlier held frames outside it wait for their own decision, and the set waits behind them.
 
 **Fail-stop, never replay, unknown stays unknown.** If anything in the checkpoint fails, it stops; it never logs the
 error and carries on (mitmproxy's default for an add-on error is to log and continue; 17e replaced that with stopping
@@ -1066,7 +1068,16 @@ each likely needs, to be confirmed when its adapter is built:
     outgoing frame on that tab's WhatsApp connections is captured into one set, in order: typing and presence
     frames, the message itself, and any other encrypted traffic of the page in that time, which can't be told apart
     from them. Typing keeps working while the set grows; unlike other pending sends, the set doesn't stop Claude's
-    next keys. Enter or the send control freezes the set.
+    next keys.
+  - **A short collection phase after Send.** Enter or the send control doesn't freeze the set at once, because the
+    page may produce the message itself a little later (encryption that finishes afterwards, a worker). The set
+    keeps collecting that tab's outgoing frames until the page shows the message as sent or a short time limit
+    passes, whichever comes first, within the set's bounds. Then it freezes, and only then is the owner asked. Once
+    the question is shown, what is in the set can't change.
+  - **Late frames** that arrive after the freeze form a new held set, which needs its own approval or is dropped
+    when that question expires. So it is usually one question per message, and sometimes a second for late frames.
+    Frames held before the set began are not part of it and never go with its release; they wait for their own
+    decision.
   - **The approval** shows the page's own description, marked "as the page shows it": the chat's name, the message
     text, attachments by name and size, and the number and total size of the captures in the set. On approval the
     whole set is forwarded in order, at most once; on decline all of it is dropped (the page may then show the
@@ -1074,17 +1085,23 @@ each likely needs, to be confirmed when its adapter is built:
   - **Bounds.** A set has a limit on captures, bytes and time (set in brief 20). Past any of them it is refused and
     dropped with a clear reason ("too much encrypted traffic to approve as one message"), and Claude is told.
     Holding the set holds that tab's other WhatsApp traffic too; if the approval takes long, the page may reconnect.
-  - **Opening a chat** sends read receipts. The frames after that click form a set the same way, frozen when
-    Claude's next step begins or its time limit passes, and asking "opening this chat may send read receipts to its
-    members, as the page shows it".
+  - **Opening a chat** sends read receipts. The frames after that click form a set the same way. Its collection ends
+    when Claude's next step begins or its collection time limit passes, whichever comes first; then it freezes and
+    asks "opening this chat may send read receipts to its members, as the page shows it". That question has its own
+    expiry: unanswered, the set is dropped. Receipts that arrive after the freeze are a separate held set, like late
+    frames above.
   - **What this guarantees, and why it is weaker.** The checkpoint guarantees that exactly the captured frames go,
     in order, at most once, and nothing else. It can't show that they carry the text shown to the chat shown, or
     that the set holds nothing more, because it can't read them: the approval trusts the page's own display. A
     verified operation on other sites binds the approval to what the bytes say; here it binds only to which bytes.
-  - *Tests (brief 20):* typing before Enter (the set grows, typing keeps working), unrelated encrypted traffic mixed
-    into the set, decline (all dropped), the time limit (refused and dropped), each bound, and a crash of the
-    checkpoint, the tool service and Chrome before the freeze, after it, after approval and while forwarding (never
-    forwarded twice, never in part reported as done).
+  - *Tests (brief 20):* typing before Enter (the set grows, typing keeps working); the message produced after Send
+    (encryption finishing later, a worker) landing in the set during collection; a frame after the freeze held in a
+    separate set; a frame held before composing began staying held when the set is released; unrelated encrypted
+    traffic mixed into the set; decline (all dropped); the approval expiring (dropped); each bound (refused and
+    dropped); opening a chat with no further step (collection ends at its time limit, the question asks, and
+    unanswered it expires and is dropped); and a crash of the checkpoint, the tool service and Chrome during
+    collection, after the freeze, after approval and while forwarding (never forwarded twice, never reported as done
+    when only part went).
   - **"Claude fills in, he sends"** is an option he can choose for this site (section 10). It doesn't make the holds
     disappear: while the site is guarded, his own press of Send is held and put to him like any of his sends on a
     guarded site (above), and read receipts and typing traffic stay subject to the same holds.
@@ -1397,7 +1414,8 @@ very long input must be shown in full or refused, also on the phone.
   folders, which the owner can read and the coding user can't. The owner's folders the assistant may read are
   read-only to it, so it can't plant anything there for a coding session to pick up. If he lets it change some of his
   folders (owner decides, open: section 10), the coding user loses read access to exactly those folders, and loses it
-  before the assistant can write there: coding programs that still hold a file or folder there open are ended, and a
+  before the assistant can write there: coding programs that still hold a file or folder there open are ended (unsaved
+  work in them can be lost; he is told which programs before the switch), and a
   folder with another way in for the coding user (a hard link, a mount, a link from a coding folder) is refused until
   that way is closed. *Test (if he picks it):* a coding program holding a file open in the folder and a hard link to
   a file in it, both before the switch; after it, the coding user reads nothing there, and the assistant's first
@@ -1606,7 +1624,8 @@ Decision 1 ruled out a separate Aresus screen; this proposal reopens it, and the
   folders, so he copies its results himself.
   - **(a) As now:** read-only access to the folders he picks; its own folders for everything it writes.
   - **(b) Folders it may change:** he picks folders the assistant may change, and the coding user can't read those
-    folders; its access is removed before the assistant can write there, open files included. Writes go through the
+    folders; its access is removed before the assistant can write there, open files included: coding programs that
+    hold a file there open are ended at the switch, and unsaved work in them can be lost. Writes go through the
     tool service with rule 4.4's limits (no dotfiles, no start-up places, no symlinks). Saving a new file, creating a
     folder, renaming and moving within those folders are free, but never onto an existing name: they can't replace
     anything. Replacing an existing file and deleting ask; moving to the Trash is a delete.
@@ -1619,11 +1638,12 @@ Decision 1 ruled out a separate Aresus screen; this proposal reopens it, and the
   - **Deleting and paying**, for kinds an adapter recognises. Recommended: always ask; he can overrule this.
   WhatsApp Web is not among them: the checkpoint can't check what is inside its encrypted messages, so nothing there
   can skip the question (a technical limit).
-- **How Claude sends on WhatsApp Web** (section 6). (a) Claude asks once per message: the approval covers the set of
-  encrypted frames captured while it composed, in order, with the page's description of the chat and text marked "as
-  the page shows it", since the checkpoint can't read them. (b) Claude fills in, and he presses Send himself; while
-  the site is guarded, his Send is still held and put to him, and read receipts and typing traffic are held as
-  before. Recommended: (a), the default; (b) stays available if he prefers it.
+- **How Claude sends on WhatsApp Web** (section 6). (a) Claude asks per message, usually once and sometimes a second
+  time for frames that come late: the approval covers the set of encrypted frames captured from the start of composing
+  until shortly after Send, in order, with the page's description of the chat and text marked "as the page shows it",
+  since the checkpoint can't read them. (b) Claude fills in, and he presses Send himself; while the site is guarded,
+  his Send is still held and put to him, and read receipts and typing traffic are held as before. Recommended: (a),
+  the default; (b) stays available if he prefers it.
 
 **Answered on 2026-11-07 and built into this draft:** data leaving in Chrome (decision 7: searches on his usual sites
 are free, anything else that could carry Claude's text asks; section 6); the central session apart from coding work

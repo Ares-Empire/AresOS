@@ -101,7 +101,7 @@ Updated 2026-11-07. The live truth is `git log`, `gh pr list` and `git worktree 
      own question (MCP elicitation) never reached the phone; in the terminal at the laptop the prompt is readable. The
      owner decides on the proposed approval screen in Aresus (`docs/design/CONTROL.md`, section 7).
    - **In progress:** Mail (brief 19, PR #9: package review SAFE, frontier security review in its third round);
-     design draft 15 (WhatsApp Web's approval as one bounded set of encrypted captures; owner questions on his
+     design draft 16 (WhatsApp Web's approval as one bounded set of encrypted captures, with a short collection phase after Send; owner questions on his
      folders, the scope of "don't ask again" and how Claude sends on WhatsApp Web; `docs/design/CONTROL.md` section 10
      lists every open owner question).
    - **Next:** brief 18c (first end-to-end test on a throwaway CI image; no owner OK needed under the 2026-11-07
