@@ -6,8 +6,9 @@ Review records: [REVIEW.md](REVIEW.md), [REVIEW-2.md](REVIEW-2.md),
 [REVIEW-3.md](REVIEW-3.md), [REVIEW-4.md](REVIEW-4.md),
 [REVIEW-5.md](REVIEW-5.md), [REVIEW-6.md](REVIEW-6.md),
 [REVIEW-7.md](REVIEW-7.md), [SECURITY-REVIEW.md](SECURITY-REVIEW.md),
-[SECURITY-REVIEW-2.md](SECURITY-REVIEW-2.md), and
-[SECURITY-REVIEW-3.md](SECURITY-REVIEW-3.md).
+[SECURITY-REVIEW-2.md](SECURITY-REVIEW-2.md),
+[SECURITY-REVIEW-3.md](SECURITY-REVIEW-3.md), and
+[SECURITY-REVIEW-4.md](SECURITY-REVIEW-4.md).
 
 ## For the owner: decisions before merge
 
@@ -28,7 +29,7 @@ Review records: [REVIEW.md](REVIEW.md), [REVIEW-2.md](REVIEW-2.md),
 - **Repair after uncertainty:** without a recorded final server acceptance, you must inspect an uncertain send yourself even if a Sent copy appears. Automatic repair from that copy alone was rejected because it cannot prove which recipients were accepted; repair never sends again.
 - **Approval format:** send and delete use the existing base approval format, with one reserved operation identifier and its complete description, unchanged through submission. A separate mail-specific format was rejected to keep callers and approval checks compatible.
 
-- **Filing after a folder-role race (round 10):** mail stays where the move or copy put it; nothing is moved back or deleted. You get a warning with the observed folders and message numbers in every following Mail result and `aresos log` until acknowledged; cleaning up copies requires the ordinary delete approval. If a special role moves to the target and back between the command and the check, the result can say done: the mail is in the intended target, which has no protected role at the end, and nothing is lost. Disabling free filing entirely was the alternative; changing this later affects only filing and its warnings.
+- **Filing after a folder-role race (rounds 10–11):** mail stays where the move or copy put it; nothing is moved back or deleted. You get a short warning with the filing id, message count and bounded folder names until acknowledged. Following Mail results and `aresos log` repeat the newest three warnings and count the rest; `mail_filing_notices` pages every warning, and `mail_filing_locations` returns exact locations on request. Cleaning up copies still requires the ordinary delete approval. If a special role moves to the target and back between the command and the check, the result can say done: the mail is in the intended target, which has no protected role at the end, and nothing is lost. Disabling free filing entirely was the alternative; changing this later affects only filing and its views.
 - **Stopping rule from the lead:** Claude can always write a file itself and attach it, and the approval then shows only its name, size and change time; that is the open owner question about Claude-written files. Any further finding of the kind “text Claude wrote reaches an attachment by a new route” is settled by your answer on how attachments are shown, not by another fix round. Blocking findings of any other kind still count.
 
 **assumed / needs your own check with the real account:**
@@ -36,6 +37,154 @@ Review records: [REVIEW.md](REVIEW.md), [REVIEW-2.md](REVIEW-2.md),
 - Complete onboarding with your aliases, authentication, TLS trust, special folders, delayed Sent behavior and folder-deletion guard; the tests use synthetic accounts only.
 - Check complete approvals on both terminal and phone, then try the seven everyday Claude mail tasks; automated protocol tests do not establish how usable those flows feel.
 - Send a forwarded `.eml` to recipients using Apple Mail, Outlook, Thunderbird, Gmail on the web and iOS Mail, and check how each opens or saves the exact attachment; the round-5 documentation does not establish its presentation.
+
+## Review fixes, round 11
+
+**Done:** implements `briefs/19-review-fixes-11.md` against
+[SECURITY-REVIEW-4.md](SECURITY-REVIEW-4.md). Round 10's preservation rule stays:
+no recovery MOVE, STORE or EXPUNGE, no approval operation, and no automatic retry.
+
+- **Blocking — undeliverable filing notices:** `mail/filing.py` now persists a
+  compact warning with filing id, affected-message count, at most three folder
+  names of 64 characters (ellipsis for a longer name), and an `and N more` count.
+  It contains no message references or location arrays. The immediate partial
+  result adds only the first bounded location page and its cursor. New
+  `mail_filing_locations` returns every stored source, last-known destination,
+  observed reference and scan-completeness value through immutable pages bound
+  to the filing id. Normal records stay structured. A record larger than a page
+  uses ordered, lossless JSON fragments; concatenate by message_index/offset,
+  then JSON-decode once. Location content is at most 12 KiB per page, leaving
+  room under the shared 48 KiB result and 6 MiB wire limits.
+- **Many outstanding notices:** only the newest three are repeated. The response
+  counts the rest and points to `mail_filing_notices`, which pages all outstanding
+  notices without dropping or acknowledging any. Its cursor binds the current
+  notice set; acknowledgment invalidates it. Acknowledgment keeps exact location
+  pages available, including after restart.
+- **Should-fix — display escaping:** returned notices, acknowledgment results,
+  structured location records and reconstructed oversized records use the audit
+  log's `visible()` escaping. Raw internal references remain unchanged. The
+  encoded Message-ID containing U+202E and a bidi-bearing destination both have
+  regressions. Old full-detail notices remain readable as compact summaries;
+  their exact details are available through the same location read.
+- **Bounded audit delivery:** filing audit events now carry the filing id, state
+  and count instead of copying the whole intent. Adapter start/end events keep
+  bounded filing metadata instead of repeating large input references. Exact
+  references and scan results remain durable in the intent. Historical filing
+  audit rows get the same compact display without rewriting their stored data.
+- **Base changes and scope:** `engine.py` changes only the shared bounded notice
+  section, the escaped compact acknowledgment return, and the display of legacy
+  filing audit payloads that could otherwise hide those notices behind a size
+  error. `definitions.py` bounds and documents the notice section and paging routes.
+  Mail definitions, generated CLI/MCP artifacts, `docs/control/TOOLS.md` and
+  `control/README.md` document both new reads and fragment reconstruction. No
+  workflow, `control/tests/`, OS, mod or protected design/plan file changed.
+
+**Tests:** six new plain-Python methods in
+`control/mail_tests/test_review_fixes_11.py`; the large-case tests invoke real
+Engine/Mail adapter, role resolution, selection, fetch and MIME parsing with an
+in-memory IMAP command substitute. The full Linux suite also retains all existing
+scripted TLS frontend / real Dovecot and GreenMail regressions.
+
+| Finding / behavior | Regression method (`FilingNotices11`) |
+| --- | --- |
+| Twenty identical messages with long Message-IDs: immediate result, notice, every audit page, later-day empty log, pending and Mail read fit; following all pages returns every stored record and observation exactly once | `test_review11_twenty_identical_messages_long_ids_deliver_and_page_exactly_once` |
+| Same through 4,000 identical messages, including the complete per-message observation reports | `test_review11_four_thousand_identical_messages_deliver_and_page_exactly_once` |
+| Encoded bidi Message-ID: raw value stays internal, pages escape it; bidi destination escaped in log notices, pending, following Mail results and acknowledgment; COPY preserves originals and copies | `test_review11_encoded_bidi_id_is_escaped_in_notices_and_location_pages` |
+| 150 unacknowledged notices with long Unicode names: newest three plus accurate remainder, all 150 reachable once, errors remain bounded, acknowledgment invalidates the notice-set cursor, restart loses none | `test_review11_many_notices_are_bounded_newest_first_and_all_remain_reachable` |
+| Old oversized notice and audit payloads display compactly; detail remains paged and escaped, raw intent unchanged after acknowledgment | `test_review11_legacy_large_notice_is_compact_escaped_and_details_stay_readable` |
+| Oversized Unicode/bidi references survive restart and fragment reconstruction; cross-filing, negative, past-end and malformed cursors refuse | `test_review11_location_cursors_are_filing_bound_and_jumbo_references_survive_restart` |
+
+**Changed earlier expectation:** `ReviewFixes10.assert_notice`, used by its four
+partial-filing server regressions, selects the notice by filing id instead of
+assuming that the newest notice is the last UUID-sorted entry. Every equality,
+exact-location, preservation, audit-outcome, zero-approval and no-recovery assertion
+remains. No test is weakened, skipped or deleted. The small existing cases still
+receive their complete structured locations in the first page; their location
+assertions did not change.
+
+**Verified / run — local:** before each accepted push,
+`python3 control/generate.py --check` prints `Generated artifacts match definitions`;
+`PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/mail_tests:.work/round10/vendor python3 .work/round10/check-local.py`
+AST-parses every `control/**/*.py` (`Python syntax OK: 79 files`) and runs every
+direct plain-Python Mail TestCase class (`Ran 30 tests in 2.053s`, `OK` on the code
+batch). The existing ignored round-10 portable dependencies are reused; nothing
+was installed. `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/tests:.work/round10/vendor python3 -m unittest test_operations test_record test_crashes -q`
+runs the portable base classes: `Ran 32 tests`, `OK`. Linux-only file-policy,
+installed-service and integration coverage is provided by the full workflows.
+`git diff --check` is silent.
+
+Two early local development invocations failed before pushing: the initial new
+fixture checked the control-only envelope instead of `data.notices` (four errors
+in five tests), and a 28-test invocation lacked cryptography on its PYTHONPATH
+(one import error). Corrected fixture channel assertions and reuse of the existing
+workspace vendor directory resolved these; they are not counted as passing runs.
+
+The local compatibility probe executes the reviewed `410cb8e8` filing and Engine
+notice methods from `git show`, without switching the worktree. With twenty long-ID
+messages it reports `ok=False, error=result_too_large, response_bytes=630785`;
+with 4,000 identical messages it reports
+`ok=False, error=result_too_large, response_bytes=8222814, exceeds_wire=True`.
+The same current adapter probes reconstruct and compare every stored location,
+with maximum serialized response sizes:
+
+| Probe | Filing result | Exact-location page | Owner log | Pending | Mail read |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 20 long-ID identical messages | 7,484 bytes | 6,900 bytes | 2,838 bytes | 653 bytes | 5,521 bytes |
+| 4,000 identical messages | 8,367 bytes | 7,779 bytes | 2,841 bytes | 653 bytes | 1,348 bytes |
+
+These are in-memory adapter-path measurements; the test does not claim a real
+provider run. Both cases preserve all mail and issue only the first requested
+MOVE before role drift stops the batch. Fragmented observation detail takes 120
+and 1,380 pages respectively, including the first page returned by the action.
+
+**Verified / run — last code/test commit `bb39b3009961fb6ae21a1b14788017442ea78cdc`:**
+
+| Workflow / pass | Exact relevant output |
+| --- | --- |
+| [Mail 42403060003, attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42403060003/attempts/1) | `Ran 58 tests in 51.934s`; `Ran 145 tests in 507.784s`; `OK`; `Control base suite PASS`; `Control Mail suite PASS` |
+| [Mail 42403060003, attempt 2](https://github.com/Ares-Empire/AresOS/actions/runs/42403060003/attempts/2) | `Ran 58 tests in 37.498s`; `Ran 145 tests in 455.488s`; `OK`; `Control base suite PASS`; `Control Mail suite PASS` |
+| [Independent base 42403059976, attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42403059976/attempts/1) | `Ran 58 tests in 50.730s`; `OK`; `Control base suite PASS` |
+| [Independent base 42403059976, attempt 2](https://github.com/Ares-Empire/AresOS/actions/runs/42403059976/attempts/2) | `Ran 58 tests in 59.661s`; `OK`; `Control base suite PASS` |
+
+Both Mail passes run `bash control/ci/mail/run.sh`: artifact check, all 58 base
+tests and all 145 Mail methods. Each new method prints `... ok`; both passes also
+print `Mail delete kill-9 cases: 26; unnamed Deleted messages survive`,
+`Mail send kill-9 cases: 45; no repeated SMTP DATA`, and
+`Mail reservation/repair kill-9 cases: 16; no SMTP during repair/restart`.
+The independent base workflow runs the whole `bash control/ci/test.sh` in pinned
+Fedora twice. All four attempts report this exact code head and success through
+the GitHub run-attempt API. Every pass prints `Generated artifacts match definitions`.
+
+Any commit after `bb39b300` changes only files under `reviews/`. Both passes on
+the final report head are recorded in [draft PR #9](https://github.com/Ares-Empire/AresOS/pull/9).
+The code-head [boundary run 42403059923](https://github.com/Ares-Empire/AresOS/actions/runs/42403059923)
+also passed. Boundary policy and its intermittent vsock issue remain the lead's;
+no boundary files or assertions were changed or investigated.
+
+**JUDGMENT-CALL / read:** the owner bullet above now describes a short warning
+with exact locations on request. Bounded pages and JSON fragments preserve every
+old observation instead of dropping detail; identical wire bytes can still produce
+large, repetitive reports and many page reads. Unlimited repeated reports were
+rejected because they suppress their own warning. Changing the display/paging
+choice later affects only filing views and descriptions. The accepted round-10
+transient-role timing window and all earlier owner decisions remain unchanged.
+**PLAN-GAP:** none added. **Not verified / assumed:** real-provider behavior,
+terminal/phone rendering, practical use of very large observation reports, and the
+earlier owner checks still need the owner. No screenshot is claimed: this is
+protocol/adapter coverage, not a rendered application. **Open questions:** the
+existing owner decisions; no new mid-run answer required.
+
+**Push discipline / run:** the two existing lead commits (`49a5baec`, `bf00fc37`)
+went with the first accepted code/test batch. The first push command was rejected
+remotely with `fatal error in commit_refs_rules`; it started no workflows. Normal
+retry succeeded, including the legacy-audit display fix. The second accepted push
+changes only this report. Second passes use `gh run rerun`, without extra pushes.
+The two accepted pushes create six distinct workflow IDs (Mail, base, boundary per
+head), plus the required Mail/base rerun attempts; final-head results belong to
+the PR body. Every push keeps normal privacy verification; no force push, rebase,
+merge, host installation, Gradle daemon or real-account access. Scope check prints
+`Scope check PASS: no protected path, base test or workflow changed`.
+The closing worktree scan prints `Remaining .work files over 500 MB: []`.
 
 ## Review fixes, round 10
 
