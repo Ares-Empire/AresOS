@@ -29,6 +29,27 @@ The first two apps are Mail and Chrome. Those two are made to work really well b
 4. **Mail and Chrome first**, made to work really well; other apps after that.
 5. **Questions for the owner go out as a push** (board ask plus a phone push), not only in a transcript.
 
+**Answers of 2026-11-07, afternoon** (given to mac-capacity, relayed; #56 and #57 confirmed with him directly before
+acting):
+
+6. **Chrome checkpoint: yes (#70)**, "if that's not a security risk". Hard requirements: it runs as its own user;
+   nothing it sees leaves the machine; no bodies, cookies or secrets in logs; full upstream TLS checks; a key that
+   rotates and can issue nothing while the checkpoint is stopped (a fresh root per start, the key only in the
+   checkpoint's memory). The five conditions under S2e apply before it becomes his everyday browser.
+7. **Chrome asks, and he can say "don't ask again" for an action (#52):** offered only for kinds of action a site
+   adapter recognises, set by him at approval through a channel Claude can't answer, kept in the owner-only list,
+   visible and revocable. Unrecognised sends always ask once. Searches on his usual sites are free.
+8. **Assistant apart from coding (#53):** the session holding mail and Chrome runs apart from coding sessions; they
+   coordinate only through messages that go via the tool service, and a message from the assistant asks like a
+   send.
+9. **His usual signed-in sites (#50), so far:** WhatsApp Web, Gemini, Gmail, Deezer (more to come). They are the
+   first adapter targets.
+10. **Claude in Chrome stays for his own use (#58); AresOS's Claude Code rules apply machine-wide and change only
+    with his admin password (#59).**
+11. **Approval on the phone must read like a mail (#71):** the first phone test showed the raw tool call ("code
+    basically, not a clean email"). Phone test 2 compares the tool asking him itself (MCP elicitation) with a
+    readable summary in Claude Code's prompt; decision 1 changes with its result.
+
 ## How sending stays under the owner's control
 
 Three places, each with one job:
@@ -191,9 +212,7 @@ tasks at any time.
 - How the CI virtual machine gets the AresOS image for step 5 (the private image needs read access the owner
   restores, or a fresh unpublished build in the job): decided in the design.
 - The mail provider and account details stay out of this public repo.
-- **Owner questions (2026-11-07), details in `CONTROL.md` section 10:** data leaving (anything that could carry
-  something Claude wrote asks first; searches on his usual sites free or not), the central session kept apart from
-  coding work, his usual Chrome sites, and a look at a test prompt on his phone.
+- **Owner questions still open:** #67 (when a site's guard ends; mac-capacity is explaining it), #73 (phone test 2).
 
 ## Where it stands
 
