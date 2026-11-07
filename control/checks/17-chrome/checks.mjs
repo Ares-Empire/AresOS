@@ -135,6 +135,8 @@ export async function holdChecks(cdp,fixture,out,route){
   assert.equal(hold.pending.size,0);assert.ok(observed>0);cdp.off('Network.webSocketFrameSent',onSent);
   results.push({kind:'ws-baseline',result:'Fetch did not pause WebSocket frame',after:matching(fixture.arrivals,wsCase),observed});
   const injection=await cdp.send('Page.addScriptToEvaluateOnNewDocument',{source:websocketShim});
+  await press(cdp,'Enter');await eventually(()=>matching(fixture.arrivals,wsCase).length===2,'preload is not retroactive');
+  results.push({kind:'ws-preload-existing-document',result:'new-document shim did not change the existing tab document',after:matching(fixture.arrivals,wsCase)});
   for(const decision of ['release','drop']){
     const c=`ws-${route}-shim-${decision}`;await navigate(cdp,fixture.base+'/hold?case='+c);
     await eventually(async()=>await evaluate(cdp,'document.querySelector("#status").textContent')==='Socket ready','WebSocket shim ready');
@@ -145,12 +147,12 @@ export async function holdChecks(cdp,fixture,out,route){
     await delay(300);assert.equal(matching(fixture.arrivals,c).length,decision==='release'?1:0);
     results.push({kind:'ws-shim',decision,whileHeld:0,pending,after:matching(fixture.arrivals,c)});
   }
-  // A fresh iframe has an unwrapped WebSocket constructor: demonstrate a concrete bypass.
+  // New-document scripts do not instrument worker realms: concrete cooperative-shim bypass.
   const bypass=`ws-${route}-bypass`;
   await navigate(cdp,fixture.base+'/hold?case='+bypass);
-  await evaluate(cdp,`new Promise(resolve=>{const frame=document.createElement('iframe');document.body.append(frame);const ws=new frame.contentWindow.WebSocket('ws://'+location.host+'/ws?case=${bypass}');ws.onopen=()=>{ws.send('synthetic-bypass');resolve(true)}})`);
-  await eventually(()=>matching(fixture.arrivals,bypass).length===1,'unwrapped realm bypass');
-  results.push({kind:'ws-shim-bypass',result:'fresh iframe constructor bypassed top-level shim',after:matching(fixture.arrivals,bypass)});
+  await evaluate(cdp,`new Promise(resolve=>{const code="const ws=new WebSocket('ws://"+location.host+"/ws?case=${bypass}');ws.onopen=()=>{ws.send('synthetic-worker-bypass');postMessage('sent')}";const worker=new Worker(URL.createObjectURL(new Blob([code],{type:'text/javascript'})));worker.onmessage=()=>{worker.terminate();resolve(true)}})`);
+  await eventually(()=>matching(fixture.arrivals,bypass).length===1,'unwrapped worker bypass');
+  results.push({kind:'ws-shim-bypass',result:'worker WebSocket bypassed new-document shim',after:matching(fixture.arrivals,bypass)});
   await cdp.send('Page.removeScriptToEvaluateOnNewDocument',{identifier:injection.identifier});
   // Action gating works on already-open sockets: don't dispatch Enter until approved.
   const gated=`ws-${route}-action-gate`;await navigate(cdp,fixture.base+'/hold?case='+gated);
@@ -158,7 +160,7 @@ export async function holdChecks(cdp,fixture,out,route){
   await evaluate(cdp,'document.querySelector("#message").focus()');await delay(600);assert.equal(matching(fixture.arrivals,gated).length,0);
   await press(cdp,'Enter');await eventually(()=>matching(fixture.arrivals,gated).length===1,'approved Enter');
   results.push({kind:'ws-action-gate',whileHeld:0,after:matching(fixture.arrivals,gated)});
-  console.log('WEBSOCKET',route,'Fetch leaked; cooperative shim held/released/dropped; fresh-realm bypass; Enter gate held/released');
+  console.log('WEBSOCKET',route,'Fetch leaked; cooperative shim held/released/dropped; worker bypass; Enter gate held/released');
   save(out,`${route}-holds`,results);await hold.close();return results;
 }
 

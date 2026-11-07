@@ -8,6 +8,7 @@ import {createHash} from 'node:crypto';
 import {launch,address,key,x,delay,loadUnpacked,screenshot,stopChrome} from './ui.mjs';
 import {websocket,session,evaluate,eventually} from './protocol.mjs';
 import {save,readAndAct,holdChecks} from './checks.mjs';
+import {installExternal} from './install.mjs';
 
 const require=createRequire(import.meta.url);
 export async function otherRoutes({here,work,out,profile,fixture}){
@@ -22,8 +23,8 @@ export async function otherRoutes({here,work,out,profile,fixture}){
     execFileSync('python3',['-c','import zipfile,sys;zipfile.ZipFile(sys.argv[1]).extractall(sys.argv[2])',crx,extension]);
     const manifest=JSON.parse(fs.readFileSync(path.join(extension,'manifest.json')));assert.equal(manifest.version,'0.5.0');
     save(out,'playwright-pin',{version:manifest.version,sha256:hash,engine:'1.65.0'});
+    installExternal('mmlmfjhmonkocbjadbfplnigmagldckm',manifest.version,crx,work);
     chrome=launch(profile,fixture.base+'/owner',path.join(out,'chrome-playwright.log'));await delay(3000);
-    await loadUnpacked(extension,out,'playwright');
     await address(fixture.base+'/owner');
     // The tab is open and signed in before the upstream attach factory is invoked.
     const {tools}=require('./node_modules/playwright-core/lib/coreBundle.js');

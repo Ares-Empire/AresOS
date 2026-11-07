@@ -13,11 +13,13 @@ const {fixtures}=await import('./fixture.mjs');
 const {launch,address,key,delay,loadUnpacked,screenshot,stopChrome}=await import('./ui.mjs');
 const {nativeBridge,evaluate,eventually}=await import('./protocol.mjs');
 const {save,readAndAct,holdChecks,publicChecks}=await import('./checks.mjs');
+const {pack,installExternal}=await import('./install.mjs');
 const fixture=await fixtures(out);
 const profile=path.join(work,'profile');
 const manifest=JSON.parse(fs.readFileSync(path.join(here,'extension/manifest.json')));
 const extDir=path.join(work,'own-extension');fs.cpSync(path.join(here,'extension'),extDir,{recursive:true});
-manifest.key=generateKeyPairSync('rsa',{modulusLength:2048}).publicKey.export({type:'spki',format:'der'}).toString('base64');
+const keypair=generateKeyPairSync('rsa',{modulusLength:2048});
+manifest.key=keypair.publicKey.export({type:'spki',format:'der'}).toString('base64');
 fs.writeFileSync(path.join(extDir,'manifest.json'),JSON.stringify(manifest));
 const id=[...createHash('sha256').update(Buffer.from(manifest.key,'base64')).digest().subarray(0,16)].map(b=>String.fromCharCode(97+(b>>4),97+(b&15))).join('');
 const socketPath=path.join(work,'native.sock');
@@ -33,10 +35,10 @@ try {
   console.log('LOGIN_BEFORE_TOOL',JSON.stringify(fixture.arrivals));
   await screenshot(out,'signed-in-before-tool');
   await address(`chrome-extension://${id}/select.html`);await screenshot(out,'load-extension-flag-probe');
-  await loadUnpacked(extDir,out,'own');
-  // Installed extension and cookie survive a normal restart. No attach tool is running yet.
   await stopChrome(chrome);
-  chrome=launch(profile,fixture.base+'/owner',path.join(out,'chrome-normal.log'));await delay(2200);
+  const crx=pack(extDir,work,keypair);installExternal(id,manifest.version,crx,work);
+  // Installed extension and cookie survive a normal restart. No attach tool is running yet.
+  chrome=launch(profile,fixture.base+'/owner',path.join(out,'chrome-normal.log'));await delay(3500);
   assert.ok(fixture.arrivals.at(-1).signedIn);
   summary.toolStartedAt=Date.now();bridge=await nativeBridge(socketPath);
   const spoofed=new Promise(r=>bridge.once('check.connected',r));
