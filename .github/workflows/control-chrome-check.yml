@@ -1,12 +1,19 @@
 name: Control Chrome check
 on:
   push:
-    branches: [pkg/17-chrome-check]
+    branches: [pkg/17-chrome-check, pkg/17b-chrome-holds]
     paths:
       - control/checks/17-chrome/**
+      - control/checks/17b-chrome/**
+      - reviews/17b-chrome-holds/**
       - .github/workflows/control-chrome-check.yml
       - reviews/17-chrome-check/**
   workflow_dispatch:
+    inputs:
+      long_hold:
+        description: Run the one 10-minute hold (final verification only)
+        type: boolean
+        default: false
 permissions:
   contents: read
 concurrency:
@@ -42,6 +49,8 @@ jobs:
           npm ls --json > ../../../.work/17-chrome/artifacts/dependencies.json
       - name: Run headed fixture checks with Chrome sandbox enabled
         env:
+          LONG_HOLD: ${{ inputs.long_hold || false }}
+          CHECK_BRANCH: ${{ github.ref_name }}
           XDG_CONFIG_HOME: ${{ github.workspace }}/.work/17-chrome/config
         run: |
           set -o pipefail
@@ -52,13 +61,19 @@ jobs:
               sleep 0.1
             done
             xprop -root _NET_SUPPORTING_WM_CHECK | rg -q "window id" || exit 1
-            timeout --kill-after=15s 20m node control/checks/17-chrome/run.mjs
+            if [ "$CHECK_BRANCH" = "pkg/17b-chrome-holds" ]; then
+              timeout --kill-after=15s 25m node control/checks/17b-chrome/run.mjs
+            else
+              timeout --kill-after=15s 20m node control/checks/17-chrome/run.mjs
+            fi
           ' 2>&1 | tee .work/17-chrome/artifacts/check.log
       - name: Upload synthetic logs and structural page views
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: chrome-check-${{ github.run_id }}-${{ github.run_attempt }}
-          path: .work/17-chrome/artifacts/
+          path: |
+            .work/17-chrome/artifacts/
+            .work/17b-chrome/artifacts/
           retention-days: 14
           if-no-files-found: error
