@@ -132,8 +132,18 @@ def main():
         if MODE == 'absent':
             for helper in ROOT.glob('node_modules/@anthropic-ai/sandbox-runtime/vendor/seccomp/*/apply-seccomp'):
                 helper.unlink()
-        native_checks(run, put, MODE,
-                      {p: digest(p) for p in FIXTURES['reads'] + FIXTURES['writes'] + ['/dev/uinput']}, stub)
+        native_error = None
+        try:
+            native_checks(run, put, MODE,
+                          {p: digest(p) for p in FIXTURES['reads'] + FIXTURES['writes'] + ['/dev/uinput']}, stub)
+        except Exception as error:
+            import traceback
+            native_error = traceback.format_exc()
+            (OUT / 'native-failure.txt').write_text(native_error)
+            print(native_error, flush=True)
+        # Do not lose standalone/launcher evidence when a native qualification
+        # check fails. The entire workflow still fails at the end.
+
         # Run network positive controls before the zero-arrival observation window.
         config = ROOT / 'sandbox.json'
         original = config.read_bytes()
@@ -147,6 +157,15 @@ def main():
                 positive = run(['/usr/local/bin/node', str(ROOT / 'run.mjs'), command], 'positive-proxy-' + suffix)
                 assert positive.stdout.strip() == 'OK'
                 assert (OUT / 'stub.txt').read_text().count('GET /payload HTTP/1.1') > receiver_before
+            # Mutation control: running the SAME hostile harness with the
+            # receiver allowed must fail its denial assertions, by two routes.
+            mutation = run(['/usr/local/bin/node', str(ROOT / 'run.mjs'),
+                            '/usr/bin/python3 -I /opt/aresos-control/hostile.py'],
+                           'network-policy-mutation', required=False)
+            mutation_rows = [json.loads(line[8:]) for line in mutation.stdout.splitlines() if line.startswith('HOSTILE ')]
+            opened = [r['name'] for r in mutation_rows if not r['blocked']]
+            assert mutation.returncode == 1 and opened == ['network:proxy-http', 'network:proxy-connect'], opened
+            print('NETWORK_MUTATION_OK identical_harness_detects_allowed_receiver', flush=True)
         finally:
             config.write_bytes(original)
         time.sleep(.2)
@@ -176,6 +195,7 @@ def main():
         print(f'BOUNDARY_OK mode={MODE} attacks={len(rows)} unchanged={len(snapshots)} hostile_connections=0', flush=True)
         launcher_checks()
         settings_checks()
+        assert native_error is None, native_error
     finally:
         stub.terminate()
         stub.wait(timeout=10)
@@ -192,7 +212,9 @@ def launcher_checks():
     cli.unlink()
     cli.write_text('#!/usr/bin/python3 -I\nimport json,os,sys\nprint("LAUNCHED " + json.dumps({"env":dict(os.environ),"args":sys.argv[1:]}))\n')
     cli.chmod(0o755)
-    pin.write_text(json.dumps({'sha256': digest(cli)}))
+    recorder_pin = json.loads(original_pin)
+    recorder_pin['cli_sha256'] = digest(cli)
+    pin.write_text(json.dumps(recorder_pin))
     put('/home/assistant/work/env-shadow/sitecustomize.py',
         'open("/home/assistant/work/python-env-ran", "w").write("executed")\n')
     put('/home/assistant/work/env-shadow/preload.cjs',
@@ -232,6 +254,15 @@ def launcher_checks():
                 assert bad.returncode == 78 and 'hash mismatch' in bad.stderr and 'LAUNCHED' not in bad.stdout
             finally:
                 helper.write_bytes(original)
+            size = target.stat().st_size
+            with target.open('ab') as binary:
+                binary.write(b'CORRUPT')
+            try:
+                bad = run(['/usr/local/bin/aresos-assistant'], 'launcher-corrupt-native', required=False)
+                assert bad.returncode == 78 and 'native CLI hash mismatch' in bad.stderr
+            finally:
+                with target.open('r+b') as binary:
+                    binary.truncate(size)
             for name, args in [('plugin', ['--plugin-dir', '/untrusted']),
                                ('bypass', ['--dangerously-skip-permissions'])]:
                 bad = run(['/usr/local/bin/aresos-assistant', *args], 'launcher-options-' + name, required=False)

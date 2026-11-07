@@ -9,6 +9,7 @@ import sys
 
 ROOT = Path('/opt/aresos-control')
 FILTER = ROOT / 'node_modules/@anthropic-ai/sandbox-runtime/vendor/seccomp/x64/apply-seccomp'
+NATIVE = ROOT / 'node_modules/@anthropic-ai/claude-code-linux-x64/claude'
 CLAUDE = Path('/usr/local/bin/claude')
 
 
@@ -21,7 +22,7 @@ def trusted(path):
 
 
 def main():
-    for path in (ROOT, Path(__file__), FILTER, CLAUDE, ROOT / 'pins.json',
+    for path in (ROOT, Path(__file__), FILTER, CLAUDE, NATIVE, ROOT / 'pins.json',
                  ROOT / 'run.mjs', ROOT / 'seccomp-canary.py',
                  Path('/usr/local/bin/node'), Path('/usr/bin/python3'),
                  ROOT / 'sandbox.json', ROOT / 'native-canary.json', ROOT / 'native-pin.json', Path('/etc/claude-code/managed-settings.json'),
@@ -37,8 +38,9 @@ def main():
     expected = json.loads((ROOT / 'pins.json').read_text())['seccomp_x64_sha256']
     if hashlib.sha256(FILTER.read_bytes()).hexdigest() != expected:
         raise ValueError('seccomp helper hash mismatch')
-    native_hash = json.loads((ROOT / 'native-pin.json').read_text())['sha256']
-    if hashlib.sha256(CLAUDE.resolve().read_bytes()).hexdigest() != native_hash:
+    native_pin = json.loads((ROOT / 'native-pin.json').read_text())
+    if (hashlib.sha256(NATIVE.read_bytes()).hexdigest() != native_pin['sha256'] or
+            hashlib.sha256(CLAUDE.resolve().read_bytes()).hexdigest() != native_pin['cli_sha256']):
         raise ValueError('native CLI hash mismatch')
     os.chdir('/home/assistant/work')
     # Do not merely test that a file exists. Require the real sandbox to execute

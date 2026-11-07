@@ -44,7 +44,9 @@ if __name__ == '__main__':
     # could pass even when the native binary's embedded stage is broken.
     native_canary = derive(settings)
     native_canary['network']['allowAllUnixSockets'] = True
+    native_canary['allowNestedUserNamespaces'] = True
     (ROOT / 'native-canary.json').write_text(json.dumps(native_canary))
     import hashlib
     native = Path('/usr/local/bin/claude').resolve()
-    (ROOT / 'native-pin.json').write_text(json.dumps({'sha256': hashlib.sha256(native.read_bytes()).hexdigest()}))
+    (ROOT / 'native-pin.json').write_text(json.dumps({'sha256': hashlib.sha256(native.read_bytes()).hexdigest(),
+        'cli_sha256': hashlib.sha256(native.read_bytes()).hexdigest()}))
