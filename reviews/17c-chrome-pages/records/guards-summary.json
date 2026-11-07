@@ -1,0 +1,1568 @@
+{
+  "phase": "guards",
+  "head": "589c53bd31cf4a230424fcc147ead0bf8289c8f3",
+  "run": "42355697966",
+  "cases": [
+    {
+      "name": "CONNECTED",
+      "tabId": 924225646,
+      "group": 2046076072,
+      "version": "0.3.0"
+    },
+    {
+      "name": "query",
+      "body": {
+        "query": "query Read { viewer { id } }"
+      },
+      "held": true,
+      "adapterReadCandidate": true
+    },
+    {
+      "name": "persisted",
+      "body": {
+        "extensions": {
+          "persistedQuery": {
+            "sha256Hash": "synthetic"
+          }
+        }
+      },
+      "held": true,
+      "adapterReadCandidate": false
+    },
+    {
+      "name": "batch",
+      "body": [
+        {
+          "query": "query Read { viewer { id } }"
+        }
+      ],
+      "held": true,
+      "adapterReadCandidate": false
+    },
+    {
+      "name": "mutation",
+      "body": {
+        "query": "mutation Change { remove(id:42) }"
+      },
+      "held": true,
+      "adapterReadCandidate": false
+    },
+    {
+      "name": "inline-text",
+      "body": {
+        "query": "query Search { search(text:\"Synthetic17c\") { id } }"
+      },
+      "held": true,
+      "adapterReadCandidate": false
+    },
+    {
+      "name": "variable-text",
+      "body": {
+        "query": "query Search($text:String){ search(text:$text){id} }",
+        "variables": {
+          "text": "Synthetic17c"
+        }
+      },
+      "held": true,
+      "adapterReadCandidate": false
+    },
+    {
+      "name": "Q3_TIMER",
+      "preview": {
+        "event": "held",
+        "id": "{\"tabId\":924225646,\"frameId\":0,\"documentId\":\"7F9BC34E1F5001471EEB4C5F1C98EDEC\"}:7",
+        "kind": "fetch",
+        "description": {
+          "url": "http://127.0.0.1:38609/receive?case=queue-timer",
+          "method": "POST",
+          "body": "synthetic queued deletion 42"
+        },
+        "stack": "Error\n    at hold (chrome-extension://kjngegmjdghmonbopoeplmfhlnohfpkm/wrap.js:13:52)\n    at chrome-extension://kjngegmjdghmonbopoeplmfhlnohfpkm/wrap.js:16:302\n    at document.querySelector.onclick (http://127.0.0.1:38609/:9:98)\n    at http://127.0.0.1:38609/:10:123",
+        "localId": "7",
+        "source": {
+          "tabId": 924225646,
+          "frameId": 0,
+          "documentId": "7F9BC34E1F5001471EEB4C5F1C98EDEC"
+        },
+        "at": 1794040225434,
+        "owner": false
+      },
+      "guardAfterDrop": [
+        "http://127.0.0.1:38609"
+      ]
+    },
+    {
+      "name": "Q3_OWNER_HELD",
+      "preview": {
+        "event": "held",
+        "id": "{\"tabId\":924225650,\"frameId\":0,\"documentId\":\"A4818DE1CD9BAEE11D745FC0B7195FB2\"}:1",
+        "kind": "fetch",
+        "description": {
+          "url": "http://127.0.0.1:38609/receive?case=queue-owner",
+          "method": "POST",
+          "body": "synthetic queued deletion 42"
+        },
+        "stack": "Error\n    at hold (chrome-extension://kjngegmjdghmonbopoeplmfhlnohfpkm/wrap.js:13:52)\n    at chrome-extension://kjngegmjdghmonbopoeplmfhlnohfpkm/wrap.js:16:302\n    at document.querySelector.onclick (http://127.0.0.1:38609/owner:9:98)",
+        "localId": "1",
+        "source": {
+          "tabId": 924225650,
+          "frameId": 0,
+          "documentId": "A4818DE1CD9BAEE11D745FC0B7195FB2"
+        },
+        "at": 1794040226265,
+        "owner": true
+      },
+      "notifications": [
+        {
+          "method": "check.notification",
+          "params": {
+            "id": "{\"tabId\":924225650,\"frameId\":0,\"documentId\":\"A4818DE1CD9BAEE11D745FC0B7195FB2\"}:1",
+            "buttons": [
+              "Send",
+              "Don't send"
+            ]
+          },
+          "at": 1794040226270
+        }
+      ]
+    },
+    {
+      "name": "Q3_GENUINE_OWNER",
+      "arrivals": [
+        {
+          "kind": "http",
+          "case": "queue-owner",
+          "url": "/receive?case=queue-owner",
+          "method": "POST",
+          "body": "synthetic queued deletion 42",
+          "at": 1794040232022
+        }
+      ],
+      "refused": [
+        {
+          "method": "check.forgeryRefused",
+          "params": {
+            "sender": {
+              "id": "kjngegmjdghmonbopoeplmfhlnohfpkm",
+              "url": "http://127.0.0.1:38609/",
+              "frameId": 0
+            }
+          },
+          "at": 1794040226620
+        },
+        {
+          "method": "check.forgeryRefused",
+          "params": {
+            "sender": {
+              "id": "kjngegmjdghmonbopoeplmfhlnohfpkm",
+              "url": "http://127.0.0.1:38609/",
+              "frameId": 0
+            }
+          },
+          "at": 1794040226621
+        },
+        {
+          "method": "check.forgeryRefused",
+          "params": {
+            "sender": {
+              "id": "kjngegmjdghmonbopoeplmfhlnohfpkm",
+              "url": "chrome-extension://kjngegmjdghmonbopoeplmfhlnohfpkm/other.html?id=%7B%22tabId%22%3A924225650%2C%22frameId%22%3A0%2C%22documentId%22%3A%22A4818DE1CD9BAEE11D745FC0B7195FB2%22%7D%3A1",
+              "frameId": 0
+            }
+          },
+          "at": 1794040228587
+        },
+        {
+          "method": "check.forgeryRefused",
+          "params": {
+            "sender": {
+              "id": "kjngegmjdghmonbopoeplmfhlnohfpkm",
+              "url": "chrome-extension://kjngegmjdghmonbopoeplmfhlnohfpkm/details.html?id=%7B%22tabId%22%3A924225650%2C%22frameId%22%3A0%2C%22documentId%22%3A%22A4818DE1CD9BAEE11D745FC0B7195FB2%22%7D%3A1",
+              "frameId": 29
+            }
+          },
+          "at": 1794040229696
+        }
+      ]
+    },
+    {
+      "name": "Q3_NOTIFICATION",
+      "id": "notification-true",
+      "release": true,
+      "arrivals": [
+        {
+          "kind": "http",
+          "case": "notification-true",
+          "url": "/receive?case=notification-true",
+          "method": "POST",
+          "body": "synthetic queued deletion 42",
+          "at": 1794040234309
+        }
+      ],
+      "event": [
+        {
+          "method": "check.notificationButton",
+          "params": {
+            "id": "{\"tabId\":924225650,\"frameId\":0,\"documentId\":\"A4818DE1CD9BAEE11D745FC0B7195FB2\"}:2",
+            "button": 0
+          },
+          "at": 1794040234306
+        }
+      ]
+    },
+    {
+      "name": "Q3_NOTIFICATION",
+      "id": "notification-false",
+      "release": false,
+      "arrivals": [],
+      "event": [
+        {
+          "method": "check.notificationButton",
+          "params": {
+            "id": "{\"tabId\":924225650,\"frameId\":0,\"documentId\":\"A4818DE1CD9BAEE11D745FC0B7195FB2\"}:3",
+            "button": 1
+          },
+          "at": 1794040236088
+        }
+      ]
+    },
+    {
+      "name": "Q1_WORKER_START",
+      "kind": "dedicated",
+      "before": 0,
+      "held": true,
+      "preview": {
+        "event": "held",
+        "id": "{\"sessionId\":\"1FEE0B4D33229C67B4D1AC91D6255A34\",\"tabId\":924225646}:1",
+        "kind": "fetch",
+        "description": {
+          "url": "http://127.0.0.1:38609/receive?case=worker-dedicated",
+          "method": "POST",
+          "body": "synthetic worker first"
+        },
+        "stack": "Error\n    at hold (<anonymous>:13:52)\n    at <anonymous>:16:302\n    at http://127.0.0.1:38609/worker.js?case=worker-dedicated:1:1",
+        "localId": "1",
+        "source": {
+          "sessionId": "1FEE0B4D33229C67B4D1AC91D6255A34",
+          "tabId": 924225646
+        },
+        "at": 1794040236878,
+        "owner": false
+      },
+      "targets": [
+        {
+          "attached": false,
+          "id": "5D7A2D413FA90DE76B473B3F52CCBE0C",
+          "title": "Service Worker chrome-extension://nkeimhogjdpnpccoofpliimaahmaaome/thunk.js",
+          "type": "worker",
+          "url": "chrome-extension://nkeimhogjdpnpccoofpliimaahmaaome/thunk.js"
+        },
+        {
+          "attached": false,
+          "id": "7524BE5502B1A5D17F94B7B091236F07",
+          "title": "Service Worker chrome-extension://admccjkmockfdflocgggjfgdacdodkdf/background.js",
+          "type": "worker",
+          "url": "chrome-extension://admccjkmockfdflocgggjfgdacdodkdf/background.js"
+        },
+        {
+          "attached": false,
+          "id": "54D51C175F3EEF3E902113A90D899509",
+          "title": "Service Worker chrome-extension://fignfifoniblkonapihmkfakmlgkbkcf/service_worker.js",
+          "type": "worker",
+          "url": "chrome-extension://fignfifoniblkonapihmkfakmlgkbkcf/service_worker.js"
+        },
+        {
+          "attached": false,
+          "id": "BADBFFAEF39330D65939FBF85CC6F339",
+          "title": "Service Worker chrome-extension://kjngegmjdghmonbopoeplmfhlnohfpkm/background.js",
+          "type": "worker",
+          "url": "chrome-extension://kjngegmjdghmonbopoeplmfhlnohfpkm/background.js"
+        },
+        {
+          "attached": false,
+          "id": "1227F97AF673E2A5EFCEB12E88B5F2C5",
+          "title": "Service Worker chrome-extension://ghbmnnjooekpmoecnnnilnnbdlolhkhi/service_worker_bin_prod.js",
+          "type": "worker",
+          "url": "chrome-extension://ghbmnnjooekpmoecnnnilnnbdlolhkhi/service_worker_bin_prod.js"
+        },
+        {
+          "attached": true,
+          "id": "6AC27A6BED4987C342875E31E8857F07",
+          "title": "http://127.0.0.1:38609/worker.js?case=worker-dedicated",
+          "type": "other",
+          "url": "http://127.0.0.1:38609/worker.js?case=worker-dedicated"
+        },
+        {
+          "attached": false,
+          "id": "AF954DAAE0E9DF7952211FEE324B4FAF",
+          "tabId": 924225651,
+          "title": "Untrusted extension page",
+          "type": "page",
+          "url": "chrome-extension://kjngegmjdghmonbopoeplmfhlnohfpkm/other.html?id=%7B%22tabId%22%3A924225650%2C%22frameId%22%3A0%2C%22documentId%22%3A%22A4818DE1CD9BAEE11D745FC0B7195FB2%22%7D%3A1&embed=1"
+        },
+        {
+          "attached": false,
+          "id": "C6E05F5F1AC757427CDA010131140F7B",
+          "tabId": 924225652,
+          "title": "Owner send decision",
+          "type": "page",
+          "url": "chrome-extension://kjngegmjdghmonbopoeplmfhlnohfpkm/details.html?id=%7B%22tabId%22%3A924225650%2C%22frameId%22%3A0%2C%22documentId%22%3A%22A4818DE1CD9BAEE11D745FC0B7195FB2%22%7D%3A1"
+        },
+        {
+          "attached": false,
+          "id": "A07F83D10DE0D5B4B576B02ECAB50CBF",
+          "title": "Omnibox Popup",
+          "type": "other",
+          "url": "chrome://omnibox-popup.top-chrome/"
+        },
+        {
+          "attached": true,
+          "id": "88982ADA8169786397DCAF19DB1AFDB4",
+          "tabId": 924225650,
+          "title": "17c synthetic fixture",
+          "type": "page",
+          "url": "http://127.0.0.1:38609/owner"
+        },
+        {
+          "attached": false,
+          "id": "582F828D034D4CCFAF6C2C9840616BA4",
+          "tabId": 924225647,
+          "title": "Choose fixture tab",
+          "type": "page",
+          "url": "chrome-extension://kjngegmjdghmonbopoeplmfhlnohfpkm/select.html?url=http%3A%2F%2F127.0.0.1%3A38609%2F"
+        },
+        {
+          "attached": true,
+          "id": "9C61128E37A038261EDCAD932D4E3B9D",
+          "tabId": 924225646,
+          "title": "17c synthetic fixture",
+          "type": "page",
+          "url": "http://127.0.0.1:38609/"
+        }
+      ],
+      "children": [
+        {
+          "method": "check.child",
+          "params": {
+            "source": {
+              "tabId": 924225646,
+              "sessionId": "1FEE0B4D33229C67B4D1AC91D6255A34"
+            },
+            "info": {
+              "attached": true,
+              "browserContextId": "27EB559EB0492FDE1340D3F88E50ED38",
+              "canAccessOpener": false,
+              "parentFrameId": "9C61128E37A038261EDCAD932D4E3B9D",
+              "parentId": "9C61128E37A038261EDCAD932D4E3B9D",
+              "targetId": "6AC27A6BED4987C342875E31E8857F07",
+              "title": "http://127.0.0.1:38609/worker.js?case=worker-dedicated",
+              "type": "worker",
+              "url": "http://127.0.0.1:38609/worker.js?case=worker-dedicated"
+            },
+            "waiting": true
+          },
+          "at": 1794040236872
+        }
+      ]
+    },
+    {
+      "name": "Q1_WORKER_START",
+      "kind": "shared",
+      "before": 1,
+      "held": false,
+      "targets": [
+        {
+          "attached": false,
+          "id": "430C8941FFA59659213FF3CB746AFB81",
+          "title": "",
+          "type": "worker",
+          "url": "http://127.0.0.1:38609/worker.js?type=shared&case=worker-shared"
+        },
+        {
+          "attached": false,
+          "id": "5D7A2D413FA90DE76B473B3F52CCBE0C",
+          "title": "Service Worker chrome-extension://nkeimhogjdpnpccoofpliimaahmaaome/thunk.js",
+          "type": "worker",
+          "url": "chrome-extension://nkeimhogjdpnpccoofpliimaahmaaome/thunk.js"
+        },
+        {
+          "attached": false,
+          "id": "7524BE5502B1A5D17F94B7B091236F07",
+          "title": "Service Worker chrome-extension://admccjkmockfdflocgggjfgdacdodkdf/background.js",
+          "type": "worker",
+          "url": "chrome-extension://admccjkmockfdflocgggjfgdacdodkdf/background.js"
+        },
+        {
+          "attached": false,
+          "id": "54D51C175F3EEF3E902113A90D899509",
+          "title": "Service Worker chrome-extension://fignfifoniblkonapihmkfakmlgkbkcf/service_worker.js",
+          "type": "worker",
+          "url": "chrome-extension://fignfifoniblkonapihmkfakmlgkbkcf/service_worker.js"
+        },
+        {
+          "attached": false,
+          "id": "BADBFFAEF39330D65939FBF85CC6F339",
+          "title": "Service Worker chrome-extension://kjngegmjdghmonbopoeplmfhlnohfpkm/background.js",
+          "type": "worker",
+          "url": "chrome-extension://kjngegmjdghmonbopoeplmfhlnohfpkm/background.js"
+        },
+        {
+          "attached": false,
+          "id": "1227F97AF673E2A5EFCEB12E88B5F2C5",
+          "title": "Service Worker chrome-extension://ghbmnnjooekpmoecnnnilnnbdlolhkhi/service_worker_bin_prod.js",
+          "type": "worker",
+          "url": "chrome-extension://ghbmnnjooekpmoecnnnilnnbdlolhkhi/service_worker_bin_prod.js"
+        },
+        {
+          "attached": true,
+          "id": "6AC27A6BED4987C342875E31E8857F07",
+          "title": "http://127.0.0.1:38609/worker.js?case=worker-dedicated",
+          "type": "other",
+          "url": "http://127.0.0.1:38609/worker.js?case=worker-dedicated"
+        },
+        {
+          "attached": false,
+          "id": "AF954DAAE0E9DF7952211FEE324B4FAF",
+          "tabId": 924225651,
+          "title": "Untrusted extension page",
+          "type": "page",
+          "url": "chrome-extension://kjngegmjdghmonbopoeplmfhlnohfpkm/other.html?id=%7B%22tabId%22%3A924225650%2C%22frameId%22%3A0%2C%22documentId%22%3A%22A4818DE1CD9BAEE11D745FC0B7195FB2%22%7D%3A1&embed=1"
+        },
+        {
+          "attached": false,
+          "id": "C6E05F5F1AC757427CDA010131140F7B",
+          "tabId": 924225652,
+          "title": "Owner send decision",
+          "type": "page",
+          "url": "chrome-extension://kjngegmjdghmonbopoeplmfhlnohfpkm/details.html?id=%7B%22tabId%22%3A924225650%2C%22frameId%22%3A0%2C%22documentId%22%3A%22A4818DE1CD9BAEE11D745FC0B7195FB2%22%7D%3A1"
+        },
+        {
+          "attached": false,
+          "id": "A07F83D10DE0D5B4B576B02ECAB50CBF",
+          "title": "Omnibox Popup",
+          "type": "other",
+          "url": "chrome://omnibox-popup.top-chrome/"
+        },
+        {
+          "attached": true,
+          "id": "88982ADA8169786397DCAF19DB1AFDB4",
+          "tabId": 924225650,
+          "title": "17c synthetic fixture",
+          "type": "page",
+          "url": "http://127.0.0.1:38609/owner"
+        },
+        {
+          "attached": false,
+          "id": "582F828D034D4CCFAF6C2C9840616BA4",
+          "tabId": 924225647,
+          "title": "Choose fixture tab",
+          "type": "page",
+          "url": "chrome-extension://kjngegmjdghmonbopoeplmfhlnohfpkm/select.html?url=http%3A%2F%2F127.0.0.1%3A38609%2F"
+        },
+        {
+          "attached": true,
+          "id": "9C61128E37A038261EDCAD932D4E3B9D",
+          "tabId": 924225646,
+          "title": "17c synthetic fixture",
+          "type": "page",
+          "url": "http://127.0.0.1:38609/"
+        }
+      ],
+      "children": [
+        {
+          "method": "check.child",
+          "params": {
+            "source": {
+              "tabId": 924225646,
+              "sessionId": "1FEE0B4D33229C67B4D1AC91D6255A34"
+            },
+            "info": {
+              "attached": true,
+              "browserContextId": "27EB559EB0492FDE1340D3F88E50ED38",
+              "canAccessOpener": false,
+              "parentFrameId": "9C61128E37A038261EDCAD932D4E3B9D",
+              "parentId": "9C61128E37A038261EDCAD932D4E3B9D",
+              "targetId": "6AC27A6BED4987C342875E31E8857F07",
+              "title": "http://127.0.0.1:38609/worker.js?case=worker-dedicated",
+              "type": "worker",
+              "url": "http://127.0.0.1:38609/worker.js?case=worker-dedicated"
+            },
+            "waiting": true
+          },
+          "at": 1794040236872
+        }
+      ]
+    },
+    {
+      "name": "Q1_WORKER_START",
+      "kind": "service",
+      "before": 1,
+      "held": false,
+      "targets": [
+        {
+          "attached": false,
+          "id": "430C8941FFA59659213FF3CB746AFB81",
+          "title": "",
+          "type": "worker",
+          "url": "http://127.0.0.1:38609/worker.js?type=shared&case=worker-shared"
+        },
+        {
+          "attached": false,
+          "id": "5D7A2D413FA90DE76B473B3F52CCBE0C",
+          "title": "Service Worker chrome-extension://nkeimhogjdpnpccoofpliimaahmaaome/thunk.js",
+          "type": "worker",
+          "url": "chrome-extension://nkeimhogjdpnpccoofpliimaahmaaome/thunk.js"
+        },
+        {
+          "attached": false,
+          "id": "7524BE5502B1A5D17F94B7B091236F07",
+          "title": "Service Worker chrome-extension://admccjkmockfdflocgggjfgdacdodkdf/background.js",
+          "type": "worker",
+          "url": "chrome-extension://admccjkmockfdflocgggjfgdacdodkdf/background.js"
+        },
+        {
+          "attached": false,
+          "id": "54D51C175F3EEF3E902113A90D899509",
+          "title": "Service Worker chrome-extension://fignfifoniblkonapihmkfakmlgkbkcf/service_worker.js",
+          "type": "worker",
+          "url": "chrome-extension://fignfifoniblkonapihmkfakmlgkbkcf/service_worker.js"
+        },
+        {
+          "attached": false,
+          "id": "BADBFFAEF39330D65939FBF85CC6F339",
+          "title": "Service Worker chrome-extension://kjngegmjdghmonbopoeplmfhlnohfpkm/background.js",
+          "type": "worker",
+          "url": "chrome-extension://kjngegmjdghmonbopoeplmfhlnohfpkm/background.js"
+        },
+        {
+          "attached": false,
+          "id": "1227F97AF673E2A5EFCEB12E88B5F2C5",
+          "title": "Service Worker chrome-extension://ghbmnnjooekpmoecnnnilnnbdlolhkhi/service_worker_bin_prod.js",
+          "type": "worker",
+          "url": "chrome-extension://ghbmnnjooekpmoecnnnilnnbdlolhkhi/service_worker_bin_prod.js"
+        },
+        {
+          "attached": true,
+          "id": "4BEB4A127E492F98CCE307B9346301D4",
+          "title": "Service Worker http://127.0.0.1:38609/sw.js?case=worker-service",
+          "type": "worker",
+          "url": "http://127.0.0.1:38609/sw.js?case=worker-service"
+        },
+        {
+          "attached": true,
+          "id": "6AC27A6BED4987C342875E31E8857F07",
+          "title": "http://127.0.0.1:38609/worker.js?case=worker-dedicated",
+          "type": "other",
+          "url": "http://127.0.0.1:38609/worker.js?case=worker-dedicated"
+        },
+        {
+          "attached": false,
+          "id": "AF954DAAE0E9DF7952211FEE324B4FAF",
+          "tabId": 924225651,
+          "title": "Untrusted extension page",
+          "type": "page",
+          "url": "chrome-extension://kjngegmjdghmonbopoeplmfhlnohfpkm/other.html?id=%7B%22tabId%22%3A924225650%2C%22frameId%22%3A0%2C%22documentId%22%3A%22A4818DE1CD9BAEE11D745FC0B7195FB2%22%7D%3A1&embed=1"
+        },
+        {
+          "attached": false,
+          "id": "C6E05F5F1AC757427CDA010131140F7B",
+          "tabId": 924225652,
+          "title": "Owner send decision",
+          "type": "page",
+          "url": "chrome-extension://kjngegmjdghmonbopoeplmfhlnohfpkm/details.html?id=%7B%22tabId%22%3A924225650%2C%22frameId%22%3A0%2C%22documentId%22%3A%22A4818DE1CD9BAEE11D745FC0B7195FB2%22%7D%3A1"
+        },
+        {
+          "attached": false,
+          "id": "A07F83D10DE0D5B4B576B02ECAB50CBF",
+          "title": "Omnibox Popup",
+          "type": "other",
+          "url": "chrome://omnibox-popup.top-chrome/"
+        },
+        {
+          "attached": true,
+          "id": "88982ADA8169786397DCAF19DB1AFDB4",
+          "tabId": 924225650,
+          "title": "17c synthetic fixture",
+          "type": "page",
+          "url": "http://127.0.0.1:38609/owner"
+        },
+        {
+          "attached": false,
+          "id": "582F828D034D4CCFAF6C2C9840616BA4",
+          "tabId": 924225647,
+          "title": "Choose fixture tab",
+          "type": "page",
+          "url": "chrome-extension://kjngegmjdghmonbopoeplmfhlnohfpkm/select.html?url=http%3A%2F%2F127.0.0.1%3A38609%2F"
+        },
+        {
+          "attached": true,
+          "id": "9C61128E37A038261EDCAD932D4E3B9D",
+          "tabId": 924225646,
+          "title": "17c synthetic fixture",
+          "type": "page",
+          "url": "http://127.0.0.1:38609/"
+        }
+      ],
+      "children": [
+        {
+          "method": "check.child",
+          "params": {
+            "source": {
+              "tabId": 924225646,
+              "sessionId": "1FEE0B4D33229C67B4D1AC91D6255A34"
+            },
+            "info": {
+              "attached": true,
+              "browserContextId": "27EB559EB0492FDE1340D3F88E50ED38",
+              "canAccessOpener": false,
+              "parentFrameId": "9C61128E37A038261EDCAD932D4E3B9D",
+              "parentId": "9C61128E37A038261EDCAD932D4E3B9D",
+              "targetId": "6AC27A6BED4987C342875E31E8857F07",
+              "title": "http://127.0.0.1:38609/worker.js?case=worker-dedicated",
+              "type": "worker",
+              "url": "http://127.0.0.1:38609/worker.js?case=worker-dedicated"
+            },
+            "waiting": true
+          },
+          "at": 1794040236872
+        },
+        {
+          "method": "check.child",
+          "params": {
+            "source": {
+              "tabId": 924225646,
+              "sessionId": "F8DFB2C11957BDD79C12A38AAC921097"
+            },
+            "info": {
+              "attached": true,
+              "browserContextId": "27EB559EB0492FDE1340D3F88E50ED38",
+              "canAccessOpener": false,
+              "targetId": "4BEB4A127E492F98CCE307B9346301D4",
+              "title": "Service Worker http://127.0.0.1:38609/sw.js?case=worker-service",
+              "type": "service_worker",
+              "url": "http://127.0.0.1:38609/sw.js?case=worker-service"
+            },
+            "waiting": true
+          },
+          "at": 1794040239282
+        },
+        {
+          "method": "check.child",
+          "params": {
+            "source": {
+              "tabId": 924225650,
+              "sessionId": "7CC5DFC929AC44FE8D7F964177078D9F"
+            },
+            "info": {
+              "attached": true,
+              "browserContextId": "27EB559EB0492FDE1340D3F88E50ED38",
+              "canAccessOpener": false,
+              "targetId": "4BEB4A127E492F98CCE307B9346301D4",
+              "title": "Service Worker http://127.0.0.1:38609/sw.js?case=worker-service",
+              "type": "service_worker",
+              "url": "http://127.0.0.1:38609/sw.js?case=worker-service"
+            },
+            "waiting": true
+          },
+          "at": 1794040239282
+        },
+        {
+          "method": "check.childError",
+          "params": {
+            "source": {
+              "tabId": 924225646,
+              "sessionId": "F8DFB2C11957BDD79C12A38AAC921097"
+            },
+            "error": "Error: WORKER_SETUP_TIMEOUT Runtime.enable"
+          },
+          "at": 1794040242282
+        },
+        {
+          "method": "check.childError",
+          "params": {
+            "source": {
+              "tabId": 924225650,
+              "sessionId": "7CC5DFC929AC44FE8D7F964177078D9F"
+            },
+            "error": "Error: WORKER_SETUP_TIMEOUT Runtime.enable"
+          },
+          "at": 1794040242282
+        }
+      ]
+    },
+    {
+      "name": "Q1_DEDICATED_MESSAGE",
+      "id": "dedicated-message-true",
+      "release": true,
+      "source": {
+        "sessionId": "1FEE0B4D33229C67B4D1AC91D6255A34",
+        "tabId": 924225646
+      },
+      "arrivals": [
+        {
+          "kind": "http",
+          "case": "dedicated-message-true",
+          "url": "/receive?case=dedicated-message-true",
+          "method": "POST",
+          "body": "synthetic dedicated",
+          "at": 1794040243750
+        }
+      ]
+    },
+    {
+      "name": "Q1_DEDICATED_MESSAGE",
+      "id": "dedicated-message-false",
+      "release": false,
+      "source": {
+        "sessionId": "1FEE0B4D33229C67B4D1AC91D6255A34",
+        "tabId": 924225646
+      },
+      "arrivals": []
+    },
+    {
+      "name": "Q1_REPLACEMENT_SINGLE_ROOT",
+      "before": 1,
+      "held": false
+    },
+    {
+      "name": "Q1_DIRECT_WORKER",
+      "kind": "shared",
+      "id": "direct-shared-true",
+      "release": true,
+      "source": {
+        "targetId": "430C8941FFA59659213FF3CB746AFB81"
+      },
+      "arrivals": [
+        {
+          "kind": "http",
+          "case": "direct-shared-true",
+          "url": "/receive?case=direct-shared-true",
+          "method": "POST",
+          "body": "synthetic direct shared",
+          "at": 1794040248984
+        }
+      ]
+    },
+    {
+      "name": "Q1_DIRECT_WORKER",
+      "kind": "shared",
+      "id": "direct-shared-false",
+      "release": false,
+      "source": {
+        "targetId": "430C8941FFA59659213FF3CB746AFB81"
+      },
+      "arrivals": []
+    },
+    {
+      "name": "Q1_DIRECT_WORKER",
+      "kind": "service",
+      "id": "direct-service-true",
+      "release": true,
+      "source": {
+        "targetId": "EE6F2F8BD81C75AEDBEF79B960FBDDAB"
+      },
+      "arrivals": [
+        {
+          "kind": "http",
+          "case": "direct-service-true",
+          "url": "/receive?case=direct-service-true",
+          "method": "POST",
+          "body": "synthetic direct service",
+          "at": 1794040250105
+        }
+      ]
+    },
+    {
+      "name": "Q1_DIRECT_WORKER",
+      "kind": "service",
+      "id": "direct-service-false",
+      "release": false,
+      "source": {
+        "targetId": "EE6F2F8BD81C75AEDBEF79B960FBDDAB"
+      },
+      "arrivals": []
+    },
+    {
+      "name": "Q3_SHARED_QUEUE",
+      "source": {
+        "targetId": "430C8941FFA59659213FF3CB746AFB81"
+      },
+      "arrivals": [],
+      "ownerAttribution": false
+    },
+    {
+      "name": "Q2_CHAT",
+      "onlyText": 1,
+      "allAfterActing": 4,
+      "messages": [
+        {
+          "event": "held",
+          "id": "{\"tabId\":924225646,\"frameId\":0,\"documentId\":\"96C65287B57B8A2AB30BAF102ADB22C6\"}:1",
+          "kind": "ws",
+          "description": {
+            "url": "ws://127.0.0.1:38609/socket",
+            "body": "{\"case\":\"chat-presence\",\"presence\":\"active\"}"
+          },
+          "stack": "Error\n    at hold (chrome-extension://kjngegmjdghmonbopoeplmfhlnohfpkm/wrap.js:13:52)\n    at WebSocket.send (chrome-extension://kjngegmjdghmonbopoeplmfhlnohfpkm/wrap.js:21:233)\n    at document.querySelector.onclick (http://127.0.0.1:38609/:7:51)",
+          "localId": "1",
+          "source": {
+            "tabId": 924225646,
+            "frameId": 0,
+            "documentId": "96C65287B57B8A2AB30BAF102ADB22C6"
+          },
+          "at": 1794040252166,
+          "owner": false
+        },
+        {
+          "event": "held",
+          "id": "{\"tabId\":924225646,\"frameId\":0,\"documentId\":\"96C65287B57B8A2AB30BAF102ADB22C6\"}:2",
+          "kind": "ws",
+          "description": {
+            "url": "ws://127.0.0.1:38609/socket",
+            "body": "{\"case\":\"chat-subscription\",\"subscribe\":\"synthetic-room\"}"
+          },
+          "stack": "Error\n    at hold (chrome-extension://kjngegmjdghmonbopoeplmfhlnohfpkm/wrap.js:13:52)\n    at WebSocket.send (chrome-extension://kjngegmjdghmonbopoeplmfhlnohfpkm/wrap.js:21:233)\n    at document.querySelector.onclick (http://127.0.0.1:38609/:7:120)",
+          "localId": "2",
+          "source": {
+            "tabId": 924225646,
+            "frameId": 0,
+            "documentId": "96C65287B57B8A2AB30BAF102ADB22C6"
+          },
+          "at": 1794040252166,
+          "owner": false
+        },
+        {
+          "event": "held",
+          "id": "{\"tabId\":924225646,\"frameId\":0,\"documentId\":\"96C65287B57B8A2AB30BAF102ADB22C6\"}:3",
+          "kind": "ws",
+          "description": {
+            "url": "ws://127.0.0.1:38609/socket",
+            "body": "{\"case\":\"chat-typing\",\"typing\":true}"
+          },
+          "stack": "Error\n    at hold (chrome-extension://kjngegmjdghmonbopoeplmfhlnohfpkm/wrap.js:13:52)\n    at WebSocket.send (chrome-extension://kjngegmjdghmonbopoeplmfhlnohfpkm/wrap.js:21:233)\n    at document.querySelector.onclick (http://127.0.0.1:38609/:7:202)",
+          "localId": "3",
+          "source": {
+            "tabId": 924225646,
+            "frameId": 0,
+            "documentId": "96C65287B57B8A2AB30BAF102ADB22C6"
+          },
+          "at": 1794040252166,
+          "owner": false
+        },
+        {
+          "event": "held",
+          "id": "{\"tabId\":924225646,\"frameId\":0,\"documentId\":\"96C65287B57B8A2AB30BAF102ADB22C6\"}:4",
+          "kind": "ws",
+          "description": {
+            "url": "ws://127.0.0.1:38609/socket",
+            "body": "{\"case\":\"chat-message\",\"text\":\"Synthetic17c\"}"
+          },
+          "stack": "Error\n    at hold (chrome-extension://kjngegmjdghmonbopoeplmfhlnohfpkm/wrap.js:13:52)\n    at WebSocket.send (chrome-extension://kjngegmjdghmonbopoeplmfhlnohfpkm/wrap.js:21:233)\n    at document.querySelector.onkeydown (http://127.0.0.1:38609/:7:330)",
+          "localId": "4",
+          "source": {
+            "tabId": 924225646,
+            "frameId": 0,
+            "documentId": "96C65287B57B8A2AB30BAF102ADB22C6"
+          },
+          "at": 1794040252167,
+          "owner": false
+        }
+      ]
+    },
+    {
+      "name": "Q4_CAUSES",
+      "correct": 5,
+      "total": 6,
+      "falsePage": 0,
+      "traces": [
+        {
+          "kind": "sync",
+          "correct": true,
+          "unknown": false,
+          "pageOwned": false,
+          "events": [
+            {
+              "method": "check.initiator",
+              "params": {
+                "source": {
+                  "tabId": 924225646
+                },
+                "url": "http://127.0.0.1:38609/receive?case=cause-sync",
+                "method": "POST",
+                "initiator": {
+                  "stack": {
+                    "callFrames": [
+                      {
+                        "columnNumber": 117,
+                        "functionName": "run",
+                        "lineNumber": 10,
+                        "scriptId": "57",
+                        "url": "http://127.0.0.1:38609/"
+                      },
+                      {
+                        "columnNumber": 742,
+                        "functionName": "action17c",
+                        "lineNumber": 10,
+                        "scriptId": "57",
+                        "url": "http://127.0.0.1:38609/"
+                      }
+                    ]
+                  },
+                  "type": "script"
+                }
+              },
+              "at": 1794040254294
+            }
+          ]
+        },
+        {
+          "kind": "timer",
+          "correct": true,
+          "unknown": false,
+          "pageOwned": false,
+          "events": [
+            {
+              "method": "check.initiator",
+              "params": {
+                "source": {
+                  "tabId": 924225646
+                },
+                "url": "http://127.0.0.1:38609/receive?case=cause-timer",
+                "method": "POST",
+                "initiator": {
+                  "stack": {
+                    "callFrames": [
+                      {
+                        "columnNumber": 117,
+                        "functionName": "run",
+                        "lineNumber": 10,
+                        "scriptId": "65",
+                        "url": "http://127.0.0.1:38609/"
+                      }
+                    ],
+                    "parent": {
+                      "callFrames": [
+                        {
+                          "columnNumber": 203,
+                          "functionName": "action17c",
+                          "lineNumber": 10,
+                          "scriptId": "65",
+                          "url": "http://127.0.0.1:38609/"
+                        }
+                      ],
+                      "description": "setTimeout"
+                    }
+                  },
+                  "type": "script"
+                }
+              },
+              "at": 1794040256056
+            }
+          ]
+        },
+        {
+          "kind": "promise",
+          "correct": true,
+          "unknown": false,
+          "pageOwned": false,
+          "events": [
+            {
+              "method": "check.initiator",
+              "params": {
+                "source": {
+                  "tabId": 924225646
+                },
+                "url": "http://127.0.0.1:38609/receive?case=cause-promise",
+                "method": "POST",
+                "initiator": {
+                  "stack": {
+                    "callFrames": [
+                      {
+                        "columnNumber": 117,
+                        "functionName": "run",
+                        "lineNumber": 10,
+                        "scriptId": "73",
+                        "url": "http://127.0.0.1:38609/"
+                      }
+                    ],
+                    "parent": {
+                      "callFrames": [
+                        {
+                          "columnNumber": 265,
+                          "functionName": "action17c",
+                          "lineNumber": 10,
+                          "scriptId": "73",
+                          "url": "http://127.0.0.1:38609/"
+                        }
+                      ],
+                      "description": "Promise.then"
+                    }
+                  },
+                  "type": "script"
+                }
+              },
+              "at": 1794040257656
+            }
+          ]
+        },
+        {
+          "kind": "mutation",
+          "correct": true,
+          "unknown": false,
+          "pageOwned": false,
+          "events": [
+            {
+              "method": "check.initiator",
+              "params": {
+                "source": {
+                  "tabId": 924225646
+                },
+                "url": "http://127.0.0.1:38609/receive?case=cause-mutation",
+                "method": "POST",
+                "initiator": {
+                  "stack": {
+                    "callFrames": [
+                      {
+                        "columnNumber": 117,
+                        "functionName": "run",
+                        "lineNumber": 10,
+                        "scriptId": "81",
+                        "url": "http://127.0.0.1:38609/"
+                      },
+                      {
+                        "columnNumber": 351,
+                        "functionName": "",
+                        "lineNumber": 10,
+                        "scriptId": "81",
+                        "url": "http://127.0.0.1:38609/"
+                      }
+                    ],
+                    "parent": {
+                      "callFrames": [
+                        {
+                          "columnNumber": 206,
+                          "functionName": "window.mark",
+                          "lineNumber": 1,
+                          "scriptId": "81",
+                          "url": "http://127.0.0.1:38609/"
+                        },
+                        {
+                          "columnNumber": 421,
+                          "functionName": "action17c",
+                          "lineNumber": 10,
+                          "scriptId": "81",
+                          "url": "http://127.0.0.1:38609/"
+                        }
+                      ],
+                      "description": "childList"
+                    }
+                  },
+                  "type": "script"
+                }
+              },
+              "at": 1794040259338
+            }
+          ]
+        },
+        {
+          "kind": "postMessage",
+          "correct": true,
+          "unknown": false,
+          "pageOwned": false,
+          "events": [
+            {
+              "method": "check.initiator",
+              "params": {
+                "source": {
+                  "tabId": 924225646
+                },
+                "url": "http://127.0.0.1:38609/receive?case=cause-postMessage",
+                "method": "POST",
+                "initiator": {
+                  "stack": {
+                    "callFrames": [
+                      {
+                        "columnNumber": 117,
+                        "functionName": "run",
+                        "lineNumber": 10,
+                        "scriptId": "89",
+                        "url": "http://127.0.0.1:38609/"
+                      },
+                      {
+                        "columnNumber": 565,
+                        "functionName": "h",
+                        "lineNumber": 10,
+                        "scriptId": "89",
+                        "url": "http://127.0.0.1:38609/"
+                      }
+                    ],
+                    "parent": {
+                      "callFrames": [
+                        {
+                          "columnNumber": 574,
+                          "functionName": "action17c",
+                          "lineNumber": 10,
+                          "scriptId": "89",
+                          "url": "http://127.0.0.1:38609/"
+                        }
+                      ],
+                      "description": "postMessage"
+                    }
+                  },
+                  "type": "script"
+                }
+              },
+              "at": 1794040261032
+            }
+          ]
+        },
+        {
+          "kind": "worker",
+          "correct": false,
+          "unknown": true,
+          "pageOwned": false,
+          "events": [
+            {
+              "method": "check.initiator",
+              "params": {
+                "source": {
+                  "sessionId": "516F51EEB4C564163234F31D7D2BFAB3",
+                  "tabId": 924225646
+                },
+                "url": "http://127.0.0.1:38609/receive?case=cause-worker",
+                "method": "POST",
+                "initiator": {
+                  "stack": {
+                    "callFrames": [
+                      {
+                        "columnNumber": 401,
+                        "functionName": "",
+                        "lineNumber": 15,
+                        "scriptId": "3",
+                        "url": ""
+                      },
+                      {
+                        "columnNumber": 166,
+                        "functionName": "decide",
+                        "lineNumber": 33,
+                        "scriptId": "3",
+                        "url": ""
+                      },
+                      {
+                        "columnNumber": 21,
+                        "functionName": "",
+                        "lineNumber": 0,
+                        "scriptId": "5",
+                        "url": ""
+                      }
+                    ]
+                  },
+                  "type": "script"
+                }
+              },
+              "at": 1794040263557
+            }
+          ],
+          "wrapperStack": "Error\n    at hold (<anonymous>:13:52)\n    at <anonymous>:16:302\n    at onmessage (http://127.0.0.1:38609/worker.js?case=cause-worker-first:1:116)"
+        }
+      ]
+    },
+    {
+      "name": "Q2_PREATTACH",
+      "inventory": {
+        "result": {
+          "type": "object",
+          "value": [
+            {
+              "state": 1,
+              "url": "ws://127.0.0.1:38609/socket"
+            }
+          ]
+        }
+      },
+      "oldArrivals": [
+        {
+          "kind": "ws",
+          "case": "preattach-live",
+          "body": "{\"case\":\"preattach-live\",\"text\":\"synthetic old\"}",
+          "at": 1794040264047
+        }
+      ],
+      "reloadHeld": true
+    },
+    {
+      "name": "CONNECTED",
+      "tabId": 924225729,
+      "group": 1592115234,
+      "version": "0.3.0"
+    },
+    {
+      "name": "Q3_RESTART",
+      "guards": [
+        "http://127.0.0.1:38609"
+      ],
+      "pending": [
+        {
+          "event": "held",
+          "id": "{\"tabId\":924225724,\"frameId\":0,\"documentId\":\"80A915B9C7123AC2A1265DF21C77B1AE\"}:1",
+          "kind": "fetch",
+          "description": {
+            "url": "http://127.0.0.1:38609/receive?case=restored-startup",
+            "method": "POST",
+            "body": "synthetic startup"
+          },
+          "stack": "Error\n    at hold (chrome-extension://kjngegmjdghmonbopoeplmfhlnohfpkm/wrap.js:13:52)\n    at chrome-extension://kjngegmjdghmonbopoeplmfhlnohfpkm/wrap.js:16:302\n    at http://127.0.0.1:38609/startup:12:34",
+          "localId": "1",
+          "source": {
+            "tabId": 924225724,
+            "frameId": 0,
+            "documentId": "80A915B9C7123AC2A1265DF21C77B1AE"
+          },
+          "at": 1794040269119,
+          "owner": false
+        }
+      ],
+      "history": [
+        {
+          "method": "check.pageEvent",
+          "params": {
+            "event": "installed",
+            "failures": [],
+            "source": {
+              "tabId": 924225729,
+              "frameId": 0,
+              "documentId": "A61A40743590C0B2AA7264AA9AF4B849"
+            }
+          },
+          "at": 1794040269119
+        },
+        {
+          "method": "check.pageEvent",
+          "params": {
+            "event": "installed",
+            "failures": [],
+            "source": {
+              "tabId": 924225724,
+              "frameId": 0,
+              "documentId": "80A915B9C7123AC2A1265DF21C77B1AE"
+            }
+          },
+          "at": 1794040269119
+        },
+        {
+          "method": "check.pageHeld",
+          "params": {
+            "event": "held",
+            "id": "{\"tabId\":924225724,\"frameId\":0,\"documentId\":\"80A915B9C7123AC2A1265DF21C77B1AE\"}:1",
+            "kind": "fetch",
+            "description": {
+              "url": "http://127.0.0.1:38609/receive?case=restored-startup",
+              "method": "POST",
+              "body": "synthetic startup"
+            },
+            "stack": "Error\n    at hold (chrome-extension://kjngegmjdghmonbopoeplmfhlnohfpkm/wrap.js:13:52)\n    at chrome-extension://kjngegmjdghmonbopoeplmfhlnohfpkm/wrap.js:16:302\n    at http://127.0.0.1:38609/startup:12:34",
+            "localId": "1",
+            "source": {
+              "tabId": 924225724,
+              "frameId": 0,
+              "documentId": "80A915B9C7123AC2A1265DF21C77B1AE"
+            },
+            "at": 1794040269119,
+            "owner": false
+          },
+          "at": 1794040269119
+        },
+        {
+          "method": "check.startup",
+          "params": {
+            "guards": [
+              "http://127.0.0.1:38609"
+            ]
+          },
+          "at": 1794040269122
+        },
+        {
+          "method": "check.gateReady",
+          "params": {
+            "source": {
+              "tabId": 924225729
+            },
+            "url": "http://127.0.0.1:38609/"
+          },
+          "at": 1794040269159
+        },
+        {
+          "method": "check.gateReady",
+          "params": {
+            "source": {
+              "tabId": 924225724
+            },
+            "url": "http://127.0.0.1:38609/startup"
+          },
+          "at": 1794040269178
+        },
+        {
+          "method": "check.pageEvent",
+          "params": {
+            "event": "installed",
+            "failures": [],
+            "source": {
+              "tabId": 924225726,
+              "frameId": 0,
+              "documentId": "EB36D98FB9297E774F0223D7D51E66DF"
+            }
+          },
+          "at": 1794040272010
+        },
+        {
+          "method": "check.gateReady",
+          "params": {
+            "source": {
+              "tabId": 924225726
+            },
+            "url": "http://127.0.0.1:38609/owner"
+          },
+          "at": 1794040272018
+        },
+        {
+          "method": "check.pageEvent",
+          "params": {
+            "event": "installed",
+            "failures": [],
+            "source": {
+              "tabId": 924225738,
+              "frameId": 12,
+              "documentId": "52DBA2524AE0534CAB0A17DC950957CA"
+            }
+          },
+          "at": 1794040273109
+        },
+        {
+          "method": "check.forgeryRefused",
+          "params": {
+            "sender": {
+              "id": "kjngegmjdghmonbopoeplmfhlnohfpkm",
+              "url": "chrome-extension://kjngegmjdghmonbopoeplmfhlnohfpkm/details.html?id=%7B%22tabId%22%3A924225650%2C%22frameId%22%3A0%2C%22documentId%22%3A%22A4818DE1CD9BAEE11D745FC0B7195FB2%22%7D%3A1",
+              "frameId": 13
+            }
+          },
+          "at": 1794040273990
+        }
+      ],
+      "targets": [
+        {
+          "attached": false,
+          "id": "0FE2B93FB006D6FDC988EF74DCAF8E1C",
+          "title": "Service Worker chrome-extension://kjngegmjdghmonbopoeplmfhlnohfpkm/background.js",
+          "type": "worker",
+          "url": "chrome-extension://kjngegmjdghmonbopoeplmfhlnohfpkm/background.js"
+        },
+        {
+          "attached": false,
+          "id": "88EDC3B172843E2A7797492B0B4190F0",
+          "title": "Service Worker chrome-extension://ghbmnnjooekpmoecnnnilnnbdlolhkhi/service_worker_bin_prod.js",
+          "type": "worker",
+          "url": "chrome-extension://ghbmnnjooekpmoecnnnilnnbdlolhkhi/service_worker_bin_prod.js"
+        },
+        {
+          "attached": false,
+          "id": "538CE0A8A1ABE57792412E62890EA034",
+          "title": "Omnibox Popup",
+          "type": "other",
+          "url": "chrome://omnibox-popup.top-chrome/omnibox_popup_aim.html"
+        },
+        {
+          "attached": true,
+          "id": "DBDF0D4C03E6FA024700CA20112E8648",
+          "tabId": 924225726,
+          "title": "17c synthetic fixture",
+          "type": "page",
+          "url": "http://127.0.0.1:38609/owner"
+        },
+        {
+          "attached": true,
+          "id": "BB976961726CFB2975D43411EFFB308D",
+          "tabId": 924225724,
+          "title": "17c synthetic fixture",
+          "type": "page",
+          "url": "http://127.0.0.1:38609/startup"
+        },
+        {
+          "attached": false,
+          "id": "1F6569A05C2CC1BFD51FFBB107EF45FB",
+          "title": "Omnibox Popup",
+          "type": "other",
+          "url": "chrome://omnibox-popup.top-chrome/"
+        },
+        {
+          "attached": true,
+          "id": "368F4CE335AE48C89AF654D2CC79E12F",
+          "tabId": 924225729,
+          "title": "17c synthetic fixture",
+          "type": "page",
+          "url": "http://127.0.0.1:38609/"
+        },
+        {
+          "attached": false,
+          "id": "7CCC991AD1E0890225278EDF3644D770",
+          "tabId": 924225725,
+          "title": "Choose fixture tab",
+          "type": "page",
+          "url": "chrome-extension://kjngegmjdghmonbopoeplmfhlnohfpkm/select.html?url=http%3A%2F%2F127.0.0.1%3A38609%2F"
+        },
+        {
+          "attached": false,
+          "id": "DB5DC8C5A044B3420E90538DBFA82F0B",
+          "tabId": 924225727,
+          "title": "Untrusted extension page",
+          "type": "page",
+          "url": "chrome-extension://kjngegmjdghmonbopoeplmfhlnohfpkm/other.html?id=%7B%22tabId%22%3A924225650%2C%22frameId%22%3A0%2C%22documentId%22%3A%22A4818DE1CD9BAEE11D745FC0B7195FB2%22%7D%3A1&embed=1"
+        },
+        {
+          "attached": false,
+          "id": "59E874C55E4E53A513C3058CA1DE018D",
+          "tabId": 924225738,
+          "title": "Choose fixture tab",
+          "type": "page",
+          "url": "chrome-extension://kjngegmjdghmonbopoeplmfhlnohfpkm/select.html?url=http%3A%2F%2F127.0.0.1%3A38609%2F"
+        },
+        {
+          "attached": false,
+          "id": "0E5034BA81653CA09AE5F674118C9A2C",
+          "tabId": 924225728,
+          "title": "Owner send decision",
+          "type": "page",
+          "url": "chrome-extension://kjngegmjdghmonbopoeplmfhlnohfpkm/details.html?id=%7B%22tabId%22%3A924225650%2C%22frameId%22%3A0%2C%22documentId%22%3A%22A4818DE1CD9BAEE11D745FC0B7195FB2%22%7D%3A1"
+        }
+      ]
+    },
+    {
+      "name": "Q3_RESTART_SW",
+      "startupDelta": 0,
+      "messageArrivals": [],
+      "pending": [
+        {
+          "event": "held",
+          "id": "{\"sessionId\":\"FF7690D500E674E462D7597548804F73\",\"tabId\":924225729}:1",
+          "kind": "fetch",
+          "description": {
+            "url": "http://127.0.0.1:38609/receive?case=worker-service-single",
+            "method": "POST",
+            "body": "synthetic worker first"
+          },
+          "stack": "Error\n    at hold (<anonymous>:13:52)\n    at <anonymous>:16:302\n    at http://127.0.0.1:38609/sw.js?case=worker-service-single:1:1",
+          "localId": "1",
+          "source": {
+            "sessionId": "FF7690D500E674E462D7597548804F73",
+            "tabId": 924225729
+          },
+          "at": 1794040276177,
+          "owner": false
+        },
+        {
+          "event": "held",
+          "id": "{\"sessionId\":\"7B56069BFBE5899F0EFD4F8E707D4883\",\"tabId\":924225724}:1",
+          "kind": "fetch",
+          "description": {
+            "url": "http://127.0.0.1:38609/receive?case=worker-service-single",
+            "method": "POST",
+            "body": "synthetic worker first"
+          },
+          "stack": "Error\n    at hold (<anonymous>:13:52)\n    at <anonymous>:16:302\n    at http://127.0.0.1:38609/sw.js?case=worker-service-single:1:1",
+          "localId": "1",
+          "source": {
+            "sessionId": "7B56069BFBE5899F0EFD4F8E707D4883",
+            "tabId": 924225724
+          },
+          "at": 1794040276178,
+          "owner": false
+        },
+        {
+          "event": "held",
+          "id": "{\"sessionId\":\"90E43463F3A8A848002FB1E8AEE6FA98\",\"tabId\":924225726}:1",
+          "kind": "fetch",
+          "description": {
+            "url": "http://127.0.0.1:38609/receive?case=worker-service-single",
+            "method": "POST",
+            "body": "synthetic worker first"
+          },
+          "stack": "Error\n    at hold (<anonymous>:13:52)\n    at <anonymous>:16:302\n    at http://127.0.0.1:38609/sw.js?case=worker-service-single:1:1",
+          "localId": "1",
+          "source": {
+            "sessionId": "90E43463F3A8A848002FB1E8AEE6FA98",
+            "tabId": 924225726
+          },
+          "at": 1794040276178,
+          "owner": false
+        },
+        {
+          "event": "held",
+          "id": "{\"sessionId\":\"FF7690D500E674E462D7597548804F73\",\"tabId\":924225729}:2",
+          "kind": "fetch",
+          "description": {
+            "url": "http://127.0.0.1:38609/receive?case=restart-sw-message",
+            "method": "POST",
+            "body": "synthetic restarted worker"
+          },
+          "stack": "Error\n    at hold (<anonymous>:13:52)\n    at <anonymous>:16:302\n    at http://127.0.0.1:38609/sw.js?case=worker-service-single:1:282",
+          "localId": "2",
+          "source": {
+            "sessionId": "FF7690D500E674E462D7597548804F73",
+            "tabId": 924225729
+          },
+          "at": 1794040276178,
+          "owner": false
+        },
+        {
+          "event": "held",
+          "id": "{\"sessionId\":\"7B56069BFBE5899F0EFD4F8E707D4883\",\"tabId\":924225724}:2",
+          "kind": "fetch",
+          "description": {
+            "url": "http://127.0.0.1:38609/receive?case=restart-sw-message",
+            "method": "POST",
+            "body": "synthetic restarted worker"
+          },
+          "stack": "Error\n    at hold (<anonymous>:13:52)\n    at <anonymous>:16:302\n    at http://127.0.0.1:38609/sw.js?case=worker-service-single:1:282",
+          "localId": "2",
+          "source": {
+            "sessionId": "7B56069BFBE5899F0EFD4F8E707D4883",
+            "tabId": 924225724
+          },
+          "at": 1794040276178,
+          "owner": false
+        },
+        {
+          "event": "held",
+          "id": "{\"sessionId\":\"90E43463F3A8A848002FB1E8AEE6FA98\",\"tabId\":924225726}:2",
+          "kind": "fetch",
+          "description": {
+            "url": "http://127.0.0.1:38609/receive?case=restart-sw-message",
+            "method": "POST",
+            "body": "synthetic restarted worker"
+          },
+          "stack": "Error\n    at hold (<anonymous>:13:52)\n    at <anonymous>:16:302\n    at http://127.0.0.1:38609/sw.js?case=worker-service-single:1:282",
+          "localId": "2",
+          "source": {
+            "sessionId": "90E43463F3A8A848002FB1E8AEE6FA98",
+            "tabId": 924225726
+          },
+          "at": 1794040276178,
+          "owner": false
+        }
+      ]
+    },
+    {
+      "name": "Q3_RETIRE",
+      "guardCount": 0
+    },
+    {
+      "name": "Q3_OWNER_RETIRE",
+      "guardCount": 0
+    },
+    {
+      "name": "FINAL_DELIVERY_AUDIT",
+      "status": "PASS",
+      "cases": 36
+    }
+  ]
+}

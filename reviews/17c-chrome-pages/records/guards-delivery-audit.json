@@ -1,0 +1,182 @@
+[
+  {
+    "id": "graphql-query",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "graphql-persisted",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "graphql-batch",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "graphql-mutation",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "graphql-inline-text",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "graphql-variable-text",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "queue-timer",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "queue-owner",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "notification-true",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "notification-false",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "worker-dedicated",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "worker-shared",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "worker-service",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "dedicated-message-true",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "dedicated-message-false",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "worker-service-single",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "direct-shared-true",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "direct-shared-false",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "direct-service-true",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "direct-service-false",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "shared-owner-queue",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "chat-presence",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "chat-subscription",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "chat-typing",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "chat-message",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "cause-sync",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "cause-timer",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "cause-promise",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "cause-mutation",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "cause-postMessage",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "cause-worker-first",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "cause-worker",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "preattach-live",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "postreload-live",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "restored-startup",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "restart-sw-message",
+    "expected": 0,
+    "actual": 0
+  }
+]

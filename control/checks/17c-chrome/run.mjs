@@ -53,7 +53,7 @@ try{
     await nav();if(kind==='ws')await evaluate(bridge,'connectWS().then(()=>true)');
     if(kind==='rtc'){await evaluate(bridge,'rtc()');await eventually(()=>evaluate(bridge,"channel.readyState==='open'"),'RTC open');}
     if(kind==='writer'){const info=JSON.parse(fs.readFileSync(work+'/webtransport.json'));await evaluate(bridge,`window.transport=new WebTransport(${JSON.stringify(info.url)},{serverCertificateHashes:[{algorithm:'sha-256',value:new Uint8Array(${JSON.stringify(info.hash)})}]});transport.ready.then(()=>{window.writer=transport.datagrams.writable.getWriter();return true})`);}
-    const id='hold-'+kind+'-'+release,p=await hold(id,kind);await count(id,0);const before=await evaluate(bridge,'({states,url:location.href,failures:__hold17.failures})');await screenshot(out,id+'-waiting');await bridge.send('Check.decide',{id:p.id,release});
+    const id='hold-'+kind+'-'+release,p=await hold(id,kind);await count(id,0);const before=await evaluate(bridge,'({states,url:location.href,failures:__hold17.failures})');await bridge.send('Page.bringToFront');await delay(150);await screenshot(out,id+'-waiting');await bridge.send('Check.decide',{id:p.id,release});
     if(kind==='writer'){await count(id,release?1:0);log('Q1_WRITER',{id,release,rows:wtRows()});}
     else await count(id,release?1:0);
     await assert.rejects(()=>bridge.send('Check.decide',{id:p.id,release}),/NOT_PENDING/);log('Q1_HOLD',{id,kind,release,before,after:await evaluate(bridge,'({states:globalThis.states,url:location.href})'),arrivals:arrivals(id)});
