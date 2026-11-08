@@ -537,7 +537,7 @@ class Store:
                 changes[intent_key] = None
             else:
                 changes[intent_key] = self.get(intent_key)
-        if (hasattr(self, 'recovery_cutoff') and not restoring and not recovery and
+        if (hasattr(self, 'startup_intents') and not restoring and not recovery and
                 not self.flushing_notices and not self.archiving and not cancellation):
             from .recovery import recovery_notices
             from itertools import islice

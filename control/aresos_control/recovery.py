@@ -48,8 +48,10 @@ def unfinished(store, cutoff=None):
 
 
 def recovery_notices(store):
-    cutoff = getattr(store, 'recovery_cutoff', 0)
-    for key, notice_id, app, reason in unfinished(store, cutoff):
+    candidates = getattr(store, 'startup_intents', set())
+    for key, notice_id, app, reason in unfinished(store):
+        if (key, notice_id) not in candidates:
+            continue
         row = store.db.execute('SELECT created FROM retained WHERE k=?', (key,)).fetchone()
         created = row[0] if row is not None else 0
         if store.get('notice:' + notice_id) is None:
@@ -63,10 +65,10 @@ def recover_intents(store, persist=True):
     # bounded batch fits. Reads synthesize every remaining notice, so neither a
     # full disk nor 10,000 restored operations need an unbounded RAM queue.
     from itertools import islice
-    # A repaired wall clock or missing optional metadata must not hide an old
-    # durable intent. The horizon includes every timestamp already on disk.
-    latest = store.db.execute('SELECT COALESCE(MAX(created),0) FROM retained').fetchone()[0]
-    store.recovery_cutoff = max(time.time(), latest)
+    # Capture identities in their actual unfinished state, before and after
+    # prepared replay. A reservation that starts later was never interrupted.
+    store.startup_intents = getattr(store, 'startup_intents', set()) | {
+        (key, notice_id) for key, notice_id, _, _ in unfinished(store)}
     for notice in islice(recovery_notices(store), 3):
         store.defer_notice(notice['id'], {'notice:' + notice['id']: notice},
                            'control_intent_recovery', 'Unfinished durable intent needs owner inspection')
