@@ -15,6 +15,7 @@ import unittest
 from aresos_control.common import FILE_LIMIT, WIRE_LIMIT, canonical, sha256
 from aresos_control.protocol import Client, receive, send
 from support import ROOT, WORK, message
+from response_checks import validate_response
 from boundary_test_support import install_boundary
 
 OWNER, SERVICE, OTHER = 23101, 23102, 23103
@@ -83,7 +84,8 @@ class Integration(unittest.TestCase):
     def request(self, uid, kind, request):
         # An independent client process provides genuine kernel peer credentials.
         code = "import json,socket,sys; s=socket.socket(socket.AF_UNIX); s.connect(sys.argv[1]); s.sendall((sys.argv[2]+'\\n').encode()); f=s.makefile(); print(f.readline())"
-        return self.run_user(uid, code, str(self.root / ("sockets/" + kind + ".sock")), json.dumps({"v": 1, **request}))
+        result = self.run_user(uid, code, str(self.root / ("sockets/" + kind + ".sock")), json.dumps({"v": 1, **request}))
+        return validate_response(request, result)
 
     def call(self, uid, action, args, kind="act"):
         return self.request(uid, kind, {"method": "call", "action": action, "arguments": args})
