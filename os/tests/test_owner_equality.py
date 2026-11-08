@@ -16,10 +16,10 @@ OWNER_PAGES = ('INSTALL.md', 'INSTALL-PROCEDURES.md', 'INSTALL-REFERENCE.md',
 
 def fingerprint_documents():
     documents={name:(ROOT/'docs'/name).read_text() for name in OWNER_PAGES}
-    # Reports explicitly retain historical receipts below their current delta.
-    # Check the live sections without rewriting those superseded fingerprints.
-    for package,boundary in (('14-owner-tools','## 14zze '),('15-owner-path','## 15c ')):
-        documents[package+' current report']=(ROOT/'reviews'/package/'REPORT.md').read_text().split(boundary,1)[0]
+    # Reports retain historical receipts. Package 15f replaced the tools
+    # fingerprint that packages 14 and 15 reported, so their reports are now
+    # history (not rewritten) and only the 15f report is checked as current.
+    documents['15f current report']=(ROOT/'reviews/15f-lenovo-firmware-entry/REPORT.md').read_text()
     return documents
 
 
