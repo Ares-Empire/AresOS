@@ -149,6 +149,26 @@ class LateDuplicates21(unittest.TestCase):
     send = round19.Recovery19.send
     snapshot = round19.Recovery19.snapshot
     pending_append = round20.Append20.pending_append
+    restart = round19.Recovery19.restart
+
+    def test_review21_prepared_repair_settlement_replays_from_its_original_hold(self):
+        old, args, repair, raw, ended = self.pending_append()
+        self.imap.boxes['Sent'][1] = raw
+        from aresos_control.space import SAFETY_FLOOR
+        held = self.engine.store.ledger.held
+        class Crash(BaseException):
+            pass
+        def checkpoint(name):
+            if name == 'sqlite_prepared':
+                raise Crash()
+        self.engine.store.checkpoint = checkpoint
+        with patch('aresos_control.space.shutil.disk_usage', return_value=SimpleNamespace(free=SAFETY_FLOOR + held)):
+            with self.assertRaises(Crash):
+                self.engine.repair('mail', args)
+            self.restart()
+            self.assertEqual(self.data('operation_status', {'operation_id': repair['id']})['operation']['state'], 'done')
+            self.assertEqual(self.engine.operation(old['id'])['stages']['sent_copy'], 'done')
+        self.assertNotIn('settle:' + repair['id'], self.engine.store.ledger.holds)
 
     def test_review21_duplicate_landing_after_successful_retry_warns_on_next_status_and_completed_repair(self):
         old, args, repair, raw, ended = self.pending_append()
