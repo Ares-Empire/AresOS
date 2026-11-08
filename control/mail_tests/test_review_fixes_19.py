@@ -22,11 +22,20 @@ class Recovery19(unittest.TestCase):
 
     def uncertain(self, stage='sent_copy'):
         old = self.send(stage)
+        if stage == 'answered_flag':
+            self.reply_reference(old['id'])
         args = {'operation_id': old['id'], 'stage': stage}
         with patch.object(self.mail, 'local_stage', side_effect=OSError('Disconnected after local action')):
             repair = self.data('operation_repair', args)['operation']
         self.assertEqual(repair['state'], 'unknown')
         return old, args, repair
+
+    def reply_reference(self, operation_id):
+        op = self.engine.operation(operation_id)
+        op['payload']['composition']['mail']['answered_reference'] = {
+            'account': 'box', 'folder': 'Source', 'uidvalidity': self.imap.validities['Source'],
+            'uid': 1, 'message_id': self.imap.mid}
+        self.engine.store.write({'op:' + op['id']: op}, 'fixture', 'Synthetic reply reference')
 
     def test_review19_38_uncertain_repairs_with_archives_keep_one_and_cancel_works(self):
         old = self.send('sent_copy')
@@ -87,7 +96,8 @@ class Recovery19(unittest.TestCase):
                 op['state'] = state
                 self.engine.store.write({'op:' + op['id']: op}, 'fixture', 'Synthetic interrupted repair')
                 before = self.snapshot()
-                with patch.object(self.mail, 'repair_evidence', side_effect=OSError('Disconnected')), \
+                with patch.object(self.mail, 'sent_matches', side_effect=OSError('Disconnected')), \
+                     patch.object(self.mail, 'message', side_effect=OSError('Disconnected')), \
                      patch.object(self.mail, 'local_stage', side_effect=AssertionError('Must not retry')):
                     for _ in range(5):
                         result = self.data('operation_repair', args)['operation']
@@ -104,12 +114,14 @@ class Recovery19(unittest.TestCase):
         with patch.object(self.mail, 'send_smtp', side_effect=accepted), \
              patch.object(self.mail, 'local_stage', side_effect=OSError('Both local stages disconnected')):
             old = self.data('send', approval)['operation']
+            self.reply_reference(old['id'])
             repairs = {}
             for stage in ('sent_copy', 'answered_flag'):
                 args = {'operation_id': old['id'], 'stage': stage}
                 repairs[stage] = self.data('operation_repair', args)
             before = self.snapshot()
-            with patch.object(self.mail, 'repair_evidence', side_effect=OSError('Still disconnected')):
+            with patch.object(self.mail, 'sent_matches', side_effect=OSError('Still disconnected')), \
+                 patch.object(self.mail, 'message', side_effect=OSError('Still disconnected')):
                 for _ in range(10):
                     for stage in repairs:
                         self.assertEqual(self.data('operation_repair', {'operation_id': old['id'], 'stage': stage}), repairs[stage])
@@ -147,12 +159,13 @@ class Recovery19(unittest.TestCase):
 
     def test_review19_cancel_works_above_history_cap_and_other_paths_leave_its_physical_room(self):
         pending = self.approval('send', self.compose())
+        cancel_room = 4 * 1024 * 1024
         with patch.object(retention, 'HISTORY_BYTES', 0), \
              patch('aresos_control.retention.shutil.disk_usage',
-                   return_value=SimpleNamespace(free=retention.RESTORE_RESERVE + retention.CANCEL_RESERVE)):
+                   return_value=SimpleNamespace(free=retention.RESTORE_RESERVE + cancel_room)):
             self.assertEqual(self.data('operation_cancel', {'operation_id': pending['operation_id']})['operation']['state'], 'failed')
         with patch('aresos_control.retention.shutil.disk_usage',
-                   return_value=SimpleNamespace(free=retention.CANCEL_RESERVE)):
+                   return_value=SimpleNamespace(free=cancel_room)):
             for options in ({}, {'recovery': True}, {'owner_recovery': True}):
                 with self.assertRaises(Refused):
                     retention.disk_space(self.root, 1, **options)
