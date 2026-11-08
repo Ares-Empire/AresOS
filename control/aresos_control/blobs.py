@@ -4,7 +4,9 @@ import os
 from pathlib import Path
 import re
 import tempfile
+from contextlib import contextmanager
 
+from . import retention
 from .common import FILE_LIMIT, Refused, sha256
 from .storage import sync_directory
 
@@ -12,6 +14,7 @@ from .storage import sync_directory
 class Blobs:
     def __init__(self, directory, limit=FILE_LIMIT, ensure_writable=lambda: None):
         self.ensure_writable = ensure_writable
+        self._staged = None
         self.directory, self.limit = Path(directory), limit
         if type(limit) is not int or limit < 1:
             raise ValueError("File limit must be a positive byte count")
@@ -20,7 +23,40 @@ class Blobs:
         for temporary in self.directory.glob(".upload-*"):
             temporary.unlink()
 
+    @contextmanager
+    def staging(self):
+        if self._staged is not None:
+            raise ValueError('Nested blob staging is unsupported')
+        self._staged = {}
+        try:
+            yield
+        finally:
+            self._staged = None
+
+    def commit_staged(self):
+        staged = self._staged
+        rows = [p for p in self.directory.iterdir() if re.fullmatch(r'[0-9a-f]{64}', p.name)]
+        added = {k: v for k, v in staged.items() if not (self.directory / k).exists()}
+        if (len(rows) + len(added) > retention.BLOB_COUNT or
+                sum(p.stat().st_size for p in rows) + sum(len(v[0]) for v in added.values()) > retention.BLOB_BYTES):
+            retention.refuse('Private blobs in ' + self.directory.name, retention.BLOB_COUNT, retention.BLOB_BYTES)
+        retention.disk_space(self.directory, sum(len(v[0]) for v in added.values()) + 8192 * len(added))
+        self._staged = None
+        try:
+            for data, origins in staged.values():
+                for origin in origins:
+                    self.put(data, origin)
+        finally:
+            self._staged = staged
+
     def put(self, data, origin="internal"):
+        self.ensure_writable()
+        if self._staged is not None:
+            if len(data) > self.limit:
+                raise Refused('file_refused', 'File exceeds the configured per-file limit.')
+            key = sha256(data)
+            self._staged.setdefault(key, (data, set()))[1].add(origin)
+            return key
         return self.put_stream([data], len(data), sha256(data), origin)
 
     def put_stream(self, chunks, size, key, origin="internal"):
@@ -31,6 +67,8 @@ class Blobs:
             raise Refused("file_refused", "File exceeds the configured per-file limit; choose a smaller file.")
         if not isinstance(key, str) or not re.fullmatch(r"[0-9a-f]{64}", key):
             raise Refused("invalid_input", "Not a sha256 blob reference; import the file again.")
+        self.admit(size, key)
+        retention.disk_space(self.directory, size + 8192)
         fd, temporary = tempfile.mkstemp(prefix=".upload-", dir=self.directory)
         try:
             count, hashed = 0, hashlib.sha256()
@@ -69,11 +107,31 @@ class Blobs:
             os.unlink(temporary)
         return key
 
+    def admit(self, size, key):
+        self.ensure_writable()
+        rows = [p for p in self.directory.iterdir() if re.fullmatch(r'[0-9a-f]{64}', p.name)]
+        if (self.directory / key).exists():
+            return
+        if len(rows) + 1 > retention.BLOB_COUNT or sum(p.stat().st_size for p in rows) + size > retention.BLOB_BYTES:
+            retention.refuse('Private blobs in ' + self.directory.name, retention.BLOB_COUNT, retention.BLOB_BYTES)
+
+    def expire(self, pinned, now, ttl):
+        self.ensure_writable()
+        changed = False
+        for path in self.directory.iterdir():
+            if re.fullmatch(r'[0-9a-f]{64}', path.name) and path.name not in pinned and now - path.stat().st_mtime >= ttl:
+                path.unlink()
+                (self.directory / ('.origins-' + path.name)).unlink(missing_ok=True)
+                changed = True
+        if changed:
+            sync_directory(self.directory)
+
     def origins(self, key):
+        staged = self._staged.get(key) if self._staged is not None else None
         try:
-            return set(json.loads((self.directory / (".origins-" + key)).read_text()))
+            return set(json.loads((self.directory / (".origins-" + key)).read_text())) | (staged[1] if staged else set())
         except (FileNotFoundError, ValueError, TypeError):
-            return set()
+            return staged[1] if staged else set()
 
     def require_origin(self, key, origin):
         data = self.read(key)
@@ -84,6 +142,8 @@ class Blobs:
     def read(self, key):
         if not isinstance(key, str) or not re.fullmatch(r"[0-9a-f]{64}", key):
             raise Refused("invalid_input", "Not a sha256 blob reference; import the file again.")
+        if self._staged is not None and key in self._staged:
+            return self._staged[key][0]
         try:
             fd = os.open(self.directory / key, os.O_RDONLY | os.O_NOFOLLOW)
             with os.fdopen(fd, "rb") as stream:

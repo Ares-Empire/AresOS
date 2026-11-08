@@ -13,9 +13,10 @@ import time
 import uuid
 from urllib.parse import parse_qs, unquote, urlsplit
 
+from .. import retention
 from ..adapters import NothingLeft, Uncertain
 from ..blobs import Blobs
-from ..common import Refused, canonical, digest, sha256, visible
+from ..common import RESULT_LIMIT, Refused, canonical, digest, sha256, visible
 from . import codec
 from .questions import people, question
 from .roles import resolve, SETUP, REQUIRED, OPTIONAL, optional_roles, recorded_optional, optional_status, check_optional, root
@@ -102,9 +103,10 @@ class Mail:
                     else:
                         raw, flags = fetch(client, uid, self.wires.limit)
                         size = len(raw)
-                    msg = codec.parse(raw)
                     ref = {"account": account_id, "folder": folder, "uidvalidity": validity, "uid": uid,
-                           "message_id": str(msg.get("Message-ID", ""))}
+                           "message_id": ""}
+                    msg = codec.parse(raw, ref)
+                    ref["message_id"] = str(msg.get("Message-ID", ""))
                     message_states.append([ref, sha256(raw), flags, size])
                     message = {"reference": ref, "raw": raw, "msg": msg, "flags": flags, "size": size}
                     projected = project(message) if project else message
@@ -122,7 +124,7 @@ class Mail:
             if validity != reference["uidvalidity"]:
                 raise Refused("stale_reference", "Folder UIDVALIDITY changed: stale, search again.")
             raw, flags = fetch(conn, reference["uid"], self.wires.limit)
-            msg = codec.parse(raw)
+            msg = codec.parse(raw, reference)
             if str(msg.get("Message-ID", "")) != reference["message_id"]:
                 raise Refused("stale_reference", "Message identity changed: stale, search again.")
             return {"reference": reference, "raw": raw, "msg": msg, "flags": flags}
@@ -323,6 +325,22 @@ class Mail:
         return comp
 
     def compose(self, args):
+        # No audit row, generated part or composition is persisted on refusal.
+        # Staging also covers derived draft/forward bodies and attachments.
+        with self.blobs.staging():
+            comp, result = self._compose(args)
+            if hasattr(self, 'check_result'):
+                self.check_result(result)
+            elif len(canonical(result).encode()) > RESULT_LIMIT // 2:
+                raise Refused('result_too_large', 'Composition exceeds the complete-result limit; use a shorter composition.')
+            changes = {'mail:composition:' + comp['id']: comp}
+            self.store.admit_changes(changes)
+            self.store.admit_history()
+            self.blobs.commit_staged()
+            self.store.write(changes, 'mail_compose', 'stored immutable composition ' + comp['id'])
+            return result
+
+    def _compose(self, args):
         account = self.account(args["account"])
         self.fresh_roles(account, names=[args['reference']['folder']] if 'reference' in args else [])
         mode = args.get("mode", "new")
@@ -449,10 +467,9 @@ class Mail:
         # Validate formatting before storing; MIME size also bounds total attachment work.
         if mail["format"] == "formatted":
             codec.formatted(mail["text"])
-        comp = {"id": uuid.uuid4().hex, "hash": digest(mail), "mail": mail}
+        comp = {"id": uuid.uuid4().hex, "hash": digest(mail), "mail": mail, "created_at": time.time()}
         self.check_mime(comp, self.mime(comp, self.message_id("0" * 32 + ":" + "0" * 32)))
-        self.store.write({"mail:composition:" + comp["id"]: comp}, "mail_compose", "stored immutable composition " + comp["id"])
-        return {"composition_id": comp["id"], "composition_hash": comp["hash"], "mail": visible(mail), "untrusted_content": {"derived_mail_fields": True}}
+        return comp, {"composition_id": comp["id"], "composition_hash": comp["hash"], "mail": visible(mail), "untrusted_content": {"derived_mail_fields": True}}
 
     def mime(self, comp, message_id, draft=False):
         mail = comp["mail"]
@@ -668,7 +685,7 @@ class Mail:
             result = []
             for uid in (ids or b"").split():
                 raw, flags, _ = fetch_headers(client, int(uid))
-                if str(codec.parse(raw).get("Message-ID", "")) == message_id:
+                if str(codec.parse(raw, {"account": account["id"], "folder": folder, "uid": int(uid)}).get("Message-ID", "")) == message_id:
                     result.append({"account": account["id"], "folder": folder, "uidvalidity": validity, "uid": int(uid), "message_id": message_id})
             return result
 
@@ -767,7 +784,7 @@ class Mail:
             if not match:
                 raise Uncertain("APPEND answer lacks UIDPLUS reference; search folder before retrying.")
             return {"account": account["id"], "folder": folder, "uidvalidity": int(match[1]), "uid": int(match[2]),
-                    "message_id": str(codec.parse(raw).get("Message-ID", ""))}
+                    "message_id": str(codec.parse(raw, {"account": account["id"], "folder": folder, "uid": int(match[2])}).get("Message-ID", ""))}
 
     def local_stage(self, operation, which):
         comp = operation["payload"]["composition"]
@@ -919,6 +936,18 @@ class Mail:
         pass
 
     def call(self, verb, args):
+        if verb == 'compose':
+            return self.compose(args)
+        if verb in {'move', 'copy', 'folder_rename'}:
+            # Reserve a possible unresolved warning before touching the server.
+            retention.admit(self.store, ('mail:filing:', 'mail:rename:'),
+                            retention.FILING_COUNT, retention.FILING_BYTES, label='Filing intents',
+                            extra_count=1, extra_bytes=retention.FILING_RESERVE)
+            retention.admit(self.store, ('mail:filing-locations:',),
+                            retention.FILING_COUNT * 20000, retention.FILING_BYTES, label='Filing location pages',
+                            extra_bytes=retention.FILING_RESERVE)
+            retention.admit(self.store, ('notice:',), retention.NOTICE_COUNT, retention.NOTICE_BYTES,
+                            label='Retained notices', extra_count=1, extra_bytes=retention.NOTICE_RESERVE)
         if verb == "account_add":
             raise Refused("terminal_required", "Owner must run sudo aresos admin mail account add; password is read only from terminal over admin.sock.")
         read = verb in {"accounts", "folders", "search", "read", "thread", "contacts", "filing_locations", "filing_notices"}

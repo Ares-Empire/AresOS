@@ -3,6 +3,7 @@ import imaplib
 import time
 import uuid
 
+from . import retention
 from .adapters import NothingLeft, Uncertain
 from .blobs import Blobs
 from .boundary import Boundary
@@ -21,7 +22,13 @@ class Engine:
         self.blobs = Blobs(self.store.state_dir / "blobs", file_limit, self.store.ensure_writable)
         self.receiver = Receiver(self.store.evidence_dir, checkpoint)
         self.adapters = {"testapp": TestApp(self.store, self.blobs, self.receiver), "mail": Mail(self.store, self.blobs)}
+        self.adapters['mail'].check_result = self.check_composition_result
         self.ttl = ttl
+
+    def check_composition_result(self, data):
+        result = {'ok': True, 'data': data, 'pending': self.pending('mail')}
+        if len(canonical(result).encode()) > RESULT_LIMIT:
+            raise Refused('result_too_large', 'Composition exceeds 49152 bytes including pending notices; use a shorter composition.')
 
     def close(self):
         self.receiver.db.close()
@@ -75,6 +82,7 @@ class Engine:
                 op.update(state="failed", reason="expired: nothing submitted", notice=True)
                 self.store.write({key: op}, op["action"], "approval expired without submission", op["id"])
                 self.adapters[op["app"]].drop(op)
+        retention.expire(self)
 
     def reserve(self, app, verb, arguments):
         self.boundary.require()
@@ -313,6 +321,22 @@ class Engine:
                 offset += len(chunk)
 
     def request(self, request, admin=False):
+        try:
+            envelope(request)
+            action = BY_NAME.get(request.get('action'))
+            mutating = (request['method'] in {'upload', 'download', 'saved', 'mail_account_add'}
+                        or (action and action.effect != 'read'))
+            if mutating:
+                self.store.ensure_writable()
+                retention.expire(self)
+                self.store.admit_history(retention.REQUEST_RESERVE)
+            return self._request(request, admin)
+        except Refused as exc:
+            return {'ok': False, 'error': {'code': exc.code, 'message': str(exc)}, 'pending': self.pending()}
+        except Exception:
+            return {'ok': False, 'error': {'code': 'internal_error', 'message': 'Request failed unexpectedly; inspect operation status before repeating changes.'}, 'pending': self.pending()}
+
+    def _request(self, request, admin=False):
         app = None
         try:
             envelope(request)
@@ -353,6 +377,8 @@ class Engine:
                         raise Refused("file_refused", "File exceeds the service's configured per-file limit.")
                     if "bytes" in request:
                         raise Refused("invalid_input", "Use an offset-checked chunk stream for uploads.")
+                    self.blobs.admit(blob['size'], blob['sha256'])
+                    self.store.admit_changes({'blob:' + digest(blob): blob})
                     data = {"ready": True}
                 elif method == "download":
                     key = request["sha256"]
@@ -378,3 +404,5 @@ class Engine:
             if app == "mail":
                 message = self.adapters["mail"].transport.scrub(message)
             return {"ok": False, "error": {"code": getattr(exc, "code", "invalid_input"), "message": message}, "pending": self.pending(app)}
+        except Exception:
+            return {"ok": False, "error": {"code": "internal_error", "message": "Request failed unexpectedly; inspect operation status before repeating changes."}, "pending": self.pending(app)}

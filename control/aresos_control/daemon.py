@@ -39,7 +39,11 @@ class Daemon:
 
     def serve(self):
         while not self.stopping:
-            self.engine.expire()
+            try:
+                self.engine.expire()
+            except Exception:
+                # A failed journal stays latched; maintenance cannot take down reads.
+                pass
             for key, _ in self.selector.select(timeout=0.1):
                 connection, _ = key.fileobj.accept()
                 with connection:
@@ -54,11 +58,11 @@ class Daemon:
                             self.engine.transfer(connection, request)
                             continue
                         result = self.engine.request(request, admin=kind == "admin")
-                    except (Refused, OSError, ValueError, KeyError, TypeError) as exc:
-                        result = {"ok": False, "error": {"code": getattr(exc, "code", "transport_error"), "message": str(exc)}, "pending": {"items": [], "total": 0, "cursor": None}}
+                    except Exception as exc:
+                        result = {"ok": False, "error": {"code": getattr(exc, "code", "internal_error"), "message": str(exc) if isinstance(exc, Refused) else "Request failed unexpectedly; inspect operation status before repeating changes."}, "pending": {"items": [], "total": 0, "cursor": None}}
                     try:
                         send(connection, result, result=True)
-                    except (OSError, Refused):
+                    except Exception:
                         pass
 
     def close(self):

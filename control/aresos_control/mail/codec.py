@@ -3,7 +3,8 @@ import binascii
 from datetime import timezone
 from email import policy
 from email.message import EmailMessage
-from email.parser import BytesParser, BytesHeaderParser
+from email.parser import BytesHeaderParser
+from email.feedparser import BytesFeedParser
 from email.utils import getaddresses, parsedate_to_datetime
 from html import escape
 from html.parser import HTMLParser
@@ -11,14 +12,41 @@ import re
 import quopri
 from urllib.parse import urlsplit
 
-from ..common import Refused, sha256
+from ..common import canonical, Refused, sha256
 
 SMTP_POLICY = policy.SMTP.clone(cte_type="7bit", max_line_length=78)
 AUTHORED_HEADER = "X-AresOS-Authored"
 
 
-def parse(raw):
-    return BytesParser(policy=policy.default).parsebytes(raw)
+MIME_DEPTH_LIMIT = 40
+MIME_PART_LIMIT = 1000
+
+
+class BoundedParser(BytesFeedParser):
+    def __init__(self):
+        super().__init__(policy=policy.default)
+        self.part_count = 0
+
+    def _new_message(self):
+        # Enforce bounds before allocating/attaching a node or recursing into it.
+        # This hook also covers implicit children of multipart/digest and message/*.
+        self.part_count += 1
+        if len(self._msgstack) > MIME_DEPTH_LIMIT or self.part_count > MIME_PART_LIMIT:
+            raise Refused('mime_limit', f'MIME exceeds depth {MIME_DEPTH_LIMIT} or part count {MIME_PART_LIMIT}.')
+        super()._new_message()
+
+
+def parse(raw, reference=None):
+    try:
+        if len(raw) > 64 * 1024 * 1024:
+            raise Refused('mime_limit', 'Mail exceeds 64 MiB parse limit.')
+        parser = BoundedParser()
+        for offset in range(0, len(raw), 65536):
+            parser.feed(raw[offset:offset + 65536])
+        return parser.close()
+    except (Refused, RecursionError, MemoryError) as exc:
+        name = canonical(reference) if reference else 'unidentified message'
+        raise Refused('mime_limit', f'Message {name} cannot be parsed within MIME bounds; read another message or use your mail program. {exc}') from exc
 
 
 def mail_content(raw):

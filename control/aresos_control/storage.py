@@ -8,6 +8,7 @@ import sqlite3
 import time
 import uuid
 
+from . import retention
 from .common import Refused, canonical, digest, json_value, visible
 
 
@@ -58,10 +59,12 @@ class Store:
         self.db.execute("PRAGMA journal_mode=DELETE")
         self.db.execute("PRAGMA synchronous=FULL")
         self.db.executescript("CREATE TABLE IF NOT EXISTS kv (k TEXT PRIMARY KEY, v TEXT NOT NULL);"
+                              "CREATE TABLE IF NOT EXISTS retained (k TEXT PRIMARY KEY, created REAL NOT NULL);"
                               "CREATE TABLE IF NOT EXISTS head (id INTEGER PRIMARY KEY CHECK(id=1), seq INTEGER, hash TEXT);"
                               "INSERT OR IGNORE INTO head VALUES (1,0,'');"
                               "CREATE TABLE IF NOT EXISTS events (seq INTEGER PRIMARY KEY, value TEXT NOT NULL);"
                               "CREATE TABLE IF NOT EXISTS operation_versions (id TEXT PRIMARY KEY, seq INTEGER NOT NULL);")
+        self.db.execute('INSERT OR IGNORE INTO retained SELECT k, ? FROM kv', (time.time(),))
         self.db.commit()
         sync_directory(self.state_dir)
         self.events, self.committed = self._read_journal()
@@ -134,7 +137,12 @@ class Store:
         record = event["record"]
         with self.db:
             for key, value in event["set"].items():
-                self.db.execute("INSERT OR REPLACE INTO kv VALUES (?,?)", (key, canonical(value)))
+                if value is None:
+                    self.db.execute("DELETE FROM kv WHERE k=?", (key,))
+                    self.db.execute("DELETE FROM retained WHERE k=?", (key,))
+                else:
+                    self.db.execute("INSERT OR REPLACE INTO kv VALUES (?,?)", (key, canonical(value)))
+                    self.db.execute("INSERT OR IGNORE INTO retained VALUES (?,?)", (key, record["time"]))
             for operation in record["operations"]:
                 self.db.execute("INSERT OR REPLACE INTO operation_versions VALUES (?,?)", (operation["id"], record["seq"]))
             self.db.execute("UPDATE head SET seq=?,hash=? WHERE id=1", (record["seq"], record["hash"]))
@@ -169,6 +177,13 @@ class Store:
             event["untrusted_content"] = visible(untrusted_content)
         # Validate and serialize the COMPLETE event before the independent fence.
         encoded = canonical(json_value(event))
+        # Admission happens before the restore fence, so a quota refusal cannot
+        # turn into journal_incomplete or demand owner restore confirmation.
+        cost = len(encoded.encode()) * 3 + len(canonical(record).encode()) * 3 + 32768
+        self.admit_history(cost)
+        retention.disk_space(self.state_dir, cost)
+        retention.disk_space(self.evidence_dir, cost)
+        self.admit_changes(changes)
         # Fence the write before even its prepared event can enter a backup.
         # A crash here may need owner confirmation: compact metadata cannot
         # reconstruct the full event, and absence cannot prove no restore.
@@ -181,6 +196,31 @@ class Store:
         self.checkpoint("sqlite_prepared")
         self._finish(event)
         self.write_failed = False
+
+    def retained_at(self, key):
+        row = self.db.execute('SELECT created FROM retained WHERE k=?', (key,)).fetchone()
+        return row[0] if row else time.time()
+
+    def history_size(self):
+        pages = self.db.execute('PRAGMA page_count').fetchone()[0]
+        page_size = self.db.execute('PRAGMA page_size').fetchone()[0]
+        return pages * page_size + os.fstat(self.journal.fileno()).st_size
+
+    def admit_history(self, reserve=retention.REQUEST_RESERVE):
+        self.ensure_writable()
+        if self.history_size() + reserve > retention.HISTORY_BYTES:
+            retention.refuse('Retained audit history', 'immutable', retention.HISTORY_BYTES)
+
+    def admit_changes(self, changes):
+        groups = [(('mail:composition:',), retention.COMPOSITION_COUNT, retention.COMPOSITION_BYTES, 'Compositions'),
+                  (('blob:',), retention.IMPORT_COUNT, retention.IMPORT_BYTES, 'Imported file references'),
+                  (('mail:filing:', 'mail:rename:'), retention.FILING_COUNT, retention.FILING_BYTES, 'Filing intents'),
+                  (('mail:filing-locations:',), retention.FILING_COUNT * 20000, retention.FILING_BYTES, 'Filing location pages'),
+                  (('notice:',), retention.NOTICE_COUNT, retention.NOTICE_BYTES, 'Retained notices')]
+        for prefixes, count, total, label in groups:
+            additions = {k: v for k, v in changes.items() if k.startswith(prefixes)}
+            if additions:
+                retention.admit(self, prefixes, count, total, additions, label)
 
     def ensure_writable(self):
         if self.write_failed:
