@@ -1,5 +1,7 @@
 """Review 13: admission follows actual restore work and interrupted rights."""
 import sqlite3
+import socket
+import threading
 from contextlib import closing
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -8,6 +10,7 @@ from aresos_control.engine import Engine
 from aresos_control.space import SAFETY_FLOOR, record_budget
 from support import EngineCase
 import test_journal_streaming as streaming
+from aresos_control.protocol import Client, receive, send
 
 
 class RestoreWork21(EngineCase):
@@ -106,3 +109,50 @@ class ReservedReplay21(EngineCase):
             self.assertEqual(result['operation']['state'], 'unknown')
         self.assertNotIn('restore', self.engine.store.ledger.holds)
         self.assertEqual(self.engine.store.committed, self.engine.store.sequence)
+
+
+class DurableReply21(EngineCase):
+    def test_review21_durable_write_sync_beyond_read_deadline_returns_its_committed_result(self):
+        self.engine.close()
+        path = self.root / 'slow.sock'
+        listener = socket.socket(socket.AF_UNIX)
+        listener.bind(str(path))
+        listener.listen()
+        errors = []
+        def serve():
+            service = None
+            try:
+                service = Engine(self.root / 'state', self.root / 'independent')
+                delayed = False
+                def checkpoint(name):
+                    nonlocal delayed
+                    if name == 'sqlite_prepared' and not delayed:
+                        delayed = True
+                        # Reproduce a filesystem sync stall longer than the
+                        # old ten-second reply window, with an actual write.
+                        threading.Event().wait(11)
+                service.store.checkpoint = checkpoint
+                connection, _ = listener.accept()
+                with connection:
+                    request = receive(connection)
+                    result = service.request(request, admin=True)
+                    send(connection, result)
+            except BaseException as exc:
+                errors.append(exc)
+            finally:
+                if service:
+                    service.close()
+        worker = threading.Thread(target=serve, daemon=True)
+        worker.start()
+        try:
+            result = Client(path).request({'method': 'call', 'action': 'testapp_fixture_configure',
+                                          'arguments': {'failure': 'none', 'refuse': []}})
+            self.assertTrue(result['ok'], result)
+        finally:
+            worker.join(timeout=15)
+            listener.close()
+            self.engine = Engine(self.root / 'state', self.root / 'independent')
+        self.assertFalse(worker.is_alive())
+        self.assertEqual(errors, [])
+        events = [event for event in self.engine.store.iter_audit() if event['action'] == 'testapp_fixture_configure']
+        self.assertEqual([event['outcome'] for event in events], ['started', 'done'])

@@ -52,6 +52,13 @@ class Client:
         with self.connection() as connection:
             if request.get('method') == 'call' and request.get('action') == 'control_archive':
                 connection.settimeout(600)
+            elif request.get('method') == 'call':
+                from .definitions import BY_NAME
+                action = BY_NAME.get(request.get('action'))
+                if action and action.effect != 'read':
+                    # A durable transaction may wait on filesystem sync under
+                    # load. Keep its reply window longer than a simple read.
+                    connection.settimeout(30)
             send(connection, {"v": 1, **request})
             return receive(connection)
 
