@@ -144,3 +144,14 @@ class Results26(unittest.TestCase):
         result = output({'hook_event_name': 'Stop'}, {'total': 0, 'notices': [{'reason': 'Check filing in Trash.'}]})
         self.assertEqual(result['decision'], 'block')
         self.assertIn('Check filing in Trash.', result['reason'])
+
+    def test_review26_daemon_error_survives_pending_failure_and_keeps_last_warning(self):
+        from aresos_control.daemon import Daemon
+        daemon = object.__new__(Daemon)
+        daemon.engine = self.engine
+        notices = self.notice()
+        with patch.object(self.engine, 'pending', side_effect=MemoryError):
+            result = daemon.error_result(Refused('invalid_input', 'Malformed socket input.'), True)
+        self.assertEqual(result['pending']['notices'], notices)
+        self.assertIn('snapshot', result['pending']['unavailable'])
+        transport_response(result)

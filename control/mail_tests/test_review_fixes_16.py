@@ -90,6 +90,9 @@ class Review16(unittest.TestCase):
                 daemon.stopping = False
                 daemon.config = {'owner_uid': 123}
                 daemon.engine = Mock()
+                daemon.engine.pending.return_value = {'items': [], 'total': 0, 'cursor': None,
+                    'notices': [{'operation_id': 'recovery-fixture', 'app': 'mail', 'state': 'unknown',
+                                 'untrusted_content': {'reason': 'Synthetic owner warning.'}}]}
                 daemon.engine.request.side_effect = [exception, {'ok': True, 'data': {'next': True}}]
                 connections = [Mock(), Mock()]
                 for conn in connections:
@@ -113,6 +116,7 @@ class Review16(unittest.TestCase):
                      patch('aresos_control.daemon.send', side_effect=lambda c, r, **kw: sent.append(r)):
                     daemon.serve()
                 self.assertEqual(sent[0]['error']['code'], 'internal_error')
+                self.assertEqual(sent[0]['pending'], daemon.engine.pending.return_value)
                 self.assertTrue(sent[1]['data']['next'])
 
     def test_review16_oversized_composition_has_no_persisted_effect_repeated_or_derived(self):

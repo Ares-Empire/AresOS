@@ -70,9 +70,16 @@ class Daemon:
     def error_result(self, exc, authorized):
         from .results import bound_result
         exc = storage_refusal(exc) or exc
+        pending = {"items": [], "total": 0, "cursor": None}
+        if authorized:
+            try:
+                pending = self.engine.pending()
+            except Exception:
+                pending = {**self.engine._last_pending.get(None, pending),
+                           "unavailable": "Live pending read failed; inspect this snapshot and service state before further changes."}
         result = {"ok": False, "error": {"code": getattr(exc, "code", "internal_error"),
             "message": str(exc) if isinstance(exc, Refused) else "Request failed unexpectedly; inspect operation status before repeating changes."},
-            "pending": self.engine.pending() if authorized else {"items": [], "total": 0, "cursor": None}}
+            "pending": pending}
         return bound_result(result, self.engine.store)
 
     def close(self):
