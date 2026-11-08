@@ -191,7 +191,7 @@ def resolve_checks(mail):
             changes['notice:' + intent['id']] = {'id': intent['id'], 'app': 'mail', 'state': 'partial',
                 'ack': False, 'created_at': time.time_ns(), 'untrusted_content': content}
             mail.store.write(changes, 'mail_filing_check', 'Interrupted filing checked without changing mail')
-        except (Refused, OSError, sqlite3.Error, imaplib.IMAP4.error, Uncertain):
+        except (Refused, OSError, sqlite3.Error, imaplib.IMAP4.error, Uncertain, KeyError, TypeError, ValueError):
             # The committed started row remains the not-yet-checked source.
             continue
 

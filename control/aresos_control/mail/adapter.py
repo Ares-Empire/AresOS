@@ -750,7 +750,7 @@ class Mail:
                 account = self.account(op['payload']['composition']['mail']['account'], ready=False)
                 matches = self.sent_matches(account, self.message_id(op['id']))
                 self.sent_copy_count(op, matches, commit_clean=True)
-            except (Refused, OSError, sqlite3.Error, imaplib.IMAP4.error, Uncertain):
+            except (Refused, OSError, sqlite3.Error, imaplib.IMAP4.error, Uncertain, KeyError, TypeError, ValueError):
                 unresolved.append({'id': 'sent-check-' + digest(op['id'])[:32], 'app': 'mail',
                     'state': 'unknown', 'ack': False, 'created_at': int(self.store.retained_at('op:' + op['id']) * 1_000_000_000),
                     'untrusted_content': {'operation_id': op['id'], 'check': 'sent_copies',

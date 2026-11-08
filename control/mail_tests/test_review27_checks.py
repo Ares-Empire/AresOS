@@ -104,6 +104,13 @@ class Checks27(unittest.TestCase):
                 self.assertIn('not yet checked', own[0]['untrusted_content']['reason'])
         self.assertFalse(self.engine.pending().get('notices'))
 
+    def test_review27_missing_transport_context_leaves_the_check_explicitly_unchecked(self):
+        operation = self.submit(self.approval('send', self.compose()))
+        with patch.object(self.mail, 'sent_matches', side_effect=KeyError('imap_host')):
+            own = next(n for n in self.engine.pending()['notices']
+                       if n['untrusted_content'].get('operation_id') == operation['id'])
+        self.assertIn('not yet checked', own['untrusted_content']['reason'])
+
     def test_review27_open_check_and_warning_source_cannot_be_archived(self):
         import time
         from aresos_control.archive import archive
