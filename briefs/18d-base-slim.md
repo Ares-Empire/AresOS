@@ -87,8 +87,8 @@ enforce; everything else is his normal Claude Code with his own `gh` login, MCP 
    - `control/launch.py`: the MCP proxy's identity guard checks both the real and the effective user id against the
      configured user (his user, `owner_uid`), with a regression test for a mismatch.
    - `control/boundary/isolation.py`: the coding-user part goes (item 4); what stays is the other-user check.
-7. **Shared tool rules, sent once.** Mail's 28 tool descriptions total about 61,000 characters at `d5a0b24a`, and about
-   two thirds of that is text repeated in nearly every description, mainly three blocks: the error handling (about
+7. **Shared tool rules, sent once.** Mail's 32 actions carry about 69,000 characters of description (the 28 exposed as MCP
+   tools about 61,000, at `d5a0b24a`), and two thirds to three quarters of that is text repeated in nearly every one, mainly three blocks: the error handling (about
    800 characters), the special-use folder roles (about 580) and the untrusted-data line (about 190) (found by
    `mac-capacity`, measured by the lead, 2026-11-08).
    Generate each app server's MCP `instructions` (sent once, when the server starts) from the definitions, holding the
