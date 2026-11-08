@@ -121,10 +121,10 @@ acting):
     once the hostile tests show the asks, the sandbox, the file-tool limits, the network list and the managed hooks
     hold in that mode. Protection: sends, deletes and submits through the tools, asking; passwords and his signed-in
     browser only through the tools; commands and project code in the sandbox, which reaches neither the tool service
-    nor his browser, only a list of developer sites, with pushes only to his own repositories. Instructions come only
-    from him in the session (a managed, root-owned `CLAUDE.md`). Accepted residual risk, his call: content from a mail
-    or page could trick Claude into copying data out through an allowed developer site. (`CONTROL.md` sections 2, 6, 7
-    and 10.)
+    nor his browser, only a list of developer sites, with pushes narrowed to his own repositories. Instructions come
+    only from him in the session (a managed, root-owned `CLAUDE.md`). Accepted residual risk, his call: content from a
+    mail or page could trick Claude into copying data out through an allowed developer site. (`CONTROL.md` sections 2,
+    6, 7 and 10.)
 
 ## How sending stays under the owner's control
 
@@ -225,20 +225,35 @@ Three places, each with one job:
    contracts.
 5. **Tool-user rounds** after each first version; fixes and site adapters become follow-up briefs.
 
-   **What decisions 22 and 23 change for the open briefs (2026-11-08):**
-   - *Brief 18c* (early image test): one session user, no coding user; the launcher as the `claude` command; the
-     managed `CLAUDE.md` installed; the fake send asks in normal and in skip-permissions mode.
-   - *Brief 20* (Chrome): the coding-user references are gone; project work in Chrome (checks on real sites through
-     the same tools; localhost tests in a clean browser inside the sandbox); its tests also in skip-permissions mode.
-   - *Mail's boundary check* (round 16, `boundary.py`): the installed settings are compared against the generated
-     files plus the vetted additions' record (empty until the first addition); the draft's changes above; one
-     session user.
-   - *A new brief: the add-tool path* (`tools_prepare_add`, `tools_add`, the root-owned install step, a system user
-     per added server, `aresos-mcp addon`, the owner command, connectors, the skills folder, plugins split into parts,
-     generated settings with the additions, and its tests: `CONTROL.md` section 7). Its number is taken when it is
-     written.
-   - `laptop-aresos` owns `os/` and the accounts (the session's user, the dropped coding user) and has board item
-     #102 about installing software; the image side of decisions 22 and 23 is agreed with it.
+   **What decisions 22 and 23 change for the open briefs (2026-11-08, after re-check 18).** Each case that must be
+   proven belongs to one workstream:
+   - *Brief 18c and the base qualification* (the next base or boundary brief, then the early image test): one session
+     user and no coding user, with a stand-in "other user" in CI; the launcher as the `claude` command; the managed
+     `CLAUDE.md` loading; the twelve skip-permissions rules (`CONTROL.md` section 7), with both kinds of hostile test
+     in both modes, and `disableBypassPermissionsMode` dropped only when they pass; the developer-site network list
+     and credential substitution for the GitHub token; project folders as Btrfs subvolumes, the snapshot before
+     every sandboxed command and file-tool write (its cost, thinning, restore, a failed snapshot stopping the
+     command) on the installed layout; planted repository settings (Claude Code's own git contained by the wrapper,
+     his git refusing Claude's repositories); GitHub rulesets against branch deletion and force-push, and the
+     service's mirror of every branch with restore; Claude Code's messages to other sessions closed; the `WebFetch`
+     fallback path in skip-permissions mode.
+   - *Mail's exact-settings boundary* (round 16, `boundary.py`): the installed settings compared against the
+     generated files plus the vetted additions' record (empty until the first addition), with the draft's changes
+     above (no `disableBypassPermissionsMode` once the base qualification passes, the developer-site list, project
+     folders writable, the managed `CLAUDE.md`, one session user).
+   - *Brief 20* (Chrome): the coding-user references gone; project work in Chrome (checks on real sites through the
+     same tools; localhost tests with the test server and a clean browser in one sandboxed command); its tests also
+     in skip-permissions mode.
+   - *A new brief: the add-tool path*: preparation fetching only from the listed registries, with redirects held to
+     them and other sources fetched only after approval; inspection, builds and install scripts in a sandbox, the
+     install step only copying; `tools_add` with classes and their evidence; free tools only on reviewed evidence or
+     an enforcing adapter; connectors reached by the service and asking per call; tool lists compared on every
+     listing, changed tools hidden; activation only in a session started with the regenerated settings; a system user
+     per added server, `aresos-mcp addon`, the owner command, the skills folder, plugins split into parts, generated
+     settings with the additions, and its tests (`CONTROL.md` section 7). Its number is taken when it is written.
+   - `laptop-aresos` owns `os/` and the accounts (the session's user, the dropped coding user, the project
+     subvolumes) and has board item #102 about installing software; the image side of decisions 22 and 23 is agreed
+     with it.
 6. **Security review** of the whole stack (fresh Codex, frontier), then **qualification in the real AresOS image**.
 7. **After the first boot on the laptop:** the real mail account, the owner's own Chrome, the system-wide settings,
    and the first weeks of real use.
@@ -306,8 +321,9 @@ tasks at any time.
 - How the CI virtual machine gets the AresOS image for step 5 (the private image needs read access the owner
   restores, or a fresh unpublished build in the job): decided in the design.
 - The mail provider and account details stay out of this public repo.
-- **Owner questions still open:** none. Everything in `CONTROL.md` section 10 was answered on 2026-11-07 and
-  2026-11-08 (decisions 14 to 19, 21 to 23).
+- **Owner questions still open:** deleting in his project folders (`CONTROL.md` section 10, asked 2026-11-08): free
+  because every state is kept by snapshots (recommended), or each deletion asking. Everything else was answered on
+  2026-11-07 and 2026-11-08 (decisions 14 to 19, 21 to 23).
 
 **Follow-ups** (from the 18b merge-fix review, `gpt-6.1-sol` high, SAFE; for the next base or boundary brief):
 
@@ -476,3 +492,12 @@ tasks at any time.
   and the risk of data leaving through those sites accepted by him (decision 23, replacing decision 8). Consequences
   for briefs 18c and 20, Mail's boundary check and a new add-tool brief are listed under "Order of work". Frontier
   re-check next.
+- **2026-11-08, 03:53:** frontier re-check 18 of draft 17: both decisions and the accepted risk recorded faithfully,
+  five blocking points. Draft 18 on the same branch: project deletions recoverable through snapshots of the project
+  folders before every command and file write (his choice between that and asking for each deletion is open);
+  planted repository settings contained (his git refuses Claude's repositories; Claude Code's own git runs in a
+  sandbox with git's command-level settings); GitHub rulesets against branch deletion and force-push plus a
+  service-side mirror of every branch; add-tool preparation fetching only from listed registries, building in a
+  sandbox, installing by copying; added tools free only on reviewed evidence or an enforcing adapter, connectors
+  asking per call, changed tools hidden, activation only with the regenerated settings in force. Each case is
+  assigned to a workstream under "Order of work". Re-check 19 next.

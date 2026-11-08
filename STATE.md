@@ -100,9 +100,10 @@ Updated 2026-11-07. The live truth is `git log`, `gh pr list` and `git worktree 
      sentence. On 2026-11-08 (decisions 22 and 23): the central session can gain tools, those that run outside its
      sandbox only through the tool layer, asking; and one session does coding, commands, mail and Chrome together,
      possibly in skip-permissions mode, replacing the assistant/coding split, with the risk of data leaving through
-     allowed developer sites accepted by him. No owner question on the control layer is open.
+     allowed developer sites accepted by him.
    - **In progress:** Mail (brief 19, PR #9: package review SAFE, frontier security review in its third round);
-     design draft 17 for decisions 22 and 23 (branch `control/one-session-tools`; frontier re-check next).
+     design draft 18 for decisions 22 and 23 (branch `control/one-session-tools`; re-check 19 next; one owner
+     question open: deleting in project folders, recoverable by snapshots or asking each time).
      `laptop-aresos` owns `os/` and the accounts and has board item #102 about installing software.
    - **Next:** brief 18c (first end-to-end test on a throwaway CI image; no owner OK needed under the 2026-11-07
      rule), then brief 20 (Chrome) on the final design draft, once a re-check finds no blocking point, both as changed
