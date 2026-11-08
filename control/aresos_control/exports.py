@@ -46,6 +46,9 @@ def put(store, blobs, data):
     try:
         blobs.put(data, origin='export')
     except BaseException as exc:
+        # Rollback may itself journal a refusal. Capture the primary before
+        # that secondary transaction can register a different storage cause.
+        store.observations.storage(exc)
         with cleanup('private export rollback', exc):
             transfer = get(store, export_id, 'mail')
             discard_blob(store, blobs, transfer, export_id)

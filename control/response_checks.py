@@ -5,6 +5,7 @@ from jsonschema import Draft202012Validator
 
 from aresos_control.definitions import BY_NAME
 from aresos_control.engine import Engine
+from aresos_control.proxy import Proxy
 from aresos_control.protocol import receive, send
 
 
@@ -41,3 +42,9 @@ def check_responses():
         return validate_response(value, request(engine, value, admin))
     checked.schema_checked = True
     Engine.request = checked
+    proxy_call = Proxy.call
+    @wraps(proxy_call)
+    def checked_proxy(proxy, verb, arguments):
+        # Caller-side saves/refusals add facts after the service response.
+        return transport_response(proxy_call(proxy, verb, arguments))
+    Proxy.call = checked_proxy

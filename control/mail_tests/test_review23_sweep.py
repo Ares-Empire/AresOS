@@ -16,6 +16,7 @@ from unittest.mock import patch
 from aresos_control.engine import Engine
 from aresos_control.common import Refused, sha256, storage_refusal
 from aresos_control.proxy import Proxy
+from response_checks import transport_response
 import test_review_fixes_23 as results23
 
 
@@ -103,6 +104,18 @@ class Scenario:
                     f.imap.validities['Renamed'] = f.imap.validities.pop('Source')
                     return 'OK', [b'Renamed']
                 self.stack.enter_context(patch.object(f.imap, 'rename', side_effect=rename, create=True))
+        elif flow == 'archive':
+            self.seed_send(None)
+            cutoff = time.time() - 1
+            # Archive real closed rows and events, including VACUUM, rather
+            # than an empty no-op export. The restore fence remains intact.
+            with f.engine.store.db as db:
+                db.execute('UPDATE retained SET created=?', (cutoff - 1,))
+                for seq, value in db.execute('SELECT seq,value FROM events').fetchall():
+                    event = json.loads(value)
+                    event['time'] = cutoff - 1
+                    db.execute('UPDATE events SET value=? WHERE seq=?', (json.dumps(event), seq))
+            self.action, self.args, self.admin = 'control_archive', {'before': cutoff, 'confirm': 'archive finished history'}, True
         elif flow in {'expiry', 'maintenance', 'restart_index', 'restart_tail'}:
             if flow == 'expiry':
                 self.approval = f.approval('send', f.compose())
@@ -145,6 +158,7 @@ class Scenario:
         self.remote.clear()
         if self.approval and self.flow in {'send', 'delete_trash', 'delete_permanent', 'unsubscribe_mailto', 'unsubscribe_https'}:
             self.replay_requests[self.operation_id] = (self.action, copy.deepcopy(self.approval))
+        self.committed_before = list(f.engine.store.events)[:f.engine.store.committed]
 
     def seed_send(self, failed):
         f = self.fixture
@@ -366,15 +380,22 @@ class Scenario:
             f.assertTrue(result['ok'], result)
         f.assertEqual(f.engine.store.committed, f.engine.store.sequence)
         f.assertFalse(f.engine.store.write_failed)
+        f.assertEqual(list(f.engine.store.events)[:len(self.committed_before)], self.committed_before,
+                      'Every earlier committed independent record must survive')
         for operation_id in self.attempted_ids:
+            if self.flow == 'archive' and f.engine.store.get('archived:' + operation_id):
+                self.assert_archived(operation_id)
+                continue
             state = f.data('operation_status', {'operation_id': operation_id})['operation']['state']
             f.assertIn(state, {'unknown', 'partial', 'done'}, (operation_id, prior, remote, state))
+            self.assert_completion(operation_id, state)
             if operation_id in self.replay_requests:
                 action, approval = self.replay_requests[operation_id]
                 f.engine.request({'v': 1, 'method': 'call', 'action': action, 'arguments': approval})
         if self.operation_id is not None:
             status = f.data('operation_status', {'operation_id': self.operation_id})
             state = status['operation']['state']
+            self.assert_completion(self.operation_id, state)
             if remote:
                 # Expected from fixture-side attempted commands, never from kv.
                 f.assertIn(state, {'unknown', 'partial', 'done'}, (self.flow, remote, status))
@@ -408,6 +429,44 @@ class Scenario:
         if self.flow == 'password':
             f.assertFalse((f.engine.store.get('mail:account:new') or {}).get('ready', False))
 
+    def assert_completion(self, operation_id, state):
+        if state != 'done':
+            return
+        f = self.fixture
+        commands = self.prior_commands + self.remote
+        if self.flow.startswith('delete_'):
+            # These are the requested fixture identities, never reconstructed
+            # from potentially damaged operation/stage records.
+            for uid in (1, 2):
+                f.assertNotIn(uid, f.imap.boxes['Source'], ('false done', self.flow, uid, commands))
+                command = 'MOVE' if self.flow == 'delete_trash' else 'EXPUNGE'
+                f.assertEqual(commands[command + ':' + str(uid)], 1, ('false done', uid, commands))
+                if self.flow == 'delete_trash':
+                    f.assertEqual(f.imap.boxes['Trash'].get(uid), f.imap.raw)
+        elif self.flow in {'send', 'repair', 'status', 'settlement', 'unsubscribe_mailto'}:
+            f.assertEqual(commands['DATA'], 1, ('false done', self.flow, commands))
+            op = f.engine.operation(operation_id)
+            if op.get('repair_of'):
+                f.assertTrue(f.imap.boxes['Sent'], ('false repair done', commands))
+            elif self.flow != 'unsubscribe_mailto':
+                f.assertTrue(f.imap.boxes['Sent'], ('false sent-copy done', commands))
+        elif self.flow == 'unsubscribe_https':
+            f.assertEqual(commands['POST'], 1, ('false done', commands))
+
+    def assert_archived(self, operation_id):
+        f = self.fixture
+        f.assertIsNone(f.engine.store.get('op:' + operation_id))
+        from aresos_control.common import sha256
+        manifests = f.engine.store.items('archive:')
+        f.assertTrue(manifests)
+        exported = []
+        for _, manifest in manifests:
+            raw = Path(manifest['path']).read_bytes()
+            f.assertEqual(sha256(raw), manifest['sha256'])
+            exported.extend(json.loads(line) for line in raw.splitlines())
+        f.assertTrue(any(row.get('key') == 'op:' + operation_id and row['value']['state'] == 'done'
+                         for row in exported), ('Missing committed archived operation', operation_id))
+
     def close(self):
         self.stack.close()
         self.fixture.doCleanups()
@@ -430,19 +489,68 @@ class FaultSweep23(unittest.TestCase):
         finally:
             scenario.close()
 
+    def test_review25_completion_oracle_rejects_two_message_delete_with_only_move_one(self):
+        scenario = Scenario('delete_trash')
+        try:
+            f = scenario.fixture
+            f.imap.boxes['Trash'][1] = f.imap.boxes['Source'].pop(1)
+            scenario.remote['MOVE:1'] = 1
+            self.assertIn(2, f.imap.boxes['Source'])
+            with self.assertRaises(AssertionError):
+                scenario.assert_completion(scenario.operation_id, 'done')
+        finally:
+            scenario.close()
+
+    def assert_result(self, scenario, sweep, result):
+        transport_response(result)
+        self.assertTrue(sweep.failed, sweep.points)
+        self.assertFalse(result['ok'], result)
+        self.assertEqual(result['error']['code'], 'storage_limit', result)
+        self.assertIn('Disk full', result['error']['message'])
+        observed = result.get('observations', {})
+        for operation_id, stages in scenario.stages.items():
+            for name, outcome in stages.items():
+                self.assertEqual(observed['stages'][operation_id][name], outcome)
+        for operation_id, copies in scenario.copies.items():
+            self.assertEqual(observed['evidence'][operation_id]['sent'], copies)
+            if len(copies) > 1:
+                self.assertIn('2 copies', observed['evidence'][operation_id]['sent_copy_warning'])
+        for key in ('operation', 'original'):
+            op = result.get('data', {}).get(key)
+            if op:
+                scenario.assert_completion(op['id'], op['state'])
+
+    def fault(self, flow, number, mode='single', cleanup_at=None):
+        scenario = Scenario(flow)
+        try:
+            sweep = DurableWrites(number, mode=mode, cleanup_at=cleanup_at)
+            with scenario.observed(), sweep.wrap(None if flow.startswith('restart_') else scenario.fixture.engine.store):
+                result = scenario.call()
+            self.assert_result(scenario, sweep, result)
+            cleanups = sweep.cleanup_points[:]
+            if cleanup_at is not None:
+                self.assertIn((cleanup_at, sweep.points[cleanup_at - 1], 'EIO'), sweep.failures)
+            scenario.recover(failed=True)
+            return sweep.points, cleanups
+        finally:
+            scenario.close()
+
     def test_review23_enospc_at_every_discovered_durable_write(self):
         flows = ('send', 'repair', 'delete_trash', 'delete_permanent', 'unsubscribe_mailto', 'unsubscribe_https',
                  'status', 'settlement', 'cancel', 'restore', 'attachment_export', 'testapp_export',
                  'password', 'filing_move', 'filing_copy', 'filing_rename', 'expiry', 'maintenance',
-                 'restart_index', 'restart_tail', 'export_rollback')
-        mechanisms = Counter()
+                 'restart_index', 'restart_tail', 'export_rollback', 'archive')
+        mechanisms, counts = Counter(), Counter()
         started = time.monotonic()
         for flow in flows:
+            flow_started = time.monotonic()
+            flow_counts = Counter()
             clean = Scenario(flow)
             try:
                 sweep = DurableWrites()
                 with clean.observed(), sweep.wrap(None if flow.startswith('restart_') else clean.fixture.engine.store):
                     result = clean.call()
+                transport_response(result)
                 self.assertTrue(result['ok'] or flow == 'password' and result['error']['code'] == 'server_refused'
                                 or flow == 'export_rollback' and result['error']['code'] == 'storage_limit', result)
                 points = sweep.points
@@ -451,32 +559,29 @@ class FaultSweep23(unittest.TestCase):
                 clean.recover()
             finally:
                 clean.close()
-            print(f'Review24 OS/VFS write points: {flow}={len(points)} {dict(Counter(points))}', flush=True)
+            print(f'Review25 OS/VFS write points: {flow}={len(points)} {dict(Counter(points))}', flush=True)
             for number, label in enumerate(points, 1):
-                with self.subTest(flow=flow, point=number, label=label):
-                    scenario = Scenario(flow)
-                    try:
-                        sweep = DurableWrites(number)
-                        with scenario.observed(), sweep.wrap(None if flow.startswith('restart_') else scenario.fixture.engine.store):
-                            result = scenario.call()
-                        self.assertTrue(sweep.failed, sweep.points)
-                        self.assertEqual(sweep.points[:number], points[:number])
-                        self.assertFalse(result['ok'], result)
-                        self.assertEqual(result['error']['code'], 'storage_limit', result)
-                        self.assertIn('Disk full', result['error']['message'])
-                        observed = result.get('observations', {})
-                        for operation_id, stages in scenario.stages.items():
-                            for name, outcome in stages.items():
-                                self.assertEqual(observed['stages'][operation_id][name], outcome)
-                        for operation_id, copies in scenario.copies.items():
-                            self.assertEqual(observed['evidence'][operation_id]['sent'], copies)
-                            if len(copies) > 1:
-                                self.assertIn('2 copies', observed['evidence'][operation_id]['sent_copy_warning'])
-                        scenario.recover(failed=True)
-                    finally:
-                        scenario.close()
+                with self.subTest(flow=flow, point=number, label=label, mode='single'):
+                    trace, cleanups = self.fault(flow, number)
+                    self.assertEqual(trace[:number], points[:number])
+                    flow_counts['single'] += 1
+                with self.subTest(flow=flow, point=number, label=label, mode='persistent'):
+                    trace, _ = self.fault(flow, number, mode='persistent')
+                    self.assertEqual(trace[:number], points[:number])
+                    flow_counts['persistent'] += 1
+                for cleanup_at, cleanup_label, purpose in cleanups:
+                    if cleanup_at <= number:
+                        continue
+                    with self.subTest(flow=flow, point=number, mode='pair', cleanup=cleanup_at,
+                                      cleanup_label=cleanup_label, purpose=purpose):
+                        self.fault(flow, number, cleanup_at=cleanup_at)
+                        flow_counts['pairs'] += 1
+            counts.update(flow_counts)
+            print(f'Review25 modes: {flow} {dict(flow_counts)}; elapsed={time.monotonic() - flow_started:.3f}s', flush=True)
         for mechanism in ('journal.write', 'journal.truncate', 'sqlite.main.write', 'sqlite.index.write',
                           'sqlite.main.create', 'sqlite.index.create', 'file.create', 'file.write',
                           'file.link', 'file.rename', 'file.truncate', 'file.fsync'):
             self.assertGreater(mechanisms[mechanism], 0, mechanism)
-        print(f'Review24 OS/VFS mechanisms: {dict(mechanisms)}; elapsed={time.monotonic() - started:.3f}s', flush=True)
+        self.assertGreater(counts['pairs'], 0)
+        print(f'Review25 OS/VFS mechanisms: {dict(mechanisms)}; modes={dict(counts)}; '
+              f'elapsed={time.monotonic() - started:.3f}s', flush=True)

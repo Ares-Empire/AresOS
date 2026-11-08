@@ -25,6 +25,7 @@ class Engine:
         self.boundary = Boundary()
         self.store = Store(state_dir, evidence_dir, checkpoint)
         self.receiver = None
+        self._last_pending = {}
         try:
             self._initialize_adapters(ttl, checkpoint, file_limit)
         except BaseException as exc:
@@ -67,6 +68,38 @@ class Engine:
         return result
 
     def pending(self, app=None, args=None):
+        try:
+            result = self._pending(app, args)
+            self._last_pending[app] = copy.deepcopy(result)
+            return result
+        except (OSError, sqlite3.Error) as exc:
+            if storage_refusal(exc) is None:
+                raise
+            self.store.observations.storage(exc)
+            # Persistent exhaustion can prevent SQLite's rollback, so even a
+            # SELECT may fail. Keep the last disclosure and newly seen warnings
+            # in the reply instead of losing the entire storage-error frame.
+            result = copy.deepcopy(self._last_pending.get(app, self._last_pending.get(None, {
+                'items': [], 'total': 0, 'cursor': None, 'restore_required': self.store.locked})))
+            result['unavailable'] = 'Live pending read failed on storage; snapshot only. Restart recovery and inspect status before any further change.'
+            from .mail.filing import public_notice
+            notices = {n['operation_id']: n for n in result.get('notices', [])}
+            new_notices = []
+            for changes, _, _ in self.store.deferred_notices.values():
+                for key, value in changes.items():
+                    if key.startswith('notice:') and not value.get('ack') and (app is None or value['app'] == app):
+                        notices[value['id']] = public_notice(self.store, value)
+                        new_notices.append(value['id'])
+                        self.store.observations.observe(value['id'], {'filing_warning': value['untrusted_content']})
+            if notices:
+                order = list(dict.fromkeys([*reversed(new_notices), *notices]))
+                result['notices'] = [notices[key] for key in order[:3]]
+                total = len(notices) + result.get('notices_more', {}).get('count', 0)
+                if total > 3:
+                    result['notices_more'] = {'count': total - 3, 'action': 'mail_filing_notices'}
+            return result
+
+    def _pending(self, app=None, args=None):
         args, offset, version = args or {}, 0, None
         try:
             if 'cursor' in args:
@@ -528,6 +561,7 @@ class Engine:
 
     def request(self, request, admin=False):
         self.store.observations = Observations()
+        self.pending()
         try:
             self.store.flush_notices()
         except Exception as exc:

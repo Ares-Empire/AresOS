@@ -12,6 +12,7 @@ import os
 from pathlib import Path
 import _sqlite3
 from unittest.mock import patch
+from aresos_control.common import CLEANUP
 
 
 ACTIVE = None
@@ -50,13 +51,14 @@ class SQLiteIO:
     def hit(self, label):
         if ACTIVE is not None:
             return ACTIVE.hit(label, sqlite=True)
-        return False
+        return 0
 
     def open(self, vfs, name, file, flags, output):
         path = os.fsdecode(C.string_at(name)) if name else ''
         kind = 'sqlite.index' if 'journal-index.sqlite' in path else 'sqlite.main'
-        if flags & 4 and self.hit(kind + '.create'):
-            return 13  # SQLITE_FULL, through sqlite3's ordinary error handling.
+        fault = self.hit(kind + '.create') if flags & 4 else 0
+        if fault:
+            return fault
         result = self.real_open(vfs, name, file, flags, output)
         if result == 0:
             original = file.contents.methods
@@ -84,8 +86,9 @@ class SQLiteIO:
 
     def call(self, file, index, kind, callback, *args):
         original, prefix = self.files[C.addressof(file.contents)]
-        if self.hit(prefix + '.' + kind):
-            return 13
+        fault = self.hit(prefix + '.' + kind)
+        if fault:
+            return fault
         return callback(original.contents.calls[index])(file, *args)
 
     def write(self, file, buffer, size, offset):
@@ -104,17 +107,24 @@ SQLITE_IO = SQLiteIO()
 
 
 class OSWrites:
-    def __init__(self, fail_at=None):
+    def __init__(self, fail_at=None, mode='single', cleanup_at=None):
         self.fail_at, self.points, self.failed = fail_at, [], False
+        self.mode, self.cleanup_at = mode, cleanup_at
+        self.cleanup_points, self.failures = [], []
 
     def hit(self, label, sqlite=False):
         self.points.append(label)
-        if len(self.points) == self.fail_at:
+        number = len(self.points)
+        if CLEANUP.get() is not None:
+            self.cleanup_points.append((number, label, CLEANUP.get()))
+        secondary = number == self.cleanup_at
+        if number == self.fail_at or (self.mode == 'persistent' and self.fail_at is not None and number >= self.fail_at) or secondary:
             self.failed = True
+            self.failures.append((number, label, 'EIO' if secondary else 'ENOSPC'))
             if sqlite:
-                return True
-            raise OSError(errno.ENOSPC, 'Synthetic full disk at ' + label)
-        return False
+                return 10 if secondary else 13  # SQLITE_IOERR / SQLITE_FULL.
+            raise OSError(errno.EIO if secondary else errno.ENOSPC, 'Synthetic storage failure at ' + label)
+        return 0
 
     @contextmanager
     def wrap(self, store=None):

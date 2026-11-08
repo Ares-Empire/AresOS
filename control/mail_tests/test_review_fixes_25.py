@@ -40,6 +40,7 @@ class Responses25(unittest.TestCase):
             self.assertIn('Nothing was deleted', result['pending']['notices'][0]['untrusted_content']['reason'])
             self.assertLessEqual(len(canonical(result).encode()), RESULT_LIMIT)
             transport_response(result)
+            print(f'Review25 jumbo filing response: {len(canonical(result).encode()) + 1} serialized bytes including newline; 350 observed locations', flush=True)
             # The failed write's deferred pages are readable without persisting.
             filing_id = evidence['filing_id']
             page = self.engine.request({'v': 1, 'method': 'call', 'action': 'mail_filing_locations',
@@ -80,6 +81,7 @@ class Responses25(unittest.TestCase):
             raw += piece['json']
         self.assertEqual(len(raw), first['count'])
         self.assertEqual(json.loads(raw)['evidence']['synthetic'], facts)
+        self.assertEqual(json.loads(raw)['data']['untrusted_content']['text'], 'x' * 45000)
 
     def test_review25_central_harness_rejects_transport_oversize_on_success_and_failure(self):
         for ok in (False, True):
@@ -127,7 +129,7 @@ class Cleanup25(unittest.TestCase):
 
     def paired_write(self, call):
         from contextlib import contextmanager
-        opened, unlinked = os.fdopen, os.unlink
+        opened = os.fdopen
         @contextmanager
         def fdopen(*args, **kwargs):
             with opened(*args, **kwargs) as stream:
@@ -165,3 +167,39 @@ class Cleanup25(unittest.TestCase):
             self.assert_pair(self.engine.request({'v': 1, 'method': 'mail_account_add',
                 'arguments': arguments, 'password': 'Synthetic test credential'}, admin=True))
         self.assertIsNone(self.engine.store.get('mail:account:new'))
+
+
+class Pending25(unittest.TestCase):
+    setUp = filing11.FilingNotices11.setUp
+
+    def test_review25_pending_read_failure_keeps_storage_error_snapshot_and_new_warning(self):
+        import sqlite3
+        old = {'id': 'old', 'app': 'mail', 'state': 'partial', 'ack': False,
+               'untrusted_content': {'reason': 'Earlier filing needs inspection.'}}
+        self.engine.store.write({'notice:old': old}, 'fixture', 'Synthetic warning')
+        self.engine.pending()
+        fresh = {**old, 'id': 'fresh', 'untrusted_content': {'reason': 'Nothing was deleted. Check Target.'}}
+        self.engine.store.defer_notice('fresh', {'notice:fresh': fresh}, 'mail_move', 'Synthetic deferred warning')
+        failure = sqlite3.OperationalError('Synthetic full disk during rollback')
+        failure.sqlite_errorcode = sqlite3.SQLITE_FULL
+        items = self.engine.store.iter_items
+        def unreadable(prefix):
+            if prefix == 'op:':
+                raise failure
+            return items(prefix)
+        with patch.object(self.engine.store, 'iter_items', side_effect=unreadable), \
+             patch.object(self.engine.store, 'flush_notices', side_effect=failure):
+            result = self.engine.request({'v': 1, 'method': 'call', 'action': 'control_pending', 'arguments': {}})
+        self.assertFalse(result['ok'], result)
+        self.assertIn('Disk full', result['error']['message'])
+        self.assertIn('snapshot', result['pending']['unavailable'])
+        self.assertEqual({n['operation_id'] for n in result['data']['notices']}, {'old', 'fresh'})
+        self.assertEqual(result['observations']['evidence']['fresh']['filing_warning']['reason'], fresh['untrusted_content']['reason'])
+
+    def test_review25_caller_proxy_also_checks_final_serialized_response(self):
+        from types import SimpleNamespace
+        from aresos_control.proxy import Proxy
+        proxy = Proxy('mail', {'act_socket': 'unused'})
+        proxy.client = SimpleNamespace(call=lambda *args: {'ok': False, 'pending': {}, 'error': {'message': 'x' * WIRE_LIMIT}})
+        with self.assertRaises(Refused):
+            proxy.call('accounts', {})
