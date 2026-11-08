@@ -263,6 +263,15 @@ class Store:
         with open(self.journal.name, 'rb') as stream:
             for raw in stream:
                 if not raw.endswith(b'\n'):
+                    try:
+                        tail = json.loads(raw)
+                    except (ValueError, UnicodeError):
+                        tail = None
+                    if isinstance(tail, dict) and 'commit' in tail:
+                        # A complete commit marker with damaged framing is
+                        # corruption, rather than an interrupted uncommitted
+                        # tail. Keep the existing committed-record rejection.
+                        raise Refused('evidence_corrupt', 'Independent commit record framing is damaged; owner recovery required, no submissions.')
                     # A torn final write was never acknowledged. Preserve every
                     # complete fence, including one needing prepared replay or
                     # owner restore; only discard the incomplete line itself.

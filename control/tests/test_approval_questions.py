@@ -48,7 +48,7 @@ class ApprovalQuestions(EngineCase):
         altered = {k: approval[k] for k in ('description', 'operation_id', 'question')}
         caller, service = socket.socketpair()
         @contextmanager
-        def connection():
+        def connection(request=None):
             yield caller
         client = Client('unused')
         with caller, service, patch.object(client, 'connection', connection), patch('aresos_control.protocol.receive', return_value={'ok': True}):
