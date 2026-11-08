@@ -227,7 +227,7 @@ Three places, each with one job:
 
    **What decisions 22 and 23 change for the open briefs (2026-11-08, after re-check 18).** Each case that must be
    proven belongs to one workstream:
-   - *Brief 18c and the base qualification* (the next base or boundary brief, then the early image test): one session
+- *Brief 18c and the base qualification* (the next base or boundary brief, then the early image test): one session
      user and no coding user, with a stand-in "other user" in CI; the launcher as the `claude` command; the managed
      `CLAUDE.md` loading; the twelve skip-permissions rules (`CONTROL.md` section 7), with both kinds of hostile test
      in both modes, and `disableBypassPermissionsMode` dropped only when they pass; the developer-site network list
@@ -241,12 +241,18 @@ Three places, each with one job:
      planted git folder); whether Claude Code embeds a git library; Claude Code and the relay started set-group-id
      (`aresos-session`, `aresos-relay`) and so non-dumpable, with the native program, the MCP pipes, the terminal and
      git working under that start; the tool service accepting asking actions only from a peer of group `aresos-relay`
-     whose parent is the registered Claude Code, and `kernel.yama.ptrace_scope` at least 1; the hostile test injecting
-     through `/proc/<relay>/fd/*` and `/proc/<claude>/fd/*` and starting the genuine relay itself; his git clients
-     refusing project repositories if he chooses so; the GitHub App credential, rulesets refusing deletion and
-     force-push on every branch and tag through git and the API, no token for a repository without them, GitHub's own
-     clean-up of merged branches under those rules, the mirror clone with archival retention and restore; Claude
-     Code's messages to other sessions closed; the `WebFetch` fallback path in skip-permissions mode.
+     whose parent is the registered Claude Code, only the first relay per app per session (the genuine relays starting
+     before Claude can run anything; a relay restart refused with the plain message), and the root-owned check that
+     only Claude Code and the relay hold the relay's pipes; no MCP pipe ends or service sockets inherited by other
+     children; the extra group dropped before `bwrap`; the relay unable to become dumpable again and the native
+     program never doing so; `kernel.yama.ptrace_scope` at least 1 and `dev.tty.legacy_tiocsti` 0; the hostile test
+     from a same-user process and from an unsandboxed direct child (injection through `/proc/<relay>/fd/*` and
+     `/proc/<claude>/fd/*`, its own pipes and a feeder starting the genuine relay, a second relay, inherited
+     descriptors); his git clients refusing project repositories if he chooses so; the GitHub App credential, rulesets
+     refusing deletion and force-push on every branch and tag through git and the API, no token for a repository
+     without them, GitHub's own clean-up of merged branches under those rules, the mirror clone with archival
+     retention and restore; Claude Code's messages to other sessions closed; the `WebFetch` fallback path in
+     skip-permissions mode.
    - *Mail's exact-settings boundary* (round 16, `boundary.py`): the installed settings compared against the
      generated files plus the vetted additions' record (empty until the first addition), with the draft's changes
      above (no `disableBypassPermissionsMode` once the base qualification passes, the developer-site list, project
@@ -254,21 +260,22 @@ Three places, each with one job:
    - *Brief 20* (Chrome): the coding-user references gone; project work in Chrome (checks on real sites through the
      same tools; localhost tests with the test server and a clean browser in one sandboxed command); its tests also
      in skip-permissions mode.
-   - *A new brief: the add-tool path*: preparation fetching only from the listed hosts, redirects held to them,
-     publisher identity shown and look-alike names flagged, other sources needing a fetch approval and then an install
-     approval; inspection, builds and install scripts in a sandbox, the install step only copying; an independent
-     review by a fresh agent the service starts, covering the artifact, its dependencies and its start and background
-     behaviour; `tools_add` with classes and their evidence; free tools only on that review or an enforcing adapter; a
-     server holding his account access installed only after the review passes, unless he chooses otherwise (owner
-     choice 5), starting only after approval and reaching only its declared hosts; connectors reached by the service,
-     asking per call by default; tool lists compared on every listing, changed tools hidden and refused at dispatch;
-     activation only in a session started with the regenerated settings; a system user per added server, `aresos-mcp
-     addon`, the owner command, the skills folder, plugins split into parts, generated settings with the additions,
-     and its tests (`CONTROL.md` section 7). Its number is taken when it is written.
+- *A new brief: the add-tool path*: preparation fetching only from the listed hosts, redirects held to them, publisher
+     identity shown and look-alike names flagged, other sources needing a fetch approval and then an install approval;
+     inspection, builds and install scripts in a sandbox, the install step only copying; an independent review by a
+     fresh agent the service starts, covering the artifact, its dependencies and its start and background behaviour;
+     `tools_add` with classes and their evidence; free tools only on that review or an enforcing adapter; a server
+     holding his account access installed only after the review passes, unless he chooses otherwise (owner choice 5; a
+     failed review, a review that can't run and an unanswered choice each refusing), starting only after approval and
+     reaching only its declared hosts; connectors reached by the service, asking per call by default; tool lists
+     compared on every listing, changed tools hidden and refused at dispatch; activation only in a session started
+     with the regenerated settings; a system user per added server, `aresos-mcp addon`, the owner command, the skills
+     folder, plugins split into parts, generated settings with the additions, and its tests (`CONTROL.md` section 7).
+     Its number is taken when it is written.
    - `laptop-aresos` owns `os/` and the accounts (the session's user, the dropped coding user, the project subvolumes,
      `/usr/bin/git` as the wrapper, the `sudo` rule, `kernel.yama.ptrace_scope`, the `aresos-session` and
-     `aresos-relay` groups and their set-group-id programs) and has board item #102 about installing software; the
-     image side of decisions 22 and 23 is agreed with it.
+     `aresos-relay` groups and their set-group-id programs, `dev.tty.legacy_tiocsti`) and has board item #102 about
+     installing software; the image side of decisions 22 and 23 is agreed with it.
 6. **Security review** of the whole stack (fresh Codex, frontier), then **qualification in the real AresOS image**.
 7. **After the first boot on the laptop:** the real mail account, the owner's own Chrome, the system-wide settings,
    and the first weeks of real use.
@@ -529,3 +536,7 @@ tasks at any time.
   relay start set-group-id into their own groups, which keeps them non-dumpable, so a process of the same user can't
   inject through their `/proc` descriptors; the service knows the relay by its group and its registered parent; an
   added server that holds his account access becomes the fifth owner choice. Re-check 21 next.
+- **2026-11-08, 04:16:** frontier re-check 21 of draft 20: one blocking point (a direct child of Claude Code could
+  start the genuine relay with its own pipes); choice 5 closed at the design level. Draft 21: the service accepts one
+  relay per app per session, checks before every asking action that only Claude Code and the relay hold its pipes,
+  and no pipe ends or sockets leak to other children; a relay restart means restarting the session. Re-check 22 next.
