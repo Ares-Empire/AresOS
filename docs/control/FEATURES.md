@@ -66,9 +66,11 @@ Effects: read, change, send (asks), delete (asks). Tools are in
 
 | Feature | Tool | Effect | State |
 |---|---|---|---|
-| Work on code in his project folders: edit, build, test, git | the file tools and the sandboxed terminal | change | first, in the same session as mail and Chrome |
+| Work on code in his project folders: edit, build, test, git | the file tools and the sandboxed terminal | change | first, in the same session as mail and Chrome; planted repository settings run nowhere outside the sandbox |
+| Delete or overwrite project files | the sandboxed terminal and the file tools | change (recoverable) | first, free because a snapshot of the project folders is taken before every command and file write and kept 30 days (his open choice: CONTROL.md section 10; the other option asks for each deletion) |
+| Restore a project file, folder or branch | `sudo aresos admin projects restore …`, `… repos restore …` | owner | owner |
 | Install project packages and command-line tools (`gh`, linters, test runners) | the sandboxed terminal | change | first, freely: they run only inside the sandbox |
-| Pull and push code | git and `gh` in the sandbox | send (to his own repositories) | first: the sandbox reaches GitHub and the package registries only, and pushes only to his own repositories |
+| Pull and push code | git and `gh` in the sandbox | send (to his own repositories) | first: the sandbox reaches GitHub and the package registries only; its token is limited to his own repositories (a narrowing, not a guarantee); deleting or force-pushing default and protected branches is blocked by GitHub rulesets, and every branch is mirrored by the service for 30 days |
 | Publish a package to a registry | | | never from the sandbox: no publishing credentials |
 | Test a project against its own local server in a browser | a clean throwaway browser inside the sandbox | | first: none of his sign-ins, not his Chrome |
 | Check a project on a real site in his Chrome | the Chrome tools | read; sends ask | first, like any site |
@@ -79,10 +81,10 @@ Effects: read, change, send (asks), delete (asks). Tools are in
 | Feature | Tool | Effect | State |
 |---|---|---|---|
 | Add an MCP server (another app's, or a third party's) | `tools_prepare_add`, then `tools_add` | asks | first: pinned version and hash, installed root-owned as its own user with its own credentials and named hosts |
-| Add a claude.ai connector | the same | asks | first; asks again when its tool list changes |
+| Add a claude.ai connector | the same; the tool service connects to it itself | asks | first; each of its tools asks on every call unless he marks one free; a changed tool is hidden until classified again |
 | Add a skill | the same, into the root-owned skills folder | asks | first; skill scripts run in the sandbox |
 | Add a plugin | the same, split into its parts | asks | first: skills, commands, agents and MCP servers; its hooks, language servers and monitors only if he adds them himself |
-| Use an added tool | its own tools, classified read, change, send or delete | as classified | first: send and delete ask; a tool that can't be classified asks on every call |
+| Use an added tool | its own tools, classified read, change, send or delete | as classified | first: free only on reviewed evidence or an enforcing adapter, otherwise every call asks; send and delete ask; a changed tool is hidden until classified again |
 | Add a tool himself; remove one | `sudo aresos admin tools …` | owner | owner |
 
 ## Chrome

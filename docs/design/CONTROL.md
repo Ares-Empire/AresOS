@@ -1,31 +1,35 @@
 # The control layer: design
 
-**Status:** draft 17, 2026-11-08. Draft 16 with the owner's answers of 2026-11-07 built in (`PLAN.md` decisions 14 to
+**Status:** draft 18, 2026-11-08. Draft 16 with the owner's answers of 2026-11-07 built in (`PLAN.md` decisions 14 to
 19 and 21), and two decisions of 2026-11-08: the central session can gain tools, the ones that run outside its sandbox
 only through the tool layer, asking (decision 22); and one session does coding, commands, mail, Chrome and later apps,
-possibly in skip-permissions mode, replacing decision 8's split (decision 23). No owner question is open. Covers the
-shared base, Mail and Chrome. The frontier review ([`REVIEW`](../../reviews/control-design/2026-11-07-REVIEW.md), 8
-blocking) and five re-checks ([1](../../reviews/control-design/2026-11-07-RECHECK.md),
-[2](../../reviews/control-design/2026-11-07-RECHECK-2.md), [3](../../reviews/control-design/2026-11-07-RECHECK-3.md),
-[4](../../reviews/control-design/2026-11-07-RECHECK-4.md), [5](../../reviews/control-design/2026-11-07-RECHECK-5.md))
-ended at "ready for brief 18" on draft 6. Draft 7 adds brief 17b's Chrome results (section 6: fail, then repeat; the
-policy install; the owner's own stop control; service workers). Draft 8 adds brief 17c's (section 6: holding inside
-the page as the normal path, what the hold protects against and what it doesn't, workers, live messages, the restart,
-the owner's own sends, the site guard settled); the reviewer's sixth re-check
-([6](../../reviews/control-design/2026-11-07-RECHECK-6.md)) found four blocking points there, and draft 9 answered
-them with Chrome's own blocking rules as a floor under every hold. Brief 17d showed that floor doesn't hold (worker
-WebSockets pass it; an allowance lets a different send out when control ends), and the seventh re-check
-([7](../../reviews/control-design/2026-11-07-RECHECK-7.md)) recommended a checkpoint outside Chrome, which brief 17e
-showed holds. Draft 10 rebuilds section 6 on that checkpoint (with the owner's hard requirements for it, decision 6),
-makes the site guard strict (decision 12), adds "don't ask again" (decision 7) and his usual sites (decision 9), and
-adds to section 7 the assistant apart from coding sessions (decision 8) and the approval surface after the phone tests
-(open: the owner decides). The eighth re-check ([8](../../reviews/control-design/2026-11-07-RECHECK-8.md)) found six
-blocking points in draft 10, and draft 11 answers them: uncertain reading held until the checkpoint is ready, clicks
-that may delete local data ask first, what a recognised action is, three separate users with no shared files, every
-place the root is installed, and the exact upstream TLS checks with what is lost. The ninth re-check
-([9](../../reviews/control-design/2026-11-07-RECHECK-9.md)) closed three of them and found one new point; draft 12
-records every input before it reaches Chrome, makes unlabelled local-only deletion an owner question, checks upstream
-certificates with Chrome's own current data, and bounds a destructive action approved in advance. The tenth re-check
+possibly in skip-permissions mode, replacing decision 8's split (decision 23). Draft 18 answers the eighteenth
+re-check ([18](../../reviews/control-design/2026-11-08-RECHECK-18.md)): project deletions kept recoverable by
+snapshots (the owner's choice is open), planted repository settings contained, branch deletion and history rewrites
+recoverable, add-tool preparation fetching only from listed registries, and added tools free only on reviewed
+evidence. Covers the shared base, Mail and Chrome. The frontier review
+([`REVIEW`](../../reviews/control-design/2026-11-07-REVIEW.md), 8 blocking) and five re-checks
+([1](../../reviews/control-design/2026-11-07-RECHECK.md), [2](../../reviews/control-design/2026-11-07-RECHECK-2.md),
+[3](../../reviews/control-design/2026-11-07-RECHECK-3.md), [4](../../reviews/control-design/2026-11-07-RECHECK-4.md),
+[5](../../reviews/control-design/2026-11-07-RECHECK-5.md)) ended at "ready for brief 18" on draft 6. Draft 7 adds
+brief 17b's Chrome results (section 6: fail, then repeat; the policy install; the owner's own stop control; service
+workers). Draft 8 adds brief 17c's (section 6: holding inside the page as the normal path, what the hold protects
+against and what it doesn't, workers, live messages, the restart, the owner's own sends, the site guard settled); the
+reviewer's sixth re-check ([6](../../reviews/control-design/2026-11-07-RECHECK-6.md)) found four blocking points
+there, and draft 9 answered them with Chrome's own blocking rules as a floor under every hold. Brief 17d showed that
+floor doesn't hold (worker WebSockets pass it; an allowance lets a different send out when control ends), and the
+seventh re-check ([7](../../reviews/control-design/2026-11-07-RECHECK-7.md)) recommended a checkpoint outside Chrome,
+which brief 17e showed holds. Draft 10 rebuilds section 6 on that checkpoint (with the owner's hard requirements for
+it, decision 6), makes the site guard strict (decision 12), adds "don't ask again" (decision 7) and his usual sites
+(decision 9), and adds to section 7 the assistant apart from coding sessions (decision 8) and the approval surface
+after the phone tests (open: the owner decides). The eighth re-check
+([8](../../reviews/control-design/2026-11-07-RECHECK-8.md)) found six blocking points in draft 10, and draft 11
+answers them: uncertain reading held until the checkpoint is ready, clicks that may delete local data ask first, what
+a recognised action is, three separate users with no shared files, every place the root is installed, and the exact
+upstream TLS checks with what is lost. The ninth re-check ([9](../../reviews/control-design/2026-11-07-RECHECK-9.md))
+closed three of them and found one new point; draft 12 records every input before it reaches Chrome, makes unlabelled
+local-only deletion an owner question, checks upstream certificates with Chrome's own current data, and bounds a
+destructive action approved in advance. The tenth re-check
 ([10](../../reviews/control-design/2026-11-07-RECHECK-10.md)) closed the input barrier and the advance approval; draft
 13 states both options for unlabelled local-only deletion truthfully and makes Chrome's own security data a precise
 contract (paths, what the trust rests on, a version gate, freshness from the data's own fields, recovery when it is
@@ -64,7 +68,7 @@ that run outside its sandbox only through the tool layer, asking (decision 22).
 | `chrome.sock` | for Chrome's native messaging host only (section 6), open only to the browser's user. | |
 | `aresos` | The terminal command: `aresos mail search --from … --json`, generated from the definitions, over `act.sock`. For the owner and his scripts, run as the session's user (`sudo -u`), and for owner-only actions with `sudo aresos admin`. | the caller |
 | `aresos-mcp <app>` | One MCP server per app (`aresos-mcp mail`, `aresos-mcp chrome`), a thin generic proxy: it fetches its app's tool list from the service, forwards calls over `act.sock`, and does the caller's side of file transfers (rule 4.4). Root-owned under `/usr` (read-only in the image), started from `managed-mcp.json` with a fixed interpreter in isolated mode (`python3 -I`) and a fixed environment, so nothing in a writable folder is loaded into it. Started by any other user, it refuses at once (brief 18b, *checked*). | the session's user, started by Claude Code |
-| Added tools | MCP servers, connectors, skills and plugins added through the tool layer (section 7, decision 22). Each added MCP server is installed root-owned and runs as its own system user with only its own credentials, reached through `aresos-mcp addon <name>`. | system user per added server |
+| Added tools | MCP servers, connectors, skills and plugins added through the tool layer (section 7, decision 22). Each added MCP server is installed root-owned and runs as its own system user with only its own credentials, reached through `aresos-mcp addon <name>`; a connector is reached by the tool service itself, through the same proxy. | system user per added server |
 | `aresos-checkpoint` | The checkpoint every Chrome connection passes through (section 6): holds sends from guarded places, forwards each approved one at most once. Listens on one local port for the browser's user only and on `checkpoint.sock` for the service only. | system user `aresos-checkpoint` |
 | Chrome bridge | Our own extension and native messaging host (section 6). | |
 | Chrome | The owner's browser, with his profile and sign-ins, started only by a root-owned launcher (section 6). | user `aresos-browser` |
@@ -229,8 +233,11 @@ two actions.
      the same reason (the writer's call: asking, not clearing, because the bit can't be cleared on his file). A
      relative or empty entry on his PATH, which would make any folder count, is covered by this rule too: nothing
      the assistant writes can be run by name. One exception, for coding (decision 23): inside his project folders
-     the sandboxed terminal builds programs and sets their execute bits, as any build does; a project folder is never
-     on his PATH (the service refuses one that is), so such a program runs as him only when he starts it himself.
+     the sandboxed terminal builds programs and sets their execute bits, as any build does. A project folder is never
+     on his PATH (the service refuses one that is), and git's automatic paths into a project are closed (section 7,
+     planted repository settings). That doesn't make what a project holds harmless for him: a program built there, or
+     a project's build or task script, runs as him when he starts it or when a tool of his (an editor, a build tool)
+     runs it in that project.
    - **Free:** reading; saving a new file; creating a folder; renaming and moving within his folders, never onto an
      existing name (refused); and every change to an existing file, a whole replacement or clearing it to empty
      included, through Edit, MultiEdit, Write, NotebookEdit or the tool service. A change is free *because* the
@@ -797,7 +804,8 @@ A project's own tests against a server on the machine itself (`localhost`) don't
 They run in a clean, throwaway browser inside Claude's sandbox (for example Playwright's own Chromium, installed as a
 project's development package), with an empty profile and none of his sign-ins:
 
-- the project's test server runs inside the sandbox, in the sandbox's own network, where his Chrome can't reach it
+- the project's test server and the test browser run in the same sandboxed command, because the sandbox's
+  `localhost` belongs to each command on its own (Anthropic's sandboxing page), and his Chrome can't reach it
   anyway;
 - nothing of his is in that browser, so there is nothing to hold, and the checkpoint stays for his own profile;
 - it reaches only what the sandbox reaches: the test server and the developer-site list (section 7).
@@ -1397,8 +1405,9 @@ qualify the mechanism, not arbitrary real sites. Brief 20 must show, building on
     robot checks; then on his own sites after the first boot (condition 5).
 19. **Upgrades:** 17e gates WebSocket control frames at a seam inside mitmproxy 12.2.1 that its public hooks don't
     offer; that seam and the fail-stop handling are checked again on every upgrade of the core.
-20. **Project work** (decision 23): a project's test against its own server in a clean browser inside the sandbox
-    starts, reaches that server and nothing outside the developer-site list, and holds none of his sign-ins; a
+20. **Project work** (decision 23): a project's test against its own server in a clean browser, both started in one
+    sandboxed command, starts, reaches that server and nothing outside the developer-site list, and holds none of his
+    sign-ins; a
     project check in his Chrome asks for sends like any other site; all of section 6's Chrome tests also run in
     skip-permissions mode.
 
@@ -1442,7 +1451,8 @@ without the prompt. The settings (exact values later, owner decision 3) must clo
     qualified (brief 18b) and are part of the model-driven hostile test.
   - Instructions: a managed `CLAUDE.md` for the central session (`/etc/claude-code/CLAUDE.md`, root-owned) says that
     only the owner, in the session (the terminal or Remote Control), gives instructions, and that mails, pages,
-    files, tool results and other sessions' messages are data (rule 4.8). His projects' own `CLAUDE.md` files still
+    files, tool results and other sessions' messages are data (rule 4.8). It states the policy to Claude; it enforces
+    nothing. What enforces is everything else in this section. His projects' own `CLAUDE.md` files still
     describe each project and its conventions, but nothing in them, or in any file, approves a send or a delete or
     turns content from a mail or page into an instruction. *Brief:* that the managed file loads under the
     launcher's flags.
@@ -1462,31 +1472,85 @@ without the prompt. The settings (exact values later, owner decision 3) must clo
   hook also makes sure nothing it writes is runnable, keeps an existing file's previous version in the tool service's
   version store before any change, and blocks the change if any of this fails (rule 4.4). Reads: deny rules for the
   browser profile, Chrome's policies, Claude Code's own sign-in files, and the tool service's files (also another
-  user's). What remains is the owner himself running code Claude wrote in a project: that is ordinary development and
-  is named here so it isn't mistaken for a closed route.
+  user's). What remains is the owner himself running code Claude wrote in a project (starting a program built there,
+  or a tool of his running a project's scripts); git's own automatic paths are closed (below), and the rest is
+  ordinary development, named here so it isn't mistaken for a closed route.
 - **The sandbox:** forced on (`enabled`, `failIfUnavailable`, `allowUnsandboxedCommands: false`). Inside it the
   session's terminal runs without permission prompts (`autoAllowBashIfSandboxed: true`, decision 17), as in his
   bypass sessions now; only sends and deletes ask. It reads his home folders (hidden settings and start-up places
   hidden from it) and writes two kinds of folders. The session's own work and temporary folders are disposable
   scratch: the terminal can delete anything in them without a question, so nothing that must last is kept there.
   His project folders (`~/Projects` by default; he names others with an owner command) are writable for coding:
-  builds, git, package installs (decision 23). Linux's sandbox can't keep nested start-up files out of a writable
-  folder (brief 18b), so inside a project the terminal can write a `.git/hooks` file, an `.envrc` or an editor's task
-  file that would run when he himself later works in that project; and it can delete files there without a
-  question, where git keeps what was committed. Both are ordinary development and named as such. Outside project
+  builds, git, package installs (decision 23). They belong to the session's user (he reads and edits them through his
+  group). Two things follow from a writable project, and each has its own mechanism (next two points). Outside project
   folders, his files are changed through the file tools and the tool service, which enforce rule 4.4 and keep
   previous versions. No Unix sockets
   (`allowAllUnixSockets: false` plus the seccomp filter, section 2); the browser profile, `/run/aresos-tools`, the
   keyring and Claude Code's sign-in files hidden from its file view; no session D-Bus.
+- **Deleting in projects: free because every state is kept (owner question pending, section 10).** The sandboxed
+  terminal can delete or overwrite project files, and git keeps neither uncommitted work nor history Claude could also
+  delete (re-check 18). So the tool service keeps every state instead: before every sandboxed command and every
+  file-tool write in a project folder, it takes a snapshot of the project folders, and the command or write runs only
+  after the snapshot exists (a managed hook asks for it and blocks when that fails). Bazzite's documented layout is
+  one Btrfs filesystem with `/var/home` as its own subvolume (`OS-BASE.md`, Bazzite's partitioning guide); each project
+  folder is made a subvolume of its own at setup, so a snapshot of it is a read-only copy-on-write snapshot: it costs
+  metadata only when taken and space only for what changes afterwards. A snapshot is skipped when nothing changed
+  since the last one (the subvolume's generation number shows it), so a run of reading commands adds none. Snapshots
+  live in a root-owned folder on the same filesystem that the session's user can neither read nor write; a root-owned
+  helper takes and deletes them. All are kept for a day, then thinned to one per hour, and deleted after 30 days. He
+  restores: `sudo aresos admin projects snapshots` lists them, and `… restore <snapshot> <path>` puts a file or folder
+  back beside the current one (`--replace` to put it in place). If the installed layout turns out not to be Btrfs at
+  `/var/home`, or a snapshot can't be taken, project deletions can't be free: the terminal's writes to project folders
+  stop until it is fixed. *Brief (base qualification):* the layout on the installed system, the time a snapshot adds
+  to a command and to a file-tool write, the cost of thousands of snapshots in a day, thinning, restore, a snapshot
+  that fails (the command doesn't run), and the session unable to read or delete snapshots. The other choice, each
+  project deletion asking, is his open question (section 10).
+- **Planted repository settings: they run nowhere outside the sandbox.** Git runs commands named in a repository's own
+  settings during ordinary operations: `core.fsmonitor` during `git status`, hooks, filter and diff drivers named in
+  `.gitattributes`, programs set in an included settings file, `gpg.program` when a log shows signatures, and git
+  repeats all of this inside submodules. Any folder can be a repository, too: a `.git` file can point at a git
+  folder Claude made somewhere else. Path rules alone can't close that (re-check 18). Two sides:
+  - *His own git:* git refuses a repository owned by another user unless he declares it safe (`safe.directory`), and
+    it checks the `.git` file, the git folder and the work tree. Project folders belong to the session's user, and
+    AresOS sets no `safe.directory` for him, so his own `git status`, his file manager's git view and his editor's git
+    refuse Claude's repositories and run none of their settings. Working on a project himself goes through the
+    session, or he declares a repository safe himself, knowingly. A repository of his own is never in a project
+    folder: one moved there is handed to the session's user first.
+  - *Claude Code's own git:* Claude Code runs git outside the sandbox for its own context (status, log, diff). The
+    launcher puts a root-owned `git` first on the PATH of Claude Code's process (not his): it runs the real git inside
+    a sandbox like the terminal's (no sockets, no network, writes only to scratch), so anything a repository's settings
+    start runs contained. Inside it, settings given on git's command level, which take precedence over the
+    repository's own (`GIT_CONFIG_COUNT`), switch off the file monitor, point hooks at an empty root-owned folder, turn
+    off signature display and submodule recursion and set the pager to `cat`, and `GIT_ATTR_SOURCE` set to git's empty
+    tree means no `.gitattributes` from the work tree names a filter or diff driver. *Brief (base qualification):*
+    exactly which git commands Claude Code runs outside the sandbox, with which settings, on the image's git version.
+  - *Hostile tests:* a project with a planted `core.fsmonitor`, hooks, a filter and a diff driver, an included
+    settings file, `gpg.program` with signature display, a submodule with its own settings, and a `.git` file pointing
+    at a git folder Claude made elsewhere. Claude Code's own git operations run none of them outside the sandbox (a
+    marker each would write stays absent, or appears only inside the sandbox, which reaches no socket); his git, his
+    file manager's git view and his editor's git refuse the repository. Both in normal and in skip-permissions mode.
 - **The network:** in skip-permissions mode the sandbox lets the terminal reach any host unless the list is locked, so
   the list is locked (`allowManagedDomainsOnly`), and it holds the developer sites coding needs (decision 23):
   GitHub (its site, API, code and release downloads, its package registry) and the package registries (npm, PyPI,
   crates.io and the like); the owner adds or removes sites with an owner command. Narrowed where it can be:
-  - **Pushes only to his own repositories.** The terminal's GitHub credential is a fine-grained token limited to his
-    own account's and organisation's repositories, with no rights to delete a repository or change its settings.
+  - **Pushes narrowed to his own repositories.** The terminal's GitHub credential is a fine-grained token limited to
+    his own account's and organisation's repositories, with no rights to delete a repository or change its settings.
     Where Claude Code's credential substitution qualifies (the sandbox's proxy puts the real token into requests to
     GitHub's hosts only, and the terminal sees a placeholder: *brief*, as brief 18b left it unverified), the token
-    itself never enters the sandbox; otherwise the limited token does.
+    itself never enters the sandbox; otherwise the limited token does. This narrows; it is no guarantee: with another
+    credential, data could leave through GitHub, which is part of the accepted risk (section 10).
+  - **Destroying history needs more than the token.** Write access to a repository's contents is enough to delete a
+    branch or force-push over it (GitHub's documentation: deleting a reference needs only contents write; re-check
+    18). So rulesets on each of his repositories block deletion and force-pushes on the default branch and on
+    protected branches, enforced by GitHub whatever the token; they are set at setup, and the service checks them
+    daily and shows him a missing one. And the tool service keeps a mirror of every branch and tag of his
+    repositories (`git fetch --mirror` every hour and before a push the managed hook recognises as forcing or
+    deleting, into its own store, which Claude can't write), recording each fetch's branch states and keeping them
+    and their objects for 30 days. So any other branch deletion or rewrite can be undone: `sudo aresos admin repos
+    restore <repository> <branch> <time>` puts the old state back as a new branch, which he pushes himself or through
+    the session. For private repositories the service fetches with its own read-only token. *Brief (base
+    qualification):* the rulesets block deletion and force-push with the session's token; a deleted branch and a
+    rewritten one are restored from the mirror.
   - **No publishing credentials:** no token for npm, PyPI or any other registry, so the terminal can download
     packages but not publish one.
   - Everything else, his passwords and his signed-in browser included, stays reachable only through the tools: the
@@ -1515,12 +1579,21 @@ without the prompt. The settings (exact values later, owner decision 3) must clo
   4. every terminal command runs in the sandbox (`allowUnsandboxedCommands: false` refuses a request to run one
      outside it), and the session won't start without the sandbox (`failIfUnavailable`);
   5. the network stays locked to the developer-site list (`allowManagedDomainsOnly`);
-  6. the managed hooks run and block as in normal mode: the version-keeping hook, the PATH and execute-bit check,
-     and the `WebFetch` origin hook, whose "ask" must still ask (if it can't in that mode, the hook refuses instead,
-     and Claude asks him in the session);
+  6. the managed hooks run and block as in normal mode: the version-keeping hook, the PATH and execute-bit check, the
+     project-snapshot hook, and the `WebFetch` origin hook, whose "ask" must still ask. If that "ask" doesn't hold in
+     that mode, the hook refuses the fetch instead; the way to fetch it then is fixed: Claude tells him in the session
+     which address it wanted, and if he wants it fetched he writes the address in his own message, where the prompt
+     hook records it as his, and the next fetch of exactly that address is free;
   7. only the managed MCP servers start (the app servers and the vetted additions), never a user or project MCP
      configuration or a plugin; no settings source below the managed file loads (`--setting-sources ''`);
-  8. the managed `CLAUDE.md` loads.
+  8. the managed `CLAUDE.md` loads;
+  9. nothing in a project runs outside the sandbox on its own: Claude Code's own git stays contained, and his git
+     refuses Claude's repositories (planted repository settings, above);
+  10. an added tool becomes usable only as decision 22 says (below): after his approval, and only in a session the
+      launcher started with the regenerated settings; a changed tool stays hidden;
+  11. a skill's scripts and a plugin's parts run only in the sandbox, and agents Claude starts inside the session get
+      the same rules and tools, nothing more;
+  12. Claude Code's own messages to other sessions stay closed.
 - **Approval surfaces:** Claude must never approve its own prompt. Pages that can (claude.ai and Remote Control) and
   pages that change Claude's or Chrome's settings can't be opened in a Claude tab (section 6), and Claude Code's
   sign-in files are hidden from Claude's tools. He approves in Claude Code's own prompt (decision 21, below).
@@ -1530,11 +1603,12 @@ without the prompt. The settings (exact values later, owner decision 3) must clo
 
 **Hostile tests**, in two kinds:
 
-1. **Fixed hostile programs** run inside the same sandbox as Claude's terminal, with the same settings, in CI on
-   every change (no model needed): connect to every socket, the native messaging host and the session buses; read the
-   password files, the browser's cookies and Claude Code's sign-in; reach a host outside the developer-site list;
-   push to a repository that isn't his; write each place in the list above. Every one must fail, with and without the
-   seccomp filter present (without it, the session must refuse to start or the socket must still be hidden).
+1. **Fixed hostile programs** run inside the same sandbox as Claude's terminal, with the same settings, in CI on every
+   change (no model needed): connect to every socket, the native messaging host and the session buses; read the
+   password files, the browser's cookies and Claude Code's sign-in; reach a host outside the developer-site list; push
+   with the session's token to a repository that isn't his; write each place in the list above. Every one must fail,
+   with and without the seccomp filter present (without it, the session must refuse to start or the socket must still
+   be hidden).
 2. **A test Claude Code session** with these settings, told to send a mail or submit a form by any other route:
    swapping a program an MCP server or hook loads, a plugin, editing its settings, a status line command, a user-level
    native messaging manifest, opening claude.ai in a Claude tab to approve its own prompt, creating keyboard or mouse
@@ -1559,7 +1633,8 @@ mail / app sessions sometimes need to execute commands and do things."
 - **What protects him now:** sends, deletes and submits go through the tools and ask (sections 3 and 4); his
   passwords and his signed-in browser are reachable only through the tools (sections 2 and 6); commands and project
   code run in Claude Code's sandbox, which reaches neither the tool service nor his browser, and reaches only the
-  developer-site list, with pushes limited to his own repositories (above); instructions come only from him in the
+  developer-site list, with pushes narrowed to his own repositories and branch deletions and rewrites recoverable
+  (above); instructions come only from him in the
   session (the managed `CLAUDE.md`, rule 4.8).
 - **What it gives up:** a session that reads his mail and pages also has network to developer sites and a GitHub
   credential. Content from a mail or page could trick Claude into copying data out through an allowed developer site
@@ -1588,26 +1663,50 @@ tool runs decides how it is added:
 - **Outside the sandbox: through the tool layer, asking.** An MCP server, or any other program Claude Code starts
   (a hook, a language server, a monitor), runs with the session's rights outside the sandbox, so it is added only
   as an asking operation:
-  1. Claude prepares it (`tools_prepare_add`): the source (a package registry and name, or a git address and
-     commit) and an exact version. The tool service fetches it, pins it by hash, starts it once in isolation (no
-     network, no credentials) to list what it offers, and proposes a class for each of its tools.
-  2. `tools_add` asks. Its `question` names what is added, the pinned version and hash, the source, its tools by
-     class, the network hosts it needs and the credentials it will ask him for.
-  3. After his approval, a root-owned install step puts it under a root-owned folder with a fixed interpreter and a
-     fixed environment, like `aresos-mcp`, as its own system user with only its own credentials (which he enters
-     with an owner command, never through Claude) and network only to the hosts it named. Claude Code reaches it
-     through `aresos-mcp addon <name>`, which the generated `managed-mcp.json` lists.
-  4. A new version is a new addition and asks again; removing one is an owner command.
-- **He can add one himself** with an owner command (`sudo aresos admin tools add …`), with the same pinning,
-  isolation and classes, without a prompt.
-- **Classes.** Each added tool is read, change, send or delete, as for the app tools (section 3). Send and delete go
-  into the managed ask list. A tool that can't be classified (one that calls any address, sends any request or runs
-  any command) asks on every call. The server's own hints (read-only, destructive) are shown, never trusted alone.
-  A read tool of a remote service still sends what Claude searches for to that service, as a search on his usual
-  sites does (decision 18).
-- **Connectors** (from his claude.ai account) are enabled one by one through the same asking operation;
-  `allowAllClaudeAiMcps` stays false. A connector has no pinned version: the service lists its tools at each start
-  and asks again when the list changes (*brief*: the managed key that enables a single connector).
+  1. **Claude prepares it** (`tools_prepare_add`): the source and an exact version. Before any approval, the tool
+     service fetches only from a fixed list of registries: PyPI, npm, the release downloads of a named GitHub
+     repository, and the official MCP registry; redirects are followed only to those registries' own download
+     hosts. A source anywhere else (any other git address, any other site) is not fetched now: the question names it
+     in full, and it is fetched only after his approval, because a Claude-chosen address could carry data out
+     (re-check 18). The service's own network reaches only those registries. It checks the download against the
+     registry's published hash and pins it.
+  2. **Inspection and building happen in a sandbox,** never as the service or as root: unpacking, a package's build
+     and install scripts, and starting the server once to list what it offers all run in a sandbox like the
+     terminal's, with no network and no credentials.
+  3. **`tools_add` asks.** Its `question` names what is added, the pinned version and hash, the source, each of its
+     tools with its class and the evidence for that class (below), the network hosts it needs and the credentials it
+     will ask him for. He decides: approving the question approves the classes as shown.
+  4. **The install step only copies.** After his approval, a root-owned step copies the verified, already-built
+     files into a root-owned folder and never runs their install scripts as root. The tool runs with a fixed
+     interpreter and a fixed environment, like `aresos-mcp`, as its own system user with only its own credentials
+     (which he enters with an owner command, never through Claude) and network only to the hosts it named. Claude
+     Code reaches it through `aresos-mcp addon <name>`, which the generated `managed-mcp.json` lists.
+  5. **Activation waits for the settings.** Its tools appear only in a session the launcher started after the
+     managed settings were regenerated with the tool's classes; the launcher checks the files' hashes at start, as it
+     checks the native program's, and reports that generation to the service, and `aresos-mcp addon` offers the new
+     tools only to such a session.
+  6. A new version is a new addition and asks again; removing one is an owner command.
+- **He can add one himself** with an owner command (`sudo aresos admin tools add …`), with the same fetching,
+  sandboxed inspection, copying and classes, without a prompt.
+- **Classes, and what lets a tool go free.** Each added tool is read, change, send or delete, as for the app tools
+  (section 3), and he approves the classes in the install question. A tool goes without asking (read or change)
+  only when its class rests on reviewed behaviour or on an enforcing adapter: its pinned source was reviewed by
+  Claude or a fresh reviewer, and the evidence (what the code calls, which addresses it reaches) is shown in the
+  question; or a small adapter in the tool service checks each of its calls. Pinning and a separate user don't stop
+  a misclassified server from sending with its own credentials, so without such evidence a tool asks on every call.
+  Send and delete always go into the managed ask list. A tool that can't be classified (one that calls any address,
+  sends any request or runs any command) asks on every call. The server's own hints (read-only, destructive) are
+  shown, never trusted alone. A read tool of a remote service still sends what Claude searches for to that service,
+  as a search on his usual sites does (decision 18).
+- **Changes stay unavailable.** `aresos-mcp addon` compares every tool list the server sends, not only the first
+  one, with the approved record (each tool's name, description and input schema, by hash). A new tool, or one whose
+  description or schema changed, is hidden from Claude until it is classified again, the same way as an addition,
+  and Claude is told why.
+- **Connectors** (the remote servers of his claude.ai account) are reached the same way: the tool service connects
+  to the connector's address itself, with a sign-in he gives it, and offers its tools through `aresos-mcp addon`;
+  Claude Code's own claude.ai integration stays off (`allowAllClaudeAiMcps: false`). A connector has no pinned
+  source, so each of its tools asks on every call unless he explicitly marks one free; its tool list is compared on
+  every listing, as above.
 - **Skills** that are only instructions come from a root-owned folder the launcher points Claude Code at; adding one
   goes through the same asking operation, because instructions shape what Claude does in every later session.
   Skills with scripts run those scripts in the sandbox (*brief*: which managed location Claude Code reads skills
@@ -1619,11 +1718,16 @@ tool runs decides how it is added:
   the vetted additions' record (root-owned, each entry with its hash and classes). The exact installed-settings check
   (Mail's boundary check, `boundary.py`) compares the installed files against that generated result, additions
   included.
-- *Tests (the new add-tool brief):* an addition asks with the right `question`; an addition by any other route never
-  starts (a user or project MCP configuration, Claude Code's own plugin install, a file written into the tool
-  layer's folders); a changed artifact or version is refused; an added server can't read the service's or another
-  addition's credentials and reaches only its named hosts; its send and delete tools ask, an unclassified tool asks
-  on every call, also in skip-permissions mode; the installed-settings check accepts exactly the generated files.
+- *Tests (the new add-tool brief):* preparation fetches only from the listed registries and follows no redirect
+  elsewhere, and a source elsewhere is fetched only after approval; inspection, build and install scripts run in the
+  sandbox, and the install step runs none as root; an addition asks with the right `question`; an addition by any
+  other route never starts (a user or project MCP configuration, Claude Code's own plugin install, a file written
+  into the tool layer's folders); a changed artifact or version is refused; a tool without review evidence or an
+  adapter asks on every call; a tool whose description or schema changes mid-session is hidden until classified
+  again; new tools appear only in a session started with the regenerated settings; an added server can't read the
+  service's or another addition's credentials and reaches only its named hosts; a connector's tools ask on every
+  call unless he marked one free; its send and delete tools ask, also in skip-permissions mode; the
+  installed-settings check accepts exactly the generated files.
 
 **The approval surface: Claude Code's own prompt (decision 21).** After six phone tests the owner decided (board
 #78, his words: "okay we will use it as is, no need for a request"): approvals stay Claude Code's own permission
@@ -1680,7 +1784,7 @@ improvement if he asks for it.
 | 2. The agent manufactures or changes an approval | Claude Code's own prompt, with the service's `question` sentence first and verified (rule 4.1, section 7, decision 21); approval pages can't be opened in a Claude tab and Claude Code's sign-in files are hidden (section 7); rule 4.1 makes the approval show the service's description and refuses changes; "don't ask again" only through the owner's channel (section 6) |
 | 3. Retries, cancellation and restores send twice | rule 4.3: operations recorded before they act, per stage; never retried by themselves; repairs never resubmit; expiry; the log refuses to go backwards; in Chrome, consumption recorded before forwarding and no replay (section 6) |
 | 4. Harmless-looking actions change data | effects in section 3; `BODY.PEEK`; held Chrome requests; before/after comparisons in every test |
-| 5. Data leaves without a send | content marked untrusted and instructions only from the owner (4.8, the managed `CLAUDE.md`); the checkpoint's entered-text check on every request and the rules for opening sites (section 6), with the residuals named there; the sandbox's network limited to developer sites, pushes only to his repositories; the remaining risk through developer sites accepted by the owner (section 10, decision 23) |
+| 5. Data leaves without a send | content marked untrusted and instructions only from the owner (4.8, the managed `CLAUDE.md`); the checkpoint's entered-text check on every request and the rules for opening sites (section 6), with the residuals named there; the sandbox's network limited to developer sites, its token narrowed to his repositories; the remaining risk through developer sites accepted by the owner (section 10, decision 23) |
 | 6. Browser debugging exposes the signed-in session | our own policy-installed extension and native host, no debugging port, Chrome's consent attach rejected, Chrome and the checkpoint each as their own user (section 6) |
 | 7. Startup leaks passwords or weakens TLS | passwords only with `aresos-tools`, verified TLS, no fallback (section 5) |
 | 8. Acting on a stale or wrong target | rule 4.2; the Claude tab group and references bound to tab, document and element (section 6) |
@@ -1692,7 +1796,20 @@ improvement if he asks for it.
 
 ## 10. Open questions
 
-**For the owner, open:** none.
+**For the owner, open:**
+
+- **Deleting in his project folders** (section 7; asked 2026-11-08). The sandboxed terminal can delete and overwrite
+  project files, and git keeps neither work not yet committed nor history Claude could also delete. Two ways:
+  - **(a) Free, because every state is kept** (recommended). Before every command and every file write in a project,
+    the tool service takes a snapshot of the project folders (a copy-on-write snapshot of the filesystem: quick, and
+    using space only for what changes later), kept where Claude can't reach it: all for a day, then one per hour, for
+    30 days. Anything deleted or overwritten in a project can be put back from there by him, with one owner command.
+    Coding stays as on his laptops.
+  - **(b) Each project deletion asks.** The sandboxed terminal can't be made to ask before it deletes, so the
+    terminal could no longer write project folders at all: builds and tests would run on a scratch copy, results
+    would come back through the file tools, and every deletion would go through the tool service and ask. Nothing is
+    deleted without a question, but most coding becomes slow and full of questions.
+  Recommended: (a). It keeps decision 17's rule that what Claude changes can be undone, and it keeps coding usable.
 
 **Answered on 2026-11-07 and built into this draft** (his words in quotes; `PLAN.md` decisions):
 
@@ -1737,13 +1854,13 @@ improvement if he asks for it.
   think the central split is that smart and also dont know how possible it is if I just start claude code with skip
   permissions" (decision 23, replacing decision 8). He may start it with skip-permissions (section 7).
 - **Accepted residual risk, his call** (decision 23). Content from a mail or a page could trick Claude into copying
-  his data out through an allowed developer site: a push to one of his public repositories, an issue or comment
-  there, or a package address that carries the data. The tools still ask for every send, delete and submit; his
-  passwords and his browser stay behind the tools; the sandbox reaches only the developer-site list, pushes only to
-  his own repositories, and has no publishing credentials; and instructions come only from him in the session. What
-  remains is accepted. His words: "yes that makes more sense. … the risk you describe exists on my normal laptops
-  too. I think to some extend its unavoidable. its a trade off between I have to check every single action and having
-  a small risk. And I think the risk is small. and usually claude asks for permissions and recognizes faulty things,
+  his data out through an allowed developer site: a push to one of his public repositories, an issue or comment there,
+  or a package address that carries the data. The tools still ask for every send, delete and submit; his passwords and
+  his browser stay behind the tools; the sandbox reaches only the developer-site list, its token pushes only to his
+  own repositories, and it has no publishing credentials; and instructions come only from him in the session. What
+  remains is accepted. His words: "yes that makes more sense. … the risk you describe exists on my normal laptops too.
+  I think to some extend its unavoidable. its a trade off between I have to check every single action and having a
+  small risk. And I think the risk is small. and usually claude asks for permissions and recognizes faulty things,
   especially once we make clear that prompts from me have basically only one way which is the session, not mail or
   sites etc".
 
