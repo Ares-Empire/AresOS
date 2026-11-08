@@ -150,50 +150,50 @@ def resolve_checks(mail):
     from ..recovery import open_filings
     for key in sorted(open_filings(mail.store)):
         prefix = 'mail:filing:' if key.startswith('mail:filing:') else 'mail:rename:'
-        for intent in (mail.store.get(key),):
-            if (intent.get('state') != 'started' or not intent.get('account') or
-                    intent['id'] in mail.store.deferred_notices):
-                continue
-            try:
-                account = mail.account(intent['account'], ready=False)
-                with mail.transport.imap(account) as client:
-                    listed = folders(client)
-                current = resolve(listed)
-                if prefix == 'mail:filing:':
-                    if 'roles_before' not in intent or 'records' not in intent:
-                        continue
-                    observed = locations(mail, account, intent['records'])
-                    if any(not item['scan_complete'] for item in observed):
-                        continue
-                    intent.update(locations=observed, roles_after=listed,
-                                  observed_role=folder_role(intent['target'], listed))
-                    intent['reason'] = warning(intent['verb'], listed, observed, current != intent['roles_before'])
-                    intent['reason'] += ' The target ' + short_name(intent['target']) + ' is now ' + intent['observed_role'] + '.'
-                    content = summary(intent)
-                    pages = location_pages(observed)
-                    base = 'mail:filing-locations:' + intent['id'] + ':'
-                    changes = {base + str(i): page for i, page in enumerate(pages)}
-                    changes[base + 'meta'] = {'pages': len(pages), 'total_messages': len(observed)}
-                else:
-                    if not any(folder['name'] == intent['target'] for folder in listed):
-                        continue
-                    intent.update(roles_after=current, observed_role=folder_role(intent['target'], listed))
-                    content = {'filing_id': intent['id'], 'message_count': intent['message_count'],
-                        'reason': 'Folder filing was interrupted. Its current location is ' + short_name(intent['target']) +
-                                  ', inside ' + intent['observed_role'] + '. Nothing is renamed back or deleted. Check your mail program.',
-                        'folders': [short_name(intent['source']), short_name(intent['target'])],
-                        'folders_more': 0, 'folders_more_text': ''}
-                    changes = {}
-                # Fresh evidence can disclose locations/roles, but cannot prove
-                # which interrupted commands completed. Keep that warning.
-                intent['state'] = 'partial'
-                changes[key] = intent
-                changes['notice:' + intent['id']] = {'id': intent['id'], 'app': 'mail', 'state': 'partial',
-                    'ack': False, 'created_at': time.time_ns(), 'untrusted_content': content}
-                mail.store.write(changes, 'mail_filing_check', 'Interrupted filing checked without changing mail')
-            except (Refused, OSError, sqlite3.Error, imaplib.IMAP4.error, Uncertain):
-                # The committed started row remains the not-yet-checked source.
-                continue
+        intent = mail.store.get(key)
+        if (not intent or intent.get('state') != 'started' or not intent.get('account') or
+                intent['id'] in mail.store.deferred_notices):
+            continue
+        try:
+            account = mail.account(intent['account'], ready=False)
+            with mail.transport.imap(account) as client:
+                listed = folders(client)
+            current = resolve(listed)
+            if prefix == 'mail:filing:':
+                if 'roles_before' not in intent or 'records' not in intent:
+                    continue
+                observed = locations(mail, account, intent['records'])
+                if any(not item['scan_complete'] for item in observed):
+                    continue
+                intent.update(locations=observed, roles_after=listed,
+                              observed_role=folder_role(intent['target'], listed))
+                intent['reason'] = warning(intent['verb'], listed, observed, current != intent['roles_before'])
+                intent['reason'] += ' The target ' + short_name(intent['target']) + ' is now ' + intent['observed_role'] + '.'
+                content = summary(intent)
+                pages = location_pages(observed)
+                base = 'mail:filing-locations:' + intent['id'] + ':'
+                changes = {base + str(i): page for i, page in enumerate(pages)}
+                changes[base + 'meta'] = {'pages': len(pages), 'total_messages': len(observed)}
+            else:
+                if not any(folder['name'] == intent['target'] for folder in listed):
+                    continue
+                intent.update(roles_after=current, observed_role=folder_role(intent['target'], listed))
+                content = {'filing_id': intent['id'], 'message_count': intent['message_count'],
+                    'reason': 'Folder filing was interrupted. Its current location is ' + short_name(intent['target']) +
+                              ', inside ' + intent['observed_role'] + '. Nothing is renamed back or deleted. Check your mail program.',
+                    'folders': [short_name(intent['source']), short_name(intent['target'])],
+                    'folders_more': 0, 'folders_more_text': ''}
+                changes = {}
+            # Fresh evidence can disclose locations/roles, but cannot prove
+            # which interrupted commands completed. Keep that warning.
+            intent['state'] = 'partial'
+            changes[key] = intent
+            changes['notice:' + intent['id']] = {'id': intent['id'], 'app': 'mail', 'state': 'partial',
+                'ack': False, 'created_at': time.time_ns(), 'untrusted_content': content}
+            mail.store.write(changes, 'mail_filing_check', 'Interrupted filing checked without changing mail')
+        except (Refused, OSError, sqlite3.Error, imaplib.IMAP4.error, Uncertain):
+            # The committed started row remains the not-yet-checked source.
+            continue
 
 
 def audit_content(content):

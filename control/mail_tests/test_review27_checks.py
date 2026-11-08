@@ -40,8 +40,12 @@ class Checks27(unittest.TestCase):
         notices = self.data('filing_notices', {})['items']
         self.assertIn('recovery-' + operation['id'], {n['operation_id'] for n in notices})
 
-    def duplicate_loss(self, restart, catalogue):
+    def duplicate_loss(self, restart, catalogue, state='done'):
         operation = self.submit(self.approval('send', self.compose()))
+        if state != 'done':
+            saved = self.engine.operation(operation['id'])
+            saved['state'] = state
+            self.engine.store.write({'op:' + saved['id']: saved}, 'fixture', 'Synthetic finished action state')
         self.assertFalse(self.engine.pending().get('notices'))
         self.assertTrue(self.engine.operation(operation['id'])['sent_copy_check']['clean'])
         self.imap.boxes['Sent'][2] = self.imap.boxes['Sent'][1]
@@ -53,7 +57,7 @@ class Checks27(unittest.TestCase):
         with patch.object(self.engine.store, 'write', side_effect=refuse):
             result = self.call('operation_status', {'operation_id': operation['id']})
             self.assertIn('2 copies', result['data']['evidence']['sent_copy_warning'])
-            self.assertEqual(self.engine.operation(operation['id'])['state'], 'done')
+            self.assertEqual(self.engine.operation(operation['id'])['state'], state)
             self.assertEqual(self.engine.operation(operation['id'])['sent_copy_check']['state'], 'open')
             self.assertTrue(any('not yet checked' in n['untrusted_content']['reason']
                                 for n in result['pending']['notices']))
@@ -73,6 +77,21 @@ class Checks27(unittest.TestCase):
 
     def test_review27_duplicate_result_refused_catalogue_recovers_after_restart_before_status(self):
         self.duplicate_loss(True, True)
+
+    def test_review27_registered_check_survives_failed_action_state(self):
+        self.duplicate_loss(True, True, 'failed')
+
+    def test_review27_new_check_refuses_before_live_read_if_registration_cannot_commit(self):
+        operation = self.submit(self.approval('send', self.compose()))
+        saved = self.engine.operation(operation['id'])
+        saved.pop('sent_copy_check')
+        saved['state'] = 'failed'
+        self.engine.store.write({'op:' + saved['id']: saved}, 'fixture', 'Synthetic legacy action without a registered check')
+        with patch.object(self.engine.store, 'write', side_effect=Refused('storage_limit', 'Synthetic registration refusal')), \
+             patch.object(self.mail, 'sent_matches', side_effect=AssertionError('No live check before its source commits')):
+            result = self.call('operation_status', {'operation_id': saved['id']})
+        self.assertIn('evidence_error', result['data'])
+        self.assertNotIn('evidence', result['data'])
 
     def test_review27_clean_send_is_quiet_and_unreachable_recheck_is_explicit(self):
         operation = self.submit(self.approval('send', self.compose()))
@@ -102,6 +121,15 @@ class Checks27(unittest.TestCase):
         for notices in (self.engine.pending()['notices'], self.data('filing_notices', {})['items']):
             self.assertEqual({n['operation_id'] for n in notices}, {'filing', 'rename'})
             self.assertTrue(all('not yet checked' in n['untrusted_content']['reason'] for n in notices))
+
+    def test_review27_current_session_setup_check_stays_visible_without_repeating_probes(self):
+        self.engine.store.write({'mail:account:incomplete': {'id': 'incomplete', 'ready': False}},
+                                'fixture', 'Synthetic unfinished setup checks')
+        with patch.object(self.mail.transport, 'imap', side_effect=AssertionError('Never repeat setup probes')):
+            notices = self.engine.pending()['notices']
+        self.assertEqual(len(notices), 1)
+        self.assertEqual(notices[0]['untrusted_content']['intent_key'], 'mail:account:incomplete')
+        self.assertIn('not yet checked', notices[0]['untrusted_content']['reason'])
 
     def test_review27_move_copy_and_rename_recheck_after_failed_result_commit(self):
         from test_review23_sweep import Scenario

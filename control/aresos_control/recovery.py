@@ -1,6 +1,5 @@
 """One recovery catalogue for every durable intent; it never resumes work."""
 import json
-import time
 from .common import digest, storage_refusal
 
 
@@ -61,14 +60,21 @@ def recovery_notices(store, include_checks=True):
     keys = {key for key, _ in candidates if not key.startswith('legacy-intent:')}
     if include_checks:
         keys.update(open_filings(store))
+        keys.update(key for key, value in store.iter_items('mail:account:')
+                    if not value.get('onboarded', value.get('ready', False)))
     for key, notice_id, app, reason in unfinished(store, keys=keys):
         filing = key.startswith(('mail:filing:', 'mail:rename:'))
-        if (key, notice_id) not in candidates and not (include_checks and filing):
+        account = key.startswith('mail:account:')
+        if (key, notice_id) not in candidates and not (include_checks and (filing or account)):
             continue
         if filing:
             reason = ('Filing roles and locations are not yet checked. The interrupted check has no committed result. '
                       'Messages or folders may have moved into a special folder, including Trash. '
                       'Nothing is moved back or deleted automatically. Inspect the filing audit and your mail program.')
+        elif account:
+            reason = ('Owner account setup is unfinished; its qualification is not yet checked. '
+                      'Probes may already have sent mail or changed folders. Inspect the setup log and server; '
+                      'no probes are repeated automatically.')
         row = store.db.execute('SELECT created FROM retained WHERE k=?', (key,)).fetchone()
         created = row[0] if row is not None else 0
         if store.get('notice:' + notice_id) is None:
@@ -82,6 +88,7 @@ def recover_intents(store, persist=True):
     # bounded batch fits. Reads synthesize every remaining notice, so neither a
     # full disk nor 10,000 restored operations need an unbounded RAM queue.
     from itertools import islice
+    store._open_filings = None
     # Capture identities in their actual unfinished state, before and after
     # prepared replay. A reservation that starts later was never interrupted.
     store.startup_intents = getattr(store, 'startup_intents', set()) | {

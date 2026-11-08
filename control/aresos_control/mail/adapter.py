@@ -704,6 +704,12 @@ class Mail:
                     result.append({"account": account["id"], "folder": folder, "uidvalidity": validity, "uid": int(uid), "message_id": message_id})
             return result
 
+    def register_sent_check(self, operation):
+        if 'sent_copy_check' not in operation:
+            operation['sent_copy_check'] = {'state': 'open'}
+            self.store.write({'op:' + operation['id']: operation}, 'mail_sent_copy_check_open',
+                             'Sent-copy check registered before reading evidence', operation['id'])
+
     def sent_copy_count(self, operation, matches, commit_clean=False):
         op = self.store.get('op:' + operation['id'])
         count = len(matches)
@@ -737,9 +743,10 @@ class Mail:
         unresolved = []
         for _, op in self.store.iter_items('op:'):
             if (op['app'] != 'mail' or not op.get('payload', {}).get('composition') or
-                    op['state'] in {'reserved', 'failed', 'refused'}):
+                    (op['state'] in {'reserved', 'failed', 'refused'} and 'sent_copy_check' not in op)):
                 continue
             try:
+                self.register_sent_check(op)
                 account = self.account(op['payload']['composition']['mail']['account'], ready=False)
                 matches = self.sent_matches(account, self.message_id(op['id']))
                 self.sent_copy_count(op, matches, commit_clean=True)
@@ -756,6 +763,7 @@ class Mail:
             return self.evidence(op['repair_of']) | {'repair_of': op['repair_of']}
         if not op or not op.get("payload", {}).get("composition"):
             return {"absence_is_not_proof": True}
+        self.register_sent_check(op)
         account = self.account(op["payload"]["composition"]["mail"]["account"], ready=False)
         matches = self.sent_matches(account, self.message_id(operation_id))
         return self.sent_observation(op, matches)
@@ -879,6 +887,7 @@ class Mail:
         comp = operation["payload"]["composition"]
         account = self.account(comp["mail"]["account"], ready=False)
         if which == "sent_copy":
+            self.register_sent_check(operation)
             matches = self.sent_matches(account, self.message_id(operation["id"]))
             self.sent_observation(operation, matches)
             self.store.observations.require_storage()
@@ -1060,6 +1069,7 @@ class Mail:
         comp = operation['payload']['composition']['mail']
         account = self.account(comp['account'], ready=False)
         if which == 'sent_copy':
+            self.register_sent_check(operation)
             matches = self.sent_matches(account, self.message_id(operation['id']))
             result = self.sent_observation(operation, matches)
             if observation is not None:
