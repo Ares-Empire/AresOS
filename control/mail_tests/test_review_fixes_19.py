@@ -78,7 +78,9 @@ class Recovery19(unittest.TestCase):
         old, args, repair = self.uncertain()
         # A different Message-ID is not evidence for this send.
         self.imap.boxes['Sent'][1] = self.imap.raw
-        with patch.object(self.mail, 'local_stage', side_effect=AssertionError('Settlement must only read')):
+        retry = self.engine.operation(repair['id'])['attempt_ended_at'] + self.mail.SENT_QUIET_PERIOD
+        with patch.object(self.mail, 'local_stage', side_effect=AssertionError('Settlement must only read')), \
+             patch('aresos_control.engine.time.time', return_value=retry):
             result = self.data('operation_repair', args)
         self.assertEqual(result['operation']['id'], repair['id'])
         self.assertEqual(result['operation']['state'], 'failed')

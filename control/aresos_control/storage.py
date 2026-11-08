@@ -27,7 +27,8 @@ def short_description(operation):
         result = {"action": description["action"], "untrusted_content": copy.deepcopy(description["untrusted_content"])}
         if operation.get('repair_of'):
             result['repair'] = {'repair_of': operation['repair_of'],
-                                'stage': operation.get('payload', {}).get('stage')}
+                                'stage': operation.get('payload', {}).get('stage'),
+                                'attempt_ended_at': operation.get('attempt_ended_at')}
         return result
     result = {k: copy.deepcopy(description[k]) for k in
               ("action", "account", "to", "cc", "bcc", "subject", "title") if k in description}
@@ -49,7 +50,8 @@ def short_description(operation):
             # System identity is permanent even when the full working log is
             # rolled back. It is separate from escaped mail/user content.
             result['repair'] = {'repair_of': operation['repair_of'],
-                                'stage': operation.get('payload', {}).get('stage')}
+                                'stage': operation.get('payload', {}).get('stage'),
+                                'attempt_ended_at': operation.get('attempt_ended_at')}
         return result
     return result
 
@@ -72,6 +74,8 @@ def missing_operation(known):
         if not original and len(targets) == 1 and isinstance(targets[0], str):
             original = targets[0]
         stage = identity.get('stage')
+        if identity.get('attempt_ended_at') is not None:
+            op['attempt_ended_at'] = identity['attempt_ended_at']
         op['repair_of'] = original
         if original and stage in {'sent_copy', 'answered_flag'}:
             op['payload'] = {'operation_id': original, 'stage': stage}
@@ -205,6 +209,10 @@ class Store:
                 for key, op in self.iter_items("op:"):
                     if op["state"] == "submitting":
                         op["state"], op["reason"] = "unknown", "Service restarted during submission; inspect evidence, never resubmit."
+                        if op.get('repair_of'):
+                            op['attempt_ended_at'] = time.time()
+                        if op.get('sent_append_started_at'):
+                            op['sent_append_ended_at'] = time.time()
                         try:
                             self.write({key: op}, op["action"], "restart: outcome unknown", op["id"], recovery=True)
                         except Refused as exc:

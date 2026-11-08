@@ -223,3 +223,105 @@ class RepairIdentity20(unittest.TestCase):
                 self.assertIn('permanent stage identity', result['error']['message'])
         self.assertEqual(self.snapshot(), before)
         self.assertEqual(len([op for _, op in self.engine.store.items('op:') if op.get('repair_of') == old['id']]), 1)
+
+
+class Append20(unittest.TestCase):
+    setUp = round19.Recovery19.setUp
+    call = round19.Recovery19.call
+    data = round19.Recovery19.data
+    compose = round19.Recovery19.compose
+    approval = round19.Recovery19.approval
+    snapshot = round19.Recovery19.snapshot
+    send = round19.Recovery19.send
+
+    def pending_append(self):
+        old = self.send('sent_copy')
+        args = {'operation_id': old['id'], 'stage': 'sent_copy'}
+        pending = []
+        def append(account, folder, raw, flags):
+            pending.append(raw)
+            raise OSError('Synthetic timeout with APPEND still pending remotely')
+        with patch.object(self.mail, 'append', side_effect=append) as appends:
+            repair = self.data('operation_repair', args)['operation']
+        self.assertEqual(appends.call_count, 1)
+        self.assertEqual(repair['state'], 'unknown')
+        ended = self.engine.operation(repair['id'])['attempt_ended_at']
+        return old, args, repair, pending[0], ended
+
+    def test_review20_late_append_inside_quiet_period_keeps_one_attempt_names_time_then_settles_one_copy(self):
+        old, args, repair, raw, ended = self.pending_append()
+        retry = ended + 15 * 60
+        expected = time.strftime('%Y-%m-%d %H:%M:%S UTC', time.gmtime(retry))
+        before = self.snapshot()
+        with patch('aresos_control.engine.time.time', return_value=ended + 60), \
+             patch.object(self.mail, 'append', side_effect=AssertionError('Earlier APPEND may still land')):
+            result = self.data('operation_repair', args)['operation']
+            self.assertEqual((result['id'], result['state']), (repair['id'], 'unknown'))
+            self.assertIn(expected, result['reason'])
+            self.assertEqual(self.snapshot(), before)
+            # Complete the old APPEND after an empty settlement search.
+            self.imap.boxes['Sent'][1] = raw
+            result = self.data('operation_repair', args)
+        self.assertEqual(result['operation']['id'], repair['id'])
+        self.assertEqual(result['operation']['state'], 'done')
+        self.assertEqual(len(self.mail.sent_matches(self.account, self.mail.message_id(old['id']))), 1)
+        self.assertEqual(len([op for _, op in self.engine.store.items('op:') if op.get('repair_of') == old['id']]), 1)
+
+    def test_review20_late_append_after_quiet_period_never_duplicates_silently_and_warning_repeats(self):
+        old, args, repair, raw, ended = self.pending_append()
+        def late_and_new(account, folder, new_raw, flags):
+            self.assertEqual(new_raw, raw)
+            self.imap.boxes['Sent'].update({1: raw, 2: new_raw})
+            return {'account': 'box', 'folder': 'Sent', 'uidvalidity': self.imap.validities['Sent'],
+                    'uid': 2, 'message_id': self.mail.message_id(old['id'])}
+        with patch('aresos_control.engine.time.time', return_value=ended + self.mail.SENT_QUIET_PERIOD + 1), \
+             patch.object(self.mail, 'append', side_effect=late_and_new) as appends:
+            settled = self.data('operation_repair', args)['operation']
+            self.assertEqual((settled['id'], settled['state']), (repair['id'], 'failed'))
+            result = self.call('operation_repair', args)
+        self.assertTrue(result['ok'], result)
+        self.assertEqual(appends.call_count, 1)
+        self.assertEqual(result['data']['operation']['state'], 'done')
+        self.assertIn('2 copies', result['data']['original']['stages']['sent_copy_warning'])
+        self.assertIn('2 copies', result['pending']['notices'][0]['untrusted_content']['reason'])
+        later = self.call('operation_status', {'operation_id': old['id']})
+        self.assertIn('2 copies', later['data']['operation']['reason'])
+        self.assertEqual(later['pending']['notices'], result['pending']['notices'])
+        self.assertEqual(len(self.imap.boxes['Sent']), 2)
+        self.assertEqual(self.imap.mutations, [])
+
+    def test_review20_negative_settlement_uses_new_readonly_imap_connection_after_quiet_period(self):
+        old, args, repair, raw, ended = self.pending_append()
+        from aresos_control.mail.transport import Transport
+        clients = []
+        fixture = self.imap
+        class Client:
+            state = 'AUTH'
+            capabilities = ('UIDPLUS', 'MOVE')
+            def __init__(self, *args, **kwargs):
+                clients.append(self)
+                self.logged_out = False
+            def __getattr__(self, name):
+                return getattr(fixture, name)
+            def login(self, *args):
+                return 'OK', [b'Synthetic login']
+            def capability(self):
+                return 'OK', [b'UIDPLUS MOVE']
+            def logout(self):
+                self.logged_out = True
+        account = {**self.account, 'imap_host': 'mail.invalid', 'imap_port': 993, 'username': 'synthetic'}
+        with patch.object(self.mail, 'account', return_value=account), \
+             patch.object(self.mail.transport, 'imap', Transport.imap.__get__(self.mail.transport, Transport)), \
+             patch.object(self.mail.transport, 'password', return_value='synthetic'), \
+             patch('aresos_control.mail.transport.context', return_value=object()), \
+             patch('aresos_control.mail.transport.imaplib.IMAP4_SSL', side_effect=Client), \
+             patch.object(fixture, 'select', wraps=fixture.select) as selected, \
+             patch('aresos_control.engine.time.time', return_value=ended + self.mail.SENT_QUIET_PERIOD):
+            first = self.data('operation_repair', args)
+            second = self.mail.sent_matches(account, self.mail.message_id(old['id']))
+        self.assertEqual(first['operation']['state'], 'failed')
+        self.assertEqual(second, [])
+        self.assertEqual(len(clients), 2)
+        self.assertIsNot(clients[0], clients[1])
+        self.assertTrue(all(client.logged_out for client in clients))
+        self.assertTrue(all(call.kwargs['readonly'] for call in selected.call_args_list))

@@ -28,6 +28,9 @@ class Mail:
     question = staticmethod(question)
     PAGE_CHARS = 6000
     SCAN_LIMIT = 10000
+    # Negative evidence needs time for an APPEND whose answer/connection was
+    # lost. The owner-approved brief fixes this conservative wait at 15 minutes.
+    SENT_QUIET_PERIOD = 15 * 60
 
     def __init__(self, store, blobs):
         self.store, self.blobs = store, blobs
@@ -675,11 +678,13 @@ class Mail:
                 self.composition({"composition_id": comp["id"], "composition_hash": comp["hash"]})
 
     def sent_matches(self, account, message_id):
-        self.fresh_roles(account)
         folder = account["special"].get("sent")
         if not folder:
             raise Refused("unsupported_server", "SPECIAL-USE Sent missing; sending cannot safely check Message-ID evidence.")
         with self.transport.imap(account) as client:
+            # Transport.imap creates and logs out a new connection per call.
+            # In particular, settlement never searches on the APPEND session.
+            self.fresh_roles(account, client)
             validity = select(client, folder)
             ids = ok(client.uid("SEARCH", None, "HEADER", "Message-ID", quote(message_id)), "Search Sent evidence")[0]
             result = []
@@ -688,6 +693,19 @@ class Mail:
                 if str(codec.parse(raw, {"account": account["id"], "folder": folder, "uid": int(uid)}).get("Message-ID", "")) == message_id:
                     result.append({"account": account["id"], "folder": folder, "uidvalidity": validity, "uid": int(uid), "message_id": message_id})
             return result
+
+    def sent_copy_count(self, operation, matches):
+        if len(matches) <= 1:
+            return
+        reason = f'Sent contains {len(matches)} copies with this Message-ID. Check them in your mail program; nothing was deleted.'
+        op = self.store.get('op:' + operation['id'])
+        op['stages']['sent_copy_warning'] = reason
+        notice_id = 'sent-' + digest(operation['id'])[:32]
+        notice = {'id': notice_id, 'app': 'mail', 'state': 'partial', 'ack': False,
+                  'created_at': time.time_ns(), 'untrusted_content':
+                  {'reason': reason, 'operation_id': operation['id'], 'message_count': len(matches)}}
+        self.store.write({'op:' + op['id']: op, 'notice:' + notice_id: notice},
+                         'mail_sent_copy_check', 'duplicate Sent-copy warning', op['id'])
 
     def evidence(self, operation_id):
         op = self.store.get("op:" + operation_id)
@@ -792,14 +810,30 @@ class Mail:
         if which == "sent_copy":
             matches = self.sent_matches(account, self.message_id(operation["id"]))
             if matches:
+                self.sent_copy_count(operation, matches)
                 return "done"
             if account["sent_policy"] == "server":
                 raise Refused("stage_missing", "Server-managed Sent copy not yet visible; owner must inspect it, no client APPEND.")
             key = operation["stages"].get("wire_sha256")
             if key is None:
                 raise Refused("refused", "Exact wire bytes absent after restore; cannot recreate a Sent copy.")
+            ended = operation.get('sent_append_ended_at')
+            if operation.get('sent_append_started_at') and (ended is None or time.time() < ended + self.SENT_QUIET_PERIOD):
+                raise Uncertain('Earlier Sent APPEND may still land; keep the existing uncertain attempt and inspect status.')
+            retention.admit(self.store, ('notice:',), retention.NOTICE_COUNT, retention.NOTICE_BYTES,
+                            label='Retained notices', extra_count=1, extra_bytes=retention.NOTICE_RESERVE)
             self.fresh_roles(account, names=[account['special']['sent']])
-            self.append(account, account["special"]["sent"], self.wires.read(operation["stages"].get("sent_wire_sha256", key)), "(\\Seen)")
+            operation['sent_append_started_at'] = time.time()
+            operation.pop('sent_append_ended_at', None)
+            self.store.write({'op:' + operation['id']: operation}, 'mail_sent_copy_attempt', 'Sent APPEND attempt started', operation['id'])
+            try:
+                self.append(account, account["special"]["sent"], self.wires.read(operation["stages"].get("sent_wire_sha256", key)), "(\\Seen)")
+            finally:
+                operation['sent_append_ended_at'] = time.time()
+                self.store.write({'op:' + operation['id']: operation}, 'mail_sent_copy_attempt', 'Sent APPEND attempt ended', operation['id'])
+                # Even a lost APPEND answer gets a fresh, read-only count. A
+                # failed scan preserves uncertainty, never authorizes a retry.
+                self.sent_copy_count(operation, self.sent_matches(account, self.message_id(operation['id'])))
             self.store.checkpoint("mail_sent_copy")
             return "done"
         reference = comp["mail"]["answered_reference"]

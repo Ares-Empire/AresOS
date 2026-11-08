@@ -170,7 +170,25 @@ class Engine:
         return {"operation": self.public_operation(op)}
 
     def public_operation(self, op):
-        return approval_order({k: v for k, v in op.items() if k not in {"payload", "input_hash"}})
+        result = {k: v for k, v in op.items() if k not in
+                  {'payload', 'input_hash', 'attempt_ended_at', 'repair_identity_missing',
+                   'sent_append_started_at', 'sent_append_ended_at'} and v is not None}
+        if op.get('repair_identity_missing'):
+            result['reason'] += ' Permanent repair stage identity is missing; another repair is refused.'
+        elif (op['state'] == 'unknown' and op.get('repair_of')
+              and op.get('payload', {}).get('stage') == 'sent_copy'):
+            ended = op.get('attempt_ended_at')
+            if ended is None:
+                result['reason'] += ' Attempt end time is unavailable; absence cannot settle this repair. Ask the owner to inspect it.'
+            else:
+                retry = ended + Mail.SENT_QUIET_PERIOD
+                result['reason'] = ('Sent-copy attempt remains uncertain. If still absent, try settlement after '
+                                    + time.strftime('%Y-%m-%d %H:%M:%S UTC', time.gmtime(retry))
+                                    + f' (Unix {retry:.3f}); the earlier APPEND may still land.')
+        warning = op.get('stages', {}).get('sent_copy_warning')
+        if warning:
+            result['reason'] += ' ' + warning
+        return approval_order(result)
 
     def repair(self, app, args):
         old = self.operation(args["operation_id"], app)
@@ -200,6 +218,11 @@ class Engine:
                         result = self.adapters[app].repair_evidence(old, args['stage'])
                     except (Refused, OSError, imaplib.IMAP4.error, Uncertain):
                         return {'operation': self.public_operation(repair), 'original': self.public_operation(old)}
+                    if result == 'failed' and args['stage'] == 'sent_copy':
+                        ended = repair.get('attempt_ended_at')
+                        if (repair['state'] != 'unknown' or ended is None
+                                or time.time() < ended + Mail.SENT_QUIET_PERIOD):
+                            return {'operation': self.public_operation(repair), 'original': self.public_operation(old)}
                     changes = {}
                     if result in {'done', 'not_needed'}:
                         old['stages'][args['stage']] = result
@@ -224,6 +247,7 @@ class Engine:
         self.store.write({"op:" + op_id: repair}, repair["action"], "local repair of " + old["id"], op_id)
         try:
             result = self.adapters[app].repair(old, args["stage"])
+            old = self.operation(old['id'], app)
             old["stages"][args["stage"]] = result
             old["state"], old["reason"] = self.adapters[app].repaired_outcome(old)
             repair["state"], repair["reason"] = "done", "Local repair completed; never submitted."
@@ -234,6 +258,7 @@ class Engine:
         except Exception:
             repair["state"], repair["reason"] = "unknown", "Local repair uncertain; inspect far-side stage evidence. Never submit."
             changes = {"op:" + op_id: repair}
+        repair['attempt_ended_at'] = time.time()
         self.store.write(changes, repair["action"], repair["state"], op_id)
         return {"operation": self.public_operation(repair), "original": self.public_operation(old)}
 
