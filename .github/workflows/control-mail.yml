@@ -16,7 +16,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Real isolated mail servers and shared base (no model or real account)
-        run: bash control/ci/mail/run.sh
+        run: bash control/ci/mail/run.sh suite
       - name: Upload exact output (no credentials or private keys)
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -24,6 +24,24 @@ jobs:
           name: control-mail-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             .work/mail-ci/base.txt
+            .work/mail-ci/mail.txt
+            .work/mail-ci/isolation.txt
+            .work/mail-ci/greenmail.txt
+            .work/mail-ci/dovecot.txt
+  sweep:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: OS and SQLite fault sweep in isolated mail containers
+        run: bash control/ci/mail/run.sh sweep
+      - name: Upload sweep output and fixture isolation
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: control-mail-sweep-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            .work/mail-ci/setup.txt
             .work/mail-ci/mail.txt
             .work/mail-ci/isolation.txt
             .work/mail-ci/greenmail.txt
