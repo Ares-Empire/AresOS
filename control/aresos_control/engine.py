@@ -197,6 +197,8 @@ class Engine:
         op = {"id": op_id, "generation": self.store.generation, "app": app, "action": app + "_" + verb,
               "input_hash": digest(approval), "approval": approval, "payload": payload, "state": "reserved",
               "expires": expires, "stages": {}, "reason": "Awaiting exact approval; nothing submitted."}
+        if app == 'mail' and payload.get('composition'):
+            op['sent_copy_check'] = {'state': 'open'}
         self.store.write({"op:" + op_id: op}, op["action"], "reserved " + op["action"], op_id)
         self.store.checkpoint("reserved")
         return {"approval": approval, "state": "reserved"}
@@ -580,16 +582,21 @@ class Engine:
                 offset += len(chunk)
 
     def request(self, request, admin=False):
-        self.store.observations = Observations()
-        self.pending(resolve_checks=False)
+        previous_request = getattr(self.store, 'in_request', False)
+        self.store.in_request = True
         try:
-            if not isinstance(request, dict) or request.get('action') not in {'control_archive', 'control_restore_confirm'}:
-                self.store.flush_notices()
-        except Exception as exc:
-            self.store.remember_storage(exc)
-            self.store.observations.storage(exc)
-        result = self._admitted_request(request, admin)
-        return self.store.observations.finish(result, self.store)
+            self.store.observations = Observations()
+            self.pending(resolve_checks=False)
+            try:
+                if not isinstance(request, dict) or request.get('action') not in {'control_archive', 'control_restore_confirm'}:
+                    self.store.flush_notices()
+            except Exception as exc:
+                self.store.remember_storage(exc)
+                self.store.observations.storage(exc)
+            result = self._admitted_request(request, admin)
+            return self.store.observations.finish(result, self.store)
+        finally:
+            self.store.in_request = previous_request
 
     def _admitted_request(self, request, admin=False):
         previous_recovery = self.store.recovering

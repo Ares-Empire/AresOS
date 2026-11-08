@@ -748,7 +748,15 @@ class Mail:
             try:
                 self.register_sent_check(op)
                 account = self.account(op['payload']['composition']['mail']['account'], ready=False)
-                matches = self.sent_matches(account, self.message_id(op['id']))
+                active = getattr(self.store, 'in_request', False)
+                observed = self.store.observations.evidence.get(op['id'], {}) if active else {}
+                # Use fresh evidence once within this request. A later call or
+                # direct owner-view read must consult the server again.
+                matches = observed.get('sent')
+                if matches is None:
+                    matches = self.sent_matches(account, self.message_id(op['id']))
+                    if active:
+                        self.store.observations.observe(op['id'], {'sent': matches})
                 self.sent_copy_count(op, matches, commit_clean=True)
             except (Refused, OSError, sqlite3.Error, imaplib.IMAP4.error, Uncertain, KeyError, TypeError, ValueError):
                 unresolved.append({'id': 'sent-check-' + digest(op['id'])[:32], 'app': 'mail',

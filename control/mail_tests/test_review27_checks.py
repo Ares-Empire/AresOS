@@ -111,6 +111,16 @@ class Checks27(unittest.TestCase):
                        if n['untrusted_content'].get('operation_id') == operation['id'])
         self.assertIn('not yet checked', own['untrusted_content']['reason'])
 
+    def test_review27_evidence_is_reused_only_within_the_current_request(self):
+        operation = self.submit(self.approval('send', self.compose()))
+        with patch.object(self.mail, 'sent_matches', wraps=self.mail.sent_matches) as search:
+            self.data('operation_status', {'operation_id': operation['id']})
+            self.assertEqual(search.call_count, 1)
+            self.imap.boxes['Sent'][2] = self.imap.boxes['Sent'][1]
+            status = self.data('operation_status', {'operation_id': operation['id']})
+            self.assertEqual(search.call_count, 2)
+        self.assertIn('2 copies', status['evidence']['sent_copy_warning'])
+
     def test_review27_open_check_and_warning_source_cannot_be_archived(self):
         import time
         from aresos_control.archive import archive
