@@ -97,16 +97,18 @@ Updated 2026-11-07. The live truth is `git log`, `gh pr list` and `git worktree 
      6 to 13).
    - **Decided:** the approval surface (decision 21, after six phone tests): Claude Code's own prompt, at the laptop
      and through Remote Control on his phone, with every asking input starting with the tool service's `question`
-     sentence. On 2026-11-08 (decisions 22 and 23): the central session can gain tools, those that run outside its
-     sandbox only through the tool layer, asking; and one session does coding, commands, mail and Chrome together,
-     possibly in skip-permissions mode, replacing the assistant/coding split, with the risk of data leaving through
-     allowed developer sites accepted by him.
+     sentence. On 2026-11-08 (decision 24, replacing the containment parts of decisions 22 and 23): AresOS runs
+     normal Claude Code, as on any OS, plus our tools, which must be safe in themselves and not make things worse
+     than normal Claude Code. One session does coding, commands, mail and Chrome as his own user, with his own `gh`
+     login and his own MCP servers, skills and plugins, possibly in skip-permissions mode; sends, deletes and submits
+     through our tools ask through managed ask rules. The separate assistant and coder accounts aren't needed, and
+     his account installs software normally.
    - **In progress:** Mail (brief 19, PR #9: package review SAFE, frontier security review in its third round);
-     design draft 23 for decisions 22 and 23 (branch `control/one-session-tools`; re-check 24 next; five owner
-     choices open, each with its exact bound: `docs/design/CONTROL.md` section 10).
-     `laptop-aresos` owns `os/` and the accounts and has board item #102 about installing software.
+     design draft 24 for decision 24 (branch `control/one-session-tools`; re-check against the new bar next; no
+     owner choices open). `laptop-aresos` owns `os/` and the accounts (board #102 and #103).
    - **Next:** brief 18c (first end-to-end test on a throwaway CI image; no owner OK needed under the 2026-11-07
-     rule), then brief 20 (Chrome) on the final design draft, once a re-check finds no blocking point, both as changed
-     by decisions 22 and 23 (`PLAN.md`, "Order of work"); and a new brief for the add-tool path.
+     rule) and the base brief that reduces the managed settings to the ask rules, as changed by decision 24
+     (`PLAN.md`, "Order of work"); Mail's boundary check becomes a follow-up after Mail merges; brief 20 (Chrome)
+     after its checkpoint is re-examined against decision 24's bar. The add-tool brief is dropped.
 
 Codex Pro runs until 2026-11-21.

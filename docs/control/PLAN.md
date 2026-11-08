@@ -8,8 +8,9 @@ VERDICT wherever they differ. This file is the plan and where it stands; keep it
 
 A central Claude Code session, part of AresOS, runs the owner's apps through clean tools. Each app gets one tool set,
 offered both as a terminal command (CLI) and as an MCP server, built from one definition. Every app with all of its
-features. Screenshots and mouse moves are a last resort, never the main path. One session does it all, coding and
-commands included (decision 23), and it can gain other tools, as Claude Code can on his other machines (decision 22).
+features. Screenshots and mouse moves are a last resort, never the main path. It is normal Claude Code, as on any OS,
+plus these tools (decision 24): one session does it all, coding and commands included (decision 23), as his own user
+with his own `gh` login, MCP servers, skills and plugins.
 
 The first two apps are Mail and Chrome. Those two are made to work really well before any other app starts.
 
@@ -76,7 +77,9 @@ acting):
     delete). This settles `sandbox.autoAllowBashIfSandboxed`: true. (Refined by the lead after re-check 15: a change
     to an existing file, a whole replacement included, is free because its previous version is first kept for 30 days
     in a store Claude can't write, which he restores from; deleting asks. Decision 23 drops the coding user's home:
-    code lives in his project folders, which the sandbox may write.)
+    code lives in his project folders, which the sandbox may write. Decision 24 carries this further: Claude Code
+    works in his home and projects as his own user, as on any OS; the version store and the sandbox as a requirement
+    go with the containment.)
 18. **`WebFetch` and `WebSearch`: "a)".** Searches are free, as on his usual sites in Chrome; fetching an address
     Claude composed asks; an address from him or from a page is free.
 19. **The checkpoint's certificate limits: "okay",** accepted as stated (client certificates, no "continue anyway",
@@ -107,7 +110,8 @@ acting):
     read, change, send or delete; send and delete go into the managed ask list, and a tool that can't be classified
     asks on every call. The generated managed settings include these vetted additions, so the exact installed-settings
     check compares against generated plus vetted additions. Skills that are only instructions come from a root-owned
-    folder. (`CONTROL.md` section 7.)
+    folder. (Replaced by decision 24: he and Claude add tools as in normal Claude Code; the install-asking path is
+    dropped.)
 23. **One session for everything, replacing decision 8: "often times things are project work and intertwined.
     especially with chrome or once we add more apps. like a project might require a chrome test or check in chrome and
     so the coding session needs to be able to do it and the mail / app sessions sometimes need to execute commands and
@@ -123,8 +127,28 @@ acting):
     browser only through the tools; commands and project code in the sandbox, which reaches neither the tool service
     nor his browser, only a list of developer sites, with pushes narrowed to his own repositories. Instructions come
     only from him in the session (a managed, root-owned `CLAUDE.md`). Accepted residual risk, his call: content from a
-    mail or page could trick Claude into copying data out through an allowed developer site. (`CONTROL.md` sections 2,
-    6, 7 and 10.)
+    mail or page could trick Claude into copying data out through an allowed developer site. (One session and
+    skip-permissions stay. Decision 24 replaces the rest: the sandbox as protection, the developer-site list and the
+    narrowed GitHub credential go.)
+24. **Normal Claude Code plus the tools, replacing the containment parts of decisions 22 and 23: "Fundamentally I
+    envision aresos as basically normal Claude code but with more tools. Now Claude code can basically just work in my
+    projects and asks for permission certain things and I can allow it. Gh is used very smoothly. Is it necessary to
+    change that?"; then "Essentially it's as we already discussed: Normal Claude code like in any OS + the tools we
+    make. They add very little risk because even now Claude in chrome could read a malicious prompt for example and
+    then have Claude push smth to git. Our tools, as long as they are safe, don't make it worse than that."** AresOS
+    runs normal Claude Code, as on any OS, plus our tools. The tools must be safe in themselves and must not make
+    things worse than normal Claude Code; a Claude tricked by content can do on AresOS what it could do on any OS, and
+    that is accepted. Claude Code runs as his normal user in his home and projects, with his own `gh` login and his own
+    MCP servers, skills and plugins, added as in normal Claude Code. The tools: send, delete and submit ask in Claude
+    Code's prompt through managed ask rules (which no user allow rule, hook, mod or mode turns off, so the switches
+    that locked everything else go); passwords with the tool service's own user; the `question`, approval binding and
+    untrusted-content marking as built; the instruction-source line in the managed `CLAUDE.md`. Gone: the SELinux
+    domains, set-group-id relays and registration, the program allowlist and the gates as hard switches, project
+    snapshots, the GitHub App, rulesets and mirror, the git wrapper and project-folder ownership, the separate
+    assistant user, the coding/assistant split, the exact managed-settings equality as a deployment requirement, and
+    decision 22's install-asking path. Residual, said plainly: without a mandatory sandbox, a tricked Claude could call
+    the tool service directly and skip the question; Claude Code's own sandbox stays available as an option he can turn
+    on. (`CONTROL.md` sections 1, 2, 4.4, 7 and 10; section 6 to be re-examined against this bar before brief 20.)
 
 ## How sending stays under the owner's control
 
@@ -148,18 +172,23 @@ Three places, each with one job:
 - Each result names exactly what it refers to (account, folder, message; tab, page, field), so Claude never acts on
   the wrong thing after the owner switched tabs or a folder changed.
 
-**No way around the tools** (set up once in the image; the exact values come with the settings):
+**What the tools guarantee, and what they don't** (decision 24; set up once in the image, the exact values come with
+the settings):
 
-- Passwords and sign-in data belong to a separate system user. Only the tool service uses them; Claude's account
-  can't read them.
-- Claude's own terminal commands run in Claude Code's sandbox, which can't reach the tool service, the mail server or
-  Chrome's control channel, and reaches only a list of developer sites (decision 23). Only the MCP tools reach the
-  apps.
-- The rules on asking, the allowed MCP servers (the app servers and the vetted additions, decision 22) and hooks, the
-  sandbox and the managed `CLAUDE.md` live in system-wide files. Other ways to control the browser (Claude in Chrome,
-  debugging ports) are off.
-- Each of these gets a hostile test: a test Claude session tries every other route and must fail, in normal and in
-  skip-permissions mode.
+- Passwords and sign-in data belong to a separate system user. Only the tool service uses them; his account, and so
+  Claude, can't read them.
+- The ask rules for every asking tool live in a system-wide file only the admin account can change. A user or project
+  allow rule, a hook, a mod or skip-permissions mode doesn't turn a managed ask off. The managed `CLAUDE.md` says
+  instructions come only from him in the session.
+- Everything else is normal Claude Code: it runs as his user with his own `gh` login, MCP servers, skills and plugins.
+  Chrome is reached through the tools as in `CONTROL.md` section 6, which is re-examined against decision 24 before
+  brief 20.
+- Not guaranteed, said plainly: without Claude Code's sandbox (an option he can turn on), Claude's terminal commands
+  run as his user and a tricked Claude could call the tool service directly with a prepared approval, skipping the
+  question. That is the same level as normal Claude Code on any OS.
+- The tests check the tools themselves: the asks hold in normal and in skip-permissions mode and against user allow
+  rules, the question and the approval binding match what really happens, untrusted content is marked, and the
+  passwords stay with the tool service's user.
 
 ## Order of work
 
@@ -225,62 +254,22 @@ Three places, each with one job:
    contracts.
 5. **Tool-user rounds** after each first version; fixes and site adapters become follow-up briefs.
 
-   **What decisions 22 and 23 change for the open briefs (2026-11-08, after re-check 18).** Each case that must be
-   proven belongs to one workstream:
-   - *Brief 18c and the base qualification* (the next base or boundary brief, then the early image test): one session
-     user and no coding user, with a stand-in "other user" in CI; the launcher as the `claude` command; the managed
-     `CLAUDE.md` loading; the twelve skip-permissions rules (`CONTROL.md` section 7), with both kinds of hostile test
-     in both modes, and `disableBypassPermissionsMode` dropped only when they pass; the developer-site network list
-     and credential substitution for the GitHub credential; project folders as Btrfs subvolumes, the snapshot before
-     every sandboxed command and file-tool write, nested subvolumes, the measured latency and storage limits, a failed
-     snapshot freezing running commands (their own cgroup) and refusing all terminal commands, restore; the traced set
-     of programs the session's user starts outside the sandbox, with the hostile test failing on any other;
-     `/usr/bin/git` and git's own entry points as the sandboxing wrapper for the session's user, and the planted
-     repository settings (fsmonitor, `include`/`includeIf`, `core.sshCommand`, credential helpers, hooks, filters
-     through `.gitattributes` and `.git/info/attributes`, `gpg.program`, submodules, a `.git` file pointing at a
-     planted git folder); whether Claude Code embeds a git library; the session's SELinux domain refusing every
-     program outside the allowed set at start, with the in-process routes (nothing Claude wrote loaded as code into
-     Claude Code: settings sources, managed plugins, hooks and MCP servers, no helpers, a project's `.claude` ignored,
-     skills' scripts sandboxed, runtime switches neutralised, sandbox-written files read only as data), the sandbox
-     transition contract (the wrapper starting only `bwrap` with fixed options, no transition back out, sandbox files
-     never relabelled, run or mapped as code by the other domains, `ptrace`, `memfd`, the loader, `execmem` and
-     `execmod`), `rg` only through its fixed wrapper, and a refusal or a failing watcher or lost audit events turning
-     the asking tools off; both gates, qualification and sign-in, as hard switches checked at service start, after
-     restarts and before each asking action against the installed hashes, settings and policy with SELinux enforcing;
-     the hardening around the tools: Claude Code and the relay set-group-id and non-dumpable, the extra group dropped
-     before `bwrap`, the relay unable to become dumpable again and the native program never doing so, relays
-     registered only before the acknowledged barrier (which hook it is; slow, failing, timed-out and cancelled
-     relays), no inherited descriptors, `kernel.yama.ptrace_scope` at least 1 and `dev.tty.legacy_tiocsti` 0, and its
-     hostile test; his git clients refusing project repositories if he chooses so; the GitHub App credential, rulesets
-     refusing deletion and force-push on every branch and tag through git and the API, no token for a repository
-     without them, GitHub's own clean-up of merged branches under those rules, the mirror clone with archival
-     retention and restore; Claude Code's messages to other sessions closed; the `WebFetch` fallback path in
-     skip-permissions mode.
-   - *Mail's exact-settings boundary* (round 16, `boundary.py`): the installed settings compared against the
-     generated files plus the vetted additions' record (empty until the first addition), with the draft's changes
-     above (no `disableBypassPermissionsMode` once the base qualification passes, the developer-site list, project
-     folders writable, the managed `CLAUDE.md`, one session user).
-   - *Brief 20* (Chrome): the coding-user references gone; project work in Chrome (checks on real sites through the
-     same tools; localhost tests with the test server and a clean browser in one sandboxed command); its tests also
-     in skip-permissions mode.
-   - *A new brief: the add-tool path*: preparation fetching only from the listed hosts, redirects held to them,
-     publisher identity shown and look-alike names flagged, other sources needing a fetch approval and then an install
-     approval; inspection, builds and install scripts in a sandbox, the install step only copying; an independent
-     review by a fresh agent the service starts, covering the artifact, its dependencies and its start and background
-     behaviour; `tools_add` with classes and their evidence; free tools only on that review or an enforcing adapter; a
-     server holding his account access installed only after the review passes, unless he chooses otherwise (owner
-     choice 5; a failed review and a review that can't run refusing; while the choice is unanswered, reviewed installs
-     allowed and unreviewed ones refused), starting only after approval and reaching only its declared hosts;
-     connectors reached by the service, asking per call by default; tool lists compared on every listing, changed
-     tools hidden and refused at dispatch; activation only in a session started with the regenerated settings; a
-     system user per added server, `aresos-mcp addon`, the owner command, the skills folder, plugins split into parts,
-     generated settings with the additions, and its tests (`CONTROL.md` section 7). Its number is taken when it is
-     written.
-   - `laptop-aresos` owns `os/` and the accounts (the session's user, the dropped coding user, the project subvolumes,
-     `/usr/bin/git` as the wrapper, the `sudo` rule, `kernel.yama.ptrace_scope`, the `aresos-session` and
-     `aresos-relay` groups and their set-group-id programs, `dev.tty.legacy_tiocsti`, the SELinux policy module with
-     the session's, sandbox's, relay's and hooks' domains and the labels on the allowed programs) and has board item
-     #102 about installing software; the image side of decisions 22 and 23 is agreed with it.
+   **What decision 24 changes for the open briefs (2026-11-08):**
+   - *Brief 18c* (early image test): Claude Code as his own user with his own MCP servers alongside ours; the fake send
+     asking through the managed ask rule in normal and in skip-permissions mode, also with a user allow rule for it and
+     after "Yes, and don't ask again"; no separate session or coding user, no launcher containment.
+   - *The next base brief:* the managed settings reduced to the ask rules for every asking tool (generated) and the
+     managed `CLAUDE.md`; the lock-everything switches and the forced sandbox dropped from the draft in
+     `control/settings/`, with its tests; our app servers installed for his user like any MCP server; the tests that a
+     managed ask beats user and project allow rules, "don't ask again", a hook returning "allow" and skip-permissions.
+   - *Mail's boundary follow-up* (after Mail merges): the check of rounds 15 to 17, which refuses asking actions unless
+     the managed files match exactly, becomes a check that every asking tool's ask rule is present in the managed
+     settings, so his own MCP servers and settings are never blocked. Not a change to Mail now.
+   - *Brief 20* (Chrome): waits for the checkpoint design to be re-examined against decision 24's bar
+     (`CONTROL.md` section 10).
+   - *The add-tool brief* is dropped: he and Claude add tools as in normal Claude Code.
+   - `laptop-aresos` owns `os/` and the accounts: the separate assistant and coder accounts aren't needed, and his own
+     account installs software normally (board #102 and #103).
 6. **Security review** of the whole stack (fresh Codex, frontier), then **qualification in the real AresOS image**.
 7. **After the first boot on the laptop:** the real mail account, the owner's own Chrome, the system-wide settings,
    and the first weeks of real use.
@@ -339,31 +328,25 @@ tasks at any time.
 ## Open
 
 - The exact system-wide settings: once the tools exist (decision 3). Draft in `control/settings/` (briefs 18, 18b).
-  `sandbox.autoAllowBashIfSandboxed` is settled as true (decision 17): brief 18b's draft value `false` changes to
-  `true` when the settings are written. Decision 23 changes the draft further: `disableBypassPermissionsMode` goes
-  once the skip-permissions hostile tests pass; `sandbox.network.allowedDomains` gets the developer-site list; the
-  sandbox may write his project folders; a managed `CLAUDE.md` joins the files; the coding user's entries go. The
-  draft and its tests change together in the next base or boundary brief, not in this design.
+  Under decision 24 the managed settings hold the ask rules for every asking tool and the managed `CLAUDE.md`; the
+  lock-everything switches, the forced sandbox and `disableBypassPermissionsMode` go, in the next base brief with
+  their tests. Claude Code's sandbox stays an option he can turn on (`sandbox.autoAllowBashIfSandboxed` true if he
+  does, decision 17).
 - Language and libraries: decided in the design, after S2.
 - How the CI virtual machine gets the AresOS image for step 5 (the private image needs read access the owner
   restores, or a fresh unpublished build in the job): decided in the design.
 - The mail provider and account details stay out of this public repo.
-- **Owner questions still open:** five choices (`CONTROL.md` section 10, asked 2026-11-08, each with its exact bound
-  and the lead's advice): deleting in project folders (free with snapshots, or asking); his own work in project
-  folders (through Claude, or his git trusting them); deleting GitHub branches and tags only by him; connectors
-  (asking per call by default, his mark allowed); an added server holding his account access (only after an
-  independent review, or unreviewed with its own actions at that service accepted). Everything else was answered on
-  2026-11-07 and 2026-11-08 (decisions 14 to 19, 21 to 23).
+- **Owner questions still open:** none. Decision 24 removed the five choices of drafts 19 to 23. Open for the lead
+  and the owner: the Chrome checkpoint re-examined against decision 24's bar before brief 20 (`CONTROL.md` section
+  10).
 
 **Follow-ups** (from the 18b merge-fix review, `gpt-6.1-sol` high, SAFE; for the next base or boundary brief):
 
 - `control/launch.py`: the MCP proxy's identity guard checks only the real user id; it should check both the real and
-  the effective user id, with a regression test for a mismatch.
-- `control/boundary/isolation.py`: the coding-user check should also plant rogue user and project MCP servers and
-  check that they never appear or start. With decision 23 the coding user goes from the image; the check keeps a
-  stand-in "other user" in CI, and the rogue MCP configurations are planted for the session's own user too.
-- The boundary's hostile programs run again in skip-permissions mode (decision 23), and the route through Claude
-  Code's own messages to other sessions gets its test.
+  the effective user id, with a regression test for a mismatch. Under decision 24 the configured user is his own.
+- `control/boundary/isolation.py`: the coding-user check should also plant rogue user and project MCP servers. Under
+  decision 24 there is no coding user and his own MCP servers are wanted, so this follow-up is dropped; what stays is
+  the check that a user other than his can't use the tools.
 
 ## Where it stands
 
@@ -557,3 +540,11 @@ tasks at any time.
   acknowledged hook barrier, `rg` runs only through a fixed wrapper; the qualification items lost in an earlier
   reflow (his git clients, GitHub rulesets, the token refusal, the mirror) are back in the workstream list. Re-check
   24 next.
+- **2026-11-08, 04:59:** owner decision 24: AresOS runs normal Claude Code, as on any OS, plus our tools, which must
+  be safe in themselves and not make things worse than normal Claude Code. Design draft 24 on the same branch drops
+  the containment of drafts 17 to 23 (SELinux domains, set-group-id relays, the program allowlist and gates, project
+  snapshots, the GitHub App, rulesets and mirror, the git wrapper, the separate assistant and coding users, the
+  add-tool path) and keeps managed ask rules for every asking tool, passwords with the tool service's user, the
+  `question`, approval binding and untrusted marking. The residual (a tricked Claude calling the tool service
+  directly without the optional sandbox) is stated plainly. The Chrome checkpoint is to be re-examined against the new
+  bar before brief 20. Re-check against the new bar next.

@@ -1,6 +1,6 @@
 # Mail and Chrome: every feature, and where it stands
 
-Updated 2026-11-07. The owner's picture is "every app with all of its features" as clean tools
+Updated 2026-11-08. The owner's picture is "every app with all of its features" as clean tools
 ([`OWNER-SCOPE.md`](../../reviews/councils/2026-11-07-control-layer/OWNER-SCOPE.md)). This list makes that concrete
 for the first two apps, so nothing is left out without saying so. Each feature has a tool and a test, or a plain
 reason why it waits. The owner adds to it and decides what can wait; nothing moves to *later* or *never* without
@@ -52,43 +52,35 @@ Effects: read, change, send (asks), delete (asks). Tools are in
 
 ## Files
 
-| Feature | Tool | Effect | State |
-|---|---|---|---|
-| Read and change everything in his home folders, except hidden settings and start-up places | Claude's file tools and the tool service's file actions, with rule 4.4's limits | read, change | first (decision 17) |
-| Save new files, create folders, rename and move within his folders (never onto an existing name) | the same | change | first, without asking |
-| Change an existing file (an edit, a whole replacement, clearing it) | the same; its previous version kept first for 30 days in the tool service's version store, or the change is refused | change | first, without asking |
-| See and restore previous versions | `sudo aresos admin files versions`, `… restore <id>` (restores beside the current file) | owner | owner |
-| Delete a file or folder (to the Trash or for good) | the tool service's file action | delete | first, asking |
-| Its terminal: run commands without prompts | Claude Code's sandbox (`autoAllowBashIfSandboxed: true`) | | first: reads his folders, writes its own scratch folders (disposable) and his project folders; his other files change through the file tools |
-| Start the session with skip-permissions | the launcher | | first (decision 23), once the hostile tests show the asks, the sandbox, the file-tool limits, the network list and the managed hooks hold in that mode |
-
-## Coding and project work (decision 23)
+AresOS runs normal Claude Code, as on any OS, plus our tools (decision 24). Claude's own file tools and terminal work
+as his own user under the permissions he sets; our tools only add safe saving and exact attaching.
 
 | Feature | Tool | Effect | State |
 |---|---|---|---|
-| Work on code in his project folders: edit, build, test, git | the file tools and the sandboxed terminal | change | first, in the same session as mail and Chrome; planted repository settings run nowhere outside the sandbox |
-| Delete or overwrite project files | the sandboxed terminal and the file tools | change (recoverable, with a stated bound) | his open choice (CONTROL.md section 10): free, with a snapshot before every command and file write (every captured snapshot for 24 hours, then hourly to 30 days; work saved and deleted within one command can be lost), or each deletion asking |
-| Work on project folders himself with his own git, file manager or editor | | owner | his open choice (CONTROL.md section 10): through Claude, with his git refusing them; or his git trusting them, accepting that planted repository settings can run as him |
-| Restore a project file, folder or branch | `sudo aresos admin projects restore …`, `… repos restore …` | owner | owner |
-| Install project packages and command-line tools (`gh`, linters, test runners) | the sandboxed terminal | change | first, freely: they run only inside the sandbox |
-| Pull and push code | git and `gh` in the sandbox | send (to his own repositories) | first: the sandbox reaches GitHub and the package registries only; its credential (a GitHub App's short-lived token) reaches only his own repositories (a narrowing, not a guarantee); GitHub rulesets refuse every deletion and force-push by it on all branches and tags; the service also keeps a mirror for 30 days |
-| Delete a branch or tag on GitHub | | owner | owner only (his open choice: CONTROL.md section 10); GitHub's own clean-up of merged pull-request branches is untested under the deletion rule, and if it doesn't work, merged branches stay until he deletes them |
-| Publish a package to a registry | | | never from the sandbox: no publishing credentials |
-| Test a project against its own local server in a browser | a clean throwaway browser inside the sandbox | | first: none of his sign-ins, not his Chrome |
+| Read, change, create, rename, move and delete files in his home and projects | Claude Code's own file tools and terminal | as in normal Claude Code | first (decisions 17 and 24): as his own user, as on any OS |
+| Save a mail attachment or a download | `mail_attachment_save`, `chrome_downloads` (rule 4.4) | change | first: into the folder named (`~/Downloads` by default) under a safe name, never over an existing file, never into a hidden folder or a start-up place, without execute bits |
+| Attach or upload a local file | `mail_compose`, `chrome_upload` (rule 4.4) | change | first: the question shows the real path and the hash, and exactly those bytes are sent |
+| Run terminal commands | Claude Code's terminal | as in normal Claude Code | first, under his permissions; Claude Code's sandbox is an option he can turn on (`sandbox.enabled`, then `autoAllowBashIfSandboxed: true`, decision 17), which also keeps commands away from the tool service |
+| Start the session with skip-permissions | `claude --dangerously-skip-permissions` | | first (decisions 23 and 24): sends, deletes and submits through our tools still ask (managed ask rules) |
+
+## Coding and project work (decisions 23 and 24)
+
+| Feature | Tool | Effect | State |
+|---|---|---|---|
+| Work on code in his project folders: edit, build, test, git | Claude Code's file tools and terminal | as in normal Claude Code | first, in the same session as mail and Chrome |
+| Install packages and command-line tools | the terminal | as in normal Claude Code | first: his own account installs software normally |
+| Pull, push, branches, pull requests, publishing | git and `gh` with his own logins | as in normal Claude Code | first: what asks is set by his own permissions, as on his other machines |
+| Work on project folders himself with his own git, editor or file manager | | owner | as on any OS |
+| Test a project against its own local server in a browser | a clean throwaway browser started from the terminal (for example Playwright's Chromium) | | first: none of his sign-ins, not his Chrome |
 | Check a project on a real site in his Chrome | the Chrome tools | read; sends ask | first, like any site |
-| Add or remove a developer site from the sandbox's list | `sudo aresos admin …` | owner | owner |
 
-## Adding tools (decision 22)
+## Adding tools (decision 24)
 
 | Feature | Tool | Effect | State |
 |---|---|---|---|
-| Add an MCP server (another app's, or a third party's) | `tools_prepare_add`, then `tools_add` | asks | first: pinned version and hash, installed root-owned as its own user with its own credentials and named hosts |
-| Add a claude.ai connector | the same; the tool service connects to it itself | asks | first; each of its tools asks on every call by default, his mark can free one (his open choice: CONTROL.md section 10); a changed tool is hidden and refused |
-| Add a skill | the same, into the root-owned skills folder | asks | first; skill scripts run in the sandbox |
-| Add a plugin | the same, split into its parts | asks | first: skills, commands, agents and MCP servers; its hooks, language servers and monitors only if he adds them himself |
-| Use an added tool | its own tools, classified read, change, send or delete | as classified | first: free only on an independent review or an enforcing adapter, otherwise every call asks; send and delete ask; a changed tool is hidden and refused at dispatch |
-| Add a server that holds his account access for a service | the same | asks | only after the independent review passes, unless he chooses to accept unreviewed ones, which can act on their own at that service (his open choice: CONTROL.md section 10) |
-| Add a tool himself; remove one | `sudo aresos admin tools …` | owner | owner |
+| Add an MCP server, a claude.ai connector, a skill or a plugin; remove one | as in normal Claude Code | his choice | first: as on his other machines; decision 22's install-asking path is dropped |
+| Use an added tool | its own tools | as in normal Claude Code | first, under his permissions; our managed ask rules cover our own asking tools |
+| Our app servers (Mail, Chrome, later apps) | installed for his user by the image's setup, like any MCP server | | first: their send, delete and submit tools always ask |
 
 ## Chrome
 
