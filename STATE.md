@@ -1,6 +1,6 @@
 # AresOS: state
 
-Updated 2026-11-07. The live truth is `git log`, `gh pr list` and `git worktree list`. Update this file when a PR merges or a decision lands.
+Updated 2026-11-09. The live truth is `git log`, `gh pr list` and `git worktree list`. Update this file when a PR merges or a decision lands.
 
 ## Done (on main)
 
@@ -61,7 +61,7 @@ Updated 2026-11-07. The live truth is `git log`, `gh pr list` and `git worktree 
   - **Backup Bazzite stays frozen** (owner OK 2026-10-24, package 11's JUDGMENT-CALL): the stock copy's automatic updates are switched off at the first login and stay off for the whole trial, so the fallback is exactly the tested version. One command in INSTALL.md turns them back on if the owner returns to plain Bazzite for good.
   - **Emergency path:** Windows stays the boot default for the first trial. F12 → Windows Boot Manager is the intended way back (the Micron is never written), and `docs/EMERGENCY.md` covers the rest.
   - **Windows encryption is OFF** (checked 2026-10-23 without admin). Install day still runs `manage-bde -status C:` in Terminal (Administrator).
-  - Secure Boot is off on the laptop, so no MOK step.
+  - Secure Boot is off on the laptop, so nothing is enrolled. Shim's blue MOK screen still showed once at first boot; the guide now expects it: **Continue boot**, never enroll (15g).
   - Normal Minecraft is a separate app with normal rules.
   - App icons are generated automatically from each app's real icon. The owner doesn't draw them.
 
@@ -88,7 +88,7 @@ Updated 2026-11-07. The live truth is `git log`, `gh pr list` and `git worktree 
      - Since 2026-11-08 Claude runs the Windows-side steps itself (CLAUDE.md hard rule 1).
      - The ares-recovery passphrase is still the temporary one; the owner will change it.
    - **Step 5:** Windows started unattended, and record B after-bazzite PASSED at 21:50. **Next:** the Linux half with a Mac session (`at check`, `at title`, `at records`; typing and password proof; mounts and EFI on Crucial), then STEP 5 COMPLETE, then step 6, the switch to AresOS (needs a read:packages token at a hidden prompt).
-   - **Guide fixes from install night:** package 15g (board #99, #100, #114, #122 and the notes in its brief).
+   - **Guide fixes from install night: DONE** (PR #23, briefs 15g and 15gb, merged as `a1052cf0` on 2026-11-09; built by gpt-6-astra, review 1 CHANGES-NEEDED fixed, review 2 SAFE). They cover the Micron printed serial (its own Windows checkpoint), live German via `localectl`, the bounded reinstall route, the expected MOK screen (Continue boot), who does what, the console fallbacks and Bazzite naming. Also the **ten-minute hung-shutdown rule**: wait 10 minutes without progress, then force off only under its conditions, then Windows and Help (owner OK 2026-11-09, board #125). `pending-rebind.json` now lists the 12 bound files changed since the package 16 walk.
 2. **First boot:** install onto the new SSD and switch to the AresOS image. Plain AresOS (a terminal) boots. Check GPU, Wi-Fi and sound, and that Windows still boots.
 3. **Minecraft inside AresOS** (P2): Prism and Microsoft login, the Nether world, mod ↔ OS helper (interface v1), clean save and shutdown, backups.
 4. **Full trial** (P3): boot → Nether hub → open/close an app → shut down → Windows still fine.
