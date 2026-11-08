@@ -96,6 +96,29 @@ class Recovery19(unittest.TestCase):
             self.assertEqual(len([op for _, op in self.engine.store.items('op:')
                                   if op.get('repair_of') == old['id']]), 1)
 
+    def test_review19_two_failed_stages_each_keep_their_own_single_unresolved_repair(self):
+        approval = self.approval('send', self.compose())
+        def accepted(operation, composition, raw, stage):
+            stage('smtp_data', 'accepted:250')
+            return 'done', 'Synthetic DATA acceptance'
+        with patch.object(self.mail, 'send_smtp', side_effect=accepted), \
+             patch.object(self.mail, 'local_stage', side_effect=OSError('Both local stages disconnected')):
+            old = self.data('send', approval)['operation']
+            repairs = {}
+            for stage in ('sent_copy', 'answered_flag'):
+                args = {'operation_id': old['id'], 'stage': stage}
+                repairs[stage] = self.data('operation_repair', args)
+            before = self.snapshot()
+            with patch.object(self.mail, 'repair_evidence', side_effect=OSError('Still disconnected')):
+                for _ in range(10):
+                    for stage in repairs:
+                        self.assertEqual(self.data('operation_repair', {'operation_id': old['id'], 'stage': stage}), repairs[stage])
+            self.assertEqual(self.snapshot(), before)
+        unresolved = [op for _, op in self.engine.store.items('op:') if op.get('repair_of') == old['id']]
+        self.assertEqual(len(unresolved), 2)
+        self.assertEqual({op['payload']['stage'] for op in unresolved}, {'sent_copy', 'answered_flag'})
+        self.assertTrue(all(op['state'] == 'unknown' for op in unresolved))
+
     def test_review19_answered_evidence_uses_readonly_pinned_reference_and_flags(self):
         for present in (False, True):
             old, args, repair = self.uncertain('answered_flag')
