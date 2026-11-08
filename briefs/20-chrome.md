@@ -116,10 +116,13 @@ generated `user-mcp.json`. Read on `main`:
 - **Qualifying each new Chrome stable** (section 6). `control/chrome/qualification.json` records, per tool build
   and full Chrome version (major and patch, for example `158.0.7340.52`), which adapters and which core rule groups
   (the classification, the page script, the binding, the reader's password exclusion) passed.
-  - *Tool build:* each entry names the build it tested, a hash over the Chrome part the laptop runs (the extension
-    and its page script, the service's Chrome adapter, the definitions and the word list), computed the same way in
-    the workflow and at build time, where it is written into the installed service. The service counts only entries
-    for its own build, so a pass for newer code on `main` can never turn on older, still-broken code on the laptop.
+  - *Tool build:* each entry names the build it tested, a hash over everything the Chrome tool runs: the complete
+    extension package (page script included), the native host, and the complete installed service code (the whole
+    `control/` runtime, shared engine, operations and approval code included, with the definitions and word list),
+    not a chosen subset. It is computed the same way in the workflow and at build time, where it is written into the
+    installed service. The service counts only entries for its own build, so a pass for newer code on `main`, even a
+    fix only in shared code, can never turn on older, still-broken code on the laptop. Any change to that code is a
+    new build; every push to `main` qualifies it (below).
   - *Trigger:* a scheduled workflow runs daily, reads the current full versions of Chrome stable **and Chrome beta**
     from Google's Linux package repository (`google-chrome-stable`, `google-chrome-beta`) and runs the whole set twice
     for each pair of tool build and Chrome version not in the record yet. The builds are `main`'s and those listed in
@@ -182,7 +185,9 @@ generated `user-mcp.json`. Read on `main`:
     changing a held entry is refused and the held record kept; offline keeps the held record; a passing beta entry
     for a major lets that major's stable run normally. Use an attestation from one of this package's own workflow
     runs and altered copies of it as fixtures (the accepted branch is a setting; shipped, it is `main`). The build:
-    a pass recorded for another build doesn't enable anything. The sequence: a failed beta, then its stable (still
+    a pass recorded for another build doesn't enable anything; changing a file of the shared approval or execution
+    code (not the Chrome adapter) changes the build hash, and the changed build's pass doesn't enable the previous
+    build. The sequence: a failed beta, then its stable (still
     off, not conservative mode); a passing beta, then a failing stable (off from that stable on); then a later
     passing patch (back on). The publisher: an entry added to the branch outside the workflow, or a branch record
     that isn't append-only against the shipped copy, makes the next run publish nothing and open an issue.
