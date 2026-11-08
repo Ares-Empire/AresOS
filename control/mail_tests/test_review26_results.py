@@ -155,3 +155,26 @@ class Results26(unittest.TestCase):
         self.assertEqual(result['pending']['notices'], notices)
         self.assertIn('snapshot', result['pending']['unavailable'])
         transport_response(result)
+
+    def test_review26_private_download_and_catalogue_keep_small_payload_with_huge_warning(self):
+        from types import SimpleNamespace
+        from aresos_control.proxy import Proxy
+        notice = {'id': 'giant-legacy', 'app': 'mail', 'state': 'partial', 'ack': False,
+                  'untrusted_content': {'reason': '\t' * 300000}}
+        self.engine.store.write({'notice:giant-legacy': notice}, 'fixture', 'Synthetic giant legacy warning')
+        raw = b'Synthetic exported bytes'
+        key = self.engine.blobs.put(raw, origin='export')
+        response = self.engine.request({'v': 1, 'method': 'download', 'app': 'testapp', 'sha256': key})
+        self.assertTrue(response['ok'], response)
+        self.assertEqual(response['data']['sha256'], key)
+        self.assertEqual(response['data']['size'], len(raw))
+        self.assertTrue(response['data']['export_id'])
+        self.assertGreater(response['pending']['warning_count'], 0)
+        transport_response(response)
+        response = self.engine.request({'v': 1, 'method': 'tools', 'app': 'mail'})
+        self.assertTrue(response['data']['tools'])
+        self.assertGreater(response['pending']['warning_count'], 0)
+        transport_response(response)
+        proxy = Proxy('mail', {'act_socket': 'unused'})
+        proxy.client = SimpleNamespace(request=lambda request: self.engine.request({'v': 1, **request}))
+        self.assertTrue(proxy.tools())

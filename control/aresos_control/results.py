@@ -106,7 +106,9 @@ def bound_result(result, store=None, limit=RESULT_LIMIT):
     facts = result.pop('observations', {})
     facts.setdefault('stages', {})
     facts.setdefault('evidence', {})
-    if 'data' in result:
+    # Small payloads include private protocol handshakes and catalogues.
+    # Their callers need them even when the warning envelope must be paged.
+    if 'data' in result and len(canonical(result['data']).encode()) > limit // 2:
         facts['data'] = result.pop('data')
     error = result.get('error', {})
     for key in list(error):
@@ -151,6 +153,8 @@ def bound_result(result, store=None, limit=RESULT_LIMIT):
                              'warning': 'Owner warnings exceed one frame; read the complete detail pages and mail_filing_notices.'}
         result['bounds']['warning_characters'] = len(canonical(envelope))
     result['bounds']['omitted_characters'] = len(canonical(facts))
+    if store is not None and len(canonical(result).encode()) > limit:
+        result['observations'].update(fragments=[], cursor=token + ':0')
     return result
 
 
