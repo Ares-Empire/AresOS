@@ -48,8 +48,13 @@ def recorded_write(method):
     @wraps(method)
     def write(store, *args, **kwargs):
         try:
-            return method(store, *args, **kwargs)
+            result = method(store, *args, **kwargs)
         except Exception as exc:
             store.observations.storage(exc, generic=True)
+            store.remember_storage(exc)
             raise
+        store.storage_cause = None
+        if not store.flushing_notices:
+            store.flush_notices()
+        return result
     return write

@@ -134,6 +134,9 @@ class Store:
             raise ValueError("Independent evidence must be outside the backup tree")
         self.checkpoint = checkpoint
         self.write_failed = False
+        self.storage_cause = None
+        self.deferred_notices = {}
+        self.flushing_notices = False
         self.observations = Observations()
         self.recovering = False
         self.archiving = False
@@ -579,7 +582,26 @@ class Store:
 
     def ensure_writable(self):
         if self.write_failed:
+            if self.storage_cause is not None:
+                raise self.storage_cause
             raise Refused('journal_incomplete', 'A journal transaction did not finish; all writes are refused until service restart recovery has run.')
+
+    def remember_storage(self, exc):
+        error = self.observations.error or storage_refusal(exc)
+        if error is not None and self.storage_cause is None:
+            self.storage_cause = error
+
+    def defer_notice(self, notice_id, changes, action, summary):
+        self.deferred_notices[notice_id] = (copy.deepcopy(changes), action, summary)
+
+    def flush_notices(self):
+        self.flushing_notices = True
+        try:
+            for notice_id, (changes, action, summary) in list(self.deferred_notices.items()):
+                self.write(changes, action, summary, recovery=True)
+                del self.deferred_notices[notice_id]
+        finally:
+            self.flushing_notices = False
 
     def iter_audit(self):
         head = self.db.execute("SELECT seq FROM head WHERE id=1").fetchone()[0]

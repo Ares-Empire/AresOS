@@ -1,6 +1,7 @@
 """Free filing with durable intent and reporting only after role drift."""
 import imaplib
 import re
+import sqlite3
 import time
 import uuid
 
@@ -93,6 +94,11 @@ def rename_folder(mail, account, client, source, target, roles_before):
         changes['notice:' + filing_id] = {'id': filing_id, 'app': 'mail', 'state': 'partial',
             'untrusted_content': content, 'ack': False, 'created_at': time.time_ns()}
         result.update(state='partial', reason=visible(reason), untrusted_content=visible(content))
+    mail.store.observations.observe(filing_id, visible({'rename': intent, 'result': result}))
+    if needs_notice:
+        mail.store.defer_notice(filing_id, changes, 'mail_folder_rename', 'folder rename checked')
+        mail.store.flush_notices()
+        return result
     mail.store.write(changes, 'mail_folder_rename', 'folder rename checked',
                      outcome=intent['state'], untrusted_content={'rename': intent})
     return result
@@ -168,7 +174,10 @@ def public_notice(store, notice):
 
 def notice_page(store, args=None, app=None):
     args = args or {}
-    values = [n for _, n in store.items('notice:') if not n.get('ack') and (app is None or n['app'] == app)]
+    retained = dict(store.items('notice:'))
+    for changes, _, _ in store.deferred_notices.values():
+        retained.update({k: v for k, v in changes.items() if k.startswith('notice:')})
+    values = [n for n in retained.values() if not n.get('ack') and (app is None or n['app'] == app)]
     values.sort(key=lambda n: (n.get('created_at', 0), n['id']), reverse=True)
     token = digest(['filing-notices', app, [n['id'] for n in values]])
     offset = 0
@@ -256,9 +265,13 @@ def file_messages(mail, account, client, verb, refs, target, names, needed):
             prefix = 'mail:filing-locations:' + intent_id + ':'
             changes.update({prefix + str(i): page for i, page in enumerate(pages)})
             changes[prefix + 'meta'] = {'pages': len(pages), 'total_messages': len(records)}
-        mail.store.write(changes, 'mail_' + verb, 'Filing intent ' + intent_id,
-                         outcome=state, untrusted_content={'filing': {'filing_id': intent_id, 'state': state,
-                             'message_count': len(records), 'locations_action': 'mail_filing_locations'}})
+        if notice:
+            mail.store.defer_notice(intent_id, changes, 'mail_' + verb, 'Filing intent ' + intent_id)
+            mail.store.flush_notices()
+        else:
+            mail.store.write(changes, 'mail_' + verb, 'Filing intent ' + intent_id,
+                             outcome=state, untrusted_content={'filing': {'filing_id': intent_id, 'state': state,
+                                 'message_count': len(records), 'locations_action': 'mail_filing_locations'}})
 
     baseline = mail.fresh_roles(account, client, names=names, needed=needed)
     record('started')  # Durable before the first remote mutation; restart never resumes it.
@@ -283,10 +296,12 @@ def file_messages(mail, account, client, verb, refs, target, names, needed):
                 changed = resolve(listed) != baseline
             except Refused:
                 changed = True
+            mail.store.observations.observe(intent_id, visible({'records': records, 'roles_after': listed}))
             record('started')
             if changed or incomplete:
                 break
-    except (Refused, OSError, imaplib.IMAP4.error, Uncertain):
+    except (Refused, OSError, sqlite3.Error, imaplib.IMAP4.error, Uncertain) as exc:
+        mail.store.observations.storage(exc)
         incomplete = True
 
     if not changed and not incomplete:
@@ -297,11 +312,14 @@ def file_messages(mail, account, client, verb, refs, target, names, needed):
     # Preserve every surviving copy; only ordinary owner-approved deletion cleans up.
     observed = locations(mail, account, records)
     reason = warning(verb, listed, observed, changed)
-    intent.update(reason=reason, locations=observed)
+    intent.update(reason=reason, locations=observed, roles_after=listed,
+                  observed_role=folder_role(target, listed))
     content = summary(intent)
     notice = {'id': intent_id, 'app': 'mail', 'state': 'partial', 'untrusted_content': content,
               'ack': False, 'created_at': time.time_ns()}
     pages = location_pages(observed)
+    mail.store.observations.observe(intent_id, visible({'locations': observed, 'reason': reason,
+                                                       'observed_role': folder_role(target, listed)}))
     record('partial', notice, pages)
     first = location_page(mail.store, {'filing_id': intent_id})
     return {'state': 'partial', 'items': [], 'reason': visible(reason),
