@@ -187,6 +187,11 @@ class Engine:
                     'original': self.public_operation(old)}
         if app == 'mail':
             for _, repair in self.store.iter_items('op:'):
+                if (repair.get('repair_identity_missing') and repair['state'] == 'unknown'
+                        and repair.get('repair_of') in {None, old['id']}):
+                    raise Refused('repair_identity_missing', 'Restored unresolved repair lacks permanent stage identity; '
+                                  'another repair for this send is refused. Inspect operation_status and ask the owner to recover the evidence.')
+            for _, repair in self.store.iter_items('op:'):
                 if (repair.get('repair_of') == old['id'] and repair.get('payload', {}).get('stage') == args['stage']
                         and repair['state'] in {'reserved', 'submitting', 'unknown'}):
                     # Repeated repair is the explicit read-then-settle path.

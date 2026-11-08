@@ -24,7 +24,11 @@ def sync_directory(path):
 def short_description(operation):
     description = operation["approval"]["description"]
     if operation.get("app") == "mail" and "untrusted_content" in description:
-        return {"action": description["action"], "untrusted_content": copy.deepcopy(description["untrusted_content"])}
+        result = {"action": description["action"], "untrusted_content": copy.deepcopy(description["untrusted_content"])}
+        if operation.get('repair_of'):
+            result['repair'] = {'repair_of': operation['repair_of'],
+                                'stage': operation.get('payload', {}).get('stage')}
+        return result
     result = {k: copy.deepcopy(description[k]) for k in
               ("action", "account", "to", "cc", "bcc", "subject", "title") if k in description}
     result.setdefault("action", operation["action"])
@@ -40,8 +44,40 @@ def short_description(operation):
     if "repair_of" in operation:
         result["targets"] = [operation["repair_of"]]
     if operation.get("app") == "mail":
-        return {"action": result.pop("action"), "untrusted_content": visible(result)}
+        result = {"action": result.pop("action"), "untrusted_content": visible(result)}
+        if operation.get('repair_of'):
+            # System identity is permanent even when the full working log is
+            # rolled back. It is separate from escaped mail/user content.
+            result['repair'] = {'repair_of': operation['repair_of'],
+                                'stage': operation.get('payload', {}).get('stage')}
+        return result
     return result
+
+
+def missing_operation(known):
+    description = copy.deepcopy(known['description'])
+    action = description['action']
+    if action.startswith('mail_'):
+        description.update(description.get('untrusted_content', {}))
+    op = {'id': known['id'], 'generation': known['generation'], 'input_hash': known['input_hash'],
+          'app': action.split('_', 1)[0], 'action': action,
+          'approval': {'operation_id': known['id'], 'description': description},
+          'payload': {}, 'expires': 0, 'stages': {}, 'state': 'unknown'}
+    if action == 'mail_operation_repair':
+        identity = description.get('repair', {})
+        # Older compact evidence retained the original ID as a target, but
+        # omitted the stage. Keep that relationship and block both stages.
+        targets = description.get('targets', [])
+        original = identity.get('repair_of') or description.get('repair_of')
+        if not original and len(targets) == 1 and isinstance(targets[0], str):
+            original = targets[0]
+        stage = identity.get('stage')
+        op['repair_of'] = original
+        if original and stage in {'sent_copy', 'answered_flag'}:
+            op['payload'] = {'operation_id': original, 'stage': stage}
+        else:
+            op['repair_identity_missing'] = True
+    return op
 
 
 class JournalRecords:
@@ -264,6 +300,9 @@ class Store:
                 if old is None and self.get('archived:' + op_id) == {'seq': seq}:
                     continue
                 budget += record_budget(old or known)
+                if old is None and known['description']['action'] == 'mail_operation_repair':
+                    restored = missing_operation(known)
+                    self.ledger.holds.update(self.ledger.right(restored, self.get('op:' + (restored.get('repair_of') or ''))))
             self.ledger.holds['restore'] = budget
 
     def require_index(self):
@@ -449,15 +488,7 @@ class Store:
             version = self.db.execute("SELECT seq FROM operation_versions WHERE id=?", (op_id,)).fetchone()
             if old is None or version != (seq,) or old["state"] == "submitting":
                 if old is None:
-                    description = copy.deepcopy(known["description"])
-                    if known["description"]["action"].startswith("mail_"):
-                        # Keep the historical operation-status shape while its
-                        # compact audit record retains the untrusted marking.
-                        description.update(description.get("untrusted_content", {}))
-                    old = {"id": op_id, "generation": known["generation"], "input_hash": known["input_hash"],
-                           "app": known["description"]["action"].split("_", 1)[0], "action": known["description"]["action"],
-                           "approval": {"operation_id": op_id, "description": description},
-                           "payload": {}, "expires": 0, "stages": {}}
+                    old = missing_operation(known)
                 old.update(state="unknown", reason="Restored log: independent record has newer or missing evidence. Owner must check.")
                 changes[key] = old
             elif old["state"] == "reserved":
