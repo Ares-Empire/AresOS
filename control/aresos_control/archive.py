@@ -19,13 +19,18 @@ def archive(store, before):
     operations = store.items('op:')
     dependencies = {op.get('repair_of') for _, op in operations if op['state'] in retention.OPEN}
     for key, op in operations:
-        if op['id'] not in dependencies and op['state'] in {'done', 'failed', 'refused'} and (not op.get('notice') or op.get('ack')):
+        if (op['id'] not in dependencies and op['state'] in {'done', 'failed', 'refused'} and
+                op.get('sent_copy_check', {}).get('state') != 'open' and (not op.get('notice') or op.get('ack'))):
             if store.retained_at(key) < before and len(closed) < 100:
                 closed[key] = op
         else:
             protected.add(key)
     for key, notice in store.items('notice:'):
         if not notice.get('ack'):
+            operation_id = notice.get('untrusted_content', {}).get('operation_id')
+            if operation_id:
+                closed.pop('op:' + operation_id, None)
+                protected.add('op:' + operation_id)
             protected.update((key, 'mail:filing:' + notice['id'], 'mail:rename:' + notice['id'],
                               'mail:filing-locations:' + notice['id'] + ':'))
     for prefix in ('mail:filing:', 'mail:rename:'):

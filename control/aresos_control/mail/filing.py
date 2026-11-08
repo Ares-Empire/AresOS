@@ -172,7 +172,7 @@ def public_notice(store, notice):
             'untrusted_content': visible(content)}
 
 
-def notice_page(store, args=None, app=None):
+def notice_page(store, args=None, app=None, checks=()):
     import base64
     import hashlib
     import heapq
@@ -194,7 +194,7 @@ def notice_page(store, args=None, app=None):
         nonlocal total
         from itertools import chain
         for notice in chain((v for k, v in store.iter_items('notice:') if k not in deferred),
-                            deferred.values(), recovery_notices(store)):
+                            deferred.values(), recovery_notices(store), checks):
             if (notice.get('ack') or (app is not None and notice['app'] != app) or
                     'notice:' + notice['id'] in deferred and notice is not deferred['notice:' + notice['id']]):
                 continue

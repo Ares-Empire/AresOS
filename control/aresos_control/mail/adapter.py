@@ -704,21 +704,49 @@ class Mail:
                     result.append({"account": account["id"], "folder": folder, "uidvalidity": validity, "uid": int(uid), "message_id": message_id})
             return result
 
-    def sent_copy_count(self, operation, matches):
-        if len(matches) <= 1:
-            return
-        reason = f'Sent contains {len(matches)} copies with this Message-ID. Check them in your mail program; nothing was deleted.'
-        operation['stages']['sent_copy_warning'] = reason
+    def sent_copy_count(self, operation, matches, commit_clean=False):
         op = self.store.get('op:' + operation['id'])
-        if op['stages'].get('sent_copy_warning') == reason:
+        count = len(matches)
+        previous = op.get('sent_copy_check', {})
+        if count <= 1 and (not commit_clean or previous.get('clean')):
             return
-        op['stages']['sent_copy_warning'] = reason
+        if op.get('sent_copy_check', {}).get('count') == count:
+            return
+        # The registration survives clean results too: a delayed server copy
+        # can change a later check. Every notice/pending read revalidates it.
+        if previous.get('state') != 'open':
+            op['sent_copy_check'] = {'state': 'open'}
+            self.store.write({'op:' + op['id']: op}, 'mail_sent_copy_check_open',
+                             'Sent-copy result needs committing', op['id'])
+        op['sent_copy_check'] = {'state': 'checked', 'count': count, 'clean': count <= 1}
+        changes = {'op:' + op['id']: op}
         notice_id = 'sent-' + digest(operation['id'])[:32]
-        notice = {'id': notice_id, 'app': 'mail', 'state': 'partial', 'ack': False,
-                  'created_at': time.time_ns(), 'untrusted_content':
-                  {'reason': reason, 'operation_id': operation['id'], 'message_count': len(matches)}}
-        self.store.write({'op:' + op['id']: op, 'notice:' + notice_id: notice},
-                         'mail_sent_copy_check', 'duplicate Sent-copy warning', op['id'])
+        if count > 1:
+            reason = f'Sent contains {count} copies with this Message-ID. Check them in your mail program; nothing was deleted.'
+            operation['stages']['sent_copy_warning'] = op['stages']['sent_copy_warning'] = reason
+            changes['notice:' + notice_id] = {'id': notice_id, 'app': 'mail', 'state': 'partial', 'ack': False,
+                'created_at': time.time_ns(), 'untrusted_content':
+                {'reason': reason, 'operation_id': operation['id'], 'message_count': count}}
+        self.store.write(changes, 'mail_sent_copy_check', 'Sent-copy result committed', op['id'])
+        operation['sent_copy_check'] = op['sent_copy_check']
+
+    def resolve_sent_checks(self):
+        """Read-only remote checks; never APPEND, repair or resubmit."""
+        unresolved = []
+        for _, op in self.store.iter_items('op:'):
+            if (op['app'] != 'mail' or not op.get('payload', {}).get('composition') or
+                    op['state'] in {'reserved', 'failed', 'refused'}):
+                continue
+            try:
+                account = self.account(op['payload']['composition']['mail']['account'], ready=False)
+                matches = self.sent_matches(account, self.message_id(op['id']))
+                self.sent_copy_count(op, matches, commit_clean=True)
+            except (Refused, OSError, sqlite3.Error, imaplib.IMAP4.error, Uncertain):
+                unresolved.append({'id': 'sent-check-' + digest(op['id'])[:32], 'app': 'mail',
+                    'state': 'unknown', 'ack': False, 'created_at': int(self.store.retained_at('op:' + op['id']) * 1_000_000_000),
+                    'untrusted_content': {'operation_id': op['id'], 'check': 'sent_copies',
+                        'reason': 'Sent-copy count is not yet checked. The server or committed result is unavailable. Nothing is appended or sent automatically.'}})
+        return unresolved
 
     def evidence(self, operation_id):
         op = self.store.get("op:" + operation_id)
@@ -867,6 +895,7 @@ class Mail:
             self.fresh_roles(account, names=[account['special']['sent']])
             operation['sent_append_started_at'] = time.time()
             operation.pop('sent_append_ended_at', None)
+            operation['sent_copy_check'] = {'state': 'open'}
             self.store.write({'op:' + operation['id']: operation}, 'mail_sent_copy_attempt', 'Sent APPEND attempt started', operation['id'])
             try:
                 self.append(account, account["special"]["sent"], self.wires.read(operation["stages"].get("sent_wire_sha256", key)), "(\\Seen)")
@@ -1092,7 +1121,7 @@ class Mail:
             return location_page(self.store, args)
         if verb == "filing_notices":
             from .filing import notice_page
-            return notice_page(self.store, args, app="mail")
+            return notice_page(self.store, args, app="mail", checks=self.resolve_sent_checks())
         if verb == "account_folders":
             account = self.account(args["id"], ready=False)
             with self.transport.imap(account) as client:

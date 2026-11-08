@@ -56,9 +56,9 @@ class Engine:
             raise Refused("stale_reference", "Operation not found for this app; list pending or ask the owner to check the independent record.")
         return op
 
-    def notices(self, app=None):
+    def notices(self, app=None, resolve_checks=True):
         from .mail.filing import notice_page
-        page = notice_page(self.store, app=app)
+        page = notice_page(self.store, app=app, checks=self.adapters['mail'].resolve_sent_checks() if resolve_checks else ())
         if not page['items']:
             return {}
         result = {'notices': page['items']}
@@ -67,9 +67,9 @@ class Engine:
                                       'action': 'mail_filing_notices'}
         return result
 
-    def pending(self, app=None, args=None):
+    def pending(self, app=None, args=None, resolve_checks=True):
         try:
-            result = self._pending(app, args)
+            result = self._pending(app, args, resolve_checks)
             self._last_pending[app] = copy.deepcopy(result)
             return result
         except (OSError, sqlite3.Error) as exc:
@@ -99,7 +99,7 @@ class Engine:
                     result['notices_more'] = {'count': total - 3, 'action': 'mail_filing_notices'}
             return result
 
-    def _pending(self, app=None, args=None):
+    def _pending(self, app=None, args=None, resolve_checks=True):
         args, offset, version = args or {}, 0, None
         try:
             if 'cursor' in args:
@@ -131,7 +131,7 @@ class Engine:
             raise Refused('stale_reference', 'Page changed; read again without the cursor.')
         end = offset + len(items)
         return {'items': items, 'total': total, 'cursor': f'{token}:{end}' if end < total else None,
-                'restore_required': self.store.locked} | self.notices()
+                'restore_required': self.store.locked} | self.notices(resolve_checks=resolve_checks)
 
     def page(self, values, args, scope):
         token, offset = digest([scope, values]), 0
@@ -206,6 +206,8 @@ class Engine:
         if op["app"] == "mail":
             outcome = self.adapters["mail"].stage_outcome(op, name, outcome)
         op["stages"][name] = outcome
+        if name == 'sent_copy' and outcome == 'done' and op.get('sent_copy_check', {}).get('state') == 'open':
+            op['sent_copy_check'] = {'state': 'checked', 'clean': True}
         self.store.observations.stage(op_id, name, outcome)
         if op["app"] == "mail":
             self.store.write({"op:" + op_id: op}, op["action"], "Mail operation stage recorded", op_id,
@@ -247,6 +249,8 @@ class Engine:
             adapter.drop(op)
             return {"operation": self.public_operation(op)}
         op["state"], op["reason"] = "submitting", "Durably submitting; do not cancel or retry."
+        if action.app == 'mail' and op.get('payload', {}).get('composition'):
+            op['sent_copy_check'] = {'state': 'open'}
         self.store.write({"op:" + op["id"]: op}, action.name, "submitting", op["id"])
         self.store.checkpoint("submitting")
         try:
@@ -270,7 +274,7 @@ class Engine:
     def public_operation(self, op):
         result = {k: v for k, v in op.items() if k not in
                   {'payload', 'input_hash', 'attempt_ended_at', 'repair_identity_missing',
-                   'sent_append_started_at', 'sent_append_ended_at'} and v is not None}
+                   'sent_append_started_at', 'sent_append_ended_at', 'sent_copy_check'} and v is not None}
         if op.get('repair_identity_missing'):
             result['reason'] += ' Permanent repair stage identity is missing; another repair is refused.'
         elif (op['state'] == 'unknown' and op.get('repair_of')
@@ -339,6 +343,8 @@ class Engine:
                     changes = {}
                     if result in {'done', 'not_needed'}:
                         old['stages'][args['stage']] = result
+                        if args['stage'] == 'sent_copy' and old.get('sent_copy_check', {}).get('state') == 'open':
+                            old['sent_copy_check'] = {'state': 'checked', 'clean': True}
                         old['state'], old['reason'] = self.adapters[app].repaired_outcome(old)
                         changes['op:' + old['id']] = old
                         repair.update(state='done', reason='Read-only evidence confirms local repair; never submitted.')
@@ -385,6 +391,8 @@ class Engine:
             self.store.observations.stage(old['id'], args['stage'], result)
             old = self.operation(old['id'], app)
             old["stages"][args["stage"]] = result
+            if args['stage'] == 'sent_copy' and old.get('sent_copy_check', {}).get('state') == 'open':
+                old['sent_copy_check'] = {'state': 'checked', 'clean': True}
             old["state"], old["reason"] = self.adapters[app].repaired_outcome(old)
             repair["state"], repair["reason"] = "done", "Local repair completed; never submitted."
             changes = {"op:" + op_id: repair, "op:" + old["id"]: old}
@@ -573,7 +581,7 @@ class Engine:
 
     def request(self, request, admin=False):
         self.store.observations = Observations()
-        self.pending()
+        self.pending(resolve_checks=False)
         try:
             if not isinstance(request, dict) or request.get('action') not in {'control_archive', 'control_restore_confirm'}:
                 self.store.flush_notices()
