@@ -46,7 +46,7 @@ I only build things myself when writing the brief would cost more than doing it 
 
 ## Owner decides (always ask, never assume)
 
-- Anything touching the laptop's disks, partitions or BIOS/boot settings, or installing AresOS onto a drive.
+- Anything touching the laptop's disks, partitions or BIOS/boot settings, or installing AresOS onto a drive. Once he has said yes, Claude may carry it out itself (hard rule 1).
 - Installing system software on Windows (JDK, drivers, tools). Ask once per tool.
 - Spending money: hardware, subscriptions, credits.
 - Publishing an AresOS image (a new release in the package registry) or changing what the laptop installs (the pinned image in `docs/INSTALL.md`). Test images that a CI job builds and throws away (never pushed to a registry, never pinned) need no OK (owner, 2026-11-07).
@@ -59,7 +59,7 @@ I only build things myself when writing the brief would cost more than doing it 
    - AresOS lives on a second internal NVMe SSD in the free M.2 2280 slot (Crucial P310 500 GB).
    - The Windows SSD (Micron 512 GB) is never partitioned, formatted, resized or written to, and Windows' boot files are never modified.
    - Same-drive dual boot stays documented only as a fallback.
-   - Agents never run disk or boot tools on the real laptop.
+   - Claude runs the laptop's disk, boot and terminal steps itself where it can, instead of handing the owner commands to type (owner, 2026-11-08: "If you give me cmds and I run them there's no real diff"). Before a step that could destroy or change something that matters (erasing or writing a drive, partitions, boot order or firmware settings, system software), say in plain words what it does and what could go wrong, and wait for his OK. Read-only checks need no OK. The owner still does what needs his hands or eyes (F2/F12 screens, the Linux side until Claude runs there), and his secrets (passphrases, tokens) stay with him. Codex never runs disk or boot tools on the real laptop.
 2. Never commit Mojang or Supercell assets. Vanilla textures load from the game at runtime.
 3. Never touch the owner's real `.minecraft` folder or Lunar Client unless asked. Development uses the Gradle dev client (`runClient`).
 4. Agents never merge or push to `main`. Only I merge, after the checks in `docs/WORKFLOW.md`.
