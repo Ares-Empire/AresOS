@@ -207,9 +207,11 @@ class Store:
         return row[0] if row else time.time()
 
     def history_size(self):
+        # The independently retained fence has a separate physical-disk budget.
+        # Counting it here would make owner SQLite compaction eventually useless.
         pages = self.db.execute('PRAGMA page_count').fetchone()[0]
         page_size = self.db.execute('PRAGMA page_size').fetchone()[0]
-        return pages * page_size + os.fstat(self.journal.fileno()).st_size
+        return pages * page_size
 
     def admit_history(self, reserve=retention.REQUEST_RESERVE, recovery=None, owner_recovery=False):
         self.ensure_writable()
