@@ -111,7 +111,7 @@ as his own user under the permissions he sets; our tools only add safe saving an
 | Drop what a page wanted to send | `chrome_drop` | change | first |
 | End a site's guard (it ends by itself only where a site adapter shows nothing of Claude's is left; the owner's own sends there are checked until then) | `chrome_end_guard`, or one click on the extension's notice when Claude is done there | send (asks) | first |
 | Switch the checkpoint to pass-through after a fault (Claude's Chrome tools off until it's back) | `chrome_checkpoint` (`sudo aresos admin chrome checkpoint …`) | owner | owner: only when no guard holds leftovers, or after he has seen them |
-| Calls in Chrome (voice, video, screen sharing to a peer) | `chrome_end_call` (asks) | owner | owner: work only while no guard is on and Claude isn't acting; Claude acts during a call only after his answer to `chrome_end_call`, which ends every call in Chrome |
+| Calls in Chrome (voice, video, screen sharing to a peer) | `chrome_end_call` (asks) | owner | owner: work only while no guard is on and Claude isn't acting; Claude acts during a call only after his answer to `chrome_end_call`, which ends every call in Chrome (unless a `PermissionRequest` hook answers it: unknown until 18c, the accepted residual if it can) |
 | Sites that need WebRTC data channels; sites that need WebTransport | | | WebRTC: refused while a guard is on, works otherwise; WebTransport: doesn't work through the checkpoint at all (Chrome refuses it with a proxy) |
 | Popups and new tabs a page opens | joins the Claude group | | first |
 | Sign in to a site | | owner | owner: Claude stops and asks him to sign in; passwords never pass through Claude |
