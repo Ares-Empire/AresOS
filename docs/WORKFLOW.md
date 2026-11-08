@@ -6,7 +6,7 @@ This is the same shape as nametbd's Codex-era workflow, scaled down: Claude plan
 
 Work one package at a time. Run up to about three at once only when they touch different files.
 
-1. **Plan (Claude).** Pick the next small package from the README phases and write `briefs/NN-slug.md` (template below). A package is one sitting for Codex, roughly one feature you can see in the game.
+1. **Plan (Claude).** Pick the next small package from the phases in `docs/design/DESIGN.md` and write `briefs/NN-slug.md` (template below). A package is one sitting for Codex, roughly one feature you can see in the game.
 2. **Check the brief (Claude).** Read it against itself with two questions:
    - Does anything it asks for contradict anything it forbids?
    - Can what it hands Codex actually produce the result it promises?
@@ -29,7 +29,7 @@ Work one package at a time. Run up to about three at once only when they touch d
    - looks at the screenshots, and opens the dev client when it's visual
 
    Every `JUDGMENT-CALL` goes to the owner. Fixes go back to Codex as a short follow-up brief on the same branch, and the reviewer then checks only those fixes.
-6. **Merge (Claude)** with `gh pr merge --squash`, once checks pass and the owner has answered any judgment calls. Remove the worktree, and update the README if the design moved.
+6. **Merge (Claude)** with `gh pr merge --squash`, once checks pass and the owner has answered any judgment calls. Remove the worktree, and update `docs/design/DESIGN.md` if the design moved (and the README's status if what works changed).
 7. **Owner test.** Anything that matters in the game gets a short "try this" note for the owner. Their feedback becomes the next brief.
 
 ## Brief template
