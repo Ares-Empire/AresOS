@@ -8,8 +8,11 @@ import uuid
 from aresos_control.engine import Engine
 from aresos_control.common import canonical
 from aresos_control.definitions import BY_NAME
+from response_checks import check_responses
 from aresos_control.mail import codec
 from aresos_control.mail.transport import folders, select, uids, fetch, ok, quote
+
+check_responses()
 
 WORK = Path(__file__).resolve().parents[2] / '.work' / 'mail-tests'
 WORK.mkdir(parents=True, exist_ok=True)
