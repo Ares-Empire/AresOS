@@ -24,6 +24,9 @@ DISK_RESERVE = 64 * 1024 * 1024
 FILING_RESERVE = 48 * 1024 * 1024
 NOTICE_RESERVE = 16 * 1024
 REQUEST_RESERVE = 128 * 1024 * 1024
+RECOVERY_RESERVE = 64 * 1024 * 1024
+RECOVERY_REQUEST = 1024 * 1024
+RECOVERY_ACTIONS = {'control_restore_confirm', 'control_archive'}
 OPEN = {'reserved', 'submitting', 'partial', 'unknown'}
 
 
@@ -48,8 +51,13 @@ def admit(store, prefixes, count, total, additions=None, label='Stored working d
         refuse(label, count, total)
 
 
-def disk_space(path, additional):
-    if shutil.disk_usage(path).free < additional + DISK_RESERVE:
+def recovery_action(name):
+    return name in RECOVERY_ACTIONS or any(name.endswith('_' + verb) for verb in
+                                          ('operation_cancel', 'notice_ack', 'operation_repair'))
+
+
+def disk_space(path, additional, recovery=False):
+    if shutil.disk_usage(path).free < additional + (0 if recovery else DISK_RESERVE):
         raise Refused('storage_limit', f'Free storage reserve is {DISK_RESERVE} bytes; ask the owner to free space before creating more working data. No journal transaction started.')
 
 

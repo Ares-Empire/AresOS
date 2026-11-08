@@ -142,6 +142,29 @@ class Integration(unittest.TestCase):
         self.assertEqual(first['data']['operation']['state'], 'done')
         self.assertEqual(self.call(OWNER, 'testapp_send', approval)['data'], first['data'])
 
+    def test_review17_archive_uses_admin_socket_and_installed_owner_cli(self):
+        closed = self.call(OWNER, 'testapp_prepare_send', message(to=['alpha'], bcc=[]))['data']['approval']
+        self.assertTrue(self.call(OWNER, 'testapp_send', closed)['ok'])
+        pending = self.call(OWNER, 'testapp_prepare_send', message(subject='Keep open'))['data']['approval']
+        arguments = {'before': time.time(), 'confirm': 'archive finished history'}
+        self.assertEqual(self.call(OWNER, 'control_archive', arguments)['error']['code'], 'permission_denied')
+        (self.root / 'sockets/admin.sock').chmod(0o666)
+        self.assertEqual(self.call(OWNER, 'control_archive', arguments, 'admin')['error']['code'], 'permission_denied')
+        terminal = self.launch(0, ['cli', 'admin', 'control', 'archive', '--input', json.dumps(arguments)])
+        self.assertEqual(terminal.returncode, 0, terminal.stdout + terminal.stderr)
+        result = json.loads(terminal.stdout)
+        self.assertTrue(result['ok'], result)
+        data = result['data']
+        self.assertEqual(data['operations'], 1)
+        archive = Path(data['path'])
+        self.assertEqual(archive.stat().st_mode & 0o777, 0o600)
+        self.assertEqual(sha256(archive.read_bytes()), data['sha256'])
+        self.assertIn(closed['operation_id'], archive.read_text())
+        self.assertTrue(self.call(OWNER, 'testapp_operation_status', {'operation_id': pending['operation_id']})['ok'])
+        self.assertFalse(self.call(OWNER, 'testapp_send', closed)['ok'])
+        tools = self.request(OWNER, 'act', {'method': 'tools', 'app': 'control'})['data']['tools']
+        self.assertNotIn('archive', [tool['name'] for tool in tools])
+
     def test_25_mib_file_uses_chunks_and_receiver_gets_hashed_snapshot(self):
         source = self.home / "Documents/large.bin"
         original = (b"fixture snapshot bytes " * (FILE_LIMIT // 23 + 1))[:FILE_LIMIT - 1]

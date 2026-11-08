@@ -50,6 +50,8 @@ class Client:
 
     def request(self, request):
         with self.connection() as connection:
+            if request.get('method') == 'call' and request.get('action') == 'control_archive':
+                connection.settimeout(600)
             send(connection, {"v": 1, **request})
             return receive(connection)
 

@@ -80,7 +80,7 @@ class Engine:
         for key, op in self.store.items("op:"):
             if op["state"] == "reserved" and time.time() >= op["expires"]:
                 op.update(state="failed", reason="expired: nothing submitted", notice=True)
-                self.store.write({key: op}, op["action"], "approval expired without submission", op["id"])
+                self.store.write({key: op}, op["action"], "approval expired without submission", op["id"], recovery=True)
                 self.adapters[op["app"]].drop(op)
         retention.expire(self)
 
@@ -89,6 +89,12 @@ class Engine:
         self.store.ensure_writable()
         adapter = self.adapters[app]
         question, description, payload = adapter.prepare(verb, arguments)
+        if app == 'mail' and verb == 'send':
+            for _, old in self.store.items('op:'):
+                if (old['action'] == 'mail_send' and old['generation'] == self.store.generation and
+                        old['state'] == 'reserved' and time.time() < old['expires'] and old['payload'] == payload):
+                    return {'approval': approval_order(old['approval']), 'state': 'reserved'}
+            self.store.admit_history()
         op_id = self.store.generation + ":" + uuid.uuid4().hex
         expires = time.time() + self.ttl
         approval = approval_input(op_id, {**description, "expires_at": expires}, question)
@@ -211,6 +217,9 @@ class Engine:
             raise Refused("restore_required", "Older log refused; owner must confirm restore before any app access.")
         if name == "control_restore_confirm":
             return self.store.confirm_restore()
+        if name == 'control_archive':
+            from .archive import archive
+            return archive(self.store, args['before'])
         if name == "control_pending":
             return self.pending(args=args)
         if name == "control_log":
@@ -261,15 +270,17 @@ class Engine:
         if verb == "notice_ack":
             notice = self.store.get("notice:" + args["operation_id"])
             if notice and notice["app"] == app:
-                notice["ack"] = True
-                self.store.write({"notice:" + notice["id"]: notice}, name, "filing notice acknowledged")
+                if not notice.get('ack'):
+                    notice["ack"] = True
+                    self.store.write({"notice:" + notice["id"]: notice}, name, "filing notice acknowledged")
                 from .mail.filing import public_notice
                 return {"notice": {**public_notice(self.store, notice), "id": notice["id"], "ack": True}}
             op = self.operation(args["operation_id"], app)
             if not op.get("notice"):
                 raise Refused("refused", "Only cancelled/expired notices may be acknowledged; unresolved work stays visible.")
-            op["ack"] = True
-            self.store.write({"op:" + op["id"]: op}, name, "notice acknowledged", op["id"])
+            if not op.get('ack'):
+                op["ack"] = True
+                self.store.write({"op:" + op["id"]: op}, name, "notice acknowledged", op["id"])
             return {"operation": self.public_operation(op)}
         if verb in {"file_import", "file_save"}:
             raise Refused("proxy_required", "File transfer must run on the caller side through aresos-mcp or aresos; the service never opens home paths.")
@@ -321,6 +332,7 @@ class Engine:
                 offset += len(chunk)
 
     def request(self, request, admin=False):
+        previous_recovery = self.store.recovering
         try:
             envelope(request)
             action = BY_NAME.get(request.get('action'))
@@ -328,13 +340,20 @@ class Engine:
                         or (action and action.effect != 'read'))
             if mutating:
                 self.store.ensure_writable()
-                retention.expire(self)
-                self.store.admit_history(retention.REQUEST_RESERVE)
+                self.store.recovering = retention.recovery_action(request.get('action', ''))
+                if not self.store.recovering:
+                    retention.expire(self)
+                # Archive first exports durably, then makes room; it must also
+                # work on a store already over quota from an older installation.
+                if request.get('action') not in {'control_archive', 'mail_prepare_send'}:
+                    self.store.admit_history(retention.RECOVERY_REQUEST if self.store.recovering else retention.REQUEST_RESERVE)
             return self._request(request, admin)
         except Refused as exc:
             return {'ok': False, 'error': {'code': exc.code, 'message': str(exc)}, 'pending': self.pending()}
         except Exception:
             return {'ok': False, 'error': {'code': 'internal_error', 'message': 'Request failed unexpectedly; inspect operation status before repeating changes.'}, 'pending': self.pending()}
+        finally:
+            self.store.recovering = previous_recovery
 
     def _request(self, request, admin=False):
         app = None

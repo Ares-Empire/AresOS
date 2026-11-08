@@ -50,6 +50,8 @@ class Store:
             raise ValueError("Independent evidence must be outside the backup tree")
         self.checkpoint = checkpoint
         self.write_failed = False
+        self.recovering = False
+        self.archiving = False
         for directory in (self.state_dir, self.evidence_dir):
             directory.mkdir(parents=True, exist_ok=True, mode=0o700)
         self.journal = open(self.evidence_dir / "operations.jsonl", "a+b", buffering=0)
@@ -98,7 +100,7 @@ class Store:
             for key, op in self.items("op:"):
                 if op["state"] == "submitting":
                     op["state"], op["reason"] = "unknown", "Service restarted during submission; inspect evidence, never resubmit."
-                    self.write({key: op}, op["action"], "restart: outcome unknown", op["id"])
+                    self.write({key: op}, op["action"], "restart: outcome unknown", op["id"], recovery=True)
 
     def _read_journal(self):
         self.journal.seek(0)
@@ -155,11 +157,12 @@ class Store:
         self.committed = record["seq"]
         self.checkpoint("journal_committed")
 
-    def write(self, changes, action, summary, operation_id=None, restoring=False, outcome="done", untrusted_content=None):
+    def write(self, changes, action, summary, operation_id=None, restoring=False, outcome="done", untrusted_content=None, recovery=False):
         self.ensure_writable()
         if self.locked and not restoring:
             raise Refused("restore_required", "Older log detected; sudo aresos admin control restore_confirm must invalidate earlier approvals first.")
-        operations = {v["id"]: v for k, v in changes.items() if k.startswith("op:")}
+        operations = {k[3:]: v if v is not None else self.get(k)
+                      for k, v in changes.items() if k.startswith("op:")}
         if operation_id and operation_id not in operations:
             operations[operation_id] = self.get("op:" + operation_id)
         operation = operations.get(operation_id)
@@ -180,9 +183,10 @@ class Store:
         # Admission happens before the restore fence, so a quota refusal cannot
         # turn into journal_incomplete or demand owner restore confirmation.
         cost = len(encoded.encode()) * 3 + len(canonical(record).encode()) * 3 + 32768
-        self.admit_history(cost)
-        retention.disk_space(self.state_dir, cost)
-        retention.disk_space(self.evidence_dir, cost)
+        recovery = recovery or self.recovering or retention.recovery_action(action) or action == 'control_expire'
+        self.admit_history(cost, recovery=recovery)
+        retention.disk_space(self.state_dir, cost, recovery)
+        retention.disk_space(self.evidence_dir, cost, recovery)
         self.admit_changes(changes)
         # Fence the write before even its prepared event can enter a backup.
         # A crash here may need owner confirmation: compact metadata cannot
@@ -206,10 +210,14 @@ class Store:
         page_size = self.db.execute('PRAGMA page_size').fetchone()[0]
         return pages * page_size + os.fstat(self.journal.fileno()).st_size
 
-    def admit_history(self, reserve=retention.REQUEST_RESERVE):
+    def admit_history(self, reserve=retention.REQUEST_RESERVE, recovery=None):
         self.ensure_writable()
-        if self.history_size() + reserve > retention.HISTORY_BYTES:
-            retention.refuse('Retained audit history', 'immutable', retention.HISTORY_BYTES)
+        if self.archiving:
+            return
+        recovery = self.recovering if recovery is None else recovery
+        if self.history_size() + reserve + (0 if recovery else retention.RECOVERY_RESERVE) > retention.HISTORY_BYTES:
+            retention.refuse('Recovery audit history' if recovery else 'Free-work audit history (recovery capacity reserved)',
+                             'retained', retention.HISTORY_BYTES)
 
     def admit_changes(self, changes):
         groups = [(('mail:composition:',), retention.COMPOSITION_COUNT, retention.COMPOSITION_BYTES, 'Compositions'),
@@ -226,10 +234,15 @@ class Store:
         if self.write_failed:
             raise Refused('journal_incomplete', 'A journal transaction did not finish; all writes are refused until service restart recovery has run.')
 
-    def audit(self):
+    def iter_audit(self):
         head = self.db.execute("SELECT seq FROM head WHERE id=1").fetchone()[0]
-        return [event for (value,) in self.db.execute("SELECT value FROM events WHERE seq<=? ORDER BY seq", (head,))
-                if (event := json.loads(value))["record"] == self.events[event["seq"] - 1]]
+        for (value,) in self.db.execute("SELECT value FROM events WHERE seq<=? ORDER BY seq", (head,)):
+            event = json.loads(value)
+            if event['record'] == self.events[event['seq'] - 1]:
+                yield event
+
+    def audit(self):
+        return list(self.iter_audit())
 
     def get(self, key, default=None):
         row = self.db.execute("SELECT v FROM kv WHERE k=?", (key,)).fetchone()
@@ -258,6 +271,8 @@ class Store:
         for op_id, (known, seq) in latest.items():
             key = "op:" + op_id
             old = self.get(key)
+            if old is None and self.get('archived:' + op_id) == {'seq': seq}:
+                continue
             version = self.db.execute("SELECT seq FROM operation_versions WHERE id=?", (op_id,)).fetchone()
             if old is None or version != (seq,) or old["state"] == "submitting":
                 if old is None:

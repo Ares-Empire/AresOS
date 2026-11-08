@@ -5,6 +5,7 @@ Actions (input is the definition's JSON object; --help on any action shows its s
   aresos control pending [read]
   aresos control log [read]
   aresos admin control restore_confirm [change]
+  aresos admin control archive [change]
   aresos testapp list [read]
   aresos testapp flag [change]
   aresos testapp file_import [change]
