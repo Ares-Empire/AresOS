@@ -600,3 +600,12 @@ tasks at any time.
   text), and a new confirmation never inherits an approval; navigation only to web addresses, and the approval and
   settings pages kept out by every route; pages read from the accessibility tree without ever collecting a password
   value; downloads, outcomes and the service/extension split reconciled; brief 20's tests extended. Re-check 30 next.
+- **2026-11-08, 05:43:** re-check 30 on draft 27 ([report](../../reviews/control-design/2026-11-08-RECHECK-30.md)):
+  CHANGES-NEEDED, two blocking points; confirmations, destinations, navigation, downloads, outcomes and sections 2
+  and 10 closed. Draft 28: a stopped submission resumes as the same kind (the browser's own `submit()` or
+  `requestSubmit()` with the same submitter), and the page's own handling of the approved run, one further
+  submission of the same form included, isn't stopped again, so a handler can't loop; a send outside a form binds
+  the current content of the item it belongs to (an existing draft included), read fresh at preparation, and is
+  refused when that item can't be established; password fields are excluded before anything is read, with the
+  reader in the extension's own content script; brief 20 checks what the browser returns to the extension too.
+  Re-check 31 next.

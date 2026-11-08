@@ -107,7 +107,7 @@ Updated 2026-11-07. The live truth is `git log`, `gh pr list` and `git worktree 
      Chrome, with no proxy and no certificate; it asks before anything that clearly sends, and a page that sends on
      its own after an ordinary click isn't held, as with Claude in Chrome.
    - **In progress:** Mail (brief 19, PR #9: package review SAFE, frontier security review in its third round);
-     design draft 27 for decision 25, Chrome as the light tool (branch `control/chrome-light`; re-check 30 next;
+     design draft 28 for decision 25, Chrome as the light tool (branch `control/chrome-light`; re-check 31 next;
      no owner choices open). `laptop-aresos` owns `os/` and the accounts (board #102 and #103); for Chrome the image
      needs only the extension policy and the native host's manifest.
    - **Next:** brief 18c (first end-to-end test on a throwaway CI image; no owner OK needed under the 2026-11-07
