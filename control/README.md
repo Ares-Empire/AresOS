@@ -142,7 +142,11 @@ production Mail/Chrome will use genuinely remote evidence.
 Startup verifies the journal one line at a time and rebuilds the disposable
 `journal-index.sqlite` beside it. The index keeps record hashes/offsets and the
 latest compact operation evidence on disk, with a 1 MiB SQLite page cache; it is
-never trusted across restarts. Historical records and audit pages stream from
+never trusted across restarts. Its creation asks the shared storage ledger first.
+If it cannot fit, startup succeeds without it: asking actions refuse with
+`storage_limit`, while cancellation, status and owner restore use streaming
+journal reads. This fallback trades extra scans for bounded memory and no index
+writes. Historical records and audit pages stream from
 disk instead of remaining as Python objects. Retained evidence and startup scan
 time still grow with history; the permanent journal is unchanged.
 
@@ -152,18 +156,37 @@ After an older backup is detected, only the owner can run:
 sudo aresos admin control restore_confirm --input '{"confirm":"invalidate earlier approvals"}'
 ```
 
-Confirmation writes a new generation. Missing/newer operations from the independent
+Confirmation writes bounded batches (at most 32 operations and a 64 KiB permanent
+record), holding a durable restore lock until the final new-generation write.
+Its result lists up to 100 unknown IDs and points to `control_pending` for the rest.
+Missing/newer operations from the independent
 record become `unknown`, retaining their short descriptions. Details absent from
 the restored main log cannot be reconstructed from the separate record. Earlier-generation ids
 can be read and locally repaired but never approved or submitted. Reserved operations
 from the restored generation are invalidated. A repair is a new logged operation
 pointing at the old one. Mail keeps at most one unresolved repair per local stage.
 Repeating it checks Sent by the original Message-ID or reads the pinned reply's
-answered flag: presence settles it done, a successful absent check settles it
-failed and permits a later attempt, and an inconclusive check writes nothing.
-Status remains read-only. Cancellation has a separate quota-exempt path and
-4 MiB physical reserve; other calls leave it untouched, and cancellation leaves
-the 16 MiB restore reserve. A missing/corrupt independent record, a torn journal line or
+answered flag: presence settles it done. A negative Sent search settles a repair
+failed only on a fresh IMAP connection at least 15 minutes after its attempt ended;
+earlier absence stays unknown and names when to try again. Inconclusive checks
+write nothing. Every Sent APPEND gets a fresh read-only count afterward; multiple
+copies produce a warning in the operation and the existing bounded persistent
+notice pages. Nothing is deleted. Permanent evidence retains repair/send/stage
+identity and the attempt end time. Missing older identity blocks another repair
+instead of guessing. Status remains read-only.
+
+All local durable writers ask one space ledger, including journal/database
+transactions, index builds, blobs, passwords, expiry and owner archives/compaction.
+A pending approval holds its cancellation budget; an unresolved repair holds its
+settlement budget; a detected restore holds its bounded confirmation budget.
+Each write leaves all held budgets plus one fixed 4 MiB safety floor. Cancel,
+settlement and confirmation spend their own budget and need no second reserve.
+Rights release when the approval is submitted, expired or cancelled, the repair
+settles, or confirmation finishes. Startup rebuilds these holds from durable
+operations and verified permanent evidence. The compactable SQLite audit quota
+still separates ordinary-work headroom from recovery and owner maintenance; that
+logical quota is independent of physical free-space admission.
+A missing/corrupt independent record, a torn journal line or
 an inconsistent chain fails closed and needs owner recovery; the restore command
 does not silently erase corrupt evidence. This pre-deployment record format is
 version 2; the earlier full-event format fails closed and needs owner recovery

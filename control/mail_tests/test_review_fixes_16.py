@@ -30,6 +30,8 @@ class Review16(unittest.TestCase):
         self.engine = Engine(self.root / 'state', self.root / 'evidence')
         self.mail.store = self.engine.store
         self.mail.blobs = self.engine.blobs
+        self.mail.wires = self.engine.adapters['mail'].wires
+        self.mail.transport.ledger = self.engine.store.ledger
         self.mail.check_result = self.engine.check_composition_result
         self.engine.adapters['mail'] = self.mail
         self.assertFalse(self.engine.store.locked)

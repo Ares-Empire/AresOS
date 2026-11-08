@@ -12,6 +12,9 @@ from . import retention
 from .common import Refused, canonical, digest, json_value, visible
 from .space import SpaceLedger, record_budget
 
+RESTORE_BATCH_BYTES = 64 * 1024
+RESTORE_BATCH_COUNT = 32
+
 
 def sync_directory(path):
     fd = os.open(path, os.O_RDONLY | os.O_DIRECTORY)
@@ -64,7 +67,8 @@ def missing_operation(known):
     op = {'id': known['id'], 'generation': known['generation'], 'input_hash': known['input_hash'],
           'app': action.split('_', 1)[0], 'action': action,
           'approval': {'operation_id': known['id'], 'description': description},
-          'payload': {}, 'expires': 0, 'stages': {}, 'state': 'unknown'}
+          'payload': {}, 'expires': 0, 'stages': {}, 'state': 'unknown',
+          'reason': 'Restored log: independent record has newer or missing evidence. Owner must check.'}
     if action == 'mail_operation_repair':
         identity = description.get('repair', {})
         # Older compact evidence retained the original ID as a target, but
@@ -126,6 +130,8 @@ class Store:
         self.archiving = False
         self.index = None
         self.ledger = SpaceLedger((self.state_dir, self.evidence_dir), self.history_size)
+        if not (self.state_dir / 'control.sqlite').exists() or not (self.evidence_dir / 'operations.jsonl').exists():
+            self.ledger.admit(128 * 1024)
         for directory in (self.state_dir, self.evidence_dir):
             directory.mkdir(parents=True, exist_ok=True, mode=0o700)
         self.journal = open(self.evidence_dir / "operations.jsonl", "a+b", buffering=0)
@@ -142,13 +148,6 @@ class Store:
                               "INSERT OR IGNORE INTO head VALUES (1,0,'');"
                               "CREATE TABLE IF NOT EXISTS events (seq INTEGER PRIMARY KEY, value TEXT NOT NULL);"
                               "CREATE TABLE IF NOT EXISTS operation_versions (id TEXT PRIMARY KEY, seq INTEGER NOT NULL);")
-        missing = self.db.execute('SELECT count(*) FROM kv WHERE k NOT IN (SELECT k FROM retained)').fetchone()[0]
-        if missing:
-            for _, op in self.iter_items('op:'):
-                self.ledger.holds.update(self.ledger.right(op, self.get('op:' + op.get('repair_of', ''))))
-            self.ledger.admit(missing * 1024 + 32768)
-            self.db.execute('INSERT OR IGNORE INTO retained SELECT k, ? FROM kv', (time.time(),))
-            self.db.commit()
         sync_directory(self.state_dir)
         # Derived, disposable index outside the backed-up state. Never trust it
         # across restarts: rebuild solely from the verified permanent journal.
@@ -168,6 +167,19 @@ class Store:
                 prepared = self._prepared(last['seq'])
                 self.locked = self.locked or prepared is None or prepared['record'] != last
             self._load_reservations()
+            # Optional retention metadata is migrated only after all recovery
+            # rights have been loaded. A full disk may defer this bookkeeping;
+            # retained_at then conservatively treats an untracked row as new.
+            missing = self.db.execute('SELECT count(*) FROM kv WHERE k NOT IN (SELECT k FROM retained)').fetchone()[0]
+            if missing:
+                try:
+                    self.ledger.admit(missing * 1024 + 32768)
+                except Refused as exc:
+                    if exc.code != 'storage_limit':
+                        raise
+                else:
+                    self.db.execute('INSERT OR IGNORE INTO retained SELECT k, ? FROM kv', (time.time(),))
+                    self.db.commit()
             self.index_refusal = None
             try:
                 self.ledger.admit(os.fstat(self.journal.fileno()).st_size * 3 + 256 * 1024)
@@ -180,7 +192,7 @@ class Store:
                 self.index.execute('PRAGMA cache_size=-1024')
                 self.index.executescript('CREATE TABLE records (seq INTEGER PRIMARY KEY, hash TEXT NOT NULL, offset INTEGER NOT NULL);'
                                         'CREATE TABLE latest (id TEXT PRIMARY KEY, seq INTEGER NOT NULL, value TEXT NOT NULL);')
-                self._read_journal()
+                self._read_journal(indexing=True)
             if not self.locked:
                 if len(self.events) > self.committed:
                     record = self.events[-1]
@@ -233,10 +245,10 @@ class Store:
             self.index.commit()
         self.sequence, self.head_hash = record['seq'], record['hash']
 
-    def _read_journal(self):
+    def _read_journal(self, indexing=False):
         self.sequence, self.head_hash = 0, ''
         committed, offset = 0, 0
-        if self.index is not None:
+        if indexing:
             self.index.execute('DELETE FROM records')
             self.index.execute('DELETE FROM latest')
         with open(self.journal.name, 'rb') as stream:
@@ -258,7 +270,10 @@ class Store:
                                 or digest(row) != hash_value):
                             raise ValueError('broken chain')
                         row['hash'] = hash_value
-                        self._index_record(row, offset)
+                        if indexing:
+                            self._index_record(row, offset)
+                        else:
+                            self.sequence, self.head_hash = row['seq'], row['hash']
                 except (ValueError, KeyError, IndexError, TypeError) as exc:
                     raise Refused('evidence_corrupt', 'Independent record is damaged or has an older format; owner recovery required, no submissions.') from exc
                 offset += len(raw)
@@ -271,7 +286,8 @@ class Store:
         slower than an index but needs neither writable disk nor history RAM.
         """
         if self.index is not None:
-            for op_id, seq, encoded in self.index.execute('SELECT id,seq,value FROM latest ORDER BY id'):
+            through = self.sequence if through is None else through
+            for op_id, seq, encoded in self.index.execute('SELECT id,seq,value FROM latest WHERE seq<=? ORDER BY id', (through,)):
                 yield op_id, seq, json.loads(encoded)
             return
         cursor = ''
@@ -300,7 +316,15 @@ class Store:
     def _load_reservations(self):
         self.ledger.holds.clear()
         for _, op in self.iter_items('op:'):
-            self.ledger.holds.update(self.ledger.right(op, self.get('op:' + op.get('repair_of', ''))))
+            self.ledger.holds.update(self.ledger.right(op, self.get('op:' + (op.get('repair_of') or ''))))
+        if self.sequence > self.committed and not self.locked:
+            prepared = self._prepared(self.sequence)
+            if prepared is not None:
+                # A pending prepared approval already owns its cancellation
+                # right, even before replay publishes it in kv.
+                for key, op in prepared['set'].items():
+                    if key.startswith('op:') and op is not None:
+                        self.ledger.holds.update(self.ledger.right(op, self.get('op:' + (op.get('repair_of') or ''))))
         if self.locked:
             budget = 256 * 1024
             for op_id, seq, known in self.iter_latest():
@@ -365,7 +389,7 @@ class Store:
         updates, consume = {}, []
         compact = []
         for op in operations.values():
-            rights = self.ledger.right(op, self.get('op:' + op.get('repair_of', '')))
+            rights = self.ledger.right(op, self.get('op:' + (op.get('repair_of') or '')))
             for prefix in ('cancel:', 'settle:'):
                 key = prefix + op['id']
                 if key in self.ledger.holds and key not in rights:
@@ -380,6 +404,8 @@ class Store:
                   "generation": changes.get("generation", self.generation),
                   "operations": compact}
         record["hash"] = digest(record)
+        if restoring and len(canonical(record).encode()) > RESTORE_BATCH_BYTES:
+            raise Refused('storage_limit', 'One restore evidence record exceeds the bounded confirmation batch; ask the owner to inspect it.')
         event = {"seq": record["seq"], "time": record["time"], "action": action, "summary": summary,
                  "outcome": operation["state"] if operation else outcome, "operation_id": operation_id,
                  "set": changes, "record": record}
@@ -487,8 +513,12 @@ class Store:
             self._append({"commit": last["seq"], "hash": last["hash"]})
             self.ledger.holds['restore'] -= 4096
             self.committed = last["seq"]
-        changes = {"generation": uuid.uuid4().hex}
-        for op_id, seq, known in self.iter_latest():
+        # Keep the lock durable across every batch and crash. Only the final
+        # marker advances generation; nothing is resumed in an intermediate DB.
+        through = self.sequence
+        changes = {}
+        batch_bytes = 0
+        for op_id, seq, known in self.iter_latest(through):
             key = "op:" + op_id
             old = self.get(key)
             if old is None and self.get('archived:' + op_id) == {'seq': seq}:
@@ -498,14 +528,34 @@ class Store:
                 if old is None:
                     old = missing_operation(known)
                 old.update(state="unknown", reason="Restored log: independent record has newer or missing evidence. Owner must check.")
-                changes[key] = old
             elif old["state"] == "reserved":
                 old.update(state="failed", reason="Restore invalidated this generation's approval; nothing resumed.")
-                changes[key] = old
-        result = {"generation": changes["generation"], "unknown": [v["id"] for k, v in changes.items() if k.startswith("op:") and v["state"] == "unknown"]}
-        self.write(changes, "control_restore_confirm", "owner confirmed restore; invalidated all earlier approvals", restoring=True)
+            else:
+                continue
+            amount = len(canonical(old).encode()) + len(canonical(short_description(old)).encode()) + 1024
+            if changes and (len(changes) >= RESTORE_BATCH_COUNT or batch_bytes + amount > RESTORE_BATCH_BYTES):
+                changes['restore_pending'] = True
+                self.write(changes, 'control_restore_confirm', 'bounded restore evidence batch', restoring=True)
+                changes, batch_bytes = {}, 0
+            changes[key] = old
+            batch_bytes += amount
+        generation = uuid.uuid4().hex
+        changes.update(generation=generation, restore_pending=None)
+        self.write(changes, 'control_restore_confirm',
+                   'owner confirmed restore; invalidated all earlier approvals', restoring=True)
         self.locked = False
         self.ledger.holds.pop('restore', None)
+        # A large recovery must not complete and then return result_too_large.
+        # Every operation remains available through the existing pending pages.
+        result = {'generation': generation, 'unknown': []}
+        count = 0
+        for _, op in self.iter_items('op:'):
+            if op['state'] == 'unknown':
+                count += 1
+                if len(result['unknown']) < 100:
+                    result['unknown'].append(op['id'])
+        if count > len(result['unknown']):
+            result['unknown_more'] = {'count': count - len(result['unknown']), 'action': 'control_pending'}
         return result
 
     def close(self):

@@ -50,8 +50,13 @@ class Ledger20(unittest.TestCase):
         approval = self.approval('delete', {'items': items, 'mode': 'trash'})
         store = self.engine.store
         op = self.engine.operation(approval['operation_id'])
-        for _ in range(2000):
-            store.write({'op:' + op['id']: op}, 'mail_delete', 'Synthetic repeated delete approval record', op['id'])
+        for number in range(2000):
+            historical = copy.deepcopy(op)
+            historical.update(id=op['generation'] + ':' + f'{number + 1:032x}', state='failed')
+            store.write({'op:' + historical['id']: historical}, 'mail_delete',
+                        'Synthetic closed history based on a real delete approval', historical['id'])
+        self.engine.close()
+        (self.root / 'evidence/journal-index.sqlite').unlink()
         with disk_budget(self.root, 30 * 1024 * 1024):
             self.restart()
             self.assertIsNone(self.engine.store.index)
@@ -138,12 +143,13 @@ class Ledger20(unittest.TestCase):
         self.backup()
         pending = self.approval('send', self.compose())
         self.restore()
-        store = self.engine.store
-        self.assertIn('restore', store.ledger.holds)
-        store.index.close()
-        store.index = None
-        store.index_refusal = 'Synthetic admission refusal'
-        with patch('aresos_control.space.shutil.disk_usage', return_value=SimpleNamespace(free=SAFETY_FLOOR + store.ledger.held)):
+        held = self.engine.store.ledger.held
+        self.engine.close()
+        with patch('aresos_control.space.shutil.disk_usage', return_value=SimpleNamespace(free=SAFETY_FLOOR + held)):
+            self.engine = Engine(self.root / 'state', self.root / 'evidence')
+            store = self.engine.store
+            self.assertIn('restore', store.ledger.holds)
+            self.assertIsNone(store.index)
             result = self.owner('control_restore_confirm', {'confirm': 'invalidate earlier approvals'})
         self.assertIn(pending['operation_id'], result['unknown'])
         self.assertNotIn('restore', store.ledger.holds)

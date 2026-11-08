@@ -50,6 +50,8 @@ class Transport:
         from ..space import SpaceLedger
         self.ledger = ledger or SpaceLedger((password_dir,))
         self.secrets = set()
+        if not password_dir.exists():
+            self.ledger.admit(8192)
         password_dir.mkdir(mode=0o700, exist_ok=True)
         os.chmod(password_dir, 0o700)
 

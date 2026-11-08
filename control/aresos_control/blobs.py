@@ -20,6 +20,8 @@ class Blobs:
         self.ledger = ledger or SpaceLedger((self.directory,))
         if type(limit) is not int or limit < 1:
             raise ValueError("File limit must be a positive byte count")
+        if not self.directory.exists():
+            self.ledger.admit(8192)
         self.directory.mkdir(exist_ok=True, mode=0o700)
         # An interrupted upload is never a blob; remove its private staging inode.
         for temporary in self.directory.glob(".upload-*"):
