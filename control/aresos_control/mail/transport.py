@@ -7,7 +7,7 @@ import smtplib
 import ssl
 import stat
 
-from ..common import Refused, cleanup
+from ..common import Refused, storage_stream, cleanup
 from ..adapters import Uncertain
 from .codec import utf7, unutf7
 
@@ -59,7 +59,7 @@ class Transport:
         from ..common import digest
         try:
             fd = os.open(self.password_dir / digest(account["id"]), os.O_RDONLY | os.O_NOFOLLOW)
-            with os.fdopen(fd, "r") as stream:
+            with storage_stream(os.fdopen(fd, "r")) as stream:
                 info = os.fstat(stream.fileno())
                 if info.st_uid != os.geteuid() or stat.S_IMODE(info.st_mode) != 0o600 or not stat.S_ISREG(info.st_mode) or info.st_nlink != 1:
                     raise OSError()
@@ -78,7 +78,7 @@ class Transport:
         self.ledger.admit(len(value.encode()) + 16384)
         fd, name = tempfile.mkstemp(dir=self.password_dir)
         try:
-            with os.fdopen(fd, "w") as stream:
+            with storage_stream(os.fdopen(fd, "w")) as stream:
                 os.fchmod(stream.fileno(), 0o600)
                 stream.write(value)
                 stream.flush()

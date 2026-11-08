@@ -44,5 +44,5 @@ printf 'Mail fixture isolation PASS: internal network, one test network, no publ
 docker exec -e PYTHONPATH=/workspace/control:/usr/lib/aresos-control/vendor -e PYTHONDONTWRITEBYTECODE=1 -e MAIL_CERT_DIR=/workspace/.work/mail-ci/certs mail-tests python3 control/ci/mail/ready.py
 python3 control/ci/mail/roles_fixture.py "$work" >"$work/roles.txt" 2>&1 &
 roles_pid=$!
-docker exec -e PYTHONPATH=/workspace/control:/usr/lib/aresos-control/vendor -e PYTHONDONTWRITEBYTECODE=1 -e MAIL_CERT_DIR=/workspace/.work/mail-ci/certs mail-tests python3 control/ci/mail/tests.py "$selection" 2>&1 | tee "$work/mail.txt"
+docker exec -e PYTHONPATH=/workspace/control:/usr/lib/aresos-control/vendor -e PYTHONDONTWRITEBYTECODE=1 -e MAIL_CERT_DIR=/workspace/.work/mail-ci/certs  -e MAIL_SWEEP_SHARD="${MAIL_SWEEP_SHARD:-0}" -e MAIL_SWEEP_SHARDS="${MAIL_SWEEP_SHARDS:-1}" mail-tests python3 control/ci/mail/tests.py "$selection" 2>&1 | tee "$work/mail.txt"
 printf 'Control Mail suite PASS\n' | tee -a "$work/mail.txt"

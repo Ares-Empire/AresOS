@@ -7,7 +7,7 @@ import tempfile
 from contextlib import contextmanager
 
 from . import retention
-from .common import FILE_LIMIT, Refused, cleanup, sha256, storage_refusal
+from .common import FILE_LIMIT, Refused, storage_stream, cleanup, sha256, storage_refusal
 from .storage import sync_directory
 from .space import SpaceLedger
 
@@ -77,7 +77,7 @@ class Blobs:
         try:
             fd, temporary = tempfile.mkstemp(prefix=".upload-", dir=self.directory)
             count, hashed = 0, hashlib.sha256()
-            with os.fdopen(fd, "wb") as stream:
+            with storage_stream(os.fdopen(fd, "wb")) as stream:
                 for data in chunks:
                     count += len(data)
                     if count > size or count > self.limit:
@@ -100,7 +100,7 @@ class Blobs:
             origins = self.origins(key) | {origin}
             meta_fd, meta_name = tempfile.mkstemp(prefix=".upload-", dir=self.directory)
             try:
-                with os.fdopen(meta_fd, "w") as meta:
+                with storage_stream(os.fdopen(meta_fd, "w")) as meta:
                     json.dump(sorted(origins), meta)
                     meta.flush()
                     os.fsync(meta.fileno())
@@ -170,7 +170,7 @@ class Blobs:
             return self._staged[key][0]
         try:
             fd = os.open(self.directory / key, os.O_RDONLY | os.O_NOFOLLOW)
-            with os.fdopen(fd, "rb") as stream:
+            with storage_stream(os.fdopen(fd, "rb")) as stream:
                 data = stream.read(self.limit + 1)
         except FileNotFoundError as exc:
             raise Refused("stale_reference", "Blob not present after restore; import again and prepare a new operation.") from exc

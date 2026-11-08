@@ -32,6 +32,7 @@ class Scenario:
         self.flow, self.remote = flow, Counter()
         self.prior_commands, self.attempted_ids = Counter(), set()
         self.replay_requests = {}
+        self.delivered = []
         self.stages, self.copies = {}, {}
         self.install_remote()
         self.approval = None
@@ -127,6 +128,10 @@ class Scenario:
                 f.compose()
                 self.stack.enter_context(patch('aresos_control.retention.time.time', return_value=time.time() + 86401))
             else:
+                from aresos_control.recovery import unfinished
+                self.restart_warnings = ({n for _, n, _, _ in unfinished(f.engine.store)},
+                    {n['id'] for _, n in f.engine.store.items('notice:') if not n.get('ack')},
+                    set(f.engine.store.deferred_notices))
                 f.engine.close()
                 if flow == 'restart_tail':
                     with open(f.root / 'evidence/operations.jsonl', 'ab') as stream:
@@ -168,14 +173,21 @@ class Scenario:
         self.replay_requests[approval['operation_id']] = ('mail_send', copy.deepcopy(approval))
         def smtp(operation, composition, raw, stage):
             self.prior_commands['DATA'] += 1
+            self.delivered.append(raw)
             self.attempted_ids.add(operation['id'])
             stage('smtp_data', 'accepted:250')
             return 'done', 'Synthetic DATA accepted'
+        real_local = f.mail.local_stage
         def local(operation, name):
             if name == failed:
                 raise Refused('stage_missing', 'Synthetic local failure')
-            return 'done' if name == 'sent_copy' else 'not_needed'
-        with patch.object(f.mail, 'send_smtp', side_effect=smtp), patch.object(f.mail, 'local_stage', side_effect=local):
+            return real_local(operation, name)
+        def seed_append(account, folder, raw, flags):
+            self.prior_commands['APPEND'] += 1
+            f.imap.boxes[folder][1] = raw
+            return {'uid': 1}
+        with patch.object(f.mail, 'send_smtp', side_effect=smtp), patch.object(f.mail, 'local_stage', side_effect=local), \
+             patch.object(f.mail, 'append', side_effect=seed_append):
             return f.data('send', approval)['operation']
 
     def export_setup(self):
@@ -247,8 +259,10 @@ class Scenario:
 
     def install_remote(self):
         f, remote = self.fixture, self.remote
+        delivered = self.delivered
         def attempted():
-            self.attempted_ids.add(self.operation_id)
+            if self.operation_id is not None:
+                self.attempted_ids.add(self.operation_id)
             # Capture the live request's identity in the fixture log, before
             # closing/recovery. Recovered rows never decide expected outcomes.
             for _, operation in f.engine.store.items('op:'):
@@ -264,6 +278,7 @@ class Scenario:
             def data(self, raw):
                 attempted()
                 remote['DATA'] += 1
+                delivered.append(raw)
                 return 250, b'Synthetic DATA accepted'
         @contextmanager
         def smtp(account):
@@ -365,6 +380,13 @@ class Scenario:
         f = self.fixture
         remote = self.remote.copy()
         prior = self.prior_commands.copy()
+        from aresos_control.recovery import unfinished
+        if self.flow.startswith('restart_'):
+            implied, warnings, deferred = self.restart_warnings
+        else:
+            implied = {notice_id for _, notice_id, _, _ in unfinished(f.engine.store)}
+            warnings = {n['id'] for _, n in f.engine.store.items('notice:') if not n.get('ack')}
+            deferred = set(f.engine.store.deferred_notices)
         f.engine.close()
         # The first restart itself hits full disk; no fixture transport may run.
         restart = DurableWrites(1)
@@ -375,11 +397,23 @@ class Scenario:
             f.assertIsNotNone(storage_refusal(exc), repr(exc))
         f.assertTrue(restart.failed, restart.points)
         f.assertEqual(self.remote, remote)
+        f.engine.close()
         self.bind(Engine(f.root / 'state', f.root / 'evidence'))
         if f.engine.store.locked:
             result = f.engine.request({'v': 1, 'method': 'call', 'action': 'control_restore_confirm',
                                       'arguments': {'confirm': 'invalidate earlier approvals'}}, admin=True)
             f.assertTrue(result['ok'], result)
+        # Every durable unfinished intent must disclose a warning after crash.
+        visible = {n['id'] for _, n in f.engine.store.items('notice:') if not n.get('ack')}
+        visible.update(f.engine.store.deferred_notices)
+        from aresos_control.recovery import recovery_notices
+        visible.update(n['id'] for n in recovery_notices(f.engine.store))
+        f.assertTrue(implied <= visible, ('Lost implied warnings', implied - visible))
+        f.assertTrue(warnings <= visible, ('Lost durable warnings', warnings - visible))
+        # Deferred duplicate notices are re-observed by status below. Filing
+        # intent identities themselves must already be visible at startup.
+        f.assertTrue({n for n in deferred if f.engine.store.get('mail:filing:' + n) or
+                      f.engine.store.get('mail:rename:' + n)} <= visible)
         f.assertEqual(f.engine.store.committed, f.engine.store.sequence)
         f.assertFalse(f.engine.store.write_failed)
         f.assertEqual(list(f.engine.store.events)[:len(self.committed_before)], self.committed_before,
@@ -394,6 +428,12 @@ class Scenario:
             if operation_id in self.replay_requests:
                 action, approval = self.replay_requests[operation_id]
                 f.engine.request({'v': 1, 'method': 'call', 'action': action, 'arguments': approval})
+        for operation_id, copies in self.copies.items():
+            if len(copies) > 1:
+                status = f.data('operation_status', {'operation_id': operation_id})
+                f.assertIn(str(len(copies)) + ' copies', status['evidence']['sent_copy_warning'])
+                from aresos_control.mail.filing import notice_page
+                f.assertGreater(notice_page(f.engine.store)['total'], 0, 'Duplicate owner warning must survive crash')
         if self.operation_id is not None:
             status = f.data('operation_status', {'operation_id': self.operation_id})
             state = status['operation']['state']
@@ -447,11 +487,17 @@ class Scenario:
                     f.assertEqual(f.imap.boxes['Trash'].get(uid), f.imap.raw)
         elif self.flow in {'send', 'repair', 'status', 'settlement', 'unsubscribe_mailto'}:
             f.assertEqual(commands['DATA'], 1, ('false done', self.flow, commands))
-            op = f.engine.operation(operation_id)
-            if op.get('repair_of'):
-                f.assertTrue(f.imap.boxes['Sent'], ('false repair done', commands))
-            elif self.flow != 'unsubscribe_mailto':
-                f.assertTrue(f.imap.boxes['Sent'], ('false sent-copy done', commands))
+            from aresos_control.mail.codec import parse
+            # The receiver and Sent must identify THIS delivery, independently
+            # of what a damaged/recovered operation claims in its stage map.
+            source_id = self.operation_id
+            mid = f.mail.message_id(source_id)
+            matching_data = [raw for raw in self.delivered if str(parse(raw).get('Message-ID', '')) == mid]
+            f.assertEqual(len(matching_data), 1, ('false matching DATA', mid, commands))
+            if self.flow != 'unsubscribe_mailto':
+                copies = [raw for raw in f.imap.boxes['Sent'].values()
+                          if str(parse(raw).get('Message-ID', '')) == mid]
+                f.assertTrue(copies, ('false matching Sent copy', mid, commands))
         elif self.flow == 'unsubscribe_https':
             f.assertEqual(commands['POST'], 1, ('false done', commands))
 
@@ -544,7 +590,9 @@ class FaultSweep23(unittest.TestCase):
                  'restart_index', 'restart_tail', 'export_rollback', 'archive')
         mechanisms, counts = Counter(), Counter()
         started = time.monotonic()
-        for flow in flows:
+        shard = int(os.environ.get('MAIL_SWEEP_SHARD', '0'))
+        shards = int(os.environ.get('MAIL_SWEEP_SHARDS', '1'))
+        for flow_index, flow in enumerate(flows):
             flow_started = time.monotonic()
             flow_counts = Counter()
             clean = Scenario(flow)
@@ -561,8 +609,12 @@ class FaultSweep23(unittest.TestCase):
                 clean.recover()
             finally:
                 clean.close()
-            print(f'Review25 OS/VFS write points: {flow}={len(points)} {dict(Counter(points))}', flush=True)
+            if flow_index % shards != shard:
+                continue
+            print(f'Review26 OS/VFS write points: {flow}={len(points)} {dict(Counter(points))}', flush=True)
             for number, label in enumerate(points, 1):
+                if label.endswith('.close'):
+                    continue  # Close is a secondary EIO site, not a primary write.
                 with self.subTest(flow=flow, point=number, label=label, mode='single'):
                     trace, cleanups = self.fault(flow, number)
                     self.assertEqual(trace[:number], points[:number])
@@ -579,11 +631,11 @@ class FaultSweep23(unittest.TestCase):
                         self.fault(flow, number, cleanup_at=cleanup_at)
                         flow_counts['pairs'] += 1
             counts.update(flow_counts)
-            print(f'Review25 modes: {flow} {dict(flow_counts)}; elapsed={time.monotonic() - flow_started:.3f}s', flush=True)
+            print(f'Review26 modes: {flow} {dict(flow_counts)}; elapsed={time.monotonic() - flow_started:.3f}s', flush=True)
         for mechanism in ('journal.write', 'journal.truncate', 'sqlite.main.write', 'sqlite.index.write',
                           'sqlite.main.create', 'sqlite.index.create', 'file.create', 'file.write',
-                          'file.link', 'file.rename', 'file.truncate', 'file.fsync'):
+                          'file.link', 'file.rename', 'file.truncate', 'file.fsync', 'file.close', 'sqlite.main.close'):
             self.assertGreater(mechanisms[mechanism], 0, mechanism)
         self.assertGreater(counts['pairs'], 0)
-        print(f'Review25 OS/VFS mechanisms: {dict(mechanisms)}; modes={dict(counts)}; '
+        print(f'Review26 OS/VFS mechanisms: {dict(mechanisms)}; modes={dict(counts)}; '
               f'elapsed={time.monotonic() - started:.3f}s', flush=True)

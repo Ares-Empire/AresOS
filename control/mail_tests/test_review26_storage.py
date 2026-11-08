@@ -47,3 +47,17 @@ class Storage26(unittest.TestCase):
                 self.assertEqual(caught.exception.code, 'storage_limit')
                 self.assertFalse(store.write_failed)
                 call()
+
+    def test_review26_failed_index_retry_preserves_live_journal_head(self):
+        import errno
+        store = self.engine.store
+        store.write({}, 'fixture', 'Committed head before index retry')
+        sequence, head_hash = store.sequence, store.head_hash
+        store.index.close()
+        store.index = None
+        with patch.object(store, '_index_record', side_effect=OSError(errno.EIO, 'Synthetic index I/O failure')):
+            with self.assertRaises(OSError):
+                store.require_index()
+        self.assertEqual((store.sequence, store.head_hash), (sequence, head_hash))
+        store.write({}, 'fixture', 'Healthy retry uses the original journal head')
+        self.assertEqual(store.sequence, sequence + 1)

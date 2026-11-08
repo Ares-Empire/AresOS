@@ -29,7 +29,7 @@ class File(C.Structure):
 class VFS(C.Structure):
     _fields_ = [('version', C.c_int), ('size', C.c_int), ('maxpath', C.c_int),
                 ('next', C.c_void_p), ('name', C.c_char_p), ('data', C.c_void_p),
-                ('open', C.c_void_p)]
+                ('open', C.c_void_p), ('delete', C.c_void_p)]
 
 
 class SQLiteIO:
@@ -39,6 +39,8 @@ class SQLiteIO:
         self.vfs = self.lib.sqlite3_vfs_find(None)
         self.files, self.tables = {}, {}
         self.open_type = C.CFUNCTYPE(C.c_int, C.c_void_p, C.c_void_p, C.POINTER(File), C.c_int, C.c_void_p)
+        self.delete_type = C.CFUNCTYPE(C.c_int, C.c_void_p, C.c_char_p, C.c_int)
+        self.real_delete = self.delete_type(self.vfs.contents.delete)
         self.close_type = C.CFUNCTYPE(C.c_int, C.POINTER(File))
         self.write_type = C.CFUNCTYPE(C.c_int, C.POINTER(File), C.c_void_p, C.c_int, C.c_int64)
         self.truncate_type = C.CFUNCTYPE(C.c_int, C.POINTER(File), C.c_int64)
@@ -46,6 +48,8 @@ class SQLiteIO:
         self.real_open = self.open_type(self.vfs.contents.open)
         self.callbacks = [self.close_type(self.close), self.write_type(self.write),
                           self.truncate_type(self.truncate), self.sync_type(self.sync), self.open_type(self.open)]
+        self.delete_callback = self.delete_type(self.delete)
+        self.vfs.contents.delete = C.cast(self.delete_callback, C.c_void_p).value
         self.vfs.contents.open = C.cast(self.callbacks[-1], C.c_void_p).value
 
     def hit(self, label):
@@ -80,9 +84,18 @@ class SQLiteIO:
             tables = self.tables[C.addressof(original.contents)]
             C.cast(address, C.POINTER(File)).contents.methods = C.pointer(tables[ACTIVE is not None])
 
+    def delete(self, vfs, name, sync):
+        path = os.fsdecode(name)
+        kind = 'sqlite.index' if 'journal-index.sqlite' in path else 'sqlite.main'
+        fault = self.hit(kind + '.unlink')
+        return fault or self.real_delete(vfs, name, sync)
+
     def close(self, file):
-        original, _ = self.files.pop(C.addressof(file.contents))
-        return self.close_type(original.contents.calls[0])(file)
+        original, kind = self.files.pop(C.addressof(file.contents))
+        # A simulated failed close must still release the test's descriptor.
+        fault = self.hit(kind + '.close')
+        result = self.close_type(original.contents.calls[0])(file)
+        return fault or result
 
     def call(self, file, index, kind, callback, *args):
         original, prefix = self.files[C.addressof(file.contents)]
@@ -115,8 +128,8 @@ class OSWrites:
     def hit(self, label, sqlite=False):
         self.points.append(label)
         number = len(self.points)
-        if CLEANUP.get() is not None:
-            self.cleanup_points.append((number, label, CLEANUP.get()))
+        if CLEANUP.get() is not None or (self.failed and label.rsplit('.', 1)[-1] in {'close', 'unlink', 'rename', 'truncate'}):
+            self.cleanup_points.append((number, label, CLEANUP.get() or 'syscall'))
         secondary = number == self.cleanup_at
         if number == self.fail_at or (self.mode == 'persistent' and self.fail_at is not None and number >= self.fail_at) or secondary:
             self.failed = True
@@ -136,6 +149,12 @@ class OSWrites:
         def label(path):
             return 'journal' if str(path).endswith('operations.jsonl') else 'file'
         class Raw(io.FileIO):
+            def close(self):
+                if not self.closed:
+                    try:
+                        sweep.hit(label(self.name) + '.close')
+                    finally:
+                        super().close()
             def write(self, data):
                 sweep.hit(label(self.name) + '.write')
                 return super().write(data)
@@ -176,6 +195,13 @@ class OSWrites:
                                    ('replace', 'file.rename'), ('rename', 'file.rename'),
                                    ('ftruncate', 'file.truncate'), ('unlink', 'file.unlink')]:
                     stack.enter_context(patch('os.' + name, side_effect=operation(getattr(os, name), kind)))
+                real_close = os.close
+                def close(fd):
+                    try:
+                        sweep.hit('file.close')
+                    finally:
+                        real_close(fd)
+                stack.enter_context(patch('os.close', side_effect=close))
                 if store is not None and not isinstance(store.journal, Raw):
                     for name in ('write', 'truncate'):
                         stack.enter_context(patch.object(store.journal, name,

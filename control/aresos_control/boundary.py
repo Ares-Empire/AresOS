@@ -3,7 +3,7 @@ import os
 from pathlib import PurePosixPath
 import stat
 
-from .common import cleanup, WIRE_LIMIT, Refused, canonical, strict_json_loads
+from .common import storage_stream, cleanup, WIRE_LIMIT, Refused, canonical, strict_json_loads
 from .boundary_policy import asking_rules, managed_servers, managed_settings, managed_mcp
 
 DEFAULT_SETTINGS = '/etc/claude-code/managed-settings.json'
@@ -54,7 +54,7 @@ class Boundary:
                 fd = parent
                 protected(os.fstat(fd))
             leaf = os.open(components[-1], os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=fd)
-            with os.fdopen(leaf, 'rb') as stream:
+            with storage_stream(os.fdopen(leaf, 'rb')) as stream:
                 info = os.fstat(stream.fileno())
                 if not stat.S_ISREG(info.st_mode):
                     raise ValueError('must be a regular file (no symlinks)')

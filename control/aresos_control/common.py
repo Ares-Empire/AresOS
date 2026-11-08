@@ -77,6 +77,15 @@ def cleanup(purpose, primary=None):
         CLEANUP.reset(token)
 
 
+@contextmanager
+def storage_stream(stream, purpose='stream close'):
+    try:
+        yield stream.__enter__()
+    finally:
+        with cleanup(purpose):
+            stream.__exit__(*sys.exc_info())
+
+
 class _JSONPairs(list):
     pass
 

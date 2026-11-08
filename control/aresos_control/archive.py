@@ -5,7 +5,7 @@ import time
 import uuid
 
 from . import retention
-from .common import Refused, canonical, cleanup
+from .common import storage_stream, Refused, canonical, cleanup
 from .storage import sync_directory
 
 
@@ -52,7 +52,7 @@ def archive(store, before):
     head = store.events[-1]
     try:
         fd = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
-        with os.fdopen(fd, 'wb') as stream:
+        with storage_stream(os.fdopen(fd, 'wb')) as stream:
             def emit(value):
                 encoded = (canonical(value) + '\n').encode()
                 stream.write(encoded)

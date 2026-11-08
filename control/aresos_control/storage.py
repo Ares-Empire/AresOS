@@ -439,6 +439,7 @@ class Store:
             path = self.evidence_dir / 'journal-index.sqlite'
             path.unlink(missing_ok=True)
             index = sqlite3.connect(path)
+            sequence, head_hash = self.sequence, self.head_hash
             try:
                 index.execute('PRAGMA journal_mode=OFF')
                 index.execute('PRAGMA synchronous=OFF')
@@ -449,6 +450,7 @@ class Store:
                 self._read_journal(indexing=True)
             except BaseException as exc:
                 self.index = None
+                self.sequence, self.head_hash = sequence, head_hash
                 with cleanup('index retry close', exc):
                     index.close()
                 raise

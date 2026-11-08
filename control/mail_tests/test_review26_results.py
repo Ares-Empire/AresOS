@@ -47,6 +47,8 @@ class Results26(unittest.TestCase):
         notices = self.notice()
         ref = {'account': 'box', 'folder': 'Source', 'uidvalidity': self.imap.validities['Source'],
                'uid': 1, 'message_id': self.imap.mid + '\t' * 100000}
+        raw = ('From: broken\r\nSubject: Synthetic\r\nMessage-ID: ' + ref['message_id'] + '\r\n\r\nSynthetic').encode()
+        self.imap.boxes['Source'].update({i: raw for i in range(1, 11)})
         items = [{'reference': {**ref, 'uid': i}, 'from': 'broken', 'subject': 'Synthetic', 'date': ''}
                  for i in range(1, 11)]
         result = self.call('prepare_delete', {'items': items, 'mode': 'trash'})
