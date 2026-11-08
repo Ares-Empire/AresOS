@@ -93,8 +93,9 @@ Updated 2026-11-07. The live truth is `git log`, `gh pr list` and `git worktree 
    - **On main (2026-11-07):** the plan and design (PR #2, design draft 9; PR #11, drafts 10 to 16 with the Chrome
      checkpoint, `c7ba7a71`), the shared base (brief 18, PR #6), the sandbox boundary (brief 18b, PR #5, merged as
      `6b2667f`) and the Chrome checks 17 to 17e (PRs #3, #4, #7, #8, #10). Check 17e showed that a local checkpoint
-     outside Chrome holds every tested send; the owner chose it (with hard security requirements, `PLAN.md` decisions
-     6 to 13).
+     outside Chrome holds every tested send; the owner chose it then (decisions 6 to 13) and replaced it on
+     2026-11-08 with the light tool (decision 25). On 2026-11-08: the design for decisions 22 to 24 (PR #16, design
+     draft 25, `0ae9f903`).
    - **Decided:** the approval surface (decision 21, after six phone tests): Claude Code's own prompt, at the laptop
      and through Remote Control on his phone, with every asking input starting with the tool service's `question`
      sentence. On 2026-11-08 (decision 24, replacing the containment parts of decisions 22 and 23): AresOS runs
@@ -102,13 +103,16 @@ Updated 2026-11-07. The live truth is `git log`, `gh pr list` and `git worktree 
      than normal Claude Code. One session does coding, commands, mail and Chrome as his own user, with his own `gh`
      login and his own MCP servers, skills and plugins, possibly in skip-permissions mode; sends, deletes and submits
      through our tools ask through managed ask rules. The separate assistant and coder accounts aren't needed, and
-     his account installs software normally.
+     his account installs software normally. Chrome (decision 25, "B is good"): a light tool of our own in his normal
+     Chrome, with no proxy and no certificate; it asks before anything that clearly sends, and a page that sends on
+     its own after an ordinary click isn't held, as with Claude in Chrome.
    - **In progress:** Mail (brief 19, PR #9: package review SAFE, frontier security review in its third round);
-     design draft 25 for decision 24 (branch `control/one-session-tools`; re-check 26 next; no owner choices
-     open). `laptop-aresos` owns `os/` and the accounts (board #102 and #103).
+     design draft 31 for decision 25, Chrome as the light tool (branch `control/chrome-light`; re-check 34 next;
+     no owner choices open). `laptop-aresos` owns `os/` and the accounts (board #102 and #103); for Chrome the image
+     needs only the extension policy and the native host's manifest.
    - **Next:** brief 18c (first end-to-end test on a throwaway CI image; no owner OK needed under the 2026-11-07
      rule) and the base brief that reduces the managed settings to the ask rules, as changed by decision 24
-     (`PLAN.md`, "Order of work"); Mail's boundary check becomes a follow-up after Mail merges; brief 20 (Chrome)
-     after its checkpoint is re-examined against decision 24's bar. The add-tool brief is dropped.
+     (`PLAN.md`, "Order of work"); Mail's boundary check becomes a follow-up after Mail merges; brief 20 builds the
+     light Chrome tool once the design is ready. The add-tool brief is dropped.
 
 Codex Pro runs until 2026-11-21.

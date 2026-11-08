@@ -26,6 +26,7 @@ The first two apps are Mail and Chrome. Those two are made to work really well b
    through Claude Code remote control on his phone (he approves pushes there). No separate approval screen in Aresus.
 2. **What asks:** sending, deleting and submitting. Reading, searching, scrolling, following links and typing into
    fields are free. In Chrome, anything that submits data to a site asks, except on sites in a list the owner keeps.
+   (Under decision 25: Chrome asks before anything that clearly sends; searches and navigation are free everywhere.)
 3. **The exact permission settings are written once the tools exist** and we know more. The tools must be shaped so
    that settings can name each kind of action.
 4. **Mail and Chrome first**, made to work really well; other apps after that.
@@ -37,20 +38,24 @@ acting):
 6. **Chrome checkpoint: yes (#70)**, "if that's not a security risk". Hard requirements: it runs as its own user;
    nothing it sees leaves the machine; no bodies, cookies or secrets in logs; full upstream TLS checks; a key that
    rotates and can issue nothing while the checkpoint is stopped (a fresh root per start, the key only in the
-   checkpoint's memory). The five conditions under S2e apply before it becomes his everyday browser.
+   checkpoint's memory). The five conditions under S2e apply before it becomes his everyday browser. (Replaced by
+   decision 25: no checkpoint.)
 7. **Chrome asks, and he can say "don't ask again" for an action (#52):** offered only for kinds of action a site
    adapter recognises, set by him at approval through a channel Claude can't answer, kept in the owner-only list,
    visible and revocable. Unrecognised sends always ask once. Searches on his usual sites are free. (Scope settled
-   by decision 15. Never on WhatsApp Web: the checkpoint can't read its encrypted messages.)
+   by decision 15. Under decision 25: kinds an adapter names, checked against what the page shows; searches free
+   everywhere; WhatsApp messages ask each time, decision 16.)
 8. **Assistant apart from coding (#53):** the session holding mail and Chrome runs apart from coding sessions; they
    coordinate only through messages that go via the tool service, and a message from the assistant asks like a
    send. (His folders: decision 17. Replaced on 2026-11-08 by decision 23: one session for everything.)
 9. **His usual signed-in sites (#50), so far:** WhatsApp Web, Gemini, Gmail, Deezer (more to come). They are the
-   first adapter targets. (How Claude sends on WhatsApp Web: decision 16.)
+   first adapter targets. (How Claude sends on WhatsApp Web: decision 16. Decision 25's first adapters: Gmail,
+   WhatsApp Web, GitHub and his bank, read-only.)
 10. **Claude in Chrome stays for his own use (#58); AresOS's Claude Code rules apply machine-wide and change only
     with his admin password (#59).**
 12. **The site guard is strict (#67):** it ends by itself only once the tool can see the site stored nothing of
-    Claude's; otherwise it stays on until he ends it with one click. His words: "strict".
+    Claude's; otherwise it stays on until he ends it with one click. His words: "strict". (Gone with decision 25: no
+    site guard.)
 13. **Throwaway test images need no OK** (rule change, his words "change rule as you said", 2026-11-07): CI test images
     that are never published and leave the install pin untouched (such as brief 18c's) run without asking him;
     publishing a release and changing what his laptop installs still need him. laptop-aresos writes it into the
@@ -68,7 +73,8 @@ acting):
 15. **"Don't ask again": "yes".** Offered for mail bound to an exact set of recipients, in the Mail tools and in Gmail.
     Deleting and paying always ask.
 16. **WhatsApp Web: "a)".** Claude asks per message, as one approval of the bounded set of encrypted frames,
-    described "as the page shows it".
+    described "as the page shows it". (Under decision 25: the question comes before Enter or the send button, with the
+    chat and the text as the page shows them.)
 17. **His folders: "pretty much everything no? like running claude with dangerously skip permissions just like I do
     now".** The assistant may change everything in his home folders except hidden settings and start-up places
     (dotfiles, autostart, shell start-up files, symlinks). Code lives in the coding user's own home, so coding
@@ -84,7 +90,8 @@ acting):
     Claude composed asks; an address from him or from a page is free. (Superseded by decision 24: `WebFetch` and
     `WebSearch` follow normal Claude Code permissions, as he sets them.)
 19. **The checkpoint's certificate limits: "okay",** accepted as stated (client certificates, no "continue anyway",
-    a pause when Chrome's lists are out of date, a visible notice if Chrome is ever newer than its checkpoint).
+    a pause when Chrome's lists are out of date, a visible notice if Chrome is ever newer than its checkpoint). (Moot
+    under decision 25: no checkpoint.)
 20. **Merging, a new rule: "A safe merge shouldnt need permission should it?"** From now on the lead merges a PR
     without asking once its review says SAFE (or READY for a design), CI is green twice, and he has answered its
     judgment calls. Anything under "Owner decides" in `CLAUDE.md` still asks.
@@ -152,6 +159,15 @@ acting):
     the tool service directly and skip the question; Claude Code's own sandbox stays available as an option he can turn
     on, which narrows that only in a strict setup and even then best-effort. (`CONTROL.md` sections 1, 2, 4.4, 7 and
     10; section 6 to be re-examined against this bar before brief 20.)
+25. **Chrome becomes the light tool (board #107): "B is good".** The options he was given: (a) keep the checkpoint;
+    (b) a light Chrome tool of our own; (c) only Anthropic's Claude in Chrome; the lead advised (b). Claude reads pages
+    as text and clicks, types and scrolls in his own Chrome tab; it asks before anything that clearly sends
+    (submitting a form, controls labelled send, post, buy, delete and the like, Enter in a message field, uploading a
+    file); the approval is bound to the page state and checked right before the input. A page that sends something
+    on its own after an ordinary click isn't held, the same as with Claude in Chrome. Chrome stays completely normal,
+    as his user, with no proxy and no certificate. Gone: the checkpoint (decision 6), the site guard (decision 12),
+    request attribution, the certificate requirements (decision 19), the S2e conditions, Chrome as its own user and
+    its launcher. Briefs 17b to 17e stay as history. (`CONTROL.md` section 6.)
 
 ## How sending stays under the owner's control
 
@@ -159,16 +175,16 @@ Three places, each with one job:
 
 | Place | Its job | Why there |
 |---|---|---|
-| **The tools** | Know what each action really does, and give each kind its own tool: reading (`mail_search`, `chrome_read`), changing (`mail_move`), sending (`mail_send`, `chrome_submit`), deleting (`mail_delete`). In Chrome, a click or key press that would send data to the site is held and becomes a separate `chrome_submit` step. | Only the tool can see that a click sends something. |
+| **The tools** | Know what each action really does, and give each kind its own tool: reading (`mail_search`, `chrome_read`), changing (`mail_move`), sending (`mail_send`, `chrome_submit`), deleting (`mail_delete`). In Chrome, a click or key press that clearly sends (a form submit, a control labelled send or delete, Enter in a message field, an upload) doesn't run until approved; it becomes a separate `chrome_submit` step. | Only the tool can see that a click sends something. |
 | **Claude Code's settings** (a system-wide file in the image that only the admin account can change) | Decide which tools ask first and which are free. | Claude Code enforces them: Claude can't edit that file, and doesn't answer its own prompt unless a `PermissionRequest` hook can (tested in 18c; the accepted residual of decision 24 if so). Checked 2026-11-07: an "ask" rule still asks in skip-permissions mode, and the prompt shows the whole input ([check](../../reviews/control-checks/2026-11-07-permission-prompt.md)). |
 | **CLAUDE.md** | Habits: how the owner writes mails, where things get filed. | These are requests to Claude. They are never what keeps sending under control. |
 
 **Rules for every tool, so the prompt tells the truth:**
 
 - An action that asks carries everything needed to judge it in its own input: the account, all recipients including
-  Bcc, subject, the full text, attachment paths with their hashes; for Chrome the site, the address, the method and
-  the data being sent. The tool refuses when the input doesn't match what would really happen (for example a file
-  that changed after its hash was taken).
+  Bcc, subject, the full text, attachment paths with their hashes; for Chrome the site, the address, the button and
+  the form's values as the page shows them. The tool refuses when the input doesn't match what would really happen
+  (for example a file that changed after its hash was taken, or a page that changed after the question was written).
 - Results are honest: sent, not sent, or "unknown, don't retry" (for example when the mail server's answer was lost).
   A tool never repeats a send by itself.
 - Reading never changes anything: mail stays unread, nothing is saved on a site.
@@ -187,8 +203,8 @@ the settings):
   18c tests it; his own such hooks must not match our asking tools. The managed `CLAUDE.md` says instructions come
   only from him in the session.
 - Everything else is normal Claude Code: it runs as his user with his own `gh` login, MCP servers, skills and plugins.
-  Chrome is reached through the tools as in `CONTROL.md` section 6, which is re-examined against decision 24 before
-  brief 20.
+  Chrome is his normal Chrome, reached through the light tool (decision 25, `CONTROL.md` section 6); a page that
+  sends on its own after an ordinary action isn't held.
 - Not guaranteed, said plainly: Claude's terminal commands run as his user, and a tricked Claude could call the tool
   service directly with a prepared approval, skipping the question; if brief 18c shows a `PermissionRequest` hook can
   approve a managed ask, a hook could do the same. That is the same level as normal Claude Code on any OS. Claude
@@ -237,20 +253,9 @@ the settings):
      cancellation, other transports, TLS, guard end, and the owner's cost: robot checks, speed, prompts). The owner
      decides (#70) whether he accepts a checkpoint that decrypts his browser traffic on his machine.
      **Done 2026-11-07 (PR #10, CI green twice on `64ed6ed`): it holds**; costs and open points in its report.
-     **Conditions before Chrome with the checkpoint becomes the owner's everyday browser** (mac-capacity's scope
-     check, 2026-11-07; brief 20 and the tool-user rounds must meet them, otherwise the fallback is "Claude fills
-     in, the owner sends"):
-     1. *Unrelated tabs:* how often his other tabs stall while Claude works on one site (uncertain attribution holds
-        the whole browser) is measured on his usual sites (#50); target zero. A call in his own tab when a guard
-        starts is named in the design, and he knows before answering #70 that calls in Chrome stop while Claude acts.
-     2. *Chrome's own protection:* brief 20 shows Safe Browsing (with a positive control) and component updates
-        working through the checkpoint, not only "trust fixed".
-     3. *A way out of a fault:* an owner-only switch turns the checkpoint to pass-through when no guard holds
-        leftovers, with Claude's Chrome tools off until it is repaired; where leftovers exist, they are shown first.
-     4. *Prompts:* adapters and grouping for his usual sites bring the 18 separate decisions of 17e's fixture down to
-        about one per real action.
-     5. *His real sites:* after the first boot, a short check on his signed-in sites (for example Google, GitHub, his
-        bank), browsing them himself, for robot checks and breakage; 17e's sample was anonymous.
+     **History since decision 25:** the checkpoint, and the five conditions mac-capacity set before it would become
+     his everyday browser, were dropped with the light tool. Briefs 17b to 17e stay as history; brief 20 builds on
+     17 to 17c.
 1. **Design** (`docs/design/CONTROL.md`): done 2026-11-07. Draft 6 after the frontier review (8 blocking) and five
    re-checks (7, 4, 1, 1, then none: ready for brief 18). The feature list ([`FEATURES.md`](FEATURES.md)) goes to the owner
    with it.
@@ -277,11 +282,21 @@ the settings):
    - *Mail's boundary follow-up* (after Mail merges): the check of rounds 15 to 17, which refuses asking actions unless
      the managed files match exactly, becomes a check that every asking tool's ask rule is present in the managed
      settings, so his own MCP servers and settings are never blocked. Not a change to Mail now.
-   - *Brief 20* (Chrome): waits for the checkpoint design to be re-examined against decision 24's bar
-     (`CONTROL.md` section 10).
+   - *Brief 20* (Chrome): the light tool of decision 25 (`CONTROL.md` section 6), on the base.
    - *The add-tool brief* is dropped: he and Claude add tools as in normal Claude Code.
    - `laptop-aresos` owns `os/` and the accounts: the separate assistant and coder accounts aren't needed, and his own
      account installs software normally (board #102 and #103).
+
+   **What decision 25 changes (2026-11-08):**
+   - *Brief 20* builds the light Chrome tool: our signed extension and native host in his normal Chrome, the fixed
+     command set, the asking rules decided before the action, the page-state binding, the adapters for Gmail,
+     WhatsApp Web, GitHub and his read-only bank, and the tests of `CONTROL.md` section 6. It ports what briefs 17 to
+     17c settled; the checkpoint code of 17e isn't used.
+   - *Dropped:* the checkpoint and its requirements, the site guard, request attribution, the certificate rules, the
+     S2e conditions, `chrome_open_site`, `chrome_end_guard`, `chrome_end_call` and the pass-through switch.
+   - `laptop-aresos`: the image needs only the extension policy (install and update source) and the native host's
+     system manifest; no browser user, no checkpoint user, no Chrome launcher, no proxy policy and no firewall rules
+     for Chrome.
 6. **Security review** of the whole stack (fresh Codex, frontier), then **qualification in the real AresOS image**.
 7. **After the first boot on the laptop:** the real mail account, the owner's own Chrome, the system-wide settings,
    and the first weeks of real use.
@@ -327,13 +342,14 @@ tasks at any time.
 **Chrome** (test sites)
 
 8. In an open, signed-in tab: say what the page shows and which fields are still empty.
-9. Fill a multi-page form (text, dropdowns, checkboxes, a date, a file upload) and stop before sending it.
-10. Send that form: one asking step that shows the site, the address and the data.
+9. Fill a multi-page form (text, dropdowns, checkboxes, a date, a file upload, which asks) and stop before sending
+   it.
+10. Send that form: one asking step that shows the site, the address, the button and the data.
 11. Search a site and open the third result.
-12. A page that saves while you type: typing there counts as sending and is held, unless the site is on the free
-    list.
-13. A chat page that sends messages over a WebSocket: typing the message and pressing Enter become one asking
-    step that shows the text.
+12. A page that saves while you type: typing works without a question, and the round's report notes that the
+    page's own saving isn't held (decision 25).
+13. A chat page that sends messages over a WebSocket: typing the message is free, and pressing Enter becomes one
+    asking step that shows the chat and the text.
 14. Two similar tabs, and the owner switches tabs while Claude works: Claude stays on its own tab and doesn't touch
     the other.
 
@@ -349,9 +365,8 @@ tasks at any time.
 - How the CI virtual machine gets the AresOS image for step 5 (the private image needs read access the owner
   restores, or a fresh unpublished build in the job): decided in the design.
 - The mail provider and account details stay out of this public repo.
-- **Owner questions still open:** none. Decision 24 removed the five choices of drafts 19 to 23. Open for the lead
-  and the owner: the Chrome checkpoint re-examined against decision 24's bar before brief 20 (`CONTROL.md` section
-  10).
+- **Owner questions still open:** none. Decision 24 removed the five choices of drafts 19 to 23, and decision 25
+  answered the Chrome re-examination.
 
 **Follow-ups** (from the 18b merge-fix review, `gpt-6.1-sol` high, SAFE; for the next base or boundary brief):
 
@@ -569,3 +584,51 @@ tasks at any time.
   (`allowUnsandboxedCommands: false`, no excluded commands, no Unix sockets, the socket folder denied for reads), and
   even then best-effort. Also: the base brief keeps the managed `Stop` and `UserPromptSubmit` hooks, decision 18's
   `WebFetch` rule is marked superseded, and "passwords" means the app passwords AresOS holds. Re-check 26 next.
+- **2026-11-08, 05:25:** owner decision 25 (board #107, "B is good"): Chrome becomes the light tool. Design draft 26
+  (branch `control/chrome-light`) rewrites `CONTROL.md` section 6: our extension and native host in his normal
+  Chrome, no proxy and no certificate; form submits, controls labelled send, buy or delete (English and German),
+  Enter in message fields, Delete outside text and uploads ask before the action runs, bound to the page state; site
+  adapters for Gmail, WhatsApp Web, GitHub and his read-only bank; a page's own sends after an ordinary action aren't
+  held, as with Claude in Chrome. The checkpoint, the site guard, attribution, the certificate rules and the S2e
+  conditions are dropped; briefs 17b to 17e stay as history. Brief 20 now builds the light tool. Re-check next.
+- **2026-11-08, 05:37:** re-check 29 on draft 26 ([report](../../reviews/control-design/2026-11-08-RECHECK-29.md)):
+  CHANGES-NEEDED, three blocking points; decisions 24 and 25 faithful, the checkpoint removal consistent. Draft 27:
+  every input is classified by what it would activate (Enter or Space on a focused control, and submissions or
+  activations a page's script starts while handling Claude's filling, choosing or ticking); a stopped submission
+  resumes once without replaying Claude's input; the approval is bound to everything the question names (compose
+  text outside forms, the account an adapter reads, the effective destination, a confirmation's kind, opener and
+  text), and a new confirmation never inherits an approval; navigation only to web addresses, and the approval and
+  settings pages kept out by every route; pages read from the accessibility tree without ever collecting a password
+  value; downloads, outcomes and the service/extension split reconciled; brief 20's tests extended. Re-check 30 next.
+- **2026-11-08, 05:43:** re-check 30 on draft 27 ([report](../../reviews/control-design/2026-11-08-RECHECK-30.md)):
+  CHANGES-NEEDED, two blocking points; confirmations, destinations, navigation, downloads, outcomes and sections 2
+  and 10 closed. Draft 28: a stopped submission resumes as the same kind (the browser's own `submit()` or
+  `requestSubmit()` with the same submitter), and the page's own handling of the approved run, one further
+  submission of the same form included, isn't stopped again, so a handler can't loop; a send outside a form binds
+  the current content of the item it belongs to (an existing draft included), read fresh at preparation, and is
+  refused when that item can't be established; password fields are excluded before anything is read, with the
+  reader in the extension's own content script; brief 20 checks what the browser returns to the extension too.
+  Re-check 31 next.
+- **2026-11-08, 05:50:** re-check 31 on draft 28 ([report](../../reviews/control-design/2026-11-08-RECHECK-31.md)):
+  CHANGES-NEEDED, two blocking points; the resume kinds and the should-fixes closed. Draft 29: a send outside a form
+  binds the whole compose item (the adapter's, or the outermost dialog, form or named region), editable fields and
+  read-only text alike, and refuses when the item is ambiguous, has text outside it in the same dialog, or is empty; a
+  script's `click()` or dispatched click on an asking control is stopped before delivery by wrapping the browser's
+  own functions; an activation that gets around them is stopped and never resumed when its event can be cancelled,
+  and reported as `unknown` (never as stopped, never resumed) when it can't; the one-use mark and the
+  further-submission allowance stay consumed in nested handling; the password check runs before every value read,
+  tested in shadow roots and frames from other sites. Re-check 32 next.
+- **2026-11-08, 05:54:** re-check 32 on draft 29 ([report](../../reviews/control-design/2026-11-08-RECHECK-32.md)):
+  CHANGES-NEEDED, two blocking points; wrapped clicks, the fallback, the marks and passwords closed. Draft 30: a send
+  outside a form without an adapter binds every editable field the tool can read, in the document and its frames,
+  and refuses when nothing holds text or the total is too large; read-only text a page might send is stated as
+  residual, bound exactly only by adapters; a held event object is recorded through the browser's own getters at
+  interception, and a changed, re-initialised or already dispatched event is refused, never resumed. Re-check 33
+  next.
+- **2026-11-08, 05:59:** re-check 33 on draft 30 ([report](../../reviews/control-design/2026-11-08-RECHECK-33.md)):
+  CHANGES-NEEDED, one blocking point (a held page-owned event can't be proven unchanged); compose binding and the
+  PLAN alignment closed. Draft 31 takes the simplest fix: a page's own activation of an asking control is stopped
+  for good and never resumed; the result tells Claude what the page tried, and if the action is wanted Claude acts
+  on the control itself, which prepares a fresh asking operation. The event records and init wrappers of draft 30
+  are gone; submissions keep their resume paths through the browser's own `submit()` and `requestSubmit()`.
+  Re-check 34 next.
