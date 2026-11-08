@@ -297,6 +297,16 @@ the settings):
    - `laptop-aresos`: the image needs only the extension policy (install and update source) and the native host's
      system manifest; no browser user, no checkpoint user, no Chrome launcher, no proxy policy and no firewall rules
      for Chrome.
+   - *Qualification ahead of his Chrome* (`mac-capacity`'s scope check, 2026-11-08): the daily job qualifies Chrome
+     beta as well as stable, and each new record reaches the laptop as its own attested update fetched by the service,
+     so the conservative mode on an unrecorded major stays a rare fallback instead of a monthly stretch where every
+     click asks. In brief 20.
+   - *Set operations in Chrome* (same check; for the tool-user round after brief 20): an adapter for one of his sites
+     can name a set operation, for example removing 30 tracks from a playlist, asked once with every item listed, and
+     each click checked against that list, the way Mail deletes an exact set with one approval. Deleting stays out of
+     "don't ask again".
+   - *Tool text* (same check): rules shared by all of an app's actions go once into its server's MCP `instructions`
+     instead of every description (brief 18d item 7 for Mail; brief 20 for Chrome).
 6. **Security review** of the whole stack (fresh Codex, frontier), then **qualification in the real AresOS image**.
 7. **After the first boot on the laptop:** the real mail account, the owner's own Chrome, the system-wide settings,
    and the first weeks of real use.

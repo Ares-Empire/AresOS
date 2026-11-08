@@ -62,6 +62,10 @@ generated `user-mcp.json`. Read on `main`:
    `docs/control/TOOLS.md`, the ask rules (`chrome_submit` asks; `chrome_submit_trusted` is free the way Mail's free
    send is) and the `chrome` server in `user-mcp.json`. The service holds the rules (section 6, "The service
    decides, the extension carries out"):
+   - the rules shared by every Chrome action (errors, untrusted page text, the notice on unqualified versions) go
+     once into the server's MCP `instructions`, generated from the definitions, and each description keeps only
+     what is specific to its action: the pattern brief 18d sets for Mail (its item 7), including its check that
+     Claude Code passes the instructions on unshortened;
    - **classification** of every input by what it would activate, before dispatch (the free cases and the six
      asking cases, the English and German word list in the definitions, versioned, whole-word matching);
    - **where Claude may go:** `https:`, `http:` and `about:blank` only; the fixed list of approval and settings pages
@@ -112,19 +116,36 @@ generated `user-mcp.json`. Read on `main`:
 - **Qualifying each new Chrome stable** (section 6). `control/chrome/qualification.json` records, per full Chrome
   version (major and patch, for example `158.0.7340.52`), which adapters and which core rule groups (the
   classification, the page script, the binding, the reader's password exclusion) passed.
-  - *Trigger:* a scheduled workflow runs daily, reads the current stable's full version from Google's Linux package
-    repository and, when that version isn't in the record yet (a new major or a new patch), runs the whole set on it
-    twice. Every push runs the set on the current stable as well.
-  - *Result:* the workflow opens a pull request that records the full version with each adapter's and group's pass
-    or fail (it never merges it; the lead does), plus an issue naming any failing group.
+  - *Trigger:* a scheduled workflow runs daily, reads the current full versions of Chrome stable **and Chrome beta**
+    from Google's Linux package repository (`google-chrome-stable`, `google-chrome-beta`) and, for each version that
+    isn't in the record yet (a new major or a new patch), runs the whole set on it twice. Beta is about four weeks
+    ahead of stable, so a new major is normally qualified before his Chrome reaches it. Every push runs the set on
+    the current stable as well.
+  - *Result:* the workflow records the full version and channel with each adapter's and group's pass or fail, and
+    an issue names any failing group. It publishes the new record itself, as its own small update not tied to an
+    image or package build: it appends the entries to `qualification.json` on the data branch `chrome-qualification`
+    (never `main`: the workflow needs `contents: write`, `id-token: write` and `attestations: write`, and pushes
+    only that branch) with a GitHub artifact attestation for that file, and opens a pull request bringing
+    the shipped copy in `control/chrome/qualification.json` up to date (it never merges it; the lead does, whenever
+    convenient: the laptop doesn't wait for it).
+  - *Delivery to the laptop:* the service fetches the published record over HTTPS once a day and whenever the
+    extension connects with a version the held record doesn't cover. It accepts a fetched record only when:
+    - its attestation verifies as made by this repository's qualification workflow on `main`, checked with a
+      well-tried verifier (Sigstore's own library or `gh attestation verify`), never hand-written crypto;
+    - it is append-only against the record held: every entry of the held record appears unchanged in it, so a
+      fetched record can add passes and failures but never drop a failure or roll back.
+    Otherwise, and when offline, it keeps the record it holds (shipped or fetched before) and logs why.
   - *Gating by major version:* the extension reports the running Chrome version when it connects, and the service
-    reads the record it was shipped with. A patch of a major that has a passing record runs normally.
+    reads the newest record it holds. A patch of a major that has a passing record runs normally; a passing beta
+    entry counts for its major, so a new stable whose beta passed runs normally from its first day, and the daily
+    stable run then records it too (a stable failure disables what failed, as below).
   - *Disabling:* a failure recorded for a version disables what failed, on that version and on later patches of its
     major until one of them is recorded as passing. A failed adapter is off and its site falls back to the generic
     rules. Where a core rule group failed, the actions that rely on it refuse with the reason ("Chrome 158: the page
     check failed qualification; acting is off until it is fixed"). A fix ships as a new record entry.
-  - *Conservative mode, on a major version not yet recorded* (his Chrome moved to a new major before the record
-    reached the laptop). The tool asks more, never less:
+  - *Conservative mode, on a major version not yet recorded* (the rare fallback: his Chrome reached a new major before
+    a passing record for it reached the laptop, for example when that major's beta failed and isn't fixed yet, or the
+    laptop was offline for weeks). The tool asks more, never less:
     - adapters are off;
     - "don't ask again" is suspended;
     - every input that could activate something asks: any click or tap (links and ticks included), Enter or Space
@@ -140,7 +161,11 @@ generated `user-mcp.json`. Read on `main`:
     asks; a link click, a tick, a choice from a list, Enter or Space on a control and a form submission each ask and
     reach the receiver only after approval; reading, scrolling, typing and navigating by address don't ask; a field
     whose safety the reader can't confirm isn't read; on a read-only site (his bank fixture), filling a field, a
-    button click and an upload are still refused; every result carries the notice.
+    button click and an upload are still refused; every result carries the notice. The delivery: a newer valid
+    record is used; a record with a missing or altered attestation, from another workflow or branch, or dropping or
+    changing a held entry is refused and the held record kept; offline keeps the held record; a passing beta entry
+    for a major lets that major's stable run normally. Use an attestation from one of this package's own workflow
+    runs and altered copies of it as fixtures (the accepted branch is a setting; shipped, it is `main`).
 - Brief 18's, 18d's and Mail's suites still pass; the generated artifacts are in sync.
 
 `.github/workflows/control-chrome.yml` runs them on pushes to this branch (path filter) and on its pull request; the
