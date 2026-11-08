@@ -34,7 +34,9 @@ class Outcomes(MailCase):
             self.assertEqual(result['stages']['smtp_data'], 'attempting')
             self.assertEqual(len(smtp.arrivals()),1)
             self.assertEqual(self.send(approval)['state'], 'unknown')
-            self.assertFalse(self.call('operation_repair', {'operation_id':result['id'],'stage':'sent_copy'})['data']['operation']['state'] == 'done')
+            repair = self.call('operation_repair', {'operation_id':result['id'],'stage':'sent_copy'})
+            self.assertFalse(repair['ok'])
+            self.assertEqual(repair['error']['code'], 'refused')
             self.assertEqual(len(smtp.arrivals()),1)
 
     def test_failure_at_each_later_stage_repairs_without_smtp(self):

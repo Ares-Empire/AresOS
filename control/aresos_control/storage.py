@@ -184,9 +184,10 @@ class Store:
         # turn into journal_incomplete or demand owner restore confirmation.
         cost = len(encoded.encode()) * 3 + len(canonical(record).encode()) * 3 + 32768
         recovery = recovery or self.recovering or retention.recovery_action(action) or action == 'control_expire'
-        self.admit_history(cost, recovery=recovery)
-        retention.disk_space(self.state_dir, cost, recovery)
-        retention.disk_space(self.evidence_dir, cost, recovery)
+        owner_recovery = restoring or self.archiving
+        self.admit_history(cost, recovery=recovery, owner_recovery=owner_recovery)
+        retention.disk_space(self.state_dir, cost, recovery, owner_recovery)
+        retention.disk_space(self.evidence_dir, cost, recovery, owner_recovery)
         self.admit_changes(changes)
         # Fence the write before even its prepared event can enter a backup.
         # A crash here may need owner confirmation: compact metadata cannot
@@ -210,12 +211,14 @@ class Store:
         page_size = self.db.execute('PRAGMA page_size').fetchone()[0]
         return pages * page_size + os.fstat(self.journal.fileno()).st_size
 
-    def admit_history(self, reserve=retention.REQUEST_RESERVE, recovery=None):
+    def admit_history(self, reserve=retention.REQUEST_RESERVE, recovery=None, owner_recovery=False):
         self.ensure_writable()
-        if self.archiving:
+        if owner_recovery or self.archiving:
             return
         recovery = self.recovering if recovery is None else recovery
-        if self.history_size() + reserve + (0 if recovery else retention.RECOVERY_RESERVE) > retention.HISTORY_BYTES:
+        # Owner restore/archival has a separate, quota-exempt maintenance path.
+        protected = 0 if recovery else retention.RECOVERY_RESERVE
+        if self.history_size() + reserve + protected > retention.HISTORY_BYTES:
             retention.refuse('Recovery audit history' if recovery else 'Free-work audit history (recovery capacity reserved)',
                              'retained', retention.HISTORY_BYTES)
 

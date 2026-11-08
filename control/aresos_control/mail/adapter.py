@@ -917,13 +917,23 @@ class Mail:
                 failed_stage = True
         return ("partial", reason + " Missing local stages; repair without SMTP.") if failed_stage else (state, reason)
 
-    def repair(self, operation, which):
+    def repair_needed(self, operation, which):
+        if which not in {'sent_copy', 'answered_flag'}:
+            raise Refused('refused', 'Unknown local repair stage; inspect operation status.')
         if operation["action"] not in {"mail_send", "mail_unsubscribe"} or "composition" not in operation.get("payload", {}):
             raise Refused("refused", "Only mail Sent/answered stages can be repaired; never deletes or POSTs.")
         if operation["stages"].get("smtp_data") != "accepted:250":
             raise Refused("refused", "No durable successful final DATA answer; Sent presence alone cannot identify accepted recipients. Inspect unknown with owner.")
-        if which == "sent_copy" and operation["stages"].get(which) == "done":
-            return "done"
+        outcome = operation['stages'].get(which)
+        if outcome == 'done' or (which == 'answered_flag' and outcome == 'not_needed'):
+            return False
+        if outcome != 'failed':
+            raise Refused('refused', 'Only an explicitly failed local stage can be repaired; inspect unknown with owner.')
+        return True
+
+    def repair(self, operation, which):
+        if not self.repair_needed(operation, which):
+            return operation['stages'][which]
         return self.local_stage(operation, which)
 
     def repaired_outcome(self, operation):

@@ -46,7 +46,7 @@ class Recovery17(unittest.TestCase):
         approval = self.approval('send', args)
         other = self.approval('send', self.compose(text='Other'))
         op = self.engine.operation(other['operation_id'])
-        op.update(state='partial', stages={'smtp_data': 'accepted:250', 'sent_copy': 'done'})
+        op.update(state='partial', stages={'smtp_data': 'accepted:250', 'sent_copy': 'done', 'answered_flag': 'failed'})
         self.engine.store.write({'op:' + op['id']: op, 'notice:warning': {
             'id': 'warning', 'app': 'mail', 'state': 'partial', 'ack': False,
             'untrusted_content': {'reason': 'Inspect preserved messages'}}}, 'fixture', 'Synthetic accepted send and notice')

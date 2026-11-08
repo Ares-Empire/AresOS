@@ -42,7 +42,7 @@ def archive(store, before):
     # reserve ordinary work leaves untouched; the private export is never public.
     estimate = store.db.execute('SELECT coalesce(sum(length(CAST(value AS BLOB)) + 128),0) FROM events').fetchone()[0]
     estimate += sum(retention.size(v) + 128 for v in closed.values()) + 65536
-    retention.disk_space(store.evidence_dir, estimate, recovery=True)
+    retention.disk_space(store.evidence_dir, estimate, recovery=True, owner_recovery=True)
     directory = store.evidence_dir / 'archives'
     directory.mkdir(mode=0o700, exist_ok=True)
     name = 'history-' + uuid.uuid4().hex + '.jsonl'

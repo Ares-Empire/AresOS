@@ -234,7 +234,7 @@ class PlainQuestions12(unittest.TestCase):
             self.assertEqual(approval['question'], f"Test deleting the {'empty' if empty else 'nonempty'} disposable setup folder 'AresOS-probe-synthetic'?")
         approval = self.approval('send', self.compose())
         old = self.engine.operation(approval['operation_id'])
-        old.update(state='partial', stages={'smtp_data': 'accepted:250'})
+        old.update(state='partial', stages={'smtp_data': 'accepted:250', 'sent_copy': 'failed', 'answered_flag': 'failed'})
         self.engine.store.write({'op:' + old['id']: old}, 'fixture', 'Synthetic accepted send')
         for stage in ('sent_copy', 'answered_flag'):
             with patch.object(self.mail, 'repair', return_value='done'), patch.object(self.mail, 'repaired_outcome', return_value=('done', 'Local stage repaired')):

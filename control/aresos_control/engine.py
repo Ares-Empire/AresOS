@@ -175,6 +175,13 @@ class Engine:
         old = self.operation(args["operation_id"], app)
         if old["state"] not in {"partial", "unknown", "done"}:
             raise Refused("refused", "Repair requires accepted-send evidence and a completed submission attempt; inspect status.")
+        if app == 'mail' and not self.adapters[app].repair_needed(old, args['stage']):
+            # Re-reading a completed stage must work even when admission is full.
+            completed = [op for _, op in self.store.items('op:') if op.get('repair_of') == old['id']
+                         and op.get('payload', {}).get('stage') == args['stage'] and op['state'] == 'done']
+            return {'operation': self.public_operation(completed[-1] if completed else old),
+                    'original': self.public_operation(old)}
+        self.store.admit_history(retention.RECOVERY_REQUEST, recovery=True)
         op_id = self.store.generation + ":" + uuid.uuid4().hex
         description = {"repair_of": old["id"], "stage": args["stage"]}
         approval = approval_input(op_id, description, self.adapters[app].question("operation_repair", description))
@@ -345,7 +352,7 @@ class Engine:
                     retention.expire(self)
                 # Archive first exports durably, then makes room; it must also
                 # work on a store already over quota from an older installation.
-                if request.get('action') not in {'control_archive', 'mail_prepare_send'}:
+                if request.get('action') not in {'control_archive', 'control_restore_confirm', 'mail_prepare_send', 'mail_operation_repair'}:
                     self.store.admit_history(retention.RECOVERY_REQUEST if self.store.recovering else retention.REQUEST_RESERVE)
             return self._request(request, admin)
         except Refused as exc:
