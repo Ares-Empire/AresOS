@@ -1,6 +1,7 @@
 """Automatically discover and fail every durable write in each approved flow."""
 from collections import Counter
 from contextlib import closing, contextmanager, ExitStack
+from itertools import islice
 import copy
 import errno
 import json
@@ -158,7 +159,8 @@ class Scenario:
         self.remote.clear()
         if self.approval and self.flow in {'send', 'delete_trash', 'delete_permanent', 'unsubscribe_mailto', 'unsubscribe_https'}:
             self.replay_requests[self.operation_id] = (self.action, copy.deepcopy(self.approval))
-        self.committed_before = list(f.engine.store.events)[:f.engine.store.committed]
+        # The torn-tail flow deliberately appends invalid, uncommitted bytes.
+        self.committed_before = list(islice(f.engine.store.events, f.engine.store.committed))
 
     def seed_send(self, failed):
         f = self.fixture
