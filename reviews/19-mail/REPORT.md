@@ -13,8 +13,9 @@ Review records: [REVIEW.md](REVIEW.md), [REVIEW-2.md](REVIEW-2.md),
 [SECURITY-REVIEW-6.md](SECURITY-REVIEW-6.md),
 [SECURITY-REVIEW-7.md](SECURITY-REVIEW-7.md),
 [SECURITY-REVIEW-8.md](SECURITY-REVIEW-8.md),
-[SECURITY-REVIEW-9.md](SECURITY-REVIEW-9.md), and
-[SECURITY-REVIEW-10.md](SECURITY-REVIEW-10.md).
+[SECURITY-REVIEW-9.md](SECURITY-REVIEW-9.md),
+[SECURITY-REVIEW-10.md](SECURITY-REVIEW-10.md), and
+[SECURITY-REVIEW-11.md](SECURITY-REVIEW-11.md).
 
 ## For the owner: decisions before merge
 
@@ -22,7 +23,7 @@ Review records: [REVIEW.md](REVIEW.md), [REVIEW-2.md](REVIEW-2.md),
 
 The owner answered: “Agree on 8, names etc are enough. Agree on everything else too.” All JUDGMENT-CALLs and PLAN-GAPs listed here are settled, including folder moves under brief 15b.
 
-- **Owner archive, rounds 17–18 — follows the safety rule:** when retained-history admission refuses, run `sudo aresos admin control archive --input '{"before":PAST_UNIX_SECONDS,"confirm":"archive finished history"}'` with your chosen past cutoff. It exports private finished audit history for reading with sudo and compacts SQLite while retaining open work, unacknowledged notices and the independent restore record; repeat for further batches of at most 100 operations. The 1 GiB admission cap now counts SQLite only; the permanent independent journal and private exports use separate physical disk space. Keep those records and leave sufficient disk space for maintenance. The command and confirmation text are unchanged. This explicit owner confirmation follows the safety rule and changes no mailbox.
+- **Owner archive, rounds 17–19 — follows the safety rule:** when retained-history admission refuses, run `sudo aresos admin control archive --input '{"before":PAST_UNIX_SECONDS,"confirm":"archive finished history"}'` with your chosen past cutoff. It exports private finished audit history for reading with sudo and compacts SQLite while retaining open work, unacknowledged notices and the independent restore record; repeat for further batches of at most 100 operations. The 1 GiB admission cap now counts SQLite only; the permanent independent journal, rebuildable disk index and private exports use separate physical disk space. Keep those records and leave sufficient disk space for maintenance. The command and confirmation text are unchanged. This explicit owner confirmation follows the safety rule and changes no mailbox.
 - **Working storage caps, round 16 — follows the safety rule, not a new choice:** unused compositions expire after 24 hours (128 / 4 MiB current-state cap); private files cap at 256 / 512 MiB per store. Open operations and unresolved warnings stay protected; reaching a cap refuses cleanly with instructions, and retained audit history requires owner archiving at its admission limit. These limits prevent free actions from filling storage and forcing restore confirmation.
 - **Installed approval boundary, round 15 — not a separate choice:** this follows the owner's rule that the tool layer enforces asking. Asking tools refuse preparation and submission until the managed Claude Code settings and MCP files are installed and verified; free reads and changes remain available. Letting sends and deletes run where that boundary is missing would break the rule, so no alternative was put to the owner (lead, 2026-11-08).
 - **Draft revisions and deletion — owner decided 2026-11-08; kept as built:** editing or sending keeps the old draft, so revisions can accumulate. This keeps every deletion behind its own named approval; silently replacing or removing drafts was rejected.
@@ -48,6 +49,177 @@ The owner answered: “Agree on 8, names etc are enough. Agree on everything els
 - Complete onboarding with your aliases, authentication, TLS trust, special folders, delayed Sent behavior and folder-deletion guard; the tests use synthetic accounts only.
 - Check complete approvals on both terminal and phone, then try the seven everyday Claude mail tasks; automated protocol tests do not establish how usable those flows feel.
 - Send a forwarded `.eml` to recipients using Apple Mail, Outlook, Thunderbird, Gmail on the web and iOS Mail, and check how each opens or saves the exact attachment; the round-5 documentation does not establish its presentation.
+
+## Review fixes, round 19
+
+**Done:** implements `briefs/19-review-fixes-19.md`, addressing both findings in
+[SECURITY-REVIEW-11.md](SECURITY-REVIEW-11.md), reviewed head `88c83ef7`.
+The owner's previously local `795c41ce` (review and brief) went with the first
+code push. Implementation commits: `ef16da8d`, `f9f39f03`, `8b889abd`, `fe0c3d01`
+and `e77b1c40d577a8262700f3c996f4cfcb0a791575` (last code/test change).
+
+- **Blocking — repair traffic exhausting recovery:** `engine.py` reuses the
+  retained unresolved repair for the same original operation and local stage,
+  including reserved/submitting attempts. Repeating the repair is the explicit
+  read-then-settle action: `mail/adapter.py` searches Sent by the original send's
+  Message-ID, or reads flags from the exact reply reference with UIDVALIDITY and
+  Message-ID checks. Presence marks that repair done and updates the original
+  stage; a successful absent check marks the repair failed, leaving the original
+  stage eligible for a later request. A transport failure or inconclusive/refused
+  check returns the existing attempt unchanged, without allocation or writes.
+  Settlement itself does not APPEND, STORE or submit SMTP. `operation_status`
+  remains read-only. `mail/definitions.py`, the generated Mail tool JSON and
+  `docs/control/TOOLS.md` describe this behavior.
+- **Blocking — cancellation capacity:** `engine.py` exempts cancellation from
+  request-wide history admission; `storage.py` exempts its durable write from
+  the SQLite quota. `retention.py` gives cancellation its own 4 MiB physical
+  reserve. Ordinary work leaves 64 MiB; ordinary recovery leaves 20 MiB (16 MiB
+  restore plus 4 MiB cancel); restore/archive leave cancel's 4 MiB; cancellation
+  leaves restore's 16 MiB. Repairs, acknowledgements, expiry and owner
+  maintenance cannot consume cancel's reserve. This protects tool traffic;
+  external disk exhaustion and actual I/O failures still require freeing space.
+- **Should-fix — permanent journal RAM growth:** `storage.py` verifies one line
+  at a time and rebuilds an untrusted, disposable `journal-index.sqlite` outside
+  the backup tree. Record sequence/hash/offset and latest compact operation
+  evidence live on disk, with a 1 MiB SQLite index page cache. The resident journal
+  state is its sequence/head; `events` is now a lazy disk-backed sequence, so
+  existing crash/archive assertions still inspect the same records without
+  retaining them. Restore reads latest evidence from the disk index, audit
+  verification compares hashes, and production log pagination streams with
+  bounded page storage. Old or corrupt derived indexes are discarded on restart;
+  only the unchanged permanent journal is authority. `engine.py` and `storage.py`
+  also stream retained operation scans (startup, pending, prepare reuse, expiry
+  and repair lookup), avoiding a transient list of all completed operations.
+  `control/README.md` documents the lifecycle and recovery semantics. Archive
+  needs no command or format change: its existing lazy reads still retain the
+  entire permanent record.
+
+**Tests by name — additions only; no earlier tests changed, weakened, skipped or
+deleted:**
+
+`control/mail_tests/test_review_fixes_19.py`, class `Recovery19`:
+
+- `test_review19_38_uncertain_repairs_with_archives_keep_one_and_cancel_works`
+- `test_review19_unknown_sent_repair_settles_done_by_original_message_id_after_restart`
+- `test_review19_unknown_sent_repair_proved_absent_fails_then_allows_new_attempt`
+- `test_review19_each_stage_reuses_reserved_running_unknown_without_writes_when_inconclusive`
+- `test_review19_two_failed_stages_each_keep_their_own_single_unresolved_repair`
+- `test_review19_answered_evidence_uses_readonly_pinned_reference_and_flags`
+- `test_review19_cancel_works_above_history_cap_and_other_paths_leave_its_physical_room`
+
+`control/tests/test_journal_streaming.py`, class `JournalStreaming`:
+
+- `test_review19_startup_retained_and_peak_memory_bounded_for_1000_and_10000_unique_operations`
+  includes both journal records and retained completed SQLite operation rows,
+  and measures startup, lazy historical iteration, verified audit iteration and
+  paged log reads. Each population must stay below fixed 512 KiB retained / 2 MiB
+  peak Python allocations. The unrelated fixed 6 MiB boundary-file read is
+  excluded by reusing the existing Boundary instance; all Store startup runs.
+- `test_review19_stream_verification_detects_middle_corruption_torn_tail_and_whole_suffix_truncation`
+- `test_review19_large_restart_rebuilds_untrusted_index_detects_restore_and_refuses_replay`
+- `test_review19_streamed_log_pages_keep_all_entries_and_refuse_cursor_after_change`
+
+**Verified — local, before every push:**
+
+```text
+python3 control/generate.py --check
+Generated artifacts match definitions
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/mail_tests:.work/round10/vendor python3 .work/round10/check-local.py
+Python syntax OK: 107 files
+Ran 86 tests; OK
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/tests:.work/round10/vendor python3 -m unittest test_operations test_record test_crashes test_approval_questions test_strict_json test_boundary test_boundary_exact test_ingress_bounds test_journal_closed test_policy_sources test_archive test_journal_capacity test_journal_streaming
+Ran 79 tests; OK
+Record growth: tiny send=4078 bytes; maximum body + 25 MiB send=4078 bytes; 6 state/stage records, mean=679.7 bytes per record including commit
+Record growth: typical three-recipient send=5560 bytes across 8 state/stage records
+```
+
+The two required suites above were repeated before each push; the initial push
+had the first streaming test version, and the corrective code push and report
+push include its retained-row coverage. Additional commands:
+
+```text
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/mail_tests:.work/round10/vendor python3 -m unittest test_review_fixes_19
+Ran 7 tests; OK
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/tests:.work/round10/vendor python3 -m unittest test_journal_streaming
+Ran 4 tests; OK
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control/boundary:control:.work/round10/vendor python3 -m unittest test_native
+Ran 16 tests; OK
+```
+
+The Mac harness supplies disposable generated policy fixtures and simulated root
+ownership; Linux workflows provide real installed ownership and container tests.
+Initial local fixture failures (metadata-only FETCH handling and replay returning
+the recorded cancelled state) were corrected; no product assertion was removed.
+The first memory probe included the unrelated fixed 6 MiB policy read, so its
+scope was corrected as explained above. The final memory test also includes
+retained SQLite operations: representative `(retained, peak)` bytes were
+`(34080, 193152)` at 1,000 operations and `(23639, 181705)` at 10,000.
+These are Python allocations, not whole-process RSS; the index cache is separately
+fixed at 1 MiB, and other SQLite caches retain their existing fixed limits.
+
+**Verified — baseline:** exported `88c83ef7` under `.work/round19/baseline` and
+overlaid only the new tests. Commands used the same unittest names above with
+`PYTHONPATH=.work/round19/baseline/control:.work/round19/baseline/control/mail_tests:.work/round10/vendor`
+and the corresponding `control/tests` path. The seven recovery tests printed
+`FAILED (failures=7)`: new ids instead of reuse/settlement, growing unresolved
+attempts, and cancellation returning `storage_limit`. The four streaming tests
+printed `FAILED (failures=1, errors=1)`: the old journal retained about 2.35 MB of
+Python objects already at 1,000 operations, above the fixed 512 KiB bound. The
+error is the new disposable-index test encountering no `latest` table in the
+old implementation; it is not behavior evidence. Corruption/truncation and
+restore/replay invariants retain their earlier assertions and pass now.
+
+**Verified — Linux workflows at the last code/test commit**
+`e77b1c40d577a8262700f3c996f4cfcb0a791575`:
+
+| Workflow | Exact-code-head runs | Result |
+| --- | --- | --- |
+| Control Mail | [42451163980 attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42451163980/attempts/1), [attempt 2](https://github.com/Ares-Empire/AresOS/actions/runs/42451163980/attempts/2) | Both PASS: 109 shared-base tests + 207 Mail tests; `Control base suite PASS`, `Control Mail suite PASS` and fixture isolation confirmed. |
+| Control base | [42451163952 attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42451163952/attempts/1), [attempt 2](https://github.com/Ares-Empire/AresOS/actions/runs/42451163952/attempts/2) | Both PASS: 109 tests; generated artifacts match. Linux journal memory at 1k/10k operations: `(11495, 161982)` / `(10906, 161267)` retained/peak bytes in the first pass. |
+| Control boundary | [42451163968 attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42451163968/attempts/1) | PASS: 16 native fixture tests, installed boundary precondition, both confinement modes (127 attacks each), `SOURCES_OK`, `LAUNCHER_POLICY_SOURCES_OK`, `ISOLATION_OK`. |
+
+Both second passes use `gh run rerun` on those same automatic pull-request run
+IDs. Any later commit changes only files under `reviews/`; final report-inclusive
+head run IDs and both passes are recorded in draft PR #9's body. No manual
+workflow dispatch, new PR, merge, force push or push to main occurred.
+
+**Push discipline:** one initial code push included the owner's local commit. A
+second code push was necessary after finding the remaining transient startup
+operation list: it adds streaming scans and strengthens the memory fixture with
+retained SQLite rows. The report is the third and final push. This produced
+nine automatic workflow IDs, rather than the intended six; no push was made
+just to obtain a second pass. The ordinary pre-push hook was never bypassed.
+The initial-head runs are recorded as historical only below; final code and
+final PR-head evidence use their exact own heads.
+
+| Initial code head `fe0c3d01` | Run | Result |
+| --- | --- | --- |
+| Control base | [42450966466](https://github.com/Ares-Empire/AresOS/actions/runs/42450966466) | PASS; superseded by the retained-row correction. |
+| Control Mail | [42450966308](https://github.com/Ares-Empire/AresOS/actions/runs/42450966308) | Cancelled on superseding push; not passing evidence. |
+| Control boundary | [42450966329](https://github.com/Ares-Empire/AresOS/actions/runs/42450966329) | Cancelled on superseding push; not passing evidence. |
+
+**Not verified:** real providers, real delivery or accounts, delayed server Sent
+copies, physical power-loss/controller durability, and native owner approval
+presentation. No UI changed; screenshots are not applicable. A successful absent
+Sent check proves absence at that read, not that a delayed copy cannot arrive
+later; every later Sent repair still searches before APPEND. There is no SMTP
+retry. Permanent journal/index/export disk use and linear startup verification
+time still grow with retained history; this round bounds resident journal memory.
+
+**JUDGMENT-CALL:** repeated `operation_repair` is the proof-only settlement path,
+because it is already an explicit change action and reuses the stage's attempt.
+A read-only status call does not silently mutate history; a separate tool would
+add a recovery surface without resolving any additional state. Changing this
+later affects tool descriptions and dispatch, not journal format or mailbox
+migration. The disk index was chosen over keeping every operation/hash in a
+Python map, which would still grow indefinitely; it is rebuildable and has no
+backup/restore authority.
+
+**PLAN-GAP:** none beyond the stated storage/largest-record and real-provider
+limits. **Open questions:** none new; the existing owner qualification checks
+above remain. Final `.work/` scan: no regular file over 500,000,000 bytes; no
+large downloads or extracted images were created in this round. No Gradle daemon
+or container was started locally.
 
 ## Review fixes, round 18
 
