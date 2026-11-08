@@ -5,7 +5,7 @@ import sys
 from .common import FILE_LIMIT, WIRE_LIMIT, JSONInputError, Refused, display_json, require_question, strict_json_loads, validate
 from .definitions import obj, string
 from .definitions import APPS, BY_NAME
-from .files import FilePolicy
+from .files import FilePolicy, safe_name
 from .protocol import Client
 
 
@@ -41,6 +41,8 @@ class Proxy:
             if verb == "file_save":
                 if self.files is None:
                     raise Refused("file_refused", "No caller file folders configured.")
+                self.files.locate(arguments['folder'])
+                safe_name(arguments['name'])
                 result, data = self.client.download(self.app, arguments["sha256"], self.files.limit)
                 if not result["ok"]:
                     return result
@@ -71,15 +73,19 @@ class Proxy:
             if self.app == "mail" and verb == "attachment_save":
                 if self.files is None:
                     raise Refused("file_refused", "No allowed caller folders configured.")
+                from pathlib import Path
+                folder = arguments.get('folder', str(Path(self.files.home) / 'Downloads'))
+                self.files.locate(folder)
+                if 'name' in arguments:
+                    safe_name(arguments['name'])
                 result = self.client.call(action.name, arguments)
                 if not result["ok"]:
                     return result
                 item = result["data"]["file"]
                 downloaded, data = self.client.download("mail", item["sha256"], self.files.limit, item['export_id'])
                 if not downloaded["ok"]:
+                    self.client.request({'method': 'saved', 'app': 'mail', 'outcome': 'refused', 'export_id': item['export_id']})
                     return downloaded
-                from pathlib import Path
-                folder = arguments.get("folder", str(Path(self.files.home) / "Downloads"))
                 try:
                     saved = self.files.save(folder, arguments.get("name", item["name"]), data, item["sha256"], admission=downloaded['data'])
                 except Exception:
