@@ -1,6 +1,6 @@
 # The control layer: design
 
-**Status:** draft 28, 2026-11-08. Draft 16 with the owner's answers of 2026-11-07 built in (`PLAN.md` decisions 14 to
+**Status:** draft 29, 2026-11-08. Draft 16 with the owner's answers of 2026-11-07 built in (`PLAN.md` decisions 14 to
 19 and 21), and two decisions of 2026-11-08: the central session can gain tools, the ones that run outside its sandbox
 only through the tool layer, asking (decision 22); and one session does coding, commands, mail, Chrome and later apps,
 possibly in skip-permissions mode, replacing decision 8's split (decision 23). Draft 18 answers the eighteenth
@@ -34,7 +34,9 @@ question names, limits navigation to web addresses, keeps the approval and setti
 reads pages without ever collecting a password value. Draft 28 (re-check
 [30](../../reviews/control-design/2026-11-08-RECHECK-30.md)) resumes a stopped submission with the same kind it was
 stopped as, binds what a send outside a form carries whatever was approved before, and excludes password fields before
-anything is read. Covers the shared base, Mail and Chrome. The frontier
+anything is read. Draft 29 (re-check [31](../../reviews/control-design/2026-11-08-RECHECK-31.md)) binds the whole
+compose item or refuses, and stops a script's activation before it is delivered, reporting what it couldn't stop as
+`unknown`. Covers the shared base, Mail and Chrome. The frontier
 review ([`REVIEW`](../../reviews/control-design/2026-11-07-REVIEW.md), 8 blocking) and five re-checks
 ([1](../../reviews/control-design/2026-11-07-RECHECK.md), [2](../../reviews/control-design/2026-11-07-RECHECK-2.md),
 [3](../../reviews/control-design/2026-11-07-RECHECK-3.md), [4](../../reviews/control-design/2026-11-07-RECHECK-4.md),
@@ -388,6 +390,9 @@ sites and synthetic profiles). What the Chrome build still has to show is marked
   - a field it has seen as one of these before in this document, so a "show password" switch that turns it into
     plain text doesn't make it readable.
 
+  The check runs again right before every value read, not once per page, so a field whose type changes after it was
+  first seen is judged as it is at that moment, in every frame and shadow root.
+
   Such a field appears in the view as "password field (not read)", with its label. The binding (below) uses the same
   exclusion: it records such a field's presence and identity, never its value or whether it is empty. Claude never
   types a password: signing in is his, and a sign-in page is handed back to him.
@@ -489,13 +494,23 @@ run stops, and reports:
 - **a submission through the `submit` event:** a submit button's activation, Enter in a field, or `requestSubmit()`.
   These pass the browser's field checks and then fire the `submit` event, which a listener of the extension's,
   registered first and in the capture phase, stops before any of the page's own handlers run;
-- **an activation of a control** that rule 1 or 2 would ask for (a script's `click()` or a dispatched click event),
-  stopped the same way before the page's handlers for it run.
+- **a script's activation of a control** that rule 1 or 2 would ask for: the browser's own `click()` and
+  `dispatchEvent()` are replaced by wrappers too, so a `click()` on such a control, or a click event dispatched to
+  it, stops before the event is delivered at all: no handler runs and no default action (a link opening its address)
+  happens.
 
 The service prepares each as an asking operation, recording which of the three kinds it was, the form and the
-submitter. Claude's input itself has already happened (the text is typed, the box ticked); only the stopped step
-waits. This holds on honest pages (*checked* for submissions, 17c); a page that sends in another way, or later than
-the limit, isn't stopped (below).
+submitter, or the control and the undelivered event. Claude's input itself has already happened (the text is typed,
+the box ticked); only the stopped step waits. This holds on honest pages (*checked* for submissions, 17c); a page that
+sends in another way, or later than the limit, isn't stopped (below).
+
+**What can't be stopped is never reported as stopped.** An activation of an asking control that reaches the page
+without passing the wrappers (for example a click event dispatched with a function taken from a fresh frame before
+the extension's script ran there) is caught only by the capture listener, after delivery has begun. If the event can
+be cancelled, the listener cancels it and stops its handlers; it is reported as stopped and is never resumed (Claude
+can prepare the action again with its own input). If it can't be cancelled, the listener stops the page's handlers,
+but the default action (a link opening its address) may still happen: the tool reports "the page activated 'Delete'
+by itself; it may have happened" with the outcome `unknown`, and never resumes it.
 
 Site adapters for his usual sites name their sends precisely (below). Everything else is free, including a control
 without a label that deletes something kept only in the browser (decision 14, accepted as stated).
@@ -518,12 +533,17 @@ without a label that deletes something kept only in the browser (decision 14, ac
      submission stopped at the `submit` event resumes with the browser's own `requestSubmit()` on the same form with
      the same submitter, whose field checks and `submit` event then reach the page's own handlers as they would have.
      Claude's earlier input (the click, the typing, the change) is never dispatched again;
-   - for a stopped activation, one click on the same control.
+   - for a stopped script activation, the call the page made, now delivered once with the saved native function: the
+     browser's own `click()` on the same control, or the browser's own `dispatchEvent()` with the same, never
+     delivered event object.
 
    Each run is let through by a one-use mark bound to the operation id. What the page itself does while handling
    that run belongs to it and isn't stopped again: its `submit` handlers, and one `submit()` or `requestSubmit()`
    they make on the same form (the common pattern of a handler that checks the form and then calls `submit()`). Any
    other submission, a second one, or one on another form is stopped and asked on its own, so a handler can't loop.
+   The mark is consumed by the run it lets through, and the one further submission is consumed when it is used;
+   neither comes back during nested or re-entrant handling, so a handler that calls itself again can't use either
+   twice.
    If the form, the submitter or the control is gone, the tool refuses. A call after the 15-minute deadline is
    refused (rule 4.3).
 
@@ -540,14 +560,22 @@ without a label that deletes something kept only in the browser (decision 14, ac
 - for a confirmation, the dialog's kind (Chrome's own alert, confirm or prompt, or a page dialog with its role), the
   frame and site that opened it, its full text and the button's label.
 
-**What a send outside a form carries.** Without a form, the tool binds the item the control belongs to: what an
-adapter names, or else the smallest element around the control that is a form, a dialog, a list item, a row, an
-article or a region (by element or role). For a control that sends, posts, replies or comments, that is the current
-content of every editable field in that item (a compose area in an editable `div`, for example), whoever wrote it, an
-existing draft included; for other controls, the item's visible text, up to a bound. It is read fresh when the
-operation is prepared and compared before the input, whatever was approved in between. If the tool can't establish
-the item, or the item of such a control holds no editable field while other editable fields on the page hold text, it
-refuses ("can't tell what this sends"); then an adapter, or his own click, is the way.
+**What a send outside a form carries.** Without a form, a control that sends, posts, replies, comments or publishes
+binds the whole compose item it belongs to: the item an adapter names, or else the outermost dialog, form or named
+region (by element or role) around the control, not the smallest one. Everything in that item is recorded, read fresh
+when the operation is prepared and compared before the input, whatever was approved in between: the current content
+of every editable field (whoever wrote it, an existing draft included) and the item's read-only text (a draft
+preview, recipient chips, a quoted message), in full. The tool refuses ("can't tell what this sends"), and an adapter
+or his own click is then the way, when:
+
+- no such item can be established around the control, or there is more than one candidate;
+- an editable field with text lies outside the item but in the same dialog;
+- the item holds no content at all;
+- the item's content is too large to show whole (rule 4.1).
+
+Other asking controls (delete, buy, subscribe and the like) bind the item they act on: the item an adapter names, or
+else the smallest list item, row, article, form, dialog or region around the control, with its visible text up to a
+bound, so the question can say what is deleted or bought and a re-sorted list can't swap it.
 
 Where the page's script decides the destination and the tool can't see it (a control outside a form, without an
 adapter), the question says so ("where the page sends this isn't visible to the tool"); it never names a destination
@@ -662,6 +690,8 @@ own Chromium from the terminal and an empty profile, without his sign-ins.
   another language) is free unless an adapter names it; a harmless control with a listed word ("Clear search") asks.
 - **Between the check and the input** a page script could still change the page; the binding narrows that to an
   instant, it doesn't close it.
+- **A script activation that gets around the wrappers** (a function taken from a fresh frame) can still trigger a
+  control's default action when its event can't be cancelled; the tool reports it as `unknown`, never as stopped.
 - **`done` doesn't prove what the site did:** the tool sees the input and the page, not the network.
 - **His own clicks are his.** Nothing he does in his tabs is held or checked.
 - **Under decision 24,** a tricked Claude, or another program of his user, could disturb the host or start Chrome in
@@ -682,19 +712,27 @@ affected adapter or rule off until it is fixed, with the generic rules or a refu
 2. **Stopped page steps:** on honest fixtures, a `submit()` call, a submission through the `submit` event
    (`requestSubmit()`, a submit button, Enter) and a control activation, each started by a click handler, a key
    handler, and the `input` and `change` events of filling, choosing and ticking, are stopped and asked. After
-   approval only that step runs once: the receiver gets one submission, and the fixture counts no second click, key
-   or input event from Claude. Both resume paths keep their kind: a resumed `submit()` fires no `submit` event and
-   runs no field checks (a form with a field that fails its checks still goes, as the page's `submit()` would have
-   sent it); a resumed `requestSubmit()` runs the field checks and the page's `submit` handlers once. The loop case:
-   a `submit` handler that cancels the event and calls `submit()` itself sends once, with one question; a handler
-   that submits twice, or submits another form, gets a question for the extra one.
+   approval only that step runs once: the receiver gets one submission, and the fixture counts no second click, key or
+   input event from Claude. A script's `click()` and a dispatched click event on a labelled Delete link, also one
+   dispatched as not cancellable, are stopped before delivery: no handler runs and the link's address isn't opened
+   until approval, then exactly once. The fallback, a non-cancellable click dispatched with a function from a fresh
+   frame that bypasses the wrappers, is reported as `unknown` ("may have happened"), never as stopped, and never
+   resumed; a cancellable one is reported as stopped and not resumed. Nested handling: a handler that re-enters after
+   its approved run gets no second pass from the mark or the allowance. Both resume paths keep their kind: a resumed
+   `submit()` fires no `submit` event and runs no field checks (a form with a field that fails its checks still goes,
+   as the page's `submit()` would have sent it); a resumed `requestSubmit()` runs the field checks and the page's
+   `submit` handlers once. The loop case: a `submit` handler that cancels the event and calls `submit()` itself sends
+   once, with one question; a handler that submits twice, or submits another form, gets a question for the extra one.
 3. **The binding:** after approval, a change to any recorded item (address, document, frame, element, label, the
    form's action or method, a visible or hidden field, compose text outside the form, the account an adapter reads,
    recipients, chat, a confirmation's text or opener) is refused and asks again; a closed tab or a Chrome restart
    refuses; one approval runs once; the deadline holds. The counterexample of re-check 30: Claude fills a compose
    area outside a form, an unrelated upload is approved, Send is prepared, and the text changes while the approval
    waits: refused. An existing draft Claude never typed is part of what Send carries; a Send whose item can't be
-   established while other fields hold text is refused.
+   established while other fields hold text is refused. The counterexamples of re-check 31: a dialog whose message
+   body sits outside a smaller region holding Send and a recipient field binds the whole dialog, body included, and a
+   change to the body while the approval waits is refused; a compose item whose only content is a read-only draft
+   preview binds that preview, and a change to it is refused; an item with no content at all is refused.
 4. **Confirmations:** a confirmation an adapter named is accepted only when it matches exactly (kind, frame and
    site, text, button); one that differs in any of these is treated as new. A new confirmation whose text or button
    carries a listed word asks on its own, also right after an approved action that didn't name it; one without a
@@ -708,7 +746,9 @@ affected adapter or rule off until it is fixed, with the generic rules or a refu
    can't command the extension; DevTools methods outside the fixed list refused; no cookie or storage reading.
    **Passwords:** a known password sits on fixtures in each excluded kind of field (`type="password"`, a field with
    `autocomplete="current-password"`, a field masked by `-webkit-text-security`, a password field switched to plain
-   text by a "show password" button, and a password in the field's `value` attribute in the page source). While the
+   text by a "show password" button, a field whose type changes to password after the page loaded, and a password
+   in the field's `value` attribute in the page source), each also inside an open shadow root, a closed shadow root
+   and a frame from another site. While the
    reader and the binding run over those forms, a test build records everything the extension receives from the
    browser (every DevTools response and every value its content script reads) and everything it sends to the host,
    the service, the log and the results; the password appears in none of them.

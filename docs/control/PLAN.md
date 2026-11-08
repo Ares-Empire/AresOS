@@ -609,3 +609,11 @@ tasks at any time.
   refused when that item can't be established; password fields are excluded before anything is read, with the
   reader in the extension's own content script; brief 20 checks what the browser returns to the extension too.
   Re-check 31 next.
+- **2026-11-08, 05:50:** re-check 31 on draft 28 ([report](../../reviews/control-design/2026-11-08-RECHECK-31.md)):
+  CHANGES-NEEDED, two blocking points; the resume kinds and the should-fixes closed. Draft 29: a send outside a form
+  binds the whole compose item (the adapter's, or the outermost dialog, form or named region), editable fields and
+  read-only text alike, and refuses when the item is ambiguous, has text outside it in the same dialog, or is empty; a
+  script's `click()` or dispatched click on an asking control is stopped before delivery by wrapping the browser's
+  own functions, and an activation that gets around them is reported as `unknown`, never as stopped, and never
+  resumed; the one-use mark and the further-submission allowance stay consumed in nested handling; the password check
+  runs before every value read, tested in shadow roots and frames from other sites. Re-check 32 next.
