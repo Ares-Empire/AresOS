@@ -107,6 +107,7 @@ in Chrome ([`CONTROL.md`](../design/CONTROL.md) section 6).
 | Enter, Ctrl+Enter or Cmd+Enter in a message or compose field | `chrome_press`, then `chrome_submit` | send | first: asks; line breaks in Claude's text go in through `chrome_fill`, never as Enter |
 | Delete or Backspace outside text editing (on a selected item, card or object) | `chrome_press`, then `chrome_submit` | delete | first: asks (decision 14) |
 | A control without a label that deletes something kept only in the browser | the ordinary click | change | free (decision 14, the gap accepted) |
+| The page's own script activating a send, buy or delete control while handling Claude's input | | | stopped before delivery and reported to Claude, never resumed; if the action is wanted, Claude acts on the control itself, which asks |
 | A page that sends on its own after an ordinary action (autosave, an icon button that posts, typing indicators, read receipts) | | | not held, as with Claude in Chrome (decision 25) |
 | Page dialogs (alert, confirm, prompt) | `chrome_dialog` | change | first; accepting a confirmation with a listed word asks on its own, unless the approved operation named exactly that confirmation in advance (an adapter) |
 | Upload a local file | `chrome_upload`, then `chrome_submit` | send | first: asks; the question shows the path and the hash, and the field gets exactly that copy |

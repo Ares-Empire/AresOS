@@ -625,3 +625,10 @@ tasks at any time.
   residual, bound exactly only by adapters; a held event object is recorded through the browser's own getters at
   interception, and a changed, re-initialised or already dispatched event is refused, never resumed. Re-check 33
   next.
+- **2026-11-08, 05:59:** re-check 33 on draft 30 ([report](../../reviews/control-design/2026-11-08-RECHECK-33.md)):
+  CHANGES-NEEDED, one blocking point (a held page-owned event can't be proven unchanged); compose binding and the
+  PLAN alignment closed. Draft 31 takes the simplest fix: a page's own activation of an asking control is stopped
+  for good and never resumed; the result tells Claude what the page tried, and if the action is wanted Claude acts
+  on the control itself, which prepares a fresh asking operation. The event records and init wrappers of draft 30
+  are gone; submissions keep their resume paths through the browser's own `submit()` and `requestSubmit()`.
+  Re-check 34 next.

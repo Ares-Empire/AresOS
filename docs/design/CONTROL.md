@@ -1,6 +1,6 @@
 # The control layer: design
 
-**Status:** draft 30, 2026-11-08. Draft 16 with the owner's answers of 2026-11-07 built in (`PLAN.md` decisions 14 to
+**Status:** draft 31, 2026-11-08. Draft 16 with the owner's answers of 2026-11-07 built in (`PLAN.md` decisions 14 to
 19 and 21), and two decisions of 2026-11-08: the central session can gain tools, the ones that run outside its sandbox
 only through the tool layer, asking (decision 22); and one session does coding, commands, mail, Chrome and later apps,
 possibly in skip-permissions mode, replacing decision 8's split (decision 23). Draft 18 answers the eighteenth
@@ -38,7 +38,9 @@ anything is read. Draft 29 (re-check [31](../../reviews/control-design/2026-11-0
 compose item or refuses, and stops a script's activation before it is delivered, reporting what it couldn't stop as
 `unknown`. Draft 30 (re-check [32](../../reviews/control-design/2026-11-08-RECHECK-32.md)) binds every editable field
 the tool can read for a send outside a form without an adapter, states read-only text as residual, and refuses to
-resume an event object that changed. Covers the shared base, Mail and Chrome. The frontier
+resume an event object that changed. Draft 31 (re-check [33](../../reviews/control-design/2026-11-08-RECHECK-33.md))
+stops a page's own activation of an asking control for good instead: Claude acts on the control itself if the action
+is wanted. Covers the shared base, Mail and Chrome. The frontier
 review ([`REVIEW`](../../reviews/control-design/2026-11-07-REVIEW.md), 8 blocking) and five re-checks
 ([1](../../reviews/control-design/2026-11-07-RECHECK.md), [2](../../reviews/control-design/2026-11-07-RECHECK-2.md),
 [3](../../reviews/control-design/2026-11-07-RECHECK-3.md), [4](../../reviews/control-design/2026-11-07-RECHECK-4.md),
@@ -499,12 +501,16 @@ run stops, and reports:
 - **a script's activation of a control** that rule 1 or 2 would ask for: the browser's own `click()` and
   `dispatchEvent()` are replaced by wrappers too, so a `click()` on such a control, or a click event dispatched to
   it, stops before the event is delivered at all: no handler runs and no default action (a link opening its address)
-  happens.
+  happens. This one is stopped for good and never resumed, because the page keeps its event object and could change
+  it while the approval waits. The result tells Claude in plain words what the page tried ("the page tried to
+  activate 'Delete' by itself; it was stopped"). If that action is wanted, Claude acts on the control itself, which
+  prepares a fresh asking operation from the current page.
 
-The service prepares each as an asking operation, recording which of the three kinds it was, the form and the
-submitter, or the control and the undelivered event. Claude's input itself has already happened (the text is typed,
-the box ticked); only the stopped step waits. This holds on honest pages (*checked* for submissions, 17c); a page that
-sends in another way, or later than the limit, isn't stopped (below).
+The service prepares the two kinds of submission as asking operations, recording which kind it was, the form and the
+submitter; resuming them uses the browser's own functions, never the page's event object (below). Claude's input
+itself has already happened (the text is typed, the box ticked); only the stopped submission waits. This holds on
+honest pages (*checked* for submissions, 17c); a page that sends in another way, or later than the limit, isn't
+stopped (below).
 
 **What can't be stopped is never reported as stopped.** An activation of an asking control that reaches the page
 without passing the wrappers (for example a click event dispatched with a function taken from a fresh frame before
@@ -519,8 +525,8 @@ without a label that deletes something kept only in the browser (decision 14, ac
 
 ### How an asking action runs
 
-1. **Prepared.** For an asking input the tool doesn't dispatch anything; for a stopped submission or activation the
-   page's step stays stopped. The service reserves an operation (rule 4.3), records the page state the question
+1. **Prepared.** For an asking input the tool doesn't dispatch anything; for a stopped submission the page's step
+   stays stopped. The service reserves an operation (rule 4.3), records the page state the question
    describes (below), and returns the operation with its id, hash and question.
 2. **Asked.** Claude calls `chrome_submit` with that operation: the `question` first, then the content fields. The
    managed ask rule makes Claude Code ask him (section 7).
@@ -534,17 +540,7 @@ without a label that deletes something kept only in the browser (decision 14, ac
      the browser's own `submit()` on the same form (no field checks, no `submit` event, as the page asked); a
      submission stopped at the `submit` event resumes with the browser's own `requestSubmit()` on the same form with
      the same submitter, whose field checks and `submit` event then reach the page's own handlers as they would have.
-     Claude's earlier input (the click, the typing, the change) is never dispatched again;
-   - for a stopped script activation, the call the page made, now delivered once with the saved native function: the
-     browser's own `click()` on the same control, or the browser's own `dispatchEvent()` with the same, never
-     delivered event object. An event object stays in the page's hands while the approval waits, so at interception
-     the page script records it through the browser's own getters, saved before the page's scripts ran (so a
-     property the page adds to the object can't fake a value): its type, its flags (`bubbles`, `cancelable`,
-     `composed`), the target, and the fields that matter for it (`detail`, `key` and `code`, `button` and `buttons`,
-     the modifier keys, the coordinates). The browser's own `initEvent()`, `initUIEvent()`, `initMouseEvent()` and
-     `initKeyboardEvent()` are wrapped too, so re-initialising a held event marks it changed. On resume the tool
-     refuses, and never resumes, if any recorded value differs, the event was re-initialised, or it was dispatched
-     in the meantime (its target is no longer unset, or it passed through a wrapper again).
+     Claude's earlier input (the click, the typing, the change) is never dispatched again.
 
    Each run is let through by a one-use mark bound to the operation id. What the page itself does while handling
    that run belongs to it and isn't stopped again: its `submit` handlers, and one `submit()` or `requestSubmit()`
@@ -552,9 +548,8 @@ without a label that deletes something kept only in the browser (decision 14, ac
    other submission, a second one, or one on another form is stopped and asked on its own, so a handler can't loop.
    The mark is consumed by the run it lets through, and the one further submission is consumed when it is used;
    neither comes back during nested or re-entrant handling, so a handler that calls itself again can't use either
-   twice.
-   If the form, the submitter or the control is gone, the tool refuses. A call after the 15-minute deadline is
-   refused (rule 4.3).
+   twice. If the form or the submitter is gone, the tool refuses. A call after the 15-minute deadline is refused (rule
+   4.3).
 
 **What is recorded and compared.** Everything the question names, and nothing the question doesn't:
 
@@ -664,7 +659,7 @@ accounts; a page an adapter doesn't recognise falls back to the generic rules. T
 | `chrome_open`, `chrome_close_tab` | change | open a web address in a new Claude tab; close a Claude tab |
 | `chrome_read`, `chrome_read_form`, `chrome_find` | read | the page view; one form with its options; text search on the page |
 | `chrome_navigate` | change | in a Claude tab: a web address, back, forward, reload |
-| `chrome_click`, `chrome_fill`, `chrome_fill_form`, `chrome_select`, `chrome_check`, `chrome_press`, `chrome_scroll` | change | act on elements by reference, each with what Claude expects the element to hold; an asking input (above) isn't dispatched and returns a prepared operation, and so does a submission or activation the page stops while handling the input |
+| `chrome_click`, `chrome_fill`, `chrome_fill_form`, `chrome_select`, `chrome_check`, `chrome_press`, `chrome_scroll` | change | act on elements by reference, each with what Claude expects the element to hold; an asking input (above) isn't dispatched and returns a prepared operation, and so does a submission the page starts while handling the input; a control activation the page starts is stopped and reported, never resumed |
 | `chrome_dialog` | change | accept, dismiss or answer a page's own dialog; a confirmation of an asking kind is prepared instead, unless the approved operation named it |
 | `chrome_upload` | change | prepare putting a local file into a file field (it asks through `chrome_submit`) |
 | `chrome_downloads` | read | Chrome's downloads and where Chrome saved them |
@@ -720,23 +715,21 @@ affected adapter or rule off until it is fixed, with the generic rules or a refu
    Backspace outside text; Enter, Ctrl+Enter and Cmd+Enter in a text area, an editable area and a text input; an
    upload; a confirmation dialog) is prepared, asks, and nothing reaches the receiver before approval. The free cases
    (a GET search form, links, typing, line breaks through `chrome_fill`, choosing, ticking) don't ask.
-2. **Stopped page steps:** on honest fixtures, a `submit()` call, a submission through the `submit` event
-   (`requestSubmit()`, a submit button, Enter) and a control activation, each started by a click handler, a key
-   handler, and the `input` and `change` events of filling, choosing and ticking, are stopped and asked. After
-   approval only that step runs once: the receiver gets one submission, and the fixture counts no second click, key or
-   input event from Claude. A script's `click()` and a dispatched click event on a labelled Delete link, also one
-   dispatched as not cancellable, are stopped before delivery: no handler runs and the link's address isn't opened
-   until approval, then exactly once. The fallback, a non-cancellable click dispatched with a function from a fresh
-   frame that bypasses the wrappers, is reported as `unknown` ("may have happened"), never as stopped, and never
+2. **Stopped page steps:** on honest fixtures, a `submit()` call and a submission through the `submit` event
+   (`requestSubmit()`, a submit button, Enter), each started by a click handler, a key handler, and the `input` and
+   `change` events of filling, choosing and ticking, are stopped and asked. After approval only that submission runs
+   once: the receiver gets one submission, and the fixture counts no second click, key or input event from Claude. A
+   script's `click()` and a dispatched click event on a labelled Delete link, started by any of those handlers and
+   also one dispatched as not cancellable, are stopped before delivery and never resumed: no handler runs, the link's
+   address isn't opened, and the result tells Claude what the page tried; Claude then acts on the link itself, which
+   asks, and after approval it runs once. The fallback, a non-cancellable click dispatched with a function from a
+   fresh frame that bypasses the wrappers, is reported as `unknown` ("may have happened"), never as stopped, and never
    resumed; a cancellable one is reported as stopped and not resumed. Nested handling: a handler that re-enters after
-   its approved run gets no second pass from the mark or the allowance. A held event object: `initEvent("dblclick",
-   …)` on it while the approval waits, or a dispatch of it from a fresh frame's function, leads to a refusal, never to
-   a resumed event; a property the page adds to fake a field doesn't change what the tool compares (the browser's own
-   getters). Both resume paths keep their kind: a resumed `submit()` fires no `submit` event and runs no field checks
-   (a form with a field that fails its checks still goes, as the page's `submit()` would have sent it); a resumed
-   `requestSubmit()` runs the field checks and the page's `submit` handlers once. The loop case: a `submit` handler
-   that cancels the event and calls `submit()` itself sends once, with one question; a handler that submits twice, or
-   submits another form, gets a question for the extra one.
+   its approved run gets no second pass from the mark or the allowance. Both resume paths keep their kind: a resumed
+   `submit()` fires no `submit` event and runs no field checks (a form with a field that fails its checks still goes,
+   as the page's `submit()` would have sent it); a resumed `requestSubmit()` runs the field checks and the page's
+   `submit` handlers once. The loop case: a `submit` handler that cancels the event and calls `submit()` itself sends
+   once, with one question; a handler that submits twice, or submits another form, gets a question for the extra one.
 3. **The binding:** after approval, a change to any recorded item (address, document, frame, element, label, the
    form's action or method, a visible or hidden field, compose text outside the form, the account an adapter reads,
    recipients, chat, a confirmation's text or opener) is refused and asks again; a closed tab or a Chrome restart
