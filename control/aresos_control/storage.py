@@ -431,6 +431,7 @@ class Store:
                 raise OSError(errno.ENOSPC, 'Short journal write')
             os.fsync(self.journal.fileno())
         except OSError as exc:
+            self.observations.storage(exc, generic=True)
             self.write_failed = True
             try:
                 self._truncate_journal(offset)
