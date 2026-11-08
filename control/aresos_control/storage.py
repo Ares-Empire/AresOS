@@ -16,6 +16,12 @@ RESTORE_BATCH_BYTES = 64 * 1024
 RESTORE_BATCH_COUNT = 32
 
 
+def replay_budget(event):
+    # The fence and prepared row already exist. Only SQLite application and
+    # the short commit marker remain, within the original write's admission.
+    return len(canonical(event).encode()) * 2 + 8192
+
+
 def sync_directory(path):
     fd = os.open(path, os.O_RDONLY | os.O_DIRECTORY)
     try:
@@ -193,7 +199,13 @@ class Store:
                 self.index.executescript('CREATE TABLE records (seq INTEGER PRIMARY KEY, hash TEXT NOT NULL, offset INTEGER NOT NULL);'
                                         'CREATE TABLE latest (id TEXT PRIMARY KEY, seq INTEGER NOT NULL, value TEXT NOT NULL);')
                 self._read_journal(indexing=True)
-            if not self.locked:
+            prepared = self._pending_event()
+            if prepared and prepared.get('space', {}).get('restoring'):
+                # Owner confirmation was already prepared, even if an earlier
+                # batch deliberately kept restore_pending set across a crash.
+                self._replay(prepared)
+                self.locked = bool(self.get('restore_pending'))
+            elif not self.locked:
                 if len(self.events) > self.committed:
                     record = self.events[-1]
                     event = self._prepared(record["seq"])
@@ -202,18 +214,14 @@ class Store:
                         # Keep even unacknowledged reservations for owner confirmation.
                         self.locked = True
                     else:
-                        self.ledger.admit(record_budget(event))
-                        self._finish(event)
+                        self._replay(event)
                 else:
                     event = self._prepared(seq + 1)
                     if event is not None:
                         record = event["record"]
                         if record["previous"] != hash_value or record["seq"] != seq + 1:
                             raise Refused("evidence_mismatch", "Prepared write does not extend the independent record; owner recovery required.")
-                        self.ledger.admit(record_budget(event))
-                        offset = self._append(record)
-                        self._index_record(record, offset)
-                        self._finish(event)
+                        self._replay(event, append=True)
             self._load_reservations()
             if not self.events:
                 self.write({"generation": uuid.uuid4().hex}, "control_initialize", "initialize operation log")
@@ -331,6 +339,44 @@ class Store:
                 budget += record_budget(restored)
                 self.ledger.holds.update(self.ledger.right(restored, self.get('op:' + (restored.get('repair_of') or ''))))
             self.ledger.holds['restore'] = budget
+        prepared = self._pending_event()
+        if prepared is not None:
+            plan = prepared.get('space')
+            if plan:
+                # Reconstruct the already-admitted transaction, replacing its
+                # spent cancel/settlement/restore bytes with just replay work.
+                self.ledger.finish(plan['updates'], plan['consume'])
+                self.ledger.holds['replay'] = replay_budget(prepared)
+
+    def _pending_event(self):
+        seq = self.sequence if self.sequence > self.committed else self.sequence + 1
+        event = self._prepared(seq)
+        if event is None:
+            return None
+        record = event['record']
+        if seq == self.sequence:
+            return event if record == self.events[-1] else None
+        if record['seq'] == seq and record['previous'] == self.head_hash:
+            return event
+        return None
+
+    def _replay(self, event, append=False):
+        if event.get('space'):
+            self.ledger.admit(replay_budget(event), consume=('replay',))
+        else:
+            # Pre-upgrade prepared events lack a saved plan. Their live right
+            # can still fund completion rather than being counted twice.
+            consume = []
+            for op in event['set'].values():
+                if isinstance(op, dict) and 'id' in op and op.get('state') in {'done', 'failed'}:
+                    consume.extend(key for key in ('cancel:' + op['id'], 'settle:' + op['id'])
+                                   if key in self.ledger.holds)
+            self.ledger.admit(replay_budget(event), consume=consume)
+        if append:
+            offset = self._append(event['record'])
+            self._index_record(event['record'], offset)
+        self._finish(event)
+        self.ledger.finish({}, ('replay',))
 
     def _restore_operations(self, through=None):
         # Admission and confirmation must enumerate exactly the same work.
@@ -426,10 +472,12 @@ class Store:
             json_value(untrusted_content)
             event["untrusted_content"] = visible(untrusted_content)
         # Validate and serialize the COMPLETE event before the independent fence.
+        event['space'] = {'updates': updates, 'consume': consume, 'restoring': restoring}
         encoded = canonical(json_value(event))
         # Admission happens before the restore fence, so a quota refusal cannot
         # turn into journal_incomplete or demand owner restore confirmation.
-        cost = len(encoded.encode()) * 3 + len(canonical(record).encode()) * 3 + 32768
+        # Leave room for the restore balance added to the saved plan below.
+        cost = len(encoded.encode()) * 3 + len(canonical(record).encode()) * 3 + 36864
         recovery = recovery or self.recovering or retention.recovery_action(action) or action == 'control_expire'
         owner_recovery = restoring or self.archiving
         if restoring:
@@ -439,6 +487,8 @@ class Store:
                 raise Refused('storage_limit', 'Restore confirmation exceeds its held reservation; free storage before confirming.')
             updates['restore'] = remaining
             consume = []
+            event['space'] = {'updates': updates, 'consume': consume, 'restoring': True}
+            encoded = canonical(json_value(event))
         self.ledger.admit(cost, updates=updates, consume=consume, history_cost=cost,
                           recovery=recovery, owner_recovery=owner_recovery, cancellation=cancellation)
         self.admit_changes(changes)

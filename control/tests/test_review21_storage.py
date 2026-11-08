@@ -5,7 +5,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from aresos_control.engine import Engine
-from aresos_control.space import record_budget
+from aresos_control.space import SAFETY_FLOOR, record_budget
 from support import EngineCase
 import test_journal_streaming as streaming
 
@@ -61,3 +61,48 @@ class RestoreWork21(EngineCase):
         self.assertEqual(result['unknown'], ids)
         self.assertEqual(sum(op['state'] == 'done' for _, op in self.engine.store.iter_items('op:')), 9997)
         self.assertNotIn('restore', self.engine.store.ledger.holds)
+
+
+class Crash(BaseException):
+    pass
+
+
+class ReservedReplay21(EngineCase):
+    def crash_prepared(self, name):
+        if name == 'sqlite_prepared':
+            raise Crash()
+
+    def test_review21_cancel_prepared_replay_spends_original_hold_and_status_serves(self):
+        approval = self.reserve()
+        op_id = approval['operation_id']
+        held = self.engine.store.ledger.held
+        self.engine.store.checkpoint = self.crash_prepared
+        with patch('aresos_control.space.shutil.disk_usage', return_value=SimpleNamespace(free=SAFETY_FLOOR + held)):
+            with self.assertRaises(Crash):
+                self.engine.dispatch('testapp_operation_cancel', {'operation_id': op_id})
+            self.restart()
+            self.assertIsNone(self.engine.store.index)
+            result = self.data('testapp_operation_status', {'operation_id': op_id})
+            self.assertEqual(result['operation']['state'], 'failed')
+            self.assertIn('cancelled', result['operation']['reason'])
+        self.assertEqual(self.engine.store.ledger.holds, {})
+        self.assertEqual(self.engine.store.committed, self.engine.store.sequence)
+
+    def test_review21_prepared_restore_confirmation_replays_from_its_existing_hold(self):
+        with closing(sqlite3.connect(self.root / 'backup.sqlite')) as backup:
+            self.engine.store.db.backup(backup)
+        approval = self.reserve()
+        self.engine.close()
+        (self.root / 'state/control.sqlite').write_bytes((self.root / 'backup.sqlite').read_bytes())
+        self.engine = Engine(self.root / 'state', self.root / 'independent')
+        held = self.engine.store.ledger.held
+        self.engine.store.checkpoint = self.crash_prepared
+        with patch('aresos_control.space.shutil.disk_usage', return_value=SimpleNamespace(free=SAFETY_FLOOR + held)):
+            with self.assertRaises(Crash):
+                self.engine.store.confirm_restore()
+            self.restart()
+            self.assertFalse(self.engine.store.locked)
+            result = self.data('testapp_operation_status', {'operation_id': approval['operation_id']})
+            self.assertEqual(result['operation']['state'], 'unknown')
+        self.assertNotIn('restore', self.engine.store.ledger.holds)
+        self.assertEqual(self.engine.store.committed, self.engine.store.sequence)
