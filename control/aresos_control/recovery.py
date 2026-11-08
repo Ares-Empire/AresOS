@@ -1,10 +1,24 @@
 """One recovery catalogue for every durable intent; it never resumes work."""
+import json
 import time
 from .common import digest, storage_refusal
 
 
-def unfinished(store):
-    for key, value in store.iter_items(''):
+def unfinished(store, cutoff=None):
+    if cutoff is None:
+        from itertools import chain
+        rows = chain.from_iterable(store.iter_items(prefix) for prefix in
+            ('mail:filing:', 'mail:rename:', 'op:', 'export:', 'mail:account:', 'intent:'))
+    else:
+        # Filter before decoding: current-session filing pages/compositions can
+        # contain megabytes and cannot be startup recovery candidates.
+        encoded = store.db.execute("SELECT source.k,source.v FROM kv AS source "
+            "LEFT JOIN retained AS age ON age.k=source.k WHERE COALESCE(age.created,0)<=? AND ("
+            "substr(source.k,1,3)='op:' OR substr(source.k,1,7) IN ('intent:','export:') OR "
+            "substr(source.k,1,12) IN ('mail:filing:','mail:rename:') OR "
+            "substr(source.k,1,13)='mail:account:') ORDER BY source.k", (cutoff,))
+        rows = ((key, json.loads(value)) for key, value in encoded)
+    for key, value in rows:
         if key.startswith(('mail:filing:', 'mail:rename:')) and value.get('state') == 'started':
             yield key, value['id'], 'mail', 'Filing was interrupted. Messages or folders may have moved into a special folder, including Trash. Nothing is moved back or deleted automatically. Check your mail program and the filing audit before repeating.'
         elif key.startswith('op:') and value.get('state') in {'submitting', 'unknown', 'partial'}:
@@ -34,9 +48,11 @@ def unfinished(store):
 
 
 def recovery_notices(store):
-    for key, notice_id, app, reason in unfinished(store):
-        created = store.retained_at(key) if not key.startswith('legacy-intent:') else 0
-        if created <= getattr(store, 'recovery_cutoff', 0) and store.get('notice:' + notice_id) is None:
+    cutoff = getattr(store, 'recovery_cutoff', 0)
+    for key, notice_id, app, reason in unfinished(store, cutoff):
+        row = store.db.execute('SELECT created FROM retained WHERE k=?', (key,)).fetchone()
+        created = row[0] if row is not None else 0
+        if store.get('notice:' + notice_id) is None:
             yield {'id': notice_id, 'app': app, 'state': 'unknown', 'ack': False,
                    'created_at': int(created * 1_000_000_000), 'untrusted_content': {
                        'reason': reason, 'intent_key': key, 'recovery_warning': True}}
@@ -47,7 +63,10 @@ def recover_intents(store, persist=True):
     # bounded batch fits. Reads synthesize every remaining notice, so neither a
     # full disk nor 10,000 restored operations need an unbounded RAM queue.
     from itertools import islice
-    store.recovery_cutoff = time.time()
+    # A repaired wall clock or missing optional metadata must not hide an old
+    # durable intent. The horizon includes every timestamp already on disk.
+    latest = store.db.execute('SELECT COALESCE(MAX(created),0) FROM retained').fetchone()[0]
+    store.recovery_cutoff = max(time.time(), latest)
     for notice in islice(recovery_notices(store), 3):
         store.defer_notice(notice['id'], {'notice:' + notice['id']: notice},
                            'control_intent_recovery', 'Unfinished durable intent needs owner inspection')

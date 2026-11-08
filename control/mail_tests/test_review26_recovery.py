@@ -129,3 +129,23 @@ class Recovery26(unittest.TestCase):
         with patch('aresos_control.retention.FILING_COUNT', 1):
             self.engine.store.write({}, 'mail_draft_save', 'Next intent after resolution', outcome='started')
             self.engine.store.write({}, 'mail_draft_save', 'Next intent complete', outcome='done')
+
+    def test_review26_untracked_started_intent_warns_when_metadata_migration_cannot_fit(self):
+        key = 'mail:filing:legacy-untracked'
+        self.engine.store.write({key: {'id': 'legacy-untracked', 'state': 'started'}},
+                                'fixture', 'Synthetic older intent without retention metadata')
+        future = 'mail:filing:future-stamp'
+        self.engine.store.write({future: {'id': 'future-stamp', 'state': 'started'}}, 'fixture', 'Synthetic older intent with an ahead timestamp')
+        import time
+        with self.engine.store.db as db:
+            db.execute('DELETE FROM retained WHERE k=?', (key,))
+            db.execute('UPDATE retained SET created=? WHERE k=?', (time.time() + 3600, future))
+        with patch('aresos_control.space.SpaceLedger.admit', side_effect=Refused('storage_limit', 'Synthetic full disk')):
+            self.restart()
+            from aresos_control.mail.filing import notice_page
+            page = notice_page(self.engine.store, app='mail')
+            self.assertTrue({'legacy-untracked', 'future-stamp'} <= {n['operation_id'] for n in page['items']})
+            self.assertFalse(self.engine.store.write_failed)
+        self.engine.store.write({}, 'fixture', 'Disk recovered; persist the warning without restarting')
+        self.assertIsNotNone(self.engine.store.get('notice:legacy-untracked'))
+        self.assertIsNotNone(self.engine.store.get('notice:future-stamp'))
