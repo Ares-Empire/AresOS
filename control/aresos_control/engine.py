@@ -218,13 +218,19 @@ class Engine:
 
     def repair(self, app, args):
         old = self.operation(args["operation_id"], app)
+        observation = {}
+        def response(operation):
+            result = {'operation': self.public_operation(operation), 'original': self.public_operation(old)}
+            if observation.get('sent_copy_warning') or any(key.endswith('_storage_error') for key in observation):
+                result['evidence'] = observation
+            return result
         if old["state"] not in {"partial", "unknown", "done"}:
             raise Refused("refused", "Repair requires accepted-send evidence and a completed submission attempt; inspect status.")
         if app == 'mail' and not self.adapters[app].repair_needed(old, args['stage']):
             # Re-reading a completed stage must work even when admission is full.
             if args['stage'] == 'sent_copy':
                 try:
-                    self.adapters[app].repair_evidence(old, args['stage'])
+                    self.adapters[app].repair_evidence(old, args['stage'], observation)
                 except (Refused, OSError, imaplib.IMAP4.error, Uncertain):
                     pass
             completed = old
@@ -232,8 +238,7 @@ class Engine:
                 if (op.get('repair_of') == old['id'] and op.get('payload', {}).get('stage') == args['stage']
                         and op['state'] == 'done'):
                     completed = op
-            return {'operation': self.public_operation(completed),
-                    'original': self.public_operation(old)}
+            return response(completed)
         if app == 'mail':
             for _, repair in self.store.iter_items('op:'):
                 if (repair.get('repair_identity_missing') and repair['state'] == 'unknown'
@@ -246,14 +251,16 @@ class Engine:
                     # Repeated repair is the explicit read-then-settle path.
                     # Status remains read-only; an unreachable server adds no history.
                     try:
-                        result = self.adapters[app].repair_evidence(old, args['stage'])
+                        result = self.adapters[app].repair_evidence(old, args['stage'], observation)
                     except (Refused, OSError, imaplib.IMAP4.error, Uncertain):
-                        return {'operation': self.public_operation(repair), 'original': self.public_operation(old)}
+                        return response(repair)
+                    if observation.get('warning_storage_error'):
+                        return response(repair)
                     if result == 'failed' and args['stage'] == 'sent_copy':
                         ended = repair.get('attempt_ended_at')
                         if (repair['state'] != 'unknown' or ended is None
                                 or time.time() < ended + Mail.SENT_QUIET_PERIOD):
-                            return {'operation': self.public_operation(repair), 'original': self.public_operation(old)}
+                            return response(repair)
                     changes = {}
                     if result in {'done', 'not_needed'}:
                         old['stages'][args['stage']] = result
@@ -263,8 +270,30 @@ class Engine:
                     else:
                         repair.update(state='failed', reason='Read-only check found local stage absent; a later repair may try again.')
                     changes['op:' + repair['id']] = repair
-                    self.store.write(changes, repair['action'], repair['state'], repair['id'])
-                    return {'operation': self.public_operation(repair), 'original': self.public_operation(old)}
+                    try:
+                        self.store.write(changes, repair['action'], repair['state'], repair['id'])
+                    except (Refused, OSError, sqlite3.Error) as exc:
+                        storage = storage_refusal(exc)
+                        if storage is None and isinstance(exc, (OSError, sqlite3.Error)):
+                            storage = Refused('storage_error', 'Storage write failed during repair settlement; check the disk and operation status.')
+                        if storage is None:
+                            raise
+                        observation['settlement_storage_error'] = {'code': storage.code, 'message': str(storage)}
+                        repair = self.operation(repair['id'], app)
+                        warning = old['stages'].get('sent_copy_warning')
+                        old = self.operation(old['id'], app)
+                        if warning:
+                            old['stages']['sent_copy_warning'] = warning
+                    return response(repair)
+            if args['stage'] == 'sent_copy':
+                # An existing duplicate is useful evidence even when there is
+                # no room to record a warning or start another repair attempt.
+                try:
+                    self.adapters[app].repair_evidence(old, args['stage'], observation)
+                except (Refused, OSError, imaplib.IMAP4.error, Uncertain):
+                    pass
+                if observation.get('warning_storage_error'):
+                    return response(old)
         self.store.admit_history(retention.RECOVERY_REQUEST, recovery=True)
         op_id = self.store.generation + ":" + uuid.uuid4().hex
         description = {"repair_of": old["id"], "stage": args["stage"]}
@@ -291,7 +320,7 @@ class Engine:
             changes = {"op:" + op_id: repair}
         repair['attempt_ended_at'] = time.time()
         self.store.write(changes, repair["action"], repair["state"], op_id)
-        return {"operation": self.public_operation(repair), "original": self.public_operation(old)}
+        return response(repair)
 
     def dispatch(self, name, args, admin=False):
         action = BY_NAME.get(name)

@@ -7,6 +7,7 @@ import imaplib
 import json
 import re
 import smtplib
+import sqlite3
 import socket
 import ssl
 import time
@@ -16,7 +17,7 @@ from urllib.parse import parse_qs, unquote, urlsplit
 from .. import retention
 from ..adapters import NothingLeft, Uncertain
 from ..blobs import Blobs
-from ..common import RESULT_LIMIT, Refused, canonical, digest, sha256, visible
+from ..common import RESULT_LIMIT, Refused, canonical, digest, sha256, visible, storage_refusal
 from . import codec
 from .questions import people, question
 from .roles import resolve, SETUP, REQUIRED, OPTIONAL, optional_roles, recorded_optional, optional_status, check_optional, root
@@ -726,13 +727,19 @@ class Mail:
             return {"absence_is_not_proof": True}
         account = self.account(op["payload"]["composition"]["mail"]["account"], ready=False)
         matches = self.sent_matches(account, self.message_id(operation_id))
-        result = {"message_id": self.message_id(operation_id), "sent": matches, "absence_is_not_proof": True}
+        return self.sent_observation(op, matches)
+
+    def sent_observation(self, op, matches):
+        result = {"message_id": self.message_id(op['id']), "sent": matches, "absence_is_not_proof": True}
         try:
             self.sent_copy_count(op, matches)
-        except Refused as exc:
-            if exc.code not in {'storage_limit', 'journal_incomplete', 'restore_required'}:
+        except (Refused, OSError, sqlite3.Error) as exc:
+            storage = storage_refusal(exc)
+            if storage is None and isinstance(exc, (OSError, sqlite3.Error)):
+                storage = Refused('storage_error', 'Storage write failed while recording observed Sent copies; check the disk and operation status.')
+            if storage is None:
                 raise
-            result['warning_storage_error'] = {'code': exc.code, 'message': str(exc)}
+            result['warning_storage_error'] = {'code': storage.code, 'message': str(storage)}
         if op['stages'].get('sent_copy_warning'):
             result['sent_copy_warning'] = op['stages']['sent_copy_warning']
         return result
@@ -993,12 +1000,14 @@ class Mail:
             return operation['stages'][which]
         return self.local_stage(operation, which)
 
-    def repair_evidence(self, operation, which):
+    def repair_evidence(self, operation, which, observation=None):
         comp = operation['payload']['composition']['mail']
         account = self.account(comp['account'], ready=False)
         if which == 'sent_copy':
             matches = self.sent_matches(account, self.message_id(operation['id']))
-            self.sent_copy_count(operation, matches)
+            result = self.sent_observation(operation, matches)
+            if observation is not None:
+                observation.update(result)
             return 'done' if matches else 'failed'
         reference = comp['answered_reference']
         if reference is None:
