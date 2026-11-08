@@ -24,6 +24,13 @@ DOWNLOAD_CHUNK = {'anyOf': [obj({'offset': OFFSET}),
                             obj({'offset': OFFSET, 'end': {'type': 'boolean', 'enum': [True]}})]}
 
 
+def changing(request):
+    from .definitions import BY_NAME
+    action = BY_NAME.get(request.get('action')) if request.get('method') == 'call' else None
+    return (request.get('method') in {'upload', 'download', 'saved', 'mail_account_add'}
+            or bool(action and action.effect != 'read'))
+
+
 def envelope(request):
     json_value(request)
     if type(request) is not dict or type(request.get('method')) is not str or request['method'] not in ENVELOPES:

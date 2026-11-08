@@ -9,7 +9,7 @@ from . import retention
 from .adapters import NothingLeft, Uncertain
 from .blobs import Blobs
 from .boundary import Boundary
-from .requests import envelope, UPLOAD_CHUNK, DOWNLOAD_CHUNK
+from .requests import envelope, changing, UPLOAD_CHUNK, DOWNLOAD_CHUNK
 from .common import CHUNK_SIZE, FILE_LIMIT, RESULT_LIMIT, Refused, approval_input, approval_order, canonical, digest, require_question, validate, visible, storage_refusal
 from .definitions import APPS, BY_NAME, tools_for
 from .storage import Store
@@ -479,9 +479,7 @@ class Engine:
         previous_recovery = self.store.recovering
         try:
             envelope(request)
-            action = BY_NAME.get(request.get('action'))
-            mutating = (request['method'] in {'upload', 'download', 'saved', 'mail_account_add'}
-                        or (action and action.effect != 'read'))
+            mutating = changing(request)
             if mutating:
                 self.store.ensure_writable()
                 self.store.recovering = retention.recovery_action(request.get('action', ''))

@@ -53,7 +53,10 @@ class Proxy:
                     self.client.request({"method": "saved", "app": self.app, "outcome": "refused", 'export_id': admission['export_id']})
                     raise
                 result = self.client.request({"method": "saved", "app": self.app, "outcome": saved, 'export_id': admission['export_id']})
-                result["data"] = saved
+                if result['ok']:
+                    result["data"] = saved
+                elif result.get('error', {}).get('code') == 'unknown':
+                    result['data']['saved'] = saved
                 return result
             if self.app == "mail" and verb == "compose":
                 arguments = dict(arguments)
@@ -84,7 +87,8 @@ class Proxy:
                 item = result["data"]["file"]
                 downloaded, data = self.client.download("mail", item["sha256"], self.files.limit, item['export_id'])
                 if not downloaded["ok"]:
-                    self.client.request({'method': 'saved', 'app': 'mail', 'outcome': 'refused', 'export_id': item['export_id']})
+                    if downloaded.get('error', {}).get('code') != 'unknown':
+                        self.client.request({'method': 'saved', 'app': 'mail', 'outcome': 'refused', 'export_id': item['export_id']})
                     return downloaded
                 try:
                     saved = self.files.save(folder, arguments.get("name", item["name"]), data, item["sha256"], admission=downloaded['data'])
@@ -94,6 +98,8 @@ class Proxy:
                 result = self.client.request({"method": "saved", "app": "mail", "outcome": saved, 'export_id': item['export_id']})
                 if result['ok']:
                     result['data'] = saved
+                elif result.get('error', {}).get('code') == 'unknown':
+                    result['data']['saved'] = saved
                 return result
             return self.client.call(action.name, arguments)
         except (Refused, OSError, ValueError) as exc:
