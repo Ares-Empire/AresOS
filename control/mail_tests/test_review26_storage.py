@@ -61,3 +61,13 @@ class Storage26(unittest.TestCase):
         self.assertEqual((store.sequence, store.head_hash), (sequence, head_hash))
         store.write({}, 'fixture', 'Healthy retry uses the original journal head')
         self.assertEqual(store.sequence, sequence + 1)
+
+    def test_review26_legacy_recovery_audit_collates_journal_once_without_index(self):
+        store = self.engine.store
+        for index in range(20):
+            store.write({}, 'fixture', 'Synthetic legacy history')
+        expected = list(store.iter_audit())
+        store.index.close()
+        store.index = None
+        with patch.object(type(store.events), '__getitem__', side_effect=AssertionError('No per-row journal rescans')):
+            self.assertEqual(list(store.iter_audit()), expected)

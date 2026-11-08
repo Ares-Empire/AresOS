@@ -670,12 +670,20 @@ class Store:
 
     def iter_audit(self):
         head = self.db.execute("SELECT seq FROM head WHERE id=1").fetchone()[0]
+        records = iter(self.events) if self.index is None else None
+        verified = None
         for (value,) in self.db.execute("SELECT value FROM events WHERE seq<=? ORDER BY seq", (head,)):
             event = json.loads(value)
             record = dict(event['record'])
             claimed = record.pop('hash')
-            known = (self.index.execute('SELECT hash FROM records WHERE seq=?', (event['seq'],)).fetchone()
-                     if self.index is not None else (self.events[event['seq'] - 1]['hash'],))
+            if self.index is not None:
+                known = self.index.execute('SELECT hash FROM records WHERE seq=?', (event['seq'],)).fetchone()
+            else:
+                # Collate the two ordered streams once. Startup recovery must
+                # not rescan the entire journal for every legacy audit row.
+                while verified is None or verified['seq'] < event['seq']:
+                    verified = next(records)
+                known = (verified['hash'],) if verified['seq'] == event['seq'] else None
             if known == (claimed,) and digest(record) == claimed:
                 yield event
 
