@@ -511,6 +511,8 @@ class Store:
 
     @recorded_write
     def write(self, changes, action, summary, operation_id=None, restoring=False, outcome="done", untrusted_content=None, recovery=False):
+        if any(key.startswith(('mail:filing:', 'mail:rename:')) for key in changes):
+            self._open_filings = None
         self.ensure_writable()
         cancellation = action.endswith('_operation_cancel')
         if not (restoring or self.archiving or cancellation or recovery or self.recovering):
@@ -543,7 +545,7 @@ class Store:
             from itertools import islice
             rows = self.items('notice:')
             room = min(3, max(0, retention.NOTICE_COUNT - len(rows)))
-            notices = {'notice:' + n['id']: n for n in islice(recovery_notices(self), room)}
+            notices = {'notice:' + n['id']: n for n in islice(recovery_notices(self, include_checks=False), room)}
             if sum(len(canonical(n)) for _, n in rows) + len(canonical(notices)) < retention.NOTICE_BYTES:
                 changes = {**notices, **changes}
         operations = {k[3:]: v if v is not None else self.get(k)

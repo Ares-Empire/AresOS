@@ -4,8 +4,17 @@ import time
 from .common import digest, storage_refusal
 
 
-def unfinished(store, cutoff=None):
-    if cutoff is None:
+def open_filings(store):
+    if getattr(store, '_open_filings', None) is None:
+        store._open_filings = {key for prefix in ('mail:filing:', 'mail:rename:')
+                              for key, value in store.iter_items(prefix) if value.get('state') == 'started'}
+    return store._open_filings
+
+
+def unfinished(store, cutoff=None, keys=None):
+    if keys is not None:
+        rows = ((key, value) for key in sorted(keys) if (value := store.get(key)) is not None)
+    elif cutoff is None:
         from itertools import chain
         rows = chain.from_iterable(store.iter_items(prefix) for prefix in
             ('mail:filing:', 'mail:rename:', 'op:', 'export:', 'mail:account:', 'intent:'))
@@ -47,11 +56,19 @@ def unfinished(store, cutoff=None):
     yield from store.legacy_intents
 
 
-def recovery_notices(store):
+def recovery_notices(store, include_checks=True):
     candidates = getattr(store, 'startup_intents', set())
-    for key, notice_id, app, reason in unfinished(store):
-        if (key, notice_id) not in candidates:
+    keys = {key for key, _ in candidates if not key.startswith('legacy-intent:')}
+    if include_checks:
+        keys.update(open_filings(store))
+    for key, notice_id, app, reason in unfinished(store, keys=keys):
+        filing = key.startswith(('mail:filing:', 'mail:rename:'))
+        if (key, notice_id) not in candidates and not (include_checks and filing):
             continue
+        if filing:
+            reason = ('Filing roles and locations are not yet checked. The interrupted check has no committed result. '
+                      'Messages or folders may have moved into a special folder, including Trash. '
+                      'Nothing is moved back or deleted automatically. Inspect the filing audit and your mail program.')
         row = store.db.execute('SELECT created FROM retained WHERE k=?', (key,)).fetchone()
         created = row[0] if row is not None else 0
         if store.get('notice:' + notice_id) is None:

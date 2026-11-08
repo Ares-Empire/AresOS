@@ -732,6 +732,8 @@ class Mail:
 
     def resolve_sent_checks(self):
         """Read-only remote checks; never APPEND, repair or resubmit."""
+        from .filing import resolve_checks
+        resolve_checks(self)
         unresolved = []
         for _, op in self.store.iter_items('op:'):
             if (op['app'] != 'mail' or not op.get('payload', {}).get('composition') or

@@ -94,3 +94,49 @@ class Checks27(unittest.TestCase):
         self.engine.store.write({'op:' + stored['id']: stored}, 'fixture', 'Synthetic unresolved check')
         archive(self.engine.store, time.time() - 0.001)
         self.assertIsNotNone(self.engine.store.get('op:' + stored['id']))
+
+    def test_review27_current_session_legacy_filing_checks_are_not_yet_checked(self):
+        for prefix in ('mail:filing:', 'mail:rename:'):
+            name = prefix.split(':')[1]
+            self.engine.store.write({prefix + name: {'id': name, 'state': 'started'}}, 'fixture', 'Synthetic legacy check')
+        for notices in (self.engine.pending()['notices'], self.data('filing_notices', {})['items']):
+            self.assertEqual({n['operation_id'] for n in notices}, {'filing', 'rename'})
+            self.assertTrue(all('not yet checked' in n['untrusted_content']['reason'] for n in notices))
+
+    def test_review27_move_copy_and_rename_recheck_after_failed_result_commit(self):
+        from test_review23_sweep import Scenario
+        for flow in ('filing_move', 'filing_copy', 'filing_rename'):
+            with self.subTest(flow=flow):
+                scenario = Scenario(flow)
+                try:
+                    fixture = scenario.fixture
+                    write = fixture.engine.store.write
+                    def refuse(*args, **kwargs):
+                        if scenario.remote:
+                            raise Refused('storage_limit', 'Synthetic all post-filing result writes refused')
+                        return write(*args, **kwargs)
+                    with patch.object(fixture.engine.store, 'write', side_effect=refuse):
+                        scenario.call()
+                    prefix = 'mail:rename:' if flow.endswith('rename') else 'mail:filing:'
+                    key, source = fixture.engine.store.items(prefix)[0]
+                    self.assertEqual(source['state'], 'started')
+                    self.assertEqual(source['account'], 'box')
+                    self.assertIn('roles_before', source)
+                    remote = scenario.remote.copy()
+                    fixture.restart()
+                    if not flow.endswith('rename'):
+                        # A live scan that cannot finish leaves the check open.
+                        with patch('aresos_control.mail.filing.locations', return_value=[{'scan_complete': False}]):
+                            page = fixture.data('filing_notices', {})
+                        self.assertEqual(fixture.engine.store.get(key)['state'], 'started')
+                        own = next(n for n in page['items'] if n['operation_id'] == source['id'])
+                        self.assertIn('not yet checked', own['untrusted_content']['reason'])
+                    page = fixture.data('filing_notices', {})
+                    self.assertEqual(fixture.engine.store.get(key)['state'], 'partial')
+                    self.assertIn(source['id'], {n['operation_id'] for n in page['items']})
+                    self.assertEqual(scenario.remote, remote)
+                    if not flow.endswith('rename'):
+                        locations = fixture.data('filing_locations', {'filing_id': source['id']})
+                        self.assertTrue(all(v['scan_complete'] for v in locations['untrusted_content']['locations']))
+                finally:
+                    scenario.close()
