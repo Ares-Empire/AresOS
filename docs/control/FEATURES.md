@@ -67,10 +67,12 @@ Effects: read, change, send (asks), delete (asks). Tools are in
 | Feature | Tool | Effect | State |
 |---|---|---|---|
 | Work on code in his project folders: edit, build, test, git | the file tools and the sandboxed terminal | change | first, in the same session as mail and Chrome; planted repository settings run nowhere outside the sandbox |
-| Delete or overwrite project files | the sandboxed terminal and the file tools | change (recoverable) | first, free because a snapshot of the project folders is taken before every command and file write and kept 30 days (his open choice: CONTROL.md section 10; the other option asks for each deletion) |
+| Delete or overwrite project files | the sandboxed terminal and the file tools | change (recoverable, with a stated bound) | his open choice (CONTROL.md section 10): free, with the state before every command and file write kept (every state for 24 hours, then hourly to 30 days; work saved and deleted within one command can be lost), or each deletion asking |
+| Work on project folders himself with his own git, file manager or editor | | owner | his open choice (CONTROL.md section 10): through Claude, with his git refusing them; or his git trusting them, accepting that planted repository settings can run as him |
 | Restore a project file, folder or branch | `sudo aresos admin projects restore …`, `… repos restore …` | owner | owner |
 | Install project packages and command-line tools (`gh`, linters, test runners) | the sandboxed terminal | change | first, freely: they run only inside the sandbox |
-| Pull and push code | git and `gh` in the sandbox | send (to his own repositories) | first: the sandbox reaches GitHub and the package registries only; its token is limited to his own repositories (a narrowing, not a guarantee); deleting or force-pushing default and protected branches is blocked by GitHub rulesets, and every branch is mirrored by the service for 30 days |
+| Pull and push code | git and `gh` in the sandbox | send (to his own repositories) | first: the sandbox reaches GitHub and the package registries only; its credential (a GitHub App's short-lived token) reaches only his own repositories (a narrowing, not a guarantee); GitHub rulesets refuse every deletion and force-push by it on all branches and tags; the service also keeps a mirror for 30 days |
+| Delete a branch or tag on GitHub | | owner | owner only (his open choice: CONTROL.md section 10; merged pull-request branches are cleaned up by GitHub) |
 | Publish a package to a registry | | | never from the sandbox: no publishing credentials |
 | Test a project against its own local server in a browser | a clean throwaway browser inside the sandbox | | first: none of his sign-ins, not his Chrome |
 | Check a project on a real site in his Chrome | the Chrome tools | read; sends ask | first, like any site |
@@ -81,10 +83,10 @@ Effects: read, change, send (asks), delete (asks). Tools are in
 | Feature | Tool | Effect | State |
 |---|---|---|---|
 | Add an MCP server (another app's, or a third party's) | `tools_prepare_add`, then `tools_add` | asks | first: pinned version and hash, installed root-owned as its own user with its own credentials and named hosts |
-| Add a claude.ai connector | the same; the tool service connects to it itself | asks | first; each of its tools asks on every call unless he marks one free; a changed tool is hidden until classified again |
+| Add a claude.ai connector | the same; the tool service connects to it itself | asks | first; each of its tools asks on every call by default, his mark can free one (his open choice: CONTROL.md section 10); a changed tool is hidden and refused |
 | Add a skill | the same, into the root-owned skills folder | asks | first; skill scripts run in the sandbox |
 | Add a plugin | the same, split into its parts | asks | first: skills, commands, agents and MCP servers; its hooks, language servers and monitors only if he adds them himself |
-| Use an added tool | its own tools, classified read, change, send or delete | as classified | first: free only on reviewed evidence or an enforcing adapter, otherwise every call asks; send and delete ask; a changed tool is hidden until classified again |
+| Use an added tool | its own tools, classified read, change, send or delete | as classified | first: free only on an independent review or an enforcing adapter, otherwise every call asks; send and delete ask; a changed tool is hidden and refused at dispatch |
 | Add a tool himself; remove one | `sudo aresos admin tools …` | owner | owner |
 
 ## Chrome
