@@ -1,0 +1,19 @@
+# Security review 13 of brief 19 (Mail): round 20, under owner decision 24
+
+Reviewer: Codex `gpt-6-astra`, xhigh, read-only, fresh context, 2026-11-08. Reviewed `53a2d391` (round diff `d5a0b24a..53a2d391` plus a sweep of the tools' own safety). Run by the lead; saved by the lead.
+
+Reviewed **53a2d391**. Four blocking findings reproduced with production code and memory-only storage/I/O substitutes:
+
+1. **Blocking — caller exports bypass the ledger.** [files.py:128](/Users/pab/AresOS-19-mail/control/aresos_control/files.py:128) writes Downloads files without admission. With service storage and Downloads sharing a filesystem, start with a pending approval and 12 MiB free; save a previously uncached 5 MiB message through `mail_attachment_save`. The private blob and exported file consume approximately 10 MiB. My probe returned success, then cancellation returned `storage_limit`. Reserve both copies, including the caller’s write, through completion.
+
+2. **Blocking — an interrupted cancellation cannot spend its reservation on restart.** [storage.py:205](/Users/pab/AresOS-19-mail/control/aresos_control/storage.py:205) admits prepared replay as additional work while retaining the old cancellation hold. Set free space to the floor plus that hold, cancel, and crash at `sqlite_prepared`. Cancellation was admitted, but restarting refused: it required another 155,264 bytes alongside the existing 140,944-byte hold. The service therefore cannot serve status or recovery. Replay must use the interrupted transaction’s reserved capacity.
+
+3. **Blocking — restore creates an unfunded, history-sized reservation.** [storage.py:328](/Users/pab/AresOS-19-mail/control/aresos_control/storage.py:328) charges every retained operation, including unchanged completed ones, only after detecting rollback. Reproduction: retain 100 completed operations, back up, make one ordinary metadata write, then restore with 8 MiB free. Startup declared a 14,349,056-byte hold; confirmation refused, although **zero operations needed reconstruction**. Budget actual confirmation work and protect its capacity before writes can create the recovery obligation.
+
+4. **Blocking — late Sent duplicates still go unwarned.** Let an APPEND time out remotely; after 901 seconds, settle its empty search as failed. Retry successfully: the immediate count sees one copy and reports done. Now let the original APPEND land. My probe showed two copies in status, but no duplicate warning or notice; repeated repair still reported done. [Evidence reads](/Users/pab/AresOS-19-mail/control/aresos_control/mail/adapter.py:710) and settlement do not apply duplicate-warning logic. Preserve the late-arrival risk and report duplicates discovered subsequently; the immediate count alone cannot guarantee this promise.
+
+**Should-fix — response construction still uses growing RAM.** [engine.py:54](/Users/pab/AresOS-19-mail/control/aresos_control/engine.py:54) materializes all pending descriptions before pagination, including after restore. With 1,000/10,000 unknown operations, measured peaks were approximately 3.9/29.5 MB despite returning five items. Stream pagination and cursor calculation.
+
+Thirty-six selected Python tests passed, including fifteen with memory substitutes; generated artifacts match. Replay probing produced one SMTP submission from three identical calls, and restored repair identity survived. The sweep found no additional approval bypass, credential-return route, destructive free action, or untrusted-content regression. Native prompts, providers and physical durability were not exercised. No files changed; no containers ran.
+
+CHANGES-NEEDED
