@@ -615,8 +615,9 @@ tasks at any time.
   read-only text alike, and refuses when the item is ambiguous, has text outside it in the same dialog, or is empty; a
   script's `click()` or dispatched click on an asking control is stopped before delivery by wrapping the browser's
   own functions; an activation that gets around them is stopped and never resumed when its event can be cancelled,
-  and reported as `unknown` (never as stopped, never resumed) when it can't; the one-use mark and the further-submission allowance stay consumed in nested handling; the password check
-  runs before every value read, tested in shadow roots and frames from other sites. Re-check 32 next.
+  and reported as `unknown` (never as stopped, never resumed) when it can't; the one-use mark and the
+  further-submission allowance stay consumed in nested handling; the password check runs before every value read,
+  tested in shadow roots and frames from other sites. Re-check 32 next.
 - **2026-11-08, 05:54:** re-check 32 on draft 29 ([report](../../reviews/control-design/2026-11-08-RECHECK-32.md)):
   CHANGES-NEEDED, two blocking points; wrapped clicks, the fallback, the marks and passwords closed. Draft 30: a send
   outside a form without an adapter binds every editable field the tool can read, in the document and its frames,
