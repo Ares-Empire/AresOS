@@ -1,0 +1,17 @@
+# Security review 12 of brief 19 (Mail): round 19, under owner decision 24
+
+Reviewer: Codex `gpt-6-astra`, xhigh, read-only, fresh context, 2026-11-08. Reviewed `d5a0b24a` (round diff `88c83ef7..d5a0b24a` plus a sweep of the tools' own safety). Run by the lead; saved by the lead.
+
+**Blocking — index rebuilding consumes protected space.** [storage.py:99](/Users/pab/AresOS-19-mail/control/aresos_control/storage.py:99) rebuilds the index without disk admission. Using 2,000 records based on a real service-generated delete approval, my in-memory disk-accounting probe started with 30 MiB free; rebuilding left 5.3 MiB, and cancellation returned `storage_limit`. This affects first upgrade or a missing index. Budget index creation while preserving recovery reserves.
+
+**Blocking — cancellation’s reserve is inaccessible after owner maintenance.** [retention.py:63](/Users/pab/AresOS-19-mail/control/aresos_control/retention.py:63) lets archive/restore leave only 4 MiB, while cancellation requires its write cost **plus 16 MiB**. With a pending approval and 20 MiB initially free, approximately 2,150 repeated archives using production archive logic and memory-backed storage crossed that threshold; cancellation failed. The reserve floors need consistent accounting.
+
+**Blocking — restoring a backup loses unresolved repair identity.** [storage.py:348](/Users/pab/AresOS-19-mail/control/aresos_control/storage.py:348) reconstructs missing repairs without `repair_of` or the stage. Reproduction: finish SMTP with a failed Sent stage; back up; create an unknown repair; restore that backup and confirm recovery; request repair again. The lookup misses the reconstructed repair and allocates another. My probe produced **two unknown repairs for the same send/stage**. Retain their relationship and stage in permanent evidence, or refuse another attempt when that relationship cannot be recovered.
+
+**Blocking — absence does not settle an outstanding APPEND safely.** [adapter.py:943](/Users/pab/AresOS-19-mail/control/aresos_control/mail/adapter.py:943) treats an empty Sent search as proof of failure. Reproduction: an APPEND times out while still pending remotely; settlement searches before it completes and marks the repair failed; the next repair also searches before completion, then appends. Let the earlier APPEND finish between that search and the new append: my probe produced **two identical Sent copies**. Settlement itself remains read-only, but authorizes the duplicate afterward. Keep uncertainty until the earlier action’s completion or nonexecution is established. No second SMTP delivery occurred.
+
+**Should-fix — restore reintroduces history-sized RAM use.** [storage.py:339](/Users/pab/AresOS-19-mail/control/aresos_control/storage.py:339) collects all missing operations into one dictionary and journal record. Subsequent journal-verification peaks measured approximately **2.9 MB for 1,000 restored operations versus 28.9 MB for 10,000**. Batch restoration and bound record size.
+
+The original 38-attempt regression passes. Across 26 selected Python test methods with memory substitutes, approval checks and other tested safeguards passed. The sweep found no additional approval bypass, credential-return route, untrusted-content marking regression, or destructive free action. Generated artifacts match; 107 Python files parse. Native prompts, real providers and physical durability were not exercised. No files changed; no containers ran. Reviewed `d5a0b24a`.
+
+CHANGES-NEEDED
