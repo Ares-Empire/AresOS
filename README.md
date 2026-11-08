@@ -28,7 +28,8 @@ install on real hardware, which is the next step.
 
 - **The game is real Minecraft Java.** Nothing is rebuilt. A Fabric mod changes how the AresOS world behaves.
 - **Apps are items.** Pinned apps sit in the hotbar and all others in the inventory, each with a pixel icon made from
-  the app's real icon, or a plain Minecraft item when there is none. Right-click one to open it. Big block logos in the world open their app when you walk into them.
+  the app's real icon, or a plain Minecraft item when there is none. Right-click one to open it. Big block logos in
+  the world open their app when you walk into them.
 - **Home is the Nether.** Every start puts you at your home spot. In Live mode you can't die. G switches to Build mode
   (creative) for building, and the app hotbar comes back when you switch back.
 - **Only the AresOS world follows these rules.** Every other world plays like normal Minecraft, and normal Minecraft
@@ -103,7 +104,8 @@ The licence covers the code. It does not cover the Ares names or the screenshots
 licences:
 
 - The Gradle wrapper (`mod/gradlew`, `mod/gradlew.bat`, `mod/gradle/wrapper/`): Apache-2.0.
-- Everything kept as test evidence under `os/manifest/ci/`: files and source archives copied from the Bazzite and
-  Fedora installers, the Linux kernel, QEMU, systemd, util-linux, coreutils, glibc, EDK II and the cosign installer
-  (`os/manifest/ci/14/14zz-cosign/`, Apache-2.0, its `LICENSE` beside it). Each keeps its project's own licence and
-  notices, such as GPL-2.0 for the kernel and BSD-2-Clause-Patent for EDK II.
+- Everything kept as test evidence under `os/manifest/ci/`: files and source archives copied from other projects,
+  including the Bazzite and Fedora installers, the Linux kernel, QEMU, systemd, util-linux, coreutils, glibc, OSTree,
+  EDK II and the cosign installer (`os/manifest/ci/14/14zz-cosign/`, Apache-2.0, its `LICENSE` beside it). Each keeps
+  its project's own licence and notices, such as GPL-2.0-only for the kernel's files and BSD-2-Clause-Patent for
+  EDK II.
