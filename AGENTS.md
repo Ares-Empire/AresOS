@@ -5,7 +5,7 @@
 AresOS is a personal operating system whose desktop is the real Minecraft Java. It has three parts:
 - **The shell mod** (`mod/`): a Fabric mod for Minecraft 26.2 that turns the game into the desktop. Apps are items in the hotbar and inventory, walking into a block logo opens its app, and closing an app returns you to the world.
 - **The OS image** (`os/`): a Bazzite derivative, defined as code in this repo and built and tested in CI, for a second SSD next to an untouched Windows drive. It is meant to boot straight into a Minecraft world; today it starts a minimal session with a terminal.
-- **The control layer** (`control/`): his apps (Mail first, then Chrome) as tools for a normal Claude Code session, which asks him before anything is sent or deleted. Design: `docs/design/CONTROL.md`.
+- **The control layer** (`control/`, in progress): his apps (Mail first, then Chrome) as tools for a normal Claude Code session, which ask him before anything is sent or deleted. The base service is built and tested with a made-up app; Mail is in review and Chrome is designed. Design: `docs/design/CONTROL.md`.
 
 What is built and what isn't: the Status section of `README.md`.
 
