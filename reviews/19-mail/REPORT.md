@@ -10,8 +10,9 @@ Review records: [REVIEW.md](REVIEW.md), [REVIEW-2.md](REVIEW-2.md),
 [SECURITY-REVIEW-3.md](SECURITY-REVIEW-3.md),
 [SECURITY-REVIEW-4.md](SECURITY-REVIEW-4.md),
 [SECURITY-REVIEW-5.md](SECURITY-REVIEW-5.md),
-[SECURITY-REVIEW-6.md](SECURITY-REVIEW-6.md), and
-[SECURITY-REVIEW-7.md](SECURITY-REVIEW-7.md).
+[SECURITY-REVIEW-6.md](SECURITY-REVIEW-6.md),
+[SECURITY-REVIEW-7.md](SECURITY-REVIEW-7.md), and
+[SECURITY-REVIEW-8.md](SECURITY-REVIEW-8.md).
 
 ## For the owner: decisions before merge
 
@@ -19,6 +20,7 @@ Review records: [REVIEW.md](REVIEW.md), [REVIEW-2.md](REVIEW-2.md),
 
 The owner answered: “Agree on 8, names etc are enough. Agree on everything else too.” All JUDGMENT-CALLs and PLAN-GAPs listed here are settled, including folder moves under brief 15b.
 
+- **Working storage caps, round 16 — follows the safety rule, not a new choice:** unused compositions expire after 24 hours (128 / 4 MiB current-state cap); private files cap at 256 / 512 MiB per store. Open operations and unresolved warnings stay protected; reaching a cap refuses cleanly with instructions, and retained audit history requires owner archiving at its admission limit. These limits prevent free actions from filling storage and forcing restore confirmation.
 - **Installed approval boundary, round 15 — not a separate choice:** this follows the owner's rule that the tool layer enforces asking. Asking tools refuse preparation and submission until the managed Claude Code settings and MCP files are installed and verified; free reads and changes remain available. Letting sends and deletes run where that boundary is missing would break the rule, so no alternative was put to the owner (lead, 2026-11-08).
 - **Draft revisions and deletion — owner decided 2026-11-08; kept as built:** editing or sending keeps the old draft, so revisions can accumulate. This keeps every deletion behind its own named approval; silently replacing or removing drafts was rejected.
 - **Conservative draft protection — owner decided 2026-11-08; kept as built:** draft text, including quoted history, must fit wholly in approval; any part of a draft, even a binary file, refuses attachment, and older marked Sent copies get the same protection. A narrower policy could allow more attachments and long threads, but would need a reliable way to distinguish who wrote each part; Drafts now also refuses move/copy, while sending itself, forwarding inline and approved deletion remain the routes out.
@@ -43,6 +45,248 @@ The owner answered: “Agree on 8, names etc are enough. Agree on everything els
 - Complete onboarding with your aliases, authentication, TLS trust, special folders, delayed Sent behavior and folder-deletion guard; the tests use synthetic accounts only.
 - Check complete approvals on both terminal and phone, then try the seven everyday Claude mail tasks; automated protocol tests do not establish how usable those flows feel.
 - Send a forwarded `.eml` to recipients using Apple Mail, Outlook, Thunderbird, Gmail on the web and iOS Mail, and check how each opens or saves the exact attachment; the round-5 documentation does not establish its presentation.
+
+## Review fixes, round 16
+
+**Done — read:** implements `briefs/19-review-fixes-16.md` for the blocking finding
+and all three should-fixes in [SECURITY-REVIEW-8.md](SECURITY-REVIEW-8.md).
+The pending lead commit `5fc6416a` was pushed together with the first code batch.
+Code commits: `a7412f99` (installed policy) and
+`0fcec015` (MIME/storage), and
+`bab9009646237734c59f8e87e2a2ab3088b3eb03` (protected container fixtures;
+last code/test change).
+
+### Installed policy and settings scopes
+
+- `aresos_control/boundary_policy.py` is the single complete policy definition.
+  `generate.py` emits the managed settings and MCP JSON from it; `boundary.py`
+  compares the installed documents as canonical JSON, including extra keys,
+  removed keys, list order, value types and the MCP companion's comment.
+  Differences name their key paths (and differing list entries). No selected-key
+  acceptance list remains. The generated asking rules and MCP command allowlist
+  derive from the action/server definitions.
+- `boundary.py` opens from `/`, walks every ancestor with descriptor-relative
+  `O_DIRECTORY | O_NOFOLLOW`, and checks root ownership and no group/world write
+  bits on every opened directory and the regular final file. Production paths
+  remain `/etc/claude-code/managed-settings.json` and `managed-mcp.json`.
+  `Engine`/`Daemon` no longer accept/pass service configuration overrides for
+  these paths; direct tests patch constants, and subprocess fixtures install
+  at the fixed paths in their disposable root-run Linux containers. Direct root-run
+  fixtures live beneath `/etc/claude-code/fixtures`, with real protected ancestors
+  and process-exit cleanup, rather than the runner-owned `/workspace` bind mount.
+- The generated settings add `allowManagedMcpServersOnly: true` and an exact
+  `allowedMcpServers` command allowlist, plus explicit empty Unix-socket and Mach
+  service lists. Existing managed-only read/domain/permission/hook locks remain.
+  `managed-hooks.json` is still an inactive draft companion. The 18b image
+  copies the settings directory (including that draft), but neither the service
+  nor Claude Code loads it as separate hook configuration. Adding even an empty `hooks`
+  key to the installed policy refuses. A future hooks deployment must change the
+  shared generated definition and pass equality, rather than merge extra hooks.
+
+**read — official rolling documentation, 2026-11-08; not a versioned enforcement
+claim:** [settings precedence](https://code.claude.com/docs/en/settings#lists-merge-instead-of-overriding)
+says lists normally combine across user, project and local files.
+[Sandbox scope locks](https://code.claude.com/docs/en/sandboxing#keep-developers-from-widening-the-policy)
+distinguish managed scalars, managed-only lists and remaining user-scope lists.
+The [settings reference](https://code.claude.com/docs/en/settings-reference),
+[permissions](https://code.claude.com/docs/en/permissions#read-and-edit),
+[managed MCP](https://code.claude.com/docs/en/managed-mcp), and
+[hooks reference](https://code.claude.com/docs/en/hooks#hook-locations) were also read.
+
+| Setting/source | Scope result and implemented protection (**read**) |
+| --- | --- |
+| Permission allow/ask/deny lists | Normally merge; `allowManagedPermissionRulesOnly` selects managed rules. Edit denies cover configuration writes. |
+| Hooks | Normally merge; `allowManagedHooksOnly` excludes lower-scope hooks. No plugin is force-enabled. |
+| MCP definitions and allowlist | `managed-mcp.json` supplies the exclusive server set; `allowManagedMcpServersOnly` also pins the exact command allowlist. Account and built-in Chrome exceptions remain false. |
+| Filesystem read paths; network domains | `allowManagedReadPathsOnly` and `allowManagedDomainsOnly` pin allowances. Denial lists can still tighten policy. |
+| Command exclusions; filesystem write paths; Unix/Mach socket paths | No general managed-only lock. Admin-required sandboxing excludes repository/local allowances, while user allowances can remain. The launcher excludes lower setting sources; the write-path proof below prevents control tools planting those files. |
+| Filesystem disabling and sandbox escape booleans already defined | Managed values prevail; exact comparison refuses changes/additions in installed policy. |
+
+**run — write-path proof:** `CallerWrites16.test_review16_every_caller_write_refuses_all_claude_and_shell_startup_paths`
+passes `~/.claude/**`, `~/.claude.json`, nested project `.claude/**`, nested
+`.mcp.json`, and all six requested shell startup paths (plus `.bash_login`) to
+`testapp_file_save` and `mail_attachment_save`. Both reach the shared `FilePolicy`
+refusal before opening a destination. `mail_file_save` is absent from the action
+catalogue and refuses with `permission_denied`. `mail_compose` local attachments
+and both import actions only read caller paths. Other service writes target its
+private state/evidence/blob/password directories, not caller-selected paths.
+Existing Linux file tests retain their symlink, hard-link and rename assertions.
+The managed Bash sandbox/write denials and Edit denials protect the remaining
+native write routes; this is an installation precondition plus the existing 18b
+qualification, not proof about an arbitrary external Claude session.
+
+Tests in `test_boundary_exact.ExactBoundary`:
+`test_review16_review_reproduction_and_every_extra_or_changed_setting_refuses_with_paths`
+(exact review reproduction, disabled filesystem, extra allow/excluded command,
+extra MCP server and unknown keys),
+`test_review16_every_policy_leaf_mutation_refuses_and_formatting_order_is_canonical`,
+`test_review16_ancestor_owner_group_world_and_symlink_each_refuse`,
+`test_review16_service_configuration_cannot_supply_fixture_paths`, and
+`test_review16_generated_source_locks_present_and_no_managed_hooks_file_is_loaded`,
+and `test_review16_root_fixture_uses_protected_container_prefix_and_reuses_path`.
+The existing generated-file/package-output acceptance test remains.
+
+**Brief 18b change:** only `control/boundary/check.py` changes: the unmanaged MCP
+positive control temporarily removes the new managed allowlist/lock along with
+its absent managed MCP file, then restores both documents. Its assertions that
+both rogue servers execute without policy, and neither executes with policy,
+remain. The boundary package installs the generated files verbatim.
+
+**Brief 18 test changes forced by fixed production paths:**
+`control/tests/test_boundary.py` patches constants instead of passing fixture
+configuration and checks that the removed constructor option raises `TypeError`;
+all prior policy/file/server assertions remain. `test_integration.py` installs the
+fixed-path fixture and reads its test path separately from service configuration;
+all prior socket/CLI assertions remain. The new `test_boundary_exact.py` is an
+addition. Mail subprocess fixtures in `test_proxy.py`, `test_review_fixes.py`,
+`test_review_fixes_2.py`, `test_review_fixes_13.py`, `test_review_fixes_14.py`, and
+the direct fixtures in `test_review_fixes_15.py` receive the same forced update.
+`boundary_test_support.py` no longer adds socket paths or accepts that option,
+and provides a protected direct-test prefix in root-run containers.
+No earlier assertion is weakened, skipped or deleted.
+
+### Bounded parsing and request failures
+
+`mail/codec.py` uses a streaming `BytesFeedParser` subclass that checks depth
+(maximum 40 descendants) and total parts (1,000 including root/implicit digest
+children) before creating each node; bytes remain capped at 64 MiB. Every server
+mail parse in `mail/adapter.py` uses this function with account/folder/UID identity.
+A bound or parser recursion/allocation refusal returns `mime_limit` naming that
+message. Other messages remain readable. Header-only evidence uses the same bound.
+
+`Engine.request` and `Daemon.serve` contain unexpected request exceptions,
+including `RecursionError` and `MemoryError`, and return a generic `internal_error`
+without exposing exception content. Transport/error-response failures and expiry
+maintenance cannot end the serving loop. Incomplete journal writes still latch
+`write_failed`; no handler clears it or writes through it.
+
+Tests in `test_review_fixes_16.Review16`:
+`test_review16_nested_mail_refuses_read_search_thread_and_both_forward_styles_then_reads_other_mail`
+(1,200 nested entities through read/search/thread/attachment-save and both forward
+styles, message named and next healthy read succeeds),
+`test_review16_parser_part_count_depth_edges_and_implicit_digest_children`,
+`test_review16_unexpected_request_errors_keep_next_request_and_journal_valid`, and
+`test_review16_daemon_contains_unexpected_exception_and_serves_next_connection`.
+The parser test uses the production parser and the request tests use the real
+Engine/store with in-memory IMAP; the daemon test supplies two accepted connection
+substitutes. These are not real hostile-server or model sessions.
+
+### Storage admission and expiry
+
+`retention.py` defines bounds shared by `storage.py`, `blobs.py`, Engine and Mail.
+Store checks projected collection usage, history capacity and a 64 MiB free-space
+reserve **before** setting the journal latch. Request admission reserves 128 MiB
+of history headroom; each event also checks a conservative allocation estimate.
+The immutable SQLite/audit history is capped separately, so repeated small free
+changes and expired data cannot grow an unlimited historical copy. Quota refusals
+use `storage_limit`, name the limit and explain expiry/acknowledgement/owner
+archiving. Actual interrupted I/O still fails closed and requires normal recovery.
+
+`mail/adapter.py` stages derived parts in memory, checks the complete composition
+result including pending warnings, checks composition/blob capacity, then publishes
+blobs and journals the composition. Oversized new or derived compositions leave
+no composition, blob, origin metadata or audit row. `blobs.py` checks aggregate
+bytes/count before staging an upload; generated parts use aggregate batch
+admission. The old per-file and wire limits remain. Store records creation times
+in a separate table so imported-reference metadata remains the exact public shape.
+
+| Caller-created retained data | Limit and release rule (**read**, exercised by tests) |
+| --- | --- |
+| Current compositions | 128 and 4 MiB canonical JSON; unused data expires after 24 hours. An open reserved/submitting/partial/unknown operation pins its composition. |
+| Caller-import metadata | 256 references and 1 MiB; expires after 24 hours unless used by a live composition/open operation. |
+| Imported/export bytes, quoted mail, local draft bodies/HTML and composition attachments | Shared private blob store: 256 distinct hashes and 512 MiB. Unreferenced blobs expire after 24 hours; composition and operation references pin bytes. |
+| Wire/Sent wire evidence | Separate store: 256 hashes and 512 MiB, with 64 MiB per wire. Retained operations pin their evidence, including completed ones. |
+| Filing/rename intents | Combined 512 and 128 MiB; completed or acknowledged partial records expire after 24 hours. Started/unresolved records remain. Admission reserves 48 MiB of intent and location capacity before the server mutation. |
+| Exact filing-location pages | 128 MiB and 10,240,000 rows; removed with an expired resolved filing intent. |
+| Persistent filing notices | 512 and 2 MiB; admission reserves a 16 KiB warning slot before filing. Only acknowledged notices expire after 24 hours. |
+| All other free-change audit rows, draft-save records, save reports, cancelled/expired approval records, and historical copies of expired working data | Combined SQLite allocation plus independent journal admission cap: 1 GiB. Never automatically pruned; reaching admission headroom refuses new mutations until owner archiving. Reads remain available. |
+
+Draft-save still appends the owner-approved retained revision on the mail server;
+there is no additional local draft archive. These caps govern local persistence,
+not mailbox quotas. No automatic remote deletion, recovery filing or log truncation
+was added. Expiry frees current-state/blob caps; it does not erase immutable audit
+history or pretend to free its capacity. Owner archive/reset tooling remains
+outside this brief, and long-lived operation evidence can deliberately keep a cap
+occupied until owner maintenance.
+
+Storage tests in `test_review_fixes_16.Review16`:
+`test_review16_oversized_composition_has_no_persisted_effect_repeated_or_derived`,
+`test_review16_composition_count_and_bytes_caps_expire_but_pin_open_operation`,
+`test_review16_blob_count_and_bytes_caps_cover_import_export_generated_and_wire`,
+`test_review16_import_reference_count_and_bytes_cap_before_upload_then_expiry`,
+`test_review16_filing_notice_count_caps_refuse_before_remote_action_then_ack_expiry`,
+`test_review16_filing_notice_location_bytes_caps_refuse_before_journal_fence`,
+`test_review16_low_disk_space_refuses_blobs_and_journal_before_fence`, and
+`test_review16_audit_admission_covers_repeated_free_changes_before_fence`.
+Tests lower constants to fill caps cheaply; they assert no journal latch/durable
+change on refusal, restart without corruption/restore, and work after eligible
+expiry. Historical-cap relief requires owner maintenance rather than expiry.
+Round 15's full journal-failure tests remain passing.
+
+### Verification and remaining checks
+
+**run — initial CI, transparently retained:** code head `0fcec015` started
+[base 42436252621](https://github.com/Ares-Empire/AresOS/actions/runs/42436252621/attempts/1)
+and [Mail 42436252636](https://github.com/Ares-Empire/AresOS/actions/runs/42436252636/attempts/1).
+Both stopped in the base suite (`Ran 92 tests`, `FAILED (failures=106, errors=3)`):
+the correctly protected verifier rejected direct fixtures beneath the runner-owned
+`/workspace` ancestor. Mail's real-server suite did not run in that attempt.
+The correction moves only those fixtures to protected container ancestors and
+adds a regression for that fixture choice; no assertion or production check was
+relaxed. [Boundary 42436252617](https://github.com/Ares-Empire/AresOS/actions/runs/42436252617/attempts/1)
+passed on the same initial code head.
+
+**run — last code/test commit** `bab9009646237734c59f8e87e2a2ab3088b3eb03`:
+
+| Workflow | Run and attempts | Result / exact evidence |
+| --- | --- | --- |
+| Control base | [42436551284 attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42436551284/attempts/1), [attempt 2](https://github.com/Ares-Empire/AresOS/actions/runs/42436551284/attempts/2) | Both PASS. `bash control/ci/test.sh` inside Fedora: Python 3.15.0, `Generated artifacts match definitions`, `Ran 93 tests`, `OK`, `Control base suite PASS` (attempt 1 log lines 207/271/367–373; attempt 2 lines 384–390). |
+| Control Mail | [42436551286 attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42436551286/attempts/1), [attempt 2](https://github.com/Ares-Empire/AresOS/actions/runs/42436551286/attempts/2) | Both PASS. `bash control/ci/mail/run.sh`: `Mail fixture isolation PASS: internal network, one test network, no published ports`; `Ran 93 tests`, `Control base suite PASS`; `Ran 191 tests`, `OK`, `Control Mail suite PASS` (attempt 1 lines 367–373, 442, 738–744; attempt 2 exact counts/results confirmed in its saved log). |
+| Control boundary | [42436551301 attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42436551301/attempts/1) | PASS. `Installed boundary precondition PASS` (line 883), `SOURCES_POSITIVE_OK` (1224), `MANAGED_MCP_OK user=assistant names=["control", "mail"]` in both modes (1671/2386), and separate coder isolation (2429). |
+
+The second base/Mail passes use `gh run rerun` on the same IDs. GitHub's PR
+workflow checks out its synthetic merge ref; the run API's `headSha` is the
+code/test commit above. Any later commit changes only files under `reviews/`.
+Final-head run IDs and both completed base/Mail attempts are recorded in the PR
+body after the report push; no extra push is used merely to create a second pass.
+
+**run — local checks before both code pushes and again before the report push:**
+
+```text
+python3 control/generate.py --check
+Generated artifacts match definitions
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/mail_tests:.work/round10/vendor python3 .work/round10/check-local.py
+Python syntax OK: 98 files; Ran 70 tests; OK
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/tests:.work/round10/vendor python3 -m unittest test_operations test_record test_crashes test_approval_questions test_strict_json test_boundary test_ingress_bounds test_journal_closed test_boundary_exact
+Ran 63 tests; OK (first push); Ran 64 tests; OK (fixture correction and report push)
+Record growth: tiny send=4078 bytes; maximum body + 25 MiB send=4078 bytes; 6 state/stage records, mean=679.7 bytes per record including commit
+Record growth: typical three-recipient send=5560 bytes across 8 state/stage records
+```
+
+The local non-root macOS harness models root ownership only for its generated
+fixture files/ancestors; all real ownership/isolation claims come from Linux CI.
+The local Mail runner selects plain-Python classes, not the real-server classes.
+An isolated `.work/round16/baseline` overlay of reviewed `9e4b1375` source with the
+new tests fails both suites (Mail: 13 tests, 9 failing assertions plus 21 subtest
+errors; boundary: 6 tests, 2 failing assertions plus 60 subtest errors). Missing
+new admission APIs account for some errors; the oversized-composition snapshot,
+MIME crash containment, policy equality and ancestor/configuration assertions
+also fail on that old code. This is regression evidence, not a passing baseline.
+
+**Not verified / assumed:** no real account, provider, phone/terminal approval UI,
+model-driven task session, or installed owner machine was exercised. Existing
+owner qualification checks above remain. No screenshots: this round changes
+service policy/parsing/storage, not UI. No Minecraft/Gradle work was started.
+
+**JUDGMENT-CALL:** caps and refusals implement the lead's safety rule, as stated in
+the owner section; they are not new owner choices. **PLAN-GAP:** none added to the
+brief; maintaining/archiving a full audit store is still owner maintenance, not
+an automatic destructive cleanup. **Open questions:** no new implementation
+question; real-account and native approval qualification remain as above.
+
+**run — workspace hygiene:** no `.work/` file exceeds 500 MiB at closing inventory.
+Only the current worktree/branch was changed; protected scope paths and workflow
+files are untouched. PR #9 stays draft and unmerged.
 
 ## Review fixes, round 15
 
