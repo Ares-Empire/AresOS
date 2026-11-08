@@ -8,6 +8,7 @@ import unittest
 from unittest.mock import Mock, patch
 
 from aresos_control import retention
+from aresos_control.space import SAFETY_FLOOR
 from aresos_control.common import Refused, canonical, digest, sha256
 from aresos_control.daemon import Daemon
 from aresos_control.engine import Engine
@@ -217,7 +218,7 @@ class Review16(unittest.TestCase):
 
     def test_review16_low_disk_space_refuses_blobs_and_journal_before_fence(self):
         before = self.snapshot()
-        with patch('aresos_control.retention.shutil.disk_usage', return_value=SimpleNamespace(free=retention.DISK_RESERVE)):
+        with patch('aresos_control.space.shutil.disk_usage', return_value=SimpleNamespace(free=SAFETY_FLOOR + self.engine.store.ledger.held)):
             with self.assertRaises(Refused) as error:
                 self.engine.blobs.put(b'new')
             self.assertEqual(error.exception.code, 'storage_limit')

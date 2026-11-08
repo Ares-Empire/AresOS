@@ -42,7 +42,8 @@ def archive(store, before):
     # reserve ordinary work leaves untouched; the private export is never public.
     estimate = store.db.execute('SELECT coalesce(sum(length(CAST(value AS BLOB)) + 128),0) FROM events').fetchone()[0]
     estimate += sum(retention.size(v) + 128 for v in closed.values()) + 65536
-    retention.disk_space(store.evidence_dir, estimate, recovery=True, owner_recovery=True)
+    # Include the export, its audit transaction and VACUUM's temporary database.
+    store.ledger.admit(estimate + store.history_size() * 2 + 256 * 1024)
     directory = store.evidence_dir / 'archives'
     directory.mkdir(mode=0o700, exist_ok=True)
     name = 'history-' + uuid.uuid4().hex + '.jsonl'
@@ -85,10 +86,12 @@ def archive(store, before):
         finally:
             store.archiving = False
         with store.db:
+            store.ledger.admit(store.history_size() + 65536)
             for offset in range(0, len(sequences), 500):
                 batch = sequences[offset:offset + 500]
                 store.db.execute('DELETE FROM events WHERE seq IN (' + ','.join('?' for _ in batch) + ')', batch)
         store.checkpoint('archive_pruned')
+        store.ledger.admit(store.history_size() * 2 + 65536)
         store.db.execute('VACUUM')
         sync_directory(store.state_dir)
         store.checkpoint('archive_compacted')

@@ -7,6 +7,7 @@ import unittest
 from unittest.mock import patch
 
 from aresos_control import retention
+from aresos_control.space import SAFETY_FLOOR
 from aresos_control.common import canonical
 import test_review_fixes_12 as round12
 import test_review_fixes_16 as round16
@@ -87,7 +88,7 @@ class Recovery17(unittest.TestCase):
         self.assertTrue(self.engine.store.locked)
         cap = self.engine.store.history_size() + retention.REQUEST_RESERVE + retention.RECOVERY_RESERVE - 1
         with patch.object(retention, 'HISTORY_BYTES', cap), \
-             patch('aresos_control.retention.shutil.disk_usage', return_value=SimpleNamespace(free=retention.DISK_RESERVE)):
+             patch('aresos_control.space.shutil.disk_usage', return_value=SimpleNamespace(free=SAFETY_FLOOR + self.engine.store.ledger.held)):
             result = self.engine.request({'v': 1, 'method': 'call', 'action': 'control_restore_confirm',
                         'arguments': {'confirm': 'invalidate earlier approvals'}}, admin=True)
             self.assertTrue(result['ok'], result)

@@ -5,6 +5,7 @@ import unittest
 from unittest.mock import patch
 
 from aresos_control import retention
+from aresos_control.space import SAFETY_FLOOR
 from aresos_control.common import Refused
 import test_review_fixes_18 as round18
 
@@ -159,16 +160,16 @@ class Recovery19(unittest.TestCase):
 
     def test_review19_cancel_works_above_history_cap_and_other_paths_leave_its_physical_room(self):
         pending = self.approval('send', self.compose())
-        cancel_room = 4 * 1024 * 1024
+        cancel_room = self.engine.store.ledger.held
         with patch.object(retention, 'HISTORY_BYTES', 0), \
-             patch('aresos_control.retention.shutil.disk_usage',
-                   return_value=SimpleNamespace(free=retention.RESTORE_RESERVE + cancel_room)):
+             patch('aresos_control.space.shutil.disk_usage',
+                   return_value=SimpleNamespace(free=SAFETY_FLOOR + cancel_room)):
             self.assertEqual(self.data('operation_cancel', {'operation_id': pending['operation_id']})['operation']['state'], 'failed')
-        with patch('aresos_control.retention.shutil.disk_usage',
-                   return_value=SimpleNamespace(free=cancel_room)):
+        with patch('aresos_control.space.shutil.disk_usage',
+                   return_value=SimpleNamespace(free=SAFETY_FLOOR)):
             for options in ({}, {'recovery': True}, {'owner_recovery': True}):
                 with self.assertRaises(Refused):
-                    retention.disk_space(self.root, 1, **options)
+                    self.engine.store.ledger.admit(1)
         self.restart()
         self.assertEqual(self.engine.operation(pending['operation_id'])['state'], 'failed')
         before = self.snapshot()

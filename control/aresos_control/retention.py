@@ -3,7 +3,6 @@
 The immutable audit history has its own hard admission cap; expiry never rewrites
 it. Warnings and operation evidence are retained until the owner resolves them.
 """
-import shutil
 import time
 
 from .common import Refused, canonical
@@ -20,13 +19,10 @@ NOTICE_BYTES = 2 * 1024 * 1024
 BLOB_COUNT = 256
 BLOB_BYTES = 512 * 1024 * 1024
 HISTORY_BYTES = 1024 * 1024 * 1024
-DISK_RESERVE = 64 * 1024 * 1024
 FILING_RESERVE = 48 * 1024 * 1024
 NOTICE_RESERVE = 16 * 1024
 REQUEST_RESERVE = 128 * 1024 * 1024
 RECOVERY_RESERVE = 64 * 1024 * 1024
-RESTORE_RESERVE = 16 * 1024 * 1024
-CANCEL_RESERVE = 4 * 1024 * 1024
 RECOVERY_REQUEST = 1024 * 1024
 RECOVERY_ACTIONS = {'control_restore_confirm', 'control_archive'}
 OPEN = {'reserved', 'submitting', 'partial', 'unknown'}
@@ -56,14 +52,6 @@ def admit(store, prefixes, count, total, additions=None, label='Stored working d
 def recovery_action(name):
     return name in RECOVERY_ACTIONS or any(name.endswith('_' + verb) for verb in
                                           ('operation_cancel', 'notice_ack', 'operation_repair'))
-
-
-def disk_space(path, additional, recovery=False, owner_recovery=False, cancellation=False):
-    # Each maintenance path leaves the other's physical room untouched.
-    reserve = (RESTORE_RESERVE if cancellation else CANCEL_RESERVE if owner_recovery
-               else RESTORE_RESERVE + CANCEL_RESERVE if recovery else DISK_RESERVE)
-    if shutil.disk_usage(path).free < additional + reserve:
-        raise Refused('storage_limit', f'Free storage reserve is {DISK_RESERVE} bytes; ask the owner to free space before creating more working data. No journal transaction started.')
 
 
 def hashes(value):

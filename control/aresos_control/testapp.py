@@ -10,7 +10,11 @@ from .common import Refused, canonical, digest
 
 class Receiver:
     """Separate fixture storage represents the far side, never deduplicates arrivals."""
-    def __init__(self, directory, checkpoint=lambda _: None):
+    def __init__(self, directory, checkpoint=lambda _: None, ledger=None):
+        from .space import SpaceLedger
+        self.ledger = ledger or SpaceLedger((Path(directory),))
+        if not (Path(directory) / 'receiver.sqlite').exists():
+            self.ledger.admit(65536)
         self.db = sqlite3.connect(Path(directory) / "receiver.sqlite")
         self.db.execute("PRAGMA synchronous=FULL")
         self.db.executescript("CREATE TABLE IF NOT EXISTS arrivals (id INTEGER PRIMARY KEY, op TEXT, recipient TEXT, payload TEXT);"
@@ -24,6 +28,7 @@ class Receiver:
         return json.loads(row[0]) if row else {"refuse": [], "failure": "none"}
 
     def configure(self, value):
+        self.ledger.admit(len(canonical(value).encode()) * 3 + 32768)
         with self.db:
             self.db.execute("INSERT OR REPLACE INTO config VALUES (1,?)", (canonical(value),))
 
@@ -33,6 +38,7 @@ class Receiver:
             raise NothingLeft("Fixture refused before any recipient submission.")
         if recipient in config["refuse"]:
             return "refused"
+        self.ledger.admit(len(canonical(payload).encode()) * 3 + 32768)
         with self.db:
             self.db.execute("INSERT INTO arrivals(op,recipient,payload) VALUES (?,?,?)", (operation_id, recipient, canonical(payload)))
         self.checkpoint("receiver_arrival:" + recipient)
@@ -43,6 +49,7 @@ class Receiver:
     def local_stage(self, operation_id, stage):
         if self.config()["failure"] == stage:
             raise RuntimeError("Fixture failed " + stage + "; repair this local stage only.")
+        self.ledger.admit(32768)
         with self.db:
             self.db.execute("INSERT OR IGNORE INTO stages VALUES (?,?)", (operation_id, stage))
         self.checkpoint("receiver_stage:" + stage)

@@ -9,13 +9,15 @@ from contextlib import contextmanager
 from . import retention
 from .common import FILE_LIMIT, Refused, sha256
 from .storage import sync_directory
+from .space import SpaceLedger
 
 
 class Blobs:
-    def __init__(self, directory, limit=FILE_LIMIT, ensure_writable=lambda: None):
+    def __init__(self, directory, limit=FILE_LIMIT, ensure_writable=lambda: None, ledger=None):
         self.ensure_writable = ensure_writable
         self._staged = None
         self.directory, self.limit = Path(directory), limit
+        self.ledger = ledger or SpaceLedger((self.directory,))
         if type(limit) is not int or limit < 1:
             raise ValueError("File limit must be a positive byte count")
         self.directory.mkdir(exist_ok=True, mode=0o700)
@@ -40,7 +42,7 @@ class Blobs:
         if (len(rows) + len(added) > retention.BLOB_COUNT or
                 sum(p.stat().st_size for p in rows) + sum(len(v[0]) for v in added.values()) > retention.BLOB_BYTES):
             retention.refuse('Private blobs in ' + self.directory.name, retention.BLOB_COUNT, retention.BLOB_BYTES)
-        retention.disk_space(self.directory, sum(len(v[0]) for v in added.values()) + 8192 * len(added))
+        self.ledger.admit(sum(len(v[0]) for v in added.values()) + 8192 * len(added))
         self._staged = None
         try:
             for data, origins in staged.values():
@@ -68,7 +70,7 @@ class Blobs:
         if not isinstance(key, str) or not re.fullmatch(r"[0-9a-f]{64}", key):
             raise Refused("invalid_input", "Not a sha256 blob reference; import the file again.")
         self.admit(size, key)
-        retention.disk_space(self.directory, size + 8192)
+        self.ledger.admit(size + 8192)
         fd, temporary = tempfile.mkstemp(prefix=".upload-", dir=self.directory)
         try:
             count, hashed = 0, hashlib.sha256()
@@ -117,12 +119,17 @@ class Blobs:
 
     def expire(self, pinned, now, ttl):
         self.ensure_writable()
+        # Unlinking only frees blocks; still account for filesystem metadata.
+        candidates = [path for path in self.directory.iterdir()
+                      if re.fullmatch(r'[0-9a-f]{64}', path.name) and path.name not in pinned
+                      and now - path.stat().st_mtime >= ttl]
+        if candidates:
+            self.ledger.admit(8192)
         changed = False
-        for path in self.directory.iterdir():
-            if re.fullmatch(r'[0-9a-f]{64}', path.name) and path.name not in pinned and now - path.stat().st_mtime >= ttl:
-                path.unlink()
-                (self.directory / ('.origins-' + path.name)).unlink(missing_ok=True)
-                changed = True
+        for path in candidates:
+            path.unlink()
+            (self.directory / ('.origins-' + path.name)).unlink(missing_ok=True)
+            changed = True
         if changed:
             sync_directory(self.directory)
 

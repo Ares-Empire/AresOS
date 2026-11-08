@@ -45,8 +45,10 @@ def nonempty_refusal(response):
 
 
 class Transport:
-    def __init__(self, password_dir):
+    def __init__(self, password_dir, ledger=None):
         self.password_dir = password_dir
+        from ..space import SpaceLedger
+        self.ledger = ledger or SpaceLedger((password_dir,))
         self.secrets = set()
         password_dir.mkdir(mode=0o700, exist_ok=True)
         os.chmod(password_dir, 0o700)
@@ -71,6 +73,7 @@ class Transport:
         from ..common import digest
         from ..storage import sync_directory
         import tempfile
+        self.ledger.admit(len(value.encode()) + 16384)
         fd, name = tempfile.mkstemp(dir=self.password_dir)
         try:
             with os.fdopen(fd, "w") as stream:

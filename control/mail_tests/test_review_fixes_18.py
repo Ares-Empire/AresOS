@@ -7,6 +7,7 @@ import unittest
 from unittest.mock import patch
 
 from aresos_control import retention
+from aresos_control.space import SAFETY_FLOOR
 from aresos_control.common import Refused
 from aresos_control.engine import Engine
 import test_review_fixes_17 as round17
@@ -117,11 +118,11 @@ class Recovery18(unittest.TestCase):
         approval = self.approval('send', self.compose())
         self.restore()
         with patch.object(retention, 'HISTORY_BYTES', 0), \
-             patch('aresos_control.retention.shutil.disk_usage',
-                   return_value=SimpleNamespace(free=retention.RESTORE_RESERVE)):
+             patch('aresos_control.space.shutil.disk_usage',
+                   return_value=SimpleNamespace(free=SAFETY_FLOOR + self.engine.store.ledger.held)):
             self.owner('control_restore_confirm', {'confirm': 'invalidate earlier approvals'})
-            self.owner('control_archive', {'before': time.time() - 1,
-                                          'confirm': 'archive finished history'})
+        self.owner('control_archive', {'before': time.time() - 1,
+                                      'confirm': 'archive finished history'})
         self.assertFalse(self.call('send', approval)['ok'])
         self.restart()
 
@@ -134,8 +135,8 @@ class Recovery18(unittest.TestCase):
                                                          'stage': 'sent_copy'})['error']['code'], 'storage_limit')
             with self.assertRaises(Refused):
                 store.write({}, 'control_expire', 'Cannot consume owner restore capacity')
-        with patch('aresos_control.retention.shutil.disk_usage',
-                   return_value=SimpleNamespace(free=retention.RESTORE_RESERVE)):
+        with patch('aresos_control.space.shutil.disk_usage',
+                   return_value=SimpleNamespace(free=SAFETY_FLOOR + self.engine.store.ledger.held)):
             self.assertEqual(self.call('operation_repair', {'operation_id': old['id'],
                                                          'stage': 'sent_copy'})['error']['code'], 'storage_limit')
         self.assertEqual(self.snapshot(), before)

@@ -19,8 +19,8 @@ class Engine:
     def __init__(self, state_dir, evidence_dir, ttl=900, checkpoint=lambda _: None, file_limit=FILE_LIMIT):
         self.boundary = Boundary()
         self.store = Store(state_dir, evidence_dir, checkpoint)
-        self.blobs = Blobs(self.store.state_dir / "blobs", file_limit, self.store.ensure_writable)
-        self.receiver = Receiver(self.store.evidence_dir, checkpoint)
+        self.blobs = Blobs(self.store.state_dir / "blobs", file_limit, self.store.ensure_writable, self.store.ledger)
+        self.receiver = Receiver(self.store.evidence_dir, checkpoint, self.store.ledger)
         self.adapters = {"testapp": TestApp(self.store, self.blobs, self.receiver), "mail": Mail(self.store, self.blobs)}
         self.adapters['mail'].check_result = self.check_composition_result
         self.ttl = ttl
@@ -87,6 +87,7 @@ class Engine:
     def reserve(self, app, verb, arguments):
         self.boundary.require()
         self.store.ensure_writable()
+        self.store.require_index()
         adapter = self.adapters[app]
         question, description, payload = adapter.prepare(verb, arguments)
         if app == 'mail' and verb == 'send':

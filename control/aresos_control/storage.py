@@ -10,6 +10,7 @@ import uuid
 
 from . import retention
 from .common import Refused, canonical, digest, json_value, visible
+from .space import SpaceLedger, record_budget
 
 
 def sync_directory(path):
@@ -54,6 +55,11 @@ class JournalRecords:
     def __getitem__(self, index):
         if index < 0:
             index += len(self)
+        if self.store.index is None:
+            for record in self:
+                if record['seq'] == index + 1:
+                    return record
+            raise IndexError(index)
         row = self.store.index.execute('SELECT offset FROM records WHERE seq=?', (index + 1,)).fetchone()
         if row is None:
             raise IndexError(index)
@@ -63,9 +69,10 @@ class JournalRecords:
 
     def __iter__(self):
         with open(self.store.journal.name, 'rb') as stream:
-            for (offset,) in self.store.index.execute('SELECT offset FROM records ORDER BY seq'):
-                stream.seek(offset)
-                yield json.loads(stream.readline())
+            for raw in stream:
+                record = json.loads(raw)
+                if 'commit' not in record:
+                    yield record
 
 
 class Store:
@@ -77,6 +84,8 @@ class Store:
         self.write_failed = False
         self.recovering = False
         self.archiving = False
+        self.index = None
+        self.ledger = SpaceLedger((self.state_dir, self.evidence_dir), self.history_size)
         for directory in (self.state_dir, self.evidence_dir):
             directory.mkdir(parents=True, exist_ok=True, mode=0o700)
         self.journal = open(self.evidence_dir / "operations.jsonl", "a+b", buffering=0)
@@ -85,26 +94,26 @@ class Store:
         self.db = sqlite3.connect(self.state_dir / "control.sqlite")
         self.db.execute("PRAGMA journal_mode=DELETE")
         self.db.execute("PRAGMA synchronous=FULL")
-        self.db.executescript("CREATE TABLE IF NOT EXISTS kv (k TEXT PRIMARY KEY, v TEXT NOT NULL);"
+        if not self.db.execute("SELECT 1 FROM sqlite_master WHERE name='operation_versions'").fetchone():
+            self.ledger.admit(128 * 1024)
+            self.db.executescript("CREATE TABLE IF NOT EXISTS kv (k TEXT PRIMARY KEY, v TEXT NOT NULL);"
                               "CREATE TABLE IF NOT EXISTS retained (k TEXT PRIMARY KEY, created REAL NOT NULL);"
                               "CREATE TABLE IF NOT EXISTS head (id INTEGER PRIMARY KEY CHECK(id=1), seq INTEGER, hash TEXT);"
                               "INSERT OR IGNORE INTO head VALUES (1,0,'');"
                               "CREATE TABLE IF NOT EXISTS events (seq INTEGER PRIMARY KEY, value TEXT NOT NULL);"
                               "CREATE TABLE IF NOT EXISTS operation_versions (id TEXT PRIMARY KEY, seq INTEGER NOT NULL);")
-        self.db.execute('INSERT OR IGNORE INTO retained SELECT k, ? FROM kv', (time.time(),))
-        self.db.commit()
+        missing = self.db.execute('SELECT count(*) FROM kv WHERE k NOT IN (SELECT k FROM retained)').fetchone()[0]
+        if missing:
+            for _, op in self.iter_items('op:'):
+                self.ledger.holds.update(self.ledger.right(op, self.get('op:' + op.get('repair_of', ''))))
+            self.ledger.admit(missing * 1024 + 32768)
+            self.db.execute('INSERT OR IGNORE INTO retained SELECT k, ? FROM kv', (time.time(),))
+            self.db.commit()
         sync_directory(self.state_dir)
         # Derived, disposable index outside the backed-up state. Never trust it
         # across restarts: rebuild solely from the verified permanent journal.
         index_path = self.evidence_dir / 'journal-index.sqlite'
         index_path.unlink(missing_ok=True)
-        self.index = sqlite3.connect(index_path)
-        self.index.execute('PRAGMA journal_mode=OFF')
-        self.index.execute('PRAGMA synchronous=OFF')
-        self.index.execute('PRAGMA cache_size=-1024')
-        self.index.executescript('DROP TABLE IF EXISTS records; DROP TABLE IF EXISTS latest;'
-                                'CREATE TABLE records (seq INTEGER PRIMARY KEY, hash TEXT NOT NULL, offset INTEGER NOT NULL);'
-                                'CREATE TABLE latest (id TEXT PRIMARY KEY, seq INTEGER NOT NULL, value TEXT NOT NULL);')
         self.sequence, self.head_hash = 0, ''
         self.events = JournalRecords(self)
         try:
@@ -113,7 +122,25 @@ class Store:
             expected = self.events[seq - 1]["hash"] if 0 < seq <= len(self.events) else ""
             if seq > len(self.events) or hash_value != expected:
                 raise Refused("evidence_mismatch", "The independent record is missing or different; stop and have the owner recover it. No submissions allowed.")
-            self.locked = seq < self.committed
+            self.locked = seq < self.committed or bool(self.get('restore_pending'))
+            if len(self.events) > self.committed:
+                last = self.events[-1]
+                prepared = self._prepared(last['seq'])
+                self.locked = self.locked or prepared is None or prepared['record'] != last
+            self._load_reservations()
+            self.index_refusal = None
+            try:
+                self.ledger.admit(os.fstat(self.journal.fileno()).st_size * 3 + 256 * 1024)
+            except Refused as exc:
+                self.index_refusal = 'Journal index build refused by the storage ledger. ' + str(exc)
+            else:
+                self.index = sqlite3.connect(index_path)
+                self.index.execute('PRAGMA journal_mode=OFF')
+                self.index.execute('PRAGMA synchronous=OFF')
+                self.index.execute('PRAGMA cache_size=-1024')
+                self.index.executescript('CREATE TABLE records (seq INTEGER PRIMARY KEY, hash TEXT NOT NULL, offset INTEGER NOT NULL);'
+                                        'CREATE TABLE latest (id TEXT PRIMARY KEY, seq INTEGER NOT NULL, value TEXT NOT NULL);')
+                self._read_journal()
             if not self.locked:
                 if len(self.events) > self.committed:
                     record = self.events[-1]
@@ -123,6 +150,7 @@ class Store:
                         # Keep even unacknowledged reservations for owner confirmation.
                         self.locked = True
                     else:
+                        self.ledger.admit(record_budget(event))
                         self._finish(event)
                 else:
                     event = self._prepared(seq + 1)
@@ -130,58 +158,117 @@ class Store:
                         record = event["record"]
                         if record["previous"] != hash_value or record["seq"] != seq + 1:
                             raise Refused("evidence_mismatch", "Prepared write does not extend the independent record; owner recovery required.")
+                        self.ledger.admit(record_budget(event))
                         offset = self._append(record)
-                        with self.index:
-                            self._index_record(record, offset)
+                        self._index_record(record, offset)
                         self._finish(event)
+            self._load_reservations()
             if not self.events:
                 self.write({"generation": uuid.uuid4().hex}, "control_initialize", "initialize operation log")
             if not self.locked:
                 for key, op in self.iter_items("op:"):
                     if op["state"] == "submitting":
                         op["state"], op["reason"] = "unknown", "Service restarted during submission; inspect evidence, never resubmit."
-                        self.write({key: op}, op["action"], "restart: outcome unknown", op["id"], recovery=True)
+                        try:
+                            self.write({key: op}, op["action"], "restart: outcome unknown", op["id"], recovery=True)
+                        except Refused as exc:
+                            if exc.code != 'storage_limit':
+                                raise
+                            # Submitting is already nonrepeatable. Keep status and
+                            # cancellation available if this annotation cannot fit.
         except BaseException:
             self.close()
             raise
 
     def _index_record(self, record, offset):
-        self.index.execute('INSERT INTO records VALUES (?,?,?)', (record['seq'], record['hash'], offset))
-        for op in record['operations']:
-            self.index.execute('INSERT OR REPLACE INTO latest VALUES (?,?,?)',
-                               (op['id'], record['seq'], canonical(op)))
+        if self.index is not None:
+            self.index.execute('INSERT INTO records VALUES (?,?,?)', (record['seq'], record['hash'], offset))
+            for op in record['operations']:
+                self.index.execute('INSERT OR REPLACE INTO latest VALUES (?,?,?)',
+                                   (op['id'], record['seq'], canonical(op)))
+            self.index.commit()
         self.sequence, self.head_hash = record['seq'], record['hash']
 
     def _read_journal(self):
         self.sequence, self.head_hash = 0, ''
         committed, offset = 0, 0
-        with self.index:
+        if self.index is not None:
             self.index.execute('DELETE FROM records')
             self.index.execute('DELETE FROM latest')
-            with open(self.journal.name, 'rb') as stream:
-                for raw in stream:
-                    try:
-                        row = json.loads(raw)
-                        if not raw.endswith(b"\n"):
-                            raise ValueError('torn record')
-                        if 'commit' in row:
-                            if (self.sequence != committed + 1 or
-                                    row != {'commit': self.sequence, 'hash': self.head_hash}):
-                                raise ValueError('invalid commit')
-                            committed = self.sequence
-                        else:
-                            if self.sequence != committed or row['format'] != 2:
-                                raise ValueError('uncommitted event or unsupported record format')
-                            hash_value = row.pop('hash')
-                            if (row['seq'] != self.sequence + 1 or row['previous'] != self.head_hash
-                                    or digest(row) != hash_value):
-                                raise ValueError('broken chain')
-                            row['hash'] = hash_value
-                            self._index_record(row, offset)
-                    except (ValueError, KeyError, IndexError, TypeError) as exc:
-                        raise Refused('evidence_corrupt', 'Independent record is damaged or has an older format; owner recovery required, no submissions.') from exc
-                    offset += len(raw)
+        with open(self.journal.name, 'rb') as stream:
+            for raw in stream:
+                try:
+                    row = json.loads(raw)
+                    if not raw.endswith(b"\n"):
+                        raise ValueError('torn record')
+                    if 'commit' in row:
+                        if (self.sequence != committed + 1 or
+                                row != {'commit': self.sequence, 'hash': self.head_hash}):
+                            raise ValueError('invalid commit')
+                        committed = self.sequence
+                    else:
+                        if self.sequence != committed or row['format'] != 2:
+                            raise ValueError('uncommitted event or unsupported record format')
+                        hash_value = row.pop('hash')
+                        if (row['seq'] != self.sequence + 1 or row['previous'] != self.head_hash
+                                or digest(row) != hash_value):
+                            raise ValueError('broken chain')
+                        row['hash'] = hash_value
+                        self._index_record(row, offset)
+                except (ValueError, KeyError, IndexError, TypeError) as exc:
+                    raise Refused('evidence_corrupt', 'Independent record is damaged or has an older format; owner recovery required, no submissions.') from exc
+                offset += len(raw)
         return self.events, committed
+
+    def iter_latest(self, through=None):
+        """Bounded streaming fallback when even a disposable index is too costly.
+
+        Keep the next 32 IDs in sort order, rescan for the next window. It is
+        slower than an index but needs neither writable disk nor history RAM.
+        """
+        if self.index is not None:
+            for op_id, seq, encoded in self.index.execute('SELECT id,seq,value FROM latest ORDER BY id'):
+                yield op_id, seq, json.loads(encoded)
+            return
+        cursor = ''
+        through = self.sequence if through is None else through
+        while True:
+            batch = {}
+            for record in self.events:
+                if record['seq'] > through:
+                    break
+                for op in record['operations']:
+                    op_id = op['id']
+                    if op_id <= cursor:
+                        continue
+                    if op_id not in batch and len(batch) == 32:
+                        largest = max(batch)
+                        if op_id > largest:
+                            continue
+                        del batch[largest]
+                    batch[op_id] = (record['seq'], op)
+            if not batch:
+                return
+            for op_id in sorted(batch):
+                yield op_id, *batch[op_id]
+            cursor = max(batch)
+
+    def _load_reservations(self):
+        self.ledger.holds.clear()
+        for _, op in self.iter_items('op:'):
+            self.ledger.holds.update(self.ledger.right(op, self.get('op:' + op.get('repair_of', ''))))
+        if self.locked:
+            budget = 256 * 1024
+            for op_id, seq, known in self.iter_latest():
+                old = self.get('op:' + op_id)
+                if old is None and self.get('archived:' + op_id) == {'seq': seq}:
+                    continue
+                budget += record_budget(old or known)
+            self.ledger.holds['restore'] = budget
+
+    def require_index(self):
+        if self.index_refusal:
+            raise Refused('storage_limit', self.index_refusal + ' Cancel, status and owner restore remain available by streaming the journal.')
 
     def _append(self, value):
         self.journal.seek(0, os.SEEK_END)
@@ -218,6 +305,9 @@ class Store:
 
     def write(self, changes, action, summary, operation_id=None, restoring=False, outcome="done", untrusted_content=None, recovery=False):
         self.ensure_writable()
+        cancellation = action.endswith('_operation_cancel')
+        if not (restoring or self.archiving or cancellation or recovery or self.recovering):
+            self.require_index()
         if self.locked and not restoring:
             raise Refused("restore_required", "Older log detected; sudo aresos admin control restore_confirm must invalidate earlier approvals first.")
         operations = {k[3:]: v if v is not None else self.get(k)
@@ -225,11 +315,23 @@ class Store:
         if operation_id and operation_id not in operations:
             operations[operation_id] = self.get("op:" + operation_id)
         operation = operations.get(operation_id)
+        updates, consume = {}, []
+        compact = []
+        for op in operations.values():
+            rights = self.ledger.right(op, self.get('op:' + op.get('repair_of', '')))
+            for prefix in ('cancel:', 'settle:'):
+                key = prefix + op['id']
+                if key in self.ledger.holds and key not in rights:
+                    updates[key] = 0
+                    if cancellation or recovery or op['state'] in {'done', 'failed'}:
+                        consume.append(key)
+            updates.update(rights)
+            compact.append({"id": op["id"], "generation": op["generation"], "input_hash": op["input_hash"],
+                            "description": short_description(op), "state": op["state"]})
         record = {"format": 2, "seq": self.sequence + 1,
                   "previous": self.head_hash, "time": time.time(),
                   "generation": changes.get("generation", self.generation),
-                  "operations": [{"id": op["id"], "generation": op["generation"], "input_hash": op["input_hash"],
-                                  "description": short_description(op), "state": op["state"]} for op in operations.values()]}
+                  "operations": compact}
         record["hash"] = digest(record)
         event = {"seq": record["seq"], "time": record["time"], "action": action, "summary": summary,
                  "outcome": operation["state"] if operation else outcome, "operation_id": operation_id,
@@ -244,24 +346,29 @@ class Store:
         cost = len(encoded.encode()) * 3 + len(canonical(record).encode()) * 3 + 32768
         recovery = recovery or self.recovering or retention.recovery_action(action) or action == 'control_expire'
         owner_recovery = restoring or self.archiving
-        cancellation = action.endswith('_operation_cancel')
-        self.admit_history(cost, recovery=recovery, owner_recovery=owner_recovery, cancellation=cancellation)
-        retention.disk_space(self.state_dir, cost, recovery, owner_recovery, cancellation)
-        retention.disk_space(self.evidence_dir, cost, recovery, owner_recovery, cancellation)
+        if restoring:
+            # Batches spend the confirmation right, retaining its unspent part.
+            remaining = self.ledger.holds.get('restore', 0) - cost
+            if remaining < 0:
+                raise Refused('storage_limit', 'Restore confirmation exceeds its held reservation; free storage before confirming.')
+            updates['restore'] = remaining
+            consume = []
+        self.ledger.admit(cost, updates=updates, consume=consume, history_cost=cost,
+                          recovery=recovery, owner_recovery=owner_recovery, cancellation=cancellation)
         self.admit_changes(changes)
         # Fence the write before even its prepared event can enter a backup.
         # A crash here may need owner confirmation: compact metadata cannot
         # reconstruct the full event, and absence cannot prove no restore.
         self.write_failed = True
         offset = self._append(record)
-        with self.index:
-            self._index_record(record, offset)
+        self._index_record(record, offset)
         self.checkpoint("journal_appended")
         with self.db:
             self.db.execute("INSERT OR REPLACE INTO events VALUES (?,?)", (record["seq"], encoded))
         self.checkpoint("sqlite_prepared")
         self._finish(event)
         self.write_failed = False
+        self.ledger.finish(updates, consume)
 
     def retained_at(self, key):
         row = self.db.execute('SELECT created FROM retained WHERE k=?', (key,)).fetchone()
@@ -276,14 +383,8 @@ class Store:
 
     def admit_history(self, reserve=retention.REQUEST_RESERVE, recovery=None, owner_recovery=False, cancellation=False):
         self.ensure_writable()
-        if owner_recovery or self.archiving or cancellation:
-            return
-        recovery = self.recovering if recovery is None else recovery
-        # Owner restore/archival has a separate, quota-exempt maintenance path.
-        protected = 0 if recovery else retention.RECOVERY_RESERVE
-        if self.history_size() + reserve + protected > retention.HISTORY_BYTES:
-            retention.refuse('Recovery audit history' if recovery else 'Free-work audit history (recovery capacity reserved)',
-                             'retained', retention.HISTORY_BYTES)
+        self.ledger.admit(0, history_cost=reserve, recovery=self.recovering if recovery is None else recovery,
+                          owner_recovery=owner_recovery or self.archiving, cancellation=cancellation)
 
     def admit_changes(self, changes):
         groups = [(('mail:composition:',), retention.COMPOSITION_COUNT, retention.COMPOSITION_BYTES, 'Compositions'),
@@ -306,7 +407,8 @@ class Store:
             event = json.loads(value)
             record = dict(event['record'])
             claimed = record.pop('hash')
-            known = self.index.execute('SELECT hash FROM records WHERE seq=?', (event['seq'],)).fetchone()
+            known = (self.index.execute('SELECT hash FROM records WHERE seq=?', (event['seq'],)).fetchone()
+                     if self.index is not None else (self.events[event['seq'] - 1]['hash'],))
             if known == (claimed,) and digest(record) == claimed:
                 yield event
 
@@ -334,11 +436,12 @@ class Store:
             raise Refused("refused", "No older log is awaiting confirmation.")
         if len(self.events) > self.committed:
             last = self.events[-1]
+            self.ledger.admit(4096, updates={'restore': self.ledger.holds['restore'] - 4096})
             self._append({"commit": last["seq"], "hash": last["hash"]})
+            self.ledger.holds['restore'] -= 4096
             self.committed = last["seq"]
         changes = {"generation": uuid.uuid4().hex}
-        for op_id, seq, encoded in self.index.execute('SELECT id,seq,value FROM latest ORDER BY id'):
-            known = json.loads(encoded)
+        for op_id, seq, known in self.iter_latest():
             key = "op:" + op_id
             old = self.get(key)
             if old is None and self.get('archived:' + op_id) == {'seq': seq}:
@@ -363,9 +466,11 @@ class Store:
         result = {"generation": changes["generation"], "unknown": [v["id"] for k, v in changes.items() if k.startswith("op:") and v["state"] == "unknown"]}
         self.write(changes, "control_restore_confirm", "owner confirmed restore; invalidated all earlier approvals", restoring=True)
         self.locked = False
+        self.ledger.holds.pop('restore', None)
         return result
 
     def close(self):
         self.db.close()
-        self.index.close()
+        if self.index is not None:
+            self.index.close()
         self.journal.close()
