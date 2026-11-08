@@ -1,6 +1,6 @@
 # The control layer: design
 
-**Status:** draft 21, 2026-11-08. Draft 16 with the owner's answers of 2026-11-07 built in (`PLAN.md` decisions 14 to
+**Status:** draft 22, 2026-11-08. Draft 16 with the owner's answers of 2026-11-07 built in (`PLAN.md` decisions 14 to
 19 and 21), and two decisions of 2026-11-08: the central session can gain tools, the ones that run outside its sandbox
 only through the tool layer, asking (decision 22); and one session does coding, commands, mail, Chrome and later apps,
 possibly in skip-permissions mode, replacing decision 8's split (decision 23). Draft 18 answers the eighteenth
@@ -14,7 +14,10 @@ and by stating exact bounds as owner choices in section 10. Draft 20 (re-check
 [20](../../reviews/control-design/2026-11-08-RECHECK-20.md)) makes Claude Code and the relay non-dumpable, identifies
 the relay by its group, and adds a fifth owner choice for unreviewed servers that hold his account access. Draft 21
 (re-check [21](../../reviews/control-design/2026-11-08-RECHECK-21.md)) accepts one relay per app per session and
-checks who holds its pipes. Covers the shared base, Mail and Chrome. The frontier review
+checks who holds its pipes. Draft 22 (re-check [22](../../reviews/control-design/2026-11-08-RECHECK-22.md)) changes
+the structure: an SELinux domain for the session refuses every program outside the allowed set when it starts, the
+relay checks become hardening bound to the trusted start, and the asking tools stay off until qualification shows
+nothing Claude can steer reaches Claude Code's sign-in. Covers the shared base, Mail and Chrome. The frontier review
 ([`REVIEW`](../../reviews/control-design/2026-11-07-REVIEW.md), 8 blocking) and five re-checks
 ([1](../../reviews/control-design/2026-11-07-RECHECK.md), [2](../../reviews/control-design/2026-11-07-RECHECK-2.md),
 [3](../../reviews/control-design/2026-11-07-RECHECK-3.md), [4](../../reviews/control-design/2026-11-07-RECHECK-4.md),
@@ -79,7 +82,7 @@ that run outside its sandbox only through the tool layer, asking (decision 22).
 | `aresos-checkpoint` | The checkpoint every Chrome connection passes through (section 6): holds sends from guarded places, forwards each approved one at most once. Listens on one local port for the browser's user only and on `checkpoint.sock` for the service only. | system user `aresos-checkpoint` |
 | Chrome bridge | Our own extension and native messaging host (section 6). | |
 | Chrome | The owner's browser, with his profile and sign-ins, started only by a root-owned launcher (section 6). | user `aresos-browser` |
-| The central session | The one Claude Code session: coding, commands, mail, Chrome and later apps (decision 23), started by the root-owned launcher through a program set-group-id to `aresos-session` (non-dumpable, section 7), with or without skip-permissions. | user `assistant` (the name brief 18b's checks use) |
+| The central session | The one Claude Code session: coding, commands, mail, Chrome and later apps (decision 23), started by the root-owned launcher in its own SELinux domain, which may start only the allowed programs, through a program set-group-id to `aresos-session` (non-dumpable, section 7), with or without skip-permissions. | user `assistant` (the name brief 18b's checks use) |
 | Claude Code settings | `/etc/claude-code/managed-settings.json`, `managed-mcp.json` and the managed `CLAUDE.md`, owned by root (section 7), generated from the definitions plus the vetted additions (decision 22). Exact values come once the tools exist (owner decision 3). | |
 
 **Who can reach what:**
@@ -1537,13 +1540,41 @@ without the prompt. The settings (exact values later, owner decision 3) must clo
   `.git/info/attributes`, `core.sshCommand`, credential helpers, settings pulled in by `include` and `includeIf`,
   `gpg.program`, all repeated in submodules), and any folder can be a repository through a `.git` file pointing at
   a git folder Claude made. Fixing these one by one leaves gaps (re-check 19), so the design contains the whole class:
-  - *(a) One allowed set of programs, traced.* Base qualification traces every program started by the session's
-    user outside the sandbox: Claude Code's own subprocesses (git by any path, a language server, anything), the
-    managed hooks, the MCP servers. The allowed set is: the native Claude Code program (pinned by hash), the
-    root-owned launcher, the managed hooks, `aresos-mcp` and its addon relays, the sandbox (`bwrap`, which runs every
-    terminal command inside it), the git wrapper below (which itself runs git inside the sandbox), and the fixed
-    helpers qualification finds Claude Code uses (for example `rg` with fixed arguments). The hostile test fails on
-    any program started outside that set.
+  - *(a) One allowed set of programs, enforced when they start.* A process of the session's user that runs outside
+    the sandbox may start only these programs: the launcher's pinned Claude Code program; the sandbox wrapper
+    (`bwrapPath`), which enters the sandbox; the git wrapper (point (b)); the set-group-id relay programs, and their
+    pinned interpreter only when one of them starts it; and the managed hook programs, the same way. Everything else
+    is refused when it would start: `/bin/sh`, any other interpreter, a planted program, a language server or helper
+    not in the set, and also a program started without a file (from memory) or through the system's program loader.
+    Inside the sandbox nothing changes. Two ways were weighed:
+    - *An SELinux domain for the session* (chosen). Fedora and Bazzite already run SELinux in enforcing mode. The
+      launcher starts Claude Code in its own domain, which may start only programs labelled as the allowed ones, each
+      moving into its own domain when it starts (the sandbox wrapper into a sandbox domain that may start anything, as
+      today, within `bwrap`'s limits; the relay programs into a relay domain that may start only the pinned
+      interpreter). The kernel decides at every start, with no program of ours in the way that could crash or hang.
+      It also covers starting a program from memory, through the loader, and mapping a planted library as code, which
+      a check on program starts alone doesn't see. The cost: a policy module in the image, relabelling when a pinned
+      program is updated, the sandbox's user namespaces allowed for the sandbox domain, and no silently ignored
+      denials for these domains.
+    - *A root guard on program starts* (`fanotify` with `FAN_OPEN_EXEC_PERM`), deciding by process, parent and path
+      and treating processes in the sandbox's namespace or cgroup as inside. Not chosen: it puts a program of ours in
+      the path of every program start on the machine, which then has to fail open or block the whole system when it
+      hangs, and it doesn't see programs started from memory or libraries mapped as code.
+    - *A refusal fails closed.* Each refusal is logged, a root-owned watcher of those log entries tells the tool
+      service, which turns the asking tools off, and he is told plainly ("a program the session wasn't allowed to
+      start was refused; the tools that ask are off until the session is restarted").
+    - *Qualification gate (blocking, base qualification):* the planted-repository routes below, a language server,
+      the hooks, git by any path, and every Claude Code feature that starts a program (its search tools, opening a
+      browser or an editor, its own checks and helpers). Each must be refused, run inside the sandbox, or be added to
+      the allowed set with its reason (Claude Code's search may start `rg` outside the sandbox: then `rg`, with the
+      fixed arguments Claude Code passes, joins the set).
+    - *What remains:* the allowed programs' own behaviour. The wrappers must be robust (they take no instructions from
+      the environment or the work tree), and Claude Code's own program does what it does inside its own process.
+    - *Claude Code's sign-in:* with (a) in force, no other program of the session's user runs outside the sandbox,
+      and the sandbox can't read Claude Code's own folder (hidden from its view, and refused to the file tools), so
+      nothing Claude can steer reaches the sign-in. *Gate (blocking):* qualification shows exactly that; until it has
+      passed for an installation (and again after a Claude Code update), the tool service keeps every asking action
+      off there.
   - *(b) Git itself is the sandbox for the session's user.* In the image, `/usr/bin/git` and every entry point in
     git's own program folder are a root-owned wrapper. For the session's user it runs the real git inside a sandbox
     like the terminal's (no sockets, no network, writes only to scratch), so whatever a repository's settings start
@@ -1555,69 +1586,45 @@ without the prompt. The settings (exact values later, owner decision 3) must clo
     used to run git as that user outside the wrapper. Claude Code reading `.git` files itself (the branch name)
     executes nothing; whether it embeds a git library that runs repository commands is checked in qualification
     (expected: none; one found is contained the same way or refused).
-  - *(c) The tools can't be reached by a missed route.* A process of the session's user that (a) and (b) missed
-    could otherwise act through the genuine relay: open the relay's input through `/proc/<relay>/fd/0`, or Claude
-    Code's own end of the pipe through `/proc/<claude>/fd/N`, and write requests the relay forwards, because opening
-    another process's descriptors needs only read access, which Yama doesn't restrict (re-check 20). And the
-    program file of a Python relay (`/proc/<pid>/exe`) names the interpreter, not the relay. So:
+  - *(c) Hardening around the tools.* Points (a) and (b) are what keep a hostile program from running outside the
+    sandbox. Once one does run there as the session's user, no check in that space can tell its requests from Claude
+    Code's (re-check 22: queued descriptors, write-then-close, a slow start). So (c) adds hardening, said as such; it
+    doesn't by itself prove where a request came from:
     - *Claude Code and the relay are non-dumpable for their whole lifetime.* The launcher starts Claude Code through a
-      root-owned program that is set-group-id to a dedicated group (`aresos-session`), and `aresos-mcp` is a small
-      root-owned program set-group-id to its own group (`aresos-relay`) that then runs the pinned interpreter on the
-      relay. Starting a program that changes the group this way makes the kernel mark the process non-dumpable
-      (`suid_dumpable` is 0), and it stays so while its effective group differs from its real one, also across its
-      own later starts of programs; a process's own `PR_SET_DUMPABLE` wouldn't survive starting a program. A
-      non-dumpable process's `/proc` entries, its descriptors and its memory belong to root, so a process of the same
-      user can open neither its pipes nor its memory. `kernel.yama.ptrace_scope` at least 1 is kept as well.
-    - *The service knows the relay by its credential.* The tool service accepts every action that asks, and the
-      preparation that reserves it, only from a peer whose effective group (from the socket's peer credentials) is
-      `aresos-relay` and whose parent process is the Claude Code process the launcher registered at start (its
-      process id and start time, its group `aresos-session`).
-    - *One relay per app per session.* That isn't enough on its own: an unsandboxed direct child of Claude Code could
-      make pipes, start a feeder process, and then start the genuine set-group-id relay itself, keeping the registered
-      parent and gaining `aresos-relay` (re-check 21). So after the launcher registers Claude Code, the service accepts
-      the first relay that connects for each managed app (`control`, `mail`, `chrome`, each added tool) and refuses
-      every later relay from that parent until Claude Code is started again. Claude Code starts its MCP servers when
-      it starts, before Claude can run anything, so the genuine relays always come first (*base qualification*: that
-      order, and that no command can run before them). The cost, said plainly: when a relay ends (a crash, or a
-      reconnect in Claude Code's MCP view), that app's tools stay off until the session is restarted, and the service
-      tells Claude and him exactly that ("the mail tools were restarted; restart the session to use them again").
-    - *The channel is checked.* At registration and before every asking action, a root-owned helper of the service
-      checks that the relay's input and output pipes are held only by the registered Claude Code and the relay
-      itself: it finds each pipe's identity through the relay's descriptors and looks for any other process holding
-      either end. If another process holds one, the action is refused. Peer credentials describe who opened a
-      connection, not who holds it later (re-check 21), which is why this check is needed.
-    - *No leaked descriptors.* Unrelated children of Claude Code get no MCP pipe ends and no service sockets: the
-      relay opens its own service socket, closed on starting any program, and Claude Code passes only standard input
-      and output to the programs it starts. *Base qualification* tests that inheritance: every child of Claude Code
-      (the terminal's commands, the git wrapper, the hooks) holds none of them.
-    - *Dropping the extra group before the sandbox.* The sandbox needs ordinary credentials to set up its user
-      namespace, and a non-dumpable process can't have its namespace mapping written (the user-namespace rules). So
-      the sandbox program Claude Code starts (`bwrapPath` in the settings) and the git wrapper are root-owned programs
-      that first set the effective group back to the real one and then start `bwrap`; inside the sandbox nothing has
-      `aresos-session`. `no_new_privs` is never set on Claude Code itself, because that would stop the relay's
-      set-group-id start; `bwrap` sets it inside the sandbox.
-    - *Nothing turns dumpability back on.* The relay's small set-group-id program, after its own group change, forbids
-      the call that would make it dumpable again (a seccomp rule on `PR_SET_DUMPABLE`, with `no_new_privs`, which the
-      relay doesn't need afterwards). For Claude Code that rule can't be used, because `no_new_privs` would stop the
-      relay's start; *base qualification* verifies that the pinned native program never makes that call.
-    - *What to qualify (base qualification):* Claude Code's native program under a set-group-id start (the
-      kernel's secure mode drops some environment variables and changes some library behaviour; the launcher's fixed
-      environment must still work), the MCP pipes between the two non-dumpable processes, and the terminal's
-      commands and git still running normally after the group is dropped.
-    - *Hostile test:* from a process of the session's user outside the sandbox, and from an unsandboxed direct child
-      of Claude Code: writing into `/proc/<relay>/fd/*` and `/proc/<claude>/fd/*`, reading their memory, attaching to
-      them, connecting to the service directly, making its own pipes and a feeder and starting the genuine relay
-      itself; a second relay after startup; a child holding an inherited pipe end or socket; and a relay restart
-      (refused, with the plain message). Every attempt fails, and no asking action reaches the service. The trace of
-      programs in (a) is evidence for qualification; it is not runtime enforcement. This point (c) is what holds at
-      run time for the tools.
-    What remains, said plainly: (c) keeps a missed route from sending or deleting through the tools. It doesn't keep
-    such a route from changing his files that the session's user may change, from using the network outside the
-    sandbox, or from reading what the session's user can read, Claude Code's own folder with its sign-in included;
-    whether that sign-in could answer a prompt through Remote Control is unknown. Pushing keystrokes into Claude
-    Code's terminal is closed (`dev.tty.legacy_tiocsti` is 0, so it needs a privilege the session's user lacks:
-    *brief*). Points (a) and (b) are what keep missed routes from happening at all. The `aresos` command can still
-    read and prepare; asking submissions come only from the session.
+      root-owned program set-group-id to `aresos-session`, and `aresos-mcp` is a small root-owned program
+      set-group-id to `aresos-relay` that then runs the pinned interpreter on the relay. A group change at start makes
+      the kernel mark the process non-dumpable (`suid_dumpable` is 0), and it stays so while its effective group
+      differs from its real one; its `/proc` entries, descriptors and memory belong to root, so a process of the same
+      user can't reopen its pipes through `/proc` or read its memory. The relay's program forbids the call that would
+      make it dumpable again (a seccomp rule on `PR_SET_DUMPABLE`, with `no_new_privs`, which the relay doesn't need
+      afterwards); for Claude Code, qualification verifies that the pinned program never makes that call.
+      `kernel.yama.ptrace_scope` is at least 1, and `dev.tty.legacy_tiocsti` is 0, so keystrokes can't be pushed into
+      Claude Code's terminal.
+    - *The extra group is dropped before the sandbox.* The sandbox wrapper and the git wrapper set the effective group
+      back to the real one before starting `bwrap`, because a non-dumpable process can't have its user-namespace
+      mapping written; `no_new_privs` is never set on Claude Code, which would stop the relay's set-group-id start.
+    - *Relays register only within the trusted start.* The service accepts asking actions only from a peer of group
+      `aresos-relay` whose parent is the Claude Code process the launcher registered. The launcher starts Claude Code
+      with blocking MCP startup (`MCP_CONNECTION_NONBLOCKING=0`, a set `MCP_CONNECT_TIMEOUT_MS`, the managed servers
+      marked to load at start), so Claude Code waits for its servers before the first turn, and it tells the service
+      the startup window. The service accepts the first relay for each managed app inside that window and closes the
+      window when all expected relays are in or the window ends, whichever comes first; the window ends before Claude
+      Code's own wait does, so it is closed before Claude can run anything. An unfilled slot stays closed, and a later
+      relay is refused: that app's tools stay off until the session is restarted, and the service says so plainly; the
+      same when a registered relay ends. The pipe-holder scan of draft 21 is dropped: a moment's look at who holds a
+      pipe can't show who wrote a request.
+    - *No leaked descriptors.* The relay opens its own service socket, closed on starting any program, and Claude Code
+      passes only standard input and output to the programs it starts; qualification tests that no child of Claude
+      Code holds an MCP pipe end or a service socket.
+    - *What to qualify (base qualification):* Claude Code's native program under a set-group-id start (secure mode's
+      effects on its environment), the MCP pipes, the terminal and git after the group is dropped, and the startup
+      window with a relay that is slow, fails or times out (its app stays off; nothing else gets its slot).
+    - *Hostile test:* from a process of the session's user outside the sandbox and from a direct child of Claude Code
+      (each first allowed to start in a test build, since (a) would refuse them): reopening `/proc/<relay>/fd/*` and
+      `/proc/<claude>/fd/*`, reading their memory, attaching, connecting to the service directly, starting the genuine
+      relay with its own pipes and a feeder after the window, and a relay restart. Each fails or turns the app off, and
+      no asking action from them reaches the service.
+    The trace of programs in base qualification is evidence; (a) is what holds at run time.
   - *(d) His own side (owner choice, section 10):* project folders belong to the session's user. With option (a),
     recommended, he works on projects through Claude, his own git refuses Claude's repositories (git refuses a
     repository owned by another user unless declared safe, checking the `.git` file, the git folder and the work
@@ -1628,10 +1635,10 @@ without the prompt. The settings (exact values later, owner decision 3) must clo
   - *Hostile tests:* projects with a planted `core.fsmonitor`, `includeIf` and `include`, `core.sshCommand`, a
     credential helper, hooks, filter and diff drivers through `.gitattributes` and `.git/info/attributes`,
     `gpg.program` with signature display, a submodule with its own settings, and a `.git` file pointing at a planted
-    git folder: Claude Code's own operations start no program outside the allowed set (each planted command's marker
-    stays absent, or appears only inside the sandbox, which reaches no socket); a process of the session's user that
-    isn't the registered `aresos-mcp` is refused every asking action; with his option (a), his git and his checked
-    clients refuse the repository. Both in normal and in skip-permissions mode.
+    git folder: Claude Code's own operations start no program outside the allowed set (each planted command is
+    refused by (a), or runs only inside the sandbox, which reaches no socket; its marker shows which); with his
+    option (a), his git and his checked clients refuse the repository. Both in normal and in skip-permissions
+    mode.
 - **The network:** in skip-permissions mode the sandbox lets the terminal reach any host unless the list is locked, so
   the list is locked (`allowManagedDomainsOnly`), and it holds the developer sites coding needs (decision 23):
   GitHub (its site, API, code and release downloads, its package registry) and the package registries (npm, PyPI,
@@ -1700,8 +1707,8 @@ without the prompt. The settings (exact values later, owner decision 3) must clo
   7. only the managed MCP servers start (the app servers and the vetted additions), never a user or project MCP
      configuration or a plugin; no settings source below the managed file loads (`--setting-sources ''`);
   8. the managed `CLAUDE.md` loads;
-  9. no program outside the allowed set starts outside the sandbox, Claude Code's own git stays contained, and only
-     the registered `aresos-mcp` reaches the asking actions (programs outside the sandbox, above);
+  9. the session's domain refuses every program outside the allowed set, Claude Code's own git stays contained, and
+     relays register only inside the startup window (programs outside the sandbox, above);
   10. an added tool becomes usable only as decision 22 says (below): after his approval, and only in a session the
       launcher started with the regenerated settings; a changed tool stays hidden;
   11. a skill's scripts and a plugin's parts run only in the sandbox, and agents Claude starts inside the session get
@@ -1862,8 +1869,9 @@ tool runs decides how it is added:
   tools appear only in a session started with the regenerated settings; an added server can't read the service's or
   another addition's credentials; a connector's tools ask on every call unless he marked one free; send and delete
   tools ask, also in skip-permissions mode; the installed-settings check accepts exactly the generated files; and for
-  a server that holds his account access, a failed review, a review that can't run, and his choice 5 still unanswered
-  each refuse an install with his credentials.
+  a server that holds his account access, a failed review and a review that can't run each refuse an install with his
+  credentials, and while his choice 5 is unanswered option (a) applies: a reviewed one can be installed, an unreviewed
+  one is refused.
 
 **The approval surface: Claude Code's own prompt (decision 21).** After six phone tests the owner decided (board
 #78, his words: "okay we will use it as is, no need for a request"): approvals stay Claude Code's own permission
