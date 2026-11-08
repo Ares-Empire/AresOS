@@ -1,6 +1,6 @@
 # The control layer: design
 
-**Status:** draft 22, 2026-11-08. Draft 16 with the owner's answers of 2026-11-07 built in (`PLAN.md` decisions 14 to
+**Status:** draft 23, 2026-11-08. Draft 16 with the owner's answers of 2026-11-07 built in (`PLAN.md` decisions 14 to
 19 and 21), and two decisions of 2026-11-08: the central session can gain tools, the ones that run outside its sandbox
 only through the tool layer, asking (decision 22); and one session does coding, commands, mail, Chrome and later apps,
 possibly in skip-permissions mode, replacing decision 8's split (decision 23). Draft 18 answers the eighteenth
@@ -17,8 +17,11 @@ the relay by its group, and adds a fifth owner choice for unreviewed servers tha
 checks who holds its pipes. Draft 22 (re-check [22](../../reviews/control-design/2026-11-08-RECHECK-22.md)) changes
 the structure: an SELinux domain for the session refuses every program outside the allowed set when it starts, the
 relay checks become hardening bound to the trusted start, and the asking tools stay off until qualification shows
-nothing Claude can steer reaches Claude Code's sign-in. Covers the shared base, Mail and Chrome. The frontier review
-([`REVIEW`](../../reviews/control-design/2026-11-07-REVIEW.md), 8 blocking) and five re-checks
+nothing Claude can steer reaches Claude Code's sign-in. Draft 23 (re-check
+[23](../../reviews/control-design/2026-11-08-RECHECK-23.md)) adds the precision: Claude Code's process as trusted code
+into which nothing Claude wrote is loaded, the sandbox transition contract, both gates as hard switches, an
+acknowledged registration barrier, and `rg` through a fixed wrapper. Covers the shared base, Mail and Chrome. The
+frontier review ([`REVIEW`](../../reviews/control-design/2026-11-07-REVIEW.md), 8 blocking) and five re-checks
 ([1](../../reviews/control-design/2026-11-07-RECHECK.md), [2](../../reviews/control-design/2026-11-07-RECHECK-2.md),
 [3](../../reviews/control-design/2026-11-07-RECHECK-3.md), [4](../../reviews/control-design/2026-11-07-RECHECK-4.md),
 [5](../../reviews/control-design/2026-11-07-RECHECK-5.md)) ended at "ready for brief 18" on draft 6. Draft 7 adds
@@ -1560,21 +1563,58 @@ without the prompt. The settings (exact values later, owner decision 3) must clo
       and treating processes in the sandbox's namespace or cgroup as inside. Not chosen: it puts a program of ours in
       the path of every program start on the machine, which then has to fail open or block the whole system when it
       hangs, and it doesn't see programs started from memory or libraries mapped as code.
+    - *Claude Code's own process is trusted code.* An allowlist of programs doesn't stop code loaded inside an allowed
+      process: JavaScript through `require` or `import` hooks, workers, `eval`, a feature that reads a project's or
+      the user's files as code, or the runtime's own switches when the pinned program is built on Bun or Node
+      (preloading, acting as the runtime's interpreter). Claude Code needs executable memory for its JavaScript
+      engine, so its domain allows that (`execmem`), and SELinux can't tell trusted from attacker JavaScript there.
+      So the boundary is stated plainly: Claude Code's process is trusted code, and nothing Claude can write is ever
+      loaded into it as code. The routes, each a named item of the qualification gate for the pinned program: no
+      settings source below the managed file (`--setting-sources ''`); plugins only through the tool layer, hooks
+      and MCP servers managed only; no status line, no `apiKeyHelper`, no other helper; a project's `.claude` folder
+      ignored (its settings, hooks, agents, skills and commands load nothing as code; a project's `CLAUDE.md` is read
+      as text); skills' scripts run in the sandbox; the runtime's switches neutralised by the fixed environment (no
+      `NODE_OPTIONS`, `NODE_PATH` or Bun preload, configuration or interpreter-mode variable reaches it, and the
+      launcher fixes its arguments); and every file the sandbox wrote that Claude Code later reads (project
+      settings, commands, agents, `.mcp.json`, `CLAUDE.md`, anything in the work tree) is shown to be read as data or
+      ignored, never run.
+    - *The sandbox transition contract.* The sandbox wrapper's own domain may start only `bwrap`, with fixed
+      restrictions its arguments can't weaken: it accepts Claude Code's `bwrap` arguments only in the forms the pinned
+      version produces, adds its own fixed options last (hiding `/run/aresos-tools`, Claude Code's own folder and the
+      browser profile, dropping every capability, a new session), and refuses anything else; nothing else runs during
+      setup, and a refusal or a failure ends that launch. `bwrap` runs in the sandbox domain and starts only the
+      command. There is no transition from the sandbox domain back into the session's, the relay's, a hook's or any
+      unconfined domain, and the sandbox can't start the relay or hook programs. Files the sandbox writes keep a type
+      of their own; the sandbox may not relabel them, and the session's, relay's and hooks' domains may neither start
+      them nor map them as code. Each further control has its rule and is qualified: `ptrace` across these domains is
+      refused (and the relay is non-dumpable, point (c)); a program started from memory (`memfd`) is refused to the
+      session's, relay's and hooks' domains; starting the system's program loader directly, or through it a file not
+      in the set, is refused to them; `execmem` is allowed only to the session's domain (its JavaScript engine, above)
+      and refused to the relay and hooks unless qualification shows they need it; `execmod` is refused to all three.
+    - *`rg`, if Claude Code's search needs it outside the sandbox,* runs only through a root-owned wrapper that
+      accepts a fixed set of arguments (refusing `--pre`, `--pre-glob` and `--search-zip`, which start other
+      programs, and forcing `--no-config` with `RIPGREP_CONFIG_PATH` cleared), in a domain that can't read Claude
+      Code's sign-in or the other credentials and may start no program at all.
     - *A refusal fails closed.* Each refusal is logged, a root-owned watcher of those log entries tells the tool
       service, which turns the asking tools off, and he is told plainly ("a program the session wasn't allowed to
-      start was refused; the tools that ask are off until the session is restarted").
-    - *Qualification gate (blocking, base qualification):* the planted-repository routes below, a language server,
-      the hooks, git by any path, and every Claude Code feature that starts a program (its search tools, opening a
-      browser or an editor, its own checks and helpers). Each must be refused, run inside the sandbox, or be added to
-      the allowed set with its reason (Claude Code's search may start `rg` outside the sandbox: then `rg`, with the
-      fixed arguments Claude Code passes, joins the set).
+      start was refused; the tools that ask are off until the session is restarted"). The watcher fails closed too:
+      if it stops, or audit events are lost (the audit backlog overflows or its lost counter rises), the asking tools
+      go off until he restarts. The kernel blocks the refused program either way.
+    - *Qualification gate (base qualification):* the planted-repository routes below, a language server, the hooks,
+      git by any path, every Claude Code feature that starts a program (its search tools, opening a browser or an
+      editor, its own checks and helpers), the in-process routes above, and the transition contract. Each program
+      start must be refused, run inside the sandbox, or be in the allowed set with its reason.
     - *What remains:* the allowed programs' own behaviour. The wrappers must be robust (they take no instructions from
-      the environment or the work tree), and Claude Code's own program does what it does inside its own process.
+      the environment or the work tree), and Claude Code's own program is trusted, as above.
     - *Claude Code's sign-in:* with (a) in force, no other program of the session's user runs outside the sandbox,
       and the sandbox can't read Claude Code's own folder (hidden from its view, and refused to the file tools), so
-      nothing Claude can steer reaches the sign-in. *Gate (blocking):* qualification shows exactly that; until it has
-      passed for an installation (and again after a Claude Code update), the tool service keeps every asking action
-      off there.
+      nothing Claude can steer reaches the sign-in. Qualification shows exactly that (the sign-in gate).
+    - *Both gates are hard switches.* The tool service prepares and dispatches an asking action only when both gates,
+      the qualification gate and the sign-in gate, are recorded as passed for exactly the installed programs (by
+      hash: Claude Code, the wrappers, the relay and hook programs), the installed managed settings and the loaded
+      SELinux policy, and when enforcement is active (SELinux enforcing, the session's domain loaded, the watcher
+      running). It checks this when it starts, after every restart and before each asking action. A missing, failed
+      or stale record (after an update of any of them), or SELinux not enforcing, leaves every asking action off.
   - *(b) Git itself is the sandbox for the session's user.* In the image, `/usr/bin/git` and every entry point in
     git's own program folder are a root-owned wrapper. For the session's user it runs the real git inside a sandbox
     like the terminal's (no sockets, no network, writes only to scratch), so whatever a repository's settings start
@@ -1606,23 +1646,26 @@ without the prompt. The settings (exact values later, owner decision 3) must clo
     - *Relays register only within the trusted start.* The service accepts asking actions only from a peer of group
       `aresos-relay` whose parent is the Claude Code process the launcher registered. The launcher starts Claude Code
       with blocking MCP startup (`MCP_CONNECTION_NONBLOCKING=0`, a set `MCP_CONNECT_TIMEOUT_MS`, the managed servers
-      marked to load at start), so Claude Code waits for its servers before the first turn, and it tells the service
-      the startup window. The service accepts the first relay for each managed app inside that window and closes the
-      window when all expected relays are in or the window ends, whichever comes first; the window ends before Claude
-      Code's own wait does, so it is closed before Claude can run anything. An unfilled slot stays closed, and a later
-      relay is refused: that app's tools stay off until the session is restarted, and the service says so plainly; the
-      same when a registered relay ends. The pipe-holder scan of draft 21 is dropped: a moment's look at who holds a
+      marked to load at start), so Claude Code waits for its servers before the first turn. The service accepts the
+      first relay for each managed app until registration closes, and registration closes at an acknowledged barrier,
+      not a timer: a managed hook that runs before the first turn (`SessionStart` if qualification shows it runs after
+      MCP startup, otherwise `UserPromptSubmit` on the first prompt) asks the service to close registration and waits
+      for its acknowledgement; the hook blocks the turn when it fails or is cancelled. A relay that failed early, or is
+      still connecting, simply misses the barrier. An unfilled slot stays closed, and a later relay is refused: that
+      app's tools stay off until the session is restarted, and the service says so plainly; the same when a registered
+      relay ends. The pipe-holder scan of draft 21 is dropped: a moment's look at who holds a
       pipe can't show who wrote a request.
     - *No leaked descriptors.* The relay opens its own service socket, closed on starting any program, and Claude Code
       passes only standard input and output to the programs it starts; qualification tests that no child of Claude
       Code holds an MCP pipe end or a service socket.
     - *What to qualify (base qualification):* Claude Code's native program under a set-group-id start (secure mode's
-      effects on its environment), the MCP pipes, the terminal and git after the group is dropped, and the startup
-      window with a relay that is slow, fails or times out (its app stays off; nothing else gets its slot).
+      effects on its environment), the MCP pipes, the terminal and git after the group is dropped, which hook is the
+      barrier, and the barrier with a relay that is slow, fails early, times out or is cancelled (its app stays off;
+      nothing else gets its slot).
     - *Hostile test:* from a process of the session's user outside the sandbox and from a direct child of Claude Code
       (each first allowed to start in a test build, since (a) would refuse them): reopening `/proc/<relay>/fd/*` and
       `/proc/<claude>/fd/*`, reading their memory, attaching, connecting to the service directly, starting the genuine
-      relay with its own pipes and a feeder after the window, and a relay restart. Each fails or turns the app off, and
+      relay with its own pipes and a feeder after the barrier, and a relay restart. Each fails or turns the app off, and
       no asking action from them reaches the service.
     The trace of programs in base qualification is evidence; (a) is what holds at run time.
   - *(d) His own side (owner choice, section 10):* project folders belong to the session's user. With option (a),
@@ -1707,8 +1750,10 @@ without the prompt. The settings (exact values later, owner decision 3) must clo
   7. only the managed MCP servers start (the app servers and the vetted additions), never a user or project MCP
      configuration or a plugin; no settings source below the managed file loads (`--setting-sources ''`);
   8. the managed `CLAUDE.md` loads;
-  9. the session's domain refuses every program outside the allowed set, Claude Code's own git stays contained, and
-     relays register only inside the startup window (programs outside the sandbox, above);
+  9. the session's domain refuses every program outside the allowed set, nothing Claude wrote is loaded as code into
+     Claude Code, the sandbox transition contract holds, Claude Code's own git stays contained, relays register only
+     before the barrier, and asking actions stay off unless both gates have passed for what is installed (programs
+     outside the sandbox, above);
   10. an added tool becomes usable only as decision 22 says (below): after his approval, and only in a session the
       launcher started with the regenerated settings; a changed tool stays hidden;
   11. a skill's scripts and a plugin's parts run only in the sandbox, and agents Claude starts inside the session get
