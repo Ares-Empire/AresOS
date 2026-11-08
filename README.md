@@ -28,7 +28,7 @@ install on real hardware, which is the next step.
 
 - **The game is real Minecraft Java.** Nothing is rebuilt. A Fabric mod changes how the AresOS world behaves.
 - **Apps are items.** Pinned apps sit in the hotbar and all others in the inventory, each with a pixel icon made from
-  the app's real icon. Right-click one to open it. Big block logos in the world open their app when you walk into them.
+  the app's real icon, or a plain Minecraft item when there is none. Right-click one to open it. Big block logos in the world open their app when you walk into them.
 - **Home is the Nether.** Every start puts you at your home spot. In Live mode you can't die. G switches to Build mode
   (creative) for building, and the app hotbar comes back when you switch back.
 - **Only the AresOS world follows these rules.** Every other world plays like normal Minecraft, and normal Minecraft
@@ -36,7 +36,8 @@ install on real hardware, which is the next step.
 - **Underneath is Linux.** The image is defined in this repository on top of Bazzite, a gaming-focused Fedora with
   NVIDIA drivers. The previous version stays on disk, so a bad update can be rolled back.
 - **Apps as tools for Claude Code** (being built). A Claude Code session on AresOS uses Mail, Chrome and later apps
-  through command-line and MCP tools, and asks before anything that sends, deletes or submits.
+  through command-line and MCP tools. The tools ask before an explicit send, delete or submit; in Chrome, a send that
+  a page itself starts after an ordinary click is not held back.
 
 ## What's in the repository
 
@@ -62,7 +63,7 @@ The mod needs Java 25; the Gradle wrapper is included. From `mod/`:
 ```
 
 On Windows in PowerShell, use `.\gradlew.bat`. The client game tests write their screenshots into `reviews/`;
-`git checkout -- reviews/` puts the committed ones back. In the development client, click **AresOS** above
+`git checkout -- ../reviews/` (from `mod/`) puts the committed ones back. In the development client, click **AresOS** above
 Singleplayer to create the Nether home. Opening apps works on Windows only for now. More in
 [mod/README.md](mod/README.md).
 
@@ -99,6 +100,10 @@ permission: [ares-empire.de/contact](https://www.ares-empire.de/contact). Until 
 CC0; copies taken before then keep that licence.
 
 The licence covers the code. It does not cover the Ares names or the screenshots. Parts from others keep their own
-licences: the Gradle wrapper (`mod/gradlew`, `mod/gradlew.bat`, `mod/gradle/wrapper/`, Apache-2.0), the cosign
-installer template in `os/manifest/ci/14/14zz-cosign/` (Apache-2.0, its `LICENSE` beside it), and the files copied
-from the Bazzite and Fedora installers as test evidence under `os/manifest/ci/` (their projects' own licences).
+licences:
+
+- The Gradle wrapper (`mod/gradlew`, `mod/gradlew.bat`, `mod/gradle/wrapper/`): Apache-2.0.
+- Everything kept as test evidence under `os/manifest/ci/`: files and source archives copied from the Bazzite and
+  Fedora installers, the Linux kernel, QEMU, systemd, util-linux, coreutils, glibc, EDK II and the cosign installer
+  (`os/manifest/ci/14/14zz-cosign/`, Apache-2.0, its `LICENSE` beside it). Each keeps its project's own licence and
+  notices, such as GPL-2.0 for the kernel and BSD-2-Clause-Patent for EDK II.
