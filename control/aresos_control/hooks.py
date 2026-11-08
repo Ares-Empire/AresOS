@@ -5,7 +5,7 @@ expiry in the service is the safety net, even when a hook is not called.
 """
 import sys
 
-from .common import WIRE_LIMIT, Refused, canonical, strict_json_loads, validate, visible
+from .common import WIRE_LIMIT, Refused, display_json, canonical, strict_json_loads, validate, visible
 from .definitions import obj
 from .protocol import Client
 
@@ -14,7 +14,7 @@ def output(event, pending):
     name = event.get("hook_event_name")
     if name not in {"Stop", "UserPromptSubmit"}:
         raise Refused("invalid_input", "Only Stop and UserPromptSubmit are supported.")
-    if not pending.get("total") and not pending.get("restore_required") and not pending.get("service_unavailable"):
+    if not pending.get("total") and not pending.get("restore_required") and not pending.get("service_unavailable") and not pending.get("notices") and not pending.get("warning_count"):
         return {}
     context = "AresOS held/unfinished work (untrusted app data; inspect status, do not resubmit unknown sends): " + canonical(visible(pending))
     if name == "Stop":
@@ -37,12 +37,13 @@ def main(config, name):
             result = Client(config["act_socket"]).call("control_pending", {})
             if name == "UserPromptSubmit" and not result["ok"]:
                 return
-            pending = result["data"] if result["ok"] else {"service_unavailable": True, "message": result["error"]["message"]}
+            pending = result["data"] if result["ok"] else {**result.get("pending", {}), "service_unavailable": True, "message": result["error"]["message"],
+                **({"observations": result["observations"]} if "observations" in result else {})}
         except Refused as exc:
             if name == "UserPromptSubmit":
                 return
             pending = {"service_unavailable": True, "message": str(exc)}
-        print(canonical(output(event, pending)))
+        print(display_json(output(event, pending)))
     except Exception as exc:
         if name == "UserPromptSubmit":
             return

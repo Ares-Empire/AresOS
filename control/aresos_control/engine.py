@@ -674,7 +674,7 @@ class Engine:
                 raise Refused("invalid_input", "Unknown method or wrong socket; inspect the protocol.")
             result = {"ok": True, "data": data, "pending": self.pending(app)}
             # Blob transfer is private framing, never a model-facing result.
-            if method != "download" and len(canonical(result).encode()) > RESULT_LIMIT and method != "tools":
+            if method != "download" and len(canonical(result).encode()) > RESULT_LIMIT and method != "tools" and request.get("action") != "control_observations":
                 raise Refused("result_too_large", "Result exceeds 49152 bytes; request a smaller page. Check status before repeating changes.")
             return result
         except (OSError, sqlite3.DatabaseError, imaplib.IMAP4.error, Uncertain) as exc:

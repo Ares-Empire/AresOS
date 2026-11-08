@@ -108,9 +108,11 @@ class Proxy:
             return self.client.call(action.name, arguments)
         except (Refused, OSError, ValueError) as exc:
             exc = storage_refusal(exc) or exc
+            pending = self.client.call("control_pending", {})
             return {"ok": False, "error": {"code": getattr(exc, "code", "file_refused"), "message": str(exc),
                     **({"notes": list(exc.__notes__)} if getattr(exc, "__notes__", None) else {})},
-                    "pending": self.client.call("control_pending", {}).get("data", {})}
+                    "pending": pending.get("data", pending.get("pending", {})),
+                    **({"observations": pending["observations"]} if "observations" in pending else {})}
 
 
 class StrictMCPInput:
@@ -141,7 +143,7 @@ class StrictMCPInput:
                 for request_id in ids:
                     error = {"jsonrpc": "2.0", "id": request_id, "error": {
                         "code": -32602, "message": str(exc), "data": {"code": exc.code}}}
-                    await self.errors.send(SessionMessage(types.jsonrpc_message_adapter.validate_json(json.dumps(error), by_name=False)))
+                    await self.errors.send(SessionMessage(types.jsonrpc_message_adapter.validate_json(display_json(error), by_name=False)))
                 continue
             yield line.decode('utf-8') if isinstance(line, bytes) else line
 

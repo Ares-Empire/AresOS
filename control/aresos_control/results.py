@@ -88,6 +88,19 @@ def bound_result(result, store=None, limit=RESULT_LIMIT):
     """
     if len(canonical(result).encode()) <= limit:
         return result
+    snapshot = store.observation_snapshot if store is not None else None
+    page = result.get('data', {})
+    if (snapshot is not None and 'fragments' in page and
+            page.get('count') == len(snapshot['json']) and set(page) == {
+                'stages', 'evidence', 'warnings', 'count', 'cursor', 'fragments'}):
+        # Paging an oversized warning envelope must not replace the snapshot
+        # with another copy of the same pending envelope on every read.
+        result = copy.deepcopy(result)
+        pending = result.get('pending', {})
+        result['pending'] = {'warning_count': len(pending.get('notices', [])) + pending.get('notices_more', {}).get('count', 0),
+                             'warning': 'Read complete owner warnings in this snapshot and mail_filing_notices.'}
+        if len(canonical(result).encode()) <= limit:
+            return result
     result = copy.deepcopy(result)
     original_size = len(canonical(result).encode())
     facts = result.pop('observations', {})

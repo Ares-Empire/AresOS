@@ -103,3 +103,44 @@ class Results26(unittest.TestCase):
             bounded = result_api.bound_result(reply)
             mcp = {'content': [{'type': 'text', 'text': display_json(bounded)}], 'structuredContent': bounded}
             self.assertLess(len(canonical(mcp)), WIRE_LIMIT)
+
+    def test_review26_oversize_warning_envelope_pages_without_replacing_snapshot(self):
+        reason = '界' * 10000
+        notice = {'id': 'legacy-huge', 'app': 'mail', 'state': 'partial', 'ack': False,
+                  'untrusted_content': {'reason': reason}}
+        self.engine.store.write({'notice:legacy-huge': notice}, 'fixture', 'Synthetic legacy warning')
+        reply = {'ok': False, 'error': {'code': 'refused', 'message': 'Cannot process selection.', 'details': 'x' * 100000},
+                 'pending': self.engine.pending()}
+        result = self.engine.store.observations.finish(reply, self.engine.store)
+        snapshot = self.engine.store.observation_snapshot
+        token, sequence = snapshot['id'], self.engine.store.sequence
+        pieces = []
+        while True:
+            page = result.get('observations', result.get('data'))
+            pieces.extend(fragment['json'] for fragment in page['fragments'])
+            transport_response(result)
+            self.assertLessEqual(len(canonical(result)), RESULT_LIMIT)
+            if page['cursor'] is None:
+                break
+            result = self.engine.request({'v': 1, 'method': 'call', 'action': 'control_observations',
+                                          'arguments': {'cursor': page['cursor']}})
+            self.assertEqual(self.engine.store.observation_snapshot['id'], token)
+        facts = json.loads(''.join(pieces))
+        self.assertEqual(facts['warning_envelope']['pending']['notices'][0]['untrusted_content']['reason'], reason)
+        self.assertEqual(self.engine.store.sequence, sequence)
+
+    def test_review26_daemon_ingress_refusal_keeps_owner_notices_only_for_authorized_peer(self):
+        from aresos_control.daemon import Daemon
+        daemon = object.__new__(Daemon)
+        daemon.engine = self.engine
+        notices = self.notice()
+        result = daemon.error_result(Refused('invalid_input', 'Malformed socket input.'), True)
+        self.assertEqual(result['pending']['notices'], notices)
+        transport_response(result)
+        self.assertNotIn('notices', daemon.error_result(Refused('permission_denied', 'Wrong peer.'), False)['pending'])
+
+    def test_review26_hook_reports_owner_warning_without_pending_operations(self):
+        from aresos_control.hooks import output
+        result = output({'hook_event_name': 'Stop'}, {'total': 0, 'notices': [{'reason': 'Check filing in Trash.'}]})
+        self.assertEqual(result['decision'], 'block')
+        self.assertIn('Check filing in Trash.', result['reason'])

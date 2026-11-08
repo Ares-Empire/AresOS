@@ -48,23 +48,32 @@ class Daemon:
                 connection, _ = key.fileobj.accept()
                 with connection:
                     connection.settimeout(2)
+                    authorized = False
                     try:
                         _, uid, _ = struct.unpack("3i", connection.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED, struct.calcsize("3i")))
                         kind = key.data
                         if kind == "chrome" or uid != (0 if kind == "admin" else self.config["owner_uid"]):
                             raise Refused("permission_denied", "This peer is not permitted on this socket; use act as owner, admin via sudo. Chrome bridge accepts nothing.")
+                        authorized = True
                         request = receive(connection)
                         if kind == "act" and type(request) is dict and request.get("method") in {"upload", "download"}:
                             self.engine.transfer(connection, request)
                             continue
                         result = self.engine.request(request, admin=kind == "admin")
                     except Exception as exc:
-                        exc = storage_refusal(exc) or exc
-                        result = {"ok": False, "error": {"code": getattr(exc, "code", "internal_error"), "message": str(exc) if isinstance(exc, Refused) else "Request failed unexpectedly; inspect operation status before repeating changes."}, "pending": {"items": [], "total": 0, "cursor": None}}
+                        result = self.error_result(exc, authorized)
                     try:
                         send(connection, result, result=True)
                     except Exception:
                         pass
+
+    def error_result(self, exc, authorized):
+        from .results import bound_result
+        exc = storage_refusal(exc) or exc
+        result = {"ok": False, "error": {"code": getattr(exc, "code", "internal_error"),
+            "message": str(exc) if isinstance(exc, Refused) else "Request failed unexpectedly; inspect operation status before repeating changes."},
+            "pending": self.engine.pending() if authorized else {"items": [], "total": 0, "cursor": None}}
+        return bound_result(result, self.engine.store)
 
     def close(self):
         self.selector.close()
