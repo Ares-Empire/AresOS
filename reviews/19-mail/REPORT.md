@@ -12,8 +12,9 @@ Review records: [REVIEW.md](REVIEW.md), [REVIEW-2.md](REVIEW-2.md),
 [SECURITY-REVIEW-5.md](SECURITY-REVIEW-5.md),
 [SECURITY-REVIEW-6.md](SECURITY-REVIEW-6.md),
 [SECURITY-REVIEW-7.md](SECURITY-REVIEW-7.md),
-[SECURITY-REVIEW-8.md](SECURITY-REVIEW-8.md), and
-[SECURITY-REVIEW-9.md](SECURITY-REVIEW-9.md).
+[SECURITY-REVIEW-8.md](SECURITY-REVIEW-8.md),
+[SECURITY-REVIEW-9.md](SECURITY-REVIEW-9.md), and
+[SECURITY-REVIEW-10.md](SECURITY-REVIEW-10.md).
 
 ## For the owner: decisions before merge
 
@@ -21,7 +22,7 @@ Review records: [REVIEW.md](REVIEW.md), [REVIEW-2.md](REVIEW-2.md),
 
 The owner answered: “Agree on 8, names etc are enough. Agree on everything else too.” All JUDGMENT-CALLs and PLAN-GAPs listed here are settled, including folder moves under brief 15b.
 
-- **Owner archive, round 17 — follows the safety rule:** when retained-history admission refuses, run `sudo aresos admin control archive --input '{"before":PAST_UNIX_SECONDS,"confirm":"archive finished history"}'` with your chosen past cutoff. It exports private finished audit history for reading with sudo and compacts SQLite while retaining open work, unacknowledged notices and the independent restore record; repeat for further batches of at most 100 operations. This explicit owner confirmation follows the safety rule and changes no mailbox.
+- **Owner archive, rounds 17–18 — follows the safety rule:** when retained-history admission refuses, run `sudo aresos admin control archive --input '{"before":PAST_UNIX_SECONDS,"confirm":"archive finished history"}'` with your chosen past cutoff. It exports private finished audit history for reading with sudo and compacts SQLite while retaining open work, unacknowledged notices and the independent restore record; repeat for further batches of at most 100 operations. The 1 GiB admission cap now counts SQLite only; the permanent independent journal and private exports use separate physical disk space. Keep those records and leave sufficient disk space for maintenance. The command and confirmation text are unchanged. This explicit owner confirmation follows the safety rule and changes no mailbox.
 - **Working storage caps, round 16 — follows the safety rule, not a new choice:** unused compositions expire after 24 hours (128 / 4 MiB current-state cap); private files cap at 256 / 512 MiB per store. Open operations and unresolved warnings stay protected; reaching a cap refuses cleanly with instructions, and retained audit history requires owner archiving at its admission limit. These limits prevent free actions from filling storage and forcing restore confirmation.
 - **Installed approval boundary, round 15 — not a separate choice:** this follows the owner's rule that the tool layer enforces asking. Asking tools refuse preparation and submission until the managed Claude Code settings and MCP files are installed and verified; free reads and changes remain available. Letting sends and deletes run where that boundary is missing would break the rule, so no alternative was put to the owner (lead, 2026-11-08).
 - **Draft revisions and deletion — owner decided 2026-11-08; kept as built:** editing or sending keeps the old draft, so revisions can accumulate. This keeps every deletion behind its own named approval; silently replacing or removing drafts was rejected.
@@ -48,6 +49,163 @@ The owner answered: “Agree on 8, names etc are enough. Agree on everything els
 - Check complete approvals on both terminal and phone, then try the seven everyday Claude mail tasks; automated protocol tests do not establish how usable those flows feel.
 - Send a forwarded `.eml` to recipients using Apple Mail, Outlook, Thunderbird, Gmail on the web and iOS Mail, and check how each opens or saves the exact attachment; the round-5 documentation does not establish its presentation.
 
+## Review fixes, round 18
+
+**Done:** implements `briefs/19-review-fixes-18.md`, closing the blocking repair/
+restore lockout and both should-fixes in
+[SECURITY-REVIEW-10.md](SECURITY-REVIEW-10.md), reviewed head `eead1eb5`.
+The first push includes the lead's previously local `e767f1d1` together with three
+complete implementation commits: `d3209179` (repairs and owner recovery),
+`0278e621` (journal accounting), and `b77154cd8874ff7c46b38111c6e3b0a91c040d7b`
+(cache/login removal; last code/test change).
+
+- `control/aresos_control/mail/adapter.py` now checks repair eligibility separately
+  from acting: only accepted sends/mailto unsubscribe with a composition and final
+  DATA acceptance qualify; only `sent_copy` and `answered_flag` qualify; an
+  explicitly failed stage is required. `done` and answered `not_needed` are reads.
+  `engine.py` performs that check before allocating any repair id or writing any
+  transaction. A completed stage returns its existing successful repair when
+  retained, otherwise the original operation, plus the current original status.
+  Repeated repair writes no SQLite, journal or audit data and still works at full
+  quota. Invalid repairs refuse before recording. Eligible repairs retain their
+  durable reserved/submitting/outcome protocol and never invoke SMTP.
+- `engine.py`, `storage.py`, `retention.py` and `archive.py` give owner restore
+  confirmation and archival a quota-exempt maintenance path. Ordinary calls,
+  repairs, cancellation, acknowledgement, expiry and restart recovery cannot
+  consume it. Their history admission still stops at their respective limits.
+  Ordinary work leaves 64 MiB of physical disk headroom; recovery calls now leave
+  16 MiB for owner maintenance. Owner confirmation/archival may use that last
+  reserve and still check their actual conservative disk requirement before a
+  journal fence. Restore can confirm even when the configured working-history
+  quota is already exceeded, then archive without the former deadlock. This is
+  separate logical capacity, not a claim that finite physical storage is unlimited.
+- `storage.py` now applies the 1 GiB working-history cap to allocated SQLite pages
+  only (`history_bytes` returned by archive has this meaning). The independent
+  journal has separate physical capacity accounting through the existing
+  per-write disk checks; it and private exports remain on disk outside that cap.
+  Archive exports and compacts SQLite exactly as before, so the retained journal
+  cannot permanently block ordinary work at the SQLite admission threshold.
+  No journal bytes, hash links, commit markers or replay evidence are discarded;
+  no format migration is needed. The owner runs the same command above and keeps
+  the independent record intact. This uses the brief's separate-accounting option;
+  rotating closed segments was rejected because it would add checkpoint/backup
+  compatibility and crash-atomic migration work. The remaining cost is physical
+  disk growth of the independent record/exports; actual disk shortage still needs
+  the owner to provide space, and an owner archive is not a journal deletion tool.
+- `control/aresos_control/boundary.py` no longer touches the remote-settings cache
+  or owner home. `control/boundary/launch.py` no longer runs `auth status` or limits
+  subscriptions/authentication types. Generated-file equality, managed drop-in
+  checks, environment clearing, fixed CLI arguments, pinned executable hashes,
+  plugin check and both seccomp canaries remain. `control/boundary/check.py`
+  expects an existing cache to permit launch and retains every drop-in check.
+  `control/boundary/native.py` removes the synthetic bypass of the deleted login
+  check; its generated policy fixture remains. `control/boundary/test_native.py`
+  now checks that the launcher stays unchanged, retaining all policy/restoration
+  assertions. No other brief-18b path changes and no managed-settings slimming.
+
+**Named regressions (new plain-Python tests):**
+
+| Test | Evidence |
+| --- | --- |
+| `Recovery18.test_review18_completed_repairs_leave_journal_sqlite_audit_and_sizes_unchanged_at_full_capacity` | Completed initial send and successful repaired stage: 100 repeated calls at zero history quota preserve complete snapshots, file sizes and audit count; restart preserves the result. |
+| `Recovery18.test_review18_ineligible_repairs_refuse_before_recording_or_adapter_action` | Wrong action, absent DATA acceptance, unknown/missing/unfinished stage and reserved original refuse without growth or local-stage execution. |
+| `Recovery18.test_review18_review_sequence_redundant_repairs_cancel_and_preceding_backup_restore` | Completed send, pending approval, preceding SQLite backup and 100 redundant repairs at the review's current-size + 1 MiB + 1 byte cap: no growth; cancel and restore confirm succeed, archive remains available and replay refuses. |
+| `Recovery18.test_review18_restore_confirms_above_every_quota_and_can_archive_afterward` | Real older-store restore with zero history quota and only the physical owner reserve confirms, archives and restarts; prior approval cannot submit. |
+| `Recovery18.test_review18_repairs_and_ordinary_recovery_cannot_consume_restore_room` | Repair and ordinary recovery hit their quota before a fence; physical owner reserve cannot be consumed by repair. |
+| `JournalCapacity.test_review18_archive_cycle_frees_capacity_despite_larger_independent_journal_and_old_restore_replay` | 800 completed free-work events exhaust reduced SQLite capacity; archive restores ordinary work while the unchanged journal alone exceeds the cap. Older backup still locks; confirmation invalidates old ids; no second delivery, valid full chain and restart. |
+| `PolicySources.test_review18_private_home_and_remote_cache_are_never_traversed` | Permission-error private home does not block service admission; cache and dangling cache symlink also do not block. |
+| `PolicySources.test_review18_launcher_has_no_auth_restriction_and_keeps_boundary_and_canaries` | Launcher runs exactly two canaries, supplies fixed arguments and performs no authentication preflight; failed managed-policy check never launches. |
+
+New files: `control/mail_tests/test_review_fixes_18.py` and
+`control/tests/test_journal_capacity.py`. Existing test changes forced by the new
+rules are named here: `PlainQuestions12.test_round12_onboarding_and_mail_repair_questions_first`
+and `Recovery17.test_review17_free_limit_preserves_cancel_both_ack_paths_repair_and_expiry`
+now mark synthetic repair stages explicitly failed; all their assertions remain.
+`Outcomes.test_dropped_final_answer_is_unknown_and_never_retried` now asserts an
+immediate `refused` response instead of a newly recorded failed repair; its no-
+second-arrival assertion remains. The two removed round-17 expectations in
+`control/tests/test_policy_sources.py` are
+`test_review17_remote_cache_and_any_symlink_refuse` and
+`test_review17_launcher_refuses_unknown_or_remote_eligible_authentication`;
+the two round-18 tests above replace them. Native fixture and installed-launcher
+expectations change only for the two deleted checks, as described above. No other
+earlier test assertion is weakened, skipped or deleted. Round 17's report text and
+policy-source table above/below have been updated to name both removals.
+
+**Verified — local, before the code push (and repeated before the report push):**
+
+```text
+python3 control/generate.py --check
+Generated artifacts match definitions
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/mail_tests:.work/round10/vendor python3 .work/round10/check-local.py
+Python syntax OK: 105 files
+Ran 79 tests; OK
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/tests:.work/round10/vendor python3 -m unittest test_operations test_record test_crashes test_approval_questions test_strict_json test_boundary test_boundary_exact test_ingress_bounds test_journal_closed test_policy_sources test_archive test_journal_capacity
+Ran 75 tests; OK
+Record growth: tiny send=4078 bytes; maximum body + 25 MiB send=4078 bytes; 6 state/stage records, mean=679.7 bytes per record including commit
+Record growth: typical three-recipient send=5560 bytes across 8 state/stage records
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control/boundary:control:.work/round10/vendor python3 -m unittest test_native
+Ran 16 tests; OK
+```
+
+The non-root Mac harness models root ownership for disposable generated policy
+files; Linux workflows supply the actual root ownership and socket evidence.
+One initial local syntax scan overlapped the native fixture's temporary Python
+source and returned `FileNotFoundError` when that fixture removed its directory;
+the sequential rerun above passes. No test or product check was changed for this.
+Initial new-test fixture failures were corrected before pushing (synthetic local
+stage support and owner archive disk admission); no failed CI push was used.
+
+**Verified — failing baseline:** isolated source export of reviewed `eead1eb5`
+under `.work/round18/baseline`, overlaid with only the new tests. The five Mail
+tests returned `FAILED (failures=6, errors=2)`; the new journal test plus the two
+replacement policy tests returned `FAILED (failures=1, errors=2)` across three
+tests. Failures expose redundant repair writes/quota refusal, ineligible repair
+recording, blocked restore, archive failing to restore ordinary capacity, private
+home permission refusal and the launcher auth restriction. Current source passes
+these same tests. The initial Mail overlay's two errors were the old module lacking the newly
+introduced `RESTORE_RESERVE` constant. A second baseline run supplies only that
+16 MiB test constant (unused by the old product): all five tests still fail,
+`FAILED (failures=7, errors=1)`; restore returns `storage_limit`, and repair uses
+the physical reserve instead of refusing (the remaining error is the test
+expecting an error result from that accepted call). These are failing-baseline
+evidence, not passing-test claims.
+A direct baseline probe reproduces the review sequence with production engine/
+SQLite/journal logic and synthetic transports: `Redundant repair: True history
+bytes added: 14819`, `Cancel: storage_limit`, `control_restore_confirm:
+storage_limit`, `control_archive: restore_required`. The current-head named
+sequence regression instead completes cancellation, confirmation and archival.
+
+**Verified — last code/test commit** `b77154cd8874ff7c46b38111c6e3b0a91c040d7b`:
+
+| Workflow | Run and attempts | Exact output |
+| --- | --- | --- |
+| Control base | [42446521836 attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42446521836/attempts/1), [attempt 2](https://github.com/Ares-Empire/AresOS/actions/runs/42446521836/attempts/2) | Both PASS: `Generated artifacts match definitions`, `Ran 105 tests`, `OK`, `Control base suite PASS`. |
+| Control Mail | [42446521874 attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42446521874/attempts/1), [attempt 2](https://github.com/Ares-Empire/AresOS/actions/runs/42446521874/attempts/2) | Both PASS: `Ran 105 tests`, `Control base suite PASS`; `Mail fixture isolation PASS: internal network, one test network, no published ports`; `Ran 200 tests`, `OK`, `Control Mail suite PASS`. |
+| Control boundary | [42446521817 attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42446521817/attempts/1) | PASS: `Ran 16 tests`, `Installed boundary precondition PASS`; `NATIVE_BOUNDARY_OK` in both modes, 127 attacks each, AF_UNIX/AF_VSOCK EPERM, zero hostile arrivals and unchanged approval mount tree; `SOURCES_OK`, `LAUNCHER_POLICY_SOURCES_OK`, `ISOLATION_OK`. |
+
+Both second passes use `gh run rerun` on these same run ids; no push was made to
+obtain another pass. Any later commit changes only files under `reviews/`. The PR
+body records the final report-inclusive head, both base/Mail passes on that exact
+head and the boundary workflow result.
+
+**Not verified:** real providers/accounts, live organization policy, physical
+power-loss durability, terminal/phone approval UI, recipient-program presentation
+and model-driven tasks. No host installation, Minecraft/Gradle, OS/mod/workflow
+change or UI screenshot applies to this round. The existing real-account owner
+checks remain.
+
+**JUDGMENT-CALL:** separate journal accounting and quota-exempt owner maintenance
+use the brief's approved options; no new decision is requested. Rotating the
+journal later would require a checkpoint-format migration with older-backup and
+crash tests. **PLAN-GAP:** none added; physical disk capacity is finite and the
+journal/export space must be retained/provided by the owner. **Open questions:**
+none new; existing account/approval/presentation qualification remains.
+
+**Workspace hygiene:** no `.work/` file exceeds 500 MB. Only this worktree and
+`pkg/19-mail` changed; no protected path or workflow changed. No new PR, merge or
+force push. PR #9 remains draft.
+
 ## Review fixes, round 17
 
 **Done — read:** implements `briefs/19-review-fixes-17.md` for both findings in
@@ -68,22 +226,18 @@ non-JSON files, hidden entries and subdirectories also refuse. Component-wise
 `O_NOFOLLOW` opens reject symlinked parents and directories, including dangling
 links. The main-file checks retain their earlier diagnostics and assertions.
 
-The four changed files in brief 18b's package are `control/boundary/launch.py`, which now
-runs the same complete check before launching and restricts supported login types,
-and `control/boundary/check.py`, which exercises empty/nonempty/symlink drop-ins
-and a remote cache through the installed launcher in its disposable Linux image.
-`control/boundary/native.py` now installs a generated synthetic policy definition
-only inside each disposable root-supervised native session and temporarily omits
-the personal-login probe for that no-account experiment, then restores both
-original sources. This is required because
-that existing experiment deliberately uses a local fixed API endpoint and exact
-Bash grants instead of a real account. The launcher still performs source equality
-and all earlier native sandbox/mount/socket assertions remain. Its production
-personal-login probe is exercised separately by the source tests and ordinary
-launcher checks; the native hostile experiment does not qualify account authentication.
-`control/boundary/test_native.py` adds the exact-policy and restoration-on-exception
-regression. No other brief 18b file changed. There is no production fixture switch
-or fixture-path option.
+**Round-18 update, named removals:** `control/aresos_control/boundary.py` no
+longer checks `~/.claude/remote-settings.json` or traverses the owner's home.
+`control/boundary/launch.py` no longer calls `auth status` or restricts subscription
+and authentication types. Its complete generated-file/drop-in check remains.
+`control/boundary/check.py` now asserts that an existing remote cache permits
+launch; all empty/nonempty/symlink drop-in assertions remain.
+`control/boundary/native.py` still installs and restores the generated synthetic
+policy, but no longer edits the launcher to omit the removed login check.
+`control/boundary/test_native.py` now asserts that the launcher stays unchanged
+through the fixture and retains its exact-policy, sandbox, grants and restoration
+assertions. These changes implement decision 24; managed-settings slimming is not
+part of this round. No production fixture switch or fixture-path option exists.
 
 **read — 2026-11-08, end to end:** [Managed settings](https://code.claude.com/docs/en/managed-settings),
 [Settings](https://code.claude.com/docs/en/settings), and
@@ -92,13 +246,13 @@ Also read the source-location/exclusive-control portions of
 [Managed MCP](https://code.claude.com/docs/en/managed-mcp).
 The Linux policy-source inventory and its disposition are:
 
-| Source (read, date above) | Check or reason it does not supply additional policy here |
+| Source (read, date above) | Check or disposition |
 | --- | --- |
 | `/etc/claude-code/managed-settings.json` | Exact generated canonical JSON, protected root-owned ancestors/file. |
 | `/etc/claude-code/managed-settings.d/*.json` | Main file precedes alphabetically ordered drop-ins; all directory entries now refuse. |
 | `/etc/claude-code/managed-mcp.json` | Separate exclusive server source; exact generated JSON and protected path. |
 | `managedMcpServers` in managed settings | Absent from the generated object; adding it refuses equality. |
-| Remote policy from the organization or a signed-in gateway; `~/.claude/remote-settings.json` cache | Supported terminal launcher restricts login; cache must be absent at startup and every asking preparation/submission. |
+| Remote policy from the organization or a signed-in gateway; `~/.claude/remote-settings.json` cache | Round 18 removes cache admission and the subscription/login restriction under decision 24. The service never traverses the owner home for this cache; remote policy is outside the generated local-file check. |
 | `policyHelper` executable/output | Absent from the generated settings, so configuring a helper refuses. |
 | SDK/embedding-host parent settings | Fixed terminal launcher supplies no host settings; generated policy does not opt into parent merging. |
 | macOS managed preferences; Windows HKLM/HKCU and WSL inheritance | Not applicable to the native Linux deployment; this Mac is only the development host. |
@@ -127,23 +281,22 @@ keys and specified profiles; gateways have their own delivery. The cache can
 apply before a fresh fetch. Noninteractive settings requiring approval can apply
 without being cached. See
 [Server-managed settings](https://code.claude.com/docs/en/server-managed-settings#platform-availability).
-**implementation:** do not infer this owner's account type. The pinned native
-CLI's local `auth status --json` must report signed out, or a personal
-`claude.ai` login with `subscriptionType` `pro`, `max` or `ultra`. Unknown types,
-Team/Enterprise, API-key or gateway authentication refuse the launcher. A
-signed-out launch permits interactive personal login. Environment-injected tokens,
-provider/profile selectors and alternate config directories do not survive the
-static launcher. The fixed interactive launch has no `-p`/SDK parent mode. Any
-remote cache, even `{}`, a dangling symlink or a symlinked parent, refuses the
-service's asking tools and launcher. Changing account types requires relaunch and
-qualification; no claim is made for live organization-policy delivery or alternate
-launchers. No real account or remote policy server was contacted for qualification.
+**implementation, updated in round 18:** the subscription-only login restriction
+and service remote-cache refusal described by round 17 were removed under
+decision 24. The static launcher's existing environment clearing, fixed arguments,
+managed-file/drop-in checks, native hashes and canaries remain. No real account or
+remote policy server was contacted. This report no longer claims remote-policy
+exclusion through subscription status or cache absence.
 
 **Design-ready:** decision 22 will later add vetted additions, possibly as drop-ins;
 then the check must compute the merged policy in Claude Code's documented order
 and compare it with the generated policy plus the vetted additions.
 
 ### Finding 2: usable recovery capacity and owner archive
+
+**Historical round-17 accounting below is superseded by round 18:** the current
+cap covers SQLite only; owner restore/archival bypass it, and ordinary recovery
+retains 16 MiB of physical space for owner maintenance.
 
 `control/aresos_control/retention.py`, `storage.py` and `engine.py` reserve 64 MiB
 of the 1 GiB combined SQLite/independent-history quota for recovery. Ordinary
@@ -201,8 +354,8 @@ leaves either exported source rows or their durable archival tombstones.
 | `PolicySources.test_review17_drop_in_reproduction_names_file_and_all_entries_refuse` | Exact review payload names `99-open.json`; any entry refuses; empty and absent directories pass. |
 | `PolicySources.test_review17_drop_in_symlink_and_unsafe_directory_refuse` | Real/dangling symlink, wrong ownership, group/world write each refuse. |
 | `ExactBoundary.test_review16_ancestor_owner_group_world_and_symlink_each_refuse` (unchanged) | Symlinked main-file parent and every unsafe ancestor still refuse, with existing assertions. |
-| `PolicySources.test_review17_remote_cache_and_any_symlink_refuse` | Remote cache, cache symlink and symlinked parent refuse. |
-| `PolicySources.test_review17_launcher_refuses_unknown_or_remote_eligible_authentication` | Only signed-out/personal status qualifies; unsupported/unknown logins and a failed source check never launch. |
+| `PolicySources.test_review18_private_home_and_remote_cache_are_never_traversed` | Replaces the removed round-17 remote-cache refusal expectation; private home, cache and cache symlink do not block admission. |
+| `PolicySources.test_review18_launcher_has_no_auth_restriction_and_keeps_boundary_and_canaries` | Replaces the removed round-17 subscription restriction; both canaries and fixed CLI arguments remain, and failed managed checks never launch. |
 | `Recovery17.test_review17_unchanged_prepare_reuses_exact_approval_and_no_history_even_at_free_limit` | Repetition/restart reuse; changed/cancelled/expired preparations do not. |
 | `Recovery17.test_review17_free_limit_preserves_cancel_both_ack_paths_repair_and_expiry` | Ordinary work refuses without a write; recovery succeeds; SMTP is forbidden in the recovery probe. |
 | `Recovery17.test_review17_free_limit_and_physical_reserve_preserve_owner_restore_confirmation` | Real older-SQLite restore confirms at the free-work and physical-reserve boundary; old approval remains unusable. |
