@@ -9,13 +9,16 @@ Review records: [REVIEW.md](REVIEW.md), [REVIEW-2.md](REVIEW-2.md),
 [SECURITY-REVIEW-2.md](SECURITY-REVIEW-2.md),
 [SECURITY-REVIEW-3.md](SECURITY-REVIEW-3.md),
 [SECURITY-REVIEW-4.md](SECURITY-REVIEW-4.md),
-[SECURITY-REVIEW-5.md](SECURITY-REVIEW-5.md), and
-[SECURITY-REVIEW-6.md](SECURITY-REVIEW-6.md).
+[SECURITY-REVIEW-5.md](SECURITY-REVIEW-5.md),
+[SECURITY-REVIEW-6.md](SECURITY-REVIEW-6.md), and
+[SECURITY-REVIEW-7.md](SECURITY-REVIEW-7.md).
 
 ## For the owner: decisions before merge
 
 **read — still-open JUDGMENT-CALLs and PLAN-GAPs across all rounds:**
 
+- **Folder renames — JUDGMENT-CALL, round 15:** tools now change only the last folder name within its current parent; move folders between parents in your mail program. Cross-parent renames with a post-check and warning, as filing does, were the alternative. That can place an entire populated folder under Trash during a role race, so it was rejected. Reopening this choice later changes the rename input/safety policy and its tests; existing mailbox contents need no migration. New special roles assigned after a rename produce a persistent warning.
+- **Installed approval boundary, round 15:** asking tools refuse preparation and submission until the managed Claude Code settings and MCP files are installed and verified; free reads and changes remain available.
 - **Draft revisions and deletion:** editing or sending keeps the old draft, so revisions can accumulate. This keeps every deletion behind its own named approval; silently replacing or removing drafts was rejected.
 - **Conservative draft protection:** draft text, including quoted history, must fit wholly in approval; any part of a draft, even a binary file, refuses attachment, and older marked Sent copies get the same protection. A narrower policy could allow more attachments and long threads, but would need a reliable way to distinguish who wrote each part; Drafts now also refuses move/copy, while sending itself, forwarding inline and approved deletion remain the routes out.
 - **Saving draft attachments:** Claude cannot save any draft part or its source to your folders, even a PDF. Save draft attachments in your mail program, or have Claude send the draft itself with `mode=draft`; allowing exports would require reliable provenance on decoded files and full disclosure on reimport.
@@ -39,6 +42,193 @@ Review records: [REVIEW.md](REVIEW.md), [REVIEW-2.md](REVIEW-2.md),
 - Complete onboarding with your aliases, authentication, TLS trust, special folders, delayed Sent behavior and folder-deletion guard; the tests use synthetic accounts only.
 - Check complete approvals on both terminal and phone, then try the seven everyday Claude mail tasks; automated protocol tests do not establish how usable those flows feel.
 - Send a forwarded `.eml` to recipients using Apple Mail, Outlook, Thunderbird, Gmail on the web and iOS Mail, and check how each opens or saves the exact attachment; the round-5 documentation does not establish its presentation.
+
+## Review fixes, round 15
+
+**Done — read:** closes findings 1–3 and the decoder-bounds should-fix in
+[SECURITY-REVIEW-7.md](SECURITY-REVIEW-7.md), following
+`briefs/19-review-fixes-15.md`. The attachment-disclosure decision stays open.
+The code/test head is `cf1426bd4615c67917e9375990a4515ea5215233`;
+**any later commit changes only files under `reviews/`**.
+
+- **Installed boundary:** new shared-base `aresos_control/boundary.py` reads the
+  installed managed settings and MCP files at startup and before every asking
+  preparation/submission, including direct CLI/socket use and owner setup probes.
+  It requires regular root-owned files without symlinks or group/world write
+  bits, the specified sandbox/source/bypass gates, socket-directory denial,
+  every generated asking rule, no exact or wildcard allow grant for those tools,
+  and exactly the generated production MCP server commands. Missing paths default
+  to `/etc/claude-code`; `service.json` may supply `managed_settings` and
+  `managed_mcp` for fixtures. Faults name the path/key/tool/server with
+  `boundary_not_installed`. Reads and free changes still work. `engine.py` owns
+  the service-side gate; `daemon.py` passes its protected configuration;
+  `mail/onboarding.py` checks before setup and again before recording readiness.
+- **One source of truth:** `generate.py` derives asking rules and managed MCP
+  commands from the catalogue through the shared boundary helpers. It also writes
+  the MCP ask rules into `settings/managed-settings.draft.json`, retaining its
+  other content and non-MCP ask rules; `--check` detects drift. The generated
+  `managed-mcp.json` has the same contents as before. The only changes under
+  `control/boundary/` are two Dockerfile lines: copy the shared Python package,
+  then execute the actual precondition check against the installed files after
+  the image's existing COPY/cp steps. It prints
+  `Installed boundary precondition PASS` during the build.
+- **Parent-only renames:** `mail/adapter.py` reads the source's actual hierarchy
+  separator, accepts only a new last name, and constructs the target inside the
+  same parent. Separator-bearing input refuses with “move folders between parents
+  in your mail program”. Existing leaf/special-folder protections remain.
+  `mail/filing.py` retains the rename intent, LIST observation and message count;
+  a new special-use role (including Flagged/All/Important) or an unverifiable
+  result generates a persistent warning through the existing bounded notice,
+  paging, log and acknowledgement path. Role flags are normalized and deduplicated before notice construction, so
+  repeated server flags cannot make a persistent notice oversized. No rollback
+  or deletion occurs.
+  `mail/definitions.py`, generated Mail tools and `docs/control/TOOLS.md` describe
+  the last-name input and optional partial/warning result fields.
+- **Input and journal integrity:** shared `common.py` rejects non-finite floats
+  including exponent overflow, constants, integers with absolute value greater
+  than `2**63 - 1`, more than 64 nesting levels, more than 6 MiB, initial BOMs,
+  invalid UTF-8 and non-scalar Unicode. A nonrecursive pre-scan bounds the decoder;
+  the error-classification pairs tree uses the same bounds. `requests.py` supplies
+  closed version/method envelopes for all six socket methods, including the
+  typed `saved` outcome, and explicit upload/download chunk schemas; tool
+  payloads still use their catalogue schemas. `engine.py` validates before
+  dispatch. `proxy.py` bounds binary MCP lines before decoding/SDK dispatch,
+  drains an oversize line in bounded pieces and refuses its entire contents;
+  it validates JSON-RPC and tool-call envelopes. `hooks.py` bounds stdin and
+  validates its event payload before reading pending work. CLI/configuration
+  ingress inherits the shared decoder without another parser.
+- **Fail closed:** `storage.py` validates and serializes the complete event before
+  appending the independent fence or writing SQLite. An incomplete durable write
+  latches `journal_incomplete` until restart recovery; later state changes,
+  submissions, expiry, restore confirmation and file transfers cannot write past
+  it. `blobs.py`, and both blob stores wired by `engine.py`/`mail/adapter.py`,
+  check the same latch before writing bytes or metadata. Requests are validated
+  before adapter/blob work. Tests include a failed submission-stage write that
+  stops before the next recipient.
+
+**Existing fixture changes, with every assertion retained:**
+`control/ci/test.sh` installs actual root-owned generated managed files for the
+whole base and Mail container suites. New `control/boundary_test_support.py`
+installs the same files with a fixture's temporary socket directory denied.
+The only edits to the existing brief-18 tests are that fixture installation and
+one new integration test in `control/tests/test_integration.py`. Existing Mail
+fixtures in `test_proxy.py`, `test_review_fixes.py`, `test_review_fixes_2.py`,
+`test_review_fixes_13.py` and `test_review_fixes_14.py` each receive the same two-line
+policy installation before starting their daemon. No assertion was changed,
+removed or skipped.
+
+**New tests by name — run:**
+
+- `InstalledBoundary.test_each_required_setting_missing_and_wrong_refuses_preparation_and_submission`
+- `InstalledBoundary.test_all_generated_asking_rules_required_and_never_allowed_even_wildcards`
+- `InstalledBoundary.test_both_files_require_root_regular_nonwritable_nonsymlink`
+- `InstalledBoundary.test_exact_managed_servers_and_commands_and_default_paths`
+- `InstalledBoundary.test_boundary_image_generated_files_pass_and_restored_policy_enables_submission`
+- `JournalClosed.test_complete_event_serialized_before_any_durable_change`
+- `JournalClosed.test_every_envelope_and_payload_validated_before_dispatch_including_saved`
+- `JournalClosed.test_incomplete_transaction_blocks_requests_blobs_expiry_and_restore_until_restart`
+- `JournalClosed.test_incomplete_submission_stage_stops_before_next_recipient`
+- `IngressBounds.test_strict_and_error_classification_decoders_share_all_bounds`
+- `IngressBounds.test_socket_raw_bounds_refuse_before_engine_dispatch`
+- `IngressBounds.test_cli_raw_bounds_refuse_before_proxy_or_admin_password_prompt`
+- `IngressBounds.test_hook_raw_bounds_refuse_before_pending_read`
+- `IngressBounds.test_hook_explicit_payload_schema_refuses_wrong_types_and_unknown_fields`
+- `IngressBounds.test_real_mcp_binary_stdio_bounds_refuse_without_dispatch_and_stream_recovers`
+- `Integration.test_round15_same_uid_socket_and_installed_cli_require_policy_then_execute_once`
+- `Review15.test_review15_cross_parent_reproduction_and_separator_refused_before_rename`
+- `Review15.test_review15_leaf_rename_retains_parent_and_all_messages`
+- `Review15.test_review15_role_assigned_by_rename_persists_bounded_warning_and_ack`
+- `Review15.test_review15_repeated_special_role_flags_keep_notice_bounded`
+- `Review15.test_review15_exact_saved_overflow_then_composition_restart_keeps_valid_evidence`
+- `Review15.test_review15_mail_preparations_submissions_and_onboarding_require_boundary`
+- `Review15.test_review15_onboarding_rechecks_policy_before_marking_account_ready`
+
+The raw-input matrix exercises socket, both CLI paths, real binary MCP stdio,
+Stop and UserPromptSubmit with `1e400`, oversized integers, NaN, 1,200 arrays,
+escaped lone surrogates, surrogate-encoded UTF-8, invalid UTF-8/surrogateescape
+bytes, BOM and oversize input. Guards prove no dispatch, adapter call, password
+prompt or pending request occurs; MCP continues with a valid request afterward.
+The exact review `saved` frame is refused, a later Mail composition succeeds,
+and real Store restart validates the journal without `evidence_corrupt`.
+
+**Local verification — run before each push:**
+
+```text
+python3 control/generate.py --check
+Generated artifacts match definitions
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/mail_tests:.work/round10/vendor python3 .work/round10/check-local.py
+Python syntax OK: 93 files
+Ran 53 tests in 2.400s
+OK
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/tests:.work/round10/vendor python3 -m unittest test_operations test_record test_crashes test_approval_questions test_strict_json test_boundary test_journal_closed test_ingress_bounds
+Ran 58 tests in 15.517s
+OK
+PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s control/boundary -p test_native.py -v
+Ran 15 tests in 0.005s
+OK
+git diff --check
+(no output; exit 0)
+```
+
+All pre-push local runs passed. The report-push repetition printed
+`Ran 53 tests in 2.392s`, `Ran 58 tests in 15.432s` and
+`Ran 15 tests in 0.004s`, each followed by `OK`.
+
+The first base invocation exposed a missing local MCP dependency in the round-10
+vendor directory; the already downloaded round-14 vendor copy supplies it through
+an ignored local bootstrap. The Mac is not root: that bootstrap models root
+ownership only for generated fixture copies, while the content/mode/type/symlink
+checks execute normally. Linux CI installs and checks real root-owned files;
+local ownership modeling is not evidence of Linux confinement. Early new-test
+runs also exposed a too-narrow socket exception expectation and a missing dummy
+MCP socket configuration; both test harnesses were corrected before the push.
+The complete-event test additionally led to validation of untrusted content
+before display escaping. Subsequent local commands above pass.
+
+Eight selected new tests were also run using reviewed `6a2e0e36` production
+modules extracted inside `.work/round15/baseline`: four base tests and four Mail
+tests all fail at the relevant missing refusal, silent rename or unsafe durable
+write. The new boundary module was supplied only so the current fixture imports
+could load; the reviewed Engine never invokes it. These are regression probes,
+not a baseline-suite pass. The repeated-role regression separately failed on
+`35ea98a9` with `result_too_large`, then passed after deduplicating the role
+flags. That correction required a second code push before the report push; no
+GitHub workflow failed.
+
+**Code/test-head Linux verification — run:**
+
+| Workflow / pass | Exact relevant output |
+| --- | --- |
+| [Mail 42427029339, attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42427029339/attempts/1) | `Ran 87 tests in 70.630s`; `Control base suite PASS`; `Ran 171 tests in 522.238s`; `Control Mail suite PASS` |
+| [Mail 42427029339, attempt 2](https://github.com/Ares-Empire/AresOS/actions/runs/42427029339/attempts/2) | `Ran 87 tests in 71.634s`; `Control base suite PASS`; `Ran 171 tests in 528.149s`; `Control Mail suite PASS` |
+| [Independent base 42427029387, attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42427029387/attempts/1) | `Ran 87 tests in 61.449s`; `Control base suite PASS` |
+| [Independent base 42427029387, attempt 2](https://github.com/Ares-Empire/AresOS/actions/runs/42427029387/attempts/2) | `Ran 87 tests in 82.250s`; `Control base suite PASS` |
+
+Both Mail passes include all 171 Mail tests and the complete 87-test base suite;
+both independent base passes run all 87 tests. Every pass prints generated
+artifact agreement and its suite PASS lines. The [boundary run 42427029336](https://github.com/Ares-Empire/AresOS/actions/runs/42427029336)
+also passed, including `Installed boundary precondition PASS` during image
+build, and `NATIVE_BOUNDARY_OK`, `BOUNDARY_OK`, `LAUNCHER_OK`, `SETTINGS_OK` and
+`ISOLATION_OK` in the existing hostile checks. The native absent-helper
+standalone VSOCK fallback remains explicitly unqualified, as in 18b's report.
+
+
+**Not verified / PLAN-GAP:** this is an installation **precondition check**.
+Whether Claude Code honours the files and confines Bash is established by brief
+18b's hostile tests and brief 18c, not by this check. It is not an independent
+proof that a human approved a particular same-UID request. `os/` installs these
+files later, owned by another session; this round does not edit `os/`. Real
+providers, owner setup, terminal/phone prompt presentation and the existing
+attachment-disclosure decision remain owner checks. No screenshots are needed
+for these protocol/service changes. No new open question beyond the owner
+rename decision and that existing attachment decision.
+
+**Repository discipline:** the pre-existing local review/brief commit was pushed
+with the two code commits. The third push contains only this review report;
+second passes use `gh run rerun`, never a push just to trigger CI. Both ordinary
+pre-push privacy checks remain enabled. No merge, rebase, force push, protected
+review edit, workflow change or OS/mod change. No `.work` file exceeds 500 MB
+(the closing scan returned `[]`).
 
 ## Review fixes, round 14
 
