@@ -90,3 +90,15 @@ screenshots are kept in `reviews/`. The full loop is in [docs/WORKFLOW.md](docs/
 NOT AN OFFICIAL MINECRAFT PRODUCT. NOT APPROVED BY OR ASSOCIATED WITH MOJANG OR MICROSOFT.
 
 No Mojang code or assets are in this repository. Textures load at runtime from the player's own copy of the game.
+
+## License
+
+Free to use, change and share for non-commercial purposes, such as study, research, hobby projects, schools and
+charities, under the [PolyForm Noncommercial License 1.0.0](LICENSE.md). Commercial use, also inside a company, needs
+permission: [ares-empire.de/contact](https://www.ares-empire.de/contact). Until 2026-11-08 the mod in `mod/` was under
+CC0; copies taken before then keep that licence.
+
+The licence covers the code. It does not cover the Ares names or the screenshots. Parts from others keep their own
+licences: the Gradle wrapper (`mod/gradlew`, `mod/gradlew.bat`, `mod/gradle/wrapper/`, Apache-2.0), the cosign
+installer template in `os/manifest/ci/14/14zz-cosign/` (Apache-2.0, its `LICENSE` beside it), and the files copied
+from the Bazzite and Fedora installers as test evidence under `os/manifest/ci/` (their projects' own licences).
