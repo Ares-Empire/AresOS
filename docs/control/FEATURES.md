@@ -59,8 +59,31 @@ Effects: read, change, send (asks), delete (asks). Tools are in
 | Change an existing file (an edit, a whole replacement, clearing it) | the same; its previous version kept first for 30 days in the tool service's version store, or the change is refused | change | first, without asking |
 | See and restore previous versions | `sudo aresos admin files versions`, `… restore <id>` (restores beside the current file) | owner | owner |
 | Delete a file or folder (to the Trash or for good) | the tool service's file action | delete | first, asking |
-| Its terminal: run commands without prompts | Claude Code's sandbox (`autoAllowBashIfSandboxed: true`) | | first: reads his folders, writes only its own scratch folders (disposable); his files change through the file tools |
-| Coding sessions reading what the assistant wrote | | | never: code lives in the coding user's own home, which has no access to his |
+| Its terminal: run commands without prompts | Claude Code's sandbox (`autoAllowBashIfSandboxed: true`) | | first: reads his folders, writes its own scratch folders (disposable) and his project folders; his other files change through the file tools |
+| Start the session with skip-permissions | the launcher | | first (decision 23), once the hostile tests show the asks, the sandbox, the file-tool limits, the network list and the managed hooks hold in that mode |
+
+## Coding and project work (decision 23)
+
+| Feature | Tool | Effect | State |
+|---|---|---|---|
+| Work on code in his project folders: edit, build, test, git | the file tools and the sandboxed terminal | change | first, in the same session as mail and Chrome |
+| Install project packages and command-line tools (`gh`, linters, test runners) | the sandboxed terminal | change | first, freely: they run only inside the sandbox |
+| Pull and push code | git and `gh` in the sandbox | send (to his own repositories) | first: the sandbox reaches GitHub and the package registries only, and pushes only to his own repositories |
+| Publish a package to a registry | | | never from the sandbox: no publishing credentials |
+| Test a project against its own local server in a browser | a clean throwaway browser inside the sandbox | | first: none of his sign-ins, not his Chrome |
+| Check a project on a real site in his Chrome | the Chrome tools | read; sends ask | first, like any site |
+| Add or remove a developer site from the sandbox's list | `sudo aresos admin …` | owner | owner |
+
+## Adding tools (decision 22)
+
+| Feature | Tool | Effect | State |
+|---|---|---|---|
+| Add an MCP server (another app's, or a third party's) | `tools_prepare_add`, then `tools_add` | asks | first: pinned version and hash, installed root-owned as its own user with its own credentials and named hosts |
+| Add a claude.ai connector | the same | asks | first; asks again when its tool list changes |
+| Add a skill | the same, into the root-owned skills folder | asks | first; skill scripts run in the sandbox |
+| Add a plugin | the same, split into its parts | asks | first: skills, commands, agents and MCP servers; its hooks, language servers and monitors only if he adds them himself |
+| Use an added tool | its own tools, classified read, change, send or delete | as classified | first: send and delete ask; a tool that can't be classified asks on every call |
+| Add a tool himself; remove one | `sudo aresos admin tools …` | owner | owner |
 
 ## Chrome
 

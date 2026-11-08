@@ -97,11 +97,15 @@ Updated 2026-11-07. The live truth is `git log`, `gh pr list` and `git worktree 
      6 to 13).
    - **Decided:** the approval surface (decision 21, after six phone tests): Claude Code's own prompt, at the laptop
      and through Remote Control on his phone, with every asking input starting with the tool service's `question`
-     sentence. No owner question on the control layer is open.
+     sentence. On 2026-11-08 (decisions 22 and 23): the central session can gain tools, those that run outside its
+     sandbox only through the tool layer, asking; and one session does coding, commands, mail and Chrome together,
+     possibly in skip-permissions mode, replacing the assistant/coding split, with the risk of data leaving through
+     allowed developer sites accepted by him. No owner question on the control layer is open.
    - **In progress:** Mail (brief 19, PR #9: package review SAFE, frontier security review in its third round);
-     the approval surface written into the design (decision 21, branch `control/approval-surface`). On main since
-     PR #12 (`b84833c`): the owner's answers of 2026-11-07 (decisions 14 to 20).
+     design draft 17 for decisions 22 and 23 (branch `control/one-session-tools`; frontier re-check next).
+     `laptop-aresos` owns `os/` and the accounts and has board item #102 about installing software.
    - **Next:** brief 18c (first end-to-end test on a throwaway CI image; no owner OK needed under the 2026-11-07
-     rule), then brief 20 (Chrome) on the final design draft, once a re-check finds no blocking point.
+     rule), then brief 20 (Chrome) on the final design draft, once a re-check finds no blocking point, both as changed
+     by decisions 22 and 23 (`PLAN.md`, "Order of work"); and a new brief for the add-tool path.
 
 Codex Pro runs until 2026-11-21.
