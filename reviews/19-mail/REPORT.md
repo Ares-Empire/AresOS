@@ -18,8 +18,9 @@ Review records: [REVIEW.md](REVIEW.md), [REVIEW-2.md](REVIEW-2.md),
 [SECURITY-REVIEW-11.md](SECURITY-REVIEW-11.md),
 [SECURITY-REVIEW-12.md](SECURITY-REVIEW-12.md),
 [SECURITY-REVIEW-13.md](SECURITY-REVIEW-13.md),
-[SECURITY-REVIEW-14.md](SECURITY-REVIEW-14.md), and
-[SECURITY-REVIEW-15.md](SECURITY-REVIEW-15.md).
+[SECURITY-REVIEW-14.md](SECURITY-REVIEW-14.md),
+[SECURITY-REVIEW-15.md](SECURITY-REVIEW-15.md), and
+[SECURITY-REVIEW-16.md](SECURITY-REVIEW-16.md).
 
 ## For the owner: decisions before merge
 
@@ -54,6 +55,215 @@ The owner answered: “Agree on 8, names etc are enough. Agree on everything els
 - Complete onboarding with your aliases, authentication, TLS trust, special folders, delayed Sent behavior and folder-deletion guard; the tests use synthetic accounts only.
 - Check complete approvals on both terminal and phone, then try the seven everyday Claude mail tasks; automated protocol tests do not establish how usable those flows feel.
 - Send a forwarded `.eml` to recipients using Apple Mail, Outlook, Thunderbird, Gmail on the web and iOS Mail, and check how each opens or saves the exact attachment; the round-5 documentation does not establish its presentation.
+
+## Review fixes, round 24
+
+**Done — security review 16:** closes its three blocking findings and the
+in-scope sweep finding in [SECURITY-REVIEW-16.md](SECURITY-REVIEW-16.md), against
+reviewed head `dd8ea4f6`. The earlier unpushed review/brief commit `d2fc2426`
+went with the first batch. Four small fix commits carry the required model trailer.
+No reviewer-authored review, workflow, protected OS/mod/owner/design path, or
+approval policy was edited. No merge or push to main occurred.
+
+| Area / files | Change and reason |
+| --- | --- |
+| `mail/filing.py`, `results.py`, `storage.py`, `engine.py` | Filing snapshots exact COPYUID records, post-command roles, locations and policy warnings through the shared observation layer before writing. Moves, copies and renames keep their observations alongside storage failures. Deferred disclosures retain the complete intent, notice and location pages in memory, merge compact notices into following Mail results and `control_log`, and flush through ordinary journaled writes. A successful write also flushes deferred notices. Neither these observations nor flushing authorizes a mailbox action. |
+| `storage.py`, `engine.py`, `daemon.py` | The failure latch retains the first storage cause across requests, including a cleanup failure after the original error. Background expiry/retention records that cause before re-raising, emits a sanitized service-log error and retains an owner notice. Later change refusals name disk full/quota or I/O. A complete successful write clears the cause; incomplete transactions still require restart recovery. The daemon keeps serving reads after Engine has recorded the diagnosis. |
+| `files.py` | Post-publication export failures return the original typed storage error together with either the confirmed zero-byte rollback or its failure/remaining-byte warning. A secondary rollback error cannot replace the original disk-full diagnosis. |
+| `mail_tests/storage_faults.py`, `test_review23_sweep.py`, `test_review24_io.py` | Replaces commit-level proxies with actual SQLite VFS `xOpen`/`xWrite`/`xTruncate`/`xSync` interception in the runtime library, including internal statement/cache-spill writes, rollback journals and the separate index connection. Other faults intercept raw `FileIO` writes/truncation and OS create/link/rename/truncate/fsync/unlink calls. The VFS passes every read and unaffected operation to the original implementation and is active only in fault scopes. No new dependency or installer was added. |
+| `storage.py`, `engine.py` initialization | The newly injected restart failures exposed retained journal locks when construction failed before Store's old cleanup block or after Store succeeded but a later adapter failed. Both constructors now close partially initialized resources, so a failed restart can be followed immediately by a clean one. This is required restart recovery, not a separate issue hunt. |
+| `mail_tests/test_review_fixes_24.py`, `tests/test_review24_exports.py` | Reproduces each reported failure and checks the notice, original diagnosis and rollback behavior. The export test covers both successful and failed rollback sync. |
+
+**Verified — named regressions:**
+
+- `Filing24.test_review24_move_and_copy_keep_exact_destination_role_and_deferred_warning`:
+  MOVE/COPY succeeds, target acquires Trash, post-command persistence fails;
+  exact destination, role, warning and disk-full error survive. Following Mail and
+  log results repeat the warning; it is stored when writing becomes possible.
+- `Filing24.test_review24_journal_full_after_move_keeps_warning_in_mail_and_log_while_latched`:
+  injects ENOSPC into the real post-MOVE journal write, checks the exact destination
+  and role, and proves the volatile warning remains visible while the latch blocks writes.
+- `Filing24.test_review24_rename_keeps_observation_and_notice_before_write`:
+  the same rule for RENAME into a newly assigned Trash role, then notice persistence.
+- `Filing24.test_review24_expiry_keeps_first_storage_cause_notice_and_service_log`:
+  actual journal ENOSPC/EDQUOT/EIO during background reservation expiry; checks
+  service logging, owner notice, repeated refusal diagnosis and clean recovery/write.
+- `Exports24.test_review24_published_export_enospc_keeps_disk_full_and_rollback_outcome`:
+  directory fsync fails after publication; disk-full wording and typed error survive
+  with both successful rollback and a subsequent rollback I/O failure.
+- `SQLiteFaults24.test_review24_vfs_fails_internal_statement_writes_for_main_and_index_connections`:
+  real SQLite fails during a spilling INSERT before any Python `commit`, for each
+  connection type; the rolled-back table remains empty.
+- `FaultSweep23.test_review24_recovery_oracle_rejects_attempted_send_returning_to_reserved`:
+  deliberately models that unsafe recovered state and proves the independent oracle
+  rejects it before a repeated DATA can occur.
+- `FaultSweep23.test_review23_enospc_at_every_discovered_durable_write`:
+  the expanded sweep below retains the earlier stage/evidence/warning assertions.
+
+The only existing base-test changes forced by the new diagnosis are
+`JournalClosed.test_incomplete_submission_stage_stops_before_next_recipient`,
+`JournalClosed.test_incomplete_transaction_blocks_requests_blobs_expiry_and_restore_until_restart`
+and `Journal22.test_review22_short_commit_prepare_fails_and_full_replay_clears_latch`.
+Their later-refusal expectations now require the retained `storage_error` or
+`storage_limit` instead of generic `journal_incomplete`; the disk-full test also
+requires its wording. Every refusal, no-write, recipient, blob, expiry, restore,
+restart and successful-recovery assertion remains. No earlier test was weakened,
+skipped or deleted.
+
+**Verified — sweep coverage and independent recovery:**
+
+The 21 flows cover send, Sent-copy repair, Trash and permanent deletion, mailto and
+HTTPS unsubscribe, status, settlement, cancellation, restore confirmation, caller
+attachment export, testapp caller `file_save`, owner account-add password storage,
+free MOVE/COPY/RENAME, background reservation expiry, retention maintenance,
+restart/index build, restart/torn-journal truncation and export rollback. The
+password fixture stops onboarding qualification before any remote probe send;
+it still runs the real owner ingress, atomic password publication and account writes.
+The rollback flow deliberately takes the failure path so raw truncation is counted.
+
+| Flow | Local points | Linux pass 1 | Linux pass 2 |
+| --- | ---: | ---: | ---: |
+| `send` | 788 | 788 | 788 |
+| `repair` | 351 | 351 | 351 |
+| `delete_trash` | 244 | 244 | 244 |
+| `delete_permanent` | 366 | 366 | 366 |
+| `unsubscribe_mailto` | 788 | 788 | 788 |
+| `unsubscribe_https` | 305 | 305 | 305 |
+| `status` | 69 | 69 | 69 |
+| `settlement` | 131 | 131 | 131 |
+| `cancel` | 61 | 61 | 61 |
+| `restore` | 64 | 64 | 64 |
+| `attachment_export` | 195 | 194 | 194 |
+| `testapp_export` | 114 | 113 | 113 |
+| `password` | 105 | 105 | 105 |
+| `filing_move` | 280 | 280 | 280 |
+| `filing_copy` | 280 | 280 | 280 |
+| `filing_rename` | 178 | 178 | 178 |
+| `expiry` | 61 | 61 | 61 |
+| `maintenance` | 58 | 58 | 58 |
+| `restart_index` | 19 | 19 | 19 |
+| `restart_tail` | 21 | 21 | 21 |
+| `export_rollback` | 199 | 198 | 198 |
+| **Total injected points** | **4,677** | **4,674** | **4,674** |
+
+| Mechanism | Local | Linux pass 1 | Linux pass 2 |
+| --- | ---: | ---: | ---: |
+| `journal.write` | 164 | 164 | 164 |
+| `file.fsync` | 194 | 194 | 194 |
+| `sqlite.index.write` | 296 | 296 | 296 |
+| `sqlite.main.create` | 168 | 168 | 168 |
+| `sqlite.main.write` | 3,312 | 3,312 | 3,312 |
+| `sqlite.main.fsync` | 492 | 492 | 492 |
+| `file.create` | 12 | 12 | 12 |
+| `file.write` | 12 | 12 | 12 |
+| `file.link` | 7 | 7 | 7 |
+| `file.rename` | 5 | 5 | 5 |
+| `file.unlink` | 11 | 8 | 8 |
+| `sqlite.index.create` | 2 | 2 | 2 |
+| `journal.truncate` | 1 | 1 | 1 |
+| `file.truncate` | 1 | 1 | 1 |
+
+
+Each flow must discover at least one point; required mechanisms also have explicit
+nonzero assertions. Each discovered point is failed in a fresh scenario, with the
+prefix checked against the clean trace. Every injected response must be a typed
+storage failure with disk-full wording, preserving any observed stages/copies.
+The index deliberately disables SQLite synchronization because it is derived;
+its actual create and write calls are covered rather than inventing an index fsync.
+SQLite `create` counts VFS open-with-create attempts, including existing files.
+The runner masks the password-flow label/count as `***`; its visible mechanism
+dictionary independently sums to 105 points, recorded in the table.
+The ordinary OS fsync count includes journal, private-file and directory syncs.
+
+Recovery expectations come from fixture-side DATA, APPEND, MOVE, EXPUNGE and POST
+attempt logs, captured before recovery, plus explicit per-flow expected successful
+states. Setup DATA and the deliberately pending APPEND have their own fixture logs.
+After every scenario the first restart has a storage fault injected, then a clean
+restart runs. The dedicated restart flows additionally fail every discovered
+startup/index/truncation point. Every remotely attempted original or repair must
+recover as unknown, partial or done, never reserved; captured original approvals
+are replayed unchanged and must not change the fixture counters. Uncertain repair
+requests are retried only through the existing local-repair checks. Free filing
+must cause no automatic mutation on restart. Independent mailbox assertions check
+moved/expunged UIDs, preserved originals for COPY, both observed Sent copies and
+survival of the unnamed Deleted UID. Status is never compared to another read of
+the same recovered row as a substitute for these expectations.
+
+**Verified — local gates, on the code/test head before the first push:**
+
+```sh
+python3 control/generate.py --check
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/mail_tests:.work/round10/vendor python3 .work/round10/check-local.py
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/tests:.work/round10/vendor python3 -m unittest test_operations test_record test_crashes test_approval_questions test_strict_json test_boundary test_boundary_exact test_ingress_bounds test_journal_closed test_policy_sources test_archive test_journal_capacity test_journal_streaming test_restore_batches test_review21_pending test_review21_storage test_review22_protocol test_review22_storage test_review23_results test_review24_exports
+```
+
+Output: `Generated artifacts match definitions`; `Python syntax OK: 127 files`;
+`Ran 122 tests in 264.174s` / `OK`; `Ran 105 tests in 115.251s` / `OK`.
+The local sweep passed all **4,677** injected points in **184.319s**. The same
+required gates were run again before the report push: `Generated artifacts match definitions`; `Ran 122 tests in 202.760s` / `OK`; `Ran 105 tests in 95.560s` / `OK`.
+
+An isolated copy of the reviewed production package under this worktree's `.work/`
+was run with the new tests, without switching branches or touching another worktree:
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=.work/round24-baseline/control:control:control/mail_tests:.work/round10/vendor python3 -m unittest test_review_fixes_24 -q
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=.work/round24-baseline/control:control:control/tests:.work/round10/vendor python3 -m unittest test_review24_exports -q
+```
+
+Reviewed `dd8ea4f6` prints `FAILED (failures=3, errors=4)` for the four filing/background
+regressions (including missing observations and missing service logging) and
+`FAILED (failures=2)` for the two export rollback subcases (`file_refused` and
+`save_incomplete` replace the required storage cause). The changed source passes
+all of them. Earlier local attempts also exposed the two startup resource leaks;
+the assertions were retained and cleanup was fixed before pushing. The initial
+base run identified the required later-refusal expectation updates named above.
+These were local failures, not workflow runs.
+
+**Verified — Linux code/test-head runs:** last commit changing code or tests is
+`5c058611b3649fe5dea7873d9e4049e392b4f25f`. Every later commit changes only files
+under `reviews/`. The exact runs of that code/test head are:
+
+| Workflow | Code/test-head runs | Result |
+| --- | --- | --- |
+| Control Mail | [42487775502 attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42487775502/attempts/1), [attempt 2](https://github.com/Ares-Empire/AresOS/actions/runs/42487775502/attempts/2) | Both PASS; full shared base plus Mail and the OS/VFS sweep. |
+| Control base | [42487775921 attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42487775921/attempts/1), [attempt 2](https://github.com/Ares-Empire/AresOS/actions/runs/42487775921/attempts/2) | Both PASS; generated artifacts match. |
+| Control boundary | [42487775665](https://github.com/Ares-Empire/AresOS/actions/runs/42487775665) | PASS; 16 fixture tests, both confinement modes with 127 attacks each, policy checks and coding-user isolation. |
+
+Exact Linux output: Mail pass 1: `Ran 135 tests in 166.868s` / `OK`; `Ran 244 tests in 1037.324s` / `OK`; sweep **4,674** points in **276.588s**. Mail pass 2: `Ran 135 tests in 139.828s` / `OK`; `Ran 244 tests in 912.189s` / `OK`; sweep **4,674** points in **222.923s**. Independent base passes: `Ran 135 tests in 180.159s` / `OK`; `Ran 135 tests in 184.239s` / `OK`. Both Mail runs print `Control base suite PASS`, `Control Mail suite PASS` and fixture isolation PASS; both independent base runs print `Control base suite PASS`. The sweep stays within the existing 30-minute Mail workflow budget.
+
+The first Mail run also emits 44 `ResourceWarning` lines for fixture TLS sockets
+and SQLite handles, the same count as prior round-23
+[42482536046 attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42482536046/attempts/1).
+These warnings were not suppressed; the complete suites pass.
+
+The second Mail/base passes rerun these same automatic pull-request run IDs with
+`gh run rerun`; no manual dispatch or extra push obtains a second pass. The final
+report-inclusive head and its two Mail/base passes are recorded in draft PR #9,
+so the report does not need another commit just to name itself. Two pushes produce six automatic workflow run IDs; second passes reuse those IDs.
+All pushes use normal Git verification, with no hook bypass or force push.
+Generated artifacts remain in sync and `git diff --check` prints nothing.
+Remaining `.work/` files over 500 MB: `[]`.
+
+**Not verified:** physical disk exhaustion, power loss and storage-controller
+behavior beyond the injected raw/VFS faults; real-account authentication, roles,
+provider timing and presentation; installed-host/terminal/phone usability gates.
+Local Docker is unavailable; container evidence is from the Linux workflows.
+The Mac export sweep substitutes only Linux unnamed-inode/publication/path-check
+primitives; Linux CI uses the production primitives. No screenshot applies to
+these service/storage changes. No real mail account, model session or host install
+was used.
+
+**JUDGMENT-CALL:** none beyond the brief. Deferred notices live until they can be
+journaled or the service restarts, as requested. An incomplete journal transaction
+still blocks changes until recovery; this run adds diagnosis and disclosure,
+not a new recovery mutation or a replay permission.
+
+**PLAN-GAP:** no new product gap. The formerly narrow sweep is superseded by the
+raw/VFS coverage and independent recovery checks above. Existing owner decisions
+and the round-21 fail-closed disk bar remain unchanged.
+
+**Open questions:** no new questions; the established real-account and human
+presentation/usability checks remain with the owner before deployment.
 
 ## Review fixes, round 23
 
