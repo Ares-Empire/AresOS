@@ -1,6 +1,7 @@
 import base64
 import hashlib
 import imaplib
+import sqlite3
 import time
 import uuid
 
@@ -9,7 +10,7 @@ from .adapters import NothingLeft, Uncertain
 from .blobs import Blobs
 from .boundary import Boundary
 from .requests import envelope, UPLOAD_CHUNK, DOWNLOAD_CHUNK
-from .common import CHUNK_SIZE, FILE_LIMIT, RESULT_LIMIT, Refused, approval_input, approval_order, canonical, digest, require_question, validate, visible
+from .common import CHUNK_SIZE, FILE_LIMIT, RESULT_LIMIT, Refused, approval_input, approval_order, canonical, digest, require_question, validate, visible, storage_refusal
 from .definitions import APPS, BY_NAME, tools_for
 from .storage import Store
 from .testapp import Receiver, TestApp
@@ -466,7 +467,10 @@ class Engine:
             return self._request(request, admin)
         except Refused as exc:
             return {'ok': False, 'error': {'code': exc.code, 'message': str(exc)}, 'pending': self.pending()}
-        except Exception:
+        except Exception as exc:
+            storage = storage_refusal(exc)
+            if storage:
+                return {'ok': False, 'error': {'code': storage.code, 'message': str(storage)}, 'pending': self.pending()}
             return {'ok': False, 'error': {'code': 'internal_error', 'message': 'Request failed unexpectedly; inspect operation status before repeating changes.'}, 'pending': self.pending()}
         finally:
             self.store.recovering = previous_recovery
@@ -545,7 +549,10 @@ class Engine:
             if method != "download" and len(canonical(result).encode()) > RESULT_LIMIT and method != "tools":
                 raise Refused("result_too_large", "Result exceeds 49152 bytes; request a smaller page. Check status before repeating changes.")
             return result
-        except (OSError, imaplib.IMAP4.error, Uncertain):
+        except (OSError, sqlite3.DatabaseError, imaplib.IMAP4.error, Uncertain) as exc:
+            storage = storage_refusal(exc)
+            if storage:
+                return {'ok': False, 'error': {'code': storage.code, 'message': str(storage)}, 'pending': self.pending(app)}
             return {"ok": False, "error": {"code": "transport_error", "message": "Mail transport failed; inspect operation status before repeating changes. No automatic retry."}, "pending": self.pending(app)}
         except (Refused, ValueError, KeyError, TypeError) as exc:
             message = str(exc) if isinstance(exc, Refused) else "Invalid input or unsupported server data; inspect the tool schema and operation status."

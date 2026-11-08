@@ -1,6 +1,8 @@
 import hashlib
+import errno
 import json
 import math
+import sqlite3
 import unicodedata
 
 WIRE_LIMIT = 6 * 1024 * 1024
@@ -17,6 +19,20 @@ class Refused(Exception):
     def __init__(self, code, message):
         self.code = code
         super().__init__(message)
+
+
+def storage_refusal(exc):
+    """Classify local storage failures without exposing paths or server text."""
+    if isinstance(exc, Refused):
+        return exc if exc.code in {'storage_limit', 'storage_error', 'journal_incomplete', 'restore_required'} else None
+    code = getattr(exc, 'sqlite_errorcode', 0) & 0xff
+    if (isinstance(exc, OSError) and exc.errno in {errno.ENOSPC, errno.EDQUOT}
+            or code == sqlite3.SQLITE_FULL):
+        return Refused('storage_limit', 'Disk full or storage quota exhausted; free storage and check the recorded request or operation before retrying.')
+    if (isinstance(exc, OSError) and exc.errno == errno.EIO
+            or code == sqlite3.SQLITE_IOERR):
+        return Refused('storage_error', 'Storage I/O failed; check the disk and recorded request or operation before retrying.')
+    return None
 
 
 class _JSONPairs(list):

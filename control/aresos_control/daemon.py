@@ -7,7 +7,7 @@ import socket
 import stat
 import struct
 
-from .common import FILE_LIMIT, Refused, strict_json_loads
+from .common import FILE_LIMIT, Refused, strict_json_loads, storage_refusal
 from .engine import Engine
 from .protocol import receive, send
 
@@ -59,6 +59,7 @@ class Daemon:
                             continue
                         result = self.engine.request(request, admin=kind == "admin")
                     except Exception as exc:
+                        exc = storage_refusal(exc) or exc
                         result = {"ok": False, "error": {"code": getattr(exc, "code", "internal_error"), "message": str(exc) if isinstance(exc, Refused) else "Request failed unexpectedly; inspect operation status before repeating changes."}, "pending": {"items": [], "total": 0, "cursor": None}}
                     try:
                         send(connection, result, result=True)

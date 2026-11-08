@@ -1,5 +1,6 @@
 """Full SQLite log plus a compact independently retained restore fence."""
 import copy
+import errno
 import fcntl
 import json
 import os
@@ -9,7 +10,7 @@ import time
 import uuid
 
 from . import retention
-from .common import Refused, canonical, digest, json_value, visible
+from .common import Refused, canonical, digest, json_value, visible, storage_refusal
 from .space import SpaceLedger, record_budget
 
 RESTORE_BATCH_BYTES = 64 * 1024
@@ -261,10 +262,14 @@ class Store:
             self.index.execute('DELETE FROM latest')
         with open(self.journal.name, 'rb') as stream:
             for raw in stream:
+                if not raw.endswith(b'\n'):
+                    # A torn final write was never acknowledged. Preserve every
+                    # complete fence, including one needing prepared replay or
+                    # owner restore; only discard the incomplete line itself.
+                    self._truncate_journal(offset)
+                    break
                 try:
                     row = json.loads(raw)
-                    if not raw.endswith(b"\n"):
-                        raise ValueError('torn record')
                     if 'commit' in row:
                         if (self.sequence != committed + 1 or
                                 row != {'commit': self.sequence, 'hash': self.head_hash}):
@@ -379,6 +384,7 @@ class Store:
             offset = self._append(event['record'])
             self._index_record(event['record'], offset)
         self._finish(event)
+        self.write_failed = False
         self.ledger.finish({}, ('replay',))
 
     def _restore_operations(self, through=None):
@@ -406,9 +412,25 @@ class Store:
     def _append(self, value):
         self.journal.seek(0, os.SEEK_END)
         offset = self.journal.tell()
-        self.journal.write((canonical(value) + "\n").encode())
-        os.fsync(self.journal.fileno())
+        data = (canonical(value) + "\n").encode()
+        try:
+            # A short unbuffered write is a failed transaction, even if the
+            # next write might fit. Never acknowledge a partial fence/marker.
+            if self.journal.write(data) != len(data):
+                raise OSError(errno.ENOSPC, 'Short journal write')
+            os.fsync(self.journal.fileno())
+        except OSError as exc:
+            self.write_failed = True
+            try:
+                self._truncate_journal(offset)
+            except OSError as cleanup:
+                raise storage_refusal(cleanup) or Refused('storage_error', 'Storage recovery failed; service restart and disk inspection required.') from cleanup
+            raise storage_refusal(exc) or Refused('storage_error', 'Journal storage write failed; restart the service and check the recorded operation.') from exc
         return offset
+
+    def _truncate_journal(self, offset):
+        self.journal.truncate(offset)
+        os.fsync(self.journal.fileno())
 
     def _prepared(self, seq):
         row = self.db.execute("SELECT value FROM events WHERE seq=?", (seq,)).fetchone()
