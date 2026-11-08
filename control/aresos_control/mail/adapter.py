@@ -720,6 +720,8 @@ class Mail:
 
     def evidence(self, operation_id):
         op = self.store.get("op:" + operation_id)
+        if op and op.get('repair_of') and op.get('payload', {}).get('stage') == 'sent_copy':
+            return self.evidence(op['repair_of']) | {'repair_of': op['repair_of']}
         if not op or not op.get("payload", {}).get("composition"):
             return {"absence_is_not_proof": True}
         account = self.account(op["payload"]["composition"]["mail"]["account"], ready=False)

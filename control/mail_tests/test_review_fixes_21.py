@@ -187,6 +187,9 @@ class LateDuplicates21(unittest.TestCase):
         self.assertEqual(result['operation']['state'], 'done')
         self.assertNotIn('sent_copy_warning', result['original']['stages'])
         self.imap.boxes['Sent'][2] = raw
+        repair_status = self.data('operation_status', {'operation_id': result['operation']['id']})
+        self.assertEqual(len(repair_status['evidence']['sent']), 2)
+        self.assertIn('2 copies', repair_status['operation']['reason'])
         result = self.call('operation_status', {'operation_id': old['id']})
         self.assertTrue(result['ok'], result)
         self.assertEqual(len(result['data']['evidence']['sent']), 2)
