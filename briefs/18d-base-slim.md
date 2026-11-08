@@ -30,8 +30,12 @@ enforce; everything else is his normal Claude Code with his own `gh` login, MCP 
 
 1. **Generated managed settings, slimmed.** The single policy definition (`boundary_policy.py`, or wherever Mail left
    it) generates `/etc/claude-code/managed-settings.json` with only:
-   - `permissions.ask`: one rule per asking tool (`mcp__<app>__<verb>` for every send and delete action that isn't
-     owner-only), generated from the definitions;
+   - `permissions.ask`: one rule per asking tool, generated from the definitions: `mcp__<app>__<verb>` for every send
+     and delete action, except owner-only actions and **trusted sends**. A trusted send is a deliberately free send
+     action that runs only under one of his "don't ask again" entries, checked against his owner-only list at every
+     use (Mail's free send for an exact set of recipients, section 5, where Mail built it; later Chrome's
+     `chrome_submit_trusted`, section 6). Mark trusted sends explicitly in the definitions, so the generator and the
+     boundary check never guess; an ask rule on one would defeat "don't ask again";
    - `hooks`: the managed `Stop` and `UserPromptSubmit` notification hooks of rule 4.10, exactly as today;
    - nothing else.
 
@@ -90,7 +94,8 @@ enforce; everything else is his normal Claude Code with his own `gh` login, MCP 
 
 - Brief 18's base suite and Mail's suite pass with the slim settings; the generated artifacts are in sync.
 - The generator: the managed settings contain exactly the ask rules, the two hooks and nothing else; every asking
-  action has its rule; owner-only actions have none; `CLAUDE.md` holds the instruction-source line.
+  action has its rule; owner-only actions and trusted sends have none, and a trusted send refuses without a matching
+  owner-only entry; `CLAUDE.md` holds the instruction-source line.
 - The relaxed boundary check: passes with extra keys, rules, hooks, drop-in files, a remote-settings cache and
   installed plugins present; refuses with one ask rule missing, with a misnamed rule, with the file group-writable,
   not root-owned, a symlink, or behind a symlinked folder.
