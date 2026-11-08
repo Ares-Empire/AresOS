@@ -294,6 +294,164 @@ def check_context_returns(texts):
 
 
 class OwnerPathTest(unittest.TestCase):
+    def test_install_night_serials_join_windows_eui_to_printed_linux_serial(self):
+        texts = documents()
+        record = section(texts['INSTALL-RECORD.md'], 'c-identify-both-drives-in-live-linux')
+        for value in ('Disk.Serial', 'EUI-64', 'xxxx_xxxx_xxxx_xxxx.', 'lsblk',
+                      "Get-PhysicalDisk | Where-Object FriendlyName -like 'Micron*'",
+                      'SerialNumber = record A\'s Disk.Serial', 'Guid = record A\'s Disk.Guid',
+                      "($aresMicron[0].AdapterSerialNumber -split '_')[0].Trim()",
+                      'exactly one', 'Blank/different/ambiguous', 'printed label serial'):
+            self.assertIn(value, record)
+        step4 = section(texts['INSTALL.md'], '4-install-and-prepare-corrected-stock')
+        prompt = step4.split('At **Windows baseline Micron serial**', 1)[1].split('Require `PASS install`', 1)[0]
+        for value in ('printed Micron serial', 'AdapterSerialNumber', 'before `_`, trimmed',
+                      'SerialNumber = Disk.Serial', 'matching disk GUID', 'do not enter the EUI-64'):
+            self.assertIn(value, prompt)
+        self.assertNotIn('all matching `windows-before.json`', record)
+
+    def test_live_keyboard_command_precedes_typing_test_and_keeps_installer_de(self):
+        texts = documents()
+        for page, anchor in (('INSTALL.md', '4-install-and-prepare-corrected-stock'),
+                             ('INSTALL-RECORD.md', 'c-identify-both-drives-in-live-linux')):
+            block = section(texts[page], anchor)
+            command = block.index('sudo localectl set-x11-keymap de')
+            typing = block.index('y z / - " $ ä ö ü')
+            self.assertLess(command, typing)
+            for value in ('**ß** (right of **0**)', '**Z** (between **T** and **U**)',
+                          'spacebar', 'before Enter', 'every character matches', 'STOP →',
+                          'every live boot'):
+                self.assertIn(value, block)
+        self.assertIn('add German, remove US, **Save**', texts['INSTALL.md'])
+        self.assertIn('summary contains only **de**', texts['INSTALL.md'])
+
+        # Check the public typing advice against the exact retained ISO maps.
+        folder = ROOT/'os/manifest/ci/14/keyboard-sources'
+        maps = {}
+        for profile in ('de', 'us'):
+            raw = (folder/(profile+'.map')).read_bytes()
+            receipt = next(row for row in json.loads((folder/'index.json').read_text())
+                           if row['file'] == profile+'.map')
+            self.assertEqual(hashlib.sha256(raw).hexdigest(), receipt['sha256'])
+            maps[profile] = {int(code): symbol.lstrip('+') for code, symbol in
+                            re.findall(r'^keycode\s+(\d+)\s*=\s*(\S+)', raw.decode(), re.M)}
+        for code, german, us in ((12, 'U+00df', 'U+002d'), (21, 'U+007a', 'U+0079'),
+                                  (57, 'U+0020', 'U+0020')):
+            self.assertEqual((maps['de'][code].lower(), maps['us'][code].lower()),
+                             (german.lower(), us.lower()))
+        for char in 'abcdefghijklmnopqrstuvwx0123456789':
+            symbol = ('U+'+format(ord(char), '04x')).lower()
+            positions = [{code for code, value in maps[p].items() if value.lower() == symbol}
+                         for p in ('de', 'us')]
+            self.assertTrue(positions[0])
+            self.assertEqual(*positions)
+
+    def test_reinstall_exception_stays_before_tools_and_rejects_other_crucial_data(self):
+        texts = documents()
+        step4 = section(texts['INSTALL.md'], '4-install-and-prepare-corrected-stock')
+        retry = step4.split('**Reinstall only', 1)[1].split('- [ ]', 1)[0]
+        for value in ('failed first install', 'before the tools are installed',
+                      'Return to step 4, box 1', 'EFI, boot and system partitions, nothing else',
+                      'saved plan/records', 'Micron', 'unchanged/unmounted',
+                      'Anything else on Crucial', 'STOP', '**Use entire disk** on **Crucial only**',
+                      'After tools installation'):
+            self.assertIn(value, retry)
+        record = section(texts['INSTALL-RECORD.md'], 'c-identify-both-drives-in-live-linux')
+        self.assertIn('**zero partition children**', record)
+        retry_row = next(line for line in record.splitlines() if '| **Failed first install,' in line)
+        for value in ('before tools installation only', 'nothing else', 'no mounts', 'Micron unchanged',
+                      'Anything else on Crucial', '**STOP**', 'box 1'):
+            self.assertIn(value, retry_row)
+        card = section(texts['EMERGENCY.md'], 'password-not-accepted')
+        for value in ('failed first install before tools installation', 'box 1', 'nothing else',
+                      'Micron must be unchanged/unmounted', 'STOP', '**Crucial only**'):
+            self.assertIn(value, card)
+        account = next(line for line in step4.splitlines() if '**Create Account**' in line)
+        for value in ('every install', 'lowercase letters a–x and top-row digits 0–9', 'long, unique',
+                      'several randomly chosen words', 'No y/z', 'Enter it twice yourself'):
+            self.assertIn(value, account)
+
+    def test_only_expected_mok_menu_allows_continue_without_key_changes(self):
+        texts = documents()
+        blocks = (section(texts['INSTALL.md'], '4-install-and-prepare-corrected-stock'),
+                  section(texts['INSTALL-REFERENCE.md'], 'mok-screen'),
+                  section(texts['EMERGENCY.md'], 'blue-mok-menu-on-first-stock-boot'))
+        for block in blocks:
+            for value in ('Perform MOK management', 'Continue boot', 'STOP', 'signature', 'enrollment'):
+                self.assertIn(value, block)
+            self.assertRegex(block, r'(?i)never enroll')
+        reference = blocks[1]
+        for value in ('blue text menu', 'shim/blob/16.1/MokManager.c', 'MOK_BOOT',
+                      'password request', 'return to the menu', 'Return to step 4'):
+            self.assertIn(value, reference)
+
+    def test_maintainer_windows_role_and_owner_hands_and_secrets_are_explicit(self):
+        texts = documents()
+        for name in ('INSTALL.md', 'INSTALL-RECORD.md'):
+            intro = texts[name].split('\n## ', 1)[0]
+            for value in ('maintainer (Claude)', 'runs the Windows-side commands itself',
+                          'owner', 'firmware', 'offline Linux commands with a guiding session',
+                          'Codex does not run disk or boot tools on the real laptop'):
+                self.assertIn(value, intro)
+        guide = texts['INSTALL.md'].split('\n## ', 1)[0]
+        for value in ('F2/F12', 'every passphrase or token himself', "owner's OK", 'what could go wrong'):
+            self.assertIn(value, guide)
+        for text in texts.values():
+            self.assertNotRegex(text, r'Agents (?:do none|never run|never perform)')
+
+    def test_steps_4_to_7_name_bazzite_and_keep_fedora_explanation(self):
+        guide = documents()['INSTALL.md']
+        blocks = [section(guide, anchor) for anchor in
+                  ('4-install-and-prepare-corrected-stock', '5-prove-windows-and-corrected-stock',
+                   '6-switch-to-aresos', '7-check-the-first-aresos-session')]
+        for block in blocks:
+            self.assertIn('**Bazzite**', block)
+            for line in block.splitlines():
+                if 'recorded Linux' in line:
+                    self.assertIn('Bazzite', line)
+            self.assertNotIn('→ Linux.', block)
+        self.assertIn('[step 8 explains Fedora](#8-everyday-boot-and-recovery)', blocks[0])
+        self.assertIn('**Fedora**', section(guide, '8-everyday-boot-and-recovery'))
+
+    def test_bootstrap_history_and_console_fallback_keep_completion_guards(self):
+        texts = documents()
+        step4 = section(texts['INSTALL.md'], '4-install-and-prepare-corrected-stock')
+        for value in ('same root shell', 'display it first', 'all 13 lines', '**line 8**',
+                      'before Enter', 'Only after help resolves it'):
+            self.assertIn(value, step4)
+        console = section(texts['INSTALL-REFERENCE.md'], 'console')
+        for value in ('Black screen', 'one minute', 'do not reboot', 'accidental dead key',
+                      'Ctrl+Alt+F4', 'Ctrl+Alt+Fn+F4', 'same `ares-recovery` login',
+                      'Do not repeat a command whose result is unknown', 'failed-login budget'):
+            self.assertIn(value, console)
+
+    def test_hung_restart_does_not_claim_check_proves_the_switch_finished(self):
+        texts = documents()
+        ref = section(texts['INSTALL-REFERENCE.md'], 'hung-shutdown-or-restart')
+        for value in ('at least 10 minutes', 'keep waiting', 'finished successfully',
+                      'firmware/BIOS update', 'media write/export or layout trial',
+                      'completion is unknown', 'switch/title PASS', 'Windows Boot Manager',
+                      'Do not repeat the switch', 'v2026.4', 'removes staged state before the merge',
+                      'without a resumable staged entry', 'PASS check', 'unchanged prepared stock',
+                      'Final pair has extra/missing deployments', 'Stock KDE after a switch is STOP',
+                      'step 5 proof rechecked'):
+            self.assertIn(value, ref)
+        self.assertIn('Stock KDE returning after the switch', section(texts['INSTALL.md'], '7-check-the-first-aresos-session'))
+        for anchor in ('frozen-laptop', 'failed-first-switch-boot', 'shutdown-or-restart-hangs'):
+            self.assertIn('10 minutes' if anchor != 'failed-first-switch-boot' else '10-minute',
+                          section(texts['EMERGENCY.md'], anchor))
+        self.assertNotIn('Still on? Hold power', texts['EMERGENCY.md'])
+
+    def test_step4_pass_and_reviewed_tools_do_not_release_a_new_stage_or_vm_result(self):
+        status = documents()['INSTALL-STATUS.md']
+        stage = next(line for line in status.splitlines() if line.startswith('| Stage C —'))
+        for value in ('RELEASED 2026-11-07', 'Step 4 PASSED 2026-11-08', 'does not mark step 5'):
+            self.assertIn(value, stage)
+        tools = next(line for line in status.splitlines() if line.startswith('| Post-release tools change |'))
+        for value in ('PR #22', '3ef85c4a', 'unit-tested and reviewed', 'without a new VM rehearsal',
+                      'pending-rebind.json', 'no new image or stage'):
+            self.assertIn(value, tools)
+
     def test_abandoned_trial_card_uses_bounded_login_fresh_session_exact_pass_and_completion(self):
         texts = documents()
         card = section(texts['EMERGENCY.md'], 'crashed-or-restarted-during-a-keyboard-layout-trial')
