@@ -5,7 +5,7 @@ from pathlib import Path
 import tempfile
 from types import SimpleNamespace
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import native
 from boundary_assertions import validate_managed_mcp, validate_sandbox_result, require_source_positive, policy_mounts, mount_view
@@ -15,6 +15,38 @@ CONTAINER = {'namespaces': {'net': 'net:[1]', 'mnt': 'mnt:[1]'}, 'cap_eff': '0',
              'seccomp': ['Seccomp: 0', 'Seccomp_filters: 0']}
 ISOLATED = {'namespaces': {'net': 'net:[2]', 'mnt': 'mnt:[2]'}, 'cap_eff': '0',
             'seccomp': ['Seccomp: 2', 'Seccomp_filters: 2']}
+
+
+class NativePolicyFixture(unittest.TestCase):
+    def test_review17_synthetic_policy_is_exact_and_sources_restore_on_session_exception(self):
+        with tempfile.TemporaryDirectory(dir=Path(__file__).parent) as directory:
+            root = Path(directory)
+            (root / 'aresos_control').mkdir()
+            definition = root / 'aresos_control/boundary_policy.py'
+            original = b'def managed_settings():\n    return {"sandbox": {"enabled": True}, "permissions": {"allow": []}}\n'
+            definition.write_bytes(original)
+            launcher = root / 'launch.py'
+            launcher_original = b'def main():\n    personal_login()\n    launch()\n'
+            launcher.write_bytes(launcher_original)
+            policy = root / 'managed-settings.json'
+            policy_original = json.dumps({'sandbox': {'enabled': True}, 'permissions': {'allow': []}}).encode()
+            policy.write_bytes(policy_original)
+            with patch.multiple(native, ROOT=root, OUT=root, POLICY=policy), \
+                 patch.object(native, 'ThreadingHTTPServer', return_value=Mock()), \
+                 patch.object(native.threading, 'Thread', return_value=Mock()):
+                with self.assertRaisesRegex(RuntimeError, 'Synthetic interrupted session'):
+                    with native.Session([], 'fixture', grants=('/usr/bin/python3 -I boundary-hostile.py',)):
+                        namespace = {}
+                        exec(definition.read_bytes(), namespace)
+                        generated = namespace['managed_settings']()
+                        self.assertEqual(generated, json.loads(policy.read_bytes()))
+                        self.assertTrue(generated['sandbox']['enabled'])
+                        self.assertEqual(generated['permissions']['allow'], ['Bash(/usr/bin/python3 -I boundary-hostile.py)'])
+                        self.assertNotIn(b'    personal_login()\n', launcher.read_bytes())
+                        raise RuntimeError('Synthetic interrupted session')
+            self.assertEqual(definition.read_bytes(), original)
+            self.assertEqual(launcher.read_bytes(), launcher_original)
+            self.assertEqual(policy.read_bytes(), policy_original)
 
 
 def result(identity=ISOLATED, sockets=None):

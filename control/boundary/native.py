@@ -1,7 +1,7 @@
 """Fixed streaming Messages test double. No model, sign-in, or external provider.
 
-Only the root supervisor changes managed env in this disposable container; the
-launcher has no test options and the assistant cannot select its endpoint.
+Only the root supervisor installs the synthetic policy definition and auth probe
+in this disposable container; the production launcher has no test options.
 """
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
@@ -120,12 +120,37 @@ class Session:
                                '/usr/bin/python3 -I boundary-socket-state.py') for command in self.grants)
         policy['permissions']['allow'] += ['Bash(' + command + ')' for command in self.grants]
         (OUT / (self.name + '-managed-settings.json')).write_text(json.dumps(policy, indent=2))
+        # The production launcher now verifies equality and personal login. This
+        # fixed-endpoint, no-account experiment needs a generated TEST policy and
+        # a synthetic auth probe. Change only these root-owned fixture sources,
+        # restoring both after the session; keep every native confinement check.
+        self.definition = ROOT / 'aresos_control/boundary_policy.py'
+        self.definition_original = self.definition.read_bytes()
+        self.launcher = ROOT / 'launch.py'
+        self.launcher_original = self.launcher.read_bytes()
+        assert self.launcher_original.count(b'    personal_login()\n') == 1
+        self.definition.write_bytes(self.definition_original + (
+            '\n_native_original_settings = managed_settings\n'
+            'def managed_settings():\n'
+            '    settings = _native_original_settings()\n'
+            f'    settings["env"] = {policy["env"]!r}\n'
+            f'    settings["permissions"]["allow"] += {["Bash(" + c + ")" for c in self.grants]!r}\n'
+            '    return settings\n').encode())
+        self.launcher.write_bytes(self.launcher_original.replace(b'    personal_login()\n',
+            b'    # Root-only native fixture supplies synthetic authentication.\n'))
+        # Don't allow timestamp/size collisions to reuse an earlier test policy.
+        for cached in (ROOT / 'aresos_control/__pycache__').glob('boundary_policy.*.pyc'):
+            cached.unlink()
         POLICY.write_text(json.dumps(policy))
         self.thread.start()
         return self
 
     def __exit__(self, *args):
         POLICY.write_bytes(self.original)
+        self.definition.write_bytes(self.definition_original)
+        self.launcher.write_bytes(self.launcher_original)
+        for cached in (ROOT / 'aresos_control/__pycache__').glob('boundary_policy.*.pyc'):
+            cached.unlink()
         self.server.shutdown()
         self.server.server_close()
         self.thread.join()
