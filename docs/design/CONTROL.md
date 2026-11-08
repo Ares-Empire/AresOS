@@ -715,7 +715,14 @@ own Chromium from the terminal and an empty profile, without his sign-ins.
 
 On GitHub's Linux machines with branded Chrome and fixture sites, each case proven by a fixture receiver's own log.
 The whole set runs twice per build, and again on each new Chrome stable (a scheduled job); a failure turns the
-affected adapter or rule off until it is fixed, with the generic rules or a refusal in its place.
+affected adapter or rule off until it is fixed, with the generic rules or a refusal in its place. The record keeps
+full versions and gates by major version: a patch of a qualified major runs normally. On a major version not yet
+recorded (his Chrome moved to a new major before the record reached the laptop), the tool runs in a conservative mode
+that asks more, never less: adapters are off; "don't ask again" is suspended; every input that could activate
+something asks (any click or tap, Enter or Space on a control, choosing from a list, any form submission); only
+reading, scrolling, typing into fields and navigating by address stay free; the password exclusion still runs, and a
+field it can't confirm is safe isn't read; every result says plainly that this Chrome version isn't qualified yet
+(*brief 20* tests this mode).
 
 1. **What asks:** each asking case (a submit button clicked, or given Enter or Space while focused; a button without
    a type in a form; Enter in a form's field; each list word in English and German in the name, `aria-label`, title,

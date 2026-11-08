@@ -109,23 +109,35 @@ generated `user-mcp.json`. Read on `main`:
   skip-permissions mode, in 18d's precedence harness; 13 the residual shown honestly, listed in the report as not
   held.
 - **Repeated runs:** the whole set runs twice on the final head.
-- **Qualifying each new Chrome stable** (section 6). `control/chrome/qualification.json` records, per Chrome major
-  version, which adapters and which core rule groups (the classification, the page script, the binding, the reader's
-  password exclusion) passed.
-  - *Trigger:* a scheduled workflow runs daily, reads the current stable version from Google's Linux package
-    repository and, when it is newer than the last recorded version, runs the whole set on it twice. Every push runs
-    the set on the current stable as well.
-  - *Result:* the workflow opens a pull request that records the version with each adapter's and group's pass or
-    fail (it never merges it; the lead does), plus an issue naming any failing group.
-  - *Disabling:* the extension reports the running Chrome version when it connects, and the service reads the record
-    it was shipped with. On a version where an adapter is recorded as failed, that adapter is off and its site falls
-    back to the generic rules. Where a core rule group failed, the actions that rely on it refuse with the reason
-    ("Chrome 158: the page check failed qualification; acting is off until it is fixed"). A fix ships as a new record
-    entry.
-  - *A version not yet recorded* (his Chrome updated before the record reached the laptop): everything runs as on
-    the last recorded version, except that "don't ask again" sends are suspended and ask, and every result says the
-    version isn't qualified yet.
-  - *Tests:* the service against a record with a failed adapter, a failed core group and an unrecorded version.
+- **Qualifying each new Chrome stable** (section 6). `control/chrome/qualification.json` records, per full Chrome
+  version (major and patch, for example `158.0.7340.52`), which adapters and which core rule groups (the
+  classification, the page script, the binding, the reader's password exclusion) passed.
+  - *Trigger:* a scheduled workflow runs daily, reads the current stable's full version from Google's Linux package
+    repository and, when that version isn't in the record yet (a new major or a new patch), runs the whole set on it
+    twice. Every push runs the set on the current stable as well.
+  - *Result:* the workflow opens a pull request that records the full version with each adapter's and group's pass
+    or fail (it never merges it; the lead does), plus an issue naming any failing group.
+  - *Gating by major version:* the extension reports the running Chrome version when it connects, and the service
+    reads the record it was shipped with. A patch of a major that has a passing record runs normally.
+  - *Disabling:* a failure recorded for a version disables what failed, on that version and on later patches of its
+    major until one of them is recorded as passing. A failed adapter is off and its site falls back to the generic
+    rules. Where a core rule group failed, the actions that rely on it refuse with the reason ("Chrome 158: the page
+    check failed qualification; acting is off until it is fixed"). A fix ships as a new record entry.
+  - *Conservative mode, on a major version not yet recorded* (his Chrome moved to a new major before the record
+    reached the laptop). The tool asks more, never less:
+    - adapters are off;
+    - "don't ask again" is suspended;
+    - every input that could activate something asks: any click or tap (links and ticks included), Enter or Space
+      on a control, choosing from a list, and any form submission;
+    - only reading, scrolling, typing into fields and navigating by address stay free;
+    - the password exclusion still runs, and a field it can't confirm is safe isn't read;
+    - every result says plainly that this Chrome version isn't qualified yet.
+  - *Tests:* the service against a record with a failed adapter, a failed core group, a failure on one patch with a
+    later unrecorded patch of the same major (still off), and a later patch of a qualified major (runs normally). The
+    conservative mode on an unrecorded major: a Gmail send goes through the generic rules; a "don't ask again" entry
+    asks; a link click, a tick, a choice from a list, Enter or Space on a control and a form submission each ask and
+    reach the receiver only after approval; reading, scrolling, typing and navigating by address don't ask; a field
+    whose safety the reader can't confirm isn't read; every result carries the notice.
 - Brief 18's, 18d's and Mail's suites still pass; the generated artifacts are in sync.
 
 `.github/workflows/control-chrome.yml` runs them on pushes to this branch (path filter) and on its pull request; the
