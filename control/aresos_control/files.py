@@ -5,7 +5,7 @@ from pathlib import Path
 import re
 import stat
 
-from .common import FILE_LIMIT, Refused, sha256
+from .common import FILE_LIMIT, Refused, sha256, storage_refusal
 from .space import SpaceLedger
 
 # Dot components are always blocked. These catch non-dot credential/profile and
@@ -161,6 +161,8 @@ class FilePolicy:
             return {"path": str(Path(folder) / name), "sha256": expected_hash, "size": len(data)}
         except BaseException as exc:
             if published and not completed:
+                original = storage_refusal(exc)
+                cause = str(original) + ' ' if original else ''
                 # Linux has no unlink-if-inode-matches. Clear the pinned inode,
                 # including renamed/hard-linked aliases, without touching a name.
                 own = os.fstat(fd)
@@ -174,11 +176,11 @@ class FilePolicy:
                     os.ftruncate(fd, 0)
                     os.fsync(fd)
                 except OSError as rollback:
-                    raise Refused("save_incomplete", "Save incomplete: clearing exported bytes could not be confirmed; "
+                    raise Refused(original.code if original else "save_incomplete", cause + "Save incomplete: clearing exported bytes could not be confirmed; "
                                   f"bytes may remain readable or survive a storage failure ({location}). "
                                   "No directory entries removed; renamed/hard-link locations cannot be enumerated. "
                                   "Inspect this inode before retrying. " + str(rollback)) from exc
-                raise Refused("file_refused", "Save refused after publication: exported inode emptied and synced "
+                raise Refused(original.code if original else "file_refused", cause + "Save refused after publication: exported inode emptied and synced "
                               f"(0 bytes, {os.fstat(fd).st_nlink} remaining links; {location}). "
                               "No directory entries removed: empty output or renamed/hard-link remnants may remain; "
                               "other link locations cannot be enumerated. Inspect empty remnants and choose a new name.") from exc
