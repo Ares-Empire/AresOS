@@ -6,7 +6,7 @@ These are separate from initial installation. Use the [current gate/status table
 
 Backup Bazzite keeps the installer’s **German** layout. AresOS's later settings affect only its own deployment, not stock. Record old and proven new profiles before invoking finish. **Begin and revert change only the running console map. Only finish persists the console/greeter setting.** A restart during begin/revert reloads the last confirmed layout. An interrupted finish may already have persisted the proven new console map; use [abandoned-trial recovery](#abandoned-layout-trial), not an assumed old map. Qualification 21 includes a reset during a pending begin trial; direct US-to-stock rollback remains outside the stated runtime scope (see status table).
 
-Use the [console entry/exit reference](INSTALL-REFERENCE.md#console). **Return to this procedure** after entry. Keep the original **tty3 ares-recovery → sudo -i** session **OPEN** throughout; do not reboot or change the password to bypass failed typing. In AresOS, begin US International (keeps the unchanged umlaut password enterable):
+Use the [console entry/exit reference](INSTALL-REFERENCE.md#console). **Return to this procedure** after entry. Keep the original **tty3 ares-recovery → sudo -i** session **OPEN** throughout; do not reboot or change the password to bypass failed typing. The unchanged password, made only of lowercase a–x and top-row digits 0–9, stays typeable in German, US International and plain US. The public `yz-/!ü` proof exercises the layout difference. In AresOS, begin US International:
 
 ```bash
 sudo /var/lib/ares/at layout begin us-intl
@@ -38,7 +38,7 @@ The plain-US failure/revert trial uses the same session precautions, beginning w
 sudo /var/lib/ares/at layout begin us
 ```
 
-Require `PASS layout begin us` before the second-console trial. Do this deliberate failure only in the supervised layout gate: an umlaut password may be untypeable. Reboot must refuse unfinished proof; never test refusal by forcing a restart.
+Require `PASS layout begin us` before the second-console trial. Do this deliberate failure only in the supervised layout gate: the unchanged password stays typeable, but plain US cannot type the ü in the public `yz-/!ü` proof. Keep the original tty3 root session open; on login/typing failure, use [Layout revert](#layout-revert) below. Reboot must refuse unfinished proof; never test refusal by forcing a restart.
 
 ### Layout revert
 
