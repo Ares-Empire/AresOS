@@ -139,6 +139,13 @@ or the blob store. `aresos log` reads today's audit events from SQLite. The fake
 receiver keeps its separate far-side SQLite fixture in the evidence directory;
 production Mail/Chrome will use genuinely remote evidence.
 
+Startup verifies the journal one line at a time and rebuilds the disposable
+`journal-index.sqlite` beside it. The index keeps record hashes/offsets and the
+latest compact operation evidence on disk, with a 1 MiB SQLite page cache; it is
+never trusted across restarts. Historical records and audit pages stream from
+disk instead of remaining as Python objects. Retained evidence and startup scan
+time still grow with history; the permanent journal is unchanged.
+
 After an older backup is detected, only the owner can run:
 
 ```sh
@@ -150,7 +157,13 @@ record become `unknown`, retaining their short descriptions. Details absent from
 the restored main log cannot be reconstructed from the separate record. Earlier-generation ids
 can be read and locally repaired but never approved or submitted. Reserved operations
 from the restored generation are invalidated. A repair is a new logged operation
-pointing at the old one. A missing/corrupt independent record, a torn journal line or
+pointing at the old one. Mail keeps at most one unresolved repair per local stage.
+Repeating it checks Sent by the original Message-ID or reads the pinned reply's
+answered flag: presence settles it done, a successful absent check settles it
+failed and permits a later attempt, and an inconclusive check writes nothing.
+Status remains read-only. Cancellation has a separate quota-exempt path and
+4 MiB physical reserve; other calls leave it untouched, and cancellation leaves
+the 16 MiB restore reserve. A missing/corrupt independent record, a torn journal line or
 an inconsistent chain fails closed and needs owner recovery; the restore command
 does not silently erase corrupt evidence. This pre-deployment record format is
 version 2; the earlier full-event format fails closed and needs owner recovery

@@ -252,9 +252,22 @@ class Engine:
             return self.pending(args=args)
         if name == "control_log":
             day = time.strftime("%Y-%m-%d", time.localtime())
-            entries = []
-            for event in self.store.audit():
+            token = digest(['log:' + day, self.store.sequence, self.store.head_hash])
+            offset, limit = 0, args.get('limit', 5)
+            if 'cursor' in args:
+                try:
+                    version, raw_offset = args['cursor'].split(':')
+                    offset = int(raw_offset)
+                    if version != token or offset < 0:
+                        raise ValueError()
+                except ValueError as exc:
+                    raise Refused('stale_reference', 'Log changed; read again without the cursor.') from exc
+            entries, total = [], 0
+            for event in self.store.iter_audit():
                 if time.strftime("%Y-%m-%d", time.localtime(event["time"])) != day:
+                    continue
+                total += 1
+                if total <= offset or len(entries) >= limit:
                     continue
                 entry = {k: event[k] for k in ("seq", "time", "action", "summary", "outcome", "operation_id")}
                 if event["action"].startswith("mail_"):
@@ -268,8 +281,10 @@ class Engine:
                 elif "untrusted_content" in event:
                     entry["untrusted_content"] = event["untrusted_content"]
                 entries.append(entry)
-            notices = self.notices()
-            return self.page(entries, args, "log:" + day) | notices
+            if offset > total:
+                raise Refused('stale_reference', 'Log changed; read again without the cursor.')
+            end = offset + len(entries)
+            return {'items': entries, 'total': total, 'cursor': f'{token}:{end}' if end < total else None} | self.notices()
         app, verb = action.app, action.verb
         adapter = self.adapters[app]
         if verb.startswith("prepare_"):

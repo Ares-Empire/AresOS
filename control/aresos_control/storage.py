@@ -43,6 +43,31 @@ def short_description(operation):
     return result
 
 
+class JournalRecords:
+    """A disk-backed sequence; compatibility reads never cache historical objects."""
+    def __init__(self, store):
+        self.store = store
+
+    def __len__(self):
+        return self.store.sequence
+
+    def __getitem__(self, index):
+        if index < 0:
+            index += len(self)
+        row = self.store.index.execute('SELECT offset FROM records WHERE seq=?', (index + 1,)).fetchone()
+        if row is None:
+            raise IndexError(index)
+        with open(self.store.journal.name, 'rb') as stream:
+            stream.seek(row[0])
+            return json.loads(stream.readline())
+
+    def __iter__(self):
+        with open(self.store.journal.name, 'rb') as stream:
+            for (offset,) in self.store.index.execute('SELECT offset FROM records ORDER BY seq'):
+                stream.seek(offset)
+                yield json.loads(stream.readline())
+
+
 class Store:
     def __init__(self, state_dir, evidence_dir, checkpoint=lambda _: None):
         self.state_dir, self.evidence_dir = Path(state_dir), Path(evidence_dir)
@@ -69,67 +94,101 @@ class Store:
         self.db.execute('INSERT OR IGNORE INTO retained SELECT k, ? FROM kv', (time.time(),))
         self.db.commit()
         sync_directory(self.state_dir)
-        self.events, self.committed = self._read_journal()
-        seq, hash_value = self.db.execute("SELECT seq,hash FROM head WHERE id=1").fetchone()
-        expected = self.events[seq - 1]["hash"] if 0 < seq <= len(self.events) else ""
-        if seq > len(self.events) or hash_value != expected:
-            raise Refused("evidence_mismatch", "The independent record is missing or different; stop and have the owner recover it. No submissions allowed.")
-        self.locked = seq < self.committed
-        if not self.locked:
-            if len(self.events) > self.committed:
-                record = self.events[-1]
-                event = self._prepared(record["seq"])
-                if event is None or event["record"] != record:
-                    # A record-only crash and a rollback are indistinguishable.
-                    # Keep even unacknowledged reservations for owner confirmation.
-                    self.locked = True
+        # Derived, disposable index outside the backed-up state. Never trust it
+        # across restarts: rebuild solely from the verified permanent journal.
+        index_path = self.evidence_dir / 'journal-index.sqlite'
+        index_path.unlink(missing_ok=True)
+        self.index = sqlite3.connect(index_path)
+        self.index.execute('PRAGMA journal_mode=OFF')
+        self.index.execute('PRAGMA synchronous=OFF')
+        self.index.execute('PRAGMA cache_size=-1024')
+        self.index.executescript('DROP TABLE IF EXISTS records; DROP TABLE IF EXISTS latest;'
+                                'CREATE TABLE records (seq INTEGER PRIMARY KEY, hash TEXT NOT NULL, offset INTEGER NOT NULL);'
+                                'CREATE TABLE latest (id TEXT PRIMARY KEY, seq INTEGER NOT NULL, value TEXT NOT NULL);')
+        self.sequence, self.head_hash = 0, ''
+        self.events = JournalRecords(self)
+        try:
+            self.events, self.committed = self._read_journal()
+            seq, hash_value = self.db.execute("SELECT seq,hash FROM head WHERE id=1").fetchone()
+            expected = self.events[seq - 1]["hash"] if 0 < seq <= len(self.events) else ""
+            if seq > len(self.events) or hash_value != expected:
+                raise Refused("evidence_mismatch", "The independent record is missing or different; stop and have the owner recover it. No submissions allowed.")
+            self.locked = seq < self.committed
+            if not self.locked:
+                if len(self.events) > self.committed:
+                    record = self.events[-1]
+                    event = self._prepared(record["seq"])
+                    if event is None or event["record"] != record:
+                        # A record-only crash and a rollback are indistinguishable.
+                        # Keep even unacknowledged reservations for owner confirmation.
+                        self.locked = True
+                    else:
+                        self._finish(event)
                 else:
-                    self._finish(event)
-            else:
-                event = self._prepared(seq + 1)
-                if event is not None:
-                    record = event["record"]
-                    if record["previous"] != hash_value or record["seq"] != seq + 1:
-                        raise Refused("evidence_mismatch", "Prepared write does not extend the independent record; owner recovery required.")
-                    self._append(record)
-                    self.events.append(record)
-                    self._finish(event)
-        if not self.events:
-            self.write({"generation": uuid.uuid4().hex}, "control_initialize", "initialize operation log")
-        if not self.locked:
-            for key, op in self.items("op:"):
-                if op["state"] == "submitting":
-                    op["state"], op["reason"] = "unknown", "Service restarted during submission; inspect evidence, never resubmit."
-                    self.write({key: op}, op["action"], "restart: outcome unknown", op["id"], recovery=True)
+                    event = self._prepared(seq + 1)
+                    if event is not None:
+                        record = event["record"]
+                        if record["previous"] != hash_value or record["seq"] != seq + 1:
+                            raise Refused("evidence_mismatch", "Prepared write does not extend the independent record; owner recovery required.")
+                        offset = self._append(record)
+                        with self.index:
+                            self._index_record(record, offset)
+                        self._finish(event)
+            if not self.events:
+                self.write({"generation": uuid.uuid4().hex}, "control_initialize", "initialize operation log")
+            if not self.locked:
+                for key, op in self.items("op:"):
+                    if op["state"] == "submitting":
+                        op["state"], op["reason"] = "unknown", "Service restarted during submission; inspect evidence, never resubmit."
+                        self.write({key: op}, op["action"], "restart: outcome unknown", op["id"], recovery=True)
+        except BaseException:
+            self.close()
+            raise
+
+    def _index_record(self, record, offset):
+        self.index.execute('INSERT INTO records VALUES (?,?,?)', (record['seq'], record['hash'], offset))
+        for op in record['operations']:
+            self.index.execute('INSERT OR REPLACE INTO latest VALUES (?,?,?)',
+                               (op['id'], record['seq'], canonical(op)))
+        self.sequence, self.head_hash = record['seq'], record['hash']
 
     def _read_journal(self):
-        self.journal.seek(0)
-        events, committed, last_hash = [], 0, ""
-        for raw in self.journal:
-            try:
-                row = json.loads(raw)
-                if not raw.endswith(b"\n"):
-                    raise ValueError("torn record")
-                if "commit" in row:
-                    if row != {"commit": committed + 1, "hash": events[-1]["hash"]}:
-                        raise ValueError("invalid commit")
-                    committed += 1
-                else:
-                    if len(events) != committed or row["format"] != 2:
-                        raise ValueError("uncommitted event or unsupported record format")
-                    hash_value = row.pop("hash")
-                    if row["seq"] != len(events) + 1 or row["previous"] != last_hash or digest(row) != hash_value:
-                        raise ValueError("broken chain")
-                    row["hash"] = hash_value
-                    events.append(row)
-                    last_hash = hash_value
-            except (ValueError, KeyError, IndexError, TypeError) as exc:
-                raise Refused("evidence_corrupt", "Independent record is damaged or has an older format; owner recovery required, no submissions.") from exc
-        return events, committed
+        self.sequence, self.head_hash = 0, ''
+        committed, offset = 0, 0
+        with self.index:
+            self.index.execute('DELETE FROM records')
+            self.index.execute('DELETE FROM latest')
+            with open(self.journal.name, 'rb') as stream:
+                for raw in stream:
+                    try:
+                        row = json.loads(raw)
+                        if not raw.endswith(b"\n"):
+                            raise ValueError('torn record')
+                        if 'commit' in row:
+                            if (self.sequence != committed + 1 or
+                                    row != {'commit': self.sequence, 'hash': self.head_hash}):
+                                raise ValueError('invalid commit')
+                            committed = self.sequence
+                        else:
+                            if self.sequence != committed or row['format'] != 2:
+                                raise ValueError('uncommitted event or unsupported record format')
+                            hash_value = row.pop('hash')
+                            if (row['seq'] != self.sequence + 1 or row['previous'] != self.head_hash
+                                    or digest(row) != hash_value):
+                                raise ValueError('broken chain')
+                            row['hash'] = hash_value
+                            self._index_record(row, offset)
+                    except (ValueError, KeyError, IndexError, TypeError) as exc:
+                        raise Refused('evidence_corrupt', 'Independent record is damaged or has an older format; owner recovery required, no submissions.') from exc
+                    offset += len(raw)
+        return self.events, committed
 
     def _append(self, value):
+        self.journal.seek(0, os.SEEK_END)
+        offset = self.journal.tell()
         self.journal.write((canonical(value) + "\n").encode())
         os.fsync(self.journal.fileno())
+        return offset
 
     def _prepared(self, seq):
         row = self.db.execute("SELECT value FROM events WHERE seq=?", (seq,)).fetchone()
@@ -166,8 +225,8 @@ class Store:
         if operation_id and operation_id not in operations:
             operations[operation_id] = self.get("op:" + operation_id)
         operation = operations.get(operation_id)
-        record = {"format": 2, "seq": len(self.events) + 1,
-                  "previous": self.events[-1]["hash"] if self.events else "", "time": time.time(),
+        record = {"format": 2, "seq": self.sequence + 1,
+                  "previous": self.head_hash, "time": time.time(),
                   "generation": changes.get("generation", self.generation),
                   "operations": [{"id": op["id"], "generation": op["generation"], "input_hash": op["input_hash"],
                                   "description": short_description(op), "state": op["state"]} for op in operations.values()]}
@@ -194,8 +253,9 @@ class Store:
         # A crash here may need owner confirmation: compact metadata cannot
         # reconstruct the full event, and absence cannot prove no restore.
         self.write_failed = True
-        self._append(record)
-        self.events.append(record)
+        offset = self._append(record)
+        with self.index:
+            self._index_record(record, offset)
         self.checkpoint("journal_appended")
         with self.db:
             self.db.execute("INSERT OR REPLACE INTO events VALUES (?,?)", (record["seq"], encoded))
@@ -244,7 +304,10 @@ class Store:
         head = self.db.execute("SELECT seq FROM head WHERE id=1").fetchone()[0]
         for (value,) in self.db.execute("SELECT value FROM events WHERE seq<=? ORDER BY seq", (head,)):
             event = json.loads(value)
-            if event['record'] == self.events[event['seq'] - 1]:
+            record = dict(event['record'])
+            claimed = record.pop('hash')
+            known = self.index.execute('SELECT hash FROM records WHERE seq=?', (event['seq'],)).fetchone()
+            if known == (claimed,) and digest(record) == claimed:
                 yield event
 
     def audit(self):
@@ -269,12 +332,9 @@ class Store:
             last = self.events[-1]
             self._append({"commit": last["seq"], "hash": last["hash"]})
             self.committed = last["seq"]
-        latest = {}
-        for event in self.events:
-            for op in event["operations"]:
-                latest[op["id"]] = (op, event["seq"])
         changes = {"generation": uuid.uuid4().hex}
-        for op_id, (known, seq) in latest.items():
+        for op_id, seq, encoded in self.index.execute('SELECT id,seq,value FROM latest ORDER BY id'):
+            known = json.loads(encoded)
             key = "op:" + op_id
             old = self.get(key)
             if old is None and self.get('archived:' + op_id) == {'seq': seq}:
@@ -303,4 +363,5 @@ class Store:
 
     def close(self):
         self.db.close()
+        self.index.close()
         self.journal.close()
