@@ -1,4 +1,5 @@
 import base64
+import hashlib
 import imaplib
 import time
 import uuid
@@ -52,14 +53,38 @@ class Engine:
         return result
 
     def pending(self, app=None, args=None):
-        values = [{"operation_id": op["id"], "app": op["app"], "state": op["state"],
-                   "description": op["approval"]["description"], "reason": op["reason"]}
-                  for _, op in self.store.iter_items("op:") if (app is None or op["app"] == app) and
-                  (op["state"] in {"reserved", "submitting", "partial", "unknown"} or (op.get("notice") and not op.get("ack")))]
-        # Notifications stay compact; operation_status has the full description, never a truncated approval.
-        summaries = [{k: v for k, v in op.items() if k != "description"} for op in values]
-        notices = self.notices(app)
-        return self.page(summaries, args or {}, "pending") | {"restore_required": self.store.locked} | notices
+        args, offset, version = args or {}, 0, None
+        try:
+            if 'cursor' in args:
+                version, raw_offset = args['cursor'].split(':')
+                offset = int(raw_offset)
+                if offset < 0:
+                    raise ValueError()
+        except ValueError as exc:
+            raise Refused('stale_reference', 'Page changed; read again without the cursor.') from exc
+        # Hash the same canonical [scope, summaries] incrementally. Only the
+        # returned page is retained; full approvals never enter this response.
+        hashed = hashlib.sha256(b'["pending",[')
+        items, total = [], 0
+        for _, op in self.store.iter_items('op:'):
+            if ((app is not None and op['app'] != app) or
+                    not (op['state'] in {'reserved', 'submitting', 'partial', 'unknown'} or
+                         (op.get('notice') and not op.get('ack')))):
+                continue
+            summary = {'operation_id': op['id'], 'app': op['app'], 'state': op['state'], 'reason': op['reason']}
+            if total:
+                hashed.update(b',')
+            hashed.update(canonical(summary).encode())
+            if total >= offset and len(items) < args.get('limit', 5):
+                items.append(summary)
+            total += 1
+        hashed.update(b']]')
+        token = hashed.hexdigest()
+        if offset > total or (version is not None and version != token):
+            raise Refused('stale_reference', 'Page changed; read again without the cursor.')
+        end = offset + len(items)
+        return {'items': items, 'total': total, 'cursor': f'{token}:{end}' if end < total else None,
+                'restore_required': self.store.locked} | self.notices(app)
 
     def page(self, values, args, scope):
         token, offset = digest([scope, values]), 0
