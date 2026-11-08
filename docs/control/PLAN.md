@@ -239,15 +239,23 @@ Three places, each with one job:
      repository settings (fsmonitor, `include`/`includeIf`, `core.sshCommand`, credential helpers, hooks, filters
      through `.gitattributes` and `.git/info/attributes`, `gpg.program`, submodules, a `.git` file pointing at a
      planted git folder); whether Claude Code embeds a git library; the session's SELinux domain refusing every
-     program outside the allowed set at start (a blocking gate: planted-repository routes, language servers, hooks,
-     git by any path, each Claude Code feature that starts a program; a refusal turning the asking tools off); the
-     sign-in gate (nothing Claude can steer reaches Claude Code's sign-in; until it passes on an installation, the
-     asking tools stay off there); the hardening around the tools: Claude Code and the relay set-group-id and
-     non-dumpable, the extra group dropped before `bwrap`, the relay unable to become dumpable again and the native
-     program never doing so, relays registered only inside the startup window bound to blocking MCP startup (slow,
-     failing and timed-out relays), no inherited descriptors, `kernel.yama.ptrace_scope` at least 1 and
-     `dev.tty.legacy_tiocsti` 0, and its hostile test; Claude Code's messages to other sessions closed; the `WebFetch`
-     fallback path in skip-permissions mode.
+     program outside the allowed set at start, with the in-process routes (nothing Claude wrote loaded as code into
+     Claude Code: settings sources, managed plugins, hooks and MCP servers, no helpers, a project's `.claude` ignored,
+     skills' scripts sandboxed, runtime switches neutralised, sandbox-written files read only as data), the sandbox
+     transition contract (the wrapper starting only `bwrap` with fixed options, no transition back out, sandbox files
+     never relabelled, run or mapped as code by the other domains, `ptrace`, `memfd`, the loader, `execmem` and
+     `execmod`), `rg` only through its fixed wrapper, and a refusal or a failing watcher or lost audit events turning
+     the asking tools off; both gates, qualification and sign-in, as hard switches checked at service start, after
+     restarts and before each asking action against the installed hashes, settings and policy with SELinux enforcing;
+     the hardening around the tools: Claude Code and the relay set-group-id and non-dumpable, the extra group dropped
+     before `bwrap`, the relay unable to become dumpable again and the native program never doing so, relays
+     registered only before the acknowledged barrier (which hook it is; slow, failing, timed-out and cancelled
+     relays), no inherited descriptors, `kernel.yama.ptrace_scope` at least 1 and `dev.tty.legacy_tiocsti` 0, and its
+     hostile test; his git clients refusing project repositories if he chooses so; the GitHub App credential, rulesets
+     refusing deletion and force-push on every branch and tag through git and the API, no token for a repository
+     without them, GitHub's own clean-up of merged branches under those rules, the mirror clone with archival
+     retention and restore; Claude Code's messages to other sessions closed; the `WebFetch` fallback path in
+     skip-permissions mode.
    - *Mail's exact-settings boundary* (round 16, `boundary.py`): the installed settings compared against the
      generated files plus the vetted additions' record (empty until the first addition), with the draft's changes
      above (no `disableBypassPermissionsMode` once the base qualification passes, the developer-site list, project
@@ -543,3 +551,9 @@ tasks at any time.
   qualification gate and fail-closed refusals; the asking tools stay off on an installation until qualification shows
   nothing Claude can steer reaches Claude Code's sign-in; the relay checks are hardening, bound to the trusted start.
   Re-check 23 next.
+- **2026-11-08, 04:41:** frontier re-check 23 of draft 22: the structure accepted, precision left. Draft 23: Claude
+  Code's process is trusted code and nothing Claude wrote is loaded into it (each route a qualification item), the
+  sandbox transition has a contract, both gates are hard switches for every asking action, registration closes at an
+  acknowledged hook barrier, `rg` runs only through a fixed wrapper; the qualification items lost in an earlier
+  reflow (his git clients, GitHub rulesets, the token refusal, the mirror) are back in the workstream list. Re-check
+  24 next.
