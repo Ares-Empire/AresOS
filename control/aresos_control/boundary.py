@@ -103,13 +103,13 @@ class Boundary:
 
     def require(self):
         try:
-            self.absent_or_empty(str(PurePosixPath(self.settings).with_name('managed-settings.d')), directory=True)
-            self.absent_or_empty(DEFAULT_REMOTE)
             for path, expected in ((self.settings, managed_settings()), (self.mcp, managed_mcp())):
                 actual = self.read(path)
                 if canonical(expected) != canonical(actual):
                     paths = '; '.join(differences(expected, actual))
                     raise ValueError(f'{path}: generated policy differs at {paths}')
+            self.absent_or_empty(str(PurePosixPath(self.settings).with_name('managed-settings.d')), directory=True)
+            self.absent_or_empty(DEFAULT_REMOTE)
         except (ValueError, TypeError, AttributeError, Refused) as exc:
             self.reason = str(exc)
             raise Refused('boundary_not_installed', self.reason) from exc

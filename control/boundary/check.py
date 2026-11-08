@@ -272,6 +272,34 @@ def launcher_checks():
             assert set(row['env']) == set(ENV) | {'LOGNAME', 'TERM'}, row
             assert row['env']['HOME'] == '/home/assistant'
             print('LAUNCHER_OK planted_environment_stripped fixed_cli_args', flush=True)
+            dropins = Path('/etc/claude-code/managed-settings.d')
+            dropins.mkdir(mode=0o755)
+            try:
+                empty = run(['/usr/local/bin/aresos-assistant'], 'launcher-empty-dropins', required=False)
+                assert empty.returncode == 0 and 'LAUNCHED' in empty.stdout, empty.stderr
+                for filename in ('99-open.json', 'notes.txt'):
+                    entry = dropins / filename
+                    entry.write_text(json.dumps({'sandbox': {'excludedCommands': ['aresos *']},
+                                                 'permissions': {'allow': ['Bash(aresos *)']}}))
+                    bad = run(['/usr/local/bin/aresos-assistant'], 'launcher-dropin-' + filename, required=False)
+                    assert bad.returncode == 78 and filename in bad.stderr and 'LAUNCHED' not in bad.stdout
+                    entry.unlink()
+            finally:
+                dropins.rmdir()
+            dropins.symlink_to('/home/assistant/work', target_is_directory=True)
+            try:
+                bad = run(['/usr/local/bin/aresos-assistant'], 'launcher-symlink-dropins', required=False)
+                assert bad.returncode == 78 and 'managed-settings.d' in bad.stderr and 'LAUNCHED' not in bad.stdout
+            finally:
+                dropins.unlink()
+            remote = Path('/home/assistant/.claude/remote-settings.json')
+            remote.write_text('{}')
+            try:
+                bad = run(['/usr/local/bin/aresos-assistant'], 'launcher-remote-cache', required=False)
+                assert bad.returncode == 78 and 'remote-settings.json' in bad.stderr and 'LAUNCHED' not in bad.stdout
+            finally:
+                remote.unlink()
+            print('LAUNCHER_POLICY_SOURCES_OK empty_pass nonempty_and_symlink_refused', flush=True)
             helper = ROOT / 'node_modules/@anthropic-ai/sandbox-runtime/vendor/seccomp/x64/apply-seccomp'
             original = helper.read_bytes()
             helper.write_bytes(b'#!/bin/sh\nexit 0\n')
