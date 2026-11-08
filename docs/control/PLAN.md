@@ -340,8 +340,8 @@ tasks at any time.
   and the lead's advice): deleting in project folders (free with snapshots, or asking); his own work in project
   folders (through Claude, or his git trusting them); deleting GitHub branches and tags only by him; connectors
   (asking per call by default, his mark allowed); an added server holding his account access (only after an
-  independent review, or unreviewed with its own actions at that service accepted). Everything else was answered on 2026-11-07 and 2026-11-08
-  (decisions 14 to 19, 21 to 23).
+  independent review, or unreviewed with its own actions at that service accepted). Everything else was answered on
+  2026-11-07 and 2026-11-08 (decisions 14 to 19, 21 to 23).
 
 **Follow-ups** (from the 18b merge-fix review, `gpt-6.1-sol` high, SAFE; for the next base or boundary brief):
 
