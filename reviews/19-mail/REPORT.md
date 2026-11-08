@@ -15,8 +15,9 @@ Review records: [REVIEW.md](REVIEW.md), [REVIEW-2.md](REVIEW-2.md),
 [SECURITY-REVIEW-8.md](SECURITY-REVIEW-8.md),
 [SECURITY-REVIEW-9.md](SECURITY-REVIEW-9.md),
 [SECURITY-REVIEW-10.md](SECURITY-REVIEW-10.md),
-[SECURITY-REVIEW-11.md](SECURITY-REVIEW-11.md), and
-[SECURITY-REVIEW-12.md](SECURITY-REVIEW-12.md).
+[SECURITY-REVIEW-11.md](SECURITY-REVIEW-11.md),
+[SECURITY-REVIEW-12.md](SECURITY-REVIEW-12.md), and
+[SECURITY-REVIEW-13.md](SECURITY-REVIEW-13.md).
 
 ## For the owner: decisions before merge
 
@@ -51,6 +52,207 @@ The owner answered: “Agree on 8, names etc are enough. Agree on everything els
 - Complete onboarding with your aliases, authentication, TLS trust, special folders, delayed Sent behavior and folder-deletion guard; the tests use synthetic accounts only.
 - Check complete approvals on both terminal and phone, then try the seven everyday Claude mail tasks; automated protocol tests do not establish how usable those flows feel.
 - Send a forwarded `.eml` to recipients using Apple Mail, Outlook, Thunderbird, Gmail on the web and iOS Mail, and check how each opens or saves the exact attachment; the round-5 documentation does not establish its presentation.
+
+## Review fixes, round 21
+
+**Done:** implements `briefs/19-review-fixes-21.md` and the four blocking
+findings plus the pending-memory should-fix in
+[SECURITY-REVIEW-13.md](SECURITY-REVIEW-13.md), reviewed head `53a2d391`.
+The lead's local `34f09a7a` (review and brief) was included with the first
+code push. Last code/test commit: `79b3ef1e399c1ad80f2cd9ba71d0efa55914907e`.
+
+**Lead decision, 2026-11-08 (not an owner decision):** cancellation applies
+only to a prepared, reserved operation that has never submitted. Such an
+approval expires within 15 minutes, and submission still asks the owner.
+A full disk preventing cancellation is an availability failure. No ledger
+can hold physical space against other programs on the laptop sharing the
+filesystem. Under full or nearly full storage, the safety promise is to
+fail closed: no send, delete or unsubscribe without its approval, repeated
+or different from that approval; no false done result; no lost or corrupted
+record; and a plain disk-full error. Cancel and restore reservations protect
+against the service's own writes only; protection against other programs
+is best effort. On a normal disk, work must have a cause to refuse. This
+bar is stated in the generated cancel/export descriptions and common
+storage-limit guidance.
+
+- **Blocking — history-sized restore holds:** `storage.py` uses one streaming
+  reconstruction iterator for both admission and confirmation. Only missing,
+  newer, submitting or invalidated reserved operations enter the work budget;
+  unchanged closed operations and matching archive tombstones do not. The
+  fixed 256 KiB batch/final-marker allowance is independent of history size.
+  The hold is loaded before startup bookkeeping or index writes can spend
+  its capacity. Confirmation still uses bounded batches and releases the
+  hold when it ends. One hundred unchanged completed operations plus a
+  metadata rollback confirm at 8 MiB free; 10,000 retained operations with
+  three changed records fund and reconstruct exactly those three.
+- **Blocking — replay double counting:** prepared events now carry the
+  admission plan that was accepted before their fence was written.
+  Startup replaces spent rights with the remaining SQLite/commit-marker
+  replay work. Cancellation, restore confirmation and repair settlement
+  spend that existing capacity, including when the optional index cannot
+  fit. Prepared owner confirmation replays without asking for a second
+  confirmation. Older prepared events without a saved plan can use an
+  existing cancel/settlement right.
+- **Blocking — caller exports:** new `exports.py`, plus `storage.py`,
+  `mail/adapter.py`, `blobs.py`, `requests.py`, `protocol.py`, `proxy.py` and
+  `files.py`, admit both private bytes and caller bytes before creating the
+  private export. A durable export ID retains the caller-write and completion
+  budget across requests and service restart. Caller admission checks the
+  actual destination filesystem too. Completion spends only that export's
+  hold; refusal removes its newly created private blob and origin metadata.
+  Partial blob writes discard private staging inodes; caller writes use
+  the existing unnamed inode and publish only after a complete synced write.
+  ENOSPC during blob bytes, origin publication or caller bytes reports
+  `storage_limit` with disk-full wording and leaves no output, orphaned blob,
+  staging file or export reservation in these fault tests. Other laptop
+  programs can still exhaust shared space; reservations are not filesystem
+  quotas. Existing destination-race rules still clear a pinned published
+  inode and report empty remnants rather than unlink an unrelated replacement.
+- **Blocking — late Sent duplicates:** `mail/adapter.py` applies copy-count
+  detection to status, repair and settlement evidence, including the
+  original send's evidence when reading its Sent-copy repair ID.
+  `engine.py` constructs status after evidence so its first reply includes
+  the warning. Completed repairs also check for late arrivals. One stable
+  notice ID per send is updated only when the detected count changes;
+  repeated observations do not append history or reset acknowledgement.
+  Warnings survive subsequent stage/outcome writes. Nothing is deleted and
+  repairs never submit SMTP. If warning persistence cannot fit, status
+  includes the observed warning and the storage refusal in evidence.
+- **Should-fix — pending memory:** `engine.py` streams the page and the
+  canonical cursor hash, keeping only returned summaries. It never reads
+  approval descriptions for pending responses. Cursor bytes remain compatible
+  with the earlier canonical `[scope, summaries]` digest. Unknown operations,
+  including restored operations, use this same path. Measured peak for
+  1,000/10,000 unknowns is `18,865 / 17,760 bytes`, below one fixed 1 MiB
+  bound after one-time notice-module imports.
+- **Descriptions/artifacts:** `definitions.py`, `mail/definitions.py`, the
+  three generated tool catalogues and `docs/control/TOOLS.md` explain the
+  lead's full-disk bar, caller export limit and continuing late-duplicate
+  checks. `control/generate.py --check` reports matching artifacts.
+
+**Regression tests (14 additions; none weakened, skipped or deleted):**
+
+| Area | Exact test names |
+| --- | --- |
+| Restore actual work | `RestoreWork21.test_review21_100_completed_metadata_rollback_at_8mib_has_no_reconstruction`; `test_review21_10000_completed_hold_matches_only_three_changed_operations` |
+| Reserved replay | `ReservedReplay21.test_review21_cancel_prepared_replay_spends_original_hold_and_status_serves`; `test_review21_prepared_restore_confirmation_replays_from_its_existing_hold`; `LateDuplicates21.test_review21_prepared_repair_settlement_replays_from_its_original_hold` |
+| Exports | `Exports21.test_review21_5mib_uncached_export_at_12mib_refuses_before_either_copy_and_cancel_works`; `test_review21_enospc_during_blob_bytes_or_origin_publication_retains_nothing`; `test_review21_enospc_during_caller_write_cleans_download_and_new_private_blob`; `test_review21_export_hold_survives_restart_and_blocks_other_service_writes_until_completion` |
+| Late duplicates | `LateDuplicates21.test_review21_duplicate_landing_after_successful_retry_warns_on_next_status_and_completed_repair`; `test_review21_unknown_repair_settlement_counts_duplicates_and_preserves_warning` |
+| Slow durable reply | `DurableReply21.test_review21_durable_write_sync_beyond_read_deadline_returns_its_committed_result` |
+| Pending streaming | `Pending21.test_review21_1000_and_10000_unknowns_correct_pages_cursor_and_fixed_memory`; `test_review21_pending_never_reads_approval_description_and_keeps_canonical_cursor` |
+
+The tests live in `control/tests/test_review21_storage.py`,
+`control/tests/test_review21_pending.py` and
+`control/mail_tests/test_review_fixes_21.py`. The earlier base-test schema edit
+is `Files.test_download_hash_and_private_transfer_metadata_checks`: it keeps
+its exact hash/size equality assertion over those fields and adds assertions
+for the required durable export ID/hold. All its other assertions remain.
+`Integration.test_cli_generated_help_admin_and_today_log` also keeps its
+assertion and adds the actual returned JSON to its failure message.
+The shared streaming fixture predates `operation_versions`; the new restore
+fixture supplies the versions real `Store.write` commits, so unchanged means
+unchanged. Caller ENOSPC runs actual FilePolicy write/cleanup code with only
+Linux unnamed-inode creation substituted on macOS; real Linux transfers,
+races and framing remain covered by the complete container suites.
+
+**Verified — failures on the reviewed source:** isolated `git archive
+53a2d391 control` under this worktree's `.work/round21-before/`, loading
+that production code with the new regression tests, reproduced the missing
+export admission (5 MiB exported at 12 MiB free), blob ENOSPC mislabeled
+`transport_error`, caller ENOSPC mislabeled `file_refused`, late duplicates
+without warning, cancelled prepared replay refusing with a 144,656-byte
+hold plus an additional 159,312-byte charge, and prepared confirmation still
+locked after restart. The pending test peaked at 1,621,851 bytes already
+at 1,000 unknowns (over its fixed bound), and its approval-access trap failed.
+The separate unchanged-history probe printed `100 unchanged operations,
+restore hold: 15962944` and `Confirmation: False storage_limit` at 8 MiB
+free. These are behavioral failures on the reviewed source, not passing
+syntax/import checks. The corresponding new-source tests pass.
+
+**Verified — local before each push:**
+
+```sh
+python3 control/generate.py --check
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/mail_tests:.work/round10/vendor python3 .work/round10/check-local.py
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/tests:.work/round10/vendor python3 -m unittest test_operations test_record test_crashes test_approval_questions test_strict_json test_boundary test_boundary_exact test_ingress_bounds test_journal_closed test_policy_sources test_archive test_journal_capacity test_journal_streaming test_restore_batches test_review21_storage test_review21_pending
+```
+
+Output: `Generated artifacts match definitions`; `Python syntax OK: 114 files`.
+All local suites below printed `OK`:
+
+| Push | Plain Mail output | Selected base/new output |
+| --- | --- | --- |
+| First code batch (`ba18efa6`) | `Ran 104 tests in 84.020s` | `Ran 87 tests in 59.467s` |
+| Deadline correction (`79b3ef1e`) | `Ran 104 tests in 83.691s` | `Ran 88 tests in 70.757s` |
+| Reviews-only report | `Ran 104 tests in 83.688s` | `Ran 88 tests in 70.659s` |
+
+The plain-Mail run includes all seven new Mail regressions; the final base
+command includes all seven new storage/pending/reply regressions. The first
+code batch precedes the additional delayed-reply regression. Existing round-20 archive
+output remains `Review20 archives admitted before ledger refusal (2150
+attempted maximum): 2150`; streamed journal verification remains below its
+fixed 2 MiB bound at both history sizes. `git diff --check` prints nothing.
+No changes under the excluded OS/mod/owner/design/workflow paths.
+
+**CI correction:** initial Mail run [42464896027](https://github.com/Ares-Empire/AresOS/actions/runs/42464896027)
+on `ba18efa6` stopped in its shared base suite: `Ran 117 tests in 166.689s`;
+`FAILED (failures=1)`. `test_cli_generated_help_admin_and_today_log` received
+`ok=false` from the root admin CLI; the existing assertion printed only
+stderr, omitting the returned error. That same test passed in the independent
+base run [42464895981](https://github.com/Ares-Empire/AresOS/actions/runs/42464895981),
+and boundary [42464895990](https://github.com/Ares-Empire/AresOS/actions/runs/42464895990)
+passed. The failed case took about ten seconds longer, consistent with the
+client's ten-second response deadline; the original error payload is unavailable,
+so this timing diagnosis is an inference. A deterministic new regression
+holds a real transaction at `sqlite_prepared` for 11 seconds: reviewed
+production `Client.request` fails with `TimeoutError` / `transport_error`,
+while the fixed client returns the committed result with exactly the two
+expected fixture audit records. `protocol.py` now gives mutating calls a
+30-second reply window (archive retains 600 seconds), with no retry. The
+existing integration assertion now includes stdout for a future failure.
+This fixes the reproduced deadline failure without weakening an assertion;
+the final full runs below cover the installed CLI as well. No Mail protocol
+tests ran in that initial failed workflow because its shared base step stopped.
+
+**Verified — last code/test head `79b3ef1e399c1ad80f2cd9ba71d0efa55914907e`:**
+
+| Workflow | Run / attempts on this code head | Result |
+| --- | --- | --- |
+| Control Mail | [42465513705 attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42465513705/attempts/1), [attempt 2](https://github.com/Ares-Empire/AresOS/actions/runs/42465513705/attempts/2) | Both PASS: `Ran 118 tests` shared base and `Ran 225 tests` Mail; `OK`; `Control base suite PASS`; `Control Mail suite PASS`; fixture isolation confirmed. |
+| Control base | [42465513707 attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42465513707/attempts/1), [attempt 2](https://github.com/Ares-Empire/AresOS/actions/runs/42465513707/attempts/2) | Both PASS: `Ran 118 tests`; `OK`; `Control base suite PASS`. |
+| Control boundary | [42465513734](https://github.com/Ares-Empire/AresOS/actions/runs/42465513734) | PASS: 16 native fixture tests, both confinement modes (127 attacks each), policy-source/drop-in checks and coder isolation. |
+
+Mail runs `bash control/ci/mail/run.sh`, including the shared base suite via
+`bash control/ci/test.sh`, followed by isolated real-mail fixtures and
+`python3 -m unittest discover -s control/mail_tests -v`. Base runs the pinned
+Fedora container with `bash control/ci/test.sh`. Boundary runs its unchanged
+Docker build, hostile programs in both filter modes and isolation script.
+
+Both base/Mail second passes rerun their existing automatic pull-request IDs
+with `gh run rerun`; no manual dispatch or validation-only push. All later
+commits in this run change only files under `reviews/`. Final-head workflow
+IDs/attempts and results are recorded in draft PR #9's body after the report
+push, avoiding another report/head update cycle. Three pushes total (one
+necessary CI correction); normal push verification was kept on all three,
+with no hook bypass. No merge, rebase, force push or push to main. All new
+commits carry the requested model trailer.
+
+**Not verified:** no real account/provider timing, native terminal/phone
+approval presentation, recipient-program presentation, physical power-loss
+durability or race against arbitrary external disk consumers. No model
+session, host installation or real delivery ran. Minecraft/Gradle checks
+are outside this brief's overridden rules; no Gradle daemon was started.
+No screenshots are needed for these storage/protocol changes.
+
+**JUDGMENT-CALL:** follows the lead's explicit bar above. No additional owner
+choice or irreversible mailbox action. Export rights persist when a caller
+fails to report completion; this conservatively protects a possibly active
+write across service restart. Normal proxy completion/refusal releases them.
+
+**PLAN-GAP / open questions:** none added within this brief's scope. Existing
+owner/provider qualification gates still apply. Final `.work/` scan for files
+over 500 MB: `[]`.
+
 
 ## Review fixes, round 20
 
