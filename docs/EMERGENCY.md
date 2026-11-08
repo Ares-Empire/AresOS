@@ -22,7 +22,7 @@ Normal stock boot continues → Return to [step 4](INSTALL.md#4-install-and-prep
 
 ## Shutdown or restart hangs
 
-**Action:** keep AC/lid open; wait **at least 10 minutes** with no progress, including after a switch. Keep waiting if progress changes. Force off only after a successful completed install/tool command and normal shutdown request, with no firmware/BIOS update, media write/export or layout trial active; uncertainty/error → Help. [Full conditions and interrupted-switch outcome](INSTALL-REFERENCE.md#hung-shutdown-or-restart).
+**Action:** keep AC/lid open; wait **at least 10 minutes** with no progress, including after a switch. Keep waiting if progress changes. Force off only after a successful completed install/tool command and normal shutdown request. **Idle-live-session exception:** no successful install/tool command is required for an idle live session after requesting desktop shutdown. In either case, no firmware/BIOS update, media write/export or layout trial may be in progress. Unknown completion or an error → Help; do not force off. After a switch, require the recorded switch/title PASS and the checked reboot request first. [Full conditions and interrupted-switch outcome](INSTALL-REFERENCE.md#hung-shutdown-or-restart).
 If those conditions permit a power hold, do it once until off → **F12 → Windows Boot Manager**. **STOP → go to [Help](INSTALL-REFERENCE.md#help)** before resuming; no switch retry or provisional GRUB title. Return to [step 4](INSTALL.md#4-install-and-prepare-corrected-stock) or the recorded calling step only after resolution; after a switch, Return to [step 6](INSTALL.md#6-switch-to-aresos) with step 5 proof rechecked.
 
 ## Stale or missing stock title

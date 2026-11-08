@@ -71,6 +71,26 @@ The comparison allows disk/partition numbers, labels, firmware entry number and 
 
 ## C. Identify both drives in live Linux
 
+From step 4, box 1, complete the Windows checkpoint below before the live boot. Already in Linux from box 2 or a later calling procedure → go directly to [Live Linux identification](#live-linux-identification), using the saved Windows reading.
+
+### Windows printed-serial checkpoint
+
+**Micron has two serial forms.** Record A's `Disk.Serial` is Windows' **EUI-64 drive ID**, in the form `xxxx_xxxx_xxxx_xxxx.` (format placeholder, not a real ID). Linux `lsblk` SERIAL is the **printed serial**, so it will not equal that EUI-64. Before the live boot, the maintainer reads it in Windows, read-only:
+
+```powershell
+$aresMicron = @(Get-PhysicalDisk | Where-Object FriendlyName -like 'Micron*')
+if ($aresMicron.Count -ne 1) { throw 'STOP: Micron identity is ambiguous.' }
+$aresMicron | Format-List FriendlyName,SerialNumber,AdapterSerialNumber
+Get-Disk | Where-Object { $_.SerialNumber.Trim() -eq $aresMicron[0].SerialNumber.Trim() } | Format-List FriendlyName,SerialNumber,Guid
+($aresMicron[0].AdapterSerialNumber -split '_')[0].Trim()
+```
+
+Require **exactly one** matching Get-Disk row. **PASS** only when the physical disk's **SerialNumber = record A's Disk.Serial** (trim whitespace), and that matching disk's **Guid = record A's Disk.Guid** (case/braces can differ). This ties `AdapterSerialNumber` to record A. Its part **before `_`, trimmed**, is the printed Micron serial; save it privately beside A without replacing A. Blank/different/ambiguous output → **FAIL — STOP → [Help](INSTALL-REFERENCE.md#help)**. Never open Micron to read its label or mount Windows from Linux.
+
+**PASS → [Return to step 4, box 1](INSTALL.md#4-install-and-prepare-corrected-stock); continue with the offline live boot.**
+
+### Live Linux identification
+
 **Before disk commands in Konsole**, fix the live KDE layout: open **Konsole** → type `sudo localectl set-x11-keymap de`. With US still active, each `-` is the key labelled **ß** (right of **0**), `y` is **Z** (between **T** and **U**), and space is the spacebar; no Shift/AltGr. Check the displayed command before Enter. Then physically type `y z / - " $ ä ö ü` in a text editor. **PASS** only if every character matches; otherwise **STOP → [Help](INSTALL-REFERENCE.md#help)**. Repeat after every live boot. System Settings alone did not fix live Wayland typing. This is separate from the installer's target German setting. [Key/source check](INSTALL-REFERENCE.md#live-keyboard-source); after PASS, **Return to this record C**. In installed KDE test typing too; do not improvise layout changes there. In GParted Live choose German at startup and test before **Terminal**. Never click/mount a Windows volume to find commands.
 
 Keep the complete output below. The first command shows relationships; the second retains exact IDs with **PKNAME = parent device**. A narrow window may clip the tree; maximise it and use the complete pairs record for full model/serial/IDs. [L1]
@@ -97,18 +117,6 @@ NAME                   TYPE  SIZE  MODEL              SERIAL
 Partition order/types above are illustrative: use the baseline's GUIDs/types to identify the **actual** EFI/MSR/Windows/recovery rows. For the first install, no child rows alone does not prove a drive contains no data; stop for any filesystem/signature or known prior use as well. Only the bounded failed-install checkpoint below replaces this empty-drive rule.
 
 ### Same-session mapping — fill again after every boot
-
-**Micron has two serial forms.** Record A's `Disk.Serial` is Windows' **EUI-64 drive ID**, in the form `xxxx_xxxx_xxxx_xxxx.` (format placeholder, not a real ID). Linux `lsblk` SERIAL is the **printed serial**, so it will not equal that EUI-64. Before the live boot, the maintainer reads it in Windows, read-only:
-
-```powershell
-$aresMicron = @(Get-PhysicalDisk | Where-Object FriendlyName -like 'Micron*')
-if ($aresMicron.Count -ne 1) { throw 'STOP: Micron identity is ambiguous.' }
-$aresMicron | Format-List FriendlyName,SerialNumber,AdapterSerialNumber
-Get-Disk | Where-Object { $_.SerialNumber.Trim() -eq $aresMicron[0].SerialNumber.Trim() } | Format-List FriendlyName,SerialNumber,Guid
-($aresMicron[0].AdapterSerialNumber -split '_')[0].Trim()
-```
-
-Require **exactly one** matching Get-Disk row. **PASS** only when the physical disk's **SerialNumber = record A's Disk.Serial** (trim whitespace), and that matching disk's **Guid = record A's Disk.Guid** (case/braces can differ). This ties `AdapterSerialNumber` to record A. Its part **before `_`, trimmed**, is the printed Micron serial; save it privately beside A without replacing A. Blank/different/ambiguous output → **FAIL — STOP → [Help](INSTALL-REFERENCE.md#help)**. Never open Micron to read its label or mount Windows from Linux.
 
 Identify **Micron by model + printed serial + size + GPT disk GUID (`PTUUID`)**: the printed serial must match the Windows reading above; model, size and GUID must match `windows-before.json`. At the tools' **Windows baseline Micron serial** prompt, use this printed serial, not the EUI-64. Identify Crucial by the model and **printed label serial** in its private **physical-label photograph**, then match both to its live `disk` row and check size. Missing, truncated, different or ambiguous identity means **FAIL — STOP**; neither capacity nor a disk number substitutes for the serial.
 
@@ -141,7 +149,7 @@ These are **manual results** from the saved output and visible plan; the automat
 | Every Linux session: **identity** | Both mapping rows match their trusted identity; current whole-disk paths are recorded, even after renumbering. | Crucial chosen by 465 GiB alone; copied old path; serial mismatch. |
 | Every Linux session: **Micron unchanged** | Printed serial matches the Windows reading tied to A above; disk model/byte-size/PTUUID/sector-size and **every** partition's GUID/type/start/end match the original baseline, with no extra/missing rows. All Micron `MOUNTPOINTS` are empty (including no `[SWAP]`). | Changed/missing MSR or recovery; a Micron partition mounted; any unreadable field. |
 | **Before first installation only: Crucial empty** | Matched Crucial has **zero partition children**, empty FSTYPE/UUID and no mounts, unknown data or prior use. A factory-empty drive may lack PTUUID. | Even one child partition, including a small EFI partition, or any filesystem signature: stop; do not erase to make this pass. |
-| **Failed first install, before tools installation only: Crucial reinstall** | Same label-identified Crucial holds **only the failed install's EFI, boot and system partitions, nothing else**, matched to its saved plan/records; no mounts. Micron unchanged/unmounted still passes. [Return to step 4, box 1](INSTALL.md#4-install-and-prepare-corrected-stock), then **Use entire disk** on **Crucial only**. | Anything else on Crucial, missing records, uncertainty or tools already installed → **STOP**, no erasure under this exception. |
+| **Failed first install, before tools installation only: Crucial reinstall** | Same label-identified Crucial holds **only the failed install's EFI, boot and system partitions, nothing else**, matched to its saved plan/records; no mounts. Micron unchanged/unmounted still passes. Once record C passes, [Return to step 4, box 3 — installer keyboard/destination](INSTALL.md#installer-keyboard-and-destination) in the **current live session**, then **Use entire disk** on **Crucial only**. | Anything else on Crucial, missing records, uncertainty or tools already installed → **STOP**, no erasure under this exception. |
 | **Before Erase data and install: installer plan** | Exact destination entry maps only to current Crucial; **every** proposed storage action is on Crucial, with its **own new EFI** at `/boot/efi`, boot and system. | Any proposed write, format, delete, resize, mount or EFI reuse on **Micron or any of its children**, even if Crucial is also selected; missing EFI or unclear path. |
 | After installation: **Linux on Crucial** | The mount sources and Linux EFI GUID checked below all resolve to the recorded Crucial partitions. | `/boot/efi` or any Linux storage resolves to Micron, or a mount/EFI identity is unclear. |
 
@@ -228,7 +236,7 @@ Use your **calling procedure first**, then its stage. Do not use an installation
 | initial after-fit | [Return to step 3](INSTALL.md#3-fit-and-identify-both-drives) | Continue only the fitting comparison. |
 | initial first after-bazzite | [Return to step 4](INSTALL.md#4-install-and-prepare-corrected-stock) | Complete the tools round trip. |
 | initial prepared after-bazzite | [Return to step 5](INSTALL.md#5-prove-windows-and-corrected-stock) | Mandatory Windows/corrected-stock proof. |
-| initial live mapping | [Return to step 4](INSTALL.md#4-install-and-prepare-corrected-stock) | Same-session installer plan. |
+| initial live mapping (including the bounded reinstall) | [Return to step 4, box 3 — installer keyboard/destination](INSTALL.md#installer-keyboard-and-destination) | Continue in the current live session with the same-session mapping. |
 | initial after-aresos | [Return to step 7](INSTALL.md#7-check-the-first-aresos-session) | Initial AresOS check only. |
 | undo erasure | [Return to the erasure procedure](INSTALL-PROCEDURES.md#optional-removal-or-erasure) | Complete only separately authorized erasure, then Return to step 9. |
 | undo Windows confirmation | [Return to step 9](INSTALL.md#9-retire-access-and-return-to-windows) | Final independent Windows proof. |

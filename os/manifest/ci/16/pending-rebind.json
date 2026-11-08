@@ -5,16 +5,17 @@
   "changes": [
     "PR #13 (f5bc2d4d): Stage B checked, Stage C released (docs/INSTALL.md, os/tests/test_owner_path.py)",
     "PR #22 (15f): Lenovo's own Fedora firmware entry accepted beside Bazzite; new tools fingerprint",
-    "Package 15g: install-night owner-page corrections and route tests; checkout bytes recorded for the next rehearsal (no walk tables rebound)"
+    "Package 15g: install-night owner-page corrections and route tests; checkout bytes recorded for the next rehearsal (no walk tables rebound)",
+    "Package 15gb: reviewed return routes, idle live-session shutdown exception and layout-proof wording; current checkout bytes retained without rebinding historical tables"
   ],
   "rule": "The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
     {
-      "sha256": "01715420f217d7197385fa15e7516f8c1372c1d4caf7597377c947f66b189285",
+      "sha256": "7e66a9e2c59d136144667c7583b3dad1d1ae86e157020a2ef4034176923cfbf5",
       "path": "docs/EMERGENCY.md"
     },
     {
-      "sha256": "1ee7b5ab47128ab61809008190cfd1362c1a0faad8efd13a3489963409ab29b8",
+      "sha256": "4a4fe5c7680341826c4999c249351e17f6bee321b1f40169dc81cae27e6307c4",
       "path": "docs/INSTALL.md"
     },
     {
@@ -50,7 +51,7 @@
       "path": "os/tests/test_owner_firmware.py"
     },
     {
-      "sha256": "901186691b5bd829e17ac518c076c8a0ae9da169591cafe358af5113a2f6faa0",
+      "sha256": "5ca96a288e1d0c98a463cd3c16b5af27df8394fa48f9be89cfa0f2d4194d68b9",
       "path": "os/tests/test_owner_path.py"
     },
     {

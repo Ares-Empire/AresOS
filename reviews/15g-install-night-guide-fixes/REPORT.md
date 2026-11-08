@@ -165,3 +165,133 @@ The restricted passphrase alphabet, first-install retry scope and MOK continuati
 
 - Owner/maintainer review of the ten-minute power-off recommendation.
 - Claude's official hash regeneration, WSL suites, gitleaks and remaining build/physical evidence are still outstanding. No new release or merge is authorized by these local checks.
+
+## 15gb — Review fixes (2026-11-09)
+
+Implemented `briefs/15gb-review-fixes.md` against the retained CHANGES-NEEDED review. This section records the follow-up; the 15g results above remain historical. All writes stayed inside this worktree. **No commit, push, PR, merge or WSL invocation.** No disk/firmware commands, system installation or Windows settings changes.
+
+The initial implementation pass's receipts are retained below. A completion pass began with the seven source/document/manifest edits already present, checked them against the brief and review, and consolidated the overlapping report sections. Its additional verification is recorded at the end of this section.
+
+### Done
+
+- **Reinstall return:** `docs/INSTALL.md` keeps the failure route's return to box 1. Added an anchor immediately before box 3 (installer keyboard), followed by destination selection. `docs/INSTALL-RECORD.md` sends the successful retry checkpoint and the live-mapping caller-table return to that anchor in the current live session. Step 4 box 2 also returns there explicitly without rebooting. The first-install empty-drive rule, pre-tools retry scope, Crucial-only selection and Micron protections remain.
+- **Windows reading:** record C now has a separate Windows printed-serial checkpoint before the Linux instructions. Its last line is PASS → Return to step 4, box 1; continue with the offline live boot. Box 1 links directly to it; box 2 links directly to Linux identification. The read-only PowerShell snippet and its identity checks are unchanged.
+- **Idle live shutdown:** `docs/EMERGENCY.md` and `docs/INSTALL-REFERENCE.md` now carry identical exception/exclusion wording. No prior install/tool success is required for an idle live session after requesting desktop shutdown. The ten-minute no-progress wait, firmware/media/layout exclusions, unknown-completion/error stop, switch/title/reboot evidence, Windows return and mandatory Help remain.
+- **Layout:** `docs/INSTALL-PROCEDURES.md` explains that the permitted password alphabet stays typeable in German, US International and plain US. The public `yz-/!ü` proof exercises the layout difference; plain US cannot supply its ü. The supervised negative trial, retained tty3 root session, fresh login/sudo proof, revert link and prohibition on forced restarts/password changes remain.
+- **Tests:** extended the existing reinstall test to resolve both returns to the actual installer box, retaining its initial box-1 and data-protection assertions. The old retry-PASS `box 1` assertion encoded the reviewed defect; it now requires box 3 and rejects box 1. Added three tests for the Windows checkpoint boundary/return, identical idle-session exception with recovery guards, and typeable passwords versus public layout proof. No test was removed or skipped.
+- **Pending rebind:** refreshed only the three changed bound sources: `docs/INSTALL.md`, `docs/EMERGENCY.md` and `os/tests/test_owner_path.py`. INSTALL-RECORD, INSTALL-REFERENCE and INSTALL-PROCEDURES are not in the active 244-source union. The list remains **12 pending**; the other nine pending hashes and historical walk/source tables are unchanged. Added the 15gb change note.
+
+### Verified
+
+**Native checks passed; this is not a green Python, WSL, gitleaks or Gradle result.** Commands ran from the worktree root unless stated otherwise.
+
+| Command/check | Result |
+| --- | --- |
+| `node .work/15gb/check.cjs --rebind`, then `node .work/15gb/check.cjs` | Both exit 0. The helper checks the four fixes, then runs the retained 15g native checks and isolated attribute-aware Git checkout replay. Exact PASS output below. |
+| `git diff --check` | Exit 0; no output. |
+| `git diff --exit-code main -- os/owner-tools os/release os/manifest/release.json docs/install-tools .github` | Exit 0; no output. |
+| `git diff --exit-code HEAD -- os/manifest/ci/16/source-bindings.json os/manifest/ci/16/host-walk.json` | Exit 0; no output. Historical tables unchanged. |
+| `py --version` | `No installed Python found!` Neither `python` nor `python3` is on PATH; the Python helper and suites could not execute. |
+| `Get-Command gitleaks -ErrorAction SilentlyContinue` | No command found. |
+| Read the pin from `os/manifest/ci/14/privacy-stop/scanner.json`; `Invoke-WebRequest -Uri $aresPin.url -OutFile .work/15gb/gitleaks.zip -UseBasicParsing -TimeoutSec 20` | Exit 1: `BLOCKED gitleaks download: Die Verbindung mit dem Remoteserver kann nicht hergestellt werden.` No archive or scanner retained; no privacy scan claimed. |
+| In `mod/`: `.\gradlew.bat --no-daemon --gradle-user-home ..\.work\15gb\gradle build runClientGameTest` | Exit 1 fetching Gradle 9.8.0: `Attempt 1/1 failed. Reason: Permission denied: getsockopt`, followed by `java.net.SocketException`. `JAVA_OPTS` directed `java.io.tmpdir` and `user.home` to `.work/15gb/java-tmp` and `.work/15gb/java-home`. No Gradle build, tests or daemon started; no second attempt or daemon-stop result claimed. |
+
+```text
+PASS 15gb Windows detour returns before Linux; retry and caller-table returns land at installer box 3
+PASS 15gb identical idle live-session exception; wait, exclusions, Windows return and mandatory Help retained
+PASS 15gb typeable password and public layout proof; supervised negative trial/revert protections retained
+PASS 281 local owner-page links and anchors
+PASS owner navigation graph: 1799 states; login/switch require step 5
+PASS exact 13-line bootstrap, line 8 fingerprint, canonical bash blocks, restart receipts and Ctrl labels
+PASS ISO map hashes, US-on-German minus/y/space positions and a-x/top-row digit equivalence
+PASS install-night route guards, serial join, roles and Bazzite naming
+PASS isolated Git checkout replay: 244 active sources; 12 pending; historical tables unchanged
+```
+
+The native replay normalizes using the repository's declared attributes in an isolated scratch index, not the real index. It checks every active binding and every pending entry. It does **not** substitute for `checkout_sources.records` or Python unittest; those remain in the handoff below.
+
+`rg` was unavailable, so reads/searches used Git and PowerShell. A computed-path cleanup command was rejected by policy before execution; after listing the exact paths, literal-path `Remove-Item` successfully removed the two zero-byte Gradle `.part`/`.lck` files inside `.work/15gb`. No large download, duplicate or extracted image remains. Final recursive `.work/` inventory of **files over 500 MB: none**.
+
+### Not verified
+
+Python syntax/runtime and all required Python suites, official helper regeneration, pinned gitleaks, the two Gradle/client runs, phone navigation/rendering, VM and physical trials remain unverified here. No new screenshots. No claim of new installation/rehearsal evidence, release or completed hardware gate.
+
+### Claude must run afterwards
+
+These are handoff commands, **not commands run in this sandbox**. Keep this worktree and the existing branch; do not merge. No commit/push/PR step was performed or requested in this follow-up.
+
+1. **Regenerate with the mandated Python helper**, in WSL after this run. Require 12 entries and unchanged generated hashes if the files have not changed. Investigate any difference; do not rebind historical walk tables or weaken checks.
+
+```bash
+test "$(basename "$PWD")" = AresOS-15g-install-night-guide-fixes || { echo 'STOP: open this worktree root first'; exit 1; }
+mkdir -p .work/15gb/tmp .work/15gb/verification
+export TMPDIR="$PWD/.work/15gb/tmp"
+unset PYTHONDONTWRITEBYTECODE
+python3 -B - <<'PY'
+import json
+import pathlib
+import sys
+root = pathlib.Path.cwd()
+sys.path.insert(0, str(root / 'os/ci'))
+import checkout_sources
+path = root / 'os/manifest/ci/16/pending-rebind.json'
+pending = json.loads(path.read_text())
+bound = {row['path'] for row in checkout_sources.merge(checkout_sources.active_tables(root))}
+changed = {
+    'docs/INSTALL.md', 'docs/INSTALL-RECORD.md', 'docs/INSTALL-REFERENCE.md',
+    'docs/INSTALL-PROCEDURES.md', 'docs/EMERGENCY.md', 'os/tests/test_owner_path.py',
+}
+names = {row['path'] for row in pending['files']} | (changed & bound)
+assert names <= bound
+rows = checkout_sources.records(root, sorted(names))
+assert len(rows) == 12
+assert rows == pending['files'], 'STOP: investigate differing checkout hashes'
+pending['files'] = rows
+with path.open('w', encoding='utf-8', newline='\n') as stream:
+    stream.write(json.dumps(pending, indent=2) + '\n')
+print('Regenerated and matched', len(rows), 'pending checkout sources')
+PY
+```
+
+2. **Run the four focused suites and full suite, both with and without `-B`**, retaining actual output. Every focused suite must pass. Only the brief's known WSL baseline failures may remain in the full suite: `test_greeter` (3), `test_inherited_homebrew` (6: 1 failure/5 errors), `test_sysusers` (1). Fix every other failure.
+
+```bash
+set -o pipefail
+for mode in bytecode no-bytecode; do
+  flags=()
+  if [ "$mode" = no-bytecode ]; then flags=(-B); fi
+  for suite in test_owner_path test_owner_equality test_checkout_sources test_owner_step_limits; do
+    python3 "${flags[@]}" -m unittest discover -s os/tests -p "$suite.py" -v \
+      2>&1 | tee ".work/15gb/verification/$mode-$suite.log"
+    result=${PIPESTATUS[0]}
+    printf '%s %s exit=%s\n' "$mode" "$suite" "$result"
+  done
+  python3 "${flags[@]}" -m unittest discover -s os/tests -v \
+    2>&1 | tee ".work/15gb/verification/$mode-all.log"
+  result=${PIPESTATUS[0]}
+  printf '%s full-suite exit=%s\n' "$mode" "$result"
+done
+```
+
+3. **Run pinned gitleaks 8.21.2 on history and current working files.** Use the complete PowerShell pin/download/hash/scan block under “Claude: pinned gitleaks, including the uncommitted files” above, **adding `docs/INSTALL-PROCEDURES.md` to `$aresFiles`** and using `.work/15gb/gitleaks` for this follow-up's output. Keep the report, manifest, five edited owner pages and test file in the current-edits scan. Require both scans to pass; do not bypass the privacy hook or relax its rules.
+4. **Run `build runClientGameTest` twice inside `mod/`, then stop every daemon started.** Use the existing Java 25 installation and worktree-local caches. In PowerShell, set `JAVA_OPTS` as in the attempted command above; run `.\gradlew.bat --no-daemon --gradle-user-home ..\.work\15gb\gradle build runClientGameTest` twice, then `.\gradlew.bat --gradle-user-home ..\.work\15gb\gradle --stop`. If any other Gradle version starts, stop it too. Both full runs must pass; retain screenshots under this review directory.
+5. **Rerun `git diff --check` and both unchanged-path comparisons from the Verified table**, inspect the phone return routes, and append actual verification results here. Recompute pending hashes after any further bound-file edit. Keep physical/reader gates open until their required evidence is checked.
+
+### JUDGMENT-CALL
+
+No new policy choice. All four changes implement the accepted review. The ten-minute recovery policy and its limits from 15g remain; this follow-up makes its existing idle-live exception explicit and identical. The installer anchor is a reversible navigation detail.
+
+### PLAN-GAP
+
+The required Python helper/suites and scanner cannot run in this environment; Gradle's distribution fetch is also blocked. The native checks establish documentation/hash consistency only. Claude's official verification above remains required.
+
+### Open questions
+
+None about the four accepted fixes. Remaining verification and human trials are listed above.
+
+### Completion verification
+
+- `node .work/15gb/check.cjs` independently rerun: **exit 0**, with the same nine PASS lines above (281 local links, 1799 navigation states, 244 active sources and 12 pending). The native check did not rewrite the manifest in this pass. The three Git commands in the Verified table were rerun after the report edit: **exit 0, no output** each. Prohibited implementation paths and historical source-binding tables remain unchanged.
+- `py --version` again printed `No installed Python found!`; no usable `python`/`python3` command or `gitleaks` command was found. A worktree-only Python download command using `Invoke-WebRequest -Uri https://www.python.org/ftp/python/3.13.9/python-3.13.9-embed-amd64.zip -OutFile .work/15gb/python.zip -UseBasicParsing -TimeoutSec 20` was **rejected before execution by automatic approval review**: `rejected: blocked by policy`. No further reason was supplied. No archive was created and no alternate download route was attempted. No Python/scanner pass is claimed.
+- The same Gradle command in the table was attempted again with `TEMP`/`TMP`, Java's temporary directory and `user.home` all inside `.work/15gb`: **exit 1**, `Attempt 1/1 failed. Reason: Permission denied: getsockopt`, before Gradle or any daemon/build/test started. These failed wrapper downloads do not count as either required successful full run. No daemon was started to stop.
+- After resolving and checking that cleanup targets stay inside this worktree's `.work/15gb/gradle`, removed the `.lck` and `.part` files. Final `.work/` inventory of files over 500 MB: **none**. No screenshots, VM runs, hardware trials or WSL execution in this pass. All official verification above remains for Claude; this handoff does not authorize commit, push, PR or merge.

@@ -310,6 +310,26 @@ class OwnerPathTest(unittest.TestCase):
             self.assertIn(value, prompt)
         self.assertNotIn('all matching `windows-before.json`', record)
 
+    def test_windows_serial_checkpoint_returns_before_linux_identification(self):
+        texts = documents()
+        record = texts['INSTALL-RECORD.md']
+        checkpoint = section(record, 'windows-printed-serial-checkpoint')
+        step4 = section(texts['INSTALL.md'], '4-install-and-prepare-corrected-stock')
+        box1 = next(line for line in step4.splitlines() if line.startswith('- [ ]'))
+        self.assertIn('(INSTALL-RECORD.md#windows-printed-serial-checkpoint)', box1)
+        for value in ('Get-PhysicalDisk', 'SerialNumber = record A\'s Disk.Serial',
+                      'Guid = record A\'s Disk.Guid', 'Blank/different/ambiguous', 'STOP'):
+            self.assertIn(value, checkpoint)
+        returned = checkpoint.splitlines()[-1]
+        self.assertTrue(returned.startswith('**PASS → [Return to step 4, box 1]'))
+        self.assertIn('continue with the offline live boot', returned)
+        self.assertEqual([target('INSTALL-RECORD.md', url, texts) for url in LINK.findall(returned)],
+                         [('INSTALL.md', anchors(texts['INSTALL.md'])['4-install-and-prepare-corrected-stock'])])
+        self.assertLess(record.index(returned), record.index('### Live Linux identification'))
+        self.assertLess(record.index(returned), record.index('sudo lsblk'))
+        self.assertNotIn('sudo ', checkpoint)
+        self.assertIn('[record C](INSTALL-RECORD.md#live-linux-identification)', step4)
+
     def test_live_keyboard_command_precedes_typing_test_and_keeps_installer_de(self):
         texts = documents()
         for page, anchor in (('INSTALL.md', '4-install-and-prepare-corrected-stock'),
@@ -360,8 +380,26 @@ class OwnerPathTest(unittest.TestCase):
         self.assertIn('**zero partition children**', record)
         retry_row = next(line for line in record.splitlines() if '| **Failed first install,' in line)
         for value in ('before tools installation only', 'nothing else', 'no mounts', 'Micron unchanged',
-                      'Anything else on Crucial', '**STOP**', 'box 1'):
+                      'Anything else on Crucial', '**STOP**', 'Once record C passes',
+                      'box 3 — installer keyboard/destination', '**current live session**'):
             self.assertIn(value, retry_row)
+        self.assertNotIn('box 1', retry_row)
+        # The return must land at the keyboard box, not merely at a valid step-4 link.
+        guide = texts['INSTALL.md']
+        installer = anchors(guide)['installer-keyboard-and-destination']
+        after_anchor = guide.splitlines()[installer + 1:]
+        self.assertTrue(next(line for line in after_anchor if line.strip()).startswith(
+            '- [ ] Installer **English (United States)'))
+        self.assertIn('**Installation method → Change destination**', '\n'.join(after_anchor[:4]))
+        dispatch_row = next(line for line in texts['INSTALL-RECORD.md'].splitlines()
+                            if line.startswith('| initial live mapping'))
+        for returned in (retry_row, dispatch_row):
+            self.assertEqual([target('INSTALL-RECORD.md', url, texts) for url in LINK.findall(returned)],
+                             [('INSTALL.md', installer)])
+        self.assertIn('bounded reinstall', dispatch_row)
+        self.assertIn('current live session', dispatch_row)
+        self.assertIn('[Return to step 4, box 3](#installer-keyboard-and-destination)', step4)
+        self.assertIn('without rebooting', step4)
         card = section(texts['EMERGENCY.md'], 'password-not-accepted')
         for value in ('failed first install before tools installation', 'box 1', 'nothing else',
                       'Micron must be unchanged/unmounted', 'STOP', '**Crucial only**'):
@@ -441,6 +479,45 @@ class OwnerPathTest(unittest.TestCase):
             self.assertIn('10 minutes' if anchor != 'failed-first-switch-boot' else '10-minute',
                           section(texts['EMERGENCY.md'], anchor))
         self.assertNotIn('Still on? Hold power', texts['EMERGENCY.md'])
+
+    def test_idle_live_shutdown_exception_matches_and_preserves_recovery_guards(self):
+        texts = documents()
+        ref = section(texts['INSTALL-REFERENCE.md'], 'hung-shutdown-or-restart')
+        card = section(texts['EMERGENCY.md'], 'shutdown-or-restart-hangs')
+        exception = ('**Idle-live-session exception:** no successful install/tool command is required '
+                     'for an idle live session after requesting desktop shutdown. In either case, '
+                     'no firmware/BIOS update, media write/export or layout trial may be in progress.')
+        for block in (ref, card):
+            self.assertEqual(block.count(exception), 1)
+            for value in ('at least 10 minutes', 'progress', 'switch/title PASS',
+                          'checked reboot request first', 'Windows Boot Manager',
+                          'do not force off', 'once', 'provisional GRUB title', 'step 5 proof rechecked'):
+                self.assertIn(value, block)
+            self.assertRegex(block, r'(?i)(completion is unknown|unknown completion)')
+            self.assertIn('error', block)
+            after_windows = block.split('Windows Boot Manager', 1)[1]
+            self.assertIn('Help', after_windows)
+            self.assertRegex(after_windows, r'only after (?:Help resolves|resolution)')
+
+    def test_layout_password_stays_typeable_and_public_proof_drives_negative_trial(self):
+        texts = documents()
+        layout = section(texts['INSTALL-PROCEDURES.md'], 'later-layout').split('### Layout revert', 1)[0]
+        for value in ('lowercase a–x and top-row digits 0–9',
+                      'stays typeable in German, US International and plain US',
+                      'public `yz-/!ü` proof exercises the layout difference',
+                      '**tty3 ares-recovery → sudo -i** session **OPEN**',
+                      'do not reboot or change the password', 'fresh `ares-recovery` password login',
+                      'sudo -k; sudo /var/lib/ares/at layout proof', 'AltGr+y'):
+            self.assertIn(value, layout)
+        negative = layout.split('Require `PASS layout begin us`', 1)[1]
+        for value in ('only in the supervised layout gate', 'unchanged password stays typeable',
+                      'plain US cannot type the ü in the public `yz-/!ü` proof',
+                      'original tty3 root session open', '[Layout revert](#layout-revert)',
+                      'Reboot must refuse unfinished proof', 'never test refusal by forcing a restart'):
+            self.assertIn(value, negative)
+        self.assertNotIn('umlaut password', layout)
+        self.assertNotIn('password may be untypeable', layout)
+        check_context_returns(texts)
 
     def test_step4_pass_and_reviewed_tools_do_not_release_a_new_stage_or_vm_result(self):
         status = documents()['INSTALL-STATUS.md']
