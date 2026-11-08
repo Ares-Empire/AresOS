@@ -1,6 +1,8 @@
 """Review 13: production exports/evidence, with offline I/O fault injection."""
 from contextlib import contextmanager
 import errno
+from email.message import EmailMessage
+from email.policy import SMTP
 import os
 from pathlib import Path
 import tempfile
@@ -11,7 +13,6 @@ from unittest.mock import patch
 from aresos_control.common import Refused, sha256
 from aresos_control.files import FilePolicy
 from aresos_control.proxy import Proxy
-from aresos_control import exports
 import test_review_fixes_19 as round19
 import test_review_fixes_20 as round20
 
@@ -46,12 +47,14 @@ class Exports21(unittest.TestCase):
     def attachment(self, size=128 * 1024):
         raw = b'Synthetic attachment\x00' + b'x' * size
         self.raw = raw
-        # Keep MIME/provider concerns out of the disk test; production export
-        # admission, blob publication, proxy completion and cleanup all run.
-        def attachment(args):
-            key, export_id = exports.put(self.engine.store, self.engine.blobs, raw)
-            return None, {'sha256': key, 'size': len(raw), 'name': 'synthetic.bin', 'export_id': export_id}
-        self.mail.attachment = attachment
+        message = EmailMessage()
+        message['Message-ID'] = self.imap.mid
+        message['From'] = 'sender@mail.invalid'
+        message['To'] = 'recipient@mail.invalid'
+        message['Subject'] = 'Synthetic attachment'
+        message.set_content('Synthetic body')
+        message.add_attachment(raw, maintype='application', subtype='octet-stream', filename='synthetic.bin')
+        self.imap.boxes['Source'][1] = message.as_bytes(policy=SMTP)
         self.reference = {'account': 'box', 'folder': 'Source', 'uidvalidity': self.imap.validities['Source'],
                           'uid': 1, 'message_id': self.imap.mid}
         return {'reference': self.reference, 'part': '1.2'}
@@ -99,7 +102,10 @@ class Exports21(unittest.TestCase):
             def call(self, name, arguments):
                 return self.request({'method': 'call', 'action': name, 'arguments': arguments})
             def download(self, app, key, limit, export_id=None):
-                result = self.request({'method': 'download', 'app': app, 'sha256': key, 'export_id': export_id})
+                request = {'method': 'download', 'app': app, 'sha256': key}
+                if export_id:
+                    request['export_id'] = export_id
+                result = self.request(request)
                 return result, engine.blobs.read(key) if result['ok'] else None
         proxy.client = Client()
         original_open = os.open
