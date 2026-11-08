@@ -6,7 +6,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from aresos_control.boundary import Boundary, asking_rules, managed_servers
-from boundary_test_support import install_boundary
+from boundary_test_support import fixture_boundary as install_boundary
 from support import EngineCase, ROOT, message
 
 

@@ -12,7 +12,7 @@ from aresos_control.definitions import BY_NAME
 from aresos_control.engine import Engine
 from aresos_control.mail import codec
 from aresos_control.protocol import receive
-from boundary_test_support import install_boundary
+from boundary_test_support import fixture_boundary as install_boundary
 import test_review_fixes_12 as round12
 
 

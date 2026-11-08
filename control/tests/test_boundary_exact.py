@@ -14,7 +14,7 @@ import test_boundary as previous
 class ExactBoundary(EngineCase):
     def setUp(self):
         super().setUp()
-        from boundary_test_support import install_boundary
+        from boundary_test_support import fixture_boundary as install_boundary
         self.approval = self.reserve()
         self.config = install_boundary(self.root / 'boundary')
         fixture = patch.multiple(boundary, DEFAULT_SETTINGS=self.config['managed_settings'], DEFAULT_MCP=self.config['managed_mcp'])
@@ -118,6 +118,21 @@ class ExactBoundary(EngineCase):
                         'managed_settings': '/fixture', 'managed_mcp': '/fixture'})
             self.assertNotIn('boundary_config', factory.call_args.kwargs)
             self.assertEqual(len(factory.call_args.args), 5)
+
+    def test_review16_root_fixture_uses_protected_container_prefix_and_reuses_path(self):
+        from boundary_test_support import fixture_boundary, _FIXTURES
+        logical = str(self.root / 'new-identity')
+        protected = str(self.root / 'simulated-container-fixture')
+        with patch('boundary_test_support.os.geteuid', return_value=0), \
+             patch('boundary_test_support.Path.mkdir'), \
+             patch('boundary_test_support.tempfile.mkdtemp', return_value=protected) as temporary, \
+             patch('boundary_test_support.install_boundary', return_value={'fixture': True}) as install:
+            self.assertEqual(fixture_boundary(logical), {'fixture': True})
+            fixture_boundary(logical)
+            self.assertEqual(temporary.call_count, 1)
+            self.assertEqual(temporary.call_args.kwargs['dir'], Path('/etc/claude-code/fixtures'))
+            self.assertEqual(install.call_args.args, (Path(protected),))
+        _FIXTURES.pop(logical)
 
     def test_review16_generated_source_locks_present_and_no_managed_hooks_file_is_loaded(self):
         settings = managed_settings()
