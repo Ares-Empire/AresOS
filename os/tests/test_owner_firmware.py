@@ -72,9 +72,14 @@ class FirmwareTest(unittest.TestCase):
         # The alias never stands in for the installer's entry, and only one alias is set aside.
         self.refuse(alias,'does not uniquely map')
         self.refuse(self.text+alias+entry(hd()+file('\\EFI\\fedora\\shim.efi')+END,number='0011'),'does not uniquely map')
-        # Any other loader on the target ESP stays ambiguous.
+        # Any other loader on the target ESP stays ambiguous, and beside the alias
+        # only the installer's shimx64 entry is accepted.
         for path in ('\\EFI\\fedora\\grubx64.efi','\\EFI\\BOOT\\BOOTX64.EFI','\\EFI\\fedora\\shim.efi.bak','\\EFI\\other\\shim.efi'):
-            with self.subTest(path=path):self.refuse(self.text+alias+entry(hd()+file(path)+END,number='0012'),'does not uniquely map')
+            other=entry(hd()+file(path)+END,number='0012')
+            with self.subTest(path=path):
+                self.refuse(self.text+alias+other,'does not uniquely map')
+                self.refuse(alias+other,'does not uniquely map')
+                self.refuse(other+alias,'does not uniquely map')
 
     def test_non_efi_path_and_other_esp_not_counted(self):
         for raw in (hd()+file('\\OTHER\\boot.efi')+END,hd('20d4509a-0f19-4bc0-8478-2274d7eac018')+file()+END):
