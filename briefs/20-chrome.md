@@ -129,7 +129,9 @@ generated `user-mcp.json`. Read on `main`:
     - "don't ask again" is suspended;
     - every input that could activate something asks: any click or tap (links and ticks included), Enter or Space
       on a control, choosing from a list, and any form submission;
-    - only reading, scrolling, typing into fields and navigating by address stay free;
+    - only reading, scrolling, typing into fields and navigating by address stay free, except that his read-only
+      sites stay read-only: that restriction is his own and holds independently of adapters, so filling fields,
+      clicking buttons and uploading there remain refused;
     - the password exclusion still runs, and a field it can't confirm is safe isn't read;
     - every result says plainly that this Chrome version isn't qualified yet.
   - *Tests:* the service against a record with a failed adapter, a failed core group, a failure on one patch with a
@@ -137,7 +139,8 @@ generated `user-mcp.json`. Read on `main`:
     conservative mode on an unrecorded major: a Gmail send goes through the generic rules; a "don't ask again" entry
     asks; a link click, a tick, a choice from a list, Enter or Space on a control and a form submission each ask and
     reach the receiver only after approval; reading, scrolling, typing and navigating by address don't ask; a field
-    whose safety the reader can't confirm isn't read; every result carries the notice.
+    whose safety the reader can't confirm isn't read; on a read-only site (his bank fixture), filling a field, a
+    button click and an upload are still refused; every result carries the notice.
 - Brief 18's, 18d's and Mail's suites still pass; the generated artifacts are in sync.
 
 `.github/workflows/control-chrome.yml` runs them on pushes to this branch (path filter) and on its pull request; the

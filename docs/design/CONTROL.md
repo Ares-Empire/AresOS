@@ -720,7 +720,9 @@ full versions and gates by major version: a patch of a qualified major runs norm
 recorded (his Chrome moved to a new major before the record reached the laptop), the tool runs in a conservative mode
 that asks more, never less: adapters are off; "don't ask again" is suspended; every input that could activate
 something asks (any click or tap, Enter or Space on a control, choosing from a list, any form submission); only
-reading, scrolling, typing into fields and navigating by address stay free; the password exclusion still runs, and a
+reading, scrolling, typing into fields and navigating by address stay free, except on his read-only sites, whose
+restriction is his own and holds independently of adapters (filling, clicking buttons and uploading stay refused
+there); the password exclusion still runs, and a
 field it can't confirm is safe isn't read; every result says plainly that this Chrome version isn't qualified yet
 (*brief 20* tests this mode).
 
