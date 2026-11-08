@@ -60,7 +60,7 @@ as his own user under the permissions he sets; our tools only add safe saving an
 | Read, change, create, rename, move and delete files in his home and projects | Claude Code's own file tools and terminal | as in normal Claude Code | first (decisions 17 and 24): as his own user, as on any OS |
 | Save a mail attachment or a download | `mail_attachment_save`, `chrome_downloads` (rule 4.4) | change | first: into the folder named (`~/Downloads` by default) under a safe name, never over an existing file, never into a hidden folder or a start-up place, without execute bits |
 | Attach or upload a local file | `mail_compose`, `chrome_upload` (rule 4.4) | change | first: the question shows the real path and the hash, and exactly those bytes are sent |
-| Run terminal commands | Claude Code's terminal | as in normal Claude Code | first, under his permissions; Claude Code's sandbox is an option he can turn on (`sandbox.enabled`, then `autoAllowBashIfSandboxed: true`, decision 17), which also keeps commands away from the tool service |
+| Run terminal commands | Claude Code's terminal | as in normal Claude Code | first, under his permissions; Claude Code's sandbox is an option he can turn on (`sandbox.enabled`, then `autoAllowBashIfSandboxed: true`, decision 17); it keeps commands away from the tool service only with `allowUnsandboxedCommands: false`, no excluded commands, Unix sockets not allowed and the service's socket folder denied for reads, and even then best-effort (CONTROL.md section 7) |
 | Start the session with skip-permissions | `claude --dangerously-skip-permissions` | | first (decisions 23 and 24): sends, deletes and submits through our tools still ask (managed ask rules) |
 
 ## Coding and project work (decisions 23 and 24)
@@ -80,6 +80,7 @@ as his own user under the permissions he sets; our tools only add safe saving an
 |---|---|---|---|
 | Add an MCP server, a claude.ai connector, a skill or a plugin; remove one | as in normal Claude Code | his choice | first: as on his other machines; decision 22's install-asking path is dropped |
 | Use an added tool | its own tools | as in normal Claude Code | first, under his permissions; our managed ask rules cover our own asking tools |
+| His own `PermissionRequest` hooks (hooks that answer permission prompts for him, for example a broad auto-approve) | his settings | owner | they must not match our asking tools (the send, delete and submit tools of Mail, Chrome and later apps), so such a hook never answers for him; whether one could approve a managed ask at all is tested in brief 18c |
 | Our app servers (Mail, Chrome, later apps) | installed for his user by the image's setup, like any MCP server | | first: their send, delete and submit tools always ask |
 
 ## Chrome

@@ -81,7 +81,8 @@ acting):
     works in his home and projects as his own user, as on any OS; the version store and the sandbox as a requirement
     go with the containment.)
 18. **`WebFetch` and `WebSearch`: "a)".** Searches are free, as on his usual sites in Chrome; fetching an address
-    Claude composed asks; an address from him or from a page is free.
+    Claude composed asks; an address from him or from a page is free. (Superseded by decision 24: `WebFetch` and
+    `WebSearch` follow normal Claude Code permissions, as he sets them.)
 19. **The checkpoint's certificate limits: "okay",** accepted as stated (client certificates, no "continue anyway",
     a pause when Chrome's lists are out of date, a visible notice if Chrome is ever newer than its checkpoint).
 20. **Merging, a new rule: "A safe merge shouldnt need permission should it?"** From now on the lead merges a PR
@@ -140,15 +141,17 @@ acting):
     things worse than normal Claude Code; a Claude tricked by content can do on AresOS what it could do on any OS, and
     that is accepted. Claude Code runs as his normal user in his home and projects, with his own `gh` login and his own
     MCP servers, skills and plugins, added as in normal Claude Code. The tools: send, delete and submit ask in Claude
-    Code's prompt through managed ask rules (which no user allow rule, hook, mod or mode turns off, so the switches
-    that locked everything else go); passwords with the tool service's own user; the `question`, approval binding and
+    Code's prompt through managed ask rules (which no user allow rule, `PreToolUse` hook, mod or mode turns off, so
+    the switches that locked everything else go; whether a `PermissionRequest` hook can approve one is tested in brief
+    18c); the app passwords AresOS holds with the tool service's own user; the `question`, approval binding and
     untrusted-content marking as built; the instruction-source line in the managed `CLAUDE.md`. Gone: the SELinux
     domains, set-group-id relays and registration, the program allowlist and the gates as hard switches, project
     snapshots, the GitHub App, rulesets and mirror, the git wrapper and project-folder ownership, the separate
     assistant user, the coding/assistant split, the exact managed-settings equality as a deployment requirement, and
     decision 22's install-asking path. Residual, said plainly: without a mandatory sandbox, a tricked Claude could call
     the tool service directly and skip the question; Claude Code's own sandbox stays available as an option he can turn
-    on. (`CONTROL.md` sections 1, 2, 4.4, 7 and 10; section 6 to be re-examined against this bar before brief 20.)
+    on, which narrows that only in a strict setup and even then best-effort. (`CONTROL.md` sections 1, 2, 4.4, 7 and
+    10; section 6 to be re-examined against this bar before brief 20.)
 
 ## How sending stays under the owner's control
 
@@ -175,20 +178,26 @@ Three places, each with one job:
 **What the tools guarantee, and what they don't** (decision 24; set up once in the image, the exact values come with
 the settings):
 
-- Passwords and sign-in data belong to a separate system user. Only the tool service uses them; his account, and so
-  Claude, can't read them.
+- The app passwords AresOS holds (the mail accounts' passwords and any other sign-in data the tool service keeps for
+  its apps) belong to a separate system user. Only the tool service uses them; his account, and so Claude, can't read
+  them. His own `gh` login and other credentials stay with him, as in normal Claude Code.
 - The ask rules for every asking tool live in a system-wide file only the admin account can change. A user or project
-  allow rule, a hook, a mod or skip-permissions mode doesn't turn a managed ask off. The managed `CLAUDE.md` says
-  instructions come only from him in the session.
+  allow rule, a `PreToolUse` hook, a mod or skip-permissions mode doesn't turn a managed ask off. Whether a
+  `PermissionRequest` hook (one that answers prompts on his behalf) can approve a managed ask is unknown until brief
+  18c tests it; his own such hooks must not match our asking tools. The managed `CLAUDE.md` says instructions come
+  only from him in the session.
 - Everything else is normal Claude Code: it runs as his user with his own `gh` login, MCP servers, skills and plugins.
   Chrome is reached through the tools as in `CONTROL.md` section 6, which is re-examined against decision 24 before
   brief 20.
-- Not guaranteed, said plainly: without Claude Code's sandbox (an option he can turn on), Claude's terminal commands
-  run as his user and a tricked Claude could call the tool service directly with a prepared approval, skipping the
-  question. That is the same level as normal Claude Code on any OS.
+- Not guaranteed, said plainly: Claude's terminal commands run as his user, and a tricked Claude could call the tool
+  service directly with a prepared approval, skipping the question; if brief 18c shows a `PermissionRequest` hook can
+  approve a managed ask, a hook could do the same. That is the same level as normal Claude Code on any OS. Claude
+  Code's sandbox, an option he can turn on, keeps terminal commands away from the service only with
+  `allowUnsandboxedCommands: false`, no excluded commands, Unix sockets not allowed and the service's socket folder
+  denied for reads, and even then best-effort (`CONTROL.md` section 7).
 - The tests check the tools themselves: the asks hold in normal and in skip-permissions mode and against user allow
-  rules, the question and the approval binding match what really happens, untrusted content is marked, and the
-  passwords stay with the tool service's user.
+  rules and `PreToolUse` hooks, the `PermissionRequest` hook case is measured, the question and the approval binding
+  match what really happens, untrusted content is marked, and the app passwords stay with the tool service's user.
 
 ## Order of work
 
@@ -257,11 +266,14 @@ the settings):
    **What decision 24 changes for the open briefs (2026-11-08):**
    - *Brief 18c* (early image test): Claude Code as his own user with his own MCP servers alongside ours; the fake send
      asking through the managed ask rule in normal and in skip-permissions mode, also with a user allow rule for it and
-     after "Yes, and don't ask again"; no separate session or coding user, no launcher containment.
-   - *The next base brief:* the managed settings reduced to the ask rules for every asking tool (generated) and the
-     managed `CLAUDE.md`; the lock-everything switches and the forced sandbox dropped from the draft in
-     `control/settings/`, with its tests; our app servers installed for his user like any MCP server; the tests that a
-     managed ask beats user and project allow rules, "don't ask again", a hook returning "allow" and skip-permissions.
+     after "Yes, and don't ask again"; a `PermissionRequest` hook returning allow for the fake send, at user and at
+     managed level, in both modes, with the result recorded (if it approves, that joins the accepted residual); no
+     separate session or coding user, no launcher containment.
+   - *The next base brief:* the managed settings reduced to the ask rules for every asking tool (generated), the
+     managed `Stop` and `UserPromptSubmit` notification hooks (`CONTROL.md` rule 4.10) and the managed `CLAUDE.md`;
+     the lock-everything switches and the forced sandbox dropped from the draft in `control/settings/`, with its
+     tests; our app servers installed for his user like any MCP server; the tests that a managed ask beats user and
+     project allow rules, "don't ask again", a `PreToolUse` hook returning "allow" and skip-permissions.
    - *Mail's boundary follow-up* (after Mail merges): the check of rounds 15 to 17, which refuses asking actions unless
      the managed files match exactly, becomes a check that every asking tool's ask rule is present in the managed
      settings, so his own MCP servers and settings are never blocked. Not a change to Mail now.
@@ -328,10 +340,11 @@ tasks at any time.
 ## Open
 
 - The exact system-wide settings: once the tools exist (decision 3). Draft in `control/settings/` (briefs 18, 18b).
-  Under decision 24 the managed settings hold the ask rules for every asking tool and the managed `CLAUDE.md`; the
-  lock-everything switches, the forced sandbox and `disableBypassPermissionsMode` go, in the next base brief with
-  their tests. Claude Code's sandbox stays an option he can turn on (`sandbox.autoAllowBashIfSandboxed` true if he
-  does, decision 17).
+  Under decision 24 the managed settings hold the ask rules for every asking tool, the managed `Stop` and
+  `UserPromptSubmit` hooks and the managed `CLAUDE.md`; the lock-everything switches, the forced sandbox and
+  `disableBypassPermissionsMode` go, in the next base brief with their tests. Claude Code's sandbox stays an option he
+  can turn on (`sandbox.autoAllowBashIfSandboxed` true if he does, decision 17); it keeps terminal commands away from
+  the tool service only in the strict setup of `CONTROL.md` section 7.
 - Language and libraries: decided in the design, after S2.
 - How the CI virtual machine gets the AresOS image for step 5 (the private image needs read access the owner
   restores, or a fresh unpublished build in the job): decided in the design.
@@ -548,3 +561,11 @@ tasks at any time.
   `question`, approval binding and untrusted marking. The residual (a tricked Claude calling the tool service
   directly without the optional sandbox) is stated plainly. The Chrome checkpoint is to be re-examined against the new
   bar before brief 20. Re-check against the new bar next.
+- **2026-11-08, 05:14:** re-check 25 on draft 24 ([report](../../reviews/control-design/2026-11-08-RECHECK-25.md)):
+  CHANGES-NEEDED, two blocking points, both about precision; decision 24 and the accepted bypass are recorded
+  faithfully. Draft 25: whether a `PermissionRequest` hook can approve a managed ask is unknown until brief 18c tests
+  it in both modes (if it can, it joins the accepted residual; his own such hooks must not match our asking tools);
+  the optional sandbox keeps terminal commands away from the tool service only in a strict setup
+  (`allowUnsandboxedCommands: false`, no excluded commands, no Unix sockets, the socket folder denied for reads), and
+  even then best-effort. Also: the base brief keeps the managed `Stop` and `UserPromptSubmit` hooks, decision 18's
+  `WebFetch` rule is marked superseded, and "passwords" means the app passwords AresOS holds. Re-check 26 next.

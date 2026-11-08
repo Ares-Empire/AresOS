@@ -1,6 +1,6 @@
 # The control layer: design
 
-**Status:** draft 24, 2026-11-08. Draft 16 with the owner's answers of 2026-11-07 built in (`PLAN.md` decisions 14 to
+**Status:** draft 25, 2026-11-08. Draft 16 with the owner's answers of 2026-11-07 built in (`PLAN.md` decisions 14 to
 19 and 21), and two decisions of 2026-11-08: the central session can gain tools, the ones that run outside its sandbox
 only through the tool layer, asking (decision 22); and one session does coding, commands, mail, Chrome and later apps,
 possibly in skip-permissions mode, replacing decision 8's split (decision 23). Draft 18 answers the eighteenth
@@ -23,7 +23,10 @@ into which nothing Claude wrote is loaded, the sandbox transition contract, both
 acknowledged registration barrier, and `rg` through a fixed wrapper. Draft 24 follows the owner's decision 24, which
 replaces that containment: AresOS runs normal Claude Code, as on any OS, plus the tools, which must be safe in
 themselves and not make things worse than normal Claude Code; sections 1, 2, 4.4 and 7 are rewritten to that bar, and
-section 6 is left for re-examination against it (section 10). Covers the shared base, Mail and Chrome. The frontier
+section 6 is left for re-examination against it (section 10). Draft 25 (re-check
+[25](../../reviews/control-design/2026-11-08-RECHECK-25.md)) says precisely what is still unknown about
+`PermissionRequest` hooks and under which settings the optional sandbox keeps terminal commands away from the tool
+service. Covers the shared base, Mail and Chrome. The frontier
 review ([`REVIEW`](../../reviews/control-design/2026-11-07-REVIEW.md), 8 blocking) and five re-checks
 ([1](../../reviews/control-design/2026-11-07-RECHECK.md), [2](../../reviews/control-design/2026-11-07-RECHECK-2.md),
 [3](../../reviews/control-design/2026-11-07-RECHECK-3.md), [4](../../reviews/control-design/2026-11-07-RECHECK-4.md),
@@ -65,8 +68,8 @@ one to where it is handled.
 
 ## 1. In one paragraph
 
-A tool service runs under its own system user, holds the passwords, and does the work for every app. Each action is
-defined once, with what it does to the world (its *effect*), and from that one definition come the MCP tools Claude
+A tool service runs under its own system user, holds the app passwords, and does the work for every app. Each action
+is defined once, with what it does to the world (its *effect*), and from that one definition come the MCP tools Claude
 calls, the `aresos` terminal command, and the list of actions that must ask the owner. Claude Code asks the owner
 before any action whose effect is sending or deleting, through managed ask rules. Every send and delete is recorded as
 an operation before it acts, and every result says exactly what it refers to and what really happened. Around that,
@@ -91,11 +94,11 @@ apps (decision 23), as his own user, with his own `gh` login and the MCP servers
 
 **Who can reach what:**
 
-| From | `act.sock` | `admin.sock` | Passwords and sign-in data | Chrome's control channel |
+| From | `act.sock` | `admin.sock` | The app passwords and sign-in data AresOS holds | Chrome's control channel |
 |---|---|---|---|---|
 | The owner's own terminal | yes | with `sudo` | no | only through the tools |
 | Claude through its MCP tools | yes; send and delete ask first | no | no | only through the tools |
-| Claude's terminal and file tools | yes, like any program of his (the residual in section 7), unless he turns on Claude Code's sandbox, which opens no socket | no | no: another user's files | no |
+| Claude's terminal and file tools | yes, like any program of his (the residual in section 7); Claude Code's optional sandbox keeps terminal commands away only in the strict setup of section 7, and even then best-effort | no | no: another user's files | no |
 | `aresos-toold` | | | yes | yes |
 
 **The users.** The owner's own user runs Claude Code and everything it starts, as on any OS. The service, the
@@ -1384,17 +1387,24 @@ things worse than normal Claude Code.
   overridden from any other settings level, and Claude Code evaluates deny, then ask, then allow, so a matching ask
   rule prompts even when a user or project allow rule also matches, including one written by the prompt's own "Yes,
   and don't ask again"; a `PreToolUse` hook or an installed mod can't turn it off either (Anthropic's permissions
-  page, read 2026-11-08). An explicit ask rule still asks in skip-permissions mode (*checked*, S1). So the switches
+  page, read 2026-11-08). An explicit ask rule still asks in skip-permissions mode (*checked*, S1). A
+  `PermissionRequest` hook is different: Anthropic documents it as answering a permission prompt on the user's behalf
+  (allow or deny). Whether such a hook, managed or his own, can approve a call that matches a managed ask rule is
+  unknown until tested (*brief 18c*: a `PermissionRequest` hook returning allow for the fake send tool, at user and
+  at managed level, in normal and in skip-permissions mode). If it can, that joins the accepted residual below. In
+  either case his own `PermissionRequest` hooks must not match our asking tools, so a broad auto-approve hook of his
+  never answers for him ([`FEATURES.md`](../control/FEATURES.md)). So the switches
   that locked everything else go: `allowManagedPermissionRulesOnly`, `allowManagedHooksOnly`, the exclusive
   `managed-mcp.json`, the plugin and marketplace locks, `--setting-sources ''`, `disableBypassPermissionsMode`, the
   forced sandbox with its network list, and the file-tool limits. *Test (base):* the managed ask on a fake send tool
-  still prompts with a user allow rule and a project allow rule for it, after "Yes, and don't ask again", with a hook
-  returning "allow", and in skip-permissions mode.
+  still prompts with a user allow rule and a project allow rule for it, after "Yes, and don't ask again", with a
+  `PreToolUse` hook returning "allow", and in skip-permissions mode.
 - **Our app servers are installed like any MCP server** (by the image's setup, for his user), so his own MCP servers
   keep working; the managed ask rules name their asking tools under the server names installed (*test*: each rule
   matches the installed tool).
-- **Passwords stay with the tool service's own system user** (`aresos-tools`); his user, and so Claude, can't read
-  them (sections 2 and 5).
+- **The app passwords AresOS holds** (the mail accounts' passwords and any other sign-in data the tool service keeps
+  for its apps) stay with the service's own system user (`aresos-tools`); his user, and so Claude, can't read them
+  (sections 2 and 5). His own `gh` login and his other credentials stay with him, as in normal Claude Code.
 - **The question sentence, the approval binding and the untrusted-content marking stay as built** (rules 4.1, 4.3 and
   4.8): the service writes the `question`, binds the approval to one operation by id and hash, refuses anything that
   differs at run time, and marks mail and page content as data. Rule 4.10's managed `Stop` and `UserPromptSubmit`
@@ -1413,12 +1423,28 @@ things worse than normal Claude Code.
   socket, which his user can reach) with a prepared operation, and so skip the question. That is the same level as
   anything else a tricked Claude can do on a normal OS: it already acts with his user's rights. The tools add no
   route around his approval beyond that.
+- If brief 18c shows that a `PermissionRequest` hook can approve a managed ask, a hook that Claude or he writes could
+  approve our asking tools without him answering. That is the same level as calling the service directly, and is
+  accepted with it.
 
-**Claude Code's own sandbox stays available** as a setting he can turn on (`sandbox.enabled`). What it adds: Claude's
-terminal commands then run in Claude Code's sandbox, which opens no Unix socket (so it can't skip the question
-through the `aresos` command or the service's socket), reaches only the network hosts he allows and writes only where
-he allows; brief 18b showed that boundary holding on Linux (127 of 127 routes blocked, *checked*). What it doesn't
-add: Claude's file tools, web tools and MCP servers run outside it, as on any OS.
+**Claude Code's own sandbox stays available** as a setting he can turn on. Turning it on (`sandbox.enabled`) alone
+does not keep terminal commands away from the tool service: a command that fails in the sandbox can be retried
+outside it (`dangerouslyDisableSandbox`), and in skip-permissions mode that retry runs without a prompt; commands in
+`sandbox.excludedCommands` run outside it too; and in skip-permissions mode hosts outside the allowed list are
+reachable unless a strict domain list is on (Anthropic's sandboxing page, read 2026-11-08). It keeps terminal commands
+away from the service only when all of these hold:
+
+- `sandbox.allowUnsandboxedCommands: false`, so the retry outside the sandbox is ignored;
+- `sandbox.excludedCommands` empty;
+- Unix sockets not allowed: no `allowUnixSockets` entry for the service's socket, `allowAllUnixSockets` off, and the
+  optional seccomp filter that blocks Unix sockets installed;
+- the service's socket folder `/run/aresos-tools` in `sandbox.filesystem.denyRead`.
+
+Even then it is best-effort under decision 24: these are his own settings, which his user (and so Claude outside the
+sandbox) can change, nothing checks that they stay as set, and Claude's file tools, web tools, hooks and MCP servers
+run outside the sandbox, as on any OS. Brief 18b's 127 blocked routes (*checked*) tested a stricter, managed setup
+that decision 24 removed, not this one; if he wants the sandbox, 18b's hostile programs run against exactly these
+settings first.
 
 **Mail's boundary check (follow-up brief, after Mail merges).** Mail's rounds 15 to 17 refuse asking actions unless
 the installed managed files match the generated ones exactly. That check becomes: every asking tool's ask rule is
@@ -1454,8 +1480,10 @@ improvement if he asks for it.
 1. **Container tests** per adapter on GitHub's Linux runners (free for this public repo): GreenMail and a scripted
    SMTP server for Mail, fixture sites and branded Chrome for Chrome.
 2. **The tools' own tests** (section 7): the managed ask rules still prompting against user and project allow rules,
-   "Yes, and don't ask again", a hook returning "allow", and skip-permissions mode; the `question` verified; an
-   approval bound to one operation; passwords unreadable by his user.
+   "Yes, and don't ask again", a `PreToolUse` hook returning "allow", and skip-permissions mode; whether a
+   `PermissionRequest` hook returning allow, managed or his own, can approve a managed ask (unknown until tested, in
+   both modes); the `question` verified; an approval bound to one operation; the app passwords unreadable by his
+   user.
 3. **The prompt, at the laptop and on the phone** (decision 21): every asking action's input, `question` first, is
    checked in the terminal and through Remote Control with a long mail, Bcc, attachments and odd characters, and for
    a deletion and a Chrome send. Anything not shown in full there changes rule 4.1 before Mail or Chrome relies on
@@ -1467,18 +1495,18 @@ improvement if he asks for it.
    sends on an ordinary day (target close to zero), the stalls of unrelated tabs (target zero) and the decisions per
    real action (target about one): section 6, conditions 1 and 4.
 5. **An early image test:** a minimal, unpublished AresOS build in the CI virtual machine runs the fake app end to
-   end (a fake send asking in normal and in skip-permissions mode) right after brief 18, not only at the end, with
-   Claude Code as his own user and his own MCP servers alongside. If he uses Claude Code's optional sandbox, the image
-   needs the namespace policy brief 18b found GitHub's runner needed. `laptop-aresos` agrees the `os/ci/` change
-   first.
+   end (a fake send asking in normal and in skip-permissions mode, and the `PermissionRequest` hook test of section
+   7) right after brief 18, not only at the end, with Claude Code as his own user and his own MCP servers alongside.
+   If he uses Claude Code's optional sandbox, the image needs the namespace policy brief 18b found GitHub's runner
+   needed. `laptop-aresos` agrees the `os/ci/` change first.
 6. **Qualification in the AresOS image** of Mail and Chrome, then **real use** after the first boot on the laptop.
 
 ## 9. The council's gaps, and where each is handled
 
 | Gap (VERDICT) | Where |
 |---|---|
-| 1. Claude bypasses a tool through another route | accepted at the level of normal Claude Code (decision 24, section 7): a tricked Claude could call the tool service directly, as it could do anything his user can; owner-only actions stay behind `sudo`; Claude Code's optional sandbox closes the route through its terminal; in Chrome, the checkpoint outside the browser (section 6, to be re-examined) |
-| 2. The agent manufactures or changes an approval | Claude Code's own prompt, with the service's `question` sentence first and verified (rule 4.1, section 7, decision 21); approval pages can't be opened in a Claude tab (section 6); managed ask rules that no allow rule, hook or mode turns off (section 7); rule 4.1 makes the approval show the service's description and refuses changes; "don't ask again" only through the owner's channel (section 6) |
+| 1. Claude bypasses a tool through another route | accepted at the level of normal Claude Code (decision 24, section 7): a tricked Claude could call the tool service directly, as it could do anything his user can; owner-only actions stay behind `sudo`; Claude Code's optional sandbox narrows the route through its terminal only in the strict setup of section 7, best-effort; in Chrome, the checkpoint outside the browser (section 6, to be re-examined) |
+| 2. The agent manufactures or changes an approval | Claude Code's own prompt, with the service's `question` sentence first and verified (rule 4.1, section 7, decision 21); approval pages can't be opened in a Claude tab (section 6); managed ask rules that no allow rule, `PreToolUse` hook or mode turns off, with `PermissionRequest` hooks tested in brief 18c and his own kept off our asking tools (section 7); rule 4.1 makes the approval show the service's description and refuses changes; "don't ask again" only through the owner's channel (section 6) |
 | 3. Retries, cancellation and restores send twice | rule 4.3: operations recorded before they act, per stage; never retried by themselves; repairs never resubmit; expiry; the log refuses to go backwards; in Chrome, consumption recorded before forwarding and no replay (section 6) |
 | 4. Harmless-looking actions change data | effects in section 3; `BODY.PEEK`; held Chrome requests; before/after comparisons in every test |
 | 5. Data leaves without a send | content marked untrusted and instructions only from the owner (4.8, the managed `CLAUDE.md`); the checkpoint's entered-text check on every request and the rules for opening sites (section 6), with the residuals named there; what a tricked Claude can do with normal Claude Code accepted by the owner (section 10, decision 24) |
@@ -1547,9 +1575,11 @@ improvement if he asks for it.
   safe, don't make it worse than that." (decision 24, replacing the containment parts of decisions 22 and 23).
 - **Accepted residual risk, his call** (decisions 23 and 24). A Claude tricked by content can do on AresOS what it
   could do on any OS with normal Claude Code: change or delete his files, push with his `gh` login, reach the
-  network, start programs; and without the optional sandbox it can call the tool service directly and skip the
-  question. The tools still ask for every send, delete and submit made through them, his passwords stay with the
-  tool service's own user, and instructions come only from him in the session. What remains is accepted, in his
+  network, start programs; it can call the tool service directly and skip the question (the optional sandbox
+  narrows that only in its strict setup, best-effort: section 7); and if brief 18c shows that a `PermissionRequest`
+  hook can approve a managed ask, a hook can approve our asking tools. The tools still ask for every send, delete and
+  submit made through them, the app passwords AresOS holds stay with the tool service's own user, and instructions
+  come only from him in the session. What remains is accepted, in his
   words above.
 
 **For the owner, later:**

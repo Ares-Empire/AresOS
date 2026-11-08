@@ -104,8 +104,8 @@ Updated 2026-11-07. The live truth is `git log`, `gh pr list` and `git worktree 
      through our tools ask through managed ask rules. The separate assistant and coder accounts aren't needed, and
      his account installs software normally.
    - **In progress:** Mail (brief 19, PR #9: package review SAFE, frontier security review in its third round);
-     design draft 24 for decision 24 (branch `control/one-session-tools`; re-check against the new bar next; no
-     owner choices open). `laptop-aresos` owns `os/` and the accounts (board #102 and #103).
+     design draft 25 for decision 24 (branch `control/one-session-tools`; re-check 26 next; no owner choices
+     open). `laptop-aresos` owns `os/` and the accounts (board #102 and #103).
    - **Next:** brief 18c (first end-to-end test on a throwaway CI image; no owner OK needed under the 2026-11-07
      rule) and the base brief that reduces the managed settings to the ask rules, as changed by decision 24
      (`PLAN.md`, "Order of work"); Mail's boundary check becomes a follow-up after Mail merges; brief 20 (Chrome)
