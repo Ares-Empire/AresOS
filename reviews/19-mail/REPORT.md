@@ -16,8 +16,9 @@ Review records: [REVIEW.md](REVIEW.md), [REVIEW-2.md](REVIEW-2.md),
 [SECURITY-REVIEW-9.md](SECURITY-REVIEW-9.md),
 [SECURITY-REVIEW-10.md](SECURITY-REVIEW-10.md),
 [SECURITY-REVIEW-11.md](SECURITY-REVIEW-11.md),
-[SECURITY-REVIEW-12.md](SECURITY-REVIEW-12.md), and
-[SECURITY-REVIEW-13.md](SECURITY-REVIEW-13.md).
+[SECURITY-REVIEW-12.md](SECURITY-REVIEW-12.md),
+[SECURITY-REVIEW-13.md](SECURITY-REVIEW-13.md), and
+[SECURITY-REVIEW-14.md](SECURITY-REVIEW-14.md).
 
 ## For the owner: decisions before merge
 
@@ -52,6 +53,153 @@ The owner answered: “Agree on 8, names etc are enough. Agree on everything els
 - Complete onboarding with your aliases, authentication, TLS trust, special folders, delayed Sent behavior and folder-deletion guard; the tests use synthetic accounts only.
 - Check complete approvals on both terminal and phone, then try the seven everyday Claude mail tasks; automated protocol tests do not establish how usable those flows feel.
 - Send a forwarded `.eml` to recipients using Apple Mail, Outlook, Thunderbird, Gmail on the web and iOS Mail, and check how each opens or saves the exact attachment; the round-5 documentation does not establish its presentation.
+
+## Review fixes, round 22
+
+**Done:** implements `briefs/19-review-fixes-22.md` and the two blocking
+findings plus the timeout should-fix in
+[SECURITY-REVIEW-14.md](SECURITY-REVIEW-14.md), reviewed head `99280cd0`.
+The lead's local `b8aaca68` (review and brief) was included with the first
+code push. Last code/test commit: `952c6924db83ff5acb43faa5f3611cb894fad353`.
+Every later commit in this run changes only files under `reviews/`.
+
+- **Blocking — short journal writes:** `storage.py` checks the complete byte
+  count for each unbuffered record and commit-marker write. A short write is
+  treated as disk full immediately; an exception or short count truncates the
+  incomplete line and syncs the remaining complete records. The failure latch
+  prevents another transaction until restart recovery; replay clears it only
+  after its complete commit marker succeeds. A short commit leaves the full
+  event/prepared transaction available for replay. A short event leaves no
+  partial fence. Startup removes a torn final line and preserves every complete
+  fence, including an uncommitted record that still needs prepared replay or
+  owner restore. Corrupt complete records, middle corruption, whole-suffix
+  loss and a complete commit marker with damaged newline framing still refuse.
+- **Storage classification:** `common.py`, `engine.py` and `daemon.py` classify
+  ENOSPC/EDQUOT as `storage_limit` with a plain disk-full message, EIO as
+  `storage_error`, and SQLite FULL/IOERR by their primary code. Journal failures
+  are classified at the writer. Request admission, dispatch and streamed
+  transfers preserve those errors instead of calling them Mail transport
+  failures. A failed cleanup remains an error and leaves the latch set.
+- **Blocking — observed duplicates:** `mail/adapter.py` builds a Sent
+  observation before recording its warning. Storage exceptions while recording
+  cannot erase the observed copies or warning. The reply includes
+  `warning_storage_error` with the disk-full/storage error. `engine.py` returns
+  this observation from status, completed repair, new repair admission and
+  unresolved-repair settlement; failed warning persistence prevents settlement
+  or a new attempt. A separate settlement-write failure returns the copies,
+  warning and `settlement_storage_error`. If SQLite applied the prepared event
+  before its commit marker failed, the response retains the prior unresolved
+  operation until restart replay completes it. Nothing is deleted or sent.
+- **Should-fix — changing-request replies:** `requests.py` supplies one
+  changing-request classification to both the engine and `protocol.py`.
+  Changing calls, saved acknowledgements, uploads, downloads and account setup
+  all use a 30-second socket window; archive retains its explicit 600-second
+  window and reads retain ten seconds. Loss/timeout/EOF after connection can
+  mean a commit, so the client returns `error.code=unknown`, `data.state=unknown`,
+  a password-free request reference/hash (operation ID when known), and an
+  explicit instruction to check status, pending/log or account state without
+  automatically repeating the request. `ok=false` means success is unconfirmed;
+  it does not claim the operation failed. `proxy.py` keeps that uncertainty and
+  the already-saved file metadata, and does not issue a refusal acknowledgement
+  for an uncertain download. The eleven-second save succeeds under the normal
+  policy; with an intentionally ten-second client deadline it reports unknown,
+  and the committed save is visible in the subsequent log. A streamed upload
+  with a lost final acknowledgement also remains unknown while its import
+  commits.
+- **Generated artifacts:** no tool schema/description changes were needed;
+  `python3 control/generate.py --check` prints `Generated artifacts match definitions`.
+
+**Tests (19 additions; no earlier assertion weakened, skipped or deleted):**
+
+| Area / file | Exact test names |
+| --- | --- |
+| Journal — `control/tests/test_review22_storage.py`, `Journal22` | `test_review22_short_commit_prepare_fails_and_full_replay_clears_latch`; `test_review22_short_event_then_enospc_discards_partial_and_syncs`; `test_review22_zero_and_short_event_writes_are_not_success`; `test_review22_startup_truncates_torn_event_or_commit_and_replays_prepared`; `test_review22_corrupt_committed_record_and_middle_tail_still_rejected`; `test_review22_storage_errno_and_sqlite_errors_never_become_mail_transport` |
+| Observations — `control/mail_tests/test_review_fixes_22.py`, `Duplicates22` | `test_review22_status_returns_two_copies_warning_and_enospc`; `test_review22_completed_repair_returns_two_copies_warning_and_enospc`; `test_review22_settlement_returns_two_copies_warning_and_enospc_without_false_done`; `test_review22_observation_survives_every_storage_exception_while_recording`; `test_review22_new_repair_returns_observation_before_admitting_another_attempt`; `test_review22_settlement_write_failure_preserves_observation_and_recorded_state`; `test_review22_short_settlement_commit_does_not_report_done_before_replay` |
+| Actual delayed writes — `control/tests/test_review22_protocol.py`, `Timeouts22` | `test_review22_save_held_eleven_seconds_receives_committed_ack`; `test_review22_save_after_client_timeout_is_unknown_and_committed_log_is_visible`; `test_review22_upload_lost_final_ack_is_unknown_and_import_commits` |
+| Reply policy/proxy — same file, `ReplyPolicy22` | `test_review22_one_policy_for_calls_saves_uploads_downloads_and_setup`; `test_review22_connection_loss_names_operation_and_setup_never_exposes_password`; `test_review22_proxy_preserves_unknown_save_ack_and_does_not_cancel_unknown_download` |
+
+The only earlier-test edit is the connection substitute in
+`ApprovalQuestions.test_round13_client_serializes_caller_order_without_result_presentation`
+(`control/tests/test_approval_questions.py`): it now accepts the optional request
+parameter supplied by the client. Its caller-order assertion is unchanged.
+The existing streaming test's assertions for committed framing, middle
+corruption and suffix loss are also unchanged.
+
+**Verified — failures on the reviewed source:** archived `99280cd0 control`
+under this worktree's `.work/round22-before/` and ran the new tests against
+that production code. The short-commit test returned `ok=true`; partial-event
+ENOSPC returned `transport_error`; the torn final event was rejected as
+`evidence_corrupt`; the actual save delayed at `sqlite_prepared` for eleven
+seconds raised `transport_error` after ten seconds. The three duplicate tests
+(status, completed repair and settlement) all lacked the `evidence` field after
+the actual journal-write ENOSPC injection. The current-source versions pass.
+The old-source batch printed `Ran 4 tests in 11.075s; FAILED (failures=2, errors=3)`
+(the torn-event subtest leaves its engine closed, causing the second tail
+subtest to error too); the duplicate batch printed `Ran 3 tests in 0.076s;
+FAILED (errors=3)`. These are behavioral regressions, not syntax-only checks.
+
+**Verified — local gates before each push:**
+
+```sh
+python3 control/generate.py --check
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/mail_tests:.work/round10/vendor python3 .work/round10/check-local.py
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/tests:.work/round10/vendor python3 -m unittest test_operations test_record test_crashes test_approval_questions test_strict_json test_boundary test_boundary_exact test_ingress_bounds test_journal_closed test_policy_sources test_archive test_journal_capacity test_journal_streaming test_restore_batches test_review21_pending test_review21_storage test_review22_storage test_review22_protocol
+```
+
+First-push gates printed `Generated artifacts match definitions`, `Ran 111 tests in 84.835s; OK` and `Ran 100 tests in 94.671s; OK`.
+The plain-Mail output also printed `Review20 archives admitted before ledger refusal (2150 attempted maximum): 2150`; the base output retained the record/memory metrics and showed no failed tests.
+
+The initial local base batch, before the final fixes, printed `Ran 100 tests in 88.294s; FAILED (failures=1, errors=1)`: the old socket substitute accepted no request argument, and the complete-commit-marker newline assertion detected overly broad tail recovery. Both were fixed before the first push, preserving all existing assertions. No failing workflow was triggered for these local failures.
+
+Report-push gates printed `Generated artifacts match definitions`, `Ran 111 tests in 84.529s; OK` and `Ran 100 tests in 93.849s; OK`. The same record/memory metrics were printed; no failed or skipped tests were reported.
+
+**Verified — last code/test head and both workflow passes:**
+
+Code/test head: `952c6924db83ff5acb43faa5f3611cb894fad353`.
+
+| Workflow / attempt | Exact output |
+| --- | --- |
+| [Mail 42472339218, attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42472339218/attempts/1) | `Ran 130 tests in 195.594s`; `Control base suite PASS`; `Ran 232 tests in 791.160s`; `Control Mail suite PASS`; `OK` |
+| [Mail 42472339218, attempt 2](https://github.com/Ares-Empire/AresOS/actions/runs/42472339218/attempts/2) | `Ran 130 tests in 196.550s`; `Control base suite PASS`; `Ran 232 tests in 800.651s`; `Control Mail suite PASS`; `OK` |
+| [Independent base 42472339198, attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42472339198/attempts/1) | `Ran 130 tests in 165.281s`; `Control base suite PASS`; `OK` |
+| [Independent base 42472339198, attempt 2](https://github.com/Ares-Empire/AresOS/actions/runs/42472339198/attempts/2) | `Ran 130 tests in 173.175s`; `Control base suite PASS`; `OK` |
+
+Every pass prints `Generated artifacts match definitions`. The Mail logs include
+all 19 new round-22 methods; the independent base logs include all 12 new base
+methods. The Mail workflow also confirms distinct fixture isolation.
+The unchanged [boundary workflow 42472339206](https://github.com/Ares-Empire/AresOS/actions/runs/42472339206)
+passed 16 fixture tests (`Ran 16 tests in 0.014s`), both confinement modes
+(`BOUNDARY_OK`, 127 attacks each), policy-source checks and `ISOLATION_OK` for
+the separate coding user. Attempt API records identify this code head and
+`success`; these are automatic `pull_request` runs. No workflow has failed
+in this run.
+
+All later commits in this run change only files under `reviews/`. Final-head
+workflow runs belong in PR #9's body. Second passes rerun the same automatic
+pull-request run IDs with `gh run rerun`; no manual workflow dispatch is used.
+
+**Not verified:** physical disk exhaustion/power loss, external disk consumers,
+real-account timing, installed-host approval presentation and terminal/phone
+usability. These tests run production journal/SQLite and protocol paths with
+synthetic accounts and controlled faults; they do not establish physical
+power-loss durability. No visual UI changed; no new screenshots are needed.
+No Gradle daemon, Minecraft client, host install, real account or model session
+was started. No protected OS/mod/workflow files changed.
+
+**JUDGMENT-CALL:** none beyond the brief's explicit choices. Short writes fail
+immediately instead of attempting to conceal a partial write by continuing;
+unacknowledged evidence stays visible, and possibly committed replies remain
+unknown. Existing owner decisions and the round-21 fail-closed disk bar remain.
+
+**PLAN-GAP:** none added. Finite reply windows cannot guarantee receipt; the
+unknown result and status/request check are necessary even with the longer
+window. Complete uncommitted fences remain retained for restore/replay safety.
+
+**Open questions:** none for this brief. Owner checks listed above remain.
+
+**Workspace cleanup:** `.work/` inventory contains **0 files over 500 MiB**.
+No large downloads, duplicate images or extracted images were created this run.
+
 
 ## Review fixes, round 21
 
