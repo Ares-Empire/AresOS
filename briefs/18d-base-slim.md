@@ -91,7 +91,7 @@ enforce; everything else is his normal Claude Code with his own `gh` login, MCP 
    tools about 61,000, at `d5a0b24a`), and two thirds to three quarters of that is text repeated in nearly every one, mainly three blocks: the error handling (about
    800 characters), the special-use folder roles (about 580) and the untrusted-data line (about 190) (found by
    `mac-capacity`, measured by the lead, 2026-11-08).
-   Generate each app server's MCP `instructions` (sent once, when the server starts) from the definitions, holding the
+   Generate each app server's MCP `instructions` (sent once, during MCP initialization) from the definitions, holding the
    rules all its actions share, and keep each description to what is specific to its action. Text an action needs at
    the moment of use, such as copying `question` unchanged on an asking action, stays in its description. Show in
    item 5's harness that the native Claude Code passes the instructions on to the model unshortened (the Messages test
@@ -112,8 +112,11 @@ enforce; everything else is his normal Claude Code with his own `gh` login, MCP 
   not root-owned, a symlink, or behind a symlinked folder.
 - The precedence tests of item 5, each by name, with the receiver's own log as the evidence.
 - The identity guard: a real/effective mismatch refuses; the configured user passes.
-- The shared rules: the generated instructions are in sync, no shared block is repeated in a description, and the
-  harness run shows the instructions reaching the model's request in full.
+- The shared rules: the generated instructions are in sync, and either the harness run shows the instructions
+  reaching the model's request in full (extend `native.py` to capture the request's `system` field and the complete
+  tool definitions) and no shared block is repeated in a description, or, where Claude Code shortens them, what
+  doesn't fit stays in the descriptions and a test shows that every shared rule reaches the model one way or the
+  other.
 - The boundary workflow still runs its hostile programs against the strict optional sandbox fixture, without the
   coding-user step.
 
