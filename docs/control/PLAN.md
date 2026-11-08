@@ -238,9 +238,11 @@ Three places, each with one job:
      `/usr/bin/git` and git's own entry points as the sandboxing wrapper for the session's user, and the planted
      repository settings (fsmonitor, `include`/`includeIf`, `core.sshCommand`, credential helpers, hooks, filters
      through `.gitattributes` and `.git/info/attributes`, `gpg.program`, submodules, a `.git` file pointing at a
-     planted git folder); whether Claude Code embeds a git library; the tool service accepting asking actions only
-     from the registered `aresos-mcp` (`/proc` program check, parent registered by the launcher) and
-     `kernel.yama.ptrace_scope` at least 1; his git clients refusing project repositories if he chooses so; the
+     planted git folder); whether Claude Code embeds a git library; Claude Code and the relay started set-group-id
+     (`aresos-session`, `aresos-relay`) and so non-dumpable, with the native program, the MCP pipes, the terminal and
+     git working under that start; the tool service accepting asking actions only from a peer of group `aresos-relay`
+     whose parent is the registered Claude Code, and `kernel.yama.ptrace_scope` at least 1; the hostile test injecting
+     through `/proc/<relay>/fd/*` and `/proc/<claude>/fd/*` and starting the genuine relay itself; his git clients refusing project repositories if he chooses so; the
      GitHub App credential, rulesets refusing deletion and force-push on every branch and tag through git and the API,
      no token for a repository without them, GitHub's own clean-up of merged branches under those rules, the mirror
      clone with archival retention and restore; Claude Code's messages to other sessions closed; the `WebFetch`
@@ -257,14 +259,15 @@ Three places, each with one job:
      install approval; inspection, builds and install scripts in a sandbox, the install step only copying; an
      independent review by a fresh agent the service starts, covering the artifact, its dependencies and its start and
      background behaviour; `tools_add` with classes and their evidence; free tools only on that review or an enforcing
-     adapter; unreviewed servers with credentials starting only after approval and reaching only their declared
-     hosts; connectors reached by the service, asking per call by default; tool lists compared on every listing,
+     adapter; a server holding his account access installed only after the review passes, unless he chooses
+     otherwise (owner choice 5), starting only after approval and reaching only its declared hosts; connectors reached by the service, asking per call by default; tool lists compared on every listing,
      changed tools hidden and refused at dispatch; activation only in a session started with the regenerated
      settings; a system user per added server, `aresos-mcp addon`, the owner command, the skills folder, plugins split
      into parts, generated settings with the additions, and its tests (`CONTROL.md` section 7). Its number is taken
      when it is written.
    - `laptop-aresos` owns `os/` and the accounts (the session's user, the dropped coding user, the project
-     subvolumes, `/usr/bin/git` as the wrapper, the `sudo` rule, `kernel.yama.ptrace_scope`) and has board item #102
+     subvolumes, `/usr/bin/git` as the wrapper, the `sudo` rule, `kernel.yama.ptrace_scope`, the `aresos-session` and
+     `aresos-relay` groups and their set-group-id programs) and has board item #102
      about installing software; the image side of decisions 22 and 23 is agreed with it.
 6. **Security review** of the whole stack (fresh Codex, frontier), then **qualification in the real AresOS image**.
 7. **After the first boot on the laptop:** the real mail account, the owner's own Chrome, the system-wide settings,
@@ -333,10 +336,11 @@ tasks at any time.
 - How the CI virtual machine gets the AresOS image for step 5 (the private image needs read access the owner
   restores, or a fresh unpublished build in the job): decided in the design.
 - The mail provider and account details stay out of this public repo.
-- **Owner questions still open:** four choices (`CONTROL.md` section 10, asked 2026-11-08, each with its exact bound
+- **Owner questions still open:** five choices (`CONTROL.md` section 10, asked 2026-11-08, each with its exact bound
   and the lead's advice): deleting in project folders (free with snapshots, or asking); his own work in project
   folders (through Claude, or his git trusting them); deleting GitHub branches and tags only by him; connectors
-  (asking per call by default, his mark allowed). Everything else was answered on 2026-11-07 and 2026-11-08
+  (asking per call by default, his mark allowed); an added server holding his account access (only after an
+  independent review, or unreviewed with its own actions at that service accepted). Everything else was answered on 2026-11-07 and 2026-11-08
   (decisions 14 to 19, 21 to 23).
 
 **Follow-ups** (from the 18b merge-fix review, `gpt-6.1-sol` high, SAFE; for the next base or boundary brief):
@@ -521,3 +525,7 @@ tasks at any time.
   from the registered `aresos-mcp`, GitHub refusing every deletion and rewrite by the session on all branches and
   tags, added tools free only on an independent review or an adapter. Where no full guarantee exists, the exact bound
   is one of four owner choices at the top of `CONTROL.md` section 10, with the lead's advice. Re-check 20 next.
+- **2026-11-08, 04:10:** frontier re-check 20 of draft 19: two blocking points left. Draft 20: Claude Code and the
+  relay start set-group-id into their own groups, which keeps them non-dumpable, so a process of the same user can't
+  inject through their `/proc` descriptors; the service knows the relay by its group and its registered parent; an
+  added server that holds his account access becomes the fifth owner choice. Re-check 21 next.
