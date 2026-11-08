@@ -7,7 +7,7 @@ import smtplib
 import ssl
 import stat
 
-from ..common import Refused
+from ..common import Refused, cleanup
 from ..adapters import Uncertain
 from .codec import utf7, unutf7
 
@@ -86,8 +86,9 @@ class Transport:
             os.replace(name, self.password_dir / digest(account_id))
             sync_directory(self.password_dir)
         finally:
-            if os.path.exists(name):
-                os.unlink(name)
+            with cleanup('password temporary unlink'):
+                if os.path.exists(name):
+                    os.unlink(name)
 
     def remember(self, username, password):
         values = [password, "\0" + username + "\0" + password, username + "\0" + username + "\0" + password]
@@ -164,7 +165,8 @@ class Transport:
         finally:
             if client is not None:
                 # A QUIT failure cannot change a recorded successful DATA answer.
-                client.close()
+                with cleanup('SMTP connection close'):
+                    client.close()
 
 
 def folders(client):

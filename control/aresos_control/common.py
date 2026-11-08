@@ -4,6 +4,9 @@ import json
 import math
 import sqlite3
 import unicodedata
+from contextlib import contextmanager
+from contextvars import ContextVar
+import sys
 
 WIRE_LIMIT = 6 * 1024 * 1024
 FILE_LIMIT = 25 * 1024 * 1024
@@ -21,7 +24,7 @@ class Refused(Exception):
         super().__init__(message)
 
 
-def storage_refusal(exc):
+def _storage_refusal(exc):
     """Classify local storage failures without exposing paths or server text."""
     if isinstance(exc, Refused):
         return exc if exc.code in {'storage_limit', 'storage_error', 'journal_incomplete', 'restore_required'} else None
@@ -33,6 +36,39 @@ def storage_refusal(exc):
             or code == sqlite3.SQLITE_IOERR):
         return Refused('storage_error', 'Storage I/O failed; check the disk and recorded request or operation before retrying.')
     return None
+
+
+def storage_refusal(exc):
+    error = _storage_refusal(exc)
+    if error is not None:
+        current, seen = exc, set()
+        while current is not None and id(current) not in seen:
+            seen.add(id(current))
+            for note in getattr(current, '__notes__', ()):
+                if note not in getattr(error, '__notes__', ()):
+                    error.add_note(note)
+            current = current.__cause__ or current.__context__
+    return error
+
+
+CLEANUP = ContextVar('storage_cleanup', default=None)
+
+
+@contextmanager
+def cleanup(purpose, primary=None):
+    """A failing cleanup annotates the active error instead of replacing it."""
+    primary = primary or sys.exception()
+    token = CLEANUP.set(purpose)
+    try:
+        yield
+    except (OSError, sqlite3.Error, Refused) as exc:
+        if primary is None:
+            raise
+        error = storage_refusal(exc)
+        primary.add_note('Cleanup ' + purpose + ' failed: ' +
+                         (str(error) if error else 'Storage cleanup failed; inspect the disk and recorded state.'))
+    finally:
+        CLEANUP.reset(token)
 
 
 class _JSONPairs(list):

@@ -3,7 +3,7 @@ import os
 from pathlib import PurePosixPath
 import stat
 
-from .common import WIRE_LIMIT, Refused, canonical, strict_json_loads
+from .common import cleanup, WIRE_LIMIT, Refused, canonical, strict_json_loads
 from .boundary_policy import asking_rules, managed_servers, managed_settings, managed_mcp
 
 DEFAULT_SETTINGS = '/etc/claude-code/managed-settings.json'
@@ -63,8 +63,9 @@ class Boundary:
         except (OSError, ValueError, Refused, TypeError) as exc:
             raise Refused('boundary_not_installed', f'{path}: {exc}; install the managed Claude Code boundary.') from exc
         finally:
-            if fd is not None:
-                os.close(fd)
+            with cleanup('policy descriptor close'):
+                if fd is not None:
+                    os.close(fd)
 
     def absent_or_empty(self, path):
         """Walk even optional sources without following a link, including dangling ones."""
@@ -92,8 +93,9 @@ class Boundary:
         except (OSError, ValueError) as exc:
             raise Refused('boundary_not_installed', f'{path}: {exc}') from exc
         finally:
-            if fd is not None:
-                os.close(fd)
+            with cleanup('policy descriptor close'):
+                if fd is not None:
+                    os.close(fd)
 
     def require(self):
         try:

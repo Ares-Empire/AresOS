@@ -5,7 +5,7 @@ from pathlib import Path
 import re
 import stat
 
-from .common import FILE_LIMIT, Refused, sha256, storage_refusal
+from .common import FILE_LIMIT, Refused, cleanup, sha256, storage_refusal
 from .space import SpaceLedger
 
 # Dot components are always blocked. These catch non-dot credential/profile and
@@ -68,8 +68,9 @@ class FilePolicy:
                 os.close(fd)
                 fd = new_fd
             return fd
-        except BaseException:
-            os.close(fd)
+        except BaseException as exc:
+            with cleanup('file directory descriptor close', exc):
+                os.close(fd)
             raise
 
     def real_directory(self, fd, expected):
@@ -83,7 +84,8 @@ class FilePolicy:
             if (a.st_dev, a.st_ino) != (b.st_dev, b.st_ino):
                 raise Refused("file_refused", "Destination or source folder was swapped during transfer; try again after it is stable.")
         finally:
-            os.close(other)
+            with cleanup('file verification descriptor close'):
+                os.close(other)
 
     def read(self, path, checkpoint=lambda _: None, mail_metadata=False):
         _, relative = self.locate(path)
@@ -121,10 +123,12 @@ class FilePolicy:
         except OSError as exc:
             raise Refused("file_refused", "File path contains a link, missing or non-regular component, or is inaccessible; choose a safe regular file.") from exc
         finally:
-            if fd is not None:
-                os.close(fd)
-            if parent_fd is not None:
-                os.close(parent_fd)
+            with cleanup('file descriptor close'):
+                if fd is not None:
+                    os.close(fd)
+            with cleanup('file parent descriptor close'):
+                if parent_fd is not None:
+                    os.close(parent_fd)
 
     def save(self, folder, name, data, expected_hash, checkpoint=lambda _: None, *, admission=None):
         self.locate(folder)
@@ -172,14 +176,16 @@ class FilePolicy:
                     current_folder = "unavailable (folder moved or removed)"
                 location = (f"device {own.st_dev}, inode {own.st_ino}, originally published at {str(Path(folder) / name)!r}; "
                             f"pinned folder now {current_folder!r}")
-                try:
+                cleared = False
+                with cleanup('published export rollback', exc):
                     os.ftruncate(fd, 0)
                     os.fsync(fd)
-                except OSError as rollback:
+                    cleared = True
+                if not cleared:
                     raise Refused(original.code if original else "save_incomplete", cause + "Save incomplete: clearing exported bytes could not be confirmed; "
                                   f"bytes may remain readable or survive a storage failure ({location}). "
                                   "No directory entries removed; renamed/hard-link locations cannot be enumerated. "
-                                  "Inspect this inode before retrying. " + str(rollback)) from exc
+                                  "Inspect this inode before retrying.") from exc
                 raise Refused(original.code if original else "file_refused", cause + "Save refused after publication: exported inode emptied and synced "
                               f"(0 bytes, {os.fstat(fd).st_nlink} remaining links; {location}). "
                               "No directory entries removed: empty output or renamed/hard-link remnants may remain; "
@@ -191,7 +197,9 @@ class FilePolicy:
                 raise Refused("file_refused", "Destination already exists, is linked, moved or inaccessible; choose a new safe file name.") from exc
             raise
         finally:
-            if fd is not None:
-                os.close(fd)
-            if parent_fd is not None:
-                os.close(parent_fd)
+            with cleanup('file descriptor close'):
+                if fd is not None:
+                    os.close(fd)
+            with cleanup('file parent descriptor close'):
+                if parent_fd is not None:
+                    os.close(parent_fd)

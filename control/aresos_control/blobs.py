@@ -7,7 +7,7 @@ import tempfile
 from contextlib import contextmanager
 
 from . import retention
-from .common import FILE_LIMIT, Refused, sha256, storage_refusal
+from .common import FILE_LIMIT, Refused, cleanup, sha256, storage_refusal
 from .storage import sync_directory
 from .space import SpaceLedger
 
@@ -107,25 +107,23 @@ class Blobs:
                 os.replace(meta_name, self.directory / (".origins-" + key))
                 sync_directory(self.directory)
             finally:
-                if os.path.exists(meta_name):
-                    os.unlink(meta_name)
+                with cleanup('blob origin temporary unlink'):
+                    if os.path.exists(meta_name):
+                        os.unlink(meta_name)
         except BaseException as exc:
-            storage = storage_refusal(exc)
-            try:
+            with cleanup('blob publication rollback', exc):
                 if published:
                     (self.directory / key).unlink(missing_ok=True)
                     (self.directory / ('.origins-' + key)).unlink(missing_ok=True)
                     sync_directory(self.directory)
-            except OSError:
-                if storage:
-                    raise storage from exc
-                raise
+            storage = storage_refusal(exc)
             if isinstance(exc, OSError):
                 raise storage or Refused('storage_limit', 'Disk full or private blob write failed; no partial blob retained. Free storage before retrying.') from exc
             raise
         finally:
-            if temporary is not None:
-                os.unlink(temporary)
+            with cleanup('blob temporary unlink'):
+                if temporary is not None:
+                    os.unlink(temporary)
         return key
 
     def admit(self, size, key):

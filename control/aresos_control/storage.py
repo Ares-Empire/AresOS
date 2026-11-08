@@ -10,7 +10,7 @@ import time
 import uuid
 
 from . import retention
-from .common import Refused, canonical, digest, json_value, visible, storage_refusal
+from .common import Refused, canonical, cleanup, digest, json_value, visible, storage_refusal
 from .results import Observations, recorded_write
 from .space import SpaceLedger, record_budget
 
@@ -29,7 +29,8 @@ def sync_directory(path):
     try:
         os.fsync(fd)
     finally:
-        os.close(fd)
+        with cleanup('directory descriptor close'):
+            os.close(fd)
 
 
 def short_description(operation):
@@ -132,8 +133,9 @@ class Store:
         self.db = self.index = self.journal = None
         try:
             self._initialize(state_dir, evidence_dir, checkpoint)
-        except BaseException:
-            self.close()
+        except BaseException as exc:
+            with cleanup('store initialization', exc):
+                self.close()
             raise
 
     def _initialize(self, state_dir, evidence_dir, checkpoint):
@@ -255,8 +257,9 @@ class Store:
                                 raise
                             # Submitting is already nonrepeatable. Keep status and
                             # cancellation available if this annotation cannot fit.
-        except BaseException:
-            self.close()
+        except BaseException as exc:
+            with cleanup('index rebuild', exc):
+                self.close()
             raise
 
     def _index_record(self, record, offset):
@@ -445,10 +448,8 @@ class Store:
         except OSError as exc:
             self.observations.storage(exc, generic=True)
             self.write_failed = True
-            try:
+            with cleanup('journal truncation', exc):
                 self._truncate_journal(offset)
-            except OSError as cleanup:
-                raise storage_refusal(cleanup) or Refused('storage_error', 'Storage recovery failed; service restart and disk inspection required.') from cleanup
             raise storage_refusal(exc) or Refused('storage_error', 'Journal storage write failed; restart the service and check the recorded operation.') from exc
         return offset
 

@@ -5,7 +5,7 @@ import time
 import uuid
 
 from . import retention
-from .common import Refused, canonical
+from .common import Refused, canonical, cleanup
 from .storage import sync_directory
 
 
@@ -98,4 +98,5 @@ def archive(store, before):
         return {**manifest, 'history_bytes': store.history_size(), 'independent_record_retained': True,
                 'read_with': 'sudo cat ' + str(destination)}
     finally:
-        temporary.unlink(missing_ok=True)
+        with cleanup('archive temporary unlink'):
+            temporary.unlink(missing_ok=True)

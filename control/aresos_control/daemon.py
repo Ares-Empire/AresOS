@@ -7,7 +7,7 @@ import socket
 import stat
 import struct
 
-from .common import FILE_LIMIT, Refused, strict_json_loads, storage_refusal
+from .common import FILE_LIMIT, Refused, cleanup, strict_json_loads, storage_refusal
 from .engine import Engine
 from .protocol import receive, send
 
@@ -85,7 +85,8 @@ def main():
     try:
         daemon.serve()
     finally:
-        daemon.close()
+        with cleanup('daemon close'):
+            daemon.close()
 
 
 if __name__ == "__main__":

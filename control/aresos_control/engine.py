@@ -12,7 +12,7 @@ from .adapters import NothingLeft, Uncertain
 from .blobs import Blobs
 from .boundary import Boundary
 from .requests import envelope, changing, UPLOAD_CHUNK, DOWNLOAD_CHUNK
-from .common import CHUNK_SIZE, FILE_LIMIT, RESULT_LIMIT, Refused, approval_input, approval_order, canonical, digest, require_question, validate, visible, storage_refusal
+from .common import CHUNK_SIZE, FILE_LIMIT, RESULT_LIMIT, Refused, approval_input, approval_order, canonical, cleanup, digest, require_question, validate, visible, storage_refusal
 from .definitions import APPS, BY_NAME, tools_for
 from .storage import Store
 from .results import Observations
@@ -27,8 +27,9 @@ class Engine:
         self.receiver = None
         try:
             self._initialize_adapters(ttl, checkpoint, file_limit)
-        except BaseException:
-            self.close()
+        except BaseException as exc:
+            with cleanup('engine initialization', exc):
+                self.close()
             raise
 
     def _initialize_adapters(self, ttl, checkpoint, file_limit):

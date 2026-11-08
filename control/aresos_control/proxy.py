@@ -2,7 +2,7 @@ import asyncio
 import json
 import sys
 
-from .common import FILE_LIMIT, WIRE_LIMIT, JSONInputError, Refused, display_json, require_question, strict_json_loads, validate
+from .common import FILE_LIMIT, WIRE_LIMIT, JSONInputError, Refused, cleanup, display_json, require_question, strict_json_loads, validate, storage_refusal
 from .definitions import obj, string
 from .definitions import APPS, BY_NAME
 from .files import FilePolicy, safe_name
@@ -49,8 +49,9 @@ class Proxy:
                 admission = result['data']
                 try:
                     saved = self.files.save(arguments["folder"], arguments["name"], data, arguments["sha256"], admission=admission)
-                except Exception:
-                    self.client.request({"method": "saved", "app": self.app, "outcome": "refused", 'export_id': admission['export_id']})
+                except Exception as exc:
+                    with cleanup('export refusal report', exc):
+                        self.client.request({"method": "saved", "app": self.app, "outcome": "refused", 'export_id': admission['export_id']})
                     raise
                 result = self.client.request({"method": "saved", "app": self.app, "outcome": saved, 'export_id': admission['export_id']})
                 if result['ok']:
@@ -92,8 +93,9 @@ class Proxy:
                     return downloaded
                 try:
                     saved = self.files.save(folder, arguments.get("name", item["name"]), data, item["sha256"], admission=downloaded['data'])
-                except Exception:
-                    self.client.request({"method": "saved", "app": "mail", "outcome": "refused", 'export_id': item['export_id']})
+                except Exception as exc:
+                    with cleanup('export refusal report', exc):
+                        self.client.request({"method": "saved", "app": "mail", "outcome": "refused", 'export_id': item['export_id']})
                     raise
                 result = self.client.request({"method": "saved", "app": "mail", "outcome": saved, 'export_id': item['export_id']})
                 if result['ok']:
@@ -103,7 +105,9 @@ class Proxy:
                 return result
             return self.client.call(action.name, arguments)
         except (Refused, OSError, ValueError) as exc:
-            return {"ok": False, "error": {"code": getattr(exc, "code", "file_refused"), "message": str(exc)},
+            exc = storage_refusal(exc) or exc
+            return {"ok": False, "error": {"code": getattr(exc, "code", "file_refused"), "message": str(exc),
+                    **({"notes": list(exc.__notes__)} if getattr(exc, "__notes__", None) else {})},
                     "pending": self.client.call("control_pending", {}).get("data", {})}
 
 

@@ -17,7 +17,7 @@ from urllib.parse import parse_qs, unquote, urlsplit
 from .. import retention
 from ..adapters import NothingLeft, Uncertain
 from ..blobs import Blobs
-from ..common import RESULT_LIMIT, Refused, canonical, digest, sha256, visible, storage_refusal
+from ..common import RESULT_LIMIT, Refused, canonical, cleanup, digest, sha256, visible, storage_refusal
 from . import codec
 from .questions import people, question
 from .roles import resolve, SETUP, REQUIRED, OPTIONAL, optional_roles, recorded_optional, optional_status, check_optional, root
@@ -976,7 +976,8 @@ class Mail:
                 stage("https_post", str(response.status))
                 return ("done", "One-click endpoint accepted POST.") if 200 <= response.status < 300 else ("partial", "Endpoint refused/redirected; no redirect followed, inspect with owner.")
             finally:
-                connection.close()
+                with cleanup('unsubscribe connection close'):
+                    connection.close()
         comp = payload["composition"]
         raw = self.mime(comp, self.message_id(operation["id"]))
         try:

@@ -47,6 +47,10 @@ class Observations:
             error = Refused('storage_error', 'Storage write failed; check the disk and operation status before doing more.')
         if error is not None and self.error is None:
             self.error = error
+        elif error is not None:
+            for note in getattr(error, '__notes__', ()):
+                if note not in getattr(self.error, '__notes__', ()):
+                    self.error.add_note(note)
         return error
 
     def stage(self, operation_id, name, outcome):
@@ -68,6 +72,8 @@ class Observations:
         if self.error is not None:
             result = {**result, 'ok': False,
                       'error': {'code': self.error.code, 'message': str(self.error)}}
+            if getattr(self.error, '__notes__', None):
+                result['error']['notes'] = list(dict.fromkeys(self.error.__notes__))
         if not result['ok'] and (self.stages or self.evidence):
             result['observations'] = {'stages': self.stages, 'evidence': self.evidence}
         if 'observations' in result and len(canonical(result).encode()) > RESULT_LIMIT:

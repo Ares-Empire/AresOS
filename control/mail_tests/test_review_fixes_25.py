@@ -116,3 +116,52 @@ class Admission25(unittest.TestCase):
         self.assertFalse(path.exists())
         self.assertFalse(self.engine.store.write_failed)
         self.assertTrue(self.engine.store.get('notice:background-storage'))
+
+
+class Cleanup25(unittest.TestCase):
+    setUp = results23.Results23.setUp
+    compose = results23.Results23.compose
+    approval = results23.Results23.approval
+    call = results23.Results23.call
+    data = results23.Results23.data
+
+    def paired_write(self, call):
+        from contextlib import contextmanager
+        opened, unlinked = os.fdopen, os.unlink
+        @contextmanager
+        def fdopen(*args, **kwargs):
+            with opened(*args, **kwargs) as stream:
+                with patch.object(stream, 'write', side_effect=OSError(errno.ENOSPC, 'Synthetic primary full disk')):
+                    yield stream
+        def unlink(path, *args, **kwargs):
+            raise OSError(errno.EIO, 'Synthetic cleanup I/O failure')
+        with patch('os.fdopen', side_effect=fdopen), patch('os.unlink', side_effect=unlink):
+            return call()
+
+    def assert_pair(self, result):
+        self.assertFalse(result['ok'], result)
+        self.assertEqual(result['error']['code'], 'storage_limit')
+        self.assertIn('Disk full', result['error']['message'])
+        self.assertTrue(any('Cleanup' in note and 'Storage I/O' in note for note in result['error']['notes']), result)
+        transport_response(result)
+
+    def test_review25_outgoing_wire_enospc_then_unlink_eio_preserves_primary_and_note(self):
+        approval = self.approval('send', self.compose())
+        put = self.mail.wires.put
+        def paired(*args, **kwargs):
+            return self.paired_write(lambda: put(*args, **kwargs))
+        with patch.object(self.mail.wires, 'put', side_effect=paired), \
+             patch.object(self.mail, 'send_smtp', side_effect=AssertionError('DATA forbidden after wire failure')):
+            self.assert_pair(self.call('send', approval))
+
+    def test_review25_password_enospc_then_unlink_eio_preserves_primary_and_note(self):
+        arguments = {'id': 'new', 'addresses': ['owner@mail.invalid'], 'username': 'synthetic',
+            'imap_host': 'mail.invalid', 'imap_port': 993, 'smtp_host': 'mail.invalid',
+            'smtp_port': 465, 'smtp_tls': 'implicit'}
+        store_password = self.mail.transport.store_password
+        def paired(*args, **kwargs):
+            return self.paired_write(lambda: store_password(*args, **kwargs))
+        with patch.object(self.mail.transport, 'store_password', side_effect=paired):
+            self.assert_pair(self.engine.request({'v': 1, 'method': 'mail_account_add',
+                'arguments': arguments, 'password': 'Synthetic test credential'}, admin=True))
+        self.assertIsNone(self.engine.store.get('mail:account:new'))

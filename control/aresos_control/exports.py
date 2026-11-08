@@ -1,7 +1,7 @@
 """Durable caller-write holds, shared with private blob and audit admission."""
 import uuid
 
-from .common import Refused, sha256
+from .common import Refused, cleanup, sha256
 from .space import record_budget
 from .storage import sync_directory
 
@@ -45,9 +45,10 @@ def put(store, blobs, data):
     export_id = begin(store, blobs, 'mail', key, len(data), creating=True)
     try:
         blobs.put(data, origin='export')
-    except BaseException:
-        transfer = get(store, export_id, 'mail')
-        discard_blob(store, blobs, transfer, export_id)
-        store.write({'export:' + export_id: None}, 'mail_file_save', 'private export refused', outcome='refused')
+    except BaseException as exc:
+        with cleanup('private export rollback', exc):
+            transfer = get(store, export_id, 'mail')
+            discard_blob(store, blobs, transfer, export_id)
+            store.write({'export:' + export_id: None}, 'mail_file_save', 'private export refused', outcome='refused')
         raise
     return key, export_id
