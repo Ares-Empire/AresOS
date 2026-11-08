@@ -6,13 +6,13 @@ AresOS is a personal operating system whose desktop is the real Minecraft Java. 
 - **The shell mod** (`mod/`): a Fabric mod for Minecraft 26.2 that turns the game into the desktop. Apps are items in the hotbar and inventory, sign doors open apps, and closing an app returns you to the world.
 - **The OS base** (`os/`, later): a Linux system, defined as code in this repo, that boots straight into a Minecraft world.
 
-Design: `README.md`. Workflow: `docs/WORKFLOW.md`. Reviews: `docs/REVIEW.md`.
+Design: `docs/design/DESIGN.md`. Workflow: `docs/WORKFLOW.md`. Reviews: `docs/REVIEW.md`.
 
 ## Your job in one run
 
 You get one **brief** (`briefs/NN-slug.md`), your own worktree and your own branch.
 
-1. Read the brief, `README.md` and this file. Read existing code before you change it.
+1. Read the brief, `docs/design/DESIGN.md` and this file. Read existing code before you change it.
 2. Build exactly what the brief asks. Ideas outside its scope go in your report, not into the code.
 3. Verify (see below) and fix until green.
 4. Commit in small logical commits. Push your branch and open a PR against `main` with `gh pr create`. Never merge, never push to `main`.

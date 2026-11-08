@@ -1,7 +1,7 @@
 # AresOS: Claude's operating notes
 
 Read this first every session. Then:
-- `README.md`: the design and phases
+- `docs/design/DESIGN.md`: the design and phases
 - `docs/WORKFLOW.md`: how a change gets built
 - `docs/REVIEW.md`: reviews and councils
 
@@ -29,7 +29,8 @@ I only build things myself when writing the brief would cost more than doing it 
 |---|---|
 | `STATE.md` | Current state, open owner decisions, next steps. Short on purpose. |
 | `HANDOFF.md` | The baton: where the last session stopped, what's running, how to resume. Overwrite it when you pick it up. |
-| `README.md` | What AresOS is: design, game rules, phases, safety rules. |
+| `README.md` | The front page for visitors: what AresOS is, its status, how to build the mod. |
+| `docs/design/DESIGN.md` | The design: game rules, the Nether home, desktop and companion ideas, phases, open questions, safety rules. |
 | `AGENTS.md` | Rules for Codex in every run. |
 | `docs/WORKFLOW.md`, `docs/REVIEW.md` | How a package gets built, reviewed and merged, and how councils run. |
 | `docs/design/OS-BASE.md` | The Linux layer design (council-approved). Long, so read the section you need. |
