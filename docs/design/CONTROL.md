@@ -1,29 +1,54 @@
 # The control layer: design
 
-**Status:** draft 16, 2026-11-07, with the owner's answers of the same day built in (`PLAN.md` decisions 14 to 19 and
-21: approvals stay Claude Code's own prompt, with a `question` sentence first; no owner question is open). Covers the
-shared base, Mail and Chrome. The frontier review ([`REVIEW`](../../reviews/control-design/2026-11-07-REVIEW.md), 8
-blocking) and five re-checks ([1](../../reviews/control-design/2026-11-07-RECHECK.md),
-[2](../../reviews/control-design/2026-11-07-RECHECK-2.md), [3](../../reviews/control-design/2026-11-07-RECHECK-3.md),
-[4](../../reviews/control-design/2026-11-07-RECHECK-4.md), [5](../../reviews/control-design/2026-11-07-RECHECK-5.md))
-ended at "ready for brief 18" on draft 6. Draft 7 adds brief 17b's Chrome results (section 6: fail, then repeat; the
-policy install; the owner's own stop control; service workers). Draft 8 adds brief 17c's (section 6: holding inside
-the page as the normal path, what the hold protects against and what it doesn't, workers, live messages, the restart,
-the owner's own sends, the site guard settled); the reviewer's sixth re-check
-([6](../../reviews/control-design/2026-11-07-RECHECK-6.md)) found four blocking points there, and draft 9 answered
-them with Chrome's own blocking rules as a floor under every hold. Brief 17d showed that floor doesn't hold (worker
-WebSockets pass it; an allowance lets a different send out when control ends), and the seventh re-check
-([7](../../reviews/control-design/2026-11-07-RECHECK-7.md)) recommended a checkpoint outside Chrome, which brief 17e
-showed holds. Draft 10 rebuilds section 6 on that checkpoint (with the owner's hard requirements for it, decision 6),
-makes the site guard strict (decision 12), adds "don't ask again" (decision 7) and his usual sites (decision 9), and
-adds to section 7 the assistant apart from coding sessions (decision 8) and the approval surface after the phone tests
-(open: the owner decides). The eighth re-check ([8](../../reviews/control-design/2026-11-07-RECHECK-8.md)) found six
-blocking points in draft 10, and draft 11 answers them: uncertain reading held until the checkpoint is ready, clicks
-that may delete local data ask first, what a recognised action is, three separate users with no shared files, every
-place the root is installed, and the exact upstream TLS checks with what is lost. The ninth re-check
-([9](../../reviews/control-design/2026-11-07-RECHECK-9.md)) closed three of them and found one new point; draft 12
-records every input before it reaches Chrome, makes unlabelled local-only deletion an owner question, checks upstream
-certificates with Chrome's own current data, and bounds a destructive action approved in advance. The tenth re-check
+**Status:** draft 25, 2026-11-08. Draft 16 with the owner's answers of 2026-11-07 built in (`PLAN.md` decisions 14 to
+19 and 21), and two decisions of 2026-11-08: the central session can gain tools, the ones that run outside its sandbox
+only through the tool layer, asking (decision 22); and one session does coding, commands, mail, Chrome and later apps,
+possibly in skip-permissions mode, replacing decision 8's split (decision 23). Draft 18 answers the eighteenth
+re-check ([18](../../reviews/control-design/2026-11-08-RECHECK-18.md)): project deletions kept recoverable by
+snapshots (the owner's choice is open), planted repository settings contained, branch deletion and history rewrites
+recoverable, add-tool preparation fetching only from listed registries, and added tools free only on reviewed
+evidence. Draft 19 answers the nineteenth re-check ([19](../../reviews/control-design/2026-11-08-RECHECK-19.md)) by
+containing whole classes (one traced set of programs outside the sandbox, git itself sandboxed for the session's user,
+the tools reachable only from the registered `aresos-mcp`, GitHub refusing every deletion and rewrite by the session)
+and by stating exact bounds as owner choices in section 10. Draft 20 (re-check
+[20](../../reviews/control-design/2026-11-08-RECHECK-20.md)) makes Claude Code and the relay non-dumpable, identifies
+the relay by its group, and adds a fifth owner choice for unreviewed servers that hold his account access. Draft 21
+(re-check [21](../../reviews/control-design/2026-11-08-RECHECK-21.md)) accepts one relay per app per session and
+checks who holds its pipes. Draft 22 (re-check [22](../../reviews/control-design/2026-11-08-RECHECK-22.md)) changes
+the structure: an SELinux domain for the session refuses every program outside the allowed set when it starts, the
+relay checks become hardening bound to the trusted start, and the asking tools stay off until qualification shows
+nothing Claude can steer reaches Claude Code's sign-in. Draft 23 (re-check
+[23](../../reviews/control-design/2026-11-08-RECHECK-23.md)) adds the precision: Claude Code's process as trusted code
+into which nothing Claude wrote is loaded, the sandbox transition contract, both gates as hard switches, an
+acknowledged registration barrier, and `rg` through a fixed wrapper. Draft 24 follows the owner's decision 24, which
+replaces that containment: AresOS runs normal Claude Code, as on any OS, plus the tools, which must be safe in
+themselves and not make things worse than normal Claude Code; sections 1, 2, 4.4 and 7 are rewritten to that bar, and
+section 6 is left for re-examination against it (section 10). Draft 25 (re-check
+[25](../../reviews/control-design/2026-11-08-RECHECK-25.md)) says precisely what is still unknown about
+`PermissionRequest` hooks and under which settings the optional sandbox keeps terminal commands away from the tool
+service. Covers the shared base, Mail and Chrome. The frontier
+review ([`REVIEW`](../../reviews/control-design/2026-11-07-REVIEW.md), 8 blocking) and five re-checks
+([1](../../reviews/control-design/2026-11-07-RECHECK.md), [2](../../reviews/control-design/2026-11-07-RECHECK-2.md),
+[3](../../reviews/control-design/2026-11-07-RECHECK-3.md), [4](../../reviews/control-design/2026-11-07-RECHECK-4.md),
+[5](../../reviews/control-design/2026-11-07-RECHECK-5.md)) ended at "ready for brief 18" on draft 6. Draft 7 adds
+brief 17b's Chrome results (section 6: fail, then repeat; the policy install; the owner's own stop control; service
+workers). Draft 8 adds brief 17c's (section 6: holding inside the page as the normal path, what the hold protects
+against and what it doesn't, workers, live messages, the restart, the owner's own sends, the site guard settled); the
+reviewer's sixth re-check ([6](../../reviews/control-design/2026-11-07-RECHECK-6.md)) found four blocking points
+there, and draft 9 answered them with Chrome's own blocking rules as a floor under every hold. Brief 17d showed that
+floor doesn't hold (worker WebSockets pass it; an allowance lets a different send out when control ends), and the
+seventh re-check ([7](../../reviews/control-design/2026-11-07-RECHECK-7.md)) recommended a checkpoint outside Chrome,
+which brief 17e showed holds. Draft 10 rebuilds section 6 on that checkpoint (with the owner's hard requirements for
+it, decision 6), makes the site guard strict (decision 12), adds "don't ask again" (decision 7) and his usual sites
+(decision 9), and adds to section 7 the assistant apart from coding sessions (decision 8) and the approval surface
+after the phone tests (open: the owner decides). The eighth re-check
+([8](../../reviews/control-design/2026-11-07-RECHECK-8.md)) found six blocking points in draft 10, and draft 11
+answers them: uncertain reading held until the checkpoint is ready, clicks that may delete local data ask first, what
+a recognised action is, three separate users with no shared files, every place the root is installed, and the exact
+upstream TLS checks with what is lost. The ninth re-check ([9](../../reviews/control-design/2026-11-07-RECHECK-9.md))
+closed three of them and found one new point; draft 12 records every input before it reaches Chrome, makes unlabelled
+local-only deletion an owner question, checks upstream certificates with Chrome's own current data, and bounds a
+destructive action approved in advance. The tenth re-check
 ([10](../../reviews/control-design/2026-11-07-RECHECK-10.md)) closed the input barrier and the advance approval; draft
 13 states both options for unlabelled local-only deletion truthfully and makes Chrome's own security data a precise
 contract (paths, what the trust rests on, a version gate, freshness from the data's own fields, recovery when it is
@@ -43,63 +68,42 @@ one to where it is handled.
 
 ## 1. In one paragraph
 
-A tool service runs under its own system user, holds the passwords, and does the work for every app. Each action is
-defined once, with what it does to the world (its *effect*), and from that one definition come the MCP tools Claude
+A tool service runs under its own system user, holds the app passwords, and does the work for every app. Each action
+is defined once, with what it does to the world (its *effect*), and from that one definition come the MCP tools Claude
 calls, the `aresos` terminal command, and the list of actions that must ask the owner. Claude Code asks the owner
-before any action whose effect is sending or deleting; Claude's own terminal commands run in Claude Code's sandbox and
-can't reach the service at all, so Claude acts on apps only through the MCP tools. Every send and delete is recorded
-as an operation before it acts, and every result says exactly what it refers to and what really happened.
+before any action whose effect is sending or deleting, through managed ask rules. Every send and delete is recorded as
+an operation before it acts, and every result says exactly what it refers to and what really happened. Around that,
+AresOS runs normal Claude Code, as on any OS (decision 24): one session for coding, commands, mail, Chrome and later
+apps (decision 23), as his own user, with his own `gh` login and the MCP servers, skills and plugins he adds.
 
 ## 2. The pieces
 
 | Piece | What it is | Runs as |
 |---|---|---|
 | `aresos-toold` | The tool service: app adapters (Mail, Chrome, later more), passwords, the operation log. Listens on three Unix sockets and nothing else (no TCP). | system user `aresos-tools` |
-| `act.sock` | `/run/aresos-tools/act.sock`: every action that may be offered to Claude. Open only to the assistant's user (decision 8): the service checks the caller's user on every connection (briefs 18, 18b). | |
-| `admin.sock` | owner-only actions (accounts, passwords, the site lists, "don't ask again" entries, the checkpoint switch). Open only to root; the owner reaches it with `sudo aresos admin …` and his own password, which Claude can't give. | |
+| `act.sock` | `/run/aresos-tools/act.sock`: every action that may be offered to Claude. Open to his user: the service checks the caller's user on every connection (briefs 18, 18b). | |
+| `admin.sock` | owner-only actions (accounts, passwords, the site lists, "don't ask again" entries, the checkpoint switch). Open only to root; the owner reaches it with `sudo aresos admin …` and his own password. | |
 | `chrome.sock` | for Chrome's native messaging host only (section 6), open only to the browser's user. | |
-| `aresos` | The terminal command: `aresos mail search --from … --json`, generated from the definitions, over `act.sock`. For the owner and his scripts, run as the assistant's user (`sudo -u`), and for owner-only actions with `sudo aresos admin`. | the caller |
-| `aresos-mcp <app>` | One MCP server per app (`aresos-mcp mail`, `aresos-mcp chrome`), a thin generic proxy: it fetches its app's tool list from the service, forwards calls over `act.sock`, and does the caller's side of file transfers (rule 4.4). Root-owned under `/usr` (read-only in the image), started from `managed-mcp.json` with a fixed interpreter in isolated mode (`python3 -I`) and a fixed environment, so nothing in a writable folder is loaded into it. Started by any other user, it refuses at once (brief 18b, *checked*). | the assistant's user, started by Claude Code |
+| `aresos` | The terminal command: `aresos mail search --from … --json`, generated from the definitions, over `act.sock`. For the owner and his scripts, and for owner-only actions with `sudo aresos admin`. | the caller |
+| `aresos-mcp <app>` | One MCP server per app (`aresos-mcp mail`, `aresos-mcp chrome`), a thin generic proxy: it fetches its app's tool list from the service, forwards calls over `act.sock`, and does the caller's side of file transfers (rule 4.4). Root-owned under `/usr` (read-only in the image), run with a fixed interpreter in isolated mode (`python3 -I`) and a fixed environment. Installed for his Claude Code like any MCP server (section 7). | his user, started by Claude Code |
 | `aresos-checkpoint` | The checkpoint every Chrome connection passes through (section 6): holds sends from guarded places, forwards each approved one at most once. Listens on one local port for the browser's user only and on `checkpoint.sock` for the service only. | system user `aresos-checkpoint` |
 | Chrome bridge | Our own extension and native messaging host (section 6). | |
 | Chrome | The owner's browser, with his profile and sign-ins, started only by a root-owned launcher (section 6). | user `aresos-browser` |
-| The assistant | The Claude Code session that has the app tools (section 7, decision 8). | user `assistant` |
-| Coding sessions | Claude Code sessions for coding work, without the app tools (section 7). | user `coder` |
-| Claude Code settings | `/etc/claude-code/managed-settings.json` and `managed-mcp.json`, owned by root (section 7). Exact values come once the tools exist (owner decision 3). | |
+| Claude Code | Normal Claude Code, one session for everything (decisions 23 and 24), with or without skip-permissions; his own MCP servers, skills and plugins. | his user |
+| Claude Code settings | `/etc/claude-code/managed-settings.json` with the ask rules for every asking tool, and the managed `CLAUDE.md` (section 7), owned by root and generated from the definitions. His own settings work as in normal Claude Code. | |
 
 **Who can reach what:**
 
-| From | `act.sock` | `admin.sock` | Passwords and sign-in data | Chrome's control channel |
+| From | `act.sock` | `admin.sock` | The app passwords and sign-in data AresOS holds | Chrome's control channel |
 |---|---|---|---|---|
-| The owner's own terminal | as the assistant's user (`sudo -u`) | with `sudo` | no | only through the tools |
-| Claude through its MCP tools (local MCP servers run outside the sandbox) | yes; send and delete ask first | no | no | only through the tools |
-| Claude's terminal commands (sandboxed) | no | no | no | no |
-| Claude's file tools (Read, Edit, Write; outside the sandbox) | no (they don't open sockets) | no | no: another user's files, plus deny rules | no |
-| Coding sessions (user `coder`, section 7) | no; the MCP proxy refuses them | no | no | no |
+| The owner's own terminal | yes | with `sudo` | no | only through the tools |
+| Claude through its MCP tools | yes; send and delete ask first | no | no | only through the tools |
+| Claude's terminal and file tools | yes, like any program of his (the residual in section 7); Claude Code's optional sandbox keeps terminal commands away only in the strict setup of section 7, and even then best-effort | no | no: another user's files | no |
 | `aresos-toold` | | | yes | yes |
 
-**Why Claude's terminal reaches no socket.** On Linux, Claude Code's sandbox can't let one Unix socket through and
-block another: `allowUnixSockets` is ignored there, and the only switch, `allowAllUnixSockets`, opens every socket
-(Anthropic's settings reference, read 2026-11-07). So the sandbox allows none, and Claude reads apps through the MCP
-tools too. Two layers keep it so: the seccomp filter that blocks Unix sockets (`allowAllUnixSockets: false`), and
-`/run/aresos-tools` hidden from the sandbox's file view. The docs call the seccomp filter optional; native Claude
-Code 2.1.319 has it built in (sockets refused even without the separate helper: brief 18b, *checked*). The launcher
-still refuses to start Claude Code when the separate helper is missing, so a later version that drops the built-in
-filter fails closed, and the hostile tests run with and without it. Before each start it also checks the native
-program against a hash pinned at build time and runs a canary (a test socket the built-in filter must refuse), so
-the protection doesn't depend on the separate helper alone (brief 18b, *checked*).
-
-A program that runs as the assistant's user outside the sandbox can use `act.sock` without asking. That is the
-normal desktop trust model (the owner's own programs could equally type into Chrome); the line this design draws is
-around Claude, and section 7 lists every way Claude could start such a program and how each is closed.
-
-**Three users, and what each can read and change.** The owner (his own user), the assistant (`assistant`) and coding
-sessions (`coder`, as in brief 18b's isolation check) are separate users; coding sessions never run as the owner.
-Decided (decision 17; his words: "pretty much everything no? like running claude with dangerously skip permissions
-just like I do now"): the assistant may read and change everything in his home folders except hidden settings and
-start-up places (rule 4.4). Code lives in the coding user's own home, so coding sessions read their repositories
-there and never read his folders; the coding user has no access to his home at all. So nothing the assistant can
-write is readable by a coding session (section 7).
+**The users.** The owner's own user runs Claude Code and everything it starts, as on any OS. The service, the
+checkpoint and Chrome have system users of their own. There is no separate assistant user and no coding user any more
+(decisions 23 and 24): they served only the containment that decision 24 replaced.
 
 ## 3. One definition per action
 
@@ -192,65 +196,24 @@ two actions.
      log doesn't is listed as `unknown` with its description, for the owner to check. Repairs that never submit
      again (a missing Sent copy) run as new operations that point to the old one. Mail adds evidence on the server: the Message-ID is derived from the operation id, and before
      submitting, the service refuses if that Message-ID is already in Sent. Not finding it there proves nothing.
-4. **Files: his home folders, never hidden settings or start-up places (decision 17).** The service never opens a
-   path in the owner's home itself; the assistant's own tools do, as the assistant's user: Claude's file tools, the
-   tool service's file actions through the MCP proxy, and the proxy's side of attachments and uploads (it hands the
-   bytes over, and the service keeps them as an unchangeable copy by hash and sends exactly those). Claude Code's
-   file-tool limits don't apply to MCP tools, so the proxy enforces the same limits:
-   - **Where:** everything in his home folders, opened component by component without following symlinks, regular
-     files only, with a size limit. Never a path with a component that starts with a dot (hidden settings:
-     `~/.ssh`, `~/.gnupg`, `~/.config`, `~/.local`, `~/.claude`, and a `.envrc` or `.git` inside any folder), never
-     a start-up place (autostart and service folders, shell start-up files, desktop entries), and never through a
-     symlink. Where something asks, the question shows the real path.
-   - **Folders on his PATH are start-up places too.** His own terminal runs the first program of a name it finds in
-     the folders on his PATH, as him. AresOS keeps Fedora's `/etc/skel`, whose `.bashrc` puts `$HOME/.local/bin` and
-     `$HOME/bin` first on his PATH, whether or not they exist, and AresOS pins PATH only for the daily account
-     (`os/config/etc/profile.d/aresos.sh`), not for the owner; so a `~/bin/git` the assistant wrote would run as him.
-     Every non-hidden folder on his login PATH therefore counts as a start-up place: the assistant can't create it,
-     change anything in it, or move or rename anything into it. The list isn't fixed: a root-owned helper asks his
-     real login shell for its PATH, at the tool service's start and whenever a file that sets it changes (his shell
-     start-up files, `/etc/profile`, `/etc/profile.d`), and the service and the managed file-tool hook check every
-     write against the current list. `~/bin` is the known case today; hidden ones such as `~/.local/bin` are already
-     covered by the hidden-settings rule above.
-   - **Nothing the assistant writes is runnable.** The tool service and the proxy write every file without execute
-     bits: saved files, saved attachments, Chrome downloads moved in, and files Claude's file tools create (the
-     managed file-tool hook checks the mode before and after). Making a file runnable is the owner's own act. Two
-     cases where a bit already exists: a file that already has an execute bit (one of his scripts) can't lose it
-     through the assistant, because the file is his, so a change to it asks, and the question says the file stays
-     runnable; renaming a runnable file within its folder keeps the bit, and moving one to another folder asks, for
-     the same reason (the writer's call: asking, not clearing, because the bit can't be cleared on his file). A
-     relative or empty entry on his PATH, which would make any folder count, is covered by this rule too: nothing
-     the assistant writes can be run by name.
-   - **Free:** reading; saving a new file; creating a folder; renaming and moving within his folders, never onto an
-     existing name (refused); and every change to an existing file, a whole replacement or clearing it to empty
-     included, through Edit, MultiEdit, Write, NotebookEdit or the tool service. A change is free *because* the
-     previous version is kept first (next point), so it can be undone.
-   - **Previous versions, kept first.** Before any change to an existing file in his folders, a managed hook (for
-     Claude's file tools) or the tool service itself (for its own actions) reads the file as it is and hands it to
-     the tool service, which stores it durably in its version store for 30 days, with the path, the time and the
-     hash, and confirms; only then may the change happen. If the version can't be stored (a full disk, any error),
-     the change is refused. The version store belongs to the tool service's user: neither Claude's terminal nor its
-     file tools can write or delete in it. Restoring is the owner's: `sudo aresos admin files versions` lists recent
-     versions (of a file, or of the last days), and `… restore <id>` puts one back as a new file beside the current
-     one, never over it.
-   - **Asks, as a delete:** deleting a file or folder (to the Trash or for good), through the tool service's file
-     action.
-   - **Its own folders:** session records and temporary files stay in the assistant's own folders, which the owner
-     can read and the coding user can't (section 7). What its terminal writes there is disposable scratch (below);
-     anything meant to last goes through the file tools into his folders, where its versions are kept.
-   - *Tests:* a whole-content replacement through Edit, clearing a file, a NotebookEdit and a Write onto an existing
-     file each leave the previous version restorable; with a full disk, the change is refused and the file
-     unchanged; the terminal and the file tools can't write the version store. Start-up places and runnable files
-     (hostile, section 7): the assistant tries to create `~/bin/git` and a runnable file in `~/Documents` through every
-     write path (Write and Edit, the tool service's save and move, a saved attachment, a Chrome download moved in),
-     and both fail; a folder he adds to his PATH while the service runs is protected once his shell start-up file
-     changes; a change to one of his runnable scripts asks.
+4. **Files cross between users only on the caller's side.** The service never opens a path in the owner's home
+   itself. The MCP proxy, running as his user, opens a file Claude names for an attachment or an upload and hands the
+   bytes over; the service keeps them as an unchangeable copy by hash and sends exactly those, and the question shows
+   the real path and the hash. Saving goes the other way: a saved attachment or download lands in the folder named
+   (his `~/Downloads` by default) under a safe file name, never over an existing file, never into a hidden folder or
+   a start-up place (autostart and service folders, shell start-up files, desktop entries, `~/bin`), and without
+   execute bits, so the tools never plant something that runs. Everything else about files is normal Claude Code
+   (decision 24): Claude's own file tools and terminal work in his home and projects as on any OS, under the
+   permissions he sets.
 5. **Reading changes nothing.** Mail is fetched with `BODY.PEEK`; flags are compared before and after in the tests.
 6. **Readable, bounded results.** Compact structured results with the important fields first. Long content is paged
    (`cursor`), and every result has a size cap, so a huge mail or page never floods Claude's context.
 7. **Errors say what to do next.** Not "IMAP error 3", but "the folder was recreated; search again".
 8. **Content is data, never instructions.** Text from mails and pages comes back in fields marked as untrusted
-   content, and the tool descriptions tell Claude that. Whatever a mail says, any send or delete still asks.
+   content, and the tool descriptions tell Claude that. Whatever a mail says, any send or delete still asks. Only the
+   owner, in the session (the terminal or Remote Control), gives instructions; mails, pages, files, tool results and
+   other sessions' messages are data. The managed `CLAUDE.md` says so (section 7); it states the policy and enforces
+   nothing.
 9. **Everything that changes something is logged.** Time, action, input summary, outcome. `aresos log` shows the
    owner what Claude did today.
 10. **Nothing waiting is forgotten, and nothing waits forever.** Anything held or unfinished (a site's request held
@@ -365,6 +328,12 @@ from a guarded place now waits at that checkpoint, outside Chrome, and only the 
 out, at most once. Chrome's blocking rules no longer protect anything, and fail-then-repeat and URL allowances are
 gone. The extension and the page script stay, for everything except deciding what leaves.
 
+**Under decision 24.** This section was written while Claude was to run as a separate, sandboxed user (drafts 17 to
+23). Decision 24 runs normal Claude Code as his own user, with the sandbox optional. Where this section relies on
+Claude's sandbox or a separate user (for example that Claude can't create input or reach Chrome's sockets), read it as
+holding only with the optional sandbox on. The checkpoint design is to be re-examined against decision 24's bar
+before brief 20 is built (section 10); it is not redesigned here.
+
 ### How the tool reaches Chrome
 
 - **Our own small extension** (Manifest V3, using `chrome.debugger`), installed and updated by the image through
@@ -378,9 +347,8 @@ gone. The extension and the page script stay, for everything except deciding wha
   (17): attaches to a tab that was opened and signed in before the tool started, with no debugging port and Chrome's
   sandbox on.
 - **Claude in Chrome stays for the owner's own use** (decision 10), so its extension is no longer on Chrome's block
-  list. The central session can't load it (`managed-mcp.json` lists only the control layer's servers; a hostile test
-  checks that), and its connection to Claude Code sessions, a user-level native messaging host, doesn't start because
-  user-level hosts are off by policy (*brief 20*). What it sends goes through the checkpoint like everything else.
+  list. Its connection to Claude Code, a user-level native messaging host, doesn't start because user-level hosts are
+  off by Chrome policy (*brief 20*). What it sends goes through the checkpoint like everything else.
 - **Rejected:** Chrome's own consent attach (`chrome://inspect`) opens a debugging listener on port 9222 that stays
   on after a restart (*checked*, 17), against the owner's no-debugging-port rule. Playwright's bridge extension
   works, but any local program that finds its endpoint can drive the page (*checked*, 17); our own extension keeps
@@ -388,15 +356,15 @@ gone. The extension and the page script stay, for everything except deciding wha
 - **Chrome runs as its own user** (`aresos-browser`), which holds the owner's profile and sign-ins. The checkpoint
   needs this: the OS can then let exactly Chrome's connections reach the checkpoint and nothing else (17e did it this
   way; a cgroup or a network namespace was the alternative it named). It also keeps the profile (cookies, saved
-  passwords) away from the owner's other programs, the assistant and coding sessions. Chrome starts only through a
+  passwords) away from the owner's other programs and the central session. Chrome starts only through a
   root-owned launcher (the desktop entry, and the default browser for links from other apps), which starts the
   checkpoint first. A Chrome started any other way, as another user, finds no profile and can't connect: the proxy
   policy is machine-wide and the checkpoint accepts only the browser user. On Fedora with KDE this needs: the owner's
   profile moved to that user once, with its sign-ins; the display, sound, camera, microphone, notifications and the
   file chooser through filtered access to the owner's desktop session (nothing else of it); Chrome's own password and
   cookie encryption through a keyring of that user, not the plain store 17e used; his own downloads reaching him, and
-  Claude's reaching only the assistant's folders (`chrome_downloads`); none of the browser user's files readable by
-  the coding user. All *brief 20*.
+  Claude's reaching his folders only through `chrome_downloads` (rule 4.4); none of the browser user's files readable
+  by his user except through the tools. All *brief 20*.
 - **The owner always sees and can stop it.** Chrome hides its "started debugging this browser" bar for a
   policy-installed extension (*checked*, 17b), so the extension shows its own: the Claude tab group's colour, a badge
   on its toolbar button while Claude is working (the button pinned by policy), and in its popup a **Stop** button
@@ -406,8 +374,8 @@ gone. The extension and the page script stay, for everything except deciding wha
   exact popup address and a current popup context; Stop can only end control, never release anything.
 - The host runs as the browser user, like Chrome, and `chrome.sock` is open only to that user. A program running as
   that user could pretend to be the host (*checked* for the owner's user in 17; the model is the same); only Chrome
-  runs as that user. Claude can't, because it runs as another user (decision 8, section 7), its terminal is
-  sandboxed, and its file tools can't write the places that start programs (section 7).
+  runs as that user. Claude Code runs as his user, not the browser's (section 2); whether that is enough without a
+  mandatory sandbox is part of the re-examination (section 10).
 
 ### The checkpoint
 
@@ -563,7 +531,7 @@ requirement here, with how it is met and how brief 20 tests it.
    started with the right to open low ports and no other privilege, so no other program can listen there first and
    pose as it (17e: taking over the port was not tested). The checkpoint refuses to start if the port is taken or if
    ordinary users may open low ports.
-   *Test:* the owner's, the assistant's and a coding user's programs can't connect to the port or the socket; a
+   *Test:* his user's programs can't connect to the port or the socket; a
    program of theirs can't open the port; the checkpoint refuses to start when the port is taken.
 2. **Nothing it sees leaves the machine.** This means the checkpoint adds no way out of its own. It sends nothing
    anywhere except the browser's own traffic to the address Chrome asked for: no telemetry, no updates of its own, no
@@ -612,7 +580,7 @@ requirement here, with how it is met and how brief 20 tests it.
    - **What this trust rests on.** These files carry no signatures of their own. Chrome checks each downloaded
      package's signature before unpacking it (re-check 10, Chromium 157 source), so the trust rests on Chrome's
      verified installation plus the protection of the folder: Chrome's user-data directory belongs to the browser user,
-     the checkpoint's user may read it and not change it, and the assistant's and the coding user can't write it.
+     the checkpoint's user may read it and not change it, and his user can't write it.
      Anything that can write that folder as the browser user can weaken these checks, just as it could weaken Chrome's
      own.
    - **Loading.** The checkpoint uses the version Chrome itself uses, by Chrome's own effective rules for choosing one
@@ -773,6 +741,26 @@ Every reference is bound to the browser session, tab, document and element: when
 nothing is redirected; when the page changes, an old reference fails with "stale, read again" instead of hitting
 another element (*checked*, 17); after a Chrome restart all old references are stale. Acting calls carry what Claude
 expects the element to hold (from its last read), and the tool refuses when the owner has changed it in the meantime.
+
+### Project work in Chrome (decision 23)
+
+The same session does project work, so a project's check in Chrome uses the same Chrome tools: reading and clicking
+are free, and anything sent to a site asks, as everywhere in his Chrome. That covers checks on real sites, for
+example his deployed site while he is signed in.
+
+A project's own tests against a server on the machine itself (`localhost`) don't use his Chrome or the checkpoint.
+They run in a clean, throwaway browser inside Claude's sandbox (for example Playwright's own Chromium, installed as a
+project's development package), with an empty profile and none of his sign-ins:
+
+- the project's test server and the test browser run in the same sandboxed command, because the sandbox's
+  `localhost` belongs to each command on its own (Anthropic's sandboxing page), and his Chrome can't reach it
+  anyway;
+- nothing of his is in that browser, so there is nothing to hold, and the checkpoint stays for his own profile;
+- it reaches only what the sandbox reaches: the test server and the hosts he allows there (section 7).
+
+Inside Claude's sandbox that browser runs with its own sandbox switched off, because nested user namespaces are off;
+Claude's sandbox contains it instead (*brief 20* checks that it starts and reaches the test server and nothing else).
+A test that needs a real site or his sign-ins is a check in his Chrome, through the tools.
 
 ### Reading a page
 
@@ -1026,7 +1014,8 @@ owner decides it himself, on a surface outside every page:
   through the desktop's action menu released its named checkpoint capture once).
 - **Why Claude can't:** Claude acts only through the debugger in page tabs of the Claude group; `chrome_take_tab` and
   `chrome_open` refuse extension pages and Chrome's own pages; desktop notifications and extension windows aren't
-  pages it can reach; Claude runs as another user than Chrome, and its sandboxed terminal can't create input. The
+  pages it can reach; Claude runs as another user than Chrome, and whether its terminal could create input without
+  the optional sandbox is part of the re-examination (section 10). The
   hostile tests try each: taking the details window, reading and clicking in every tab, answering a page dialog,
   forging messages from a page or content script, and creating input from the sandbox. Every attempt must leave the
   send held and the guard on.
@@ -1075,8 +1064,8 @@ The owner can free a kind of action from asking, within these limits:
 - **He sets it himself, at or right after an approval, through a channel Claude can't use:** the extension's details
   page lists Claude's recently approved sends with "Don't ask again for this kind" (Claude can't open extension pages:
   *checked*, 17c), and the owner command `sudo aresos admin chrome allow …` (for mail, `… mail allow …`) with his
-  password. Claude Code's own "Yes, and don't ask again" in its prompt is not that channel: under managed-only
-  permission rules it must stay inert (section 7).
+  password. Claude Code's own "Yes, and don't ask again" in its prompt is not that channel: it writes an allow rule,
+  which can't turn a managed ask off (section 7).
 - **The entry goes into the owner-only list** in the tool service, written only through `admin.sock`, the extension's
   details page; Claude can't write it. `chrome_submit_trusted`, which doesn't ask, checks it at every release and
   refuses anything not on it.
@@ -1365,158 +1354,102 @@ qualify the mechanism, not arbitrary real sites. Brief 20 must show, building on
     robot checks; then on his own sites after the first boot (condition 5).
 19. **Upgrades:** 17e gates WebSocket control frames at a seam inside mitmproxy 12.2.1 that its public hooks don't
     offer; that seam and the fail-stop handling are checked again on every upgrade of the core.
+20. **Project work** (decision 23): a project's test against its own server in a clean browser, both started in one
+    sandboxed command, starts, reaches that server and nothing outside the hosts the sandbox allows, and holds none of his
+    sign-ins; a
+    project check in his Chrome asks for sends like any other site; all of section 6's Chrome tests also run in
+    skip-permissions mode.
 
 The whole set runs twice on the recorded Chrome version, as 17d and 17e did, and again on every upgrade of Chrome or
 of the proxy core. Hostile tests (section 7) add: reaching `chrome.sock`, `checkpoint.sock` or the checkpoint's port
-from the sandbox, the assistant's user or a coding user; a user-level native messaging manifest; editing the profile,
-Chrome's policies or the owner's allow list; acting in a tab outside the Claude group; opening extension pages.
+from his user's programs; a user-level native messaging manifest; editing the
+profile, Chrome's policies or the owner's allow list; acting in a tab outside the Claude group; opening extension
+pages.
 
-## 7. No way around the tools
+## 7. Claude Code as on any OS, plus the tools (decision 24)
 
-Claude's terminal is sandboxed, but much of Claude Code runs outside the sandbox with the full rights of its user (the
-assistant's user, decision 8, below): the file and web tools, hooks, local MCP servers, plugin monitors, LSP servers,
-the status line and `apiKeyHelper` commands, and mods (Anthropic's sandboxing page, "What runs outside the sandbox",
-read 2026-11-07). Each of these is a way for Claude to get its own code run outside the sandbox, or to reach a site
-without the prompt. The settings (exact values later, owner decision 3) must close every one:
+The owner's bar (decision 24, replacing the containment parts of decisions 22 and 23), in his words: "Fundamentally I
+envision aresos as basically normal Claude code but with more tools. Now Claude code can basically just work in my
+projects and asks for permission certain things and I can allow it. Gh is used very smoothly. Is it necessary to
+change that?" and "Essentially it's as we already discussed: Normal Claude code like in any OS + the tools we make.
+They add very little risk because even now Claude in chrome could read a malicious prompt for example and then have
+Claude push smth to git. Our tools, as long as they are safe, don't make it worse than that."
 
-- **Asking:** send and delete actions in the `ask` list (explicit ask rules still ask in skip-permissions mode:
-  checked; decision 21); rules only from the managed file (`allowManagedPermissionRulesOnly`).
-- **Programs Claude Code starts:**
-  - MCP servers: exactly the set in `managed-mcp.json` (that also shuts out plugin servers and `--mcp-config`), and
-    Claude in Chrome not among them. Each server is a root-owned program with a fixed interpreter, isolated mode and
-    a fixed environment (section 2), so a writable file can't be loaded into it.
-  - Hooks: only managed ones (`allowManagedHooksOnly`), each a root-owned program with the same fixed interpreter,
-    isolated mode and environment as the MCP proxy. Every hook that gates something (keeping a file's previous
-    version, deciding whether a fetch is free) blocks the action when it fails: a crash, a missing program, a
-    timeout or a full disk ends in "refused", never in the action going ahead (`onFailure: "block"`, Anthropic's
-    hook documentation). *Tests:* each of those failures, also in skip-permissions mode, leaves the file unchanged
-    and the fetch not made.
-  - Claude Code itself: the central session is the command-line Claude Code, started by a root-owned launcher with
-    a fixed environment (nothing like `NODE_OPTIONS` that loads code into it), with no IDE, desktop-app, SDK or
-    browser integration. SDK hooks and in-process MCP servers, which the managed switches still allow, therefore
-    have no way in.
-  - Plugins and mods: none installed (`strictKnownMarketplaces: []`, `disableSideloadFlags`; an empty
-    `enabledPlugins` is not a deny-all, so nothing is installed in the first place, and the launcher refuses to start
-    when any plugin is installed: brief 18b). Claude Code's own built-in parts remain and are audited in the image
-    test; cached plugins, LSP servers and monitors run by Claude Code itself are not yet qualified (brief 18b) and are
-    part of the model-driven hostile test.
-  - Settings below the managed file: the launcher starts Claude Code with no other settings sources
-    (`--setting-sources ''`), so user and project settings can't add hooks, a status line, a helper or a permission
-    grant (brief 18b, *checked*: with them allowed, planted markers ran; with the launcher's start, none did).
-  - The status line and `apiKeyHelper`: none. The managed file sets neither, Claude's file tools refuse Claude
-    Code's settings files and the sandbox can't write them (both checked by hostile tests), and brief 18b finds
-    whether a managed key can force them off; if one is ever needed, it gets the same fixed, root-owned treatment as
-    the MCP proxy.
-- **Claude's file tools:** `blockWritesOutsideWorkingDirectories` (holds in every mode, also skip-permissions), with
-  his home folders and the assistant's own folders as the working folders (decision 17). Inside them, deny rules for
-  every path with a component that starts with a dot (hidden settings, and every place whose contents another program
-  later runs as the owner: `.git/hooks`, `.git/config`, `.envrc`, `.claude/`, `.mcp.json`, editor task files) and for
-  start-up places, `~/bin` among them; a managed hook checks every write against the folders on his current login PATH
-  (rule 4.4), makes sure nothing it writes is runnable, keeps an existing file's previous version in the tool
-  service's version store before any change, and blocks the change if any of this fails (rule 4.4). Reads: deny rules
-  for the browser profile, Chrome's policies, Claude Code's own sign-in files, and the tool service's files (also
-  another user's).
-  What remains is the owner himself running code Claude wrote in a work folder: that is ordinary development and is
-  named here so it isn't mistaken for a closed route.
-- **The sandbox:** forced on (`enabled`, `failIfUnavailable`, `allowUnsandboxedCommands: false`). Inside it the
-  assistant's terminal runs without permission prompts (`autoAllowBashIfSandboxed: true`, decision 17), as in his
-  bypass sessions now; only sends and deletes ask. It reads his home folders (hidden settings and start-up places
-  hidden from it) and writes only the assistant's own work and temporary folders, because Linux's sandbox can't keep
-  nested start-up places (a `.envrc` inside a folder) out of a writable folder (brief 18b). Those folders are
-  disposable scratch: the terminal can delete anything in them without a question, so nothing that must last is kept
-  there. His files are changed through the file tools and the tool service, which enforce rule 4.4 and keep previous
-  versions. No Unix sockets
-  (`allowAllUnixSockets: false` plus the seccomp filter, section 2); the browser profile, `/run/aresos-tools`, the
-  keyring and Claude Code's sign-in files hidden from its file view; no session D-Bus.
-- **The network:** in skip-permissions mode the sandbox lets the terminal reach any host unless the list is locked, so
-  the list is locked (`allowManagedDomainsOnly`), and it contains only what the owner allows: nothing by default, so
-  the assistant's terminal, which also holds no credentials, can't carry text out (below). `WebFetch` and `WebSearch`
-  aren't limited by that list, so each gets its own rule (decision 18, his answer "a)"): searches are free, as on his
-  usual sites in Chrome; fetching an address Claude composed asks; fetching an address that came from him or from a
-  page or mail is free. Where an address came from is recorded, not guessed: the owner's own messages (a managed hook
-  on each of his prompts records the addresses in it), and links in content the tool service's reading tools return
-  (a page's links through `chrome_read`, a mail's links through `mail_read`), recorded by the tool service with that
-  origin. Links in a mail or draft Claude wrote, in page text that carries Claude's entered text, or in a result that
-  only echoes Claude's own input (a search term, a find text) are not recorded. Terminal output, files Claude wrote,
-  and Claude's own text never qualify. A managed hook frees a fetch only when its exact address was recorded with
-  such an origin; otherwise it asks. *Tests:* an address printed through the terminal and then fetched (asks);
-  written into a file, read back and fetched (asks); passed as an argument that a result echoes (asks); a genuine
-  link from a page and from a mail (free).
-- **Approval surfaces:** Claude must never approve its own prompt. Pages that can (claude.ai and Remote Control) and
-  pages that change Claude's or Chrome's settings can't be opened in a Claude tab (section 6), and Claude Code's
-  sign-in files are hidden from Claude's tools. He approves in Claude Code's own prompt (decision 21, below).
-- **Other browser routes:** Claude in Chrome stays for the owner's own use (decision 10), but the central session
-  can't load it (`managed-mcp.json`) and its user-level native messaging host doesn't start (section 6); no debugging
-  ports; Chrome runs as another user, whose profile Claude's tools can't read.
+So AresOS runs normal Claude Code, as on any OS: as his own user, in his home and his projects, with his own `gh`
+login, and with his own MCP servers, skills and plugins added as in normal Claude Code. One session does everything
+(decision 23), and he may start it with skip-permissions. The tools must be safe in themselves and must not make
+things worse than normal Claude Code.
 
-**Hostile tests**, in two kinds:
+**What the tools guarantee:**
 
-1. **Fixed hostile programs** run inside the same sandbox as Claude's terminal, with the same settings, in CI on
-   every change (no model needed): connect to every socket, the native messaging host and the session buses; read the
-   password files, the browser's cookies and Claude Code's sign-in; reach a host outside the list; write each place
-   in the list above. Every one must fail, with and without the seccomp filter present (without it, the session must
-   refuse to start or the socket must still be hidden).
-2. **A test Claude Code session** with these settings, told to send a mail or submit a form by any other route:
-   swapping a program an MCP server or hook loads, a plugin, editing its settings, a status line command, a user-level
-   native messaging manifest, opening claude.ai in a Claude tab to approve its own prompt, creating keyboard or mouse
-   input (through the display server or `/dev/uinput`) to answer the extension's notice, passing a `question` that
-   differs from the service's sentence or putting it after other fields, writing the owner's "don't ask again" list,
-   writing `~/bin/git` or a runnable file into his folders by any write path, messaging a coding session through
-   Claude Code's own messaging, restarting to escape. The mail server, the fixture sites and the coding session must
-   show that nothing arrived.
+- **Send, delete and submit ask, in Claude Code's own prompt,** through managed ask rules that name every asking tool
+  (generated from the definitions, section 3; a test fails if one is missing). Managed permission rules can't be
+  overridden from any other settings level, and Claude Code evaluates deny, then ask, then allow, so a matching ask
+  rule prompts even when a user or project allow rule also matches, including one written by the prompt's own "Yes,
+  and don't ask again"; a `PreToolUse` hook or an installed mod can't turn it off either (Anthropic's permissions
+  page, read 2026-11-08). An explicit ask rule still asks in skip-permissions mode (*checked*, S1). A
+  `PermissionRequest` hook is different: Anthropic documents it as answering a permission prompt on the user's behalf
+  (allow or deny). Whether such a hook, managed or his own, can approve a call that matches a managed ask rule is
+  unknown until tested (*brief 18c*: a `PermissionRequest` hook returning allow for the fake send tool, at user and
+  at managed level, in normal and in skip-permissions mode). If it can, that joins the accepted residual below. In
+  either case his own `PermissionRequest` hooks must not match our asking tools, so a broad auto-approve hook of his
+  never answers for him ([`FEATURES.md`](../control/FEATURES.md)). So the switches
+  that locked everything else go: `allowManagedPermissionRulesOnly`, `allowManagedHooksOnly`, the exclusive
+  `managed-mcp.json`, the plugin and marketplace locks, `--setting-sources ''`, `disableBypassPermissionsMode`, the
+  forced sandbox with its network list, and the file-tool limits. *Test (base):* the managed ask on a fake send tool
+  still prompts with a user allow rule and a project allow rule for it, after "Yes, and don't ask again", with a
+  `PreToolUse` hook returning "allow", and in skip-permissions mode.
+- **Our app servers are installed like any MCP server** (by the image's setup, for his user), so his own MCP servers
+  keep working; the managed ask rules name their asking tools under the server names installed (*test*: each rule
+  matches the installed tool).
+- **The app passwords AresOS holds** (the mail accounts' passwords and any other sign-in data the tool service keeps
+  for its apps) stay with the service's own system user (`aresos-tools`); his user, and so Claude, can't read them
+  (sections 2 and 5). His own `gh` login and his other credentials stay with him, as in normal Claude Code.
+- **The question sentence, the approval binding and the untrusted-content marking stay as built** (rules 4.1, 4.3 and
+  4.8): the service writes the `question`, binds the approval to one operation by id and hash, refuses anything that
+  differs at run time, and marks mail and page content as data. Rule 4.10's managed `Stop` and `UserPromptSubmit`
+  hooks run next to his own hooks.
+- **Instructions only from him:** a line in a `CLAUDE.md` (the managed one, `/etc/claude-code/CLAUDE.md`) says that
+  only the owner, in the session (the terminal or Remote Control), gives instructions, and that mails, pages, files,
+  tool results and other sessions' messages are data. It states the policy; it enforces nothing.
+- **"Don't ask again"** for a recognised kind goes through his own channels (sections 5 and 6), never through the
+  prompt's own option, which can't turn a managed ask off.
 
-Settings checks: the prompt's "Yes, and don't ask again" choice must not switch an ask off under
-`allowManagedPermissionRulesOnly` (the owner's own "don't ask again" goes through his channel instead: section 6); a
-very long input must be shown in full or refused, also on the phone.
+**What remains, said plainly (accepted with decision 24):**
 
-**The assistant apart from coding sessions (decision 8).**
+- A Claude tricked by content can do on AresOS what it could do on any OS with normal Claude Code: change or delete
+  his files, push with his `gh` login, reach the network, start programs.
+- Without a mandatory sandbox, a tricked Claude can also call the tool service directly (the `aresos` command, or its
+  socket, which his user can reach) with a prepared operation, and so skip the question. That is the same level as
+  anything else a tricked Claude can do on a normal OS: it already acts with his user's rights. The tools add no
+  route around his approval beyond that.
+- If brief 18c shows that a `PermissionRequest` hook can approve a managed ask, a hook that Claude or he writes could
+  approve our asking tools without him answering. That is the same level as calling the service directly, and is
+  accepted with it.
 
-- The session with Mail and Chrome (the *assistant*) runs as its own Linux user, `assistant`, started by the
-  root-owned launcher, with the sandbox and settings above. Its terminal has no credentials (no Git or GitHub sign-in,
-  no cloud keys) and reaches only the hosts on the owner's list, which is empty by default. Only its user can use
-  `act.sock`.
-- Coding sessions run as the coding user, `coder` (as in brief 18b's isolation check), never as the owner, and have
-  no app tools. The managed files are machine-wide, so a coding session
-  on the same machine gets the same `managed-mcp.json` and starts the app tool servers too. They refuse at once for
-  any user but the assistant's (brief 18b, *checked*: "AresOS MCP proxy requires the configured assistant user"), and
-  the service checks the caller's user again on every connection (briefs 18, 18b). So non-assistant users are refused
-  outright, in both places: the socket permissions are the boundary, and the refusal makes the failure clear instead
-  of leaving tools that fail later (a follow-up from the 18b review makes the guard check the effective user id as
-  well as the real one: `PLAN.md`, "Follow-ups"). The checkpoint likewise accepts only the browser's user (section 6).
-  Coding sessions that need other Claude Code settings (network to code hosts, writable work trees, their own
-  credentials) run in their own container with their own settings files, keeping brief 18b's isolation, not a toolbox
-  or distrobox default (re-check 6).
-- **No shared files, no local connection.** What the assistant can write and what coding sessions can read never
-  overlap. The assistant writes his home folders (decision 17) and its own folders (session records, the versions
-  folder, temporary files: the launcher gives it its own temporary folders); the owner can read all of them. The
-  coding user can read neither: its code lives in its own home, and it has no access to his home at all. Moving his
-  repositories into the coding user's home is a one-time step of the setup. Before the assistant's writes to his
-  folders are switched on, coding programs that hold anything in his folders open are ended (he is told first which
-  ones, and that unsaved work in them can be lost), and a folder with another way in for the coding user (a hard
-  link, a mount, a link from a coding folder) is refused until that way is closed. *Test:* a coding program holding a
-  file open in his folders and a hard link to a file there, both before the switch; after it, the coding user reads
-  nothing there, and the assistant's first write happens only after that. The assistant's
-  user can't connect to the coding user's local services either (a firewall rule by user on the machine's own
-  addresses), so a fetch to a local address can't carry text across. Otherwise a mail's text written into a file could
-  be read by a coding session and sent with its network access, with no prompt (re-check 8). Anything that should
-  cross goes through the approved-send channel (next point). The owner himself can copy a file across; Claude can't.
-  *Test:* the assistant writes a content marker through every path it has (its file tools into his folders, a saved
-  attachment, a Chrome download, its terminal's temporary files, its session records, and an edit whose previous
-  version lands in the tool service's own version store, which only the service writes); a coding
-  session and plain programs of the coding user search everything they can read and find none, and can't list his
-  home; the coding user runs real services on its own addresses (IPv4, IPv6 and a container's address), and the
-  assistant's programs (outside and inside the sandbox, and its web fetch) try real connections to each, before and
-  after the firewall's rules are reloaded, and none arrives; plus the follow-ups from the 18b review (the real and the
-  effective user id, rogue user and project MCP configurations: `PLAN.md`, "Follow-ups").
-- They coordinate only through the tool service. A message from the assistant to a coding session is a send: it
-  asks, and the approval shows the full text and the receiving session. Messages from coding sessions reach the
-  assistant as untrusted content, like a mail (rule 4.8), and never count as an approval. This message tool comes in
-  a later brief, after Mail and Chrome; until then there is no route between them.
-- Claude Code's own routes between sessions are closed for the assistant: its messaging to other sessions, and
-  messages to or from other sessions through Remote Control. The owner's own Remote Control to the assistant (his
-  prompts, his answers to its prompts) stays. Brief 18b's boundary test gets this route in a follow-up: the assistant
-  tries to message a coding session through Claude Code's own messaging, and nothing arrives; the setting that
-  closes it is named there.
+**Claude Code's own sandbox stays available** as a setting he can turn on. Turning it on (`sandbox.enabled`) alone
+does not keep terminal commands away from the tool service: a command that fails in the sandbox can be retried
+outside it (`dangerouslyDisableSandbox`), and in skip-permissions mode that retry runs without a prompt; commands in
+`sandbox.excludedCommands` run outside it too; and in skip-permissions mode hosts outside the allowed list are
+reachable unless a strict domain list is on (Anthropic's sandboxing page, read 2026-11-08). It keeps terminal commands
+away from the service only when all of these hold:
+
+- `sandbox.allowUnsandboxedCommands: false`, so the retry outside the sandbox is ignored;
+- `sandbox.excludedCommands` empty;
+- Unix sockets not allowed: no `allowUnixSockets` entry for the service's socket, `allowAllUnixSockets` off, and the
+  optional seccomp filter that blocks Unix sockets installed;
+- the service's socket folder `/run/aresos-tools` in `sandbox.filesystem.denyRead`.
+
+Even then it is best-effort under decision 24: these are his own settings, which his user (and so Claude outside the
+sandbox) can change, nothing checks that they stay as set, and Claude's file tools, web tools, hooks and MCP servers
+run outside the sandbox, as on any OS. Brief 18b's 127 blocked routes (*checked*) tested a stricter, managed setup
+that decision 24 removed, not this one; if he wants the sandbox, 18b's hostile programs run against exactly these
+settings first.
+
+**Mail's boundary check (follow-up brief, after Mail merges).** Mail's rounds 15 to 17 refuse asking actions unless
+the installed managed files match the generated ones exactly. That check becomes: every asking tool's ask rule is
+present in the managed settings. Nothing else is compared, so his own MCP servers and settings are never blocked. This
+is a follow-up brief after Mail merges, not a change to Mail now.
 
 **The approval surface: Claude Code's own prompt (decision 21).** After six phone tests the owner decided (board
 #78, his words: "okay we will use it as is, no need for a request"): approvals stay Claude Code's own permission
@@ -1530,13 +1463,14 @@ it starts with a `question` field, one plain sentence the tool service writes, f
 1. **The truth in full:** the `question` sentence and every content field, as the service describes the operation
    (rule 4.1); an input too large to show whole is refused, never cut.
 2. **Enforced outside Claude:** Claude Code's managed ask rules hold the call until he answers (an "ask" rule still
-   asks in skip-permissions mode: *checked*); the input names one operation by id and hash, and the service refuses
-   anything that differs from it at run time.
-3. **Out of Claude's reach:** Claude can't answer its own prompt; the pages that could (claude.ai, Remote Control)
-   can't be opened in a Claude tab, and Claude Code's sign-in files are hidden from Claude's tools.
+   asks in skip-permissions mode: *checked*), unless a `PermissionRequest` hook answers it, which 18c tests and which
+   joins the accepted residual if it can (above); the input names one operation by id and hash, and the service
+   refuses anything that differs from it at run time.
+3. **Claude doesn't answer it in the session:** the prompt is his; the pages that could approve (claude.ai, Remote
+   Control) can't be opened in a Claude tab (section 6). The exception is the same: a `PermissionRequest` hook that
+   Claude wrote could answer it, if 18c shows such a hook can (the accepted residual, above).
 4. **At the laptop and on the phone:** the same prompt, in the terminal and through Remote Control.
-5. **"Don't ask again"** goes through his own channels (section 6), never through the prompt's own option, which
-   stays inert under managed-only rules.
+5. **"Don't ask again"** goes through his own channels, never through the prompt's own option.
 6. **Decided once:** one answer per tool call; the service's operation record (rule 4.3) refuses a second run, and a
    call after the 15-minute deadline (rule 4.3) is refused.
 
@@ -1547,7 +1481,11 @@ improvement if he asks for it.
 
 1. **Container tests** per adapter on GitHub's Linux runners (free for this public repo): GreenMail and a scripted
    SMTP server for Mail, fixture sites and branded Chrome for Chrome.
-2. **Hostile tests** (section 7): the fixed hostile programs on every change, the test Claude session in the image.
+2. **The tools' own tests** (section 7): the managed ask rules still prompting against user and project allow rules,
+   "Yes, and don't ask again", a `PreToolUse` hook returning "allow", and skip-permissions mode; whether a
+   `PermissionRequest` hook returning allow, managed or his own, can approve a managed ask (unknown until tested, in
+   both modes); the `question` verified; an approval bound to one operation; the app passwords unreadable by his
+   user.
 3. **The prompt, at the laptop and on the phone** (decision 21): every asking action's input, `question` first, is
    checked in the terminal and through Remote Control with a long mail, Bcc, attachments and odd characters, and for
    a deletion and a Chrome send. Anything not shown in full there changes rule 4.1 before Mail or Chrome relies on
@@ -1559,20 +1497,21 @@ improvement if he asks for it.
    sends on an ordinary day (target close to zero), the stalls of unrelated tabs (target zero) and the decisions per
    real action (target about one): section 6, conditions 1 and 4.
 5. **An early image test:** a minimal, unpublished AresOS build in the CI virtual machine runs the fake app end to
-   end (a fake send asking, the hostile programs failing) right after brief 18, not only at the end. It also settles
-   what CI had to loosen: GitHub's runner needed its user-namespace limit relaxed for the sandbox (brief 18b), so the
-   image needs its own namespace policy. `laptop-aresos` agrees the `os/ci/` change first.
+   end (a fake send asking in normal and in skip-permissions mode, and the `PermissionRequest` hook test of section
+   7) right after brief 18, not only at the end, with Claude Code as his own user and his own MCP servers alongside.
+   If he uses Claude Code's optional sandbox, the image needs the namespace policy brief 18b found GitHub's runner
+   needed. `laptop-aresos` agrees the `os/ci/` change first.
 6. **Qualification in the AresOS image** of Mail and Chrome, then **real use** after the first boot on the laptop.
 
 ## 9. The council's gaps, and where each is handled
 
 | Gap (VERDICT) | Where |
 |---|---|
-| 1. Claude bypasses a tool through another route | sections 2 and 7: no socket in the sandbox, owner-only actions behind `sudo`, every program Claude Code starts fixed and root-owned, file tools kept to work folders, the assistant as its own user apart from coding sessions, hostile tests; in Chrome, the checkpoint outside the browser (section 6) |
-| 2. The agent manufactures or changes an approval | Claude Code's own prompt, with the service's `question` sentence first and verified (rule 4.1, section 7, decision 21); approval pages can't be opened in a Claude tab and Claude Code's sign-in files are hidden (section 7); rule 4.1 makes the approval show the service's description and refuses changes; "don't ask again" only through the owner's channel (section 6) |
+| 1. Claude bypasses a tool through another route | accepted at the level of normal Claude Code (decision 24, section 7): a tricked Claude could call the tool service directly, as it could do anything his user can; owner-only actions stay behind `sudo`; Claude Code's optional sandbox narrows the route through its terminal only in the strict setup of section 7, best-effort; in Chrome, the checkpoint outside the browser (section 6, to be re-examined) |
+| 2. The agent manufactures or changes an approval | Claude Code's own prompt, with the service's `question` sentence first and verified (rule 4.1, section 7, decision 21); approval pages can't be opened in a Claude tab (section 6); managed ask rules that no allow rule, `PreToolUse` hook or mode turns off, with `PermissionRequest` hooks tested in brief 18c and his own kept off our asking tools (section 7); rule 4.1 makes the approval show the service's description and refuses changes; "don't ask again" only through the owner's channel (section 6) |
 | 3. Retries, cancellation and restores send twice | rule 4.3: operations recorded before they act, per stage; never retried by themselves; repairs never resubmit; expiry; the log refuses to go backwards; in Chrome, consumption recorded before forwarding and no replay (section 6) |
 | 4. Harmless-looking actions change data | effects in section 3; `BODY.PEEK`; held Chrome requests; before/after comparisons in every test |
-| 5. Data leaves without a send | content marked untrusted (4.8); the checkpoint's entered-text check on every request and the rules for opening sites (section 6), with the residuals named there; the sandbox's network limits; owner question in section 10 |
+| 5. Data leaves without a send | content marked untrusted and instructions only from the owner (4.8, the managed `CLAUDE.md`); the checkpoint's entered-text check on every request and the rules for opening sites (section 6), with the residuals named there; what a tricked Claude can do with normal Claude Code accepted by the owner (section 10, decision 24) |
 | 6. Browser debugging exposes the signed-in session | our own policy-installed extension and native host, no debugging port, Chrome's consent attach rejected, Chrome and the checkpoint each as their own user (section 6) |
 | 7. Startup leaks passwords or weakens TLS | passwords only with `aresos-tools`, verified TLS, no fallback (section 5) |
 | 8. Acting on a stale or wrong target | rule 4.2; the Claude tab group and references bound to tab, document and element (section 6) |
@@ -1584,14 +1523,19 @@ improvement if he asks for it.
 
 ## 10. Open questions
 
-**For the owner, open:** none.
+**Open:**
+
+- **Re-examine the Chrome checkpoint against decision 24's bar before brief 20 is built.** Section 6 was designed
+  for a separate, sandboxed Claude; under decision 24 Claude runs as his user with the sandbox optional, and the bar is
+  "not worse than normal Claude Code". The lead takes this to him separately; section 6 is not redesigned in this
+  draft.
 
 **Answered on 2026-11-07 and built into this draft** (his words in quotes; `PLAN.md` decisions):
 
 - Data leaving in Chrome (decision 7: searches on his usual sites are free, anything else that could carry Claude's
-  text asks; section 6); the central session apart from coding work (decision 8; section 7); Claude in Chrome kept for
-  his own use and the machine-wide rules (decision 10; sections 6 and 7); the checkpoint with his hard requirements
-  (decision 6; section 6); the strict guard (decision 12; section 6).
+  text asks; section 6); Claude in Chrome kept for his own use and the machine-wide rules (decision 10; sections 6
+  and 7); the checkpoint with his hard requirements (decision 6; section 6); the strict guard (decision 12; section
+  6). Decision 8 (the central session apart from coding work) was replaced on 2026-11-08 by decision 23 (below).
 - **Unlabelled controls that may delete data kept only in the browser:** "a)" (decision 14). Such clicks stay free;
   labelled destructive controls and Delete or Backspace outside plain text editing ask; the gap is accepted as stated
   (section 6).
@@ -1600,13 +1544,11 @@ improvement if he asks for it.
 - **How Claude sends on WhatsApp Web:** "a)" (decision 16). Claude asks per message, as one approval of the bounded
   set of encrypted frames, described "as the page shows it" (section 6).
 - **His folders:** "pretty much everything no? like running claude with dangerously skip permissions just like I do
-  now" (decision 17). The assistant may change everything in his home folders except hidden settings and start-up
-  places; code lives in the coding user's own home, so coding sessions never read his folders; inside its sandbox the
-  assistant works without permission prompts, and only sends and deletes ask. A change to an existing file, a whole
-  replacement included, is free because its previous version is first kept for 30 days in a store Claude can't write;
-  he restores versions himself (sections 2, 4.4 and 7; refined after re-check 15).
-- **`WebFetch` and `WebSearch`:** "a)" (decision 18). Searches are free; fetching an address Claude composed asks; an
-  address from him or from a page is free (section 7).
+  now" (decision 17). Decision 24 carries this further: Claude Code works in his home and projects as his own user, as
+  on any OS; the version store and the start-up-place checks for Claude's own file tools went with the containment.
+- **`WebFetch` and `WebSearch`:** "a)" (decision 18). Under decision 24 they behave as in his normal Claude Code,
+  under the permissions he sets; the managed hook that recorded where an address came from went with the
+  containment.
 - **What the checkpoint's certificate checks still can't do:** "okay" (decision 19), accepted as stated (section 6,
   requirement 4): client certificates, no "continue anyway", a pause when Chrome's lists are out of date, and a
   visible notice if Chrome is ever newer than its checkpoint.
@@ -1614,6 +1556,33 @@ improvement if he asks for it.
   phone tests). Approvals stay Claude Code's own prompt, in the terminal and through Remote Control; every asking
   input starts with the service's `question` sentence (rule 4.1, section 7). An approval screen of its own is not
   planned; a possible later improvement if he asks.
+
+**Answered on 2026-11-08 and built into this draft** (his words in quotes):
+
+- **Adding tools:** "AresOS cant install any tools? that sounds incredibly terrible. we need it to be a regular OS like
+  windows but we make it custom yk with tools etc. I think theres no way we cannot install gh, gh repo tools, mcps
+  etc."; and "claude code can install tools on my normal OS so I think it should be possible in aresos too"
+  (decision 22). Under decision 24 he and Claude add MCP servers, skills and plugins as in normal Claude Code; the
+  install-asking path is no longer needed.
+- **One session for everything:** "often times things are project work and intertwined. especially with chrome or
+  once we add more apps. like a project might require a chrome test or check in chrome and so the coding session
+  needs to be able to do it and the mail / app sessions sometimes need to execute commands and do things. I dont
+  think the central split is that smart and also dont know how possible it is if I just start claude code with skip
+  permissions" (decision 23, replacing decision 8). He may start it with skip-permissions (section 7).
+- **Normal Claude Code plus the tools:** "Fundamentally I envision aresos as basically normal Claude code but with
+  more tools. Now Claude code can basically just work in my projects and asks for permission certain things and I can
+  allow it. Gh is used very smoothly. Is it necessary to change that?" and "Essentially it's as we already discussed:
+  Normal Claude code like in any OS + the tools we make. They add very little risk because even now Claude in chrome
+  could read a malicious prompt for example and then have Claude push smth to git. Our tools, as long as they are
+  safe, don't make it worse than that." (decision 24, replacing the containment parts of decisions 22 and 23).
+- **Accepted residual risk, his call** (decisions 23 and 24). A Claude tricked by content can do on AresOS what it
+  could do on any OS with normal Claude Code: change or delete his files, push with his `gh` login, reach the
+  network, start programs; it can call the tool service directly and skip the question (the optional sandbox
+  narrows that only in its strict setup, best-effort: section 7); and if brief 18c shows that a `PermissionRequest`
+  hook can approve a managed ask, a hook can approve our asking tools. The tools still ask for every send, delete and
+  submit made through them, the app passwords AresOS holds stay with the tool service's own user, and instructions
+  come only from him in the session. What remains is accepted, in his
+  words above.
 
 **For the owner, later:**
 

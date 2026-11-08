@@ -1,6 +1,6 @@
 # Mail and Chrome: every feature, and where it stands
 
-Updated 2026-11-07. The owner's picture is "every app with all of its features" as clean tools
+Updated 2026-11-08. The owner's picture is "every app with all of its features" as clean tools
 ([`OWNER-SCOPE.md`](../../reviews/councils/2026-11-07-control-layer/OWNER-SCOPE.md)). This list makes that concrete
 for the first two apps, so nothing is left out without saying so. Each feature has a tool and a test, or a plain
 reason why it waits. The owner adds to it and decides what can wait; nothing moves to *later* or *never* without
@@ -52,15 +52,36 @@ Effects: read, change, send (asks), delete (asks). Tools are in
 
 ## Files
 
+AresOS runs normal Claude Code, as on any OS, plus our tools (decision 24). Claude's own file tools and terminal work
+as his own user under the permissions he sets; our tools only add safe saving and exact attaching.
+
 | Feature | Tool | Effect | State |
 |---|---|---|---|
-| Read and change everything in his home folders, except hidden settings and start-up places | Claude's file tools and the tool service's file actions, with rule 4.4's limits | read, change | first (decision 17) |
-| Save new files, create folders, rename and move within his folders (never onto an existing name) | the same | change | first, without asking |
-| Change an existing file (an edit, a whole replacement, clearing it) | the same; its previous version kept first for 30 days in the tool service's version store, or the change is refused | change | first, without asking |
-| See and restore previous versions | `sudo aresos admin files versions`, `… restore <id>` (restores beside the current file) | owner | owner |
-| Delete a file or folder (to the Trash or for good) | the tool service's file action | delete | first, asking |
-| Its terminal: run commands without prompts | Claude Code's sandbox (`autoAllowBashIfSandboxed: true`) | | first: reads his folders, writes only its own scratch folders (disposable); his files change through the file tools |
-| Coding sessions reading what the assistant wrote | | | never: code lives in the coding user's own home, which has no access to his |
+| Read, change, create, rename, move and delete files in his home and projects | Claude Code's own file tools and terminal | as in normal Claude Code | first (decisions 17 and 24): as his own user, as on any OS |
+| Save a mail attachment or a download | `mail_attachment_save`, `chrome_downloads` (rule 4.4) | change | first: into the folder named (`~/Downloads` by default) under a safe name, never over an existing file, never into a hidden folder or a start-up place, without execute bits |
+| Attach or upload a local file | `mail_compose`, `chrome_upload` (rule 4.4) | change | first: the question shows the real path and the hash, and exactly those bytes are sent |
+| Run terminal commands | Claude Code's terminal | as in normal Claude Code | first, under his permissions; Claude Code's sandbox is an option he can turn on (`sandbox.enabled`, then `autoAllowBashIfSandboxed: true`, decision 17); it keeps commands away from the tool service only with `allowUnsandboxedCommands: false`, no excluded commands, Unix sockets not allowed and the service's socket folder denied for reads, and even then best-effort (CONTROL.md section 7) |
+| Start the session with skip-permissions | `claude --dangerously-skip-permissions` | | first (decisions 23 and 24): sends, deletes and submits through our tools still ask (managed ask rules) |
+
+## Coding and project work (decisions 23 and 24)
+
+| Feature | Tool | Effect | State |
+|---|---|---|---|
+| Work on code in his project folders: edit, build, test, git | Claude Code's file tools and terminal | as in normal Claude Code | first, in the same session as mail and Chrome |
+| Install packages and command-line tools | the terminal | as in normal Claude Code | first: his own account installs software normally |
+| Pull, push, branches, pull requests, publishing | git and `gh` with his own logins | as in normal Claude Code | first: what asks is set by his own permissions, as on his other machines |
+| Work on project folders himself with his own git, editor or file manager | | owner | as on any OS |
+| Test a project against its own local server in a browser | a clean throwaway browser started from the terminal (for example Playwright's Chromium) | | first: none of his sign-ins, not his Chrome |
+| Check a project on a real site in his Chrome | the Chrome tools | read; sends ask | first, like any site |
+
+## Adding tools (decision 24)
+
+| Feature | Tool | Effect | State |
+|---|---|---|---|
+| Add an MCP server, a claude.ai connector, a skill or a plugin; remove one | as in normal Claude Code | his choice | first: as on his other machines; decision 22's install-asking path is dropped |
+| Use an added tool | its own tools | as in normal Claude Code | first, under his permissions; our managed ask rules cover our own asking tools |
+| His own `PermissionRequest` hooks (hooks that answer permission prompts for him, for example a broad auto-approve) | his settings | owner | they must not match our asking tools (the send, delete and submit tools of Mail, Chrome and later apps), so such a hook never answers for him; whether one could approve a managed ask at all is tested in brief 18c |
+| Our app servers (Mail, Chrome, later apps) | installed for his user by the image's setup, like any MCP server | | first: their send, delete and submit tools always ask |
 
 ## Chrome
 
@@ -90,7 +111,7 @@ Effects: read, change, send (asks), delete (asks). Tools are in
 | Drop what a page wanted to send | `chrome_drop` | change | first |
 | End a site's guard (it ends by itself only where a site adapter shows nothing of Claude's is left; the owner's own sends there are checked until then) | `chrome_end_guard`, or one click on the extension's notice when Claude is done there | send (asks) | first |
 | Switch the checkpoint to pass-through after a fault (Claude's Chrome tools off until it's back) | `chrome_checkpoint` (`sudo aresos admin chrome checkpoint …`) | owner | owner: only when no guard holds leftovers, or after he has seen them |
-| Calls in Chrome (voice, video, screen sharing to a peer) | `chrome_end_call` (asks) | owner | owner: work only while no guard is on and Claude isn't acting; Claude acts during a call only after his answer to `chrome_end_call`, which ends every call in Chrome |
+| Calls in Chrome (voice, video, screen sharing to a peer) | `chrome_end_call` (asks) | owner | owner: work only while no guard is on and Claude isn't acting; Claude acts during a call only after his answer to `chrome_end_call`, which ends every call in Chrome (unless a `PermissionRequest` hook answers it: unknown until 18c, the accepted residual if it can) |
 | Sites that need WebRTC data channels; sites that need WebTransport | | | WebRTC: refused while a guard is on, works otherwise; WebTransport: doesn't work through the checkpoint at all (Chrome refuses it with a proxy) |
 | Popups and new tabs a page opens | joins the Claude group | | first |
 | Sign in to a site | | owner | owner: Claude stops and asks him to sign in; passwords never pass through Claude |
