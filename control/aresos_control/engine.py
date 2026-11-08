@@ -1,4 +1,5 @@
 import base64
+import copy
 import hashlib
 import imaplib
 import sqlite3
@@ -261,6 +262,7 @@ class Engine:
                         if (repair['state'] != 'unknown' or ended is None
                                 or time.time() < ended + Mail.SENT_QUIET_PERIOD):
                             return response(repair)
+                    recorded_old, recorded_repair = copy.deepcopy(old), copy.deepcopy(repair)
                     changes = {}
                     if result in {'done', 'not_needed'}:
                         old['stages'][args['stage']] = result
@@ -279,11 +281,10 @@ class Engine:
                         if storage is None:
                             raise
                         observation['settlement_storage_error'] = {'code': storage.code, 'message': str(storage)}
-                        repair = self.operation(repair['id'], app)
-                        warning = old['stages'].get('sent_copy_warning')
-                        old = self.operation(old['id'], app)
-                        if warning:
-                            old['stages']['sent_copy_warning'] = warning
+                        # SQLite may have applied the prepared event before a
+                        # commit-marker failure. Report the prior unresolved
+                        # state until restart completes that transaction.
+                        old, repair = recorded_old, recorded_repair
                     return response(repair)
             if args['stage'] == 'sent_copy':
                 # An existing duplicate is useful evidence even when there is

@@ -1,5 +1,6 @@
 """Review 14: observed Sent duplicates survive storage failures."""
 import errno
+import json
 import sqlite3
 import unittest
 from unittest.mock import patch
@@ -100,3 +101,20 @@ class Duplicates22(unittest.TestCase):
         self.assertEqual(evidence['settlement_storage_error']['code'], 'storage_limit')
         self.assertEqual(result['data']['operation']['state'], 'unknown')
         self.assertEqual(result['data']['original']['stages']['sent_copy'], 'failed')
+
+    def test_review22_short_settlement_commit_does_not_report_done_before_replay(self):
+        old, args, repair, raw, ended = self.pending_append()
+        self.imap.boxes['Sent'].update({1: raw, 2: raw})
+        self.data('operation_status', {'operation_id': old['id']})
+        write = self.engine.store.journal.write
+        def short_commit(data):
+            return write(data[:13]) if 'commit' in json.loads(data) else write(data)
+        with patch.object(self.engine.store.journal, 'write', side_effect=short_commit):
+            result = self.call('operation_repair', args)
+        self.assertTrue(result['ok'], result)
+        self.assertEqual(result['data']['operation']['state'], 'unknown')
+        self.assertEqual(len(result['data']['evidence']['sent']), 2)
+        self.assertEqual(result['data']['evidence']['settlement_storage_error']['code'], 'storage_limit')
+        self.assertTrue(self.engine.store.write_failed)
+        self.restart()
+        self.assertEqual(self.data('operation_status', {'operation_id': repair['id']})['operation']['state'], 'done')
