@@ -20,8 +20,9 @@ Review records: [REVIEW.md](REVIEW.md), [REVIEW-2.md](REVIEW-2.md),
 [SECURITY-REVIEW-13.md](SECURITY-REVIEW-13.md),
 [SECURITY-REVIEW-14.md](SECURITY-REVIEW-14.md),
 [SECURITY-REVIEW-15.md](SECURITY-REVIEW-15.md),
-[SECURITY-REVIEW-16.md](SECURITY-REVIEW-16.md), and
-[SECURITY-REVIEW-17.md](SECURITY-REVIEW-17.md).
+[SECURITY-REVIEW-16.md](SECURITY-REVIEW-16.md),
+[SECURITY-REVIEW-17.md](SECURITY-REVIEW-17.md), and
+[SECURITY-REVIEW-18.md](SECURITY-REVIEW-18.md).
 
 ## For the owner: decisions before merge
 
@@ -56,6 +57,216 @@ The owner answered: “Agree on 8, names etc are enough. Agree on everything els
 - Complete onboarding with your aliases, authentication, TLS trust, special folders, delayed Sent behavior and folder-deletion guard; the tests use synthetic accounts only.
 - Check complete approvals on both terminal and phone, then try the seven everyday Claude mail tasks; automated protocol tests do not establish how usable those flows feel.
 - Send a forwarded `.eml` to recipients using Apple Mail, Outlook, Thunderbird, Gmail on the web and iOS Mail, and check how each opens or saves the exact attachment; the round-5 documentation does not establish its presentation.
+
+## Review fixes, round 26
+
+**Done:** closes the classes in [SECURITY-REVIEW-18.md](SECURITY-REVIEW-18.md)
+against `d8a7f21b`, with the round-25 refined disk bar retained in that section. The lead's
+local commit `7b2c4b61` accompanies the first push. Work remains on `pkg/19-mail`
+and draft PR #9; no merge, rebase, force push or push to main.
+
+**Class A central point:** `results.bound_result` measures the complete serialized
+response after assembly. Small successful payloads (including private download handshakes and tool catalogues) stay inline while a giant warning envelope is paged. Engine responses, Proxy results, socket presentation,
+CLI presentation and MCP results use it. It retains error code/message and the
+owner notice envelope; excess detail becomes a counted, volatile JSON snapshot
+read with `control_observations`. A warning envelope larger than a page itself
+moves intact into that snapshot, with its warning count outside. Reading those
+pages preserves the snapshot identity, including when the live pending envelope
+is still huge. Proxy-only details without a Store are shortened with explicit
+counts; service-generated owner warnings have already passed the Store bound.
+Normal action responses use 48 KiB; private chunks/catalogues have a 1.5 MiB
+presentation guard inside the real 6 MiB frame cap. MCP's text and structured
+copies fit that cap. Approvals still refuse before reservation when too large.
+
+Table A — inventory of result/error sources containing request or app data:
+
+| Place / instances | How closed | Tests |
+| --- | --- | --- |
+| `engine.py`: every dispatch result; prepare/submit/cancel/repair/status; public approvals, reasons and stages; pending summaries; log summaries/untrusted audit content; restore IDs and archive metadata | Shared final bound, independently of success/error. The existing pre-reservation composition/approval guards remain. `control_observations` reads bypass the earlier generic size refusal so complete warning pages remain readable. | `Results26.test_review26_every_definition_maximal_request_and_oversize_mail`; `Responses25.test_review25_final_size_check_pages_all_observations_and_keeps_every_warning`; all existing operation/approval tests |
+| `mail/adapter.py`: accounts/aliases/settings/roles; folders/counts; search, thread and contacts; read headers/body/source/parts/attachments; composition/draft and new references; flags, create/rename; status/evidence/duplicate counts | Every action goes through the same bound. Existing page and composition guards still run. Input references cap Message-ID at 998 characters; output/legacy references remain lossless and pageable. | Every-definition test; existing Reading/Composing/Changes and filing paging tests |
+| `mail/adapter.py:check_items`, `mail/codec.py:parse`: rejected references and parser context in errors | Bound details before inserting into diagnostics; the common `Refused` constructor also caps every diagnostic at 2,048 characters with an omitted-character count. | `Results26.test_review26_ten_malformed_messages_oversize_ids_refuse_with_warning` (ten real malformed fixtures plus independent builder check) |
+| `mail/filing.py`: move/copy/rename reasons, folders, locations/fragments, legacy notices and audit displays | Compact normal notices; exact location pages; final general bound also covers legacy oversized warning text. | Existing `FilingNotices11` tests; `Results26.test_review26_oversize_warning_envelope_pages_without_replacing_snapshot` |
+| `results.py`: observed stage values, per-recipient outcomes, Sent/COPYUID references, storage errors and cleanup notes | Complete response bound, including responses without observations. Snapshot fragments preserve exact oversized facts; warning envelopes are not silently discarded. | Every-definition synthetic success/error replies; warning-envelope reconstruction test; existing 7 MB observation paging test |
+| `testapp.py`, `exports.py`, `files.py`, `blobs.py`: fixture sender/text/targets/evidence, file paths/names/hashes, upload/download/save results and refusals | Engine/Proxy bounds and final serialization guard; private chunks remain intact below their transport allowance. | Every-definition test; base file/export tests; `Results26.test_review26_final_serializer_bounds_proxy_cli_socket_and_mcp` |
+| `common.py:validate`, `boundary.py`, MIME/role/guard/transport errors, onboarding results/errors | Source diagnostic cap covers paths, policy differences, header/reference context and field names. Protocol/server diagnostics retain their existing sanitization. Boundary checks reread current files. | Existing strict JSON, boundary, ingress, MIME and onboarding tests; maximal schema requests |
+| `daemon.py`: receive/envelope exceptions before Engine dispatch | Authorized peers receive a freshly bounded pending-warning envelope; unauthorized peers receive no app information. | `Results26.test_review26_daemon_ingress_refusal_keeps_owner_notices_only_for_authorized_peer`; `test_review26_daemon_error_survives_pending_failure_and_keeps_last_warning` |
+| `proxy.py`, `protocol.py:UnknownRequest`, `cli.py`: schema/file errors, lost-reply references and final caller-side save facts | Proxy decorator and serialization use the same bound. Proxy refusals retain service pending notices/pages even when the pending read itself is oversized. | `Results26.test_review26_private_download_and_catalogue_keep_small_payload_with_huge_warning`; final-serializer test; existing exact ingress, unknown-request and caller-export tests |
+| `proxy.py:StrictMCPInput` / SDK result construction | Refusal IDs cap at the MCP schema's 512 characters; strict-input errors use the common final serializer. Tool results bind both text and structured content after final bounding. | Existing MCP ingress tests; final-serializer test |
+| `hooks.py`: pending summaries and warning text in Stop/prompt context | Common final serializer; notices alone keep Stop feedback active; error fallback retains the service's pending notices and observation cursor. | `Results26.test_review26_hook_reports_owner_warning_without_pending_operations`; existing hook tests |
+
+Protocol limits: the brief's RFC 5322 physical-line limit is 998 characters;
+Mail input `message_id` therefore caps at 998, including nested reference fields.
+Empty Message-IDs remain supported. Existing 64-character account IDs,
+512-character folder/address fields, 64-character MIME part IDs, 80-character
+operation IDs, 512-character cursors, 4,096-character paths/URLs/questions and
+bounded arrays remain. Authored text and unfolded subjects retain their existing
+200,000-character cap; arbitrarily folded header bodies are not assumed to fit
+one physical line. Exact opaque approval descriptions must still match the
+service's full <=16 KiB approval; their open schema grants no new authority.
+The transport independently refuses frames above 6 MiB. Each definition is
+exercised with maximal schema fields and hostile oversized mail fixtures, plus
+oversized generic success/error detail and a pending owner warning through the
+real response sender/receiver.
+
+**Class B central point:** stored refusal text is diagnostic, never admission
+authority. `ensure_writable` retains a failure only if a journal transaction may
+have begun; every other admission uses live state again. `require_index` is the
+single startup/retry path for the disposable index. Failure while reconstructing
+that index restores the live journal head before allowing other recovery calls.
+
+Table B — inventory of retained failure/refusal state:
+
+| Place / state | How rechecked / real cause | Tests |
+| --- | --- | --- |
+| `Store.index_refusal`, `index is None` | `require_index` measures free space and reconstructs again on the next write; successful reconstruction clears the diagnostic. | `Storage26.test_review26_startup_index_refusal_rechecks_on_next_write`; `test_review26_failed_index_retry_preserves_live_journal_head` |
+| `Store.storage_cause`, `Observations.error` | Nontransaction causes clear at the next writable check; each Engine request starts new observations. A current request still reports its first failure. | `Storage26.test_review26_admission_and_retention_refusals_retry_without_restart`; `Admission25.test_review25_background_blob_expiry_admission_recovers_without_restart`; live admission sweep |
+| `Store.write_failed` | Deliberate exception: actual fence/prepare/apply/commit may have started. Restart replays verified evidence or keeps owner restore required. No admission alone sets this latch. | Existing short-write, crash, persistent-failure and storage-latch tests; raw sweep |
+| `SpaceLedger.holds`, free-space/safety-floor/history admission | Live disk usage and current holds/history are read each time. Holds are rights, reconstructed from durable operations/exports, not cached refusals; rejected admission adds none. | Live admission sweep; existing physical-budget/cancel/restore tests |
+| Retention count/byte/history quotas, blobs' file/count/byte checks and `_staged` scope | Current rows/inodes are measured on every admission; staging resets on context exit. No refusal flag. Recovery after count/space restoration is tested on the same Store. | `Storage26.test_review26_admission_and_retention_refusals_retry_without_restart`; live sweep |
+| Caller `FilePolicy`, export transfer/rollback, password/archive publication | Each call checks current directories, inode identities, disk budget, transfer state and policy. Incomplete exports retain their own recovery right. No disk-failure cache. | Caller/export tests; live/raw sweep export, password and archive flows |
+| Startup initialization/retention migration and adapter/blob/password directory checks | Construction failures close resources and are retried by a new construction. Deferred optional metadata does not deny later admission. An existing Store can retry its optional index without reconstruction/restart. | Startup index test; `Recovery26.test_review26_untracked_started_intent_warns_when_metadata_migration_cannot_fit`; restart-index/torn-tail sweep; legacy audit streaming test |
+| `Boundary.reason` and `_last_pending` | Boundary requires a new policy read; pending tries the live read first. A failure snapshot is marked unavailable and is replaced by a successful read, never used to authorize or reject writes. | Existing boundary changes/recovery and `Pending25` tests |
+| `locked`, restore generation/evidence, account readiness/onboarding, repair quiet period, stale references/cursors, failed/unknown operations and exports | These represent unresolved evidence, owner qualification or identity/time, rather than remembered disk refusal. Restore, explicit owner setup, fresh status/evidence or matching current references recheck that cause. Healthy storage alone cannot authorize replay or enable interrupted onboarding. | All existing restore/replay/repair/role/approval tests; recovery notice inventory tests |
+| Deferred notice queue and observation snapshot | The next request/write retries persistence; notices are visible from durable intent sources while waiting. Snapshot expiry refuses only the stale cursor; it never blocks a new write. | `Recovery26.test_review26_recovery_notice_write_defers_then_becomes_durable`; warning paging tests |
+
+**Class C central point:** `recovery.unfinished` inventories durable intents and
+`recovery_notices` derives their owner warnings. Recovery filters candidate keys/timestamps in SQLite before decoding large working values. Missing retention timestamps count as old, and the startup horizon includes the latest timestamp on disk so clock correction cannot hide an existing intent. Startup captures warnings before
+prepared replay can close an intent, and again after recovery. Persisted notices,
+deferred notices and remaining derived notices share one bounded notice pager,
+used by both `control_pending` and the app. A failed notice write cannot erase
+its durable source. The next successful ordinary write admits a batch of up to
+three notices in the same transaction, subject to the existing notice capacity;
+other source-derived notices remain pageable without an unbounded RAM queue.
+Acknowledgements are durable. Acknowledging a recovered free change removes its attempt marker; an acknowledged started filing record becomes partial so the existing resolved-record expiry can release its quota. Approved operations still retain their pending evidence. Recovery never invokes remote operations. Restore
+locks do not attempt ordinary notice writes; owner restore/archive remain usable
+at full quota. Legacy audit verification collates ordered journal/audit streams
+once when an index cannot fit, keeping the original hash checks and bounded RAM.
+
+Table C — every durable intent family and recovery notice:
+
+| Place / durable intent | Recovery notice / resolution | Tests |
+| --- | --- | --- |
+| `mail:filing:` — MOVE and COPY | Original filing ID; warns of possible changed special roles/Trash and inspection, never undo/delete. Existing detailed locations remain separate. | `Recovery26.test_review26_move_role_changes_to_trash_all_later_writes_refused_restart_warns`; filing move/copy sweep |
+| `mail:rename:` — folder RENAME/move | Original rename ID, same conservative filing warning. | `Recovery26.test_review26_every_durable_intent_has_a_notice_and_ack_survives_restart`; rename crash and raw sweep |
+| `op:` — send/delete/folder-delete, unsubscribe mailto/HTTPS, owner onboarding delete/send probes, testapp send/delete | Recovery ID tied to the operation; warns of possible delivery/deletion/POST/APPEND and duplicates. The original operation remains pending/status-readable and nonrepeatable. | `Recovery26.test_review26_send_delete_unsubscribe_repair_and_append_recover_notices`; all submit/unsubscribe/delete crash and sweep flows |
+| `op:` repair and Sent APPEND-attempt fields; answered-flag stage | Same recovery catalogue, original/repair identities remain intact; no SMTP or automatic APPEND. | Repair inventory test; repair/status/settlement raw sweep and earlier repair identity tests |
+| `export:` — private blob creation, download/caller save hold and report | Recovery notice names the export key and held space; no assumption about publication or replay. | Export inventory; attachment/testapp export and rollback sweep |
+| `mail:account:` incomplete onboarding | Owner setup warning; probes may have happened, readiness stays false, never resumed. Atomic password publication before the first account record has no remote authority. | Every-intent inventory; password raw/live sweep; existing interrupted-onboarding tests |
+| `intent:<attempt-id>` — generic free change started/completed pair | `Store.write` centrally records a unique attempt marker in the starting transaction and closes only that live attempt with a recorded final outcome. A later successful call cannot erase an earlier unfinished attempt of the same action. Covers draft APPEND, flags, folder creation, account settings/folders and future started/done adapters; unfinished/unknown changes warn on restart. | Both recovery inventory tests; `Recovery26.test_review26_later_success_cannot_erase_prior_interrupted_same_action`; generic APPEND/flag/create/settings cases; raw sweep expiry/maintenance/free filing |
+| Existing restore/replay transactions (`restore_pending`, independent fence/prepared record) | Existing recovery warning is `control_pending.restore_required` and `restore_required` in app responses until owner confirmation. This real transaction lock is retained; it does not rely on a new notice write or permit replay. | Existing `Crashes` and `RestoreBatches` tests; restore and restart sweep |
+| Legacy audit-only started/unknown free changes, including draft APPEND | Last unresolved action gets a stable recovery identity, without replaying or rewriting old audit rows. Owner archiving protects the source audit row until the recovery notice is acknowledged, including when no notice row fits. | `Recovery26.test_review26_archive_keeps_legacy_warning_source_until_acknowledged`; `Storage26.test_review26_legacy_recovery_audit_collates_journal_once_without_index`; existing legacy/restore/crash cases |
+| Deferred filing/duplicate/background notices; committed notice rows | Committed warnings survive unchanged; unfinished sources supply conservative notices if their richer write never fit. Duplicate evidence is independently reread and its exact count warning checked after restart. Unacknowledged notices never expire. | Raw sweep compares durable/implied warning identities before/after crash and exact observed duplicate counts; existing duplicate warning tests |
+
+**Files changed:** `definitions.py` and `mail/definitions.py` define the shared response-bound metadata, input Message-ID cap and recovery-notice wording. `control/generated/{control,mail,testapp}-tools.json` and `docs/control/TOOLS.md` are regenerated from those definitions. The source/result/recovery files are inventoried in tables A–C; their tests, storage injector and CI files are described below. The password stream changes are in `mail/transport.py`; policy stream changes are in `boundary.py`. No earlier base test file changed.
+
+**Should-fixes / files and tests:** `common.storage_stream` enters the stream and
+explicitly closes/exits it under the existing cleanup helper, preserving the
+primary exception if close also fails. Applied to blob bytes/origins/read,
+password reads/writes, archive streams, journal streams and policy file reads. The raw injector
+now observes FileIO/descriptor/SQLite closes and SQLite unlink, and discovers
+later close/unlink/rename/truncate syscalls even without a helper label.
+Primary ENOSPC runs at the actual writes/admissions; close is a secondary EIO
+site, not a disk-writing primary. Each discovered later cleanup site is paired
+with the primary, independently. Existing helper-tagged pairs remain too.
+
+`Scenario` now records receiver DATA bytes and creates real seeded Sent copies.
+Completion requires exactly one matching DATA and, where applicable, a Sent
+Message-ID match. One DATA plus unrelated old Sent mail is rejected by
+`Sweep26.test_review26_completion_oracle_rejects_one_data_and_only_unrelated_sent`.
+`test_review26_blob_enospc_then_implicit_close_eio_preserves_first_cause` verifies
+the primary disk-full diagnostic and cleanup I/O note. Crash recovery checks
+both committed and implied owner warnings and matching duplicate evidence;
+fixture logging excludes an unset setup ID and records restart warning state
+before closing its database. No old completion, replay or unnamed-mail assertion
+was removed.
+
+`Sweep26.test_review26_admission_sweep_recovers_live_without_restart` visits 144 admission/retention refusals across 19 flows.
+After releasing each injected limit, the same Store accepts the next safe pending
+read and local write without restart. If a flow already touched the server, that
+check does not replay it. Owner restore is retried first if its real evidence lock
+still needs confirmation. The separate startup-index test retries the exact write
+on the next call. Raw modes remain single ENOSPC, persistent exhaustion, and all
+discovered primary/cleanup EIO pairs, each followed by faulted then healthy
+restart, status and replay checks. Counts and CI durations are recorded below.
+
+Earlier-test adaptations forced by the new rules:
+`test_review11_twenty_identical_messages_long_ids_deliver_and_page_exactly_once`
+and `test_review25_long_id_350_copies_post_move_enospc_keeps_warning_and_location_pages`
+use 980 repeated characters in the input Message-ID instead of 1,400/20,000, so
+the requests fit the new 998-character protocol cap. Every original assertion
+remains, including exact locations, 350 copies, paging and post-MOVE disk full;
+new tests cover huge illegal input IDs separately, while legacy jumbo location
+and observation fixtures stay unchanged. The two round-25 "oversize response"
+tests now assert bounded results/counts under the new final-bound rule, and keep
+a raw unbounded request framing rejection. The existing `test_review16_daemon_contains_unexpected_exception_and_serves_next_connection` mock now supplies a JSON pending-warning response for the new ingress path and additionally asserts its preservation; both original assertions remain. No brief-18 test file changed; no
+test was skipped or deleted, and none was weakened to accommodate a defect.
+
+CI layout: `control-mail.yml` retains the complete containers job and runs four
+sweep shards with 45-minute timeouts on every job. Shards discover/check all clean
+flows and mechanisms, then fault disjoint flow sets; their union covers the full
+sweep. `ci/mail/run.sh` forwards only the shard selection. The base and boundary
+workflow files are unchanged. Ruby's YAML parser and `bash -n` validate the local
+workflow/script. GitHub artifacts retain exact output and timings.
+
+**Verified — local pre-push:**
+
+- `python3 control/generate.py --check`: `Generated artifacts match definitions`.
+- `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/mail_tests:.work/round10/vendor python3 .work/round10/check-local.py`: `Python syntax OK: 134 files`; `Ran 153 tests in 767.182s`; `OK`. The raw sweep printed 5,178 single, 5,178 persistent and 13,055 paired cases across 22 flows (673.698s). Live admission recovery printed 144 cases across 19 flows. Every response used the real transport check. Local checks ran sequentially because the base/Mail fixtures share a boundary-policy path.
+- `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/tests:.work/round10/vendor python3 -m unittest test_operations test_record test_crashes test_approval_questions test_strict_json test_boundary test_boundary_exact test_ingress_bounds test_journal_closed test_policy_sources test_archive test_journal_capacity test_journal_streaming test_restore_batches test_review21_pending test_review21_storage test_review22_protocol test_review22_storage test_review23_results test_review24_exports`: `Ran 105 tests in 94.128s`; `OK`.
+- The same required commands passed again before the report-only push on the unchanged code: `Ran 153 tests in 794.449s`; `OK`, and `Ran 105 tests in 93.461s`; `OK`. The second local raw sweep printed the same 5,178 / 5,178 / 13,055 cases in 700.887s.
+- `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/mail_tests:.work/round10/vendor python3 -m unittest test_review26_results test_review26_storage test_review26_recovery test_review26_sweep`: `Ran 22 tests in 4.981s`; `OK`.
+- `ruby -ryaml -e 'w=YAML.load_file(".github/workflows/control-mail.yml"); abort "timeout mismatch" unless w.fetch("jobs").values.all? { |j| j["timeout-minutes"] == 45 }; puts "Mail YAML valid; every job timeout=45"'`: `Mail YAML valid; every job timeout=45`. `bash -n control/ci/mail/run.sh` and `git diff --check` printed nothing.
+- Four finding-specific regressions against an ignored `git archive d8a7f21b control` copy in this worktree printed `FAILED (failures=1, errors=3)`: the exact ten-message error hit `Socket frame too large`, recovered index admission still refused, filing notices were absent after restart, and the old completion assertion accepted unrelated Sent mail. The same four tests printed `Ran 4 tests in 0.244s`; `OK` against the fixes. Running the new syscall injector with the old production code also made the implicit-close regression fail with `storage_error != storage_limit`; it passes now with the primary full-disk code and cleanup note.
+- Development runs caught and corrected recovery writes during restore locks, an index retry's transient head mutation, repeated legacy journal scans and the old daemon fixture's missing pending-read result. The first full 149-test run ended `FAILED (errors=3)` in that daemon mock; its original continuation/error assertions remain and its setup/assertions were extended. That run is not claimed as green evidence; the complete 150-test rerun passed, followed by the complete final-head checks reported above. Initial concurrent/interrupted local attempts are likewise not acceptance evidence. Subsequent targeted regressions exposed a private-download/catalogue payload dropped behind giant warning paging and a legacy warning source pruned while notice capacity was full. Each failed before its fix and passes now; all 22 new plain-Python tests passed in 4.981s before the final full rerun.
+
+The first code push was preceded by `Ran 153 tests in 767.182s`; `OK`, plus `Ran 105 tests in 94.128s`; `OK`, generated-artifact and YAML/script checks. The final code push and report-only push use the complete 153-test runs listed above.
+
+Push discipline: three pushes were necessary instead of the two-push aim. The first batch included the lead commit. Before the second code push, additional local checks found a small private-protocol payload displaced by a giant warning, missing/future retention timestamps hiding legacy sources, and archiving of an unmaterialized legacy warning source; all were fixed before pushing. The first batch's automatic Mail run `42513797901`, base `42513797837` (attempts 1–2) and boundary `42513797763` passed; they are superseded by the last-code evidence below. No failed CI run, manual dispatch, force push or privacy-hook bypass was used. The third push changes only the report. Required repeats reuse each automatic PR run ID.
+
+**Verified — last code/test commit:** `4c622a610ef3d96c22bf12282cd6b629a9f4612a`.
+
+| Workflow / pass | Automatic PR run | Result / all job durations |
+| --- | --- | --- |
+| Control Mail / 1 | [42521967220 attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42521967220/attempts/1) | PASS; containers 15m27s; sweep (3) 4m48s; sweep (0) 10m38s; sweep (1) 10m03s; sweep (2) 5m18s |
+| Control Mail / 2 | [42521967220 attempt 2](https://github.com/Ares-Empire/AresOS/actions/runs/42521967220/attempts/2) | PASS; sweep (2) 5m00s; sweep (3) 5m16s; sweep (1) 6m50s; containers 14m44s; sweep (0) 12m12s |
+| Control base / 1 | [42521967131 attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42521967131/attempts/1) | PASS; containers 4m14s |
+| Control base / 2 | [42521967131 attempt 2](https://github.com/Ares-Empire/AresOS/actions/runs/42521967131/attempts/2) | PASS; containers 3m03s |
+| Control boundary / 1 | [42521967211 attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42521967211/attempts/1) | PASS; hostile 3m23s |
+
+Mail pass 1, all four disjoint shards combined: 5,217 single, 5,217 persistent and 12,979 cleanup pairs. Every shard checked clean mechanisms across all 22 flows; actual shard sweep times were 253.281s, 599.036s, 558.925s, 280.100s.
+Control Mail pass 1 reported: 135 tests in 154.585s, 271 tests in 730.735s, 4 tests in 253.418s, 4 tests in 599.147s, 4 tests in 559.111s, 4 tests in 280.244s.
+Mail pass 2, all four disjoint shards combined: 5,217 single, 5,217 persistent and 12,979 cleanup pairs. Every shard checked clean mechanisms across all 22 flows; actual shard sweep times were 257.129s, 271.450s, 367.958s, 689.425s.
+Control Mail pass 2 reported: 4 tests in 257.259s, 4 tests in 271.592s, 4 tests in 368.072s, 135 tests in 146.255s, 271 tests in 697.848s, 4 tests in 689.537s.
+Control base pass 1 reported: 135 tests in 215.185s.
+Control base pass 2 reported: 135 tests in 143.666s.
+Control boundary pass 1 reported: 16 tests in 0.017s.
+
+Site counts reflect the actual discovered calls on each platform: the Mac local sweep and Linux container sweep differ, while both exercise all 22 flows and assert the required mechanisms.
+
+**Not verified:** real accounts/providers, physical ENOSPC/power loss, host
+installation and the established owner usability checks. The fault sweep uses
+actual file calls/SQLite VFS with synthetic errors, not a claim about a physical
+power cut. Docker is unavailable locally; the isolated Linux container checks run
+on GitHub. No Minecraft or Gradle work was authorized or performed.
+
+**JUDGMENT-CALL:** the conservative recovery warning is appropriate even when
+prepared replay subsequently proves completion: the intent was unfinished at
+startup, so the owner retains the warning until inspection/acknowledgement. Free
+change markers and stored/derived warning identities add recoverable metadata;
+they do not resume or undo anything. Using the existing notice pager/ack preserves
+owner controls; changing wording later does not need mailbox migration.
+
+**PLAN-GAP:** no new blocker. It is impossible to put an arbitrarily large warning
+envelope into one finite frame; complete warnings therefore stay in counted
+snapshot pages, with a compact warning and count outside. At very large recovery
+sizes or full notice capacity, durable source-derived notices remain visible
+while bounded persistence batches fit. A recovered disk does not remove genuine
+transaction/restore/approval or incomplete-account evidence requirements.
+
+**Open questions:** none required for this run. Existing real-account/owner checks
+remain. Remaining `.work/` files above 500 MB: `[]`. No daemons were started.
+Any commit after the last code/test commit named in verification changes only
+files under `reviews/`; final-head run IDs are maintained in PR #9's body.
 
 ## Review fixes, round 25
 
