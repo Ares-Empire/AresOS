@@ -364,7 +364,8 @@ sites and synthetic profiles). What the Chrome build still has to show is marked
   Claude never types a password: signing in is his, and a sign-in page is handed back to him.
 - **The service checks its peer.** `chrome.sock` accepts only his user (Chrome, and so the host, run as him) and one
   host per running Chrome. Under decision 24 another program of his user could imitate or disturb the host, as it
-  could any program of his; that is the accepted level of section 7, not a route the tool adds.
+  could any program of his (for example by registering a user-level host of the same name, which Chrome prefers:
+  *checked*, 17); that is the accepted level of section 7, not a route the tool adds.
 - **Pages that could approve Claude's actions or change its limits can't be opened in a Claude tab:** claude.ai with
   its Remote Control pages, the Anthropic console, Aresus, and Chrome's own settings, password and extension pages (a
   fixed list in the image). This keeps the approval his alone (section 7, requirement 3).
