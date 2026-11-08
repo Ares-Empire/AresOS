@@ -714,10 +714,16 @@ own Chromium from the terminal and an empty profile, without his sign-ins.
 ### Tests (brief 20)
 
 On GitHub's Linux machines with branded Chrome and fixture sites, each case proven by a fixture receiver's own log.
-The whole set runs twice per build, and again on each new Chrome stable (a scheduled job); a failure turns the
-affected adapter or rule off until it is fixed, with the generic rules or a refusal in its place. The record keeps
-full versions and gates by major version: a patch of a qualified major runs normally. On a major version not yet
-recorded (his Chrome moved to a new major before the record reached the laptop), the tool runs in a conservative mode
+The whole set runs twice per build, and again on each new Chrome stable and beta (a daily job; beta is about four
+weeks ahead, so a new major is normally qualified before his Chrome reaches it); a failure turns the affected adapter
+or rule off until it is fixed, with the generic rules or a refusal in its place. Each new record reaches the laptop as
+its own small update, not tied to an image build: the job publishes it with a GitHub artifact attestation, and the
+service fetches it daily, accepting it only when the attestation verifies and it keeps every entry already held; the
+job itself verifies the published record before appending to it. Each entry names the tool build it tested, and the
+service counts only its own build's entries. The record keeps full versions and gates by major version (a passing
+beta counts for its major): a patch of a qualified major runs normally, and a recorded failure turns off what failed.
+On a major version with no entry at all for the installed build (rare: his Chrome reached a new major before any
+record of it reached the laptop, for example after weeks offline), the tool runs in a conservative mode
 that asks more, never less: adapters are off; "don't ask again" is suspended; every input that could activate
 something asks (any click or tap, Enter or Space on a control, choosing from a list, any form submission); only
 reading, scrolling, typing into fields and navigating by address stay free, except on his read-only sites, whose

@@ -57,7 +57,7 @@ Nobody can answer questions mid-run. If the brief doesn't settle something, take
   - Fabric API 0.161.0+26.2
   - Sodium mc26.2-0.9.2
   - Iris 1.11.4+26.2
-- Remote: `github.com/carlsenares/AresOS` (private). `gh` is logged in.
+- Remote: `github.com/Ares-Empire/AresOS` (public since 2026-11-02). `gh` is logged in.
 
 ## Code style
 

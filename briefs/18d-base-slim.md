@@ -87,7 +87,18 @@ enforce; everything else is his normal Claude Code with his own `gh` login, MCP 
    - `control/launch.py`: the MCP proxy's identity guard checks both the real and the effective user id against the
      configured user (his user, `owner_uid`), with a regression test for a mismatch.
    - `control/boundary/isolation.py`: the coding-user part goes (item 4); what stays is the other-user check.
-7. **Docs in the code:** `control/README.md` and `control/boundary/README.md` describe the slim base and say plainly
+7. **Shared tool rules, sent once.** Mail's 32 actions carry about 69,000 characters of description (the 28 exposed as MCP
+   tools about 61,000, at `d5a0b24a`), and two thirds to three quarters of that is text repeated in nearly every one, mainly three blocks: the error handling (about
+   800 characters), the special-use folder roles (about 580) and the untrusted-data line (about 190) (found by
+   `mac-capacity`, measured by the lead, 2026-11-08).
+   Generate each app server's MCP `instructions` (sent once, during MCP initialization) from the definitions, holding the
+   rules all its actions share, and keep each description to what is specific to its action. Text an action needs at
+   the moment of use, such as copying `question` unchanged on an asking action, stays in its description. Show in
+   item 5's harness that the native Claude Code passes the instructions on to the model unshortened (the Messages test
+   double sees the request); if it shortens them, keep what doesn't fit in the descriptions and say so. The untrusted
+   marking in results doesn't change; it never rested on the description line. `docs/control/TOOLS.md` shows the
+   instructions too. Report the character totals before and after. Brief 20 follows this pattern for Chrome.
+8. **Docs in the code:** `control/README.md` and `control/boundary/README.md` describe the slim base and say plainly
    that nothing here confines Claude. Proposals for the design or plan go in the report, not into those files.
 
 ## Tests (containers on GitHub's Linux runners, no model, no real account)
@@ -101,6 +112,11 @@ enforce; everything else is his normal Claude Code with his own `gh` login, MCP 
   not root-owned, a symlink, or behind a symlinked folder.
 - The precedence tests of item 5, each by name, with the receiver's own log as the evidence.
 - The identity guard: a real/effective mismatch refuses; the configured user passes.
+- The shared rules: the generated instructions are in sync, and either the harness run shows the instructions
+  reaching the model's request in full (extend `native.py` to capture the request's `system` field and the complete
+  tool definitions) and no shared block is repeated in a description, or, where Claude Code shortens them, what
+  doesn't fit stays in the descriptions and a test shows that every shared rule reaches the model one way or the
+  other.
 - The boundary workflow still runs its hostile programs against the strict optional sandbox fixture, without the
   coding-user step.
 
