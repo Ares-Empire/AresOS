@@ -591,3 +591,12 @@ tasks at any time.
   adapters for Gmail, WhatsApp Web, GitHub and his read-only bank; a page's own sends after an ordinary action aren't
   held, as with Claude in Chrome. The checkpoint, the site guard, attribution, the certificate rules and the S2e
   conditions are dropped; briefs 17b to 17e stay as history. Brief 20 now builds the light tool. Re-check next.
+- **2026-11-08, 05:37:** re-check 29 on draft 26 ([report](../../reviews/control-design/2026-11-08-RECHECK-29.md)):
+  CHANGES-NEEDED, three blocking points; decisions 24 and 25 faithful, the checkpoint removal consistent. Draft 27:
+  every input is classified by what it would activate (Enter or Space on a focused control, and submissions or
+  activations a page's script starts while handling Claude's filling, choosing or ticking); a stopped submission
+  resumes once without replaying Claude's input; the approval is bound to everything the question names (compose
+  text outside forms, the account an adapter reads, the effective destination, a confirmation's kind, opener and
+  text), and a new confirmation never inherits an approval; navigation only to web addresses, and the approval and
+  settings pages kept out by every route; pages read from the accessibility tree without ever collecting a password
+  value; downloads, outcomes and the service/extension split reconciled; brief 20's tests extended. Re-check 30 next.
