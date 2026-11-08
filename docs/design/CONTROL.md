@@ -1463,10 +1463,12 @@ it starts with a `question` field, one plain sentence the tool service writes, f
 1. **The truth in full:** the `question` sentence and every content field, as the service describes the operation
    (rule 4.1); an input too large to show whole is refused, never cut.
 2. **Enforced outside Claude:** Claude Code's managed ask rules hold the call until he answers (an "ask" rule still
-   asks in skip-permissions mode: *checked*); the input names one operation by id and hash, and the service refuses
-   anything that differs from it at run time.
-3. **Claude can't answer it in the session:** the prompt is his; the pages that could approve (claude.ai, Remote
-   Control) can't be opened in a Claude tab (section 6).
+   asks in skip-permissions mode: *checked*), unless a `PermissionRequest` hook answers it, which 18c tests and which
+   joins the accepted residual if it can (above); the input names one operation by id and hash, and the service
+   refuses anything that differs from it at run time.
+3. **Claude doesn't answer it in the session:** the prompt is his; the pages that could approve (claude.ai, Remote
+   Control) can't be opened in a Claude tab (section 6). The exception is the same: a `PermissionRequest` hook that
+   Claude wrote could answer it, if 18c shows such a hook can (the accepted residual, above).
 4. **At the laptop and on the phone:** the same prompt, in the terminal and through Remote Control.
 5. **"Don't ask again"** goes through his own channels, never through the prompt's own option.
 6. **Decided once:** one answer per tool call; the service's operation record (rule 4.3) refuses a second run, and a
