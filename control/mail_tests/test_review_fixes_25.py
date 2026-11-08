@@ -87,3 +87,32 @@ class Responses25(unittest.TestCase):
                     'ok': ok, 'pending': {}, 'data': {'text': 'x' * WIRE_LIMIT}}):
                 with self.assertRaises(Refused):
                     self.engine.request({'v': 1, 'method': 'call', 'action': 'mail_accounts', 'arguments': {}})
+
+
+class Admission25(unittest.TestCase):
+    setUp = results23.Results23.setUp
+    compose = results23.Results23.compose
+    data = results23.Results23.data
+    call = results23.Results23.call
+
+    def test_review25_background_blob_expiry_admission_recovers_without_restart(self):
+        key = self.engine.blobs.put(b'Synthetic expired bytes')
+        path = self.engine.blobs.directory / key
+        old = time.time() - 86401
+        os.utime(path, (old, old))
+        before = self.engine.store.sequence
+        def no_space(*args, **kwargs):
+            raise Refused('storage_limit', 'Storage ledger: free storage. No journal transaction started.')
+        with patch.object(self.engine.store.ledger, 'admit', side_effect=no_space), self.assertLogs('aresos_control.engine', level='ERROR'):
+            with self.assertRaises(Refused):
+                self.engine.expire()
+        self.assertEqual(self.engine.store.sequence, before)
+        self.assertFalse(self.engine.store.write_failed)
+        self.assertTrue(path.exists())
+        pending = self.engine.pending('mail')
+        self.assertIn('No journal transaction started', pending['notices'][0]['untrusted_content']['reason'])
+        self.assertIn('composition_id', self.compose())
+        self.engine.expire()
+        self.assertFalse(path.exists())
+        self.assertFalse(self.engine.store.write_failed)
+        self.assertTrue(self.engine.store.get('notice:background-storage'))

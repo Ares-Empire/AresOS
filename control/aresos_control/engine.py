@@ -116,7 +116,8 @@ class Engine:
         self.store.remember_storage(exc)
         error = self.store.storage_cause
         if error is not None:
-            self.store.write_failed = True
+            # Store.write/_append latch once a transaction may have started.
+            # A ledger refusal before any write needs only the owner notice.
             notice_id = 'background-storage'
             notice = {'id': notice_id, 'app': 'mail', 'state': 'partial', 'ack': False,
                       'created_at': time.time_ns(), 'untrusted_content': {'reason': str(error)}}
