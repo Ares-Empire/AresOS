@@ -129,6 +129,14 @@ class JournalRecords:
 
 class Store:
     def __init__(self, state_dir, evidence_dir, checkpoint=lambda _: None):
+        self.db = self.index = self.journal = None
+        try:
+            self._initialize(state_dir, evidence_dir, checkpoint)
+        except BaseException:
+            self.close()
+            raise
+
+    def _initialize(self, state_dir, evidence_dir, checkpoint):
         self.state_dir, self.evidence_dir = Path(state_dir), Path(evidence_dir)
         if self.state_dir.resolve() == self.evidence_dir.resolve() or self.evidence_dir.resolve().is_relative_to(self.state_dir.resolve()):
             raise ValueError("Independent evidence must be outside the backup tree")
@@ -676,7 +684,9 @@ class Store:
         return result
 
     def close(self):
-        self.db.close()
+        if self.db is not None:
+            self.db.close()
         if self.index is not None:
             self.index.close()
-        self.journal.close()
+        if self.journal is not None:
+            self.journal.close()

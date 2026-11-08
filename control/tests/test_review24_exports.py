@@ -40,8 +40,10 @@ class Exports24(EngineCase):
                      patch.object(files, 'real_directory'), \
                      self.assertRaises(Refused) as caught:
                     files.save(str(folder), 'saved.bin', b'Synthetic export', sha256(b'Synthetic export'))
-                self.assertEqual(caught.exception.code, 'storage_limit')
-                self.assertIn('Disk full', str(caught.exception))
-                self.assertIn('could not be confirmed' if rollback_fails else 'emptied and synced', str(caught.exception))
-                self.assertEqual((folder / 'saved.bin').read_bytes(), b'')
-                (folder / 'saved.bin').unlink()
+                try:
+                    self.assertEqual(caught.exception.code, 'storage_limit')
+                    self.assertIn('Disk full', str(caught.exception))
+                    self.assertIn('could not be confirmed' if rollback_fails else 'emptied and synced', str(caught.exception))
+                    self.assertEqual((folder / 'saved.bin').read_bytes(), b'')
+                finally:
+                    (folder / 'saved.bin').unlink(missing_ok=True)

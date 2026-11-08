@@ -24,6 +24,14 @@ class Engine:
     def __init__(self, state_dir, evidence_dir, ttl=900, checkpoint=lambda _: None, file_limit=FILE_LIMIT):
         self.boundary = Boundary()
         self.store = Store(state_dir, evidence_dir, checkpoint)
+        self.receiver = None
+        try:
+            self._initialize_adapters(ttl, checkpoint, file_limit)
+        except BaseException:
+            self.close()
+            raise
+
+    def _initialize_adapters(self, ttl, checkpoint, file_limit):
         self.blobs = Blobs(self.store.state_dir / "blobs", file_limit, self.store.ensure_writable, self.store.ledger)
         self.receiver = Receiver(self.store.evidence_dir, checkpoint, self.store.ledger)
         self.adapters = {"testapp": TestApp(self.store, self.blobs, self.receiver), "mail": Mail(self.store, self.blobs)}
@@ -36,7 +44,8 @@ class Engine:
             raise Refused('result_too_large', 'Composition exceeds 49152 bytes including pending notices; use a shorter composition.')
 
     def close(self):
-        self.receiver.db.close()
+        if self.receiver is not None:
+            self.receiver.db.close()
         self.store.close()
 
     def operation(self, op_id, app=None):
