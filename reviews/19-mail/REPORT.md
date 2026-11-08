@@ -17,8 +17,9 @@ Review records: [REVIEW.md](REVIEW.md), [REVIEW-2.md](REVIEW-2.md),
 [SECURITY-REVIEW-10.md](SECURITY-REVIEW-10.md),
 [SECURITY-REVIEW-11.md](SECURITY-REVIEW-11.md),
 [SECURITY-REVIEW-12.md](SECURITY-REVIEW-12.md),
-[SECURITY-REVIEW-13.md](SECURITY-REVIEW-13.md), and
-[SECURITY-REVIEW-14.md](SECURITY-REVIEW-14.md).
+[SECURITY-REVIEW-13.md](SECURITY-REVIEW-13.md),
+[SECURITY-REVIEW-14.md](SECURITY-REVIEW-14.md), and
+[SECURITY-REVIEW-15.md](SECURITY-REVIEW-15.md).
 
 ## For the owner: decisions before merge
 
@@ -53,6 +54,183 @@ The owner answered: “Agree on 8, names etc are enough. Agree on everything els
 - Complete onboarding with your aliases, authentication, TLS trust, special folders, delayed Sent behavior and folder-deletion guard; the tests use synthetic accounts only.
 - Check complete approvals on both terminal and phone, then try the seven everyday Claude mail tasks; automated protocol tests do not establish how usable those flows feel.
 - Send a forwarded `.eml` to recipients using Apple Mail, Outlook, Thunderbird, Gmail on the web and iOS Mail, and check how each opens or saves the exact attachment; the round-5 documentation does not establish its presentation.
+
+## Review fixes, round 23
+
+**Done:** implements `briefs/19-review-fixes-23.md` and both blocking findings
+plus the schema should-fix in [SECURITY-REVIEW-15.md](SECURITY-REVIEW-15.md),
+reviewed head `2be76104`. The existing local `c681cb0e` review/brief commit
+went with the first code push. Last code/test commit: `9dd79481d52d4835c8e16bb250bc1fc3adde0a3a`.
+Every later commit in this run changes only files under `reviews/`.
+
+**Rule:** return what was actually seen, then report whether it could be
+recorded. A failed write cannot erase a remote answer or replace the first
+storage error. A storage failure always returns `ok=false`; observed success
+does not claim a durable commit and never authorizes repeating an action.
+
+- `control/aresos_control/results.py` is the shared request result layer.
+  It snapshots typed stage answers and Mail evidence before persistence,
+  retains copies seen across searches, remembers the first storage error,
+  and attaches the facts under `observations` to failed replies. These
+  request-local facts are not restart/replay authority.
+- `storage.py` records failures around every journal transaction and records
+  the original write/sync error before cleanup can fail. `engine.py` starts
+  one observation record per request, records stages before writes, and
+  finalizes all execution, repair, status, settlement and admission replies
+  through that record. Later outcome writes or the failure latch cannot
+  replace ENOSPC/EDQUOT/EIO or short-write diagnoses. Repair results record
+  their observed stage before their outcome write.
+- `mail/adapter.py` records Sent matches and duplicate warnings before trying
+  to persist them. Both live send and repair use the same observation path.
+  A failed APPEND end marker still gets a fresh read-only Sent count; a
+  successful APPEND answer remains visible as an observed stage. Storage
+  failures stop subsequent remote changes and cannot become recipient/target,
+  DKIM or local-stage refusals. Status and settlement use this same record.
+  Nothing is deleted to resolve duplicates.
+- `blobs.py` preserves the typed private-wire storage error through cleanup
+  instead of turning EIO into a generic disk-full error.
+- `definitions.py`, `mail/definitions.py`, all three generated tool lists
+  and `docs/control/TOOLS.md` advertise the additive observation envelope,
+  `ok=false` storage semantics and optional repaired `evidence`.
+- `control/response_checks.py` installs one cached-schema response checker
+  from `control/tests/support.py` and `control/mail_tests/support.py`. It checks successes, failures,
+  direct Engine requests and shared call/data helpers outside the product's
+  exception handlers. The subprocess socket request helper in
+  `control/tests/test_integration.py` reuses the same validator. Both support changes and that helper change add validation;
+  every earlier base assertion remains.
+
+**Fault sweep:** `test_review23_sweep.FaultSweep23.test_review23_enospc_at_every_discovered_durable_write`
+does a clean run, counts real storage-layer calls, then injects ENOSPC once
+at each discovered point. It covers journal records, commit markers and
+syncs; authoritative SQLite prepare/apply commits (with real rollback on
+failure); and private-file writes and syncs. Each flow must have nonzero
+points, and each failed run must reach the same prefix as the clean run.
+New writes in these flows are therefore counted without editing a list of
+stage names or write indices.
+
+| Flow | Discovered write points |
+| --- | ---: |
+| Send, including delayed duplicate Sent copy | 85 |
+| Live Sent-copy repair | 36 |
+| Delete two named messages to Trash | 24 |
+| Delete two named messages permanently | 36 |
+| Header mailto unsubscribe | 85 |
+| One-click HTTPS unsubscribe | 30 |
+| Operation status discovering duplicates | 6 |
+| Uncertain repair settlement discovering duplicates | 12 |
+| Cancel reserved approval | 6 |
+| Owner restore confirmation | 6 |
+| **Total injected failures** | **326** |
+
+Every injected run checks `ok=false`, `storage_limit`, plain `Disk full`
+wording, all independently captured stage answers and Sent copies, and the
+duplicate warning when two copies were seen. After space returns it opens
+a fresh Engine, completes replay or explicit owner confirmation when a
+record-only fence requires it, compares status to recovered state and live
+evidence, and checks complete journal commits. Replaying a nonreserved
+approval and rechecking an attempted repair never repeat SMTP DATA, APPEND,
+MOVE, STORE, EXPUNGE or POST. Reserved approvals that never started remain
+reserved; unresolved submissions remain nonrepeatable. Unnamed Deleted
+messages survive every case. The sweep uses in-memory protocol substitutes
+with the production engine, adapter, journal, SQLite and private blobs.
+
+**Named regressions:**
+
+- `test_review_fixes_23.Results23.test_review23_live_send_and_repair_keep_duplicate_observation_on_failed_warning_write`:
+  both live paths return two observed copies, warning and disk-full error.
+- `test_review23_first_stage_storage_error_survives_outcome_latch_and_restart`:
+  ENOSPC/EDQUOT/EIO after durable `submitting` preserve the first diagnosis;
+  restart gives unknown and approved replay never invokes SMTP.
+- `test_review23_short_stage_writes_and_failed_cleanup_keep_the_first_error`:
+  zero/13-byte stage writes and a subsequent cleanup EIO retain disk-full
+  wording and the observed first stage; restart remains nonrepeatable.
+- `test_review23_private_wire_io_error_survives_blob_and_execution_handlers`:
+  a real private-wire fsync EIO stays an I/O error and leaves no partial blob.
+- `test_review23_live.LiveResults23.test_review23_live_send_and_repair_return_duplicates_on_warning_or_end_marker_enospc`:
+  four container cases use real Dovecot APPEND/SEARCH and scripted TLS SMTP
+  with an independent arrival log: send/repair crossed with warning/end-marker
+  failure. Both copies and observed APPEND success survive, and restart and
+  replay leave exactly one SMTP arrival and two Sent copies.
+- `test_review23_results.ResponseSchemas23`: four base tests prove repaired
+  evidence and failed observation envelopes match their advertised schemas,
+  and that central validation rejects successful and failed schema drift,
+  including direct requests.
+
+The seven existing `Duplicates22` tests in `control/mail_tests/test_review_fixes_22.py`
+now require `ok=false` plus a typed
+storage error when recording fails. This strengthens their former success
+expectation to the brief's explicit rule. All copy, warning, recorded-state,
+restart, latch and no-mutation assertions remain. No earlier test was
+weakened, skipped or deleted. The only existing base test edits are the
+shared support validation and the subprocess socket helper validation.
+
+**Verified — local:**
+
+```sh
+python3 control/generate.py --check
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/mail_tests:.work/round10/vendor python3 .work/round10/check-local.py
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/tests:.work/round10/vendor python3 -m unittest test_operations test_record test_crashes test_approval_questions test_strict_json test_boundary test_boundary_exact test_ingress_bounds test_journal_closed test_policy_sources test_archive test_journal_capacity test_journal_streaming test_restore_batches test_review21_pending test_review21_storage test_review22_protocol test_review22_storage test_review23_results
+```
+
+Run before each push. Output: `Generated artifacts match definitions`;
+`Python syntax OK: 123 files`; `Ran 116 tests`, `OK` for plain Mail
+(including the 326-case sweep); `Ran 104 tests`, `OK` for selected base/new
+tests. First-push summaries: `Ran 116 tests in 92.479s`, `OK`; `Ran 104 tests in 94.089s`, `OK`.
+Report-push summaries: `Ran 116 tests in 98.593s`, `OK`; `Ran 104 tests in 95.491s`, `OK`.
+The sweep prints each flow's count and storage-call breakdown.
+`git diff --check` prints nothing. `.work/` has no files over 500 MiB.
+
+**Verified — regressions against the reviewed production head:** exported
+only `2be76104`'s `control/aresos_control` into this worktree's ignored
+`.work/round23-baseline/` and ran the new first-stage and live-duplicate tests
+against it. Output: `Ran 2 tests`, `FAILED (failures=5)`: original errors
+became the latch refusal and live observations were lost. The two new
+schema regressions against those definitions printed `Ran 2 tests`,
+`FAILED (errors=2)`: repaired evidence and the observation envelope were
+undeclared. The same regressions pass against the changed source. A baseline
+sweep also rejects the old code: `Ran 1 test`,
+`FAILED (failures=73, errors=13)`. Full 326-case coverage is claimed only
+for the changed source. Initial local round-22 expectation failures were
+corrected to the stronger
+`ok=false` contract before any push.
+
+**Verified — last code/test head `9dd79481d52d4835c8e16bb250bc1fc3adde0a3a`:**
+
+| Workflow / attempt | Exact output |
+| --- | --- |
+| [Mail 42479849992, attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42479849992/attempts/1) | `Ran 134 tests in 178.256s`; `Control base suite PASS`; `Ran 238 tests in 725.029s`; `Control Mail suite PASS`; `OK` |
+| [Mail 42479849992, attempt 2](https://github.com/Ares-Empire/AresOS/actions/runs/42479849992/attempts/2) | `Ran 134 tests in 167.949s`; `Control base suite PASS`; `Ran 238 tests in 776.847s`; `Control Mail suite PASS`; `OK` |
+| [Independent base 42479849979, attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42479849979/attempts/1) | `Ran 134 tests in 200.943s`; `Control base suite PASS`; `OK` |
+| [Independent base 42479849979, attempt 2](https://github.com/Ares-Empire/AresOS/actions/runs/42479849979/attempts/2) | `Ran 134 tests in 187.904s`; `Control base suite PASS`; `OK` |
+| [Boundary 42479849971](https://github.com/Ares-Empire/AresOS/actions/runs/42479849971) | 16 fixture tests; `BOUNDARY_OK` and `NATIVE_BOUNDARY_OK` in both modes, 127 attacks each; policy checks and `ISOLATION_OK` |
+
+Both Mail and base passes print `Generated artifacts match definitions`. Both Mail passes
+include the real-server regression and all 326 sweep cases, with identical counts.
+Attempt API records identify this code head and `success`; no workflow failed.
+
+Both second passes use `gh run rerun` on the original pull-request run IDs;
+no extra manual workflow was dispatched. The report-inclusive final head's
+Mail/base passes and boundary result will be recorded in draft PR #9 after
+the final push. All pushes run the privacy hook normally; no force push,
+hook bypass, new PR, merge or push to main. Protected OS/mod/owner/workflow
+paths and reviewer-authored review records were not edited.
+
+**Not verified:** real account/provider timing, physical disk exhaustion or
+power loss, external disk consumers, installed-host confinement and native
+terminal/phone approval presentation remain owner checks. Local tests use
+synthetic I/O faults, not a filled physical disk. Real protocol container
+checks run on GitHub's Linux runners; no host installation, real account or
+model session was used.
+
+**JUDGMENT-CALL:** no new owner decision. `ok=false` for every failed
+persistence attempt and request-local observations implement this brief's
+specified behavior. Earlier owner decisions and the round-21 fail-closed
+disk bar remain in force.
+
+**PLAN-GAP / open questions:** none added by this round; the existing
+real-account and native-presentation qualification gates remain.
+
+
 
 ## Review fixes, round 22
 
