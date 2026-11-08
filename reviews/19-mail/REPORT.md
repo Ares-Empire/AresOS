@@ -313,7 +313,43 @@ No real account, provider, delivery or screenshot is claimed.
 **Repository discipline:** the existing local brief commit is included with this
 batch; normal pre-push privacy verification remains enabled. No merge, rebase,
 force-push, protected review edit, OS/mod or workflow change. No large download or
-extraction was made. Verification evidence follows after the workflow runs.
+extraction was made. Code/test-head workflow evidence follows.
+
+Before the report-only push, the same local commands pass again: generated
+artifacts match; `Python syntax OK: 94 files`; `Ran 57 tests in 2.440s`, `OK`;
+`Ran 58 tests in 15.599s`, `OK`; and `Ran 15 tests in 0.005s`, `OK`.
+`git diff --check` is silent. The explicit scope check prints
+`Scope check PASS: no protected path changed`; the owner-check comparison prints
+`Owner decisions recorded; real-account checklist unchanged`.
+
+**Linux verification — last code/test commit `52e10c6fb227d8767b4e05fb68012817cd9406a6`:**
+
+| Workflow / pass | Exact relevant output |
+| --- | --- |
+| [Mail 42431033063, attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42431033063/attempts/1) | `Ran 87 tests in 68.772s`; `Ran 178 tests in 526.814s`; `Control base suite PASS`; `Control Mail suite PASS` |
+| [Mail 42431033063, attempt 2](https://github.com/Ares-Empire/AresOS/actions/runs/42431033063/attempts/2) | `Ran 87 tests in 55.012s`; `Ran 178 tests in 506.442s`; `Control base suite PASS`; `Control Mail suite PASS` |
+| [Independent base 42431033233, attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42431033233/attempts/1) | `Ran 87 tests in 69.642s`; `Control base suite PASS` |
+| [Independent base 42431033233, attempt 2](https://github.com/Ares-Empire/AresOS/actions/runs/42431033233/attempts/2) | `Ran 87 tests in 57.958s`; `Control base suite PASS` |
+
+Both Mail passes run `bash control/ci/mail/run.sh`: generated artifacts, all 87
+base tests and all 178 Mail tests, including the three scripted TLS/Dovecot rename
+regressions. Both independent base passes run all 87 tests through
+`bash control/ci/test.sh` in pinned Fedora. Every new method passes in both Mail
+logs. Both workflows pass twice on this exact code/test head.
+The [boundary run 42431033183](https://github.com/Ares-Empire/AresOS/actions/runs/42431033183)
+also passes: installed precondition, hostile checks with/without seccomp, launcher,
+settings and coding-policy isolation. The previously unqualified standalone
+absent-helper VSOCK fallback is unchanged; no new qualification is claimed.
+
+**Any later commit changes only files under `reviews/`.** The final report head’s
+run IDs and both passes are recorded in [draft PR #9](https://github.com/Ares-Empire/AresOS/pull/9).
+Second passes use `gh run rerun` on these same IDs. No push is made solely to
+trigger another pass. The implementation push included code, tests, report and
+the pre-existing brief commit. A report-only follow-up is necessary to record
+the run IDs created by that push; it changes no code or test. Each push receives
+the required local checks and ordinary privacy verification. No failed workflow
+has been treated as success. The closing scan prints
+`Remaining .work files over 500 MB: []`.
 
 ## Review fixes, round 14
 
