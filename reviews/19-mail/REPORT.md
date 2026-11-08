@@ -60,6 +60,72 @@ The owner answered: “Agree on 8, names etc are enough. Agree on everything els
 
 ## Review fixes, round 26
 
+### Review fixes, round 26b — pre-code inventory and stop (2026-11-08)
+
+**Lead decision, not a new implementation choice:** brief `19-review-fixes-26b`
+sets R1 (derive every owner fact on read from committed records and live checks),
+R2 (commit enough message/source/destination/preparation-role/recipient context
+before acting remotely), and R3 (recompute refusals on every call; only an
+unfinished transaction latches, until recovery). The round-26 implementation and
+its verification below are historical evidence, **not closure of R1–R3**.
+
+Inventory from the current code at `40cefd7a`; “SQLite” distinguishes saved
+working state/audit events from the separate compact independent journal:
+
+| Owner-visible fact / paths | Current source | Required source under R1–R3 |
+| --- | --- | --- |
+| Pending, approvals, expiry/cancellation notices/acks, status/reasons, recipients/stages (`engine.py`) | SQLite `op:`; RAM `_last_pending` fallback and observations | Committed operations/stages/acks plus current time/live evidence |
+| MOVE/COPY warning, messages/destinations/locations, role drift, incomplete scans (`mail/filing.py`) | SQLite filing/location/notice; RAM deferred final writes/observations; initial intent omits role baseline | Every unresolved committed intent warns on read, including this session; commit preparation roles; RAM adds detail |
+| RENAME/move warning, folder/count/roles (`mail/filing.py`) | SQLite intent/notice and RAM deferred final notice; intent omits account | Account-qualified committed preparation/outcome/ack; unfinished intent warns |
+| Interrupted send/delete/folder-delete/unsubscribe/probe/repair; possible delivery/APPEND/POST; repair identity/quiet period (`engine.py`, `mail/adapter.py`) | SQLite approval/payload/stages/timestamps; live checks; independent journal has compact descriptions/states | Committed pre-action identities/destinations/roles/recipients plus current time/evidence |
+| Draft APPEND, flag/create/settings/folder-review/testapp-configuration interruptions | SQLite generic `intent:` has only id/action/app/state; audit has some arguments; RAM `active_intents` pairs calls | Committed per-attempt context before action; read unfinished/completion records |
+| Startup/legacy recovery notices (`recovery.py`) | SQLite filtered by startup `recovery_cutoff`; cached `legacy_intents`; persisted/deferred notices | Read committed unresolved sources/resolutions each time; compatible missing-field handling |
+| Duplicate Sent-copy count/warning (`mail/adapter.py`) | Live SEARCH, RAM observations; SQLite stage/notice if write succeeds | Committed send/APPEND identity plus fresh matching-copy evidence and recorded detection/ack |
+| Background storage/expiry warning, first cause/cleanup details (`engine.py`, `results.py`) | RAM `storage_cause`, `Observations.error`, logging, deferred notice | Live admission/transaction evidence; RAM adds first-error/cleanup detail |
+| Restore lock/generation, missing/newer operation/repair evidence (`storage.py`) | Independent fences/commits; SQLite head/prepared/restore records; RAM flags | Recompute from committed/prepared evidence; recovery clears actual transaction latch |
+| Index/physical-space/history/count/byte/blob admission; cancel/repair/restore/export holds (`storage.py`, `space.py`, `retention.py`, `blobs.py`) | Live disk/SQLite/inodes; reconstructed RAM ledger; retained diagnostics | Live checks every call; committed sources justify holds |
+| Export hold, caller save/rollback/result, archive manifest (`exports.py`, `files.py`, `proxy.py`, `archive.py`) | SQLite export/manifest/audit; live caller inodes and transfer replies | Committed holds/reports/manifests plus live checks; unknown publication remains explicit |
+| Account readiness/setup/probes, Sent caveat, folder-delete qualification, special/protected roles (`mail/onboarding.py`, `mail/roles.py`) | SQLite account/setup; live LIST; RAM onboarding id; probe CREATE/APPEND identities not committed beforehand | Committed qualification/setup/exact probe intents plus fresh roles |
+| Refusals/reasons: permission/boundary, approval/reference/cursor, account/capability/role, credentials/TLS, MIME/DKIM/input/size, provenance/file policy, transport/evidence unavailable | Request validation, SQLite evidence, live server/policy/files; diagnostic `Boundary.reason`; volatile observation cursors | Re-evaluate current applicable policy/content/identity/evidence each call |
+| Ordinary reads/compositions/files/audit, counts/pages, socket/CLI/MCP/hooks disclosure | Live mailbox/receiver, SQLite compositions/audit, immutable blobs; volatile observation pages and pending/deferred envelopes | Committed facts/live data; observations add detail; shared views derive identical warnings |
+
+**PLAN-GAP — stop condition applies on size, not on adding fields.** Replacing
+the owner-state read/recovery protocol spans more than a startup-notice fix.
+Removing pending/deferred snapshots alone loses disclosures when SQLite reads or
+final writes fail. The independent journal cannot reconstruct free-action warnings:
+`Store.write` records only compact operations; generic free changes have an empty
+operations list. A durable projection/fallback and resolution/ack semantics need
+to work together with restore, archival and expiry and every remote boundary.
+
+`Scenario.recover` currently gets expected warning IDs from production
+`unfinished()`, notice rows and deferred memory, and asserts subsets. Its remote
+counters/SMTP bytes lack the full action/role context for independent equality.
+A new oracle/server event log must cover all 22 flows plus draft APPEND,
+folder-create/delete and onboarding probes, both live and after restart.
+
+Estimated scope: roughly 10–15 production modules (shared storage/recovery/views,
+Mail preparation/filing/onboarding, retention/archive/export and presentation),
+8–12 test/fixture modules, new pre-action fields and committed projection/resolution
+records, legacy/restore/archive compatibility tests and a rebuilt fault-sweep
+oracle. This needs separately reviewable storage/view, action-context and oracle
+changes. Compatible new fields are allowed; **no rewrite of existing records is
+asserted necessary or attempted**. This is the “otherwise clearly bigger than one
+round” stop. No code, tests, generated artifacts or workflows changed; R1–R3 remain
+unimplemented, and the round-26 tables retain their historical closure claims.
+
+**Verified for this stop-only batch:** required local checks ran sequentially:
+
+- `python3 control/generate.py --check`: `Generated artifacts match definitions`.
+- `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/mail_tests:.work/round10/vendor python3 .work/round10/check-local.py`: `Python syntax OK: 134 files`; `Ran 153 tests in 767.748s`; `OK`. The unchanged raw sweep logged per-flow counts for 22 flows: 5,178 single, 5,178 persistent and 13,055 paired cases (summed flow time 674.189s); live admission recovery logged 144 cases across 19 flows.
+- `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/tests:.work/round10/vendor python3 -m unittest test_operations test_record test_crashes test_approval_questions test_strict_json test_boundary test_boundary_exact test_ingress_bounds test_journal_closed test_policy_sources test_archive test_journal_capacity test_journal_streaming test_restore_batches test_review21_pending test_review21_storage test_review22_protocol test_review22_storage test_review23_results test_review24_exports`: `Ran 105 tests in 96.739s`; `OK`.
+- `git diff --check`: no output. Remaining `.work/` files over 500 MB: `[]`.
+
+No new tests, containers, manual workflow dispatches or Gradle daemons. These are
+baseline checks, not verification of R1–R3. The batch includes the lead's local
+brief commit `40cefd7a` and this separate report-only note. Round 26's CI table
+below covers unchanged code; no new CI acceptance is claimed. The explicit stop
+requires pushing the note and ending the run, without a partial implementation.
+
 **Done:** closes the classes in [SECURITY-REVIEW-18.md](SECURITY-REVIEW-18.md)
 against `d8a7f21b`, with the round-25 refined disk bar retained in that section. The lead's
 local commit `7b2c4b61` accompanies the first push. Work remains on `pkg/19-mail`
