@@ -54,7 +54,7 @@ class Engine:
     def pending(self, app=None, args=None):
         values = [{"operation_id": op["id"], "app": op["app"], "state": op["state"],
                    "description": op["approval"]["description"], "reason": op["reason"]}
-                  for _, op in self.store.items("op:") if (app is None or op["app"] == app) and
+                  for _, op in self.store.iter_items("op:") if (app is None or op["app"] == app) and
                   (op["state"] in {"reserved", "submitting", "partial", "unknown"} or (op.get("notice") and not op.get("ack")))]
         # Notifications stay compact; operation_status has the full description, never a truncated approval.
         summaries = [{k: v for k, v in op.items() if k != "description"} for op in values]
@@ -77,7 +77,7 @@ class Engine:
     def expire(self):
         if self.store.locked or self.store.write_failed:
             return
-        for key, op in self.store.items("op:"):
+        for key, op in self.store.iter_items("op:"):
             if op["state"] == "reserved" and time.time() >= op["expires"]:
                 op.update(state="failed", reason="expired: nothing submitted", notice=True)
                 self.store.write({key: op}, op["action"], "approval expired without submission", op["id"], recovery=True)
@@ -90,7 +90,7 @@ class Engine:
         adapter = self.adapters[app]
         question, description, payload = adapter.prepare(verb, arguments)
         if app == 'mail' and verb == 'send':
-            for _, old in self.store.items('op:'):
+            for _, old in self.store.iter_items('op:'):
                 if (old['action'] == 'mail_send' and old['generation'] == self.store.generation and
                         old['state'] == 'reserved' and time.time() < old['expires'] and old['payload'] == payload):
                     return {'approval': approval_order(old['approval']), 'state': 'reserved'}
@@ -177,12 +177,15 @@ class Engine:
             raise Refused("refused", "Repair requires accepted-send evidence and a completed submission attempt; inspect status.")
         if app == 'mail' and not self.adapters[app].repair_needed(old, args['stage']):
             # Re-reading a completed stage must work even when admission is full.
-            completed = [op for _, op in self.store.items('op:') if op.get('repair_of') == old['id']
-                         and op.get('payload', {}).get('stage') == args['stage'] and op['state'] == 'done']
-            return {'operation': self.public_operation(completed[-1] if completed else old),
+            completed = old
+            for _, op in self.store.iter_items('op:'):
+                if (op.get('repair_of') == old['id'] and op.get('payload', {}).get('stage') == args['stage']
+                        and op['state'] == 'done'):
+                    completed = op
+            return {'operation': self.public_operation(completed),
                     'original': self.public_operation(old)}
         if app == 'mail':
-            for _, repair in self.store.items('op:'):
+            for _, repair in self.store.iter_items('op:'):
                 if (repair.get('repair_of') == old['id'] and repair.get('payload', {}).get('stage') == args['stage']
                         and repair['state'] in {'reserved', 'submitting', 'unknown'}):
                     # Repeated repair is the explicit read-then-settle path.

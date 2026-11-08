@@ -27,6 +27,12 @@ class JournalStreaming(EngineCase):
                     record['operations'] = [{'id': generation + ':' + f'{number:032x}', 'generation': generation,
                         'input_hash': '0' * 64, 'description': {'action': 'testapp_send', 'subject': 'Synthetic ' + 'x' * 256},
                         'state': 'done'}]
+                    compact = record['operations'][0]
+                    operation = {**compact, 'app': 'testapp', 'action': 'testapp_send',
+                                 'approval': {'operation_id': compact['id'], 'description': compact['description']},
+                                 'payload': {'text': 'Synthetic retained composition ' + 'x' * 512},
+                                 'stages': {}, 'reason': 'Synthetic completed operation', 'expires': 0}
+                    db.execute('INSERT INTO kv VALUES (?,?)', ('op:' + compact['id'], canonical(operation)))
                 record['hash'] = digest(record)
                 event = {'seq': number, 'time': record['time'], 'action': 'fixture', 'summary': 'Synthetic audit',
                          'outcome': 'done', 'operation_id': None, 'set': {}, 'record': record}

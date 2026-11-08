@@ -137,7 +137,7 @@ class Store:
             if not self.events:
                 self.write({"generation": uuid.uuid4().hex}, "control_initialize", "initialize operation log")
             if not self.locked:
-                for key, op in self.items("op:"):
+                for key, op in self.iter_items("op:"):
                     if op["state"] == "submitting":
                         op["state"], op["reason"] = "unknown", "Service restarted during submission; inspect evidence, never resubmit."
                         self.write({key: op}, op["action"], "restart: outcome unknown", op["id"], recovery=True)
@@ -317,8 +317,12 @@ class Store:
         row = self.db.execute("SELECT v FROM kv WHERE k=?", (key,)).fetchone()
         return json.loads(row[0]) if row else default
 
+    def iter_items(self, prefix):
+        for k, v in self.db.execute("SELECT k,v FROM kv WHERE substr(k,1,?)=? ORDER BY k", (len(prefix), prefix)):
+            yield k, json.loads(v)
+
     def items(self, prefix):
-        return [(k, json.loads(v)) for k, v in self.db.execute("SELECT k,v FROM kv WHERE substr(k,1,?)=? ORDER BY k", (len(prefix), prefix))]
+        return list(self.iter_items(prefix))
 
     @property
     def generation(self):
