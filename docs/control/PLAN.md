@@ -233,8 +233,8 @@ Three places, each with one job:
      in both modes, and `disableBypassPermissionsMode` dropped only when they pass; the developer-site network list
      and credential substitution for the GitHub credential; project folders as Btrfs subvolumes, the snapshot before
      every sandboxed command and file-tool write, nested subvolumes, the measured latency and storage limits, a failed
-     snapshot freezing running commands (their own cgroup) and refusing all terminal commands, restore; the traced
-     set of programs the session's user starts outside the sandbox, with the hostile test failing on any other;
+     snapshot freezing running commands (their own cgroup) and refusing all terminal commands, restore; the traced set
+     of programs the session's user starts outside the sandbox, with the hostile test failing on any other;
      `/usr/bin/git` and git's own entry points as the sandboxing wrapper for the session's user, and the planted
      repository settings (fsmonitor, `include`/`includeIf`, `core.sshCommand`, credential helpers, hooks, filters
      through `.gitattributes` and `.git/info/attributes`, `gpg.program`, submodules, a `.git` file pointing at a
@@ -242,11 +242,11 @@ Three places, each with one job:
      (`aresos-session`, `aresos-relay`) and so non-dumpable, with the native program, the MCP pipes, the terminal and
      git working under that start; the tool service accepting asking actions only from a peer of group `aresos-relay`
      whose parent is the registered Claude Code, and `kernel.yama.ptrace_scope` at least 1; the hostile test injecting
-     through `/proc/<relay>/fd/*` and `/proc/<claude>/fd/*` and starting the genuine relay itself; his git clients refusing project repositories if he chooses so; the
-     GitHub App credential, rulesets refusing deletion and force-push on every branch and tag through git and the API,
-     no token for a repository without them, GitHub's own clean-up of merged branches under those rules, the mirror
-     clone with archival retention and restore; Claude Code's messages to other sessions closed; the `WebFetch`
-     fallback path in skip-permissions mode.
+     through `/proc/<relay>/fd/*` and `/proc/<claude>/fd/*` and starting the genuine relay itself; his git clients
+     refusing project repositories if he chooses so; the GitHub App credential, rulesets refusing deletion and
+     force-push on every branch and tag through git and the API, no token for a repository without them, GitHub's own
+     clean-up of merged branches under those rules, the mirror clone with archival retention and restore; Claude
+     Code's messages to other sessions closed; the `WebFetch` fallback path in skip-permissions mode.
    - *Mail's exact-settings boundary* (round 16, `boundary.py`): the installed settings compared against the
      generated files plus the vetted additions' record (empty until the first addition), with the draft's changes
      above (no `disableBypassPermissionsMode` once the base qualification passes, the developer-site list, project
@@ -255,20 +255,20 @@ Three places, each with one job:
      same tools; localhost tests with the test server and a clean browser in one sandboxed command); its tests also
      in skip-permissions mode.
    - *A new brief: the add-tool path*: preparation fetching only from the listed hosts, redirects held to them,
-     publisher identity shown and look-alike names flagged, other sources needing a fetch approval and then an
-     install approval; inspection, builds and install scripts in a sandbox, the install step only copying; an
-     independent review by a fresh agent the service starts, covering the artifact, its dependencies and its start and
-     background behaviour; `tools_add` with classes and their evidence; free tools only on that review or an enforcing
-     adapter; a server holding his account access installed only after the review passes, unless he chooses
-     otherwise (owner choice 5), starting only after approval and reaching only its declared hosts; connectors reached by the service, asking per call by default; tool lists compared on every listing,
-     changed tools hidden and refused at dispatch; activation only in a session started with the regenerated
-     settings; a system user per added server, `aresos-mcp addon`, the owner command, the skills folder, plugins split
-     into parts, generated settings with the additions, and its tests (`CONTROL.md` section 7). Its number is taken
-     when it is written.
-   - `laptop-aresos` owns `os/` and the accounts (the session's user, the dropped coding user, the project
-     subvolumes, `/usr/bin/git` as the wrapper, the `sudo` rule, `kernel.yama.ptrace_scope`, the `aresos-session` and
-     `aresos-relay` groups and their set-group-id programs) and has board item #102
-     about installing software; the image side of decisions 22 and 23 is agreed with it.
+     publisher identity shown and look-alike names flagged, other sources needing a fetch approval and then an install
+     approval; inspection, builds and install scripts in a sandbox, the install step only copying; an independent
+     review by a fresh agent the service starts, covering the artifact, its dependencies and its start and background
+     behaviour; `tools_add` with classes and their evidence; free tools only on that review or an enforcing adapter; a
+     server holding his account access installed only after the review passes, unless he chooses otherwise (owner
+     choice 5), starting only after approval and reaching only its declared hosts; connectors reached by the service,
+     asking per call by default; tool lists compared on every listing, changed tools hidden and refused at dispatch;
+     activation only in a session started with the regenerated settings; a system user per added server, `aresos-mcp
+     addon`, the owner command, the skills folder, plugins split into parts, generated settings with the additions,
+     and its tests (`CONTROL.md` section 7). Its number is taken when it is written.
+   - `laptop-aresos` owns `os/` and the accounts (the session's user, the dropped coding user, the project subvolumes,
+     `/usr/bin/git` as the wrapper, the `sudo` rule, `kernel.yama.ptrace_scope`, the `aresos-session` and
+     `aresos-relay` groups and their set-group-id programs) and has board item #102 about installing software; the
+     image side of decisions 22 and 23 is agreed with it.
 6. **Security review** of the whole stack (fresh Codex, frontier), then **qualification in the real AresOS image**.
 7. **After the first boot on the laptop:** the real mail account, the owner's own Chrome, the system-wide settings,
    and the first weeks of real use.
