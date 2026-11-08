@@ -140,3 +140,24 @@ class Checks27(unittest.TestCase):
                         self.assertTrue(all(v['scan_complete'] for v in locations['untrusted_content']['locations']))
                 finally:
                     scenario.close()
+
+    def test_review27_warning_assertion_rejects_review19_loss_before_status(self):
+        from test_review23_sweep import Scenario
+        from aresos_control.mail.filing import notice_page
+        scenario = Scenario('status')
+        try:
+            fixture = scenario.fixture
+            scenario.copies[scenario.operation_id] = [{'uid': 1}, {'uid': 2}]
+            fixture.engine.store.write({'notice:unrelated': {'id': 'unrelated', 'app': 'mail',
+                'state': 'partial', 'ack': False, 'untrusted_content': {'reason': 'Synthetic unrelated warning'}}},
+                'fixture', 'A different owner warning')
+            # Model review 19: no committed duplicate notice, and the old
+            # pending/catalogue implementation never rediscovers a done send.
+            with patch.object(fixture.mail, 'resolve_sent_checks', return_value=[]):
+                self.assertGreater(notice_page(fixture.engine.store)['total'], 0)  # old oracle passes
+                with self.assertRaisesRegex(AssertionError, 'Lost operation duplicate warning'):
+                    scenario.assert_duplicate_warnings()
+            # The new public view resolves it without an operation_status call.
+            scenario.assert_duplicate_warnings()
+        finally:
+            scenario.close()

@@ -410,14 +410,14 @@ class Scenario:
         visible.update(n['id'] for n in recovery_notices(f.engine.store))
         f.assertTrue(implied <= visible, ('Lost implied warnings', implied - visible))
         f.assertTrue(warnings <= visible, ('Lost durable warnings', warnings - visible))
-        # Deferred duplicate notices are re-observed by status below. Filing
-        # intent identities themselves must already be visible at startup.
+        # Filing intent identities themselves must already be visible at startup.
         f.assertTrue({n for n in deferred if f.engine.store.get('mail:filing:' + n) or
                       f.engine.store.get('mail:rename:' + n)} <= visible)
         f.assertEqual(f.engine.store.committed, f.engine.store.sequence)
         f.assertFalse(f.engine.store.write_failed)
         f.assertEqual(list(f.engine.store.events)[:len(self.committed_before)], self.committed_before,
                       'Every earlier committed independent record must survive')
+        self.assert_duplicate_warnings()
         for operation_id in self.attempted_ids:
             if self.flow == 'archive' and f.engine.store.get('archived:' + operation_id):
                 self.assert_archived(operation_id)
@@ -432,8 +432,6 @@ class Scenario:
             if len(copies) > 1:
                 status = f.data('operation_status', {'operation_id': operation_id})
                 f.assertIn(str(len(copies)) + ' copies', status['evidence']['sent_copy_warning'])
-                from aresos_control.mail.filing import notice_page
-                f.assertGreater(notice_page(f.engine.store)['total'], 0, 'Duplicate owner warning must survive crash')
         if self.operation_id is not None:
             status = f.data('operation_status', {'operation_id': self.operation_id})
             state = status['operation']['state']
@@ -454,6 +452,7 @@ class Scenario:
                 self.call()
             if self.flow in {'repair', 'settlement'} and f.imap.boxes['Sent']:
                 f.call('operation_repair', self.args)
+
         f.assertEqual(self.remote, remote, 'Restart/status/replay must never repeat remote work')
         f.assertEqual(self.prior_commands, prior)
         f.assertTrue(all(count <= 1 for count in remote.values()), remote)
@@ -470,6 +469,25 @@ class Scenario:
             f.assertEqual(f.engine.store.items('mail:composition:'), [])
         if self.flow == 'password':
             f.assertFalse((f.engine.store.get('mail:account:new') or {}).get('ready', False))
+
+    def assert_duplicate_warnings(self):
+        # The public catalogue may rerun an unresolved read-only check. Status
+        # must not recreate the warning before we check its own identity/count.
+        f, seen, args = self.fixture, {}, {}
+        while True:
+            page = f.data('filing_notices', args)
+            for notice in page['items']:
+                content = notice['untrusted_content']
+                if 'operation_id' in content and 'message_count' in content:
+                    seen[content['operation_id']] = content
+            if not page['cursor']:
+                break
+            args = {'cursor': page['cursor']}
+        for operation_id, copies in self.copies.items():
+            if len(copies) > 1:
+                f.assertIn(operation_id, seen, ('Lost operation duplicate warning', operation_id, seen))
+                f.assertEqual(seen[operation_id]['message_count'], len(copies))
+                f.assertIn(str(len(copies)) + ' copies', seen[operation_id]['reason'])
 
     def assert_completion(self, operation_id, state):
         if state != 'done':
