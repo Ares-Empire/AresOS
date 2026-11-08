@@ -190,6 +190,8 @@ class Store:
                 prepared = self._prepared(last['seq'])
                 self.locked = self.locked or prepared is None or prepared['record'] != last
             self._load_reservations()
+            from .recovery import recover_intents
+            recover_intents(self, persist=False)
             # Optional retention metadata is migrated only after all recovery
             # rights have been loaded. A full disk may defer this bookkeeping;
             # retained_at then conservatively treats an untracked row as new.
@@ -250,6 +252,8 @@ class Store:
                                 raise
                             # Submitting is already nonrepeatable. Keep status and
                             # cancellation available if this annotation cannot fit.
+            from .recovery import recover_intents
+            recover_intents(self)
         except BaseException as exc:
             with cleanup('index rebuild', exc):
                 self.close()
@@ -510,6 +514,30 @@ class Store:
             self.require_index()
         if self.locked and not restoring:
             raise Refused("restore_required", "Older log detected; sudo aresos admin control restore_confirm must invalidate earlier approvals first.")
+        # Every free change needs a durable completion marker too. Explicit
+        # operations, filing, exports and onboarding already carry an identity.
+        # This covers APPEND/draft, flags, folder creation, settings and future
+        # adapters using started/done, in the same admitted transaction.
+        intent_key = 'intent:' + action
+        explicit = operation_id or any(k.startswith(('op:', 'mail:filing:', 'mail:rename:',
+                                                     'export:', 'mail:account:')) for k in changes)
+        if not explicit and (outcome == 'started' or self.get(intent_key)):
+            changes = dict(changes)
+            if outcome in {'done', 'partial', 'refused'}:
+                changes[intent_key] = None
+            else:
+                changes[intent_key] = self.get(intent_key) or {
+                    'id': 'recovery-' + uuid.uuid4().hex, 'action': action,
+                    'app': action.split('_', 1)[0], 'state': 'started'}
+        if (hasattr(self, 'recovery_cutoff') and not restoring and not recovery and
+                not self.flushing_notices and not self.archiving and not cancellation):
+            from .recovery import recovery_notices
+            from itertools import islice
+            rows = self.items('notice:')
+            room = min(3, max(0, retention.NOTICE_COUNT - len(rows)))
+            notices = {'notice:' + n['id']: n for n in islice(recovery_notices(self), room)}
+            if sum(len(canonical(n)) for _, n in rows) + len(canonical(notices)) < retention.NOTICE_BYTES:
+                changes = {**notices, **changes}
         operations = {k[3:]: v if v is not None else self.get(k)
                       for k, v in changes.items() if k.startswith("op:")}
         if operation_id and operation_id not in operations:
@@ -628,6 +656,8 @@ class Store:
         self.deferred_notices[notice_id] = (copy.deepcopy(changes), action, summary)
 
     def flush_notices(self):
+        if self.locked:
+            return
         self.flushing_notices = True
         try:
             for notice_id, (changes, action, summary) in list(self.deferred_notices.items()):
@@ -695,6 +725,8 @@ class Store:
                    'owner confirmed restore; invalidated all earlier approvals', restoring=True)
         self.locked = False
         self.ledger.holds.pop('restore', None)
+        from .recovery import recover_intents
+        recover_intents(self, persist=False)
         # A large recovery must not complete and then return result_too_large.
         # Every operation remains available through the existing pending pages.
         result = {'generation': generation, 'unknown': []}

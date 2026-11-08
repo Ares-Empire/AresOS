@@ -173,25 +173,47 @@ def public_notice(store, notice):
 
 
 def notice_page(store, args=None, app=None):
+    import base64
+    import hashlib
+    import heapq
+    import json
+    from ..recovery import recovery_notices
     args = args or {}
-    retained = dict(store.items('notice:'))
-    for changes, _, _ in store.deferred_notices.values():
-        retained.update({k: v for k, v in changes.items() if k.startswith('notice:')})
-    values = [n for n in retained.values() if not n.get('ack') and (app is None or n['app'] == app)]
-    values.sort(key=lambda n: (n.get('created_at', 0), n['id']), reverse=True)
-    token = digest(['filing-notices', app, [n['id'] for n in values]])
-    offset = 0
+    version, after = None, None
     if 'cursor' in args:
         try:
-            version, index = args['cursor'].split(':')
-            offset = int(index)
-            if version != token or not 0 <= offset <= len(values):
-                raise ValueError()
-        except ValueError as exc:
+            version, encoded = args['cursor'].split(':')
+            after = tuple(json.loads(base64.urlsafe_b64decode(encoded)))
+        except (ValueError, TypeError) as exc:
             raise Refused('stale_reference', 'Notices changed; read again without cursor.') from exc
-    end = min(offset + args.get('limit', NOTICE_LIMIT), len(values))
-    return {'items': [public_notice(store, n) for n in values[offset:end]], 'total': len(values),
-            'cursor': f'{token}:{end}' if end < len(values) else None}
+    deferred = {}
+    for changes, _, _ in store.deferred_notices.values():
+        deferred.update({k: v for k, v in changes.items() if k.startswith('notice:')})
+    hashed, total = hashlib.sha256(), 0
+    def values():
+        nonlocal total
+        from itertools import chain
+        for notice in chain((v for k, v in store.iter_items('notice:') if k not in deferred),
+                            deferred.values(), recovery_notices(store)):
+            if (notice.get('ack') or (app is not None and notice['app'] != app) or
+                    'notice:' + notice['id'] in deferred and notice is not deferred['notice:' + notice['id']]):
+                continue
+            total += 1
+            hashed.update(canonical(notice['id']).encode())
+            key = (notice.get('created_at', 0), notice['id'])
+            if after is None or key < after:
+                yield key, notice
+    limit = args.get('limit', NOTICE_LIMIT)
+    newest = heapq.nlargest(limit + 1, values(), key=lambda row: row[0])
+    token = hashed.hexdigest()
+    if version is not None and version != token:
+        raise Refused('stale_reference', 'Notices changed; read again without cursor.')
+    selected = newest[:limit]
+    cursor = None
+    if len(newest) > limit:
+        encoded = base64.urlsafe_b64encode(canonical(selected[-1][0]).encode()).decode()
+        cursor = token + ':' + encoded
+    return {'items': [public_notice(store, n) for _, n in selected], 'total': total, 'cursor': cursor}
 
 
 def location_pages(observed):

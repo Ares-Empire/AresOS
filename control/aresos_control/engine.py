@@ -497,6 +497,9 @@ class Engine:
             return {"operation": self.public_operation(op)}
         if verb == "notice_ack":
             notice = self.store.get("notice:" + args["operation_id"])
+            if notice is None:
+                from .recovery import recovery_notices
+                notice = next((n for n in recovery_notices(self.store) if n['id'] == args['operation_id']), None)
             if notice and notice["app"] == app:
                 if not notice.get('ack'):
                     notice["ack"] = True
@@ -563,7 +566,8 @@ class Engine:
         self.store.observations = Observations()
         self.pending()
         try:
-            self.store.flush_notices()
+            if not isinstance(request, dict) or request.get('action') not in {'control_archive', 'control_restore_confirm'}:
+                self.store.flush_notices()
         except Exception as exc:
             self.store.remember_storage(exc)
             self.store.observations.storage(exc)
