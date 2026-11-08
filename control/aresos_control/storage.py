@@ -205,17 +205,10 @@ class Store:
                     self.db.commit()
             self.index_refusal = None
             try:
-                self.ledger.admit(os.fstat(self.journal.fileno()).st_size * 3 + 256 * 1024)
+                self.require_index()
             except Refused as exc:
-                self.index_refusal = 'Journal index build refused by the storage ledger. ' + str(exc)
-            else:
-                self.index = sqlite3.connect(index_path)
-                self.index.execute('PRAGMA journal_mode=OFF')
-                self.index.execute('PRAGMA synchronous=OFF')
-                self.index.execute('PRAGMA cache_size=-1024')
-                self.index.executescript('CREATE TABLE records (seq INTEGER PRIMARY KEY, hash TEXT NOT NULL, offset INTEGER NOT NULL);'
-                                        'CREATE TABLE latest (id TEXT PRIMARY KEY, seq INTEGER NOT NULL, value TEXT NOT NULL);')
-                self._read_journal(indexing=True)
+                if exc.code != 'storage_limit':
+                    raise
             prepared = self._pending_event()
             if prepared and prepared.get('space', {}).get('restoring'):
                 # Owner confirmation was already prepared, even if an earlier
@@ -432,8 +425,34 @@ class Store:
             yield old
 
     def require_index(self):
-        if self.index_refusal:
-            raise Refused('storage_limit', self.index_refusal + ' Cancel, status and owner restore remain available by streaming the journal.')
+        # An admission refusal is only a diagnostic. Reconstruct disposable
+        # state through this same path on startup and the next write attempt.
+        if self.index is not None:
+            return
+        self.ensure_writable()
+        try:
+            self.ledger.admit(os.fstat(self.journal.fileno()).st_size * 3 + 256 * 1024)
+            path = self.evidence_dir / 'journal-index.sqlite'
+            path.unlink(missing_ok=True)
+            index = sqlite3.connect(path)
+            try:
+                index.execute('PRAGMA journal_mode=OFF')
+                index.execute('PRAGMA synchronous=OFF')
+                index.execute('PRAGMA cache_size=-1024')
+                index.executescript('CREATE TABLE records (seq INTEGER PRIMARY KEY, hash TEXT NOT NULL, offset INTEGER NOT NULL);'
+                                    'CREATE TABLE latest (id TEXT PRIMARY KEY, seq INTEGER NOT NULL, value TEXT NOT NULL);')
+                self.index = index
+                self._read_journal(indexing=True)
+            except BaseException as exc:
+                self.index = None
+                with cleanup('index retry close', exc):
+                    index.close()
+                raise
+        except Refused as exc:
+            self.index_refusal = 'Journal index build refused by the storage ledger. ' + str(exc)
+            raise Refused(exc.code, self.index_refusal) from exc
+        self.index_refusal = None
+
 
     def _append(self, value):
         self.journal.seek(0, os.SEEK_END)
@@ -591,6 +610,10 @@ class Store:
                 retention.admit(self, prefixes, count, total, additions, label)
 
     def ensure_writable(self):
+        if not self.write_failed:
+            # The only persistent refusal is a transaction that may have begun.
+            # Ledger/quota checks and optional derived-state admission run anew.
+            self.storage_cause = None
         if self.write_failed:
             if self.storage_cause is not None:
                 raise self.storage_cause
