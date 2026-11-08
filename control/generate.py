@@ -4,7 +4,7 @@ from pathlib import Path
 import sys
 
 from aresos_control.definitions import ACTIONS, tools_for
-from aresos_control.boundary import asking_rules, managed_servers
+from aresos_control.boundary_policy import asking_rules, managed_settings, managed_mcp
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -34,13 +34,8 @@ def generated():
         files[f"control/generated/{app}-tools.json"] = json.dumps(tools_for(app), indent=2) + "\n"
     ask = asking_rules()
     files["control/settings/ask-rules.json"] = json.dumps({"permissions": {"ask": ask}}, indent=2) + "\n"
-    settings = json.loads((ROOT / 'control/settings/managed-settings.draft.json').read_text())
-    settings['permissions']['ask'] = [rule for rule in settings['permissions']['ask']
-                                      if not rule.startswith('mcp__')] + ask
-    files['control/settings/managed-settings.draft.json'] = json.dumps(settings, indent=2) + '\n'
-    mcp = json.loads((ROOT / 'control/settings/managed-mcp.json').read_text())
-    mcp['mcpServers'] = managed_servers()
-    files['control/settings/managed-mcp.json'] = json.dumps(mcp, indent=2) + '\n'
+    files['control/settings/managed-settings.draft.json'] = json.dumps(managed_settings(), indent=2) + '\n'
+    files['control/settings/managed-mcp.json'] = json.dumps(managed_mcp(), indent=2) + '\n'
     help_text = "Usage: aresos [admin] <app> <action> [--input JSON] [--json]\n       aresos log [--input JSON]\n\nActions (input is the definition's JSON object; --help on any action shows its schema):\n"
     doc = "# Control tools (generated; do not edit)\n\nSettings and packaging are drafts. Run `python3 control/generate.py` after editing the catalogue.\n\n"
     for a in ACTIONS:

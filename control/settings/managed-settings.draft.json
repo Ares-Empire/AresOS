@@ -88,7 +88,9 @@
       "allowedDomains": [],
       "deniedDomains": [],
       "allowAllUnixSockets": false,
-      "allowLocalBinding": false
+      "allowLocalBinding": false,
+      "allowUnixSockets": [],
+      "allowMachLookup": []
     },
     "filesystem": {
       "disabled": false,
@@ -125,5 +127,36 @@
         "/home/assistant/work"
       ]
     }
-  }
+  },
+  "allowManagedMcpServersOnly": true,
+  "allowedMcpServers": [
+    {
+      "serverCommand": [
+        "/usr/bin/env",
+        "-i",
+        "PATH=/usr/bin:/bin",
+        "LANG=C.UTF-8",
+        "/usr/bin/python3",
+        "-I",
+        "-S",
+        "/usr/libexec/aresos-control/launch.py",
+        "proxy",
+        "control"
+      ]
+    },
+    {
+      "serverCommand": [
+        "/usr/bin/env",
+        "-i",
+        "PATH=/usr/bin:/bin",
+        "LANG=C.UTF-8",
+        "/usr/bin/python3",
+        "-I",
+        "-S",
+        "/usr/libexec/aresos-control/launch.py",
+        "proxy",
+        "mail"
+      ]
+    }
+  ]
 }

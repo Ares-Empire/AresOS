@@ -315,12 +315,19 @@ def settings_checks():
     managed = Path('/etc/claude-code/managed-mcp.json')
     original = managed.read_bytes()
     managed.unlink()
+    settings_path = Path('/etc/claude-code/managed-settings.json')
+    settings_original = settings_path.read_bytes()
+    positive = json.loads(settings_original)
+    positive['allowManagedMcpServersOnly'] = False
+    positive.pop('allowedMcpServers', None)
+    settings_path.write_text(json.dumps(positive))
     try:
         control = run(['/usr/local/bin/claude', 'mcp', 'list'], 'mcp-unmanaged-positive')
         assert 'rogue-user' in control.stdout and 'rogue-project' in control.stdout
         assert Path('/home/assistant/work/mcp-started').exists()
     finally:
         managed.write_bytes(original)
+        settings_path.write_bytes(settings_original)
     Path('/home/assistant/work/mcp-started').unlink()
     from boundary_assertions import validate_managed_mcp
     listed = run(['/usr/local/bin/claude', 'mcp', 'list'], 'mcp-list')

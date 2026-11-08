@@ -48,7 +48,7 @@ class Integration(unittest.TestCase):
             os.chown(path, SERVICE, SERVICE)
         self.service_config = {"owner_uid": OWNER, "state_dir": str(self.root / "state"),
                                "evidence_dir": str(self.root / "independent"), "socket_dir": str(self.root / "sockets"), "approval_ttl": 120}
-        self.service_config.update(install_boundary(self.root / 'boundary', self.service_config['socket_dir']))
+        self.boundary_paths = install_boundary('/etc/claude-code')
         self.proxy_config = {"act_socket": str(self.root / "sockets/act.sock"), "admin_socket": str(self.root / "sockets/admin.sock"),
                              "home": str(self.home), "folders": [str(self.home / name) for name in ("Documents", "Downloads", "Desktop")]}
         Path("/etc/aresos-control/service.json").write_text(canonical(self.service_config))
@@ -119,7 +119,7 @@ class Integration(unittest.TestCase):
         prepared = self.call(OWNER, 'testapp_prepare_send', message(to=['alpha'], bcc=[]))
         self.assertTrue(prepared['ok'], prepared)
         approval = prepared['data']['approval']
-        path = Path(self.service_config['managed_settings'])
+        path = Path(self.boundary_paths['managed_settings'])
         original = path.read_bytes()
         try:
             path.unlink()

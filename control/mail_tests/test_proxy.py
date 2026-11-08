@@ -41,7 +41,7 @@ class CallerTransfers(MailCase):
         os.chown(self.root / 'sockets',SERVICE,SERVICE)
         config = {'owner_uid':OWNER,'state_dir':str(self.root / 'state'),'evidence_dir':str(self.root / 'independent'),'socket_dir':str(self.root / 'sockets')}
         from boundary_test_support import install_boundary
-        config.update(install_boundary(self.root / 'boundary', config['socket_dir']))
+        install_boundary('/etc/claude-code')
         config_file = self.root / 'service.json'
         config_file.write_text(json.dumps(config))
         proxy_config = {'act_socket':str(self.root / 'sockets/act.sock'),'admin_socket':str(self.root / 'sockets/admin.sock'),

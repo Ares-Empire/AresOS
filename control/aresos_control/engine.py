@@ -15,8 +15,8 @@ from .mail.adapter import Mail
 
 
 class Engine:
-    def __init__(self, state_dir, evidence_dir, ttl=900, checkpoint=lambda _: None, file_limit=FILE_LIMIT, boundary_config=None):
-        self.boundary = Boundary(boundary_config)
+    def __init__(self, state_dir, evidence_dir, ttl=900, checkpoint=lambda _: None, file_limit=FILE_LIMIT):
+        self.boundary = Boundary()
         self.store = Store(state_dir, evidence_dir, checkpoint)
         self.blobs = Blobs(self.store.state_dir / "blobs", file_limit, self.store.ensure_writable)
         self.receiver = Receiver(self.store.evidence_dir, checkpoint)

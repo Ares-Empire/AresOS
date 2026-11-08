@@ -15,7 +15,10 @@ class InstalledBoundary(EngineCase):
         super().setUp()
         self.approval = self.reserve()
         self.config = install_boundary(self.root / 'boundary')
-        self.engine.boundary = Boundary(self.config)
+        boundary_patch = patch.multiple('aresos_control.boundary', DEFAULT_SETTINGS=self.config['managed_settings'], DEFAULT_MCP=self.config['managed_mcp'])
+        boundary_patch.start()
+        self.addCleanup(boundary_patch.stop)
+        self.engine.boundary = Boundary()
         self.settings = Path(self.config['managed_settings'])
         self.mcp = Path(self.config['managed_mcp'])
         self.original = json.loads(self.settings.read_text())
@@ -129,7 +132,8 @@ class InstalledBoundary(EngineCase):
         defaults = Boundary()
         self.assertEqual(defaults.settings, boundary.DEFAULT_SETTINGS)
         self.assertEqual(defaults.mcp, boundary.DEFAULT_MCP)
-        self.assertIsNotNone(Boundary({'managed_settings': '/missing', 'managed_mcp': '/missing'}).reason)
+        with self.assertRaises(TypeError):
+            Boundary({'managed_settings': '/missing', 'managed_mcp': '/missing'})
 
     def test_boundary_image_generated_files_pass_and_restored_policy_enables_submission(self):
         # Match Dockerfile's COPY settings/ and cp of the managed draft verbatim.

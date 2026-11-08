@@ -125,7 +125,10 @@ class Review15(unittest.TestCase):
                  ('folder_delete', {'account': 'box', 'folder': 'Target'})]
         approvals = [(verb, args, self.approval(verb, args)) for verb, args in cases]
         config = install_boundary(self.root / 'boundary')
-        self.engine.boundary = Boundary(config)
+        boundary_patch = patch.multiple('aresos_control.boundary', DEFAULT_SETTINGS=config['managed_settings'], DEFAULT_MCP=config['managed_mcp'])
+        boundary_patch.start()
+        self.addCleanup(boundary_patch.stop)
+        self.engine.boundary = Boundary()
         Path(config['managed_settings']).unlink()
         for verb, args, approval in approvals:
             for action, data in [('prepare_' + verb, args), (verb, approval)]:
@@ -145,7 +148,10 @@ class Review15(unittest.TestCase):
         from types import SimpleNamespace
         from aresos_control.mail.onboarding import onboard
         config = install_boundary(self.root / 'boundary')
-        self.engine.boundary = Boundary(config)
+        boundary_patch = patch.multiple('aresos_control.boundary', DEFAULT_SETTINGS=config['managed_settings'], DEFAULT_MCP=config['managed_mcp'])
+        boundary_patch.start()
+        self.addCleanup(boundary_patch.stop)
+        self.engine.boundary = Boundary()
         @contextmanager
         def smtp(account):
             yield SimpleNamespace(esmtp_features={})
