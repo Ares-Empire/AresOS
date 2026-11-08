@@ -146,6 +146,7 @@ class Store:
         self.write_failed = False
         self.storage_cause = None
         self.deferred_notices = {}
+        self.active_intents = {}
         self.flushing_notices = False
         self.observations = Observations()
         self.observation_snapshot = None
@@ -520,17 +521,22 @@ class Store:
         # operations, filing, exports and onboarding already carry an identity.
         # This covers APPEND/draft, flags, folder creation, settings and future
         # adapters using started/done, in the same admitted transaction.
-        intent_key = 'intent:' + action
+        intent_key = self.active_intents.get(action)
         explicit = operation_id or any(k.startswith(('op:', 'mail:filing:', 'mail:rename:',
                                                      'export:', 'mail:account:')) for k in changes)
-        if not explicit and (outcome == 'started' or self.get(intent_key)):
+        tracked_intent = not explicit and (outcome == 'started' or intent_key is not None)
+        if tracked_intent:
             changes = dict(changes)
-            if outcome in {'done', 'partial', 'refused'}:
+            if outcome == 'started':
+                # A later successful call must not close an earlier interrupted
+                # attempt of the same action. Only this live call owns its key.
+                intent_key = 'intent:' + uuid.uuid4().hex
+                changes[intent_key] = {'id': 'recovery-' + intent_key[7:], 'action': action,
+                    'app': action.split('_', 1)[0], 'state': 'started'}
+            elif outcome in {'done', 'partial', 'refused'}:
                 changes[intent_key] = None
             else:
-                changes[intent_key] = self.get(intent_key) or {
-                    'id': 'recovery-' + uuid.uuid4().hex, 'action': action,
-                    'app': action.split('_', 1)[0], 'state': 'started'}
+                changes[intent_key] = self.get(intent_key)
         if (hasattr(self, 'recovery_cutoff') and not restoring and not recovery and
                 not self.flushing_notices and not self.archiving and not cancellation):
             from .recovery import recovery_notices
@@ -611,6 +617,11 @@ class Store:
         self._finish(event)
         self.write_failed = False
         self.ledger.finish(updates, consume)
+        if tracked_intent:
+            if outcome == 'started':
+                self.active_intents[action] = intent_key
+            else:
+                self.active_intents.pop(action, None)
 
     def retained_at(self, key):
         row = self.db.execute('SELECT created FROM retained WHERE k=?', (key,)).fetchone()
@@ -629,7 +640,8 @@ class Store:
                           owner_recovery=owner_recovery or self.archiving, cancellation=cancellation)
 
     def admit_changes(self, changes):
-        groups = [(('mail:composition:',), retention.COMPOSITION_COUNT, retention.COMPOSITION_BYTES, 'Compositions'),
+        groups = [(('intent:',), retention.FILING_COUNT, retention.FILING_BYTES, 'Unfinished changes'),
+                  (('mail:composition:',), retention.COMPOSITION_COUNT, retention.COMPOSITION_BYTES, 'Compositions'),
                   (('blob:',), retention.IMPORT_COUNT, retention.IMPORT_BYTES, 'Imported file references'),
                   (('mail:filing:', 'mail:rename:'), retention.FILING_COUNT, retention.FILING_BYTES, 'Filing intents'),
                   (('mail:filing-locations:',), retention.FILING_COUNT * 20000, retention.FILING_BYTES, 'Filing location pages'),

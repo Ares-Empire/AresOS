@@ -503,7 +503,16 @@ class Engine:
             if notice and notice["app"] == app:
                 if not notice.get('ack'):
                     notice["ack"] = True
-                    self.store.write({"notice:" + notice["id"]: notice}, name, "filing notice acknowledged")
+                    changes = {"notice:" + notice["id"]: notice}
+                    source_key = notice.get('untrusted_content', {}).get('intent_key', '')
+                    if source_key.startswith('intent:'):
+                        changes[source_key] = None
+                    elif source_key.startswith(('mail:filing:', 'mail:rename:')):
+                        source = self.store.get(source_key)
+                        if source and source.get('state') == 'started':
+                            source['state'] = 'partial'
+                            changes[source_key] = source
+                    self.store.write(changes, name, "filing notice acknowledged")
                 from .mail.filing import public_notice
                 return {"notice": {**public_notice(self.store, notice), "id": notice["id"], "ack": True}}
             op = self.operation(args["operation_id"], app)

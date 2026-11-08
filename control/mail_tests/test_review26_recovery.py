@@ -110,3 +110,22 @@ class Recovery26(unittest.TestCase):
         self.assertTrue(expected <= seen)
         self.engine.store.write({}, 'fixture', 'Persist next recovery batch')
         self.assertTrue(expected <= {n['id'] for _, n in self.engine.store.items('notice:')})
+
+    def test_review26_later_success_cannot_erase_prior_interrupted_same_action(self):
+        store = self.engine.store
+        store.write({}, 'mail_draft_save', 'First APPEND started', outcome='started')
+        store.write({}, 'mail_draft_save', 'First APPEND uncertain', outcome='unknown')
+        old = store.items('intent:')
+        self.assertEqual(len(old), 1)
+        store.write({}, 'mail_draft_save', 'Second APPEND started', outcome='started')
+        store.write({}, 'mail_draft_save', 'Second APPEND complete', outcome='done')
+        self.assertEqual(store.items('intent:'), old)
+        self.restart()
+        page = self.data('filing_notices', {})
+        self.assertIn(old[0][1]['id'], {n['operation_id'] for n in page['items']})
+
+        self.data('notice_ack', {'operation_id': old[0][1]['id']})
+        self.assertIsNone(self.engine.store.get(old[0][0]))
+        with patch('aresos_control.retention.FILING_COUNT', 1):
+            self.engine.store.write({}, 'mail_draft_save', 'Next intent after resolution', outcome='started')
+            self.engine.store.write({}, 'mail_draft_save', 'Next intent complete', outcome='done')
