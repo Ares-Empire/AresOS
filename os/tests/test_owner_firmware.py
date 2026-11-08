@@ -62,6 +62,20 @@ class FirmwareTest(unittest.TestCase):
         self.refuse(self.text+entry(hd()+file()+END,number='000B',active=' '),'does not uniquely map')
         self.refuse(entry(hd()+file()+END)*2,'Duplicate Boot number')
 
+    def test_lenovo_firmware_alias_on_target_esp_is_set_aside(self):
+        # Lenovo LOQ firmware recreates "Fedora" -> \EFI\fedora\shim.efi on the target ESP at every start.
+        alias=entry(hd()+file('\\EFI\\fedora\\shim.efi')+END,number='0010',text='Fedora')
+        for text in (self.text+alias,alias+self.text,self.text+alias+'    data: 52 43\n'):
+            with self.subTest(text=text[-80:]):self.assertEqual(owner.firmware_entry(text,GUID)['number'],'000A')
+        upper=entry(hd()+file('\\EFI\\FEDORA\\SHIM.EFI')+END,number='0010')
+        self.assertEqual(owner.firmware_entry(self.text+upper,GUID)['number'],'000A')
+        # The alias never stands in for the installer's entry, and only one alias is set aside.
+        self.refuse(alias,'does not uniquely map')
+        self.refuse(self.text+alias+entry(hd()+file('\\EFI\\fedora\\shim.efi')+END,number='0011'),'does not uniquely map')
+        # Any other loader on the target ESP stays ambiguous.
+        for path in ('\\EFI\\fedora\\grubx64.efi','\\EFI\\BOOT\\BOOTX64.EFI','\\EFI\\fedora\\shim.efi.bak','\\EFI\\other\\shim.efi'):
+            with self.subTest(path=path):self.refuse(self.text+alias+entry(hd()+file(path)+END,number='0012'),'does not uniquely map')
+
     def test_non_efi_path_and_other_esp_not_counted(self):
         for raw in (hd()+file('\\OTHER\\boot.efi')+END,hd('20d4509a-0f19-4bc0-8478-2274d7eac018')+file()+END):
             self.refuse(entry(raw),'does not uniquely map')

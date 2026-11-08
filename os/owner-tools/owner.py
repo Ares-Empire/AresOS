@@ -552,6 +552,9 @@ def device_path(raw, esp_guid):
     return dict(path=path, esp_guid=targets[0]['guid'])
 
 
+FIRMWARE_ALIAS_LOADER = '\\efi\\fedora\\shim.efi'
+
+
 def firmware_entry(text, esp_guid):
     """Read efibootmgr18 verbose bytes. Text is display/diagnostics only."""
     message = 'Unexpected efibootmgr entry framing; preserve private diagnostics'
@@ -591,8 +594,15 @@ def firmware_entry(text, esp_guid):
         decoded = device_path(bytes.fromhex(hex_text), esp_guid)
         if decoded is not None:
             matches.append(dict(number=entry['number'], label=entry['label'], **decoded))
-    require(len(matches) == 1, 'Linux firmware entry does not uniquely map to target EFI')
-    return matches[0]
+    # Lenovo's firmware (LOQ 15IRH8) adds its own entry for the target ESP's
+    # \EFI\fedora\shim.efi at every start and recreates it when deleted (owner
+    # install, 2026-11-08). It starts Fedora's shim on the same target ESP, so
+    # at most one such alias is set aside by its device path alone; labels and
+    # optional data still decide nothing. Exactly one other entry must remain.
+    aliases = [m for m in matches if m['path'].lower() == FIRMWARE_ALIAS_LOADER]
+    entries = [m for m in matches if m not in aliases]
+    require(len(entries) == 1 and len(aliases) <= 1, 'Linux firmware entry does not uniquely map to target EFI')
+    return entries[0]
 
 
 def disk_record(host, expected):
