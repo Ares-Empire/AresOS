@@ -1,6 +1,6 @@
 # The control layer: design
 
-**Status:** draft 20, 2026-11-08. Draft 16 with the owner's answers of 2026-11-07 built in (`PLAN.md` decisions 14 to
+**Status:** draft 21, 2026-11-08. Draft 16 with the owner's answers of 2026-11-07 built in (`PLAN.md` decisions 14 to
 19 and 21), and two decisions of 2026-11-08: the central session can gain tools, the ones that run outside its sandbox
 only through the tool layer, asking (decision 22); and one session does coding, commands, mail, Chrome and later apps,
 possibly in skip-permissions mode, replacing decision 8's split (decision 23). Draft 18 answers the eighteenth
@@ -12,29 +12,31 @@ containing whole classes (one traced set of programs outside the sandbox, git it
 the tools reachable only from the registered `aresos-mcp`, GitHub refusing every deletion and rewrite by the session)
 and by stating exact bounds as owner choices in section 10. Draft 20 (re-check
 [20](../../reviews/control-design/2026-11-08-RECHECK-20.md)) makes Claude Code and the relay non-dumpable, identifies
-the relay by its group, and adds a fifth owner choice for unreviewed servers that hold his account access. Covers the
-shared base, Mail and Chrome. The frontier review ([`REVIEW`](../../reviews/control-design/2026-11-07-REVIEW.md), 8
-blocking) and five re-checks ([1](../../reviews/control-design/2026-11-07-RECHECK.md),
-[2](../../reviews/control-design/2026-11-07-RECHECK-2.md), [3](../../reviews/control-design/2026-11-07-RECHECK-3.md),
-[4](../../reviews/control-design/2026-11-07-RECHECK-4.md), [5](../../reviews/control-design/2026-11-07-RECHECK-5.md))
-ended at "ready for brief 18" on draft 6. Draft 7 adds brief 17b's Chrome results (section 6: fail, then repeat; the
-policy install; the owner's own stop control; service workers). Draft 8 adds brief 17c's (section 6: holding inside
-the page as the normal path, what the hold protects against and what it doesn't, workers, live messages, the restart,
-the owner's own sends, the site guard settled); the reviewer's sixth re-check
-([6](../../reviews/control-design/2026-11-07-RECHECK-6.md)) found four blocking points there, and draft 9 answered
-them with Chrome's own blocking rules as a floor under every hold. Brief 17d showed that floor doesn't hold (worker
-WebSockets pass it; an allowance lets a different send out when control ends), and the seventh re-check
-([7](../../reviews/control-design/2026-11-07-RECHECK-7.md)) recommended a checkpoint outside Chrome, which brief 17e
-showed holds. Draft 10 rebuilds section 6 on that checkpoint (with the owner's hard requirements for it, decision 6),
-makes the site guard strict (decision 12), adds "don't ask again" (decision 7) and his usual sites (decision 9), and
-adds to section 7 the assistant apart from coding sessions (decision 8) and the approval surface after the phone tests
-(open: the owner decides). The eighth re-check ([8](../../reviews/control-design/2026-11-07-RECHECK-8.md)) found six
-blocking points in draft 10, and draft 11 answers them: uncertain reading held until the checkpoint is ready, clicks
-that may delete local data ask first, what a recognised action is, three separate users with no shared files, every
-place the root is installed, and the exact upstream TLS checks with what is lost. The ninth re-check
-([9](../../reviews/control-design/2026-11-07-RECHECK-9.md)) closed three of them and found one new point; draft 12
-records every input before it reaches Chrome, makes unlabelled local-only deletion an owner question, checks upstream
-certificates with Chrome's own current data, and bounds a destructive action approved in advance. The tenth re-check
+the relay by its group, and adds a fifth owner choice for unreviewed servers that hold his account access. Draft 21
+(re-check [21](../../reviews/control-design/2026-11-08-RECHECK-21.md)) accepts one relay per app per session and
+checks who holds its pipes. Covers the shared base, Mail and Chrome. The frontier review
+([`REVIEW`](../../reviews/control-design/2026-11-07-REVIEW.md), 8 blocking) and five re-checks
+([1](../../reviews/control-design/2026-11-07-RECHECK.md), [2](../../reviews/control-design/2026-11-07-RECHECK-2.md),
+[3](../../reviews/control-design/2026-11-07-RECHECK-3.md), [4](../../reviews/control-design/2026-11-07-RECHECK-4.md),
+[5](../../reviews/control-design/2026-11-07-RECHECK-5.md)) ended at "ready for brief 18" on draft 6. Draft 7 adds
+brief 17b's Chrome results (section 6: fail, then repeat; the policy install; the owner's own stop control; service
+workers). Draft 8 adds brief 17c's (section 6: holding inside the page as the normal path, what the hold protects
+against and what it doesn't, workers, live messages, the restart, the owner's own sends, the site guard settled); the
+reviewer's sixth re-check ([6](../../reviews/control-design/2026-11-07-RECHECK-6.md)) found four blocking points
+there, and draft 9 answered them with Chrome's own blocking rules as a floor under every hold. Brief 17d showed that
+floor doesn't hold (worker WebSockets pass it; an allowance lets a different send out when control ends), and the
+seventh re-check ([7](../../reviews/control-design/2026-11-07-RECHECK-7.md)) recommended a checkpoint outside Chrome,
+which brief 17e showed holds. Draft 10 rebuilds section 6 on that checkpoint (with the owner's hard requirements for
+it, decision 6), makes the site guard strict (decision 12), adds "don't ask again" (decision 7) and his usual sites
+(decision 9), and adds to section 7 the assistant apart from coding sessions (decision 8) and the approval surface
+after the phone tests (open: the owner decides). The eighth re-check
+([8](../../reviews/control-design/2026-11-07-RECHECK-8.md)) found six blocking points in draft 10, and draft 11
+answers them: uncertain reading held until the checkpoint is ready, clicks that may delete local data ask first, what
+a recognised action is, three separate users with no shared files, every place the root is installed, and the exact
+upstream TLS checks with what is lost. The ninth re-check ([9](../../reviews/control-design/2026-11-07-RECHECK-9.md))
+closed three of them and found one new point; draft 12 records every input before it reaches Chrome, makes unlabelled
+local-only deletion an owner question, checks upstream certificates with Chrome's own current data, and bounds a
+destructive action approved in advance. The tenth re-check
 ([10](../../reviews/control-design/2026-11-07-RECHECK-10.md)) closed the input barrier and the advance approval; draft
 13 states both options for unlabelled local-only deletion truthfully and makes Chrome's own security data a precise
 contract (paths, what the trust rests on, a version gate, freshness from the data's own fields, recovery when it is
@@ -1500,8 +1502,9 @@ without the prompt. The settings (exact values later, owner decision 3) must clo
     file-tool write in a project folder. A managed hook asks the tool service for the snapshot and blocks the command
     or write until it exists.
   - *What can be lost (the exact bound):* work saved while a command runs, by him or by any program, and deleted by
-    that same command before it ends; and changes a background process (a command left running, a watcher) makes
-    between two snapshots and deletes before the next one.
+    that same command before it ends; changes a background process (a command left running, a watcher) makes
+    between two snapshots and deletes before the next one; and a write of his own made while a snapshot is being
+    taken, which can miss it and then be deleted before the next.
   - *Retention:* every captured snapshot for 24 hours, then one per hour (the last of each hour) until 30 days, then
     none.
     From the second day on, only hourly states remain.
@@ -1513,11 +1516,11 @@ without the prompt. The settings (exact values later, owner decision 3) must clo
     background ones included (the same freeze as on a failure, below), and a file-tool write waits on its hook, so no
     write of the session's runs while it finds the nested subvolumes, commits pending writes (a filesystem sync),
     compares each subvolume's generation with the last snapshot's, and takes the snapshots; it skips a subvolume only
-    if its generation is unchanged. Writes of his own at that moment (his editor) aren't frozen; they land in this
-    snapshot or the next. Snapshots live in a root-owned folder on
-    the same filesystem that the session's user can neither read nor write; a root-owned helper takes and deletes
-    them. He restores: `sudo aresos admin projects snapshots` lists them, `… restore <snapshot> <path>` puts a file or
-    folder back beside the current one (`--replace` to put it in place).
+    if its generation is unchanged. Writes of his own (his editor) aren't frozen, so one made while the helper works
+    can miss this snapshot and, if Claude deletes it before the next one, be lost (part of the bound above). Snapshots
+    live in a root-owned folder on the same filesystem that the session's user can neither read nor write; a
+    root-owned helper takes and deletes them. He restores: `sudo aresos admin projects snapshots` lists them, `…
+    restore <snapshot> <path>` puts a file or folder back beside the current one (`--replace` to put it in place).
   - *When a snapshot fails, every writer stops:* running sandboxed commands are frozen (they run in a cgroup of their
     own, which the helper freezes), and new terminal commands and file-tool writes in project folders are refused,
     so all terminal commands stop, not only those that touch a project (the sandbox can't tell in advance where a
@@ -1568,22 +1571,53 @@ without the prompt. The settings (exact values later, owner decision 3) must clo
     - *The service knows the relay by its credential.* The tool service accepts every action that asks, and the
       preparation that reserves it, only from a peer whose effective group (from the socket's peer credentials) is
       `aresos-relay` and whose parent process is the Claude Code process the launcher registered at start (its
-      process id and start time, its group `aresos-session`). A copy of the relay that some other process starts has
-      the wrong parent and is refused.
+      process id and start time, its group `aresos-session`).
+    - *One relay per app per session.* That isn't enough on its own: an unsandboxed direct child of Claude Code could
+      make pipes, start a feeder process, and then start the genuine set-group-id relay itself, keeping the registered
+      parent and gaining `aresos-relay` (re-check 21). So after the launcher registers Claude Code, the service accepts
+      the first relay that connects for each managed app (`control`, `mail`, `chrome`, each added tool) and refuses
+      every later relay from that parent until Claude Code is started again. Claude Code starts its MCP servers when
+      it starts, before Claude can run anything, so the genuine relays always come first (*base qualification*: that
+      order, and that no command can run before them). The cost, said plainly: when a relay ends (a crash, or a
+      reconnect in Claude Code's MCP view), that app's tools stay off until the session is restarted, and the service
+      tells Claude and him exactly that ("the mail tools were restarted; restart the session to use them again").
+    - *The channel is checked.* At registration and before every asking action, a root-owned helper of the service
+      checks that the relay's input and output pipes are held only by the registered Claude Code and the relay
+      itself: it finds each pipe's identity through the relay's descriptors and looks for any other process holding
+      either end. If another process holds one, the action is refused. Peer credentials describe who opened a
+      connection, not who holds it later (re-check 21), which is why this check is needed.
+    - *No leaked descriptors.* Unrelated children of Claude Code get no MCP pipe ends and no service sockets: the
+      relay opens its own service socket, closed on starting any program, and Claude Code passes only standard input
+      and output to the programs it starts. *Base qualification* tests that inheritance: every child of Claude Code
+      (the terminal's commands, the git wrapper, the hooks) holds none of them.
+    - *Dropping the extra group before the sandbox.* The sandbox needs ordinary credentials to set up its user
+      namespace, and a non-dumpable process can't have its namespace mapping written (the user-namespace rules). So
+      the sandbox program Claude Code starts (`bwrapPath` in the settings) and the git wrapper are root-owned programs
+      that first set the effective group back to the real one and then start `bwrap`; inside the sandbox nothing has
+      `aresos-session`. `no_new_privs` is never set on Claude Code itself, because that would stop the relay's
+      set-group-id start; `bwrap` sets it inside the sandbox.
+    - *Nothing turns dumpability back on.* The relay's small set-group-id program, after its own group change, forbids
+      the call that would make it dumpable again (a seccomp rule on `PR_SET_DUMPABLE`, with `no_new_privs`, which the
+      relay doesn't need afterwards). For Claude Code that rule can't be used, because `no_new_privs` would stop the
+      relay's start; *base qualification* verifies that the pinned native program never makes that call.
     - *What to qualify (base qualification):* Claude Code's native program under a set-group-id start (the
       kernel's secure mode drops some environment variables and changes some library behaviour; the launcher's fixed
       environment must still work), the MCP pipes between the two non-dumpable processes, and the terminal's
-      commands and git still running normally (bash returns to the real group by itself, so its own children are
-      ordinary).
-    - *Hostile test:* from a process of the session's user outside the sandbox: writing into `/proc/<relay>/fd/*` and
-      `/proc/<claude>/fd/*`, reading their memory, attaching to them, connecting to the service directly, and starting
-      the genuine relay itself and sending requests through it; every attempt fails, and no asking action reaches the
-      service. The trace of programs in (a) is evidence for qualification; it is not runtime enforcement, and this
-      point (c) is what holds at run time.
-    So even a route (a) and (b) missed can't send or delete through the tools. It doesn't protect his files: a missed
-    route running as the session's user could still change what that user may change and use the network outside the
-    sandbox; (a) and (b) are what prevent that. The `aresos` command can still read and prepare; asking submissions
-    come only from the session.
+      commands and git still running normally after the group is dropped.
+    - *Hostile test:* from a process of the session's user outside the sandbox, and from an unsandboxed direct child
+      of Claude Code: writing into `/proc/<relay>/fd/*` and `/proc/<claude>/fd/*`, reading their memory, attaching to
+      them, connecting to the service directly, making its own pipes and a feeder and starting the genuine relay
+      itself; a second relay after startup; a child holding an inherited pipe end or socket; and a relay restart
+      (refused, with the plain message). Every attempt fails, and no asking action reaches the service. The trace of
+      programs in (a) is evidence for qualification; it is not runtime enforcement. This point (c) is what holds at
+      run time for the tools.
+    What remains, said plainly: (c) keeps a missed route from sending or deleting through the tools. It doesn't keep
+    such a route from changing his files that the session's user may change, from using the network outside the
+    sandbox, or from reading what the session's user can read, Claude Code's own folder with its sign-in included;
+    whether that sign-in could answer a prompt through Remote Control is unknown. Pushing keystrokes into Claude
+    Code's terminal is closed (`dev.tty.legacy_tiocsti` is 0, so it needs a privilege the session's user lacks:
+    *brief*). Points (a) and (b) are what keep missed routes from happening at all. The `aresos` command can still
+    read and prepare; asking submissions come only from the session.
   - *(d) His own side (owner choice, section 10):* project folders belong to the session's user. With option (a),
     recommended, he works on projects through Claude, his own git refuses Claude's repositories (git refuses a
     repository owned by another user unless declared safe, checking the `.git` file, the git folder and the work
@@ -1817,18 +1851,19 @@ tool runs decides how it is added:
   the vetted additions' record (root-owned, each entry with its hash and classes). The exact installed-settings check
   (Mail's boundary check, `boundary.py`) compares the installed files against that generated result, additions
   included.
-- *Tests (the new add-tool brief):* preparation fetches only from the listed hosts and follows no redirect
-  elsewhere; a look-alike package name is flagged and its publisher shown; a source elsewhere needs a fetch approval,
-  then an install approval; inspection, build and install scripts run in the sandbox, and the install step runs none
-  as root; the review runs in a fresh agent with no session context; an addition asks with the right `question`; an
-  addition by any other route never starts (a user or project MCP configuration, Claude Code's own plugin install, a
-  file written into the tool layer's folders); a changed artifact or version is refused; a tool without review
-  evidence or an adapter asks on every call; a server starts only after approval and reaches only its declared
-  hosts; a tool whose description or schema changes mid-session is hidden, and a call to its old definition is
-  refused at dispatch; new tools appear only in a session started with the regenerated settings; an added server
-  can't read the service's or another addition's credentials; a connector's tools ask on every call unless he marked
-  one free; send and delete tools ask, also in skip-permissions mode; the installed-settings check accepts exactly
-  the generated files.
+- *Tests (the new add-tool brief):* preparation fetches only from the listed hosts and follows no redirect elsewhere;
+  a look-alike package name is flagged and its publisher shown; a source elsewhere needs a fetch approval, then an
+  install approval; inspection, build and install scripts run in the sandbox, and the install step runs none as root;
+  the review runs in a fresh agent with no session context; an addition asks with the right `question`; an addition by
+  any other route never starts (a user or project MCP configuration, Claude Code's own plugin install, a file written
+  into the tool layer's folders); a changed artifact or version is refused; a tool without review evidence or an
+  adapter asks on every call; a server starts only after approval and reaches only its declared hosts; a tool whose
+  description or schema changes mid-session is hidden, and a call to its old definition is refused at dispatch; new
+  tools appear only in a session started with the regenerated settings; an added server can't read the service's or
+  another addition's credentials; a connector's tools ask on every call unless he marked one free; send and delete
+  tools ask, also in skip-permissions mode; the installed-settings check accepts exactly the generated files; and for
+  a server that holds his account access, a failed review, a review that can't run, and his choice 5 still unanswered
+  each refuse an install with his credentials.
 
 **The approval surface: Claude Code's own prompt (decision 21).** After six phone tests the owner decided (board
 #78, his words: "okay we will use it as is, no need for a request"): approvals stay Claude Code's own permission
@@ -1901,10 +1936,11 @@ improvement if he asks for it.
 
 1. **Deleting in his project folders** (section 7). (a) Free: a snapshot of the project folders is taken just before
    each terminal command and each file write in a project; every captured snapshot is kept for 24 hours, then one per
-   hour until 30 days, and he can restore from them. What
-   can be lost: work saved while a command runs and deleted by that same command, and changes a background process
-   makes and deletes between two snapshots. (b) Each deletion asks: the terminal can no longer write project folders,
-   builds run on scratch copies and every deletion goes through a question. Advice: (a).
+   hour until 30 days, and he can restore from them. What can be lost: work saved while a command runs and deleted by
+   that same command; changes a background process makes and deletes between two snapshots; and a write of his own
+   made while a snapshot is taken, if it misses it and is deleted before the next. (b) Each deletion asks: the
+   terminal can no longer write project folders, builds run on scratch copies and every deletion goes through a
+   question. Advice: (a).
 2. **His own work in project folders** (section 7, point (d)). (a) He works on projects through Claude; his own git
    refuses the project repositories (they belong to the session's user), as do his file manager's and editor's git,
    each checked; a repository of his moved there is handed to the session's user. (b) His git trusts the project
