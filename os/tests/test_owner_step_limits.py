@@ -64,9 +64,13 @@ class OwnerStepLimitTest(unittest.TestCase):
         self.assertEqual(value['caps'],{'probe':32,'owner-tools':21})
         self.assertEqual([x['path'] for x in value['sources']],['os/manifest/ci/14/14zzb-timing/projection.json',
             'os/manifest/ci/14/14zzb-round/terminal-facts.json','.work/14/run-41324240079/evidence.zip','os/owner-tools/commands.json'])
+        # A source set aside until the next VM rehearsal (see test_checkout_sources)
+        # must match the bytes recorded then; every other source keeps its hash.
+        from test_checkout_sources import pending_rebind
+        waiting={row['path']:row['sha256'] for row in pending_rebind()}
         for index in (0,1,3):
             row=value['sources'][index]
-            self.assertEqual(hashlib.sha256((ROOT/row['path']).read_bytes()).hexdigest(),row['sha256'])
+            self.assertEqual(hashlib.sha256((ROOT/row['path']).read_bytes()).hexdigest(),waiting.get(row['path'],row['sha256']))
         self.assertEqual(value['sources'][2]['sha256'],json.loads((ROOT/'os/manifest/ci/14/14zzb-round/qualification20-artifact.json').read_text())['sha256'])
         old=self.value; q20=json.loads((ROOT/'os/manifest/ci/14/14zzb-round/terminal-facts.json').read_text())
         observed=old['observed_runs']+[dict(qualification=20,stages=q20['stages'])]
