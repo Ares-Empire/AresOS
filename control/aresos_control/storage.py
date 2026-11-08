@@ -11,6 +11,7 @@ import uuid
 
 from . import retention
 from .common import Refused, canonical, digest, json_value, visible, storage_refusal
+from .results import Observations, recorded_write
 from .space import SpaceLedger, record_budget
 
 RESTORE_BATCH_BYTES = 64 * 1024
@@ -133,6 +134,7 @@ class Store:
             raise ValueError("Independent evidence must be outside the backup tree")
         self.checkpoint = checkpoint
         self.write_failed = False
+        self.observations = Observations()
         self.recovering = False
         self.archiving = False
         self.index = None
@@ -467,6 +469,7 @@ class Store:
         self.committed = record["seq"]
         self.checkpoint("journal_committed")
 
+    @recorded_write
     def write(self, changes, action, summary, operation_id=None, restoring=False, outcome="done", untrusted_content=None, recovery=False):
         self.ensure_writable()
         cancellation = action.endswith('_operation_cancel')

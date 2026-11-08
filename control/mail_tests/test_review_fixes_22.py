@@ -20,7 +20,8 @@ class Duplicates22(unittest.TestCase):
     restart = round21.LateDuplicates21.restart
 
     def assert_observation(self, result):
-        self.assertTrue(result['ok'], result)
+        self.assertFalse(result['ok'], result)
+        self.assertIn(result['error']['code'], {'storage_limit', 'storage_error', 'journal_incomplete'})
         evidence = result['data']['evidence']
         self.assertEqual([copy['uid'] for copy in evidence['sent']], [1, 2])
         self.assertIn('2 copies', evidence['sent_copy_warning'])
@@ -73,7 +74,8 @@ class Duplicates22(unittest.TestCase):
             for verb, arguments in [('operation_status', {'operation_id': old['id']}), ('operation_repair', args)]:
                 with self.subTest(error=error, verb=verb), patch.object(self.engine.store, 'write', side_effect=error):
                     result = self.call(verb, arguments)
-                self.assertTrue(result['ok'], result)
+                self.assertFalse(result['ok'], result)
+                self.assertIn(result['error']['code'], {'storage_limit', 'storage_error', 'journal_incomplete'})
                 evidence = result['data']['evidence']
                 self.assertEqual(len(evidence['sent']), 2)
                 self.assertIn('2 copies', evidence['sent_copy_warning'])
@@ -94,7 +96,8 @@ class Duplicates22(unittest.TestCase):
         self.data('operation_status', {'operation_id': old['id']})
         with patch.object(self.engine.store.journal, 'write', side_effect=OSError(errno.ENOSPC, 'Synthetic disk full')):
             result = self.call('operation_repair', args)
-        self.assertTrue(result['ok'], result)
+        self.assertFalse(result['ok'], result)
+        self.assertIn(result['error']['code'], {'storage_limit', 'storage_error', 'journal_incomplete'})
         evidence = result['data']['evidence']
         self.assertEqual(len(evidence['sent']), 2)
         self.assertIn('2 copies', evidence['sent_copy_warning'])
@@ -111,7 +114,8 @@ class Duplicates22(unittest.TestCase):
             return write(data[:13]) if 'commit' in json.loads(data) else write(data)
         with patch.object(self.engine.store.journal, 'write', side_effect=short_commit):
             result = self.call('operation_repair', args)
-        self.assertTrue(result['ok'], result)
+        self.assertFalse(result['ok'], result)
+        self.assertIn(result['error']['code'], {'storage_limit', 'storage_error', 'journal_incomplete'})
         self.assertEqual(result['data']['operation']['state'], 'unknown')
         self.assertEqual(len(result['data']['evidence']['sent']), 2)
         self.assertEqual(result['data']['evidence']['settlement_storage_error']['code'], 'storage_limit')

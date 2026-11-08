@@ -25,6 +25,7 @@ OP = obj({"operation_id": string(80)})
 PAGE = obj({"cursor": string(512), "limit": {"type": "integer", "minimum": 1, "maximum": 10}}, [])
 # Results have one stable bounded envelope. Each action documents the data it returns.
 RESULT = obj({"ok": {"type": "boolean"}, "data": {"type": "object"}, "error": {"type": "object"},
+              "observations": obj({"stages": {"type": "object"}, "evidence": {"type": "object"}}),
               "pending": {"type": "object"}}, ["ok", "pending"])
 PUBLIC_OPERATION = obj({"id": string(80), "generation": string(32), "app": string(64), "action": string(128),
     "approval": {"type": "object"}, "state": {"type": "string", "enum": ["reserved", "submitting", "done", "partial", "refused", "failed", "unknown"]},
@@ -65,6 +66,7 @@ class Action:
                 "On refused, permission_denied or restore_required, stop and ask the owner. "
                 "On expired/cancelled, nothing was submitted; prepare anew only if still wanted. "
                 "On storage_limit, the disk or retained storage is full: stop and ask the owner to free space. "
+                "Storage failures return ok=false and the first storage error; observations preserves remote evidence and stage answers even if recording failed. These facts never authorize replay. "
                 "Approval and replay checks still apply; no action is reported done without its evidence. "
                 "On partial, inspect stages and repair only missing local stages. On unknown or transport_error, "
                 "inspect operation_status and far-side evidence; never retry with a new id. "

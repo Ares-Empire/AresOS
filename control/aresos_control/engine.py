@@ -14,6 +14,7 @@ from .requests import envelope, changing, UPLOAD_CHUNK, DOWNLOAD_CHUNK
 from .common import CHUNK_SIZE, FILE_LIMIT, RESULT_LIMIT, Refused, approval_input, approval_order, canonical, digest, require_question, validate, visible, storage_refusal
 from .definitions import APPS, BY_NAME, tools_for
 from .storage import Store
+from .results import Observations
 from .testapp import Receiver, TestApp
 from .mail.adapter import Mail
 
@@ -138,6 +139,7 @@ class Engine:
         if op["app"] == "mail":
             outcome = self.adapters["mail"].stage_outcome(op, name, outcome)
         op["stages"][name] = outcome
+        self.store.observations.stage(op_id, name, outcome)
         if op["app"] == "mail":
             self.store.write({"op:" + op_id: op}, op["action"], "Mail operation stage recorded", op_id,
                              untrusted_content={"stage": name, "outcome": outcome})
@@ -183,8 +185,10 @@ class Engine:
         try:
             state, reason = adapter.execute(op, lambda name, outcome: self.stage(op["id"], name, outcome))
         except NothingLeft as exc:
+            self.store.observations.storage(exc.__cause__ or exc)
             state, reason = "failed", "Submission stopped before delivery; no mail submitted." if action.app == "mail" else str(exc)
         except Exception as exc:
+            self.store.observations.storage(exc)
             # Unqualified adapter errors cannot prove that the far side did nothing.
             state, reason = "unknown", "Submission outcome uncertain; inspect evidence, never retry."
         if action.app == "mail":
@@ -224,6 +228,8 @@ class Engine:
             result = {'operation': self.public_operation(operation), 'original': self.public_operation(old)}
             if observation.get('sent_copy_warning') or any(key.endswith('_storage_error') for key in observation):
                 result['evidence'] = observation
+            if observation:
+                self.store.observations.observe(old['id'], observation)
             return result
         if old["state"] not in {"partial", "unknown", "done"}:
             raise Refused("refused", "Repair requires accepted-send evidence and a completed submission attempt; inspect status.")
@@ -281,6 +287,7 @@ class Engine:
                         if storage is None:
                             raise
                         observation['settlement_storage_error'] = {'code': storage.code, 'message': str(storage)}
+                        self.store.observations.storage(storage)
                         # SQLite may have applied the prepared event before a
                         # commit-marker failure. Report the prior unresolved
                         # state until restart completes that transaction.
@@ -308,15 +315,20 @@ class Engine:
         self.store.write({"op:" + op_id: repair}, repair["action"], "local repair of " + old["id"], op_id)
         try:
             result = self.adapters[app].repair(old, args["stage"])
+            self.store.observations.stage(old['id'], args['stage'], result)
             old = self.operation(old['id'], app)
             old["stages"][args["stage"]] = result
             old["state"], old["reason"] = self.adapters[app].repaired_outcome(old)
             repair["state"], repair["reason"] = "done", "Local repair completed; never submitted."
             changes = {"op:" + op_id: repair, "op:" + old["id"]: old}
         except Refused as exc:
-            repair["state"], repair["reason"] = "failed", "Local repair refused before acting; inspect operation status." if app == "mail" else "Local repair refused before acting: " + str(exc)
+            if self.store.observations.storage(exc):
+                repair['state'], repair['reason'] = 'unknown', 'Local repair storage failed; inspect evidence, never submit.'
+            else:
+                repair["state"], repair["reason"] = "failed", "Local repair refused before acting; inspect operation status." if app == "mail" else "Local repair refused before acting: " + str(exc)
             changes = {"op:" + op_id: repair}
-        except Exception:
+        except Exception as exc:
+            self.store.observations.storage(exc)
             repair["state"], repair["reason"] = "unknown", "Local repair uncertain; inspect far-side stage evidence. Never submit."
             changes = {"op:" + op_id: repair}
         repair['attempt_ended_at'] = time.time()
@@ -391,6 +403,7 @@ class Engine:
             result = {}
             try:
                 result["evidence"] = adapter.evidence(op["id"])
+                self.store.observations.observe(op['id'], result['evidence'])
                 # Evidence may discover a late duplicate after a successful
                 # repair. Return that warning in this very status response.
                 op = self.operation(op['id'], app)
@@ -477,6 +490,11 @@ class Engine:
                 offset += len(chunk)
 
     def request(self, request, admin=False):
+        self.store.observations = Observations()
+        result = self._admitted_request(request, admin)
+        return self.store.observations.finish(result)
+
+    def _admitted_request(self, request, admin=False):
         previous_recovery = self.store.recovering
         try:
             envelope(request)
@@ -494,8 +512,10 @@ class Engine:
                     self.store.admit_history(retention.RECOVERY_REQUEST if self.store.recovering else retention.REQUEST_RESERVE)
             return self._request(request, admin)
         except Refused as exc:
+            self.store.observations.storage(exc)
             return {'ok': False, 'error': {'code': exc.code, 'message': str(exc)}, 'pending': self.pending()}
         except Exception as exc:
+            self.store.observations.storage(exc)
             storage = storage_refusal(exc)
             if storage:
                 return {'ok': False, 'error': {'code': storage.code, 'message': str(storage)}, 'pending': self.pending()}
@@ -578,11 +598,13 @@ class Engine:
                 raise Refused("result_too_large", "Result exceeds 49152 bytes; request a smaller page. Check status before repeating changes.")
             return result
         except (OSError, sqlite3.DatabaseError, imaplib.IMAP4.error, Uncertain) as exc:
+            self.store.observations.storage(exc)
             storage = storage_refusal(exc)
             if storage:
                 return {'ok': False, 'error': {'code': storage.code, 'message': str(storage)}, 'pending': self.pending(app)}
             return {"ok": False, "error": {"code": "transport_error", "message": "Mail transport failed; inspect operation status before repeating changes. No automatic retry."}, "pending": self.pending(app)}
         except (Refused, ValueError, KeyError, TypeError) as exc:
+            self.store.observations.storage(exc)
             message = str(exc) if isinstance(exc, Refused) else "Invalid input or unsupported server data; inspect the tool schema and operation status."
             if app == "mail":
                 message = self.adapters["mail"].transport.scrub(message)

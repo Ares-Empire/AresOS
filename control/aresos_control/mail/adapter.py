@@ -731,6 +731,12 @@ class Mail:
 
     def sent_observation(self, op, matches):
         result = {"message_id": self.message_id(op['id']), "sent": matches, "absence_is_not_proof": True}
+        if len(matches) > 1:
+            op['stages']['sent_copy_warning'] = (f'Sent contains {len(matches)} copies with this Message-ID. '
+                                               'Check them in your mail program; nothing was deleted.')
+        if op['stages'].get('sent_copy_warning'):
+            result['sent_copy_warning'] = op['stages']['sent_copy_warning']
+        self.store.observations.observe(op['id'], result)
         try:
             self.sent_copy_count(op, matches)
         except (Refused, OSError, sqlite3.Error) as exc:
@@ -739,9 +745,11 @@ class Mail:
                 storage = Refused('storage_error', 'Storage write failed while recording observed Sent copies; check the disk and operation status.')
             if storage is None:
                 raise
+            self.store.observations.storage(storage)
             result['warning_storage_error'] = {'code': storage.code, 'message': str(storage)}
         if op['stages'].get('sent_copy_warning'):
             result['sent_copy_warning'] = op['stages']['sent_copy_warning']
+        self.store.observations.observe(op['id'], result)
         return result
 
     def has_submission_evidence(self, operation_id):
@@ -816,6 +824,8 @@ class Mail:
         except NothingLeft:
             raise
         except (OSError, smtplib.SMTPException, Refused) as exc:
+            if storage_refusal(exc):
+                raise
             if not started_data:
                 raise NothingLeft("Submission failed before DATA; no mail submitted (" + type(exc).__name__ + ").") from exc
             if isinstance(exc, smtplib.SMTPDataError):
@@ -839,8 +849,9 @@ class Mail:
         account = self.account(comp["mail"]["account"], ready=False)
         if which == "sent_copy":
             matches = self.sent_matches(account, self.message_id(operation["id"]))
+            self.sent_observation(operation, matches)
+            self.store.observations.require_storage()
             if matches:
-                self.sent_copy_count(operation, matches)
                 return "done"
             if account["sent_policy"] == "server":
                 raise Refused("stage_missing", "Server-managed Sent copy not yet visible; owner must inspect it, no client APPEND.")
@@ -858,12 +869,18 @@ class Mail:
             self.store.write({'op:' + operation['id']: operation}, 'mail_sent_copy_attempt', 'Sent APPEND attempt started', operation['id'])
             try:
                 self.append(account, account["special"]["sent"], self.wires.read(operation["stages"].get("sent_wire_sha256", key)), "(\\Seen)")
+                self.store.observations.stage(operation['id'], 'sent_copy', 'done')
             finally:
                 operation['sent_append_ended_at'] = time.time()
-                self.store.write({'op:' + operation['id']: operation}, 'mail_sent_copy_attempt', 'Sent APPEND attempt ended', operation['id'])
-                # Even a lost APPEND answer gets a fresh, read-only count. A
-                # failed scan preserves uncertainty, never authorizes a retry.
-                self.sent_copy_count(operation, self.sent_matches(account, self.message_id(operation['id'])))
+                try:
+                    self.store.write({'op:' + operation['id']: operation}, 'mail_sent_copy_attempt', 'Sent APPEND attempt ended', operation['id'])
+                finally:
+                    # Even a lost answer or failed end marker gets a fresh
+                    # count. Persistence cannot erase these remote answers.
+                    try:
+                        self.sent_observation(operation, self.sent_matches(account, self.message_id(operation['id'])))
+                    finally:
+                        self.store.observations.require_storage()
             self.store.checkpoint("mail_sent_copy")
             return "done"
         reference = comp["mail"]["answered_reference"]
@@ -919,7 +936,9 @@ class Mail:
                             self.store.checkpoint("mail_expunged:" + str(ref["uid"]))
                     stage("target:" + digest(ref), "trashed" if payload["mode"] == "trash" else "expunged")
                     completed += 1
-                except Refused:
+                except Refused as exc:
+                    if storage_refusal(exc):
+                        raise
                     stage("target:" + digest(ref), "marked_deleted_not_expunged" if marked else "refused")
                     for remaining in payload["items"][index + 1:]:
                         stage("target:" + digest(remaining["reference"]), "not_attempted")
@@ -941,7 +960,9 @@ class Mail:
             try:
                 signature = verify_one_click(self.message(payload["reference"])["raw"])
                 stage("dkim", "verified:" + signature["domain"])
-            except Refused:
+            except Refused as exc:
+                if storage_refusal(exc):
+                    raise
                 stage("dkim", "refused")
                 return "failed", "No valid DKIM covering both unsubscribe headers; no POST attempted. Use header mailto or owner mail program."
             url = urlsplit(payload["target"])
@@ -976,7 +997,9 @@ class Mail:
         for which in ("sent_copy", "answered_flag"):
             try:
                 stage(which, self.local_stage(self.store.get("op:" + operation["id"]), which))
-            except (Refused, OSError, imaplib.IMAP4.error, Uncertain):
+            except (Refused, OSError, imaplib.IMAP4.error, Uncertain) as exc:
+                if storage_refusal(exc):
+                    raise
                 stage(which, "failed")
                 failed_stage = True
         return ("partial", reason + " Missing local stages; repair without SMTP.") if failed_stage else (state, reason)
@@ -1008,12 +1031,16 @@ class Mail:
             result = self.sent_observation(operation, matches)
             if observation is not None:
                 observation.update(result)
-            return 'done' if matches else 'failed'
+            outcome = 'done' if matches else 'failed'
+            self.store.observations.stage(operation['id'], which, outcome)
+            return outcome
         reference = comp['answered_reference']
         if reference is None:
             return 'not_needed'
         message = self.message(reference)
-        return 'done' if any(flag.casefold() == '\\answered' for flag in message['flags']) else 'failed'
+        outcome = 'done' if any(flag.casefold() == '\\answered' for flag in message['flags']) else 'failed'
+        self.store.observations.stage(operation['id'], which, outcome)
+        return outcome
 
     def repaired_outcome(self, operation):
         stages = operation["stages"]
