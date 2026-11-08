@@ -15,27 +15,28 @@ Review records: [REVIEW.md](REVIEW.md), [REVIEW-2.md](REVIEW-2.md),
 
 ## For the owner: decisions before merge
 
-**read — still-open JUDGMENT-CALLs and PLAN-GAPs across all rounds:**
+**Decided by the owner on 2026-11-08; kept as built:**
 
-- **Folder renames — JUDGMENT-CALL, round 15:** tools now change only the last folder name within its current parent; move folders between parents in your mail program. Cross-parent renames with a post-check and warning, as filing does, were the alternative. That can place an entire populated folder under Trash during a role race, so it was rejected. Reopening this choice later changes the rename input/safety policy and its tests; existing mailbox contents need no migration. New special roles assigned after a rename produce a persistent warning.
-- **Installed approval boundary, round 15:** asking tools refuse preparation and submission until the managed Claude Code settings and MCP files are installed and verified; free reads and changes remain available.
-- **Draft revisions and deletion:** editing or sending keeps the old draft, so revisions can accumulate. This keeps every deletion behind its own named approval; silently replacing or removing drafts was rejected.
-- **Conservative draft protection:** draft text, including quoted history, must fit wholly in approval; any part of a draft, even a binary file, refuses attachment, and older marked Sent copies get the same protection. A narrower policy could allow more attachments and long threads, but would need a reliable way to distinguish who wrote each part; Drafts now also refuses move/copy, while sending itself, forwarding inline and approved deletion remain the routes out.
-- **Saving draft attachments:** Claude cannot save any draft part or its source to your folders, even a PDF. Save draft attachments in your mail program, or have Claude send the draft itself with `mode=draft`; allowing exports would require reliable provenance on decoded files and full disclosure on reimport.
-- **Required special folders:** Sent, Drafts and Trash must each be marked on exactly one selectable folder; if one is missing, duplicated or changes, mail changes stop until you fix the server roles and review/record them with `sudo aresos admin mail account_folders`. Earlier Trash and Drafts folders stay protected after that refresh, so a free move cannot become deletion or let drafts escape.
-- **Optional Junk and Archive:** either can be absent; only filing by that missing role refuses, with instructions to mark the folder in your mail server settings and run the setup step. Duplicated or changed optional roles stop changes involving their current or recorded folders until setup is reviewed; other actions and reads keep working, and search/thread defaults leave out current and recorded Junk folders.
-- **Forwarded mail is a file:** attached forwarding sends a rebuilt `.eml` file that recipients may need to save and open, and drops private or unlisted headers while preserving decoded binary files. Native inline attached-mail presentation and original header bytes were rejected to keep the approved bytes exact and private recipients protected; recipient-program presentation remains untested.
-- **Saved mail files:** attaching a saved `.eml` or `.msg` from your folders is refused, even if harmless; forward the mail itself or use its exact mail reference. Allowing local saved mail would need a different provenance and disclosure policy.
-- **Ordinary local files and timestamps:** local files show their path, name, size, hash and last change time, but that time does not prove authorship, and Claude-written file text can still travel without appearing in the prompt. Showing text-like files wholly in approval is the unresolved alternative; this run deliberately leaves that design question open.
-- **Strict content refusals:** malformed or unsupported mail and even a literal `Bcc:` line in a text file can refuse attachment. Guessing encodings, trusting file labels or silently editing that text was rejected; support for additional cases needs tests for both the builder and the final check.
-- **Size and performance limits:** very large messages, threads and folders may refuse: files cap at 25 MiB, encoded mail at 64 MiB, approvals at 16 KiB and history scans at 10,000 messages, with bounded pages and nesting. Smaller selected folders are the current choice over unlimited scans; a durable incremental index and large-account performance work remain deferred.
-- **Sent setup:** when a short probe finds no Sent copy, setup asks you to confirm whether the client or server saves it rather than guessing from absence. Automatic negative detection would need a proven time bound for the real account.
-- **Folder deletion:** deletion only runs where the server refuses to delete a folder that holds mail, so no mail can be lost. If another mail program renames the approved empty folder and creates a new empty one with the same name in the same instant, the new empty one is deleted instead; the alternative is to remove folder deletion from the tools. Neither test server qualifies on its own, so the real account's guard still needs your check.
-- **Repair after uncertainty:** without a recorded final server acceptance, you must inspect an uncertain send yourself even if a Sent copy appears. Automatic repair from that copy alone was rejected because it cannot prove which recipients were accepted; repair never sends again.
-- **Approval prompt — owner decision, round 12:** Claude Code keeps its own approval prompt. It now starts with one plain sentence written by the service; the full details follow below it. The shared base format is `{question, operation_id, description}` in that order, passed unchanged through submission; Chrome will use it too. Altering or removing the question refuses the approval. Long summaries say “and N more”; the full fields remain visible, and oversize approvals refuse rather than being cut. Every recipient and sender in the sentence appears with its complete real address (“Mom <stranger@example.org>”); only display names can be shortened. Multiple mailboxes are counted separately. Malformed or missing addresses refuse approval, and complete addresses or folder names that exceed the question cap refuse instead of being cut. Reordered or extra/missing approval fields now refuse with `stale_approval` in both the proxy and service, before any submission or adapter call (round 13); an asking input with a repeated field is refused (round 14).
+The owner answered: “Agree on 8, names etc are enough. Agree on everything else too.” All JUDGMENT-CALLs and PLAN-GAPs listed here are settled, including folder moves under brief 15b.
 
-- **Filing after a folder-role race (rounds 10–11):** mail stays where the move or copy put it; nothing is moved back or deleted. You get a short warning with the filing id, message count and bounded folder names until acknowledged. Following Mail results and `aresos log` repeat the newest three warnings and count the rest; `mail_filing_notices` pages every warning, and `mail_filing_locations` returns exact locations on request. Cleaning up copies still requires the ordinary delete approval. If a special role moves to the target and back between the command and the check, the result can say done: the mail is in the intended target, which has no protected role at the end, and nothing is lost. Disabling free filing entirely was the alternative; changing this later affects only filing and its views.
-- **Stopping rule from the lead:** Claude can always write a file itself and attach it, and the approval then shows only its name, size and change time; that is the open owner question about Claude-written files. Any further finding of the kind “text Claude wrote reaches an attachment by a new route” is settled by your answer on how attachments are shown, not by another fix round. Blocking findings of any other kind still count.
+- **Installed approval boundary, round 15 — owner decided 2026-11-08; kept as built:** asking tools refuse preparation and submission until the managed Claude Code settings and MCP files are installed and verified; free reads and changes remain available.
+- **Draft revisions and deletion — owner decided 2026-11-08; kept as built:** editing or sending keeps the old draft, so revisions can accumulate. This keeps every deletion behind its own named approval; silently replacing or removing drafts was rejected.
+- **Conservative draft protection — owner decided 2026-11-08; kept as built:** draft text, including quoted history, must fit wholly in approval; any part of a draft, even a binary file, refuses attachment, and older marked Sent copies get the same protection. A narrower policy could allow more attachments and long threads, but would need a reliable way to distinguish who wrote each part; Drafts now also refuses move/copy, while sending itself, forwarding inline and approved deletion remain the routes out.
+- **Saving draft attachments — owner decided 2026-11-08; kept as built:** Claude cannot save any draft part or its source to your folders, even a PDF. Save draft attachments in your mail program, or have Claude send the draft itself with `mode=draft`; allowing exports would require reliable provenance on decoded files and full disclosure on reimport.
+- **Required special folders — owner decided 2026-11-08; kept as built:** Sent, Drafts and Trash must each be marked on exactly one selectable folder; if one is missing, duplicated or changes, mail changes stop until you fix the server roles and review/record them with `sudo aresos admin mail account_folders`. Earlier Trash and Drafts folders stay protected after that refresh, so a free move cannot become deletion or let drafts escape.
+- **Optional Junk and Archive — owner decided 2026-11-08; kept as built:** either can be absent; only filing by that missing role refuses, with instructions to mark the folder in your mail server settings and run the setup step. Duplicated or changed optional roles stop changes involving their current or recorded folders until setup is reviewed; other actions and reads keep working, and search/thread defaults leave out current and recorded Junk folders.
+- **Forwarded mail is a file — owner decided 2026-11-08; kept as built:** attached forwarding sends a rebuilt `.eml` file that recipients may need to save and open, and drops private or unlisted headers while preserving decoded binary files. Native inline attached-mail presentation and original header bytes were rejected to keep the approved bytes exact and private recipients protected; recipient-program presentation remains untested.
+- **Saved mail files — owner decided 2026-11-08; kept as built:** attaching a saved `.eml` or `.msg` from your folders is refused, even if harmless; forward the mail itself or use its exact mail reference. Allowing local saved mail would need a different provenance and disclosure policy.
+- **Ordinary local files and timestamps — owner decided 2026-11-08; kept as built:** settled. Attachments show path, name, size, hash and last change time, not their text. The time does not prove authorship; text Claude wrote may travel in attachments. Showing text-like files wholly in approval was the rejected alternative. Findings that Claude-written text reaches an attachment are accepted behaviour, not a should-fix.
+- **Strict content refusals — owner decided 2026-11-08; kept as built:** malformed or unsupported mail and even a literal `Bcc:` line in a text file can refuse attachment. Guessing encodings, trusting file labels or silently editing that text was rejected; support for additional cases needs tests for both the builder and the final check.
+- **Size and performance limits — owner decided 2026-11-08; kept as built:** very large messages, threads and folders may refuse: files cap at 25 MiB, encoded mail at 64 MiB, approvals at 16 KiB and history scans at 10,000 messages, with bounded pages and nesting. Smaller selected folders are the current choice over unlimited scans; a durable incremental index and large-account performance work remain deferred.
+- **Sent setup — owner decided 2026-11-08; kept as built:** when a short probe finds no Sent copy, setup asks you to confirm whether the client or server saves it rather than guessing from absence. Automatic negative detection would need a proven time bound for the real account.
+- **Folder deletion — owner decided 2026-11-08; kept as built:** deletion only runs where the server refuses to delete a folder that holds mail, so no mail can be lost. If another mail program renames the approved empty folder and creates a new empty one with the same name in the same instant, the new empty one is deleted instead; the alternative is to remove folder deletion from the tools. Neither test server qualifies on its own, so the real account's guard still needs your check.
+- **Repair after uncertainty — owner decided 2026-11-08; kept as built:** without a recorded final server acceptance, you must inspect an uncertain send yourself even if a Sent copy appears. Automatic repair from that copy alone was rejected because it cannot prove which recipients were accepted; repair never sends again.
+- **Approval prompt — owner decision, round 12 — owner decided 2026-11-08; kept as built:** Claude Code keeps its own approval prompt. It now starts with one plain sentence written by the service; the full details follow below it. The shared base format is `{question, operation_id, description}` in that order, passed unchanged through submission; Chrome will use it too. Altering or removing the question refuses the approval. Long summaries say “and N more”; the full fields remain visible, and oversize approvals refuse rather than being cut. Every recipient and sender in the sentence appears with its complete real address (“Mom <stranger@example.org>”); only display names can be shortened. Multiple mailboxes are counted separately. Malformed or missing addresses refuse approval, and complete addresses or folder names that exceed the question cap refuse instead of being cut. Reordered or extra/missing approval fields now refuse with `stale_approval` in both the proxy and service, before any submission or adapter call (round 13); an asking input with a repeated field is refused (round 14).
+- **Filing after a folder-role race (rounds 10–11, folder moves in 15b) — owner decided 2026-11-08; kept as built:** messages and folders stay where the move, copy or rename put them; nothing is moved or renamed back or deleted. Folder renames can move between parents. Durable intent records the folder, destination, message count and roles before RENAME; LIST and fresh roles check its new location and ancestors afterward. A newly protected location or assigned special role returns partial with a short warning, filing id, message count and bounded escaped folder names until acknowledged. Following Mail results and `aresos log` repeat the newest three warnings and count the rest; `mail_filing_notices` pages every warning, and `mail_filing_locations` returns exact message-filing locations on request. Cleaning up copies still requires ordinary delete approval. A special role that moves to the target and back between the command and post-check may escape detection: the result can say done in the intended ordinary destination. Refusing free filing or cross-parent folder moves was rejected by the owner; changing this later affects filing/rename policy and its views, with no mailbox migration.
+- **Stopping rule from the lead — owner decided 2026-11-08; kept as built:** closed by the owner’s attachment-disclosure decision. Claude-written text reaching an attachment, by any route, is accepted behaviour and no longer a should-fix; approvals show the file’s path, name, size, hash and change time. Blocking findings of other kinds still count.
+- **Control-character refusal — owner decided 2026-11-08; kept as built:** malformed mailboxes with non-printable control characters refuse rather than displaying a repaired address; valid bidi/backslash names retain escaped presentation.
 
 **assumed / needs your own check with the real account:**
 
@@ -47,9 +48,7 @@ Review records: [REVIEW.md](REVIEW.md), [REVIEW-2.md](REVIEW-2.md),
 
 **Done — read:** closes findings 1–3 and the decoder-bounds should-fix in
 [SECURITY-REVIEW-7.md](SECURITY-REVIEW-7.md), following
-`briefs/19-review-fixes-15.md`. The attachment-disclosure decision stays open.
-The code/test head is `cf1426bd4615c67917e9375990a4515ea5215233`;
-**any later commit changes only files under `reviews/`**.
+`briefs/19-review-fixes-15.md` with the owner correction in `briefs/19-review-fixes-15b.md`. The owner settled attachment disclosure on 2026-11-08 as recorded above. The original round-15 code/test head was `cf1426bd4615c67917e9375990a4515ea5215233`; the 15b verification below supersedes it for folder moves.
 
 - **Installed boundary:** new shared-base `aresos_control/boundary.py` reads the
   installed managed settings and MCP files at startup and before every asking
@@ -72,18 +71,21 @@ The code/test head is `cf1426bd4615c67917e9375990a4515ea5215233`;
   then execute the actual precondition check against the installed files after
   the image's existing COPY/cp steps. It prints
   `Installed boundary precondition PASS` during the build.
-- **Parent-only renames:** `mail/adapter.py` reads the source's actual hierarchy
-  separator, accepts only a new last name, and constructs the target inside the
-  same parent. Separator-bearing input refuses with “move folders between parents
-  in your mail program”. Existing leaf/special-folder protections remain.
-  `mail/filing.py` retains the rename intent, LIST observation and message count;
-  a new special-use role (including Flagged/All/Important) or an unverifiable
-  result generates a persistent warning through the existing bounded notice,
-  paging, log and acknowledgement path. Role flags are normalized and deduplicated before notice construction, so
-  repeated server flags cannot make a persistent notice oversized. No rollback
-  or deletion occurs.
-  `mail/definitions.py`, generated Mail tools and `docs/control/TOOLS.md` describe
-  the last-name input and optional partial/warning result fields.
+- **Folder moves under the filing policy (15b):** `mail/adapter.py` accepts an
+  exact new path under another parent again. A bare last name still retains the
+  current parent; pre-action fresh roles, leaf-only and protected source/destination
+  checks remain. The final checked roles go into the durable `mail:rename:` intent
+  with source, new name and message count before RENAME. `mail/filing.py` LISTs the
+  destination and resolves current roles afterward. Trash, Drafts, Sent, Junk or
+  Archive on the new location or an ancestor, a new special-use flag assigned by
+  name (including Flagged/All/Important), or an unverifiable result returns
+  `partial` and a bounded escaped persistent warning. A stable ordinary target
+  returns `done`. Intent/outcome audit states are started/done/partial as appropriate.
+  The same filing-notice path repeats warnings in later Mail results and owner
+  log, lists them with `mail_filing_notices`, and acknowledges via `mail_notice_ack`.
+  Role flags stay normalized and deduplicated. Nothing is renamed back or deleted;
+  restart never replays an unfinished rename. `mail/definitions.py`, generated
+  Mail tools, `docs/control/TOOLS.md` and `control/README.md` describe this policy.
 - **Input and journal integrity:** shared `common.py` rejects non-finite floats
   including exponent overflow, constants, integers with absolute value greater
   than `2**63 - 1`, more than 64 nesting levels, more than 6 MiB, initial BOMs,
@@ -135,7 +137,7 @@ removed or skipped.
 - `IngressBounds.test_hook_explicit_payload_schema_refuses_wrong_types_and_unknown_fields`
 - `IngressBounds.test_real_mcp_binary_stdio_bounds_refuse_without_dispatch_and_stream_recovers`
 - `Integration.test_round15_same_uid_socket_and_installed_cli_require_policy_then_execute_once`
-- `Review15.test_review15_cross_parent_reproduction_and_separator_refused_before_rename`
+- `Review15.test_review15_cross_parent_reproduction_and_separator_use_exact_target` (updated by 15b)
 - `Review15.test_review15_leaf_rename_retains_parent_and_all_messages`
 - `Review15.test_review15_role_assigned_by_rename_persists_bounded_warning_and_ack`
 - `Review15.test_review15_repeated_special_role_flags_keep_notice_bounded`
@@ -219,9 +221,9 @@ Whether Claude Code honours the files and confines Bash is established by brief
 proof that a human approved a particular same-UID request. `os/` installs these
 files later, owned by another session; this round does not edit `os/`. Real
 providers, owner setup, terminal/phone prompt presentation and the existing
-attachment-disclosure decision remain owner checks. No screenshots are needed
-for these protocol/service changes. No new open question beyond the owner
-rename decision and that existing attachment decision.
+real-account checks remain owner work. No screenshots are needed for these
+protocol/service changes. The owner settled folder moves and attachment
+disclosure on 2026-11-08; neither remains an open decision.
 
 **Repository discipline:** the pre-existing local review/brief commit was pushed
 with the two code commits. The third push contains only this review report;
@@ -229,6 +231,89 @@ second passes use `gh run rerun`, never a push just to trigger CI. Both ordinary
 pre-push privacy checks remain enabled. No merge, rebase, force push, protected
 review edit, workflow change or OS/mod change. No `.work` file exceeds 500 MB
 (the closing scan returned `[]`).
+
+### Round 15b — owner correction and verification
+
+**Done:** implements `briefs/19-review-fixes-15b.md` on top of its existing local
+brief commit `16cc38e7`. The owner’s answers above apply to all listed decisions;
+the three real-account checks are unchanged. The attachment stopping rule is closed:
+Claude-written text in attachments is accepted behaviour, not a should-fix.
+No base/boundary implementation, tests, settings or workflow changed in this batch.
+
+**Tests:** seven new methods in `control/mail_tests/test_review_fixes_15b.py`:
+
+- `Review15b.test_review15b_review7_trash_parent_race_preserves_three_messages_and_repeats_notice`
+  reproduces Source (three messages) → Parent/Subfolder through Engine/Mail and
+  the scripted TLS IMAP frontend over real Dovecot. Parent becomes Trash immediately
+  before RENAME, after the last check. A separate SQLite connection observes the
+  committed started intent before the wire action. The test checks partial and the
+  exact warning, current Trash role, notice listing/repetition in Mail and control_log,
+  restart, acknowledgment, exact server bytes for all three messages, no old source,
+  zero approval operations and precisely one RENAME with no recovery mutations.
+- `Review15b.test_review15b_ordinary_cross_parent_move_done_without_warning`
+- `Review15b.test_review15b_same_parent_rename_done_without_warning`
+  use the same real adapter/frontend and three server messages; they check done,
+  exact destination, durable role snapshot and message count, no warnings and no recovery.
+- `RenamePolicy15b.test_review15b_protected_ancestors_warn_with_bounded_escaped_names`
+  covers Trash, Drafts, Sent, Junk and Archive races with long bidi folder names.
+- `RenamePolicy15b.test_review15b_crash_after_rename_keeps_started_intent_and_never_replays`
+- `RenamePolicy15b.test_review15b_special_source_and_destination_subtrees_still_refuse`
+- `RenamePolicy15b.test_review15b_unverifiable_postcheck_warns_without_recovery`
+  are portable real-adapter tests using an IMAP command substitute. They cover
+  durable unfinished intent in owner log after restart, protected prechecks and
+  interrupted post-check preservation.
+
+**Earlier test changes:** only
+`Review15.test_review15_cross_parent_reproduction_and_separator_refused_before_rename`
+becomes `test_review15_cross_parent_reproduction_and_separator_use_exact_target`.
+Its four separator-bearing inputs (`Parent/Subfolder`, `Source/Child`, `/Other`,
+`Other/`) now test exact command targets through the command substitute, with
+message/whole-mailbox preservation, zero approval operations and no notices.
+Server-specific name validity is still the server’s decision. Assertions requiring
+refusal and no mutation change because the owner explicitly restored these moves.
+The same-parent, role-by-name, repeated-role bounds, boundary and journal tests in
+round 15 retain every assertion. No other earlier test was weakened, skipped or deleted.
+
+**Local verification — run before the implementation push:**
+
+```text
+python3 control/generate.py --check
+Generated artifacts match definitions
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/mail_tests:.work/round10/vendor python3 .work/round10/check-local.py
+Python syntax OK: 94 files
+Ran 57 tests in 2.312s
+OK
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/tests:.work/round10/vendor python3 -m unittest test_operations test_record test_crashes test_approval_questions test_strict_json test_boundary test_journal_closed test_ingress_bounds
+Ran 58 tests in 15.492s
+OK
+PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s control/boundary -p test_native.py -v
+Ran 15 tests in 0.005s
+OK
+git diff --check
+(no output; exit 0)
+```
+
+The ignored mutation probe replaces only rename execution with a durable-intent
+implementation accepting cross-parent moves but doing no post-check. The protected
+ancestor regression fails at `AssertionError: 'done' != 'partial'`; the same test
+passes with production code. Output ends `Mutation probe PASS: cross-parent
+acceptance without the post-check fails on done versus partial`. This is an
+in-memory mutation probe; the exact three-message server reproduction runs in Linux CI.
+
+Docker’s CLI exists locally but its daemon is unavailable
+(`Cannot connect to the Docker daemon`); no host software or settings were changed.
+The existing ignored round-10/14 dependencies and non-root Mac fixture bootstrap
+are reused. Its root-ownership model is not evidence of Linux confinement.
+
+**Not verified / JUDGMENT-CALL / PLAN-GAP / Open questions:** no new decision or
+gap. The owner approved folder moves and all listed policies on 2026-11-08, kept
+as built. Real-account, terminal/phone and recipient-program checks above remain.
+No real account, provider, delivery or screenshot is claimed.
+
+**Repository discipline:** the existing local brief commit is included with this
+batch; normal pre-push privacy verification remains enabled. No merge, rebase,
+force-push, protected review edit, OS/mod or workflow change. No large download or
+extraction was made. Verification evidence follows after the workflow runs.
 
 ## Review fixes, round 14
 

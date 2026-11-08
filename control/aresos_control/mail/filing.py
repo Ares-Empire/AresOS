@@ -60,13 +60,13 @@ FOLDER_CHARS = 64
 LOCATION_PAGE_BYTES = 12 * 1024
 
 
-def rename_folder(mail, account, client, source, target):
+def rename_folder(mail, account, client, source, target, roles_before):
     filing_id = uuid.uuid4().hex
     intent = {'id': filing_id, 'source': source['folder'], 'target': target,
-              'message_count': len(source['uids']), 'state': 'started'}
+              'message_count': len(source['uids']), 'roles_before': roles_before, 'state': 'started'}
     key = 'mail:rename:' + filing_id
     mail.store.write({key: intent}, 'mail_folder_rename', 'folder rename intent',
-                     untrusted_content={'rename': intent})
+                     outcome='started', untrusted_content={'rename': intent})
     ok(client.rename(quote(source['folder']), quote(target)), 'Rename folder')
     try:
         listed = folders(client)
@@ -77,14 +77,16 @@ def rename_folder(mail, account, client, source, target):
             '\\all', '\\archive', '\\drafts', '\\flagged', '\\junk', '\\sent', '\\trash', '\\important'}})
         role = ', '.join(roles) if roles else folder_role(target, listed)
         needs_notice = bool(roles) or role != 'an ordinary folder'
+        intent['roles_after'] = resolve(listed)
     except (Refused, OSError, imaplib.IMAP4.error, Uncertain):
         role, needs_notice = 'an unverified role', True
     intent.update(state='partial' if needs_notice else 'done', observed_role=role)
     changes = {key: intent}
-    result = {'account': account['id'], 'folder': target}
+    result = {'account': account['id'], 'folder': target, 'state': intent['state']}
     if needs_notice:
-        reason = ('The renamed folder ' + short_name(target) + ' now has ' + role +
-                  '. Nothing was deleted. Check it in your mail program.')
+        reason = ('The special folders changed while Claude was moving this folder. '
+                  'Nothing was deleted. It is now ' + short_name(target) + ', inside ' + role +
+                  '. Check it in your mail program.')
         content = {'filing_id': filing_id, 'message_count': intent['message_count'], 'reason': reason,
                    'folders': [short_name(source['folder']), short_name(target)], 'folders_more': 0,
                    'folders_more_text': ''}
@@ -92,7 +94,7 @@ def rename_folder(mail, account, client, source, target):
             'untrusted_content': content, 'ack': False, 'created_at': time.time_ns()}
         result.update(state='partial', reason=visible(reason), untrusted_content=visible(content))
     mail.store.write(changes, 'mail_folder_rename', 'folder rename checked',
-                     untrusted_content={'rename': intent})
+                     outcome=intent['state'], untrusted_content={'rename': intent})
     return result
 
 

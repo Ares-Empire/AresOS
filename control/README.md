@@ -457,6 +457,15 @@ A role that moves to the target and back between the command and the post-check 
 escape detection: filing ends done in the intended target, with no protected role at
 the end and no message lost.
 
+Folder renames can also move a non-special leaf folder between parents. An exact
+new path selects the destination; a bare new last name keeps the current parent.
+Special folders and their descendants remain protected. Before RENAME, a durable
+intent records source, destination, message count and the observed roles. LIST
+checks the new location and roles afterward. A protected ancestor, a special role
+assigned by the new name or an unverifiable result returns partial and uses the
+same bounded persistent notices above. Nothing is renamed back or deleted.
+An interrupted rename intent remains in the audit log and is never replayed.
+
 Shared blobs carry durable origin metadata. Only an explicit owner export can be
 saved by any app; internal composition parts, draft bodies, quotes and wire copies
 are private even when their hashes appear in results. Caller imports alone do not

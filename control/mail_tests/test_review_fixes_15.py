@@ -1,4 +1,4 @@
-"""Review 7: parent-only rename, boundary gating and journal overflow regression."""
+"""Review 7: folder rename notices, boundary gating and journal overflow regression."""
 import copy
 from contextlib import contextmanager
 from pathlib import Path
@@ -32,16 +32,23 @@ class Review15(unittest.TestCase):
         self.imap.validities[target] = self.imap.validities.pop(source)
         return 'OK', [b'Renamed']
 
-    def test_review15_cross_parent_reproduction_and_separator_refused_before_rename(self):
-        before = copy.deepcopy(self.imap.boxes)
+    def test_review15_cross_parent_reproduction_and_separator_use_exact_target(self):
+        source = 'Source'
+        before = copy.deepcopy(self.imap.boxes[source])
         for name in ('Parent/Subfolder', 'Source/Child', '/Other', 'Other/'):
             with self.subTest(name=name), patch.object(self.imap, 'rename', self.rename_command, create=True):
-                result = self.call('folder_rename', {'account': 'box', 'folder': 'Source', 'name': name})
-                self.assertEqual(result['error']['code'], 'refused', result)
-                self.assertIn('move folders between parents in your mail program', result['error']['message'])
-                self.assertEqual(self.imap.mutations, [])
-                self.assertEqual(self.imap.boxes, before)
+                expected = copy.deepcopy(self.imap.boxes)
+                expected[name] = expected.pop(source)
+                result = self.data('folder_rename', {'account': 'box', 'folder': source, 'name': name})
+                self.assertEqual(result['state'], 'done')
+                self.assertEqual(result['folder'], name)
+                self.assertEqual(self.imap.mutations[-1], ('RENAME', source, name))
+                self.assertNotIn(source, self.imap.boxes)
+                self.assertEqual(self.imap.boxes[name], before)
+                self.assertEqual(self.imap.boxes, expected)
                 self.assertEqual(self.engine.store.items('op:'), [])
+                self.assertEqual(self.engine.store.items('notice:'), [])
+                source = name
 
     def test_review15_leaf_rename_retains_parent_and_all_messages(self):
         for values in (self.imap.roles, self.imap.boxes, self.imap.validities):

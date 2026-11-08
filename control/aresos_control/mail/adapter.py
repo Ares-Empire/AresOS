@@ -1048,10 +1048,9 @@ class Mail:
                 if entry is None:
                     raise Refused('stale_reference', 'Folder is stale, search again.')
                 delimiter = entry['delimiter']
-                if delimiter and delimiter in target:
-                    raise Refused('refused', 'Use only a new last name; move folders between parents in your mail program.')
                 parent = args['folder'].rpartition(delimiter)[0] if delimiter else ''
-                target = parent + delimiter + target if parent else target
+                if parent and delimiter not in target:
+                    target = parent + delimiter + target
                 if len(target) > 512:
                     raise Refused('invalid_input', 'The complete folder name exceeds 512 characters.')
                 args = {**args, 'name': target}
@@ -1063,12 +1062,12 @@ class Mail:
             if verb == "folder_rename":
                 source = self.safe_folder(account, args["folder"])
             with self.transport.imap(account) as client:
-                self.fresh_roles(account, client, names=names)
+                roles = self.fresh_roles(account, client, names=names)
                 if verb == "folder_create":
                     ok(client.create(quote(args["name"])), "Create folder")
                 else:
                     from .filing import rename_folder
-                    return rename_folder(self, account, client, source, target)
+                    return rename_folder(self, account, client, source, target, roles)
             return {"account": account["id"], "folder": args["name"]}
         if verb in {"move", "copy", "flag"}:
             refs = args["references"]
