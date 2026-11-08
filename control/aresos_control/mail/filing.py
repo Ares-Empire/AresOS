@@ -226,10 +226,14 @@ def location_pages(observed):
 def location_page(store, args):
     filing_id = args['filing_id']
     prefix = 'mail:filing-locations:' + filing_id + ':'
-    meta = store.get(prefix + 'meta')
+    # Failed writes retain their exact pages with the deferred owner notice.
+    deferred = store.deferred_notices.get(filing_id, ({},))[0]
+    def retained(key):
+        return deferred[key] if key in deferred else store.get(key)
+    meta = retained(prefix + 'meta')
     legacy_pages = None
     if meta is None:
-        intent = store.get('mail:filing:' + filing_id)
+        intent = retained('mail:filing:' + filing_id)
         if not intent or 'locations' not in intent:
             raise Refused('stale_reference', 'No recorded filing locations for this id; inspect the filing audit entry.')
         legacy_pages = location_pages(intent['locations'])
@@ -243,7 +247,7 @@ def location_page(store, args):
                 raise ValueError()
         except ValueError as exc:
             raise Refused('stale_reference', 'Location cursor belongs to another filing or page; read again without cursor.') from exc
-    page = legacy_pages[offset] if legacy_pages is not None else store.get(prefix + str(offset))
+    page = legacy_pages[offset] if legacy_pages is not None else retained(prefix + str(offset))
     return {'filing_id': filing_id, 'total_messages': meta['total_messages'], 'untrusted_content': page,
             'cursor': f'{filing_id}:{offset + 1}' if offset + 1 < meta['pages'] else None}
 
@@ -318,8 +322,11 @@ def file_messages(mail, account, client, verb, refs, target, names, needed):
     notice = {'id': intent_id, 'app': 'mail', 'state': 'partial', 'untrusted_content': content,
               'ack': False, 'created_at': time.time_ns()}
     pages = location_pages(observed)
-    mail.store.observations.observe(intent_id, visible({'locations': observed, 'reason': reason,
-                                                       'observed_role': folder_role(target, listed)}))
+    mail.store.observations.observe(intent_id, {
+        **pages[0], 'reason': visible(reason), 'observed_role': visible(folder_role(target, listed)),
+        'filing_id': intent_id, 'count': sum(len(item['observed_locations']) for item in observed),
+        'total_messages': len(observed), 'locations_action': 'mail_filing_locations',
+        'cursor': f'{intent_id}:1' if len(pages) > 1 else None})
     record('partial', notice, pages)
     first = location_page(mail.store, {'filing_id': intent_id})
     return {'state': 'partial', 'items': [], 'reason': visible(reason),

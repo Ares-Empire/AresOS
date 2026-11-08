@@ -389,6 +389,9 @@ class Engine:
             return archive(self.store, args['before'])
         if name == "control_pending":
             return self.pending(args=args)
+        if name == 'control_observations':
+            from .results import observation_page
+            return observation_page(self.store, args['cursor'])
         if name == "control_log":
             day = time.strftime("%Y-%m-%d", time.localtime())
             token = digest(['log:' + day, self.store.sequence, self.store.head_hash])
@@ -529,7 +532,7 @@ class Engine:
             self.store.remember_storage(exc)
             self.store.observations.storage(exc)
         result = self._admitted_request(request, admin)
-        return self.store.observations.finish(result)
+        return self.store.observations.finish(result, self.store)
 
     def _admitted_request(self, request, admin=False):
         previous_recovery = self.store.recovering

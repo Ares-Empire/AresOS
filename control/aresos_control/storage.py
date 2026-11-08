@@ -146,6 +146,7 @@ class Store:
         self.deferred_notices = {}
         self.flushing_notices = False
         self.observations = Observations()
+        self.observation_snapshot = None
         self.recovering = False
         self.archiving = False
         self.index = None
