@@ -1,6 +1,6 @@
 # The control layer: design
 
-**Status:** draft 19, 2026-11-08. Draft 16 with the owner's answers of 2026-11-07 built in (`PLAN.md` decisions 14 to
+**Status:** draft 20, 2026-11-08. Draft 16 with the owner's answers of 2026-11-07 built in (`PLAN.md` decisions 14 to
 19 and 21), and two decisions of 2026-11-08: the central session can gain tools, the ones that run outside its sandbox
 only through the tool layer, asking (decision 22); and one session does coding, commands, mail, Chrome and later apps,
 possibly in skip-permissions mode, replacing decision 8's split (decision 23). Draft 18 answers the eighteenth
@@ -10,29 +10,31 @@ recoverable, add-tool preparation fetching only from listed registries, and adde
 evidence. Draft 19 answers the nineteenth re-check ([19](../../reviews/control-design/2026-11-08-RECHECK-19.md)) by
 containing whole classes (one traced set of programs outside the sandbox, git itself sandboxed for the session's user,
 the tools reachable only from the registered `aresos-mcp`, GitHub refusing every deletion and rewrite by the session)
-and by stating exact bounds as four owner choices in section 10. Covers the shared base, Mail and Chrome. The frontier
-review ([`REVIEW`](../../reviews/control-design/2026-11-07-REVIEW.md), 8 blocking) and five re-checks
-([1](../../reviews/control-design/2026-11-07-RECHECK.md), [2](../../reviews/control-design/2026-11-07-RECHECK-2.md),
-[3](../../reviews/control-design/2026-11-07-RECHECK-3.md), [4](../../reviews/control-design/2026-11-07-RECHECK-4.md),
-[5](../../reviews/control-design/2026-11-07-RECHECK-5.md)) ended at "ready for brief 18" on draft 6. Draft 7 adds
-brief 17b's Chrome results (section 6: fail, then repeat; the policy install; the owner's own stop control; service
-workers). Draft 8 adds brief 17c's (section 6: holding inside the page as the normal path, what the hold protects
-against and what it doesn't, workers, live messages, the restart, the owner's own sends, the site guard settled); the
-reviewer's sixth re-check ([6](../../reviews/control-design/2026-11-07-RECHECK-6.md)) found four blocking points
-there, and draft 9 answered them with Chrome's own blocking rules as a floor under every hold. Brief 17d showed that
-floor doesn't hold (worker WebSockets pass it; an allowance lets a different send out when control ends), and the
-seventh re-check ([7](../../reviews/control-design/2026-11-07-RECHECK-7.md)) recommended a checkpoint outside Chrome,
-which brief 17e showed holds. Draft 10 rebuilds section 6 on that checkpoint (with the owner's hard requirements for
-it, decision 6), makes the site guard strict (decision 12), adds "don't ask again" (decision 7) and his usual sites
-(decision 9), and adds to section 7 the assistant apart from coding sessions (decision 8) and the approval surface
-after the phone tests (open: the owner decides). The eighth re-check
-([8](../../reviews/control-design/2026-11-07-RECHECK-8.md)) found six blocking points in draft 10, and draft 11
-answers them: uncertain reading held until the checkpoint is ready, clicks that may delete local data ask first, what
-a recognised action is, three separate users with no shared files, every place the root is installed, and the exact
-upstream TLS checks with what is lost. The ninth re-check ([9](../../reviews/control-design/2026-11-07-RECHECK-9.md))
-closed three of them and found one new point; draft 12 records every input before it reaches Chrome, makes unlabelled
-local-only deletion an owner question, checks upstream certificates with Chrome's own current data, and bounds a
-destructive action approved in advance. The tenth re-check
+and by stating exact bounds as owner choices in section 10. Draft 20 (re-check
+[20](../../reviews/control-design/2026-11-08-RECHECK-20.md)) makes Claude Code and the relay non-dumpable, identifies
+the relay by its group, and adds a fifth owner choice for unreviewed servers that hold his account access. Covers the
+shared base, Mail and Chrome. The frontier review ([`REVIEW`](../../reviews/control-design/2026-11-07-REVIEW.md), 8
+blocking) and five re-checks ([1](../../reviews/control-design/2026-11-07-RECHECK.md),
+[2](../../reviews/control-design/2026-11-07-RECHECK-2.md), [3](../../reviews/control-design/2026-11-07-RECHECK-3.md),
+[4](../../reviews/control-design/2026-11-07-RECHECK-4.md), [5](../../reviews/control-design/2026-11-07-RECHECK-5.md))
+ended at "ready for brief 18" on draft 6. Draft 7 adds brief 17b's Chrome results (section 6: fail, then repeat; the
+policy install; the owner's own stop control; service workers). Draft 8 adds brief 17c's (section 6: holding inside
+the page as the normal path, what the hold protects against and what it doesn't, workers, live messages, the restart,
+the owner's own sends, the site guard settled); the reviewer's sixth re-check
+([6](../../reviews/control-design/2026-11-07-RECHECK-6.md)) found four blocking points there, and draft 9 answered
+them with Chrome's own blocking rules as a floor under every hold. Brief 17d showed that floor doesn't hold (worker
+WebSockets pass it; an allowance lets a different send out when control ends), and the seventh re-check
+([7](../../reviews/control-design/2026-11-07-RECHECK-7.md)) recommended a checkpoint outside Chrome, which brief 17e
+showed holds. Draft 10 rebuilds section 6 on that checkpoint (with the owner's hard requirements for it, decision 6),
+makes the site guard strict (decision 12), adds "don't ask again" (decision 7) and his usual sites (decision 9), and
+adds to section 7 the assistant apart from coding sessions (decision 8) and the approval surface after the phone tests
+(open: the owner decides). The eighth re-check ([8](../../reviews/control-design/2026-11-07-RECHECK-8.md)) found six
+blocking points in draft 10, and draft 11 answers them: uncertain reading held until the checkpoint is ready, clicks
+that may delete local data ask first, what a recognised action is, three separate users with no shared files, every
+place the root is installed, and the exact upstream TLS checks with what is lost. The ninth re-check
+([9](../../reviews/control-design/2026-11-07-RECHECK-9.md)) closed three of them and found one new point; draft 12
+records every input before it reaches Chrome, makes unlabelled local-only deletion an owner question, checks upstream
+certificates with Chrome's own current data, and bounds a destructive action approved in advance. The tenth re-check
 ([10](../../reviews/control-design/2026-11-07-RECHECK-10.md)) closed the input barrier and the advance approval; draft
 13 states both options for unlabelled local-only deletion truthfully and makes Chrome's own security data a precise
 contract (paths, what the trust rests on, a version gate, freshness from the data's own fields, recovery when it is
@@ -70,12 +72,12 @@ that run outside its sandbox only through the tool layer, asking (decision 22).
 | `admin.sock` | owner-only actions (accounts, passwords, the site lists, "don't ask again" entries, the checkpoint switch, adding a tool himself, the developer-site list). Open only to root; the owner reaches it with `sudo aresos admin …` and his own password, which Claude can't give. | |
 | `chrome.sock` | for Chrome's native messaging host only (section 6), open only to the browser's user. | |
 | `aresos` | The terminal command: `aresos mail search --from … --json`, generated from the definitions, over `act.sock`. For the owner and his scripts, run as the session's user (`sudo -u`), and for owner-only actions with `sudo aresos admin`. | the caller |
-| `aresos-mcp <app>` | One MCP server per app (`aresos-mcp mail`, `aresos-mcp chrome`), a thin generic proxy: it fetches its app's tool list from the service, forwards calls over `act.sock`, and does the caller's side of file transfers (rule 4.4). Root-owned under `/usr` (read-only in the image), started from `managed-mcp.json` with a fixed interpreter in isolated mode (`python3 -I`) and a fixed environment, so nothing in a writable folder is loaded into it. Started by any other user, it refuses at once (brief 18b, *checked*). | the session's user, started by Claude Code |
+| `aresos-mcp <app>` | One MCP server per app (`aresos-mcp mail`, `aresos-mcp chrome`), a thin generic proxy: it fetches its app's tool list from the service, forwards calls over `act.sock`, and does the caller's side of file transfers (rule 4.4). Root-owned under `/usr` (read-only in the image), started from `managed-mcp.json` through a small program set-group-id to `aresos-relay`, which runs a fixed interpreter in isolated mode (`python3 -I`) with a fixed environment, so nothing in a writable folder is loaded into it and the process is non-dumpable (section 7). Started by any other user, it refuses at once (brief 18b, *checked*). | the session's user, group `aresos-relay`, started by Claude Code |
 | Added tools | MCP servers, connectors, skills and plugins added through the tool layer (section 7, decision 22). Each added MCP server is installed root-owned and runs as its own system user with only its own credentials, reached through `aresos-mcp addon <name>`; a connector is reached by the tool service itself, through the same proxy. | system user per added server |
 | `aresos-checkpoint` | The checkpoint every Chrome connection passes through (section 6): holds sends from guarded places, forwards each approved one at most once. Listens on one local port for the browser's user only and on `checkpoint.sock` for the service only. | system user `aresos-checkpoint` |
 | Chrome bridge | Our own extension and native messaging host (section 6). | |
 | Chrome | The owner's browser, with his profile and sign-ins, started only by a root-owned launcher (section 6). | user `aresos-browser` |
-| The central session | The one Claude Code session: coding, commands, mail, Chrome and later apps (decision 23), started by the root-owned launcher, with or without skip-permissions. | user `assistant` (the name brief 18b's checks use) |
+| The central session | The one Claude Code session: coding, commands, mail, Chrome and later apps (decision 23), started by the root-owned launcher through a program set-group-id to `aresos-session` (non-dumpable, section 7), with or without skip-permissions. | user `assistant` (the name brief 18b's checks use) |
 | Claude Code settings | `/etc/claude-code/managed-settings.json`, `managed-mcp.json` and the managed `CLAUDE.md`, owned by root (section 7), generated from the definitions plus the vetted additions (decision 22). Exact values come once the tools exist (owner decision 3). | |
 
 **Who can reach what:**
@@ -1500,14 +1502,19 @@ without the prompt. The settings (exact values later, owner decision 3) must clo
   - *What can be lost (the exact bound):* work saved while a command runs, by him or by any program, and deleted by
     that same command before it ends; and changes a background process (a command left running, a watcher) makes
     between two snapshots and deletes before the next one.
-  - *Retention:* every snapshot for 24 hours, then one per hour (the last of each hour) until 30 days, then none.
+  - *Retention:* every captured snapshot for 24 hours, then one per hour (the last of each hour) until 30 days, then
+    none.
     From the second day on, only hourly states remain.
   - *How:* Bazzite's documented layout is one Btrfs filesystem with `/var/home` as its own subvolume (`OS-BASE.md`,
     Bazzite's partitioning guide); each project folder is made a subvolume at setup. A Btrfs snapshot leaves out
     subvolumes nested inside (Btrfs documentation), so the helper snapshots every subvolume it finds under a project
     folder too. Each snapshot is read-only and copy-on-write: it costs metadata when taken and space only for what
-    changes afterwards. Before deciding to skip one, the helper commits pending writes (a filesystem sync), then skips
-    only if the subvolume's generation is unchanged since the last snapshot. Snapshots live in a root-owned folder on
+    changes afterwards. While it works, the helper freezes the cgroup that holds the session's sandboxed commands,
+    background ones included (the same freeze as on a failure, below), and a file-tool write waits on its hook, so no
+    write of the session's runs while it finds the nested subvolumes, commits pending writes (a filesystem sync),
+    compares each subvolume's generation with the last snapshot's, and takes the snapshots; it skips a subvolume only
+    if its generation is unchanged. Writes of his own at that moment (his editor) aren't frozen; they land in this
+    snapshot or the next. Snapshots live in a root-owned folder on
     the same filesystem that the session's user can neither read nor write; a root-owned helper takes and deletes
     them. He restores: `sudo aresos admin projects snapshots` lists them, `… restore <snapshot> <path>` puts a file or
     folder back beside the current one (`--replace` to put it in place).
@@ -1545,14 +1552,38 @@ without the prompt. The settings (exact values later, owner decision 3) must clo
     used to run git as that user outside the wrapper. Claude Code reading `.git` files itself (the branch name)
     executes nothing; whether it embeds a git library that runs repository commands is checked in qualification
     (expected: none; one found is contained the same way or refused).
-  - *(c) The tools can't be reached by a missed route.* The tool service accepts every action that asks, and the
-    preparation that reserves it, only from the root-owned `aresos-mcp` program, checked through the calling
-    process's own program file (`/proc/<pid>/exe`), whose direct parent is the Claude Code process the root-owned
-    launcher registered with the service at start. `kernel.yama.ptrace_scope` is at least 1, so a process of the same
-    user can't attach to Claude Code or `aresos-mcp` and act through them. So even a route (a) and (b) missed can't
-    send or delete through the tools. It doesn't protect his files: a missed route running as the session's user
-    could still change what that user may change and use the network outside the sandbox; (a) and (b) are what
-    prevent that. The `aresos` command can still read and prepare; asking submissions come only from the session.
+  - *(c) The tools can't be reached by a missed route.* A process of the session's user that (a) and (b) missed
+    could otherwise act through the genuine relay: open the relay's input through `/proc/<relay>/fd/0`, or Claude
+    Code's own end of the pipe through `/proc/<claude>/fd/N`, and write requests the relay forwards, because opening
+    another process's descriptors needs only read access, which Yama doesn't restrict (re-check 20). And the
+    program file of a Python relay (`/proc/<pid>/exe`) names the interpreter, not the relay. So:
+    - *Claude Code and the relay are non-dumpable for their whole lifetime.* The launcher starts Claude Code through a
+      root-owned program that is set-group-id to a dedicated group (`aresos-session`), and `aresos-mcp` is a small
+      root-owned program set-group-id to its own group (`aresos-relay`) that then runs the pinned interpreter on the
+      relay. Starting a program that changes the group this way makes the kernel mark the process non-dumpable
+      (`suid_dumpable` is 0), and it stays so while its effective group differs from its real one, also across its
+      own later starts of programs; a process's own `PR_SET_DUMPABLE` wouldn't survive starting a program. A
+      non-dumpable process's `/proc` entries, its descriptors and its memory belong to root, so a process of the same
+      user can open neither its pipes nor its memory. `kernel.yama.ptrace_scope` at least 1 is kept as well.
+    - *The service knows the relay by its credential.* The tool service accepts every action that asks, and the
+      preparation that reserves it, only from a peer whose effective group (from the socket's peer credentials) is
+      `aresos-relay` and whose parent process is the Claude Code process the launcher registered at start (its
+      process id and start time, its group `aresos-session`). A copy of the relay that some other process starts has
+      the wrong parent and is refused.
+    - *What to qualify (base qualification):* Claude Code's native program under a set-group-id start (the
+      kernel's secure mode drops some environment variables and changes some library behaviour; the launcher's fixed
+      environment must still work), the MCP pipes between the two non-dumpable processes, and the terminal's
+      commands and git still running normally (bash returns to the real group by itself, so its own children are
+      ordinary).
+    - *Hostile test:* from a process of the session's user outside the sandbox: writing into `/proc/<relay>/fd/*` and
+      `/proc/<claude>/fd/*`, reading their memory, attaching to them, connecting to the service directly, and starting
+      the genuine relay itself and sending requests through it; every attempt fails, and no asking action reaches the
+      service. The trace of programs in (a) is evidence for qualification; it is not runtime enforcement, and this
+      point (c) is what holds at run time.
+    So even a route (a) and (b) missed can't send or delete through the tools. It doesn't protect his files: a missed
+    route running as the session's user could still change what that user may change and use the network outside the
+    sandbox; (a) and (b) are what prevent that. The `aresos` command can still read and prepare; asking submissions
+    come only from the session.
   - *(d) His own side (owner choice, section 10):* project folders belong to the session's user. With option (a),
     recommended, he works on projects through Claude, his own git refuses Claude's repositories (git refuses a
     repository owned by another user unless declared safe, checking the `.git` file, the git folder and the work
@@ -1578,19 +1609,19 @@ without the prompt. The settings (exact values later, owner decision 3) must clo
     the token itself never enters the sandbox; otherwise the short-lived token does. This narrows; it is no
     guarantee: with another credential, data could leave through GitHub, which is part of the accepted risk
     (section 10).
-  - **Claude can never delete or rewrite anything on GitHub.** Write access to a repository's contents is enough to
-    delete a branch or force-push over it (GitHub's documentation: deleting a reference needs only contents write;
-    re-check 18), and a recovery copy can't hold a state made and destroyed between two of its fetches (re-check 19).
-    So GitHub enforces it: rulesets on every branch and every tag of each of his repositories block deletion and
-    force-pushes, and the session's credential is never on their bypass list. For that, the credential acts as its
-    own identity, not as him: a GitHub App installed on his repositories with write access to contents and pull
-    requests only, whose short-lived tokens the tool service mints; the bypass list holds only the repository-admin
-    role, which is him. (Without the App, the rulesets have no bypass at all, and he lifts one himself when he wants
-    something deleted.) GitHub's own setting to delete a pull request's branch after it is merged is on, so merged
-    branches are cleaned up by GitHub, not by the session (*brief*: whether that setting works under the deletion
-    rule; if not, merged branches stay until he deletes them). Deleting a branch or tag is then his alone (owner
-    choice, section 10). The rulesets are set at setup; the service checks every repository's rulesets before it
-    gives the session a token, and gives none for a repository without them.
+  - **Claude can never delete a branch or tag or rewrite history on GitHub.** Write access to a repository's contents
+    is enough to delete a branch or force-push over it (GitHub's documentation: deleting a reference needs only
+    contents write; re-check 18), and a recovery copy can't hold a state made and destroyed between two of its fetches
+    (re-check 19). So GitHub enforces it: rulesets on every branch and every tag of each of his repositories block
+    deletion and force-pushes, and the session's credential is never on their bypass list. For that, the credential
+    acts as its own identity, not as him: a GitHub App installed on his repositories with write access to contents and
+    pull requests only, whose short-lived tokens the tool service mints; the bypass list holds only the
+    repository-admin role, which is him. (Without the App, the rulesets have no bypass at all, and he lifts one
+    himself when he wants something deleted.) GitHub's own setting to delete a pull request's branch after it is
+    merged is on, so merged branches are cleaned up by GitHub, not by the session (*brief*: whether that setting works
+    under the deletion rule; if not, merged branches stay until he deletes them). Deleting a branch or tag is then his
+    alone (owner choice, section 10). The rulesets are set at setup; the service checks every repository's rulesets
+    before it gives the session a token, and gives none for a repository without them.
   - **A mirror stays as extra safety.** The tool service keeps a mirror clone of each of his repositories (`git clone
     --mirror`, then updated every hour without pruning, so branches deleted upstream stay), and archives each update's
     branch and tag states under their own names, keeping them and their objects for 30 days. `sudo aresos admin repos
@@ -1714,7 +1745,9 @@ tool runs decides how it is added:
   1. **Claude prepares it** (`tools_prepare_add`): the source and an exact version. Before any approval, the tool
      service fetches only from these registries, and follows redirects only to these hosts: PyPI (`pypi.org`, files
      from `files.pythonhosted.org`), npm (`registry.npmjs.org`), the release downloads of a named GitHub repository
-     (`github.com` and its release-asset host), and the official MCP registry (`registry.modelcontextprotocol.io`,
+     (`github.com`, and the hosts GitHub serves release files from, `objects.githubusercontent.com` and
+     `release-assets.githubusercontent.com`; *brief*: which of them are in use), and the official MCP registry
+     (`registry.modelcontextprotocol.io`,
      which names packages on the others). The service's own network reaches only those hosts. A valid hash doesn't
      prove the right package (a look-alike name has its own valid hash), so the question shows the package's exact
      name and its publisher (the npm maintainer, the PyPI project's owner, the GitHub repository's owner), says
@@ -1755,11 +1788,14 @@ tool runs decides how it is added:
   calls any address, sends any request or runs any command) asks on every call. The server's own hints (read-only,
   destructive) are shown, never trusted alone. A read tool of a remote service still sends what Claude searches for
   to that service, as a search on his usual sites does (decision 18).
-- **What an unreviewed server with credentials can still do.** Asking on every call governs the calls Claude makes;
-  it can't stop what a server does by itself. An unreviewed server holding his credentials for a service starts only
-  after his approval and reaches only the API hosts it declared. That stops it from sending his data anywhere else.
-  It doesn't stop it from doing things at that service with his credentials on its own, at start or in the
-  background (posting, changing, deleting there). Only a review or an enforcing adapter covers that.
+- **A server that holds his account access (owner choice, section 10).** Asking on every call governs the calls
+  Claude makes; it can't stop what a server does by itself, at start or in the background. Reaching only the API
+  hosts it declared stops it from contacting other hosts; it doesn't limit what it does at that service, and for a
+  mail or chat service that includes sending to anyone the service reaches. So: with option (a), recommended, a
+  server that holds his account access for a service runs only after the independent review passes; if the review
+  fails or can't run, it isn't installed with his credentials. With option (b), he may approve an unreviewed one,
+  accepting that it can act on its own at that service: post, delete, or send to any recipient that service
+  reaches. Until he answers, (a) applies.
 - **Changes are refused.** `aresos-mcp addon` compares every tool list the server sends, not only the first one,
   with the approved record (each tool's name, description and input schema, by hash). A new tool, or one whose
   description or schema changed, is hidden from Claude, and a call to it is refused when it is dispatched even if
@@ -1861,10 +1897,11 @@ improvement if he asks for it.
 
 ## 10. Open questions
 
-**For the owner, open: four choices** (asked 2026-11-08; each with its exact bound and the lead's advice):
+**For the owner, open: five choices** (asked 2026-11-08; each with its exact bound and the lead's advice):
 
-1. **Deleting in his project folders** (section 7). (a) Free: the state just before each terminal command and each
-   file write in a project is kept, every state for 24 hours, then hourly until 30 days, and he can restore it. What
+1. **Deleting in his project folders** (section 7). (a) Free: a snapshot of the project folders is taken just before
+   each terminal command and each file write in a project; every captured snapshot is kept for 24 hours, then one per
+   hour until 30 days, and he can restore from them. What
    can be lost: work saved while a command runs and deleted by that same command, and changes a background process
    makes and deletes between two snapshots. (b) Each deletion asks: the terminal can no longer write project folders,
    builds run on scratch copies and every deletion goes through a question. Advice: (a).
@@ -1874,11 +1911,18 @@ improvement if he asks for it.
    folders: repository settings Claude planted can then run as him whenever he, his file manager or his editor uses
    git there. Advice: (a).
 3. **Deleting branches and tags on GitHub only by him** (section 7). Claude can never delete or rewrite a branch or
-   tag on GitHub (rulesets on every branch and tag, the session's credential never allowed past them); merged
-   pull-request branches are cleaned up by GitHub itself; anything else he deletes himself. Advice: yes.
+   tag or rewrite history on GitHub (rulesets on every branch and tag, the session's credential never allowed past
+   them); everything of that kind he does himself. GitHub's own clean-up of merged pull-request branches is meant to
+   keep that light, but whether it works under the deletion rule is untested; if it doesn't, merged branches stay
+   until he deletes them. Advice: yes.
 4. **Connectors** (section 7, adding tools). By default each of a connector's tools asks on every call, because the
    service behind it can change what a tool does under the same name; he may mark a tool free, accepting that.
    Advice: ask by default, his mark allowed.
+5. **An added server that holds his account access for a service** (section 7, adding tools). (a) It runs only after
+   the independent review passes; if the review fails or can't run, it isn't installed with his credentials.
+   (b) He may approve an unreviewed one, accepting that it can act on its own at that service, at start or in the
+   background: post, delete, or send to any recipient that service reaches (for a mail or chat service, anyone).
+   Asking on each call doesn't cover what a server does by itself. Advice: (a).
 
 **Answered on 2026-11-07 and built into this draft** (his words in quotes; `PLAN.md` decisions):
 
