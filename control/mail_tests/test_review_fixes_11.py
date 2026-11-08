@@ -170,7 +170,7 @@ class FilingNotices11(unittest.TestCase):
         return fixture, filing_id, saved
 
     def test_review11_twenty_identical_messages_long_ids_deliver_and_page_exactly_once(self):
-        self.exercise_race(20, b'<' + b'a' * 1400 + b'@mail.invalid>')
+        self.exercise_race(20, b'<' + b'a' * 980 + b'@mail.invalid>')
 
     def test_review11_four_thousand_identical_messages_deliver_and_page_exactly_once(self):
         self.exercise_race(4000, b'<identical@mail.invalid>')

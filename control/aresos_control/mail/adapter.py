@@ -563,7 +563,8 @@ class Mail:
             if any(str(msg.get(k, "")) != target[k] for k in ("from", "subject", "date")):
                 raise Refused("stale_approval", "Message sender, subject or date differs: stale, search again before deleting.")
         if invalid:
-            refs = canonical(visible([reference for reference, _ in invalid]))
+            from ..results import shortened
+            refs = shortened(canonical(visible([reference for reference, _ in invalid])), 1600)
             raise Refused("invalid_input", f"Cannot prepare deletion for message references {refs}: {invalid[0][1]} Leave these out of the selection and delete them in your mail program.")
 
     def delete_folders(self, account, payload):

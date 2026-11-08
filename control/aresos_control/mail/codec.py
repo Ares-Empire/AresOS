@@ -45,7 +45,8 @@ def parse(raw, reference=None):
             parser.feed(raw[offset:offset + 65536])
         return parser.close()
     except (Refused, RecursionError, MemoryError) as exc:
-        name = canonical(reference) if reference else 'unidentified message'
+        from ..results import shortened
+        name = shortened(canonical(reference), 1024) if reference else 'unidentified message'
         raise Refused('mime_limit', f'Message {name} cannot be parsed within MIME bounds; read another message or use your mail program. {exc}') from exc
 
 

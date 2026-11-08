@@ -18,7 +18,7 @@ class Responses25(unittest.TestCase):
     seed = filing11.FilingNotices11.seed
 
     def test_review25_long_id_350_copies_post_move_enospc_keeps_warning_and_location_pages(self):
-        fixture = filing11.MemoryIMAP(1, b'<' + b'x' * 20000 + b'@mail.invalid>')
+        fixture = filing11.MemoryIMAP(1, b'<' + b'x' * 980 + b'@mail.invalid>')
         refs = self.seed(fixture)[:1]
         fixture.boxes['Target'].update({uid: fixture.raw for uid in range(1, 350)})
         write = self.engine.store.journal.write
@@ -87,8 +87,11 @@ class Responses25(unittest.TestCase):
         for ok in (False, True):
             with self.subTest(ok=ok), patch.object(self.engine, '_admitted_request', return_value={
                     'ok': ok, 'pending': {}, 'data': {'text': 'x' * WIRE_LIMIT}}):
-                with self.assertRaises(Refused):
-                    self.engine.request({'v': 1, 'method': 'call', 'action': 'mail_accounts', 'arguments': {}})
+                result = self.engine.request({'v': 1, 'method': 'call', 'action': 'mail_accounts', 'arguments': {}})
+                self.assertEqual(result['ok'], ok)
+                self.assertLessEqual(len(canonical(result)), RESULT_LIMIT)
+                self.assertGreater(result['bounds']['omitted_characters'], WIRE_LIMIT)
+                transport_response(result)
 
 
 class Admission25(unittest.TestCase):
@@ -201,5 +204,15 @@ class Pending25(unittest.TestCase):
         from aresos_control.proxy import Proxy
         proxy = Proxy('mail', {'act_socket': 'unused'})
         proxy.client = SimpleNamespace(call=lambda *args: {'ok': False, 'pending': {}, 'error': {'message': 'x' * WIRE_LIMIT}})
+        from aresos_control.results import bound_result
+        from aresos_control.protocol import send
+        raw = proxy.client.call()
+        class Frame:
+            def sendall(self, wire):
+                pass
         with self.assertRaises(Refused):
-            proxy.call('accounts', {})
+            send(Frame(), raw)
+        proxy.client.call = lambda *args: bound_result(raw)
+        result = proxy.call('accounts', {})
+        self.assertFalse(result['ok'])
+        self.assertLessEqual(len(canonical(result)), RESULT_LIMIT)

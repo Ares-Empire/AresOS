@@ -18,10 +18,16 @@ JSON_DEPTH_LIMIT = 64
 JSON_INTEGER_LIMIT = 2**63 - 1
 
 
+def shortened(text, limit=2048):
+    if len(text) <= limit:
+        return text
+    return text[:limit] + '… [' + str(len(text) - limit) + ' characters omitted]'
+
+
 class Refused(Exception):
     def __init__(self, code, message):
         self.code = code
-        super().__init__(message)
+        super().__init__(shortened(message))
 
 
 def _storage_refusal(exc):
@@ -231,6 +237,10 @@ def approval_order(value):
 
 
 def display_json(value):
+    # Private transfer chunks/catalogues need larger frames than action results.
+    # Leave room for MCP's text + structured copies and JSON escaping.
+    from .results import bound_result
+    value = bound_result(value, limit=WIRE_LIMIT // 4)
     return json.dumps(approval_order(value), ensure_ascii=True, separators=(",", ":"), allow_nan=False)
 
 

@@ -87,7 +87,7 @@ class Engine:
             new_notices = []
             for changes, _, _ in self.store.deferred_notices.values():
                 for key, value in changes.items():
-                    if key.startswith('notice:') and not value.get('ack') and (app is None or value['app'] == app):
+                    if key.startswith('notice:') and not value.get('ack'):
                         notices[value['id']] = public_notice(self.store, value)
                         new_notices.append(value['id'])
                         self.store.observations.observe(value['id'], {'filing_warning': value['untrusted_content']})
@@ -131,7 +131,7 @@ class Engine:
             raise Refused('stale_reference', 'Page changed; read again without the cursor.')
         end = offset + len(items)
         return {'items': items, 'total': total, 'cursor': f'{token}:{end}' if end < total else None,
-                'restore_required': self.store.locked} | self.notices(app)
+                'restore_required': self.store.locked} | self.notices()
 
     def page(self, values, args, scope):
         token, offset = digest([scope, values]), 0

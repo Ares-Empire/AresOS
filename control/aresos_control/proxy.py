@@ -7,6 +7,7 @@ from .definitions import obj, string
 from .definitions import APPS, BY_NAME
 from .files import FilePolicy, safe_name
 from .protocol import Client
+from .results import bounded
 
 
 class Proxy:
@@ -25,6 +26,7 @@ class Proxy:
         return [tool for tool in result["data"]["tools"] if
                 self.app + "_" + tool["name"] in BY_NAME and not BY_NAME[self.app + "_" + tool["name"]].owner_only]
 
+    @bounded
     def call(self, verb, arguments):
         action = BY_NAME.get(self.app + "_" + verb)
         try:
@@ -135,7 +137,7 @@ class StrictMCPInput:
                 else:
                     candidates = [request.get('id')] if type(request) is dict else []
                 # Answer every candidate id when even the id field is repeated.
-                ids = list(dict.fromkeys(v for v in candidates if type(v) in {str, int})) or [None]
+                ids = list(dict.fromkeys(v for v in candidates if type(v) is int or type(v) is str and len(v) <= 512)) or [None]
                 for request_id in ids:
                     error = {"jsonrpc": "2.0", "id": request_id, "error": {
                         "code": -32602, "message": str(exc), "data": {"code": exc.code}}}
@@ -188,6 +190,8 @@ async def serve(app, config):
         else:
             # One serial service handles operations; avoid blocking the SDK's event loop.
             result = await asyncio.to_thread(proxy.call, parameters.name, parameters.arguments or {})
+        from .results import bound_result
+        result = bound_result(result)
         return types.CallToolResult(content=[types.TextContent(type="text", text=display_json(result))],
                                     structured_content=result, is_error=not result["ok"])
 

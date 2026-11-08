@@ -30,7 +30,7 @@ RESULT = obj({"ok": {"type": "boolean"}, "data": {"type": "object"}, "error": {"
                   "count": {"type": "integer", "minimum": 0},
                   "cursor": {"anyOf": [string(512), {"type": "null"}]},
                   "fragments": {"type": "array", "items": obj({"offset": {"type": "integer", "minimum": 0}, "json": string(6000)})}}, ["stages", "evidence"]),
-              "pending": {"type": "object"}}, ["ok", "pending"])
+              "bounds": {"type": "object"}, "pending": {"type": "object"}}, ["ok", "pending"])
 PUBLIC_OPERATION = obj({"id": string(80), "generation": string(32), "app": string(64), "action": string(128),
     "approval": {"type": "object"}, "state": {"type": "string", "enum": ["reserved", "submitting", "done", "partial", "refused", "failed", "unknown"]},
     "expires": {"type": "number"}, "stages": {"type": "object"}, "reason": string(4096),
@@ -70,7 +70,7 @@ class Action:
                 "On refused, permission_denied or restore_required, stop and ask the owner. "
                 "On expired/cancelled, nothing was submitted; prepare anew only if still wanted. "
                 "On storage_limit, the disk or retained storage is full: stop and ask the owner to free space. "
-                "Storage failures return ok=false and the first storage error; observations preserves remote evidence and stage answers even if recording failed. Oversize observations keep every warning, count the complete JSON characters and return fragments with a control_observations cursor; concatenate fragments by offset before decoding JSON. Page before another failing change: the latest snapshot is volatile until the next oversize failure or restart. These facts never authorize replay. "
+                "Storage failures return ok=false and the first storage error; observations preserves remote evidence and stage answers even if recording failed. Every response, including errors, is bounded after assembly. Oversize details keep owner warnings, count the complete JSON characters and return fragments with a control_observations cursor; concatenate fragments by offset before decoding JSON. Page before another failing change: the latest snapshot is volatile until the next oversize failure or restart. bounds counts paged or shortened characters. Oversize warning envelopes are included in the detail pages with a warning count. These facts never authorize replay. "
                 "Approval and replay checks still apply; no action is reported done without its evidence. "
                 "On partial, inspect stages and repair only missing local stages. On unknown or transport_error, "
                 "inspect operation_status and far-side evidence; never retry with a new id. "
