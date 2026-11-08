@@ -98,3 +98,23 @@ class Filing24(unittest.TestCase):
             self.assertIn('which is now Trash', notices['notices'][0]['untrusted_content']['reason'])
         self.assertEqual(self.imap.mutations, [('MOVE', 1, 'Target')])
 
+    def test_review24_expiry_keeps_first_storage_cause_notice_and_service_log(self):
+        for number in (errno.ENOSPC, errno.EDQUOT, errno.EIO):
+            with self.subTest(errno=number):
+                approval = self.approval('send', self.compose())
+                with patch('aresos_control.engine.time.time', return_value=approval['description']['expires_at'] + 1), \
+                     patch.object(self.engine.store.journal, 'write', side_effect=OSError(number, 'Synthetic storage failure')), \
+                     self.assertLogs('aresos_control.engine', level='ERROR') as logs:
+                    with self.assertRaises(Refused):
+                        self.engine.expire()
+                expected = 'Storage I/O' if number == errno.EIO else 'Disk full'
+                self.assertIn(expected, logs.output[0])
+                for _ in range(2):
+                    result = self.call('compose', {'account': 'box', 'to': ['recipient@mail.invalid'], 'text': 'Synthetic'})
+                    self.assertFalse(result['ok'], result)
+                    self.assertIn(expected, result['error']['message'])
+                    self.assertIn(expected, result['pending']['notices'][0]['untrusted_content']['reason'])
+                self.restart()
+                self.data('compose', {'account': 'box', 'to': ['recipient@mail.invalid'], 'text': 'Synthetic'})
+                self.assertIsNone(self.engine.store.storage_cause)
+                self.assertFalse(self.engine.store.write_failed)

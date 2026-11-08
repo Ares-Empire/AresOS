@@ -42,7 +42,7 @@ class Daemon:
             try:
                 self.engine.expire()
             except Exception:
-                # A failed journal stays latched; maintenance cannot take down reads.
+                # Engine records the cause and owner notice before re-raising.
                 pass
             for key, _ in self.selector.select(timeout=0.1):
                 connection, _ = key.fileobj.accept()

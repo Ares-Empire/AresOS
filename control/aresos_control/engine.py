@@ -2,6 +2,7 @@ import base64
 import copy
 import hashlib
 import imaplib
+import logging
 import sqlite3
 import time
 import uuid
@@ -102,9 +103,31 @@ class Engine:
         end = offset + args.get("limit", 5)
         return {"items": values[offset:end], "total": len(values), "cursor": f"{token}:{end}" if end < len(values) else None}
 
+    def background_error(self, exc):
+        self.store.remember_storage(exc)
+        error = self.store.storage_cause
+        if error is not None:
+            self.store.write_failed = True
+            notice_id = 'background-storage'
+            notice = {'id': notice_id, 'app': 'mail', 'state': 'partial', 'ack': False,
+                      'created_at': time.time_ns(), 'untrusted_content': {'reason': str(error)}}
+            self.store.defer_notice(notice_id, {'notice:' + notice_id: notice},
+                                    'control_maintenance', 'Background storage failure')
+            logging.getLogger(__name__).error('Background maintenance: %s', error)
+        else:
+            logging.getLogger(__name__).error('Background maintenance failed; inspect service state.')
+
     def expire(self):
+        try:
+            self._expire()
+        except Exception as exc:
+            self.background_error(exc)
+            raise
+
+    def _expire(self):
         if self.store.locked or self.store.write_failed:
             return
+        self.store.flush_notices()
         for key, op in self.store.iter_items("op:"):
             if op["state"] == "reserved" and time.time() >= op["expires"]:
                 op.update(state="failed", reason="expired: nothing submitted", notice=True)
