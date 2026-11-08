@@ -936,6 +936,17 @@ class Mail:
             return operation['stages'][which]
         return self.local_stage(operation, which)
 
+    def repair_evidence(self, operation, which):
+        comp = operation['payload']['composition']['mail']
+        account = self.account(comp['account'], ready=False)
+        if which == 'sent_copy':
+            return 'done' if self.sent_matches(account, self.message_id(operation['id'])) else 'failed'
+        reference = comp['answered_reference']
+        if reference is None:
+            return 'not_needed'
+        message = self.message(reference)
+        return 'done' if any(flag.casefold() == '\\answered' for flag in message['flags']) else 'failed'
+
     def repaired_outcome(self, operation):
         stages = operation["stages"]
         if operation["state"] == "partial" and stages.get("sent_copy") == "done" and stages.get("answered_flag") in {"done", "not_needed"} and not any(v.startswith("refused:") for k, v in stages.items() if k.startswith("rcpt:")):

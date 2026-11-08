@@ -181,6 +181,27 @@ class Engine:
                          and op.get('payload', {}).get('stage') == args['stage'] and op['state'] == 'done']
             return {'operation': self.public_operation(completed[-1] if completed else old),
                     'original': self.public_operation(old)}
+        if app == 'mail':
+            for _, repair in self.store.items('op:'):
+                if (repair.get('repair_of') == old['id'] and repair.get('payload', {}).get('stage') == args['stage']
+                        and repair['state'] in {'reserved', 'submitting', 'unknown'}):
+                    # Repeated repair is the explicit read-then-settle path.
+                    # Status remains read-only; an unreachable server adds no history.
+                    try:
+                        result = self.adapters[app].repair_evidence(old, args['stage'])
+                    except (Refused, OSError, imaplib.IMAP4.error, Uncertain):
+                        return {'operation': self.public_operation(repair), 'original': self.public_operation(old)}
+                    changes = {}
+                    if result in {'done', 'not_needed'}:
+                        old['stages'][args['stage']] = result
+                        old['state'], old['reason'] = self.adapters[app].repaired_outcome(old)
+                        changes['op:' + old['id']] = old
+                        repair.update(state='done', reason='Read-only evidence confirms local repair; never submitted.')
+                    else:
+                        repair.update(state='failed', reason='Read-only check found local stage absent; a later repair may try again.')
+                    changes['op:' + repair['id']] = repair
+                    self.store.write(changes, repair['action'], repair['state'], repair['id'])
+                    return {'operation': self.public_operation(repair), 'original': self.public_operation(old)}
         self.store.admit_history(retention.RECOVERY_REQUEST, recovery=True)
         op_id = self.store.generation + ":" + uuid.uuid4().hex
         description = {"repair_of": old["id"], "stage": args["stage"]}
@@ -352,7 +373,8 @@ class Engine:
                     retention.expire(self)
                 # Archive first exports durably, then makes room; it must also
                 # work on a store already over quota from an older installation.
-                if request.get('action') not in {'control_archive', 'control_restore_confirm', 'mail_prepare_send', 'mail_operation_repair'}:
+                if (request.get('action') not in {'control_archive', 'control_restore_confirm', 'mail_prepare_send', 'mail_operation_repair'}
+                        and not request.get('action', '').endswith('_operation_cancel')):
                     self.store.admit_history(retention.RECOVERY_REQUEST if self.store.recovering else retention.REQUEST_RESERVE)
             return self._request(request, admin)
         except Refused as exc:
