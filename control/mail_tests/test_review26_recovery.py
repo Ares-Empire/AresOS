@@ -149,3 +149,28 @@ class Recovery26(unittest.TestCase):
         self.engine.store.write({}, 'fixture', 'Disk recovered; persist the warning without restarting')
         self.assertIsNotNone(self.engine.store.get('notice:legacy-untracked'))
         self.assertIsNotNone(self.engine.store.get('notice:future-stamp'))
+
+    def test_review26_archive_keeps_legacy_warning_source_until_acknowledged(self):
+        import time
+        from aresos_control.archive import archive
+        from aresos_control.recovery import recovery_notices
+        store = self.engine.store
+        # Older adapters recorded unknown without a separate intent key.
+        with patch('time.time', return_value=1000):
+            for index in range(4):
+                store.write({}, 'mail_legacy_change' + str(index), 'Synthetic legacy uncertain change', outcome='unknown')
+        source = store.sequence
+        with patch('aresos_control.retention.NOTICE_COUNT', 3):
+            self.restart()
+            notices = list(recovery_notices(self.engine.store))
+            notice = next(n for n in notices if n['untrusted_content']['intent_key'].endswith(':' + str(source)))
+            self.assertIsNone(self.engine.store.get('notice:' + notice['id']))
+            archive(self.engine.store, time.time() - 1)
+            self.restart()
+            self.assertIn(notice['id'], {n['id'] for n in recovery_notices(self.engine.store)})
+            self.assertIn(source, {event['seq'] for event in self.engine.store.iter_audit()})
+        self.data('notice_ack', {'operation_id': notice['id']})
+        archive(self.engine.store, time.time() - 1)
+        self.assertNotIn(source, {event['seq'] for event in self.engine.store.iter_audit()})
+        self.restart()
+        self.assertFalse(list(recovery_notices(self.engine.store)))

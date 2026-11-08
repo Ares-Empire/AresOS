@@ -36,7 +36,8 @@ def archive(store, before):
 
     def eligible(event):
         keys = set(event['set']) | {'op:' + op['id'] for op in event['record']['operations']}
-        return event['time'] < before and not any(key.startswith(p) for key in keys for p in protected)
+        return (event['time'] < before and event['seq'] not in legacy_sources and
+                not any(key.startswith(p) for key in keys for p in protected))
 
     # Calculate space before making an export. Recovery can use the physical
     # reserve ordinary work leaves untouched; the private export is never public.
@@ -44,6 +45,12 @@ def archive(store, before):
     estimate += sum(retention.size(v) + 128 for v in closed.values()) + 65536
     # Include the export, its audit transaction and VACUUM's temporary database.
     store.ledger.admit(estimate + store.history_size() * 2 + 256 * 1024)
+    # An older unfinished action may have no separate intent row, and a full
+    # notice table may still need its audit row as the only warning source.
+    from .recovery import unfinished
+    legacy_sources = {int(key.rsplit(':', 1)[1]) for key, notice_id, _, _ in unfinished(store)
+                      if key.startswith('legacy-intent:') and
+                      not (store.get('notice:' + notice_id) or {}).get('ack')}
     directory = store.evidence_dir / 'archives'
     directory.mkdir(mode=0o700, exist_ok=True)
     name = 'history-' + uuid.uuid4().hex + '.jsonl'
