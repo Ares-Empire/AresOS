@@ -26,7 +26,7 @@ class NativePolicyFixture(unittest.TestCase):
             original = b'def managed_settings():\n    return {"sandbox": {"enabled": True}, "permissions": {"allow": []}}\n'
             definition.write_bytes(original)
             launcher = root / 'launch.py'
-            launcher_original = b'def main():\n    personal_login()\n    launch()\n'
+            launcher_original = b'def main():\n    launch()\n'
             launcher.write_bytes(launcher_original)
             policy = root / 'managed-settings.json'
             policy_original = json.dumps({'sandbox': {'enabled': True}, 'permissions': {'allow': []}}).encode()
@@ -42,7 +42,7 @@ class NativePolicyFixture(unittest.TestCase):
                         self.assertEqual(generated, json.loads(policy.read_bytes()))
                         self.assertTrue(generated['sandbox']['enabled'])
                         self.assertEqual(generated['permissions']['allow'], ['Bash(/usr/bin/python3 -I boundary-hostile.py)'])
-                        self.assertNotIn(b'    personal_login()\n', launcher.read_bytes())
+                        self.assertEqual(launcher.read_bytes(), launcher_original)
                         raise RuntimeError('Synthetic interrupted session')
             self.assertEqual(definition.read_bytes(), original)
             self.assertEqual(launcher.read_bytes(), launcher_original)

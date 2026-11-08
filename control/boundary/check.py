@@ -295,8 +295,8 @@ def launcher_checks():
             remote = Path('/home/assistant/.claude/remote-settings.json')
             remote.write_text('{}')
             try:
-                bad = run(['/usr/local/bin/aresos-assistant'], 'launcher-remote-cache', required=False)
-                assert bad.returncode == 78 and 'remote-settings.json' in bad.stderr and 'LAUNCHED' not in bad.stdout
+                allowed = run(['/usr/local/bin/aresos-assistant'], 'launcher-remote-cache', required=False)
+                assert allowed.returncode == 0 and 'LAUNCHED' in allowed.stdout, allowed.stderr
             finally:
                 remote.unlink()
             print('LAUNCHER_POLICY_SOURCES_OK empty_pass nonempty_and_symlink_refused', flush=True)

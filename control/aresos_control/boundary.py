@@ -8,7 +8,6 @@ from .boundary_policy import asking_rules, managed_servers, managed_settings, ma
 
 DEFAULT_SETTINGS = '/etc/claude-code/managed-settings.json'
 DEFAULT_MCP = '/etc/claude-code/managed-mcp.json'
-DEFAULT_REMOTE = '/home/assistant/.claude/remote-settings.json'
 
 
 def differences(expected, actual, path=''):
@@ -67,7 +66,7 @@ class Boundary:
             if fd is not None:
                 os.close(fd)
 
-    def absent_or_empty(self, path, directory=False):
+    def absent_or_empty(self, path):
         """Walk even optional sources without following a link, including dangling ones."""
         fd = None
         try:
@@ -76,23 +75,18 @@ class Boundary:
                 raise ValueError('requires an absolute production path')
             fd = os.open('/', os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
             for part in parts[1:-1]:
-                if directory:
-                    protected(os.fstat(fd))
+                protected(os.fstat(fd))
                 parent = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=fd)
                 os.close(fd)
                 fd = parent
-            if directory:
-                protected(os.fstat(fd))
-                leaf = os.open(parts[-1], os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=fd)
-                os.close(fd)
-                fd = leaf
-                protected(os.fstat(fd))
-                entries = sorted(os.listdir(fd))
-                if entries:
-                    raise ValueError('must be empty; unexpected entry ' + canonical(entries[0]))
-            else:
-                os.stat(parts[-1], dir_fd=fd, follow_symlinks=False)
-                raise ValueError('remote policy is unsupported; source must be absent')
+            protected(os.fstat(fd))
+            leaf = os.open(parts[-1], os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=fd)
+            os.close(fd)
+            fd = leaf
+            protected(os.fstat(fd))
+            entries = sorted(os.listdir(fd))
+            if entries:
+                raise ValueError('must be empty; unexpected entry ' + canonical(entries[0]))
         except FileNotFoundError:
             return
         except (OSError, ValueError) as exc:
@@ -108,8 +102,7 @@ class Boundary:
                 if canonical(expected) != canonical(actual):
                     paths = '; '.join(differences(expected, actual))
                     raise ValueError(f'{path}: generated policy differs at {paths}')
-            self.absent_or_empty(str(PurePosixPath(self.settings).with_name('managed-settings.d')), directory=True)
-            self.absent_or_empty(DEFAULT_REMOTE)
+            self.absent_or_empty(str(PurePosixPath(self.settings).with_name('managed-settings.d')))
         except (ValueError, TypeError, AttributeError, Refused) as exc:
             self.reason = str(exc)
             raise Refused('boundary_not_installed', self.reason) from exc

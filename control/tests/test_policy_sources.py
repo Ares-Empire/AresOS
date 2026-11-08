@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 from subprocess import CompletedProcess
+import hashlib
 from unittest.mock import patch
 
 from aresos_control import boundary
@@ -69,35 +70,51 @@ class PolicySources(EngineCase):
         with patch('aresos_control.boundary.os.fstat', unowned):
             self.assert_refuses_only_asking('root')
 
-    def test_review17_remote_cache_and_any_symlink_refuse(self):
-        remote = self.settings.parent / 'personal' / 'remote-settings.json'
-        remote.parent.mkdir()
-        with patch.object(boundary, 'DEFAULT_REMOTE', str(remote)):
+    def test_review18_private_home_and_remote_cache_are_never_traversed(self):
+        remote = self.settings.parent / 'private-owner' / '.claude' / 'remote-settings.json'
+        real_open = os.open
+        def private(path, *args, **kwargs):
+            if str(path) in {'private-owner', str(remote)}:
+                raise PermissionError('Owner home is private')
+            return real_open(path, *args, **kwargs)
+        # The former constant is supplied only to demonstrate the old failure.
+        with patch.object(boundary, 'DEFAULT_REMOTE', str(remote), create=True), \
+             patch('aresos_control.boundary.os.open', side_effect=private):
             self.engine.boundary.require()
-            remote.write_text('{}')
-            self.assert_refuses_only_asking('remote-settings.json')
+        remote.parent.mkdir(parents=True)
+        for symlink in (False, True):
+            if symlink:
+                remote.symlink_to(remote.with_name('missing'))
+            else:
+                remote.write_text('{}')
+            with patch.object(boundary, 'DEFAULT_REMOTE', str(remote), create=True):
+                self.engine.boundary.require()
             remote.unlink()
-            remote.symlink_to(remote.with_name('missing'))
-            self.assert_refuses_only_asking('remote-settings.json')
-            remote.unlink()
-            remote.parent.rmdir()
-            remote.parent.symlink_to(self.settings.parent, target_is_directory=True)
-            self.assert_refuses_only_asking('remote-settings.json')
 
-    def test_review17_launcher_refuses_unknown_or_remote_eligible_authentication(self):
+    def test_review18_launcher_has_no_auth_restriction_and_keeps_boundary_and_canaries(self):
         spec = importlib.util.spec_from_file_location('policy_launcher', ROOT / 'control/boundary/launch.py')
         launcher = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(launcher)
-        for status in ({'loggedIn': False}, *[{'loggedIn': True, 'authMethod': 'claude.ai',
-                                             'subscriptionType': plan} for plan in ('pro', 'max', 'ultra')]):
-            with patch.object(launcher.subprocess, 'run', return_value=CompletedProcess([], 0, json.dumps(status))):
-                launcher.personal_login()
-        for status in ({}, {'loggedIn': True}, *[{'loggedIn': True, 'authMethod': 'claude.ai',
-                                'subscriptionType': plan} for plan in ('team', 'enterprise', 'unknown')],
-                       {'loggedIn': True, 'authMethod': 'api_key', 'subscriptionType': 'pro'}):
-            with patch.object(launcher.subprocess, 'run', return_value=CompletedProcess([], 0, json.dumps(status))):
-                with self.assertRaisesRegex(ValueError, 'remote policy'):
-                    launcher.personal_login()
+        content = b'Synthetic pinned executable'
+        checksum = hashlib.sha256(content).hexdigest()
+        def config(path, *args, **kwargs):
+            return json.dumps({'seccomp_x64_sha256': checksum} if path.name == 'pins.json'
+                              else {'sha256': checksum, 'cli_sha256': checksum})
+        with patch.object(launcher.Boundary, 'require'), \
+             patch.object(launcher, 'trusted'), \
+             patch.object(launcher.Path, 'exists', return_value=False), \
+             patch.object(launcher.Path, 'resolve', lambda path: path), \
+             patch.object(launcher.Path, 'read_bytes', return_value=content), \
+             patch.object(launcher.Path, 'read_text', config), \
+             patch.object(launcher.os, 'access', return_value=True), \
+             patch.object(launcher.os, 'chdir'), \
+             patch.object(launcher.os, 'execve') as execute, \
+             patch.object(launcher.subprocess, 'run', return_value=CompletedProcess([], 0, 'SECCOMP_CANARY_OK')) as run:
+            launcher.main()
+            self.assertEqual(run.call_count, 2)
+            self.assertIn('seccomp-canary.py', run.call_args_list[0].args[0][-1])
+            self.assertEqual(run.call_args_list[1].args[0][-1], '--native-canary')
+            self.assertEqual(execute.call_args.args[1], [str(launcher.CLAUDE), '--setting-sources', ''])
         with patch.object(launcher.Boundary, 'require', side_effect=Refused('boundary_not_installed', 'drop-in')), \
              patch.object(launcher.os, 'execve') as execute:
             with self.assertRaises(Refused):

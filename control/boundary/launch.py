@@ -25,23 +25,6 @@ def trusted(path):
             raise ValueError(f'untrusted root-owned path: {part}')
 
 
-def personal_login():
-    # Remote policy can outrank the installed files. Only the personal terminal
-    # login is supported; injected tokens/providers are stripped by launcher.c.
-    result = subprocess.run([str(NATIVE), '--setting-sources', '', 'auth', 'status', '--json'],
-                            capture_output=True, text=True, timeout=30, close_fds=True)
-    try:
-        status = json.loads(result.stdout)
-        allowed = (result.returncode in (0, 1) and type(status) is dict and
-                   (status.get('loggedIn') is False or
-                    (status.get('loggedIn') is True and status.get('authMethod') == 'claude.ai' and
-                     status.get('subscriptionType') in {'pro', 'max', 'ultra'})))
-    except (ValueError, TypeError):
-        allowed = False
-    if not allowed:
-        raise ValueError('remote policy is unsupported; use a personal subscription login, with no remote-settings.json cache')
-
-
 def main():
     # Use the service's complete policy-source check before launching the CLI.
     Boundary().require()
@@ -65,7 +48,6 @@ def main():
     if (hashlib.sha256(NATIVE.read_bytes()).hexdigest() != native_pin['sha256'] or
             hashlib.sha256(CLAUDE.resolve().read_bytes()).hexdigest() != native_pin['cli_sha256']):
         raise ValueError('native CLI hash mismatch')
-    personal_login()
     os.chdir('/home/assistant/work')
     # Do not merely test that a file exists. Require the real sandbox to execute
     # a canary and return EPERM for both socket families, before Claude starts.
