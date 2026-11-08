@@ -327,15 +327,28 @@ class Store:
                         self.ledger.holds.update(self.ledger.right(op, self.get('op:' + (op.get('repair_of') or ''))))
         if self.locked:
             budget = 256 * 1024
-            for op_id, seq, known in self.iter_latest():
-                old = self.get('op:' + op_id)
-                if old is None and self.get('archived:' + op_id) == {'seq': seq}:
-                    continue
-                budget += record_budget(old or known)
-                if old is None and known['description']['action'] == 'mail_operation_repair':
-                    restored = missing_operation(known)
-                    self.ledger.holds.update(self.ledger.right(restored, self.get('op:' + (restored.get('repair_of') or ''))))
+            for restored in self._restore_operations():
+                budget += record_budget(restored)
+                self.ledger.holds.update(self.ledger.right(restored, self.get('op:' + (restored.get('repair_of') or ''))))
             self.ledger.holds['restore'] = budget
+
+    def _restore_operations(self, through=None):
+        # Admission and confirmation must enumerate exactly the same work.
+        # Unchanged closed history costs no reconstruction space.
+        for op_id, seq, known in self.iter_latest(through):
+            old = self.get('op:' + op_id)
+            if old is None and self.get('archived:' + op_id) == {'seq': seq}:
+                continue
+            version = self.db.execute('SELECT seq FROM operation_versions WHERE id=?', (op_id,)).fetchone()
+            if old is None or version != (seq,) or old['state'] == 'submitting':
+                if old is None:
+                    old = missing_operation(known)
+                old.update(state='unknown', reason='Restored log: independent record has newer or missing evidence. Owner must check.')
+            elif old['state'] == 'reserved':
+                old.update(state='failed', reason="Restore invalidated this generation's approval; nothing resumed.")
+            else:
+                continue
+            yield old
 
     def require_index(self):
         if self.index_refusal:
@@ -518,20 +531,8 @@ class Store:
         through = self.sequence
         changes = {}
         batch_bytes = 0
-        for op_id, seq, known in self.iter_latest(through):
-            key = "op:" + op_id
-            old = self.get(key)
-            if old is None and self.get('archived:' + op_id) == {'seq': seq}:
-                continue
-            version = self.db.execute("SELECT seq FROM operation_versions WHERE id=?", (op_id,)).fetchone()
-            if old is None or version != (seq,) or old["state"] == "submitting":
-                if old is None:
-                    old = missing_operation(known)
-                old.update(state="unknown", reason="Restored log: independent record has newer or missing evidence. Owner must check.")
-            elif old["state"] == "reserved":
-                old.update(state="failed", reason="Restore invalidated this generation's approval; nothing resumed.")
-            else:
-                continue
+        for old in self._restore_operations(through):
+            key = 'op:' + old['id']
             amount = len(canonical(old).encode()) + len(canonical(short_description(old)).encode()) + 1024
             if changes and (len(changes) >= RESTORE_BATCH_COUNT or batch_bytes + amount > RESTORE_BATCH_BYTES):
                 changes['restore_pending'] = True
