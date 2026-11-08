@@ -5,6 +5,7 @@ from .mail.definitions import ACCOUNT_CONFIG, SAVED_RESULT
 
 APP = {'type': 'string', 'enum': sorted(APPS)}
 FIELDS = {
+    'pending': {},
     'tools': {'app': APP},
     'call': {'action': string(128), 'arguments': {'type': 'object'}},
     'mail_account_add': {'arguments': ACCOUNT_CONFIG, 'password': string(8192)},

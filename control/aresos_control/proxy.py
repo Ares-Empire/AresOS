@@ -108,7 +108,7 @@ class Proxy:
             return self.client.call(action.name, arguments)
         except (Refused, OSError, ValueError) as exc:
             exc = storage_refusal(exc) or exc
-            pending = self.client.call("control_pending", {})
+            pending = self.client.request({'method': 'pending'})
             return {"ok": False, "error": {"code": getattr(exc, "code", "file_refused"), "message": str(exc),
                     **({"notes": list(exc.__notes__)} if getattr(exc, "__notes__", None) else {})},
                     "pending": pending.get("data", pending.get("pending", {})),

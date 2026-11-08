@@ -759,11 +759,22 @@ class Mail:
                         self.store.observations.observe(op['id'], {'sent': matches})
                 self.sent_copy_count(op, matches, commit_clean=True)
             except (Refused, OSError, sqlite3.Error, imaplib.IMAP4.error, Uncertain, KeyError, TypeError, ValueError):
-                unresolved.append({'id': 'sent-check-' + digest(op['id'])[:32], 'app': 'mail',
-                    'state': 'unknown', 'ack': False, 'created_at': int(self.store.retained_at('op:' + op['id']) * 1_000_000_000),
-                    'untrusted_content': {'operation_id': op['id'], 'check': 'sent_copies',
-                        'reason': 'Sent-copy count is not yet checked. The server or committed result is unavailable. Nothing is appended or sent automatically.'}})
+                unresolved.append(self.unchecked_sent_notice(op))
         return unresolved
+
+    def unchecked_sent_notice(self, operation):
+        return {'id': 'sent-check-' + digest(operation['id'])[:32], 'app': 'mail',
+            'state': 'unknown', 'ack': False,
+            'created_at': int(self.store.retained_at('op:' + operation['id']) * 1_000_000_000),
+            'untrusted_content': {'operation_id': operation['id'], 'check': 'sent_copies',
+                'reason': 'Sent-copy count is not yet checked. Its live evidence and result still need committing. Nothing is appended or sent automatically.'}}
+
+    def unresolved_sent_checks(self):
+        # Pure snapshots keep refusals/replays out of IMAP. The committed open
+        # row is enough to disclose the check without another server read.
+        for _, op in self.store.iter_items('op:'):
+            if op['app'] == 'mail' and op.get('sent_copy_check', {}).get('state') == 'open':
+                yield self.unchecked_sent_notice(op)
 
     def evidence(self, operation_id):
         op = self.store.get("op:" + operation_id)

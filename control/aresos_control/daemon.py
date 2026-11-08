@@ -73,7 +73,7 @@ class Daemon:
         pending = {"items": [], "total": 0, "cursor": None}
         if authorized:
             try:
-                pending = self.engine.pending()
+                pending = self.engine.pending(resolve_checks=False)
             except Exception:
                 pending = {**self.engine._last_pending.get(None, pending),
                            "unavailable": "Live pending read failed; inspect this snapshot and service state before further changes."}

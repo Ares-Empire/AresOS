@@ -41,7 +41,7 @@ class Engine:
         self.ttl = ttl
 
     def check_composition_result(self, data):
-        result = {'ok': True, 'data': data, 'pending': self.pending('mail')}
+        result = {'ok': True, 'data': data, 'pending': self.pending('mail', resolve_checks=False)}
         if len(canonical(result).encode()) > RESULT_LIMIT:
             raise Refused('result_too_large', 'Composition exceeds 49152 bytes including pending notices; use a shorter composition.')
 
@@ -58,7 +58,8 @@ class Engine:
 
     def notices(self, app=None, resolve_checks=True):
         from .mail.filing import notice_page
-        page = notice_page(self.store, app=app, checks=self.adapters['mail'].resolve_sent_checks() if resolve_checks else ())
+        mail = self.adapters['mail']
+        page = notice_page(self.store, app=app, checks=mail.resolve_sent_checks() if resolve_checks else mail.unresolved_sent_checks())
         if not page['items']:
             return {}
         result = {'notices': page['items']}
@@ -566,7 +567,7 @@ class Engine:
 
             self.blobs.put_stream(chunks(), blob["size"], blob["sha256"], origin="caller_import")
             self.store.write({"blob:" + digest(blob): blob}, request["app"] + "_file_import", "import immutable blob " + blob["sha256"])
-            send(connection, {"ok": True, "data": {"file": blob}, "pending": self.pending(request["app"])}, result=True)
+            send(connection, {"ok": True, "data": {"file": blob}, "pending": self.pending(request["app"], resolve_checks=False)}, result=True)
         else:
             data = self.blobs.require_origin(request["sha256"], "export")
             while True:
@@ -617,13 +618,13 @@ class Engine:
             return self._request(request, admin)
         except Refused as exc:
             self.store.observations.storage(exc)
-            return {'ok': False, 'error': {'code': exc.code, 'message': str(exc)}, 'pending': self.pending()}
+            return {'ok': False, 'error': {'code': exc.code, 'message': str(exc)}, 'pending': self.pending(resolve_checks=False)}
         except Exception as exc:
             self.store.observations.storage(exc)
             storage = storage_refusal(exc)
             if storage:
-                return {'ok': False, 'error': {'code': storage.code, 'message': str(storage)}, 'pending': self.pending()}
-            return {'ok': False, 'error': {'code': 'internal_error', 'message': 'Request failed unexpectedly; inspect operation status before repeating changes.'}, 'pending': self.pending()}
+                return {'ok': False, 'error': {'code': storage.code, 'message': str(storage)}, 'pending': self.pending(resolve_checks=False)}
+            return {'ok': False, 'error': {'code': 'internal_error', 'message': 'Request failed unexpectedly; inspect operation status before repeating changes.'}, 'pending': self.pending(resolve_checks=False)}
         finally:
             self.store.recovering = previous_recovery
 
@@ -637,6 +638,10 @@ class Engine:
                 if app not in APPS:
                     raise Refused("invalid_input", "Unknown app; inspect configured MCP servers.")
                 data = {"tools": tools_for(app)}
+            elif method == 'pending':
+                # Rejection envelopes must retain warnings without entering an
+                # adapter. Explicit control_pending remains the live check path.
+                data = self.pending(resolve_checks=False)
             elif method == "mail_account_add" and admin:
                 self.store.ensure_writable()
                 from .mail.onboarding import onboard
@@ -696,7 +701,7 @@ class Engine:
                     data = {"recorded": True}
             else:
                 raise Refused("invalid_input", "Unknown method or wrong socket; inspect the protocol.")
-            result = {"ok": True, "data": data, "pending": self.pending(app)}
+            result = {"ok": True, "data": data, "pending": self.pending(app, resolve_checks=False)}
             # Blob transfer is private framing, never a model-facing result.
             if method != "download" and len(canonical(result).encode()) > RESULT_LIMIT and method != "tools" and request.get("action") != "control_observations":
                 raise Refused("result_too_large", "Result exceeds 49152 bytes; request a smaller page. Check status before repeating changes.")
@@ -705,13 +710,13 @@ class Engine:
             self.store.observations.storage(exc)
             storage = storage_refusal(exc)
             if storage:
-                return {'ok': False, 'error': {'code': storage.code, 'message': str(storage)}, 'pending': self.pending(app)}
-            return {"ok": False, "error": {"code": "transport_error", "message": "Mail transport failed; inspect operation status before repeating changes. No automatic retry."}, "pending": self.pending(app)}
+                return {'ok': False, 'error': {'code': storage.code, 'message': str(storage)}, 'pending': self.pending(app, resolve_checks=False)}
+            return {"ok": False, "error": {"code": "transport_error", "message": "Mail transport failed; inspect operation status before repeating changes. No automatic retry."}, "pending": self.pending(app, resolve_checks=False)}
         except (Refused, ValueError, KeyError, TypeError) as exc:
             self.store.observations.storage(exc)
             message = str(exc) if isinstance(exc, Refused) else "Invalid input or unsupported server data; inspect the tool schema and operation status."
             if app == "mail":
                 message = self.adapters["mail"].transport.scrub(message)
-            return {"ok": False, "error": {"code": getattr(exc, "code", "invalid_input"), "message": message}, "pending": self.pending(app)}
+            return {"ok": False, "error": {"code": getattr(exc, "code", "invalid_input"), "message": message}, "pending": self.pending(app, resolve_checks=False)}
         except Exception:
-            return {"ok": False, "error": {"code": "internal_error", "message": "Request failed unexpectedly; inspect operation status before repeating changes."}, "pending": self.pending(app)}
+            return {"ok": False, "error": {"code": "internal_error", "message": "Request failed unexpectedly; inspect operation status before repeating changes."}, "pending": self.pending(app, resolve_checks=False)}

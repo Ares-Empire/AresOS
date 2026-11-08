@@ -121,6 +121,44 @@ class Checks27(unittest.TestCase):
             self.assertEqual(search.call_count, 2)
         self.assertIn('2 copies', status['evidence']['sent_copy_warning'])
 
+    def test_review27_refusal_catalogue_and_completed_replay_do_not_read_mail(self):
+        from types import SimpleNamespace
+        from aresos_control.proxy import Proxy
+        from aresos_control.daemon import Daemon
+        approval = self.approval('send', self.compose())
+        operation = self.submit(approval)
+        self.imap.boxes['Sent'][2] = self.imap.boxes['Sent'][1]
+        saved = self.engine.operation(operation['id'])
+        saved['sent_copy_check'] = {'state': 'open'}
+        self.engine.store.write({'op:' + saved['id']: saved}, 'fixture', 'Synthetic unresolved count result')
+        proxy = Proxy('mail', {'act_socket': 'unused'})
+        proxy.client = SimpleNamespace(
+            request=lambda request: self.engine.request({'v': 1, **request}),
+            call=lambda action, args: self.engine.request({'v': 1, 'method': 'call', 'action': action, 'arguments': args}))
+        daemon = object.__new__(Daemon)
+        daemon.engine = self.engine
+        with patch.object(self.mail, 'sent_matches', side_effect=AssertionError('Refusals and replays cannot enter IMAP')):
+            wrong = {**approval, 'question': 'Changed approval question?'}
+            self.assertEqual(self.call('send', wrong)['error']['code'], 'stale_approval')
+            self.assertEqual(self.call('send', approval)['data']['operation'], operation)
+            self.assertEqual(proxy.call('send', approval)['data']['operation'], operation)
+            self.assertEqual(proxy.call('send', {})['error']['code'], 'stale_approval')
+            self.assertTrue(proxy.tools())
+            snapshot = proxy.client.request({'method': 'pending'})
+            self.assertTrue(snapshot['ok'], snapshot)
+            self.assertTrue(any(n['untrusted_content'].get('operation_id') == operation['id']
+                                and 'not yet checked' in n['untrusted_content']['reason']
+                                for n in snapshot['data']['notices']))
+            refused = daemon.error_result(Refused('invalid_input', 'Synthetic invalid ingress'), True)
+            self.assertTrue(refused['pending']['notices'])
+            invalid = proxy.client.request({'method': 'pending', 'action': 'mail_send', 'arguments': approval})
+            self.assertFalse(invalid['ok'])
+        # The explicit owner view still performs the required live check.
+        pending = self.engine.request({'v': 1, 'method': 'call', 'action': 'control_pending', 'arguments': {}})
+        self.assertTrue(pending['ok'], pending)
+        own = next(n for n in pending['data']['notices'] if n['untrusted_content'].get('operation_id') == operation['id'])
+        self.assertEqual(own['untrusted_content']['message_count'], 2)
+
     def test_review27_open_check_and_warning_source_cannot_be_archived(self):
         import time
         from aresos_control.archive import archive
