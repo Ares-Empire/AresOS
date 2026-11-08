@@ -14,8 +14,9 @@ Review records: [REVIEW.md](REVIEW.md), [REVIEW-2.md](REVIEW-2.md),
 [SECURITY-REVIEW-7.md](SECURITY-REVIEW-7.md),
 [SECURITY-REVIEW-8.md](SECURITY-REVIEW-8.md),
 [SECURITY-REVIEW-9.md](SECURITY-REVIEW-9.md),
-[SECURITY-REVIEW-10.md](SECURITY-REVIEW-10.md), and
-[SECURITY-REVIEW-11.md](SECURITY-REVIEW-11.md).
+[SECURITY-REVIEW-10.md](SECURITY-REVIEW-10.md),
+[SECURITY-REVIEW-11.md](SECURITY-REVIEW-11.md), and
+[SECURITY-REVIEW-12.md](SECURITY-REVIEW-12.md).
 
 ## For the owner: decisions before merge
 
@@ -39,6 +40,7 @@ The owner answered: “Agree on 8, names etc are enough. Agree on everything els
 - **Sent setup — owner decided 2026-11-08; kept as built:** when a short probe finds no Sent copy, setup asks you to confirm whether the client or server saves it rather than guessing from absence. Automatic negative detection would need a proven time bound for the real account.
 - **Folder deletion — owner decided 2026-11-08; kept as built:** deletion only runs where the server refuses to delete a folder that holds mail, so no mail can be lost. If another mail program renames the approved empty folder and creates a new empty one with the same name in the same instant, the new empty one is deleted instead; the alternative is to remove folder deletion from the tools. Neither test server qualifies on its own, so the real account's guard still needs your check.
 - **Repair after uncertainty — owner decided 2026-11-08; kept as built:** without a recorded final server acceptance, you must inspect an uncertain send yourself even if a Sent copy appears. Automatic repair from that copy alone was rejected because it cannot prove which recipients were accepted; repair never sends again.
+- **Rare uncertain Sent-copy repair (round 20):** an empty Sent search keeps an uncertain APPEND unknown until 15 minutes after its attempt ended; the reply names when to try again. Presence can settle it sooner. This is the brief's fixed quiet period. Multiple observed Sent copies produce a persistent warning; nothing is deleted automatically.
 - **Approval prompt — owner decision, round 12 — owner decided 2026-11-08; kept as built:** Claude Code keeps its own approval prompt. It now starts with one plain sentence written by the service; the full details follow below it. The shared base format is `{question, operation_id, description}` in that order, passed unchanged through submission; Chrome will use it too. Altering or removing the question refuses the approval. Long summaries say “and N more”; the full fields remain visible, and oversize approvals refuse rather than being cut. Every recipient and sender in the sentence appears with its complete real address (“Mom <stranger@example.org>”); only display names can be shortened. Multiple mailboxes are counted separately. Malformed or missing addresses refuse approval, and complete addresses or folder names that exceed the question cap refuse instead of being cut. Reordered or extra/missing approval fields now refuse with `stale_approval` in both the proxy and service, before any submission or adapter call (round 13); an asking input with a repeated field is refused (round 14).
 - **Filing after a folder-role race (rounds 10–11, folder moves in 15b) — owner decided 2026-11-08; kept as built:** messages and folders stay where the move, copy or rename put them; nothing is moved or renamed back or deleted. Folder renames can move between parents. Durable intent records the folder, destination, message count and roles before RENAME; LIST and fresh roles check its new location and ancestors afterward. A newly protected location or assigned special role returns partial with a short warning, filing id, message count and bounded escaped folder names until acknowledged. Following Mail results and `aresos log` repeat the newest three warnings and count the rest; `mail_filing_notices` pages every warning, and `mail_filing_locations` returns exact message-filing locations on request. Cleaning up copies still requires ordinary delete approval. A special role that moves to the target and back between the command and post-check may escape detection: the result can say done in the intended ordinary destination. Refusing free filing or cross-parent folder moves was rejected by the owner; changing this later affects filing/rename policy and its views, with no mailbox migration.
 - **Stopping rule from the lead — owner decided 2026-11-08; kept as built:** closed by the owner’s attachment-disclosure decision. Claude-written text reaching an attachment, by any route, is accepted behaviour and no longer a should-fix; approvals show the file’s path, name, size, hash and change time. Blocking findings of other kinds still count.
@@ -49,6 +51,234 @@ The owner answered: “Agree on 8, names etc are enough. Agree on everything els
 - Complete onboarding with your aliases, authentication, TLS trust, special folders, delayed Sent behavior and folder-deletion guard; the tests use synthetic accounts only.
 - Check complete approvals on both terminal and phone, then try the seven everyday Claude mail tasks; automated protocol tests do not establish how usable those flows feel.
 - Send a forwarded `.eml` to recipients using Apple Mail, Outlook, Thunderbird, Gmail on the web and iOS Mail, and check how each opens or saves the exact attachment; the round-5 documentation does not establish its presentation.
+
+## Review fixes, round 20
+
+**Done:** implements `briefs/19-review-fixes-20.md` and all five findings in
+[SECURITY-REVIEW-12.md](SECURITY-REVIEW-12.md), reviewed head `d5a0b24a`.
+The owner's local `bf717f6a` (review and brief) went with the first code batch.
+Implementation commits: `eec78cfb`, `61552457`, `22b5bb6d` and
+`33a7f9e05613c8dce257dc263634405bebf41e04`, followed by
+`1786c9a0af1b96adf68df81f13ff76a7a9f5822f` (last test change). The last
+commit keeps the round-18 archive fixture under `HISTORY_BYTES=0` as well as
+restore confirmation; only the physical-free-space patch ends after confirmation.
+
+- **Blocking — index growth and inconsistent maintenance/cancel floors:** new
+  `control/aresos_control/space.py` owns physical admission and the existing
+  logical audit-quota check. In plain words: a pending approval holds the bytes
+  needed to cancel it; an unresolved repair holds the bytes needed to settle it;
+  a detected restore holds the bytes needed for confirmation. Every write leaves
+  all other held bytes plus one fixed 4 MiB safety floor. The named recovery
+  write spends its own hold and needs no second reserve. Holds are admitted
+  before the independent fence, published after durable completion, rebuilt from
+  retained operations/verified evidence at startup, and released when the right
+  ends. `retention.py` removes the old physical floor selector; the removed
+  64/20/16/4 MiB physical floors have no remaining callers.
+  The existing compactable SQLite audit quota/headroom is a separate logical
+  bound; it is checked by the same admission function.
+- `storage.py` applies the ledger to transactions, startup schema/retention
+  bookkeeping, prepared replay, restore confirmation and index creation.
+  Verification itself can stream without writing an index. Index admission uses
+  a conservative estimate before creating its SQLite file. If refused, the
+  service starts without it: asking actions explain `storage_limit`; cancel,
+  operation status and owner confirmation work using journal scans. Latest
+  evidence fallback holds at most 32 IDs per scan window. `archive.py` admits
+  export, pruning and VACUUM through the same ledger; `blobs.py`,
+  `mail/transport.py`, `mail/adapter.py`, `engine.py` and the local test receiver
+  share that ledger for blob/wire/password writes and expiry, including directory
+  initialization. Optional retention bookkeeping can defer on low disk without
+  blocking service recovery.
+- **Blocking — restored repair identity:** `storage.py` retains each Mail
+  repair's `repair_of`, stage and attempt end time in its compact description,
+  separate from escaped untrusted content. Reconstruction restores its lookup
+  identity and settlement hold. `engine.py` reuses it after confirmation.
+  Older evidence that retained only the send ID but omitted the stage blocks
+  another repair for either stage of that send. If even the relationship is
+  unavailable, the unresolved legacy record conservatively blocks new Mail
+  repairs rather than guessing. Status explains missing identity.
+- **Blocking — an APPEND can still land after an empty search:** `engine.py`
+  permits negative Sent settlement only for an ended unknown attempt after the
+  fixed 900-second quiet period. Earlier absence keeps that attempt unknown and
+  returns its UTC retry time; missing end-time evidence remains uncertain.
+  Restart starts a conservative new interval for an interrupted running attempt.
+  `mail/adapter.py` searches on a new IMAP session, validates roles on that
+  session, and selects Sent read-only. It records Sent APPEND attempt boundaries,
+  refuses an immediate retry of an earlier unfinished/recent APPEND, and performs
+  a fresh read-only copy count after every Sent APPEND, including a lost answer.
+  Multiple copies add an operation warning and a bounded persistent notice that
+  repeats in following Mail results/logs. Nothing is automatically deleted;
+  repair never invokes SMTP. `mail/definitions.py`, the generated Mail tool JSON
+  and `docs/control/TOOLS.md` describe these semantics.
+- **Should-fix — restore memory:** `storage.py` reconstructs at most 32
+  operations per batch, with at most a 64 KiB permanent record. Intermediate
+  batches retain `restore_pending`; only the last batch advances generation and
+  clears the lock. Small restores keep one atomic final record and all earlier
+  crash assertions. Confirmation returns at most 100 unknown IDs plus an omitted
+  count and `control_pending` for the rest, so completing a large restore does
+  not then fail the result-size limit. `definitions.py` and the generated
+  reference document the bounded response. `control/README.md` explains the
+  ledger, streaming fallback, identity, quiet period and bounded confirmation.
+
+**Tests by name:** new `control/mail_tests/test_review_fixes_20.py` uses production
+Engine/Store/Mail code, synthetic free-space accounting charged for real private
+file growth, and offline IMAP/SMTP substitutes. No physical disk is filled.
+
+- `Ledger20.test_review20_2000_real_delete_records_index_at_30mib_preserves_cancel_and_streamed_status`
+  creates 2,000 distinct closed records based on a real service-generated delete
+  approval, removes the disposable index, starts at 30 MiB free, refuses index
+  creation/asking, then successfully serves status and cancel by streaming.
+- `Ledger20.test_review20_2150_archive_attempts_at_20mib_preserve_pending_cancel`
+  admits all 2,150 production archives from 20 MiB and still cancels the pending
+  approval. `test_review20_38_uncertain_repairs_and_archives_at_20mib_preserve_cancel`
+  repeats round 19's 38-attempt sequence with the same physical budget.
+- `Ledger20.test_review20_all_writers_preserve_live_rights_and_cancel_uses_only_its_own`
+  refuses ordinary writes, expiry, blob/wire/password/receiver writes and archive
+  at the held-bytes boundary; cancellation succeeds without changing any other
+  hold. `test_review20_rights_release_on_send_expiry_cancel_and_repair_settlement_and_survive_restart`
+  checks holds across restart and their release for submission, expiry,
+  cancellation and repair settlement. `test_review20_restore_confirmation_owns_and_releases_its_reservation_without_an_index`
+  actually restarts with index admission refused, confirms using only its hold,
+  releases it, and refuses the old approval.
+- `RepairIdentity20.test_review20_restore_unknown_repair_retains_original_and_stage_and_reuses_one_attempt`
+  replays the review's backup/unknown-repair/restore/confirm/repair sequence and
+  ends with one unresolved attempt. `test_review20_older_evidence_without_repair_stage_refuses_both_new_stages`
+  covers older permanent evidence, both stage refusals and unchanged durable
+  state.
+- `Append20.test_review20_late_append_inside_quiet_period_keeps_one_attempt_names_time_then_settles_one_copy`
+  leaves the remotely pending APPEND unknown after empty evidence, names the
+  retry time, lets the old APPEND finish, then settles the same attempt with one
+  copy. `test_review20_late_append_after_quiet_period_never_duplicates_silently_and_warning_repeats`
+  deliberately completes an earlier APPEND beyond the quiet period during a new
+  append: two copies stay intact, with the warning in the result, operation
+  status and persistent notice. `test_review20_negative_settlement_uses_new_readonly_imap_connection_after_quiet_period`
+  exercises production Transport session construction/logout, fresh sessions and
+  read-only selection at the 900-second boundary.
+
+New `control/tests/test_restore_batches.py` adds
+`RestoreBatches.test_review20_1000_and_10000_restored_operations_have_fixed_verification_peak_and_bounded_records`
+and `test_review20_crash_after_first_restore_batch_keeps_lock_until_confirmation_finishes`.
+Both use real journals/SQLite: each reconstructed record respects the count/byte
+bound, both history sizes must verify below the same 2 MiB Python peak bound,
+and a crash after a committed batch must retain the lock and finish on a later
+owner confirmation. All reconstructed operations remain available.
+
+**Earlier test changes — assertions retained:** round 16's
+`test_review16_low_disk_space_refuses_blobs_and_journal_before_fence` and round
+17's `test_review17_free_limit_and_physical_reserve_preserve_owner_restore_confirmation`
+use the ledger's actual holds plus its safety floor. Round 18's
+`test_review18_restore_confirms_above_every_quota_and_can_archive_afterward`
+spends the confirmation hold at that boundary, then archives with unheld space,
+while keeping the audit quota exhausted (`HISTORY_BYTES=0`) for both calls;
+`test_review18_repairs_and_ordinary_recovery_cannot_consume_restore_room` checks
+the ledger boundary. Round 19's
+`test_review19_cancel_works_above_history_cap_and_other_paths_leave_its_physical_room`
+uses the actual cancel hold and checks the shared admission function instead of
+the deleted floor selector. Its negative Sent-settlement test advances the
+synthetic clock by the required 900 seconds and retains every old assertion.
+Round 16's restart helper reconnects wire/password writers to the new shared
+ledger. No earlier file under `control/tests/` changed; no test was weakened,
+skipped or deleted. Existing compact-record size and small-restore crash
+assertions initially caught implementation mistakes; the implementation was
+corrected and those assertions remain unchanged.
+
+**Verified locally on the code/test head:**
+
+```text
+python3 control/generate.py --check
+Generated artifacts match definitions
+
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/mail_tests:.work/round10/vendor python3 .work/round10/check-local.py
+Python syntax OK: 110 files
+Ran 97 tests ... OK
+Review20 archives admitted before ledger refusal (2150 attempted maximum): 2150
+
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/tests:.work/round10/vendor python3 -m unittest test_operations test_record test_crashes test_approval_questions test_strict_json test_boundary test_boundary_exact test_ingress_bounds test_journal_closed test_policy_sources test_archive test_journal_capacity test_journal_streaming test_restore_batches
+Ran 81 tests ... OK
+Record growth: tiny send=4078 bytes; maximum body + 25 MiB send=4078 bytes
+Review20 restored journal verification (retained, peak bytes), 1k/10k missing operations: [(13785, 216714), (13785, 216717)]
+```
+
+The new restore class was also run explicitly: `python3 -m unittest
+test_restore_batches -v` with the same base `PYTHONPATH` passed both tests.
+The required three pre-push checks and new tests are repeated before the report
+push. Outputs are private scratch under `.work/round20-*-corrected.txt`,
+`.work/round20-*-report.txt` and `.work/round20-restore-local.txt`, not credentials or provider data.
+
+**Reviewed-source replays:** exported only `control/` from `d5a0b24a` into this
+worktree's `.work/round20/baseline/`; no other checkout was touched. Four
+plain-Python behavioral probes against that source reproduced each blocking
+finding: index growth left 13,082,624 bytes and cancel returned `storage_limit`;
+2,150 production archives from 20 MiB also blocked cancel; the backup/restore
+sequence allocated two unresolved repairs; immediate negative settlement allowed
+two Sent copies with no warning. A separate baseline memory probe measured
+2,842,018 versus 27,033,730 peak bytes after 1,000/10,000 missing operations.
+The reproductions ran with:
+
+```text
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=.work/round20/baseline/control:.work/round20/baseline/control/mail_tests:.work/round10/vendor python3 .work/round20/baseline-probes.py
+Ran 4 tests ... OK (assertions reproduce the four bad outcomes)
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=.work/round20/baseline/control:.work/round20/baseline/control/tests:.work/round10/vendor python3 .work/round20/baseline-memory.py
+Ran 1 test ... OK (assertions reproduce history-sized verification memory)
+```
+
+The fixed regressions pass. Both fixed verification peaks stay below the same
+2 MiB bound. Round 19's original 38-attempt regression still passes, as it
+also did in the review. Baseline probes are scratch reproductions, not claims
+that absent ledger APIs were behavioral failures. No real server was contacted.
+
+**GitHub verification of the last code/test commit:** `1786c9a0af1b96adf68df81f13ff76a7a9f5822f`.
+
+| Workflow | Runs on that code/test commit | Result |
+| --- | --- | --- |
+| Control Mail | [42458103855 attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42458103855/attempts/1), [attempt 2](https://github.com/Ares-Empire/AresOS/actions/runs/42458103855/attempts/2) | Both PASS: 111 shared-base + 218 Mail tests; fixture isolation confirmed; all 2,150 archive attempts admitted and cancellation succeeded. |
+| Control base | [42458103848 attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42458103848/attempts/1), [attempt 2](https://github.com/Ares-Empire/AresOS/actions/runs/42458103848/attempts/2) | Both PASS: 111 tests; generated artifacts match. |
+| Control boundary | [42458103857 attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42458103857/attempts/1) | PASS: 16 native fixture tests and both confinement modes (127 attacks each), policy-source/drop-in checks and coder isolation. |
+
+The superseded first batch on `33a7f9e0` has base
+[42456846835 attempts 1 and 2](https://github.com/Ares-Empire/AresOS/actions/runs/42456846835)
+both passing (111 tests), boundary
+[42456846833 attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42456846833)
+passing, and Mail
+[42456846886 attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42456846886/attempts/1)
+passing (111 shared-base + 218 Mail tests). GitHub automatically cancelled that
+Mail run's second attempt when the corrective test push arrived. It is not
+passing evidence for the corrected head. The correction restores the quota
+patch around archive; no failed workflow result prompted it.
+
+Both second base/Mail passes rerun the same automatic pull-request run IDs with
+`gh run rerun`; no workflow was manually dispatched. Any later commit changes
+only files under `reviews/`. The PR body records both base/Mail passes and the
+boundary result on the final report head. Three pushes total: the first code/test
+batch including the owner's local commit, a test-only correction, then the report; nine automatic workflow IDs,
+with reruns on the same IDs for second passes. The additional test push was
+necessary because the initial floor-fixture edit ended its logical history-quota
+patch before archive. The final fixture preserves that exhausted-quota coverage;
+no runtime code changed after the first code batch. The pre-push privacy check runs
+normally; no bypass, force push, new PR, merge or push to `main`.
+
+**Not verified:** real provider completion/visibility timing, physical power loss
+and filesystem durability, host service confinement, terminal/phone prompts,
+recipient-program presentation and the existing real-account owner checklist.
+The 15-minute policy is the brief's chosen quiet period, not a measured bound for
+the owner's server; the deliberately later-completing fixture proves duplicate
+warnings instead of silent duplicate success. No model session, real account,
+host installation, screenshot or Minecraft/Gradle run applies to this round.
+
+**JUDGMENT-CALL:** the required quiet period is 15 minutes. The shared fixed
+safety cushion is 4 MiB, with separately sized holds (`16 × serialized bytes +
+128 KiB` per recovery record, including the original operation for settlement).
+This replaces guessing which writer gets a different floor. Changing the cushion
+or quiet period later is a constant/policy change, without history migration.
+The bounded confirmation reply retains the first 100 IDs and gives a count and
+existing pending-page action for the rest; returning every ID would hit the
+existing result-size cap after a successful large recovery.
+
+**PLAN-GAP:** the brief requires bounded restore records but does not spell out
+the previously unbounded confirmation reply; its optional `unknown_more` count
+and existing pending pages close that mechanical gap. No unrelated feature was
+added. **Open questions:** none added; the owner's existing qualification checks
+remain. **Large scratch files:** no file over 500 MiB remains in `.work/`.
+
 
 ## Review fixes, round 19
 
