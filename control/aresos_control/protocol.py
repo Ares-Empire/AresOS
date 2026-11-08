@@ -72,12 +72,16 @@ class Client:
             send(connection, {"end": True, "offset": len(data)})
             return receive(connection)
 
-    def download(self, app, key, limit):
+    def download(self, app, key, limit, export_id=None):
         with self.connection() as connection:
-            send(connection, {"v": 1, "method": "download", "app": app, "sha256": key})
+            request = {"v": 1, "method": "download", "app": app, "sha256": key}
+            if export_id:
+                request['export_id'] = export_id
+            send(connection, request)
             result = receive(connection)
             if not result["ok"]:
                 return result, None
+            admission = {k: result['data'][k] for k in ('export_id', 'other_holds')}
             size = result["data"]["size"]
             if type(size) is not int or not 0 <= size <= limit or result["data"]["sha256"] != key:
                 raise Refused("file_refused", "Download exceeds the caller's limit or has wrong metadata; save refused.")
@@ -98,6 +102,7 @@ class Client:
                 return result, None
             if sha256(data) != key:
                 raise Refused("file_refused", "Download bytes differ from their hash; save refused.")
+            result['data'].update(admission)
             return result, bytes(data)
 
     def call(self, name, arguments):

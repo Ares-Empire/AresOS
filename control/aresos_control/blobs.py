@@ -73,8 +73,9 @@ class Blobs:
             raise Refused("invalid_input", "Not a sha256 blob reference; import the file again.")
         self.admit(size, key)
         self.ledger.admit(size + 8192)
-        fd, temporary = tempfile.mkstemp(prefix=".upload-", dir=self.directory)
+        temporary, published = None, False
         try:
+            fd, temporary = tempfile.mkstemp(prefix=".upload-", dir=self.directory)
             count, hashed = 0, hashlib.sha256()
             with os.fdopen(fd, "wb") as stream:
                 for data in chunks:
@@ -90,6 +91,7 @@ class Blobs:
                 os.fsync(stream.fileno())
             try:
                 os.link(temporary, self.directory / key)
+                published = True
             except FileExistsError:
                 self.read(key)
             sync_directory(self.directory)
@@ -107,8 +109,17 @@ class Blobs:
             finally:
                 if os.path.exists(meta_name):
                     os.unlink(meta_name)
+        except BaseException as exc:
+            if published:
+                (self.directory / key).unlink(missing_ok=True)
+                (self.directory / ('.origins-' + key)).unlink(missing_ok=True)
+                sync_directory(self.directory)
+            if isinstance(exc, OSError):
+                raise Refused('storage_limit', 'Disk full or private blob write failed; no partial blob retained. Free storage before retrying.') from exc
+            raise
         finally:
-            os.unlink(temporary)
+            if temporary is not None:
+                os.unlink(temporary)
         return key
 
     def admit(self, size, key):

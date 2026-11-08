@@ -44,12 +44,13 @@ class Proxy:
                 result, data = self.client.download(self.app, arguments["sha256"], self.files.limit)
                 if not result["ok"]:
                     return result
+                admission = result['data']
                 try:
-                    saved = self.files.save(arguments["folder"], arguments["name"], data, arguments["sha256"])
+                    saved = self.files.save(arguments["folder"], arguments["name"], data, arguments["sha256"], admission=admission)
                 except Exception:
-                    self.client.request({"method": "saved", "app": self.app, "outcome": "refused"})
+                    self.client.request({"method": "saved", "app": self.app, "outcome": "refused", 'export_id': admission['export_id']})
                     raise
-                result = self.client.request({"method": "saved", "app": self.app, "outcome": saved})
+                result = self.client.request({"method": "saved", "app": self.app, "outcome": saved, 'export_id': admission['export_id']})
                 result["data"] = saved
                 return result
             if self.app == "mail" and verb == "compose":
@@ -74,18 +75,20 @@ class Proxy:
                 if not result["ok"]:
                     return result
                 item = result["data"]["file"]
-                downloaded, data = self.client.download("mail", item["sha256"], self.files.limit)
+                downloaded, data = self.client.download("mail", item["sha256"], self.files.limit, item['export_id'])
                 if not downloaded["ok"]:
                     return downloaded
                 from pathlib import Path
                 folder = arguments.get("folder", str(Path(self.files.home) / "Downloads"))
                 try:
-                    saved = self.files.save(folder, arguments.get("name", item["name"]), data, item["sha256"])
+                    saved = self.files.save(folder, arguments.get("name", item["name"]), data, item["sha256"], admission=downloaded['data'])
                 except Exception:
-                    self.client.request({"method": "saved", "app": "mail", "outcome": "refused"})
+                    self.client.request({"method": "saved", "app": "mail", "outcome": "refused", 'export_id': item['export_id']})
                     raise
-                self.client.request({"method": "saved", "app": "mail", "outcome": saved})
-                return {"ok": True, "data": saved, "pending": result["pending"]}
+                result = self.client.request({"method": "saved", "app": "mail", "outcome": saved, 'export_id': item['export_id']})
+                if result['ok']:
+                    result['data'] = saved
+                return result
             return self.client.call(action.name, arguments)
         except (Refused, OSError, ValueError) as exc:
             return {"ok": False, "error": {"code": getattr(exc, "code", "file_refused"), "message": str(exc)},

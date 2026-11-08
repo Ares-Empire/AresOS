@@ -9,12 +9,13 @@ FIELDS = {
     'call': {'action': string(128), 'arguments': {'type': 'object'}},
     'mail_account_add': {'arguments': ACCOUNT_CONFIG, 'password': string(8192)},
     'upload': {'app': APP, 'file': BLOB},
-    'download': {'app': APP, 'sha256': string(64)},
+    'download': {'app': APP, 'sha256': string(64), 'export_id': string(32)},
     'saved': {'app': APP, 'outcome': {'anyOf': [
-        {'type': 'string', 'enum': ['refused']}, SAVED_RESULT]}},
+        {'type': 'string', 'enum': ['refused']}, SAVED_RESULT]}, 'export_id': string(32)},
 }
 ENVELOPES = {name: obj({'v': {'type': 'integer', 'enum': [1]},
-                       'method': {'type': 'string', 'enum': [name]}, **fields})
+                       'method': {'type': 'string', 'enum': [name]}, **fields},
+                      ['v', 'method'] + [key for key in fields if key != 'export_id'])
              for name, fields in FIELDS.items()}
 OFFSET = {'type': 'integer', 'minimum': 0}
 UPLOAD_CHUNK = {'anyOf': [obj({'offset': OFFSET, 'bytes': string(4 * ((CHUNK_SIZE + 2) // 3))}),

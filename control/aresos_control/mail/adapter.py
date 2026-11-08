@@ -304,8 +304,16 @@ class Mail:
             clean, texts = codec.rebuild(raw, authored, default_type)
             clean_headers, clean_payload = codec.entity(clean, default_type)
             data = clean if args["part"] == "source" or headers.get_content_maintype() in {"message", "multipart"} else codec._transfer(clean_headers, clean_payload)
-        item = {"sha256": self.blobs.put(data, origin="composition_part" if outgoing else "export"), "size": len(data), "name": name, "type": content_type,
+        if outgoing:
+            key = self.blobs.put(data, origin='composition_part')
+            export_id = None
+        else:
+            from ..exports import put
+            key, export_id = put(self.store, self.blobs, data)
+        item = {"sha256": key, "size": len(data), "name": name, "type": content_type,
                 "source": {"reference": args["reference"], "part": args["part"]}}
+        if export_id:
+            item['export_id'] = export_id
         if outgoing and mail_source:
             item["transformation"] = "Attached mail rebuilt with only the listed headers; Bcc and Resent-Bcc removed recursively."
             item["allowed_message_headers"] = sorted(codec.MESSAGE_HEADERS)

@@ -423,7 +423,8 @@ class Engine:
                 # Archive first exports durably, then makes room; it must also
                 # work on a store already over quota from an older installation.
                 if (request.get('action') not in {'control_archive', 'control_restore_confirm', 'mail_prepare_send', 'mail_operation_repair'}
-                        and not request.get('action', '').endswith('_operation_cancel')):
+                        and not request.get('action', '').endswith('_operation_cancel')
+                        and not (request['method'] == 'saved' and request.get('export_id'))):
                     self.store.admit_history(retention.RECOVERY_REQUEST if self.store.recovering else retention.REQUEST_RESERVE)
             return self._request(request, admin)
         except Refused as exc:
@@ -478,12 +479,25 @@ class Engine:
                     self.store.admit_changes({'blob:' + digest(blob): blob})
                     data = {"ready": True}
                 elif method == "download":
+                    from . import exports
                     key = request["sha256"]
                     data_bytes = self.blobs.require_origin(key, "export")
-                    data = {"sha256": key, "size": len(data_bytes)}
-                    self.store.write({}, app + "_file_save", "export blob " + key + "; caller must report save outcome", outcome="started")
+                    export_id = request.get('export_id')
+                    if export_id:
+                        exports.get(self.store, export_id, app, key)
+                    else:
+                        export_id = exports.begin(self.store, self.blobs, app, key, len(data_bytes))
+                    data = {"sha256": key, "size": len(data_bytes), 'export_id': export_id,
+                            'other_holds': self.store.ledger.held - self.store.ledger.holds['export:' + export_id]}
                 else:
-                    self.store.write({}, app + "_file_save", "caller reported file save outcome",
+                    changes = {}
+                    if request.get('export_id'):
+                        from . import exports
+                        transfer = exports.get(self.store, request['export_id'], app)
+                        if request['outcome'] == 'refused':
+                            exports.discard_blob(self.store, self.blobs, transfer, request['export_id'])
+                        changes['export:' + request['export_id']] = None
+                    self.store.write(changes, app + "_file_save", "caller reported file save outcome",
                                      outcome="refused" if request.get("outcome") == "refused" else "done",
                                      untrusted_content={"save": request.get("outcome")})
                     data = {"recorded": True}

@@ -64,6 +64,8 @@ class Action:
                 "On invalid_input, inspect this schema. On asking_input_too_large or result_too_large, use smaller inputs/pages. "
                 "On refused, permission_denied or restore_required, stop and ask the owner. "
                 "On expired/cancelled, nothing was submitted; prepare anew only if still wanted. "
+                "On storage_limit, the disk or retained storage is full: stop and ask the owner to free space. "
+                "Approval and replay checks still apply; no action is reported done without its evidence. "
                 "On partial, inspect stages and repair only missing local stages. On unknown or transport_error, "
                 "inspect operation_status and far-side evidence; never retry with a new id. "
                 "On other errors, stop and inspect status before doing more. Every result includes pending items; "
@@ -95,7 +97,7 @@ ACTIONS = [
            result=obj({"items": array(obj({"reference": REF, "flagged": {"type": "boolean"}, "untrusted_content": obj({"sender": string(), "subject": string(), "date": string(), "text": string()})}), 10), "cursor": CURSOR})),
     Action("testapp", "flag", "change", obj({"reference": REF, "flagged": {"type": "boolean"}}), "Set a reversible flag on one exact item. Returns its new revision; reaches no receiver.", result=obj({"reference": REF, "flagged": {"type": "boolean"}})),
     Action("testapp", "file_import", "change", obj({"path": string()}), "Import a regular file from configured caller folders. Returns immutable blob sha256, size, name and real path; sends nothing.", result=obj({"file": BLOB})),
-    Action("testapp", "file_save", "change", obj({"sha256": string(64), "folder": string(), "name": string(128)}), "Save only explicitly exported blob bytes in an allowed caller folder without overwriting. Returns saved path and hash; never opens the file.", result=obj({"path": string(), "sha256": string(64), "size": {"type": "integer", "minimum": 0}})),
+    Action("testapp", "file_save", "change", obj({"sha256": string(64), "folder": string(), "name": string(128)}), "Save only explicitly exported blob bytes in an allowed caller folder without overwriting. Admits caller disk writes through completion, preserving recovery holds against service writes. Other programs sharing the filesystem can still exhaust space; write failures report disk full. Returns saved path and hash; never opens the file.", result=obj({"path": string(), "sha256": string(64), "size": {"type": "integer", "minimum": 0}})),
     Action("testapp", "export_file", "change", BLOB, "Test fixture only: explicitly export a previously caller-imported file snapshot. Internal service blobs refuse; file_save then downloads the export.", result=obj({"file": BLOB})),
     Action("testapp", "prepare_send", "change", obj({"account": {"type": "string", "enum": ["fixture"]},
            "to": array(string(64)), "cc": array(string(64)), "bcc": array(string(64)),
@@ -105,7 +107,7 @@ ACTIONS = [
     Action("testapp", "prepare_delete", "change", obj({"references": array(REF, 16)}), "Reserve deletion of an exact item set without deleting. Returns approval containing every reference, sender, subject and date. Pass unchanged to delete.", result=PREPARED_RESULT),
     Action("testapp", "delete", "delete", APPROVAL, "Delete exactly the approved fake items. Refuses changed metadata or revisions before deleting any; returns per-target stages and operation state.", result=OP_RESULT),
     Action("testapp", "operation_status", "read", OP, "Read an operation including historical generations and far-side evidence. Returns recorded stages and outcome; absence of evidence never proves non-delivery.", result=obj({"operation": PUBLIC_OPERATION, "evidence": {"type": "object"}})),
-    Action("testapp", "operation_cancel", "change", OP, "Cancel only a reserved operation. Returns failed with cancelled reason; submitting or later cannot be cancelled.", result=OP_RESULT),
+    Action("testapp", "operation_cancel", "change", OP, "Cancel only a reserved operation, prepared but never submitted, expiring within 15 minutes; submitting still requires owner approval. Returns failed with cancelled reason; submitting or later cannot be cancelled. Cancel and restore reservations protect against service writes only, best effort against other programs sharing the disk. Full disk can prevent cancel; nothing submits because of a failed cancel.", result=OP_RESULT),
     Action("testapp", "operation_repair", "change", obj({"operation_id": string(80), "stage": {"type": "string", "enum": ["sent_copy", "answered_flag"]}}),
            "Repair an adapter-qualified missing local stage as a NEW operation referencing the old id. Returns both ids and stages. Never submits recipients, never deletes again.", result=obj({"operation": PUBLIC_OPERATION, "original": PUBLIC_OPERATION})),
     Action("testapp", "notice_ack", "change", OP, "Acknowledge an expired or cancelled notice after reading it. Returns the operation; does not hide unresolved partial or unknown outcomes.", result=OP_RESULT),

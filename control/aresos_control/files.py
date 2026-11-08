@@ -6,6 +6,7 @@ import re
 import stat
 
 from .common import FILE_LIMIT, Refused, sha256
+from .space import SpaceLedger
 
 # Dot components are always blocked. These catch non-dot credential/profile and
 # executable configuration directories, including aliases under an allowed root.
@@ -125,11 +126,15 @@ class FilePolicy:
             if parent_fd is not None:
                 os.close(parent_fd)
 
-    def save(self, folder, name, data, expected_hash, checkpoint=lambda _: None):
+    def save(self, folder, name, data, expected_hash, checkpoint=lambda _: None, *, admission=None):
         self.locate(folder)
         safe_name(name)
         if len(data) > self.limit or sha256(data) != expected_hash:
             raise Refused("file_refused", "Download bytes exceed the limit or differ from their hash; save refused.")
+        ledger = SpaceLedger((Path(folder),))
+        if admission:
+            ledger.holds['service'] = admission['other_holds']
+        ledger.admit(len(data) + 8192)
         parent_fd, published, completed = None, False, False
         fd = None
         try:
@@ -178,6 +183,9 @@ class FilePolicy:
                               "No directory entries removed: empty output or renamed/hard-link remnants may remain; "
                               "other link locations cannot be enumerated. Inspect empty remnants and choose a new name.") from exc
             if isinstance(exc, OSError):
+                import errno
+                if exc.errno not in {errno.EEXIST, errno.ELOOP, errno.ENOENT, errno.ENOTDIR, errno.EACCES, errno.EPERM}:
+                    raise Refused('storage_limit', 'Disk full or storage write failed; no Downloads file was published. Free storage before retrying.') from exc
                 raise Refused("file_refused", "Destination already exists, is linked, moved or inaccessible; choose a new safe file name.") from exc
             raise
         finally:

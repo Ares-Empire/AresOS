@@ -323,6 +323,9 @@ class Store:
 
     def _load_reservations(self):
         self.ledger.holds.clear()
+        from .exports import budget as export_budget
+        for key, transfer in self.iter_items('export:'):
+            self.ledger.holds[key] = export_budget(transfer)
         for _, op in self.iter_items('op:'):
             self.ledger.holds.update(self.ledger.right(op, self.get('op:' + (op.get('repair_of') or ''))))
         if self.sequence > self.committed and not self.locked:
@@ -446,6 +449,12 @@ class Store:
             operations[operation_id] = self.get("op:" + operation_id)
         operation = operations.get(operation_id)
         updates, consume = {}, []
+        from .exports import budget as export_budget
+        for key, transfer in changes.items():
+            if key.startswith('export:'):
+                updates[key] = export_budget(transfer) if transfer is not None else 0
+                if transfer is None and key in self.ledger.holds:
+                    consume.append(key)
         compact = []
         for op in operations.values():
             rights = self.ledger.right(op, self.get('op:' + (op.get('repair_of') or '')))
