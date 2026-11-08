@@ -117,12 +117,12 @@ class Recovery18(unittest.TestCase):
         self.backup()
         approval = self.approval('send', self.compose())
         self.restore()
-        with patch.object(retention, 'HISTORY_BYTES', 0), \
-             patch('aresos_control.space.shutil.disk_usage',
-                   return_value=SimpleNamespace(free=SAFETY_FLOOR + self.engine.store.ledger.held)):
-            self.owner('control_restore_confirm', {'confirm': 'invalidate earlier approvals'})
-        self.owner('control_archive', {'before': time.time() - 1,
-                                      'confirm': 'archive finished history'})
+        with patch.object(retention, 'HISTORY_BYTES', 0):
+            with patch('aresos_control.space.shutil.disk_usage',
+                       return_value=SimpleNamespace(free=SAFETY_FLOOR + self.engine.store.ledger.held)):
+                self.owner('control_restore_confirm', {'confirm': 'invalidate earlier approvals'})
+            self.owner('control_archive', {'before': time.time() - 1,
+                                          'confirm': 'archive finished history'})
         self.assertFalse(self.call('send', approval)['ok'])
         self.restart()
 
