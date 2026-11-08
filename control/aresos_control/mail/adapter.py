@@ -706,7 +706,10 @@ class Mail:
         if len(matches) <= 1:
             return
         reason = f'Sent contains {len(matches)} copies with this Message-ID. Check them in your mail program; nothing was deleted.'
+        operation['stages']['sent_copy_warning'] = reason
         op = self.store.get('op:' + operation['id'])
+        if op['stages'].get('sent_copy_warning') == reason:
+            return
         op['stages']['sent_copy_warning'] = reason
         notice_id = 'sent-' + digest(operation['id'])[:32]
         notice = {'id': notice_id, 'app': 'mail', 'state': 'partial', 'ack': False,
@@ -720,7 +723,17 @@ class Mail:
         if not op or not op.get("payload", {}).get("composition"):
             return {"absence_is_not_proof": True}
         account = self.account(op["payload"]["composition"]["mail"]["account"], ready=False)
-        return {"message_id": self.message_id(operation_id), "sent": self.sent_matches(account, self.message_id(operation_id)), "absence_is_not_proof": True}
+        matches = self.sent_matches(account, self.message_id(operation_id))
+        result = {"message_id": self.message_id(operation_id), "sent": matches, "absence_is_not_proof": True}
+        try:
+            self.sent_copy_count(op, matches)
+        except Refused as exc:
+            if exc.code not in {'storage_limit', 'journal_incomplete', 'restore_required'}:
+                raise
+            result['warning_storage_error'] = {'code': exc.code, 'message': str(exc)}
+        if op['stages'].get('sent_copy_warning'):
+            result['sent_copy_warning'] = op['stages']['sent_copy_warning']
+        return result
 
     def has_submission_evidence(self, operation_id):
         return bool(self.evidence(operation_id).get("sent"))
@@ -982,7 +995,9 @@ class Mail:
         comp = operation['payload']['composition']['mail']
         account = self.account(comp['account'], ready=False)
         if which == 'sent_copy':
-            return 'done' if self.sent_matches(account, self.message_id(operation['id'])) else 'failed'
+            matches = self.sent_matches(account, self.message_id(operation['id']))
+            self.sent_copy_count(operation, matches)
+            return 'done' if matches else 'failed'
         reference = comp['answered_reference']
         if reference is None:
             return 'not_needed'

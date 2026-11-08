@@ -138,3 +138,59 @@ class Exports21(unittest.TestCase):
             result = self.engine.request({'v': 1, 'method': 'saved', 'app': 'mail', 'export_id': item['export_id'], 'outcome': 'refused'})
             self.assertTrue(result['ok'], result)
         self.assert_clean()
+
+
+class LateDuplicates21(unittest.TestCase):
+    setUp = round19.Recovery19.setUp
+    call = round19.Recovery19.call
+    data = round19.Recovery19.data
+    compose = round19.Recovery19.compose
+    approval = round19.Recovery19.approval
+    send = round19.Recovery19.send
+    snapshot = round19.Recovery19.snapshot
+    pending_append = round20.Append20.pending_append
+
+    def test_review21_duplicate_landing_after_successful_retry_warns_on_next_status_and_completed_repair(self):
+        old, args, repair, raw, ended = self.pending_append()
+        with patch('aresos_control.engine.time.time', return_value=ended + 901):
+            self.assertEqual(self.data('operation_repair', args)['operation']['state'], 'failed')
+            def append(account, folder, new_raw, flags):
+                self.imap.boxes['Sent'][1] = new_raw
+            with patch.object(self.mail, 'append', side_effect=append):
+                result = self.data('operation_repair', args)
+        self.assertEqual(result['operation']['state'], 'done')
+        self.assertNotIn('sent_copy_warning', result['original']['stages'])
+        self.imap.boxes['Sent'][2] = raw
+        result = self.call('operation_status', {'operation_id': old['id']})
+        self.assertTrue(result['ok'], result)
+        self.assertEqual(len(result['data']['evidence']['sent']), 2)
+        self.assertIn('2 copies', result['data']['operation']['reason'])
+        self.assertIn('2 copies', result['pending']['notices'][0]['untrusted_content']['reason'])
+        before = self.snapshot()
+        for _ in range(5):
+            self.assertEqual(self.call('operation_status', {'operation_id': old['id']}), result)
+        self.assertEqual(self.snapshot(), before)
+        self.imap.boxes['Sent'][3] = raw
+        repaired = self.call('operation_repair', args)
+        self.assertIn('3 copies', repaired['data']['original']['reason'])
+        self.assertEqual(len(repaired['pending']['notices']), 1)
+        self.assertEqual(len(self.engine.store.items('notice:')), 1)
+        self.assertEqual(len(self.imap.boxes['Sent']), 3)
+        self.assertEqual(self.imap.mutations, [])
+        self.data('notice_ack', {'operation_id': repaired['pending']['notices'][0]['operation_id']})
+        before = self.snapshot()
+        self.data('operation_status', {'operation_id': old['id']})
+        self.assertEqual(self.snapshot(), before)
+
+    def test_review21_unknown_repair_settlement_counts_duplicates_and_preserves_warning(self):
+        old, args, repair, raw, ended = self.pending_append()
+        self.imap.boxes['Sent'].update({1: raw, 2: raw})
+        result = self.call('operation_repair', args)
+        self.assertTrue(result['ok'], result)
+        self.assertEqual((result['data']['operation']['id'], result['data']['operation']['state']), (repair['id'], 'done'))
+        self.assertIn('2 copies', result['data']['original']['reason'])
+        self.assertIn('2 copies', result['pending']['notices'][0]['untrusted_content']['reason'])
+        before = self.snapshot()
+        self.data('operation_repair', args)
+        self.assertEqual(self.snapshot(), before)
+

@@ -196,6 +196,11 @@ class Engine:
             raise Refused("refused", "Repair requires accepted-send evidence and a completed submission attempt; inspect status.")
         if app == 'mail' and not self.adapters[app].repair_needed(old, args['stage']):
             # Re-reading a completed stage must work even when admission is full.
+            if args['stage'] == 'sent_copy':
+                try:
+                    self.adapters[app].repair_evidence(old, args['stage'])
+                except (Refused, OSError, imaplib.IMAP4.error, Uncertain):
+                    pass
             completed = old
             for _, op in self.store.iter_items('op:'):
                 if (op.get('repair_of') == old['id'] and op.get('payload', {}).get('stage') == args['stage']
@@ -327,12 +332,19 @@ class Engine:
             return self.submit(action, args)
         if verb == "operation_status":
             op = self.operation(args["operation_id"], app)
-            result = {"operation": self.public_operation(op)}
+            result = {}
             try:
                 result["evidence"] = adapter.evidence(op["id"])
+                # Evidence may discover a late duplicate after a successful
+                # repair. Return that warning in this very status response.
+                op = self.operation(op['id'], app)
+                warning = result['evidence'].get('sent_copy_warning')
+                if warning:
+                    op['stages']['sent_copy_warning'] = warning
             except (Refused, OSError, imaplib.IMAP4.error, Uncertain) as exc:
                 result["evidence_error"] = {"code": getattr(exc, "code", "transport_error"),
                                             "message": "Live evidence unavailable; recorded operation is unchanged."}
+            result['operation'] = self.public_operation(op)
             return result
         if verb == "operation_repair":
             return self.repair(app, args)
