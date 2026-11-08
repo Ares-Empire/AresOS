@@ -50,7 +50,7 @@ acting):
    send. (His folders: decision 17. Replaced on 2026-11-08 by decision 23: one session for everything.)
 9. **His usual signed-in sites (#50), so far:** WhatsApp Web, Gemini, Gmail, Deezer (more to come). They are the
    first adapter targets. (How Claude sends on WhatsApp Web: decision 16. Decision 25's first adapters: Gmail,
-   WhatsApp Web, GitHub and his bank, read-only.)
+   WhatsApp Web, GitHub, his bank (read-only), Gemini and Deezer.)
 10. **Claude in Chrome stays for his own use (#58); AresOS's Claude Code rules apply machine-wide and change only
     with his admin password (#59).**
 12. **The site guard is strict (#67):** it ends by itself only once the tool can see the site stored nothing of
@@ -290,8 +290,8 @@ the settings):
    **What decision 25 changes (2026-11-08):**
    - *Brief 20* builds the light Chrome tool: our signed extension and native host in his normal Chrome, the fixed
      command set, the asking rules decided before the action, the page-state binding, the adapters for Gmail,
-     WhatsApp Web, GitHub and his read-only bank, and the tests of `CONTROL.md` section 6. It ports what briefs 17 to
-     17c settled; the checkpoint code of 17e isn't used.
+     WhatsApp Web, GitHub, his read-only bank, Gemini and Deezer, and the tests of `CONTROL.md` section 6. It ports
+     what briefs 17 to 17c settled; the checkpoint code of 17e isn't used.
    - *Dropped:* the checkpoint and its requirements, the site guard, request attribution, the certificate rules, the
      S2e conditions, `chrome_open_site`, `chrome_end_guard`, `chrome_end_call` and the pass-through switch.
    - `laptop-aresos`: the image needs only the extension policy (install and update source) and the native host's
@@ -632,3 +632,8 @@ tasks at any time.
   on the control itself, which prepares a fresh asking operation. The event records and init wrappers of draft 30
   are gone; submissions keep their resume paths through the browser's own `submit()` and `requestSubmit()`.
   Re-check 34 next.
+- **2026-11-08, 06:06:** Gemini and Deezer join the first adapter set (`CONTROL.md` section 6, `FEATURES.md`, brief
+  20). This corrects the lead's omission: he named them among his usual sites (decision 9, board #50), and draft 26
+  had put them "after the tool-user rounds", an order he never chose. Gemini's "ask a question" can be set to "don't
+  ask again"; Deezer's playback and library additions are free, and removing, deleting, posting, sharing or paying
+  asks.

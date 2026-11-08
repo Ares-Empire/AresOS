@@ -126,10 +126,12 @@ in Chrome ([`CONTROL.md`](../design/CONTROL.md) section 6).
 | Save or print a page as PDF | `chrome_export_pdf` to an allowed folder | change | later |
 | Add and remove bookmarks | `chrome_bookmarks` | change | later |
 | Windows: move tabs between windows | | | later |
-| Site adapters | per site | | first: Gmail, WhatsApp Web, GitHub and his bank (read-only) (decisions 9 and 25); Gemini and Deezer after the tool-user rounds |
+| Site adapters | per site | | first: Gmail, WhatsApp Web, GitHub, his bank (read-only), Gemini and Deezer (decisions 9 and 25) |
 | Gmail in Chrome: send a mail | `chrome_submit` through the Gmail adapter | send | first, asking, the question reading like a mail (To, Cc, Bcc, subject, text, attachments from the compose); "don't ask again" bound to an exact recipient set, compared with the compose at the moment of sending (decision 15) |
 | WhatsApp Web: send a message | `chrome_submit` through the WhatsApp adapter | send | first, asking per message with the chat and the text as the page shows them (decision 16); opening a chat and typing are free |
 | His bank's pages | the read-only rule | read | first: reading, scrolling and links only; filling, buttons and uploads refused |
+| Gemini: ask a question | `chrome_submit` through the Gemini adapter | send | first: asks with the text as the page shows it; he can set "don't ask again" for it per account (decisions 7 and 15); deleting or sharing a chat always asks |
+| Deezer: playback and library | the ordinary actions through the Deezer adapter | change | first: play, pause, skip, seek, volume, queue, like, follow and add to a playlist are free; removing or deleting asks (decision 15); posting, sharing or paying asks |
 | Chrome's settings, passwords, extensions; claude.ai and Remote Control; the Anthropic console; Aresus | | | never in a Claude tab: these could change Claude's own limits or approve its own actions |
 | Cookies, saved passwords, browser storage | | | never: the extension doesn't read them |
 | Screenshots as the way to see a page | | | never as the main path (owner); a picture only where a site adapter says it's the last resort |

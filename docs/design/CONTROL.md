@@ -630,12 +630,20 @@ accounts; a page an adapter doesn't recognise falls back to the generic rules. T
   in advance where it shows them.
 - **His bank: read-only.** On the sites he marks read-only (an owner-only list), the tool refuses everything except
   reading, scrolling and following links: it never fills, clicks a button or uploads there.
-- **Gemini and Deezer** (decision 9): adapters once the tool-user rounds show what they need; until then the generic
-  rules apply.
+- **Gemini:** asking a question (Enter or the send button in the prompt box, which sends Claude's text to Google)
+  is named as "Gemini: ask a question", with the text and any attached file as the page shows them, and is a kind he
+  can set to "don't ask again" (decisions 7 and 15), bound to the site and the signed-in account. Without the
+  adapter every question would ask, because Enter in a message field is a send. Deleting a chat asks (decision 15),
+  and so does sharing one (it publishes a link).
+- **Deezer:** playback (play, pause, skip, seek, volume, the queue) and adding to his library (liking, following,
+  adding to a playlist) are named as changes and free; removing from a playlist or the favourites and deleting a
+  playlist ask, as deletes (decision 15); anything that posts, shares or pays (a comment, sharing a track, a
+  subscription) asks.
 
 ### "Don't ask again" (decisions 7 and 15)
 
-- **Only for a kind an adapter names** (for example "GitHub: star" or "Gmail: mail to exactly these recipients"),
+- **Only for a kind an adapter names** (for example "Gemini: ask a question", "GitHub: star" or "Gmail: mail to
+  exactly these recipients"),
   bound to the site, the signed-in account and the kind's exact parameters; never for a send the generic rules found.
 - **Deleting and paying always ask** (decision 15); WhatsApp messages ask each time (decision 16).
 - **He sets it himself, through a channel Claude can't use:** the extension's details page lists Claude's recently
@@ -766,8 +774,9 @@ affected adapter or rule off until it is fixed, with the generic rules or a refu
    recorded, and after the input ran: never dispatched twice, `unknown` where it may have run, nothing resumed by
    itself.
 10. **Adapters,** against fixtures and his test accounts: Gmail's account, recipients with Bcc and shortcuts;
-    WhatsApp per message with chat and text; GitHub's merges and deletions with their confirmations named;
-    read-only sites refusing every action.
+    WhatsApp per message with chat and text; GitHub's merges and deletions with their confirmations named; Gemini's
+    questions named, and free only under a "don't ask again" entry for that account; Deezer's playback and library
+    additions free, its removals, deletions, shares and payments asking; read-only sites refusing every action.
 11. **"Don't ask again":** set only through his channels; used only for the exact kind, account and recipients;
     revoked entries ask again; an adapter update that widens a kind suspends its entries until he confirms them.
 12. **The managed ask rule on `chrome_submit`** in normal and in skip-permissions mode (section 7).
