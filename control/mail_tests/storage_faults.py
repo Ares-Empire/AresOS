@@ -163,15 +163,14 @@ class OSWrites:
                 return super().truncate(size)
         def opened(file, mode='r', buffering=-1, encoding=None, errors=None, newline=None,
                    closefd=True, opener=None):
-            if not any(char in mode for char in 'wax+'):
-                return original_open(file, mode, buffering, encoding, errors, newline, closefd, opener)
-            if not isinstance(file, int) and not Path(file).exists():
+            if any(char in mode for char in 'wax+') and not isinstance(file, int) and not Path(file).exists():
                 sweep.hit(label(file) + '.create')
             raw = Raw(file, mode, closefd, opener)
             if buffering == 0:
                 return raw
             size = buffering if buffering > 1 else io.DEFAULT_BUFFER_SIZE
-            stream = io.BufferedRandom(raw, size) if '+' in mode else io.BufferedWriter(raw, size)
+            stream = (io.BufferedRandom(raw, size) if '+' in mode else
+                      io.BufferedWriter(raw, size) if any(char in mode for char in 'wax') else io.BufferedReader(raw, size))
             return stream if 'b' in mode else io.TextIOWrapper(stream, encoding, errors, newline,
                                                               line_buffering=buffering == 1)
         def os_open(method):

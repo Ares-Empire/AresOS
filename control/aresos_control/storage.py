@@ -10,7 +10,7 @@ import time
 import uuid
 
 from . import retention
-from .common import Refused, canonical, cleanup, digest, json_value, visible, storage_refusal
+from .common import Refused, canonical, storage_stream, cleanup, digest, json_value, visible, storage_refusal
 from .results import Observations, recorded_write
 from .space import SpaceLedger, record_budget
 
@@ -116,12 +116,12 @@ class JournalRecords:
         row = self.store.index.execute('SELECT offset FROM records WHERE seq=?', (index + 1,)).fetchone()
         if row is None:
             raise IndexError(index)
-        with open(self.store.journal.name, 'rb') as stream:
+        with storage_stream(open(self.store.journal.name, 'rb')) as stream:
             stream.seek(row[0])
             return json.loads(stream.readline())
 
     def __iter__(self):
-        with open(self.store.journal.name, 'rb') as stream:
+        with storage_stream(open(self.store.journal.name, 'rb')) as stream:
             for raw in stream:
                 record = json.loads(raw)
                 if 'commit' not in record:
@@ -274,7 +274,7 @@ class Store:
         if indexing:
             self.index.execute('DELETE FROM records')
             self.index.execute('DELETE FROM latest')
-        with open(self.journal.name, 'rb') as stream:
+        with storage_stream(open(self.journal.name, 'rb')) as stream:
             for raw in stream:
                 if not raw.endswith(b'\n'):
                     try:
