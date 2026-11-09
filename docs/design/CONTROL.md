@@ -512,6 +512,14 @@ itself has already happened (the text is typed, the box ticked); only the stoppe
 honest pages (*checked* for submissions, 17c); a page that sends in another way, or later than the limit, isn't
 stopped (below).
 
+**His own input in a Claude tab** (owner, 2026-11-09, board #138: "Yes, ask in that rare case"). A submission in the
+same browser task as his own input (a trusted input that arrived while the extension had no input of its own in
+flight) is his and isn't held. Within the short limit after Claude's input, the tool can't tell whose input started a
+delayed page step, so a submission his input starts after a delay inside that window is held and asks, like one of
+Claude's. When it's unclear whose input it was, the submission is held. The extension marks its own input as in
+flight before dispatching it and clears the mark only after the page has handled it; the mark and the verdict never
+pass through anything the page can see or write.
+
 **What can't be stopped is never reported as stopped.** An activation of an asking control that reaches the page
 without passing the wrappers (for example a click event dispatched with a function taken from a fresh frame before
 the extension's script ran there) is caught only by the capture listener, after delivery has begun. If the event can
@@ -707,7 +715,10 @@ own Chromium from the terminal and an empty profile, without his sign-ins.
 - **Read-only text a page sends** with a message (a preview beside the editor) isn't bound without an adapter, so it
   can change while the approval waits; the adapters for his usual sites bind it.
 - **`done` doesn't prove what the site did:** the tool sees the input and the page, not the network.
-- **His own clicks are his.** Nothing he does in his tabs is held or checked.
+- **His own clicks are his.** Nothing he does in tabs outside Claude's group is held or checked. In a Claude tab, a
+  submission in the same task as his own input passes when no input of the extension's is in flight; within the
+  short limit after Claude's own input, a submission his input starts after a delay, or one whose input can't be
+  told apart from Claude's, is held and asked like Claude's (board #138).
 - **Under decision 24,** a tricked Claude, or another program of his user, could disturb the host or start Chrome in
   another way, as with any program of his (section 7).
 
@@ -753,6 +764,12 @@ field it can't confirm is safe isn't read; every result says plainly that this C
    as the page's `submit()` would have sent it); a resumed `requestSubmit()` runs the field checks and the page's
    `submit` handlers once. The loop case: a `submit` handler that cancels the event and calls `submit()` itself sends
    once, with one question; a handler that submits twice, or submits another form, gets a question for the extra one.
+   His own input in a Claude tab (board #138), with the receiver's log as evidence: his Enter 130 ms after Claude's
+   click, in a task with no input of the extension's in flight, submits at once without a question; his input during
+   Claude's in-flight input is held and asks; Claude's own dispatched input never counts as his, also when the page
+   forges any message, attribute or global it can reach; a submission his input starts after a delay inside the short
+   limit is held and asks, also when his same input first submitted at once without a question (the exemption ends
+  with that task); one he starts after the limit has passed isn't held.
 3. **The binding:** after approval, a change to any recorded item (address, document, frame, element, label, the
    form's action or method, a visible or hidden field, compose text outside the form, the account an adapter reads,
    recipients, chat, a confirmation's text or opener) is refused and asks again; a closed tab or a Chrome restart

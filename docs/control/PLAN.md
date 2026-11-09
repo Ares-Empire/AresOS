@@ -655,3 +655,9 @@ tasks at any time.
   READY after two revisions). Mail's security reviews 14 to 20 each found a warning or refusal kept beside the
   committed record; rounds 26 and 27 closed them at central points, and 19b makes it a rule for the base and Mail,
   with an independent test oracle, in three stages. The owner approved it after Mail and before Chrome.
+- **2026-11-09, 11:15:** Chrome, his own input in a Claude tab (board #138, his answer: "Yes, ask in that rare
+  case"). Brief 20's first build held his Enter 130 ms after Claude's click, because the page script holds every
+  submission for the short limit after Claude's input. Now a submission in the same browser task as his own input,
+  with no input of the extension's in flight, is his and isn't held; a submission his input starts after a delay
+  inside that limit is held and asks, since the tool can't tell whose input started it. `CONTROL.md` section 6 says
+  so; the extension's in-flight mark never passes through anything the page can reach.
