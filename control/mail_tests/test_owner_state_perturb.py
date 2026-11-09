@@ -71,6 +71,7 @@ class SystematicPerturbations(unittest.TestCase):
                     case.doCleanups()
             for flow, number, mode, cleanup, phase in (
                     ('send', None, 'single', None, 'live'),
+                    ('repair', None, 'single', None, 'live'),
                     ('delete_permanent', 1, 'single', None, 'live'),
                     ('onboarding', 1, 'persistent', None, 'live'),
                     ('filing_move', 1, 'single', None, 'crash')):

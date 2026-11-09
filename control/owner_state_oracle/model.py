@@ -49,6 +49,7 @@ class Oracle:
         self.resolutions = set()
         self.filing_authority = {}
         self.commit_observations = {}
+        self.repair_authority = {}
 
     def resolve(self, kind, source, sequence=None, **proofs):
         if permitted(kind, proofs):
@@ -541,7 +542,7 @@ class Oracle:
             return row
         calls = [c for c in self.script if c.get('start_seq', -1) < event['seq'] <= c.get('end_seq', -1)]
         own = [c for c in calls if c.get('arguments', {}).get('operation_id') == row.get('id') or
-               c['action'] == 'mail_account_add']
+               c['action'] == 'mail_account_add' or c.get('call') == self.repair_authority.get(key, {}).get('call')]
         ordered = bool(calls)
         commands = [e for e in self.servers if e.get('before_seq', float('inf')) < event['seq'] and
                     bind_context(e, self.script)[0] == key and e['command'] in MUTATIONS]
@@ -549,7 +550,7 @@ class Oracle:
         negative = any(not e['accepted'] or e['reply'] != 'delivered' for e in commands)
         identity = row.get('id')
         if after == 'reserved' and before is None:
-            proof = bool([c for c in calls if '_prepare_' in c['action'] or c['action'] == 'mail_account_add'])
+            proof = bool([c for c in calls if '_prepare_' in c['action'] or c['action'] == 'mail_account_add' or c.get('call') == self.repair_authority.get(key, {}).get('call')])
             # Minimal recorded unit fixtures can omit call intervals. No later
             # transition gets this bootstrap allowance.
             proof |= not self.script
@@ -660,6 +661,17 @@ class Oracle:
                         if not min(c['clock'] for c in calls) * 1_000_000_000 - 1 <= value['created_at'] <= event['time'] * 1_000_000_000 + 1:
                             self.lifecycle_errors.add(Fact(key, 'notice-creation-time'))
                 if key.startswith('op:') and value:
+                    if value.get('action', '').endswith('_operation_repair'):
+                        candidates = [c for c in self.script if c['action'] == value['action'] and
+                                      c.get('start_seq', -1) < event['seq'] <= c.get('end_seq', -1)]
+                        if candidates:
+                            self.repair_authority.setdefault(key, candidates[0])
+                        authority = self.repair_authority.get(key)
+                        if authority:
+                            args = authority['arguments']
+                            if value.get('repair_of') != args.get('operation_id') or value.get('payload') != args:
+                                self.lifecycle_errors.add(Fact(key, 'unapproved-repair-context'))
+                                value = {**value, 'repair_of': args.get('operation_id'), 'payload': copy.deepcopy(args)}
                     self.payload_claims(key, value)
                     checked = value.get('sent_copy_check', {})
                     prior_check = old.get('sent_copy_check', {})
@@ -804,7 +816,7 @@ class Oracle:
         if event['seq'] <= getattr(self, 'seed_sequence', 0):
             return True
         calls = [c for c in self.script if c.get('start_seq', -1) < event['seq'] <= c.get('end_seq', -1)
-                 and (c.get('arguments', {}).get('operation_id') == row.get('id') or c['action'] == 'mail_account_add')]
+                 and (c.get('arguments', {}).get('operation_id') == row.get('id') or c['action'] == 'mail_account_add' or c.get('call') == self.repair_authority.get(key, {}).get('call'))]
         commands = [e for e in self.servers if e['command'] in MUTATIONS and e.get('before_seq', -1) < event['seq']
                     and bind_context(e, self.script)[0] == key]
         if row.get('state') == 'done':
@@ -1223,7 +1235,8 @@ class Oracle:
                     errors.add(Fact(key, 'false-completion', detail='Approved folder DELETE not accepted exactly once'))
             elif action == 'mail_operation_repair':
                 calls = [c for c in self.script if c['action'] == action and c.get('arguments', {}).get('operation_id') == operation.get('repair_of')]
-                stage = calls[-1]['arguments'].get('stage') if calls else None
+                authority = self.repair_authority.get(key) or (calls[-1] if calls else None)
+                stage = authority['arguments'].get('stage') if authority else None
                 command = {'sent_copy': 'APPEND', 'answered_flag': 'STORE'}.get(stage)
                 matches = [e for e in self.servers if e['command'] == command and e['accepted'] and
                            e['reply'] == 'delivered' and bind_context(e, self.script)[0] == key]

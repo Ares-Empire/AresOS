@@ -177,6 +177,11 @@ class Gaps:
                         row = 'M03/C03/M14'
                     elif any(source.startswith('mail:filing:') for source in sources_seen.get(view, set())):
                         row = 'M02/C02/C04/M14'
+                    elif any(source.startswith('mail:account:') for source in sources_seen.get(view, set())):
+                        row = 'M12/C05/M14'
+                    elif kinds & {'missing-committed-history', 'changed-observed-commit', 'unjustified-restore-transition',
+                                  'narrowed-obligation', 'missing-obligation-source'}:
+                        row = 'M06/M09/M14'
                     elif 'locations' in view:
                         row = 'M02/C04'
                     else:

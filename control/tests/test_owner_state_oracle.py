@@ -1549,3 +1549,19 @@ class StageOneRoundThree(unittest.TestCase):
         with patch.object(Oracle, 'expected', broken), patch.object(Oracle, 'hold_facts', return_value=set()):
             with self.assertRaisesRegex(AssertionError, 'Silent owner-state perturbation.*broken-scenario.*remove-row:x'):
                 check('broken-scenario', oracle, record)
+
+    def test_scripted_repair_keeps_its_parent_stage_and_settlement_hold(self):
+        oracle = Oracle()
+        args = {'operation_id': 'g:parent', 'stage': 'answered_flag'}
+        oracle.call('mail_operation_repair', args, 1)
+        oracle.script[-1].update(start_seq=0, end_seq=2)
+        row = {'id': 'g:repair', 'action': 'mail_operation_repair', 'app': 'mail',
+               'repair_of': 'g:wrong', 'payload': {'operation_id': 'g:wrong', 'stage': 'sent_copy'}, 'state': 'reserved'}
+        record = Record(events=[{'seq': 1, 'action': 'mail_operation_repair', 'set': {'op:g:repair': row}},
+            {'seq': 2, 'action': 'mail_operation_repair', 'set': {'op:g:repair': {**row, 'state': 'submitting'}}}])
+        projected = oracle.lifecycle(record)
+        self.assertEqual(projected.rows['op:g:repair']['state'], 'submitting')
+        self.assertEqual(projected.rows['op:g:repair']['repair_of'], 'g:parent')
+        self.assertEqual(projected.rows['op:g:repair']['payload'], args)
+        self.assertIn(Fact('settle:g:repair', 'held'), oracle.holds(record))
+        self.assertIn(Fact('op:g:repair', 'unapproved-repair-context'), oracle.lifecycle_errors)
