@@ -211,7 +211,7 @@ class Scenario:
         f.imap.boxes['Source'][1] = message.as_bytes(policy=SMTP)
         caller_root = Path(__file__).resolve().parents[1] / 'test-work'
         caller_root.mkdir(exist_ok=True)
-        caller = tempfile.TemporaryDirectory(dir=caller_root)
+        caller = getattr(self, 'caller_directory', tempfile.TemporaryDirectory)(dir=caller_root)
         f.addCleanup(caller.cleanup)
         home = Path(caller.name)
         folder = home / 'Downloads'

@@ -14,7 +14,7 @@ from owner_state_oracle.driver import Driver
 from owner_state_oracle.model import Oracle
 from owner_state_oracle.gaps import Gaps
 from owner_state_oracle.clock import scripted_calendar
-from owner_state_oracle.identity import scripted_ids
+from owner_state_oracle.identity import scripted_ids, caller_name, caller_directory
 from test_review23_sweep import Scenario
 from storage_faults import OSWrites
 
@@ -38,9 +38,9 @@ def owns_case(case, shard, shards, worker=0, workers=1):
 
 
 class OwnerScenario(Scenario):
-    def __init__(self, flow):
+    def __init__(self, flow, point=0, mode='single', cleanup=0, phase='live'):
         try:
-            self._initialize(flow)
+            self._initialize(flow, point, mode, cleanup, phase)
         except BaseException:
             try:
                 if hasattr(self, 'stack'):
@@ -54,7 +54,10 @@ class OwnerScenario(Scenario):
                     self.clock_patches.close()
             raise
 
-    def _initialize(self, flow):
+    def _initialize(self, flow, point, mode, cleanup, phase):
+        if flow in {'attachment_export', 'testapp_export', 'export_rollback'}:
+            name = caller_name(flow, point, mode, cleanup, phase)
+            self.caller_directory = lambda **kwargs: caller_directory(name, self.fixture, **kwargs)
         self.test_clock = 1794225600.0
         self.clock_patches = ExitStack()
         self.clock_patches.enter_context(patch('time.time', side_effect=lambda: self.test_clock))
@@ -184,7 +187,7 @@ class OwnerScenario(Scenario):
 
 
 def exercise(flow, number=None, mode='single', cleanup_at=None, gaps=None, phase='live'):
-    s = OwnerScenario(flow)
+    s = OwnerScenario(flow, number or 0, mode, cleanup_at or 0, phase)
     gaps.aliases = {}
     try:
         d, fault = Driver(s), OSWrites(number, mode=mode, cleanup_at=cleanup_at)
@@ -256,6 +259,14 @@ class OwnerStateSweep(unittest.TestCase):
                 points = exercise('repair', 185, gaps=gaps)
                 self.assertIs(uuid.uuid4, outside)
                 outside.assert_not_called()
+            results.append((points, gaps.entries))
+        self.assertEqual(results[0], results[1])
+
+    def test_export_repeated_fault_uses_same_caller_path_and_exact_delta(self):
+        results = []
+        for _ in range(2):
+            gaps = Gaps(recording=True)
+            points = exercise('attachment_export', 101, 'persistent', gaps=gaps)
             results.append((points, gaps.entries))
         self.assertEqual(results[0], results[1])
 

@@ -16,8 +16,8 @@ from owner_state_oracle.compare import pages
 class OwnerOracle(unittest.TestCase):
     def test_expectation_imports_are_standard_library_only(self):
         root = Path(__file__).resolve().parents[1] / 'owner_state_oracle'
-        allowed = {'contextlib', 'email', 'context', 'copy', 'dataclasses', 'hashlib', 'json', 'pathlib', 'sqlite3', 'shutil', 'tempfile', 'time', 're', 'gzip', 'os', 'argparse', 'unicodedata', 'model', 'records', 'local'}
-        for name in ('__init__.py', 'records.py', 'model.py', 'compare.py', 'context.py', 'gaps.py', 'local.py'):
+        allowed = {'contextlib', 'email', 'context', 'copy', 'dataclasses', 'hashlib', 'json', 'pathlib', 'sqlite3', 'shutil', 'tempfile', 'time', 're', 'gzip', 'os', 'argparse', 'unicodedata', 'random', 'uuid', 'unittest', 'fcntl', 'identity', 'gaps', 'model', 'records', 'local'}
+        for name in ('__init__.py', 'records.py', 'model.py', 'compare.py', 'context.py', 'gaps.py', 'local.py', 'identity.py', 'caller_capture.py'):
             tree = ast.parse((root / name).read_text())
             for node in ast.walk(tree):
                 if isinstance(node, ast.Import):
@@ -1092,3 +1092,46 @@ class StageOneFixMutations(unittest.TestCase):
             else: wrong['row'] = ''
             with self.subTest(mutation=mutation), self.assertRaises(AssertionError):
                 pack({'case/view': wrong})
+
+    def test_caller_fixture_names_are_injective_and_same_width_as_tempfile(self):
+        from owner_state_oracle.identity import caller_name
+        names = set()
+        for flow in ('attachment_export', 'testapp_export', 'export_rollback'):
+            for mode in ('single', 'persistent'):
+                for phase in ('live', 'crash'):
+                    for point in range(301):
+                        for cleanup in (0, 1, 65, 4095):
+                            name = caller_name(flow, point, mode, cleanup, phase)
+                            self.assertEqual(len(name), 11)
+                            self.assertNotIn(name, names)
+                            names.add(name)
+        with self.assertRaises(ValueError):
+            caller_name('attachment_export', 4096)
+
+    def test_caller_capture_conversion_keeps_wrong_targets_distinguishable(self):
+        from owner_state_oracle.caller_capture import stabilize
+        from owner_state_oracle.identity import caller_name
+        path = '/workspace/control/test-work/tmpabcdefgh/Downloads'
+        event = {'action': 'mail_attachment_save', 'untrusted_content': {'folder': path, 'name': 'export.bin'}}
+        fact = ['event:#1', 'mail_attachment_save', '', canonical(event)]
+        key = 'attachment_export/persistent/101/0/exhausted/aresos log.page'
+        entries = {key: {'row': 'M14', 'stage': 3, 'delta': {'calls': 1, 'failures': [{'pages': [0], 'missing': [fact], 'extra': []}]}}}
+        converted, count = stabilize(entries)
+        self.assertEqual(count, 1)
+        actual = json.loads(converted[key]['delta']['failures'][0]['missing'][0][3])
+        self.assertEqual(actual['untrusted_content']['folder'], '/workspace/control/test-work/' + caller_name('attachment_export', 101, 'persistent') + '/Downloads')
+        wrong = copy.deepcopy(entries)
+        other = copy.deepcopy(fact)
+        other[3] = canonical({'action': 'mail_attachment_save', 'untrusted_content': {'folder': '/workspace/control/test-work/tmpijklmnop/Downloads', 'name': 'export.bin'}})
+        wrong[key]['delta']['failures'][0]['extra'] = [other]
+        with self.assertRaises(ValueError):
+            stabilize(wrong)
+        # The public audit equality still compares the complete literal path.
+        from owner_state_oracle.compare import audit_fact
+        record = {'seq': 1, 'time': 1, 'action': 'mail_attachment_save', 'summary': 'save', 'outcome': 'started', 'operation_id': None, **event}
+        public = {**record, 'summary': 'Mail audit event', 'untrusted_content': {'summary': 'save', **event['untrusted_content']}}
+        expected = audit_fact(record, expected=True)
+        self.assertEqual(expected, audit_fact(public))
+        public['untrusted_content']['folder'] += '-wrong'
+        with self.assertRaises(AssertionError):
+            Oracle().compare('wrong caller target', {expected}, {audit_fact(public)})
