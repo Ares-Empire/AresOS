@@ -6,7 +6,8 @@ from .common import digest, storage_refusal
 def open_filings(store):
     if getattr(store, '_open_filings', None) is None:
         store._open_filings = {key for prefix in ('mail:filing:', 'mail:rename:')
-                              for key, value in store.iter_items(prefix) if value.get('state') == 'started'}
+                              for key, value in store.iter_items(prefix)
+                              if value.get('state') == 'started' or value.get('check_open')}
     return store._open_filings
 
 

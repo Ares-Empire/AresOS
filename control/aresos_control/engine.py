@@ -432,7 +432,7 @@ class Engine:
             return self.store.confirm_restore()
         if name == 'control_archive':
             from .archive import archive
-            return archive(self.store, args['before'])
+            return archive(self.store, args['before'], self.adapters['mail'])
         if name == "control_pending":
             return self.pending(args=args)
         if name == 'control_observations':
@@ -491,9 +491,9 @@ class Engine:
                 warning = result['evidence'].get('sent_copy_warning')
                 if warning:
                     op['stages']['sent_copy_warning'] = warning
-            except (Refused, OSError, imaplib.IMAP4.error, Uncertain) as exc:
+            except (Refused, OSError, sqlite3.Error, imaplib.IMAP4.error, Uncertain) as exc:
                 result["evidence_error"] = {"code": getattr(exc, "code", "transport_error"),
-                                            "message": "Live evidence unavailable; recorded operation is unchanged."}
+                                            "message": "Live evidence is not yet checked; " + str(exc)}
             result['operation'] = self.public_operation(op)
             return result
         if verb == "operation_repair":
@@ -522,6 +522,7 @@ class Engine:
                         source = self.store.get(source_key)
                         if source and source.get('state') == 'started':
                             source['state'] = 'partial'
+                            source['check_open'] = True
                             changes[source_key] = source
                     self.store.write(changes, name, "filing notice acknowledged")
                 from .mail.filing import public_notice

@@ -9,24 +9,37 @@ from .common import storage_stream, Refused, canonical, cleanup
 from .storage import sync_directory
 
 
-def archive(store, before):
+def archive(store, before, mail=None):
     store.ensure_writable()
     if store.locked:
         raise Refused('restore_required', 'Confirm the restored log before archiving history.')
     if before >= time.time():
         raise Refused('invalid_input', 'Archive cutoff must be in the past (Unix seconds).')
     closed, protected = {}, set()
+    # A refused reopening leaves yesterday's clean result intact. After a
+    # crash it cannot certify today's mailbox: recheck before removing it.
+    operations = store.items('op:')
+    candidates = {op['id'] for key, op in operations if op['state'] in {'done', 'failed', 'refused'}
+                  and store.retained_at(key) < before}
+    unchecked = {n['untrusted_content']['operation_id']
+                 for n in mail.resolve_sent_checks(candidates)} if mail else None
     operations = store.items('op:')
     dependencies = {op.get('repair_of') for _, op in operations if op['state'] in retention.OPEN}
     for key, op in operations:
         if (op['id'] not in dependencies and op['state'] in {'done', 'failed', 'refused'} and
-                op.get('sent_copy_check', {}).get('state') != 'open' and (not op.get('notice') or op.get('ack'))):
+                (not op.get('sent_copy_check') and not op.get('payload', {}).get('composition') or
+                 unchecked is not None and op['id'] not in unchecked and
+                 op.get('sent_copy_check', {}).get('state') == 'checked') and
+                (not op.get('notice') or op.get('ack'))):
             if store.retained_at(key) < before and len(closed) < 100:
                 closed[key] = op
         else:
             protected.add(key)
     for key, notice in store.items('notice:'):
         if not notice.get('ack'):
+            intent_key = notice.get('untrusted_content', {}).get('intent_key')
+            if intent_key:
+                protected.add(intent_key)
             operation_id = notice.get('untrusted_content', {}).get('operation_id')
             if operation_id:
                 closed.pop('op:' + operation_id, None)
@@ -35,9 +48,14 @@ def archive(store, before):
                               'mail:filing-locations:' + notice['id'] + ':'))
     for prefix in ('mail:filing:', 'mail:rename:'):
         for key, intent in store.items(prefix):
-            if intent.get('state') != 'done':
+            notice = store.get('notice:' + intent['id'])
+            if (intent.get('check_open') or intent.get('state') not in {'done', 'partial'} or
+                    intent.get('state') == 'partial' and not (notice and notice.get('ack'))):
                 protected.add(key)
                 protected.add('mail:filing-locations:' + intent['id'] + ':')
+    for key, account in store.items('mail:account:'):
+        if not account.get('onboarded', account.get('ready', False)):
+            protected.add(key)
 
     def eligible(event):
         keys = set(event['set']) | {'op:' + op['id'] for op in event['record']['operations']}

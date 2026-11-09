@@ -3,6 +3,7 @@ from datetime import date
 from email.message import EmailMessage
 from email.utils import formatdate
 import http.client
+import copy
 import imaplib
 import json
 import re
@@ -705,48 +706,51 @@ class Mail:
             return result
 
     def register_sent_check(self, operation):
-        if 'sent_copy_check' not in operation:
-            operation['sent_copy_check'] = {'state': 'open'}
-            self.store.write({'op:' + operation['id']: operation}, 'mail_sent_copy_check_open',
-                             'Sent-copy check registered before reading evidence', operation['id'])
+        if operation.get('sent_copy_check', {}).get('state') != 'open':
+            opened = copy.deepcopy(operation)
+            opened['sent_copy_check'] = {**opened.get('sent_copy_check', {}), 'state': 'open'}
+            try:
+                self.store.write({'op:' + operation['id']: opened}, 'mail_sent_copy_check_open',
+                                 'Sent-copy check opened before reading evidence', operation['id'])
+            except (Refused, OSError, sqlite3.Error) as exc:
+                self.store.observations.storage(exc, generic=True)
+                raise
+            operation.update(opened)
 
     def sent_copy_count(self, operation, matches, commit_clean=False):
         op = self.store.get('op:' + operation['id'])
         count = len(matches)
         previous = op.get('sent_copy_check', {})
-        if count <= 1 and (not commit_clean or previous.get('clean')):
+        if count <= 1 and not commit_clean:
             return
-        if op.get('sent_copy_check', {}).get('count') == count:
+        if previous.get('state') == 'checked' and previous.get('count') == count:
             return
-        # The registration survives clean results too: a delayed server copy
-        # can change a later check. Every notice/pending read revalidates it.
-        if previous.get('state') != 'open':
-            op['sent_copy_check'] = {'state': 'open'}
-            self.store.write({'op:' + op['id']: op}, 'mail_sent_copy_check_open',
-                             'Sent-copy result needs committing', op['id'])
         op['sent_copy_check'] = {'state': 'checked', 'count': count, 'clean': count <= 1}
         changes = {'op:' + op['id']: op}
         notice_id = 'sent-' + digest(operation['id'])[:32]
         if count > 1:
             reason = f'Sent contains {count} copies with this Message-ID. Check them in your mail program; nothing was deleted.'
             operation['stages']['sent_copy_warning'] = op['stages']['sent_copy_warning'] = reason
-            changes['notice:' + notice_id] = {'id': notice_id, 'app': 'mail', 'state': 'partial', 'ack': False,
-                'created_at': time.time_ns(), 'untrusted_content':
-                {'reason': reason, 'operation_id': operation['id'], 'message_count': count}}
+            if previous.get('count') != count or self.store.get('notice:' + notice_id) is None:
+                changes['notice:' + notice_id] = {'id': notice_id, 'app': 'mail', 'state': 'partial', 'ack': False,
+                    'created_at': time.time_ns(), 'untrusted_content':
+                    {'reason': reason, 'operation_id': operation['id'], 'message_count': count}}
         self.store.write(changes, 'mail_sent_copy_check', 'Sent-copy result committed', op['id'])
         operation['sent_copy_check'] = op['sent_copy_check']
 
-    def resolve_sent_checks(self):
+    def resolve_sent_checks(self, operation_ids=None):
         """Read-only remote checks; never APPEND, repair or resubmit."""
         from .filing import resolve_checks
-        resolve_checks(self)
+        if operation_ids is None:
+            resolve_checks(self)
         unresolved = []
         for _, op in self.store.iter_items('op:'):
+            if operation_ids is not None and op['id'] not in operation_ids:
+                continue
             if (op['app'] != 'mail' or not op.get('payload', {}).get('composition') or
                     (op['state'] in {'reserved', 'failed', 'refused'} and 'sent_copy_check' not in op)):
                 continue
             try:
-                self.register_sent_check(op)
                 account = self.account(op['payload']['composition']['mail']['account'], ready=False)
                 active = getattr(self.store, 'in_request', False)
                 observed = self.store.observations.evidence.get(op['id'], {}) if active else {}
@@ -754,6 +758,7 @@ class Mail:
                 # direct owner-view read must consult the server again.
                 matches = observed.get('sent')
                 if matches is None:
+                    self.register_sent_check(op)
                     matches = self.sent_matches(account, self.message_id(op['id']))
                     if active:
                         self.store.observations.observe(op['id'], {'sent': matches})
@@ -796,7 +801,7 @@ class Mail:
             result['sent_copy_warning'] = op['stages']['sent_copy_warning']
         self.store.observations.observe(op['id'], result)
         try:
-            self.sent_copy_count(op, matches)
+            self.sent_copy_count(op, matches, commit_clean=op['state'] in {'done', 'failed', 'refused'})
         except (Refused, OSError, sqlite3.Error) as exc:
             storage = storage_refusal(exc)
             if storage is None and isinstance(exc, (OSError, sqlite3.Error)):

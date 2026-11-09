@@ -39,6 +39,8 @@ class Duplicates22(unittest.TestCase):
         self.imap.boxes['Sent'].pop(2)
         self.data('operation_repair', args)
         self.imap.boxes['Sent'][2] = raw
+        # Exercise a failed result write after the required open source commits.
+        self.mail.register_sent_check(self.engine.operation(old['id']))
         with patch.object(self.engine.store.journal, 'write', side_effect=OSError(errno.ENOSPC, 'Synthetic disk full')):
             self.assert_observation(self.call('operation_status', {'operation_id': old['id']}))
         self.assertTrue(self.engine.store.write_failed)
@@ -48,6 +50,7 @@ class Duplicates22(unittest.TestCase):
         self.imap.boxes['Sent'][1] = raw
         self.data('operation_repair', args)
         self.imap.boxes['Sent'][2] = raw
+        self.mail.register_sent_check(self.engine.operation(old['id']))
         with patch.object(self.engine.store.journal, 'write', side_effect=OSError(errno.ENOSPC, 'Synthetic disk full')):
             self.assert_observation(self.call('operation_repair', args))
 
@@ -94,7 +97,13 @@ class Duplicates22(unittest.TestCase):
         old, args, repair, raw, ended = self.pending_append()
         self.imap.boxes['Sent'].update({1: raw, 2: raw})
         self.data('operation_status', {'operation_id': old['id']})
-        with patch.object(self.engine.store.journal, 'write', side_effect=OSError(errno.ENOSPC, 'Synthetic disk full')):
+        write = self.engine.store.write
+        def fail_settlement(changes, action, *args, **kwargs):
+            if action == 'mail_operation_repair':
+                with patch.object(self.engine.store.journal, 'write', side_effect=OSError(errno.ENOSPC, 'Synthetic disk full')):
+                    return write(changes, action, *args, **kwargs)
+            return write(changes, action, *args, **kwargs)
+        with patch.object(self.engine.store, 'write', side_effect=fail_settlement):
             result = self.call('operation_repair', args)
         self.assertFalse(result['ok'], result)
         self.assertIn(result['error']['code'], {'storage_limit', 'storage_error', 'journal_incomplete'})
@@ -112,7 +121,13 @@ class Duplicates22(unittest.TestCase):
         write = self.engine.store.journal.write
         def short_commit(data):
             return write(data[:13]) if 'commit' in json.loads(data) else write(data)
-        with patch.object(self.engine.store.journal, 'write', side_effect=short_commit):
+        store_write = self.engine.store.write
+        def fail_settlement(changes, action, *args, **kwargs):
+            if action == 'mail_operation_repair':
+                with patch.object(self.engine.store.journal, 'write', side_effect=short_commit):
+                    return store_write(changes, action, *args, **kwargs)
+            return store_write(changes, action, *args, **kwargs)
+        with patch.object(self.engine.store, 'write', side_effect=fail_settlement):
             result = self.call('operation_repair', args)
         self.assertFalse(result['ok'], result)
         self.assertIn(result['error']['code'], {'storage_limit', 'storage_error', 'journal_incomplete'})

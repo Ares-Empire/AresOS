@@ -151,7 +151,7 @@ def resolve_checks(mail):
     for key in sorted(open_filings(mail.store)):
         prefix = 'mail:filing:' if key.startswith('mail:filing:') else 'mail:rename:'
         intent = mail.store.get(key)
-        if (not intent or intent.get('state') != 'started' or not intent.get('account') or
+        if (not intent or not (intent.get('state') == 'started' or intent.get('check_open')) or not intent.get('account') or
                 intent['id'] in mail.store.deferred_notices):
             continue
         try:
@@ -187,6 +187,7 @@ def resolve_checks(mail):
             # Fresh evidence can disclose locations/roles, but cannot prove
             # which interrupted commands completed. Keep that warning.
             intent['state'] = 'partial'
+            intent.pop('check_open', None)
             changes[key] = intent
             changes['notice:' + intent['id']] = {'id': intent['id'], 'app': 'mail', 'state': 'partial',
                 'ack': False, 'created_at': time.time_ns(), 'untrusted_content': content}
