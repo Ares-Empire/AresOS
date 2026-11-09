@@ -23,9 +23,9 @@ EXTRA = ('draft_append', 'folder_create', 'folder_delete', 'onboarding', 'flag',
          'testapp_send', 'testapp_delete', 'testapp_config')
 
 
-def owns_case(case, shard, shards):
+def owns_case(case, shard, shards, worker=0, workers=1):
     point = int(case.split('/')[2])
-    return point == 0 or (point - 1) % shards == shard
+    return point == 0 or ((point - 1) % shards == shard and ((point - 1) // shards) % workers == worker)
 
 
 class OwnerScenario(Scenario):
@@ -207,31 +207,36 @@ def exercise(flow, number=None, mode='single', cleanup_at=None, gaps=None, phase
 class OwnerStateSweep(unittest.TestCase):
     def test_shards_cover_every_fault_and_keep_its_cleanup_and_crash_cases(self):
         for shards in (1, 2, 4):
-            for point in range(1, 102):
-                owners = []
-                for shard in range(shards):
-                    cases = [f'flow/{mode}/{point}/{cleanup}/{phase}/view'
-                             for mode in ('single', 'persistent') for cleanup in (0, point + 1)
-                             for phase in ('exhausted', 'live-restored', 'crash-locked', 'crash-restart')]
-                    assignment = [owns_case(case, shard, shards) for case in cases]
-                    self.assertEqual(len(set(assignment)), 1)
-                    if assignment[0]:
-                        owners.append(shard)
-                self.assertEqual(len(owners), 1)
-            self.assertTrue(all(owns_case('flow/single/0/0/live-restored/view', shard, shards)
-                                for shard in range(shards)))
+            for workers in (1, 2):
+                for point in range(1, 102):
+                    owners = []
+                    for shard in range(shards):
+                        for worker in range(workers):
+                            cases = [f'flow/{mode}/{point}/{cleanup}/{phase}/view'
+                                     for mode in ('single', 'persistent') for cleanup in (0, point + 1)
+                                     for phase in ('exhausted', 'live-restored', 'crash-locked', 'crash-restart')]
+                            assignment = [owns_case(case, shard, shards, worker, workers) for case in cases]
+                            self.assertEqual(len(set(assignment)), 1)
+                            if assignment[0]:
+                                owners.append((shard, worker))
+                    self.assertEqual(len(owners), 1)
+                self.assertTrue(all(owns_case('flow/single/0/0/live-restored/view', shard, shards, worker, workers)
+                                    for shard in range(shards) for worker in range(workers)))
 
     def test_all_flows_all_storage_modes_independent_views(self):
         gaps, counts = Gaps(recording=True), Counter()
         shard, shards = int(os.environ.get('MAIL_SWEEP_SHARD', '0')), int(os.environ.get('MAIL_SWEEP_SHARDS', '1'))
+        worker, workers = int(os.environ.get('OWNER_SWEEP_WORKER', '0')), int(os.environ.get('OWNER_SWEEP_WORKERS', '1'))
         self.assertGreater(shards, 0)
         self.assertIn(shard, range(shards))
+        self.assertGreater(workers, 0)
+        self.assertIn(worker, range(workers))
         for flow in FLOWS + EXTRA:
             started = time.monotonic()
             points, _ = exercise(flow, gaps=gaps)
             counts['clean'] += 1
             for number, label in enumerate(points, 1):
-                if label.endswith('.close') or not owns_case(f'{flow}/single/{number}', shard, shards):
+                if label.endswith('.close') or not owns_case(f'{flow}/single/{number}', shard, shards, worker, workers):
                     continue
                 for mode in ('single', 'persistent'):
                     with self.subTest(flow=flow, point=number, mode=mode):
@@ -249,6 +254,6 @@ class OwnerStateSweep(unittest.TestCase):
             print(f'Owner oracle flow={flow} points={len(points)} elapsed={time.monotonic()-started:.3f}s', flush=True)
         import base64, gzip, json
         print('OWNER-GAP-DISCOVERY:' + base64.b64encode(gzip.compress(json.dumps(gaps.entries, sort_keys=True).encode())).decode(), flush=True)
-        relevant = {key for key in gaps.entries if key.split('/')[0] in FLOWS + EXTRA and owns_case(key, shard, shards)}
+        relevant = {key for key in gaps.entries if key.split('/')[0] in FLOWS + EXTRA and owns_case(key, shard, shards, worker, workers)}
         self.assertEqual(gaps.seen, set())
-        print(f'Owner oracle shard={shard}/{shards} modes={dict(counts)} strict expected failures={len(gaps.seen)}', flush=True)
+        print(f'Owner oracle shard={shard}/{shards} worker={worker}/{workers} modes={dict(counts)} strict expected failures={len(gaps.seen)}', flush=True)

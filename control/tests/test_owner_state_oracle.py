@@ -493,6 +493,23 @@ class OwnerOracle(unittest.TestCase):
                         self.assertNotIn(page, seen)
                         seen.add(page)
 
+    def test_isolated_sweep_process_failure_cannot_report_success(self):
+        from contextlib import redirect_stdout
+        import io
+        import os
+        import sys
+        from ci.mail.tests import run_workers
+        output = io.StringIO()
+        command = [sys.executable, '-c', 'import os,sys; w=os.environ["OWNER_SWEEP_WORKER"]; print("child="+w); sys.exit(int(w))']
+        with redirect_stdout(output):
+            result, good = run_workers(command, os.environ, lambda: 'parent result')
+        self.assertEqual(result, 'parent result')
+        self.assertFalse(good)
+        self.assertIn('child=0', output.getvalue())
+        self.assertIn('child=1', output.getvalue())
+        self.assertIn('worker=0/2 exit=0', output.getvalue())
+        self.assertIn('worker=1/2 exit=1', output.getvalue())
+
     def test_special_rename_role_cannot_supply_clean_proof(self):
         oracle = Oracle()
         source, evidence = 'mail:rename:r', {'target': 'Target', 'role': '\\All'}
