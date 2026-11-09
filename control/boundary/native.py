@@ -199,8 +199,8 @@ def native_checks(run, put, mode, snapshots, stub):
     (OUT / 'native-planted-helper-paths.json').write_text(json.dumps([str(p) for p in planted], indent=2))
     native_before = (OUT / 'stub.txt').read_text().splitlines()
     print('CONTAINER_IDENTITY ' + json.dumps({n: os.readlink('/proc/self/ns/' + n) for n in ('net', 'mnt')}), flush=True)
-    # The baseline receives no test grant. In absent mode only the launcher's
-    # checks are bypassed, keeping its environment/uid/cwd/native arguments.
+    # The baseline receives no test grant. Both helper modes start the native
+    # CLI normally with the same owner, environment and optional user settings.
     baseline_result, baseline = invoke(run, [tool('Bash', {'command': 'sleep 2'}, 'identity')],
                                       'native-baseline')
     assert baseline_result.returncode == 0 and not baseline['identity'].get('is_error')

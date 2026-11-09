@@ -30,8 +30,10 @@ Tests cover user/project/local/all allow rules and a user PreToolUse allow hook,
 in normal and skip modes. Hook markers prove the PreToolUse hook actually ran.
 User and managed PermissionRequest hooks are configured in both modes; their
 invocation counts and receiver arrivals are recorded and compared against a
-version-pinned outcome file. When print mode never invokes a hook, that case stays
-unqualified for brief 18c; an invoked allow that sends is the accepted residual.
+version-pinned outcome file. **Observed on 2.1.319:** all four hooks run and approve
+the send, each with exactly one receiver arrival. This is decision 24's accepted
+residual, and the test fails if it changes. This is a print-mode result; terminal
+and phone presentation remain separate image checks.
 
 The Messages request must contain both app servers' entire instructions in the
 request (2.1.319 places them in its environment message), plus each complete tool

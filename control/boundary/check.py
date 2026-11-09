@@ -1,5 +1,5 @@
 """Linux container supervisor. Root only creates synthetic fixtures and users;
-all attacks and the launcher run as the unprivileged assistant.
+all attacks and the native CLI run as the unprivileged fixture owner.
 """
 import hashlib
 import json
@@ -145,7 +145,7 @@ def main():
             native_error = traceback.format_exc()
             (OUT / 'native-failure.txt').write_text(native_error)
             print(native_error, flush=True)
-        # Do not lose standalone/launcher evidence when a native qualification
+        # Do not lose standalone evidence when a native qualification
         # check fails. The entire workflow still fails at the end.
 
         # Run network positive controls before the zero-arrival observation window.

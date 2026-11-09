@@ -60,7 +60,8 @@ class SlimPolicy(EngineCase):
         # Adapter contract: inspect its service-owned owner-only list on every use.
         def require_entry(verb, operation):
             entry = self.engine.store.get('fixture:owner-trusted-recipients')
-            if entry != operation['payload']['to']:
+            recipients = {kind: operation['payload'][kind] for kind in ('to', 'cc', 'bcc')}
+            if entry != recipients:
                 raise Refused('permission_denied', 'No matching owner-only entry')
             return True
         adapter = self.engine.adapters['testapp']
@@ -72,9 +73,13 @@ class SlimPolicy(EngineCase):
         adapter.require_trusted_send = require_entry
         with self.assertRaisesRegex(Refused, 'owner-only'):
             self.engine.submit(action, approval)
-        self.engine.store.write({'fixture:owner-trusted-recipients': self.engine.operation(approval['operation_id'])['payload']['to']},
+        self.engine.store.write({'fixture:owner-trusted-recipients': {kind: self.engine.operation(approval['operation_id'])['payload'][kind] for kind in ('to', 'cc', 'bcc')}},
                                 'fixture_admin', 'Owner fixture entry')
         self.assertEqual(self.engine.submit(action, approval)['operation']['state'], 'done')
+        mismatch = self.reserve(bcc=['not-listed'])
+        with self.assertRaisesRegex(Refused, 'owner-only'):
+            self.engine.submit(action, mismatch)
+        self.assertEqual(self.engine.receiver.evidence(mismatch['operation_id'])['arrivals'], [])
         second = self.reserve()
         self.engine.store.write({'fixture:owner-trusted-recipients': None}, 'fixture_admin', 'Owner revoked fixture entry')
         with self.assertRaisesRegex(Refused, 'owner-only'):

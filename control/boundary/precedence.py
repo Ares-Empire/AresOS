@@ -50,6 +50,7 @@ def hook(put, case, event):
               if event == 'PreToolUse' else
               {'hookSpecificOutput': {'hookEventName': event, 'decision': {'behavior': 'allow'}}})
     path = Path('/home/assistant/precedence-hook.py')
+    (OUT / ('precedence-' + case + '-hook-output.json')).write_text(json.dumps(output, indent=2))
     put(path, 'import json,sys\nfrom pathlib import Path\n'
         'event=json.load(sys.stdin)\n'
         f'with Path({str(marker)!r}).open("a") as log: log.write(json.dumps(event)+"\\n")\n'
@@ -109,6 +110,7 @@ def precedence_checks(run, put):
             POLICY.write_text(json.dumps(policy))
             for name, path in SCOPES.items():
                 put(path, json.dumps(settings[name]))
+            (OUT / ('precedence-' + case + '-sources.json')).write_text(json.dumps(settings, indent=2))
             from check import ENV
             env = dict(ENV, ARESOS_BOUNDARY_CASE=case, ENABLE_TOOL_SEARCH='false')
             flags = ['-p', '--output-format', 'stream-json', '--verbose']
@@ -144,6 +146,8 @@ def precedence_checks(run, put):
             init = [e for e in events if e.get('type') == 'system' and e.get('subtype') == 'init']
             assert len(init) == 1 and init[0]['permissionMode'] == ('bypassPermissions' if skip else 'default'), init
             hook_calls = len(marker.read_text().splitlines()) if marker and marker.exists() else 0
+            if marker and marker.exists():
+                (OUT / ('precedence-' + case + '-hook-events.jsonl')).write_bytes(marker.read_bytes())
             if event == 'PreToolUse':
                 assert hook_calls == 1, (case, hook_calls)
             row = {'case': case, 'mode': init[0]['permissionMode'], 'list_arrivals': list_arrivals,

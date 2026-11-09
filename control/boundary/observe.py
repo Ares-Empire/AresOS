@@ -2,7 +2,7 @@
 
 Only the observer can inspect non-dumpable standalone filtered processes. Attacks
 still run as uid 10001 with all capabilities dropped by their sandbox.
-Sampling starts only after the API is about to dispatch tools, after launcher
+Sampling starts only after the API is about to dispatch tools, after CLI
 canaries have exited, so their namespaces cannot be mistaken for native Bash's.
 """
 import json

@@ -230,7 +230,8 @@ and current pinned folder; empty entries remain, and other alias locations canno
 be enumerated. If truncation or sync fails, `save_incomplete` explicitly warns that
 bytes may remain or survive a storage failure. An unsupported filesystem fails closed. A process running as the
 owner can still move or modify a completed download afterward, as it can any owner
-file; the hostile-program confinement is brief 18b.
+file. Decision 24 imposes no confinement; the optional sandbox fixture is tested
+separately in `control/boundary/`.
 
 Installed entry points use a fixed `/usr/bin/python3 -I -S`, `/usr/bin/env -i`, a
 fixed PATH/LANG, and root-owned code under `/usr/libexec/aresos-control`, vendor

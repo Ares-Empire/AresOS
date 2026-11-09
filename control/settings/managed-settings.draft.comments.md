@@ -28,9 +28,10 @@ There is no generated exclusive `managed-mcp.json`.
 native harness pins Claude Code **2.1.319** and records each precedence case,
 receiver arrivals, complete tool definitions and server instructions in the
 Messages request (including the complete system field). See `reviews/18d-base-slim/REPORT.md` for actual run IDs.
-The harness records `PermissionRequest` invocation counts and send arrivals in
-both modes. A case print mode cannot exercise remains an interactive check for
-brief 18c; an invoked hook approving a managed ask is an accepted residual. No source/plugin/hook/bypass lock is restored to avoid it.
+**Observed, run 42582079690:** user and managed `PermissionRequest` allow hooks
+each execute once and approve a managed ask in normal and skip-permissions print
+mode (one send arrival in each of the four cases). This is decision 24's accepted
+residual; the version-pinned expectation file fails if it changes. No source/plugin/hook/bypass lock is restored to avoid it.
 
 `control/boundary/optional-sandbox.json` is a **test fixture only**. It is never
 included in generated managed settings or installed by the base. It demonstrates
