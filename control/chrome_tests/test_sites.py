@@ -15,7 +15,7 @@ FIXTURE_HOSTS = {site: [site + '.test'] for site in HOSTS}
 
 
 def reading(site):
-    return {'scope': 'compose-1', 'scope_role': 'dialog' if site == 'gmail' else 'main',
+    return {'scope': 'compose-1', 'scope_role': 'dialog' if site == 'gmail' else 'generic',
             'account': 'Synthetic account', 'to': 'one@mail.test,two@mail.test',
             'cc': 'copy@mail.test', 'bcc': 'hidden@mail.test', 'subject': 'Synthetic subject',
             'text': 'Full synthetic message\nSecond line', 'chat': 'Synthetic chat',
@@ -153,7 +153,7 @@ class SiteOwnerRules(unittest.TestCase):
     call, target, prepare = engine_cases.Operations.call, engine_cases.Operations.target, engine_cases.Operations.prepare
 
     def site(self, site, label='Send'):
-        self.chrome.hosts = FIXTURE_HOSTS
+        self.chrome.hosts = copy.deepcopy(FIXTURE_HOSTS)
         self.browser.facts['url'] = 'https://' + site + '.test/'
         frame = self.browser.facts['frames'][0]; frame['url'] = self.browser.facts['url']
         frame['adapter'] = reading(site); frame['adapter']['target'] = label

@@ -21,6 +21,7 @@ export function sitePage(url,host) {
   const preview='<p aria-label="Message preview">Full quoted preview</p>';
   const compose=(which,to,text)=>`<section role="dialog" aria-label="Compose ${which}" data-compose="${which}"><input name="from" value="Synthetic account"><input name="to" value="${esc(to)}"><input name="cc" value="copy@mail.test"><input name="bcc" value="hidden@mail.test"><input name="subjectbox" value="Synthetic subject ${which}"><textarea aria-label="Message Body">${esc(text)}</textarea>${attachment}${preview}${buttons(['Send'])}</section>`;
   if(site==='gmail')body=compose('first','one@mail.test,two@mail.test','Full synthetic message\nSecond line')+(variant==='two'?compose('second','other@mail.test','Second compose text'):'')+'<main>'+account+'<p aria-label="Action context">Selected synthetic message</p><button type="button">Selected message</button></main>';
+  if(site==='gmail'&&variant==='quoted')body=compose('first','"Last, First" <one@mail.test>,two@mail.test','Full synthetic message\nSecond line');
   if(site==='whatsapp')body='<main>'+account+'<p aria-label="Chat name">Synthetic chat</p><textarea aria-label="Type a message">Full synthetic message\nSecond line</textarea>'+attachment+preview+buttons(['Send','Open chat'])+'</main>';
   if(site==='github')body='<main>'+account+'<p aria-label="Action context">'+context+'</p><textarea name="comment">Full synthetic review</textarea>'+attachment+preview+buttons(['Comment','Submit review','Approve review','Request changes','Merge pull request','Close issue','Close pull request','Delete branch','Delete tag','Delete repository','Save settings','Star','Unstar'])+'</main>';
   if(site==='gemini')body='<main>'+account+'<textarea aria-label="Enter a prompt here">Full synthetic question</textarea>'+attachment+preview+buttons(['Send','Delete chat','Share chat'])+'</main>';
@@ -65,6 +66,7 @@ export function sitePage(url,host) {
       const node=root.querySelector(selectors[field]||'textarea');
       if(field==='dialog')setTimeout(()=>{if(confirm('Delete synthetic transfer?'))send('Unexpected bank dialog',document.body);},100);
       else if(field==='recipients-order')root.querySelector('[name=to]').value='two@mail.test,one@mail.test';
+      else if(field==='recipient-collision')root.querySelector('[name=to]').value='First" <one@mail.test>,"Last,two@mail.test';
       else if(field==='recipient-role'){const cc=root.querySelector('[name=cc]'),bcc=root.querySelector('[name=bcc]');[cc.value,bcc.value]=[bcc.value,cc.value];}
       else if(node){if('value'in node)node.value='Changed synthetic '+field;else node.textContent='Changed synthetic '+field;}
       fetch('/mutation-ack?nonce='+encodeURIComponent(nonce));

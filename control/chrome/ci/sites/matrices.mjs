@@ -8,7 +8,7 @@ export async function siteMatrices({call,read,nav,target,counts,eventually,tab,f
   if(process.platform!=='linux'||process.env.GITHUB_ACTIONS!=='true'||!fs.existsSync('/.dockerenv'))throw Error('Adapter browser cases run only in GitHub Linux containers');
   const results=[];let serial=0;
   const state=result=>result.approval.description.untrusted_content.page_state;
-  const fresh=async(site,extra='')=>{const id='adapters-'+site+'-'+(++serial);await nav('adapter-sites&id='+id+extra,site);return id;};
+  const fresh=async(site,extra='',port=8765)=>{const id='adapters-'+site+'-'+(++serial);if(port===8765)await nav('adapter-sites&id='+id+extra,site);else{const url='http://'+site+'.test:'+port+'/?case=adapter-sites&id='+id+extra;await call('navigate',{tab,url});await eventually(async()=>{const page=await call('read',{tab});return page.untrusted_content.url===url&&page.characters>0;},'alternate fixture origin');await delay(250);}return id;};
   const receiver=(id,label='Send',compose='main')=>id+':'+label+':'+compose;
   const evidence=(id,phase)=>{const row={id,phase,count:counts(id),arrivals:fixture.arrivals.filter(row=>new URL(row.url,'http://fixture.test').searchParams.get('case')===id)};fs.appendFileSync('/out/adapters-receiver.jsonl',JSON.stringify(row)+'\n');return row;};
   async function check(name,fn) {
@@ -61,7 +61,7 @@ export async function siteMatrices({call,read,nav,target,counts,eventually,tab,f
     const rows=(await read()).filter(row=>row.expected.name==='Send'&&row.expected.role==='button');assert.equal(rows.length,2);
     const second=await call('click',{reference:rows[1].reference,expected:rows[1].expected});assert.equal(state(second).adapter.to,'other@mail.test');assert.equal(state(second).adapter.text,'Changed synthetic text');
     await approved(second,receiver(id,'Send','second'));assert.equal(counts(receiver(id,'Send','first')),1);
-    id=await fresh('gmail');const inbox=await call('press',{...await target('Selected message'),key:'#'});assert.ok(inbox.approval);
+    id=await fresh('gmail');const inbox=await call('press',{...await target('Selected message'),key:'#'});assert.equal(evidence(receiver(id,'Delete shortcut'),'inbox before approval').count,0);assert.ok(inbox.approval);
     await denyTrust(inbox.approval,receiver(id,'Delete shortcut'));await approved(inbox,receiver(id,'Delete shortcut'));
     for(const key of ['Ctrl+Enter','Cmd+Enter','#']){
       id=await fresh('gmail');const prepared=await call('press',{...await target('Message Body'),key});
@@ -76,6 +76,7 @@ export async function siteMatrices({call,read,nav,target,counts,eventually,tab,f
       await denyTrust(prepared.approval,receiver(id,'Send','first'));await approved(prepared,receiver(id,'Send','first'));
     }
     id=await fresh('gmail');await fixture.mutate(id,'recipients-order');prepared=await call('click',await target('Send'));await approved(prepared,receiver(id,'Send','first'),{trusted:true});
+    id=await fresh('gmail','',8766);prepared=await call('click',await target('Send'));assert.ok(state(prepared).adapter);await denyTrust(prepared.approval,receiver(id,'Send','first'));await approved(prepared,receiver(id,'Send','first'));
     for(const field of ['account','to','cc','bcc','subject','text','attachments','preview']){
       id=await fresh('gmail');prepared=await call('click',await target('Send'));await fixture.mutate(id,field);
       const changed=await rpc('submit_trusted',prepared.approval);assert.ok(!changed.ok||changed.data.operation.state==='failed',JSON.stringify(changed));assert.equal(evidence(receiver(id,'Send','first'),'trusted binding changed').count,0);
@@ -84,6 +85,8 @@ export async function siteMatrices({call,read,nav,target,counts,eventually,tab,f
     }
     await lifecycle({fixture:'kind',mode:'widen'});id=await fresh('gmail');prepared=await call('click',await target('Send'));await denyTrust(prepared.approval,receiver(id,'Send','first'));await call('drop',{operation_id:prepared.approval.operation_id});await lifecycle({fixture:'kind',mode:'restore'});
     admin('chrome_sites',{command:'revoke',id:entry.id});id=await fresh('gmail');prepared=await call('click',await target('Send'));await denyTrust(prepared.approval,receiver(id,'Send','first'));await approved(prepared,receiver(id,'Send','first'));
+    id=await fresh('gmail','&variant=quoted');prepared=await call('click',await target('Send'));await approved(prepared,receiver(id,'Send','first'));const quotedEntry=admin('chrome_sites',{command:'allow',operation_id:prepared.approval.operation_id});
+    id=await fresh('gmail','&variant=quoted');await fixture.mutate(id,'recipient-collision');prepared=await call('click',await target('Send'));await denyTrust(prepared.approval,receiver(id,'Send','first'));await approved(prepared,receiver(id,'Send','first'));admin('chrome_sites',{command:'revoke',id:quotedEntry.id});
   });
   await check('GROUP 10 ADAPTER WhatsApp every message chat text attachments and free activity',async()=>{
     let id=await fresh('whatsapp');const opened=await call('click',await target('Open chat'));assert.ok(!opened.approval);await eventually(()=>counts(receiver(id,'Open chat'))===1,'free read receipt');
@@ -110,10 +113,17 @@ export async function siteMatrices({call,read,nav,target,counts,eventually,tab,f
     for(const label of ['Merge pull request','Close issue','Close pull request','Delete branch','Delete tag','Delete repository','Save settings'])for(const mismatch of ['kind','text','frame','site','button','twice']){
       const id=await fresh('github','&mismatch='+mismatch),key=receiver(id,label),prepared=await call('click',await target(label));assert.ok(prepared.approval.description.untrusted_content.confirmation);
       assert.equal(evidence(key,'before original approval').count,0);await call('submit',prepared.approval);assert.equal(evidence(key,'different confirmation waiting').count,0);
-      let answer;
+      let answer,dialogInput;
       if(mismatch==='button')answer=await call('click',await target('Delete now'));
-      else{const {dialog}=await call('read',{tab});assert.ok(dialog);answer=await call('dialog',{tab,expected:dialog,accept:true,...(mismatch==='kind'?{text:'Synthetic confirmation'}:{})});}
-      await approved(answer,key);await call('submit',prepared.approval);assert.equal(counts(key),1);
+      else{const {dialog}=await call('read',{tab});assert.ok(dialog);dialogInput={tab,expected:dialog,accept:true,...(mismatch==='kind'?{text:'Synthetic confirmation'}:{})};answer=await call('dialog',dialogInput);}
+      if(mismatch==='button'||label.startsWith('Delete'))await approved(answer,key);
+      else{
+        // Merge/Close/Save aren't listed generic words. Their mismatched native
+        // dialogs stay open, then a separate explicit dialog call is free (§6 group 4).
+        assert.ok(!answer.approval);await eventually(()=>counts(key)===1,'independent free confirmation');assert.equal(evidence(key,'independent free dialog').count,1);
+        assert.equal((await rpc('dialog',dialogInput)).ok,false);await delay(50);assert.equal(evidence(key,'repeat free dialog refused').count,1);
+      }
+      await call('submit',prepared.approval);assert.equal(counts(key),1);
     }
   });
   await check('GROUP 10 ADAPTER Gemini question content and always asking chat changes',async()=>{
@@ -128,6 +138,7 @@ export async function siteMatrices({call,read,nav,target,counts,eventually,tab,f
     let id=await fresh('gemini'),prepared=await call('press',{...await target('Enter a prompt here'),key:'Enter'});await approved(prepared,receiver(id,'Enter'));
     const entry=admin('chrome_sites',{command:'allow',operation_id:prepared.approval.operation_id});
     for(const label of ['Delete chat','Share chat']){id=await fresh('gemini');prepared=await call('click',await target(label));await denyTrust(prepared.approval,receiver(id,label));await approved(prepared,receiver(id,label));}
+    id=await fresh('gemini','',8766);prepared=await call('click',await target('Send'));assert.ok(state(prepared).adapter);await denyTrust(prepared.approval,receiver(id));await approved(prepared,receiver(id));
     id=await fresh('gemini');prepared=await call('click',await target('Send'));await approved(prepared,receiver(id),{trusted:true});
     id=await fresh('gemini');await fixture.mutate(id,'account');prepared=await call('click',await target('Send'));await denyTrust(prepared.approval,receiver(id));await approved(prepared,receiver(id));
     admin('chrome_sites',{command:'revoke',id:entry.id});id=await fresh('gemini');prepared=await call('click',await target('Send'));await denyTrust(prepared.approval,receiver(id));await approved(prepared,receiver(id));
@@ -175,6 +186,11 @@ export async function siteMatrices({call,read,nav,target,counts,eventually,tab,f
     const id=await fresh('gmail'),prepared=await call('click',await target('Send'));assert.equal(evidence(receiver(id,'Send','first'),'wording check').count,0);
     assert.match(prepared.approval.question,/\b(?:1|one) attachment\b/);
     assert.match(prepared.approval.question,/fixture\.txt/);
+    await call('drop',{operation_id:prepared.approval.operation_id});
+  });
+  await check('GROUP 10 ADAPTER Gmail deletion shortcut question names the deletion',async()=>{
+    const id=await fresh('gmail'),prepared=await call('press',{...await target('Selected message'),key:'#'});assert.ok(prepared.approval);assert.equal(evidence(receiver(id,'Delete shortcut'),'wording check').count,0);
+    assert.match(prepared.approval.question,/delete/i);
     await call('drop',{operation_id:prepared.approval.operation_id});
   });
   if(results.some(row=>!row.passed))throw new AggregateError(results.filter(row=>!row.passed).map(row=>Error(row.name+': '+row.error)),'Adapter requirements failed; see adapters.json and adapters-receiver.jsonl');

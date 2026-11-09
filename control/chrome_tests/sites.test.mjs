@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import {sitePage} from '../chrome/ci/sites/fixture.mjs';
 
 test('adapter fixture scripts compile for every site and confirmation mismatch',()=>{
-  for(const site of ['gmail','whatsapp','github','gemini','deezer','bank'])for(const variant of ['', 'two','unknown','incomplete','form-playback'])for(const mismatch of ['', 'kind','text','frame','site','button','twice']){
+  for(const site of ['gmail','whatsapp','github','gemini','deezer','bank'])for(const variant of ['', 'two','quoted','unknown','incomplete','form-playback'])for(const mismatch of ['', 'kind','text','frame','site','button','twice']){
     const url=new URL('http://'+site+'.test:8765/?case=adapter-sites&id=fixture&variant='+variant+'&mismatch='+mismatch);
     const page=sitePage(url,url.host);new vm.Script(page.script);
     assert.ok(page.body.length);assert.doesNotMatch(page.script,/https?:\/\/(?![^\s"']*\.test)/);
