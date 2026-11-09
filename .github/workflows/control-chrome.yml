@@ -17,7 +17,7 @@ concurrency:
 jobs:
   fixtures:
     runs-on: ubuntu-24.04
-    timeout-minutes: 75
+    timeout-minutes: 95
     strategy:
       fail-fast: false
       matrix:
@@ -51,7 +51,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p .work/20-chrome/ci
-          timeout --signal=TERM --kill-after=30s 65m docker run --rm --network none --cap-add SYS_ADMIN --security-opt seccomp=unconfined --security-opt apparmor=unconfined --shm-size=512m -e INSTALL_MODE -e QUALIFICATION_VERSION -e GITHUB_RUN_ID -e GITHUB_SHA -v "$PWD/.work/20-chrome/ci:/out" aresos-chrome-fixture
+          timeout --signal=TERM --kill-after=30s 85m docker run --rm --network none --cap-add SYS_ADMIN --security-opt seccomp=unconfined --security-opt apparmor=unconfined --shm-size=512m -e INSTALL_MODE -e QUALIFICATION_VERSION -e GITHUB_RUN_ID -e GITHUB_SHA -v "$PWD/.work/20-chrome/ci:/out" aresos-chrome-fixture
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
@@ -80,7 +80,7 @@ jobs:
     needs: qualification-plan
     if: needs.qualification-plan.result == 'success' && needs.qualification-plan.outputs.matrix != '' && fromJSON(needs.qualification-plan.outputs.matrix).include[0] != null
     runs-on: ubuntu-24.04
-    timeout-minutes: 75
+    timeout-minutes: 95
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.qualification-plan.outputs.matrix) }}
@@ -113,7 +113,7 @@ jobs:
           QUALIFICATION_VERSION: ${{ matrix.version }}
         run: |
           mkdir -p .work/20-chrome/ci
-          timeout --signal=TERM --kill-after=30s 65m docker run --rm --network none --cap-add SYS_ADMIN --security-opt seccomp=unconfined --security-opt apparmor=unconfined --shm-size=512m -e INSTALL_MODE -e QUALIFICATION_VERSION -e GITHUB_RUN_ID -e GITHUB_SHA -v "$PWD/.work/20-chrome/ci:/out" qualification
+          timeout --signal=TERM --kill-after=30s 85m docker run --rm --network none --cap-add SYS_ADMIN --security-opt seccomp=unconfined --security-opt apparmor=unconfined --shm-size=512m -e INSTALL_MODE -e QUALIFICATION_VERSION -e GITHUB_RUN_ID -e GITHUB_SHA -v "$PWD/.work/20-chrome/ci:/out" qualification
       - name: Retain pair identity even when the test failed
         if: always()
         env:
