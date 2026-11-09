@@ -24,10 +24,11 @@ async function preloadCommand(source,method,parameters={}){
 }
 function assertTarget(state){if(preloadTargets.get(targetKey(state.source))!==state||controlled.get(state.tab)?.epoch!==state.epoch)throw Error('stale_reference: control ended during document setup');}
 function contextChanged(state){for(const done of state.cleanupWaiters||[])done();state.cleanupWaiters?.clear();}
+function destroyedTarget(state){state.contexts.clear();state.scripts.clear();state.documents.clear();contextChanged(state);if(preloadTargets.get(targetKey(state.source))===state)preloadTargets.delete(targetKey(state.source));}
 async function contextGone(state,identity){while([...state.contexts.values()].some(context=>context.uniqueId===identity)){await new Promise(resolve=>{state.cleanupWaiters??=new Set();state.cleanupWaiters.add(resolve);});}}
 async function targetCommand(state,method,parameters={}){assertTarget(state);const value=await preloadCommand(state.source,method,parameters);assertTarget(state);return value;}
-async function prepareTarget(source,tab=source.tabId){
-  const state={source,tab,epoch:controlled.get(tab)?.epoch,contexts:new Map(),scripts:new Map(),documents:new Map(),installing:new Set()};preloadTargets.set(targetKey(source),state);
+async function prepareTarget(source,tab=source.tabId,targetId=null){
+  const state={source,tab,targetId,epoch:controlled.get(tab)?.epoch,contexts:new Map(),scripts:new Map(),documents:new Map(),installing:new Set()};preloadTargets.set(targetKey(source),state);
   await targetCommand(state,'Page.enable');
   await targetCommand(state,'Runtime.enable');
   await targetCommand(state,'Debugger.enable');
@@ -54,13 +55,20 @@ async function preloadEvent(source,method,params){
         if(current.windowId!==parentTab.windowId){await chrome.tabs.move(tab,{windowId:parentTab.windowId,index:-1});assertTarget(parent);}
         await chrome.tabs.group({tabIds:[tab],groupId});grouped=true;assertTarget(parent);controlled.set(tab,original);await rules();assertTarget(parent);await badge();assertTarget(parent);
       }
-      assertTarget(parent);const prepared=await prepareTarget(child,tab);await targetCommand(prepared,'Runtime.runIfWaitingForDebugger');
+      assertTarget(parent);const prepared=await prepareTarget(child,tab,params.targetInfo.targetId);await targetCommand(prepared,'Runtime.runIfWaitingForDebugger');
     }
     catch(error){if(original&&controlled.get(tab)===original)await release(tab);else if(grouped&&original)await restoreTab(tab,original);port?.postMessage({event:'reader_error',error:String(error),tab});try{await preloadCommand(source,'Target.detachFromTarget',{sessionId:params.sessionId});}catch{}}
     return;
   }
   const state=preloadTargets.get(targetKey(source));if(!state)return;
-  if(method==='Target.detachedFromTarget'){const childKey=targetKey({...source,sessionId:params.sessionId}),child=preloadTargets.get(childKey);preloadTargets.delete(childKey);if(child&&child.tab!==state.tab&&controlled.has(child.tab))await release(child.tab);return;}
+  if(method==='Target.detachedFromTarget'){
+    const child=preloadTargets.get(targetKey({...source,sessionId:params.sessionId}));if(!child)return;
+    let destroyed=false;try{destroyed=!!child.targetId&&!(await chrome.debugger.getTargets()).some(target=>target.id===child.targetId);}catch{}
+    // Detachment alone does not prove that a live page lost its wrappers.
+    // Only a missing native target or actual tab removal ends that lifetime.
+    if(destroyed)destroyedTarget(child);
+    if((!destroyed||child.tab!==state.tab)&&controlled.has(child.tab))await release(child.tab);return;
+  }
   if(method==='Runtime.executionContextCreated'){state.contexts.set(params.context.id,params.context);return;}
   if(method==='Runtime.executionContextDestroyed'){const old=state.contexts.get(params.executionContextId);state.contexts.delete(params.executionContextId);for(const [script,context]of state.scripts)if(context===params.executionContextId)state.scripts.delete(script);for(const [key,document]of state.documents)if(document.main===old?.uniqueId)state.documents.delete(key);else if(document.isolated===old?.uniqueId)document.ready=false;contextChanged(state);return;}
   if(method==='Runtime.executionContextsCleared'){state.contexts.clear();state.scripts.clear();state.documents.clear();contextChanged(state);return;}
@@ -318,7 +326,10 @@ async function release(tab) {
     for(const [key,state]of preloadTargets){if(state.tab!==tab)continue;
       const blocked=new Map();
       for(const value of state.documents.values())try{const result=await preloadCommand(state.source,'Runtime.callFunctionOn',{objectId:value.cleanup,functionDeclaration:'function(){return this.cleanup();}',returnByValue:true});if(result.exceptionDetails||result.result?.value!==true)blocked.set(value.main,value.document);}catch{blocked.set(value.main,value.document);}
-      for(const context of state.contexts.values())if(context.origin===chrome.runtime.getURL('').replace(/\/$/,''))try{const result=await preloadCommand(state.source,'Runtime.evaluate',{uniqueContextId:context.uniqueId,expression:'globalThis[Symbol.for("aresos.chrome.guard.v2")]?.dispose() ?? true',disableBreaks:true,returnByValue:true});if(result.exceptionDetails||result.result?.value!==true)blocked.set(context.uniqueId,null);}catch{blocked.set(context.uniqueId,null);}
+      for(const context of state.contexts.values())if(context.origin===chrome.runtime.getURL('').replace(/\/$/,'')){
+        const document=[...state.documents.values()].find(value=>value.isolated===context.uniqueId)?.document;
+        try{const result=await preloadCommand(state.source,'Runtime.evaluate',{uniqueContextId:context.uniqueId,expression:'globalThis[Symbol.for("aresos.chrome.guard.v2")]?.dispose() ?? true',disableBreaks:true,returnByValue:true});if(result.exceptionDetails||result.result?.value!==true)blocked.set(context.uniqueId,document);}catch{blocked.set(context.uniqueId,document);}
+      }
       if(blocked.size)try{for(const frame of await chrome.webNavigation.getAllFrames({tabId:tab})||[])try{const result=await content(tab,frame.frameId,'clear');if(result.restored===true)for(const [identity,document]of blocked)if(document===result.document)blocked.delete(identity);}catch{}}catch{}
       await Promise.all([...blocked.keys()].map(identity=>contextGone(state,identity)));
       try{await preloadCommand(state.source,'Debugger.disable');}catch{}
@@ -335,7 +346,7 @@ async function release(tab) {
   record.promise.catch(error=>port?.postMessage({event:'reader_error',error:'Private cleanup remains pending: '+String(error),tab}));
   return boundedRelease(tab,record.promise);
 }
-async function boundedRelease(tab,promise){return Promise.race([promise,new Promise(resolve=>setTimeout(()=>resolve({stopped:tab,cleanup_pending:true,message:'Stopped. Finish returning this tab by closing its dialog or navigating away.'}),1000))]);}
+async function boundedRelease(tab,promise){return Promise.race([promise,new Promise(resolve=>setTimeout(()=>resolve({stopped:tab,cleanup_pending:true,message:'Stopped. Close its dialog, or close the tab if returning it remains pending.'}),1000))]);}
 async function stop() { stopGeneration++;await Promise.all([...controlled.keys()].map(tab=>release(tab)));await badge();return {stopped:true,cleanup_pending:releasing.size+admissions.size}; }
 async function facts(tab, reference) {
   const current = await requireTab(tab);
@@ -613,13 +624,14 @@ chrome.tabs.onUpdated.addListener(async(tab,change)=>{
   if(current.groupId!==groupId){release(tab);return;}
   if(change.url)try{safeURL(current.url);}catch{release(tab);}
 });
-chrome.tabs.onRemoved.addListener(tab=>{if(controlled.has(tab))release(tab);for(const map of [documentMethods,currentDocuments])for(const key of map.keys())if(key.startsWith('['+tab+','))map.delete(key);});
+function removedTab(tab){if(controlled.has(tab))release(tab);for(const state of preloadTargets.values())if(state.tab===tab)destroyedTarget(state);for(const map of [documentMethods,currentDocuments])for(const key of map.keys())if(key.startsWith('['+tab+','))map.delete(key);}
+chrome.tabs.onRemoved.addListener(removedTab);
 // Passive, exact-document method metadata only: no headers, bodies or interception.
 chrome.webRequest.onCompleted.addListener(({tabId,frameId,type,method,documentId})=>{
   const key=JSON.stringify([tabId,frameId]);
   if(tabId>=0&&documentId&&currentDocuments.get(key)===documentId&&['main_frame','sub_frame'].includes(type))navigationRecord(documentMethods,key,{document:documentId,method});
 },{urls:['http://*/*','https://*/*'],types:['main_frame','sub_frame']});
-chrome.webNavigation.onCommitted.addListener(({tabId,frameId,documentId,transitionType})=>{
+chrome.webNavigation.onCommitted.addListener(({tabId,frameId,documentId,transitionType,transitionQualifiers=[]})=>{
   const key=JSON.stringify([tabId,frameId]);
   const previous=currentDocuments.get(key),owner=controlled.get(tabId),reload=frameId===0?owner?.getReload:null;
   navigationRecord(currentDocuments,key,documentId);
@@ -628,7 +640,7 @@ chrome.webNavigation.onCommitted.addListener(({tabId,frameId,documentId,transiti
     // Chrome omits the new navigation document ID from some webRequest events.
     // These top-level transitions originate GET requests; form_submit/reload,
     // restoration and ambiguous subframe transitions never get this fallback.
-    if(frameId===0&&(['typed','link'].includes(transitionType)||transitionType==='reload'&&reload?.document===previous))navigationRecord(documentMethods,key,{document:documentId,method:'GET'});
+    if(frameId===0&&!transitionQualifiers.includes('forward_back')&&(['typed','link'].includes(transitionType)||transitionType==='reload'&&reload?.document===previous))navigationRecord(documentMethods,key,{document:documentId,method:'GET'});
   }
   if(frameId===0&&owner)delete owner.getReload;
   if(recording)audit({navigation_method:{tab:tabId,frame:frameId,document:documentId,transition:transitionType,method:documentMethods.get(key)?.method||'unknown'}});

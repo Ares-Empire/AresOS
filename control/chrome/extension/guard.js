@@ -11,7 +11,8 @@
   const formElements=Object.getOwnPropertyDescriptor(HTMLFormElement.prototype,'elements')?.get;
   const held = new Map(), roots = new Map(), consumed = new Set();
   let reader, generation = null, dispatchNonce = null, config, until = 0, inFlight = false, mark = null, owner = null, sequence = 0;
-  let relayControl=null,legacyBridge=true;const relayListeners=[];
+  let relayControl=null,legacyBridge=true,requestDepth=0;const relayListeners=[];
+  function requestNative(form,submitter){requestDepth++;try{return submitter?native.requestSubmit.call(form,submitter):native.requestSubmit.call(form);}finally{requestDepth--;}}
   const currentPhase = event => phase ? phase.call(event) : event.eventPhase;
   const type = event => eventType ? eventType.call(event) : event.type;
   const active = () => generation !== null && (inFlight || performance.now() < until);
@@ -45,7 +46,7 @@
   }
   function ownerSubmission(form,submitter,event=null) {
     if(inFlight||!owner||owner.consumed||!owner.event.isTrusted||owner.form!==form||owner.submitter!==(submitter||null))return false;
-    if(currentPhase(owner.event)===0&&(!owner.defaultSubmission||owner.event.defaultPrevented||!event?.isTrusted||owner.changed||ownerMutations?.takeRecords().length))return false;
+    if(currentPhase(owner.event)===0&&(requestDepth||!owner.defaultSubmission||owner.event.defaultPrevented||!event?.isTrusted||owner.changed||ownerMutations?.takeRecords().length))return false;
     owner.consumed=true;return true;
   }
   const control=element=>element.closest('button,input,a,[role=button],[role=link],[role=menuitem],[onclick]') || element;
@@ -103,8 +104,7 @@
     if (!(form instanceof HTMLFormElement)) return;
     if (!active() || ownerSubmission(form,submitter) || search(reader.form(form,submitter)) || allowance(form,null,submitter)) {
       if (kind === 'native_submit') native.submit.call(form);
-      else if (submitter) native.requestSubmit.call(form,submitter);
-      else native.requestSubmit.call(form);
+      else requestNative(form,submitter);
     } else report(kind,form,submitter);
   }
   function capture(event,root) {
@@ -117,6 +117,7 @@
   }
   function captureInput(event,root) {
     let element=eventElement(event.composedPath()[0]);
+    if(type(event)==='invalid'&&owner)owner.changed=true;
     if(['pointerdown','pointerup','pointermove','mousedown','mouseup','click','keydown','keypress','keyup'].includes(type(event)))ownerInput(event,element);
     if (!active()) return;
     if (!(element instanceof Element)) return;
@@ -153,8 +154,8 @@
       else if (detail?.kind === 'request_submit') {
         // Validation and the native submit event must precede interception.
         delivery=true;
-        if(detail.with_submitter===true){if(!(element instanceof HTMLElement)||!(element.form instanceof HTMLFormElement)){event.preventDefault();return;}native.requestSubmit.call(element.form,element);}
-        else if(element instanceof HTMLFormElement)native.requestSubmit.call(element);
+        if(detail.with_submitter===true){if(!(element instanceof HTMLElement)||!(element.form instanceof HTMLFormElement)){event.preventDefault();return;}requestNative(element.form,element);}
+        else if(element instanceof HTMLFormElement)requestNative(element);
         else event.preventDefault();
       } else if (detail?.kind === 'click' || detail?.kind === 'dispatch') {
         let original=null;
@@ -210,7 +211,7 @@
       onCall(event);
     },true);
     listen('aresos-page-call-v2',onCall,false);}
-    for (const kind of ['pointerdown','pointerup','pointermove','mousedown','mouseup','click','keydown','keypress','keyup','input','change','submit']) listen(kind,event=>capture(event,root),true);
+    for (const kind of ['pointerdown','pointerup','pointermove','mousedown','mouseup','click','keydown','keypress','keyup','input','change','invalid','submit']) listen(kind,event=>capture(event,root),true);
   }
   watch(window);
   // This object exists only in the extension's isolated world. MAIN has no API or capability.
@@ -274,8 +275,7 @@
       const expected=mark?.id===operation?mark.expected_form:null;
       mark={id:operation,target:step.button,form:step.node,submitter:step.button,expected_form:expected,input:true,primary:step.kind==='native_submit',consequential:false,further:false};
       if (step.kind==='native_submit') native.submit.call(step.node);
-      else if (step.button) native.requestSubmit.call(step.node,step.button);
-      else native.requestSubmit.call(step.node);
+      else requestNative(step.node,step.button);
       return {resumed:step.kind};
     },
   };

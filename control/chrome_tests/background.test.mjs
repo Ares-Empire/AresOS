@@ -74,6 +74,18 @@ test('only exact current-document completion or trusted address/link navigation 
   f.run("completed({tabId:7,frameId:0,type:'main_frame',documentId:'post',method:'POST'})");assert.equal(f.run("documentMethods.get('[7,0]').method"),'POST');
   f.run("committed({tabId:7,frameId:0,documentId:'next',transitionType:'link'});completed({tabId:7,frameId:0,type:'main_frame',documentId:'post',method:'POST'})");assert.equal(f.run("documentMethods.get('[7,0]').document"),'next');
   f.run("committed({tabId:7,frameId:0,documentId:'keyword',transitionType:'keyword'})");assert.equal(f.run("documentMethods.has('[7,0]')"),false,'an address-bar search could itself use POST');
+  f.run("committed({tabId:7,frameId:0,documentId:'restored',transitionType:'typed',transitionQualifiers:['forward_back']})");assert.equal(f.run("documentMethods.has('[7,0]')"),false,'restoration is not proof of a fresh GET');
+});
+
+test('a destroyed child target wakes failed-restoration cleanup while a live detach stays pending',async()=>{
+  for(const live of [false,true]){
+    const f=lifecycleFixture();f.run("globalThis.clockTimers=[];setTimeout=(callback,delay)=>{clockTimers.push({callback,delay});return 0};controlled.set(8,{epoch:'epoch'});preloadTargets.set('[7,null]',{source:{tabId:7},tab:7,epoch:'parent',contexts:new Map(),scripts:new Map(),documents:new Map(),installing:new Set()});preloadTargets.set('[7,\"child\"]',{source:{tabId:7,sessionId:'child'},targetId:'child-target',tab:8,contexts:new Map([[1,{id:1,uniqueId:'main',origin:'http://fixture.test/'}]]),scripts:new Map(),documents:new Map([['main',{main:'main',document:'document',cleanup:'restore'}]]),installing:new Set()});chrome.debugger.sendCommand=async()=>({result:{value:false}});");
+    f.run(`chrome.debugger.getTargets=async()=>${live?"[{id:'child-target'}]":"[]"}`);
+    const pending=f.run('release(8)');await spin(f,"preloadTargets.get('[7,\"child\"]').cleanupWaiters?.size===1");
+    await f.run("preloadEvent({tabId:7},'Target.detachedFromTarget',{sessionId:'child'})");
+    if(live){assert.equal(f.run('releasing.has(8)'),true,'a live detached page has not proved native restoration');const source=fs.readFileSync('control/chrome/extension/background.js','utf8');f.run(source.slice(source.indexOf('function removedTab('),source.indexOf('chrome.tabs.onRemoved.addListener(')));f.run('removedTab(8)');}
+    await pending;assert.equal(f.run('releasing.has(8)'),false);assert.equal(f.run('preloadTargets.has(\'[7,"child"]\')'),false);
+  }
 });
 
 test('owner exclusions are mandatory and the private audit switch needs no page access',async()=>{

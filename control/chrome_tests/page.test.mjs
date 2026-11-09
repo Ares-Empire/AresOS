@@ -48,6 +48,7 @@ function fixture({relay=false}={}) {
     submit(){arrivals.push('native');}
     requestSubmit(submitter){if(!this.valid)return;const event=new Event('submit',{submitter,isTrusted:true});if(originalDispatch.call(this,event))arrivals.push('event');}
   }
+  const originalRequestSubmit=HTMLFormElement.prototype.requestSubmit;
   const document=new EventTarget();document.getElementById=key=>document.labels?.[key];
   if(relay)document.createElement=()=>{const node=new HTMLElement();node.root=node;node.ownerDocument=document;node.isConnected=false;node.parentNode=null;return node;};
   const window={addEventListener(type,fn){if(!windowListeners.has(type))windowListeners.set(type,[]);windowListeners.get(type).push(fn);},removeEventListener(type,fn){windowListeners.set(type,(windowListeners.get(type)||[]).filter(value=>value!==fn));}};
@@ -72,7 +73,7 @@ function fixture({relay=false}={}) {
   assert.equal(vm.runInContext("globalThis[Symbol.for('aresos.chrome.guard.v2')]",main),undefined);
   function arm(target,form,operation=null,conservative=false){guard.arm({generation:'epoch',config:{...policy,conservative},target:id(target),form:form ? id(form):null,operation,primary_submission:false});}
   const api={...guard,resume:(id,operation)=>{const step=reports.find(item=>item.id===id);return guard.resume(id,operation,step?.submitter||step?.element,step?.element);}};
-  return {api,guard,arrivals,bridgeDetails,cleanup,nativeStrings,Node,EventTarget,get reports(){reports.push(...guard.steps());return reports;},document,HTMLFormElement,HTMLElement,HTMLInputElement,Event,CustomEvent,originalDispatch,arm,main,id,advance:milliseconds=>{now+=milliseconds;}};
+  return {api,guard,arrivals,bridgeDetails,cleanup,nativeStrings,Node,EventTarget,get reports(){reports.push(...guard.steps());return reports;},document,HTMLFormElement,HTMLElement,HTMLInputElement,Event,CustomEvent,originalDispatch,originalRequestSubmit,arm,main,id,advance:milliseconds=>{now+=milliseconds;}};
 }
 
 test('private permit keeps native Event identity and payload without exposing a carrier',()=>{
@@ -222,8 +223,9 @@ test('group2 owner default after event dispatch is exact-form exact-submitter an
   f.arm(field,null);await f.api.finish('epoch');
   f.originalDispatch.call(field,new f.Event('keydown',{key:'Enter',isTrusted:true}));
   other.submit();form.requestSubmit(button);assert.equal(f.arrivals.length,0,'a timer cannot use another form or submitter while the owner mark waits');
-  form.requestSubmit();assert.equal(f.arrivals.length,1,'default action after eventPhase resets still belongs to this exact input');
-  form.requestSubmit();assert.equal(f.arrivals.length,1,'the task mark grants exactly one submission');
+  form.requestSubmit();assert.equal(f.arrivals.length,0,'a scripted requestSubmit of the same form still belongs to the page timer');
+  f.originalRequestSubmit.call(form);assert.equal(f.arrivals.length,1,'the native browser default after eventPhase resets belongs to this exact input');
+  f.originalRequestSubmit.call(form);assert.equal(f.arrivals.length,1,'the task mark grants exactly one submission');
   f.originalDispatch.call(field,new f.Event('keyup',{key:'Enter',isTrusted:true}));await new Promise(resolve=>setImmediate(resolve));
   form.submit();assert.equal(f.arrivals.length,1,'a later task cannot retain ownership');
 });
@@ -240,8 +242,16 @@ test('owner marks cannot make cancelled defaults, keyup or a timer native submit
 
 test('owner defaults require an enabled submitter or an actual one-field implicit submission',async()=>{
   const f=fixture(),form=new f.HTMLFormElement(),field=new f.HTMLInputElement(),other=new f.HTMLInputElement();field.form=form;other.form=form;form.elements=[field,other];f.arm(field,null);await f.api.finish('epoch');
-  f.originalDispatch.call(field,new f.Event('keydown',{key:'Enter',isTrusted:true}));form.requestSubmit();assert.equal(f.arrivals.length,0,'Enter cannot submit a multi-field form without a default button');
-  form.elements=[field];f.originalDispatch.call(field,new f.Event('keydown',{key:'Enter',isTrusted:true}));form.requestSubmit();assert.equal(f.arrivals.length,1,'the same one-field implicit submission is its native default');
+  f.originalDispatch.call(field,new f.Event('keydown',{key:'Enter',isTrusted:true}));f.originalRequestSubmit.call(form);assert.equal(f.arrivals.length,0,'Enter cannot submit a multi-field form without a default button');
+  form.elements=[field];f.originalDispatch.call(field,new f.Event('keydown',{key:'Enter',isTrusted:true}));f.originalRequestSubmit.call(form);assert.equal(f.arrivals.length,1,'the same one-field implicit submission is its native default');
+});
+
+test('validation-suppressed owner defaults never exempt property-repaired timer requests',async()=>{
+  const f=fixture({relay:true}),form=new f.HTMLFormElement(),button=new f.HTMLElement();button.form=form;button.type='submit';f.arm(button,null);await f.api.finish('epoch');
+  f.originalDispatch.call(button,new f.Event('click',{isTrusted:true}));form.valid=false;f.originalRequestSubmit.call(form,button);assert.equal(f.arrivals.length,0);
+  form.valid=true;form.requestSubmit(button);assert.equal(f.arrivals.length,0,'trusted submit generated inside a scripted native call cannot borrow owner defaults');
+  f.originalDispatch.call(button,new f.Event('invalid',{isTrusted:true}));f.originalRequestSubmit.call(form,button);assert.equal(f.arrivals.length,0,'native validation failure invalidates even a later borrowed-native request');
+  assert.ok(f.reports.length>=2);
 });
 
 test('group7 preparation cannot grant a page a submission before trusted dispatch',()=>{

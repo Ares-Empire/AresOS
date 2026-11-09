@@ -185,6 +185,15 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
       if(id==='owner-after-limit')assert.equal(counts(id),2,'owner work after the limit is ordinary browser work');
     }
   });
+  await check('GROUP 2 owner defaults never exempt timer forms submitters or validation repairs',async()=>{
+    for(const variant of ['same-submitter','other-form','other-submitter']){
+      const id='owner-timer-'+variant;await nav('owner-timer&id='+id+'&variant='+variant);
+      const continued=call('click',await target('Continue'));
+      let record;const deadline=Date.now()+5000;while(!record&&Date.now()<deadline){record=fixture.arrivals.find(row=>row.url.includes('case=task-start')&&row.body===id);if(!record)await delay(5);}assert.ok(record);
+      await delay(Math.max(0,record.time+130-Date.now()));ownerKey();
+      await approval(await continued,id);
+    }
+  });
   await check('GROUP 2 unknown activation survives navigation of its source document',async()=>{
     const id='fresh-self';await nav('fresh-activation&id='+id+'&cancel=false&target=self');
     const result=await call('click',await target('Continue'));
