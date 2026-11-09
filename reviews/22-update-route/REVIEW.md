@@ -1,0 +1,13 @@
+Reviewed `ab5850ec`; no edits. Hashes and fingerprint pins match. Python tests could not run here: Python unavailable, WSL access denied.
+
+- **Blocker — [owner.py:1192](C:/Users/pab/AresOS-22-update-route/os/owner-tools/owner.py:1192), [INSTALL.md:298](C:/Users/pab/AresOS-22-update-route/docs/INSTALL.md:298): false update confirmation.** `check` accepts an older booted release, staged updates and queued rollbacks; `title`/`records` also pass. Failed finalization can therefore satisfy all three PASS requirements without booting the target. Tests explicitly accept these states. **Fix:** record the expected update/previous outcome and verify its booted digest, deployment order and absence of pending work; test failed finalization and unsuccessful rollback.
+
+- **Blocker — [owner.py:1113](C:/Users/pab/AresOS-22-update-route/os/owner-tools/owner.py:1113): concurrent owner commands are not excluded.** `idle` detects deployment binaries, not another Python owner-tools process. A layout trial can begin during registry/signature verification; `update.sh` never rechecks it and still stages successfully. **Fix:** hold a shared exclusive lock across bootstrap and installed operations, and revalidate safety predicates immediately before staging. Add an interleaving test.
+
+- **Should-fix — [owner.py:1504](C:/Users/pab/AresOS-22-update-route/os/owner-tools/owner.py:1504): resumed tools updates bypass system preflight.** After interruption, only bundle/stick/phase are checked; active transactions, unfinished layout trials and unsupported deployment states no longer prevent replacement. **Fix:** rerun the relevant safety checks before resuming copy/swap. Extend interruption tests to change host state between attempts.
+
+- **Should-fix — [owner.py:107](C:/Users/pab/AresOS-22-update-route/os/owner-tools/owner.py:107): legacy migration permits rewriting R13’s privilege rule.** `daily_wheel=None` becomes a wildcard in `extends`, although the fingerprinted legacy tools explicitly require no wheel membership. A subsequent bundle can redefine R13 as administrator. **Fix:** migrate that known fingerprint with `daily_wheel=False`; test rejection of a rewritten legacy rule.
+
+JUDGMENT-CALLs 1 and 4 are defensible with owner acceptance: retaining current rollback plus pinned stock bounds deployment growth, and Windows remains an escape route. Removing supported stock recovery is nevertheless a substantial limitation; the planned VM rehearsal must precede real use.
+
+CHANGES-NEEDED
