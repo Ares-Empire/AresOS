@@ -1,9 +1,11 @@
 // Receiver-backed public-tool tests, called only by the GitHub Linux browser harness.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import {execFileSync} from 'node:child_process';
 import {setTimeout as delay} from 'node:timers/promises';
 
 export async function siteMatrices({call,read,nav,target,counts,eventually,tab,fixture,admin,rpc,lifecycle}) {
+  if(process.platform!=='linux'||process.env.GITHUB_ACTIONS!=='true'||!fs.existsSync('/.dockerenv'))throw Error('Adapter browser cases run only in GitHub Linux containers');
   const results=[];let serial=0;
   const state=result=>result.approval.description.untrusted_content.page_state;
   const fresh=async(site,extra='')=>{const id='adapters-'+site+'-'+(++serial);await nav('adapter-sites&id='+id+extra,site);return id;};
@@ -36,17 +38,19 @@ export async function siteMatrices({call,read,nav,target,counts,eventually,tab,f
     await approved(await call('click',await target(label)),key);
   }
   async function denyTrust(approval,id) {
+    assert.equal(evidence(id,'before trusted refusal').count,0);
+    assert.ok(approval,'An asking adapter input must prepare before dispatch');
     assert.equal((await rpc('submit_trusted',approval)).ok,false);
     assert.equal(evidence(id,'trusted route refused').count,0);
   }
   await check('GROUP 10 ADAPTER Gmail full compose and every bound field',async()=>{
     const id=await fresh('gmail'),prepared=await call('click',await target('Send')),page=state(prepared).adapter;
     assert.equal(page.account,'Synthetic account');assert.equal(page.to,'one@mail.test,two@mail.test');assert.equal(page.cc,'copy@mail.test');assert.equal(page.bcc,'hidden@mail.test');
-    assert.equal(page.subject,'Synthetic subject first');assert.equal(page.text,'Full synthetic message\nSecond line');
+    assert.equal(page.subject,'Synthetic subject first');assert.equal(page.text,'Full synthetic message\\u000aSecond line');
     assert.deepEqual(page.attachments,[{label:'Attachment: fixture.txt',text:'fixture.txt 3 bytes'}]);assert.equal(page.preview,'Full quoted preview');
     await approved(prepared,receiver(id,'Send','first'));
     const received=JSON.parse(evidence(receiver(id,'Send','first'),'content').arrivals[0].body);
-    assert.equal(received.fields.find(field=>field.name==='bcc').value,page.bcc);assert.equal(received.fields.find(field=>field.name==='Message Body').value,page.text);
+    assert.equal(received.fields.find(field=>field.name==='bcc').value,page.bcc);assert.equal(received.fields.find(field=>field.name==='Message Body').value,'Full synthetic message\nSecond line');
     assert.deepEqual(received.attachments,page.attachments);assert.equal(received.preview,page.preview);
     for(const field of ['account','to','cc','bcc','subject','text','attachments','preview'])await refusedAfterChange('gmail',field);
   });
@@ -84,8 +88,9 @@ export async function siteMatrices({call,read,nav,target,counts,eventually,tab,f
   await check('GROUP 10 ADAPTER WhatsApp every message chat text attachments and free activity',async()=>{
     let id=await fresh('whatsapp');const opened=await call('click',await target('Open chat'));assert.ok(!opened.approval);await eventually(()=>counts(receiver(id,'Open chat'))===1,'free read receipt');
     const filled=await call('fill',{...await target('Type a message'),text:'First typed message\nLine two'});assert.ok(!filled.approval);assert.equal(counts(receiver(id)),0);
-    const first=await call('press',{...await target('Type a message'),key:'Enter'});assert.equal(state(first).adapter.chat,'Synthetic chat');assert.equal(state(first).adapter.text,'First typed message\nLine two');assert.equal(state(first).adapter.attachments.length,1);
+    const first=await call('press',{...await target('Type a message'),key:'Enter'});assert.equal(state(first).adapter.chat,'Synthetic chat');assert.equal(state(first).adapter.text,'First typed message\\u000aLine two');assert.equal(state(first).adapter.attachments.length,1);
     await denyTrust(first.approval,receiver(id,'Enter'));await approved(first,receiver(id,'Enter'));
+    const received=JSON.parse(evidence(receiver(id,'Enter'),'content').arrivals[0].body);assert.equal(received.fields.find(field=>field.name==='Type a message').value,'First typed message\nLine two');
     assert.equal((await rpc('sites',{command:'allow',operation_id:first.approval.operation_id})).ok,false);
     let ownerRefused=false;try{admin('chrome_sites',{command:'allow',operation_id:first.approval.operation_id});}catch{ownerRefused=true;}assert.ok(ownerRefused,'WhatsApp is never eligible, even through the owner channel');
     // A new document/message has a new approval; the prior one cannot send it.
@@ -122,6 +127,7 @@ export async function siteMatrices({call,read,nav,target,counts,eventually,tab,f
   await check('GROUP 11 ADAPTER Gemini exact account owner entry and revocation',async()=>{
     let id=await fresh('gemini'),prepared=await call('press',{...await target('Enter a prompt here'),key:'Enter'});await approved(prepared,receiver(id,'Enter'));
     const entry=admin('chrome_sites',{command:'allow',operation_id:prepared.approval.operation_id});
+    for(const label of ['Delete chat','Share chat']){id=await fresh('gemini');prepared=await call('click',await target(label));await denyTrust(prepared.approval,receiver(id,label));await approved(prepared,receiver(id,label));}
     id=await fresh('gemini');prepared=await call('click',await target('Send'));await approved(prepared,receiver(id),{trusted:true});
     id=await fresh('gemini');await fixture.mutate(id,'account');prepared=await call('click',await target('Send'));await denyTrust(prepared.approval,receiver(id));await approved(prepared,receiver(id));
     admin('chrome_sites',{command:'revoke',id:entry.id});id=await fresh('gemini');prepared=await call('click',await target('Send'));await denyTrust(prepared.approval,receiver(id));await approved(prepared,receiver(id));
@@ -132,6 +138,9 @@ export async function siteMatrices({call,read,nav,target,counts,eventually,tab,f
       if(['Play','Pause','Skip','Next','Previous','Seek','Volume','Queue','Like','Follow','Add to playlist','Add to library'].includes(label)){assert.ok(!result.approval);await eventually(()=>counts(receiver(id,label))===1,'free '+label);evidence(receiver(id,label),'free change');}
       else{await denyTrust(result.approval,receiver(id,label));await approved(result,receiver(id,label));}
     }
+    let id=await fresh('deezer');
+    for(const [verb,label,args]of [['select','Playback position',{value:'b'}],['select','Playback volume',{value:'b'}],['check','Library addition',{checked:true}]]){const changed=await call(verb,{...await target(label),...args});assert.ok(!changed.approval);await eventually(()=>counts(receiver(id,label))===1,'free '+label);evidence(receiver(id,label),'free choice');}
+    id=await fresh('deezer','&variant=form-playback');const form=await call('click',await target('Play'));assert.equal(state(form).adapter,null);await approved(form,receiver(id,'Play'));
   });
   await check('GROUP 10 ADAPTER bank owner restriction all inputs and positive reads links scroll',async()=>{
     admin('chrome_sites',{command:'readonly',site:'http://bank.test:8765/',enabled:true});
@@ -142,6 +151,9 @@ export async function siteMatrices({call,read,nav,target,counts,eventually,tab,f
     }
     const form=await rpc('fill_form',{fields:[{...await target('Amount'),text:'1'}]});assert.equal(form.ok,false);assert.equal(form.error.code,'readonly_site');
     assert.ok(!(await call('click',await target('Account details'))).approval);await eventually(()=>counts(id+':link')===1,'bank link');
+    const modalId=await fresh('bank');await fixture.mutate(modalId,'dialog');const dialog=await eventually(async()=>(await call('read',{tab})).dialog,'read-only native dialog');
+    for(const accept of [true,false]){const answer=await rpc('dialog',{tab,expected:dialog,accept});assert.equal(answer.ok,false);assert.equal(answer.error.code,'readonly_site');assert.equal(evidence(receiver(modalId,'Unexpected bank dialog'),'read-only dialog refused').count,0);}
+    execFileSync('xdotool',['key','--clearmodifiers','Escape']);await delay(100);assert.equal(counts(receiver(modalId,'Unexpected bank dialog')),0);
   });
   await check('GROUP 10 ADAPTER unfamiliar pages and qualification fallback on all sites',async()=>{
     for(const site of ['gmail','whatsapp','github','gemini','deezer']){
@@ -161,6 +173,7 @@ export async function siteMatrices({call,read,nav,target,counts,eventually,tab,f
   });
   await check('GROUP 10 ADAPTER Gmail question names its attachments',async()=>{
     const id=await fresh('gmail'),prepared=await call('click',await target('Send'));assert.equal(evidence(receiver(id,'Send','first'),'wording check').count,0);
+    assert.match(prepared.approval.question,/\b(?:1|one) attachment\b/);
     assert.match(prepared.approval.question,/fixture\.txt/);
     await call('drop',{operation_id:prepared.approval.operation_id});
   });
