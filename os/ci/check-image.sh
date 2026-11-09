@@ -5,8 +5,9 @@ image=$1
 out=evidence/image
 mkdir -p "$out/polkit" "$out/manifest"
 
-# Checks that run inside the image, as root, without network.
-sudo podman run --rm -i --network=none --entrypoint /usr/bin/bash "$image" -s < os/ci/image-checks.sh \
+# Checks that run inside the image, as root, without network. runuser and
+# podman need their PAM session and user namespaces, hence --privileged.
+sudo podman run --rm -i --privileged --network=none --entrypoint /usr/bin/bash "$image" -s < os/ci/image-checks.sh \
     2>&1 | tee "$out/checks.txt"
 grep -qx IMAGE_CHECKS_PASSED "$out/checks.txt"
 
@@ -25,14 +26,13 @@ grep -qx ROOTLESS_MAPPING_PASSED "$out/rootless.txt"
 
 # polkit: evaluate the image's real rules, then the same rules without the
 # AresOS file, which must fail (the check is not vacuous).
-container=$(sudo podman create "$image")
-for dir in etc/polkit-1/rules.d usr/share/polkit-1/rules.d usr/share/polkit-1/actions; do
-    mkdir -p "$out/polkit/$dir"
-    sudo podman cp "$container:/$dir/." "$out/polkit/$dir/"
-done
-sudo podman cp "$container:/usr/share/aresos/manifest/." "$out/manifest/"
-sudo podman rm "$container" > /dev/null
+sudo podman run --rm --network=none --entrypoint /usr/bin/bash "$image" -ec \
+    'cd / && tar -c $(ls -d etc/polkit-1/rules.d usr/share/polkit-1/rules.d usr/share/polkit-1/actions 2>/dev/null)' \
+    | tar -x -C "$out/polkit"
+sudo podman run --rm --network=none --entrypoint /usr/bin/tar "$image" -c -C /usr/share/aresos/manifest . \
+    | tar -x -C "$out/manifest"
 sudo chown -R "$(id -u):$(id -g)" "$out"
+test -d "$out/polkit/usr/share/polkit-1/actions"
 cmp os/config/usr/share/polkit-1/rules.d/00-aresos-maintenance.rules \
     "$out/polkit/usr/share/polkit-1/rules.d/00-aresos-maintenance.rules"
 node os/ci/polkit-check.js "$out/polkit" os/ci/polkit-review.json "$out/polkit-result.json" | tee "$out/polkit.txt"

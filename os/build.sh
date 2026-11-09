@@ -57,7 +57,7 @@ PY
     dnf5 --disable-repo='*' --setopt=install_weak_deps=False --setopt=localpkg_gpgcheck=True install -y \
         /tmp/ares-rpms/*.rpm /tmp/ares-chrome/google-chrome.rpm
     # The key was needed only to verify this RPM; the image trusts no new key.
-    rpm -q gpg-pubkey --qf '%{NAME}-%{VERSION}-%{RELEASE}\n' | grep -i -- "-$chrome_key-" | xargs -r rpm -e
+    rpmkeys --delete "$chrome_key"
     # /opt is /var/opt on bootc and is not replaced by an image update. Keep
     # Chrome in the image under /usr/lib/opt, as rpm-ostree does, with direct
     # commands; tmpfiles links /opt/google there at boot for anything else.
