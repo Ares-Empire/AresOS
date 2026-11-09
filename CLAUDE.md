@@ -15,6 +15,8 @@ The workflow is nametbd's Codex-era workflow (branch `archive/codex-era-workflow
 - **Claude (me):** planner, orchestrator and integrator. I cut the design into small packages, write the briefs, launch Codex, check its work, merge, and keep the docs true.
 - **Codex:** the builder. One headless `codex exec` run per package, in its own git worktree. It builds, tests, and opens a PR. It never merges.
 
+**Claude agents may build packages too** (owner, 2026-11-09: "we could work with claude agents too", to use his Claude allowance). They get the same brief, worktree, branch and AGENTS.md rules as Codex. A fresh Codex context reviews their work, so a builder never reviews itself. Pick Codex or a Claude agent per package by fit and remaining allowance.
+
 I only build things myself when writing the brief would cost more than doing it (a one-line fix, a config tweak). Anything I build still gets reviewed by a fresh Codex context. I never review my own work.
 
 ## Orienting at session start

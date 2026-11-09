@@ -57,6 +57,8 @@ Updated 2026-11-09. The live truth is `git log`, `gh pr list` and `git worktree 
   - **New AresOS release for the keyboard fix** (owner OK 2026-10-25): a new private image built from the org repo to `ghcr.io/ares-empire/aresos`, same pinned base, only the keyboard-layout change, keyless-signed by the org workflow. The old release stays as history.
   - **Keyboard release built from the frozen image** (owner OK 2026-10-25, package 13's JUDGMENT-CALL): the new release is the frozen, fully tested AresOS image with only the 2 keyboard files changed, not a full rebuild.
   - **First-switch caution** (owner OK 2026-10-25, package 13's JUDGMENT-CALL): if the very first AresOS start after the switch fails, the guide says F12 → Windows → get help instead of picking a Bazzite boot entry. Right after the switch there are briefly two look-alike stock entries. After the first successful AresOS start, the guide names the backup entry.
+  - **Everyday account like Windows** (owner 2026-11-09, replaces OS-BASE's locked daily account): `ares` gets admin rights behind his own password, Flatpak and Homebrew work, and `ares-recovery` stays as a spare admin. OS image and firmware changes still go only through the signed release route. Package 21.
+  - **Google Chrome in the image** (owner 2026-11-09): same browser as Windows, and the one the control layer's Chrome tool targets. Package 21.
   - **Backup keeps the installer's keyboard layout** (owner OK 2026-10-25, package 13 review finding): a later layout change in AresOS doesn't change the backup Bazzite, which stays frozen exactly as tested. The guide and emergency card say so.
   - **Backup Bazzite stays frozen** (owner OK 2026-10-24, package 11's JUDGMENT-CALL): the stock copy's automatic updates are switched off at the first login and stay off for the whole trial, so the fallback is exactly the tested version. One command in INSTALL.md turns them back on if the owner returns to plain Bazzite for good.
   - **Emergency path:** Windows stays the boot default for the first trial. F12 → Windows Boot Manager is the intended way back (the Micron is never written), and `docs/EMERGENCY.md` covers the rest.
@@ -66,6 +68,10 @@ Updated 2026-11-09. The live truth is `git log`, `gh pr list` and `git worktree 
   - App icons are generated automatically from each app's real icon. The owner doesn't draw them.
 
 ## In progress
+
+- **Package 21** (brief `21-everyday-account-and-chrome.md`, empire brief 262): the everyday account like Windows, Chrome, PATH, foot font, small tools, key bindings, and a throwaway CI image build. A Claude agent builds it; Codex reviews.
+- **Package 22** (brief `22-update-route.md`, empire brief 263): `at update` to move the laptop to a new signed release, the step 8 guide, the admin password step, INSTALL-STATUS for steps 4–7. A Claude agent builds it; Codex reviews.
+- **Then:** 21b (backlight and power button, after a read-only check on the laptop in AresOS), a release package (rehearsal, then publishing with his OK), and Minecraft in AresOS (P2).
 
 - **Package 12 (the companion in the hub)**: brief drafted 2026-10-25, waiting for the owner's go. A generic companion system in the mod (look packs as data, an original placeholder look), with the owner's Claude crab as a private pack outside this repo. The desktop companions live in the private repo `Ares-Empire/companions` (browser preview: `python tools/serve.py`, then http://127.0.0.1:8765/preview/).
 
