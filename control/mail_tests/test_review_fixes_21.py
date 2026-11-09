@@ -157,6 +157,9 @@ class LateDuplicates21(unittest.TestCase):
     pending_append = round20.Append20.pending_append
     restart = round19.Recovery19.restart
 
+    revalidation_state = round19.Recovery19.revalidation_state
+    assert_rechecks = round19.Recovery19.assert_rechecks
+
     def test_review21_prepared_repair_settlement_replays_from_its_original_hold(self):
         old, args, repair, raw, ended = self.pending_append()
         self.imap.boxes['Sent'][1] = raw
@@ -195,10 +198,11 @@ class LateDuplicates21(unittest.TestCase):
         self.assertEqual(len(result['data']['evidence']['sent']), 2)
         self.assertIn('2 copies', result['data']['operation']['reason'])
         self.assertIn('2 copies', result['pending']['notices'][0]['untrusted_content']['reason'])
-        before = self.snapshot()
+        before, sequence = self.revalidation_state(), self.engine.store.sequence
         for _ in range(5):
             self.assertEqual(self.call('operation_status', {'operation_id': old['id']}), result)
-        self.assertEqual(self.snapshot(), before)
+        self.assertEqual(self.revalidation_state(), before)
+        self.assert_rechecks(old['id'], sequence, 5)
         self.imap.boxes['Sent'][3] = raw
         repaired = self.call('operation_repair', args)
         self.assertIn('3 copies', repaired['data']['original']['reason'])
@@ -207,9 +211,10 @@ class LateDuplicates21(unittest.TestCase):
         self.assertEqual(len(self.imap.boxes['Sent']), 3)
         self.assertEqual(self.imap.mutations, [])
         self.data('notice_ack', {'operation_id': repaired['pending']['notices'][0]['operation_id']})
-        before = self.snapshot()
+        before, sequence = self.revalidation_state(), self.engine.store.sequence
         self.data('operation_status', {'operation_id': old['id']})
-        self.assertEqual(self.snapshot(), before)
+        self.assertEqual(self.revalidation_state(), before)
+        self.assert_rechecks(old['id'], sequence, 1)
 
     def test_review21_unknown_repair_settlement_counts_duplicates_and_preserves_warning(self):
         old, args, repair, raw, ended = self.pending_append()
@@ -219,7 +224,8 @@ class LateDuplicates21(unittest.TestCase):
         self.assertEqual((result['data']['operation']['id'], result['data']['operation']['state']), (repair['id'], 'done'))
         self.assertIn('2 copies', result['data']['original']['reason'])
         self.assertIn('2 copies', result['pending']['notices'][0]['untrusted_content']['reason'])
-        before = self.snapshot()
+        before, sequence = self.revalidation_state(), self.engine.store.sequence
         self.data('operation_repair', args)
-        self.assertEqual(self.snapshot(), before)
+        self.assertEqual(self.revalidation_state(), before)
+        self.assert_rechecks(old['id'], sequence, 1)
 

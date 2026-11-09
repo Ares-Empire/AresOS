@@ -300,6 +300,8 @@ class Engine:
         observation = {}
         def response(operation):
             result = {'operation': self.public_operation(operation), 'original': self.public_operation(old)}
+            if 'evidence_error' in observation:
+                result['evidence_error'] = observation['evidence_error']
             if observation.get('sent_copy_warning') or any(key.endswith('_storage_error') for key in observation):
                 result['evidence'] = observation
             if observation:
@@ -312,8 +314,11 @@ class Engine:
             if args['stage'] == 'sent_copy':
                 try:
                     self.adapters[app].repair_evidence(old, args['stage'], observation)
-                except (Refused, OSError, imaplib.IMAP4.error, Uncertain):
-                    pass
+                except (Refused, OSError, sqlite3.Error, imaplib.IMAP4.error, Uncertain) as exc:
+                    storage = self.store.observations.error or storage_refusal(exc)
+                    observation['evidence_error'] = {'code': getattr(storage or exc, 'code', 'transport_error'),
+                        'message': 'Sent-copy evidence is not yet checked. ' + (str(storage) if storage else
+                                   'Server evidence is unavailable; inspect the recorded operation and your mail program.')}
             completed = old
             for _, op in self.store.iter_items('op:'):
                 if (op.get('repair_of') == old['id'] and op.get('payload', {}).get('stage') == args['stage']
@@ -347,7 +352,7 @@ class Engine:
                     if result in {'done', 'not_needed'}:
                         old['stages'][args['stage']] = result
                         if args['stage'] == 'sent_copy' and old.get('sent_copy_check', {}).get('state') == 'open':
-                            old['sent_copy_check'] = {'state': 'checked', 'clean': True}
+                            old['sent_copy_check'] = {'state': 'checked', 'clean': True, 'count': len(observation['sent'])}
                         old['state'], old['reason'] = self.adapters[app].repaired_outcome(old)
                         changes['op:' + old['id']] = old
                         repair.update(state='done', reason='Read-only evidence confirms local repair; never submitted.')
@@ -492,8 +497,10 @@ class Engine:
                 if warning:
                     op['stages']['sent_copy_warning'] = warning
             except (Refused, OSError, sqlite3.Error, imaplib.IMAP4.error, Uncertain) as exc:
-                result["evidence_error"] = {"code": getattr(exc, "code", "transport_error"),
-                                            "message": "Live evidence is not yet checked; " + str(exc)}
+                storage = self.store.observations.error or storage_refusal(exc)
+                result["evidence_error"] = {"code": getattr(storage or exc, "code", "transport_error"),
+                    "message": "Live evidence is not yet checked. " + (str(storage) if storage else
+                               "Server evidence is unavailable; inspect the recorded operation and your mail program.")}
             result['operation'] = self.public_operation(op)
             return result
         if verb == "operation_repair":

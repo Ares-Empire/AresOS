@@ -61,6 +61,16 @@ class Checks28(unittest.TestCase):
             self.data('filing_notices', {})
         self.assertEqual(self.engine.operation(operation['id'])['sent_copy_check']['state'], 'checked')
 
+    def test_review28_completed_repair_refuses_to_read_if_reopening_cannot_commit(self):
+        operation = self.submit(self.approval('send', self.compose()))
+        with patch.object(self.engine.store, 'write', side_effect=Refused('storage_limit', 'Synthetic admission refusal')), \
+             patch.object(self.mail, 'sent_matches', side_effect=AssertionError('No read before committed reopening')):
+            result = self.call('operation_repair', {'operation_id': operation['id'], 'stage': 'sent_copy'})
+        self.assertFalse(result['ok'], result)
+        self.assertIn('not yet checked', result['data']['evidence_error']['message'])
+        self.assertIn('Synthetic admission refusal', result['data']['evidence_error']['message'])
+        self.assertNotIn('evidence', result['data'])
+
     def test_review28_archive_recheck_refusal_protects_previously_clean_send(self):
         operation = self.submit(self.approval('send', self.compose()))
         write = self.engine.store.write
@@ -73,6 +83,16 @@ class Checks28(unittest.TestCase):
             result = self.owner_archive()
         self.assertEqual(result['data']['operations'], 0)
         self.assertIsNotNone(self.engine.store.get('op:' + operation['id']))
+
+    def test_review28_archive_rechecks_clean_send_when_ordinary_history_admission_is_full(self):
+        operation = self.submit(self.approval('send', self.compose()))
+        with patch('aresos_control.retention.HISTORY_BYTES', 0), \
+             patch.object(self.mail, 'sent_matches', wraps=self.mail.sent_matches) as search:
+            result = self.owner_archive()
+        self.assertTrue(result['ok'], result)
+        self.assertEqual(search.call_count, 1)
+        self.assertEqual(result['data']['operations'], 1)
+        self.assertIsNone(self.engine.store.get('op:' + operation['id']))
 
     def test_review28_clean_checked_send_archives_and_unchanged_duplicate_ack_survives_recheck(self):
         operation = self.submit(self.approval('send', self.compose()))

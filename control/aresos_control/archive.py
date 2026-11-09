@@ -21,8 +21,15 @@ def archive(store, before, mail=None):
     operations = store.items('op:')
     candidates = {op['id'] for key, op in operations if op['state'] in {'done', 'failed', 'refused'}
                   and store.retained_at(key) < before}
-    unchecked = {n['untrusted_content']['operation_id']
-                 for n in mail.resolve_sent_checks(candidates)} if mail else None
+    unchecked = None
+    if mail:
+        # These commits are part of owner compaction, which must still work
+        # when ordinary retained-history admission is already full.
+        store.archiving = True
+        try:
+            unchecked = {n['untrusted_content']['operation_id'] for n in mail.resolve_sent_checks(candidates)}
+        finally:
+            store.archiving = False
     operations = store.items('op:')
     dependencies = {op.get('repair_of') for _, op in operations if op['state'] in retention.OPEN}
     for key, op in operations:

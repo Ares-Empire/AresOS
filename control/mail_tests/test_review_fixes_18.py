@@ -22,6 +22,31 @@ class Recovery18(unittest.TestCase):
     snapshot = round17.Recovery17.snapshot
     restart = round17.Recovery17.restart
 
+    def revalidation_state(self):
+        return (self.engine.store.items(''),
+                {p.name: p.read_bytes() for p in self.engine.blobs.directory.iterdir()})
+
+    def assert_rechecks(self, operation_id, start, count):
+        events = [e for e in self.engine.store.iter_audit() if e['seq'] > start]
+        self.assertEqual([e['action'] for e in events],
+                         ['mail_sent_copy_check_open', 'mail_sent_copy_check'] * count)
+        for index, event in enumerate(events):
+            self.assertEqual(set(event['set']), {'op:' + operation_id})
+            self.assertEqual(event['set']['op:' + operation_id]['sent_copy_check']['state'],
+                             'open' if index % 2 == 0 else 'checked')
+
+    def assert_unchecked_repair(self, args, expected=None, result=None):
+        result = result if result is not None else self.call('operation_repair', args)
+        self.assertFalse(result['ok'], result)
+        self.assertEqual(result['error']['code'], 'storage_limit')
+        self.assertEqual(result['data']['evidence_error']['code'], 'storage_limit')
+        self.assertIn('not yet checked', result['data']['evidence_error']['message'])
+        self.assertNotIn('evidence', result['data'])
+        self.assertFalse(result.get('observations', {}).get('evidence', {}).get(args['operation_id'], {}).get('sent'))
+        if expected is not None:
+            data = {k: v for k, v in result['data'].items() if k != 'evidence_error'}
+            self.assertEqual(data, expected)
+
     def send(self, failed=None):
         approval = self.approval('send', self.compose())
         def accepted(operation, composition, raw, stage):
@@ -62,20 +87,22 @@ class Recovery18(unittest.TestCase):
             args = {'operation_id': old['id'], 'stage': 'sent_copy'}
             with patch.object(self.mail, 'local_stage', return_value='done'):
                 result = self.data('operation_repair', args)
+            self.assertEqual(self.data('operation_repair', args), result)
             before = self.snapshot()
             sizes = (self.engine.store.history_size(), len(self.engine.store.audit()),
                      (self.root / 'state/control.sqlite').stat().st_size)
             with patch.object(retention, 'HISTORY_BYTES', 0), \
                  patch.object(self.mail, 'local_stage', side_effect=AssertionError('Completed stage must not act')):
                 for _ in range(100):
-                    self.assertEqual(self.data('operation_repair', args), result)
+                    self.assert_unchecked_repair(args, result)
             self.assertEqual(self.snapshot(), before)
             self.assertEqual((self.engine.store.history_size(), len(self.engine.store.audit()),
                              (self.root / 'state/control.sqlite').stat().st_size), sizes)
         self.restart()
-        before = self.snapshot()
+        before, sequence = self.revalidation_state(), self.engine.store.sequence
         self.assertEqual(self.data('operation_repair', args), result)
-        self.assertEqual(self.snapshot(), before)
+        self.assertEqual(self.revalidation_state(), before)
+        self.assert_rechecks(old['id'], sequence, 1)
 
     def test_review18_ineligible_repairs_refuse_before_recording_or_adapter_action(self):
         sent = self.send('sent_copy')
@@ -97,14 +124,27 @@ class Recovery18(unittest.TestCase):
 
     def test_review18_review_sequence_redundant_repairs_cancel_and_preceding_backup_restore(self):
         old = self.send()
+        self.data('operation_repair', {'operation_id': old['id'], 'stage': 'sent_copy'})
         pending = self.approval('send', self.compose(text='Keep pending'))
         self.backup()
         cap = self.engine.store.history_size() + retention.RECOVERY_REQUEST + 1
         with patch.object(retention, 'HISTORY_BYTES', cap):
-            before = self.snapshot()
             for _ in range(100):
-                self.data('operation_repair', {'operation_id': old['id'], 'stage': 'sent_copy'})
-            self.assertEqual(self.snapshot(), before)
+                before = self.snapshot()
+                state, sequence = self.revalidation_state(), self.engine.store.sequence
+                args = {'operation_id': old['id'], 'stage': 'sent_copy'}
+                result = self.call('operation_repair', args)
+                if result['ok']:
+                    self.assertEqual(self.revalidation_state(), state)
+                    self.assert_rechecks(old['id'], sequence, 1)
+                else:
+                    self.assert_unchecked_repair(args, result=result)
+                    # Refused reopening consumes no history or cancellation room.
+                    self.assertEqual(self.snapshot(), before)
+            with patch.object(retention, 'HISTORY_BYTES', 0):
+                before = self.snapshot()
+                self.assert_unchecked_repair(args)
+                self.assertEqual(self.snapshot(), before)
             self.data('operation_cancel', {'operation_id': pending['operation_id']})
         self.restore()
         with patch.object(retention, 'HISTORY_BYTES', cap):

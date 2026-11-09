@@ -20,6 +20,8 @@ class Recovery19(unittest.TestCase):
     restart = round18.Recovery18.restart
     send = round18.Recovery18.send
     owner = round18.Recovery18.owner
+    revalidation_state = round18.Recovery18.revalidation_state
+    assert_rechecks = round18.Recovery18.assert_rechecks
 
     def uncertain(self, stage='sent_copy'):
         old = self.send(stage)
@@ -69,9 +71,10 @@ class Recovery19(unittest.TestCase):
             self.assertEqual(result['operation']['state'], 'done')
             self.assertEqual(result['original']['stages']['sent_copy'], 'done')
             self.assertEqual(result['original']['state'], 'done')
-            before = self.snapshot()
+            before, sequence = self.revalidation_state(), self.engine.store.sequence
             self.assertEqual(self.data('operation_repair', args), result)
-            self.assertEqual(self.snapshot(), before)
+            self.assertEqual(self.revalidation_state(), before)
+            self.assert_rechecks(old['id'], sequence, 1)
         self.assertEqual(self.imap.mutations, [])
 
     def test_review19_unknown_sent_repair_proved_absent_fails_then_allows_new_attempt(self):
