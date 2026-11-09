@@ -419,7 +419,8 @@ class Engine:
         if self.store.locked and name != "control_restore_confirm":
             raise Refused("restore_required", "Older log refused; owner must confirm restore before any app access.")
         if name == "control_restore_confirm":
-            return self.store.confirm_restore()
+            from .definitions import RESTORE_WARNING
+            return self.store.confirm_restore() | {'warning': RESTORE_WARNING}
         if name == 'control_archive':
             from .archive import archive
             return archive(self.store, args['before'], self.adapters['mail'])
