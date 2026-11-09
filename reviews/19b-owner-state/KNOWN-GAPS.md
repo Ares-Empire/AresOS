@@ -133,3 +133,5 @@ diff -u reviews/19b-owner-state/KNOWN-GAPS.json .work/19b-round2/actual-compact.
 ```
 
 The compact checker still covers every exact key, row, stage, call, missing/extra fact and page position. Final strict workflow evidence is in REPORT.md; captures and the earlier cancelled snapshots are not green verification.
+
+**Run — final round-2 strict verification:** base [42693447617](https://github.com/Ares-Empire/AresOS/actions/runs/42693447617), Mail [42693447616](https://github.com/Ares-Empire/AresOS/actions/runs/42693447616) and boundary [42693452764](https://github.com/Ares-Empire/AresOS/actions/runs/42693452764) each passed attempts 1 and 2 on `24706dafee41ec8473d71a54aa4c09e434b4e802`. Every Mail job finished below 45 minutes (maximum 36m 11s). Both complete strict artifact sets independently reproduce the committed compact file byte-for-byte; `LEDGER-STRICT-R2.json` pins all 34 artifact hashes. REPORT.md contains exact log lines, per-worker counts and durations. Stage 2 was not started.

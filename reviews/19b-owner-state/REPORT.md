@@ -254,3 +254,48 @@ diff -u reviews/19b-owner-state/KNOWN-GAPS.json .work/19b-fixes/replayed-compact
 **Read / run — why counts changed:** required expiry/recovery/check/qualification obligations and final-response proofs add coverage. Retaining independently justified recovery through removal/restore also fixes prior false `unexpected extra` warnings: for example `delete_trash/persistent/237/0/crash-restart/aresos log.notice-count` previously expected 0 while production correctly disclosed 1. The recovery obligation now requires that notice, so the incorrect gap disappears; losing it would fail. Similar corrections affect export, onboarding and local-change recoveries. Archive is the sole flow whose discovered boundary count changes, 356 to 353: its fixture now advances the clock rather than rewriting timestamps, while still archiving real history and executing VACUUM. All other flows retain their discovered point counts. Exact envelope-presence facts also bind a new deterministic `response` alias before subsequent comparisons, changing many literal deltas; no fields are removed or normalized. These are oracle/fixture corrections, not production gap closures. Every assertion still executes and every remaining delta is hashed in full. The focused contract capture adds eight keys, removes none and changes 278 retained deltas.
 
 **Run — local on the new pin:** 90 oracle self-tests (`Ran 90 tests`, `OK`), nine strict focused/real-driver tests (`Ran 9 tests`, `OK`), generator `Generated artifacts match definitions`, silent `git diff --check`. The final two app/action tests are included. The full Linux strict repetitions follow below.
+
+
+**Run — final strict repetitions:** Control base, Control Mail and Control boundary each passed attempts **1 and 2** on `24706dafee41ec8473d71a54aa4c09e434b4e802`, with the same compact ledger and the final app/action guards. No final-source strict test failed. The closing commit adds review evidence only; code, tests and ledger bytes remain identical to this twice-tested source.
+
+| Workflow | Runs / attempts | Exact evidence |
+| --- | --- | --- |
+| Control base | [42693447617 attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42693447617/attempts/1), [attempt 2](https://github.com/Ares-Empire/AresOS/actions/runs/42693447617/attempts/2), success | Both `results.txt:362`: 233 tests; 157.894s / 177.755s. Both `:371`: `Control base suite PASS` |
+| Control Mail | [42693447616 attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42693447616/attempts/1), [attempt 2](https://github.com/Ares-Empire/AresOS/actions/runs/42693447616/attempts/2), all five jobs success each time | Both suite `mail.txt:361`: 316 tests; 829.970s / 1000.417s. Both `:365`: `Control Mail suite PASS`. Embedded `base.txt:354`: 233 tests; 189.046s / 230.125s; `:363` PASS. Both `isolation.txt:1` PASS |
+| Control boundary | [42693452764 attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42693452764/attempts/1), [attempt 2](https://github.com/Ares-Empire/AresOS/actions/runs/42693452764/attempts/2), success | Both `present-console.txt:808`, `absent-console.txt:715`: `SETTINGS_OK mcp_exclusive marketplace_lock sideload_flags`; both `identity.txt:1` identify the tested source and correct attempt |
+
+**Run — Mail completeness and runtime:** every sweep job has 96 flow-completion records: all 32 flows in each of its three isolated workers. Every worker ran six tests and exited 0; every inherited four-test sweep printed `OK`. Single faults, persistent exhaustion, cleanup pairs, immediate crash/restart and restored-space cases all execute. Every owned group and the shared clean groups match exactly in both repetitions. The four `OK` line numbers below are the inherited suite and three workers, in that shard's `mail.txt`; line numbers and pinned worker counts agree in both attempts.
+
+| Mail shard | Attempt 1 job duration | Attempt 2 job duration | `OK` lines (both) | Pinned keys, workers 0 / 1 / 2 (both) |
+| --- | --- | --- | --- | --- |
+| 0 | 36m 11s | 34m 15s | 259/419/540/657 | 126908/140981/140661 |
+| 1 | 32m 35s | 21m 49s | 250/374/479/592 | 126014/138504/129970 |
+| 2 | 26m 12s | 26m 53s | 20/124/241/366 | 146750/132221/131040 |
+| 3 | 30m 46s | 22m 52s | 20/164/307/400 | 137098/146190/133769 |
+
+The two suite jobs took 17m 47s / 21m 11s. All **ten Mail jobs** finished below 45 minutes; maximum **36m 11s**. Durations use job startedAt/completedAt, including setup and artifact upload, not just a selected test timer.
+
+**Run — independent full-pin proof:** each strict repetition's complete 17 actual lists was merged and repacked independently after download. Both reproduce **1,629,889 keys / 1,716 groups / 868,337 bytes** and SHA-256 `c6d26c983ca808bca1597cdcb48d4dbe2b41a7a3b2ad932a66667d7c726b9f98` byte-for-byte. `LEDGER-STRICT-R2.json` pins the tested source, both repetitions and all 34 artifact hashes. This directly verifies the final guards against the entire ledger, including the validation-only commit held after the earlier capture. No capture or permitted old-pin mismatch substitutes for these strict passes.
+
+**Run — exact local commands on the new pin:**
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control .work/venv/bin/python -m unittest discover -s control/tests -p test_owner_state_oracle.py
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/mail_tests .work/venv/bin/python .work/run-owner-tests.py test_owner_state_contracts test_owner_state_regressions test_owner_state_sweep.OwnerStateSweep.test_export_repeated_fault_uses_same_caller_path_and_exact_delta test_owner_state_sweep.OwnerStateSweep.test_last_status_committed_lie_is_in_same_comparisons_proof
+python3 control/generate.py --check
+git diff --check
+```
+
+Outputs: `Ran 90 tests in 0.240s`, `OK`; `Ran 9 tests in 4.491s`, `OK`; `Generated artifacts match definitions`; silent diff check. The local wrapper reads the repository's managed-policy templates in place of Linux-only installed paths; it is not installed-policy evidence. The Linux base and boundary runs above provide that verification. The first system-Python attempt lacked `jsonschema`; subsequent local checks used the existing worktree venv. No system software was installed.
+
+**Run — workflow count:** this round used **11 distinct workflow IDs / 14 attempts**. The whole stage-1 branch is **63 IDs / 75 attempts**, from the Actions API. The three preliminary Mail runs (`42685627664`, `42685838753`, `42686319069`) were cancelled while finishing the audit; their successful base companions are superseded diagnostics. The complete old-pin capture (`42687523943`) is also not green acceptance. D1's relaxed run target applies. Final acceptance is exactly the three workflows and two attempts listed above.
+
+**Read — closing scope / not verified:** all four review findings, the field audit and the obligation rule are implemented in test code and verified here. No production code, tool descriptions, public actions, approval bindings or acknowledgement permissions changed. No test was removed, skipped or weakened; failed-cleanup fixtures now provide an actual refused command and separately test the coherent false-state mutation. Stage 2 and stage 3 remain unbuilt, with their exact production gaps retained in the ledger. No real account, model or human-playing verification is claimed. No own stage review was run; the lead owns the fresh fix check. PR #26 remains a draft against `pkg/19-mail`; no merge was performed.
+
+**JUDGMENT-CALL — read:** no new owner-visible product decision. Fixture clock ageing, explicit initial-state inputs and stricter decoder/proof checks are reversible test choices described in the audit; keeping the timestamp-rewrite fixture would contradict its independent fence and was rejected.
+
+**PLAN-GAP — read:** no new design change in this round. D3's production evidence reservation and durable generic-warning fallback remain deferred to stage 3, as instructed.
+
+**Open questions — read:** none for this fix round.
+
+**Run — closing workspace:** the `.work/` regular-file inventory over 500 MiB printed `[]`. No large image or ISO was downloaded. No Gradle daemon was started. The closing push uses `[skip ci]` because only REPORT.md, KNOWN-GAPS.md and the strict evidence manifest differ from the twice-tested source; test code, production code and the compact ledger are unchanged.
