@@ -15,6 +15,8 @@ from .policy import CORE_GROUPS, HOSTS
 REPOSITORY = 'Ares-Empire/AresOS'
 WORKFLOW = '.github/workflows/control-chrome-qualification.yml'
 NOTICE = "This Chrome version is not qualified for this installed tool build; adapters and don't-ask-again are off and activating inputs ask."
+DELIVERY_LIMIT = 4*1024*1024
+VERIFIER_CACHE_RESERVE = 8*1024*1024
 
 
 def version(text):
@@ -90,7 +92,8 @@ def verify(path, *, branch='main', bundle=None, workflow=WORKFLOW):
     command = ['gh', 'attestation', 'verify', str(path), '--repo', REPOSITORY,
                '--signer-workflow', REPOSITORY + '/' + workflow,
                '--source-ref', 'refs/heads/' + branch, '--deny-self-hosted-runners']
-    environment = {**os.environ, 'XDG_CACHE_HOME': str(Path(path).resolve().parent/'qualification-verifier-cache')}
+    cache = Path(path).resolve().parent/'qualification-verifier-cache'
+    environment = {**os.environ, 'XDG_CACHE_HOME': str(cache), 'XDG_CONFIG_HOME': str(cache/'config')}
     if bundle is not None:
         subprocess.run([*command, '--bundle', str(bundle)], check=True, capture_output=True, timeout=30, env=environment)
         return
@@ -101,15 +104,18 @@ def verify(path, *, branch='main', bundle=None, workflow=WORKFLOW):
     request = urllib.request.Request(f'https://api.github.com/repos/{REPOSITORY}/attestations/sha256:{digest}?per_page=100',
                                      headers={'Accept':'application/vnd.github+json', 'X-GitHub-Api-Version':'2022-11-28'})
     with urllib.request.urlopen(request, timeout=10) as response:
-        data = response.read(4*1024*1024+1)
-    if len(data) > 4*1024*1024:
+        data = response.read(DELIVERY_LIMIT+1)
+    if len(data) > DELIVERY_LIMIT:
         raise Refused('qualification_invalid', 'Qualification attestation exceeds the delivery bound.')
     attestations = json.loads(data).get('attestations')
     if not isinstance(attestations, list) or not attestations:
         raise Refused('qualification_invalid', 'Qualification attestation is missing; held record retained.')
-    with storage_stream(tempfile.NamedTemporaryFile(dir=Path(path).parent, prefix='.qualification-bundle-', mode='w')) as temporary:
-        for attestation in attestations:
-            temporary.write(json.dumps(attestation['bundle'])+'\n')
+    serialized = ''.join(json.dumps(attestation['bundle'], ensure_ascii=False, separators=(',',':'))+'\n'
+                         for attestation in attestations).encode('utf-8')
+    if len(serialized) > DELIVERY_LIMIT:
+        raise Refused('qualification_invalid', 'Serialized qualification attestations exceed the delivery bound.')
+    with storage_stream(tempfile.NamedTemporaryFile(dir=Path(path).parent, prefix='.qualification-bundle-', suffix='.jsonl', mode='wb')) as temporary:
+        temporary.write(serialized)
         temporary.flush()
         subprocess.run([*command, '--bundle', temporary.name], check=True, capture_output=True, timeout=30, env=environment)
 
@@ -142,10 +148,10 @@ class Qualification:
             for obsolete in self.store.state_dir.glob('.qualification-*'):
                 obsolete.unlink()
             with urllib.request.urlopen(url, timeout=10) as stream:
-                data = stream.read(4 * 1024 * 1024 + 1)
-            if len(data) > 4 * 1024 * 1024:
+                data = stream.read(DELIVERY_LIMIT + 1)
+            if len(data) > DELIVERY_LIMIT:
                 raise ValueError('Qualification exceeds delivery bound')
-            self.store.ledger.admit(len(data)+4*1024*1024+8192)
+            self.store.ledger.admit(len(data)+DELIVERY_LIMIT+VERIFIER_CACHE_RESERVE+8192)
             fd,temporary=tempfile.mkstemp(dir=self.store.state_dir,prefix='.qualification-',suffix='.json')
             try:
                 with storage_stream(os.fdopen(fd,'wb')) as stream:

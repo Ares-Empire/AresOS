@@ -4,11 +4,12 @@ import json
 import os
 from pathlib import Path
 import sys
+import subprocess
 import tempfile
 from unittest.mock import Mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-from aresos_control.chrome.qualification import Qualification, WORKFLOW, verify
+from aresos_control.chrome.qualification import Qualification, VERIFIER_CACHE_RESERVE, verify
 from aresos_control.storage import Store
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import qualify
@@ -25,14 +26,23 @@ def exercise(path, bundle, branch):
         qualification.accept(path, verifier)
         assert qualification.record() == candidate
         print('QUALIFICATION DELIVERY newer valid attested record used PASS', flush=True)
-        credentials = {key: os.environ.pop(key) for key in ['GH_TOKEN', 'GITHUB_TOKEN'] if key in os.environ}
+        environment = dict(os.environ)
         try:
             # Exercise the runtime default: public HTTPS lookup, no personal
             # authentication, gh --bundle with the same source policy.
-            verify(path, branch=branch)
+            os.environ.clear()
+            os.environ.update({'PATH':'/usr/bin:/bin', 'LANG':'C.UTF-8'})
+            try:
+                verify(path, branch=branch)
+            except subprocess.CalledProcessError as error:
+                raise AssertionError('Minimal-environment verifier failed: '+error.stderr.decode(errors='replace')[:4000]) from error
         finally:
-            os.environ.update(credentials)
-        print('QUALIFICATION DELIVERY anonymous bundle lookup and verification PASS', flush=True)
+            os.environ.clear()
+            os.environ.update(environment)
+        cache = path.parent/'qualification-verifier-cache'
+        cache_bytes = sum(file.stat().st_size for file in cache.rglob('*') if file.is_file())
+        assert cache_bytes <= VERIFIER_CACHE_RESERVE, 'Verifier cache exceeds admitted reserve'
+        print(f'QUALIFICATION DELIVERY anonymous bundle lookup in launch-equivalent environment PASS; cache {cache_bytes} bytes', flush=True)
         original = path.read_bytes()
         altered = copy.deepcopy(json.loads(bundle.read_text()))
         signature = altered['dsseEnvelope']['signatures'][0]['sig']

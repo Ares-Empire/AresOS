@@ -113,6 +113,8 @@ class Records(unittest.TestCase):
             def runner(command, **kwargs):
                 if command[1] == '--version': return Mock(stdout='gh version 2.102.0')
                 bundle = Path(command[command.index('--bundle')+1])
+                self.assertEqual(bundle.suffix, '.jsonl')
+                self.assertLessEqual(bundle.stat().st_size, q.DELIVERY_LIMIT)
                 self.assertEqual(json.loads(bundle.read_text()), {'fixture':'untrusted bundle'})
                 self.assertEqual(kwargs['env']['XDG_CACHE_HOME'], str(path.parent/'qualification-verifier-cache'))
                 return Mock()
@@ -125,6 +127,19 @@ class Records(unittest.TestCase):
             for data in [b'{"attestations":[]}', b'x'*(4*1024*1024+1)]:
                 with patch.object(q.subprocess, 'run', return_value=Mock(stdout='gh version 2.102.0')), patch.object(q.urllib.request, 'urlopen', return_value=io.BytesIO(data)), self.assertRaises(Refused):
                     q.verify(path)
+
+    def test_non_ascii_attestations_cannot_expand_past_admitted_bundle_bytes(self):
+        with tempfile.TemporaryDirectory(dir=WORK) as directory:
+            path = Path(directory)/'record.json'; path.write_text('{}')
+            payload = json.dumps({'attestations':[{'bundle':{'fixture':'\u0800'*1_000_000}}]}, ensure_ascii=False).encode()
+            self.assertLess(len(payload), q.DELIVERY_LIMIT)
+            def runner(command, **kwargs):
+                if command[1] == '--version': return Mock(stdout='gh version 2.102.0')
+                bundle = Path(command[command.index('--bundle')+1])
+                self.assertLessEqual(bundle.stat().st_size, q.DELIVERY_LIMIT)
+                return Mock()
+            with patch.object(q.subprocess, 'run', side_effect=runner), patch.object(q.urllib.request, 'urlopen', return_value=io.BytesIO(payload)):
+                q.verify(path)
 
 
 class Delivery(unittest.TestCase):
