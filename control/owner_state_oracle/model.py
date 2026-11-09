@@ -338,6 +338,8 @@ class Oracle:
                 target, roles = old.get('target'), evidence.get('roles') or {}
                 complete = all(len(special_roles(roles).get(role, [])) == 1 for role in ('sent', 'drafts', 'trash'))
                 protected = any(target == folder or target and (evidence.get('delimiters') or {}).get(folder, '/') and target.startswith(folder + (evidence.get('delimiters') or {}).get(folder, '/')) for role in ('trash', 'drafts', 'sent', 'junk', 'archive') for folder in special_roles(roles).get(role, []))
+                if kind == 'rename' and any(flag.lower() in {'\\all', '\\flagged', '\\important'} for flag in roles.get(target, [])):
+                    protected = True
                 failed_scan = any(e['call'] == evidence['call'] and e['command'] == 'FETCH' and not e['accepted'] for e in self.servers)
                 if target in roles and complete and not protected and not failed_scan:
                     return True

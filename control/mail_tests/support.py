@@ -1,5 +1,6 @@
 from email.message import EmailMessage
 import os
+import copy
 from pathlib import Path
 import tempfile
 import unittest
@@ -62,7 +63,7 @@ class MailCase(unittest.TestCase):
     def call(self, name, args=None, admin=False):
         TRACE.begin('mail_' + name, args or {})
         result = self.engine.request({'v':1, 'method':'call', 'action':'mail_' + name, 'arguments': args or {}}, admin)
-        TRACE.script[-1].update(reply='delivered', result=result)
+        TRACE.script[-1].update(reply='delivered', result=copy.deepcopy(result))
         return result
 
     def data(self, name, args=None, admin=False):

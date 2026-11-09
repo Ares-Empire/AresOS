@@ -1,6 +1,7 @@
 """Thread-visible fixture transcript, separate from injected service storage."""
 from email.parser import BytesParser
 import hashlib
+import copy
 import threading
 import time
 
@@ -14,7 +15,7 @@ class Transcript:
     def begin(self, action, arguments):
         with self.lock:
             self.correlation += 1
-            self.script.append({'call': self.correlation, 'action': action, 'arguments': arguments,
+            self.script.append({'call': self.correlation, 'action': action, 'arguments': copy.deepcopy(arguments),
                                 'clock': time.time(), 'faults': [], 'reply': 'pending'})
         return self.correlation
 
@@ -31,7 +32,7 @@ class Transcript:
                 return None
             account = selected(self.script[-1]['arguments'])
         event = dict(call=self.correlation, command=command, account=account, folder=folder,
-                     roles=roles, identities=[], attempted=True, accepted=False, reply='lost', **values)
+                     roles=copy.deepcopy(roles), identities=[], attempted=True, accepted=False, reply='lost', **copy.deepcopy(values))
         with self.lock:
             self.events.append(event)
         return event

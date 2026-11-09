@@ -38,28 +38,27 @@ Warning lifecycle in the oracle: check state, occurrence identity/fingerprint, a
 2. G22-evidence (M02/M03, C02–C04): a refused recovery-result commit must retain the newly observed Trash occurrence even if Target becomes ordinary before the next read.
 3. G22-latch (M08/M10/M13): ENOSPC before any journal bytes, successful truncation/cleanup, then restored space must allow the next harmless write without restart.
 
-Stage 1 stops with these production failures exposed. Context deficiencies belong to stage 2; projection/read/refusal/restore deficiencies belong to stage 3. No production behavior is changed in this stage.
-+
-+## Executable stage-1 map
-+
-+The shared expectation code is `control/owner_state_oracle/{records,context,model,compare,gaps}.py`. It has a standard-library-only import test. The production-facing recorder is `driver.py`; `owner_state_cases.py` supplies focused fixtures. Diagnostic gap collection is removed before stage-1 verification; final `KNOWN-GAPS.json` records exact deltas, every page on which each occurs, its matrix row and closing stage. A changed delta, unexpected pass, missing per-case view or unexecuted suite entry fails.
-+
-+| Contract | Executable evidence |
-+| --- | --- |
-+| All 22 inherited flows plus the ten extra flows above, single/persistent/cleanup-pair/live-restored/immediate-crash modes | `test_owner_state_sweep.OwnerStateSweep`; each public view is checked independently. Crash bytes are captured before owner reads or close; locked startup is compared before confirmation, then again after confirmation. |
-+| M01 reasons, approval recipients and stages | `compare.pending_facts` compares state/reason; `Driver.compare` checks exact saved approval/stages/state only after warning views, and `Oracle.completion_errors` checks raw delivery/recipient/target evidence. |
-+| M02/C02/C04 exact references, COPYUID, scan completeness and fragments | Raw command/response logs, `Oracle.locations`, `Driver.compare` location traversal; focused `scan-incomplete` and `missing-copyuid` cases. |
-+| M03/C03 quiet ordinary rename, role drift and historical-source isolation | Focused `quiet-filing_rename`, `review21-ack-rename-expiry`, `review21-four-renames-all-pages`; oracle mutation tests reject binding an older same-target attempt. |
-+| M04/M05/M12 exact R2 context and order | Every mutation carries an independent decoded pre-command snapshot and call-start sequence. `context.bind/required/decode/differences` bind one current attempt and compare exact fields; unrelated history cannot supply missing context. |
-+| M06 old records | `legacy-open-intent`, `legacy-ack`, `legacy-finished-send`; the production storage code remains Mail's format throughout stage 1. |
-+| M07/C01 lifecycle | `lifecycle-first/ack/changed-set/clean-retains-unacked/recurrence/archive/expiry/restart`; self-tests require independent raw clean evidence before a committed clean result can reset an occurrence epoch. |
-+| M08/M10/M13 live refusals and holds | Persistent exhaustion and restored-space phases; decoded holds versus actual ledger; focused admission restoration; named G22-latch and table-driven permission/cursor/account/reference/role/input/file/transport/credentials/TLS/DKIM/provenance/capability cases. |
-+| M09 restore | `restore` flow; pre-confirm crash-locked comparisons; `restore-before/after-False/True` retain independently witnessed warnings/acks through an older SQLite backup. |
-+| M11 publication/rollback/manifests | Export/rollback/archive flows; caller bytes/hash/report comparison, committed export holds, hash-valid archive decoder before accepting pruned events. |
-+| M12/C05 qualification | Full onboarding flow and `qualification-probes`, `qualification-protected-roles`, account refresh and incomplete-setup disclosures. |
-+| M14 channels and paging | Each page's identities, totals, duplicate detection and advertised continuations; `test_owner_state_channels` uses the installed socket, CLI, actual MCP process and both hooks. The envelope's own pending cursor is tested separately. |
-+| Reviews 20/21/22 | Named regressions in `test_owner_state_regressions`; independent `review20-refused-reopen-archive`, review-21 focused cases and three `G22-*` ledger assertions. |
-+| Quiet normal use | Clean send, move, copy, ordinary rename and both delete modes; these fixtures do not create delayed duplicate Sent copies or role races. |
-+
-+An advertised Mail-notice continuation belongs to its original view: its head, total, action and every continuation page are validated. It never replaces an unchecked head. Pending envelopes likewise follow their own token; a token that only restarts a different scope is an exposed stage-3 gap, not accepted pagination.
-*** End Patch
+Stage 1 stops with these production failures exposed. Context deficiencies belong to stage 2; projection/read/refusal/restore deficiencies belong to stage 3. Stage 1 changes only the required notice-paging description; production behavior is unchanged.
+
+## Executable stage-1 map
+
+The shared expectation code is `control/owner_state_oracle/{records,context,model,compare,gaps}.py`. It has a standard-library-only import test. The production-facing recorder is `driver.py`; `owner_state_cases.py` supplies focused fixtures. Diagnostic gap collection is removed before stage-1 verification; final `KNOWN-GAPS.json` records exact deltas, every page on which each occurs, its matrix row and closing stage. A changed delta, unexpected pass, missing per-case view or unexecuted suite entry fails. The four new-sweep shards partition primary fault numbers across every flow; each primary keeps all its modes, cleanup pairs and crash cases. Clean cases run in every shard, and a partition test checks exhaustive, unique ownership.
+
+| Contract | Executable evidence |
+| --- | --- |
+| All 22 inherited flows plus the ten extra flows above, single/persistent/cleanup-pair/live-restored/immediate-crash modes | `test_owner_state_sweep.OwnerStateSweep`; each public view is checked independently. Crash bytes are captured before owner reads or close; locked startup is compared before confirmation, then again after confirmation. |
+| M01 reasons, approval recipients and stages | `compare.pending_facts` compares state/reason; `Driver.compare` checks exact saved approval/stages/state only after warning views, and `Oracle.completion_errors` checks raw delivery/recipient/target evidence. |
+| M02/C02/C04 exact references, COPYUID, scan completeness and fragments | Raw command/response logs, `Oracle.locations`, `Driver.compare` location traversal; focused `scan-incomplete` and `missing-copyuid` cases. |
+| M03/C03 quiet ordinary rename, role drift and historical-source isolation | Focused `quiet-filing_rename`, `review21-ack-rename-expiry`, `review21-four-renames-all-pages`; oracle mutation tests reject binding an older same-target attempt. |
+| M04/M05/M12 exact R2 context and order | Every mutation carries an independent decoded pre-command snapshot and call-start sequence. `context.bind/required/decode/differences` bind one current attempt and compare exact fields; unrelated history cannot supply missing context. |
+| M06 old records | `legacy-open-intent`, `legacy-ack`, `legacy-finished-send`; the production storage code remains Mail's format throughout stage 1. |
+| M07/C01 lifecycle | `lifecycle-first/ack/changed-set/clean-retains-unacked/recurrence/archive/expiry/restart`; self-tests require independent raw clean evidence before a committed clean result can reset an occurrence epoch. |
+| M08/M10/M13 live refusals and holds | Persistent exhaustion and restored-space phases; decoded holds versus actual ledger; focused admission restoration; named G22-latch and table-driven permission/cursor/account/reference/role/input/file/transport/credentials/TLS/DKIM/provenance/capability cases. |
+| M09 restore | `restore` flow; pre-confirm crash-locked comparisons; `restore-before/after-False/True` retain independently witnessed warnings/acks through an older SQLite backup. |
+| M11 publication/rollback/manifests | Export/rollback/archive flows; caller bytes/hash/report comparison, committed export holds, hash-valid archive decoder before accepting pruned events. |
+| M12/C05 qualification | Full onboarding flow and `qualification-probes`, `qualification-protected-roles`, account refresh and incomplete-setup disclosures. |
+| M14 channels and paging | Each page's identities, totals, duplicate detection and advertised continuations; `test_owner_state_channels` uses the installed socket, CLI, actual MCP process and both hooks. The envelope's own pending cursor is tested separately. |
+| Reviews 20/21/22 | Named regressions in `test_owner_state_regressions`; independent `review20-refused-reopen-archive`, review-21 focused cases and three `G22-*` ledger assertions. |
+| Quiet normal use | Clean send, move, copy, ordinary rename and both delete modes; these fixtures do not create delayed duplicate Sent copies or role races. |
+
+An advertised Mail-notice continuation belongs to its original view: its head, total, action and every continuation page are validated. It never replaces an unchecked head. Pending envelopes likewise follow their own token; a token that only restarts a different scope is an exposed stage-3 gap, not accepted pagination.

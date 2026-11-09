@@ -17,7 +17,7 @@ class OwnerOracle(unittest.TestCase):
     def test_expectation_imports_are_standard_library_only(self):
         root = Path(__file__).resolve().parents[1] / 'owner_state_oracle'
         allowed = {'contextlib', 'email', 'context', 'copy', 'dataclasses', 'hashlib', 'json', 'pathlib', 'sqlite3', 'shutil', 'tempfile', 'time', 're', 'model', 'records'}
-        for name in ('__init__.py', 'records.py', 'model.py', 'compare.py', 'context.py'):
+        for name in ('__init__.py', 'records.py', 'model.py', 'compare.py', 'context.py', 'gaps.py'):
             tree = ast.parse((root / name).read_text())
             for node in ast.walk(tree):
                 if isinstance(node, ast.Import):
@@ -440,3 +440,65 @@ class OwnerOracle(unittest.TestCase):
         unprepared = decode(state, evidence)
         self.assertEqual(unprepared.unprepared_fences, {1})
         self.assertEqual(unprepared.rows, {})
+
+    def test_server_transcript_freezes_arguments_and_role_history(self):
+        from owner_state_oracle.transcript import Transcript
+        trace = Transcript()
+        arguments, roles = {'target': 'Target', 'items': [1]}, {'Target': []}
+        call = trace.begin('mail_copy', arguments)
+        event = trace.command('COPY', 'box', 'Source', roles)
+        arguments['items'].append(2)
+        roles['Target'].append('\\Trash')
+        self.assertEqual(trace.script[0]['arguments']['items'], [1])
+        self.assertEqual(event['roles'], {'Target': []})
+        self.assertEqual(event['call'], call)
+
+    def test_grouped_gap_storage_preserves_exact_cases_without_wildcards(self):
+        from owner_state_oracle.gaps import Gaps, pack, unpack
+        recorded = Gaps(recording=True)
+        for case in ('flow/single/1', 'flow/single/2'):
+            check = recorded.checker(case)
+            check('warning', {Fact('source', 'warning')}, set())
+            check.finish()
+        packed = pack(recorded.entries)
+        self.assertEqual(len(packed['groups']), 1)
+        self.assertEqual(unpack(packed), recorded.entries)
+        strict = Gaps(recording=True)
+        strict.recording, strict.entries = False, unpack(packed)
+        check = strict.checker('flow/single/3')
+        check('warning', {Fact('source', 'warning')}, set())
+        with self.assertRaisesRegex(AssertionError, 'Unlisted'):
+            check.finish()
+
+    def test_every_pinned_gap_belongs_to_an_executed_suite(self):
+        from owner_state_oracle.gaps import PATH, unpack
+        sweep = Path(__file__).resolve().parents[1] / 'mail_tests/test_owner_state_sweep.py'
+        owners = {'contract', 'channel', 'G22-rename', 'G22-evidence', 'G22-latch'}
+        for node in ast.parse(sweep.read_text()).body:
+            if isinstance(node, ast.Assign) and any(isinstance(target, ast.Name) and target.id in {'FLOWS', 'EXTRA'} for target in node.targets):
+                owners.update(ast.literal_eval(node.value))
+        for case, detail in unpack(json.loads(PATH.read_text())).items():
+            with self.subTest(case=case):
+                self.assertIn(case.split('/')[0], owners, 'An unowned gap would evade suite completeness')
+                self.assertIn(detail['stage'], (2, 3))
+                self.assertTrue(detail['row'])
+                delta = detail['delta']
+                self.assertGreater(delta['calls'], 0)
+                self.assertTrue(delta['failures'])
+                seen = set()
+                for failure in delta['failures']:
+                    self.assertTrue(failure['missing'] or failure['extra'])
+                    for page in failure['pages']:
+                        self.assertIn(page, range(delta['calls']))
+                        self.assertNotIn(page, seen)
+                        seen.add(page)
+
+    def test_special_rename_role_cannot_supply_clean_proof(self):
+        oracle = Oracle()
+        source, evidence = 'mail:rename:r', {'target': 'Target', 'role': '\\All'}
+        record = Record(rows={'notice:a': {'id': 'a', 'source_key': source, 'check_kind': 'rename', 'evidence_fingerprint': fingerprint(evidence)}})
+        oracle.warning(source, 'rename', evidence, record)
+        oracle.call('check', {}, 2)
+        oracle.script[-1]['end_seq'] = 2
+        oracle.server('LIST', before_seq=1, roles={'Target': ['\\All'], 'Sent': ['\\Sent'], 'Drafts': ['\\Drafts'], 'Trash': ['\\Trash']})
+        self.assertFalse(oracle.clean_proof(source, 'rename', 2))

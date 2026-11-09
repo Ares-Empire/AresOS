@@ -5,12 +5,38 @@ from pathlib import Path
 PATH = Path(__file__).resolve().parents[2] / 'reviews/19b-owner-state/KNOWN-GAPS.json'
 
 
+def unpack(value):
+    if value['format'] == 1:
+        return value['assertions']
+    if value['format'] != 2:
+        raise ValueError('Unknown known-gap ledger format')
+    entries = {}
+    for group in value['groups']:
+        detail = {key: group[key] for key in ('row', 'stage', 'delta')}
+        for case in group['cases']:
+            if case in entries:
+                raise ValueError('Duplicate known-gap assertion')
+            entries[case] = detail
+    return entries
+
+
+def pack(entries):
+    # Duplicate deltas share storage; every case name remains explicit.
+    groups = {}
+    for case, detail in sorted(entries.items()):
+        key = json.dumps(detail, sort_keys=True)
+        groups.setdefault(key, {**detail, 'cases': []})['cases'].append(case)
+    return {'format': 2, 'groups': list(groups.values())}
+
+
 class Gaps:
     def __init__(self, recording=False):
         self.recording = recording
-        self.entries = {} if recording else json.loads(PATH.read_text())['assertions']
+        self.entries = {} if recording else unpack(json.loads(PATH.read_text()))
         self.seen = set()
         self.aliases = {}
+        self._indexed_entries = None
+        self.by_case = {}
 
     def bind(self, record):
         for key, value in record.rows.items():
@@ -38,6 +64,11 @@ class Gaps:
         return sorted(result)
 
     def checker(self, case):
+        if self._indexed_entries is not self.entries:
+            self.by_case = {}
+            for key in self.entries:
+                self.by_case.setdefault(key.rsplit('/', 1)[0], set()).add(key)
+            self._indexed_entries = self.entries
         calls, failures, kinds_seen, sources_seen = {}, {}, {}, {}
         def check(view, expected, actual):
             self.facts(expected)
@@ -54,7 +85,7 @@ class Gaps:
                 kinds_seen.setdefault(view, set()).update(f.kind for f in expected ^ actual)
                 sources_seen.setdefault(view, set()).update(f.source for f in expected ^ actual)
         def finish():
-            expected_keys = {key for key in self.entries if key.startswith(case + '/')}
+            expected_keys = self.by_case.get(case, set())
             actual_keys = {case + '/' + view for view in calls}
             assert expected_keys <= actual_keys, ('Known-gap assertion not executed', sorted(expected_keys - actual_keys))
             for view, count in calls.items():
@@ -76,7 +107,7 @@ class Gaps:
                     elif r2:
                         mapping = {'R2.DATA': 'M04', 'R2.APPEND': 'M04/M05/M12', 'R2.MOVE': 'M02/C02', 'R2.COPY': 'M02/C02',
                                    'R2.RENAME': 'M03/C03', 'R2.CREATE': 'M05/M12', 'R2.DELETE': 'M04/M12',
-                                   'R2.STORE': 'M04/M05', 'R2.EXPUNGE': 'M04', 'R2.RECEIVE': 'M04'}
+                                   'R2.STORE': 'M04/M05', 'R2.EXPUNGE': 'M04', 'R2.POST': 'M04', 'R2.RECEIVE': 'M04'}
                         row = ','.join(sorted({mapping[k] for k in kinds if k in mapping}))
                     elif view.startswith('restore'):
                         row = 'M09'
@@ -93,8 +124,9 @@ class Gaps:
                     else:
                         row = 'M06' if 'recovery' in kinds else 'M07/C01' if 'sent_copies' in kinds else 'M03/C03' if 'rename' in kinds else 'M02/C02' if 'filing' in kinds else 'M14'
                     self.entries[key] = {'row': row, 'stage': 2 if r2 else 3, 'delta': delta}
+                    self.by_case.setdefault(case, set()).add(key)
         check.finish = finish
         return check
 
     def save(self):
-        PATH.write_text(json.dumps({'format': 1, 'assertions': self.entries}, sort_keys=True, indent=2) + '\n')
+        PATH.write_text(json.dumps(pack(self.entries), sort_keys=True, indent=2) + '\n')
