@@ -1,5 +1,6 @@
 """Publisher tests are hermetic: local repository and stubbed GitHub notifications."""
 import copy
+import hashlib
 import importlib.util
 import json
 from pathlib import Path
@@ -117,16 +118,55 @@ class Publisher(unittest.TestCase):
     def test_pair_result_requires_measured_build_and_exact_browser_version(self):
         with tempfile.TemporaryDirectory(dir=ROOT/'.work/20-chrome') as temporary:
             root=Path(temporary)
-            (root/'qualification-result.json').write_text(json.dumps(entry()))
+            result_fixture = {**entry(), 'groups':{'12':True}}
+            (root/'qualification-result.json').write_text(json.dumps(result_fixture))
             (root/'chrome-version.txt').write_text('Google Chrome 157.0.1.0\n')
             identity={**entry(),'repeat':1}
+            (root/'matrices.json').write_text('[]')
+            def completion(outcome):
+                (root/'qualification-complete.json').write_text(json.dumps({'format':1, 'identity':identity, 'outcome':outcome,
+                    'digests':{name:hashlib.sha256((root/name).read_bytes()).hexdigest() for name in ['qualification-result.json','matrices.json']}}))
+            completion('success')
             from unittest.mock import patch
             for actual_build,actual_version,passes in [('a'*64,'157.0.1.0',True),('b'*64,'157.0.1.0',False),('a'*64,'157.0.1.1',False)]:
                 (root/'chrome-version.txt').write_text('Google Chrome '+actual_version+'\n')
-                with self.subTest(build=actual_build,version=actual_version), patch.object(sys,'argv',['qualify.py','pair','--artifacts',str(root),'--runtime-root',str(ROOT)]), patch.dict(qualify.os.environ,QUALIFICATION_PAIR=json.dumps(identity)), patch.object(qualify,'build_hash',return_value=actual_build):
+                with self.subTest(build=actual_build,version=actual_version), patch.object(sys,'argv',['qualify.py','pair','--artifacts',str(root),'--runtime-root',str(ROOT)]), patch.dict(qualify.os.environ,QUALIFICATION_PAIR=json.dumps(identity),QUALIFICATION_OUTCOME='success'), patch.object(qualify,'runtime_identity',return_value=actual_build):
                     qualify.main()
                 result=json.loads((root/'pair.json').read_text())
                 self.assertEqual(all(result['core'].values()),passes);self.assertEqual(all(result['adapters'].values()),passes)
+            for outcome in ['failure', 'cancelled', 'skipped', '']:
+                with self.subTest(outcome=outcome), patch.object(sys,'argv',['qualify.py','pair','--artifacts',str(root),'--runtime-root',str(ROOT)]), patch.dict(qualify.os.environ,QUALIFICATION_PAIR=json.dumps(identity),QUALIFICATION_OUTCOME=outcome), patch.object(qualify,'runtime_identity',return_value='a'*64):
+                    (root/'chrome-version.txt').write_text('Google Chrome 157.0.1.0\n')
+                    qualify.main()
+                result=json.loads((root/'pair.json').read_text())
+                self.assertFalse(any(result['core'].values()));self.assertFalse(any(result['adapters'].values()))
+            # A full suite's final aggregate assertion is evidence for each
+            # completed group, unlike an interruption or a stale all-pass file.
+            result_fixture['adapters']['gmail']=False
+            (root/'qualification-result.json').write_text(json.dumps(result_fixture));completion('failure')
+            with patch.object(sys,'argv',['qualify.py','pair','--artifacts',str(root),'--runtime-root',str(ROOT)]), patch.dict(qualify.os.environ,QUALIFICATION_PAIR=json.dumps(identity),QUALIFICATION_OUTCOME='failure'), patch.object(qualify,'runtime_identity',return_value='a'*64):
+                qualify.main()
+            completed=json.loads((root/'pair.json').read_text())
+            self.assertTrue(all(completed['core'].values()));self.assertFalse(completed['adapters']['gmail']);self.assertTrue(completed['adapters']['gemini'])
+            # Replacing either file after completion invalidates that evidence.
+            (root/'matrices.json').write_text('["changed"]')
+            self.assertFalse(qualify.completed(root,identity,'failure'))
+            completion('failure')
+            result_fixture.pop('groups');(root/'qualification-result.json').write_text(json.dumps(result_fixture))
+            completion('success')
+            with patch.object(sys,'argv',['qualify.py','pair','--artifacts',str(root),'--runtime-root',str(ROOT)]), patch.dict(qualify.os.environ,QUALIFICATION_PAIR=json.dumps(identity),QUALIFICATION_OUTCOME='success'), patch.object(qualify,'runtime_identity',return_value='a'*64):
+                qualify.main()
+            self.assertFalse(any(json.loads((root/'pair.json').read_text())['core'].values()))
+
+    def test_archived_build_uses_its_own_identity_algorithm(self):
+        with tempfile.TemporaryDirectory(dir=ROOT/'.work/20-chrome') as temporary:
+            root=Path(temporary);script=root/'control/chrome/build.py';script.parent.mkdir(parents=True)
+            script.write_text("print('"+'d'*64+"')\n")
+            from unittest.mock import patch
+            with patch.object(qualify,'build_hash',side_effect=AssertionError('Must not substitute current driver identity')):
+                self.assertEqual(qualify.runtime_identity(root),'d'*64)
+            script.write_text("print('not a build hash')\n")
+            with self.assertRaises(ValueError):qualify.runtime_identity(root)
 
     def test_all_non_main_mutation_commands_refuse_before_git_or_github(self):
         from unittest.mock import patch

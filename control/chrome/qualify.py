@@ -2,6 +2,7 @@
 import argparse
 from datetime import datetime
 import gzip
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -79,6 +80,27 @@ def validate_identity(item):
         raise ValueError('Registry requires a full commit and runtime build hash')
 
 
+def runtime_identity(root):
+    # Shipped builds retain the hasher they shipped with. Using today's input
+    # inventory for an archived build would silently relabel that installed code.
+    measured = subprocess.run([sys.executable, str(Path(root)/'control/chrome/build.py')],
+                              check=True, capture_output=True, text=True, timeout=30).stdout.strip()
+    if not re.fullmatch('[0-9a-f]{64}', measured):
+        raise ValueError('Invalid measured runtime identity')
+    return measured
+
+
+def completed(root, identity, outcome):
+    marker = Path(root)/'qualification-complete.json'
+    if not marker.exists() or outcome not in {'success', 'failure'}:
+        return False
+    completion = json.loads(marker.read_text())
+    if completion.get('format') != 1 or completion.get('identity') != identity or completion.get('outcome') != outcome:
+        return False
+    return completion.get('digests') == {name: hashlib.sha256((Path(root)/name).read_bytes()).hexdigest()
+                                         for name in ['qualification-result.json', 'matrices.json']}
+
+
 def git(repo, *arguments, check=True):
     return subprocess.run(['git','-C',str(repo),*arguments],check=check,capture_output=True,text=True).stdout.strip()
 
@@ -124,9 +146,9 @@ def aggregate(root, run, expected=None):
         for key in planned:
             grouped.setdefault(key, [])
     entries=[]
-    for (build,version,channel),pairs in sorted(grouped.items()):
+    for (build,chrome_version,channel),pairs in sorted(grouped.items(), key=lambda row:(row[0][0], version(row[0][1]), row[0][2])):
         complete = len(pairs)==2 and {item['repeat'] for item in pairs}=={1,2}
-        entries.append({'build':build,'version':version,'channel':channel,'run':str(run),
+        entries.append({'build':build,'version':chrome_version,'channel':channel,'run':str(run),
             'core':{name:complete and all(item.get('core',{}).get(name) is True for item in pairs) for name in CORE_GROUPS},
             'adapters':{name:complete and all(item.get('adapters',{}).get(name) is True for item in pairs) for name in HOSTS}})
     validate_record({'format':1,'entries':entries})
@@ -212,8 +234,10 @@ def main():
         result=json.loads(result_path.read_text()) if result_path.exists() else {}
         actual = (Path(args.artifacts)/'chrome-version.txt')
         measured_version = actual.read_text().strip().split()[-1] if actual.exists() else None
-        measured_build = build_hash(Path(args.runtime_root).resolve()) if args.runtime_root else None
-        valid = measured_version == identity['version'] and measured_build == identity['build']
+        measured_build = runtime_identity(Path(args.runtime_root).resolve()) if args.runtime_root else None
+        valid = (measured_version == identity['version'] and measured_build == identity['build']
+                 and completed(args.artifacts, identity, os.environ.get('QUALIFICATION_OUTCOME'))
+                 and result.get('groups', {}).get('12') is True)
         identity.update(core={key: valid and result.get('core', {}).get(key) is True for key in CORE_GROUPS},
                         adapters={key: valid and result.get('adapters', {}).get(key) is True for key in HOSTS})
         Path(args.artifacts).mkdir(parents=True,exist_ok=True)

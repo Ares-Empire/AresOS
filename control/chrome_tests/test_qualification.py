@@ -74,6 +74,18 @@ class Records(unittest.TestCase):
         passed = entry(version='158.0.20.0')
         self.assertFalse(q.switches(record(failed, passed), 'a'*64, '158.0.21.0')['core']['page_script'])
 
+    def test_newer_beta_failure_is_not_hidden_by_older_stable_pass(self):
+        stable = entry(version='158.0.10.0')
+        beta = entry(version='158.0.20.0', channel='beta')
+        beta['core']['binding'] = False; beta['adapters']['gmail'] = False
+        held = record(stable, beta)
+        self.assertTrue(q.switches(held, 'a'*64, '158.0.19.0')['core']['binding'])
+        for chrome_version in ['158.0.20.0', '158.0.21.0']:
+            mode = q.switches(held, 'a'*64, chrome_version)
+            self.assertFalse(mode['conservative']); self.assertFalse(mode['core']['binding']); self.assertFalse(mode['adapters']['gmail'])
+        held['entries'].append(entry(version='158.0.22.0'))
+        self.assertTrue(q.switches(held, 'a'*64, '158.0.23.0')['core']['binding'])
+
     def test_only_own_build_and_major_count_and_later_qualified_patch_is_normal(self):
         held = record(entry(build='b'*64, version='158.0.1.0'), entry())
         for build, version in [('a'*64, '158.0.2.0'), ('c'*64, '157.0.2.0')]:
@@ -116,6 +128,17 @@ class Delivery(unittest.TestCase):
         restarted = q.Qualification(self.store, 'a'*64, self.held)
         self.assertEqual(restarted.record(), self.newer)
         self.assertFalse(q.switches(restarted.record(), restarted.build, '158.0.2.0')['conservative'])
+
+    def test_image_upgrade_reconciles_older_held_history_and_can_fetch_again(self):
+        self.qualification.accept(self.path, Mock())
+        upgraded_baseline = record(*self.newer['entries'], entry(version='159.0.1.0'))
+        upgraded = q.Qualification(self.store, 'b'*64, upgraded_baseline)
+        self.assertEqual(upgraded.record(), upgraded_baseline)
+        next_record = record(*upgraded_baseline['entries'], entry(version='160.0.1.0'))
+        self.path.write_text(json.dumps(next_record)); upgraded.accept(self.path, Mock())
+        self.assertEqual(upgraded.record(), next_record)
+        divergent = copy.deepcopy(upgraded_baseline); divergent['entries'][0]['run'] = 'divergent'
+        with self.assertRaises(Refused): q.Qualification(self.store, 'b'*64, divergent).record()
 
     def test_failed_verification_and_dropped_or_changed_history_leave_held_unchanged(self):
         for name in ['missing', 'altered', 'wrong_workflow', 'wrong_branch']:
@@ -179,7 +202,12 @@ class Workflow(unittest.TestCase):
             self.assertIn(permission, publisher)
         self.assertLess(publisher.index('qualify.py prepare'), publisher.index('actions/attest-build-provenance'))
         self.assertLess(publisher.index('actions/attest-build-provenance'), publisher.index('qualify.py publish'))
-        self.assertIn('--plan .work/.work-qualification-matrix.json', publisher)
+        self.assertIn('--plan .work/qualification-plan.json', publisher)
+        self.assertIn('path: qualification-plan.json', source)
         self.assertIn('--runtime-root runtime', source)
+        self.assertIn('QUALIFICATION_OUTCOME: ${{ steps.suite.outcome }}', source)
+        attestation = source.split('  delivery-attestation:')[1]
+        self.assertIn("github.event_name != 'pull_request'", attestation)
+        self.assertNotIn("github.event_name == 'push'", attestation)
         # Runner-only browser harness remains in the original fixtures job.
         self.assertNotIn('delivery-attestation:', (ROOT/'.github/workflows/control-chrome.yml').read_text())

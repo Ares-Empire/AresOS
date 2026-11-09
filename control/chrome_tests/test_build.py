@@ -22,7 +22,13 @@ class Build(unittest.TestCase):
                 destination=copied/path.relative_to(ROOT);destination.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(path,destination)
             before=build.build_hash(copied)
             path=copied/'control/aresos_control/engine.py';path.write_text(path.read_text()+'\n# synthetic qualification change\n')
-            self.assertNotEqual(before,build.build_hash(copied))
+            changed=build.build_hash(copied)
+            self.assertNotEqual(before,changed)
+            from aresos_control.chrome.qualification import switches
+            from test_policy import entry
+            record={'format':1,'entries':[entry(build=changed)]}
+            self.assertFalse(switches(record,changed,'157.0.2.0')['conservative'])
+            self.assertTrue(switches(record,before,'157.0.2.0')['conservative'])
 
     def test_runtime_inventory_includes_entrypoints_definitions_settings_and_every_extension_asset(self):
         files = set(build.inputs())

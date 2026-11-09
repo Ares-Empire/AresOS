@@ -5,10 +5,13 @@ import os
 from pathlib import Path
 import sys
 import tempfile
+from unittest.mock import Mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from aresos_control.chrome.qualification import Qualification, WORKFLOW, verify
 from aresos_control.storage import Store
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+import qualify
 
 
 def exercise(path, bundle, branch):
@@ -72,6 +75,28 @@ def exercise(path, bundle, branch):
                 raise AssertionError(name + ' accepted')
             print('QUALIFICATION DELIVERY ' + name + ' refused after real verification PASS', flush=True)
         store.close()
+        publication = root/'publication'
+        subject = publication/qualify.RECORD
+        subject.parent.mkdir(parents=True)
+        subject.write_bytes(original)
+        result = qualify.prepare(publication, [], baseline, verifier)
+        assert result == candidate
+        print('QUALIFICATION PUBLISHER real held attestation and baseline verified PASS', flush=True)
+        for name, contents, trusted_baseline in [
+            ('unsigned inserted entry', {'format':1, 'entries':candidate['entries'] + [{**candidate['entries'][-1], 'version':'999.0.1.0'}]}, baseline),
+            ('non-append-only shipped baseline', candidate, {'format':1, 'entries':[dict(candidate['entries'][0], run='changed-fixture-baseline')]})
+        ]:
+            subject.write_text(json.dumps(contents))
+            notifications = Mock(return_value=Mock(stdout='[]'))
+            try:
+                qualify.prepare(publication, [], trusted_baseline, verifier)
+            except Exception:
+                qualify.notify(None, False, notifications)
+            else:
+                raise AssertionError(name+' was signed forward')
+            assert json.loads(subject.read_text()) == contents
+            assert notifications.call_count == 1 and 'issue' in notifications.call_args.args[0]
+            print('QUALIFICATION PUBLISHER '+name+' refused; no write, issue stubbed PASS', flush=True)
 
 
 if __name__ == '__main__':

@@ -47,12 +47,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          python3 control/chrome/qualify.py plan > .work-qualification-matrix.json
-          echo "matrix=$(cat .work-qualification-matrix.json)" >> "$GITHUB_OUTPUT"
+          python3 control/chrome/qualify.py plan > qualification-plan.json
+          echo "matrix=$(cat qualification-plan.json)" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: qualification-plan
-          path: .work-qualification-matrix.json
+          path: qualification-plan.json
   qualification-pairs:
     needs: qualification-plan
     if: needs.qualification-plan.result == 'success' && needs.qualification-plan.outputs.matrix != '' && fromJSON(needs.qualification-plan.outputs.matrix).include[0] != null
@@ -85,16 +85,20 @@ jobs:
           cp -R driver/control/chrome_tests/. runtime/control/chrome_tests/
           tar -C runtime -cf - control docs/control/TOOLS.md | docker build --build-arg CHANNEL="$CHANNEL" --build-arg PACKAGE_URL="$PACKAGE_URL" --build-arg PACKAGE_SHA256="$PACKAGE_SHA256" -t qualification -f runtime/control/chrome/ci/Dockerfile -
       - name: Run full receiver suite; repeat is a separate matrix job
+        id: suite
         env:
           INSTALL_MODE: policy
           QUALIFICATION_VERSION: ${{ matrix.version }}
+          QUALIFICATION_PAIR: ${{ toJSON(matrix) }}
+          NODE_OPTIONS: --import=/workspace/control/chrome_tests/qualification-completion.mjs
         run: |
           mkdir -p .work/20-chrome/ci
-          timeout --signal=TERM --kill-after=30s 85m docker run --rm --network none --cap-add SYS_ADMIN --security-opt seccomp=unconfined --security-opt apparmor=unconfined --shm-size=512m -e INSTALL_MODE -e QUALIFICATION_VERSION -e GITHUB_RUN_ID -e GITHUB_SHA -v "$PWD/.work/20-chrome/ci:/out" qualification
+          timeout --signal=TERM --kill-after=30s 85m docker run --rm --network none --cap-add SYS_ADMIN --security-opt seccomp=unconfined --security-opt apparmor=unconfined --shm-size=512m -e INSTALL_MODE -e QUALIFICATION_VERSION -e QUALIFICATION_PAIR -e NODE_OPTIONS -e GITHUB_RUN_ID -e GITHUB_SHA -v "$PWD/.work/20-chrome/ci:/out" qualification
       - name: Retain pair identity even when the test failed
         if: always()
         env:
           QUALIFICATION_PAIR: ${{ toJSON(matrix) }}
+          QUALIFICATION_OUTCOME: ${{ steps.suite.outcome }}
         run: python3 driver/control/chrome/qualify.py pair --artifacts .work/20-chrome/ci --runtime-root runtime
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
@@ -102,7 +106,7 @@ jobs:
           name: qualification-${{ matrix.build }}-${{ matrix.channel }}-${{ matrix.repeat }}
           path: .work/20-chrome/ci/
   qualification-publish:
-    needs: [qualification-plan, qualification-pairs]
+    needs: [qualification-plan, qualification-pairs, qualification-tests, delivery-attestation]
     if: always() && github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && (needs.qualification-plan.result == 'failure' || needs.qualification-pairs.result != 'skipped')
     runs-on: ubuntu-24.04
     concurrency:
@@ -130,9 +134,13 @@ jobs:
       - name: Verify the held attestation and shipped baseline before appending
         env:
           GH_TOKEN: ${{ github.token }}
+          TEST_OUTCOME: ${{ needs.qualification-tests.result }}
+          VERIFIER_OUTCOME: ${{ needs.delivery-attestation.result }}
         run: |
+          test "$TEST_OUTCOME" = success
+          test "$VERIFIER_OUTCOME" = success
           mkdir -p .work
-          python3 control/chrome/qualify.py prepare --artifacts .work/qualification-results --plan .work/.work-qualification-matrix.json
+          python3 control/chrome/qualify.py prepare --artifacts .work/qualification-results --plan .work/qualification-plan.json
       - uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3
         with:
           subject-path: .work/qualification-candidate.json
@@ -148,7 +156,7 @@ jobs:
           PUBLISH_STATE: ${{ steps.publish.outcome }}
         run: python3 control/chrome/qualify.py notify
   delivery-attestation:
-    if: github.event_name == 'push' && github.repository == 'Ares-Empire/AresOS'
+    if: github.event_name != 'pull_request' && github.repository == 'Ares-Empire/AresOS'
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -176,8 +184,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           BUNDLE: ${{ steps.attest.outputs.bundle-path }}
         run: |
+          set -euo pipefail
           cp "$BUNDLE" .work/attestation/bundle.json
           python3 control/chrome/ci/attestation.py .work/attestation/record.json .work/attestation/bundle.json 2>&1 | tee .work/attestation/verification.txt
+          GITHUB_HEAD_REF=pkg/20-chrome-qual python3 control/chrome/ci/attestation.py control/chrome_tests/fixtures/qualification/42687597384/record.json control/chrome_tests/fixtures/qualification/42687597384/bundle.json 2>&1 | tee .work/attestation/retained-fixture-verification.txt
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:

@@ -58,23 +58,26 @@ def switches(record, build, chrome_version):
     entries = [entry for entry in validate_record(record)['entries'] if entry['build'] == build and version(entry['version'])[0] == current[0]]
     if not entries:
         return {'conservative': True, 'notice': NOTICE, 'core': {key: True for key in CORE_GROUPS}, 'adapters': {key: False for key in HOSTS}}
-    # Stable evidence supersedes advance beta evidence once this stable patch is
-    # reached. A higher-numbered beta tested earlier must not undo a stable failure.
-    stable = [entry for entry in entries if entry['channel'] == 'stable' and version(entry['version']) <= current]
-    beta = [entry for entry in entries if entry['channel'] == 'beta']
-    applicable = stable or [entry for entry in beta if version(entry['version']) <= current] or beta
-    if not applicable:
-        # A recorded major is never the permissive conservative fallback. With
-        # only future stable evidence, use its earliest patch, including failures.
-        earliest = min(version(entry['version']) for entry in entries)
-        applicable = [entry for entry in entries if version(entry['version']) == earliest]
-    latest = max(version(entry['version']) for entry in applicable)
-    chosen = [entry for entry in applicable if version(entry['version']) == latest]
-    # A failure at the same full version cannot be erased by switching channels.
-    chosen += [entry for entry in entries if version(entry['version']) == latest and entry not in chosen]
+    applicable = [entry for entry in entries if version(entry['version']) <= current]
+    # Advance beta evidence covers the first stable of a major even if its full
+    # version is lower. A recorded major never re-enters conservative mode.
+    evidence = applicable or [entry for entry in entries if entry['channel'] == 'beta'] or entries
+
+    def passed(category, key):
+        for index, failed in enumerate(evidence):
+            if failed[category][key]:
+                continue
+            # Both publication order and patch order matter: an earlier beta
+            # pass cannot undo a subsequently discovered stable failure, and a
+            # newer beta failure cannot be hidden by an older stable pass.
+            if not any(later[category][key] and version(later['version']) > version(failed['version'])
+                       for later in evidence[index + 1:]):
+                return False
+        return True
+
     return {'conservative': False, 'notice': '',
-            'core': {key: all(entry['core'][key] for entry in chosen) for key in CORE_GROUPS},
-            'adapters': {key: all(entry['adapters'][key] for entry in chosen) for key in HOSTS}}
+            'core': {key: passed('core', key) for key in CORE_GROUPS},
+            'adapters': {key: passed('adapters', key) for key in HOSTS}}
 
 
 def verify(path, *, branch='main', bundle=None, workflow=WORKFLOW):
@@ -96,7 +99,12 @@ class Qualification:
         self.store, self.build, self.shipped = store, build, validate_record(shipped)
 
     def record(self):
-        return append_only(self.shipped, self.store.get('chrome:qualification', self.shipped))
+        held = validate_record(self.store.get('chrome:qualification', self.shipped))
+        # Image updates can advance the trusted shipped baseline beyond a
+        # previously fetched record. Neither trusted history may be rewritten.
+        if len(held['entries']) <= len(self.shipped['entries']):
+            return append_only(held, self.shipped)
+        return append_only(self.shipped, held)
 
     def accept(self, path, verifier=verify):
         verifier(path)
