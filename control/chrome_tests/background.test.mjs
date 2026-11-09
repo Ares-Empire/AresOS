@@ -273,3 +273,10 @@ test('late detach notifications probe the current attachment and preserve replac
   f.run("chrome.debugger.sendCommand=async()=>{throw Error('not attached')}");await f.run('detached({tabId:7})');
   assert.equal(f.run('releases.length'),1,'failure of the current attachment still releases it');
 });
+
+test('Stop during the selected-tab read cannot activate the released owner tab',async()=>{
+  const f=fixture();
+  f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({url:'http://fixture.test/'});facts=async()=>({tab:7,frames:[{frame:0,target:{element:'e1',role:'button',name:'Continue'},form:null}]});content=async()=>({});globalThis.effects=[];chrome.tabs={get:async()=>{controlled.delete(7);return {active:false}},update:async()=>effects.push('activate')};chrome.debugger={sendCommand:async()=>effects.push('input')};");
+  await assert.rejects(f.run("dispatch({name:'input',tab:7,reference:{frame:0,element:'e1'},input:{verb:'press',key:'x'}})"),/control ended/);
+  assert.deepEqual(Array.from(f.run('effects')),[]);
+});
