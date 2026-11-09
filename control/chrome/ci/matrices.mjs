@@ -57,7 +57,8 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
       else if(route==='fill')result=await call('fill',{...await target('Trigger text'),text:'Changed'});
       else if(route==='select')result=await call('select',{...await target('Trigger choice'),value:'b'});
       else result=await call('check',{...await target('Trigger check'),checked:true});
-      await approval(result,id);
+      if(submit==='button'){assert.equal(counts(id),0);assert.ok(result.followups.some(item=>item.stopped));await approval(await call('click',await target('Submit')),id);}
+      else await approval(result,id);
     }
   });
   await check('GROUP 2 script activations never replay',async()=>{
@@ -87,7 +88,7 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
       const result=await call('click',await target('Continue'));assert.equal(counts('handler-'+id),0);
       const held=result.followups.find(item=>cancel?item.stopped:item.unknown);assert.ok(held,JSON.stringify(result));
       assert.ok(!held.approval,'fallback activations are never resumable');
-      if(cancel)assert.equal(counts(id),0);else assert.equal(result.operation.state,'unknown');
+      if(cancel)assert.equal(counts(id),0);else assert.equal((await call('operation_status',{operation_id:result.operation_id})).operation.state,'unknown');
     }
   });
   await check('GROUP 2 owner synchronous task delayed work and in-flight interleavings',async()=>{
@@ -136,7 +137,7 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
   await check('GROUP 4 exact native confirmation and mismatch matrix',async()=>{
     await nav('site&id=exact-confirm','github');const exact=await call('click',await target('Delete branch'));assert.match(exact.approval.question,/Delete branch fixture-repository/);
     await approval(exact,'exact-confirm-Delete branch');assert.ok((await call('operation_status',{operation_id:exact.approval.operation_id})).operation.stages.confirmation);
-    for(const mismatch of ['text','prompt']){
+    for(const mismatch of ['text','prompt','frame','site','twice']){
       const id='confirm-'+mismatch;await nav('site&id='+id+'&confirm='+mismatch,'github');const prepared=await call('click',await target('Delete branch'));
       await call('submit',prepared.approval);assert.equal(counts(id+'-Delete branch'),0);
       const {dialog}=await call('read',{tab});assert.ok(dialog);const next=await call('dialog',{tab,expected:dialog,accept:true,...(mismatch==='prompt'?{text:'yes'}:{})});
@@ -173,9 +174,11 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
     for(const file of ['browser-boundary.jsonl','tool.jsonl','service.txt'])assert.doesNotMatch(fs.readFileSync('/out/'+file,'utf8'),/SENTINEL_PRIVATE_PASSWORD_20/,file);
   });
   await check('GROUP 6 schemes links and forward routes',async()=>{
-    for(const url of ['file:///fixture','ftp://fixture.test/','chrome://settings','chrome-extension://fixture/','data:text/plain,fixture','javascript:void(0)','about:config','mailto:fixture@example.invalid']){
+    for(const url of ['file:///fixture','ftp://fixture.test/','chrome://settings','chrome-extension://fixture/','data:text/plain,fixture','blob:http://fixture.test/id','filesystem:http://fixture.test/temporary/id','view-source:http://fixture.test/','devtools://fixture/','intent://fixture/','tel:0000','javascript:void(0)','about:config','mailto:fixture@example.invalid']){
       assert.equal((await rpc('open',{url})).ok,false);assert.equal((await rpc('navigate',{tab,url})).ok,false);
+      if(!url.startsWith('javascript:')){await nav('action-matrix&mode=badlink&id=badlink&url='+encodeURIComponent(url));assert.equal((await rpc('click',await target('Read more'))).ok,false);assert.equal(counts('badlink'),0);}
     }
+    await nav('action-matrix&mode=badlink&id=excluded-link&url='+encodeURIComponent('http://approval.test:8765/?case=excluded'));assert.equal((await rpc('click',await target('Read more'))).ok,false);assert.equal(counts('excluded-link'),0);
     await ownerNavigate('http://fixture.test:8765/?case=compose');await call('take_tab',{tab});
     await ownerNavigate('http://approval.test:8765/?case=excluded');await ownerNavigate('http://fixture.test:8765/?case=compose');await call('take_tab',{tab});
     await ownerHistory('back');await ownerHistory('back');await call('take_tab',{tab});
@@ -233,6 +236,10 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
   await check('GROUP 11 exact owner kind, recipients, account and revocation',async()=>{
     await nav('site&id=trust-initial','gmail');const first=await call('click',await target('Send'));await approval(first,'trust-initial-Send');
     const entry=admin('chrome_sites',{command:'allow',operation_id:first.approval.operation_id});
+    for(const change of ['account','recipient']){
+      const id='adapter-bind-trust-'+change;await nav('site&id='+id,'gmail');fixture.mutate(id,change);await delay(100);
+      const prepared=await call('click',await target('Send'));assert.equal((await rpc('submit_trusted',prepared.approval)).ok,false);assert.equal(counts(id+'-Send'),0);await call('drop',{operation_id:prepared.approval.operation_id});
+    }
     await nav('site&id=trust-next','gmail');const next=await call('click',await target('Send'));await call('submit_trusted',next.approval);
     await eventually(()=>counts('trust-next-Send')===1,'trusted receiver');
     admin('chrome_sites',{command:'revoke',id:entry.id});

@@ -28,7 +28,7 @@ async function eventually(fn,label,timeout=15000){const until=Date.now()+timeout
 let tab;const baseline={};
 async function read(){let tree='',cursor;do{const result=await call('read',{tab,...(cursor?{cursor}:{})});tree+=result.untrusted_content.tree;cursor=result.cursor;}while(cursor);return tree.split('\n').filter(line=>line.startsWith('{')).map(JSON.parse);}
 async function target(label){const row=await eventually(async()=>(await read()).find(row=>row.expected.name===label),label);return {reference:row.reference,expected:row.expected};}
-async function nav(kind,host='fixture'){await call('navigate',{tab,url:'http://'+host+'.test:8765/?case='+kind});await eventually(async()=>{const rows=await read();return rows.length;},'page reader');await delay(250);}
+async function nav(kind,host='fixture'){const url='http://'+host+'.test:8765/?case='+kind;await call('navigate',{tab,url});await eventually(async()=>{const page=await call('read',{tab});return page.untrusted_content.url===url&&page.characters>0;},'fixture document committed');await delay(250);}
 const counts=kind=>fixture.arrivals.filter(row=>new URL(row.url,'http://fixture.test').searchParams.get('case')===kind).length;
 try {
   const tabs=await eventually(async()=>{const result=await rpc('tabs');return result.ok && result.data.items.length && result.data.items;},'extension native connection',45000);

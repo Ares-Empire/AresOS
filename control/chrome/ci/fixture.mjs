@@ -51,6 +51,9 @@ export async function fixtures() {
       } else if(mode==='javascript'){
         body='<a href="javascript:void(0)">Delete</a>';
         script=`document.querySelector('a').onclick=()=>fetch(${JSON.stringify(action)},{method:'POST',body:'javascript link'});`;
+      } else if(mode==='badlink'){
+        body='<a href="'+url.searchParams.get('url').replaceAll('&','&amp;').replaceAll('"','&quot;')+'">Read more</a>';
+        script=`document.querySelector('a').onclick=()=>fetch(${JSON.stringify(action)},{method:'POST',body:'must never click'});`;
       } else if(mode==='free'){
         body='<form role="search" action="'+action+'" target="sink"><input type="search" name="q" aria-label="Search"><button>Continue</button></form><textarea aria-label="Text">Initial</textarea><select aria-label="Choice"><option value="a">A</option><option value="b">B</option></select><input type="checkbox" aria-label="Tick"><a target="sink" href="'+action+'">Read more</a><iframe name="sink" hidden></iframe>';
         script=`document.querySelector('textarea').onkeydown=e=>{if(e.key==='Enter')fetch('/receive?case=unexpected-enter',{method:'POST'});};`;
@@ -58,7 +61,7 @@ export async function fixtures() {
     } else if(kind==='resume-matrix') {
       const id=url.searchParams.get('id'),mode=url.searchParams.get('mode');
       body='<button type="button">Continue</button><form action="/receive?case='+id+'" method="post" target="sink"><input name="value" required '+(mode==='invalid'?'':'value="valid"')+'><button type="submit">Submit</button></form><form id="other" action="/receive?case=other-'+id+'" method="post" target="sink"><input name="value" value="other"></form><iframe name="sink" hidden></iframe>';
-      script=`const form=document.querySelector('form');document.querySelector('button').onclick=()=>form.${mode==='invalid'?'submit()':'requestSubmit()'};let count=0;form.onsubmit=event=>{fetch('/receive?case=handler-'+${JSON.stringify(id)},{method:'POST'});${mode==='double'?"event.preventDefault();form.submit();form.submit();":mode==='other'?"document.querySelector('#other').submit();":mode==='nested'?"event.preventDefault();if(++count===1)form.requestSubmit();else form.submit();":''}};`;
+      script=`const form=document.querySelector('form');document.querySelector('button').onclick=()=>form.${mode==='invalid'?'submit()':'requestSubmit()'};let count=0;form.onsubmit=event=>{fetch('/receive?case=handler-'+${JSON.stringify(id)},{method:'POST'});${mode==='double'?"event.preventDefault();form.submit();form.submit();":mode==='other'?"document.querySelector('#other').submit();":mode==='nested'?"if(++count===1){event.preventDefault();form.requestSubmit();}else form.submit();":''}};`;
     } else if(kind==='cross-draft') {
       const mode=url.searchParams.get('mode'),id=url.searchParams.get('id');
       body='<button type="button">Send</button>'+(mode==='empty'?'':mode==='oversized'?'<textarea aria-label="Long draft">'+('Synthetic long draft '.repeat(1200))+'</textarea>':'<iframe src="http://second.test:8766/?case=draft-inner&id='+id+'"></iframe>');
@@ -69,6 +72,9 @@ export async function fixtures() {
       const id=url.searchParams.get('id'),cancel=url.searchParams.get('cancel')==='true';
       body='<button type="button">Continue</button><a target="sink" href="/receive?case='+id+'">Delete</a><iframe name="sink" hidden></iframe>';
       script=`document.querySelector('button').onclick=()=>{const frame=document.createElement('iframe');document.body.append(frame);const raw=frame.contentWindow.EventTarget.prototype.dispatchEvent;raw.call(document.querySelector('a'),new MouseEvent('click',{bubbles:true,cancelable:${cancel}}));};document.querySelector('a').onclick=()=>fetch('/receive?case=handler-'+${JSON.stringify(id)},{method:'POST'});`;
+    } else if(kind==='native-child') {
+      const id=url.searchParams.get('id');body='<p>Native confirmation opener frame</p>';
+      script=`onmessage=()=>{if(confirm('Delete branch fixture-repository / branch-1?'))fetch('/receive?case='+${JSON.stringify(id+'-Delete branch')},{method:'POST',body:'confirmed from frame'});};`;
     } else if(kind==='native-confirm') {
       const id=url.searchParams.get('id'),text=url.searchParams.get('text')||'Delete this item?',mode=url.searchParams.get('mode')||'confirm';
       body='<button type="button">Continue</button>';
@@ -121,8 +127,10 @@ export async function fixtures() {
       if(site==='gemini')body='<main>'+account+'<textarea aria-label="Enter a prompt here">Synthetic question</textarea><button type="button">Send</button><button type="button">Delete chat</button><button type="button">Share chat</button></main>';
       if(site==='deezer')body='<main>'+account+['Play','Pause','Skip','Seek','Volume','Queue','Like','Follow','Add to playlist','Remove from playlist','Delete playlist','Share track','Subscribe'].map(label=>'<button type="button">'+label+'</button>').join('')+'</main>';
       if(site==='bank')body='<main><p>Synthetic read-only balance</p><a href="?case=site&id=bank-link">Account details</a><input aria-label="Amount"><input type="file" aria-label="File"><button type="button">Continue</button></main>';
+      const confirmation=url.searchParams.get('confirm');
+      if(['frame','site'].includes(confirmation))body+='<iframe src="http://'+(confirmation==='site'?'second':site)+'.test:8765/?case=native-child&id='+token+'"></iframe>';
       script=`const send=label=>fetch('/receive?case='+encodeURIComponent(${JSON.stringify(token)}+'-'+label),{method:'POST',body:JSON.stringify({label,fields:[...document.querySelectorAll('input,textarea')].map(field=>({name:field.name||field.getAttribute('aria-label'),value:field.value}))})});
-        for(const button of document.querySelectorAll('button'))button.onclick=()=>{if(button.textContent==='Delete branch' && !${url.searchParams.get('confirm')==='prompt'?'prompt':'confirm'}(${JSON.stringify(url.searchParams.get('confirm')==='text'?'Delete another branch?':'Delete branch '+context+'?')}))return;send(button.textContent);};
+        for(const button of document.querySelectorAll('button'))button.onclick=()=>{if(button.textContent==='Delete branch'){${['frame','site'].includes(confirmation)?"document.querySelector('iframe').contentWindow.postMessage('ask','*');return;":'if(!'+(confirmation==='prompt'?'prompt':'confirm')+'('+JSON.stringify(confirmation==='text'?'Delete another branch?':'Delete branch '+context+'?')+'))return;'+(confirmation==='twice'?'if(!confirm('+JSON.stringify('Delete branch '+context+'?')+'))return;':'')}}send(button.textContent);};
         for(const field of document.querySelectorAll('textarea'))field.onkeydown=event=>{if(event.key==='#' && ${JSON.stringify(site)}==='gmail'){event.preventDefault();send('Delete shortcut');}if(event.key==='Enter' && (${JSON.stringify(site)}!=='gmail'||event.ctrlKey||event.metaKey)){event.preventDefault();send('Enter');}};`;
     } else if(kind==='matrix') {
       const token=url.searchParams.get('id'),route=url.searchParams.get('route')||'click',mode=url.searchParams.get('mode')||'word',word=url.searchParams.get('word')||'Send',label=url.searchParams.get('label')||'name';
