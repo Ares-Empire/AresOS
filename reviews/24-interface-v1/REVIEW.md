@@ -1,0 +1,17 @@
+Reviewed `e25c429`. Static review only; Python/WSL execution was unavailable. KWrite, the stable desktop identity, and deferring supervisor/guardian work are reasonable choices.
+
+- **Blocker — [aresos-shell:791](/C:/Users/pab/AresOS-24-interface-v1/os/config/usr/libexec/aresos-shell:791): malformed requests crash the helper.** `op: []` or `{}` raises `TypeError` during dictionary lookup before validation. An escaped lone surrogate in `nonce` also raises uncaught `UnicodeEncodeError` at line 828. Validate types and encodings before use; add regression cases that verify subsequent requests still work.
+
+- **Blocker — [aresos-shell:717](/C:/Users/pab/AresOS-24-interface-v1/os/config/usr/libexec/aresos-shell:717): restart reconciliation misses existing windows.** Production enumerates windows before installing the registry, leaving existing app windows without owners. The restart test reverses that order. Moreover, persisted `focused`/`background` launches never rebuild handle associations, so their states can remain successful after closure. Install ownership before enumeration and reconcile every nonterminal launch against windows/scopes; test production startup order.
+
+- **Blocker — [aresos-shell:1207](/C:/Users/pab/AresOS-24-interface-v1/os/config/usr/libexec/aresos-shell:1207): focus return depends on socket read boundaries.** Each `recv` is treated as a compositor batch. If the next app’s activation arrives in one read and the previous foreground app’s closure in another, `foreground_app` changes too early and the hub return is lost. Preserve transition state across reads and test the same activation/closure stream at every split boundary; the current batching test cannot catch this.
+
+- **Should-fix — [aresos-shell:363](/C:/Users/pab/AresOS-24-interface-v1/os/config/usr/libexec/aresos-shell:363): journal eviction permits duplicate launches.** Once an ID is evicted, replaying it starts another process; at capacity, even active entries can disappear. Preserve replay protection and pending entries, or reject new launches at capacity. Test replay after eviction, including across restart.
+
+- **Should-fix — [ShellClient.java:394](/C:/Users/pab/AresOS-24-interface-v1/mod/src/main/java/dev/aresos/shell/ShellClient.java:394): blocking writes can disable recovery.** Writes and watchdogs share one scheduled thread. A full socket buffer can block that thread inside `send`, preventing timeout/reconnect checks. Use bounded nonblocking writes or an independent watchdog; test a peer that stops reading.
+
+- **Should-fix — [ShellClient.java:443](/C:/Users/pab/AresOS-24-interface-v1/mod/src/main/java/dev/aresos/shell/ShellClient.java:443): degraded tracking hides launch failures.** Accepting `starting` completes and removes the pending request, so a subsequent `launch_failed` event—for example, `systemd-run` exiting unsuccessfully—is ignored. PLAN-GAP 1 reasonably acknowledges missing window confirmation, but should not suppress known failures. Retain launch tracking and surface later failures.
+
+- **Should-fix — [REPORT.md:58](/C:/Users/pab/AresOS-24-interface-v1/reviews/24-interface-v1/REPORT.md:58): required verification remains incomplete.** The second full `build runClientGameTest` run is pending. After fixes, record two passing full runs under the brief’s resource constraints.
+
+CHANGES-NEEDED
