@@ -29,6 +29,7 @@ async function cdp(tab, method, parameters = {}) {
   if (!POLICY.cdpMethods.includes(method)) throw Error('permission_denied: DevTools method not allowed');
   if(method.startsWith('Input.') || ['Page.navigate','Page.navigateToHistoryEntry','Page.reload','Page.handleJavaScriptDialog','DOM.setFileInputFiles'].includes(method)){assertControl(tab);effectStarted=true;}
   const pending=chrome.debugger.sendCommand({tabId:tab},method,parameters);
+  if(recording)audit({method,parameters,phase:'dispatched'});
   if(method.startsWith('Input.')) {
     const wake=new Promise(resolve=>dialogWake.set(tab,resolve));
     try{return audit(await Promise.race([pending,wake]));}finally{dialogWake.delete(tab);}

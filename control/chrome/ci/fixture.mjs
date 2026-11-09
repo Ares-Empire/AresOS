@@ -10,15 +10,22 @@ export async function fixtures() {
       res.setHeader('Content-Type','application/xml');res.end(`<?xml version="1.0"?><gupdate xmlns="http://www.google.com/update2/response" protocol="2.0"><app appid="${id}"><updatecheck codebase="http://127.0.0.1:8765/extension.crx" version="${version}"/></app></gupdate>`);return;
     }
     if(url.pathname === '/extension.crx'){res.end(fs.readFileSync('/workspace/.work/20-package/own-extension.crx'));return;}
-    if(url.pathname === '/events'){res.writeHead(200,{'Content-Type':'text/event-stream','Cache-Control':'no-cache'});res.write(': ready\n\n');streams.set(url.searchParams.get('id'),res);req.on('close',()=>streams.delete(url.searchParams.get('id')));return;}
+    if(url.pathname === '/download'){res.setHeader('Content-Disposition','attachment; filename="synthetic-'+url.searchParams.get('id')+'.txt"');res.setHeader('Content-Type','text/plain');res.end('Synthetic downloadable bytes');return;}
+    if(url.pathname === '/events'){res.writeHead(200,{'Content-Type':'text/event-stream','Cache-Control':'no-cache'});res.write(': ready\n\n');const id=url.searchParams.get('id');streams.set(id,res);res.on('close',()=>{if(streams.get(id)===res)streams.delete(id);});return;}
+    if(url.pathname === '/observe'){let body='';for await(const part of req)body+=part;fs.appendFileSync('/out/page-events.jsonl',body+'\n');res.end('observed');return;}
     if(url.pathname === '/receive') {
       let body='';for await(const part of req)body+=part;
       const record={time:Date.now(),url:req.url,method:req.method,body,host:req.headers.host};arrivals.push(record);fs.appendFileSync('/out/receiver.jsonl',JSON.stringify(record)+'\n');
       res.end(page('<p>Received synthetic input</p>'));return;
     }
     const kind=url.searchParams.get('case') || 'compose';
+    // Mutation channels belong to the current fixture document. Old SSEs must
+    // not exhaust Chrome's six HTTP/1.1 connections and hide later receivers.
+    if(!['draft-inner','password-inner'].includes(kind))for(const [id,stream]of streams){stream.end();streams.delete(id);}
     let body,script='';
-    if(kind==='compose') {
+    if(kind==='features') {
+      body='<form><input aria-label="First" name="first" value="Original first"><input aria-label="Second" name="second" value="Original second"><select name="choice" aria-label="Choice"><option value="a">First option</option><option value="b">Second option</option><option value="c" disabled>Disabled option</option></select><input type="hidden" name="hidden" value="Hidden field"><input type="checkbox" name="tick" aria-label="Tick"></form><a href="/download?id='+url.searchParams.get('id')+'">Download fixture</a><p>Findable synthetic paragraph</p>';
+    } else if(kind==='compose') {
       body='<label>Message<textarea aria-label="Message">Existing synthetic draft</textarea></label><button>Send</button><p aria-label="Preview">Read-only preview</p>';
       script=`document.querySelector('button').onclick=()=>fetch('/receive?case=compose',{method:'POST',body:document.querySelector('textarea').value});`;
     } else if(kind==='native' || kind==='event') {
@@ -69,8 +76,8 @@ export async function fixtures() {
     } else if(kind==='owner-task') {
       const id=url.searchParams.get('id')||'owner-task',delay=Number(url.searchParams.get('delay')||100),replay=url.searchParams.get('replay')==='1',busy=Number(url.searchParams.get('busy')||0);
       body='<button type="button" id="continue">Continue</button><button type="button" id="owner">Owner input</button><form action="/receive?case='+id+'" method="post" target="sink"><input name="source" value="owner task"></form><iframe name="sink" hidden></iframe>';
-      script=`const form=document.querySelector('form');document.querySelector('#continue').onclick=()=>{fetch('/receive?case=task-start',{method:'POST',body:${JSON.stringify(id)}});const until=performance.now()+${busy};while(performance.now()<until){};};
-        document.querySelector('#owner').onkeydown=event=>{if(event.key==='Enter')event.preventDefault();};document.querySelector('#owner').${replay?'onkeyup':'onkeydown'}=event=>{if(event.key==='Enter'){event.preventDefault();form.submit();if(event.isTrusted)setTimeout(()=>${replay?"document.querySelector('#owner').dispatchEvent(event)":'form.submit()'},${delay});}};`;
+      script=`const observe=(phase,event)=>fetch('/observe',{method:'POST',body:JSON.stringify({id:${JSON.stringify(id)},phase,time:Date.now(),trusted:event?.isTrusted,eventPhase:event?.eventPhase})});const form=document.querySelector('form');document.querySelector('#continue').onclick=()=>{fetch('/receive?case=task-start',{method:'POST',body:${JSON.stringify(id)}});const until=performance.now()+${busy};while(performance.now()<until){};};
+        document.querySelector('#owner').onkeydown=event=>{if(event.key==='Enter')event.preventDefault();};document.querySelector('#owner').${replay?'onkeyup':'onkeydown'}=event=>{if(event.key==='Enter'){observe('owner-handler',event);event.preventDefault();form.submit();if(event.isTrusted)setTimeout(()=>{observe('delayed-handler',event);${replay?"document.querySelector('#owner').dispatchEvent(event)":'form.submit()'}},${delay});}};`;
     } else if(kind==='page-forgery') {
       body='<button type="button">Continue</button><form action="/receive?case=page-forgery" method="post" target="sink"><input type="hidden" name="source" value="page-forged-mark"></form><iframe name="sink" hidden></iframe>';
       script="document.querySelector('button').onclick=()=>{const api=globalThis[Symbol.for('aresos.chrome.page.v1')];for(const name of ['stop','arm','resume','drop']){try{api?.[name]?.('page-invented-epoch');}catch{}}document.querySelector('form').submit();};";
@@ -116,7 +123,7 @@ export async function fixtures() {
       if(site==='bank')body='<main><p>Synthetic read-only balance</p><a href="?case=site&id=bank-link">Account details</a><input aria-label="Amount"><input type="file" aria-label="File"><button type="button">Continue</button></main>';
       script=`const send=label=>fetch('/receive?case='+encodeURIComponent(${JSON.stringify(token)}+'-'+label),{method:'POST',body:JSON.stringify({label,fields:[...document.querySelectorAll('input,textarea')].map(field=>({name:field.name||field.getAttribute('aria-label'),value:field.value}))})});
         for(const button of document.querySelectorAll('button'))button.onclick=()=>{if(button.textContent==='Delete branch' && !${url.searchParams.get('confirm')==='prompt'?'prompt':'confirm'}(${JSON.stringify(url.searchParams.get('confirm')==='text'?'Delete another branch?':'Delete branch '+context+'?')}))return;send(button.textContent);};
-        for(const field of document.querySelectorAll('textarea'))field.onkeydown=event=>{if(event.key==='Enter' && (${JSON.stringify(site)}!=='gmail'||event.ctrlKey||event.metaKey)){event.preventDefault();send('Enter');}};`;
+        for(const field of document.querySelectorAll('textarea'))field.onkeydown=event=>{if(event.key==='#' && ${JSON.stringify(site)}==='gmail'){event.preventDefault();send('Delete shortcut');}if(event.key==='Enter' && (${JSON.stringify(site)}!=='gmail'||event.ctrlKey||event.metaKey)){event.preventDefault();send('Enter');}};`;
     } else if(kind==='matrix') {
       const token=url.searchParams.get('id'),route=url.searchParams.get('route')||'click',mode=url.searchParams.get('mode')||'word',word=url.searchParams.get('word')||'Send',label=url.searchParams.get('label')||'name';
       const action='/receive?case='+encodeURIComponent(token);
@@ -165,7 +172,7 @@ export async function fixtures() {
       body='<button aria-label="">●</button><textarea aria-label="Autosave"></textarea>';
       script="document.querySelector('button').onclick=()=>fetch('/receive?case=residual-click',{method:'POST',body:'ordinary click'});document.querySelector('textarea').oninput=e=>fetch('/receive?case=residual-autosave',{method:'POST',body:e.target.value});";
     } else {res.statusCode=404;res.end('Unknown synthetic fixture');return;}
-    const mutationId=url.searchParams.get('id');
+    const mutationId=['binding','page-dialog','upload','draft-inner'].includes(kind)||kind==='site'&&url.searchParams.get('id')?.startsWith('adapter-bind-')?url.searchParams.get('id'):null;
     if(mutationId)script+=`;new EventSource('/events?id='+${JSON.stringify(mutationId)}).onmessage=event=>{
       const change=JSON.parse(event.data).change,form=document.querySelector('form'),button=document.querySelector('button');
       if(change==='label')button.textContent='Changed label';
@@ -176,7 +183,7 @@ export async function fixtures() {
       if(change==='method')form.method='get';
       if(change==='encoding')form.enctype='text/plain';
       if(change==='target')form.target='_self';
-      if(change==='text')document.querySelector('[contenteditable],textarea').textContent='Changed draft';
+      if(change==='text'){const field=document.querySelector('[contenteditable],textarea');if(field.matches('input,textarea'))field.value='Changed draft';else field.textContent='Changed draft';}
       if(change==='preview')document.querySelector('[aria-label="Message preview"]').textContent='Changed read-only preview';
       if(change==='dialog')document.querySelector('[role=alertdialog] p').textContent='Delete another item?';
       if(change==='document')location.href=location.href+'&generation=changed';
@@ -184,7 +191,7 @@ export async function fixtures() {
       if(change==='recipient')document.querySelector('[name=to]').value='other@example.invalid';
       if(change==='chat')document.querySelector('[aria-label="Chat name"]').textContent='Changed chat';
     };`;
-    res.setHeader('Content-Type','text/html');res.end(page(body,script));
+    res.setHeader('Content-Type','text/html');res.setHeader('Cache-Control','no-store');res.end(page(body,script));
   });
   await new Promise(resolve=>server.listen(8765,'0.0.0.0',resolve));
   const second=http.createServer(server.listeners('request')[0]);

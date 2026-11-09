@@ -128,7 +128,7 @@ class Engine:
                 if current_notices['cursor']:result['notices_more']={'count':current_notices['total']-len(current_notices['items']),'action':'chrome_notices'}
                 # Other-app snapshots are explicitly unavailable; do not count them
                 # as current warnings or mix their cached cursor with this source.
-                result['notices']+=other_notices
+                result['notices']=(result['notices']+other_notices)[:3]
                 result['unavailable']='Some app state cannot be read from storage. Chrome warnings below are current; inspect other app state after recovery.'
             except (Refused,OSError,sqlite3.Error,ValueError):
                 result['notices'].append({'operation_id':'chrome-owner-state-unavailable','app':'chrome','state':'unknown',

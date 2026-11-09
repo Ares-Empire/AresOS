@@ -371,3 +371,55 @@ No full suite, full fault sweep or browser was run for this follow-up. The
 focused probes use synthetic fixture data, fake SQLite read failures with
 the actual `SQLITE_FULL` code, and isolated temporary journal copies; they
 do not modify implementation or the live fixture journal.
+
+## Retest of the follow-up owner-state fixes
+
+Working-tree retest based on `e1f1bacf048afae2d1513ddeb0a425c78421b8ec`,
+limited to the pending qualification check, legacy terminal handling,
+shared notice pager, pagination metadata and bounded rebuild. **Run:**
+
+- `PYTHONPATH=control python3 -m unittest discover -s control/chrome_tests -p 'test_committed.py' -v`:
+  **9 tests in 0.132s, OK**.
+- Repeated the failed-Gmail-adapter probe: healthy pending and the committed
+  projection both now report `refused`, matching dispatch preflight.
+- A separate valid legacy journal containing a reserved operation followed
+  by `done` now yields **no pending operation**. The independent migration
+  flag remains true, correctly distinguishing missing old metadata from an
+  unfinished operation.
+- Repeated the exact acknowledgement window: inject `SQLITE_FULL` after
+  the acknowledgement commit and before pending refresh. The passive
+  envelope now has **3 notices, no `notices_more`**; the committed catalogue
+  has **3**. This clears the previously reproduced phantom fourth count.
+- Exercised `control_notices` through actual Engine requests: a healthy
+  mixed set of **7 Chrome + 2 Mail** notices returned all **9 across 3
+  pages**. Under failed SQLite reads it returned all **7 Chrome notices
+  across 3 pages**, with the storage error and explicit other-app
+  `unavailable` message retained.
+- Probed `Projection.rebuild()` against independent expected final values
+  for **20 deterministic random seeds**, each with **80 historical keys
+  and 281 committed updates**, including acknowledgements, deletions and
+  reintroductions. With the test key cap reduced to 10 and final retained
+  sets within it, every final value, acknowledgement and tombstone matched.
+  This exercises several 32-key scan windows and the historical-peak
+  recovery path; it is not a full-size performance benchmark.
+- `PYTHONPATH=control python3 control/generate.py --check` printed
+  `Generated artifacts match definitions`; `git diff --check` was clean.
+
+**Read/run:** the earlier adapter, legacy-terminal, phantom-count/routing
+and historical-peak findings have focused repair evidence. No new defect
+was found in the bounded-window selection or acknowledgement carry-forward
+in this limited retest.
+
+One further **P2 compact-envelope bound** was reproduced and sent to the
+builder: the failed-read fallback appends up to three cached other-app
+notices after up to three current Chrome notices. The shared `NOTICES`
+schema permits at most three. **Run:** cache three synthetic Mail notices,
+commit three Chrome activation warnings, then fail SQLite reads. Passive
+pending returns **6 notices** (`chrome,chrome,chrome,mail,mail,mail`). Budget
+the compact envelope to three while retaining a correct current Chrome
+catalogue route/count and explicitly marking other-app state unavailable.
+The shared catalogue itself paged the current Chrome set correctly in the
+probe above.
+
+These are focused browser-free checks, not the full storage sweep, base
+suite, full-size resource test or final Linux receiver runs.

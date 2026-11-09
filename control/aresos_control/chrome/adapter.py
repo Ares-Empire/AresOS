@@ -388,6 +388,9 @@ class Chrome:
         if args.get('expected') is not None and args['expected'] != visible(frame['target']):
             raise Refused('stale_reference', 'Element no longer holds its expected state; read again.')
         readonly = any(self.store.get('chrome:readonly:' + hostname(url), False) for url in [facts['url'],frame['url']])
+        href=frame['target'].get('href')
+        if href and not href.startswith('javascript:') and (verb=='click' or verb=='press' and args.get('key','').split('+')[-1] in {'Enter','Space'}):
+            self.allowed_url(href)
         adapter = recognize(frame['url'], frame['adapter'], frame['target'], verb, args, self.hosts, mode['adapters'])
         kind = classify(verb,args,frame,conservative=mode['conservative'],readonly=readonly,adapter=adapter)
         if hold:

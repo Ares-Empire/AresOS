@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {setTimeout as delay} from 'node:timers/promises';
 
-export async function matrices({call,read,nav,target,counts,eventually,tab,fixture,admin,rpc,caller,ownerNavigate,ownerKey,lifecycle,restoreControl,stopClick,baseline}) {
+export async function matrices({call,read,nav,target,counts,eventually,tab,fixture,admin,rpc,caller,ownerNavigate,ownerKey,ownerHistory,ownerBookmark,lifecycle,restoreControl,stopClick,baseline}) {
   const results=[];
   async function check(name,fn) {
     try {await fn();results.push({name,passed:true});console.log(name,'PASS');}
@@ -151,7 +151,7 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
   await check('GROUP 5 question fields, hidden values, password label, upload path and hash',async()=>{
     await nav('binding&id=question');const prepared=await call('click',await target('Submit'));const text=JSON.stringify(prepared.approval);
     assert.match(text,/Hidden original/);assert.match(text,/Private sign-in/);assert.doesNotMatch(text,/SENTINEL_PRIVATE_PASSWORD_20/);assert.match(prepared.approval.question,/hidden/);
-    await nav('upload&id=upload-bytes');fs.mkdirSync('/home/owner/Downloads',{recursive:true});fs.writeFileSync('/home/owner/Downloads/fixture.txt','Exact synthetic upload bytes');
+    await nav('upload&id=upload-bytes');await call('fill',{...await target('Message'),text:'Draft Claude typed before the unrelated upload'});fs.mkdirSync('/home/owner/Downloads',{recursive:true});fs.writeFileSync('/home/owner/Downloads/fixture.txt','Exact synthetic upload bytes');
     const upload=caller('upload',{...await target('Upload'),path:'/home/owner/Downloads/fixture.txt'});assert.ok(upload.ok,JSON.stringify(upload));
     assert.match(upload.data.approval.question,/sha256/);assert.match(upload.data.approval.question,/fixture.txt/);await approval(upload.data,'upload-bytes');
     assert.equal(fixture.arrivals.find(row=>new URL(row.url,'http://fixture.test').searchParams.get('case')==='upload-bytes').body,'Exact synthetic upload bytes');
@@ -161,7 +161,8 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
     await nav('frame-excluded');assert.doesNotMatch(JSON.stringify(await read()),/EXCLUDED_PAGE_SENTINEL_20/);
     await nav('popup-excluded');await call('click',await target('Continue'));await delay(250);
     const tabs=await call('tabs');for(const item of tabs.items.filter(item=>item.url?.includes('approval.test'))){const result=await rpc('take_tab',{tab:item.tab});assert.equal(result.ok,false);}
-    await nav('redirect');const redirected=await rpc('read',{tab});assert.equal(redirected.ok,false);
+    await ownerNavigate('http://fixture.test:8765/?case=compose');await call('take_tab',{tab});
+    await call('navigate',{tab,url:'http://fixture.test:8765/?case=redirect'});await delay(400);const redirected=await rpc('read',{tab});assert.equal(redirected.ok,false);
     await ownerNavigate('http://approval.test:8765/?case=excluded');assert.equal((await rpc('take_tab',{tab})).ok,false);
     await ownerNavigate('http://fixture.test:8765/?case=compose');await call('take_tab',{tab});
     const back=await rpc('navigate',{tab,direction:'back'});assert.equal(back.ok,false);assert.doesNotMatch(JSON.stringify(await read()),/EXCLUDED_PAGE_SENTINEL_20/);
@@ -177,9 +178,8 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
     }
     await ownerNavigate('http://fixture.test:8765/?case=compose');await call('take_tab',{tab});
     await ownerNavigate('http://approval.test:8765/?case=excluded');await ownerNavigate('http://fixture.test:8765/?case=compose');await call('take_tab',{tab});
-    // The excluded entry remains in forward history after the owner steps back twice.
-    await call('navigate',{tab,direction:'back'}).catch(()=>{});
-    assert.equal((await rpc('read',{tab})).ok,false);
+    await ownerHistory('back');await ownerHistory('back');await call('take_tab',{tab});
+    assert.equal((await rpc('navigate',{tab,direction:'forward'})).ok,false);
     await ownerNavigate('http://fixture.test:8765/?case=compose');await call('take_tab',{tab});
   });
   await check('GROUP 8 drop release close and stale references never dispatch prepared work',async()=>{
@@ -222,6 +222,14 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
     }
     adapters.bank=true;
   });
+  await check('GROUP 10 adapter shortcuts and account-specific questions',async()=>{
+    for(const [site,field,key] of [['gmail','Message Body','Ctrl+Enter'],['gmail','Message Body','Cmd+Enter'],['gmail','Message Body','#'],['whatsapp','Type a message','Enter'],['gemini','Enter a prompt here','Enter']]){
+      const id='shortcut-'+site+'-'+key;await nav('site&id='+encodeURIComponent(id),site);
+      const prepared=await call('press',{...await target(field),key});assert.ok(prepared.approval);assert.match(JSON.stringify(prepared.approval),/Synthetic/);
+      if(site==='gmail'&&key!=='#'){assert.match(JSON.stringify(prepared.approval),/hidden@example.invalid/);assert.match(JSON.stringify(prepared.approval),/recipient@example.invalid/);}
+      await approval(prepared,id+'-'+(key==='#'?'Delete shortcut':'Enter'));
+    }
+  });
   await check('GROUP 11 exact owner kind, recipients, account and revocation',async()=>{
     await nav('site&id=trust-initial','gmail');const first=await call('click',await target('Send'));await approval(first,'trust-initial-Send');
     const entry=admin('chrome_sites',{command:'allow',operation_id:first.approval.operation_id});
@@ -254,6 +262,26 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
     assert.match(tree,/Paragraph 119/);assert.match(tree,/Field 79/);
     const measurement={characters:tree.length,utf8_bytes:Buffer.byteLength(tree),pages,milliseconds:Date.now()-started,token_estimate:Math.ceil(tree.length/4)};
     fs.writeFileSync('/out/view-measurements.json',JSON.stringify(measurement,null,2));console.log('VIEW MEASURED',JSON.stringify(measurement));
+  });
+  await check('FEATURE tools forms options find wait fill_form scroll and full catalogues',async()=>{
+    await nav('features&id=tools');const first=await target('First');const form=await call('read_form',{tab,reference:first.reference});
+    assert.match(JSON.stringify(form),/Hidden field/);assert.match(JSON.stringify(form),/Disabled option/);assert.match(JSON.stringify(form),/Second option/);
+    const found=await call('find',{tab,text:'Findable synthetic paragraph'});assert.match(found.untrusted_content.tree,/Findable synthetic paragraph/);
+    assert.equal((await call('wait',{tab,text:'Findable synthetic paragraph',timeout_ms:500})).condition_met,true);
+    assert.equal((await call('wait',{tab,text:'Never present sentinel',timeout_ms:50})).condition_met,false);
+    const filled=await call('fill_form',{fields:[{...await target('First'),text:'Changed first'},{...await target('Second'),text:'Changed second'}]});assert.equal(filled.remaining,0);
+    assert.match(JSON.stringify(await read()),/Changed first/);assert.match(JSON.stringify(await read()),/Changed second/);
+    await call('scroll',{...await target('First'),x:0,y:80});
+    for(let index=0;index<12;index++){
+      await nav('features&id=catalogue-'+index);ownerBookmark();await delay(100);
+      const download=await call('click',await target('Download fixture'));assert.ok(!download.approval);
+    }
+    for(const verb of ['downloads','history','bookmarks']){
+      let cursor,items=[];
+      do{const page=await call(verb,{text:verb==='downloads'?'synthetic-':'fixture.test',limit:2,...(cursor?{cursor}:{})});assert.ok(page.items.length<=2);items.push(...page.items);cursor=page.cursor;}while(cursor);
+      assert.ok(items.length>=12,verb+' complete catalogue: '+items.length);
+      if(verb==='downloads')assert.ok(items.every(item=>item.filename?.includes('synthetic-')));
+    }
   });
   await check('GROUP 8 actual popup Stop button drops all prepared work',async()=>{
     await nav('compose');const prepared=await call('click',await target('Send'));const before=counts('compose');
