@@ -406,7 +406,7 @@ mismatch is not strict green verification. Installed-policy and container
 verification comes from the Linux workflows below. No system software or
 Gradle daemon was started.
 
-**Run — local finished-source checks:** 101 oracle self-tests passed (`Ran 101
+**Run — initial local source checks:** 101 oracle self-tests passed (`Ran 101
 tests in 0.251s`, `OK`). The focused/regression/real-driver/perturbation pass ran
 10 tests in 124.444s and printed `OK`. Generator printed `Generated artifacts
 match definitions`; `git diff --check` was silent. The first-boundary diagnostic
@@ -421,7 +421,7 @@ python3 control/generate.py --check
 git diff --check
 ```
 
-**Run — systematic result:** **66 recorded scenarios, 70,953 perturbations,
+**Run — initial systematic result (expanded below):** **66 recorded scenarios, 70,953 perturbations,
 `slipped=0`**. The corpus contains all 52 focused contract states, seven recorded
 states from all six named review regressions, and seven sweep snapshots (clean
 send and repair, single fault, persistent exhaustion plus restored space,
@@ -447,3 +447,70 @@ identity, not Python object identity. The direct positive/negative test is
 `test_scripted_repair_keeps_its_parent_stage_and_settlement_hold`. Account and
 missing-history gaps now name M12/C05/M14 and M06/M09/M14 respectively; all
 assertion keys and deltas remain exact.
+
+
+**Read — completed structural audit:** initial obligations are now established
+before the first call can remove their rows. The additional real contract is
+`contract/initial-account-first-reply-restore`; its incomplete account stays
+expected even though production restores away the row before any public reply.
+Restore confirmation needs the independently decoded precondition recorded
+before the call, not just a matching request name. Failure needs a fresh
+submission without an accepted or lost effect; a new storage fault cannot settle
+earlier unknown work. Stage metadata is compared to its committed stage, and
+intent/export scope is bound to the script and immutable thereafter.
+
+**Read — complete perturbation scope:** state substitutions include event
+outcomes and per-stage results, using one vocabulary containing every observed
+state/outcome plus the documented states. Event metadata, prepared rows and
+compact fences are included. The exact expected set also includes full location
+references and permitted request status. Sweep samples inject faults immediately
+after accepted DATA, EXPUNGE or MOVE, and discover a real post-effect cleanup
+pair. These are deterministic trace boundaries, rather than a search over random
+inputs. The final counts below supersede the initial 70,953-mutation run.
+
+**Run — superseded diagnostic:** base [42714514139](https://github.com/Ares-Empire/AresOS/actions/runs/42714514139), source
+`54092e340f1c0a7683edcb1eda1dbef77cfc9d6d`, passed 244 tests in 201.509s
+(`results.txt:373`, PASS at `:382`). Mail [42714514243](https://github.com/Ares-Empire/AresOS/actions/runs/42714514243) was
+cancelled while finishing the structural audit. Its suite ran 317 tests; only
+the superseded compact pin failed (`mail.txt:429`, `:441`, `:443`), and its
+initial 70,953 perturbations passed (`:140`). Two sweep shards completed only
+old-pin failures; the other two were cancelled. This incomplete run is not
+acceptance or a source for the final ledger. Fresh complete capture and strict
+repetitions follow.
+
+**Read — expiry/cancellation detail:** an `operation-notice` fact now preserves
+the independently validated expiry/cancellation reason separately from the
+operation's current recovery state. Pending-page comparisons check both facts
+without counting another operation row. `test_expiry_notice_survives_a_different_current_recovery_state`
+rejects replacing the expiry disclosure with a generic restored-evidence reason.
+The full field audit's operation-notice row includes this separate fact; only
+the exact committed acknowledgement discharges it.
+
+**Run — final local acceptance:** **106 oracle self-tests passed** (`Ran 106 tests
+in 0.262s`, `OK`), and the full focused/regression/driver/expanded-perturbation
+pass printed **`Ran 10 tests in 416.292s`, `OK`**. Generator again printed
+`Generated artifacts match definitions`; diff check was silent. The final
+corpus contains **67 recorded scenarios**: all **53 focused contract states**,
+seven states from the six named regressions, and seven sweep snapshots with
+faults after accepted effects. Every mode is represented, including persistent
+exhaustion and restored space, immediate crash/restart and an actually reached
+cleanup pair. Full locations and permitted request statuses are in the checked
+owner set. Every perturbation either introduced a new difference or preserved
+that exact set; pre-existing defects did not count as a new difference.
+
+| Final perturbation kind | Executed |
+| --- | ---: |
+| Boolean flags | 6,548 |
+| States, event outcomes and stage results | 193,050 |
+| Effects, identities, recipients, flags, hashes, destinations and app scope | 26,052 |
+| Removed rows / versions | 1,786 |
+| Dropped committed sequences | 1,325 |
+| Restore markers before sequences | 1,325 |
+| **Total, none slipped** | **230,086** |
+
+The direct finishing tests also cover a current storage fault attempting to
+resolve earlier unknown work, stage-event metadata disagreeing with its full
+stage, restore without an independently observed precondition, and coherent
+wrong intent/export scope. Together with the five finding-specific tests above,
+they exercise the executable table's fail-closed semantics. No production code
+or public action changed.
