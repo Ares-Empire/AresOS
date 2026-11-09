@@ -84,15 +84,15 @@ export async function fixtures(options={}) {
       body='<textarea aria-label="Frame draft">Existing cross-frame draft</textarea>';
     } else if(kind==='fresh-activation') {
       const id=url.searchParams.get('id'),cancel=url.searchParams.get('cancel')==='true';
-      body='<button type="button">Continue</button><a target="sink" href="/receive?case='+id+'">Delete</a><iframe name="sink" hidden></iframe>';
+      body='<button type="button">Continue</button><a target="'+(url.searchParams.get('target')==='self'?'_self':'sink')+'" href="/receive?case='+id+'">Delete</a><iframe name="sink" hidden></iframe>';
       script=`document.querySelector('button').onclick=()=>{const frame=document.createElement('iframe');document.body.append(frame);const raw=frame.contentWindow.EventTarget.prototype.dispatchEvent;raw.call(document.querySelector('a'),new MouseEvent('click',{bubbles:true,cancelable:${cancel}}));};document.querySelector('a').onclick=()=>fetch('/receive?case=handler-'+${JSON.stringify(id)},{method:'POST'});`;
     } else if(kind==='native-child') {
       const id=url.searchParams.get('id');body='<p>Native confirmation opener frame</p>';
       script=`onmessage=()=>{if(confirm('Delete branch fixture-repository / branch-1?'))fetch('/receive?case='+${JSON.stringify(id+'-Delete branch')},{method:'POST',body:'confirmed from frame'});};`;
     } else if(kind==='native-confirm') {
       const id=url.searchParams.get('id'),text=url.searchParams.get('text')||'Delete this item?',mode=url.searchParams.get('mode')||'confirm';
-      body='<button type="button">Continue</button>';
-      script=`document.querySelector('button').onclick=()=>{if(${mode==='prompt'?'prompt':mode==='alert'?'(value=>{alert(value);return true;})':'confirm'}(${JSON.stringify(text)}))fetch('/receive?case='+${JSON.stringify(id)},{method:'POST',body:'confirmed'});};`;
+      body='<button type="button">Continue</button>'+(mode==='form'?'<form action="/receive?case='+id+'" method="post" target="sink"><input name="request" value="Current"><input type="hidden" name="hidden" value="Bound after dialog"></form><iframe name="sink" hidden></iframe>':'');
+      script=`document.querySelector('button').onclick=()=>{if(${mode==='prompt'?'prompt':mode==='alert'?'(value=>{alert(value);return true;})':'confirm'}(${JSON.stringify(text)}))${mode==='form'?"document.querySelector('form').submit()":"fetch('/receive?case='+"+JSON.stringify(id)+",{method:'POST',body:'confirmed'})"};};`;
     } else if(kind==='owner-task') {
       const id=url.searchParams.get('id')||'owner-task',delay=Number(url.searchParams.get('delay')||100),replay=url.searchParams.get('replay')==='1',busy=Number(url.searchParams.get('busy')||0);
       body='<button type="button" id="continue">Continue</button><button type="button" id="owner">Owner input</button><form action="/receive?case='+id+'" method="post" target="sink"><input name="source" value="owner task"></form><iframe name="sink" hidden></iframe>';

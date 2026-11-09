@@ -27,7 +27,7 @@ async function call(action,args={}){const result=await rpc(action,args);assert.o
 async function eventually(fn,label,timeout=15000){const until=Date.now()+timeout;let error;while(Date.now()<until){try{const value=await fn();if(value)return value;}catch(e){error=e;}await delay(150);}throw Error(label+': '+error?.message);}
 let tab;const baseline={};
 async function read(){let tree='',cursor;do{const result=await call('read',{tab,...(cursor?{cursor}:{})});tree+=result.untrusted_content.tree;cursor=result.cursor;}while(cursor);return tree.split('\n').filter(line=>line.startsWith('{')).map(JSON.parse);}
-async function target(label){const row=await eventually(async()=>(await read()).find(row=>row.expected.name===label),label);return {reference:row.reference,expected:row.expected};}
+async function target(label){const row=await eventually(async()=>{const rows=(await read()).filter(row=>row.expected.name===label);return rows.find(row=>['button','link','textbox','searchbox','combobox','checkbox','radio','option'].includes(row.expected.role))||rows[0];},label);return {reference:row.reference,expected:row.expected};}
 async function nav(kind,host='fixture'){const url='http://'+host+'.test:8765/?case='+kind;await call('navigate',{tab,url});await eventually(async()=>{const page=await call('read',{tab});return page.untrusted_content.url===url&&page.characters>0;},'fixture document committed');await delay(250);}
 const counts=kind=>fixture.arrivals.filter(row=>new URL(row.url,'http://fixture.test').searchParams.get('case')===kind).length;
 try {

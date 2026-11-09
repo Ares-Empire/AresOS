@@ -43,6 +43,9 @@
     let label='';if(kind.startsWith('activation'))try{label=reader.target(element).name;}catch{label='an uninspectable control';}
     const step = {id,kind,document:reader.document,label,element:reader.id(element),submitter:submitter ? reader.id(submitter) : null,cancellable};
     held.set(id,{...step,node:element,button:submitter});
+    // A default navigation can destroy this document before the later poll.
+    // This private observation grants no allowance and never resumes anything.
+    try{reader.report?.(step,generation);}catch{}
   }
   function allowance(form,event=null,submitter=null) {
     if (!mark || !mark.input || mark.form !== form) return false;
@@ -103,22 +106,21 @@
     event.stopImmediatePropagation();
     const element=event.composedPath()[0];
     if (!reader) { event.preventDefault();return; }
+    let delivery=false;
     try {
       const detail=event.detail;
-      if (detail?.kind === 'native_submit') submit(element,null,'native_submit');
+      if (detail?.kind === 'native_submit') {delivery=true;submit(element,null,'native_submit');}
       else if (detail?.kind === 'request_submit') {
         // Validation and the native submit event must precede interception.
-        const button=detail.submitter;
-        if (button != null && (!(button instanceof HTMLElement) || button.form !== element)) {event.preventDefault();return;}
-        if (element instanceof HTMLFormElement) {
-          if (button) native.requestSubmit.call(element,button); else native.requestSubmit.call(element);
-        }
+        delivery=true;
+        if(detail.with_submitter===true){if(!(element instanceof HTMLElement)||!(element.form instanceof HTMLFormElement)){event.preventDefault();return;}native.requestSubmit.call(element.form,element);}
+        else if(element instanceof HTMLFormElement)native.requestSubmit.call(element);
+        else event.preventDefault();
       } else if (detail?.kind === 'click' || detail?.kind === 'dispatch') {
         let original=null;
         if(detail.kind==='dispatch'){
-          const candidate=detail.event;
-          try{if(!(candidate instanceof Event))throw Error('opaque');type(candidate);original=candidate;}catch{
             const name=detail.event_type,flags=detail.event_flags;
+            const prevented=flags?.prevented===true;
             if(typeof name!=='string'||!name.length||name.length>128)throw Error('invalid event type');
             const options={};
             for(const key of ['bubbles','cancelable','composed']){const value=flags?.[key];if(typeof value==='boolean')options[key]=value;}
@@ -132,17 +134,22 @@
             }
             const Constructor=/^key(?:down|up|press)$/.test(name)?globalThis.KeyboardEvent:/^(?:click|dblclick|mouse\w+|contextmenu)$/.test(name)?globalThis.MouseEvent:/^(?:beforeinput|input)$/.test(name)?globalThis.InputEvent:Event;
             original=new (Constructor||Event)(name,options);
-          }
+            if(prevented)original.preventDefault();
         }
         const isClick=detail.kind === 'click' || type(original) === 'click';
         // All page-controlled getters have finished before this final check.
         if (element instanceof Element && active() && !ownerDispatch() && isClick && asks(element)) {
           report('activation',control(element),null,original?.cancelable ?? true);event.preventDefault();return;
         }
+        delivery=true;
         if (original) { if (!native.dispatch.call(element,original)) event.preventDefault(); }
         else native.click.call(element);
       } else event.preventDefault();
-    } catch { event.preventDefault(); } // Invalid/forged reports can only add a hold.
+    } catch {
+      event.preventDefault();
+      if(active()&&element instanceof Element)report(delivery?'activation_unknown':'activation',element,null,!delivery);
+      console.warn(delivery?'AresOS page API failed during native delivery; outcome uncertain.':'AresOS page descriptor was held before native delivery.');
+    } // Invalid/forged reports can only add a hold.
   }
   function watch(root) {
     if (root===document || roots.has(root)) return;

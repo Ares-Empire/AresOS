@@ -1,9 +1,9 @@
 // Complete named-suite evidence only; missing or failed cases never qualify.
 export const REQUIRED={
     1:['GROUP 1 Unicode word matching agrees across service and guard','GROUP 1 what asks word/label/key matrix','GROUP 1 submit compose deletion and free-input matrix'],
-    2:['GROUP 2 stopped page steps handler/resume matrix','GROUP 2 script activations never replay','GROUP 2 loop with uncancelled enclosing submit sends once','GROUP 2 owner synchronous task delayed work and in-flight interleavings','GROUP 2 nested validation and fresh-frame fallback','GROUP 2 delayed submission stays held after slow frame arming'],
+    2:['GROUP 2 stopped page steps handler/resume matrix','GROUP 2 script activations never replay','GROUP 2 loop with uncancelled enclosing submit sends once','GROUP 2 owner synchronous task delayed work and in-flight interleavings','GROUP 2 nested validation and fresh-frame fallback','GROUP 2 delayed submission stays held after slow frame arming','GROUP 2 unknown activation survives navigation of its source document'],
     3:['GROUP 3 binding every form fact and generic sibling draft','GROUP 3 cross-frame adapter empty and oversized drafts'],
-    4:['GROUP 4 page confirmations bind their full text and ask independently','GROUP 4 exact native confirmation and mismatch matrix'],
+    4:['GROUP 4 page confirmations bind their full text and ask independently','GROUP 4 exact native confirmation and mismatch matrix','GROUP 4 a native-dialog handler submission is prepared separately'],
     5:['GROUP 5 question fields, hidden values, password label, upload path and hash'],
     6:['GROUP 6 exclusions through frame, popup, redirect, taking and history','GROUP 6 schemes links and forward routes'],
     7:['GROUP 7 all password kinds across open closed and cross-site roots','GROUP 7 no listening port after tool suite'],

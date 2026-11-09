@@ -2,6 +2,9 @@ import {POLICY} from './policy.js';
 
 const session = crypto.randomUUID();
 const controlled = new Map(), used = new Set(), dialogs = new Map();
+const retiredControls=new Map();
+function stepControl(tab,epoch){return controlled.get(tab)?.epoch===epoch?controlled.get(tab):retiredControls.get(JSON.stringify([tab,epoch]));}
+function stepStates(tab){return [controlled.get(tab),...[...retiredControls].filter(([key])=>JSON.parse(key)[0]===tab).map(([,value])=>value)].filter(Boolean);}
 let groupId = null, port = null, serial = Promise.resolve(), recording = false, effectStarted = false, dispatchEpoch = null;
 let excludedHosts = null;
 const listSnapshots = new Map(), fixtureBarriers = new Map();
@@ -12,7 +15,7 @@ function waitDialog(tab){
   if(!dialogWake.has(tab))dialogWake.set(tab,new Set());dialogWake.get(tab).add(resolve);
   return {promise,dispose(){const waiting=dialogWake.get(tab);waiting?.delete(resolve);if(!waiting?.size)dialogWake.delete(tab);}};
 }
-function wakeDialog(tab){for(const resolve of dialogWake.get(tab)||[])resolve({dialog:true});}
+function wakeDialog(tab,value={dialog:true}){for(const resolve of dialogWake.get(tab)||[])resolve(value);}
 function assertControl(tab,epoch=dispatchEpoch){if(!epoch || controlled.get(tab)?.epoch !== epoch)throw Error('stale_reference: control ended');}
 const audit = value => {
   if(recording && port){const text=JSON.stringify(value??null);if(text && text.length>64000){for(let offset=0;offset<text.length;offset+=64000)port.postMessage({event:'audit',data:{json_fragment:text.slice(offset,offset+64000),offset,total:text.length}});}else port.postMessage({event:'audit',data:value??null});}
@@ -40,7 +43,7 @@ async function cdp(tab, method, parameters = {}) {
   if(recording)audit({method,parameters,phase:'dispatched'});
   if(method.startsWith('Input.')) {
     const wake=waitDialog(tab);
-    try{return audit(await Promise.race([pending,wake.promise]));}finally{wake.dispose();}
+    try{const result=await Promise.race([pending,wake.promise]);if(result?.interrupted)throw Error('unknown: control ended while input was in flight; inspect status and never replay');return audit(result);}finally{wake.dispose();}
   }
   return audit(await pending);
 }
@@ -102,6 +105,7 @@ async function content(tab, frame, command, parameters={}) {
   try{const pending=chrome.tabs.sendMessage(tab,{command,...parameters},{frameId:frame});reply=audit(await (wake?Promise.race([pending,wake.promise]):pending));}
   finally{wake?.dispose();}
   if(reply?.dialog)throw Error('unknown: a page dialog interrupted input handling; inspect the dialog and operation status, never retry the input');
+  if(reply?.interrupted)throw Error('unknown: control ended during input handling; inspect status and never retry the input');
   if (!reply?.ok) throw Error(reply?.error || 'stale_reference: page changed; read again');
   return reply.data;
 }
@@ -113,6 +117,48 @@ async function finishFrames(tab,frames,epoch,nonce){
     finally{wake.dispose();}
   }
 }
+const stepKey=step=>JSON.stringify([step.document,step.id,step.frame]);
+function rememberStep(current,key){
+  current.seenSteps??=new Set();current.seenSteps.add(key);
+  if(current.seenSteps.size>4096)current.seenSteps.delete(current.seenSteps.values().next().value);
+}
+function observeStep(message,sender){
+  const current=stepControl(sender.tab?.id,message.generation),step=message.step;
+  if(!current?.epoch||message.generation!==current.epoch||!Number.isInteger(sender.frameId)||!step||!['native_submit','submit_event','activation','activation_unknown'].includes(step.kind)||typeof step.document!=='string'||typeof step.id!=='string')return false;
+  const value={...step,frame:sender.frameId},key=stepKey(value);
+  if(current.seenSteps?.has(key))return true;
+  rememberStep(current,key);
+  current.steps??=new Map();
+  if(!current.steps.has(key)){
+    if(current.steps.size>=512){
+      if(current.stepOverflow)return true;
+      current.stepOverflow=true;value.id='overflow-'+value.id;value.kind='activation_unknown';value.cancellable=false;value.label='Additional page steps exceeded the response limit; inspect with the owner and never replay.';
+    }
+    current.steps.set(stepKey(value),value);
+    port?.postMessage({event:'held_step',session,tab:sender.tab.id,step:value});
+  }
+  return true;
+}
+async function collectSteps(tab,epoch=controlled.get(tab)?.epoch){
+  await new Promise(resolve=>setTimeout(resolve,POLICY.holdMs+25));
+  if(dialogs.has(tab))return []; // the private observations remain queued
+  const found=new Map();let overflow=null;
+  const include=value=>{const key=stepKey(value);if(value.id.startsWith('overflow-')){overflow??=value;return;}if(found.size<512||found.has(key))found.set(key,value);else overflow??={...value,id:'overflow-'+value.id,kind:'activation_unknown',cancellable:false,label:'Additional page steps exceeded the response limit; inspect with the owner and never replay.'};};
+  for(const frame of await chrome.webNavigation.getAllFrames({tabId:tab})||[]){
+    if(dialogs.has(tab))return [];
+    const wake=waitDialog(tab);
+    try{
+      safeURL(frame.url);
+      const values=await Promise.race([content(tab,frame.frameId,'steps'),wake.promise]);
+      if(Array.isArray(values))for(const step of values){const value={...step,frame:frame.frameId};include(value);const current=stepControl(tab,epoch);if(current){rememberStep(current,stepKey(value));current.steps??=new Map();if(current.steps.size<512)current.steps.set(stepKey(value),value);}}
+    }catch{}finally{wake.dispose();}
+  }
+  if(dialogs.has(tab))return [];
+  const current=stepControl(tab,epoch);
+  for(const value of current?.steps?.values()||[])include(value);
+  if(overflow){found.set(stepKey(overflow),overflow);if(current){current.steps??=new Map();current.steps.set(stepKey(overflow),overflow);}}
+  return [...found.values()];
+}
 async function requireTab(tab) {
   const current = await chrome.tabs.get(tab);
   if (!controlled.has(tab) || current.groupId !== groupId) { await release(tab); throw Error('stale_reference: tab is outside the Claude group'); }
@@ -121,13 +167,16 @@ async function requireTab(tab) {
 }
 async function release(tab) {
   const original = controlled.get(tab);
+  if(original){const key=JSON.stringify([tab,original.epoch]);retiredControls.set(key,original);while(retiredControls.size>32)retiredControls.delete(retiredControls.keys().next().value);setTimeout(()=>{if(retiredControls.get(key)===original)retiredControls.delete(key);},900000);}
   controlled.delete(tab); dialogs.delete(tab);confirmationPlans.delete(tab);
+  wakeDialog(tab,{interrupted:true});
   for(const [id,barrier]of fixtureBarriers)if(barrier.tab===tab){fixtureBarriers.delete(id);barrier.reject(Error('unknown: interrupted after input'));}
   for(const [token,stage] of stagedUploads)if(stage.tab===tab)stagedUploads.delete(token);
-  try {
-    for (const frame of await chrome.webNavigation.getAllFrames({tabId:tab}) || []) { await content(tab,frame.frameId,'clear'); }
-  } catch {}
   try { await chrome.debugger.detach({tabId:tab}); } catch {}
+  try {
+    const clear=Promise.all((await chrome.webNavigation.getAllFrames({tabId:tab})||[]).map(frame=>content(tab,frame.frameId,'clear').catch(()=>{})));
+    await Promise.race([clear,new Promise(resolve=>setTimeout(resolve,1000))]);
+  } catch {}
   if (original) {
     try {
       await chrome.tabs.ungroup(tab);
@@ -219,6 +268,11 @@ async function dispatch(command) {
   if(command.name==='stop_popup'){await chrome.action.openPopup();return {opened:true};}
   if (command.name === 'audit') { recording=command.enabled === true; return {recording}; }
   if(command.name==='configure')return configure(command.excluded_hosts);
+  if(command.name==='ack_steps'){
+    for(const current of stepStates(tab))if(current.steps){for(const step of command.steps||[])current.steps.delete(stepKey(step));if(![...current.steps.values()].some(step=>step.id.startsWith('overflow-')))current.stepOverflow=false;}
+    return {acknowledged:true};
+  }
+  if(command.name==='queued_steps')return stepStates(tab).flatMap(current=>[...current.steps?.values()||[]]).slice(0,513);
   if(!excludedHosts)throw Error('refused: owner-only excluded-sites setting is unavailable');
   if (['tabs','downloads','history','bookmarks'].includes(command.name))return collection(command);
   if (command.name === 'take_tab') return take(tab);
@@ -243,7 +297,8 @@ async function dispatch(command) {
     if(command.operation)used.add(command.operation);
     await cdp(tab,'Page.handleJavaScriptDialog',{accept:command.input.accept,...(command.input.text === undefined ? {}:{promptText:command.input.text})});
     await finishFrames(tab,await chrome.webNavigation.getAllFrames({tabId:tab})||[],dispatchEpoch,controlled.get(tab)?.inputNonce);
-    return {checked:true,dispatched:true,page:'Dialog answered once, as the page shows it.',steps:[]};
+    const steps=await collectSteps(tab,dispatchEpoch);
+    return {checked:true,dispatched:true,page:'Dialog answered once, as the page shows it.',steps,dialog:dialogs.get(tab)||null};
   }
   if(command.name==='tab_context'){const current=await chrome.tabs.get(tab);safeURL(current.url);return {session,tab,url:current.url,title:current.title,control:controlled.get(tab)?.epoch||null,frames:(await chrome.webNavigation.getAllFrames({tabId:tab})||[]).map(frame=>({frame:frame.frameId,url:frame.url,document:frame.documentId}))};}
   if (command.name === 'validity') {
@@ -308,6 +363,12 @@ async function dispatch(command) {
     await content(tab,other.frame,'set_control',{generation:dispatchEpoch});
     await content(tab,other.frame,'arm',{config:{...POLICY,conservative:command.conservative},target:other.frame===reference.frame ? target.element:null,form:other.frame===reference.frame ? frame.form?.element:null,operation:command.approved && other.frame===reference.frame ? command.operation:null,generation:dispatchEpoch,dispatch_nonce:inputNonce,key_input:other.frame===reference.frame?keyInput:null,primary_submission:!!command.primary_submission && other.frame===reference.frame,implicit:other.frame===reference.frame&&command.input?.verb==='press'&&command.input.key.split('+').at(-1)==='Enter'?target.implicit_submitter:null,approved_form:command.approved&&other.frame===reference.frame?frame.form:null});
   }
+  // Native pointer input must address the selected tab in headed Chrome.
+  // Arm first because activation can itself run focus/visibility handlers.
+  if(command.name==='input'){
+    assertControl(tab);const selected=await chrome.tabs.get(tab);assertControl(tab);
+    if(!selected.active){effectStarted=true;await chrome.tabs.update(tab,{active:true});}
+  }
   if(recording&&command.fixture_arm_delay){port?.postMessage({event:'fixture_arm_wait',operation:command.operation});await new Promise(resolve=>setTimeout(resolve,command.fixture_arm_delay));}
   // Arming other frames may take time. Compare again at the actual input boundary.
   snapshot=await facts(tab,reference);
@@ -340,12 +401,9 @@ async function dispatch(command) {
     else if (input.verb === 'scroll') {const point=await pointer(tab,snapshot,reference,target);await cdp(tab,'Input.dispatchMouseEvent',{type:'mouseWheel',...point,deltaX:input.x,deltaY:input.y});}
     else throw Error('permission_denied: unsupported input');
   }
+  assertControl(tab);
   await finishFrames(tab,snapshot.frames,dispatchEpoch,inputNonce);
-  await new Promise(resolve=>setTimeout(resolve,POLICY.holdMs + 25));
-  const steps=[];
-  for (const frame of dialogs.has(tab) ? [] : await chrome.webNavigation.getAllFrames({tabId:tab}) || []) {
-    try { safeURL(frame.url); steps.push(...(await content(tab,frame.frameId,'steps')).map(step=>({...step,frame:frame.frameId}))); } catch {}
-  }
+  const steps=await collectSteps(tab,dispatchEpoch);
   if(recording && command.fixture_cut==='after-input'){
     await new Promise((resolve,reject)=>{fixtureBarriers.set(command.operation,{tab,resolve,reject});port?.postMessage({event:'fixture_after_input',operation:command.operation});});
   }
@@ -368,6 +426,7 @@ async function connect() {
   port.onDisconnect.addListener(()=>{ for(const barrier of fixtureBarriers.values())barrier.reject(Error('unknown: native connection ended after input'));fixtureBarriers.clear();port=null; stop().finally(()=>setTimeout(connect,1000)); });
 }
 chrome.runtime.onMessage.addListener((message,sender,reply)=>{
+  if(sender.id===chrome.runtime.id&&message?.event==='held_step'){reply({received:observeStep(message,sender)});return;}
   if(sender.id === chrome.runtime.id && message?.event === 'reader_error') { port?.postMessage({event:'reader_error',error:message.error,tab:sender.tab?.id,frame:sender.frameId});reply({received:true});return; }
   const popup=chrome.runtime.getURL('popup.html'),details=chrome.runtime.getURL('details.html');
   if (sender.id !== chrome.runtime.id || ![popup,details].includes(sender.url) || sender.frameId && sender.frameId !== 0) return;
@@ -381,9 +440,12 @@ chrome.runtime.onMessage.addListener((message,sender,reply)=>{
     return true;
   }
 });
-chrome.tabs.onUpdated.addListener((tab,change,current)=>{
-  if (controlled.has(tab) && current.groupId !== groupId) release(tab);
-  if (controlled.has(tab) && change.url) { try { safeURL(change.url); } catch { release(tab); } }
+chrome.tabs.onUpdated.addListener(async(tab,change)=>{
+  const previous=controlled.get(tab);if(!previous)return;
+  let current;try{current=await chrome.tabs.get(tab);}catch{return;}
+  if(controlled.get(tab)!==previous)return;
+  if(current.groupId!==groupId){release(tab);return;}
+  if(change.url)try{safeURL(current.url);}catch{release(tab);}
 });
 chrome.tabs.onRemoved.addListener(tab=>{ if (controlled.has(tab)) release(tab); });
 chrome.webNavigation.onCreatedNavigationTarget.addListener(event=>{ if (controlled.has(event.sourceTabId)) serial=serial.then(()=>take(event.tabId)).catch(()=>release(event.tabId)); });
@@ -420,5 +482,9 @@ chrome.debugger.onEvent.addListener(async(source,method,params)=>{
     if(input)try{await finishFrames(tab,await chrome.webNavigation.getAllFrames({tabId:tab})||[],input.epoch,input.nonce);}catch{}
   }
 });
-chrome.debugger.onDetach.addListener(source=>{ if (controlled.has(source.tabId)) release(source.tabId); });
+chrome.debugger.onDetach.addListener(async source=>{
+  const tab=source.tabId,previous=controlled.get(tab);if(!previous)return;
+  // An old detach notification may arrive after a replacement attachment.
+  try{await cdp(tab,'Page.enable');}catch{if(controlled.get(tab)===previous)release(tab);}
+});
 connect();

@@ -143,6 +143,14 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
       if(id==='owner-after-limit')assert.equal(counts(id),2,'owner work after the limit is ordinary browser work');
     }
   });
+  await check('GROUP 2 unknown activation survives navigation of its source document',async()=>{
+    const id='fresh-self';await nav('fresh-activation&id='+id+'&cancel=false&target=self');
+    const result=await call('click',await target('Continue'));
+    assert.equal(counts('handler-'+id),0);assert.ok(counts(id)<=1);
+    assert.ok(result.untrusted_content.steps.some(step=>step.kind==='activation_unknown'));
+    assert.equal((await call('operation_status',{operation_id:result.operation_id})).operation.state,'unknown');
+    assert.ok(!result.followups.some(item=>item.stopped||item.approval),'the old activation is never reported stopped or resumable');
+  });
   await check('GROUP 3 binding every form fact and generic sibling draft',async()=>{
     for(const change of ['label','element','visible','hidden','action','method','encoding','target','document']){
       const id='binding-'+change;await nav('binding&id='+id);const prepared=await call('click',await target('Submit'));assert.ok(prepared.approval);
@@ -188,6 +196,15 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
       const {dialog}=await call('read',{tab});assert.ok(dialog);const answer=await call('dialog',{tab,expected:dialog,accept:true});
       if(asks)await approval(answer,id);else {assert.ok(!answer.approval);await eventually(()=>counts(id)===1,'free native confirmation');}
     }
+  });
+  await check('GROUP 4 a native-dialog handler submission is prepared separately',async()=>{
+    const id='native-dialog-form';await nav('native-confirm&id='+id+'&mode=form&text='+encodeURIComponent('Submit this item?'));
+    const continued=await call('click',await target('Continue'));assert.equal(counts(id),0);
+    assert.equal((await call('operation_status',{operation_id:continued.operation_id})).operation.state,'unknown');
+    const {dialog}=await call('read',{tab});const answer=await call('dialog',{tab,expected:dialog,accept:true});assert.ok(answer.approval);
+    await call('submit',answer.approval);assert.equal(counts(id),0,'answering the dialog cannot approve an unnamed form submission');
+    const form=await reservedFor(id,answer.approval.operation_id);assert.ok(form);await approval({approval:form},id);
+    assert.match(fixture.arrivals.find(row=>new URL(row.url,'http://fixture.test').searchParams.get('case')===id).body,/hidden=Bound\+after\+dialog/);
   });
   await check('GROUP 5 question fields, hidden values, password label, upload path and hash',async()=>{
     await nav('binding&id=question');const prepared=await call('click',await target('Submit'));const text=JSON.stringify(prepared.approval);

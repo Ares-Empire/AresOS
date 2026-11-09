@@ -7,14 +7,14 @@ import {execFileSync} from 'node:child_process';
 const policy=JSON.parse(fs.readFileSync('control/chrome/extension/policy.js','utf8').match(/\{[\s\S]*\}/)[0]);
 
 function fixture() {
-  const windowListeners=new Map(),reports=[],arrivals=[],nodes=[];let now=0;
+  const windowListeners=new Map(),reports=[],arrivals=[],nodes=[],bridgeDetails=[];let now=0;
   class Event {
     constructor(type,options={}) {Object.assign(this,{type,cancelable:true,defaultPrevented:false,stopped:false,eventPhase:0,isTrusted:false,...options});}
     preventDefault(){if(this.cancelable)this.defaultPrevented=true;}
     stopImmediatePropagation(){this.stopped=true;}
     composedPath(){return [this.target];}
   }
-  class CustomEvent extends Event {constructor(type,options={}){super(type,options);this.detail=options.detail;}}
+  class CustomEvent extends Event {constructor(type,options={}){super(type,options);this.detail=options.detail;if(type==='aresos-page-call-v2')bridgeDetails.push(options.detail);}}
   class EventTarget {
     listeners=new Map();
     addEventListener(type,fn){if(!this.listeners.has(type))this.listeners.set(type,[]);this.listeners.get(type).push(fn);}
@@ -62,7 +62,7 @@ function fixture() {
   assert.equal(vm.runInContext("globalThis[Symbol.for('aresos.chrome.guard.v2')]",main),undefined);
   function arm(target,form,operation=null,conservative=false){guard.arm({generation:'epoch',config:{...policy,conservative},target:id(target),form:form ? id(form):null,operation,primary_submission:false});}
   const api={...guard,resume:(id,operation)=>{const step=reports.find(item=>item.id===id);return guard.resume(id,operation,step?.submitter||step?.element,step?.element);}};
-  return {api,guard,arrivals,get reports(){reports.push(...guard.steps());return reports;},document,HTMLFormElement,HTMLElement,Event,CustomEvent,originalDispatch,arm,main,id,advance:milliseconds=>{now+=milliseconds;}};
+  return {api,guard,arrivals,bridgeDetails,get reports(){reports.push(...guard.steps());return reports;},document,HTMLFormElement,HTMLElement,Event,CustomEvent,originalDispatch,arm,main,id,advance:milliseconds=>{now+=milliseconds;}};
 }
 
 test('group2 native submit resumes without checks or submit events',()=>{
@@ -108,7 +108,7 @@ test('group2 an approved change has only one same-form consequential submission'
 test('group1 GET searches stay free but a POST submitter override is held',()=>{
   const f=fixture(),form=new f.HTMLFormElement();form.method='get';form.role='search';
   f.arm(form,form,null);form.requestSubmit();assert.equal(f.arrivals.length,1);assert.equal(f.reports.length,0);
-  const button=new f.HTMLElement();button.formmethod='post';button.form=form;form.requestSubmit(button);
+  const button=new f.HTMLElement();button.tagName='BUTTON';button.type='submit';button.formmethod='post';button.form=form;form.requestSubmit(button);
   assert.equal(f.arrivals.length,1);assert.equal(f.reports.length,1);
 });
 
@@ -282,4 +282,18 @@ test('an old delayed finish cannot clear a newly armed private dispatch',async()
   f.guard.arm({generation:'epoch',dispatch_nonce:'first',config:policy,target:f.id(button)});const old=f.guard.finish('epoch','first');
   f.guard.arm({generation:'epoch',dispatch_nonce:'second',config:policy,target:f.id(button)});await old;
   f.originalDispatch.call(button,new f.Event('click',{isTrusted:true}));assert.equal(f.arrivals.length,0);assert.equal(f.reports.length,1);
+});
+
+test('MAIN reports carry no Event or submitter objects and preserve receiver validation',()=>{
+  const f=fixture(),form=new f.HTMLFormElement(),other=new f.HTMLFormElement(),button=new f.HTMLElement();button.tagName='BUTTON';button.type='submit';button.form=form;
+  f.arm(button,form);form.requestSubmit(button);assert.equal(f.arrivals.length,0);
+  assert.deepEqual(Object.keys(f.bridgeDetails[0]).sort(),['kind','with_submitter']);
+  const before=f.bridgeDetails.length;assert.throws(()=>other.requestSubmit(button),/another form/);assert.equal(f.bridgeDetails.length,before);
+  const event=new f.Event('click');button.dispatchEvent(event);const detail=f.bridgeDetails.at(-1);
+  assert.equal(detail.event,undefined);assert.equal(detail.submitter,undefined);assert.equal(detail.event_type,'click');
+});
+test('fresh script events preserve prior cancellation and never acquire trust',()=>{
+  const f=fixture(),button=new f.HTMLElement(),event=new f.Event('keyup');event.preventDefault();
+  button.addEventListener('keyup',copy=>{assert.notEqual(copy,event);assert.equal(copy.isTrusted,false);assert.equal(copy.defaultPrevented,true);});
+  assert.equal(button.dispatchEvent(event),false);
 });
