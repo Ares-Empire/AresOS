@@ -206,8 +206,9 @@ class LateDuplicates21(unittest.TestCase):
         self.imap.boxes['Sent'][3] = raw
         repaired = self.call('operation_repair', args)
         self.assertIn('3 copies', repaired['data']['original']['reason'])
-        self.assertEqual(len(repaired['pending']['notices']), 1)
-        self.assertEqual(len(self.engine.store.items('notice:')), 1)
+        self.assertEqual(len(repaired['pending']['notices']), 2)
+        self.assertEqual(len(self.engine.store.items('notice:')), 2)
+        self.assertEqual({n['untrusted_content']['message_count'] for n in repaired['pending']['notices']}, {2, 3})
         self.assertEqual(len(self.imap.boxes['Sent']), 3)
         self.assertEqual(self.imap.mutations, [])
         self.data('notice_ack', {'operation_id': repaired['pending']['notices'][0]['operation_id']})

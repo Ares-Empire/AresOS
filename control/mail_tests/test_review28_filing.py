@@ -35,7 +35,7 @@ class Filing28(unittest.TestCase):
             remote = scenario.remote.copy()
             fixture.restart()
             page = fixture.data('filing_notices', {})
-            own = next(n for n in page['items'] if n['operation_id'] == source['id'])
+            own = next(n for n in page['items'] if 'unresolved_roles' in n['untrusted_content'])
             content = own['untrusted_content']
             self.assertIn('Trash', content['reason'])
             self.assertEqual(content['unresolved_roles'], ['drafts'])
@@ -43,12 +43,12 @@ class Filing28(unittest.TestCase):
             self.assertIn(target, content['reason'])
             self.assertEqual(fixture.engine.store.get(key)['state'], 'started')
             if not flow.endswith('rename'):
-                locations = fixture.data('filing_locations', {'filing_id': source['id']})
+                locations = fixture.data('filing_locations', {'filing_id': content['filing_id']})
                 observed = locations['untrusted_content']['locations']
                 self.assertTrue(all(item['scan_complete'] for item in observed))
                 self.assertIn(target, {ref['folder'] for item in observed for ref in item['observed_locations']})
             # Acknowledging the warning cannot certify the missing check.
-            fixture.data('notice_ack', {'operation_id': source['id']})
+            fixture.data('notice_ack', {'operation_id': own['operation_id']})
             self.assertTrue(fixture.engine.store.get(key)['check_open'])
             fixture.imap.roles['Drafts'] = ['\\Drafts']
             fixture.data('filing_notices', {})
@@ -77,11 +77,11 @@ class Filing28(unittest.TestCase):
                 item['scan_complete'] = False
             with patch('aresos_control.mail.filing.locations', return_value=observed):
                 page = fixture.data('filing_notices', {})
-            content = next(n['untrusted_content'] for n in page['items'] if n['operation_id'] == source['id'])
+            content = next(n['untrusted_content'] for n in page['items'] if 'filing_id' in n['untrusted_content'])
             self.assertIn('Trash', content['reason'])
             self.assertIn('Locations are not yet checked completely', content['reason'])
             self.assertNotIn('unresolved_roles', content)
-            pages = fixture.data('filing_locations', {'filing_id': source['id']})
+            pages = fixture.data('filing_locations', {'filing_id': content['filing_id']})
             self.assertEqual(pages['untrusted_content']['locations'], observed)
             self.assertTrue(fixture.engine.store.get(key)['check_open'])
         finally:

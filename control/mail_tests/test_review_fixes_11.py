@@ -228,7 +228,9 @@ class FilingNotices11(unittest.TestCase):
         stale_cursor = self.request('mail_filing_notices')['data']['cursor']
         self.request('mail_notice_ack', {'operation_id': expected[0]})
         stale = self.engine.request({'v': 1, 'method': 'call', 'action': 'mail_filing_notices', 'arguments': {'cursor': stale_cursor}})
-        self.assertEqual(stale['error']['code'], 'stale_reference')
+        self.assertTrue(stale['ok'], stale)
+        self.assertIn('restarted', stale['data']['page_changed'])
+        self.assertEqual([n['operation_id'] for n in stale['data']['items']], expected[1:4])
         self.assertEqual(self.request('mail_filing_notices')['data']['total'], 149)
 
     def test_review11_legacy_large_notice_is_compact_escaped_and_details_stay_readable(self):
@@ -265,11 +267,17 @@ class FilingNotices11(unittest.TestCase):
             changes.update({prefix + str(i): page for i, page in enumerate(pages)})
         self.engine.store.write(changes, 'fixture', 'Synthetic jumbo references')
         cursor = self.request('mail_filing_locations', {'filing_id': 'one'})['data']['cursor']
-        for bad in (cursor, 'two:-1', 'two:999999', 'malformed'):
+        for bad in (cursor, 'two:-1', 'two:999999'):
             response = self.engine.request({'v': 1, 'method': 'call', 'action': 'mail_filing_locations',
                                            'arguments': {'filing_id': 'two', 'cursor': bad}})
-            self.assertFalse(response['ok'])
-            self.assertEqual(response['error']['code'], 'stale_reference')
+            self.assertTrue(response['ok'], response)
+            self.assertIn('restarted', response['data']['page_changed'])
+            self.assertEqual(response['data']['filing_id'], 'two')
+            self.assertEqual(response['data']['untrusted_content'], pages[0])
+        response = self.engine.request({'v': 1, 'method': 'call', 'action': 'mail_filing_locations',
+                                       'arguments': {'filing_id': 'two', 'cursor': 'malformed'}})
+        self.assertFalse(response['ok'])
+        self.assertEqual(response['error']['code'], 'stale_reference')
         self.engine.close()
         self.engine = Engine(self.root / 'state', self.root / 'independent')
         self.assertEqual(self.read_locations('one'), visible(observed))

@@ -23,6 +23,7 @@ BLOB = obj({"sha256": string(64), "size": {"type": "integer", "minimum": 0},
 APPROVAL = obj({"question": string(QUESTION_LIMIT), "operation_id": string(80), "description": {"type": "object"}})
 OP = obj({"operation_id": string(80)})
 PAGE = obj({"cursor": string(512), "limit": {"type": "integer", "minimum": 1, "maximum": 10}}, [])
+PAGE_CHANGED = {'page_changed': string(128)}
 # Results have one stable bounded envelope. Each action documents the data it returns.
 RESULT = obj({"ok": {"type": "boolean"}, "data": {"type": "object"}, "error": {"type": "object"},
               "observations": obj({"stages": {"type": "object"}, "evidence": {"type": "object"},

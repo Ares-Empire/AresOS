@@ -67,6 +67,7 @@ def hashes(value):
 
 
 def expire(engine):
+    from .warnings import source_notices
     store = engine.store
     if store.locked or store.write_failed:
         return
@@ -96,16 +97,18 @@ def expire(engine):
                 resolved = bool(notice.get('ack')) and value.get('state') in {'done', 'partial'}
             if prefix in {'mail:filing:', 'mail:rename:'} and (value.get('check_open') or value.get('state') == 'started'):
                 resolved = False
+            if prefix in {'mail:filing:', 'mail:rename:'} and any(not n.get('ack') for n in source_notices(store, key)):
+                resolved = False
             if prefix == 'notice:':
                 content = value.get('untrusted_content', {})
-                source_key = content.get('intent_key')
+                source_key = value.get('source_key') or content.get('intent_key')
                 if source_key and store.get(source_key) is not None:
                     resolved = False
             if prefix == 'blob:' and value['sha256'] in protected_hashes:
                 resolved = False
             if now - created >= TTL and resolved:
                 changes[key] = None
-                if prefix == 'mail:filing:':
+                if prefix == 'mail:filing:' or prefix == 'notice:':
                     changes.update({k: None for k, _ in store.items('mail:filing-locations:' + value['id'] + ':')})
     if changes:
         store.write(changes, 'control_expire', 'expired unused working data; operation evidence and unresolved warnings retained')

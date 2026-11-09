@@ -718,25 +718,26 @@ class Mail:
             operation.update(opened)
 
     def sent_copy_count(self, operation, matches, commit_clean=False):
+        from ..warnings import check_result
         op = self.store.get('op:' + operation['id'])
         count = len(matches)
         previous = op.get('sent_copy_check', {})
         if count <= 1 and not commit_clean:
             return
-        if previous.get('state') == 'checked' and previous.get('count') == count:
-            return
         op['sent_copy_check'] = {'state': 'checked', 'count': count, 'clean': count <= 1}
         changes = {'op:' + op['id']: op}
         notice_id = 'sent-' + digest(operation['id'])[:32]
+        content = None
         if count > 1:
             reason = f'Sent contains {count} copies with this Message-ID. Check them in your mail program; nothing was deleted.'
             operation['stages']['sent_copy_warning'] = op['stages']['sent_copy_warning'] = reason
-            if previous.get('count') != count or self.store.get('notice:' + notice_id) is None:
-                changes['notice:' + notice_id] = {'id': notice_id, 'app': 'mail', 'state': 'partial', 'ack': False,
-                    'created_at': time.time_ns(), 'untrusted_content':
-                    {'reason': reason, 'operation_id': operation['id'], 'message_count': count}}
+            content = {'reason': reason, 'operation_id': operation['id'], 'message_count': count}
+        notices, _ = check_result(self.store, op, 'op:' + op['id'], 'sent_copies',
+            sorted({canonical(match) for match in matches}), content, notice_id)
+        changes.update(notices)
         self.store.write(changes, 'mail_sent_copy_check', 'Sent-copy result committed', op['id'])
         operation['sent_copy_check'] = op['sent_copy_check']
+        operation['warning_checks'] = op['warning_checks']
 
     def resolve_sent_checks(self, operation_ids=None):
         """Read-only remote checks; never APPEND, repair or resubmit."""

@@ -211,6 +211,8 @@ class Engine:
         op["stages"][name] = outcome
         if name == 'sent_copy' and outcome == 'done' and op.get('sent_copy_check', {}).get('state') == 'open':
             op['sent_copy_check'] = {'state': 'checked', 'clean': True}
+            from .warnings import check_result
+            check_result(self.store, op, 'op:' + op_id, 'sent_copies', [])
         self.store.observations.stage(op_id, name, outcome)
         if op["app"] == "mail":
             self.store.write({"op:" + op_id: op}, op["action"], "Mail operation stage recorded", op_id,
@@ -277,7 +279,7 @@ class Engine:
     def public_operation(self, op):
         result = {k: v for k, v in op.items() if k not in
                   {'payload', 'input_hash', 'attempt_ended_at', 'repair_identity_missing',
-                   'sent_append_started_at', 'sent_append_ended_at', 'sent_copy_check'} and v is not None}
+                   'sent_append_started_at', 'sent_append_ended_at', 'sent_copy_check', 'warning_checks'} and v is not None}
         if op.get('repair_identity_missing'):
             result['reason'] += ' Permanent repair stage identity is missing; another repair is refused.'
         elif (op['state'] == 'unknown' and op.get('repair_of')
@@ -353,6 +355,8 @@ class Engine:
                         old['stages'][args['stage']] = result
                         if args['stage'] == 'sent_copy' and old.get('sent_copy_check', {}).get('state') == 'open':
                             old['sent_copy_check'] = {'state': 'checked', 'clean': True, 'count': len(observation['sent'])}
+                            from .warnings import check_result
+                            check_result(self.store, old, 'op:' + old['id'], 'sent_copies', observation['sent'])
                         old['state'], old['reason'] = self.adapters[app].repaired_outcome(old)
                         changes['op:' + old['id']] = old
                         repair.update(state='done', reason='Read-only evidence confirms local repair; never submitted.')
@@ -401,6 +405,8 @@ class Engine:
             old["stages"][args["stage"]] = result
             if args['stage'] == 'sent_copy' and old.get('sent_copy_check', {}).get('state') == 'open':
                 old['sent_copy_check'] = {'state': 'checked', 'clean': True}
+                from .warnings import check_result
+                check_result(self.store, old, 'op:' + old['id'], 'sent_copies', [])
             old["state"], old["reason"] = self.adapters[app].repaired_outcome(old)
             repair["state"], repair["reason"] = "done", "Local repair completed; never submitted."
             changes = {"op:" + op_id: repair, "op:" + old["id"]: old}
@@ -519,6 +525,8 @@ class Engine:
                 from .recovery import recovery_notices
                 notice = next((n for n in recovery_notices(self.store) if n['id'] == args['operation_id']), None)
             if notice and notice["app"] == app:
+                if notice.get('check_only'):
+                    raise Refused('refused', 'Only cancelled/expired notices may be acknowledged; unresolved work stays visible.')
                 if not notice.get('ack'):
                     notice["ack"] = True
                     changes = {"notice:" + notice["id"]: notice}

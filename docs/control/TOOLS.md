@@ -4733,6 +4733,11 @@ Result data:
           "type": "null"
         }
       ]
+    },
+    "page_changed": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
     }
   },
   "required": [
@@ -4799,6 +4804,11 @@ Result data:
           "type": "null"
         }
       ]
+    },
+    "page_changed": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
     }
   },
   "required": [

@@ -7,6 +7,8 @@ import uuid
 
 from ..adapters import Uncertain
 from ..common import Refused, canonical, digest, sha256, visible
+from ..warnings import check_result
+from ..paging import ordered_page, fragment_window, sequence_token
 from .roles import resolve
 from .transport import folders, select, uids, fetch, ok, quote
 
@@ -91,8 +93,9 @@ def rename_folder(mail, account, client, source, target, roles_before):
         content = {'filing_id': filing_id, 'message_count': intent['message_count'], 'reason': reason,
                    'folders': [short_name(source['folder']), short_name(target)], 'folders_more': 0,
                    'folders_more_text': ''}
-        changes['notice:' + filing_id] = {'id': filing_id, 'app': 'mail', 'state': 'partial',
-            'untrusted_content': content, 'ack': False, 'created_at': time.time_ns()}
+        notices, _ = check_result(mail.store, intent, key, 'rename',
+                                  {'target': target, 'role': role}, content)
+        changes.update(notices)
         result.update(state='partial', reason=visible(reason), untrusted_content=visible(content))
     mail.store.observations.observe(filing_id, visible({'rename': intent, 'result': result}))
     if needs_notice:
@@ -172,9 +175,7 @@ def resolve_checks(mail):
                 intent['reason'] += ' The target ' + short_name(intent['target']) + ' is now ' + intent['observed_role'] + '.'
                 content = summary(intent)
                 pages = location_pages(observed)
-                base = 'mail:filing-locations:' + intent['id'] + ':'
-                changes = {base + str(i): page for i, page in enumerate(pages)}
-                changes[base + 'meta'] = {'pages': len(pages), 'total_messages': len(observed)}
+                changes = {}
             else:
                 if not any(folder['name'] == intent['target'] for folder in listed):
                     continue
@@ -199,8 +200,19 @@ def resolve_checks(mail):
                 intent.pop('check_open', None)
             intent['unresolved_roles'] = unresolved
             changes[key] = intent
-            changes['notice:' + intent['id']] = {'id': intent['id'], 'app': 'mail', 'state': 'partial',
-                'ack': False, 'created_at': time.time_ns(), 'untrusted_content': content}
+            evidence = {'target': intent['target'], 'role': intent['observed_role'],
+                        'unresolved_roles': unresolved}
+            if prefix == 'mail:filing:':
+                evidence['locations'] = normalized_locations(observed)
+            notices, occurrence_id = check_result(mail.store, intent, key,
+                'filing' if prefix == 'mail:filing:' else 'rename', evidence, content)
+            changes.update(notices)
+            if prefix == 'mail:filing:':
+                # Each occurrence points to its own immutable location evidence.
+                base = 'mail:filing-locations:' + occurrence_id + ':'
+                if mail.store.get(base + 'meta') is None:
+                    changes.update({base + str(i): page for i, page in enumerate(pages)})
+                    changes[base + 'meta'] = {'pages': len(pages), 'total_messages': len(observed)}
             mail.store.write(changes, 'mail_filing_check', 'Interrupted filing checked without changing mail')
         except (Refused, OSError, sqlite3.Error, imaplib.IMAP4.error, Uncertain, KeyError, TypeError, ValueError):
             # The committed started row remains the not-yet-checked source.
@@ -235,47 +247,29 @@ def public_notice(store, notice):
 
 
 def notice_page(store, args=None, app=None, checks=()):
-    import base64
-    import hashlib
-    import heapq
-    import json
     from ..recovery import recovery_notices
     args = args or {}
-    version, after = None, None
-    if 'cursor' in args:
-        try:
-            version, encoded = args['cursor'].split(':')
-            after = tuple(json.loads(base64.urlsafe_b64decode(encoded)))
-        except (ValueError, TypeError) as exc:
-            raise Refused('stale_reference', 'Notices changed; read again without cursor.') from exc
+    checks = tuple(checks)
     deferred = {}
     for changes, _, _ in store.deferred_notices.values():
         deferred.update({k: v for k, v in changes.items() if k.startswith('notice:')})
-    hashed, total = hashlib.sha256(), 0
     def values():
-        nonlocal total
         from itertools import chain
         for notice in chain((v for k, v in store.iter_items('notice:') if k not in deferred),
                             deferred.values(), recovery_notices(store), checks):
             if (notice.get('ack') or (app is not None and notice['app'] != app) or
                     'notice:' + notice['id'] in deferred and notice is not deferred['notice:' + notice['id']]):
                 continue
-            total += 1
-            hashed.update(canonical(notice['id']).encode())
             key = (notice.get('created_at', 0), notice['id'])
-            if after is None or key < after:
-                yield key, notice
-    limit = args.get('limit', NOTICE_LIMIT)
-    newest = heapq.nlargest(limit + 1, values(), key=lambda row: row[0])
-    token = hashed.hexdigest()
-    if version is not None and version != token:
-        raise Refused('stale_reference', 'Notices changed; read again without cursor.')
-    selected = newest[:limit]
-    cursor = None
-    if len(newest) > limit:
-        encoded = base64.urlsafe_b64encode(canonical(selected[-1][0]).encode()).decode()
-        cursor = token + ':' + encoded
-    return {'items': [public_notice(store, n) for _, n in selected], 'total': total, 'cursor': cursor}
+            yield key, notice
+    page = ordered_page(values, args, ['notices', app], NOTICE_LIMIT, newest=True)
+    page['items'] = [public_notice(store, notice) for notice in page['items']]
+    return page
+
+
+def normalized_locations(observed):
+    return sorted([{**item, 'observed_locations': sorted(item['observed_locations'], key=canonical)}
+                   for item in observed], key=canonical)
 
 
 def location_pages(observed):
@@ -322,18 +316,12 @@ def location_page(store, args):
             raise Refused('stale_reference', 'No recorded filing locations for this id; inspect the filing audit entry.')
         legacy_pages = location_pages(intent['locations'])
         meta = {'pages': len(legacy_pages), 'total_messages': len(intent['locations'])}
-    offset = 0
-    if 'cursor' in args:
-        try:
-            owner, index = args['cursor'].split(':')
-            offset = int(index)
-            if owner != filing_id or not 0 <= offset < meta['pages']:
-                raise ValueError()
-        except ValueError as exc:
-            raise Refused('stale_reference', 'Location cursor belongs to another filing or page; read again without cursor.') from exc
+    pages = legacy_pages if legacy_pages is not None else (retained(prefix + str(i)) for i in range(meta['pages']))
+    token = sequence_token(filing_id, pages)
+    offset, end, cursor, status = fragment_window(token, meta['pages'], args.get('cursor'), limit=1)
     page = legacy_pages[offset] if legacy_pages is not None else retained(prefix + str(offset))
     return {'filing_id': filing_id, 'total_messages': meta['total_messages'], 'untrusted_content': page,
-            'cursor': f'{filing_id}:{offset + 1}' if offset + 1 < meta['pages'] else None}
+            'cursor': cursor, **status}
 
 
 def file_messages(mail, account, client, verb, refs, target, names, needed):
@@ -349,7 +337,10 @@ def file_messages(mail, account, client, verb, refs, target, names, needed):
         intent['state'] = state
         changes = {key: intent}
         if notice:
-            changes['notice:' + intent_id] = notice
+            notices, _ = check_result(mail.store, intent, key, 'filing',
+                {'target': target, 'role': intent['observed_role'],
+                 'locations': normalized_locations(intent['locations']), 'unresolved_roles': []}, notice['untrusted_content'])
+            changes.update(notices)
         if pages is not None:
             prefix = 'mail:filing-locations:' + intent_id + ':'
             changes.update({prefix + str(i): page for i, page in enumerate(pages)})
@@ -412,7 +403,7 @@ def file_messages(mail, account, client, verb, refs, target, names, needed):
         **pages[0], 'reason': visible(reason), 'observed_role': visible(folder_role(target, listed)),
         'filing_id': intent_id, 'count': sum(len(item['observed_locations']) for item in observed),
         'total_messages': len(observed), 'locations_action': 'mail_filing_locations',
-        'cursor': f'{intent_id}:1' if len(pages) > 1 else None})
+        'cursor': f'{sequence_token(intent_id, pages)}:1' if len(pages) > 1 else None})
     record('partial', notice, pages)
     first = location_page(mail.store, {'filing_id': intent_id})
     return {'state': 'partial', 'items': [], 'reason': visible(reason),

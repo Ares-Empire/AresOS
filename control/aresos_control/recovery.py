@@ -79,13 +79,15 @@ def recovery_notices(store, include_checks=True):
         row = store.db.execute('SELECT created FROM retained WHERE k=?', (key,)).fetchone()
         created = row[0] if row is not None else 0
         existing = store.get('notice:' + notice_id)
-        if filing and existing and existing.get('ack'):
+        if filing and include_checks and existing and existing.get('ack'):
             # Acknowledging an occurrence cannot certify its unfinished check.
             yield {'id': 'check-' + digest(key)[:32], 'app': app, 'state': 'unknown', 'ack': False,
                    'created_at': int(created * 1_000_000_000), 'check_only': True,
                    'untrusted_content': {'reason': reason, 'intent_key': key, 'check_open': True}}
         elif existing is None:
             yield {'id': notice_id, 'app': app, 'state': 'unknown', 'ack': False,
+                   'check_kind': 'recovery', 'source_key': key,
+                   'evidence_fingerprint': digest(['interrupted', key]),
                    'created_at': int(created * 1_000_000_000), 'untrusted_content': {
                        'reason': reason, 'intent_key': key, 'recovery_warning': True}}
 

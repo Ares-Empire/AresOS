@@ -74,7 +74,10 @@ class Recovery26(unittest.TestCase):
         for notice_id in expected:
             self.data('notice_ack', {'operation_id': notice_id})
         self.restart()
-        self.assertFalse(self.data('filing_notices', {})['items'])
+        remaining = self.data('filing_notices', {})['items']
+        self.assertTrue(remaining)
+        self.assertTrue(all(n['untrusted_content'].get('check_open') for n in remaining))
+        self.assertFalse(expected & {n['operation_id'] for n in remaining})
 
     def test_review26_recovery_notice_write_defers_then_becomes_durable(self):
         self.engine.store.write({'mail:filing:interrupted': {'id': 'interrupted', 'state': 'started'}},

@@ -44,7 +44,7 @@ def archive(store, before, mail=None):
             protected.add(key)
     for key, notice in store.items('notice:'):
         if not notice.get('ack'):
-            intent_key = notice.get('untrusted_content', {}).get('intent_key')
+            intent_key = notice.get('source_key') or notice.get('untrusted_content', {}).get('intent_key')
             if intent_key:
                 protected.add(intent_key)
             operation_id = notice.get('untrusted_content', {}).get('operation_id')
