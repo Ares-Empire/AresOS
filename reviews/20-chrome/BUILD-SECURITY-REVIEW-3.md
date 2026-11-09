@@ -721,6 +721,43 @@ and focused mock-test level. Real sandbox-frame dispatch, excluded form target
 receiver behavior, and the required final runner passes remain runner evidence;
 no local browser was accessed and no final SAFE verdict is made.
 
+### Sandbox donor realm: native form submission boundary (source assessment)
+
+The sandbox fallback fixture obtains a native `dispatchEvent` from an iframe
+with `sandbox="allow-same-origin"`. If that succeeds in the runner, the donor
+realm may likewise expose native `HTMLFormElement.prototype.submit`. Calling
+that function with a parent-page form would bypass MAIN's wrapper; native
+submission has no submit event for ISOLATED capture to stop. The HTML algorithm
+uses the form's node document for its sandbox check, not the donor function's
+realm. This is a source-based hypothesis requiring a receiver fixture, not a
+locally reproduced browser arrival. See the [HTML submission algorithm](https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#form-submission-algorithm).
+
+This path does not alter a private hold or use our page-reachable report
+protocol to gain permission. It is deliberate wrapper bypass. The reviewed
+`origin/main` section 6 explicitly limits its submission holding statement to
+honest pages and separately accepts hostile page sends. That distinction must
+remain explicit: it is not the earlier public arm/stop/resume defect. It also
+does not justify weakening any existing zero-arrival test or claiming this
+unmeasured route held.
+
+The current registration already uses allFrames and matchOriginAsFallback.
+Chromium's published [RequestExecuteScript implementation](https://chromium.googlesource.com/chromium/src/+/117d86bef4eb55198d344517b0f53d082868dba3/third_party/blink/renderer/core/frame/local_frame.cc)
+selects the policy respecting disabled scripts for MAIN, and the policy allowing
+execution despite disabled scripts for isolated worlds. This supports the
+sandbox-injection concern; it is not proof for the pinned runner binary.
+Changing frame-matching options alone is not an established repair, and an
+isolated-world wrapper does not replace the page world's prototype. No
+verified supported fix or impossibility result was established by this read.
+
+Proposed strict runner fixture: a free Continue handler obtains that donor's
+native submit function, records native identity, and calls it on an ordinary
+parent POST form targeting an existing sink. Exercise both retained and removed
+donor frames. Assert zero receiver arrivals before approval and zero submit
+handler executions; a held native submission must resume exactly once. A
+receiver arrival must remain a diagnostic failure and be reported as the
+measured wrapper-bypass boundary, not quietly counted as stopped or passing.
+No production changes or browser execution were made for this assessment.
+
 
 ### Parent closure of the final pre-activation race
 

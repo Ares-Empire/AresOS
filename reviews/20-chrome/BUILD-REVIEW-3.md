@@ -805,6 +805,45 @@ plain Node/Python checks do not turn batch 46's reported failures into
 passes; final receiver sets and real Chrome event/navigation behavior are
 still pending. No SAFE or final qualification claim is made.
 
+## Modal-safe pending validity before the final runner batch
+
+Reviewed the next uncommitted repair on a worktree based on
+`50dc1b90556db66d1c0e90077442bb025f3f2566`. The builder reported that
+batch-48 policy run `42664908151` reached 36/37 named rows but disconnected
+the host when pending validity attempted renderer `ready` behind a native
+dialog. That runner trace was supplied by the builder; this reviewer did
+not independently inspect it in this pass.
+
+Added four authorized actual-dispatch Node regressions in
+`background.test.mjs`:
+
+- an already-open modal refuses validity before any renderer message;
+- a modal opened during pending `ready` wakes and returns a transient
+  `refused` error promptly, with no effect and no remaining private waiter;
+- no-modal validity preserves the ready document/element facts and source
+  frame, without input;
+- a modal opened while native frame metadata is being fetched refuses
+  before `ready` starts, covering the intervening await as well.
+
+**Run:** the targeted validity command passed **4 tests**, 40.454208 ms.
+The complete `background.test.mjs` subsequently passed **30 tests,
+0 failed**, 5979.071375 ms. Small actual-source VM probes also confirmed
+that a modal during step polling returns no steps while retaining the
+queued observation and disposing both waits, and that Stop during `ready`
+returns `stale_reference` with `effectStarted:false` and no waiter leak.
+
+**Read:** content requests now reject an existing modal and race private
+modal/Stop notification, distinguishing a read-only refusal from an
+effectful unknown outcome. Best-effort `clear` is exempt from that waiter:
+it can remain queued through release's bounded cleanup without adding a
+new waiter after the release wake. The existing release regression still
+passes. High-level native dialog facts remain separately readable.
+
+No new blocker was found in this focused source/Node retest. The modal
+timeout repair still needs the final authorized Linux runner set; these
+tests neither establish that run nor issue SAFE. Only the authorized test
+file and this report were edited by this reviewer.
+
 ## Final focused closure and package-pin source check
 
 Working-tree review based on
