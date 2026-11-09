@@ -1876,21 +1876,34 @@
       "samples": [
         "contract/quiet-delete_trash/R2.context-before-command"
       ],
-      "sha256": "7f7e490cf3560c9fc259197ce4904476071c191ec5b0fa7dfca2beaca94ed021",
+      "sha256": "e018d0f905422ef2c5d3629ad1f38b447e2d3f977032ce08d7672003b38a3072",
       "stage": 2,
       "suite": "contract"
     },
     {
-      "count": 5,
+      "count": 13,
       "id": "[\"contract\",\"suite\",\"M02/C02/C04/M14\",3]",
       "owner": "suite",
       "row": "M02/C02/C04/M14",
       "samples": [
         "contract/scan-incomplete/aresos log.notice-head",
         "contract/scan-incomplete/control_pending.notice-head",
-        "contract/scan-incomplete/mail catalogue.complete"
+        "contract/scan-incomplete/envelope.control_log.notice-head"
       ],
-      "sha256": "dab84c076bad83fa22d7c33a9e7d60a92e369b2633c9b8ab1c26b340e1c452a3",
+      "sha256": "71942d0f3e45309680b968d19c0181b417d5363b93153c6ffb2328bcf2508ca3",
+      "stage": 3,
+      "suite": "contract"
+    },
+    {
+      "count": 2,
+      "id": "[\"contract\",\"suite\",\"M02/C04\",3]",
+      "owner": "suite",
+      "row": "M02/C04",
+      "samples": [
+        "contract/scan-incomplete/envelope.mail_filing_locations.notice-count",
+        "contract/scan-incomplete/response.mail_filing_locations.status"
+      ],
+      "sha256": "0ddd380caf6e7cc64db378a85952601fd872362951cff495d2ec6684b140d4e0",
       "stage": 3,
       "suite": "contract"
     },
@@ -1904,21 +1917,21 @@
         "contract/restore-ack-before/R2.context-before-command",
         "contract/restore-after-False/R2.context-before-command"
       ],
-      "sha256": "40c2561106b9a9441be2c3d34a7d5980235248e38a5ed2c6458ecfe9d8d9a2f3",
+      "sha256": "6651ba1e258a08fdc4cde1a07d60576a850239b0d6139bd1eeea5f784ba5d4c8",
       "stage": 2,
       "suite": "contract"
     },
     {
-      "count": 20,
+      "count": 42,
       "id": "[\"contract\",\"suite\",\"M03/C03/M14\",3]",
       "owner": "suite",
       "row": "M03/C03/M14",
       "samples": [
         "contract/restore-after-False/aresos log.notice-head",
         "contract/restore-after-False/control_pending.notice-head",
-        "contract/restore-after-False/mail catalogue.complete"
+        "contract/restore-after-False/envelope.control_log.notice-head"
       ],
-      "sha256": "ed728ada6981b0296bb04b657adf98d6f3a5ef8320bb5706fc54a14d0cf0be08",
+      "sha256": "6cec918df0720c5526b13027e50503b1854e6baf84e9f6134af2963935e02f9f",
       "stage": 3,
       "suite": "contract"
     },
@@ -1930,19 +1943,20 @@
       "samples": [
         "contract/quiet-delete_permanent/R2.context-before-command"
       ],
-      "sha256": "ceb28c101f69ec30d3b7b630e1062669c9f1443132c68ac7e64c695651c8bf40",
+      "sha256": "49b6a1b8d7eb4c934f49cd1213811a27df60e88795fb22df1bdbd3defcdcf4c2",
       "stage": 2,
       "suite": "contract"
     },
     {
-      "count": 1,
+      "count": 2,
       "id": "[\"contract\",\"suite\",\"M04,M04/M05,M04/M05/M12,M04/M12,M05/M12\",2]",
       "owner": "suite",
       "row": "M04,M04/M05,M04/M05/M12,M04/M12,M05/M12",
       "samples": [
+        "contract/qualification-probes-restart/R2.context-before-command",
         "contract/qualification-probes/R2.context-before-command"
       ],
-      "sha256": "1a90b6f40a64a5a6b171d6c734f55a59ff6a20380023c37dc54fa6dc778b4eb7",
+      "sha256": "b924ba9fcefac916a148441a9fce40ec7622373fd8e4c54dc046ec23543765ac",
       "stage": 2,
       "suite": "contract"
     },
@@ -1955,7 +1969,7 @@
         "contract/legacy-finished-send/R2.context-before-command",
         "contract/quiet-send/R2.context-before-command"
       ],
-      "sha256": "f301dda3f04c3cc122b0c6e772c9534f9b5f89cbd6a9b286f13bee74182b861c",
+      "sha256": "8ca1cb8e31722c5411a7914c0b8f68f132c35a142daa748519ed3926253d1c5f",
       "stage": 2,
       "suite": "contract"
     },
@@ -1968,7 +1982,7 @@
         "contract/mixed-app-lost-reply/R2.context-before-command",
         "contract/mixed-app-restart/R2.context-before-command"
       ],
-      "sha256": "28740d620bac8838fb0dcfa383e9bffa69a9fce23568ba99aaa863196d7b6ff4",
+      "sha256": "4bb6ecbdb3cc98bb3ea993b3c3ab70ed4e35cbf37bf4ff8e35ca3703a84de68f",
       "stage": 2,
       "suite": "contract"
     },
@@ -1980,35 +1994,49 @@
       "samples": [
         "contract/qualification-protected-roles/R2.context-before-command"
       ],
-      "sha256": "026d083e1155fe909b3c0023eea989bc7b1abe9283d80f8be0a1b548bd7150c4",
+      "sha256": "664a4aaadaa524245f20f6cdd1550ae7c1a72e7e92fd2e7518185febdc558471",
       "stage": 2,
       "suite": "contract"
     },
     {
-      "count": 33,
+      "count": 76,
       "id": "[\"contract\",\"suite\",\"M06\",3]",
       "owner": "suite",
       "row": "M06",
       "samples": [
         "contract/mixed-app-lost-reply/aresos log.notice-head",
         "contract/mixed-app-lost-reply/control_pending.notice-head",
-        "contract/mixed-app-lost-reply/passive.notice-head"
+        "contract/mixed-app-lost-reply/envelope.control_log.notice-head"
       ],
-      "sha256": "3eda550962c202929dba6a528d83dec1c8397b1312c4ba082a0e377e0e187213",
+      "sha256": "89eb962fefae548d1a0418fd68c7234aa80a8ed2a6977b49369f39deca6950e9",
       "stage": 3,
       "suite": "contract"
     },
     {
-      "count": 37,
+      "count": 3,
+      "id": "[\"contract\",\"suite\",\"M12/C05\",3]",
+      "owner": "suite",
+      "row": "M12/C05",
+      "samples": [
+        "contract/qualification-probes-restart/qualification.mail_accounts",
+        "contract/qualification-probes/qualification.mail_account_add",
+        "contract/qualification-probes/qualification.mail_accounts"
+      ],
+      "sha256": "226b191029df2a7ac338c39d7157cbbc534e9b8e34ee43e62a015d76d9a52cb8",
+      "stage": 3,
+      "suite": "contract"
+    },
+    {
+      "count": 215,
       "id": "[\"contract\",\"suite\",\"M14\",3]",
       "owner": "suite",
       "row": "M14",
       "samples": [
-        "contract/mixed-app-lost-reply/aresos log.notice-count",
-        "contract/mixed-app-lost-reply/control_pending.notice-count",
-        "contract/mixed-app-lost-reply/passive.notice-count"
+        "contract/admission-restored-send/envelope.control_log.pending-head",
+        "contract/admission-restored-send/envelope.control_log.pending-total",
+        "contract/admission-restored-send/envelope.control_pending.pending-head"
       ],
-      "sha256": "9a8fea629cb72c6b19b9874a8cef45ef267b12a02ff1b2ed0d7e9a3157514da4",
+      "sha256": "db9dd524234bcb5eca76990f57b1a600d4b3b002eda52a84f25766b353743098",
       "stage": 3,
       "suite": "contract"
     },
