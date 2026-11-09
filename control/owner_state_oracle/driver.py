@@ -40,9 +40,11 @@ class Driver:
     @contextmanager
     def observe(self, faults=None, delivered=True):
         s, f, oracle = self.scenario, self.scenario.fixture, self.oracle
-        if not hasattr(s, 'owner_oracle') or getattr(s, 'flow', '') in {'expiry', 'maintenance'} or getattr(s, 'flow', '').startswith('restart_'):
-            oracle.call(s.action, s.args, time.time(), {'mode': faults.mode, 'at': faults.fail_at,
-                        'cleanup': faults.cleanup_at} if faults else {})
+        previous_call = getattr(oracle, 'active_call', None)
+        oracle.call(s.action, s.args, time.time(), {'mode': faults.mode, 'at': faults.fail_at,
+                    'cleanup': faults.cleanup_at} if faults else {})
+        self.call_index = len(oracle.script) - 1
+        oracle.active_call = oracle.call_id
         # Command logs are memory-only. Reading their context cannot itself hit
         # an injected write or make an owner warning appear in production.
         uid, listing, select = f.imap.uid, f.imap.list, f.imap.select
@@ -79,7 +81,7 @@ class Driver:
                 raw = b' '.join(value for value in answer[1] or [] if value)
                 match = re.fullmatch(rb'([1-9]\d*) ([1-9]\d*) ([1-9]\d*)', raw)
                 for event in reversed(oracle.servers):
-                    if event['command'] in {'MOVE', 'COPY'} and event['call'] == oracle.call_id and 'copyuid_delivered' not in event:
+                    if event['command'] in {'MOVE', 'COPY'} and event['call'] == (getattr(oracle, 'active_call', None) or oracle.call_id) and 'copyuid_delivered' not in event:
                         event['copyuid_delivered'] = bool(match)
                         if match:
                             ref = next((ref for ref in event['identities'] if ref['uid'] == int(match[2])), {})
@@ -177,12 +179,13 @@ class Driver:
              patch.object(f.imap, 'select', side_effect=selected), patch.object(f.mail, 'append', side_effect=appended):
             yield
         if faults:
-            oracle.script[-1]['faults']['trace'] = list(faults.failures)
+            oracle.script[self.call_index]['faults']['trace'] = list(faults.failures)
+        oracle.active_call = previous_call
 
     def reply(self, reply, delivered=True):
         if not hasattr(self, 'call_reply'):
             self.call_reply = copy.deepcopy(reply)
-        self.oracle.reply(reply, delivered)
+        self.oracle.script[self.call_index].update(reply='delivered' if delivered else 'lost', result=copy.deepcopy(reply))
 
     def compare(self, check=None):
         f = self.scenario.fixture
@@ -211,6 +214,29 @@ class Driver:
         checker('R2.context-before-command', set(), self.oracle.context_errors())
         checker('completion', set(), self.oracle.completion_errors(self.snapshot()))
         compare_views(read, self.oracle, self.snapshot, checker, ordinary='testapp_list' if getattr(self.scenario, 'flow', '').startswith('testapp_') else 'mail_accounts')
+        # Only after warning preservation has been checked on every view may
+        # operation_status fetch evidence. Its committed approval/stages must be
+        # exposed exactly, including recipients bound in the approval.
+        for key, operation in list(self.snapshot().rows.items()):
+            if not key.startswith('op:'):
+                continue
+            result = read(operation['app'] + '_operation_status', {'operation_id': operation['id']})
+            committed = self.snapshot().rows.get(key, operation)
+            actual = result.get('data', {}).get('operation', {})
+            for field in ('approval', 'stages', 'state'):
+                wanted = committed.get(field)
+                got = actual.get(field)
+                def differences(left, right, path=''):
+                    if isinstance(left, dict) and isinstance(right, dict):
+                        return [child for name in sorted(left.keys() | right.keys()) for child in
+                            differences(left.get(name), right.get(name), path + '/' + (name.split(':', 1)[0] + ':*' if ':' in name else name))]
+                    if isinstance(left, list) and isinstance(right, list):
+                        return [child for index in range(max(len(left), len(right))) for child in
+                            differences(left[index] if index < len(left) else None, right[index] if index < len(right) else None, path + '/' + str(index))]
+                    return [] if left == right else [path or '/']
+                checker('operation-' + field, {Fact(key, field, detail='committed')},
+                    {Fact(key, field, detail='committed')} if actual and wanted == got else
+                    {Fact(key, field + '.mismatch', detail=canonical(differences(wanted, got)))} if actual else set())
         for occurrence, (source, expected) in self.oracle.location_evidence.items():
             actual, fragments, available = [], {}, True
             for page in pages(read, 'mail_filing_locations', {'filing_id': occurrence}):

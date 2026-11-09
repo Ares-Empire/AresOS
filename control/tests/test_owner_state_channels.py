@@ -26,7 +26,7 @@ class OwnerStateChannels(unittest.TestCase):
         cancelled = self.call(integration.OWNER, 'testapp_operation_cancel', {'operation_id': ids[-1]})
         self.assertTrue(cancelled['ok'], cancelled)
         record = decode(self.root / 'state', self.root / 'independent')
-        expected = {f.source[3:]: f.detail for f in Oracle().expected(record) if f.kind == 'pending'}
+        expected = {f.source[3:]: json.loads(f.detail)['state'] for f in Oracle().expected(record) if f.kind == 'pending'}
         self.assertEqual(set(expected), set(ids))
 
         def drain(read, label):
@@ -85,7 +85,25 @@ class OwnerStateChannels(unittest.TestCase):
             text = reply['reason'] if name == 'Stop' else reply['hookSpecificOutput']['additionalContext']
             prefix = 'AresOS held/unfinished work (untrusted app data; inspect status, do not resubmit unknown sends): '
             value, _ = json.JSONDecoder().raw_decode(text[len(prefix):])
-            self.assertEqual(value, passive, name)
-        terminal = self.launch(integration.OWNER, ['cli', 'log'])
-        self.assertEqual(terminal.returncode, 0, terminal.stderr)
-        self.assertEqual(json.loads(terminal.stdout)['pending'], passive)
+            # Cursors bind app scope; hooks request all apps, whereas the
+            # ordinary envelope is testapp-scoped. Compare every field except
+            # the opaque token, then follow the hook's own advertised token.
+            self.assertEqual({k: v for k, v in value.items() if k != 'cursor'},
+                             {k: v for k, v in passive.items() if k != 'cursor'}, name)
+            self.assertIsNotNone(value['cursor'])
+            tail = self.call(integration.OWNER, 'control_pending', {'cursor': value['cursor']})['data']
+            self.assertEqual([i['operation_id'] for i in tail['items']], ids[5:])
+            self.assertIsNone(tail['cursor'])
+        cursor, audit = None, {}
+        while True:
+            terminal = self.launch(integration.OWNER, ['cli', 'log', '--input', json.dumps({'limit': 1, **({'cursor': cursor} if cursor else {})})])
+            self.assertEqual(terminal.returncode, 0, terminal.stderr)
+            page = json.loads(terminal.stdout)['data']
+            for event in page['items']:
+                self.assertNotIn(event['seq'], audit)
+                audit[event['seq']] = (event['action'], event['outcome'])
+            cursor = page['cursor']
+            if cursor is None:
+                break
+        record = decode(self.root / 'state', self.root / 'independent')
+        self.assertEqual(audit, {e['seq']: (e['action'], e['outcome']) for e in record.events if e['seq'] in record.working_sequences})

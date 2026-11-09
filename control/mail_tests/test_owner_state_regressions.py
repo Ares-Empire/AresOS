@@ -102,7 +102,7 @@ class ReviewRegressions(unittest.TestCase):
         reply = self.call('compose', {'account': 'box', 'to': ['peer@mail.invalid'], 'text': 'healthy local write'})
         oracle.reply(reply)
         self.known_gap('G22-latch',
-            {Fact('request', 'allowed')}, {Fact('request', 'allowed' if reply['ok'] else reply['error']['code'])})
+            oracle.request_state(decode(self.root / 'state', self.root / 'evidence'), oracle.script[-1]), {Fact('request', 'allowed' if reply['ok'] else reply['error']['code'])})
 
     # These remain named regression tests (not expected failures), and the
     # independent sweep separately exercises their operations/views.

@@ -38,7 +38,7 @@ def notice_facts(notice, record, oracle):
 
 
 def pending_facts(page):
-    return {Fact('op:' + row['operation_id'], 'pending', detail=row['state']) for row in page.get('items', [])}
+    return {Fact('op:' + row['operation_id'], 'pending', detail=canonical({'state': row['state'], 'reason': row.get('reason')})) for row in page.get('items', [])}
 
 
 def pages(read, action, arguments=None, section='data'):
@@ -67,7 +67,7 @@ def source_order(record, source):
 def ordered_pending(record, expected, app=None):
     return sorted((f for f in expected if f.kind == 'pending' and
                    (app is None or record.rows.get(f.source, {}).get('app') == app)),
-                  key=lambda f: (*source_order(record, f.source), f.source))
+                  key=lambda f: (source_order(record, f.source)[0], f.source))
 
 
 def ordered_notices(record, expected, app=None):

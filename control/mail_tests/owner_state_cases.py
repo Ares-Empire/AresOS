@@ -10,6 +10,7 @@ from unittest.mock import patch
 
 from aresos_control.common import Refused
 from aresos_control.engine import Engine
+from aresos_control.mail.dkim import verify_one_click as verify_dkim
 from owner_state_oracle.driver import Driver
 from owner_state_oracle.model import Fact
 from owner_state_oracle.records import canonical
@@ -51,6 +52,16 @@ def run(gaps):
             assert not reply['pending'].get('notices'), reply
             compare(s, d, 'quiet-' + flow)
             assert not [f for f in d.oracle.expected(d.snapshot()) if f.kind not in {'pending'}]
+            if flow == 'send':
+                key = 'op:' + s.operation_id
+                old = copy.deepcopy(d.snapshot().rows[key])
+                for field in ('context', 'sent_copy_check', 'warning_checks'):
+                    old.pop(field, None)
+                f.engine.store.write({key: old}, 'fixture', 'Documented finished legacy operation')
+                f.engine.close()
+                s.bind(Engine(f.root / 'state', f.root / 'evidence'))
+                compare(s, d, 'legacy-finished-send')
+                assert not [fact for fact in d.oracle.expected(d.snapshot()) if fact.kind != 'pending']
         finally:
             s.close()
 
@@ -298,14 +309,13 @@ def run(gaps):
     try:
         f, d = s.fixture, Driver(s)
         from aresos_control.mail.transport import Transport
-        from aresos_control.mail.dkim import verify_one_click
         def tls_refusal():
             with Transport.smtp(f.mail.transport, {'smtp_tls': 'plaintext'}):
                 raise AssertionError('Plain SMTP must never open')
-        private = f.engine.blobs.put(b'Synthetic private composition', origin='composition')
+        private = f.engine.blobs.put(b'Synthetic private composition', origin='composition_part')
         cases = [('credentials', lambda: f.mail.transport.password({'id': 'missing'}), 'account_password'),
                  ('tls', tls_refusal, 'refused'),
-                 ('dkim', lambda: verify_one_click(f.imap.raw), 'unsubscribe_authentication'),
+                 ('dkim', lambda: verify_dkim(f.imap.raw), 'unsubscribe_authentication'),
                  ('provenance', lambda: f.engine.blobs.require_origin(private, 'export'), 'file_refused')]
         for family, action, code in cases:
             d.oracle.call('fixture-' + family, {}, time.time(), {'fault': family})
@@ -325,5 +335,55 @@ def run(gaps):
         assert not result['ok'] and result['error']['code'] == 'unsupported_server', result
         f.imap.capabilities = capabilities
         compare(s, d, 'refusal-capability')
+    finally:
+        s.close()
+
+    for acknowledged in (False, True):
+        s = OwnerScenario('filing_rename')
+        gaps.aliases = {}
+        try:
+            f, d = s.fixture, Driver(s)
+            import sqlite3
+            from contextlib import closing
+            backup = f.root / 'older.sqlite'
+            with closing(sqlite3.connect(backup)) as db:
+                f.engine.store.db.backup(db)
+            with d.observe():
+                result = s.call()
+            d.reply(result)
+            assert result['ok'] and s.remote['RENAME'] == 1
+            compare(s, d, 'restore-before-' + str(acknowledged))
+            occurrence = next(fact.occurrence for fact in d.oracle.expected(d.snapshot()) if fact.kind == 'rename')
+            if acknowledged:
+                f.data('notice_ack', {'operation_id': occurrence})
+                compare(s, d, 'restore-ack-before')
+            f.engine.close()
+            (f.root / 'state/control.sqlite').write_bytes(backup.read_bytes())
+            s.bind(Engine(f.root / 'state', f.root / 'evidence'))
+            assert f.engine.store.locked
+            confirmed = f.engine.request({'v': 1, 'method': 'call', 'action': 'control_restore_confirm',
+                'arguments': {'confirm': 'invalidate earlier approvals'}}, True)
+            assert confirmed['ok'], confirmed
+            compare(s, d, 'restore-after-' + str(acknowledged))
+            assert s.remote['RENAME'] == 1
+        finally:
+            s.close()
+
+    s = OwnerScenario('send')
+    gaps.aliases = {}
+    try:
+        f, d = s.fixture, Driver(s)
+        f.imap.roles['Trash'], f.imap.roles['Target'] = [], ['\\Trash']
+        review = f.engine.request({'v': 1, 'method': 'call', 'action': 'mail_account_folders', 'arguments': {'id': 'box'}}, True)
+        assert review['ok'], review
+        recorded = f.engine.request({'v': 1, 'method': 'call', 'action': 'mail_account_folders',
+            'arguments': {'id': 'box', 'roles_hash': review['data']['roles_hash']}}, True)
+        assert recorded['ok'], recorded
+        ref = {'account': 'box', 'folder': 'Source', 'uidvalidity': f.imap.validities['Source'], 'uid': 1, 'message_id': f.imap.mid}
+        refused = f.call('move', {'references': [ref], 'target': 'Trash'})
+        assert not refused['ok'] and refused['error']['code'] == 'refused', refused
+        assert not s.remote, s.remote
+        assert d.snapshot().rows['mail:account:box']['protected_special']['trash']
+        compare(s, d, 'qualification-protected-roles')
     finally:
         s.close()

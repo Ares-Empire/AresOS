@@ -196,3 +196,37 @@ class OwnerOracle(unittest.TestCase):
         record = Record(rows={'notice:a': {'id': 'a', 'source_key': 'mail:rename:r', 'check_kind': 'rename', 'evidence_fingerprint': fingerprint(a)},
                               'notice:b': {'id': 'b', 'source_key': 'mail:rename:r', 'check_kind': 'rename', 'evidence_fingerprint': fingerprint(b)}})
         self.assertEqual(oracle.warning('mail:rename:r', 'rename', a, record).occurrence, 'a')
+
+    def test_cached_refusal_mutation_uses_script_and_committed_transaction_state(self):
+        oracle = Oracle()
+        oracle.call('mail_compose', {}, 1, {'admission': 'full'})
+        self.assertEqual(oracle.request_state(Record(), oracle.script[-1]), {Fact('request', 'storage_limit')})
+        oracle.call('mail_compose', {}, 2, {})
+        expected = oracle.request_state(Record(), oracle.script[-1])
+        with self.assertRaises(AssertionError):
+            oracle.compare('cached refusal mutation', expected, {Fact('request', 'storage_limit')})
+
+    def test_working_check_closed_without_committed_result_cannot_change_expectations(self):
+        state, evidence = self.disk()
+        with closing(sqlite3.connect(state / 'control.sqlite')) as db:
+            event = json.loads(db.execute('SELECT value FROM events').fetchone()[0])
+            event['set']['mail:rename:r'] = {'id': 'r', 'state': 'started', 'account': 'box'}
+            db.execute('UPDATE events SET value=?', (canonical(event),))
+            db.execute('CREATE TABLE kv(k TEXT,v TEXT)')
+            db.execute('INSERT INTO kv VALUES (?,?)', ('mail:rename:r', canonical({'id': 'r', 'state': 'done', 'check_open': False})))
+            db.commit()
+        oracle = Oracle()
+        expected = oracle.expected(decode(state, evidence))
+        self.assertIn(Fact('mail:rename:r', 'recovery'), expected)
+        with self.assertRaises(AssertionError):
+            oracle.compare('premature check closure', expected, set())
+
+    def test_wrong_passive_page_is_not_masked_by_healthy_pending_view(self):
+        from owner_state_oracle.compare import compare_views
+        oracle = Oracle()
+        record = Record(rows={'op:a': {'id': 'a', 'app': 'mail', 'state': 'reserved'},
+                              'op:b': {'id': 'b', 'app': 'mail', 'state': 'reserved'}})
+        def read(action, args):
+            return {'ok': True, 'pending': {'items': [{'operation_id': 'WRONG', 'state': 'reserved'}], 'total': 2, 'cursor': None}}
+        with self.assertRaises(AssertionError):
+            compare_views(read, oracle, lambda: record, oracle.compare)

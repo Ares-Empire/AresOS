@@ -25,15 +25,20 @@ EXTRA = ('draft_append', 'folder_create', 'folder_delete', 'onboarding', 'flag',
 
 class OwnerScenario(Scenario):
     def __init__(self, flow):
+        self.test_clock = 1794225600.0
+        self.clock_patch = patch('time.time', side_effect=lambda: self.test_clock)
+        self.clock_patch.start()
         self.owner_oracle = Oracle()
         request = Engine.request
         def scripted(engine, envelope, *args, **kwargs):
             from storage_faults import ACTIVE
             fault = ACTIVE
+            self.test_clock += 0.001
             clock = time.time()
-            self.owner_oracle.call(envelope.get('action', envelope.get('method')), envelope.get('arguments', {}), clock,
+            self.owner_oracle.call(envelope.get('action', envelope.get('method')), envelope.get('arguments', {key: value for key, value in envelope.items() if key not in {'v', 'password'}}), clock,
                 {'mode': fault.mode, 'at': fault.fail_at, 'cleanup': fault.cleanup_at} if fault else {})
             index = len(self.owner_oracle.script) - 1
+            self.owner_oracle.script[index]['parent'] = getattr(self.owner_oracle, 'active_call', None)
             try:
                 reply = request(engine, envelope, *args, **kwargs)
             except BaseException:
@@ -49,6 +54,7 @@ class OwnerScenario(Scenario):
             super().__init__('send' if flow in EXTRA else flow)
         except BaseException:
             self.script_patch.stop()
+            self.clock_patch.stop()
             raise
         self.stack.callback(self.script_patch.stop)
         from owner_state_oracle.transcript import Transcript
@@ -132,6 +138,12 @@ class OwnerScenario(Scenario):
                 arguments = {'references': [listing['items'][0]['reference']]}
             approval = f.engine.request({'v': 1, 'method': 'call', 'action': 'testapp_prepare_' + verb, 'arguments': arguments})['data']['approval']
             self.action, self.args, self.operation_id = 'testapp_' + verb, approval, approval['operation_id']
+
+    def close(self):
+        try:
+            super().close()
+        finally:
+            self.clock_patch.stop()
 
     def call(self):
         if self.flow == 'onboarding':

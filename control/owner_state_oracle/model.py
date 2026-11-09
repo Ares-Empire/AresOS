@@ -27,10 +27,10 @@ class Oracle:
         self.location_evidence = {}
         self.open_occurrences = {}
 
-    def call(self, action, arguments, clock, faults=()):
+    def call(self, action, arguments, clock, faults=None):
         self.call_id += 1
         self.script.append({'call': self.call_id, 'action': action, 'arguments': copy.deepcopy(arguments),
-                            'clock': clock, 'faults': copy.deepcopy(faults), 'reply': 'pending'})
+                            'clock': clock, 'faults': copy.deepcopy(faults or {}), 'reply': 'pending'})
         return self.call_id
 
     def reply(self, value, delivered=True):
@@ -38,7 +38,7 @@ class Oracle:
 
     def server(self, command, account=None, folder=None, identities=(), roles=None,
                accepted=True, reply='delivered', **extra):
-        event = {'call': self.call_id, 'command': command, 'account': account, 'folder': folder,
+        event = {'call': getattr(self, 'active_call', None) or self.call_id, 'command': command, 'account': account, 'folder': folder,
                  'identities': copy.deepcopy(list(identities)), 'roles': copy.deepcopy(roles),
                  'accepted': accepted, 'reply': reply, **copy.deepcopy(extra)}
         self.servers.append(event)
@@ -91,7 +91,7 @@ class Oracle:
             if key.startswith('op:'):
                 if app is None or row['app'] == app:
                     if row['state'] in {'reserved', 'submitting', 'partial', 'unknown'} or (row.get('notice') and 'operation:' + row['id'] not in self.acknowledged):
-                        facts.add(Fact(key, 'pending', detail=row['state']))
+                        facts.add(Fact(key, 'pending', detail=canonical({'state': row['state'], 'reason': row.get('reason')})))
                 if row['state'] in {'submitting', 'unknown', 'partial'} and (app is None or row['app'] == app):
                     facts.add(Fact(key, 'recovery'))
                 check = row.get('sent_copy_check', {})
@@ -202,6 +202,15 @@ class Oracle:
             result.append({'source': item['source'], 'last_known_destination': destination,
                            'observed_locations': sorted(found, key=canonical), 'scan_complete': scan_complete})
         return sorted(result, key=canonical)
+
+    def request_state(self, record, call):
+        if record.locked:
+            return {Fact('request', 'restore_required')}
+        if record.prepared or len(record.fences) > max(record.committed, default=0):
+            return {Fact('request', 'journal_incomplete')}
+        if call.get('faults', {}).get('admission') == 'full':
+            return {Fact('request', 'storage_limit')}
+        return {Fact('request', 'allowed')}
 
     def holds(self, record):
         keys = set()
