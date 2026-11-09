@@ -85,3 +85,22 @@ and qualification reasons require correlated delivered replies and ordered
 commands/commits/faults. `StageOneRoundTwo` adds breaking mutations and positive
 controls for these cases, terminal/stage claims, metadata and decoder history.
 The exhaustive production-field audit is in REPORT.md's round-2 table.
+
+## Stage 1 round 3 structural checks
+
+All rows also run through the monotonic source/kind obligation registry and the
+single `resolutions.RESOLUTIONS` allowlist (`FORMAT.md` lists required proofs
+and permitted discharges). The systematic test records all 52 focused contract
+states, all named review-20/21/22 regressions, and sweep samples covering every
+mode. It mutates every boolean/state/effect/hash field, every row/version and
+committed sequence, and restore markers, requiring a new difference or exactly
+unchanged expectations (including holds and qualification).
+
+| Coverage | Added direct protection |
+| --- | --- |
+| M04, M05, C02 | Initial payload and completion against every scripted approved effect; exact deletion targets, recipients, folder and repair stage |
+| M06, M10 | Total state transition gate; unsupported `reserved → refused` and `unknown → reserved`; holds/recovery survive rollback to an existing older row |
+| M09, M14 | Bounded restore intervals, independently observed historical presence/content, explicit scripted legacy fixture inputs, and later missing-sequence rejection |
+| M12/C05 | Incomplete-account recovery through restore/deletion until corroborated onboarding completion |
+| M02/C02/C04/M14 | Source hashes from pre-command message bytes and independently logged destinations; coherent false-hash/false-location disclosure rejected |
+| C01–C05, all warning rows | Latest raw evidence and a matching result commit select clean epochs; warning/clean flags are compared claims. Acknowledgements and unrelated commits cannot close checks |

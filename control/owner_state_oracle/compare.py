@@ -1,9 +1,8 @@
 """Read each public surface in isolation; drain and validate its own pages."""
 import json
 import re
-import unicodedata
 from .model import Fact
-from .records import canonical, fingerprint
+from .records import canonical, fingerprint, visible
 
 
 def notice_facts(notice, record, oracle):
@@ -161,16 +160,6 @@ def count_fact(value):
     return {Fact('catalogue', 'count', detail=str(value))}
 
 
-def visible(value):
-    if isinstance(value, str):
-        return ''.join('\\u%04x' % ord(c) if unicodedata.category(c) in {'Cc', 'Cf', 'Cs', 'Zl', 'Zp'} else '\\\\' if c == '\\' else c for c in value)
-    if isinstance(value, dict):
-        return {visible(k): visible(v) for k, v in value.items()}
-    if isinstance(value, list):
-        return [visible(v) for v in value]
-    return value
-
-
 def audit_fact(event, expected=False):
     entry = {k: event.get(k) for k in ('seq', 'time', 'action', 'summary', 'outcome', 'operation_id')}
     content = event.get('untrusted_content')
@@ -197,6 +186,7 @@ def compare_status(reply, oracle, record, call, check, label):
 
 
 def compare_envelope(label, reply, record, oracle, expected, check, app=None):
+    record = oracle.projection(record)
     check(label + '.present', {Fact('response', 'pending-envelope')},
           {Fact('response', 'pending-envelope')} if isinstance(reply.get('pending'), dict) else set())
     page = reply.get('pending', {})
@@ -209,6 +199,7 @@ def compare_envelope(label, reply, record, oracle, expected, check, app=None):
 
 
 def notice_head(label, page, record, oracle, expected, check):
+    record = oracle.projection(record)
     wanted = ordered_notices(record, expected)
     actual = [fact for n in page.get('notices', []) for fact in notice_facts(n, record, oracle)]
     check(label + '.restore-lock', {Fact('restore', 'locked', detail=str(record.locked))},
@@ -244,6 +235,7 @@ def compare_views(read, oracle, snapshot, check, ordinary='mail_accounts'):
         for number, page in enumerate(pages(read, action)):
             record = snapshot()
             expected = oracle.expected(record, live=True, app='mail' if action == 'mail_filing_notices' else None)
+            record = oracle.projection(record)
             if page.get('page_changed'):
                 offset, seen = 0, []
             wanted = ordered_notices(record, expected, app='mail' if action == 'mail_filing_notices' else None)
@@ -259,6 +251,7 @@ def compare_views(read, oracle, snapshot, check, ordinary='mail_accounts'):
 
     record = snapshot()
     expected = oracle.expected(record)
+    record = oracle.projection(record)
     reply = read(ordinary, {})
     page = reply.get('pending', {})
     wanted = ordered_pending(record, expected, app=ordinary.split('_', 1)[0])
@@ -272,6 +265,7 @@ def compare_views(read, oracle, snapshot, check, ordinary='mail_accounts'):
             continuation = read('control_pending', args).get('data', {})
             record = snapshot()
             fresh = oracle.expected(record, live=True)
+            record = oracle.projection(record)
             wanted = ordered_pending(record, fresh, app=ordinary.split('_', 1)[0])
             # No pending membership/state changed between the envelope and
             # this continuation; a scope mismatch must not pretend it did.
@@ -295,6 +289,7 @@ def compare_views(read, oracle, snapshot, check, ordinary='mail_accounts'):
         for page in pages(read, action, {'limit': 1 if action == 'control_pending' else 5}):
             record = snapshot()
             expected = oracle.expected(record, live=True)
+            record = oracle.projection(record)
             if page.get('page_changed'):
                 offset, seen, audit_seen = 0, [], []
             if action == 'control_pending':

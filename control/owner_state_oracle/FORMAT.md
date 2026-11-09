@@ -63,3 +63,75 @@ archives or explicit restore history (whose transition is validated against the
 script). The owner archive fixture ages its actual commits by advancing the test
 clock. It never rewrites their timestamps. The pre-fault fixture history is an
 explicit starting-state input; post-seed stage/outcome claims need raw evidence.
+
+## Stage 1 round 3: obligations and resolution authority
+
+The script's approvals select the full effect plan, including every target,
+recipient, flag operation and destination. Raw pre-command message identities
+carry the source byte hashes. Production payloads, hashes, states, flags and
+presence/absence are claims to compare, never a smaller plan. Fixture history
+before `Driver.seed_sequence` is an explicit, frozen starting-state input;
+changing that input is a difference. Runtime commits are validated against the
+script, fault trace, raw server evidence and independent fence order.
+
+`Oracle.obligations` retains each open source and obligation kind with its
+establishment sequence. `retain_obligations` requires a corroborated resolution
+from the table below before removing a kind, including through rollback to an
+older *present* row. Unsupported resolutions report lifecycle differences and
+preserve the obligation's fields. Occurrences and qualification observations
+remain separate retained evidence; action completion and clean checks cannot
+acknowledge occurrences. The table is `resolutions.RESOLUTIONS`; its `ends`
+column is also executable, so adding a new production state cannot silently
+resolve an obligation.
+
+| Resolution kind | Independent corroboration required | Obligations it may end |
+| --- | --- | --- |
+| acknowledgement | Exact scripted occurrence/operation identity; matching acknowledgement commit within that call | That occurrence, terminal operation notice, or explicitly acknowledged generic intent |
+| submission | Scripted full approval; matching submission commit order | Reservation cancellation hold |
+| completion | Scripted approval; every approved effect accepted with the exact identities/recipients; result committed after effects | Approved work, operation recovery, cancellation/settlement holds |
+| failure | Correlated injected fault or failed/lost server reply; result commit order | Approved work, operation recovery and associated holds |
+| uncertainty | Correlated attempt/fault; commit order | Cancellation hold; recovery remains |
+| clean_check | Independently clean raw evidence; matching result committed after the read in the same call | Open check / unchecked notice; occurrences remain |
+| check_result | Raw server result; matching result commit order | Open check / unchecked notice; occurrences remain |
+| cancellation | Exact scripted operation; previously reserved; cancellation commit order | Approved work and cancellation hold; creates an acknowledgement obligation |
+| expiry | Scripted clock reaches validated reservation expiry; previously reserved; expiry commit order | Approved work and cancellation hold; creates an acknowledgement obligation |
+| settlement | Exact scripted repair identity; read-only absence evidence; settlement commit order | Approved work, operation recovery, settlement hold |
+| restore | Scripted confirmation; bounded rollback interval; independent commit order | None |
+| archive | Scripted archive; no remaining obligation; qualified archive manifest; commit order | None (already resolved history only) |
+| onboarding_completion | Scripted account identity; delivered probe evidence; onboarding completion commit order | Incomplete-account recovery |
+| intent_completion | Scripted action; correlated effect/reply; result commit order | Generic intent recovery |
+| export_publication | Scripted saved export identity; publication evidence or correlated refusal; commit order | Export recovery and publication hold |
+
+A restore interval ends strictly before its restore commit, and begins after the
+last present preceding event. It explains only missing sequences within that
+interval. A marker at sequence 1 cannot explain a later missing sequence 2.
+The decoder checks this even at the current head; the model additionally checks
+scripted restore authority. Archives remain hash-qualified, including recursive
+manifests. Decoded projections, compact fences and full event operation fields
+are compared; an arbitrary decoded flag cannot justify a different lock.
+
+`perturb.py` applies one mutation at a time to recorded contracts, all named
+review regressions, and sweep samples covering clean, single fault, persistent
+exhaustion, restored space, cleanup pairs and crash/restart. It flips every
+boolean, substitutes every other state in the state vocabulary, removes each
+row/version, drops each committed sequence, changes every effect identity,
+recipient, flag, hash and destination, and inserts a restore marker before each
+sequence. Projection-only and coherent event/projection lies both execute.
+Each mutation must introduce a specific difference or preserve the exact
+expected owner set (including holds and qualification). Existing baseline gaps
+cannot excuse a changed expectation: the test subtracts baseline differences.
+A deliberate broken-oracle self-test proves that this check can fail. Counts
+and scenario labels are printed in the Mail suite log, with `slipped=0` required.
+
+Explicit legacy/interrupted fixture writes made after driver construction use
+`Driver.fixture_input`: the test supplies and records their changes before the
+write. They are script inputs, not permission for arbitrary production `fixture`
+events. The model compares each such input to its correlated commit. Historical
+content is also compared against decoded observations captured before server
+commands; an observed row cannot subsequently vanish from its own history.
+
+Clean epochs are selected from the latest correlated raw evidence and a later
+source commit, once per read/result pair. `warning_checks[*].warning` and
+`sent_copy_check.clean` are compared claims; flipping them cannot select a new
+epoch or close a retained check. A later clean result still preserves every
+unacknowledged occurrence.

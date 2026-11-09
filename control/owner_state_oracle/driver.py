@@ -30,8 +30,10 @@ class Driver:
             # Fixture setup precedes the faulted script. Its explicitly seeded
             # history is input; subsequent transitions need recorded evidence.
             self.oracle.seed_sequence = max(self.record.committed, default=0)
+            self.oracle.seed_events = copy.deepcopy(self.record.events)
         self.context_start_sequence = max(self.record.committed, default=0)
         self.startup_sequence = max((fence['seq'] for fence in self.record.fences), default=0)
+        self.record.startup_sequence = self.startup_sequence
         self.record.locked |= any(seq <= self.startup_sequence for seq in self.record.unprepared_fences)
         self.errors = []
         self.envelopes = []
@@ -48,6 +50,7 @@ class Driver:
                 self.record = decode(f.root / 'state', f.engine.store.evidence_dir)
                 self._snapshot_key = key
             self.record.locked |= any(seq <= getattr(self, 'startup_sequence', 0) for seq in self.record.unprepared_fences)
+            self.record.startup_sequence = getattr(self, 'startup_sequence', 0)
             active = getattr(self.oracle, 'active_call', None)
             if ACTIVE is not None and active is not None:
                 point = len(ACTIVE.points)
@@ -57,6 +60,15 @@ class Driver:
         if hasattr(self, 'alias_callback'):
             self.alias_callback(self.record)
         return self.record
+
+    def fixture_input(self, changes, summary):
+        """Record a test's explicit legacy/interrupted input before writing it."""
+        self.oracle.call('fixture_input', {'changes': changes}, time.time())
+        index = len(self.oracle.script) - 1
+        self.oracle.script[index]['start_seq'] = max(self.snapshot().committed, default=0)
+        result = self.scenario.fixture.engine.store.write(changes, 'fixture', summary)
+        self.oracle.script[index].update(end_seq=max(self.snapshot().committed, default=0), reply='delivered')
+        return result
 
     def precommit(self):
         from storage_faults import ACTIVE

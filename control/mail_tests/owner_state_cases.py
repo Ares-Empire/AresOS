@@ -70,7 +70,7 @@ def run(gaps):
                 old = copy.deepcopy(d.snapshot().rows[key])
                 for field in ('context', 'sent_copy_check', 'warning_checks'):
                     old.pop(field, None)
-                f.engine.store.write({key: old}, 'fixture', 'Documented finished legacy operation')
+                d.fixture_input({key: old}, 'Documented finished legacy operation')
                 f.engine.close()
                 s.bind(Engine(f.root / 'state', f.root / 'evidence'))
                 compare(s, d, 'legacy-finished-send')
@@ -132,8 +132,8 @@ def run(gaps):
     gaps.aliases = {}
     try:
         f, d = s.fixture, Driver(s)
-        f.engine.store.write({'intent:old': {'id': 'old', 'action': 'mail_flag', 'app': 'mail', 'state': 'started'}},
-                             'fixture', 'Documented old context-free intent')
+        d.fixture_input({'intent:old': {'id': 'old', 'action': 'mail_flag', 'app': 'mail', 'state': 'started'}},
+                        'Documented old context-free intent')
         f.engine.close()
         s.bind(Engine(f.root / 'state', f.root / 'evidence'))
         compare(s, d, 'legacy-open-intent')
@@ -322,8 +322,8 @@ def run(gaps):
         for index in range(4):
             target, identity = 'Target' + str(index), 'rename-' + str(index)
             f.imap.boxes[target], f.imap.roles[target], f.imap.validities[target] = {}, ['\\Trash'] if index == 0 else [], 100 + index
-            f.engine.store.write({'mail:rename:' + identity: {'id': identity, 'state': 'started', 'account': 'box',
-                'source': 'Source', 'target': target, 'message_count': 1, 'roles_before': {}}}, 'fixture', 'Synthetic interrupted rename')
+            d.fixture_input({'mail:rename:' + identity: {'id': identity, 'state': 'started', 'account': 'box',
+                'source': 'Source', 'target': target, 'message_count': 1, 'roles_before': {}}}, 'Synthetic interrupted rename')
         compare(s, d, 'review21-four-renames-all-pages')
     finally:
         s.close()

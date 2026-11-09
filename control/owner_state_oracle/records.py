@@ -7,6 +7,7 @@ from pathlib import Path
 import sqlite3
 import shutil
 import tempfile
+import unicodedata
 
 
 def canonical(value):
@@ -15,6 +16,16 @@ def canonical(value):
 
 def fingerprint(value):
     return hashlib.sha256(canonical(value).encode()).hexdigest()
+
+
+def visible(value):
+    if isinstance(value, str):
+        return ''.join('\\u%04x' % ord(c) if unicodedata.category(c) in {'Cc', 'Cf', 'Cs', 'Zl', 'Zp'} else '\\\\' if c == '\\' else c for c in value)
+    if isinstance(value, dict):
+        return {visible(k): visible(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [visible(v) for v in value]
+    return value
 
 
 @dataclass
@@ -28,6 +39,70 @@ class Record:
     unprepared_fences: set = field(default_factory=set)
     generation: str = None
     locked: bool = False
+    restore_intervals: list = field(default_factory=list)
+    head: tuple = None
+    startup_sequence: int = 0
+
+
+def restore_intervals(events):
+    """A restore can explain only earlier holes, up to its old working head.
+
+    The restore fence is appended after the independent head. Its immediately
+    preceding *present* event bounds the working history that survived rollback.
+    Script validation is separate; a marker is never a wildcard for later loss.
+    """
+    intervals, present = [], []
+    for event in sorted(events, key=lambda e: e['seq']):
+        if event['action'] == 'control_restore_confirm' and (
+                event['set'].get('generation') or event['set'].get('restore_pending')):
+            lower = max(present, default=0)
+            intervals.append((lower + 1, event['seq'] - 1, event['seq']))
+        present.append(event['seq'])
+    return intervals
+
+
+def unexplained_sequences(record):
+    present = {event['seq'] for event in record.events}
+    explained = {seq for first, last, _ in restore_intervals(record.events)
+                 for seq in record.committed if first <= seq <= last}
+    return record.committed - present - explained
+
+
+def consistency_errors(record):
+    """Compare the decoded projection to its commits, including compact fences."""
+    errors, rows = [], {}
+    fences = {f['seq']: f for f in record.fences}
+    if record.head is not None:
+        seq, claimed_hash = record.head
+        expected_hash = fences.get(seq, {}).get('hash', '' if seq == 0 else None)
+        locked = bool(record.rows.get('restore_pending')) or bool(record.fences and (
+            seq != max(record.committed, default=0) or claimed_hash != expected_hash))
+        startup_lock = any(seq <= record.startup_sequence for seq in record.unprepared_fences)
+        if (locked or startup_lock) != record.locked:
+            errors.append(('restore', 'unjustified-lock', ''))
+    for seq in unexplained_sequences(record):
+        errors.append(('sequence:' + str(seq), 'missing-committed-history', ''))
+    for event in record.events:
+        seq = event['seq']
+        if record.committed and seq not in record.committed:
+            errors.append(('sequence:' + str(seq), 'uncommitted-event', ''))
+        fence = fences.get(seq)
+        if fence and event.get('record') != fence:
+            errors.append(('sequence:' + str(seq), 'changed-independent-fence', ''))
+        for op in (fence or {}).get('operations', []):
+            row = event['set'].get('op:' + op['id'])
+            if row is None or any(row.get(field) != op.get(field) for field in ('id', 'generation', 'input_hash', 'state')):
+                errors.append(('op:' + op['id'], 'changed-fenced-operation', str(seq)))
+        for key, value in event['set'].items():
+            if value is None:
+                rows.pop(key, None)
+            else:
+                rows[key] = value
+    if record.fences:
+        for key in rows.keys() | record.rows.keys():
+            if rows.get(key) != record.rows.get(key):
+                errors.append((key, 'changed-decoded-projection', ''))
+    return errors
 
 
 def decode(state, evidence):
@@ -71,6 +146,7 @@ def decode(state, evidence):
         with closing(sqlite3.connect(copied)) as db:
             events = [json.loads(v) for (v,) in db.execute('SELECT value FROM events ORDER BY seq')]
             head = db.execute('SELECT seq,hash FROM head WHERE id=1').fetchone()
+    result.head = head
     result.working_sequences = {event['seq'] for event in events}
     def valid_event(event):
         fence = fences.get(event['seq'])
@@ -108,8 +184,8 @@ def decode(state, evidence):
                         archived[old['seq']] = old
                         queue.append(old)
     result.events = sorted({e['seq']: e for e in [*archived.values(), *result.events]}.values(), key=lambda e: e['seq'])
-    restored = any(e['action'] == 'control_restore_confirm' and e['set'].get('generation') for e in result.events)
-    if head and head[0] == max(result.committed, default=0) and not restored and result.committed - {e['seq'] for e in result.events}:
+    result.restore_intervals = restore_intervals(result.events)
+    if head and head[0] == max(result.committed, default=0) and unexplained_sequences(result):
         raise ValueError('Committed history missing from working log and qualified archives')
     for event in result.events:
         for key, value in event['set'].items():
