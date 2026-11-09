@@ -45,6 +45,12 @@ if node os/ci/polkit-check.js "$control" os/ci/polkit-review.json "$out/polkit-w
 fi
 rm -rf "$control"
 echo 'The same check fails without the AresOS rule, as expected' | tee -a "$out/polkit.txt"
-cmp os/packages.lock.json "$out/manifest/packages.lock.json"
-cmp os/google-chrome.lock.json "$out/manifest/google-chrome.lock.json"
+# build.sh re-serializes the Fedora lock it verified, so compare content.
+python3 - "$out/manifest" <<'PY'
+import json, pathlib, sys
+manifest = pathlib.Path(sys.argv[1])
+for name in ('packages.lock.json', 'google-chrome.lock.json'):
+    assert json.loads((manifest / name).read_text()) == json.loads(pathlib.Path('os', name).read_text()), name
+print('Image manifest locks equal the reviewed locks')
+PY
 echo CHECK_BUILD_PASSED
