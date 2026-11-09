@@ -53,8 +53,8 @@ try {
   await nav('activation');await call('click',await target('Continue'));await delay(100);assert.equal(counts('activation'),0);console.log('GROUP 2 wrapped non-cancellable activation PASS: no delivery and never resumed');
   await nav('password');const view=JSON.stringify(await read());assert.doesNotMatch(view,/SENTINEL_PRIVATE_PASSWORD_20/);await call('click',await target('Show'));assert.doesNotMatch(JSON.stringify(await read()),/SENTINEL_PRIVATE_PASSWORD_20/);console.log('GROUP 7 password presence and show-password PASS');
   await nav('residual');const rows=await read();const unlabeled=rows.find(row=>row.expected.role==='button');await call('click',{reference:unlabeled.reference,expected:unlabeled.expected});await eventually(()=>counts('residual-click')===1,'residual fetch');console.log('GROUP 13 residual ordinary-click fetch OBSERVED, NOT HELD');
-  fs.writeFileSync('/out/smoke.json',JSON.stringify({passed:true,kind:'core smoke only',measurements:(await read()).length}));
-  console.log('Chrome fixture smoke PASS');
+  fs.writeFileSync('/out/smoke.json',JSON.stringify({core_smoke_passed:true,acceptance_complete:false,kind:'core smoke only',measurements:(await read()).length}));
+  console.log('Preliminary core smoke cases passed; acceptance is not complete');
   // A real X input belongs to the owner, even while a task from Claude's input is pending.
   // Do not substitute a tool click: that would test another Claude input instead.
   await nav('owner-input');
