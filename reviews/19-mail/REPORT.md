@@ -22,8 +22,9 @@ Review records: [REVIEW.md](REVIEW.md), [REVIEW-2.md](REVIEW-2.md),
 [SECURITY-REVIEW-15.md](SECURITY-REVIEW-15.md),
 [SECURITY-REVIEW-16.md](SECURITY-REVIEW-16.md),
 [SECURITY-REVIEW-17.md](SECURITY-REVIEW-17.md),
-[SECURITY-REVIEW-18.md](SECURITY-REVIEW-18.md), and
-[SECURITY-REVIEW-19.md](SECURITY-REVIEW-19.md).
+[SECURITY-REVIEW-18.md](SECURITY-REVIEW-18.md),
+[SECURITY-REVIEW-19.md](SECURITY-REVIEW-19.md), and
+[SECURITY-REVIEW-20.md](SECURITY-REVIEW-20.md).
 
 ## For the owner: decisions before merge
 
@@ -58,6 +59,184 @@ The owner answered: “Agree on 8, names etc are enough. Agree on everything els
 - Complete onboarding with your aliases, authentication, TLS trust, special folders, delayed Sent behavior and folder-deletion guard; the tests use synthetic accounts only.
 - Check complete approvals on both terminal and phone, then try the seven everyday Claude mail tasks; automated protocol tests do not establish how usable those flows feel.
 - Send a forwarded `.eml` to recipients using Apple Mail, Outlook, Thunderbird, Gmail on the web and iOS Mail, and check how each opens or saves the exact attachment; the round-5 documentation does not establish its presentation.
+
+## Review fixes, round 28
+
+**Done:** closes the two findings in security review 20 against `8724c0b6`,
+following brief `19-review-fixes-28`. The lead's already-local `64437ace`
+(review and brief) accompanies the first push. Work stays on `pkg/19-mail`
+and draft PR #9; no merge, rebase, force push or push to main.
+
+**Blocking — reopen before reading:** `Mail.register_sent_check` now commits
+`open` for an existing clean/checked result before a fresh Sent read, as well
+as for a new registration. A refused commit prevents the read. Status and
+completed-repair replies say “not yet checked” and carry the storage error;
+they do not invent a live count. Reopening retains the previous committed
+count, so an unchanged duplicate count preserves the same notice and its
+acknowledgement. Each fresh revalidation now has an open/result transaction
+pair, including unchanged results; the old no-journal-growth expectation
+cannot apply under the lead's explicit ordering rule. Evidence already read
+within the current request is still reused. Passive envelopes, refusals,
+catalogues and completed approval replays still do not enter IMAP.
+
+`control_archive` rechecks eligible completed Sent registrations before
+removing their sources. A clean result from before a refused reopening and
+crash is insufficient. Refused revalidation, failed evidence, an open result
+or an unacknowledged duplicate notice protects the operation. The recheck
+commits use owner compaction admission, preserving archive availability at
+the history cap; physical disk admission still applies. The lower-level
+archive function without a Mail resolver conservatively retains Sent sources.
+
+**Archive eligibility, by check kind:**
+
+| Check | Protected until | Evidence |
+| --- | --- | --- |
+| Duplicate Sent copies, including late arrivals | A fresh archive-time check commits its result; every duplicate warning is acknowledged. An open/missing result or unavailable revalidation retains the operation and its history. | `Checks28.test_review28_refused_reopening_then_crash_archive_preserves_late_duplicate`; `test_review28_archive_recheck_refusal_protects_previously_clean_send`; `test_review28_clean_checked_send_archives_and_unchanged_duplicate_ack_survives_recheck`; `test_review28_archive_rechecks_clean_send_when_ordinary_history_admission_is_full` |
+| MOVE / COPY role drift | The filing source has a committed closed result, and any warning is acknowledged. `started` and explicit `check_open` sources retain their audit and pages. | `Checks28.test_review28_archive_protects_every_warning_check_kind_until_closed_and_acknowledged` (`move` / `copy` subtests) |
+| COPYUID / destination evidence | The destination check has a committed result and its warning is acknowledged; interrupted sources remain protected. | Same test, `destination` subtest |
+| RENAME destination / ancestor roles | The rename check has a committed closed result and its warning is acknowledged. Acknowledging an interrupted warning preserves `check_open` and cannot certify the check. | Same test, `rename` subtest; `test_review28_acknowledging_an_unchecked_filing_does_not_close_its_check_for_archive` |
+| Location-scan completeness | The scan has a committed closed result and any warning is acknowledged. Available partial observations can commit while the remaining scan stays open. | Same test, `location_scan` subtest; `Filing28.test_review28_incomplete_location_scan_preserves_observations_and_only_unavailable_parts_open` |
+| Setup / Sent-policy / deletion qualification and probe survival / cleanup | The account has a committed completed qualification (`onboarded`, or legacy `ready`); incomplete account sources and unacknowledged source-linked warnings retain their audit. Probes never rerun during recovery or archive. | Same test, `setup` subtest; unchanged `Checks27.test_review27_current_session_setup_check_stays_visible_without_repeating_probes` |
+
+The generic archive test exercises open, committed-warning/unacknowledged,
+and acknowledged-closed states for each named kind. Acknowledging an open
+filing warning records acknowledgement separately from check completion.
+Recovery continues to recognize that open check after restart.
+
+**Should-fix — use available filing evidence:** recovery can resolve roles
+individually without requiring a complete special-folder map. An interrupted
+MOVE into Target now reports Target as Trash and returns its observed location
+pages even when Drafts is missing; only `drafts` is listed in
+`unresolved_roles`. COPY and RENAME receive the same treatment. A scan that
+only partly completes commits the exact available pages and names the
+unfinished location check. Missing roles/scans keep the source open; later
+healthy read-only recovery closes the check with a conservative warning.
+It never repeats MOVE, COPY, RENAME, SMTP, APPEND, deletion or setup probes.
+
+Named new filing regressions are
+`Filing28.test_review28_interrupted_move_reports_trash_and_locations_with_only_drafts_unresolved`,
+`test_review28_interrupted_copy_reports_trash_and_locations_with_only_drafts_unresolved`,
+`test_review28_interrupted_rename_reports_trash_with_only_drafts_unresolved`,
+and `test_review28_incomplete_location_scan_preserves_observations_and_only_unavailable_parts_open`.
+The two further ordering tests are
+`Checks28.test_review28_every_sent_evidence_read_starts_with_a_committed_open_check`
+and `test_review28_completed_repair_refuses_to_read_if_reopening_cannot_commit`.
+Together the new modules contain 12 tests.
+
+**Files changed and why:** `mail/adapter.py` orders reopening before evidence
+and closes committed results without resetting an unchanged warning's ack.
+`archive.py` revalidates Sent sources and protects every open check/source and
+source-linked warning. `engine.py` reports unchecked evidence/storage errors,
+preserves the count when settlement closes the check, and keeps acknowledgement
+separate from completion. `recovery.py` indexes acknowledged-but-open filings.
+`mail/filing.py` commits available observations and retries unresolved parts;
+`mail/roles.py` adds incomplete resolution only for that recovery path. Normal
+mailbox mutations still require strict role resolution.
+`mail/definitions.py`, generated `mail-tools.json` and `docs/control/TOOLS.md`
+declare completed-repair `evidence_error` and explain refused reopening.
+`test_review28_checks.py` and `test_review28_filing.py` add the regressions.
+
+**Earlier tests adapted where the rule forces a new expectation:**
+
+- `Recovery18.test_review18_completed_repairs_leave_journal_sqlite_audit_and_sizes_unchanged_at_full_capacity`: the 200 repeated full-capacity calls now require the existing operation result plus unchecked/storage-error disclosure, no count and no write. Its full journal/SQLite/blob and size equality assertions remain. A healthy post-restart recheck requires exactly the open/result commits and unchanged current state.
+- `Recovery18.test_review18_review_sequence_redundant_repairs_cancel_and_preceding_backup_restore`: the 100 rechecks require unchanged current state and exactly the open/result commits when admitted; a refused reopening requires unchanged complete storage. An explicit full-capacity phase checks refusal without consuming cancellation room. Cancellation, restore and stale-approval assertions remain.
+- `Recovery19.test_review19_unknown_sent_repair_settles_done_by_original_message_id_after_restart`: retains exact result, stage, state, operation identity and no-mutation assertions. The redundant healthy check requires unchanged current state plus exactly the required open/result commits.
+- `LateDuplicates21.test_review21_duplicate_landing_after_successful_retry_warns_on_next_status_and_completed_repair` and `test_review21_unknown_repair_settlement_counts_duplicates_and_preserves_warning`: repeated response, duplicate-count, one-notice, ack and mailbox assertions remain. The old full-journal equality on a healthy live read becomes exact current-state equality plus an assertion that every new event is the expected open/result transaction on that operation alone.
+- `Duplicates22.test_review22_status_returns_two_copies_warning_and_enospc` and `test_review22_completed_repair_returns_two_copies_warning_and_enospc`: commit the open fixture before injecting the result-write failure. All observed-count, error, warning and mutation assertions remain. The refused-reopening case is separately covered by the new tests.
+- `Duplicates22.test_review22_settlement_write_failure_preserves_observation_and_recorded_state` and `test_review22_short_settlement_commit_does_not_report_done_before_replay`: target the same real journal fault to `mail_operation_repair`, after the now-mandatory check commits. All count, storage-error, unresolved-state, failed-stage and restart-replay assertions remain.
+
+No base tests under `control/tests/` changed. No test was skipped or deleted.
+No real-server fixture changed. Existing real-server approval fixtures were
+read through: their refusal/catalogue/replay paths use passive snapshots, and
+the new writes occur only on explicit evidence views or owner archive.
+Container-backed tests run in CI, not on this Mac.
+
+**Verified — last code/test head:** `4ef82404aba271911a4c012e40d65272cb997d9b`.
+
+The serial pre-push commands on this head were:
+
+- `python3 control/generate.py --check`: `Generated artifacts match definitions`.
+- `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/mail_tests:.work/round10/vendor python3 .work/round10/check-local.py`: `Python syntax OK: 137 files`; `Ran 180 tests in 935.415s`; `OK`. All 12 new tests passed. The unchanged sweep mechanisms covered 5,383 single faults, 5,383 persistent faults and 14,230 cleanup pairs across all 22 flows, raw elapsed 840.638s. Live admission recovery covered 147 cases across 19 flows.
+- `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/tests:.work/round10/vendor python3 -m unittest test_operations test_record test_crashes test_approval_questions test_strict_json test_boundary test_boundary_exact test_ingress_bounds test_journal_closed test_policy_sources test_archive test_journal_capacity test_journal_streaming test_restore_batches test_review21_pending test_review21_storage test_review22_protocol test_review22_storage test_review23_results test_review24_exports`: `Ran 105 tests in 93.469s`; `OK`. Record growth and journal/restore/pending memory checks also passed and printed their measurements.
+
+`git diff --check` exited zero. The code push ran only after all three commands
+passed, and included the lead's local review/brief commit. The same full
+serial commands ran again before the report-only push:
+
+`Generated artifacts match definitions`; `Python syntax OK: 137 files`;
+`Ran 180 tests in 907.164s; OK`; `Ran 105 tests in 94.022s; OK`.
+The repeat sweep independently covered the same 5,383 single faults, 5,383
+persistent faults and 14,230 cleanup pairs, raw elapsed 811.605s; live
+admission recovery again covered 147 cases across 19 flows. The guarded
+serial command chain exited zero and recorded code head `4ef82404` before
+any report commit.
+
+All three automatic PR workflows passed twice on this code/test head:
+
+| Last-code workflow | Attempt 1 | Attempt 2 |
+| --- | --- | --- |
+| [Control Mail 42552636814](https://github.com/Ares-Empire/AresOS/actions/runs/42552636814) | [PASS](https://github.com/Ares-Empire/AresOS/actions/runs/42552636814/attempts/1), all five jobs; containers 15m47s; shards 0–3 16m15s / 11m24s / 7m54s / 4m24s | [PASS](https://github.com/Ares-Empire/AresOS/actions/runs/42552636814/attempts/2), all five jobs; containers 17m44s; shards 0–3 16m45s / 11m38s / 6m16s / 4m25s |
+| [Control base 42552636794](https://github.com/Ares-Empire/AresOS/actions/runs/42552636794) | [PASS](https://github.com/Ares-Empire/AresOS/actions/runs/42552636794/attempts/1), 3m52s; `Ran 135 tests in 192.927s; OK` | [PASS](https://github.com/Ares-Empire/AresOS/actions/runs/42552636794/attempts/2), 4m10s; `Ran 135 tests in 214.716s; OK` |
+| [Control boundary 42552636731](https://github.com/Ares-Empire/AresOS/actions/runs/42552636731) | [PASS](https://github.com/Ares-Empire/AresOS/actions/runs/42552636731/attempts/1), 3m17s; `Ran 16 tests in 0.016s; OK` | [PASS](https://github.com/Ares-Empire/AresOS/actions/runs/42552636731/attempts/2), 3m18s; `Ran 16 tests in 0.026s; OK` |
+
+Mail containers printed `Ran 298 tests in 716.836s; OK` / `Ran 298 tests in
+830.252s; OK`, plus shared base `Ran 135 tests in 184.747s; OK` / `Ran 135
+tests in 188.442s; OK`, with both suites' `PASS` markers. Every sweep shard
+ran four tests successfully on each attempt. Each complete Linux sweep
+independently covered 5,424 single faults, 5,424 persistent faults and 14,160
+cleanup pairs across all 22 flows; live admission recovery covered 147 cases
+across 19 flows on each attempt. Run metadata, every job's conclusion and the
+exact head were checked for both attempts. No workflow file changed.
+
+All workflow attempts above use the exact last code/test head. Every later
+commit changes only files under `reviews/`; final-head run IDs and both
+attempts are in draft PR #9's body. Repeats use `gh run rerun` on the same
+automatic pull-request run IDs, with no manual workflow dispatch or push
+solely to obtain another pass.
+
+**Development verification:** the two review-sequence tests were also run
+against `8724c0b6` source extracted inside `.work/round28/baseline`: `Ran 2
+tests in 0.045s; FAILED (failures=1, errors=1)`. The first trips the forbidden
+live-read sentinel before the opener can commit; the second has no independent
+Drafts-unresolved result or available-location disclosure. Both pass on the
+new code. Early targeted runs exposed the old fixture assumptions and one
+development fixture that retained an in-process deferred notice; they were
+corrected before pushing. The first full development sweep was interrupted
+while the conflicting old no-journal-growth expectation was corrected; it is
+not a pass. The nonsweep diagnostic printed `Ran 174 tests in 91.663s; FAILED
+(failures=3)`, identifying the three forced old expectations. Subsequent
+targeted contract verification printed `Ran 37 tests in 1.864s; OK` and the
+archive-admission suite printed `Ran 8 tests in 0.250s; OK`. Final full gates
+above supersede those development checks.
+
+**Not verified:** real-account behavior and owner usability, physical power
+loss, or provider-specific behavior beyond the synthetic CI servers. No
+Minecraft/Gradle work applies to this brief; no screenshots are relevant to
+these protocol/storage changes.
+
+**JUDGMENT-CALL:** none beyond the lead's explicit rule. Mandatory rechecks
+cost two history transactions even when the count is unchanged; retaining the
+old no-write behavior would violate “open before read.” Owner compaction uses
+its existing history-quota exception for these necessary check commits; it
+does not bypass physical disk admission or permit mailbox changes.
+
+**PLAN-GAP:** the earlier completed-repair no-journal-growth expectation is
+incompatible with round 28's mandatory reopening. The tests now enforce the
+required pair of commits while preserving action, count, notice and capacity
+checks. R1–R3 remain deferred to package 19b; no work on them is included.
+
+**Open questions:** none added. Real-account/owner checks listed above remain.
+
+Closing discipline: the code batch includes the lead's previously local
+review/brief commit; this report-only commit is the second batch. Across the
+two heads there are six automatic workflow run IDs, each repeated with
+`gh run rerun`, with no manual dispatch, validation-only push, rebase, force
+push, push to main or merge. Normal push verification remains enabled; no
+`--no-verify` bypass was used. PR #9 remains draft.
+
+The closing `.work/` inventory contains **no files over 500 MB**. No system
+software, local containers or Gradle daemons were started.
+
 
 ## Review fixes, round 27
 
