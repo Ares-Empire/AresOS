@@ -41,8 +41,8 @@ class Daemon:
     def serve(self):
         refresh_at = 0
         while not self.stopping:
-            bridge=self.engine.adapters['chrome'].bridge
-            if bridge.connection is not None and b'\n' in bridge.buffer:
+            bridge=getattr(self,'chrome_bridge',None)
+            if bridge is not None and bridge.connection is not None and b'\n' in bridge.buffer:
                 self.drain_chrome_events(bridge.connection,buffered=True)
                 if b'\n' in bridge.buffer:
                     continue
@@ -132,6 +132,7 @@ class Daemon:
                         pass
             connection.settimeout(15)
             self.selector.register(connection, selectors.EVENT_READ, 'chrome-peer')
+            self.chrome_bridge=bridge
         except Exception:
             if bridge.connection is connection:
                 # The caller sends a refusal before closing this descriptor.
