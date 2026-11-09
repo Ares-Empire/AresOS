@@ -1,0 +1,59 @@
+{
+  "base": {
+    "run": 42710588748,
+    "conclusion": "success",
+    "head": "85f1c6040393b44b06d8e37989ad1c8cced4467d",
+    "summaries": [
+      {
+        "line": 413,
+        "text": "containers\tTest inside Fedora 45 container (no model or real account)\t2026-11-09T22:21:47.1354150Z Ran 142 tests in 196.633s"
+      }
+    ]
+  },
+  "mail": {
+    "run": 42710588744,
+    "conclusion": "success",
+    "head": "85f1c6040393b44b06d8e37989ad1c8cced4467d",
+    "summaries": [
+      {
+        "line": 379,
+        "text": "sweep (3)\tOS and SQLite fault sweep in isolated mail containers\t2026-11-09T22:26:51.3500684Z Ran 4 tests in 476.995s"
+      },
+      {
+        "line": 806,
+        "text": "sweep (2)\tOS and SQLite fault sweep in isolated mail containers\t2026-11-09T22:27:35.7859725Z Ran 4 tests in 521.954s"
+      },
+      {
+        "line": 1467,
+        "text": "sweep (1)\tOS and SQLite fault sweep in isolated mail containers\t2026-11-09T22:35:25.8834943Z Ran 4 tests in 995.148s"
+      },
+      {
+        "line": 1931,
+        "text": "containers\tReal isolated mail servers and shared base (no model or real account)\t2026-11-09T22:22:35.6888874Z Ran 142 tests in 221.780s"
+      },
+      {
+        "line": 2365,
+        "text": "containers\tReal isolated mail servers and shared base (no model or real account)\t2026-11-09T22:40:58.6959323Z Ran 309 tests in 1094.510s"
+      },
+      {
+        "line": 3012,
+        "text": "sweep (0)\tOS and SQLite fault sweep in isolated mail containers\t2026-11-09T22:39:19.5727456Z Ran 4 tests in 1225.619s"
+      }
+    ]
+  },
+  "boundary": {
+    "run": 42710588741,
+    "conclusion": "success",
+    "head": "85f1c6040393b44b06d8e37989ad1c8cced4467d",
+    "summaries": [
+      {
+        "line": 887,
+        "text": "hostile\tBuild pinned disposable Linux environment\t2026-11-09T22:18:30.0610879Z #14 0.221 Ran 16 tests in 0.014s"
+      },
+      {
+        "line": 2464,
+        "text": "hostile\tSeparate coding policy and user\t2026-11-09T22:21:08.9052464Z ISOLATION_OK uid=10003 policy=plan no_assistant_home no_transcripts no_credentials no_tool_sockets no_connected_app_mcp"
+      }
+    ]
+  }
+}

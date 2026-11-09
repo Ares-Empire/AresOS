@@ -1,0 +1,27 @@
+dbus-daemon[356]: [session uid=1000 pid=356] Activating service name='org.a11y.Bus' requested by ':1.2' (uid=1000 pid=393 comm="/opt/google/chrome/chrome --user-data-dir=/tmp/are" label="chrome (unconfined)")
+dbus-daemon[356]: [session uid=1000 pid=356] Successfully activated service 'org.a11y.Bus'
+dbus-daemon[356]: [session uid=1000 pid=356] Activating service name='ca.desrt.dconf' requested by ':1.4' (uid=1000 pid=393 comm="/opt/google/chrome/chrome --user-data-dir=/tmp/are" label="chrome (unconfined)")
+dbus-daemon[356]: [session uid=1000 pid=356] Successfully activated service 'ca.desrt.dconf'
+GROUP 1 what asks PASS: zero before approval, one after, no replay
+GROUP 2 stopped page steps PASS native
+GROUP 2 stopped page steps PASS event
+GROUP 2 wrapped non-cancellable activation PASS: no delivery and never resumed
+GROUP 7 password presence and show-password PASS
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: {"ok":false,"error":{"code":"chrome_unavailable","message":"Chrome is not connected; start normal Chrome with the installed extension."},"pending":{"items":[],"total":0,"cursor":null,"restore_required":false,"notices":[{"operation_id":"6fa82814a9d191740c01c94a6bd5f6ff2e9a53b0d773dbde7b181adfdde6a92a","app":"chrome","state":"partial","untrusted_content":{"intent_key":"intent:chrome:6fa82814a9d191740c01c94a6bd5f6ff2e9a53b0d773dbde7b181adfdde6a92a","reason":"The page tried to activate 'Delete' by itself; it was stopped. Act on the current control to prepare fresh asking input if wanted.","reference":{"document":"ae47ed561558f4b992d987828a295dfe","element":"e7","frame":0,"session":"afd0d9f9-2136-4065-96d9-ca6d85cdc668","tab":1945445431,"view":"928e14abb046fa1a4d4ba2afb012a67d96dcdec0bf3b33ce4f574101f03b8ca9"},"warning":"The page tried to activate 'Delete' by itself; it was stopped. Act on the current control to prepare fresh asking input if wanted."}},{"operation_id":"6922495c1c84cf7419a03ea56e26e98e6e66f00495860c29ef46bb2da543ada7","app":"chrome","state":"unknown","untrusted_content":{"intent_key":"intent:chrome:6922495c1c84cf7419a03ea56e26e98e6e66f00495860c29ef46bb2da543ada7","reason":"A change was interrupted before its completion was recorded. It may already have changed the server. Inspect the audit and your app before repeating.","recovery_warning":true}},{"operation_id":"317ce96790adfd0068725296746ef38802ea358564eadec1c2f6152658cb1ef9","app":"chrome","state":"unknown","untrusted_content":{"intent_key":"intent:chrome:317ce96790adfd0068725296746ef38802ea358564eadec1c2f6152658cb1ef9","reason":"A change was interrupted before its completion was recorded. It may already have changed the server. Inspect the audit and your app before repeating.","recovery_warning":true}}]}}
+    at call (file:///workspace/control/chrome/ci/browser.mjs:27:80)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async read (file:///workspace/control/chrome/ci/browser.mjs:30:58)
+    at async file:///workspace/control/chrome/ci/browser.mjs:67:36 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: false,
+  expected: true,
+  operator: '==',
+  diff: 'simple'
+}
+
+Node.js v22.23.4
