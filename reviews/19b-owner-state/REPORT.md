@@ -99,7 +99,7 @@ No real account/provider, owner machine integration or Minecraft/Gradle tests we
 
 ## Open questions
 
-None blocking stage 1. The next run should begin at stage 2 with this ledger and keep its unexpected-pass requirement.
+The lead’s fresh review of this stage-1 fix round is pending. Stage 2 is outside this run and was not started. The next authorized stage must retain the ledger’s unexpected-pass requirement.
 
 ## Workspace cleanup
 
@@ -159,3 +159,30 @@ diff -u reviews/19b-owner-state/KNOWN-GAPS.json .work/19b-fixes/replayed-compact
 ```
 
 **Run — local after fixture correction:** 68 oracle self-tests (`Ran 68 tests`, `OK`), seven focused contract/regression tests plus real export repeatability (`Ran 8 tests`, `OK`); generator `Generated artifacts match definitions`; diff check silent. The AST import check includes the conversion and fixture-input helpers as well as `gaps.py`, and all their imports remain standard-library/test-helper only. Final Linux strict repetitions on the deterministic caller input follow below.
+
+
+**Run — final strict repetitions:** all three workflows passed twice on source `25dfdd63714bf80ef55ec4b106eac359f344a82b` with the same compact ledger. The closing commit changes review documents only; no test code, production code or ledger data changed after these runs.
+
+| Workflow | Run / attempts | Exact evidence |
+| --- | --- | --- |
+| Control base | [42669403736 attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42669403736/attempts/1), [attempt 2](https://github.com/Ares-Empire/AresOS/actions/runs/42669403736/attempts/2), both success | Attempt 1 `results.txt:340`: `Ran 211 tests in 230.664s`; line 349 `Control base suite PASS`; Attempt 2 `results.txt:340`: `Ran 211 tests in 164.283s`; line 349 `Control base suite PASS` |
+| Control mail | [42669403515 attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42669403515/attempts/1), [attempt 3](https://github.com/Ares-Empire/AresOS/actions/runs/42669403515/attempts/3), both success | Attempt 1 `mail.txt:361`: `Ran 316 tests in 818.286s`; line 365 `Control Mail suite PASS`; shared `base.txt:332`: 211 tests, `OK`; isolated fixtures PASS; Attempt 3 `mail.txt:361`: `Ran 316 tests in 803.435s`; line 365 `Control Mail suite PASS`; shared `base.txt:332`: 211 tests, `OK`; isolated fixtures PASS |
+| Control boundary | [42669647155 attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42669647155/attempts/1), [attempt 2](https://github.com/Ares-Empire/AresOS/actions/runs/42669647155/attempts/2), both success | Attempt 1: `present-console.txt:808`, `absent-console.txt:715`; identity line 1 matches source; Attempt 2: `present-console.txt:808`, `absent-console.txt:715`; identity line 1 matches source |
+
+| Mail sweep shard | First strict pass | Second strict pass |
+| --- | --- | --- |
+| 0 | 31m 38s; `OK` lines 259/418/538/654; strict counts 127957/143732/142578; all three workers exit 0 | 24m 17s; `OK` lines 259/418/538/654; strict counts 127957/143732/142578; all three workers exit 0 |
+| 1 | 23m 02s; `OK` lines 250/373/477/589; strict counts 127011/141020/131414; all three workers exit 0 | 30m 21s; `OK` lines 250/373/477/589; strict counts 127011/141020/131414; all three workers exit 0 |
+| 2 | 24m 40s; `OK` lines 20/123/239/363; strict counts 148684/132511/133555; all three workers exit 0 | 29m 12s; `OK` lines 20/123/239/363; strict counts 148684/132511/133555; all three workers exit 0 |
+| 3 | 27m 52s; `OK` lines 20/163/305/397; strict counts 139583/148063/133037; all three workers exit 0 | 23m 23s; `OK` lines 20/163/305/397; strict counts 139583/148063/133037; all three workers exit 0 |
+
+**Run — Mail startup:** attempt 2 of run 42669403515 failed before creating any jobs (`total_count=0`); no test ran. The CLI reported a likely workflow-file issue, without further diagnostics. Rerunning the unchanged workflow at the same source started all five jobs on attempt 3. Final Mail repetitions are attempts 1 and 3, not the jobless attempt 2.
+
+**Run — runtime and completeness:** every one of the ten Mail jobs finished below 45 minutes; maximum 31m 38s, from job startedAt/completedAt. Each shard retained four inherited tests, three independent owner workers, all 32 flows and every storage mode, cleanup pair, immediate crash and restored-space case. Every owned compact group and shared clean group matched exactly. No captures or expected exceptions substitute for these strict passes.
+
+**Run — workflow count:** this fix round added 12 distinct workflow IDs / 18 attempts. Whole stage-1 branch total: 52 IDs / 61 attempts, including superseded and cancelled diagnostics. D1 relaxed the approximate 25-run target. The initial Mail capture was cancelled when the qualification recorder was corrected; strict Mail 42662867171 then exposed caller-path drift, fixed by deterministic fixture inputs; completed capture `42657094358` deliberately failed only at the old pin. Neither is final green evidence.
+
+**Read — closing scope:** L1 and all nine review findings are implemented and tested. No production code or public tool/approval behavior changed in this fix round. No tests were removed, skipped or weakened; the old full-entry page validation moved into the compact packer. D3 is recorded as the exact stage-3 oracle contract, with production work deferred. Stage 2 was not started, no stage review was run, and PR #26 remains a draft against `pkg/19-mail`. The lead owns the fresh review.
+
+
+**Run — closing workspace:** `.work/` inventory after final artifact download found no file over 500 MB (`[]`). No system software was installed, no owner Minecraft/client data was accessed, and no Gradle daemon was started. The closing push uses `[skip ci]` because its diff from the twice-tested source contains only REPORT.md and KNOWN-GAPS.md; the test code, production code and compact ledger are byte-for-byte unchanged.
