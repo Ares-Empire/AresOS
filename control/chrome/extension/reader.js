@@ -18,7 +18,7 @@
   const all = () => roots().flatMap(root => [...root.querySelectorAll('*')]);
   let observer;
   function protect(changes) {
-    for(const change of changes)if(change.type==='attributes' && (change.attributeName==='type' && (change.oldValue||'').toLowerCase()==='password' || change.attributeName==='autocomplete' && /(?:password|one-time-code)/i.test(change.oldValue||'')))protectedFields.add(change.target);
+    for(const change of changes)if(change.type==='attributes' && (change.attributeName==='type' && (change.oldValue||'').toLowerCase()==='password' || change.attributeName==='autocomplete' && /(?:password|one-time-code)/i.test(change.oldValue||'') || change.attributeName==='style' && /-webkit-text-security\s*:\s*(?!none\b)/i.test(change.oldValue||'')))protectedFields.add(change.target);
   }
   function password(element) {
     if(observer?.takeRecords)protect(observer.takeRecords());
@@ -40,7 +40,7 @@
     }
   }
   observer = new MutationObserver(changes => {
-    revision++;
+    revision++;protect(changes);
     for (const change of changes) {
       if (change.type === 'attributes') {
         if (change.attributeName === 'type' && (change.oldValue||'').toLowerCase() === 'password' || change.attributeName === 'autocomplete' && /(?:password|one-time-code)/i.test(change.oldValue || '')) protectedFields.add(change.target);
@@ -55,17 +55,19 @@
     if (!ids.has(element)) { const key = 'e' + (++sequence); ids.set(element, key); elements.set(key, element); }
     return ids.get(element);
   };
-  function text(node) {
+  function text(node, includeHidden=false) {
     if (node.nodeType === Node.TEXT_NODE) return node.textContent;
     if (!(node instanceof Element) || ['SCRIPT','STYLE','NOSCRIPT','INPUT','TEXTAREA','SELECT'].includes(node.tagName) || password(node)) return '';
-    if (node.hidden || getComputedStyle(node).display === 'none' || getComputedStyle(node).visibility === 'hidden') return '';
-    return [...node.childNodes].map(text).join(' ');
+    if (!includeHidden && (node.hidden || getComputedStyle(node).display === 'none' || getComputedStyle(node).visibility === 'hidden')) return '';
+    if(node.tagName==='IMG')return node.getAttribute('alt')||'';
+    return [...node.childNodes].map(child=>text(child,includeHidden)).join(' ');
   }
   function name(element) {
     const root = element.getRootNode();
     const labelled = (element.getAttribute('aria-labelledby') || '').split(/\s+/).map(key => root.getElementById?.(key)).filter(Boolean);
-    return (labelled.length ? labelled.map(text).join(' ') : element.getAttribute('aria-label') ||
-      (element.labels?.length ? [...element.labels].map(text).join(' ') : element.getAttribute('alt') || element.getAttribute('title') ||
+    const buttonValue=element instanceof HTMLInputElement && ['button','submit','reset'].includes(element.type) ? safeValue(element).value || (element.type==='submit'?'Submit':element.type==='reset'?'Reset':''):null;
+    return (labelled.length ? labelled.map(node=>text(node,true)).join(' ') : element.getAttribute('aria-label') ||
+      (element.labels?.length ? [...element.labels].map(node=>text(node,true)).join(' ') : element.getAttribute('alt') || element.getAttribute('title') || buttonValue ||
       (['BUTTON','A','SUMMARY'].includes(element.tagName) || element.hasAttribute('role') ? text(element) : element.getAttribute('placeholder') || ''))).replace(/\s+/g, ' ').trim();
   }
   function safeValue(element) {
@@ -104,7 +106,7 @@
     const box = element.getBoundingClientRect(), value = safeValue(element);
     const dialog=element.closest('dialog,[role=dialog],[role=alertdialog]');
     const page_dialog=dialog ? {element:id(dialog),kind:role(dialog),text:text(dialog).replace(/\s+/g,' ').trim(),button:name(element),fields:[...dialog.querySelectorAll('input,textarea,select,[contenteditable]')].map(field)} : null;
-    return {element: id(element), role: role(element), page_dialog, name: name(element), label: name(element), title: element.getAttribute('title') || '', ...value,
+    return {element: id(element), role: role(element), page_dialog, name: name(element), label:element.labels?.length?[...element.labels].map(node=>text(node,true)).join(' ').replace(/\s+/g,' ').trim():name(element), title: element.getAttribute('title') || '', ...value,
       href: element.tagName === 'A' ? element.href : null,
       editable: element instanceof HTMLInputElement && !['button','submit','image','checkbox','radio','file','hidden'].includes(element.type) || element instanceof HTMLTextAreaElement || element.isContentEditable,
       search: element.type === 'search' || element.getAttribute('role') === 'searchbox', submit: !!element.form && (element.type === 'submit' || element.type === 'image'),
@@ -138,7 +140,11 @@
     const nodes = all(), modal = nodes.find(node => node.matches('dialog[open],[role=dialog][aria-modal=true],[role=alertdialog][aria-modal=true]'));
     const rows = nodes.filter(node => (!modal || modal.contains(node)) && !['SCRIPT','STYLE','NOSCRIPT','OPTION'].includes(node.tagName)).map(node => {
       const facts = targetFacts(node);
-      if (facts.role === 'generic' && !node.isContentEditable) return null;
+      if (facts.role === 'generic' && !node.isContentEditable) {
+        const own=[...node.childNodes].filter(child=>child.nodeType===Node.TEXT_NODE).map(child=>child.textContent).join(' ').replace(/\s+/g,' ').trim();
+        if(!own || password(node) || node.hidden || getComputedStyle(node).display==='none' || getComputedStyle(node).visibility==='hidden')return null;
+        facts.role='text';facts.name=own;
+      }
       if (facts.role === 'hidden' || !facts.box.width || !facts.box.height) return null;
       return {...facts, text: ['textbox','combobox','button','link','iframe'].includes(facts.role) ? '' : text(node).replace(/\s+/g, ' ').trim()};
     }).filter(Boolean);
@@ -167,14 +173,14 @@
       chat:read(['header [title]','[aria-label="Chat name"]'],fields),context:read(['[aria-label="Action context"]'],fields),preview:read(['[aria-label="Message preview"]'],fields),
       attachments:fields.filter(node=>node.matches('[aria-label^="Attachment:"]')).map(node=>({label:name(node),text:text(node)})),target:target ? name(target):null};
   }
-  guard.reader({id,element:key=>elements.get(key),target:targetFacts,form:(element,submitter)=>formFacts(element.form || (element.tagName==='FORM' ? element:null),submitter || element)});
+  guard.reader({document:documentId,id,element:key=>elements.get(key),target:targetFacts,form:(element,submitter)=>formFacts(element.form || (element.tagName==='FORM' ? element:null),submitter || element)});
   chrome.runtime.onMessage.addListener((message, sender, reply) => {
     if (sender.id !== chrome.runtime.id || !message || typeof message.command !== 'string') return;
     try {
       let value;
       if (message.command === 'arm') { guard.arm(message); value={armed:true}; }
       else if (message.command === 'finish_input') { guard.finish(message.generation).then(()=>reply({ok:true,data:{finished:true}})); return true; }
-      else if (message.command === 'resume') { if(message.generation!==controlGeneration)throw Error('stale_reference: control ended'); value=guard.resume(message.hold,message.operation); }
+      else if (message.command === 'resume') { if(message.generation!==controlGeneration)throw Error('stale_reference: control ended'); value=guard.resume(message.hold,message.operation,message.element,message.form); }
       else if (message.command === 'set_control') { controlGeneration=message.generation; value={controlled:true}; }
       else if (['focus','select','check','stage_file','install_file'].includes(message.command) && message.generation !== controlGeneration) throw Error('stale_reference: control ended');
       if (message.command === 'install_file') {
@@ -200,7 +206,7 @@
       else if (message.command === 'clear') { controlGeneration=null; files.clear(); guard.clear(); value={cleared:true}; }
       else if (['set_control','arm','resume'].includes(message.command)) {}
       else if (message.command === 'hit') value={hit:hit(elements.get(message.element),message.x,message.y)};
-      else if (message.command === 'ready') value = {preload:true,document:documentId};
+      else if (message.command === 'ready') value = {preload:true,document:documentId,...(message.element?{element_present:!!elements.get(message.element)?.isConnected}:{})};
       else if (message.command === 'read' || message.command === 'facts') value = snapshot(message.element);
       else if (message.command === 'steps') { value = guard.steps(); }
       else if (message.command === 'focus') {
@@ -224,7 +230,5 @@
       reply({ok:true, data:value});
     } catch (error) { reply({ok:false, error:String(error.message)}); }
   });
-  // Fixed functions used by scripting.executeScript; DOM identity never comes from a selector supplied by the caller.
-  globalThis[Symbol.for('aresos.chrome.reader.v1')] = {element: key => elements.get(key)};
   } catch(error) { console.error('AresOS reader preload',error); chrome.runtime.sendMessage({event:'reader_error',error:String(error.stack || error)}); }
 })();

@@ -49,7 +49,18 @@ def accept(connection):
 bridge.accept=accept
 boundary=open('/out/browser-boundary.jsonl','a',buffering=1)
 bridge.audit_sink=lambda data:boundary.write(json.dumps(data)+'\n')
-bridge.on_event=lambda event:(print('CHROME_EVENT',json.dumps(event),flush=True),original_event(event))[-1]
+original_call=bridge.call
+def call(name,**arguments):
+    cut=Path('/run/aresos-tools/fixture-cut.json')
+    if name in {'input','resume','dialog'} and cut.exists() and json.loads(cut.read_text()).get('point')=='after-input':
+        arguments['fixture_cut']='after-input';cut.unlink()
+    return original_call(name,**arguments)
+bridge.call=call
+def event(value):
+    print('CHROME_EVENT',json.dumps(value),flush=True)
+    if value.get('event')=='fixture_after_input':Path('/out/checkpoint-ready.json').write_text(json.dumps({'point':'after-input','operation':value['operation']}))
+    return original_event(value)
+bridge.on_event=event
 daemon.engine.adapters['chrome'].hosts={name:[name+'.test'] for name in HOSTS}
 try:
     daemon.serve()

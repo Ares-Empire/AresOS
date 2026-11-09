@@ -26,7 +26,7 @@
   const search = form => !config?.conservative && form?.method === 'get' && form.search;
   function report(kind, element, submitter = null, cancellable = true) {
     const id = 'h' + (++sequence);
-    const step = {id,kind,element:reader.id(element),submitter:submitter ? reader.id(submitter) : null,cancellable};
+    const step = {id,kind,document:reader.document,label:kind.startsWith('activation')?reader.target(element).name:'',element:reader.id(element),submitter:submitter ? reader.id(submitter) : null,cancellable};
     held.set(id,{...step,node:element,button:submitter});
   }
   function allowance(form,event=null) {
@@ -119,10 +119,10 @@
       if (generation===epoch) { inFlight=false;mark=null; }
     },
     clear() { generation=null;until=0;inFlight=false;mark=null;owner=null;held.clear(); },
-    steps() { const result=[...held.values()].filter(step=>!step.reported).map(step=>{step.reported=true;return {id:step.id,kind:step.kind,element:step.element,submitter:step.submitter,cancellable:step.cancellable};});return result; },
-    resume(id,operation) {
+    steps() { const result=[...held.values()].filter(step=>!step.reported).map(step=>{step.reported=true;return {id:step.id,kind:step.kind,document:step.document,label:step.label,element:step.element,submitter:step.submitter,cancellable:step.cancellable};});return result; },
+    resume(id,operation,element,form) {
       const step=held.get(id);
-      if (!step || consumed.has(operation) || !['native_submit','submit_event'].includes(step.kind) || !step.node.isConnected || step.button && (!step.button.isConnected || step.button.form!==step.node)) throw Error('stale_reference: form, submitter or operation changed');
+      if (!step || reader.element(form)!==step.node || reader.element(element)!==(step.button||step.node) || consumed.has(operation) || !['native_submit','submit_event'].includes(step.kind) || !step.node.isConnected || step.button && (!step.button.isConnected || step.button.form!==step.node)) throw Error('stale_reference: form, submitter or operation changed');
       consumed.add(operation);held.delete(id);
       mark={id:operation,target:step.button,form:step.node,input:true,primary:step.kind==='native_submit',consequential:false,further:false};
       if (step.kind==='native_submit') native.submit.call(step.node);

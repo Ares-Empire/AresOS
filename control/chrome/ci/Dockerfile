@@ -16,7 +16,7 @@ RUN mkdir -p /etc/claude-code /etc/aresos-control /var/lib/aresos-tools /var/lib
  && chmod 755 /usr/libexec/aresos-control/chrome/host \
  && chown aresos-tools /var/lib/aresos-tools /var/lib/aresos-operation-evidence /run/aresos-tools \
  && chmod 711 /run/aresos-tools \
- && printf 'owner ALL=(root) NOPASSWD: /usr/bin/python3 /workspace/control/chrome/ci/admin.py *\n' > /etc/sudoers.d/chrome-fixture \
+ && printf 'Defaults:owner env_keep += "GITHUB_ACTIONS"\nowner ALL=(root) NOPASSWD: /usr/bin/python3 /workspace/control/chrome/ci/admin.py *\n' > /etc/sudoers.d/chrome-fixture \
  && chmod 440 /etc/sudoers.d/chrome-fixture
 ENV GITHUB_ACTIONS=true PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=/workspace/control
 ENTRYPOINT ["bash","control/chrome/ci/run.sh"]

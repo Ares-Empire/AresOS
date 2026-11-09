@@ -78,7 +78,7 @@ test('group7 password-to-text transitions in one task are excluded before observ
 });
 
 test('group7 uppercase historical password attributes stay excluded',()=>{
-  for(const [attributeName,oldValue] of [['type','PASSWORD'],['autocomplete','CURRENT-PASSWORD'],['autocomplete','ONE-TIME-CODE']]){
+  for(const [attributeName,oldValue] of [['type','PASSWORD'],['autocomplete','CURRENT-PASSWORD'],['autocomplete','ONE-TIME-CODE'],['style','-webkit-text-security: disc;']]){
     const f=fixture([{}]);f.read();const before=f.calls();f.nodes[0].forbidden=true;
     f.mutations().push({type:'attributes',attributeName,oldValue,target:f.nodes[0]});f.read();assert.equal(f.calls(),before);
   }

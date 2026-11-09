@@ -192,3 +192,99 @@ Two further source issues were reported immediately to the builder:
   OK and no editable fields, retaining actual compose Send binding when the
   target really sends compose content. **Read only:** this follow-up source
   path was not yet checked with a receiver or a new engine test.
+
+## Focused owner-state review at `40f380d6`
+
+Reviewed clean snapshot `40f380d639206cfb6782d8e3eac7d0ee8f621270` at the
+builder's request, limited to Chrome R1–R3, warning lifecycle and the
+receiver/crash harness. Ran only small Python probes using the existing
+`test_engine.Operations` fixture; no full storage sweep or browser was run.
+The following are new findings, separate from the earlier changing-tree run.
+
+1. **P1 — A committed Chrome warning disappears under failed SQLite
+   reads.** `Engine.pending()` falls back to `_last_pending` plus deferred
+   in-memory notices. **Run:** cache an empty Chrome pending response,
+   commit an activation warning through production `Chrome.steps()`, then
+   replace the working DB's read interface with one raising an
+   `sqlite3.OperationalError` carrying `SQLITE_FULL`. The committed store
+   contains one Chrome notice, but pending returns
+   `items:0, total:0, notices:0, unavailable:true`. No new deferred notice
+   exists because the warning already committed successfully. This is an
+   R1 loss of an owner-visible fact, despite the generic snapshot warning.
+
+2. **P1 — Failed reads can resurrect an acknowledged occurrence.**
+   **Run:** cache the healthy activation notice; invoke the real
+   `chrome_notice_ack` action, allowing its `Store.write()` to commit, then
+   inject `SQLITE_FULL` reads immediately after that successful commit.
+   The reply's `data.notice.ack` is `true`; the stored notice's `ack` is
+   also `true` after reads are restored. Its passive `pending.notices`
+   nevertheless contains that same occurrence from `_last_pending`.
+   Refreshing memory after successful actions cannot close this window:
+   the failure occurs between the commit and the attempted refresh.
+
+3. **P2 — Cached validity is not recomputed after a live session change.**
+   **Run:** reserve an operation and cache `validity:'current'`; change the
+   synthetic bridge session to represent a browser restart; fail SQLite
+   reads. The pending fallback still reports `validity:'current'` with
+   `Awaiting exact approval; nothing submitted.` Its generic
+   `unavailable:true` notice does not make this current validity true.
+   Refusals/validity must be recomputed from committed context plus current
+   private session checks, or explicitly be unavailable rather than current.
+
+4. **P1 — A new document's activation can inherit an old acknowledgement.**
+   `Chrome.steps()` builds its source identity from
+   `digest([bridge.session, tab, step])`. The guard's held IDs (`h1`) and
+   reader's element IDs (`e1`) restart per document, while the browser session
+   and tab remain the same. No source-document identity is attached when
+   background polls those steps. **Run:** call `Chrome.steps()` for an
+   `activation` with `h1/e1`, acknowledge its notice, change the fixture's
+   document and URL, and call `steps()` with the new document's identical
+   per-document IDs. Results: `notice_count:1, unacknowledged:0,
+   chrome_notices.total:0`. The new activation has silently reused the old
+   evidence fingerprint and acknowledgement. Include private document
+   identity in the step, source ID and evidence; repeated readings of that
+   same event should still retain the existing occurrence. Refuse a step
+   whose document differs from the fresh frame before preparing anything.
+
+   A related **source-only binding concern** was passed to the builder:
+   rereading current facts for an old step currently constructs a reference
+   in the current document from the old per-document element ID. `guard.resume`
+   receives only the held ID and operation, not the expected held form or
+   submitter. Document rejection plus local expected-node validation should
+   prevent old IDs from binding one control while resuming a different
+   colliding hold. No cross-document browser resumption was run here.
+
+5. **P2 harness gap — Receiver counts alone do not establish truthful
+   crash outcomes.** At `matrices.mjs:171–189`, the after-input cut waits for
+   receiver arrival and then kills a component, with no barrier proving the
+   service had not already committed completion. Its replay assertion accepts
+   every non-`reserved` state, including an incorrect definite `failed`.
+   Thus this test can show no duplicate send while missing a false claim
+   about whether input ran. Add a private post-input/pre-outcome barrier and
+   assert `unknown` when the outcome was cut off; definite pre-dispatch
+   refusals may remain `failed`. **Read only:** this harness was not executed.
+
+The first probe attempt raised a plain `OperationalError` without a SQLite
+error code; production correctly did not classify that mock as `SQLITE_FULL`.
+The successful probes above set the real `SQLITE_FULL` code explicitly. All
+fixture stores were restored and closed after probing; no implementation
+files were edited.
+
+The builder proposed a limited Chrome read fallback in the **existing
+independent journal**, retaining Chrome operation/check/notice updates and
+acknowledgements and using existing paging and occurrence bookkeeping.
+That scope fits Now's explicit Chrome storage requirements, provided it:
+
+- honors commit markers and excludes appended-but-uncommitted tails;
+- retains acknowledgement, resolution and tombstone transitions through
+  archive/restore, and cannot revive acknowledged occurrences;
+- serves global passive envelopes and every `chrome_notices` page as well
+  as explicit Chrome pending reads;
+- treats old records lacking sufficient owner-state context as conservatively
+  unavailable rather than a complete empty set;
+- recomputes available live session facts, avoids cached affirmative validity,
+  and uses bounded streaming rather than a full-history memory dictionary.
+
+This is a proposed repair scope, not an implemented or tested substitute
+for 19b. The final report should explicitly describe the additional record
+fields and the later migration to 19b's one shared read path and full oracle.

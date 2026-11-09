@@ -3,11 +3,15 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {setTimeout as delay} from 'node:timers/promises';
 
-export async function matrices({call,read,nav,target,counts,eventually,tab,fixture,admin,rpc,caller,ownerNavigate,ownerKey,lifecycle,restoreControl,stopClick}) {
+export async function matrices({call,read,nav,target,counts,eventually,tab,fixture,admin,rpc,caller,ownerNavigate,ownerKey,lifecycle,restoreControl,stopClick,baseline}) {
   const results=[];
   async function check(name,fn) {
     try {await fn();results.push({name,passed:true});console.log(name,'PASS');}
-    catch(error){results.push({name,passed:false,error:String(error.stack)});console.error(name,'FAIL',error.stack);}
+    catch(error){results.push({name,passed:false,error:String(error.stack)});console.error(name,'FAIL',error.stack);
+      // Preserve the failed assertion, then start a fresh browser for the next independent group.
+      // Never retry this case or turn its result into a pass.
+      if(!name.startsWith('GROUP 9'))try{await lifecycle('kill_chrome');await lifecycle('start_chrome');tab=await restoreControl();}catch(recovery){console.error('FIXTURE RECOVERY FAILED',String(recovery));}
+    }
   }
   async function approval(result,id) {
     const prepared=result.approval ? result:result.followups?.find(item=>item.approval);
@@ -18,9 +22,9 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
   async function setup(parameters) {await nav('matrix&'+new URLSearchParams(parameters));}
   const words=JSON.parse(fs.readFileSync('control/chrome/extension/policy.js','utf8').match(/\{[\s\S]*\}/)[0]).words;
   await check('GROUP 1 what asks word/label/key matrix',async()=>{
-    for(const word of words)for(const label of ['name','aria','title','value','labelledby','label'])for(const route of ['click','Enter','Space']){
+    for(const word of words)for(const label of ['name','aria','title','value','labelledby','hidden_labelledby','label','role','formaction'])for(const route of ['click','Enter','Space']){
       const id='word-'+word+'-'+label+'-'+route;await setup({id,mode:'word',word,label});
-      const row=(await read()).find(row=>row.expected.role==='button');assert.ok(row);
+      const row=(await read()).find(row=>row.expected.role==='button'||row.expected.name==='Continue');assert.ok(row);
       const args={reference:row.reference,expected:row.expected};
       const result=route==='click'?await call('click',args):await call('press',{...args,key:route});
       await approval(result,id);
@@ -50,12 +54,13 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
     await nav('loop&id=uncancelled-loop');const result=await call('click',await target('Continue'));await approval(result,'uncancelled-loop');
   });
   await check('GROUP 2 owner synchronous task delayed work and in-flight interleavings',async()=>{
-    for(const [id,busy,after] of [['owner-sync',0,130],['owner-flight',250,60],['owner-after-limit',0,650]]){
-      await nav('owner-task&id='+id+'&busy='+busy+'&delay=100');
+    for(const [id,busy,after] of [['owner-sync',0,130],['owner-replay',0,130],['owner-flight',250,60],['owner-after-limit',0,650]]){
+      await nav('owner-task&id='+id+'&busy='+busy+'&delay=100'+(id==='owner-replay'?'&replay=1':''));
       const continued=call('click',await target('Continue'));
       let record;const deadline=Date.now()+5000;
       while(!record&&Date.now()<deadline){record=fixture.arrivals.find(row=>row.url.includes('case=task-start')&&row.body===id);if(!record)await delay(5);}
-      assert.ok(record);await delay(Math.max(0,record.time+after-Date.now()));ownerKey();await continued;await delay(150);
+      assert.ok(record);await delay(Math.max(0,record.time+after-Date.now()));ownerKey();const result=await continued;await delay(150);
+      if(id==='owner-replay'){assert.equal(counts(id),1,'untrusted replay cannot inherit the first owner task');const held=result.followups.find(item=>item.approval);assert.ok(held);await call('submit',held.approval);await eventually(()=>counts(id)===2,'approved replay submission');await call('submit',held.approval);assert.equal(counts(id),2);}
       if(id==='owner-sync')assert.equal(counts(id),1,'synchronous owner submission passes; delayed second submission stays held');
       if(id==='owner-flight')assert.equal(counts(id),0,'owner input during the marked dispatch stays held');
       if(id==='owner-after-limit')assert.equal(counts(id),2,'owner work after the limit is ordinary browser work');
@@ -176,8 +181,10 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
         await lifecycle({fixture:'cut',point:'submitting'});pending=rpc('submit',prepared.approval).catch(error=>({transport:String(error)}));
         await eventually(()=>fs.existsSync('/out/checkpoint-ready.json'),'durable submitting barrier');
       } else if(phase==='after-input'){
+        await lifecycle({fixture:'cut',point:'after-input'});
         pending=rpc('submit',prepared.approval).catch(error=>({transport:String(error)}));
-        await eventually(()=>counts(id)===1,'input before crash');
+        await eventually(()=>fs.existsSync('/out/checkpoint-ready.json'),'private post-input pre-reply barrier');
+        assert.equal(counts(id),1,'receiver saw the input before its result was returned');
       }
       await lifecycle(component==='service'?{fixture:'kill_service'}:'kill_'+component);
       if(phase==='after-submitting'&&component!=='service')fs.writeFileSync('/out/checkpoint-release','release');
@@ -185,10 +192,33 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
       if(pending)await pending;
       tab=await restoreControl();const before=counts(id);
       assert.equal(before,phase==='after-input'?1:0,'receiver cutpoint '+id);
-      const replay=await rpc('submit',prepared.approval);assert.ok(!replay.ok||replay.data.operation.state!=='reserved');await delay(100);assert.equal(counts(id),before,'restart must never replay '+id);
+      const replay=await rpc('submit',prepared.approval);
+      if(phase!=='before-check'){assert.equal(replay.ok,true,JSON.stringify(replay));assert.equal(replay.data.operation.state,'unknown','an interrupted outcome must stay unknown');}
+      else assert.ok(!replay.ok||replay.data.operation.state!=='reserved');
+      await delay(100);assert.equal(counts(id),before,'restart must never replay '+id);
       console.log('GROUP 9 CUT',id,'receiver',before,JSON.stringify(replay));
     }
   });
+  const required={
+    1:['GROUP 1 what asks word/label/key matrix','GROUP 1 submit compose deletion and free-input matrix'],
+    2:['GROUP 2 stopped page steps handler/resume matrix','GROUP 2 script activations never replay','GROUP 2 loop with uncancelled enclosing submit sends once','GROUP 2 owner synchronous task delayed work and in-flight interleavings','GROUP 2 nested validation and fresh-frame fallback'],
+    3:['GROUP 3 binding every form fact and generic sibling draft','GROUP 3 cross-frame adapter empty and oversized drafts'],
+    4:['GROUP 4 page confirmations bind their full text and ask independently','GROUP 4 exact native confirmation and mismatch matrix'],
+    5:['GROUP 5 question fields, hidden values, password label, upload path and hash'],
+    6:['GROUP 6 exclusions through frame, popup, redirect, taking and history','GROUP 6 schemes links and forward routes'],
+    7:['GROUP 7 all password kinds across open closed and cross-site roots'],
+    8:['GROUP 8 drop release close and stale references never dispatch prepared work','GROUP 8 actual popup Stop button drops all prepared work','GROUP 8 deadline and tabs outside the group'],
+    9:['GROUP 9 Chrome host service crash cutpoints never replay'],
+    10:['GROUP 10 adapter gmail','GROUP 10 adapter whatsapp','GROUP 10 adapter github','GROUP 10 adapter gemini','GROUP 10 adapter deezer','GROUP 10 read-only bank'],
+    11:['GROUP 11 exact owner kind, recipients, account and revocation'],
+    13:['GROUP 13 changed read-only preview is a stated residual','GROUP 13 autosave and after-limit submissions are not held'],
+  };
+  const groups=Object.fromEntries(Object.entries(required).map(([group,names])=>[group,names.every(name=>results.some(result=>result.name===name&&result.passed))]));
+  groups[2] &&= baseline.owner===true;
+  groups[7] &&= baseline.forgery===true && baseline.isolation===true;
+  groups[13] &&= baseline.residual===true;
+  const qualified={groups,core:{classification:groups[1],page_script:groups[2]&&groups[8]&&groups[9],binding:groups[3]&&groups[4]&&groups[5],password_exclusion:groups[7]},adapters:Object.fromEntries(['gmail','whatsapp','github','bank','gemini','deezer'].map(site=>[site,adapters[site]===true]))};
+  fs.writeFileSync('/out/qualification-result.json',JSON.stringify(qualified,null,2));
   fs.writeFileSync('/out/matrices.json',JSON.stringify(results,null,2));
   return results.filter(item=>!item.passed);
 }

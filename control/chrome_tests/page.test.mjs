@@ -52,13 +52,14 @@ function fixture() {
   const ids=new Map(), elements=new Map();let sequence=0;
   function id(node){if(!ids.has(node)){const key='e'+(++sequence);ids.set(node,key);elements.set(key,node);}return ids.get(node);}
   function name(node){const labels=(node['aria-labelledby']||'').split(/\s+/).map(key=>document.getElementById(key)).filter(Boolean);return labels.length ? labels.map(label=>label.textContent).join(' ') : node['aria-label'] || node.labels?.map(label=>label.textContent).join(' ') || node.textContent;}
-  guard.reader({id,element:key=>elements.get(key),target:node=>({name:name(node),title:node.title,role:node.role,submit:!!node.form && node.type==='submit',editable:node instanceof HTMLInputElement}),form:(node,button)=>{const form=node.form || (node.tagName==='FORM' ? node:null);return form ? {method:button?.formmethod || form.method,search:form.role==='search',action:form.action}:null;}});
+  guard.reader({document:'document-1',id,element:key=>elements.get(key),target:node=>({name:name(node),title:node.title,role:node.role,submit:!!node.form && node.type==='submit',editable:node instanceof HTMLInputElement}),form:(node,button)=>{const form=node.form || (node.tagName==='FORM' ? node:null);return form ? {method:button?.formmethod || form.method,search:form.role==='search',action:form.action}:null;}});
   const main=vm.createContext({...globals});
   vm.runInContext(fs.readFileSync('control/chrome/extension/page.js','utf8'),main);
   assert.equal(vm.runInContext("globalThis[Symbol.for('aresos.chrome.page.v1')]",main),undefined);
   assert.equal(vm.runInContext("globalThis[Symbol.for('aresos.chrome.guard.v2')]",main),undefined);
   function arm(target,form,operation=null){guard.arm({generation:'epoch',config:{words:['send','delete','Papierkorb'],holdMs:500},target:id(target),form:form ? id(form):null,operation,primary_submission:false});}
-  return {api:guard,arrivals,get reports(){reports.push(...guard.steps());return reports;},document,HTMLFormElement,HTMLElement,Event,CustomEvent,originalDispatch,arm,main};
+  const api={...guard,resume:(id,operation)=>{const step=reports.find(item=>item.id===id);return guard.resume(id,operation,step?.submitter||step?.element,step?.element);}};
+  return {api,guard,arrivals,get reports(){reports.push(...guard.steps());return reports;},document,HTMLFormElement,HTMLElement,Event,CustomEvent,originalDispatch,arm,main};
 }
 
 test('group2 native submit resumes without checks or submit events',()=>{

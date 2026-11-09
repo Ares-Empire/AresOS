@@ -4,7 +4,7 @@ const session = crypto.randomUUID();
 const controlled = new Map(), used = new Set(), dialogs = new Map();
 let groupId = null, port = null, serial = Promise.resolve(), recording = false, effectStarted = false, dispatchEpoch = null;
 let excludedHosts = null;
-const listSnapshots = new Map();
+const listSnapshots = new Map(), fixtureBarriers = new Map();
 const ownerRequests = new Map(), stagedUploads = new Map(), confirmationPlans = new Map(), dialogWake = new Map();
 function assertControl(tab,epoch=dispatchEpoch){if(!epoch || controlled.get(tab)?.epoch !== epoch)throw Error('stale_reference: control ended');}
 const audit = value => {
@@ -86,6 +86,7 @@ async function requireTab(tab) {
 async function release(tab) {
   const original = controlled.get(tab);
   controlled.delete(tab); dialogs.delete(tab);confirmationPlans.delete(tab);
+  for(const [id,barrier]of fixtureBarriers)if(barrier.tab===tab){fixtureBarriers.delete(id);barrier.reject(Error('unknown: interrupted after input'));}
   for(const [token,stage] of stagedUploads)if(stage.tab===tab)stagedUploads.delete(token);
   try {
     for (const frame of await chrome.webNavigation.getAllFrames({tabId:tab}) || []) { await content(tab,frame.frameId,'clear'); }
@@ -205,7 +206,7 @@ async function dispatch(command) {
   if(command.name==='tab_context'){const current=await chrome.tabs.get(tab);safeURL(current.url);return {session,tab,url:current.url,title:current.title,control:controlled.get(tab)?.epoch||null,frames:(await chrome.webNavigation.getAllFrames({tabId:tab})||[]).map(frame=>({frame:frame.frameId,url:frame.url,document:frame.documentId}))};}
   if (command.name === 'validity') {
     await requireTab(tab);safeURL((await chrome.webNavigation.getFrame({tabId:tab,frameId:reference.frame})).url);
-    return {session,control:controlled.get(tab).epoch,...await content(tab,reference.frame,'ready')};
+    return {session,control:controlled.get(tab).epoch,...await content(tab,reference.frame,'ready',{element:reference.element})};
   }
   if (command.name === 'read' || command.name === 'facts') return facts(tab,reference);
   if (command.name === 'stage_file') {
@@ -263,7 +264,7 @@ async function dispatch(command) {
     await content(tab,other.frame,'arm',{config:{...POLICY,conservative:command.conservative},target:other.frame===reference.frame ? target.element:null,form:other.frame===reference.frame ? frame.form?.element:null,operation:command.approved && other.frame===reference.frame ? command.operation:null,generation:dispatchEpoch,primary_submission:!!command.primary_submission && other.frame===reference.frame});
   }
   assertControl(tab);
-  if (command.name === 'resume') { effectStarted=true; await content(tab,reference.frame,'resume',{hold:command.hold,operation:command.operation,generation:dispatchEpoch}); }
+  if (command.name === 'resume') { effectStarted=true; await content(tab,reference.frame,'resume',{hold:command.hold,operation:command.operation,generation:dispatchEpoch,element:reference.element,form:frame.form?.element}); }
   else {
     const input = command.input;
     if (target.password) throw Error('owner_signin: password fields belong to the owner');
@@ -282,7 +283,7 @@ async function dispatch(command) {
         const parts=input.key.split('+'), key=parts.pop(), modifiers=(parts.includes('Ctrl')?2:0)|(parts.includes('Cmd')?4:0)|(parts.includes('Alt')?1:0)|(parts.includes('Shift')?8:0);
         const normalized=key === 'Space' ? ' ':key, code=normalized === ' ' ? 'Space':key;
         await cdp(tab,'Input.dispatchKeyEvent',{type:'keyDown',key:normalized,code,modifiers,windowsVirtualKeyCode:{Enter:13,Space:32,Delete:46,Backspace:8}[key] || key.toUpperCase().charCodeAt(0),...(['Enter','Space'].includes(key)?{text:key==='Enter'?'\r':' '}: {})});
-        await cdp(tab,'Input.dispatchKeyEvent',{type:'keyUp',key:normalized,code,modifiers});
+        await cdp(tab,'Input.dispatchKeyEvent',{type:'keyUp',key:normalized,code,modifiers,windowsVirtualKeyCode:{Enter:13,Space:32,Delete:46,Backspace:8}[key] || key.toUpperCase().charCodeAt(0)});
       }
     } else if (input.verb === 'upload') await content(tab,reference.frame,'install_file',{element:reference.element,token:command.upload.token});
     else if (input.verb === 'check') {}
@@ -296,6 +297,9 @@ async function dispatch(command) {
   for (const frame of dialogs.has(tab) ? [] : await chrome.webNavigation.getAllFrames({tabId:tab}) || []) {
     try { safeURL(frame.url); steps.push(...(await content(tab,frame.frameId,'steps')).map(step=>({...step,frame:frame.frameId}))); } catch {}
   }
+  if(recording && command.fixture_cut==='after-input'){
+    await new Promise((resolve,reject)=>{fixtureBarriers.set(command.operation,{tab,resolve,reject});port?.postMessage({event:'fixture_after_input',operation:command.operation});});
+  }
   const confirmation=confirmationPlans.get(tab);confirmationPlans.delete(tab);
   return {checked:!!command.binding,dispatched:true,steps,dialog:dialogs.get(tab)||null,confirmations:confirmation?.matched || [],page:'Input dispatched once; inspect a fresh read for what the page shows.'};
 }
@@ -307,12 +311,12 @@ async function connect() {
   port.onMessage.addListener(message=>{
     if (message.owner_reply) { const pending=ownerRequests.get(message.owner_reply); if(pending){ownerRequests.delete(message.owner_reply);pending(message.result);} return; }
     serial=serial.then(async()=>{
-      effectStarted=false;dispatchEpoch=null;
+      effectStarted=false;dispatchEpoch=null;audit({command:message.command?.name,phase:'begin'});
       try { respond({id:message.id,ok:true,data:await dispatch(message.command)}); }
       catch(error) { port?.postMessage({id:message.id,ok:false,error:effectStarted ? 'unknown: Input may have started; inspect status and the page, never retry. '+String(error.message):String(error.message)}); }
     });
   });
-  port.onDisconnect.addListener(()=>{ port=null; stop().finally(()=>setTimeout(connect,1000)); });
+  port.onDisconnect.addListener(()=>{ for(const barrier of fixtureBarriers.values())barrier.reject(Error('unknown: native connection ended after input'));fixtureBarriers.clear();port=null; stop().finally(()=>setTimeout(connect,1000)); });
 }
 chrome.runtime.onMessage.addListener((message,sender,reply)=>{
   if(sender.id === chrome.runtime.id && message?.event === 'reader_error') { port?.postMessage({event:'reader_error',error:message.error,tab:sender.tab?.id,frame:sender.frameId});reply({received:true});return; }
