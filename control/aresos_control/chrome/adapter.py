@@ -13,6 +13,7 @@ from ..definitions import BY_NAME
 from ..paging import fragment_window, ordered_page
 from ..warnings import check_result
 from .bridge import Bridge
+from .exclusions import owner_hosts
 from .policy import allowed_url, classify, HOSTS
 from .qualification import Qualification, switches
 from .sites import recognize, KINDS
@@ -48,6 +49,7 @@ class Chrome:
         self.bridge.on_event = self.event
         self.trusted_context = False
         self.hosts = HOSTS
+        self.read_owner_hosts = owner_hosts
         self.upload_dir = Path("/run/aresos-tools/uploads")
         if build is None:
             installed = RUNTIME / 'chrome' / 'build-id.json'
@@ -84,19 +86,26 @@ class Chrome:
     def mode(self, acting=False):
         if not self.bridge.version:
             raise Refused('chrome_unavailable', 'Chrome is not connected; start normal Chrome with the installed extension.')
+        hosts = self.read_owner_hosts()
+        if getattr(self, '_configured_exclusions', None) != (self.bridge.session, hosts):
+            self.bridge.call('configure', excluded_hosts=hosts)
+            self._configured_exclusions = (self.bridge.session, hosts)
         mode = switches(self.qualification.record(), self.qualification.build, self.bridge.version)
-        groups = ['classification','page_script','binding'] if acting else ['password_exclusion']
+        groups = ['classification','page_script','binding','password_exclusion'] if acting else ['password_exclusion']
         for group in groups:
             if not mode['core'][group]:
                 raise Refused('qualification_failed', f'Chrome {self.bridge.version}: {group} failed qualification; this action is off until fixed.')
         return mode
 
+    def allowed_url(self, address):
+        return allowed_url(address, self.read_owner_hosts())
+
     def facts(self, reference):
         self.mode()
         facts = self.bridge.call('facts', reference=reference)
-        allowed_url(facts['url'])
+        self.allowed_url(facts['url'])
         for frame in facts['frames']:
-            allowed_url(frame['url'])
+            self.allowed_url(frame['url'])
         if reference.get('view') and view_identity(facts) != reference['view']:
             raise Refused('stale_reference', 'Page changed; read again before acting.')
         frame = next((frame for frame in facts['frames'] if frame['frame'] == reference['frame']), None)
@@ -107,6 +116,7 @@ class Chrome:
     def read(self, verb, args):
         mode = self.mode()
         facts = self.bridge.call('read', tab=args['tab'])
+        self.allowed_url(facts['url'])
         token = view_identity(facts)
         condition_met=True
         if verb == 'wait':
@@ -124,7 +134,7 @@ class Chrome:
                 facts=self.bridge.call('read',tab=args['tab']);token=view_identity(facts)
         rows = []
         for frame in facts['frames']:
-            allowed_url(frame['url'])
+            self.allowed_url(frame['url'])
             if verb == 'read_form':
                 reference = args['reference']
                 if reference['view'] != token:
@@ -206,6 +216,18 @@ class Chrome:
         # The decisive fresh comparison is in the extension, immediately before input.
         if operation['payload']['binding']['session'] != self.bridge.session:
             raise Refused('stale_approval', 'Chrome session changed; read and prepare again.')
+        self.check_readonly(operation['payload'])
+
+    def check_readonly(self, payload):
+        state = payload['binding']
+        addresses = [state['url'], state.get('frame_url') or state.get('dialog', {}).get('frame_url', state['url'])]
+        for address in addresses:
+            self.allowed_url(address)
+        readonly = any(self.store.get('chrome:readonly:' + (urlsplit(address).hostname or ''), False) for address in addresses)
+        if readonly:
+            if payload.get('native_dialog') or payload.get('resume_kind'):
+                raise Refused('readonly_site', 'This site is now read-only; the prepared action was refused before dispatch.')
+            classify(payload['input']['verb'], payload['input'], {'target':state['target'], 'form':state.get('form')}, readonly=True)
 
     def has_submission_evidence(self, operation_id):
         return False
@@ -227,6 +249,8 @@ class Chrome:
 
     def execute(self, operation, stage):
         payload = operation['payload']
+        self.mode(acting=True)
+        self.check_readonly(payload)
         command = self.command(payload, operation['id'], approved=True)
         if payload.get('file'):
             from .uploads import copy_for_browser
@@ -348,7 +372,7 @@ class Chrome:
         if command == 'list':
             return {'untrusted_content':{'readonly':self.store.items('chrome:readonly:'),'allowed':self.store.items('chrome:allow:'),'recent':[{'operation_id':op['id'],'question':op['approval'].get('question'),'eligible':bool(op['payload'].get('adapter',{}).get('trusted'))} for _,op in self.store.iter_items('op:') if op['app']=='chrome' and op['state']=='done' and op['action']=='chrome_submit'][-10:]}}
         if command == 'readonly':
-            address = allowed_url(args['site']); host = urlsplit(address).hostname
+            address = self.allowed_url(args['site']); host = urlsplit(address).hostname
             self.store.write({'chrome:readonly:' + host:args.get('enabled',True)},'chrome_sites','Owner changed read-only site')
             return {'readonly':host,'enabled':args.get('enabled',True)}
         if command == 'revoke':
@@ -403,7 +427,7 @@ class Chrome:
             return {'completed':completed,'remaining':len(args['fields'])-len(completed)}
         if verb in {'open','navigate','take_tab','release_tab','close_tab'}:
             self.mode(acting=True)
-            if 'url' in args: allowed_url(args['url'])
+            if 'url' in args: self.allowed_url(args['url'])
             return self.free(verb,**args)
         if verb == 'dialog':
             mode=self.mode(acting=True)

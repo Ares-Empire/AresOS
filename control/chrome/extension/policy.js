@@ -42,8 +42,7 @@ export const POLICY = {
   "fixedHosts": [
     "claude.ai",
     "console.anthropic.com",
-    "platform.claude.com",
-    "aresus.app"
+    "platform.claude.com"
   ],
   "cdpMethods": [
     "Input.dispatchMouseEvent",

@@ -14,6 +14,18 @@ and native_host.py beside it with mode 0644. Its only endpoint is chrome.sock; t
 checks Linux SO_PEERCRED against the configured owner, independently of mode bits.
 A same-named user-level host is an accepted decision-24 residual.
 
+The image must install `/etc/aresos/control/chrome-excluded-sites.json` with
+`{"format":1,"hosts":[]}` (or the owner's private DNS host list). Each entry
+covers its host and subdomains; names are lowercase and contain no scheme,
+port or path. The file and every parent must be root-owned, without group or
+world write permission or symlinks. Use mode 0640 and the service's group so
+the service can read it; only root can change it. Keep actual owner
+infrastructure out of source control. Missing, unreadable or unsafe settings
+refuse every Chrome read and action. An installed empty list is valid.
+The extension receives these exclusions over native messaging, builds session
+DNR rules for controlled tabs, and registers its content scripts with runtime
+exclusions. A changed list ends control before its new rules take effect.
+
 Copy all control/aresos_control runtime modules, generated/, settings/, launch.py,
 requirements.lock and chrome/{extension,native_host.py,build.py,packaging,
 qualification.json} into the installed service tree. During the image build,

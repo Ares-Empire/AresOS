@@ -27,52 +27,5 @@
     "default_popup": "popup.html",
     "default_title": "AresOS Chrome: Stop control"
   },
-  "options_page": "details.html",
-  "content_scripts": [
-    {
-      "matches": [
-        "http://*/*",
-        "https://*/*"
-      ],
-      "all_frames": true,
-      "match_origin_as_fallback": true,
-      "run_at": "document_start",
-      "world": "MAIN",
-      "js": [
-        "page.js"
-      ],
-      "exclude_matches": [
-        "http://*.claude.ai/*",
-        "http://*.console.anthropic.com/*",
-        "http://*.platform.claude.com/*",
-        "http://*.aresus.app/*",
-        "https://*.claude.ai/*",
-        "https://*.console.anthropic.com/*",
-        "https://*.platform.claude.com/*",
-        "https://*.aresus.app/*"
-      ]
-    },
-    {
-      "matches": [
-        "http://*/*",
-        "https://*/*"
-      ],
-      "all_frames": true,
-      "match_origin_as_fallback": true,
-      "run_at": "document_start",
-      "js": [
-        "reader.js"
-      ],
-      "exclude_matches": [
-        "http://*.claude.ai/*",
-        "http://*.console.anthropic.com/*",
-        "http://*.platform.claude.com/*",
-        "http://*.aresus.app/*",
-        "https://*.claude.ai/*",
-        "https://*.console.anthropic.com/*",
-        "https://*.platform.claude.com/*",
-        "https://*.aresus.app/*"
-      ]
-    }
-  ]
+  "options_page": "details.html"
 }

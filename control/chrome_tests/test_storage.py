@@ -18,6 +18,7 @@ class Storage(test_engine.Operations):
         self.engine.close()
         self.engine=Engine(self.root/'state',self.root/'evidence')
         self.chrome=self.engine.adapters['chrome'];self.chrome.bridge=self.browser
+        self.chrome.read_owner_hosts=lambda: []
         if self.engine.store.locked:
             reply=self.engine.request({'v':1,'method':'call','action':'control_restore_confirm','arguments':{'confirm':'invalidate earlier approvals'}},True)
             self.assertTrue(reply['ok'],reply)

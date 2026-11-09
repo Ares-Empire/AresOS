@@ -27,6 +27,7 @@ class Browser:
              'target':target,'rows':[target],'form':None,'editable':[{'element':'e2','label':'Body','value':'Existing draft'}],'item':'Fixture item',
              'adapter':{'account':None}}],'dialog':None}
     def call(self,name,**args):
+        if name=='configure': return {'configured':True}
         if name in {'facts','read'}: return copy.deepcopy(self.facts)
         if name=='tabs': return {'items':[{'tab':1,'url':self.facts['url'],'title':'Fixture'}]}
         self.dispatched.append((name,args))
@@ -41,6 +42,7 @@ class Operations(unittest.TestCase):
         self.mock=patch('aresos_control.engine.Boundary'); self.mock.start()
         self.engine=Engine(self.root/'state',self.root/'evidence')
         self.chrome=self.engine.adapters['chrome']; self.browser=Browser(); self.chrome.bridge=self.browser
+        self.chrome.read_owner_hosts=lambda: []
         record={'format':1,'entries':[entry(build=self.chrome.qualification.build)]}
         self.engine.store.write({'chrome:qualification':record},'chrome_test_setup','Synthetic qualification, test store only')
     def tearDown(self):
@@ -101,6 +103,37 @@ class Operations(unittest.TestCase):
         with patch.object(self.engine.store.ledger,'admit',side_effect=OSError(errno.ENOSPC,'fixture')):
             result=self.call('click',self.target());self.assertFalse(result['ok']);self.assertEqual(self.browser.dispatched,[])
         approval=self.prepare();self.assertTrue(self.call('submit',approval)['ok'])
+
+    def test_review1_readonly_added_after_prepare_refuses_all_dispatch_kinds(self):
+        for kind in ['send','upload','dialog','resumed']:
+            with self.subTest(kind=kind):
+                approval=self.prepare()
+                operation=self.engine.operation(approval['operation_id'])
+                if kind=='upload': operation['payload']['input']['verb']='upload'
+                if kind=='dialog':
+                    operation['payload']['native_dialog']=True
+                    operation['payload']['binding']['dialog']={'frame_url':'https://fixture.test/'}
+                if kind=='resumed': operation['payload']['resume_kind']='native_submit'
+                self.engine.store.write({'chrome:readonly:fixture.test':True},'chrome_test_setup','Owner marks site read-only')
+                from aresos_control.common import Refused
+                with self.assertRaises(Refused) as error:
+                    self.chrome.revalidate(operation)
+                self.assertEqual(error.exception.code,'readonly_site')
+                self.assertEqual(self.browser.dispatched,[])
+                self.engine.store.write({'chrome:readonly:fixture.test':False},'chrome_test_setup','Owner removes read-only restriction')
+                self.chrome.revalidate(operation)
+
+    def test_review1_password_failure_refuses_before_any_binding_read(self):
+        approval=self.prepare()
+        record={'format':1,'entries':[entry(build=self.chrome.qualification.build),entry(build=self.chrome.qualification.build,version='157.0.1.1')]}
+        record['entries'][1]['core']['password_exclusion']=False
+        self.engine.store.write({'chrome:qualification':record},'chrome_test_setup','Recorded password exclusion failure')
+        self.browser.version='157.0.1.2'
+        with patch.object(self.browser,'call',side_effect=AssertionError('Must not reread after password qualification failure')):
+            result=self.call('submit',approval)
+        self.assertFalse(result['ok'],result)
+        self.assertEqual(result['error']['code'],'qualification_failed')
+        self.assertEqual(self.browser.dispatched,[])
 
 
 if __name__=='__main__':unittest.main()

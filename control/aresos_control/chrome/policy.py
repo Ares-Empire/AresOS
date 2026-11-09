@@ -12,7 +12,7 @@ WORDS = ('send submit post publish reply comment buy pay order book subscribe un
 DELETE = set('delete remove discard clear empty trash löschen entfernen verwerfen leeren papierkorb'.split())
 PAY = set('buy pay order book subscribe kaufen bezahlen zahlen bestellen buchen abonnieren'.split())
 SEND = set('send submit post publish reply comment senden absenden schicken posten veröffentlichen antworten kommentieren'.split())
-FIXED_HOSTS = ['claude.ai', 'console.anthropic.com', 'platform.claude.com', 'aresus.app']
+FIXED_HOSTS = ['claude.ai', 'console.anthropic.com', 'platform.claude.com']
 HOSTS = {'gmail': ['mail.google.com'], 'whatsapp': ['web.whatsapp.com'], 'github': ['github.com'],
          'bank': [], 'gemini': ['gemini.google.com'], 'deezer': ['www.deezer.com', 'deezer.com']}
 HOLD_MS = 500
@@ -26,14 +26,14 @@ def listed(text):
     return set(re.findall(r'\w+', text.casefold())) & {w.casefold() for w in WORDS}
 
 
-def allowed_url(address):
+def allowed_url(address, extra_hosts=()):
     if address == 'about:blank':
         return address
     try:
         parsed = urlsplit(address)
         if parsed.scheme not in {'http', 'https'} or not parsed.hostname or parsed.username or parsed.password:
             raise ValueError()
-        if any(parsed.hostname == host or parsed.hostname.endswith('.' + host) for host in FIXED_HOSTS):
+        if any(parsed.hostname == host or parsed.hostname.endswith('.' + host) for host in [*FIXED_HOSTS, *extra_hosts]):
             raise ValueError()
         parsed.port
     except (ValueError, AttributeError) as exc:
