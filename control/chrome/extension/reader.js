@@ -114,6 +114,7 @@
     const dialog=element.closest('dialog,[role=dialog],[role=alertdialog]');
     const page_dialog=dialog ? {element:id(dialog),kind:role(dialog),text:text(dialog).replace(/\s+/g,' ').trim(),button:name(element),fields:[...dialog.querySelectorAll('input,textarea,select,[contenteditable]')].map(field)} : null;
     return {element: id(element), role: role(element), page_dialog, name: name(element), label:element.labels?.length?[...element.labels].map(node=>text(node,true)).join(' ').replace(/\s+/g,' ').trim():name(element), title: element.getAttribute('title') || '', ...value,
+      ...(element instanceof HTMLSelectElement && !value.password ? {options:field(element).options}:{}),
       href: element.tagName === 'A' ? element.href : null,
       editable: element instanceof HTMLInputElement && !['button','submit','image','checkbox','radio','file','hidden'].includes(element.type) || element instanceof HTMLTextAreaElement || element.isContentEditable,
       search: element.type === 'search' || element.getAttribute('role') === 'searchbox', submit: !!element.form && (element.type === 'submit' || element.type === 'image'),
@@ -230,7 +231,12 @@
         const element = elements.get(message.element);
         if (!element?.isConnected || password(element)) throw Error('stale_reference: read again');
         guard.direct(message.element);
-        if (message.command === 'select') element.value = message.value;
+        if (message.command === 'select') {
+          if(!(element instanceof HTMLSelectElement) || element.matches(':disabled'))throw Error('refused: choose an enabled native select control');
+          const choices=[...element.options].filter(option=>option.value===message.value);
+          if(choices.length!==1 || choices[0].matches(':disabled'))throw Error('stale_reference: the exact enabled option is missing or ambiguous; read again');
+          element.value = message.value;
+        }
         else element.checked = message.checked;
         element.dispatchEvent(new Event('input', {bubbles:true})); element.dispatchEvent(new Event('change', {bubbles:true}));
         value = {changed:true};

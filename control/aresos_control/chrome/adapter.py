@@ -30,7 +30,7 @@ def view_identity(facts):
 def binding(facts, reference, kind, adapter):
     frame = next(frame for frame in facts['frames'] if frame['frame'] == reference['frame'])
     target = frame['target']
-    keys = ['element','role','name','label','title','href','value','password','states','editable','search','submit','page_dialog']
+    keys = ['element','role','name','label','title','href','value','password','states','editable','search','submit','page_dialog','options']
     return {'session':facts['session'],'tab':facts['tab'],'control':facts.get('control'),'url':facts['url'],'document':frame['document'],
             'frame':frame['frame'],'frame_url':frame['url'],'target':{key:target[key] for key in keys if key in target},
             'form':frame.get('form'),

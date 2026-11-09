@@ -36,6 +36,20 @@ async function cdp(tab, method, parameters = {}) {
   }
   return audit(await pending);
 }
+function keyboard(value) {
+  const parts=value.split('+'),name=parts.pop();
+  let modifiers=(parts.includes('Ctrl')?2:0)|(parts.includes('Cmd')?4:0)|(parts.includes('Alt')?1:0)|(parts.includes('Shift')?8:0);
+  const special={Enter:['Enter',13,'Enter'],Space:['Space',32,' '],' ':['Space',32,' '],Delete:['Delete',46,'Delete'],Backspace:['Backspace',8,'Backspace'],Tab:['Tab',9,'Tab'],Escape:['Escape',27,'Escape'],ArrowLeft:['ArrowLeft',37,'ArrowLeft'],ArrowUp:['ArrowUp',38,'ArrowUp'],ArrowRight:['ArrowRight',39,'ArrowRight'],ArrowDown:['ArrowDown',40,'ArrowDown'],Home:['Home',36,'Home'],End:['End',35,'End'],PageUp:['PageUp',33,'PageUp'],PageDown:['PageDown',34,'PageDown'],'#':['Digit3',51,'#']};
+  let tuple=special[name];
+  if(name==='#')modifiers|=8;
+  if(!tuple&&/^[a-z]$/i.test(name))tuple=['Key'+name.toUpperCase(),name.toUpperCase().charCodeAt(0),name];
+  if(!tuple&&/^\d$/.test(name))tuple=['Digit'+name,name.charCodeAt(0),name];
+  if(!tuple&&/^F(?:[1-9]|1\d|2[0-4])$/.test(name))tuple=[name,111+Number(name.slice(1)),name];
+  if(!tuple)throw Error('refused: unsupported key; use an explicit supported key or fill text');
+  const [code,windowsVirtualKeyCode,key]=tuple;
+  const text=name==='Enter'?'\r':name==='Space'?' ':key.length===1&&!(modifiers&6)?key:undefined;
+  return {key,code,modifiers,windowsVirtualKeyCode,...(text===undefined?{}:{text})};
+}
 async function badge() { await chrome.action.setBadgeText({text:controlled.size ? 'ON' : ''}); await chrome.action.setBadgeBackgroundColor({color:'#2468ca'}); }
 async function rules() {
   const previous = await chrome.declarativeNetRequest.getSessionRules();
@@ -131,7 +145,7 @@ function binding(facts, reference, kind, adapter) {
   if (!frame?.target) throw Error('stale_reference: target not found');
   const target = frame.target;
   return {session,tab:facts.tab,control:facts.control,url:facts.url,document:frame.document,frame:frame.frame,frame_url:frame.url,
-    target:Object.fromEntries(['element','role','name','label','title','href','value','password','states','editable','search','submit','page_dialog'].filter(key=>key in target).map(key=>[key,target[key]])),
+    target:Object.fromEntries(['element','role','name','label','title','href','value','password','states','editable','search','submit','page_dialog','options'].filter(key=>key in target).map(key=>[key,target[key]])),
     form:frame.form,
     editable:kind === 'send' && !frame.form && !adapter ? facts.frames.map(frame=>({frame:frame.frame,document:frame.document,url:frame.url,fields:frame.editable})) : null,
     item:['delete','pay','activation','confirmation'].includes(kind) ? frame.item : null,
@@ -288,10 +302,9 @@ async function dispatch(command) {
         await cdp(tab,'Input.dispatchKeyEvent',{type:'keyUp',key:'a',code:'KeyA',modifiers:2,windowsVirtualKeyCode:65});
         await cdp(tab,'Input.insertText',{text:input.text});
       } else {
-        const parts=input.key.split('+'), key=parts.pop(), modifiers=(parts.includes('Ctrl')?2:0)|(parts.includes('Cmd')?4:0)|(parts.includes('Alt')?1:0)|(parts.includes('Shift')?8:0);
-        const normalized=key === 'Space' ? ' ':key, code=normalized === ' ' ? 'Space':key;
-        await cdp(tab,'Input.dispatchKeyEvent',{type:'keyDown',key:normalized,code,modifiers,windowsVirtualKeyCode:{Enter:13,Space:32,Delete:46,Backspace:8}[key] || key.toUpperCase().charCodeAt(0),...(['Enter','Space'].includes(key)?{text:key==='Enter'?'\r':' '}: {})});
-        await cdp(tab,'Input.dispatchKeyEvent',{type:'keyUp',key:normalized,code,modifiers,windowsVirtualKeyCode:{Enter:13,Space:32,Delete:46,Backspace:8}[key] || key.toUpperCase().charCodeAt(0)});
+        const {text,...key}=keyboard(input.key);
+        await cdp(tab,'Input.dispatchKeyEvent',{type:'keyDown',...key,...(text===undefined?{}:{text})});
+        await cdp(tab,'Input.dispatchKeyEvent',{type:'keyUp',...key});
       }
     } else if (input.verb === 'upload') await content(tab,reference.frame,'install_file',{element:reference.element,token:command.upload.token});
     else if (input.verb === 'check') {}
