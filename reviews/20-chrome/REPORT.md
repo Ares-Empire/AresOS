@@ -233,8 +233,8 @@ evidence for this reader.
 
 ## Not verified / unfinished Now work
 
-**Read:** see [CODE-REVIEW.md](CODE-REVIEW.md) and
-[SECURITY-REVIEW.md](SECURITY-REVIEW.md). In addition to the owner-input failure,
+**Read:** see [BUILD-REVIEW-1.md](BUILD-REVIEW-1.md) and
+[BUILD-SECURITY-REVIEW-1.md](BUILD-SECURITY-REVIEW-1.md). In addition to the owner-input failure,
 MAIN asking detection misses accessible labels supplied through
 `aria-labelledby` or associated labels, prepared operations do not recheck a
 new read-only restriction, and revalidation must apply a newly recorded
