@@ -774,13 +774,13 @@ class OwnerOracle(unittest.TestCase):
         for parent, child in (('g:a', 'g:z'), ('g:z', 'g:a')):
             oracle = Oracle()
             oracle.call('mail_operation_repair', {'operation_id': parent, 'stage': 'sent_copy'}, 123)
-            context = dict(command='APPEND', account='box', identities=[{'message_id': '<exact>'}],
+            context = dict(command='APPEND', account='box', identities=[{'message_id': '<' + parent.replace(':', '.') + '@mail.aresos.invalid>'}],
                            roles={}, source='local', destination='Sent', sha256='wire')
             rows = {'op:' + parent: {'id': parent, 'state': 'partial', 'context': context},
                     'op:' + child: {'id': child, 'state': 'submitting', 'repair_of': parent,
                                    'action': 'mail_operation_repair', 'payload': {'stage': 'sent_copy'}, 'context': dict(context)}}
             # Match the production scan's lexicographic ordering in both cases.
-            event = oracle.server('APPEND', 'box', 'Sent', [{'message_id': '<exact>'}], {},
+            event = oracle.server('APPEND', 'box', 'Sent', [{'message_id': '<' + parent.replace(':', '.') + '@mail.aresos.invalid>'}], {},
                                   raw_sha256='wire', committed_before=dict(sorted(rows.items())))
             self.assertEqual(differences(event, oracle.script), ('op:' + child, []))
             event['committed_before']['op:' + child]['context']['destination'] = 'Wrong'
@@ -1012,8 +1012,8 @@ class StageOneFixMutations(unittest.TestCase):
         oracle = Oracle()
         oracle.call('mail_operation_repair', {'operation_id': 'g:parent', 'stage': 'sent_copy'}, 1)
         context = {'command': 'APPEND', 'account': 'box', 'roles': {}, 'source': 'local', 'destination': 'Sent',
-            'sha256': 'wire', 'identities': [{'message_id': '<exact>'}], 'append_flags': '(\\Draft)'}
-        event = oracle.server('APPEND', 'box', 'Sent', [{'message_id': '<exact>'}], {}, append_flags='(\\Draft)', raw_sha256='wire',
+            'sha256': 'wire', 'identities': [{'message_id': '<g.parent@mail.aresos.invalid>'}], 'append_flags': '(\\Draft)'}
+        event = oracle.server('APPEND', 'box', 'Sent', [{'message_id': '<g.parent@mail.aresos.invalid>'}], {}, append_flags='(\\Draft)', raw_sha256='wire',
             committed_before={'op:g:repair': {'id': 'g:repair', 'state': 'submitting', 'repair_of': 'g:parent',
             'action': 'mail_operation_repair', 'payload': {'stage': 'sent_copy'}, 'context': context}})
         self.assertEqual(differences(event, oracle.script)[1], ['script.command.append-flags', 'script.context.append-flags'])
@@ -1057,3 +1057,13 @@ class StageOneFixMutations(unittest.TestCase):
             wrong = {'data': {'accounts': [{'id': 'new', **expected, 'folder_delete_reason': 'Qualified: fabricated'}]}}
             with self.subTest(kind=kind), self.assertRaises(AssertionError):
                 oracle.compare('wrong qualification reason', oracle.qualification_facts({}, record), oracle.qualification_facts(wrong, record, actual=True))
+
+    def test_coherent_wrong_send_message_identity_is_not_authorized(self):
+        from owner_state_oracle.context import differences
+        oracle = Oracle()
+        oracle.call('mail_send', {'operation_id': 'g:one'}, 1)
+        context = {'command': 'DATA', 'account': 'box', 'roles': {}, 'source': 'owner@mail.invalid', 'destination': 'smtp',
+            'sha256': 'wire', 'identities': [{'message_id': '<g.two@mail.aresos.invalid>'}], 'recipients': ['peer@mail.invalid']}
+        event = oracle.server('DATA', 'box', identities=context['identities'], roles={}, sender='owner@mail.invalid', recipients=['peer@mail.invalid'], raw_sha256='wire',
+            committed_before={'op:g:one': {'id': 'g:one', 'state': 'submitting', 'action': 'mail_send', 'context': context}})
+        self.assertEqual(differences(event, oracle.script)[1], ['script.command.message-identity', 'script.context.message-identity'])

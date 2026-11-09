@@ -211,6 +211,10 @@ def script_differences(event, script, row, context):
     call = call_for(event, script)
     args = call.get('arguments', {})
     description = args.get('description', {})
+    if call.get('action') == 'mail_operation_repair':
+        original = next((c for c in script if c.get('action') in {'mail_send', 'mail_unsubscribe'} and
+            c.get('arguments', {}).get('operation_id') == args.get('operation_id')), {})
+        description = original.get('arguments', {}).get('description', description)
     description = {**description, **description.get('untrusted_content', {})}
     action, command = call.get('action'), event['command']
     refs = args.get('references') or [i['reference'] for i in description.get('items', []) if 'reference' in i]
@@ -267,6 +271,15 @@ def script_differences(event, script, row, context):
             errors.append('script.command.' + field)
         if context.get(field) != value:
             errors.append('script.context.' + field)
+    operation_id = args.get('operation_id')
+    if operation_id and action in {'mail_send', 'mail_unsubscribe', 'mail_operation_repair'} and command in {'DATA', 'APPEND'}:
+        identities = [{'message_id': '<' + operation_id.replace(':', '.') + '@mail.aresos.invalid>'}]
+        if actual.get('identities') != identities:
+            errors.append('script.command.message-identity')
+        if [{k: v for k, v in ref.items() if k == 'message_id'} for ref in (context.get('identities') or [])] != identities:
+            errors.append('script.context.message-identity')
+    if operation_id and command == 'RECEIVE' and event.get('identities') != [{'operation_id': operation_id}]:
+        errors.append('script.command.operation-identity')
     if command == 'APPEND' and 'append_flags' in event:
         flags = '(\\Draft)' if action == 'mail_draft_save' else '(\\Seen)' if action in {'mail_send', 'mail_unsubscribe', 'mail_operation_repair'} else None
         if action == 'mail_account_add' and event.get('folder') in (special_roles(event.get('roles')) or {}).get('sent', []):
