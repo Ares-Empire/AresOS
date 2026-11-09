@@ -131,8 +131,8 @@ class Engine:
                 result['notices']=(result['notices']+other_notices)[:3]
                 result['unavailable']='Some app state cannot be read from storage. Chrome warnings below are current; inspect other app state after recovery.'
             except (Refused,OSError,sqlite3.Error,ValueError):
-                result['notices'].append({'operation_id':'chrome-owner-state-unavailable','app':'chrome','state':'unknown',
-                    'untrusted_content':{'warning':'Current Chrome owner state cannot be read. Do not assume there is no pending work; recover storage and inspect the independent record before proceeding.'}})
+                result['notices']=[{'operation_id':'chrome-owner-state-unavailable','app':'chrome','state':'unknown',
+                    'untrusted_content':{'warning':'Current Chrome owner state cannot be read. Do not assume there is no pending work; recover storage and inspect the independent record before proceeding.'}},*result['notices']][:3]
                 result['cursor']=None
             return result
 

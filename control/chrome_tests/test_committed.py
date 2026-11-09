@@ -137,3 +137,13 @@ class Reads(unittest.TestCase):
             self.assertIsNone(projection.get('chrome:test:a'))
             fresh=Projection(store);fresh.sync()
             self.assertEqual(set(fresh.entries),set(projection.entries))
+
+    def test_unreadable_committed_projection_prioritizes_warning_inside_three_notice_bound(self):
+        from unittest.mock import patch
+        self.engine.store.write({'notice:mail-'+str(i):{'id':'mail-'+str(i),'app':'mail','state':'partial','ack':False,
+            'created_at':i,'untrusted_content':{'reason':'Synthetic cached Mail warning'}} for i in range(3)},'fixture','Mail warnings')
+        self.engine.pending()
+        with self.failed_reads(),patch.object(self.chrome,'notice_page',side_effect=OSError('Synthetic evidence read failure')):
+            pending=self.engine.pending(resolve_checks=False)
+            self.assertEqual(len(pending['notices']),3)
+            self.assertEqual(pending['notices'][0]['operation_id'],'chrome-owner-state-unavailable')

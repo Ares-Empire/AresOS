@@ -476,7 +476,8 @@ class Chrome:
                 self.store.write({key:source},'chrome_page_step','Stopped submission preparation committed')
             else:
                 source['reference'] = reference
-                text = 'The page activated an asking control by itself; it may have happened. Never resume this activation.' if step['kind'] == 'activation_unknown' else 'The page tried to activate an asking control by itself; it was stopped. Act on the current control to prepare fresh asking input if wanted.'
+                label=visible(step.get('label') or 'an unnamed control')
+                text = f"The page activated '{label}' by itself; it may have happened. Never resume this activation." if step['kind'] == 'activation_unknown' else f"The page tried to activate '{label}' by itself; it was stopped. Act on the current control to prepare fresh asking input if wanted."
                 changes, _ = check_result(self.store,source,key,'page_activation',step,{'reason':text,'warning':text,'reference':reference})
                 source['state'] = 'done'
                 self.store.write({key:source,**changes},'chrome_page_step','Page activation result committed',untrusted_content={'warning':text})

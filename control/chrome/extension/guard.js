@@ -18,6 +18,7 @@
   function decoded(value) { try{return decodeURIComponent(value);}catch{return value;} }
   function asks(element) {
     element=control(element);
+    if(config?.conservative)return true;
     const target = facts(element), form = reader.form(element);
     if (form && target.submit) return !search(form);
     if (target.editable) return false;

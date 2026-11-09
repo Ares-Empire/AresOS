@@ -57,7 +57,7 @@ function fixture() {
   vm.runInContext(fs.readFileSync('control/chrome/extension/page.js','utf8'),main);
   assert.equal(vm.runInContext("globalThis[Symbol.for('aresos.chrome.page.v1')]",main),undefined);
   assert.equal(vm.runInContext("globalThis[Symbol.for('aresos.chrome.guard.v2')]",main),undefined);
-  function arm(target,form,operation=null){guard.arm({generation:'epoch',config:{words:['send','delete','Papierkorb'],holdMs:500},target:id(target),form:form ? id(form):null,operation,primary_submission:false});}
+  function arm(target,form,operation=null,conservative=false){guard.arm({generation:'epoch',config:{words:['send','delete','Papierkorb'],holdMs:500,conservative},target:id(target),form:form ? id(form):null,operation,primary_submission:false});}
   const api={...guard,resume:(id,operation)=>{const step=reports.find(item=>item.id===id);return guard.resume(id,operation,step?.submitter||step?.element,step?.element);}};
   return {api,guard,arrivals,get reports(){reports.push(...guard.steps());return reports;},document,HTMLFormElement,HTMLElement,Event,CustomEvent,originalDispatch,arm,main};
 }
@@ -186,4 +186,14 @@ test('group7 replacing public wrapper prototypes and call intrinsics only adds h
   assert.throws(()=>{f.HTMLFormElement.prototype.submit=function(){};});
   form.submit();assert.equal(f.arrivals.length,0);
   f.api.resume(f.reports[0].id,'approved');assert.equal(f.arrivals.length,1);
+});
+
+
+test('conservative mode holds ordinary page-script activations after free input',()=>{
+  for(const route of ['click','dispatch','fallback']){
+    const f=fixture(),button=new f.HTMLElement();button.tagName='BUTTON';button.textContent='Continue';let received=0;
+    button.addEventListener('click',()=>received++);f.arm(button,null,null,true);
+    if(route==='click')button.click();else if(route==='dispatch')button.dispatchEvent(new f.Event('click'));else f.originalDispatch.call(button,new f.Event('click'));
+    assert.equal(received,0);assert.equal(f.reports.length,1);assert.equal(f.reports[0].kind,'activation');
+  }
 });
