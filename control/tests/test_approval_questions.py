@@ -30,10 +30,10 @@ class ApprovalQuestions(EngineCase):
                                (adapter, 'has_submission_evidence'), (adapter, 'execute'))]
                     result = self.call('testapp_' + verb, altered)
                     self.assertEqual(result['error']['code'], 'stale_approval', result)
-                    with patch.object(proxy.client, 'call', side_effect=lambda name, args: self.call(name, args)) as outbound:
+                    with patch.object(proxy.client, 'request', side_effect=lambda request: self.engine.request({'v': 1, **request})) as outbound:
                         result = proxy.call(verb, altered)
                     self.assertEqual(result['error']['code'], 'stale_approval', result)
-                    self.assertEqual([c.args[0] for c in outbound.call_args_list], ['control_pending'])
+                    self.assertEqual([c.args[0] for c in outbound.call_args_list], [{'method': 'pending'}])
                     for guard in guards:
                         guard.assert_not_called()
                 self.assertEqual(self.engine.operation(approval['operation_id'])['state'], 'reserved')
@@ -89,7 +89,7 @@ class ApprovalQuestions(EngineCase):
                 self.assertEqual(self.engine.receiver.evidence(approval['operation_id'])['arrivals'], [])
                 self.assertEqual(self.engine.store.get('testapp'), before)
                 proxy = Proxy('testapp', {'act_socket': 'unused'})
-                with patch.object(proxy.client, 'call', side_effect=lambda name, args: self.call(name, args)):
+                with patch.object(proxy.client, 'request', side_effect=lambda request: self.engine.request({'v': 1, **request})):
                     self.assertEqual(proxy.call(verb, altered)['error']['code'], 'stale_approval')
 
     def test_question_first_after_restart_socket_cli_and_mcp_text_serialization(self):
