@@ -44,7 +44,15 @@ Current tools manifest fingerprint: `2a9965ea5a6cf5018959d489f8c2340bf412ddbe89a
 
 ## Verified
 
-PENDING
+- **WSL full suites** (Ubuntu, Python 3.12.3) on a fresh `git clone --depth 1 -b pkg/22-update-route` of the pushed head `7e15d8ab`:
+  - `python3 -m unittest discover -s os/tests`: `Ran 715 tests`, `FAILED (failures=1, errors=9)`.
+  - `python3 -B -m unittest discover -s os/tests`: `Ran 715 tests`, `FAILED (failures=1, errors=9)`.
+  - In both runs the failures are exactly the known WSL-only set, also on main: `test_greeter` (3 errors), `test_inherited_homebrew` (1 failure + 5 errors), `test_sysusers` (1 error). Everything else passes, including `test_checkout_sources`, `test_owner_equality`, `test_owner_step_limits`, `test_owner_path`, `test_owner_update`, `test_owner_entry` and `test_owner_walk`.
+- **Focused WSL runs** during the work (a mirror of the worktree in WSL `/tmp`): `test_owner_update` 26 OK, `test_owner_path` 39 OK, `test_owner_equality` 9 OK, `test_checkout_sources` 4 OK, `test_owner_step_limits` 4 OK, `test_owner_entry` 3 OK, `test_owner_walk` 9 OK, `test_owner_devices` 6 OK, `test_owner_diagnostics` 10 OK, `test_owner_export` 3 OK, `test_owner_tools` 13 OK, `test_owner_commands` 6 OK, `test_owner_setup_resume` 9 OK, `test_owner_finalize` 9 OK, `test_owner_retained` 5 OK, `test_owner_hidden` 10 OK, `test_owner_bootstrap` 6 OK. After the last edit of this report, `test_owner_equality` and `test_owner_path` were rerun on the final head (see the PR).
+- **Windows PASS lines**: `pwsh -NoProfile -File os/tests/owner-pass.Tests.ps1 -Bundle os/owner-tools/payload -Work .work/22-ps` (fixtures only, ordinary terminal, no storage queries) printed `PASS 6 documented Windows PASS results equal captured entry stdout; no hardware queries.`; the update route adds two of the six. The scratch folder was removed.
+- **Bundle**: `python os/owner-tools/bundle.py --refresh` printed `PASS bundle manifest SHA256 2a9965ea5a6cf5018959d489f8c2340bf412ddbe89a130c6ebd6695fdbe48c39`; the same fingerprint is in `commands.json`, both bootstrap copies and both copy checks in `docs/INSTALL.md`, INSTALL-STATUS and this report.
+- **Bound sources**: `checkout_sources.records` (Windows Python 3.13) recomputed the 14 pending files; its `.work/` scratch was removed. No `.work/` is left in the worktree.
+- **Push**: the local privacy pre-push hook passed.
 
 ## Not verified
 
