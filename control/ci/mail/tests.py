@@ -9,7 +9,7 @@ if selection not in {'all', 'suite', 'sweep'}:
     raise SystemExit('Choose all, suite or sweep')
 root = Path(__file__).resolve().parents[2] / 'mail_tests'
 sys.path.insert(0, str(root))
-sweep = {'test_review23_sweep', 'test_review24_io'}
+sweep = {'test_review23_sweep', 'test_review24_io', 'test_owner_state_sweep'}
 names = [p.stem for p in sorted(root.glob('test*.py'))
          if selection == 'all' or (p.stem in sweep) == (selection == 'sweep')]
 started = time.monotonic()

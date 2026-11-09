@@ -7,6 +7,7 @@ from support import MailCase, CERT
 from smtp_fixture import SMTPFixture
 from aresos_control.mail import codec
 from dkim_fixture import signed
+from owner_state_oracle.transcript import TRACE
 
 
 class Unsubscribe(MailCase):
@@ -39,10 +40,12 @@ class Unsubscribe(MailCase):
             def do_GET(self):
                 raise AssertionError('No GET unsubscribe')
             def do_POST(self):
+                event = TRACE.command('POST', folder=self.path)
                 requests.append((self.path,dict(self.headers),self.rfile.read(int(self.headers['Content-Length']))))
                 self.send_response(status[0])
                 self.send_header('Location','https://must-not-follow.invalid')
                 self.end_headers()
+                event.update(accepted=True, reply='delivered', body=requests[-1][2].decode())
         server = ThreadingHTTPServer(('0.0.0.0',0),Handler)
         ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         ctx.load_cert_chain(CERT / 'tls.crt',CERT / 'tls.key')

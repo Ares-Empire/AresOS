@@ -1,7 +1,7 @@
 name: Control Mail
 on:
   pull_request:
-    branches: [main]
+    branches: [main, pkg/19-mail]
     paths: ['control/**', 'docs/control/TOOLS.md', 'reviews/19-mail/**', '.github/workflows/control-mail.yml']
   workflow_dispatch:
 permissions:
