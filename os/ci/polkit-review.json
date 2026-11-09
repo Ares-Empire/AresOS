@@ -6,6 +6,14 @@
     "org.freedesktop.fwupd.",
     "org.bazzite."
   ],
+  "denied_actions": [
+    "org.freedesktop.ModemManager1.Firmware",
+    "org.freedesktop.login1.set-reboot-parameter",
+    "org.freedesktop.login1.set-reboot-to-boot-loader-entry",
+    "org.freedesktop.login1.set-reboot-to-boot-loader-menu",
+    "org.freedesktop.login1.set-reboot-to-firmware-setup"
+  ],
+  "boot_or_firmware_pattern": "firmware|boot-?loader|reboot-to|reboot-parameter|bootconfig|bios|kargs",
   "reviewed_passwordless_wheel": {},
   "probe_actions": [],
   "expected": {
@@ -20,6 +28,12 @@
     "org.freedesktop.NetworkManager.settings.modify.system": {"rule": "auth_admin_keep"},
     "org.projectatomic.rpmostree1.upgrade": {"rule": "no", "without_wheel": "no"},
     "org.projectatomic.rpmostree1.rebase": {"rule": "no"},
-    "org.freedesktop.fwupd.update-internal": {"rule": "no"}
+    "org.freedesktop.fwupd.update-internal": {"rule": "no"},
+    "org.freedesktop.login1.set-reboot-to-firmware-setup": {"rule": "no", "without_wheel": "no"},
+    "org.freedesktop.login1.set-reboot-to-boot-loader-entry": {"rule": "no", "without_wheel": "no"},
+    "org.freedesktop.login1.set-reboot-to-boot-loader-menu": {"rule": "no", "without_wheel": "no"},
+    "org.freedesktop.login1.power-off": {"rule": null, "effective": "yes"},
+    "org.freedesktop.login1.reboot": {"rule": null, "effective": "yes"},
+    "org.freedesktop.login1.suspend": {"rule": null, "effective": "yes"}
   }
 }

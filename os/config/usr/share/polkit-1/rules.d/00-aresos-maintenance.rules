@@ -2,13 +2,24 @@
 // confirms admin actions with its own password. This file sorts first, so its
 // answers for `ares` win over every later rule.
 //
-// 1. The OS image and firmware change only through the signed release route
-//    or an explicit sudo, never through these session actions, even with the
-//    password: rpm-ostree, systemd-sysupdate, fwupd and Bazzite's own actions.
+// 1. The OS image, firmware and next boot change only through the signed
+//    release route or an explicit sudo, never through these session actions,
+//    even with the password: rpm-ostree, systemd-sysupdate, fwupd, Bazzite's
+//    own actions, modem firmware, and logind's next-boot and firmware-setup
+//    choices (allowed to any active session by default). Windows stays the
+//    firmware default and the boot order changes only with the owner.
 // 2. Upstream rules let any wheel member do the actions below without a
 //    password (Bazzite base 44.20261012.1). For `ares` they ask for it, so a
 //    program running as him, such as Claude Code, cannot use them unasked.
 //    CI fails if a new base adds another such grant (os/ci/polkit-check.js).
+var aresosDeniedActions = [
+    "org.freedesktop.ModemManager1.Firmware",
+    "org.freedesktop.login1.set-reboot-parameter",
+    "org.freedesktop.login1.set-reboot-to-boot-loader-entry",
+    "org.freedesktop.login1.set-reboot-to-boot-loader-menu",
+    "org.freedesktop.login1.set-reboot-to-firmware-setup"
+];
+
 var aresosPasswordActions = [
     "org.corectrl.helper.init",
     "org.corectrl.helperkiller.init",
@@ -36,7 +47,8 @@ polkit.addRule(function(action, subject) {
     if (action.id.indexOf("org.projectatomic.rpmostree1.") == 0 ||
         action.id.indexOf("org.freedesktop.sysupdate1.") == 0 ||
         action.id.indexOf("org.freedesktop.fwupd.") == 0 ||
-        action.id.indexOf("org.bazzite.") == 0) {
+        action.id.indexOf("org.bazzite.") == 0 ||
+        aresosDeniedActions.indexOf(action.id) >= 0) {
         return polkit.Result.NO;
     }
     // uupd.rules lets anyone start the (masked) updater units.

@@ -108,9 +108,15 @@ for (const id of [...ids].sort()) {
   if (withWheel.error) rows[id].error = withWheel.error;
 }
 
+const bootOrFirmware = new RegExp(review.boot_or_firmware_pattern, 'i');
 for (const [id, row] of Object.entries(rows)) {
-  if (review.os_change_prefixes.some((prefix) => id.startsWith(prefix)) && row.rule !== 'no') {
-    failures.push(`${id}: OS/firmware action must be denied to the daily account, got ${row.rule}`);
+  // These must be denied whether or not ares is in wheel: inherited defaults
+  // (allow_active=yes) never show up as a wheel difference.
+  const mustDeny = review.os_change_prefixes.some((prefix) => id.startsWith(prefix)) ||
+    review.denied_actions.includes(id) || bootOrFirmware.test(id);
+  if (mustDeny && (row.rule !== 'no' || row.without_wheel !== 'no')) {
+    failures.push(`${id}: OS, boot or firmware action must be denied to the daily account, ` +
+                  `got ${row.rule} (without wheel ${row.without_wheel})`);
   }
   // An action that becomes passwordless only because of wheel is an admin
   // right without a password; each one must be reviewed by name.
@@ -119,6 +125,9 @@ for (const [id, row] of Object.entries(rows)) {
     failures.push(`${id}: wheel gets it without a password from ${row.rule_file}; not reviewed`);
   }
   if (row.error) failures.push(`${id}: rule evaluation failed: ${row.error}`);
+}
+for (const id of review.denied_actions) {
+  if (!(id in actions)) failures.push(`${id}: denied action is not declared in the image`);
 }
 for (const [id, expected] of Object.entries(review.expected)) {
   const row = rows[id];
