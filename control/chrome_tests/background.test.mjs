@@ -39,3 +39,10 @@ test('oversize browser replies distinguish a refused read from an unknown input 
   f.run("effectStarted=true;respond({id:'input',ok:true,data:'x'.repeat(33*1024*1024)})");
   assert.match(f.run('sent[1].error'),/^unknown:/);
 });
+
+
+test('native dialog reading refuses an excluded opener before returning its text',async()=>{
+  const f=fixture();await f.run("dispatch({name:'configure',excluded_hosts:['approval.test']})");
+  f.run("chrome.tabs={get:async()=>({url:'http://fixture.test/',groupId:1})};groupId=1;controlled.set(7,{epoch:'private'});dialogs.set(7,{frame_url:'http://approval.test/',frame:2,text:'EXCLUDED_DIALOG_SENTINEL'})");
+  await assert.rejects(f.run("dispatch({name:'read',tab:7})"),/approval\/settings/);
+});

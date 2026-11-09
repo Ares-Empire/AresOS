@@ -584,7 +584,7 @@ class Store:
                 previous=self.get(key) if value is None else value
                 if isinstance(previous,dict) and previous.get('app')=='chrome':
                     chrome[key]=copy.deepcopy(value)
-        record['chrome']=chrome
+        if chrome:record['chrome']=chrome
         record["hash"] = digest(record)
         if restoring and len(canonical(record).encode()) > RESTORE_BATCH_BYTES:
             raise Refused('storage_limit', 'One restore evidence record exceeds the bounded confirmation batch; ask the owner to inspect it.')

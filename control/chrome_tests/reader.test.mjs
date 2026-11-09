@@ -25,9 +25,9 @@ function fixture(fields) {
   const nodes=fields.map(config=>new HTMLInputElement(config));
   const document={title:'Fixture',childNodes:[],getElementById(){return null;},
     querySelectorAll(selector){return nodes;},addEventListener(){},dispatchEvent(){}};
-  let listener,observer;
+  let listener,observer;const observationOptions=[];
   const chrome={dom:{openOrClosedShadowRoot:()=>null},runtime:{id:'fixture',onMessage:{addListener(fn){listener=fn;}}}};
-  class MutationObserver {constructor(fn){this.fn=fn;this.records=[];observer=this;}observe(){}takeRecords(){return this.records.splice(0);}}
+  class MutationObserver {constructor(fn){this.fn=fn;this.records=[];observer=this;}observe(root,options){observationOptions.push(options);}takeRecords(){return this.records.splice(0);}}
   const context=vm.createContext({document,chrome,crypto:{getRandomValues:array=>array.fill(1)},MutationObserver,
     Element,HTMLElement:Element,HTMLInputElement,HTMLTextAreaElement,HTMLSelectElement,HTMLButtonElement,Node:{TEXT_NODE:3},CustomEvent:class{},
     getComputedStyle:element=>({display:'block',visibility:'visible',webkitTextSecurity:element.mask || 'none'}),
@@ -36,7 +36,7 @@ function fixture(fields) {
   vm.runInContext(fs.readFileSync('control/chrome/extension/reader.js','utf8'),context);
   function read(){let result;listener({command:'read'},{id:'fixture'},value=>result=value);assert.equal(result.ok,true,JSON.stringify(result));return result;}
   function command(message){let result;listener(message,{id:'fixture'},value=>result=value);return result;}
-  return {nodes,read,command,mutations:()=>observer.records,calls:()=>calls};
+  return {nodes,read,command,observationOptions,mutations:()=>observer.records,calls:()=>calls};
 }
 
 test('group7 protected values never reach a getter, source attribute, trace or binding',()=>{
@@ -82,4 +82,14 @@ test('group7 uppercase historical password attributes stay excluded',()=>{
     const f=fixture([{}]);f.read();const before=f.calls();f.nodes[0].forbidden=true;
     f.mutations().push({type:'attributes',attributeName,oldValue,target:f.nodes[0]});f.read();assert.equal(f.calls(),before);
   }
+});
+
+
+test('group7 mutation API never requests old source values or character data',()=>{
+  const f=fixture([{}]);f.read();
+  for(const options of f.observationOptions)if(options.attributeOldValue){
+    assert.deepEqual([...options.attributeFilter],['type','autocomplete','style']);
+    assert.equal(options.characterDataOldValue,undefined);
+  }
+  assert.ok(f.observationOptions.some(options=>options.attributes&&!options.attributeOldValue));
 });

@@ -161,3 +161,86 @@ those files.
   or the full durable-state fault sweep. The parent run must continue and
   record their actual outcomes. No partial-green or final SAFE verdict is
   issued here.
+
+## Follow-up: reader observation, native modals and owner exclusions
+
+Reviewed at HEAD `ea2625ba4f57f7eec33c99fc2629491e936fa8e2` with concurrent
+working-tree changes, on 2026-11-09. This follow-up again used only source,
+Node mocks and plain Python. The parent reported receiver evidence from run
+`42616318628` at `e1f1bacf` for page forgery, password roots/traces, upload,
+Stop and nine crash cutpoints; this reviewer did **not** independently inspect
+that runner artifact in this follow-up. Those results do not certify the
+subsequent changes reviewed here.
+
+**Reader observation: no new blocker found in the change reviewed.** The
+general observer now tracks revisions without requesting old attribute or
+character-data values. A separate historical-protection observer requests old
+values only for `type`, `autocomplete` and `style`. The same registration
+helper is used for document and discovered shadow roots. Pending historical
+records are still drained before password checks, and the sticky protection
+remains. This removes the previous API request for old source `value`
+attributes. The source and mock registration test establish the requested
+options, not actual Chrome mutation payloads; final all-root audit evidence
+must cover this changed observer setup.
+
+**P1 found and repaired during this follow-up: excluded native-dialog text
+was returned by the new modal read path.** `facts()` checked the top tab but
+returned its cached dialog without checking the opener. An excluded iframe
+already loaded before control could therefore supply modal text in an allowed
+top tab. A Node VM probe against the actual background implementation returned:
+
+```text
+{"readReturnedDialog":{"id":"dialog","kind":"confirm","frame":2,"frame_url":"https://approval.test/","text":"EXCLUDED_DIALOG_SENTINEL","button":"OK"}}
+```
+
+This was mock evidence, not proof that the receiver fixture exercised the
+specific pre-existing iframe/native-dialog sequence. The finding was sent to
+the parent immediately. The repaired `facts()` validates the opener address
+and requires an established frame before returning a modal. The native event
+listener now checks the address before accessing `params.message`; an excluded
+opener retains only `{frame_url, blocked:true}` and wakes pending input without
+automatically answering the dialog. Thus later input results cannot expose a
+cached excluded message through this event path either.
+
+A second Node probe loaded the actual native event-listener registration into
+the background test VM. Its excluded `params.message` getter threw if touched.
+The corrected run exited 0 and printed:
+
+```text
+{"excludedMessageGetterReads":0,"heldInputWakes":1,"retained":{"frame_url":"https://approval.test/","blocked":true},"readRefused":true}
+{"allowedNativeDialogReadable":true,"contentFramesRead":0}
+```
+
+The first attempt at that second probe passed its excluded assertions, then
+failed in the probe's allowed-case setup with `TypeError: Cannot set properties
+of undefined (setting 'getAllFrames')`. Initializing the mock `webNavigation`
+object fixed the probe; no production change was needed for that error.
+
+**Owner-excluded links: no new blocker found in the pre-dispatch change.**
+The service now checks activated link destinations with its current owner
+exclusion list before classification/preparation. The check covers click and
+Enter/Space key suffixes; the existing extension click path also checks its
+configured list. A plain Python probe using the `Operations` test fixture,
+owner entry `approval.test` and destination `http://sub.approval.test./`, ran
+click, Enter, Ctrl+Enter and Space. All four returned refusal with zero recorded
+browser dispatches. This proves the service branch in the mock, not native key
+delivery or the browser's network exclusion rules.
+
+Commands run in this follow-up:
+
+```sh
+node --test control/chrome_tests/reader.test.mjs control/chrome_tests/background.test.mjs
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/chrome_tests python3 -m unittest test_engine.Operations.test_owner_excluded_link_is_refused_before_any_input -v
+```
+
+The combined Node command first printed 9 tests passed, 0 failed before the
+modal regression was added. After its repair it printed 10 tests passed,
+0 failed, 0 skipped. The focused Python command printed `Ran 1 test` and `OK`.
+The additional heredoc probes used the existing `fixture()` via Node `fs`/`vm`
+and Python `Operations.setUp()`/`tearDown()`; their outputs and limits are
+recorded above. No implementation or test files were edited by this reviewer.
+
+No remaining blocking defect was found in these three repaired paths within
+this follow-up's scope. That is **not** a final SAFE verdict: the required
+twice-passing final-head runner evidence and the broader acceptance obligations
+still govern completion.

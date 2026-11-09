@@ -16,7 +16,12 @@
     return found;
   }
   const all = () => roots().flatMap(root => [...root.querySelectorAll('*')]);
-  let observer;
+  let observer, revisionObserver;
+  function observe(root) {
+    revisionObserver.observe(root,{subtree:true,attributes:true,childList:true,characterData:true});
+    // Never ask the browser to include old value attributes in mutation records.
+    observer.observe(root,{subtree:true,attributes:true,attributeOldValue:true,attributeFilter:['type','autocomplete','style']});
+  }
   function protect(changes) {
     for(const change of changes)if(change.type==='attributes' && (change.attributeName==='type' && (change.oldValue||'').toLowerCase()==='password' || change.attributeName==='autocomplete' && /(?:password|one-time-code)/i.test(change.oldValue||'') || change.attributeName==='style' && /-webkit-text-security\s*:\s*(?!none\b)/i.test(change.oldValue||'')))protectedFields.add(change.target);
   }
@@ -36,10 +41,10 @@
     for (const element of root.querySelectorAll('input,textarea,[contenteditable]')) password(element);
     for (const element of root.querySelectorAll('*')) {
       const childShadow = shadow(element);
-      if (childShadow) { guard.watch(childShadow); observer.observe(childShadow, {subtree: true, attributes: true, childList: true, characterData: true, attributeOldValue: true}); remember(childShadow); }
+      if (childShadow) { guard.watch(childShadow); observe(childShadow); remember(childShadow); }
     }
   }
-  observer = new MutationObserver(changes => {
+  const changed = changes => {
     revision++;protect(changes);
     for (const change of changes) {
       if (change.type === 'attributes') {
@@ -48,8 +53,10 @@
       }
     }
     remember(document);
-  });
-  observer.observe(document, {subtree: true, attributes: true, childList: true, characterData: true, attributeOldValue: true});
+  };
+  revisionObserver = new MutationObserver(changed);
+  observer = new MutationObserver(changed);
+  observe(document);
   remember(document);
   const id = element => {
     if (!ids.has(element)) { const key = 'e' + (++sequence); ids.set(element, key); elements.set(key, element); }

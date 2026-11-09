@@ -109,6 +109,18 @@ class Reads(unittest.TestCase):
         self.assertEqual(first['total'],4)
         self.assertEqual(len({item['operation_id'] for item in first['items']+second['items']}),4)
 
+    def test_failed_sqlite_compact_envelope_with_cached_mail_and_current_chrome_stays_bounded(self):
+        self.engine.store.write({'notice:mail-'+str(i):{'id':'mail-'+str(i),'app':'mail','state':'partial','ack':False,
+            'created_at':i,'untrusted_content':{'reason':'Synthetic cached Mail warning'}} for i in range(3)},'fixture','Mail warnings')
+        self.assertEqual(len(self.engine.pending()['notices']),3)
+        for number in range(4):
+            step=self.step();step['id']='h'+str(number);self.chrome.steps([step],1)
+        with self.failed_reads():
+            pending=self.engine.pending(resolve_checks=False)
+            self.assertEqual(len(pending['notices']),3)
+            self.assertTrue(all(item['app']=='chrome' for item in pending['notices']))
+            self.assertEqual(pending['notices_more'],{'count':1,'action':'chrome_notices'})
+
     def test_historical_index_peak_recovers_after_later_archive_tombstones(self):
         from unittest.mock import patch
         from aresos_control.chrome.committed import Projection

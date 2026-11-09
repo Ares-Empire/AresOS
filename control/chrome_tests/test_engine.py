@@ -68,6 +68,12 @@ class Operations(unittest.TestCase):
         self.assertTrue(self.browser.dispatched[0][1]['approved'])
         self.assertTrue(self.call('submit',approval)['ok']);self.assertEqual(len(self.browser.dispatched),1)
 
+    def test_owner_excluded_link_is_refused_before_any_input(self):
+        self.chrome.read_owner_hosts=lambda:['approval.test']
+        target=self.browser.facts['frames'][0]['target'];target.update(name='Read more',label='Read more',href='http://approval.test/')
+        result=self.call('click',self.target())
+        self.assertFalse(result['ok']);self.assertEqual(self.browser.dispatched,[])
+
     def test_group3_current_draft_bound_even_without_prior_fill_and_across_frames(self):
         approval=self.prepare()
         state=approval['description']['untrusted_content']['page_state']

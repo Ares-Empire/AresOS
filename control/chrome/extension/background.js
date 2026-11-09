@@ -109,7 +109,12 @@ async function stop() { for (const tab of [...controlled.keys()]) await release(
 async function facts(tab, reference) {
   const current = await requireTab(tab);
   if (reference && (reference.session !== session || reference.tab !== tab)) throw Error('stale_reference: browser session changed; read again');
-  if(dialogs.has(tab)){if(reference)throw Error('stale_reference: a native dialog is open; inspect and answer it first');return {session,tab,group:groupId,control:controlled.get(tab).epoch,url:current.url,title:current.title,frames:[],frame_tree:[],dialog:dialogs.get(tab)};}
+  if(dialogs.has(tab)){
+    const dialog=dialogs.get(tab);safeURL(dialog.frame_url);
+    if(dialog.frame===undefined)throw Error('refused: dialog opener is not yet established; inspect with the owner');
+    if(reference)throw Error('stale_reference: a native dialog is open; inspect and answer it first');
+    return {session,tab,group:groupId,control:controlled.get(tab).epoch,url:current.url,title:current.title,frames:[],frame_tree:[],dialog};
+  }
   const frames = await chrome.webNavigation.getAllFrames({tabId:tab}) || [];
   const result=[];
   for (const frame of frames) {
@@ -342,7 +347,13 @@ chrome.tabs.onRemoved.addListener(tab=>{ if (controlled.has(tab)) release(tab); 
 chrome.webNavigation.onCreatedNavigationTarget.addListener(event=>{ if (controlled.has(event.sourceTabId)) serial=serial.then(()=>take(event.tabId)).catch(()=>release(event.tabId)); });
 chrome.debugger.onEvent.addListener(async(source,method,params)=>{
   if (method === 'Page.javascriptDialogOpening') {
-    const tab=source.tabId,dialog={id:crypto.randomUUID(),kind:params.type,text:params.message,frame_url:params.url,button:'OK'};
+    const tab=source.tabId;
+    try{safeURL(params.url);}catch{
+      // The browser pushes dialog events for all attached frames. Exclude its
+      // opener before accessing or retaining the message, and leave it to him.
+      dialogs.set(tab,{frame_url:params.url,blocked:true});dialogWake.get(tab)?.({dialog:true});return;
+    }
+    const dialog={id:crypto.randomUUID(),kind:params.type,text:params.message,frame_url:params.url,button:'OK'};
     dialogs.set(tab,dialog);
     const frames=await chrome.webNavigation.getAllFrames({tabId:tab}) || [];
     const origins=frames.filter(frame=>frame.url===params.url);
