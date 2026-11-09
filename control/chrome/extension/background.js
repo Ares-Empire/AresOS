@@ -396,13 +396,15 @@ chrome.debugger.onEvent.addListener(async(source,method,params)=>{
       dialogs.set(tab,{frame_url:params.url,blocked:true});wakeDialog(tab);return;
     }
     const dialog={id:crypto.randomUUID(),kind:params.type,text:params.message,frame_url:params.url,button:'OK'};
-    const input=controlled.get(tab);if(input?.inputNonce)dialogInputs.set(dialog,{epoch:input.epoch,nonce:input.inputNonce});
+    const input=controlled.get(tab),nonce=input?.inputNonce,plan=confirmationPlans.get(tab);
+    if(nonce)dialogInputs.set(dialog,{epoch:input.epoch,nonce});
     dialogs.set(tab,dialog);
     const frames=await chrome.webNavigation.getAllFrames({tabId:tab}) || [];
+    if(dialogs.get(tab)!==dialog||controlled.get(tab)!==input||input?.inputNonce!==nonce)return;
     const origins=frames.filter(frame=>frame.url===params.url);
     if(origins.length===1){dialog.frame=origins[0].frameId;dialog.browser_document=origins[0].documentId;}
-    const plan=confirmationPlans.get(tab),expected=plan?.expected;
-    const matched=expected && origins.length===1 && plan.browser_document===dialog.browser_document &&
+    const expected=plan?.expected;
+    const matched=confirmationPlans.get(tab)===plan && expected && origins.length===1 && plan.browser_document===dialog.browser_document &&
       ['kind','text','frame_url','button','frame'].every(key=>expected[key]===dialog[key]);
     wakeDialog(tab);
     if(matched){

@@ -74,3 +74,37 @@ test('overlapping private dialog waits wake independently and dispose only thems
   f.run('first.dispose();wakeDialog(7)');assert.equal((await second).dialog,true);f.run('second.dispose()');assert.equal(f.run('dialogWake.size'),0);
   void first;
 });
+
+test('a stale approved dialog opening never accepts the different dialog that replaced it',async()=>{
+  function setup(){
+    const f=fixture();
+    f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch',inputNonce:'input-nonce'});dispatchEpoch='epoch';globalThis.frames=[];globalThis.accepted=[];chrome.webNavigation={getAllFrames:()=>new Promise(resolve=>frames.push(resolve))};chrome.debugger={onEvent:{addListener:fn=>{globalThis.onEvent=fn}},sendCommand:async(source,method,params)=>{if(method==='Page.handleJavaScriptDialog')accepted.push(dialogs.get(7)?.text);return {};}};confirmationPlans.set(7,{operation:'approved-operation',browser_document:'doc',expected:{kind:'confirm',text:'Delete approved branch?',frame_url:'http://fixture.test/',button:'OK',frame:0},matched:[]});");
+    const source=fs.readFileSync('control/chrome/extension/background.js','utf8');
+    f.run(source.slice(source.indexOf('chrome.debugger.onEvent.addListener('),source.indexOf('chrome.debugger.onDetach.addListener(')));
+    return f;
+  }
+  const valid=setup();
+  const current=valid.run("onEvent({tabId:7},'Page.javascriptDialogOpening',{type:'confirm',message:'Delete approved branch?',url:'http://fixture.test/'})");
+  valid.run("frames[0]([{frameId:0,documentId:'doc',url:'http://fixture.test/'}])");await current;
+  assert.deepEqual(Array.from(valid.run('accepted')),['Delete approved branch?'],'the unchanged exact dialog remains covered');
+
+  const stale=setup();
+  const original=stale.run("onEvent({tabId:7},'Page.javascriptDialogOpening',{type:'confirm',message:'Delete approved branch?',url:'http://fixture.test/'})");
+  const closed=stale.run("onEvent({tabId:7},'Page.javascriptDialogClosed',{})");
+  stale.run('frames[1]([])');await closed;
+  const different=stale.run("onEvent({tabId:7},'Page.javascriptDialogOpening',{type:'confirm',message:'Delete DIFFERENT branch?',url:'http://fixture.test/'})");
+  stale.run("frames[0]([{frameId:0,documentId:'doc',url:'http://fixture.test/'}])");await original;
+  assert.deepEqual(Array.from(stale.run('accepted')),[],'the stale matching event must not accept the DIFFERENT current dialog');
+  assert.equal(stale.run('dialogs.get(7).text'),'Delete DIFFERENT branch?');
+  assert.equal(stale.run('confirmationPlans.get(7).expected.text'),'Delete approved branch?','stale evidence must not consume the approval');
+  stale.run("frames[2]([{frameId:0,documentId:'doc',url:'http://fixture.test/'}])");await different;
+  assert.deepEqual(Array.from(stale.run('accepted')),[],'the different dialog stays unaccepted after its own lookup');
+});
+
+test('a keydown modal stops the remaining CDP input instead of waiting for a lost opening wake',{timeout:1000},async()=>{
+  const f=fixture();
+  f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({url:'http://fixture.test/'});facts=async()=>({tab:7,frames:[{frame:0,target:{element:'e1',role:'button',name:'Continue'},form:null}]});content=async()=>({});globalThis.inputCalls=[];chrome.debugger={sendCommand:(source,method,parameters)=>{inputCalls.push(parameters.type);if(parameters.type==='keyDown')Promise.resolve().then(()=>{dialogs.set(7,{kind:'confirm'});wakeDialog(7)});return new Promise(()=>{});}};");
+  await assert.rejects(f.run("dispatch({name:'input',tab:7,reference:{frame:0,element:'e1'},input:{verb:'press',key:'Enter'}})"),/page dialog interrupted the input sequence/);
+  assert.deepEqual(Array.from(f.run('inputCalls')),['keyDown'],'no keyUp or later text may enter the pending dialog');
+  assert.equal(f.run('dialogWake.size'),0);
+});

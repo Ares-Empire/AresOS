@@ -21,6 +21,18 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
     await call('submit',prepared.approval);await eventually(()=>counts(id)===1,'one receiver arrival '+id);
     await call('submit',prepared.approval);await delay(30);assert.equal(counts(id),1,'a second attempt sends nothing');
   }
+  async function reservedFor(id,except){
+    let cursor;
+    do{
+      const current=await rpc('control_pending',{limit:10,...(cursor?{cursor}:{})});assert.equal(current.ok,true);
+      for(const row of current.data.items){
+        if(row.app!=='chrome'||row.operation_id===except||row.state!=='reserved')continue;
+        const status=await call('operation_status',{operation_id:row.operation_id});
+        if(status.operation.approval?.description?.untrusted_content?.page_state?.url?.includes(id))return status.operation.approval;
+      }
+      cursor=current.data.cursor;
+    }while(cursor);
+  }
   async function setup(parameters) {await nav('matrix&'+new URLSearchParams(parameters));}
   const words=JSON.parse(fs.readFileSync('control/chrome/extension/policy.js','utf8').match(/\{[\s\S]*\}/)[0]).words;
   await check('GROUP 1 submit compose deletion and free-input matrix',async()=>{
@@ -96,8 +108,7 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
       const prepared=mode==='implicit'?await call('press',{...await target('Form field'),key:'Enter'}):await call('click',await target('Continue'));
       assert.equal(counts(id),0);const first=prepared.approval||prepared.followups.find(item=>item.approval).approval;await call('submit',first);
       assert.equal(counts(id),0,'a different successful submitter needs its own approval');
-      let held,cursor;do{const current=await rpc('control_pending',{limit:10,...(cursor?{cursor}:{})});assert.equal(current.ok,true);
-      for(const row of current.data.items){if(row.app!=='chrome'||row.operation_id===first.operation_id||row.state!=='reserved')continue;const status=await call('operation_status',{operation_id:row.operation_id});if(status.operation.approval?.description?.untrusted_content?.page_state?.url?.includes(id))held=status.operation.approval;}cursor=current.data.cursor;}while(cursor);
+      const held=await reservedFor(id,first.operation_id);
       assert.ok(held,'the additional submission is prepared separately');await approval({approval:held},id);
       assert.match(fixture.arrivals.find(row=>new URL(row.url,'http://fixture.test').searchParams.get('case')===id).body,/which=other/);
     }
@@ -107,7 +118,8 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
       await approval(first,id);assert.equal(counts('handler-'+id),mode==='invalid'?0:mode==='nested'?2:1);
       assert.equal(counts('other-'+id),0);
       if(mode==='double'||mode==='other'||mode==='nested'){
-        const notices=await call('notices');assert.ok(notices.total>0,'additional submission has its own pending check');
+        const original=first.approval||first.followups.find(item=>item.approval)?.approval;
+        assert.ok(await reservedFor(id,original.operation_id),'the additional submission has its own reserved operation for this exact fixture');
       }
     }
     for(const cancel of [true,false]){

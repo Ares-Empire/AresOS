@@ -528,6 +528,58 @@ scripts was executed; no browser, profile, container or real site was used.
 The servers were closed after the probe. Compilation proves syntax only,
 not page behavior or receiver assertions.
 
+### Modal follow-up and an exact-confirmation race
+
+The builder added private sets of dialog waiters with individual disposal,
+captured the input epoch/nonce in a WeakMap at dialog opening, and arranged
+for dialog close to finish that captured input. Effectful content commands
+now race modal notification and throw `unknown` on interruption, stopping
+the rest of a focus/select/upload operation. **Read/run:** these address the
+two preceding source concerns; focused tests cover content-focus
+interruption, overlapping waiter disposal and interrupted finishing.
+
+Two further defects were then found and reported:
+
+- **CDP continuation deadlock:** a `keyDown` dialog wake originally returned
+  normally, so the dispatcher sent `keyUp` while the dialog was already
+  open. A new waiter then missed the opening notification and could wait
+  indefinitely for its modal-blocked native acknowledgement. **Run:** the
+  actual background dispatch/CDP functions with mocked modal-blocked
+  acknowledgements remained blocked after 25 ms, having sent
+  `['keyDown','keyUp']`, with the dialog present and one waiter. The builder
+  added an existing-modal guard before further CDP input.
+- **P1 exact-confirmation race:** the opening handler awaited frame lookup
+  without rechecking which dialog was current. **Run:** suspend the old
+  approved dialog's frame lookup; close it; open a dialog saying
+  `Delete DIFFERENT branch?`; then resolve the old lookup. The actual
+  handler sent `Page.handleJavaScriptDialog` while that **different** dialog
+  was current. The VM probe printed
+  `acceptedDialogTexts:['Delete DIFFERENT branch?']`. This is a confirmed
+  asynchronous source/Node counterexample, not a Chrome receiver result.
+
+The builder repaired the latter by capturing the input/nonce and approval
+plan before awaiting, then requiring the captured dialog, control object,
+nonce and plan still to be current before consuming the confirmation and
+accepting it.
+
+At the builder's **explicit additional delegation**, this reviewer edited
+only `control/chrome_tests/background.test.mjs` beyond this report, adding
+two strict browser-free regressions. The actual-handler test proves an
+unchanged exact dialog remains covered, while a stale matching opening
+cannot accept the DIFFERENT current dialog or consume the approval. The
+actual dispatch/CDP test proves a keydown modal rejects before sending
+keyup, with its waiter removed. No production implementation was edited
+by the reviewer.
+
+**Run after those repairs:**
+`node --test control/chrome_tests/background.test.mjs control/chrome_tests/page.test.mjs`
+passed **34 tests, 0 failed**. `git diff --check` was clean. HEAD during
+this final targeted run was
+`74a9ad5fe990f2945273f70478cf80b3f165cdbc`, with concurrent uncommitted
+repairs. These modal findings are closed at focused source/Node level;
+actual Chrome modal ordering and receiver behavior still require the
+authorized Linux runner. No SAFE or full final-run claim is made.
+
 ## Final focused closure and package-pin source check
 
 Working-tree review based on
