@@ -25,11 +25,19 @@ async function preloadCommand(source,method,parameters={}){
 function assertTarget(state){if(preloadTargets.get(targetKey(state.source))!==state||controlled.get(state.tab)?.epoch!==state.epoch)throw Error('stale_reference: control ended during document setup');}
 function contextChanged(state){for(const done of state.cleanupWaiters||[])done();state.cleanupWaiters?.clear();}
 function destroyedTarget(state){state.contexts.clear();state.scripts.clear();state.documents.clear();contextChanged(state);if(preloadTargets.get(targetKey(state.source))===state)preloadTargets.delete(targetKey(state.source));}
-async function contextGone(state,identity){while([...state.contexts.values()].some(context=>context.uniqueId===identity)){await new Promise(resolve=>{state.cleanupWaiters??=new Set();state.cleanupWaiters.add(resolve);});}}
+async function contextGone(state,identity){
+  while([...state.contexts.values()].some(context=>context.uniqueId===identity)){
+    if(state.detached&&state.targetId)try{if(!(await chrome.debugger.getTargets()).some(target=>target.id===state.targetId)){destroyedTarget(state);return;}}catch{}
+    let done,timer;
+    await new Promise(resolve=>{done=resolve;state.cleanupWaiters??=new Set();state.cleanupWaiters.add(done);if(state.detached)timer=setTimeout(resolve,250);});
+    state.cleanupWaiters.delete(done);if(timer!==undefined)clearTimeout(timer);
+  }
+}
 async function targetCommand(state,method,parameters={}){assertTarget(state);const value=await preloadCommand(state.source,method,parameters);assertTarget(state);return value;}
 async function prepareTarget(source,tab=source.tabId,targetId=null){
   const state={source,tab,targetId,epoch:controlled.get(tab)?.epoch,contexts:new Map(),scripts:new Map(),documents:new Map(),installing:new Set()};preloadTargets.set(targetKey(source),state);
   await targetCommand(state,'Page.enable');
+  const tree=await targetCommand(state,'Page.getFrameTree');state.frameId=tree.frameTree?.frame.id||targetId;
   await targetCommand(state,'Runtime.enable');
   await targetCommand(state,'Debugger.enable');
   const breakpoint=await targetCommand(state,'Debugger.setBreakpointByUrl',{url:chrome.runtime.getURL('context.js'),lineNumber:1});
@@ -63,11 +71,17 @@ async function preloadEvent(source,method,params){
   const state=preloadTargets.get(targetKey(source));if(!state)return;
   if(method==='Target.detachedFromTarget'){
     const child=preloadTargets.get(targetKey({...source,sessionId:params.sessionId}));if(!child)return;
+    child.detached=true;
+    contextChanged(child);
     let destroyed=false;try{destroyed=!!child.targetId&&!(await chrome.debugger.getTargets()).some(target=>target.id===child.targetId);}catch{}
     // Detachment alone does not prove that a live page lost its wrappers.
     // Only a missing native target or actual tab removal ends that lifetime.
     if(destroyed)destroyedTarget(child);
-    if((!destroyed||child.tab!==state.tab)&&controlled.has(child.tab))await release(child.tab);return;
+    // An iframe session can detach during an ordinary process/frame swap while
+    // its old target is still listed. That is not the end of its parent's control.
+    // Retain its cleanup handles until native frame/target destruction is known.
+    const owner=controlled.get(child.tab);
+    if(child.tab!==state.tab&&owner&&owner.epoch===child.epoch)await release(child.tab);return;
   }
   if(method==='Runtime.executionContextCreated'){state.contexts.set(params.context.id,params.context);return;}
   if(method==='Runtime.executionContextDestroyed'){const old=state.contexts.get(params.executionContextId);state.contexts.delete(params.executionContextId);for(const [script,context]of state.scripts)if(context===params.executionContextId)state.scripts.delete(script);for(const [key,document]of state.documents)if(document.main===old?.uniqueId)state.documents.delete(key);else if(document.isolated===old?.uniqueId)document.ready=false;contextChanged(state);return;}
@@ -324,6 +338,7 @@ async function release(tab) {
     await Promise.all(children.map(async child=>{await release(child);if(releasing.has(child))await releasing.get(child).promise;}));
     await Promise.allSettled([...original.settingUp||[],...[...preloadTargets.values()].filter(state=>state.tab===tab).flatMap(state=>[...state.installing||[]])]);
     for(const [key,state]of preloadTargets){if(state.tab!==tab)continue;
+      if(state.detached&&state.targetId)try{if(!(await chrome.debugger.getTargets()).some(target=>target.id===state.targetId)){destroyedTarget(state);continue;}}catch{}
       const blocked=new Map();
       for(const value of state.documents.values())try{const result=await preloadCommand(state.source,'Runtime.callFunctionOn',{objectId:value.cleanup,functionDeclaration:'function(){return this.cleanup();}',returnByValue:true});if(result.exceptionDetails||result.result?.value!==true)blocked.set(value.main,value.document);}catch{blocked.set(value.main,value.document);}
       for(const context of state.contexts.values())if(context.origin===chrome.runtime.getURL('').replace(/\/$/,'')){
@@ -647,6 +662,9 @@ chrome.webNavigation.onCommitted.addListener(({tabId,frameId,documentId,transiti
 });
 chrome.debugger.onEvent.addListener(async(source,method,params)=>{
   if(method.startsWith('Runtime.')||method.startsWith('Debugger.')||method.startsWith('Target.')){await preloadEvent(source,method,params);return;}
+  if(method==='Page.frameDetached'&&params.reason==='remove'){
+    for(const state of preloadTargets.values())if(state.source.tabId===source.tabId&&state.source.sessionId&&state.frameId===params.frameId)destroyedTarget(state);
+  }
   if(source.sessionId){const state=preloadTargets.get(targetKey(source));if(!state)return;source={tabId:state.tab};}
   if(method==='Page.frameStartedNavigating'){
     const owner=controlled.get(source.tabId),pending=owner?.getReload;

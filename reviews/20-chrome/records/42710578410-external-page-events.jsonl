@@ -1,0 +1,12 @@
+{"id":"relay-hostile","phase":"private-carrier-disclosure","disclosed":false,"callbacks":0}
+{"id":"fresh-true","phase":"fallback-source","native":false}
+{"id":"owner-sync","phase":"owner-handler","time":1794265977780,"trusted":true,"eventPhase":2}
+{"id":"owner-sync","phase":"delayed-handler","time":1794265977882,"trusted":true,"eventPhase":0}
+{"id":"owner-replay","phase":"owner-handler","time":1794265980231,"trusted":true,"eventPhase":2}
+{"id":"owner-replay","phase":"delayed-handler","time":1794265980332,"trusted":true,"eventPhase":0}
+{"id":"owner-replay","phase":"owner-handler","time":1794265980333,"trusted":false,"eventPhase":2}
+{"id":"owner-flight","phase":"owner-handler","time":1794265984237,"trusted":true,"eventPhase":2}
+{"id":"owner-flight","phase":"delayed-handler","time":1794265984339,"trusted":true,"eventPhase":0}
+{"id":"owner-after-limit","phase":"owner-handler","time":1794265987477,"trusted":true,"eventPhase":2}
+{"id":"owner-after-limit","phase":"delayed-handler","time":1794265987579,"trusted":true,"eventPhase":0}
+{"id":"fresh-self","phase":"fallback-source","native":false}

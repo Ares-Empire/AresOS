@@ -91,3 +91,34 @@ Reviewed the uncommitted `Daemon.drain_chrome_events()` repair on a worktree bas
 An additional plain-Python stdin socketpair probe sent a complete observation coalesced with a partial second observation, drained it, called the drain again with no new readiness, then supplied the second remainder. It printed `PASS: coalesced complete+partial event, stale readiness, then completion preserve host and deliver once`. Both observations arrived once, the host connection remained current, and no background error was recorded. No source or test file was edited for that probe.
 
 No new blocking counterexample was found in this focused daemon/bridge source review. This closes the reported selector-readiness source defect at unit/socketpair level; whether it accounts for every runner disconnect remains native runtime evidence. No browser or profile was accessed and no final qualification verdict is issued.
+
+## Ordinary OOPIF detachment recheck
+
+Reviewed the next uncommitted target-lifecycle repair based on `eb43fb42ddcc3d825958ddab3215d065c8cf5407`. The builder reported that a native run reached 34/42 rows and that ordinary OOPIF detachment had released its whole parent tab. Those runner results were supplied, not independently inspected in this pass.
+
+**Read:** a detached iframe session now preserves its same-tab parent's input authority and keeps its old cleanup handles unless native destruction is established. A separate popup can still be released. Target preparation obtains the native frame ID from `Page.getFrameTree`; `Page.frameDetached` retires only matching child state on reason `remove`, not a process `swap`. This introduces no relaxing guard control or page-reachable authority. The stop-modal fixture change adds the missing event-stream subscription case while retaining its existing assertion.
+
+**Independently run:** `node --test --test-name-pattern='detaching a replaced iframe|destroyed child target|failed live native restoration|Stop during blocked native cleanup' control/chrome_tests/background.test.mjs` passed **4 tests, 0 failures**, in **42.172167 ms**. They exercise parent preservation, native frame removal, failed restoration, missing versus live targets, and bounded Stop response.
+
+Two focused lifecycle observations were reported before the builder's next batch:
+
+- The asynchronous popup detachment handler should compare the captured child's control epoch before releasing its tab after `getTargets()` returns. An old notification must not release a replacement popup epoch. The same-tab iframe branch now avoids that release entirely. This is source-derived and fails toward ending control, not sending.
+- A detached OOPIF target may still be listed at the first lookup and disappear later during process swap. The new `child.detached` marker was initially never read, and there was no fresh native-target lookup at release. Old session cleanup then fails and `contextGone()` can wait forever for Runtime notifications that the detached session no longer receives. **Run with actual background:** detach while the native target is listed, change native target lookup to an empty result, then release the parent. Output was `oldTargetStillRetained:true,waiters:1,releasePending:true`. This confirms the source lifetime gap; it does not establish real Chrome process-swap ordering. A fresh missing-target proof at release can retire that old detached state; a still-live target must retain its cleanup/pending status.
+
+The OOPIF parent-release source defect is repaired in this reviewed snapshot. The later-disappearing detached-state cleanup gap and popup epoch check were still being reported for repair; native rerun acceptance remains outside this source/Node review. No browser/profile or side-build file was accessed, and no source/test edit was made.
+
+### OOPIF follow-up closure
+
+Read the subsequent uncommitted fixes. Popup detachment now requires an existing controlled owner with the captured child's epoch before release. Missing/undefined epochs cannot satisfy the check. Release refreshes native targets for a detached state and retires it only when its exact native target is absent; a live target retains its cleanup handles. These address the two exact counterexamples above without introducing a relaxing guard path.
+
+**Independently run:** `node --test --test-name-pattern='detaching a replaced iframe|release rechecks a detached|old popup detach' control/chrome_tests/background.test.mjs` passed **3 tests, 0 failures**, in **39.363125 ms**. They require preserving the parent, retiring an old target that disappeared after its first notification, and preserving a replacement popup epoch across the pending target lookup. The builder's full 102-test run was still in progress and is not claimed here.
+
+A narrow safe completion limit remains: a detached target can disappear after that release-time snapshot but before cleanup reaches its failed remote handle. Without another native disappearance check or a Runtime destruction notification, cleanup can remain pending until the tab is closed. The builder was notified; this is the previously recorded pending-cleanup completion residual, not unapproved delivery or false successful restoration. No further send-authorization blocker was found in this focused follow-up. Native runner results and final acceptance remain outside this review's source/Node evidence.
+
+### Detached-context polling closure
+
+Read the next `contextGone()` repair: detached contexts now repeat native target-presence checks while waiting, at a 250 ms interval. Actual absence retires that exact state and wakes its waiters; a live target retains pending cleanup. A detachment notification also wakes an already waiting context so it switches to that polling path. Waiters are removed and their timers cancelled after each wake. This closes the after-snapshot completion race above at source level without treating detachment itself as successful restoration.
+
+**Independently run:** the four focused OOPIF/popup/snapshot tests passed **4 tests, 0 failures**, in **44.589542 ms**. An additional actual-source VM probe exercised the timed branch with a fake clock: first target query live, 250 ms waiter, second query absent. It printed `PASS: detached context poll waits250ms, proves later absence, removes waiter and clears timer`; the waiter set and target map were empty and the scheduled timer was cancelled. No source/test file was edited.
+
+No new blocking counterexample was found in this focused polling/lifecycle check. The builder reported the complete 103-test suite passing separately; this reviewer independently ran only the focused command and timed-branch probe above. Native OOPIF process ordering and the required complete runner reruns remain external to this source/Node closure. No browser/profile was accessed and no final SAFE verdict is issued.

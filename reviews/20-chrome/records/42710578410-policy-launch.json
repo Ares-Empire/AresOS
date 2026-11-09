@@ -1,0 +1,1 @@
+["--user-data-dir=/tmp/aresos-chrome-fixture-k9vkUG","--no-first-run","--no-default-browser-check","--password-store=basic","--start-maximized","--gtk-version=3","--enable-logging=stderr","--disable-background-mode","--host-resolver-rules=MAP *.test 127.0.0.1","about:blank"]

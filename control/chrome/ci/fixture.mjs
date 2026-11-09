@@ -116,7 +116,7 @@ export async function fixtures(options={}) {
     } else if(kind==='fresh-activation') {
       const id=url.searchParams.get('id'),cancel=url.searchParams.get('cancel')==='true';
       body='<button type="button">Continue</button><a target="'+(url.searchParams.get('target')==='self'?'_self':'sink')+'" href="/receive?case='+id+'">Delete</a><iframe name="sink" hidden></iframe>';
-      script=`document.querySelector('button').onclick=()=>{const frame=document.createElement('iframe');frame.sandbox='allow-same-origin';document.body.append(frame);const raw=frame.contentWindow.EventTarget.prototype.dispatchEvent,native=Function.prototype.toString.call(raw).includes('[native code]');frame.remove();fetch('/observe',{method:'POST',body:JSON.stringify({id:${JSON.stringify(id)},phase:'fallback-source',native})});if(!native)throw Error('Fixture did not obtain a native dispatch function');raw.call(document.querySelector('a'),new MouseEvent('click',{bubbles:true,cancelable:${cancel}}));};document.querySelector('a').onclick=()=>fetch('/receive?case=handler-'+${JSON.stringify(id)},{method:'POST'});`;
+      script=`document.querySelector('button').onclick=()=>{const frame=document.createElement('iframe');frame.sandbox='allow-same-origin';document.body.append(frame);const raw=frame.contentWindow.EventTarget.prototype.dispatchEvent,hasPrototype=Object.prototype.hasOwnProperty.call(raw,'prototype'),ownRealm=frame.contentWindow.EventTarget!==EventTarget,native=Function.prototype.toString.call(raw).includes('[native code]')&&!hasPrototype;frame.remove();fetch('/observe',{method:'POST',body:JSON.stringify({id:${JSON.stringify(id)},phase:'fallback-source',native,hasPrototype,ownRealm})});if(!native)throw Error('Fixture did not obtain a native dispatch function');raw.call(document.querySelector('a'),new MouseEvent('click',{bubbles:true,cancelable:${cancel}}));};document.querySelector('a').onclick=()=>fetch('/receive?case=handler-'+${JSON.stringify(id)},{method:'POST'});`;
     } else if(kind==='native-child') {
       const id=url.searchParams.get('id');body='<p>Native confirmation opener frame</p>';
       script=`onmessage=()=>{if(confirm('Delete branch fixture-repository / branch-1?'))fetch('/receive?case='+${JSON.stringify(id+'-Delete branch')},{method:'POST',body:'confirmed from frame'});};`;
@@ -242,7 +242,7 @@ export async function fixtures(options={}) {
       body='<button aria-label="">●</button><textarea aria-label="Autosave"></textarea>';
       script="document.querySelector('button').onclick=()=>fetch('/receive?case=residual-click',{method:'POST',body:'ordinary click'});document.querySelector('textarea').oninput=e=>fetch('/receive?case=residual-autosave',{method:'POST',body:e.target.value});";
     } else {res.statusCode=404;res.end('Unknown synthetic fixture');return;}
-    const mutationId=['binding','page-dialog','upload','draft-inner'].includes(kind)||kind==='site'&&url.searchParams.get('id')?.startsWith('adapter-bind-')?url.searchParams.get('id'):null;
+    const mutationId=['binding','page-dialog','upload','draft-inner','stop-modal'].includes(kind)||kind==='site'&&url.searchParams.get('id')?.startsWith('adapter-bind-')?url.searchParams.get('id'):null;
     if(mutationId)script+=`;new EventSource('/events?id='+${JSON.stringify(mutationId)}).onmessage=event=>{
       const mutation=JSON.parse(event.data),change=mutation.change,form=document.querySelector('form'),button=document.querySelector('button');
       if(change==='label')button.textContent='Changed label';

@@ -10,7 +10,7 @@ function fixture(){
     declarativeNetRequest:{getSessionRules:async()=>[],updateSessionRules:async value=>rules.push(value)}};
   let source=fs.readFileSync('control/chrome/extension/background.js','utf8').replace("import {POLICY} from './policy.js';",'');
   source=source.slice(0,source.indexOf('async function connect()'));
-  const context=vm.createContext({POLICY:policy,chrome,crypto:{randomUUID:()=> 'fixture-session'},URL,Promise,setTimeout,TextEncoder,btoa:value=>Buffer.from(value,'binary').toString('base64')});
+  const context=vm.createContext({POLICY:policy,chrome,crypto:{randomUUID:()=> 'fixture-session'},URL,Promise,setTimeout,clearTimeout,TextEncoder,btoa:value=>Buffer.from(value,'binary').toString('base64')});
   vm.runInContext(source,context);
   return {run:code=>vm.runInContext(code,context),registrations,rules};
 }
@@ -75,6 +75,35 @@ test('only exact current-document completion or trusted address/link navigation 
   f.run("committed({tabId:7,frameId:0,documentId:'next',transitionType:'link'});completed({tabId:7,frameId:0,type:'main_frame',documentId:'post',method:'POST'})");assert.equal(f.run("documentMethods.get('[7,0]').document"),'next');
   f.run("committed({tabId:7,frameId:0,documentId:'keyword',transitionType:'keyword'})");assert.equal(f.run("documentMethods.has('[7,0]')"),false,'an address-bar search could itself use POST');
   f.run("committed({tabId:7,frameId:0,documentId:'restored',transitionType:'typed',transitionQualifiers:['forward_back']})");assert.equal(f.run("documentMethods.has('[7,0]')"),false,'restoration is not proof of a fresh GET');
+});
+
+test('detaching a replaced iframe session preserves its parent and retires only a natively removed frame',async()=>{
+  const f=lifecycleFixture();f.run("controlled.set(7,{epoch:'parent'});preloadTargets.set('[7,null]',{source:{tabId:7},tab:7,epoch:'parent',contexts:new Map(),scripts:new Map(),documents:new Map(),installing:new Set()});preloadTargets.set('[7,\"frame\"]',{source:{tabId:7,sessionId:'frame'},targetId:'frame-target',frameId:'native-frame',tab:7,contexts:new Map([[1,{uniqueId:'old-main'}]]),scripts:new Map(),documents:new Map(),installing:new Set()});chrome.debugger.getTargets=async()=>[{id:'frame-target'}];");
+  await f.run("preloadEvent({tabId:7},'Target.detachedFromTarget',{sessionId:'frame'})");
+  assert.equal(f.run('controlled.has(7)'),true);assert.equal(f.run('releasing.size'),0);assert.equal(f.run('preloadTargets.has(\'[7,"frame"]\')'),true,'a live old context is not falsely declared restored');
+  f.run('chrome.debugger.onEvent={addListener:listener=>{globalThis.nativeEvent=listener}}');
+  const source=fs.readFileSync('control/chrome/extension/background.js','utf8');f.run(source.slice(source.indexOf('chrome.debugger.onEvent.addListener('),source.indexOf('chrome.debugger.onDetach.addListener(')));
+  await f.run("nativeEvent({tabId:7},'Page.frameDetached',{frameId:'native-frame',reason:'remove'})");
+  assert.equal(f.run('controlled.has(7)'),true);assert.equal(f.run('preloadTargets.has(\'[7,"frame"]\')'),false,'native frame removal retires old cleanup handles');
+});
+
+test('release rechecks a detached iframe target that disappeared after its notification',async()=>{
+  const f=lifecycleFixture();f.run("controlled.set(7,{epoch:'parent'});preloadTargets.set('[7,null]',{source:{tabId:7},tab:7,epoch:'parent',contexts:new Map(),scripts:new Map(),documents:new Map(),installing:new Set()});preloadTargets.set('[7,\"frame\"]',{source:{tabId:7,sessionId:'frame'},targetId:'frame-target',tab:7,epoch:'parent',contexts:new Map([[1,{uniqueId:'old-main'}]]),scripts:new Map(),documents:new Map([['old-main',{main:'old-main',cleanup:'old-factory'}]]),installing:new Set()});chrome.debugger.getTargets=async()=>[{id:'frame-target'}];");
+  await f.run("preloadEvent({tabId:7},'Target.detachedFromTarget',{sessionId:'frame'})");
+  f.run('chrome.debugger.getTargets=async()=>[]');
+  const released=await f.run('release(7)');assert.equal(released.cleanup_pending,false);assert.equal(f.run('releasing.size'),0);assert.equal(f.run('preloadTargets.size'),0);
+});
+
+test('an old popup detach cannot release a replacement control epoch after target lookup',async()=>{
+  const f=lifecycleFixture();f.run("controlled.set(8,{epoch:'old'});preloadTargets.set('[7,null]',{source:{tabId:7},tab:7,contexts:new Map(),scripts:new Map(),documents:new Map()});preloadTargets.set('[7,\"popup\"]',{source:{tabId:7,sessionId:'popup'},targetId:'popup-target',tab:8,epoch:'old',contexts:new Map(),scripts:new Map(),documents:new Map()});chrome.debugger.getTargets=()=>new Promise(resolve=>{globalThis.finishTargets=resolve});");
+  const pending=f.run("preloadEvent({tabId:7},'Target.detachedFromTarget',{sessionId:'popup'})");await spin(f,"typeof finishTargets==='function'");
+  f.run("controlled.set(8,{epoch:'new'});finishTargets([])");await pending;
+  assert.equal(f.run("controlled.get(8).epoch"),'new');assert.equal(f.run('releasing.size'),0);
+});
+
+test('a detached target disappearing after the release snapshot still finishes cleanup',async()=>{
+  const f=lifecycleFixture();f.run("controlled.set(7,{epoch:'parent'});preloadTargets.set('[7,\"frame\"]',{source:{tabId:7,sessionId:'frame'},targetId:'frame-target',detached:true,tab:7,contexts:new Map([[1,{uniqueId:'old-main'}]]),scripts:new Map(),documents:new Map([['old-main',{main:'old-main',cleanup:'old-factory'}]]),installing:new Set()});globalThis.snapshots=0;chrome.debugger.getTargets=async()=>++snapshots===1?[{id:'frame-target'}]:[];chrome.debugger.sendCommand=async()=>({result:{value:false}});");
+  const released=await f.run('release(7)');assert.equal(released.cleanup_pending,false);assert.equal(f.run('releasing.size'),0);assert.equal(f.run('snapshots'),2);
 });
 
 test('a destroyed child target wakes failed-restoration cleanup while a live detach stays pending',async()=>{
