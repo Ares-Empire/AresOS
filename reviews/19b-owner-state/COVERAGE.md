@@ -73,3 +73,15 @@ An advertised Mail-notice continuation belongs to its original view: its head, t
 **Read — ledger:** the format-3 groups pin exact assertion keys with rows/stages/deltas using counts and SHA-256. The fixed twelve ownership buckets match the CI split; self-tests verify every group is owned exactly once, with shared clean/suite groups checked by every eligible worker. Full lists remain in `.work/` artifacts, never in Git.
 
 **Read — audit repeatability:** caller fixture directory names encode flow/mode/fault/cleanup/live-or-crash without changing the original path width. Identical shared cases hold an advisory lock until cleanup. The inherited sweep keeps its original caller factory; only owner scenarios opt into the deterministic one. `OwnerStateSweep.test_export_repeated_fault_uses_same_caller_path_and_exact_delta` verifies fresh-scenario trace/delta equality, and the public-audit self-test still rejects a different literal target. The offline historical capture converter never participates in runtime comparisons.
+
+### Stage 1, fixes round 2
+
+M14 expiry/cancellation obligations survive a false `notice` flag, archive and
+restore until the matching scripted committed acknowledgement. M04/M05 command
+authority includes the independent Trash destination and the complete requested
+flag plan. Every public original/error/continuation response requires its own
+envelope, including onboarding's special request method. M12/C05 probe outcomes
+and qualification reasons require correlated delivered replies and ordered
+commands/commits/faults. `StageOneRoundTwo` adds breaking mutations and positive
+controls for these cases, terminal/stage claims, metadata and decoder history.
+The exhaustive production-field audit is in REPORT.md's round-2 table.

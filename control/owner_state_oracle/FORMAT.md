@@ -40,3 +40,26 @@ D3 (recorded for stage 3): reserve evidence-record capacity through `space.py` b
 
 
 Full audit comparison includes caller paths. Owner fixtures therefore use fixed-width, injective caller directory names from flow/mode/primary/cleanup/live-or-crash, with advisory locking until cleanup when cases overlap across workers. Their width matches tempfile's original `tmp` + eight characters, preserving serialized record lengths and fault-boundary layouts. Production tempfiles and inherited sweep defaults are unchanged. The offline `caller_capture.py` tool can replay that declared input in historical full captures and rejects conflicting targets within one script. It is never used by expectations or the strict checker: runtime audit equality and deltas retain every complete literal path.
+
+Stage-1 fixes round 2 keeps expiry/cancellation notice obligations independently
+of `notice` and protects them through archive/restore until an exact scripted,
+committed acknowledgement. New terminal/stage claims, incomplete-account flags,
+intent/export removals, restore/archive markers and notice metadata are validated
+before they can end an obligation. The complete field-by-field audit is in the
+round-2 section of `reviews/19b-owner-state/REPORT.md`.
+
+A scripted trash deletion selects the unique Trash role from independent role
+evidence. Flag authority is the complete scripted add/remove plan, including a
+separate check for omitted commands. Public responses are captured from their
+scripted request, including `method=mail_account_add`, even without `pending`;
+envelope presence is itself an assertion. Only explicitly named synthetic
+maintenance/restart results are excluded. Qualification validates probe results
+against exact delivered replies and command/commit/fault order; a production
+failure state cannot justify a matching public failure reason by itself.
+
+The decoder validates event times and compact/full operation fields against the
+independent fence. Missing current-head history must be explained by qualified
+archives or explicit restore history (whose transition is validated against the
+script). The owner archive fixture ages its actual commits by advancing the test
+clock. It never rewrites their timestamps. The pre-fault fixture history is an
+explicit starting-state input; post-seed stage/outcome claims need raw evidence.
