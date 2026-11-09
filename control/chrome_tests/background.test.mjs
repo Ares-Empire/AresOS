@@ -75,6 +75,13 @@ test('a child modal interrupts a blocked finish without letting a later dispatch
   assert.equal(f.run('dialogWake.size'),0);f.run("reply({ok:true,data:{finished:true}})");
 });
 
+test('Stop during finish keeps the handler completion uncertain',async()=>{
+  const f=fixture();f.run("chrome.tabs={sendMessage:()=>new Promise(()=>{})}");
+  const pending=f.run("finishFrames(7,[{frame:0,browser_document:'document'}],'epoch','nonce')");
+  f.run("wakeDialog(7,{interrupted:true})");
+  assert.equal(await pending,true);assert.equal(f.run('dialogWake.size'),0);
+});
+
 test('a modal from focus refuses the rest of an input instead of blocking the serial queue',async()=>{
   const f=fixture();f.run("controlled.set(7,{epoch:'epoch'});dispatchEpoch='epoch';chrome.tabs={sendMessage:()=>new Promise(()=>{})}");
   const pending=f.run("content(7,0,'focus',{element:'e1'})");f.run('wakeDialog(7)');
@@ -274,9 +281,50 @@ test('late detach notifications probe the current attachment and preserve replac
   assert.equal(f.run('releases.length'),1,'failure of the current attachment still releases it');
 });
 
+test('navigated iframe cleanup preserves queued holds and distinguishes an uncertain surviving reader',async()=>{
+  const f=stepFixture(),step=heldStep();f.run(`notify(${JSON.stringify(step)})`);
+  f.run("chrome.tabs.sendMessage=async(tab,message)=>{commands.push(message.command);if(message.command==='finish_input')throw Error('reader disappeared');return {ok:true,data:[]}};chrome.webNavigation.getFrame=async()=>({frameId:2,documentId:'replacement-native-document'});");
+  assert.equal(await f.run("finishFrames(7,[{frame:2,browser_document:'old-native-document'}],'epoch','nonce')"),false,'known replacement has no surviving old reader to finish');
+  assert.equal(f.run('controlled.get(7).steps.size'),1,'cleanup failure cannot discard the observed hold');
+  const steps=await f.run('collectSteps(7)');assert.equal(steps.length,1);assert.equal(steps[0].kind,'activation_unknown');
+  assert.equal(steps[0].document,'old-document');assert.equal(f.run('controlled.get(7).steps.size'),1);
+  f.run("chrome.webNavigation.getFrame=async()=>({frameId:2,documentId:'old-native-document'})");
+  assert.equal(await f.run("finishFrames(7,[{frame:2,browser_document:'old-native-document'}],'epoch','nonce')"),true,'a surviving reader without a completion reply is uncertain');
+  f.run("chrome.webNavigation.getFrame=async()=>{throw Error('identity unavailable')}");
+  assert.equal(await f.run("finishFrames(7,[{frameId:2,documentId:'old-native-document'}],'epoch','nonce')"),true,'failure to establish replacement stays uncertain');
+});
+
+test('input replies propagate uncertain completion while retaining observed steps',async()=>{
+  const f=stepFixture(),step=heldStep();f.run(`notify(${JSON.stringify(step)})`);
+  f.run("requireTab=async()=>({url:'http://fixture.test/'});facts=async()=>({tab:7,url:'http://fixture.test/',frames:[{frame:0,browser_document:'native-document',target:{element:'e1',role:'button',name:'Continue'},form:null}]});chrome.tabs.get=async()=>({active:false});chrome.tabs.update=async()=>({active:true});chrome.tabs.sendMessage=async(tab,message)=>{if(message.command==='finish_input')throw Error('completion unavailable');return {ok:true,data:message.command==='steps'?[]:{}}};chrome.webNavigation.getFrame=async()=>({documentId:'native-document'});chrome.debugger={sendCommand:async()=>({})};");
+  const reply=await f.run("dispatch({name:'input',tab:7,reference:{frame:0,element:'e1'},input:{verb:'press',key:'x'}})");
+  assert.equal(reply.uncertain_finish,true);assert.equal(reply.steps.length,1);
+  assert.equal(reply.steps[0].document,'old-document');assert.equal(reply.steps[0].kind,'activation_unknown');
+  assert.equal(f.run('controlled.get(7).steps.size'),1,'an unknown result is not an acknowledgement');
+});
+
 test('Stop during the selected-tab read cannot activate the released owner tab',async()=>{
   const f=fixture();
   f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({url:'http://fixture.test/'});facts=async()=>({tab:7,frames:[{frame:0,target:{element:'e1',role:'button',name:'Continue'},form:null}]});content=async()=>({});globalThis.effects=[];chrome.tabs={get:async()=>{controlled.delete(7);return {active:false}},update:async()=>effects.push('activate')};chrome.debugger={sendCommand:async()=>effects.push('input')};");
   await assert.rejects(f.run("dispatch({name:'input',tab:7,reference:{frame:0,element:'e1'},input:{verb:'press',key:'x'}})"),/control ended/);
   assert.deepEqual(Array.from(f.run('effects')),[]);
+});
+
+test('form destinations changed to an excluded host during arming refuse input and resume without a binding',async()=>{
+  for(const method of ['get','post'])for(const name of ['input','resume']){
+    const f=fixture();
+    f.run(`excludedHosts=['approval.test'];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({url:'http://fixture.test/'});globalThis.reads=0;globalThis.commands=[];globalThis.effects=[];facts=async()=>({tab:7,frames:[{frame:0,target:{element:'e1',role:'textbox',name:'Query',editable:true},form:{element:'form1',method:'${method}',search:${method==='get'},action:++reads===1?'http://fixture.test/receive':'http://approval.test/receive'}}]});content=async(tab,frame,command)=>{commands.push(command);return {}};chrome.tabs={get:async()=>({active:true}),update:async()=>effects.push('activate')};chrome.debugger={sendCommand:async()=>effects.push('input')};`);
+    await assert.rejects(f.run(`dispatch({name:'${name}',tab:7,reference:{frame:0,element:'e1'},input:{verb:'press',key:'Enter'}})`),/approval\/settings/,method+' '+name);
+    assert.equal(f.run('reads'),2,'the first destination was allowed and the decisive reread followed arming');
+    assert.ok(f.run("commands.includes('arm')"));
+    assert.equal(f.run("commands.some(command=>['focus','select','check','install_file','resume'].includes(command))"),false);
+    assert.deepEqual(Array.from(f.run('effects')),[],'the excluded destination must refuse before native input');
+  }
+});
+
+test('an allowed GET search destination reaches native input without a binding',async()=>{
+  const f=fixture();
+  f.run("excludedHosts=['approval.test'];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({url:'http://fixture.test/'});globalThis.effects=[];facts=async()=>({tab:7,frames:[{frame:0,target:{element:'e1',role:'textbox',name:'Search',editable:true},form:{element:'form1',method:'get',search:true,action:'http://fixture.test/search'}}]});content=async()=>({});chrome.tabs={get:async()=>({active:true})};chrome.webNavigation={getAllFrames:async()=>[]};chrome.debugger={sendCommand:async(source,method,parameters)=>{effects.push(parameters.type);return {}}};");
+  const reply=await f.run("dispatch({name:'input',tab:7,reference:{frame:0,element:'e1'},input:{verb:'press',key:'Enter'}})");
+  assert.equal(reply.dispatched,true);assert.deepEqual(Array.from(f.run('effects')),['keyDown','keyUp']);
 });

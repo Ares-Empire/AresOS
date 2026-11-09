@@ -1,4 +1,4 @@
-// MAIN, document_start. No state, identities, approval marks or callable control API.
+// MAIN, document_start. Wrapper-local recursion tracking grants no authority.
 // With no isolated listener a wrapper holds. All native effects run in ISOLATED.
 (() => {
   'use strict';
@@ -20,6 +20,12 @@
     // Test doubles have no native descriptors; Chrome never reads expandos.
     if(!getters.type)return event[key];
   };
+  function payload(event,key){
+    let value;try{value=read(event,key);}catch{}
+    if(value===undefined)try{value=event[key];}catch{}
+    const kind=typeof value;
+    return kind==='string'||kind==='number'||kind==='boolean'?value:undefined;
+  }
   const prevent=Event.prototype.preventDefault;
   const dispatching=new WeakSet();
   const has=WeakSet.prototype.has,add=WeakSet.prototype.add,remove=WeakSet.prototype.delete;
@@ -35,7 +41,7 @@
     let form,type,valid=false;
     for(let index=0;index<submitterGetters.length;index++){const getter=submitterGetters[index];if(!getter.form||!getter.type)continue;try{form=invoke(getter.form,submitter,[]);type=invoke(getter.type,submitter,[]);valid=true;break;}catch{}}
     if(!formElements){form=submitter.form;type=submitter.type;valid=true;} // browser-free test doubles
-    if(!valid||!['submit','image'].includes(type))throw new TypeError('The submitter is not a submit button.');
+    if(!valid||(type!=='submit'&&type!=='image'))throw new TypeError('The submitter is not a submit button.');
     if(form!==this)throw new DOMException('The submitter belongs to another form.','NotFoundError');
     report(submitter,{kind:'request_submit',with_submitter:true});
   });
@@ -48,7 +54,8 @@
     const detail={kind:'dispatch',event_type:read(event,'type'),event_flags:{bubbles:read(event,'bubbles'),cancelable:read(event,'cancelable'),composed:read(event,'composed'),prevented:read(event,'defaultPrevented')}};
     // No Event or DOM reference crosses this page-forgeable bridge. The private
     // listener constructs and classifies a fresh untrusted event from data only.
-    define(detail,'event_data',{get(){const data={},keys=['key','code','location','repeat','ctrlKey','shiftKey','altKey','metaKey','button','buttons','clientX','clientY','screenX','screenY','data','inputType','isComposing'];for(let index=0;index<keys.length;index++){const key=keys[index];try{data[key]=read(event,key);}catch{}}return data;}});
+    const keys=['key','code','location','repeat','ctrlKey','shiftKey','altKey','metaKey','button','buttons','clientX','clientY','screenX','screenY','data','inputType','isComposing'];
+    for(let index=0;index<keys.length;index++){const key=keys[index];define(detail,key,{enumerable:true,get(){return payload(event,key);}});}
     const delivered=report(this,detail);if(!delivered)invoke(prevent,event,[]);return delivered;
     }
     finally{invoke(remove,dispatching,[event]);}

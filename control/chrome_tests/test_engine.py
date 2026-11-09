@@ -76,6 +76,28 @@ class Operations(unittest.TestCase):
         result=self.call('click',self.target())
         self.assertFalse(result['ok']);self.assertEqual(self.browser.dispatched,[])
 
+    def test_known_excluded_form_destinations_refuse_before_input(self):
+        self.chrome.read_owner_hosts=lambda:['approval.test']
+        frame=self.browser.facts['frames'][0]
+        for method in ['get','post']:
+            for verb in ['click','press']:
+                with self.subTest(method=method,verb=verb):
+                    frame['target'].update(name='Continue',label='Continue',submit=True,search=method=='get')
+                    frame['form']={'element':'form','action':'http://sub.approval.test./receive','method':method,'encoding':'application/x-www-form-urlencoded','target':'_blank','search':method=='get','fields':[]}
+                    args=self.target()
+                    if verb=='press':args['key']='Enter'
+                    result=self.call(verb,args)
+                    self.assertFalse(result['ok'],result);self.assertEqual(self.browser.dispatched,[])
+
+    def test_form_destination_exclusion_added_after_preparation_refuses_before_input(self):
+        frame=self.browser.facts['frames'][0]
+        frame['target']['submit']=True
+        frame['form']={'element':'form','action':'http://approval.test/receive','method':'post','encoding':'application/x-www-form-urlencoded','target':'_blank','search':False,'fields':[]}
+        approval=self.prepare()
+        self.chrome.read_owner_hosts=lambda:['approval.test']
+        result=self.call('submit',approval)
+        self.assertFalse(result['ok'],result);self.assertEqual(result['error']['code'],'refused');self.assertEqual(self.browser.dispatched,[])
+
     def test_group3_current_draft_bound_even_without_prior_fill_and_across_frames(self):
         approval=self.prepare()
         state=approval['description']['untrusted_content']['page_state']

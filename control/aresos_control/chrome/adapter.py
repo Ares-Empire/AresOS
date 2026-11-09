@@ -325,6 +325,8 @@ class Chrome:
         addresses = [state['url'], state.get('frame_url') or state.get('dialog', {}).get('frame_url', state['url'])]
         for address in addresses:
             self.allowed_url(address)
+        if state.get('form'):
+            self.allowed_url(state['form']['action'])
         readonly = any(get('chrome:readonly:' + hostname(address), False) for address in addresses)
         if readonly:
             if payload.get('native_dialog') or payload.get('resume_kind'):
@@ -383,6 +385,8 @@ class Chrome:
             return 'unknown', 'Input ran, but a page activation may have happened; inspect the page and never replay.'
         if reply.get('dialog'):
             return 'unknown','The page is still handling input behind a dialog. Inspect and answer it separately; never replay the input.'
+        if reply.get('uncertain_finish'):
+            return 'unknown','Input dispatched, but a page handler completion could not be confirmed. Inspect the page and never replay.'
         return 'done', 'Dispatched once, as the page shows it; this does not prove what the site did.'
 
     def command(self, payload, operation=None, approved=False):
@@ -407,6 +411,11 @@ class Chrome:
         if hold:
             kind = 'form'
         state = binding(facts,args['reference'],kind,adapter)
+        key = args.get('key','').split('+')[-1]
+        target = frame['target']
+        submitting = target.get('submit') and (verb in {'click','check','select'} or verb == 'press' and key in {'Enter','Space',' '}) or verb == 'press' and key == 'Enter' and target.get('editable')
+        if state['form'] and (hold or kind or submitting):
+            self.allowed_url(state['form']['action'])
         if kind == 'send' and not state['form'] and not adapter:
             fields = [field for document in state['editable'] for field in document['fields']]
             if not any(isinstance(field.get('value'),str) and field['value'] and field.get('type') not in {'checkbox','radio','select-one','select-multiple'} for field in fields):
@@ -455,6 +464,8 @@ class Chrome:
             op.update(state='unknown',reason='Input ran, but a page activation may have happened; inspect the page and never replay.')
         if reply.get('dialog'):
             op.update(state='unknown',reason='The page is still handling input behind a dialog. Inspect and answer it separately; never replay the input.')
+        if reply.get('uncertain_finish'):
+            op.update(state='unknown',reason='Input dispatched, but a page handler completion could not be confirmed. Inspect the page and never replay.')
         self.store.write({'op:' + op_id:op},op['action'],'Chrome free input recorded',op_id)
         return {'operation_id':op_id,'untrusted_content':visible(reply),'followups':followups}
 

@@ -35,6 +35,11 @@ function safeURL(address) {
   if (!['http:','https:'].includes(url.protocol) || url.username || url.password || excludedHosts.some(host => hostname === host || hostname.endsWith('.' + host))) throw Error('refused: approval/settings pages and non-web addresses belong to the owner');
   return address;
 }
+function safeDestination(frame,command) {
+  const input=command.input||{},target=frame.target||{},key=input.key?.split('+').at(-1);
+  const submitting=target.submit&&(['click','check','select'].includes(input.verb)||input.verb==='press'&&['Enter','Space',' '].includes(key))||input.verb==='press'&&key==='Enter'&&target.editable;
+  if(frame.form&&(command.kind||command.name==='resume'||submitting))safeURL(frame.form.action);
+}
 async function cdp(tab, method, parameters = {}) {
   if (!POLICY.cdpMethods.includes(method)) throw Error('permission_denied: DevTools method not allowed');
   if(method.startsWith('Input.')&&dialogs.has(tab))throw Error('unknown: a page dialog interrupted the input sequence; inspect the dialog and operation status, never retry');
@@ -110,12 +115,19 @@ async function content(tab, frame, command, parameters={}) {
   return reply.data;
 }
 async function finishFrames(tab,frames,epoch,nonce){
+  let uncertain=false;
   for(const frame of frames){
-    if(dialogs.has(tab))return;
+    if(dialogs.has(tab))return uncertain;
     const wake=waitDialog(tab);
-    try{await Promise.race([content(tab,frame.frameId??frame.frame,'finish_input',{generation:epoch,dispatch_nonce:nonce}),wake.promise]);}
+    try{const result=await Promise.race([content(tab,frame.frameId??frame.frame,'finish_input',{generation:epoch,dispatch_nonce:nonce}),wake.promise]);if(result?.interrupted)return true;}
+    catch{
+      // A form may have replaced an armed iframe. Missing cleanup must never
+      // discard observed holds; a surviving old reader simply keeps its mark.
+      try{const current=await chrome.webNavigation.getFrame({tabId:tab,frameId:frame.frameId??frame.frame});if(current&&current.documentId===(frame.browser_document??frame.documentId))uncertain=true;}catch{uncertain=true;}
+    }
     finally{wake.dispose();}
   }
+  return uncertain;
 }
 const stepKey=step=>JSON.stringify([step.document,step.id,step.frame]);
 function rememberStep(current,key){
@@ -296,9 +308,9 @@ async function dispatch(command) {
     if(command.operation && used.has(command.operation))throw Error('refused: dialog operation already attempted');
     if(command.operation)used.add(command.operation);
     await cdp(tab,'Page.handleJavaScriptDialog',{accept:command.input.accept,...(command.input.text === undefined ? {}:{promptText:command.input.text})});
-    await finishFrames(tab,await chrome.webNavigation.getAllFrames({tabId:tab})||[],dispatchEpoch,controlled.get(tab)?.inputNonce);
+    const uncertain_finish=await finishFrames(tab,await chrome.webNavigation.getAllFrames({tabId:tab})||[],dispatchEpoch,controlled.get(tab)?.inputNonce);
     const steps=await collectSteps(tab,dispatchEpoch);
-    return {checked:true,dispatched:true,page:'Dialog answered once, as the page shows it.',steps,dialog:dialogs.get(tab)||null};
+    return {checked:true,dispatched:true,page:'Dialog answered once, as the page shows it.',steps,dialog:dialogs.get(tab)||null,uncertain_finish};
   }
   if(command.name==='tab_context'){const current=await chrome.tabs.get(tab);safeURL(current.url);return {session,tab,url:current.url,title:current.title,control:controlled.get(tab)?.epoch||null,frames:(await chrome.webNavigation.getAllFrames({tabId:tab})||[]).map(frame=>({frame:frame.frameId,url:frame.url,document:frame.documentId}))};}
   if (command.name === 'validity') {
@@ -353,6 +365,7 @@ async function dispatch(command) {
   if (command.operation && used.has(command.operation)) throw Error('refused: operation already dispatched or attempted');
   let frame = snapshot.frames.find(frame=>frame.frame === reference.frame), target = frame.target;
   if (!target) throw Error('stale_reference: read again');
+  safeDestination(frame,command);
   if (command.expected && stable(command.expected) !== stable(target)) throw Error('stale_reference: element no longer holds the expected state');
   if (command.operation) used.add(command.operation); // consume before any event can enter the page
   if(command.confirmation && command.operation)confirmationPlans.set(tab,{operation:command.operation,expected:command.confirmation,browser_document:frame.browser_document,matched:[]});
@@ -361,7 +374,7 @@ async function dispatch(command) {
   for(const other of snapshot.frames){
     assertControl(tab);
     await content(tab,other.frame,'set_control',{generation:dispatchEpoch});
-    await content(tab,other.frame,'arm',{config:{...POLICY,conservative:command.conservative},target:other.frame===reference.frame ? target.element:null,form:other.frame===reference.frame ? frame.form?.element:null,operation:command.approved && other.frame===reference.frame ? command.operation:null,generation:dispatchEpoch,dispatch_nonce:inputNonce,key_input:other.frame===reference.frame?keyInput:null,primary_submission:!!command.primary_submission && other.frame===reference.frame,implicit:other.frame===reference.frame&&command.input?.verb==='press'&&command.input.key.split('+').at(-1)==='Enter'?target.implicit_submitter:null,approved_form:command.approved&&other.frame===reference.frame?frame.form:null});
+    await content(tab,other.frame,'arm',{config:{...POLICY,blockedHosts:excludedHosts,conservative:command.conservative},target:other.frame===reference.frame ? target.element:null,form:other.frame===reference.frame ? frame.form?.element:null,operation:command.approved && other.frame===reference.frame ? command.operation:null,generation:dispatchEpoch,dispatch_nonce:inputNonce,key_input:other.frame===reference.frame?keyInput:null,primary_submission:!!command.primary_submission && other.frame===reference.frame,implicit:other.frame===reference.frame&&command.input?.verb==='press'&&command.input.key.split('+').at(-1)==='Enter'?target.implicit_submitter:null,approved_form:command.approved&&other.frame===reference.frame?frame.form:null});
   }
   // Native pointer input must address the selected tab in headed Chrome.
   // Arm first because activation can itself run focus/visibility handlers.
@@ -374,6 +387,7 @@ async function dispatch(command) {
   snapshot=await facts(tab,reference);
   if(command.binding&&stable(binding(snapshot,reference,command.kind,command.adapter))!==stable(command.binding))throw Error('stale_approval: page changed during frame setup; prepare again');
   frame=snapshot.frames.find(frame=>frame.frame===reference.frame);target=frame.target;
+  safeDestination(frame,command);
   assertControl(tab);
   if (command.name === 'resume') { effectStarted=true; await content(tab,reference.frame,'resume',{hold:command.hold,operation:command.operation,generation:dispatchEpoch,element:reference.element,form:frame.form?.element}); }
   else {
@@ -402,13 +416,13 @@ async function dispatch(command) {
     else throw Error('permission_denied: unsupported input');
   }
   assertControl(tab);
-  await finishFrames(tab,snapshot.frames,dispatchEpoch,inputNonce);
+  const uncertain_finish=await finishFrames(tab,snapshot.frames,dispatchEpoch,inputNonce);
   const steps=await collectSteps(tab,dispatchEpoch);
   if(recording && command.fixture_cut==='after-input'){
     await new Promise((resolve,reject)=>{fixtureBarriers.set(command.operation,{tab,resolve,reject});port?.postMessage({event:'fixture_after_input',operation:command.operation});});
   }
   const confirmation=confirmationPlans.get(tab);confirmationPlans.delete(tab);
-  return {checked:!!command.binding,dispatched:true,steps,dialog:dialogs.get(tab)||null,confirmations:confirmation?.matched || [],page:'Input dispatched once; inspect a fresh read for what the page shows.'};
+  return {checked:!!command.binding,dispatched:true,steps,dialog:dialogs.get(tab)||null,uncertain_finish,confirmations:confirmation?.matched || [],page:'Input dispatched once; inspect a fresh read for what the page shows.'};
 }
 async function connect() {
   port=chrome.runtime.connectNative('org.aresos.chrome');

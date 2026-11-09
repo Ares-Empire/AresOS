@@ -37,7 +37,10 @@
     return listed([target.name,target.label,target.title,target.role,target.page_dialog?.text,target.password ? '' : target.value,form?.action ? decoded(form.action):'']
       .join(' '));
   }
-  const search = form => !config?.conservative && form?.method === 'get' && form.search;
+  function search(form) {
+    if(config?.conservative||form?.method!=='get'||!form.search)return false;
+    try{const url=new URL(form.action),host=url.hostname.replace(/\.+$/,'');return ['http:','https:'].includes(url.protocol)&&!url.username&&!url.password&&!(config.blockedHosts||config.fixedHosts||[]).some(blocked=>host===blocked||host.endsWith('.'+blocked));}catch{return false;}
+  }
   function report(kind, element, submitter = null, cancellable = true) {
     const id = 'h' + (++sequence);
     let label='';if(kind.startsWith('activation'))try{label=reader.target(element).name;}catch{label='an uninspectable control';}
@@ -126,11 +129,13 @@
             for(const key of ['bubbles','cancelable','composed']){const value=flags?.[key];if(typeof value==='boolean')options[key]=value;}
             // Never read keyboard/input payloads for a protected field. A forged
             // descriptor can change only this fresh event, never the original.
-            if(!(element instanceof Element)||!facts(element).password){
-              const data=detail.event_data;
-              for(const key of ['key','code','data','inputType']){const value=data?.[key];if(typeof value==='string'&&value.length<=65536)options[key]=value;}
-              for(const key of ['repeat','ctrlKey','shiftKey','altKey','metaKey','isComposing']){const value=data?.[key];if(typeof value==='boolean')options[key]=value;}
-              for(const key of ['location','button','buttons','clientX','clientY','screenX','screenY']){const value=data?.[key];if(typeof value==='number'&&Number.isFinite(value))options[key]=value;}
+            let protectedPayload=element instanceof Element&&facts(element).password;
+            const allowedPayload=()=>!(protectedPayload ||= element instanceof Element&&facts(element).password);
+            if(allowedPayload()){
+              const data=detail.event_data??detail;
+              for(const key of ['key','code','data','inputType']){if(!allowedPayload())break;const value=data?.[key];if(typeof value==='string'&&value.length<=65536)options[key]=value;}
+              for(const key of ['repeat','ctrlKey','shiftKey','altKey','metaKey','isComposing']){if(!allowedPayload())break;const value=data?.[key];if(typeof value==='boolean')options[key]=value;}
+              for(const key of ['location','button','buttons','clientX','clientY','screenX','screenY']){if(!allowedPayload())break;const value=data?.[key];if(typeof value==='number'&&Number.isFinite(value))options[key]=value;}
             }
             const Constructor=/^key(?:down|up|press)$/.test(name)?globalThis.KeyboardEvent:/^(?:click|dblclick|mouse\w+|contextmenu)$/.test(name)?globalThis.MouseEvent:/^(?:beforeinput|input)$/.test(name)?globalThis.InputEvent:Event;
             original=new (Constructor||Event)(name,options);

@@ -48,7 +48,7 @@ function fixture() {
   }
   const document=new EventTarget();document.getElementById=key=>document.labels?.[key];
   const window={addEventListener(type,fn){if(!windowListeners.has(type))windowListeners.set(type,[]);windowListeners.get(type).push(fn);}};
-  const globals={window,document,performance:{now:()=>now},setTimeout,Symbol,Event,CustomEvent,EventTarget,Element,HTMLElement,HTMLInputElement,HTMLFormElement,DOMException};
+  const globals={window,document,performance:{now:()=>now},setTimeout,Symbol,Event,CustomEvent,EventTarget,Element,HTMLElement,HTMLInputElement,HTMLFormElement,DOMException,URL};
   const isolated=vm.createContext({...globals});
   vm.runInContext(fs.readFileSync('control/chrome/extension/guard.js','utf8'),isolated);
   const guard=vm.runInContext("globalThis[Symbol.for('aresos.chrome.guard.v2')]",isolated);
@@ -106,7 +106,7 @@ test('group2 an approved change has only one same-form consequential submission'
 });
 
 test('group1 GET searches stay free but a POST submitter override is held',()=>{
-  const f=fixture(),form=new f.HTMLFormElement();form.method='get';form.role='search';
+  const f=fixture(),form=new f.HTMLFormElement();form.method='get';form.role='search';form.action='http://fixture.test/search';
   f.arm(form,form,null);form.requestSubmit();assert.equal(f.arrivals.length,1);assert.equal(f.reports.length,0);
   const button=new f.HTMLElement();button.tagName='BUTTON';button.type='submit';button.formmethod='post';button.form=form;form.requestSubmit(button);
   assert.equal(f.arrivals.length,1);assert.equal(f.reports.length,1);
@@ -284,6 +284,34 @@ test('an old delayed finish cannot clear a newly armed private dispatch',async()
   f.originalDispatch.call(button,new f.Event('click',{isTrusted:true}));assert.equal(f.arrivals.length,0);assert.equal(f.reports.length,1);
 });
 
+test('flat lazy primitive fields replay keyboard data as a fresh untrusted event',()=>{
+  const f=fixture(),button=new f.HTMLElement();button.textContent='Continue';f.arm(button,null);
+  const original=new f.Event('keyup',{key:'Enter',code:'Enter',location:1,shiftKey:true,repeat:true,bubbles:true});let received;
+  button.addEventListener('keyup',event=>{received=event;});
+  assert.equal(button.dispatchEvent(original),true);assert.ok(received);
+  assert.notEqual(received,original,'the page-owned Event object must not cross the isolated bridge');
+  assert.equal(received.isTrusted,false);assert.equal(received.key,'Enter');assert.equal(received.code,'Enter');
+  assert.equal(received.location,1);assert.equal(received.shiftKey,true);assert.equal(received.repeat,true);
+});
+
+test('flat input payload remains lazy for a protected target',()=>{
+  const f=fixture(),field=new f.HTMLElement();field.password=true;f.arm(field,null);
+  const original=new f.Event('input',{bubbles:true});let reads=0,received;
+  Object.defineProperty(original,'data',{get(){reads++;return 'SENTINEL_PROTECTED_EVENT_PAYLOAD';}});
+  field.addEventListener('input',event=>{received=event;});field.dispatchEvent(original);
+  assert.equal(reads,0,'neither MAIN nor ISOLATED may demand protected payload data');
+  assert.ok(received);assert.equal(received.data,undefined);assert.equal(received.isTrusted,false);
+});
+
+test('flat primitive getter mutations complete before the final activation decision',()=>{
+  const f=fixture(),button=new f.HTMLElement();button.textContent='Continue';f.arm(button,null);
+  const original=new f.Event('click',{cancelable:true});let reads=0,delivered=0;
+  Object.defineProperty(original,'key',{get(){reads++;button.textContent='Delete';return 'x';}});
+  button.addEventListener('click',()=>delivered++);
+  assert.equal(button.dispatchEvent(original),false);assert.equal(reads,1);assert.equal(delivered,0);
+  assert.equal(f.reports[0].kind,'activation');
+});
+
 test('MAIN reports carry no Event or submitter objects and preserve receiver validation',()=>{
   const f=fixture(),form=new f.HTMLFormElement(),other=new f.HTMLFormElement(),button=new f.HTMLElement();button.tagName='BUTTON';button.type='submit';button.form=form;
   f.arm(button,form);form.requestSubmit(button);assert.equal(f.arrivals.length,0);
@@ -296,4 +324,20 @@ test('fresh script events preserve prior cancellation and never acquire trust',(
   const f=fixture(),button=new f.HTMLElement(),event=new f.Event('keyup');event.preventDefault();
   button.addEventListener('keyup',copy=>{assert.notEqual(copy,event);assert.equal(copy.isTrusted,false);assert.equal(copy.defaultPrevented,true);});
   assert.equal(button.dispatchEvent(event),false);
+});
+
+test('a descriptor getter protecting the target prevents every later payload read',()=>{
+  const f=fixture(),field=new f.HTMLElement(),event=new f.Event('input');let reads=0;
+  Object.defineProperty(event,'key',{get(){field.password=true;return '';}});
+  Object.defineProperty(event,'data',{get(){reads++;return 'SYNTHETIC_PROTECTED_SENTINEL';}});
+  f.arm(field,null);field.dispatchEvent(event);
+  assert.equal(field.password,true);assert.equal(reads,0);
+});
+
+test('GET search cannot bypass private excluded destinations or unsafe URLs',()=>{
+  for(const action of ['http://approval.test/search','https://child.approval.test./search','javascript:alert(1)','http://user:pass@fixture.test/search']){
+    const f=fixture(),form=new f.HTMLFormElement();form.method='get';form.role='search';form.action=action;
+    f.guard.arm({generation:'epoch',config:{...policy,blockedHosts:['approval.test']},target:f.id(form),form:f.id(form)});
+    form.submit();form.requestSubmit();assert.equal(f.arrivals.length,0,action);assert.equal(f.reports.length,2,action);
+  }
 });
