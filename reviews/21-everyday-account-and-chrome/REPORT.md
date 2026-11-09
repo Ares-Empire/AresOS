@@ -130,12 +130,12 @@ CI runs on this branch (`https://github.com/Ares-Empire/AresOS/actions/runs/<id>
 | 42702327832 | `resolve` with the exact transaction | 25 packages; the 10 existing pins resolved to identical hashes; install preview clean. Committed as the lock. |
 | 42704153862 | `check_build=build` | Image built; Chrome checksig `key fingerprint: eb4c1bfd…4796: OK`; lint 11 passed, 3 warnings. The checks stopped at the first `runuser` (no PAM session in an unprivileged container). Fixed: checks run `--privileged`. |
 | 42706256548 | `build` | All 22 in-image checks, the rootless probe and the polkit evaluation passed; a final byte comparison of the lock failed (build.sh re-serializes it). Fixed: JSON comparison. |
-| 42709631386 | `build` plus one VM boot (since reverted) | Container checks passed again. The VM booted this image: guest policy passed (`Daily account is in wheel`, the sudo policy, `sudo: a password is required`, flatpak and brew executable, live updater audit `1087 system/user units inspected`, `ARESOS_GUEST_CHECKS_PASSED`); power events, the recovery shortcut and the tty3 recovery login passed; `aresos-subids.service` finished at boot. It then stopped in `vm.py`'s journal readiness wait, a pre-existing harness bug (PLAN-GAP). Evidence: `evidence/vm-42709631386/`. |
-| **42715519293** | **final `build` on `e05b97fd`** | **Success.** `IMAGE_CHECKS_PASSED` with 22 PASS lines, `ROOTLESS_MAPPING_PASSED` (`0 1001 1`, `1 524288 65536`), `polkit: 21 rule files, 401 actions, 0 change with wheel, 57 denied to ares`, `POLKIT_CHECK_PASSED`, the check without the AresOS rule fails as expected, manifest locks equal, `CHECK_BUILD_PASSED`. Evidence: `evidence/build-42715519293/`. |
+| 42709631386 | `build` plus one VM boot (since reverted) | Container checks passed again. The VM booted this image: guest policy passed (`Daily account is in wheel`, the sudo policy, `sudo: a password is required`, flatpak and brew executable, live updater audit `1087 system/user units inspected`, `ARESOS_GUEST_CHECKS_PASSED`); power events, the recovery shortcut and the tty3 recovery login passed; `aresos-subids.service` finished at boot. It then stopped in `vm.py`'s journal readiness wait, a pre-existing harness bug (PLAN-GAP). Evidence: `runs/vm-42709631386/`. |
+| **42715519293** | **final `build` on `e05b97fd`** | **Success.** `IMAGE_CHECKS_PASSED` with 22 PASS lines, `ROOTLESS_MAPPING_PASSED` (`0 1001 1`, `1 524288 65536`), `polkit: 21 rule files, 401 actions, 0 change with wheel, 57 denied to ares`, `POLKIT_CHECK_PASSED`, the check without the AresOS rule fails as expected, manifest locks equal, `CHECK_BUILD_PASSED`. Evidence: `runs/build-42715519293/`. |
 | 42718023916 | `checks_only=true` on `e05b97fd` (full suite natively, with sudo) | 712 tests, 2 failures, both in `test_sysusers`: systemd-sysusers writes wheel members sorted (`ares,ares-recovery`). Fixed the tests to compare membership. `test_inherited_homebrew` passed natively. |
 | **42718699822** | **`checks_only=true` on `20ff4bce`** | **Success.** `Ran 712 tests` `OK` natively with sudo, including `test_sysusers` (both tests), `test_inherited_homebrew` (all four) and `test_everyday_account`; Python compile and Bash syntax sweeps, the live hosted system-manager query (`437 unit files, 473 unit names`), release-input resolution and the upstream signature check passed. |
 
-The 22 in-image PASS lines of the final build (`evidence/build-42715519293/checks.txt`) cover:
+The 22 in-image PASS lines of the final build (`runs/build-42715519293/checks.txt`) cover:
 
 - `ares` is in wheel; the image sets no password for it (`!*`); `sudo -l` shows `(ALL) ALL` with
   `timestamp_type=ppid` and no passwordless rule; `visudo` parses; `sudo -n true` as `ares` says
@@ -237,7 +237,7 @@ read-only commands ran directly, `install` went to `sudo -u '#1000'`, a missing 
 
 - **`vm.py` can't pass its power-key step since package 14.** It now searches the serial log through
   `strip_kernel_lines`, which also removes the journal follower's `short-monotonic` lines, because they start with the
-  same `[   73.458055] ` prefix as kernel records (`evidence/vm-42709631386/serial-journal-ready-excerpt.txt`).
+  same `[   73.458055] ` prefix as kernel records (`runs/vm-42709631386/serial-journal-ready-excerpt.txt`).
   `vm.py` last ran for package 13, before that change. Suggested fix for the release package: also accept the token
   in the raw transcript, or match it only after a `bazzite aresos-ci[` prefix. `vm.py` is a bound release-harness
   file, so this package didn't change it. Commit `fc74f8ba` shows how `check_build=build` can boot one VM pass once
