@@ -1,7 +1,8 @@
 // Isolated world only. Never serialise HTML, attributes or forms in bulk.
 (() => {
   try {
-  const elements = new Map(), ids = new WeakMap(), protectedFields = new WeakSet(), held = new Map();
+  const elements = new Map(), ids = new WeakMap(), protectedFields = new WeakSet();
+  const guard=globalThis[Symbol.for('aresos.chrome.guard.v2')];
   const documentId = [...crypto.getRandomValues(new Uint8Array(16))].map(value=>value.toString(16).padStart(2,'0')).join('');
   let sequence = 0, revision = 0, controlGeneration = null;
   const traces = [], files = new Map(), watchedRoots = new WeakSet();
@@ -10,7 +11,7 @@
     const found = [root];
     for (const element of root.querySelectorAll('*')) {
       const childShadow = shadow(element);
-      if (childShadow) { document.dispatchEvent(new CustomEvent('aresos-watch-root',{detail:{root:childShadow}})); found.push(...roots(childShadow)); }
+      if (childShadow) { guard.watch(childShadow); found.push(...roots(childShadow)); }
     }
     return found;
   }
@@ -26,11 +27,11 @@
     return unsafe;
   }
   function remember(root) {
-    if(!watchedRoots.has(root)){watchedRoots.add(root);root.addEventListener('aresos-page-step',onStep,true);}
+    if(!watchedRoots.has(root)){watchedRoots.add(root);guard.watch(root);}
     for (const element of root.querySelectorAll('input,textarea,[contenteditable]')) password(element);
     for (const element of root.querySelectorAll('*')) {
       const childShadow = shadow(element);
-      if (childShadow) { document.dispatchEvent(new CustomEvent('aresos-watch-root',{detail:{root:childShadow}})); observer.observe(childShadow, {subtree: true, attributes: true, childList: true, characterData: true, attributeOldValue: true}); remember(childShadow); }
+      if (childShadow) { guard.watch(childShadow); observer.observe(childShadow, {subtree: true, attributes: true, childList: true, characterData: true, attributeOldValue: true}); remember(childShadow); }
     }
   }
   const observer = new MutationObserver(changes => {
@@ -46,7 +47,7 @@
   observer.observe(document, {subtree: true, attributes: true, childList: true, characterData: true, attributeOldValue: true});
   remember(document);
   const id = element => {
-    if (!ids.has(element)) { const key = 'e' + (++sequence); ids.set(element, key); elements.set(key, element); element.dispatchEvent(new CustomEvent('aresos-reader-identity', {bubbles:true,composed:true,detail:{id:key}})); }
+    if (!ids.has(element)) { const key = 'e' + (++sequence); ids.set(element, key); elements.set(key, element); }
     return ids.get(element);
   };
   function text(node) {
@@ -159,22 +160,15 @@
       chat:read(['header [title]','[aria-label="Chat name"]'],fields),context:read(['[aria-label="Action context"]'],fields),preview:read(['[aria-label="Message preview"]'],fields),
       attachments:fields.filter(node=>node.matches('[aria-label^="Attachment:"]')).map(node=>({label:name(node),text:text(node)})),target:target ? name(target):null};
   }
-  document.addEventListener('aresos-dialog-origin',event=>{
-    if(['alert','confirm','prompt'].includes(event.detail?.kind) && typeof event.detail?.text === 'string')
-      chrome.runtime.sendMessage({event:'dialog_origin',kind:event.detail.kind,text:event.detail.text});
-  },true);
-  function onStep(event) {
-    const value=event.detail,element=event.composedPath()[0];
-    if(!value || !['native_submit','submit_event','activation','activation_unknown'].includes(value.kind) || !(element instanceof Element))return;
-    let submitter=null;
-    if(value.submitter){try{submitter=all().find(node=>Node.prototype.isSameNode.call(node,value.submitter));}catch{return;}}
-    held.set(value.id,{id:value.id,kind:value.kind,element:id(element),submitter:submitter ? id(submitter):null,cancellable:value.cancellable});
-  }
+  guard.reader({id,element:key=>elements.get(key),target:targetFacts,form:(element,submitter)=>formFacts(element.form || (element.tagName==='FORM' ? element:null),submitter || element)});
   chrome.runtime.onMessage.addListener((message, sender, reply) => {
     if (sender.id !== chrome.runtime.id || !message || typeof message.command !== 'string') return;
     try {
       let value;
-      if (message.command === 'set_control') { controlGeneration=message.generation; value={controlled:true}; }
+      if (message.command === 'arm') { guard.arm(message); value={armed:true}; }
+      else if (message.command === 'finish_input') { guard.finish(message.generation).then(()=>reply({ok:true,data:{finished:true}})); return true; }
+      else if (message.command === 'resume') { if(message.generation!==controlGeneration)throw Error('stale_reference: control ended'); value=guard.resume(message.hold,message.operation); }
+      else if (message.command === 'set_control') { controlGeneration=message.generation; value={controlled:true}; }
       else if (['focus','select','check','stage_file','install_file'].includes(message.command) && message.generation !== controlGeneration) throw Error('stale_reference: control ended');
       if (message.command === 'install_file') {
         const staged=files.get(message.token),element=elements.get(message.element);
@@ -195,12 +189,12 @@
         if(staged.size===staged.file.size)staged.ready=new File(staged.chunks,staged.file.name,{type:'application/octet-stream',lastModified:0});
         value={offset:staged.size};
       }
-      else if (message.command === 'clear') { controlGeneration=null; files.clear(); held.clear(); value={cleared:true}; }
+      else if (message.command === 'clear') { controlGeneration=null; files.clear(); guard.clear(); value={cleared:true}; }
       else if (message.command === 'set_control') {}
       else if (message.command === 'hit') value={hit:hit(elements.get(message.element),message.x,message.y)};
       else if (message.command === 'ready') value = {preload:true,document:documentId};
       else if (message.command === 'read' || message.command === 'facts') value = snapshot(message.element);
-      else if (message.command === 'steps') { value = [...held.values()]; held.clear(); }
+      else if (message.command === 'steps') { value = guard.steps(); }
       else if (message.command === 'focus') {
         const element = elements.get(message.element);
         if (!element?.isConnected) throw Error('stale_reference: read again');

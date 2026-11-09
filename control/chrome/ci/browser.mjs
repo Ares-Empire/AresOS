@@ -76,17 +76,19 @@ try {
     assert.equal(counts('owner-input'),1,'Owner submission must run normally while a Claude task is pending');
     console.log('GROUP 8 owner input PASS');
   } catch(error) { failures.push(error); console.error('GROUP 8 owner input FAIL',error.message); }
-  // Run even if owner attribution failed: a denial must not conceal an unasked send.
-  await nav('page-forgery');
-  const forged=await call('click',await target('Continue'));
-  await delay(150);
-  const forgeryEvidence={pageAction:'Public MAIN API stop with a page-invented epoch, followed by native form.submit()',arrivals:counts('page-forgery'),result:forged};
-  fs.writeFileSync('/out/page-forgery.json',JSON.stringify(forgeryEvidence,null,2));
-  console.log('GROUP 7 page forgery evidence',JSON.stringify(forgeryEvidence));
-  try {
-    assert.equal(counts('page-forgery'),0,'A page-forged control mark must never release a Claude-caused submission without approval');
-    console.log('GROUP 7 page forgery PASS');
-  } catch(error) { failures.push(error); console.error('GROUP 7 page forgery FAIL',error.message); }
+  // A denial must not conceal an unasked send. Every hostile route keeps receiver checks strict.
+  for(const attack of ['page-forgery','hostile']) {
+    await nav(attack);const forged=await call('click',await target('Continue'));await delay(100);
+    const evidence={attack,arrivalsBefore:counts(attack),result:forged};
+    fs.writeFileSync('/out/'+attack+'.json',JSON.stringify(evidence,null,2));
+    try {
+      assert.equal(counts(attack),0,'A page-forged control mark must never release a Claude-caused submission without approval');
+      const operation=forged.followups.find(item=>item.approval);assert.ok(operation,JSON.stringify(forged));
+      await call('submit',operation.approval);await eventually(()=>counts(attack)===1,'approved '+attack);
+      await call('submit',operation.approval);await delay(100);assert.equal(counts(attack),1,'A second attempt must not dispatch');
+      console.log('GROUP 7 page forgery PASS',attack,'receiver: 0 before, 1 after, 1 after replay');
+    } catch(error) { failures.push(error); console.error('GROUP 7 page forgery FAIL',attack,error.message); }
+  }
   if(failures.length)throw new AggregateError(failures,'Strict owner-input and page-forgery regressions failed');
 } catch(error) {
   try{execFileSync('import',['-window','root','/out/failure.png']);}catch{}

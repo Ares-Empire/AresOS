@@ -4,9 +4,9 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 
 function fixture() {
-  const windowListeners=new Map(),reports=[],arrivals=[];
+  const windowListeners=new Map(),reports=[],arrivals=[],nodes=[];
   class Event {
-    constructor(type,options={}) {Object.assign(this,{type,cancelable:true,defaultPrevented:false,stopped:false,...options});}
+    constructor(type,options={}) {Object.assign(this,{type,cancelable:true,defaultPrevented:false,stopped:false,eventPhase:0,isTrusted:false,...options});}
     preventDefault(){if(this.cancelable)this.defaultPrevented=true;}
     stopImmediatePropagation(){this.stopped=true;}
     composedPath(){return [this.target];}
@@ -16,39 +16,49 @@ function fixture() {
     listeners=new Map();
     addEventListener(type,fn){if(!this.listeners.has(type))this.listeners.set(type,[]);this.listeners.get(type).push(fn);}
     dispatchEvent(event){
-      event.target ||= this;
-      for(const fn of windowListeners.get(event.type)||[]){fn(event);if(event.stopped)return !event.defaultPrevented;}
-      for(const fn of this.listeners.get(event.type)||[]){fn(event);if(event.stopped)break;}
-      if(this!==document && event.bubbles)for(const fn of document.listeners.get(event.type)||[])fn(event);
-      return !event.defaultPrevented;
+      event.target=this;event.eventPhase=1;
+      try {
+        for(const fn of windowListeners.get(event.type)||[]){fn(event);if(event.stopped)return !event.defaultPrevented;}
+        event.eventPhase=2;
+        for(const fn of this.listeners.get(event.type)||[]){fn(event);if(event.stopped)break;}
+        return !event.defaultPrevented;
+      } finally {event.eventPhase=0;}
     }
   }
+  const originalDispatch=EventTarget.prototype.dispatchEvent;
   class Element extends EventTarget {
     isConnected=true;tagName='DIV';type='';textContent='';form=null;role='';
+    constructor(){super();nodes.push(this);}
     get childNodes(){return [{nodeType:3,textContent:this.textContent}];}
     getRootNode(){return document;}
     closest(){return this;}
     getAttribute(name){return this[name]||null;}
     matches(){return false;}
     querySelector(){return null;}
-    attachShadow(){return new EventTarget();}
   }
-  class HTMLElement extends Element {click(){this.dispatchEvent(new Event('click'));}}
+  class HTMLElement extends Element {click(){originalDispatch.call(this,new Event('click'));}}
   class HTMLInputElement extends HTMLElement {}
   class HTMLFormElement extends HTMLElement {
     tagName='FORM'; method='post';action='/receive';valid=true;
     submit(){arrivals.push('native');}
-    requestSubmit(submitter){if(!this.valid)return;const event=new Event('submit',{submitter});if(this.dispatchEvent(event))arrivals.push('event');}
+    requestSubmit(submitter){if(!this.valid)return;const event=new Event('submit',{submitter});if(originalDispatch.call(this,event))arrivals.push('event');}
   }
-  const document=new EventTarget();document.getElementById=key=>document.labels?.[key];document.addEventListener('aresos-page-step',event=>reports.push(event.detail));
+  const document=new EventTarget();document.getElementById=key=>document.labels?.[key];
   const window={addEventListener(type,fn){if(!windowListeners.has(type))windowListeners.set(type,[]);windowListeners.get(type).push(fn);}};
-  const originalDispatch=EventTarget.prototype.dispatchEvent;
-  const context=vm.createContext({window,document,Node:{TEXT_NODE:3},performance:{now:()=>0},Symbol,Event,CustomEvent,EventTarget,Element,HTMLElement,HTMLInputElement,HTMLFormElement});
-  vm.runInContext(fs.readFileSync('control/chrome/extension/page.js','utf8'),context);
-  const api=vm.runInContext("globalThis[Symbol.for('aresos.chrome.page.v1')]",context);
-  function identify(id,element){if(!element)return;element.dispatchEvent(new CustomEvent('aresos-reader-identity',{bubbles:true,composed:true,detail:{id}}));}
-  const config={words:['send','delete'],holdMs:500};
-  return {api,arrivals,reports,document,HTMLFormElement,HTMLElement,Event,originalDispatch,identify,arm:(target,form,op=null)=>{identify('target',target);identify('form',form);api.arm(config,'target','form',op);}};
+  const globals={window,document,performance:{now:()=>0},setTimeout,Symbol,Event,CustomEvent,EventTarget,Element,HTMLElement,HTMLInputElement,HTMLFormElement};
+  const isolated=vm.createContext({...globals});
+  vm.runInContext(fs.readFileSync('control/chrome/extension/guard.js','utf8'),isolated);
+  const guard=vm.runInContext("globalThis[Symbol.for('aresos.chrome.guard.v2')]",isolated);
+  const ids=new Map(), elements=new Map();let sequence=0;
+  function id(node){if(!ids.has(node)){const key='e'+(++sequence);ids.set(node,key);elements.set(key,node);}return ids.get(node);}
+  function name(node){const labels=(node['aria-labelledby']||'').split(/\s+/).map(key=>document.getElementById(key)).filter(Boolean);return labels.length ? labels.map(label=>label.textContent).join(' ') : node['aria-label'] || node.labels?.map(label=>label.textContent).join(' ') || node.textContent;}
+  guard.reader({id,element:key=>elements.get(key),target:node=>({name:name(node),title:node.title,role:node.role,submit:!!node.form && node.type==='submit',editable:node instanceof HTMLInputElement}),form:(node,button)=>{const form=node.form || (node.tagName==='FORM' ? node:null);return form ? {method:button?.formmethod || form.method,search:form.role==='search',action:form.action}:null;}});
+  const main=vm.createContext({...globals});
+  vm.runInContext(fs.readFileSync('control/chrome/extension/page.js','utf8'),main);
+  assert.equal(vm.runInContext("globalThis[Symbol.for('aresos.chrome.page.v1')]",main),undefined);
+  assert.equal(vm.runInContext("globalThis[Symbol.for('aresos.chrome.guard.v2')]",main),undefined);
+  function arm(target,form,operation=null){guard.arm({generation:'epoch',config:{words:['send','delete'],holdMs:500},target:id(target),form:form ? id(form):null,operation,primary_submission:false});}
+  return {api:guard,arrivals,get reports(){reports.push(...guard.steps());return reports;},document,HTMLFormElement,HTMLElement,Event,CustomEvent,originalDispatch,arm,main};
 }
 
 test('group2 native submit resumes without checks or submit events',()=>{
@@ -82,7 +92,7 @@ test('group2 free input in a form has no primary or further submission allowance
   const f=fixture(),form=new f.HTMLFormElement(),field=new f.HTMLElement();field.form=form;
   // A durable dispatch ID is kept outside the page's approval mark.
   f.arm(field,form,null);form.submit();form.requestSubmit();
-  assert.equal(f.arrivals.length,0);assert.deepEqual(f.reports.map(report=>report.kind),['native_submit','submit_event']);
+  assert.equal(f.arrivals.length,0);assert.deepEqual(Array.from(f.reports,report=>report.kind),['native_submit','submit_event']);
 });
 
 test('group2 an approved change has only one same-form consequential submission',()=>{
@@ -94,7 +104,7 @@ test('group2 an approved change has only one same-form consequential submission'
 test('group1 GET searches stay free but a POST submitter override is held',()=>{
   const f=fixture(),form=new f.HTMLFormElement();form.method='get';form.role='search';
   f.arm(form,form,null);form.requestSubmit();assert.equal(f.arrivals.length,1);assert.equal(f.reports.length,0);
-  const button=new f.HTMLElement();button.formmethod='post';form.requestSubmit(button);
+  const button=new f.HTMLElement();button.formmethod='post';button.form=form;form.requestSubmit(button);
   assert.equal(f.arrivals.length,1);assert.equal(f.reports.length,1);
 });
 
@@ -115,4 +125,27 @@ test('review1 external accessible labels ask in both wrappers and capture fallba
     }
     assert.equal(delivered,0,`${source}/${route}`);assert.equal(f.reports.length,1,`${source}/${route}`);
   }
+});
+
+
+test('group7 public controls and forged identity/report events cannot relax isolated holds',()=>{
+  const f=fixture(),form=new f.HTMLFormElement();f.arm(form,form);
+  vm.runInContext("globalThis[Symbol.for('aresos.chrome.page.v1')]={stop(){},arm(){},resume(){}}",f.main);
+  for(const kind of ['aresos-reader-identity','aresos-page-step','aresos-dialog-origin','aresos-watch-root','message'])
+    f.originalDispatch.call(form,new f.CustomEvent(kind,{detail:{id:'target',kind:'native_submit',generation:'epoch',operation:'forged'}}));
+  for(const kind of ['native_submit','request_submit','click','dispatch'])
+    f.originalDispatch.call(form,new f.CustomEvent('aresos-page-call-v2',{detail:{kind,event:new f.Event('click')}}));
+  form.submit();assert.equal(f.arrivals.length,0);
+  const step=f.reports.find(item=>item.kind==='native_submit');f.api.resume(step.id,'approved');assert.equal(f.arrivals.length,1);
+  assert.throws(()=>f.api.resume(step.id,'approved'));assert.equal(f.arrivals.length,1);
+});
+
+test('group2 owner exemption is synchronous and never covers delayed or in-flight input',async()=>{
+  const f=fixture(),form=new f.HTMLFormElement(),button=new f.HTMLElement();f.arm(button,null);
+  button.addEventListener('click',()=>form.submit());
+  f.originalDispatch.call(button,new f.Event('click',{isTrusted:true}));assert.equal(f.arrivals.length,0,'in-flight owner is held');
+  await f.api.finish('epoch');
+  f.originalDispatch.call(button,new f.Event('click',{isTrusted:true}));assert.equal(f.arrivals.length,1,'synchronous owner handler is exempt');
+  form.submit();assert.equal(f.arrivals.length,1,'the exemption ends when dispatch ends');
+  assert.ok(f.reports.length>=2);
 });

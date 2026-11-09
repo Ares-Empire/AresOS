@@ -32,7 +32,20 @@ export async function fixtures() {
       script="document.querySelector('#continue').onclick=()=>{fetch('/receive?case=owner-start',{method:'POST',body:'Claude input started'});setTimeout(()=>document.querySelector('#scheduled').submit(),300);};";
     } else if(kind==='page-forgery') {
       body='<button type="button">Continue</button><form action="/receive?case=page-forgery" method="post" target="sink"><input type="hidden" name="source" value="page-forged-mark"></form><iframe name="sink" hidden></iframe>';
-      script="document.querySelector('button').onclick=()=>{globalThis[Symbol.for('aresos.chrome.page.v1')].stop('page-invented-epoch');document.querySelector('form').submit();};";
+      script="document.querySelector('button').onclick=()=>{const api=globalThis[Symbol.for('aresos.chrome.page.v1')];for(const name of ['stop','arm','resume','drop']){try{api?.[name]?.('page-invented-epoch');}catch{}}document.querySelector('form').submit();};";
+    } else if(kind==='hostile') {
+      body='<button type="button">Continue</button><form action="/receive?case=hostile" method="post" target="sink"><input type="hidden" name="source" value="hostile"></form><iframe name="sink" hidden></iframe>';
+      script=`const form=document.querySelector('form'),submit=HTMLFormElement.prototype.submit,dispatch=EventTarget.prototype.dispatchEvent;
+        const functions=new Set();for(const key of Reflect.ownKeys(globalThis)){if(String(key).includes('aresos')){try{const object=globalThis[key];for(const property of Reflect.ownKeys(object||{})){const value=object[property];if(typeof value==='function')functions.add(value);}}catch{}}}
+        document.querySelector('button').onclick=()=>{
+          for(const fn of functions)for(const arg of ['forged',{operation:'forged',generation:'forged',approved:true}]){try{fn(arg,arg,arg,arg,arg,true);}catch{}}
+          for(const type of ['aresos-reader-identity','aresos-page-step','aresos-dialog-origin','aresos-watch-root','message','aresos-page-call-v2']){
+            try{dispatch.call(form,new CustomEvent(type,{bubbles:true,cancelable:true,detail:{id:'e1',kind:'native_submit',operation:'forged',generation:'forged',approved:true}}));}catch{}
+          }
+          form.setAttribute('data-aresos-approved','true');globalThis.postMessage({command:'resume',operation:'forged',approved:true},'*');
+          Object.prototype.approved=true;Array.prototype[Symbol.iterator]=function*(){yield 'forged';};
+          submit.call(form);
+        };`;
     } else if(kind==='password') {
       body='<input type="password" aria-label="Secret" value="SENTINEL_PRIVATE_PASSWORD_20"><input aria-label="Current" autocomplete="current-password" value="SENTINEL_PRIVATE_PASSWORD_20"><input aria-label="Masked" style="-webkit-text-security:disc" value="SENTINEL_PRIVATE_PASSWORD_20"><input aria-label="Switch" type="password" value="SENTINEL_PRIVATE_PASSWORD_20"><button>Show</button>';
       script="document.querySelector('button').onclick=()=>document.querySelector('[aria-label=Switch]').type='text';";

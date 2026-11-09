@@ -35,7 +35,7 @@ async function configure(hosts) {
   const common={matches:['http://*/*','https://*/*'],excludeMatches,allFrames:true,matchOriginAsFallback:true,runAt:'document_start',persistAcrossSessions:false};
   const existing=await chrome.scripting.getRegisteredContentScripts();
   if(existing.length)await chrome.scripting.unregisterContentScripts({ids:existing.map(script=>script.id)});
-  await chrome.scripting.registerContentScripts([{...common,id:'aresos-page',world:'MAIN',js:['page.js']},{...common,id:'aresos-reader',world:'ISOLATED',js:['reader.js']}]);
+  await chrome.scripting.registerContentScripts([{...common,id:'aresos-reader',world:'ISOLATED',js:['guard.js','reader.js']},{...common,id:'aresos-page',world:'MAIN',js:['page.js']}]);
   await rules();
   return {configured:true};
 }
@@ -56,14 +56,6 @@ async function take(tab) {
   controlled.set(tab,original); await rules(); await badge();
   return {tab,session,group:groupId};
 }
-async function main(tab, frame, command, args=[]) {
-  const output = await chrome.scripting.executeScript({target:{tabId:tab,frameIds:[frame]},world:'MAIN',func:(command,args)=> {
-    const api = globalThis[Symbol.for('aresos.chrome.page.v1')];
-    if (!api || !['arm','resume','drop','stop'].includes(command)) throw Error('refused: page guard absent');
-    return api[command](...args);
-  },args:[command,args]});
-  return audit(output[0]?.result);
-}
 async function content(tab, frame, command, parameters={}) {
   if(['focus','select','check','install_file'].includes(command)){assertControl(tab);parameters={...parameters,generation:dispatchEpoch};effectStarted=true;}
   const reply = audit(await chrome.tabs.sendMessage(tab,{command,...parameters},{frameId:frame}));
@@ -81,7 +73,7 @@ async function release(tab) {
   controlled.delete(tab); dialogs.delete(tab);
   for(const [token,stage] of stagedUploads)if(stage.tab===tab)stagedUploads.delete(token);
   try {
-    for (const frame of await chrome.webNavigation.getAllFrames({tabId:tab}) || []) { await main(tab,frame.frameId,'stop',[original?.epoch]); await content(tab,frame.frameId,'clear'); }
+    for (const frame of await chrome.webNavigation.getAllFrames({tabId:tab}) || []) { await content(tab,frame.frameId,'clear'); }
   } catch {}
   try { await chrome.debugger.detach({tabId:tab}); } catch {}
   if (original) {
@@ -228,10 +220,10 @@ async function dispatch(command) {
   for(const other of snapshot.frames){
     assertControl(tab);
     await content(tab,other.frame,'set_control',{generation:dispatchEpoch});
-    await main(tab,other.frame,'arm',[{...POLICY,conservative:command.conservative},other.frame===reference.frame ? target.element:null,other.frame===reference.frame ? frame.form?.element:null,command.approved && other.frame===reference.frame ? command.operation:null,dispatchEpoch,!!command.primary_submission && other.frame===reference.frame]);
+    await content(tab,other.frame,'arm',{config:{...POLICY,conservative:command.conservative},target:other.frame===reference.frame ? target.element:null,form:other.frame===reference.frame ? frame.form?.element:null,operation:command.approved && other.frame===reference.frame ? command.operation:null,generation:dispatchEpoch,primary_submission:!!command.primary_submission && other.frame===reference.frame});
   }
   assertControl(tab);
-  if (command.name === 'resume') { effectStarted=true; await main(tab,reference.frame,'resume',[command.hold,command.operation]); }
+  if (command.name === 'resume') { effectStarted=true; await content(tab,reference.frame,'resume',{hold:command.hold,operation:command.operation,generation:dispatchEpoch}); }
   else {
     const input = command.input;
     if (target.password) throw Error('owner_signin: password fields belong to the owner');
@@ -258,6 +250,7 @@ async function dispatch(command) {
     else if (input.verb === 'scroll') {const point=await pointer(tab,snapshot,reference,target);await cdp(tab,'Input.dispatchMouseEvent',{type:'mouseWheel',...point,deltaX:input.x,deltaY:input.y});}
     else throw Error('permission_denied: unsupported input');
   }
+  for(const other of snapshot.frames)await content(tab,other.frame,'finish_input',{generation:dispatchEpoch});
   await new Promise(resolve=>setTimeout(resolve,POLICY.holdMs + 25));
   const steps=[];
   for (const frame of await chrome.webNavigation.getAllFrames({tabId:tab}) || []) {
