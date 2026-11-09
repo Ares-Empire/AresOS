@@ -42,13 +42,17 @@ export function nativeCompatibilityClick(){
 export function nativeNavigate(url){key('ctrl+l');execFileSync('xdotool',['type','--clearmodifiers','--delay','1',url]);key('Return');}
 export async function measureCompatibility({id,fixture,eventually,start}){
   await eventually(()=>fixture.compatibility.some(value=>value.id===id&&value.phase==='ready'),'native compatibility page ready');
-  const pending=start();
+  // Keep a failed asynchronous click attached while polling the native picker.
+  // The case still fails, but its rejection must not abort later matrices.
+  let startFailed=false,startError;
+  const pending=Promise.resolve().then(start).catch(error=>{startFailed=true;startError=error;});
   const title=await eventually(()=>{
+    if(startFailed)throw startError;
     const active=execFileSync('xdotool',['getactivewindow'],{encoding:'utf8'}).trim();
     const title=execFileSync('xdotool',['getwindowname',active],{encoding:'utf8'}).trim();
     return /^(?:Open|Choose|Select)(?:\s|$)/.test(title)?title:false;
   },'native detached file picker opens');
-  key('Escape');await pending;
+  key('Escape');await pending;if(startFailed)throw startError;
   const record=await eventually(()=>fixture.compatibility.find(value=>value.id===id&&value.phase==='result'),'compatibility result');
   await eventually(()=>fixture.compatibilityDownloads.filter(value=>value===id).length===1,'detached anchor downloaded exactly once');
   return {...record.result,filePicker:title};
