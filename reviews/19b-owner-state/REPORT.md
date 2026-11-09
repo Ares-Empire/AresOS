@@ -299,3 +299,151 @@ Outputs: `Ran 90 tests in 0.240s`, `OK`; `Ran 9 tests in 4.491s`, `OK`; `Generat
 **Open questions — read:** none for this fix round.
 
 **Run — closing workspace:** the `.work/` regular-file inventory over 500 MiB printed `[]`. No large image or ISO was downloaded. No Gradle daemon was started. The closing push uses `[skip ci]` because only REPORT.md, KNOWN-GAPS.md and the strict evidence manifest differ from the twice-tested source; test code, production code and the compact ledger are unchanged.
+
+## Stage 1, fixes round 3
+
+**Read — scope:** this round implements structure S and all five findings of
+`REVIEW-S1-3.md` in the oracle, comparison, tests and compact ledger. Production
+code and the stage-2/3 work remain outside this round. The resolution contract
+and executable table are documented in `control/owner_state_oracle/FORMAT.md`.
+
+**Read — independent obligation derivation:** scripted approvals select every
+required target, recipient, flag operation and destination. Server commands,
+replies, raw pre-command byte hashes, role observations and the injected fault
+trace establish effects and uncertainty. The decoder establishes which commits
+occurred and their order. `Oracle.obligations` keeps source/kind/establishment
+sequence separately from the current projection. `retain_obligations` requires
+a corroborated allowlisted resolution before a kind can disappear, including
+rollback to an older row that is still present. Occurrences, acknowledgements,
+clean epochs, operation notices and qualification evidence remain separate.
+The pre-fault fixture history is a frozen starting-state input; changes to it
+are compared, rather than accepted as a new fixture. Pre-command decoded
+observations also compare historical presence and content against the replay;
+they cannot authorize a smaller effect plan.
+
+**Read — resolution table:** `resolutions.RESOLUTIONS` is the single executable
+allowlist. Each entry specifies both its independent proofs and the obligation
+kinds it may discharge. The table in FORMAT.md lists acknowledgement,
+submission, completion, failure, uncertainty, clean-check result, check result,
+cancellation, expiry, settlement, restore, archive, onboarding completion,
+intent completion and export publication. Missing kinds or missing proofs fail
+closed. Restore and archive discharge no live obligation. Acknowledging an
+occurrence cannot close its check, and completion cannot acknowledge warnings.
+`test_resolution_table_fails_closed_for_every_missing_proof` removes every
+required proof from every entry, and tests an unknown resolution kind.
+
+| Review finding | Change | Direct test (in `control/tests/test_owner_state_oracle.py`) |
+| --- | --- | --- |
+| 1: initial payload narrows completion | `approved` reads the scripted approval; initial payload fields are compared and completion requires all approved effects, with exact identities and recipients | `test_initial_payload_and_completion_require_every_approved_target`: two approved targets, one payload target and one EXPUNGE |
+| 2: unsupported transitions erase work | A total operation state machine gates transitions through the resolution allowlist; retained obligation kinds protect pending work, recovery and holds | `test_unallowlisted_state_edges_retain_reservation_and_recovery`: fault-free `reserved → refused` with `notice=False`, and `unknown → reserved`; `test_rollback_to_existing_reserved_row_does_not_erase_unknown_recovery` |
+| 3: restore disables missing-history checks | Every restore explains only its bounded preceding interval; later missing sequences remain errors in decoder and model | `test_restore_cannot_explain_a_later_missing_sequence`; `test_decoder_restore_at_one_rejects_missing_later_intent` uses real SQLite and hash-valid independent commits `{1,2,3}`, a restore at 1, and missing intent sequence 2 |
+| 4: incomplete account disappears | Account recovery is a retained obligation until allowlisted onboarding completion; row deletion and restore cannot release it | `test_incomplete_account_survives_rollback_restore_and_explicit_removal`; positive `test_onboarding_resolution_releases_only_corroborated_completion` |
+| 5: filing hash justifies its own disclosure | Locations use exact source hashes captured before the originating command, rather than `records[*].sha256`; recorded hashes/destinations are compared | `test_false_filing_hash_cannot_justify_false_locations`: false hash still yields independently correct locations and a lifecycle difference |
+
+**Read — updated complete field audit:** this table supersedes the round-2
+validation column; its earlier tests remain in place. All public fields below
+are actual values being compared, never independent authority.
+
+| Production value / presence read | Reader | Independent derivation or comparison; tests |
+| --- | --- | --- |
+| Independent fence `format/seq/previous/hash`, commit markers, full event `record/time`, compact operation `id/generation/input_hash/state` | `records.decode/consistency_errors` | Hash-chain/commit equality, full/compact equality, exact sequence coverage and event order; decoder corruption, format, field and later-missing-intent tests |
+| Working head, prepared/committed/unprepared sequences, generation, restore marker and `locked` | Decoder; `lifecycle`; `request_state/permitted_status`; comparison | Head and independent fences derive the lock; restore intervals end before their marker and require scripted confirmation; no marker explains a later omission. Record consistency and perturbation boolean/sequence/restore mutations |
+| Event row presence, null tombstones, archived history and archive manifests/path/hash | Decoder; lifecycle replay; retained obligations | Qualified archive bytes and recursive events; every pre-command decoded observation is compared to its historical replay. Removal needs allowlisted intent/export/ack resolution; archive cannot discharge live work. Removal, archive, restore and systematic row-drop tests |
+| Frozen initial fixture events and subsequent event order | `Driver` seed; lifecycle | Starting history is explicit input, frozen before the faulted call; modified seed events fail. Post-seed events need script/server/fault evidence. Systematic historical-version and sequence mutations |
+| Operation `id/app/action`, approval, initial and later payload fields, expiry, repair parent | `approved/payload_claims/transition`; context/local validators | Opaque identity binds the script; full effects come from the scripted approval. Payload account, items, mode, folder, reference, target, method, recipients, sender, attachments and repair stage are compared. Initial target-omission, wrong app/action, UID/destination/flags and repair-binding tests |
+| Operation `state/reason`, `notice/ack`, expiry/cancellation removal | Total transition gate; operation notices; retained obligations | Table-authorized state edges only. Faults/replies justify failure; script clock or cancellation creates a notice obligation independent of `notice`; exact committed acknowledgement releases it. Round-2 expiry tests and round-3 transition/rollback tests |
+| Operation stage fields (`message_id`, wire hashes, SMTP/recipient result, Sent/answered stage, target hashes, DELETE probe/folder, POST status) | `stage_claims/completion_errors/probe_outcome` | Exact raw command identities, bytes, recipients, delivered replies, faults after the command and before observed commit, and full scripted effect plan. False stage/probe/cleanup and incomplete completion tests |
+| Sent `sent_copy_check.state/clean/count`; warning checks `warning/fingerprint/occurrence_id`; check presence | `expected/lifecycle/warning/result_proof/clean_proof` | Raw Sent evidence selects warnings; only a correlated committed result closes a check; only a clean raw result advances an epoch. Unsupported reopen/result/state changes are differences. Acknowledgement/clean/recurrence and systematic flag/state tests |
+| Filing/rename `id/app/account/source/sources/target/verb`, records' sources/hashes/destinations, message count, roles/delimiters | `filing_claims/locations`; context validators | Scripted arguments select sources/target/account/verb; exact pre-command identities/byte hashes and COPYUID replies determine locations and known destinations; LIST determines role risk. Production values are compared. Coherent wrong-destination, false-hash and perturbation effect tests |
+| Filing/rename `state/check_open`, warnings and removed rows | Lifecycle; open-check/occurrence registries | Raw role/location evidence plus a matching result commit discharge a check, independently of occurrence acknowledgement. Unsupported reopen/start/state changes fail. Incomplete scans, legacy checks, acknowledgement and systematic state/boolean/removal tests |
+| Notice `id/source_key/check_kind/evidence_fingerprint/created_at/ack`, content and row presence | Lifecycle; semantic occurrence binding; comparison ordering | Independently detected evidence selects the occurrence; row supplies an opaque handle only. Binding, identity, immutable context, time bounds and scripted acknowledgement are checked; deletion never deletes the occurrence. Spontaneous ack, changing metadata, late binding and perturbation tests |
+| Incomplete account `id/onboarded/ready`, presence or removal | Lifecycle; account obligation kind | Scripted account identity, onboarding commit and delivered probe corroboration; completion cannot be reversed or suppressed by a flag. Incomplete-account restore/deletion and positive-completion tests |
+| Qualification `ready/sent_policy/safe_folder_delete/folder_delete_reason` and probe operation outcome | `qualification/probe_qualification/probe_outcome` | Readiness, Sent caveat and DELETE qualification come from raw correlated probes, replies and fault/commit intervals; committed state is compared before deriving the result. Settings changes require scripted committed settings. All qualification reason mutations remain |
+| Generic intent `id/app/action/state/context`, presence/removal | Lifecycle; context/local validators; intent resolution gate | Current script/command identity and exact context; completion needs an ordered effect/reply, acknowledgement needs its exact scripted identity. Historical removal comparison and systematic row tests cover absence |
+| Account settings and protected-role fields (`format/signature/sent_policy/ready`, roots/delimiters, historical/current role union) | `local.errors/protected_roots` | Prior decoded context, exact script arguments and independent same-call LIST evidence; unchanged survivors compare exactly. Local settings/role-review and perturbation tests |
+| Test-app item IDs, epoch/revision and item fields; receiver configuration | `local.errors`; command/context and completion checks | Prior submitting operation and exact scripted target set; only approved items may disappear, all approved targets must be gone for completion, and survivors stay unchanged. Receiver commands compare raw arguments. Existing local-delete/configuration tests |
+| Export source hash/size/path/app, export row presence, publication/release and holds | Driver; export/intent gates; `holds` | Fixture bytes supply hash/size; matching scripted saved identity, committed publication or correlated refusal releases recovery/hold; caller bytes and reported publication compare separately. Export repeatability/rollback and systematic hold tests |
+| Audit `seq/time/action/outcome/operation_id/summary/untrusted_content`, historical filing references | `compare.audit_fact` | Full documented public projection of decoded commits is compared; every field used to resolve obligations is separately validated above. Untrusted marking and literal caller paths remain exact. Existing audit/path mutations |
+| Reply `ok/error.code`, missing `data` or `pending`, original action/error/continuation envelope presence | Response driver; status/envelope/page comparison | Scripted request selects required envelope; faults/admission/transaction/restore/transport evidence select permitted status even for an empty view. No returned refusal authorizes itself. Existing missing-envelope/healthy-refusal tests |
+| Public pending IDs/state/reason, notice IDs/app/state/context/count/roles/recovery/check flags; pages/totals/cursors/restart/continuation and qualification disclosures | `compare` actual-only transforms and validated projection | Equality with retained independent facts on every surface/head/page; grouping uses the validated projection, including scripted acknowledgements and corrected app scope. Bound traversal/duplicates/counts/handles are compared separately. Existing per-view/page/handle/context tests and focused contracts |
+
+**Read — systematic test:** `test_owner_state_perturb` records the full focused
+contract set, all six named review-20/21/22 regressions, and sweep samples in
+every mode. `perturb.mutations` enumerates every boolean/state/effect field and
+every row/version/sequence, with both projection-only changes and coherent
+history/projection changes. Restore markers are inserted before each sequence.
+`perturb.check` compares the complete owner set, holds and qualification, and
+requires a *new* difference for a changed set; a pre-existing production gap is
+not sufficient. The deliberate broken-oracle test proves the assertion fires
+and names its scenario and field. Executed counts and Linux evidence follow
+when verification is complete.
+
+**Read — additional class closures found by the systematic test:** an unsupported
+Sent-check reopen, a finished filing changed to `started`, omission of an
+observed historical intent, and a warning flag selecting a clean epoch now have
+independent validation or derivation. Clean epochs use the latest correlated
+raw result and a matching result commit (including the documented Sent-copy
+stage), once per read/result pair. They are independent of warning/clean flags;
+acknowledgement and unrelated commits cannot certify a clean result. The
+approval comparator additionally covers body, subject, format, signature, reply
+chain, generated parts, composition identity/hash, expiry and the recorded
+approval/input hash. Unsubscribe compares both its outer source/target and its
+inner mail composition. No production flag supplies its own justification.
+
+**Read — fixture precision:** legacy/interrupted rows inserted after construction
+are explicit `fixture_input` script arguments captured before their write. They
+are compared to the corresponding commit; an arbitrary production event called
+`fixture` is not an input. The existing positive recovery-handle test now states
+its acknowledgement commit interval, and the positive archive test supplies its
+script and qualified manifest. Their assertions are unchanged. These stricter
+fixtures preserve the existing test purposes; no test was skipped or weakened.
+
+**Read — local environment:** local commands use the existing worktree venv and
+`.work/run-owner-tests.py`, whose only environment accommodation reads this
+repo's managed-policy templates instead of Linux installed paths. Diagnostic
+focused comparisons record the new full deltas under `.work/`; their old-pin
+mismatch is not strict green verification. Installed-policy and container
+verification comes from the Linux workflows below. No system software or
+Gradle daemon was started.
+
+**Run — local finished-source checks:** 101 oracle self-tests passed (`Ran 101
+tests in 0.251s`, `OK`). The focused/regression/real-driver/perturbation pass ran
+10 tests in 124.444s and printed `OK`. Generator printed `Generated artifacts
+match definitions`; `git diff --check` was silent. The first-boundary diagnostic
+also executed all 32 flows in single/persistent modes and live/crash phases,
+printing each flow and `Diagnostic assertions 927`; it is diagnostic coverage,
+not a replacement for the full Linux sweep or strict ledger checks.
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control .work/venv/bin/python -m unittest discover -s control/tests -p test_owner_state_oracle.py
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/mail_tests .work/venv/bin/python .work/19b-round3/focused_capture.py test_owner_state_contracts test_owner_state_regressions test_owner_state_sweep.OwnerStateSweep.test_export_repeated_fault_uses_same_caller_path_and_exact_delta test_owner_state_sweep.OwnerStateSweep.test_last_status_committed_lie_is_in_same_comparisons_proof test_owner_state_perturb.SystematicPerturbations
+python3 control/generate.py --check
+git diff --check
+```
+
+**Run — systematic result:** **66 recorded scenarios, 70,953 perturbations,
+`slipped=0`**. The corpus contains all 52 focused contract states, seven recorded
+states from all six named review regressions, and seven sweep snapshots (clean
+send and repair, single fault, persistent exhaustion plus restored space,
+crash/restart, and an actually reached cleanup pair). Frozen scripts/logs do not
+acquire later scenario calls while the corpus is collected. Each check starts
+with its own oracle copy; existing baseline defects cannot mask a new silent
+change. The test reports the scenario and field on failure.
+
+| Perturbation kind | Executed |
+| --- | ---: |
+| Every boolean, including decoded lock | 5,126 |
+| Every state to all other states | 40,320 |
+| Targets, recipients, flags, hashes, destinations and identities | 21,271 |
+| Row / historical-version removal | 1,704 |
+| Dropped committed sequence | 1,266 |
+| Restore marker before each sequence | 1,266 |
+| Total | 70,953 |
+
+**Read — finishing repair audit:** a repair reservation gets its parent and full
+stage arguments from the correlated scripted repair call, including its hold
+and submission transition. Frozen corpus copies bind that authority by call
+identity, not Python object identity. The direct positive/negative test is
+`test_scripted_repair_keeps_its_parent_stage_and_settlement_hold`. Account and
+missing-history gaps now name M12/C05/M14 and M06/M09/M14 respectively; all
+assertion keys and deltas remain exact.
