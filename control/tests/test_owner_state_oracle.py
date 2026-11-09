@@ -643,6 +643,50 @@ class OwnerOracle(unittest.TestCase):
         record.events[1]['set']['mail:account:box']['protected_special'] = {}
         self.assertTrue(oracle.local_context_errors(record))
 
+    def status_response(self):
+        operation = {'id': 'g:d', 'generation': 'g', 'app': 'testapp', 'action': 'testapp_send',
+                     'approval': {}, 'state': 'submitting', 'expires': 1, 'stages': {}, 'reason': 'Submitting'}
+        return {'ok': True, 'data': {'operation': operation, 'evidence': {}},
+                'pending': {'items': [], 'total': 0, 'cursor': None}}
+
+    def test_schema_failure_is_exact_and_an_unexpected_repair_fails(self):
+        import response_checks
+        from owner_state_oracle.responses import read_response
+        from owner_state_oracle.gaps import Gaps
+        request = {'method': 'call', 'action': 'testapp_operation_status'}
+        invalid = self.status_response()
+        invalid['data'].pop('evidence')
+        invalid['data']['evidence_error'] = {'code': 'storage_limit', 'message': 'Synthetic'}
+        reply, failures = read_response(lambda: response_checks.validate_response(request, invalid))
+        self.assertEqual(reply, invalid)
+        details = [json.loads(value) for value in failures]
+        self.assertEqual({value['rule'] for value in details}, {'required', 'additionalProperties'})
+        self.assertEqual(next(value['missing'] for value in details if value['rule'] == 'required'), ['evidence'])
+        self.assertEqual(next(value['extra'] for value in details if value['rule'] == 'additionalProperties'), ['evidence_error'])
+        recorded = Gaps(recording=True)
+        check = recorded.checker('schema-case')
+        check('schema', set(), {Fact('response', 'schema', detail=value) for value in failures})
+        check.finish()
+        strict = Gaps(recording=True)
+        strict.entries, strict.recording = recorded.entries, False
+        _, repaired = read_response(lambda: response_checks.validate_response(request, self.status_response()))
+        check = strict.checker('schema-case')
+        check('schema', set(), {Fact('response', 'schema', detail=value) for value in repaired})
+        with self.assertRaisesRegex(AssertionError, 'Unexpected pass'):
+            check.finish()
+
+    def test_response_capture_does_not_swallow_unrelated_validation_errors(self):
+        from jsonschema import ValidationError
+        import response_checks
+        from owner_state_oracle.responses import read_response
+        error = ValidationError('Unrelated failure after a valid nested reply')
+        def unrelated():
+            response_checks.validate_response({'method': 'call', 'action': 'testapp_operation_status'}, self.status_response())
+            raise error
+        with self.assertRaises(ValidationError) as raised:
+            read_response(unrelated)
+        self.assertIs(raised.exception, error)
+
     def test_special_rename_role_cannot_supply_clean_proof(self):
         oracle = Oracle()
         source, evidence = 'mail:rename:r', {'target': 'Target', 'role': '\\All'}

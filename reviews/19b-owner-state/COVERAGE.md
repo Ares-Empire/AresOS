@@ -57,7 +57,7 @@ The shared expectation code is `control/owner_state_oracle/{records,context,loca
 | M09 restore | `restore` flow; pre-confirm crash-locked comparisons; `restore-before/after-False/True` retain independently witnessed warnings/acks through an older SQLite backup. |
 | M11 publication/rollback/manifests | Export/rollback/archive flows; caller bytes/hash/report comparison, committed export holds, hash-valid archive decoder before accepting pruned events. |
 | M12/C05 qualification | Full onboarding flow and `qualification-probes`, `qualification-protected-roles`, account refresh and incomplete-setup disclosures. |
-| M14 channels and paging | Each page's identities, totals, duplicate detection and advertised continuations; `test_owner_state_channels` uses the installed socket, CLI, actual MCP process and both hooks. The envelope's own pending cursor is tested separately. |
+| M14 channels and paging | Each page's identities, totals, duplicate detection and advertised continuations; `test_owner_state_channels` uses the installed socket, CLI, actual MCP process and both hooks. The envelope's own pending cursor is tested separately. Every read also retains exact advertised-schema failures as separate strict assertions; a focused testapp status storage-error case verifies the failure and restored response. |
 | Reviews 20/21/22 | Named regressions in `test_owner_state_regressions`; independent `review20-refused-reopen-archive`, review-21 focused cases and three `G22-*` ledger assertions. |
 | Quiet normal use | Clean send, move, copy, ordinary rename and both delete modes; these fixtures do not create delayed duplicate Sent copies or role races. |
 

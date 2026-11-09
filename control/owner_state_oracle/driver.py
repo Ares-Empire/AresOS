@@ -10,6 +10,7 @@ from .records import decode, canonical
 from .model import Fact, Oracle
 from .context import MUTATIONS
 from .compare import compare_views, pages
+from .responses import read_response
 from storage_faults import outside_faults
 
 
@@ -262,8 +263,10 @@ class Driver:
             before = self.snapshot()
             known_events = {event['seq'] for event in [*before.events, *before.prepared]}
             with self.observe_view(action, args):
-                reply = f.engine.request({'v': 1, 'method': 'call', 'action': action, 'arguments': args})
+                reply, schema_errors = read_response(lambda: f.engine.request({'v': 1, 'method': 'call', 'action': action, 'arguments': args}))
             self.reply(reply)
+            checker('response-schema.' + action, set(),
+                {Fact('response:' + action, 'schema', detail=error) for error in schema_errors})
             assert not any(event['command'] in MUTATIONS for event in self.oracle.servers[boundary:]), ('Read attempted a mutation', action)
             after = self.snapshot()
             assert not any(event['seq'] not in known_events and event['action'] in {'testapp_delete', 'mail_account_settings', 'mail_account_folders'}

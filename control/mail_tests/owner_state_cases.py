@@ -436,3 +436,21 @@ def run(gaps):
         compare(s, d, 'mixed-app-restart')
     finally:
         s.close()
+
+    s = OwnerScenario('testapp_send')
+    gaps.aliases = {}
+    try:
+        f, d = s.fixture, Driver(s)
+        with d.observe():
+            result = s.call()
+        d.reply(result)
+        assert result['ok'] and result['data']['operation']['state'] == 'done', result
+        assert any(event['command'] == 'RECEIVE' and event['accepted'] for event in d.oracle.servers)
+        with patch.object(f.engine.receiver, 'evidence', side_effect=OSError(errno.ENOSPC, 'Synthetic evidence storage failure')):
+            compare(s, d, 'testapp-status-schema-storage')
+        assert any(call['action'] == 'testapp_operation_status' and
+            call.get('result', {}).get('data', {}).get('evidence_error', {}).get('code') == 'storage_limit'
+            for call in d.oracle.script)
+        compare(s, d, 'testapp-status-schema-restored')
+    finally:
+        s.close()
