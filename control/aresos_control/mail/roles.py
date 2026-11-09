@@ -51,9 +51,9 @@ def check_optional(account, current, names=(), needed=()):
             raise Refused('special_folders_changed', role.title() + ' role is duplicated, unselectable or changed since setup; this action touches an affected folder. The owner must fix the role in his mail server\'s settings, then run the setup step. ' + SETUP)
 
 
-def resolve(listed):
+def resolve(listed, allow_incomplete=False):
     special = {'inbox': 'INBOX'}
-    roots = {}
+    roots, unresolved = {}, []
     optional = optional_roles(listed)
     for flag, role in ROLES.items():
         if role in OPTIONAL:
@@ -62,14 +62,26 @@ def resolve(listed):
             continue
         matches = [f for f in listed if flag.casefold() in {v.casefold() for v in f['flags']}]
         if len(matches) != 1 or any(v.casefold() == '\\noselect' for v in matches[0]['flags']):
+            if allow_incomplete:
+                special[role] = None
+                unresolved.append(role)
+                continue
             raise Refused('special_folders_changed', 'SPECIAL-USE roles are missing, ambiguous or unselectable. Configure the server roles first. ' + SETUP)
         special[role] = matches[0]['name']
         roots[role] = {'folder': matches[0]['name'], 'delimiter': matches[0]['delimiter']}
     inbox = [f for f in listed if f['name'].casefold() == 'inbox']
     if len(inbox) != 1 or any(v.casefold() == '\\noselect' for v in inbox[0]['flags']):
-        raise Refused('special_folders_changed', 'INBOX is missing or ambiguous. ' + SETUP)
-    roots['inbox'] = {'folder': inbox[0]['name'], 'delimiter': inbox[0]['delimiter']}
+        if not allow_incomplete:
+            raise Refused('special_folders_changed', 'INBOX is missing or ambiguous. ' + SETUP)
+        special['inbox'] = None
+        unresolved.append('inbox')
+    else:
+        roots['inbox'] = {'folder': inbox[0]['name'], 'delimiter': inbox[0]['delimiter']}
     for role in OPTIONAL:
         if special[role]:
             roots[role] = {k: optional[role][0][k] for k in ('folder', 'delimiter')}
-    return {'special': special, 'roots': roots, 'optional': optional, 'delimiter': inbox[0]['delimiter']}
+    result = {'special': special, 'roots': roots, 'optional': optional,
+              'delimiter': roots.get('inbox', {}).get('delimiter')}
+    if allow_incomplete:
+        result['unresolved_roles'] = unresolved
+    return result

@@ -158,13 +158,14 @@ def resolve_checks(mail):
             account = mail.account(intent['account'], ready=False)
             with mail.transport.imap(account) as client:
                 listed = folders(client)
-            current = resolve(listed)
+            current = resolve(listed, allow_incomplete=True)
+            unresolved = current.pop('unresolved_roles')
+            incomplete = False
             if prefix == 'mail:filing:':
                 if 'roles_before' not in intent or 'records' not in intent:
                     continue
                 observed = locations(mail, account, intent['records'])
-                if any(not item['scan_complete'] for item in observed):
-                    continue
+                incomplete = any(not item['scan_complete'] for item in observed)
                 intent.update(locations=observed, roles_after=listed,
                               observed_role=folder_role(intent['target'], listed))
                 intent['reason'] = warning(intent['verb'], listed, observed, current != intent['roles_before'])
@@ -184,10 +185,19 @@ def resolve_checks(mail):
                     'folders': [short_name(intent['source']), short_name(intent['target'])],
                     'folders_more': 0, 'folders_more_text': ''}
                 changes = {}
+            if unresolved:
+                content['unresolved_roles'] = unresolved
+                content['reason'] += ' Roles not yet checked: ' + ', '.join(role.title() for role in unresolved) + '. Fix the missing, ambiguous or unselectable roles in your mail program.'
+            if incomplete:
+                content['reason'] += ' Locations are not yet checked completely; the pages show the observations available so far.'
             # Fresh evidence can disclose locations/roles, but cannot prove
             # which interrupted commands completed. Keep that warning.
-            intent['state'] = 'partial'
-            intent.pop('check_open', None)
+            intent['state'] = 'started' if unresolved or incomplete else 'partial'
+            if unresolved or incomplete:
+                intent['check_open'] = True
+            else:
+                intent.pop('check_open', None)
+            intent['unresolved_roles'] = unresolved
             changes[key] = intent
             changes['notice:' + intent['id']] = {'id': intent['id'], 'app': 'mail', 'state': 'partial',
                 'ack': False, 'created_at': time.time_ns(), 'untrusted_content': content}
