@@ -16,8 +16,12 @@ def committed(state_dir, evidence_dir):
     finally:connection.close()
     rows={}
     for seq in sorted(commits):
-        if seq not in events:continue # Compact recovery may retain an operation without its full working event.
-        for key,value in events[seq]['set'].items():
+        changes=events.get(seq,{}).get('set',{})
+        # Chrome updates are independently retained even when the prepared SQLite event was lost.
+        projected=records[seq].get('chrome',{})
+        for key,value in projected.items():
+            if key in changes:assert changes[key]==value, 'Independent Chrome update disagrees with its committed full event'
+        for key,value in {**changes,**projected}.items():
             if value is None:rows.pop(key,None)
             else:rows[key]=value
     return rows
@@ -27,6 +31,8 @@ def warnings(rows):
     expected={value['id'] for key,value in rows.items() if key.startswith('notice:') and value.get('app')=='chrome' and not value.get('ack')}
     for key,value in rows.items():
         if not isinstance(value,dict) or value.get('app')!='chrome':continue
+        if key.startswith('op:') and value['state']=='failed' and value.get('notice') and not value.get('ack'):
+            expected.add(value['id'])
         if key.startswith('op:') and value['state'] in {'submitting','unknown','partial'}:
             identifier='recovery-'+value['id']
         elif key.startswith('intent:') and value.get('state') in {'started','unknown'}:

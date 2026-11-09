@@ -576,6 +576,15 @@ class Store:
                   "previous": self.head_hash, "time": time.time(),
                   "generation": changes.get("generation", self.generation),
                   "operations": compact}
+        chrome = {}
+        for key,value in changes.items():
+            if key.startswith(('chrome:','intent:chrome:')):
+                chrome[key]=copy.deepcopy(value)
+            elif key.startswith(('op:','notice:')):
+                previous=self.get(key) if value is None else value
+                if isinstance(previous,dict) and previous.get('app')=='chrome':
+                    chrome[key]=copy.deepcopy(value)
+        record['chrome']=chrome
         record["hash"] = digest(record)
         if restoring and len(canonical(record).encode()) > RESTORE_BATCH_BYTES:
             raise Refused('storage_limit', 'One restore evidence record exceeds the bounded confirmation batch; ask the owner to inspect it.')

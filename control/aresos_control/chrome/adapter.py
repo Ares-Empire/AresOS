@@ -13,6 +13,7 @@ from ..definitions import BY_NAME
 from ..paging import fragment_window, ordered_page
 from ..warnings import check_result
 from .bridge import Bridge
+from .committed import Projection
 from .exclusions import owner_hosts
 from .policy import allowed_url, classify, HOSTS, hostname
 from .qualification import Qualification, switches
@@ -45,6 +46,7 @@ class Chrome:
     def __init__(self, engine, build=None, record=None):
         self.engine, self.store, self.blobs = engine, engine.store, engine.blobs
         self.process_session = uuid.uuid4().hex
+        self.committed = Projection(self.store)
         self.bridge = Bridge()
         self.bridge.on_event = self.event
         self.trusted_context = False
@@ -109,20 +111,71 @@ class Chrome:
         self._refresh_attempted = identity
         self.qualification.refresh(force=force)
 
-    def pending_state(self, operation):
+    def pending_state(self, operation, projection=False):
         payload = operation.get('payload', {})
         state = payload.get('binding', {})
         try:
+            if projection:self.committed.sync()
+            if operation.get('generation')!=(self.committed.generation if projection else self.store.generation):
+                raise Refused('stale_approval','Restore invalidated this earlier-generation preparation; drop and prepare again.')
+            if operation.get('expires',0)<=time.time():
+                raise Refused('stale_approval','The approval deadline passed; nothing can run from this preparation.')
             if payload.get('process_session') != self.process_session or state.get('session') != self.bridge.session:
                 raise Refused('stale_approval', 'Browser or service session changed; drop this preparation and prepare again.')
-            self.mode(acting=True)
-            self.check_readonly(payload)
+            if projection:
+                self.read_owner_hosts()
+                mode=switches(self.committed.get('chrome:qualification',self.qualification.shipped),self.qualification.build,self.bridge.version)
+                if not all(mode['core'].values()):raise Refused('qualification_failed','Chrome core qualification currently refuses this operation.')
+                self.check_readonly(payload,self.committed.get)
+            else:
+                self.mode(acting=True)
+                self.check_readonly(payload)
             live = self.bridge.call('validity', reference=payload['reference'])
-            if live.get('document') != state.get('document') or live.get('control') != state.get('control'):
+            if live.get('document') != state.get('document') or live.get('control') != state.get('control') or live.get('element_present') is not True:
                 raise Refused('stale_approval', 'Tab control or document changed; drop and prepare again.')
             return {'validity':'current'}
         except Refused as exc:
             return {'validity':'refused', 'reason':str(exc), 'refusal_code':exc.code}
+
+    def notice_rows(self):
+        self.committed.sync()
+        for key,notice,created in self.committed.rows('notice:'):
+            if not notice.get('ack'):
+                yield (created,notice['id']),notice
+        for key,source,created in self.committed.rows('intent:chrome:',{'started','unknown'}):
+            existing=self.committed.get('notice:'+source['id'])
+            if existing and not existing.get('ack'):continue
+            identifier=('check-'+digest(key)[:32]) if existing else source['id']
+            yield (created,identifier),{'id':identifier,'app':'chrome','state':'unknown','ack':False,'check_only':True,
+                'untrusted_content':{'reason':'A page-step check has no committed result; inspect the page before repeating.','intent_key':key,'check_open':True}}
+        for key,operation,created in self.committed.rows('op:',{'submitting','unknown','partial','failed'}):
+            if operation['state']=='failed':
+                if operation.get('notice') and not operation.get('ack'):
+                    yield (created,operation['id']),{'id':operation['id'],'app':'chrome','state':'failed','ack':False,'untrusted_content':{'reason':operation['reason']}}
+                continue
+            identifier='recovery-'+operation['id']
+            if self.committed.get('notice:'+identifier) is not None:continue
+            yield (created,identifier),{'id':identifier,'app':'chrome','state':'unknown','ack':False,
+                'untrusted_content':{'reason':'Chrome input has an unfinished committed outcome; it may have run. Never replay it.','operation_id':operation['id']}}
+        if self.committed.legacy:
+            identifier='chrome-legacy-owner-state'
+            yield (0,identifier),{'id':identifier,'app':'chrome','state':'unknown','ack':False,'check_only':True,
+                'untrusted_content':{'reason':'Older Chrome history lacks committed check and acknowledgement metadata. Its owner state is not fully checked; inspect the original log before relying on an empty list.'}}
+
+    def notice_page(self,args=None):
+        from ..mail.filing import public_notice
+        page=ordered_page(self.notice_rows,args,['chrome','committed_notices'],3,newest=True)
+        page['items']=[public_notice(self.store,notice) for notice in page['items']]
+        return page
+
+    def pending_projection(self,args=None):
+        def rows():
+            for _,operation,created in self.committed.rows('op:',{'reserved','submitting','unknown','partial','failed'}):
+                if operation['state']=='failed' and not (operation.get('notice') and not operation.get('ack')):continue
+                row={'operation_id':operation['id'],'app':'chrome','state':operation['state'],'reason':operation['reason']}
+                if operation['state']=='reserved':row.update(self.pending_state(operation,projection=True))
+                yield (created,operation['id']),row
+        return ordered_page(rows,args,['chrome','committed_pending'])
 
     def allowed_url(self, address):
         return allowed_url(address, self.read_owner_hosts())
@@ -254,12 +307,13 @@ class Chrome:
             raise Refused('stale_approval', 'Chrome session changed; read and prepare again.')
         self.check_readonly(operation['payload'])
 
-    def check_readonly(self, payload):
+    def check_readonly(self, payload, get=None):
+        get = get or self.store.get
         state = payload['binding']
         addresses = [state['url'], state.get('frame_url') or state.get('dialog', {}).get('frame_url', state['url'])]
         for address in addresses:
             self.allowed_url(address)
-        readonly = any(self.store.get('chrome:readonly:' + hostname(address), False) for address in addresses)
+        readonly = any(get('chrome:readonly:' + hostname(address), False) for address in addresses)
         if readonly:
             if payload.get('native_dialog') or payload.get('resume_kind'):
                 raise Refused('readonly_site', 'This site is now read-only; the prepared action was refused before dispatch.')
@@ -395,6 +449,15 @@ class Chrome:
             self.store.write({key:source},'chrome_page_step','Page step check open',outcome='started')
             facts = self.bridge.call('read',tab=tab)
             frame = next(item for item in facts['frames'] if item['frame'] == step['frame'])
+            if not step.get('document') or frame['document']!=step['document']:
+                source.update(state='done',reason='The stopped step document changed; no resumption is possible.')
+                changes={}
+                if step['kind']=='activation_unknown':
+                    text='An activation in the previous document may have happened. Never resume it; inspect the page with the owner.'
+                    changes,_=check_result(self.store,source,key,'page_activation',step,{'reason':text,'warning':text})
+                self.store.write({key:source,**changes},'chrome_page_step','Stale page step result committed without dispatch')
+                followups.append({'dropped':True,'reason':source['reason']})
+                continue
             reference = {'session':facts['session'],'tab':tab,'frame':frame['frame'],'document':frame['document'],
                          'view':view_identity(facts),'element':step.get('submitter') or step['element']}
             if step['kind'] in {'native_submit','submit_event'}:
@@ -469,8 +532,7 @@ class Chrome:
             finally:
                 self.trusted_context=False
         if verb == 'notices':
-            from ..mail.filing import notice_page
-            return notice_page(self.store,args,app='chrome')
+            return self.notice_page(args)
         if verb in {'read','read_form','find','wait'}: return self.read(verb,args)
         if verb in {'tabs','downloads','bookmarks','history'}:
             self.mode()

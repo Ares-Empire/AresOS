@@ -55,7 +55,11 @@ class Engine:
         self.store.close()
 
     def operation(self, op_id, app=None):
-        op = self.store.get("op:" + op_id)
+        try:
+            op = self.store.get("op:" + op_id)
+        except (OSError,sqlite3.Error):
+            op=self.adapters['chrome'].committed.get('op:'+op_id)
+            if op is None:raise
         if op is None or (app and op["app"] != app):
             raise Refused("stale_reference", "Operation not found for this app; list pending or ask the owner to check the independent record.")
         return op
@@ -63,7 +67,9 @@ class Engine:
     def notices(self, app=None, resolve_checks=True):
         from .mail.filing import notice_page
         mail = self.adapters['mail']
-        page = notice_page(self.store, app=app, checks=mail.resolve_sent_checks() if resolve_checks else mail.unresolved_sent_checks())
+        chrome=self.adapters['chrome']
+        page = notice_page(self.store, app=app, checks=mail.resolve_sent_checks() if resolve_checks else mail.unresolved_sent_checks(),
+            extras=chrome.notice_rows if app in {None,'chrome'} else None,exclude_apps={'chrome'})
         if not page['items']:
             return {}
         result = {'notices': page['items']}
@@ -102,6 +108,23 @@ class Engine:
                 total = len(notices) + result.get('notices_more', {}).get('count', 0)
                 if total > 3:
                     result['notices_more'] = {'count': total - 3, 'action': 'mail_filing_notices'}
+            chrome=self.adapters['chrome']
+            result['items']=[item for item in result.get('items',[]) if item.get('app')!='chrome']
+            result['notices']=[item for item in result.get('notices',[]) if item.get('app')!='chrome']
+            try:
+                if app in {None,'chrome'}:
+                    current=chrome.pending_projection(args)
+                    result['items']=current['items'] if app=='chrome' else [*result['items'],*current['items']]
+                    result['total']=current['total'] if app=='chrome' else max(len(result['items']),current['total'])
+                    result['cursor']=current['cursor']
+                current_notices=chrome.notice_page()
+                result['notices']+=current_notices['items']
+                if current_notices['cursor']:result['notices_more']={'count':current_notices['total']-len(current_notices['items']),'action':'chrome_notices'}
+                result['unavailable']='Some app state cannot be read from storage. Chrome warnings below are current; inspect other app state after recovery.'
+            except (Refused,OSError,sqlite3.Error,ValueError):
+                result['notices'].append({'operation_id':'chrome-owner-state-unavailable','app':'chrome','state':'unknown',
+                    'untrusted_content':{'warning':'Current Chrome owner state cannot be read. Do not assume there is no pending work; recover storage and inspect the independent record before proceeding.'}})
+                result['cursor']=None
             return result
 
     def _pending(self, app=None, args=None, resolve_checks=True):
@@ -422,7 +445,7 @@ class Engine:
         validate(args, action.input)
         if action.effect != 'read':
             self.store.ensure_writable()
-        if self.store.locked and name != "control_restore_confirm":
+        if self.store.locked and name not in {"control_restore_confirm","control_pending","chrome_notices"}:
             raise Refused("restore_required", "Older log refused; owner must confirm restore before any app access.")
         if name == "control_restore_confirm":
             from .definitions import RESTORE_WARNING

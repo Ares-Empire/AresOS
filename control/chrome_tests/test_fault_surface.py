@@ -36,10 +36,10 @@ class Writers(fixture.Operations):
                 with patch('urllib.request.urlopen',return_value=io.BytesIO(candidate)):
                     return self.chrome.qualification.refresh(now=1000000000,verifier=lambda _:None)
         elif flow in {'activation','stopped'}:
-            step={'id':'h1','kind':'activation' if flow=='activation' else 'native_submit','element':'e1','submitter':None,'frame':0,'cancellable':True}
+            step={'id':'h1','kind':'activation' if flow=='activation' else 'native_submit','element':'e1','submitter':None,'frame':0,'document':'document-1','cancellable':True}
             run=lambda:self.chrome.steps([step],1)
         elif flow=='acknowledgement':
-            self.chrome.steps([{'id':'h1','kind':'activation','element':'e1','submitter':None,'frame':0,'cancellable':True}],1)
+            self.chrome.steps([{'id':'h1','kind':'activation','element':'e1','submitter':None,'frame':0,'document':'document-1','cancellable':True}],1)
             notice=next(value for _,value in self.engine.store.iter_items('notice:') if value['app']=='chrome')
             run=lambda:self.call('notice_ack',{'operation_id':notice['id']})
         elif flow=='release':

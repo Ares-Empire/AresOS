@@ -27,7 +27,7 @@ class Browser:
              'target':target,'rows':[target],'form':None,'editable':[{'element':'e2','label':'Body','value':'Existing draft'}],'item':'Fixture item',
              'adapter':{'account':None}}],'dialog':None}
     def call(self,name,**args):
-        if name=='validity':return {'document':self.facts['frames'][0]['document'],'control':self.facts.get('control')}
+        if name=='validity':return {'document':self.facts['frames'][0]['document'],'control':self.facts.get('control'),'element_present':True}
         if name=='configure': return {'configured':True}
         if name in {'facts','read'}: return copy.deepcopy(self.facts)
         if name=='tab_context':return {'tab':args['tab'],'url':self.facts['url'],'session':self.session}
@@ -100,6 +100,17 @@ class Operations(unittest.TestCase):
             return original(name,**args)
         self.browser.call=checked
         result=self.call('click',self.target());self.assertTrue(result['ok'],result);self.assertEqual(len(self.browser.dispatched),1)
+
+    def test_warning_occurrences_bind_source_document_and_do_not_inherit_old_acknowledgement(self):
+        step={'id':'h1','kind':'activation','element':'e1','submitter':None,'frame':0,'document':'document-1','cancellable':True}
+        self.chrome.steps([step],1)
+        notices=self.call('notices')['data']['items'];self.assertEqual(len(notices),1)
+        self.call('notice_ack',{'operation_id':notices[0]['operation_id']})
+        self.chrome.steps([step],1);self.assertEqual(self.call('notices')['data']['total'],0)
+        self.browser.facts['frames'][0]['document']='document-2';step['document']='document-2'
+        self.chrome.steps([step],1);second=self.call('notices')['data'];self.assertEqual(second['total'],1)
+        self.assertNotEqual(second['items'][0]['operation_id'],notices[0]['operation_id'])
+        self.chrome.steps([step],1);self.assertEqual(self.call('notices')['data']['total'],1)
 
     def test_r2_created_tab_identity_commits_before_navigation(self):
         original=self.browser.call
