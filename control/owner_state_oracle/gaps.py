@@ -48,6 +48,14 @@ def pack(entries):
     for key, detail in sorted(entries.items()):
         identity = [key.split('/')[0], owner(key), detail['row'], detail['stage']]
         group_id = json.dumps(identity, separators=(',', ':'))
+        delta = detail['delta']
+        assert detail['stage'] in (2, 3) and detail['row'] and delta['calls'] > 0 and delta['failures'], ('Malformed known gap', group_id, key)
+        seen_pages = set()
+        for failure in delta['failures']:
+            assert failure['missing'] or failure['extra'], ('Empty gap delta', group_id, key)
+            for page in failure['pages']:
+                assert page in range(delta['calls']) and page not in seen_pages, ('Invalid gap page', group_id, key, page)
+                seen_pages.add(page)
         group = groups.setdefault(group_id, {'id': group_id, 'suite': identity[0], 'owner': identity[1],
             'row': detail['row'], 'stage': detail['stage'], 'keys': []})
         group['keys'].append([key, detail])

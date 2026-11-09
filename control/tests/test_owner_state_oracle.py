@@ -1076,3 +1076,19 @@ class StageOneFixMutations(unittest.TestCase):
         event = oracle.server('DATA', 'box', identities=context['identities'], roles={}, sender='owner@mail.invalid', recipients=['peer@mail.invalid'], raw_sha256='wire',
             committed_before={'op:g:one': {'id': 'g:one', 'state': 'submitting', 'action': 'mail_send', 'context': context}})
         self.assertEqual(differences(event, oracle.script)[1], ['script.command.message-identity', 'script.context.message-identity'])
+
+    def test_compact_packer_preserves_full_ledger_page_validation(self):
+        from owner_state_oracle.gaps import pack
+        detail = {'row': 'M14', 'stage': 3, 'delta': {'calls': 1, 'failures': [{'pages': [0], 'missing': [['a']], 'extra': []}]}}
+        pack({'case/view': detail})
+        for mutation in ('zero-calls', 'empty-failures', 'empty-delta', 'page-outside-calls', 'repeated-page', 'bad-stage', 'empty-row'):
+            wrong = copy.deepcopy(detail)
+            if mutation == 'zero-calls': wrong['delta']['calls'] = 0
+            elif mutation == 'empty-failures': wrong['delta']['failures'] = []
+            elif mutation == 'empty-delta': wrong['delta']['failures'][0]['missing'] = []
+            elif mutation == 'page-outside-calls': wrong['delta']['failures'][0]['pages'] = [1]
+            elif mutation == 'repeated-page': wrong['delta']['failures'][0]['pages'] = [0, 0]
+            elif mutation == 'bad-stage': wrong['stage'] = 4
+            else: wrong['row'] = ''
+            with self.subTest(mutation=mutation), self.assertRaises(AssertionError):
+                pack({'case/view': wrong})
