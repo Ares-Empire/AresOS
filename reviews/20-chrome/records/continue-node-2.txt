@@ -1,0 +1,21 @@
+✔ owner exclusions are mandatory and the private audit switch needs no page access (2.867166ms)
+✔ signed CRX3 keeps key-derived identity; packaging starts no browser (98.997084ms)
+✔ group2 native submit resumes without checks or submit events (3.007125ms)
+✔ group2 event resume checks fields, handles submit once, and has one further same-form pass (0.544625ms)
+✔ group2 nested requestSubmit cannot regain either consumed allowance (0.34075ms)
+✔ group2 wrapped click and non-cancellable dispatch never deliver or resume (0.817667ms)
+✔ group2 free input in a form has no primary or further submission allowance (1.292ms)
+✔ group2 an approved change has only one same-form consequential submission (0.504916ms)
+✔ group1 GET searches stay free but a POST submitter override is held (0.636959ms)
+✔ review1 external accessible labels ask in both wrappers and capture fallback (1.753167ms)
+✔ group7 protected values never reach a getter, source attribute, trace or binding (3.452792ms)
+✔ group7 before every read, a newly protected field is excluded and stays excluded (0.707292ms)
+✔ group3 every field records checked, disabled and multiple state (0.707333ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 13
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 146.452

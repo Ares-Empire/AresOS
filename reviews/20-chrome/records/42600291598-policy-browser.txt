@@ -1,0 +1,54 @@
+dbus-daemon[81]: [session uid=1000 pid=81] Activating service name='org.a11y.Bus' requested by ':1.2' (uid=1000 pid=118 comm="/opt/google/chrome/chrome --user-data-dir=/tmp/are" label="chrome (unconfined)")
+dbus-daemon[81]: [session uid=1000 pid=81] Successfully activated service 'org.a11y.Bus'
+GROUP 1 what asks PASS: zero before approval, one after, no replay
+GROUP 2 stopped page steps PASS native
+GROUP 2 stopped page steps PASS event
+GROUP 2 wrapped non-cancellable activation PASS: no delivery and never resumed
+GROUP 7 password presence and show-password PASS
+GROUP 13 residual ordinary-click fetch OBSERVED, NOT HELD
+Preliminary core smoke cases passed; acceptance is not complete
+GROUP 8 owner input evidence {"ownerInput":"X keyboard Tab then Return, outside the tool","ownerDelayMs":109,"ownerArrivals":0,"scheduledArrivals":0,"result":{"operation_id":"fe4e9351b62f487cb01414e7dddc700e:2903cd35284f4a1083e2f645f056eaf5","untrusted_content":{"checked":true,"dispatched":true,"steps":[{"id":"h1","kind":"activation","element":"e9","submitter":null,"cancellable":true,"frame":0},{"id":"h2","kind":"native_submit","element":"e10","submitter":null,"cancellable":true,"frame":0}],"page":"Input dispatched once; inspect a fresh read for what the page shows."},"followups":[{"stopped":true,"unknown":false,"reason":"The page tried to activate an asking control by itself; it was stopped. Act on the current control to prepare fresh asking input if wanted."},{"approval":{"question":"On http://fixture.test:8765/?case=owner-input, as the page shows it, activate 'resume native_submit' to http://fixture.test:8765/receive?case=scheduled-input (post, 1 fields, 1 hidden)?","operation_id":"fe4e9351b62f487cb01414e7dddc700e:e6cbc210ffd8470ca795439076d1ae3a","description":{"action":"chrome_submit","untrusted_content":{"page_state":{"session":"66f823b5-9310-4901-92d9-b69291382951","tab":750113759,"control":"a573950b-e5fd-4618-8468-b5a3e69df1ea","url":"http://fixture.test:8765/?case=owner-input","document":"ea89bf74282476bd9a722d1c4277bf0c","frame":0,"frame_url":"http://fixture.test:8765/?case=owner-input","target":{"element":"e10","role":"form","name":"","label":"","title":"","href":null,"states":{"checked":false,"selected":false,"disabled":false,"required":false,"invalid":false,"expanded":null},"editable":false,"search":false,"submit":false},"form":{"element":"e10","action":"http://fixture.test:8765/receive?case=scheduled-input","method":"post","encoding":"application/x-www-form-urlencoded","target":"sink","search":false,"fields":[{"element":"e11","name":"source","label":"","type":"hidden","hidden":true,"checked":false,"disabled":false,"multiple":false,"readOnly":false,"value":"scheduled"}]},"editable":null,"item":null,"adapter":null,"dialog":null},"input":{"verb":"resume_submission","kind":"native_submit"},"resume_kind":"native_submit","file":null,"confirmation":null},"expires_at":1794220777.753115}},"state":"reserved"}]}}
+GROUP 8 owner input FAIL Owner submission must run normally while a Claude task is pending
+
+0 !== 1
+
+GROUP 7 page forgery evidence {"pageAction":"Public MAIN API stop with a page-invented epoch, followed by native form.submit()","arrivals":1,"result":{"operation_id":"fe4e9351b62f487cb01414e7dddc700e:aba9828efb744155a6503e523667dbcf","untrusted_content":{"checked":true,"dispatched":true,"steps":[],"page":"Input dispatched once; inspect a fresh read for what the page shows."},"followups":[]}}
+GROUP 7 page forgery FAIL A page-forged control mark must never release a Claude-caused submission without approval
+
+1 !== 0
+
+file:///workspace/control/chrome/ci/browser.mjs:90
+  if(failures.length)throw new AggregateError(failures,'Strict owner-input and page-forgery regressions failed');
+                           ^
+
+AggregateError: Strict owner-input and page-forgery regressions failed
+    at file:///workspace/control/chrome/ci/browser.mjs:90:28 {
+  [errors]: [
+    AssertionError [ERR_ASSERTION]: Owner submission must run normally while a Claude task is pending
+
+    0 !== 1
+
+        at file:///workspace/control/chrome/ci/browser.mjs:76:12 {
+      generatedMessage: false,
+      code: 'ERR_ASSERTION',
+      actual: 0,
+      expected: 1,
+      operator: 'strictEqual',
+      diff: 'simple'
+    },
+    AssertionError [ERR_ASSERTION]: A page-forged control mark must never release a Claude-caused submission without approval
+
+    1 !== 0
+
+        at file:///workspace/control/chrome/ci/browser.mjs:87:12 {
+      generatedMessage: false,
+      code: 'ERR_ASSERTION',
+      actual: 1,
+      expected: 0,
+      operator: 'strictEqual',
+      diff: 'simple'
+    }
+  ]
+}
+
+Node.js v22.23.4
