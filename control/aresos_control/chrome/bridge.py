@@ -1,5 +1,6 @@
 """One authenticated native host. Commands are named and never raw CDP."""
 import json
+import select
 import socket
 import uuid
 
@@ -31,7 +32,8 @@ class Bridge:
     def accept(self, connection):
         if self.connection is not None:
             try:
-                if self.connection.recv(1, socket.MSG_PEEK | socket.MSG_DONTWAIT):
+                readable, _, _ = select.select([self.connection], [], [], 0)
+                if not readable or self.connection.recv(1, socket.MSG_PEEK | socket.MSG_DONTWAIT):
                     raise Refused('permission_denied', 'One native host already controls this Chrome session.')
             except BlockingIOError:
                 raise Refused('permission_denied', 'One native host already controls this Chrome session.')

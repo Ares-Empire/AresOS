@@ -33,10 +33,11 @@ def allowed_url(address, extra_hosts=()):
         parsed = urlsplit(address)
         if parsed.scheme not in {'http', 'https'} or not parsed.hostname or parsed.username or parsed.password:
             raise ValueError()
-        if any(parsed.hostname == host or parsed.hostname.endswith('.' + host) for host in [*FIXED_HOSTS, *extra_hosts]):
+        host_name = parsed.hostname.encode('idna').decode('ascii').rstrip('.')
+        if any(host_name == host or host_name.endswith('.' + host) for host in [*FIXED_HOSTS, *extra_hosts]):
             raise ValueError()
         parsed.port
-    except (ValueError, AttributeError) as exc:
+    except (ValueError, AttributeError, UnicodeError) as exc:
         raise Refused('refused', 'Only web addresses and about:blank are allowed; approval and settings pages belong to the owner.') from exc
     return address
 

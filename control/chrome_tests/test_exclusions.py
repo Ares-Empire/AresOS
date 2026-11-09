@@ -12,7 +12,7 @@ class Exclusions(unittest.TestCase):
             self.assertEqual(owner_hosts(), [])
             self.assertEqual(read.call_args.args[1], '/etc/aresos/control/chrome-excluded-sites.json')
         with patch('aresos_control.chrome.exclusions.Boundary.read', return_value={'format':1,'hosts':['approval.test']}):
-            for address in ['https://approval.test/', 'http://sub.approval.test/']:
+            for address in ['https://approval.test/', 'http://sub.approval.test/', 'https://approval.test./', 'https://sub.approval.test./', 'https://approval\uff0etest/']:
                 with self.assertRaises(Refused):
                     allowed_url(address, owner_hosts())
             self.assertEqual(allowed_url('https://other.test/', owner_hosts()), 'https://other.test/')

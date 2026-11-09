@@ -63,16 +63,7 @@ class Daemon:
                         _, uid, _ = struct.unpack('3i', connection.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED, struct.calcsize('3i')))
                         if uid != self.config['owner_uid']:
                             raise Refused('permission_denied', 'Chrome native host must run as the configured owner.')
-                        bridge = self.engine.adapters['chrome'].bridge
-                        previous = bridge.connection
-                        bridge.accept(connection)
-                        if previous is not None:
-                            try:
-                                self.selector.unregister(previous)
-                            except Exception:
-                                pass
-                        connection.settimeout(15)
-                        self.selector.register(connection, selectors.EVENT_READ, 'chrome-peer')
+                        self.register_chrome_host(connection)
                     except Exception as exc:
                         try:
                             send(connection, self.error_result(exc, False), result=True)
@@ -101,6 +92,29 @@ class Daemon:
                         send(connection, result, result=True)
                     except Exception:
                         pass
+
+    def register_chrome_host(self, connection):
+        bridge = self.engine.adapters['chrome'].bridge
+        previous = bridge.connection
+        previous_fd = previous.fileno() if previous is not None else None
+        try:
+            try:
+                bridge.accept(connection)
+            finally:
+                # A peer may be retired before its replacement is rejected.
+                if previous is not None and bridge.connection is not previous:
+                    try:
+                        self.selector.unregister(previous_fd)
+                    except KeyError:
+                        pass
+            connection.settimeout(15)
+            self.selector.register(connection, selectors.EVENT_READ, 'chrome-peer')
+        except Exception:
+            if bridge.connection is connection:
+                # The caller sends a refusal before closing this descriptor.
+                bridge.connection, bridge.buffer = None, b''
+                bridge.session = bridge.version = None
+            raise
 
     def error_result(self, exc, authorized):
         from .results import bound_result

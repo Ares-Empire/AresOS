@@ -11,7 +11,8 @@ function safeURL(address) {
   if(!excludedHosts)throw Error('refused: owner-only excluded-sites setting is unavailable');
   if (address === 'about:blank') return address;
   let url; try { url = new URL(address); } catch { throw Error('refused: only web addresses are allowed'); }
-  if (!['http:','https:'].includes(url.protocol) || url.username || url.password || excludedHosts.some(host => url.hostname === host || url.hostname.endsWith('.' + host))) throw Error('refused: approval/settings pages and non-web addresses belong to the owner');
+  const hostname=url.hostname.replace(/\.+$/,'');
+  if (!['http:','https:'].includes(url.protocol) || url.username || url.password || excludedHosts.some(host => hostname === host || hostname.endsWith('.' + host))) throw Error('refused: approval/settings pages and non-web addresses belong to the owner');
   return address;
 }
 async function cdp(tab, method, parameters = {}) {
@@ -23,14 +24,14 @@ async function badge() { await chrome.action.setBadgeText({text:controlled.size 
 async function rules() {
   const previous = await chrome.declarativeNetRequest.getSessionRules();
   const tabIds = [...controlled.keys()];
-  await chrome.declarativeNetRequest.updateSessionRules({removeRuleIds:previous.map(rule=>rule.id),addRules:tabIds.length ? [{id:1,priority:1,action:{type:'block'},condition:{tabIds,requestDomains:excludedHosts || POLICY.fixedHosts,resourceTypes:['main_frame','sub_frame']}}] : []});
+  await chrome.declarativeNetRequest.updateSessionRules({removeRuleIds:previous.map(rule=>rule.id),addRules:tabIds.length ? [{id:1,priority:1,action:{type:'block'},condition:{tabIds,requestDomains:(excludedHosts || POLICY.fixedHosts).flatMap(host=>[host,host+'.']),resourceTypes:['main_frame','sub_frame']}}] : []});
 }
 async function configure(hosts) {
   if(!Array.isArray(hosts) || hosts.length>128 || hosts.some(host=>typeof host!=='string' || !/^[a-z0-9][a-z0-9.-]*$/.test(host)))throw Error('refused: invalid owner-only excluded-sites setting');
   const next=[...new Set([...POLICY.fixedHosts,...hosts])].sort();
   if(excludedHosts && JSON.stringify(next)!==JSON.stringify(excludedHosts))await stop();
   excludedHosts=next;
-  const excludeMatches=next.flatMap(host=>[`http://*.${host}/*`,`https://*.${host}/*`]);
+  const excludeMatches=next.flatMap(host=>[`http://*.${host}/*`,`https://*.${host}/*`,`http://*.${host}./*`,`https://*.${host}./*`]);
   const common={matches:['http://*/*','https://*/*'],excludeMatches,allFrames:true,matchOriginAsFallback:true,runAt:'document_start',persistAcrossSessions:false};
   const existing=await chrome.scripting.getRegisteredContentScripts();
   if(existing.length)await chrome.scripting.unregisterContentScripts({ids:existing.map(script=>script.id)});
@@ -144,9 +145,9 @@ async function pointer(tab,snapshot,reference,target){
 async function dispatch(command) {
   const tab = command.tab ?? command.reference?.tab;
   const reference = command.reference;
+  if (command.name === 'audit') { recording=command.enabled === true; return {recording}; }
   if(command.name==='configure')return configure(command.excluded_hosts);
   if(!excludedHosts)throw Error('refused: owner-only excluded-sites setting is unavailable');
-  if (command.name === 'audit') { recording=command.enabled === true; return {recording}; }
   if (command.name === 'tabs') return {session,items:(await chrome.tabs.query({})).map(tab=>({tab:tab.id,title:tab.title,url:tab.url,controlled:controlled.has(tab.id) && tab.groupId === groupId}))};
   if (command.name === 'take_tab') return take(tab);
   if (command.name === 'release_tab') return release(tab);
