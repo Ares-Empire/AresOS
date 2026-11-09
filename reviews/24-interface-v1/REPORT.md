@@ -185,3 +185,19 @@ Brief `briefs/24-review-fixes-4.md`. Review 4 had three P2s, all in scope watchi
 - **WSL from the worktree** (`python3 -B`): `Ran 60 tests` `OK`, three runs in a row. **WSL, fresh clone of `079dc6d5`, plain and `-B`:** `test_aresos_shell` `Ran 60 tests` `OK`, `test_checkout_sources` `Ran 4 tests` `OK`, `test_owner_path` `Ran 36 tests` `OK`, `bash -n os/build.sh` and `py_compile` clean.
 - No mod code changed in this round.
 - **Still pending:** the Gradle `build`, the two full `build runClientGameTest` runs on the final head, and the full WSL suite plain and `-B`. The owner's Lunar Client game was still running and free RAM was 0.7 to 2 GB.
+
+## Review fixes 5 (review 5, gpt-6-astra high, CHANGES-NEEDED at `60a54b2`)
+
+Brief `briefs/24-review-fixes-5.md`. Review 5 found the restructure sound and three issues inside the new watcher (commit `3fefca00`).
+
+1. **P2, an unrecognized state meant `gone`.** Now only explicit values decide. The ActiveState column's running values (`active`, `activating`, `deactivating`, `reloading`, `refreshing`) are `active`; `inactive` and `failed` are `gone`; absence from a valid, fully parsed listing is `gone`. Any other value (for example `maintenance`, a future state, a shifted column, upper case) is `unknown`, and so is a unit listed twice with different states. Test: `test_unrecognized_or_conflicting_states_are_unknown_never_gone` (the mapping, plus a watched launch with an odd state left untouched and still watched).
+2. **P2, confirmed activity never cleared uncertainty.** A launch interrupted while starting and found `unknown` at start-up carries `uncertain`. Any positive confirmation now clears that mark and saves the journal: a running scope during start-up reconciliation, a running scope in any later pass, or a window (the launch becoming `focused` or `background`). Its later end is then a normal close, not `launch_uncertain`. Tests: `test_a_running_scope_clears_doubt_so_the_end_is_a_normal_close` (unknown, then running, then gone: `closed` with no error, and the mark is gone from the file on disk), `test_a_running_scope_at_start_up_clears_a_persisted_doubt`, `test_a_window_clears_doubt_so_its_close_is_normal`.
+3. **P3, the wake-up test didn't prove the wake-up.** `Server.step` now hands each selector event to `Server.handle`. The Linux test releases the hanging scope check and then calls `selector.select` itself: it must return the `scopes` event within 2 s (its timeout is 3 s), and handling that one event, with no `step()` and so no `tick()`, must close the launch.
+4. **Mutation checks** (in WSL, each on a copy of the helper, restored afterwards): removing the wake-up byte fails the wake-up test; the old "anything not running is gone" rule fails the state test; dropping the confirmation fails the unknown-running-gone test. Each mutation fails exactly its own test.
+
+### Verification after review fixes 5
+
+- **Python, Windows:** `test_aresos_shell` `Ran 64 tests`, `OK (skipped=4)` (the Linux-only socket tests), twice.
+- **WSL from the worktree** (`python3 -B`): `Ran 64 tests` `OK`, three runs in a row. **WSL, fresh clone of `3fefca00`, plain and `-B`:** `test_aresos_shell` `Ran 64 tests` `OK`, `test_checkout_sources` `Ran 4 tests` `OK`, `test_owner_path` `Ran 36 tests` `OK`, `bash -n os/build.sh` and `py_compile` clean.
+- No mod code changed in this round.
+- **Still pending:** the Gradle `build`, the two full `build runClientGameTest` runs on the final head, and the full WSL suite plain and `-B`. The owner's Lunar Client game was still running and free RAM was under 1 GB.
