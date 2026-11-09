@@ -73,3 +73,10 @@ test('group2 wrapped click and non-cancellable dispatch never deliver or resume'
   assert.equal(handlers,0);assert.equal(f.reports.length,2);assert.equal(f.arrivals.length,0);
   for(const report of f.reports)assert.throws(()=>f.api.resume(report.id,'op'));
 });
+
+test('group2 free input in a form has no primary or further submission allowance',()=>{
+  const f=fixture(),form=new f.HTMLFormElement(),field=new f.HTMLElement();field.form=form;
+  // A durable dispatch ID is kept outside the page's approval mark.
+  f.arm(field,form,null);form.submit();form.requestSubmit();
+  assert.equal(f.arrivals.length,0);assert.deepEqual(f.reports.map(report=>report.kind),['native_submit','submit_event']);
+});

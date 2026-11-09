@@ -46,6 +46,7 @@
     native.dispatch.call(document, new CustomEvent('aresos-page-step', {detail: {id, kind, target, submitter, cancellable}}));
     return id;
   }
+  const searchForm=(form,submitter)=>((submitter?.getAttribute('formmethod') || form.method).toLowerCase()==='get') && (form.role==='search' || !!form.querySelector('input[type=search]'));
   function allowSubmission(form) {
     if (!mark || mark.form !== form) return false;
     if (!mark.primarySubmission) { mark.primarySubmission = true; return true; }
@@ -53,7 +54,7 @@
     return false;
   }
   HTMLFormElement.prototype.submit = function() {
-    if (!active() || allowSubmission(this)) return native.submit.call(this);
+    if (!active() || searchForm(this) || allowSubmission(this)) return native.submit.call(this);
     report('native_submit', this, null);
   };
   // requestSubmit must first perform browser validation and create its submit event.
@@ -71,6 +72,7 @@
   function capture(event) {
     if (!active()) return;
     if (event.type === 'submit') {
+      if (searchForm(event.target,event.submitter)) return;
       if (allowSubmission(event.target)) return;
       event.preventDefault(); event.stopImmediatePropagation();
       report('submit_event', event.target, event.submitter);

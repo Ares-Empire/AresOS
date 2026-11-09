@@ -2,8 +2,9 @@ import {POLICY} from './policy.js';
 
 const session = crypto.randomUUID();
 const controlled = new Map(), used = new Set(), dialogs = new Map();
-let groupId = null, port = null, serial = Promise.resolve(), recording = false, effectStarted = false;
-const ownerRequests = new Map(), dialogOrigins = new Map();
+let groupId = null, port = null, serial = Promise.resolve(), recording = false, effectStarted = false, dispatchEpoch = null;
+const ownerRequests = new Map(), dialogOrigins = new Map(), stagedUploads = new Map();
+function assertControl(tab,epoch=dispatchEpoch){if(!epoch || controlled.get(tab)?.epoch !== epoch)throw Error('stale_reference: control ended');}
 const audit = value => { if (recording && port) port.postMessage({event:'audit',data:value}); return value; };
 function safeURL(address) {
   if (address === 'about:blank') return address;
@@ -13,7 +14,7 @@ function safeURL(address) {
 }
 async function cdp(tab, method, parameters = {}) {
   if (!POLICY.cdpMethods.includes(method)) throw Error('permission_denied: DevTools method not allowed');
-  if(method.startsWith('Input.') || ['Page.navigate','Page.navigateToHistoryEntry','Page.reload','Page.handleJavaScriptDialog','DOM.setFileInputFiles'].includes(method))effectStarted=true;
+  if(method.startsWith('Input.') || ['Page.navigate','Page.navigateToHistoryEntry','Page.reload','Page.handleJavaScriptDialog','DOM.setFileInputFiles'].includes(method)){assertControl(tab);effectStarted=true;}
   return audit(await chrome.debugger.sendCommand({tabId:tab}, method, parameters));
 }
 async function badge() { await chrome.action.setBadgeText({text:controlled.size ? 'ON' : ''}); await chrome.action.setBadgeBackgroundColor({color:'#2468ca'}); }
@@ -31,7 +32,7 @@ async function take(tab) {
   } catch {
     throw Error('stale_reference: this document opened before the extension preload; the owner must reload it before control');
   }
-  const original = {window:current.windowId,index:current.index,group:current.groupId};
+  const original = {window:current.windowId,index:current.index,group:current.groupId,epoch:crypto.randomUUID()};
   await chrome.debugger.attach({tabId:tab}, '1.3');
   await cdp(tab,'Page.enable');
   groupId = await chrome.tabs.group({tabIds:[tab],...(groupId === null ? {} : {groupId})});
@@ -48,7 +49,7 @@ async function main(tab, frame, command, args=[]) {
   return audit(output[0]?.result);
 }
 async function content(tab, frame, command, parameters={}) {
-  if(['focus','select','check','install_file'].includes(command))effectStarted=true;
+  if(['focus','select','check','install_file'].includes(command)){assertControl(tab);parameters={...parameters,generation:dispatchEpoch};effectStarted=true;}
   const reply = audit(await chrome.tabs.sendMessage(tab,{command,...parameters},{frameId:frame}));
   if (!reply?.ok) throw Error(reply?.error || 'stale_reference: page changed; read again');
   return reply.data;
@@ -62,6 +63,7 @@ async function requireTab(tab) {
 async function release(tab) {
   const original = controlled.get(tab);
   controlled.delete(tab); dialogs.delete(tab);
+  for(const [token,stage] of stagedUploads)if(stage.tab===tab)stagedUploads.delete(token);
   try {
     for (const frame of await chrome.webNavigation.getAllFrames({tabId:tab}) || []) { await main(tab,frame.frameId,'stop'); await content(tab,frame.frameId,'clear'); }
   } catch {}
@@ -91,13 +93,13 @@ async function facts(tab, reference) {
     result.push({frame:frame.frameId,...snapshot});
   }
   if (reference && !result.some(frame=>frame.frame === reference.frame)) throw Error('stale_reference: frame is gone');
-  return {session,tab,group:groupId,url:current.url,title:current.title,frames:result,dialog:dialogs.get(tab) || null};
+  return {session,tab,group:groupId,control:controlled.get(tab).epoch,url:current.url,title:current.title,frames:result,dialog:dialogs.get(tab) || null};
 }
 function binding(facts, reference, kind, adapter) {
   const frame = facts.frames.find(frame=>frame.frame === reference.frame);
   if (!frame?.target) throw Error('stale_reference: target not found');
   const target = frame.target;
-  return {session,tab:facts.tab,url:facts.url,document:frame.document,frame:frame.frame,frame_url:frame.url,
+  return {session,tab:facts.tab,control:facts.control,url:facts.url,document:frame.document,frame:frame.frame,frame_url:frame.url,
     target:Object.fromEntries(['element','role','name','label','title','href','value','password','states','editable','search','submit'].filter(key=>key in target).map(key=>[key,target[key]])),
     form:frame.form,
     editable:kind === 'send' && !frame.form && !adapter ? facts.frames.map(frame=>({frame:frame.frame,document:frame.document,url:frame.url,fields:frame.editable})) : null,
@@ -115,7 +117,7 @@ async function dispatch(command) {
   if (command.name === 'stop') return stop();
   if (command.name === 'open') {
     safeURL(command.url);
-    const created=await chrome.tabs.create({url:'about:blank'});await take(created.id);
+    const created=await chrome.tabs.create({url:'about:blank'});await take(created.id);dispatchEpoch=controlled.get(created.id).epoch;
     if(command.url !== 'about:blank')await cdp(created.id,'Page.navigate',{url:command.url});
     return {tab:created.id,session,group:groupId};
   }
@@ -123,13 +125,13 @@ async function dispatch(command) {
   if (command.name === 'history') return {items:await chrome.history.search({text:command.text || '',maxResults:10})};
   if (command.name === 'bookmarks') return {items:await chrome.bookmarks.search(command.text || {})};
   if (command.name === 'dialog_facts') {
-    const current=await requireTab(tab), dialog=dialogs.get(tab);
+    const current=await requireTab(tab), dialog=dialogs.get(tab);dispatchEpoch=controlled.get(tab).epoch;
     if(!dialog || dialog.frame === undefined)throw Error('refused: dialog opener is not yet established; inspect with the owner');
-    safeURL(dialog.frame_url);return {session,tab,url:current.url,dialog};
+    safeURL(dialog.frame_url);return {session,tab,control:controlled.get(tab).epoch,url:current.url,dialog};
   }
   if (command.name === 'dialog') {
-    const current=await requireTab(tab), dialog=dialogs.get(tab);
-    const expected={session,tab,url:current.url,dialog};
+    const current=await requireTab(tab), dialog=dialogs.get(tab);dispatchEpoch=controlled.get(tab).epoch;
+    const expected={session,tab,control:controlled.get(tab).epoch,url:current.url,dialog};
     if(!dialog || dialog.frame === undefined || stable(expected)!==stable(command.binding))throw Error('stale_approval: dialog or its opener changed');
     safeURL(dialog.frame_url);
     if(command.operation && used.has(command.operation))throw Error('refused: dialog operation already attempted');
@@ -139,10 +141,33 @@ async function dispatch(command) {
   }
   if (command.name === 'read' || command.name === 'facts') return facts(tab,reference);
   if (command.name === 'stage_file') {
-    await requireTab(tab);
-    return content(tab,reference.frame,'stage_file',{token:command.token,offset:command.offset,bytes:command.bytes,file:command.file});
+    await requireTab(tab);dispatchEpoch=controlled.get(tab).epoch;
+    let stage=stagedUploads.get(command.token);
+    if(!stage){
+      if(command.offset !== 0 || stagedUploads.size>=2)throw Error('refused: upload staging limit');
+      stage={tab,epoch:dispatchEpoch,file:command.file,chunks:[],size:0};stagedUploads.set(command.token,stage);
+    }
+    assertControl(tab,stage.epoch);
+    const bytes=Uint8Array.from(atob(command.bytes),character=>character.charCodeAt(0));
+    if(stage.size!==command.offset || stage.size+bytes.length>stage.file.size || stage.size+bytes.length>25*1024*1024)throw Error('refused: upload offset or size mismatch');
+    stage.chunks.push(bytes);stage.size+=bytes.length;
+    if(stage.size===stage.file.size){
+      const complete=new Uint8Array(stage.size);let offset=0;for(const chunk of stage.chunks){complete.set(chunk,offset);offset+=chunk.length;}
+      const hash=[...new Uint8Array(await crypto.subtle.digest('SHA-256',complete))].map(value=>value.toString(16).padStart(2,'0')).join('');
+      assertControl(tab,stage.epoch);
+      if(stagedUploads.get(command.token)!==stage || hash!==stage.file.sha256)throw Error('stale_approval: staged upload changed');
+      await content(tab,reference.frame,'set_control',{generation:stage.epoch});
+      offset=0;
+      for(const chunk of stage.chunks){
+        assertControl(tab,stage.epoch);
+        const bytes=btoa(Array.from(chunk,value=>String.fromCharCode(value)).join(''));
+        await content(tab,reference.frame,'stage_file',{generation:stage.epoch,token:command.token,offset,bytes,file:stage.file});offset+=chunk.length;
+      }
+      stagedUploads.delete(command.token);
+    }
+    return {offset:stage.size};
   }
-  await requireTab(tab);
+  await requireTab(tab);dispatchEpoch=controlled.get(tab).epoch;
   if (command.name === 'close_tab') { await release(tab); await chrome.tabs.remove(tab); return {closed:tab}; }
   if (command.name === 'navigate') {
     if (command.url) { safeURL(command.url); await cdp(tab,'Page.navigate',{url:command.url}); }
@@ -163,7 +188,12 @@ async function dispatch(command) {
   if (!target) throw Error('stale_reference: read again');
   if (command.expected && stable(command.expected) !== stable(target)) throw Error('stale_reference: element no longer holds the expected state');
   if (command.operation) used.add(command.operation); // consume before any event can enter the page
-  await main(tab,reference.frame,'arm',[POLICY,target.element,frame.form?.element,command.operation || null]);
+  for(const other of snapshot.frames){
+    assertControl(tab);
+    await content(tab,other.frame,'set_control',{generation:dispatchEpoch});
+    await main(tab,other.frame,'arm',[POLICY,other.frame===reference.frame ? target.element:null,other.frame===reference.frame ? frame.form?.element:null,command.approved && other.frame===reference.frame ? command.operation:null]);
+  }
+  assertControl(tab);
   if (command.name === 'resume') { effectStarted=true; await main(tab,reference.frame,'resume',[command.hold,command.operation]); }
   else {
     const input = command.input;
@@ -205,7 +235,7 @@ async function connect() {
   port.onMessage.addListener(message=>{
     if (message.owner_reply) { const pending=ownerRequests.get(message.owner_reply); if(pending){ownerRequests.delete(message.owner_reply);pending(message.result);} return; }
     serial=serial.then(async()=>{
-      effectStarted=false;
+      effectStarted=false;dispatchEpoch=null;
       try { port.postMessage({id:message.id,ok:true,data:await dispatch(message.command)}); }
       catch(error) { port?.postMessage({id:message.id,ok:false,error:effectStarted ? 'unknown: Input may have started; inspect status and the page, never retry. '+String(error.message):String(error.message)}); }
     });

@@ -21,15 +21,15 @@ RUNTIME = Path(__file__).resolve().parents[2]
 
 
 def view_identity(facts):
-    return digest([{k: frame.get(k) for k in ['frame','document','revision','url','title','scroll','rows','editable']}
-                   for frame in facts['frames']])
+    return digest([facts.get('control'),[{k: frame.get(k) for k in ['frame','document','revision','url','title','scroll','rows','editable']}
+                   for frame in facts['frames']]])
 
 
 def binding(facts, reference, kind, adapter):
     frame = next(frame for frame in facts['frames'] if frame['frame'] == reference['frame'])
     target = frame['target']
     keys = ['element','role','name','label','title','href','value','password','states','editable','search','submit']
-    return {'session':facts['session'],'tab':facts['tab'],'url':facts['url'],'document':frame['document'],
+    return {'session':facts['session'],'tab':facts['tab'],'control':facts.get('control'),'url':facts['url'],'document':frame['document'],
             'frame':frame['frame'],'frame_url':frame['url'],'target':{key:target[key] for key in keys if key in target},
             'form':frame.get('form'),
             'editable':[{'frame':item['frame'],'document':item['document'],'url':item['url'],'fields':item['editable']} for item in facts['frames']]
@@ -217,7 +217,7 @@ class Chrome:
 
     def execute(self, operation, stage):
         payload = operation['payload']
-        command = self.command(payload, operation['id'])
+        command = self.command(payload, operation['id'], approved=True)
         if payload.get('file'):
             from .uploads import copy_for_browser
             data, path = copy_for_browser(self, payload['file'])
@@ -239,20 +239,20 @@ class Chrome:
         self.steps(reply.get('steps', []), operation['payload']['reference']['tab'])
         return 'done', 'Dispatched once, as the page shows it; this does not prove what the site did.'
 
-    def command(self, payload, operation=None):
+    def command(self, payload, operation=None, approved=False):
         if payload.get('native_dialog'):
             return {'name':'dialog','tab':payload['reference']['tab'],'binding':payload['binding'],'input':payload['input'],'operation':operation}
         return {'name':'resume' if payload.get('resume_kind') else 'input',
                 'reference':payload['reference'],'tab':payload['reference']['tab'],'input':payload['input'],
                 'kind':payload['kind'],'adapter':bool(payload.get('adapter')),'binding':payload['binding'],
-                'operation':operation,**({'hold':payload['hold']} if payload.get('hold') else {})}
+                'operation':operation,'approved':approved,**({'hold':payload['hold']} if payload.get('hold') else {})}
 
     def payload(self, verb, args, *, hold=None):
         mode = self.mode(acting=True)
         facts, frame = self.facts(args['reference'])
         if args.get('expected') is not None and args['expected'] != visible(frame['target']):
             raise Refused('stale_reference', 'Element no longer holds its expected state; read again.')
-        readonly = self.store.get('chrome:readonly:' + (urlsplit(frame['url']).hostname or ''), False)
+        readonly = any(self.store.get('chrome:readonly:' + (urlsplit(url).hostname or ''), False) for url in [facts['url'],frame['url']])
         adapter = recognize(frame['url'], frame['adapter'], frame['target'], verb, args, self.hosts, mode['adapters'])
         kind = classify(verb,args,frame,conservative=mode['conservative'],readonly=readonly,adapter=adapter)
         if hold:
@@ -286,7 +286,13 @@ class Chrome:
               'state':'submitting','expires':0,'stages':{},'reason':'Free input may start; no replay after an interruption.'}
         self.store.write({'op:' + op_id:op},op['action'],'Chrome free-input context committed',op_id)
         self.store.checkpoint('chrome_before_dispatch')
-        reply = self.bridge.call(**self.command(payload, op_id)) if payload else self.bridge.call(verb,**arguments)
+        try:
+            reply = self.bridge.call(**self.command(payload, op_id)) if payload else self.bridge.call(verb,**arguments)
+        except Refused as exc:
+            certain=exc.code in {'stale_reference','stale_approval','owner_signin','refused','permission_denied','chrome_unavailable'}
+            op.update(state='failed' if certain else 'unknown',reason=('Nothing dispatched: ' if certain else 'Input may have run: ')+str(exc))
+            self.store.write({'op:'+op_id:op},op['action'],'Chrome input refused before effect' if certain else 'Chrome input outcome unknown',op_id)
+            raise
         op['stages'] = {'dispatched':'Input dispatched once; delivery not proven.','page':visible(reply)}
         op.update(state='done',reason='Free input dispatched once, as the page shows it.')
         if payload:

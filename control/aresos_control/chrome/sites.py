@@ -20,11 +20,11 @@ def recognize(url, reading, target, verb, args, hosts=None, enabled=None):
     key = args.get('key', '')
     common = {'site': site, 'version': VERSIONS[site], 'account': reading.get('account')}
     result = None
-    if site == 'gmail' and all(reading.get(k) is not None for k in ['account','to','cc','bcc','subject','text']):
+    if site == 'gmail' and reading.get('scope_role') in {'dialog','form'} and all(reading.get(k) is not None for k in ['account','to','cc','bcc','subject','text']):
         if key == '#':
             result = {'kind': 'gmail_delete', 'effect': 'delete', 'shortcut': '#', 'parameters': {}}
         elif label in {'send', 'senden'} or key in {'Ctrl+Enter','Cmd+Enter'}:
-            recipients = {k: sorted(set(part.strip().casefold() for part in reading[k].split(',') if part.strip())) for k in ['to','cc','bcc']}
+            recipients = {k: sorted(set(part.strip() for part in reading[k].split(',') if part.strip())) for k in ['to','cc','bcc']}
             result = {'kind': 'gmail_send', 'effect': 'send', 'parameters': recipients}
     elif site == 'whatsapp' and reading.get('chat') and reading.get('text') is not None and (label in {'send','send message','senden'} or key == 'Enter'):
         result = {'kind':'whatsapp_message','effect':'send','parameters':{'chat':reading['chat']}}

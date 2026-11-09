@@ -60,6 +60,7 @@ class Operations(unittest.TestCase):
         wrong={**approval,'question':'Changed'};self.assertFalse(self.call('submit',wrong)['ok']);self.assertEqual(self.browser.dispatched,[])
         sent=self.call('submit',approval);self.assertTrue(sent['ok'],sent)
         self.assertEqual(sent['data']['operation']['state'],'done');self.assertEqual(len(self.browser.dispatched),1)
+        self.assertTrue(self.browser.dispatched[0][1]['approved'])
         self.assertTrue(self.call('submit',approval)['ok']);self.assertEqual(len(self.browser.dispatched),1)
 
     def test_group3_current_draft_bound_even_without_prior_fill_and_across_frames(self):
@@ -87,6 +88,7 @@ class Operations(unittest.TestCase):
         original=self.browser.call
         def checked(name,**args):
             if name=='input':
+                self.assertFalse(args['approved'], 'Durable identity must not grant a free input submission authority')
                 op=self.engine.store.get('op:'+args['operation'])
                 self.assertEqual(op['state'],'submitting');self.assertEqual(op['payload']['binding']['tab'],1)
                 self.assertEqual(op['payload']['binding']['editable'],None)
@@ -108,7 +110,7 @@ class OwnerRules(Operations):
         self.chrome.hosts={**HOSTS,'gmail':['gmail.test']}
         facts=self.browser.facts;facts['url']='https://gmail.test/'
         frame=facts['frames'][0];frame['url']=facts['url']
-        frame['adapter']={'account':'Synthetic account','to':'recipient@example.invalid','cc':'','bcc':'hidden@example.invalid',
+        frame['adapter']={'scope':'compose-1','scope_role':'dialog','account':'Synthetic account','to':'recipient@example.invalid','cc':'','bcc':'hidden@example.invalid',
                           'subject':'Synthetic subject','text':'Current text','attachments':[],'chat':None,'context':None,'preview':None,'target':'Send'}
 
     def test_group11_owner_only_exact_parameters_revocation_and_widened_kind(self):

@@ -2,8 +2,8 @@
 (() => {
   try {
   const elements = new Map(), ids = new WeakMap(), protectedFields = new WeakSet(), held = new Map();
-  const documentId = crypto.randomUUID();
-  let sequence = 0, revision = 0;
+  const documentId = [...crypto.getRandomValues(new Uint8Array(16))].map(value=>value.toString(16).padStart(2,'0')).join('');
+  let sequence = 0, revision = 0, controlGeneration = null;
   const traces = [], files = new Map();
   function roots(root = document) {
     const found = [root];
@@ -81,8 +81,8 @@
   }
   function field(element) {
     return {element: id(element), name: element.getAttribute('name') || '', label: name(element), type: element.type || element.getAttribute('role') || 'editable',
-      hidden: element.type === 'hidden', ...safeValue(element),
-      ...(element instanceof HTMLSelectElement ? {options: [...element.options].map(option => ({label: text(option), value: option.value, selected: option.selected, disabled: option.disabled}))} : {})};
+      hidden: element.type === 'hidden', checked:!!element.checked, disabled:element.matches(':disabled'), multiple:!!element.multiple, readOnly:!!element.readOnly, ...safeValue(element),
+      ...(element instanceof HTMLSelectElement ? {options: [...element.options].map(option => ({label: text(option), value: option.value, selected: option.selected, disabled: option.matches(':disabled')}))} : {})};
   }
   function formFacts(form, submitter) {
     if (!form) return null;
@@ -113,22 +113,30 @@
       if (facts.role === 'hidden' || !facts.box.width || !facts.box.height) return null;
       return {...facts, text: ['textbox','combobox','button','link','iframe'].includes(facts.role) ? '' : text(node).replace(/\s+/g, ' ').trim()};
     }).filter(Boolean);
-    const editable = nodes.filter(node => node.matches('input,textarea,select,[contenteditable]')).map(field);
+    const editable = nodes.filter(node => node.matches('input,textarea,select,[contenteditable]') && !['hidden','button','submit','reset','image','file'].includes(node.type)).map(field);
     return {document: documentId, revision, url: location.href, title: document.title, scroll: {x:scrollX,y:scrollY}, rows,
       target: element ? targetFacts(element) : null, form: element ? formFacts(element.form || (element.tagName === 'FORM' ? element : null), element) : null,
       editable, item: element ? itemText(element) : '', adapter: adapterRead(nodes, element), trace: traces.splice(0)};
   }
   function adapterRead(nodes, target) {
-    // Semantic selectors for the named sites; an incomplete shape never claims recognition.
-    const find = selectors => { for (const selector of selectors) { const found = nodes.find(node => node.matches(selector)); if (found) return found; } return null; };
-    const read = selectors => { const node = find(selectors); if (!node) return null; return node.matches('input,textarea,[contenteditable]') ? safeValue(node).value ?? null : text(node).trim(); };
-    return {account: read(['[aria-label^="Google Account:"]','[data-login]','[aria-label="Signed in as"]']),
-      to: read(['[name=to]','[aria-label=To]']), cc: read(['[name=cc]','[aria-label=Cc]']), bcc: read(['[name=bcc]','[aria-label=Bcc]']),
-      subject: read(['[name=subjectbox]','[name=subject]']), text: read(['[aria-label="Message Body"]','[aria-label="Type a message"]','[aria-label="Enter a prompt here"]','[name=comment]']),
-      chat: read(['header [title]','[aria-label="Chat name"]']),
-      context: read(['[aria-label="Action context"]']), preview: read(['[aria-label="Message preview"]']),
-      attachments: nodes.filter(node => node.matches('[aria-label^="Attachment:"]')).map(node => ({label:name(node), text:text(node)})),
-      target: target ? name(target) : null};
+    const scope=target?.closest('form,[role=dialog],[role=region][aria-label],main,[role=main]');
+    const scoped=scope ? nodes.filter(node=>scope===node || scope.contains(node)):nodes;
+    const read=(selectors,collection=scoped)=>{
+      for(const selector of selectors) {
+        const found=collection.filter(node=>node.matches(selector));
+        if(found.length>1)return null;
+        if(found.length===1){const node=found[0];return node.matches('input,textarea,[contenteditable]') ? safeValue(node).value ?? null : text(node).trim();}
+      }
+      return null;
+    };
+    const recognizedScope=scope;
+    const fields=recognizedScope ? scoped:[];
+    return {scope:recognizedScope ? id(scope):null,scope_role:recognizedScope ? role(scope):null,
+      account:read(['[name=from]','[aria-label=From]'],fields) ?? read(['[aria-label^="Google Account:"]','[data-login]','[aria-label="Signed in as"]'],nodes),
+      to:read(['[name=to]','[aria-label=To]'],fields),cc:read(['[name=cc]','[aria-label=Cc]'],fields),bcc:read(['[name=bcc]','[aria-label=Bcc]'],fields),
+      subject:read(['[name=subjectbox]','[name=subject]'],fields),text:read(['[aria-label="Message Body"]','[aria-label="Type a message"]','[aria-label="Enter a prompt here"]','[name=comment]'],fields),
+      chat:read(['header [title]','[aria-label="Chat name"]'],fields),context:read(['[aria-label="Action context"]'],fields),preview:read(['[aria-label="Message preview"]'],fields),
+      attachments:fields.filter(node=>node.matches('[aria-label^="Attachment:"]')).map(node=>({label:name(node),text:text(node)})),target:target ? name(target):null};
   }
   document.addEventListener('aresos-dialog-origin',event=>{
     if(['alert','confirm','prompt'].includes(event.detail?.kind) && typeof event.detail?.text === 'string')
@@ -141,32 +149,31 @@
   }, true);
   chrome.runtime.onMessage.addListener((message, sender, reply) => {
     if (sender.id !== chrome.runtime.id || !message || typeof message.command !== 'string') return;
-    if (message.command === 'install_file') {
-      (async()=>{
-        const staged=files.get(message.token), element=elements.get(message.element);
-        if(!staged || !element?.isConnected || element.type !== 'file')throw Error('stale_reference: upload field or bytes changed');
-        const file=new File(staged.chunks,staged.file.name,{type:'application/octet-stream',lastModified:0});
-        const hash=[...new Uint8Array(await crypto.subtle.digest('SHA-256',await file.arrayBuffer()))].map(value=>value.toString(16).padStart(2,'0')).join('');
-        if(hash !== staged.file.sha256 || file.size !== staged.file.size)throw Error('stale_approval: upload hash mismatch');
-        files.delete(message.token);
-        const transfer=new DataTransfer();transfer.items.add(file);element.files=transfer.files;
-        element.dispatchEvent(new Event('input',{bubbles:true}));element.dispatchEvent(new Event('change',{bubbles:true}));
-        reply({ok:true,data:{installed:true,sha256:hash,size:file.size}});
-      })().catch(error=>reply({ok:false,error:String(error.message)}));
-      return true;
-    }
     try {
       let value;
-      if (message.command === 'stage_file') {
+      if (message.command === 'set_control') { controlGeneration=message.generation; value={controlled:true}; }
+      else if (['focus','select','check','stage_file','install_file'].includes(message.command) && message.generation !== controlGeneration) throw Error('stale_reference: control ended');
+      if (message.command === 'install_file') {
+        const staged=files.get(message.token),element=elements.get(message.element);
+        if(!staged?.ready || !element?.isConnected || element.type !== 'file')throw Error('stale_reference: upload field or staged bytes changed');
+        files.delete(message.token);
+        const transfer=new DataTransfer();transfer.items.add(staged.ready);element.files=transfer.files;
+        element.dispatchEvent(new Event('input',{bubbles:true}));element.dispatchEvent(new Event('change',{bubbles:true}));
+        value={installed:true,sha256:staged.file.sha256,size:staged.file.size};
+      }
+      else if (message.command === 'stage_file') {
         if(!files.has(message.token)) {
           if(message.offset !== 0 || files.size >= 2)throw Error('refused: upload staging limit');
           files.set(message.token,{file:message.file,chunks:[],size:0});
         }
         const staged=files.get(message.token), bytes=Uint8Array.from(atob(message.bytes),char=>char.charCodeAt(0));
         if(staged.size !== message.offset || staged.size+bytes.length > staged.file.size || staged.size+bytes.length > 25*1024*1024)throw Error('refused: upload offset or size mismatch');
-        staged.chunks.push(bytes);staged.size+=bytes.length;value={offset:staged.size};
+        staged.chunks.push(bytes);staged.size+=bytes.length;
+        if(staged.size===staged.file.size)staged.ready=new File(staged.chunks,staged.file.name,{type:'application/octet-stream',lastModified:0});
+        value={offset:staged.size};
       }
-      else if (message.command === 'clear') { files.clear(); held.clear(); value={cleared:true}; }
+      else if (message.command === 'clear') { controlGeneration=null; files.clear(); held.clear(); value={cleared:true}; }
+      else if (message.command === 'set_control') {}
       else if (message.command === 'ready') value = {preload:true,document:documentId};
       else if (message.command === 'read' || message.command === 'facts') value = snapshot(message.element);
       else if (message.command === 'steps') { value = [...held.values()]; held.clear(); }
