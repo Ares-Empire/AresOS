@@ -54,6 +54,7 @@ def actions(Action):
     add('submit_trusted', 'send', APPROVAL, 'Run a prepared adapter kind only if the owner-only exact-site/account/parameters entry still allows it. No prompt; deleting, paying and WhatsApp messages always refuse.', output=OP_RESULT)
     add('drop', 'change', OP, 'Cancel only reserved work; its stopped page step stays stopped and no input is dispatched.', output=OP_RESULT)
     add('operation_status', 'read', OP, 'Read committed stages and uncertainty. checked then dispatched, followed by what the page showed; nothing is replayed.')
+    add('notices', 'read', PAGE, 'Read every Chrome warning occurrence through bounded pages, including open checks after a storage failure. Acknowledgement and action outcome are separate.')
     add('notice_ack', 'change', OP, 'Acknowledge one warning occurrence. Unresolved actions remain pending.')
     add('sites', 'change', obj({'command': {'type': 'string', 'enum': ['list', 'readonly', 'allow', 'revoke']},
          'site': string(), 'operation_id': string(80), 'id': string(80), 'enabled': {'type': 'boolean'}, **PAGE['properties']}, ['command']),

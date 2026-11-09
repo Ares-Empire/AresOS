@@ -16,7 +16,12 @@
     return found;
   }
   const all = () => roots().flatMap(root => [...root.querySelectorAll('*')]);
+  let observer;
+  function protect(changes) {
+    for(const change of changes)if(change.type==='attributes' && (change.attributeName==='type' && (change.oldValue||'').toLowerCase()==='password' || change.attributeName==='autocomplete' && /(?:password|one-time-code)/i.test(change.oldValue||'')))protectedFields.add(change.target);
+  }
   function password(element) {
+    if(observer?.takeRecords)protect(observer.takeRecords());
     if (!(element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement || element instanceof HTMLSelectElement || element instanceof HTMLButtonElement || element.isContentEditable)) return false;
     let unsafe = protectedFields.has(element);
     try {
@@ -34,11 +39,11 @@
       if (childShadow) { guard.watch(childShadow); observer.observe(childShadow, {subtree: true, attributes: true, childList: true, characterData: true, attributeOldValue: true}); remember(childShadow); }
     }
   }
-  const observer = new MutationObserver(changes => {
+  observer = new MutationObserver(changes => {
     revision++;
     for (const change of changes) {
       if (change.type === 'attributes') {
-        if (change.attributeName === 'type' && change.oldValue === 'password' || change.attributeName === 'autocomplete' && /(?:password|one-time-code)/.test(change.oldValue || '')) protectedFields.add(change.target);
+        if (change.attributeName === 'type' && (change.oldValue||'').toLowerCase() === 'password' || change.attributeName === 'autocomplete' && /(?:password|one-time-code)/i.test(change.oldValue || '')) protectedFields.add(change.target);
         password(change.target);
       }
     }
@@ -97,7 +102,9 @@
   }
   function targetFacts(element) {
     const box = element.getBoundingClientRect(), value = safeValue(element);
-    return {element: id(element), role: role(element), name: name(element), label: name(element), title: element.getAttribute('title') || '', ...value,
+    const dialog=element.closest('dialog,[role=dialog],[role=alertdialog]');
+    const page_dialog=dialog ? {element:id(dialog),kind:role(dialog),text:text(dialog).replace(/\s+/g,' ').trim(),button:name(element),fields:[...dialog.querySelectorAll('input,textarea,select,[contenteditable]')].map(field)} : null;
+    return {element: id(element), role: role(element), page_dialog, name: name(element), label: name(element), title: element.getAttribute('title') || '', ...value,
       href: element.tagName === 'A' ? element.href : null,
       editable: element instanceof HTMLInputElement && !['button','submit','image','checkbox','radio','file','hidden'].includes(element.type) || element instanceof HTMLTextAreaElement || element.isContentEditable,
       search: element.type === 'search' || element.getAttribute('role') === 'searchbox', submit: !!element.form && (element.type === 'submit' || element.type === 'image'),

@@ -12,7 +12,7 @@
   const type = event => eventType ? eventType.call(event) : event.type;
   const active = () => generation !== null && (inFlight || performance.now() < until);
   // eventPhase proves only synchronous dispatch, never the following default action/task.
-  const ownerDispatch = () => !inFlight && owner && currentPhase(owner) !== 0;
+  const ownerDispatch = () => !inFlight && owner && owner.isTrusted && currentPhase(owner) !== 0;
   const control=element=>element.closest('button,input,a,[role=button],[role=link],[role=menuitem],[onclick]') || element;
   function facts(element) { return reader.target(element); }
   function asks(element) {
@@ -20,7 +20,7 @@
     const target = facts(element), form = reader.form(element);
     if (form && target.submit && !search(form)) return true;
     if (target.editable) return false;
-    return [target.name,target.label,target.title,target.role,target.password ? '' : target.value,form?.action]
+    return [target.name,target.label,target.title,target.role,target.page_dialog?.text,target.password ? '' : target.value,form?.action]
       .join(' ').toLocaleLowerCase().match(/[\p{L}\p{N}_]+/gu)?.some(word => config.words.includes(word)) || false;
   }
   const search = form => !config?.conservative && form?.method === 'get' && form.search;
@@ -29,10 +29,15 @@
     const step = {id,kind,element:reader.id(element),submitter:submitter ? reader.id(submitter) : null,cancellable};
     held.set(id,{...step,node:element,button:submitter});
   }
-  function allowance(form) {
+  function allowance(form,event=null) {
     if (!mark || !mark.input || mark.form !== form) return false;
-    if (!mark.primary) { mark.primary = true; return true; }
-    if (!mark.further) { mark.further = true; return true; }
+    if (!mark.primary) { mark.primary=true;mark.event=event;return true; }
+    if (!mark.further && (mark.consequential || mark.event && currentPhase(mark.event)!==0)) {
+      mark.further=true;
+      // Replace the enclosing event's default before the extra call can send.
+      if(mark.event)mark.event.preventDefault();
+      return true;
+    }
     return false;
   }
   function submit(form, submitter, kind) {
@@ -53,7 +58,7 @@
     if(type(event)==='click')element=control(element);
     if (inFlight && event.isTrusted && mark && element === mark.target && ['keydown','input','change'].includes(type(event))) mark.input=true;
     if (type(event) === 'submit') {
-      if (search(reader.form(element,event.submitter)) || allowance(element)) return;
+      if (search(reader.form(element,event.submitter)) || allowance(element,event)) return;
       event.preventDefault();event.stopImmediatePropagation();report('submit_event',element,event.submitter);
     } else if (type(event) === 'click' && asks(element)) {
       // Only the browser's trusted event for this private, approved dispatch consumes the mark.
@@ -104,8 +109,8 @@
   globalThis[Symbol.for('aresos.chrome.guard.v2')] = {
     reader(value) { reader=value; }, watch,
     arm(value) {
-      generation=value.generation;config=value.config;inFlight=true;owner=null;until=performance.now()+config.holdMs;
-      mark=value.operation ? {id:value.operation,target:reader.element(value.target),form:reader.element(value.form),input:false,primary:!value.primary_submission,further:false} : null;
+      generation=value.generation;config={...value.config,words:value.config.words.map(word=>word.toLocaleLowerCase())};inFlight=true;owner=null;until=performance.now()+config.holdMs;
+      mark=value.operation ? {id:value.operation,target:reader.element(value.target),form:reader.element(value.form),input:false,primary:!value.primary_submission,consequential:!value.primary_submission,further:false} : null;
     },
     direct(element) { if(inFlight && mark && reader.element(element)===mark.target)mark.input=true; },
     async finish(epoch) {
@@ -119,7 +124,7 @@
       const step=held.get(id);
       if (!step || consumed.has(operation) || !['native_submit','submit_event'].includes(step.kind) || !step.node.isConnected || step.button && (!step.button.isConnected || step.button.form!==step.node)) throw Error('stale_reference: form, submitter or operation changed');
       consumed.add(operation);held.delete(id);
-      mark={id:operation,target:step.button,form:step.node,input:true,primary:step.kind==='native_submit',further:false};
+      mark={id:operation,target:step.button,form:step.node,input:true,primary:step.kind==='native_submit',consequential:false,further:false};
       if (step.kind==='native_submit') native.submit.call(step.node);
       else if (step.button) native.requestSubmit.call(step.node,step.button);
       else native.requestSubmit.call(step.node);

@@ -29,7 +29,7 @@ def view_identity(facts):
 def binding(facts, reference, kind, adapter):
     frame = next(frame for frame in facts['frames'] if frame['frame'] == reference['frame'])
     target = frame['target']
-    keys = ['element','role','name','label','title','href','value','password','states','editable','search','submit']
+    keys = ['element','role','name','label','title','href','value','password','states','editable','search','submit','page_dialog']
     return {'session':facts['session'],'tab':facts['tab'],'control':facts.get('control'),'url':facts['url'],'document':frame['document'],
             'frame':frame['frame'],'frame_url':frame['url'],'target':{key:target[key] for key in keys if key in target},
             'form':frame.get('form'),
@@ -212,6 +212,8 @@ class Chrome:
         site = state.get('frame_url', state.get('url', ''))
         label = ('resume '+data['resume_kind'] if data.get('resume_kind') else target.get('name') or data['input'].get('key') or data['input']['verb'])
         summary = f"On {site}, as the page shows it, activate '{label}'"
+        if target.get('page_dialog'):
+            summary += f" in {target['page_dialog']['kind']} '{target['page_dialog']['text']}'"
         adapter = state.get('adapter')
         if adapter:
             if payload_kind := adapter.get('target'):
@@ -311,6 +313,8 @@ class Chrome:
             stage('confirmation', canonical(visible(reply['confirmations'])))
         stage('page', canonical(visible(reply)))
         self.steps(reply.get('steps', []), operation['payload']['reference']['tab'])
+        if any(step['kind']=='activation_unknown' for step in reply.get('steps',[])):
+            return 'unknown', 'Input ran, but a page activation may have happened; inspect the page and never replay.'
         return 'done', 'Dispatched once, as the page shows it; this does not prove what the site did.'
 
     def command(self, payload, operation=None, approved=False):
@@ -370,6 +374,8 @@ class Chrome:
         op['stages'] = {'dispatched':'Input dispatched once; delivery not proven.','page':visible(reply)}
         op.update(state='done',reason='Free input dispatched once, as the page shows it.')
         followups=self.steps(reply.get('steps', []),payload['reference']['tab']) if payload else []
+        if any(step['kind']=='activation_unknown' for step in reply.get('steps',[])):
+            op.update(state='unknown',reason='Input ran, but a page activation may have happened; inspect the page and never replay.')
         self.store.write({'op:' + op_id:op},op['action'],'Chrome free input recorded',op_id)
         return {'operation_id':op_id,'untrusted_content':visible(reply),'followups':followups}
 
@@ -394,7 +400,7 @@ class Chrome:
                 source['reference'] = reference
                 text = 'The page activated an asking control by itself; it may have happened. Never resume this activation.' if step['kind'] == 'activation_unknown' else 'The page tried to activate an asking control by itself; it was stopped. Act on the current control to prepare fresh asking input if wanted.'
                 changes, _ = check_result(self.store,source,key,'page_activation',step,{'reason':text,'warning':text,'reference':reference})
-                source['state'] = 'unknown' if step['kind'] == 'activation_unknown' else 'done'
+                source['state'] = 'done'
                 self.store.write({key:source,**changes},'chrome_page_step','Page activation result committed',untrusted_content={'warning':text})
                 followups.append({'stopped':step['kind']!='activation_unknown','unknown':step['kind']=='activation_unknown','reason':text})
         return followups
@@ -456,6 +462,9 @@ class Chrome:
                 return self.engine.submit(BY_NAME['chrome_submit'],args)
             finally:
                 self.trusted_context=False
+        if verb == 'notices':
+            from ..mail.filing import notice_page
+            return notice_page(self.store,args,app='chrome')
         if verb in {'read','read_form','find','wait'}: return self.read(verb,args)
         if verb in {'tabs','downloads','bookmarks','history'}:
             self.mode()

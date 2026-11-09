@@ -57,7 +57,7 @@ function fixture() {
   vm.runInContext(fs.readFileSync('control/chrome/extension/page.js','utf8'),main);
   assert.equal(vm.runInContext("globalThis[Symbol.for('aresos.chrome.page.v1')]",main),undefined);
   assert.equal(vm.runInContext("globalThis[Symbol.for('aresos.chrome.guard.v2')]",main),undefined);
-  function arm(target,form,operation=null){guard.arm({generation:'epoch',config:{words:['send','delete'],holdMs:500},target:id(target),form:form ? id(form):null,operation,primary_submission:false});}
+  function arm(target,form,operation=null){guard.arm({generation:'epoch',config:{words:['send','delete','Papierkorb'],holdMs:500},target:id(target),form:form ? id(form):null,operation,primary_submission:false});}
   return {api:guard,arrivals,get reports(){reports.push(...guard.steps());return reports;},document,HTMLFormElement,HTMLElement,Event,CustomEvent,originalDispatch,arm,main};
 }
 
@@ -155,4 +155,26 @@ test('group7 preparation cannot grant a page a submission before trusted dispatc
   f.arm(button,form,'approved');form.submit();assert.equal(f.arrivals.length,0);
   f.originalDispatch.call(button,new f.Event('click',{isTrusted:true}));
   form.submit();assert.equal(f.arrivals.length,0,'an unlabelled control without a trusted handler has no authority');
+});
+
+test('group2 a further native submit cancels the resumed event default even without page cancellation',()=>{
+  const f=fixture(),form=new f.HTMLFormElement();let handlers=0;
+  form.addEventListener('submit',()=>{handlers++;form.submit();});
+  f.arm(form,form);form.requestSubmit();assert.equal(f.arrivals.length,0);
+  f.api.resume(f.reports[0].id,'op');assert.equal(handlers,1);assert.equal(f.arrivals.length,1);
+});
+
+test('group7 replay of a formerly trusted owner event cannot reuse the owner exemption',async()=>{
+  const f=fixture(),form=new f.HTMLFormElement(),button=new f.HTMLElement();f.arm(button,null);await f.api.finish('epoch');
+  const event=new f.Event('click',{isTrusted:true});f.originalDispatch.call(button,event);
+  button.addEventListener('click',()=>form.submit());event.isTrusted=false;
+  f.originalDispatch.call(button,event);assert.equal(f.arrivals.length,0);assert.equal(f.reports[0].kind,'native_submit');
+});
+test('group1 capitalized shipped Papierkorb holds wrappers and capture equally',()=>{
+  for(const route of ['click','dispatch','capture']){
+    const f=fixture(),button=new f.HTMLElement();button.tagName='BUTTON';button.textContent='Papierkorb';let delivered=0;
+    button.addEventListener('click',()=>delivered++);f.arm(button,null);
+    if(route==='click')button.click();else if(route==='dispatch')button.dispatchEvent(new f.Event('click'));else f.originalDispatch.call(button,new f.Event('click'));
+    assert.equal(delivered,0);assert.equal(f.reports.length,1);
+  }
 });

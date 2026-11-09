@@ -10,7 +10,7 @@ function fixture(){
     declarativeNetRequest:{getSessionRules:async()=>[],updateSessionRules:async value=>rules.push(value)}};
   let source=fs.readFileSync('control/chrome/extension/background.js','utf8').replace("import {POLICY} from './policy.js';",'');
   source=source.slice(0,source.indexOf('async function connect()'));
-  const context=vm.createContext({POLICY:policy,chrome,crypto:{randomUUID:()=> 'fixture-session'},URL,Promise,setTimeout});
+  const context=vm.createContext({POLICY:policy,chrome,crypto:{randomUUID:()=> 'fixture-session'},URL,Promise,setTimeout,TextEncoder,btoa:value=>Buffer.from(value,'binary').toString('base64')});
   vm.runInContext(source,context);
   return {run:code=>vm.runInContext(code,context),registrations,rules};
 }
@@ -30,4 +30,12 @@ test('owner exclusions are mandatory and the private audit switch needs no page 
     assert.ok(script.excludeMatches.includes('https://*.approval.test/*'));
     assert.ok(script.excludeMatches.includes('https://*.approval.test./*'));
   }
+});
+
+test('oversize browser replies distinguish a refused read from an unknown input outcome',()=>{
+  const f=fixture();f.run('globalThis.sent=[];port={postMessage:value=>sent.push(value)}');
+  f.run("respond({id:'read',ok:true,data:'x'.repeat(33*1024*1024)})");
+  assert.match(f.run('sent[0].error'),/^refused:/);
+  f.run("effectStarted=true;respond({id:'input',ok:true,data:'x'.repeat(33*1024*1024)})");
+  assert.match(f.run('sent[1].error'),/^unknown:/);
 });

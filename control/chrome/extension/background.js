@@ -7,7 +7,16 @@ let excludedHosts = null;
 const listSnapshots = new Map();
 const ownerRequests = new Map(), stagedUploads = new Map(), confirmationPlans = new Map(), dialogWake = new Map();
 function assertControl(tab,epoch=dispatchEpoch){if(!epoch || controlled.get(tab)?.epoch !== epoch)throw Error('stale_reference: control ended');}
-const audit = value => { if (recording && port) port.postMessage({event:'audit',data:value}); return value; };
+const audit = value => {
+  if(recording && port){const text=JSON.stringify(value);if(text && text.length>64000){for(let offset=0;offset<text.length;offset+=64000)port.postMessage({event:'audit',data:{json_fragment:text.slice(offset,offset+64000),offset,total:text.length}});}else port.postMessage({event:'audit',data:value});}
+  return value;
+};
+function respond(value) {
+  const bytes=new TextEncoder().encode(JSON.stringify(value));
+  if(bytes.length<=512*1024){port?.postMessage(value);return;}
+  if(bytes.length>32*1024*1024){port?.postMessage({id:value.id,ok:false,error:(effectStarted?'unknown: input may have run; ':'refused: ')+'complete browser snapshot exceeds 32 MiB; inspect status and use a smaller document'});return;}
+  for(let offset=0;offset<bytes.length;offset+=64*1024){const chunk=bytes.subarray(offset,offset+64*1024);port?.postMessage({id:value.id,chunk:{offset,total:bytes.length,bytes:btoa(Array.from(chunk,value=>String.fromCharCode(value)).join(''))}});}
+}
 function safeURL(address) {
   if(!excludedHosts)throw Error('refused: owner-only excluded-sites setting is unavailable');
   if (address === 'about:blank') return address;
@@ -114,7 +123,7 @@ function binding(facts, reference, kind, adapter) {
   if (!frame?.target) throw Error('stale_reference: target not found');
   const target = frame.target;
   return {session,tab:facts.tab,control:facts.control,url:facts.url,document:frame.document,frame:frame.frame,frame_url:frame.url,
-    target:Object.fromEntries(['element','role','name','label','title','href','value','password','states','editable','search','submit'].filter(key=>key in target).map(key=>[key,target[key]])),
+    target:Object.fromEntries(['element','role','name','label','title','href','value','password','states','editable','search','submit','page_dialog'].filter(key=>key in target).map(key=>[key,target[key]])),
     form:frame.form,
     editable:kind === 'send' && !frame.form && !adapter ? facts.frames.map(frame=>({frame:frame.frame,document:frame.document,url:frame.url,fields:frame.editable})) : null,
     item:['delete','pay','activation','confirmation'].includes(kind) ? frame.item : null,
@@ -298,7 +307,7 @@ async function connect() {
     if (message.owner_reply) { const pending=ownerRequests.get(message.owner_reply); if(pending){ownerRequests.delete(message.owner_reply);pending(message.result);} return; }
     serial=serial.then(async()=>{
       effectStarted=false;dispatchEpoch=null;
-      try { port.postMessage({id:message.id,ok:true,data:await dispatch(message.command)}); }
+      try { respond({id:message.id,ok:true,data:await dispatch(message.command)}); }
       catch(error) { port?.postMessage({id:message.id,ok:false,error:effectStarted ? 'unknown: Input may have started; inspect status and the page, never retry. '+String(error.message):String(error.message)}); }
     });
   });

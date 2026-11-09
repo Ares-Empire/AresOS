@@ -53,10 +53,7 @@ export const POLICY = {
     "Page.navigateToHistoryEntry",
     "Page.reload",
     "Page.enable",
-    "Page.handleJavaScriptDialog",
-    "DOM.getDocument",
-    "DOM.querySelector",
-    "DOM.setFileInputFiles"
+    "Page.handleJavaScriptDialog"
   ],
   "holdMs": 500
 };

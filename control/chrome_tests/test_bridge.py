@@ -70,3 +70,22 @@ class Handshake(unittest.TestCase):
             self.assertGreaterEqual(server.fileno(), 0)
         finally:
             server.close(); client.close()
+
+class FragmentedReplies(unittest.TestCase):
+    def test_large_multibyte_page_reassembles_before_paging_and_rejects_wrong_offsets(self):
+        import base64
+        import json
+        from aresos_control.chrome.bridge import Bridge
+        class Peer:
+            def __init__(self,broken=False):self.buffer=b'';self.broken=broken
+            def sendall(self,data):
+                identity=json.loads(data)['id'];value=json.dumps({'id':identity,'ok':True,'data':{'text':'é🦊'*300000}},ensure_ascii=False).encode()
+                for offset in range(0,len(value),65536):
+                    message={'id':identity,'chunk':{'offset':offset+(1 if self.broken else 0),'total':len(value),'bytes':base64.b64encode(value[offset:offset+65536]).decode()}}
+                    self.buffer+=(json.dumps(message)+'\n').encode()
+            def recv(self,size):value=self.buffer[:size];self.buffer=self.buffer[size:];return value
+            def close(self):pass
+        bridge=Bridge();bridge.connection=Peer()
+        self.assertEqual(bridge.call('read',tab=1)['text'],'é🦊'*300000)
+        bridge.connection=Peer(True)
+        with self.assertRaises(Refused):bridge.call('read',tab=1)

@@ -1,5 +1,7 @@
 """One authenticated native host. Commands are named and never raw CDP."""
 import json
+import base64
+import binascii
 import select
 import socket
 import uuid
@@ -62,6 +64,8 @@ class Bridge:
             raise Refused('asking_input_too_large', 'Chrome command exceeds its wire bound; use a smaller input.')
         try:
             self.connection.sendall(body)
+            assembled = bytearray()
+            total = None
             while True:
                 reply = self.read()
                 if reply.get('event'):
@@ -69,13 +73,30 @@ class Bridge:
                     continue
                 if reply.get('id') != identity:
                     raise Refused('transport_error', 'Chrome response identity changed; inspect status, never retry.')
+                if 'chunk' in reply:
+                    chunk = reply['chunk']
+                    if (type(chunk) is not dict or set(chunk) != {'offset','total','bytes'} or type(chunk['offset']) is not int or
+                            type(chunk['total']) is not int or not 0 < chunk['total'] <= 32*1024*1024 or
+                            chunk['offset'] != len(assembled) or total is not None and total != chunk['total']):
+                        raise Refused('transport_error','Invalid Chrome response fragment; nothing is retried.')
+                    total = chunk['total']
+                    data = base64.b64decode(chunk['bytes'],validate=True)
+                    if not data or len(data)>64*1024 or len(assembled)+len(data)>total:
+                        raise Refused('transport_error','Chrome fragment exceeds its response bound.')
+                    assembled.extend(data)
+                    if len(assembled)<total:continue
+                    reply=strict_json_loads(bytes(assembled))
+                    if reply.get('id')!=identity or 'chunk' in reply:
+                        raise Refused('transport_error','Chrome assembled response identity changed.')
+                elif assembled:
+                    raise Refused('transport_error','Incomplete Chrome response fragments.')
                 if not reply.get('ok'):
                     raw = reply.get('error','refused: Chrome refused input')
                     code, separator, message = raw.partition(':')
                     if not separator: message = raw
                     raise Refused(code if code in {'stale_reference','stale_approval','owner_signin','refused','permission_denied','unknown','transport_error'} else 'refused', message.strip())
                 return reply['data']
-        except (OSError, ValueError) as exc:
+        except (OSError, ValueError, binascii.Error, TypeError) as exc:
             self.close()
             raise Refused('transport_error', 'Chrome connection was cut off; the input may have run. Inspect operation status and never replay.') from exc
 

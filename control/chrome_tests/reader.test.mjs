@@ -15,7 +15,7 @@ function fixture(fields) {
     matches(selector){if(selector===':disabled')return !!this.disabled;return selector==='input,textarea,select,[contenteditable]' || selector.includes('input') && this.tagName==='INPUT';}
     getRootNode(){return document;}
     getBoundingClientRect(){return {x:1,y:1,width:10,height:10,bottom:11,right:11};}
-    closest(){return this;}
+    closest(selector){return selector==='dialog,[role=dialog],[role=alertdialog]' ? this.dialog || null : this;}
     dispatchEvent(){}
   }
   class HTMLInputElement extends Element{}
@@ -25,9 +25,9 @@ function fixture(fields) {
   const nodes=fields.map(config=>new HTMLInputElement(config));
   const document={title:'Fixture',childNodes:[],getElementById(){return null;},
     querySelectorAll(selector){return nodes;},addEventListener(){},dispatchEvent(){}};
-  let listener;
+  let listener,observer;
   const chrome={dom:{openOrClosedShadowRoot:()=>null},runtime:{id:'fixture',onMessage:{addListener(fn){listener=fn;}}}};
-  class MutationObserver {constructor(fn){this.fn=fn;}observe(){}}
+  class MutationObserver {constructor(fn){this.fn=fn;this.records=[];observer=this;}observe(){}takeRecords(){return this.records.splice(0);}}
   const context=vm.createContext({document,chrome,crypto:{getRandomValues:array=>array.fill(1)},MutationObserver,
     Element,HTMLElement:Element,HTMLInputElement,HTMLTextAreaElement,HTMLSelectElement,HTMLButtonElement,Node:{TEXT_NODE:3},CustomEvent:class{},
     getComputedStyle:element=>({display:'block',visibility:'visible',webkitTextSecurity:element.mask || 'none'}),
@@ -36,7 +36,7 @@ function fixture(fields) {
   vm.runInContext(fs.readFileSync('control/chrome/extension/reader.js','utf8'),context);
   function read(){let result;listener({command:'read'},{id:'fixture'},value=>result=value);assert.equal(result.ok,true,JSON.stringify(result));return result;}
   function command(message){let result;listener(message,{id:'fixture'},value=>result=value);return result;}
-  return {nodes,read,command,calls:()=>calls};
+  return {nodes,read,command,mutations:()=>observer.records,calls:()=>calls};
 }
 
 test('group7 protected values never reach a getter, source attribute, trace or binding',()=>{
@@ -69,4 +69,17 @@ test('isolated arm and resume messages reach the guard without falling through d
   assert.equal(f.command({command:'arm',generation:'epoch'}).ok,true);
   assert.equal(f.command({command:'resume',generation:'epoch',hold:'h1',operation:'op'}).ok,true);
   assert.equal(f.command({command:'resume',generation:'forged',hold:'h1',operation:'op'}).ok,false);
+});
+
+test('group7 password-to-text transitions in one task are excluded before observer delivery',()=>{
+  const f=fixture([{}]);f.read();const before=f.calls();
+  f.nodes[0].forbidden=true;f.mutations().push({type:'attributes',attributeName:'type',oldValue:'password',target:f.nodes[0]});
+  f.read();assert.equal(f.calls(),before);
+});
+
+test('group7 uppercase historical password attributes stay excluded',()=>{
+  for(const [attributeName,oldValue] of [['type','PASSWORD'],['autocomplete','CURRENT-PASSWORD'],['autocomplete','ONE-TIME-CODE']]){
+    const f=fixture([{}]);f.read();const before=f.calls();f.nodes[0].forbidden=true;
+    f.mutations().push({type:'attributes',attributeName,oldValue,target:f.nodes[0]});f.read();assert.equal(f.calls(),before);
+  }
 });
