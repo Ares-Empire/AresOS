@@ -168,13 +168,13 @@ def permitted(row, call):
         mode = description.get('mode', arguments.get('mode'))
     else:
         mode = row.get('payload', {}).get('mode')
-        action = row.get('action', action)
+        action = action or row.get('action')
     if action == 'mail_delete':
         return {'MOVE'} if mode == 'trash' else {'STORE', 'EXPUNGE'} if mode == 'permanent' else set()
     if action in {'mail_folder_delete', 'mail_onboarding_folder_probe'}:
         return {'DELETE'}
     if action == 'mail_operation_repair':
-        stage = row.get('payload', {}).get('stage')
+        stage = arguments.get('stage')
         return {'APPEND'} if stage == 'sent_copy' else {'STORE'} if stage == 'answered_flag' else set()
     if action == 'mail_unsubscribe' and row.get('payload', {}).get('method') == 'POST':
         return {'POST'}
@@ -202,4 +202,71 @@ def differences(event, script):
                 missing.append(field)
         elif found != value or value is None and field not in {'source'}:
             missing.append(field)
-    return key, sorted(missing)
+    missing.extend(script_differences(event, script, row, actual))
+    return key, sorted(set(missing))
+
+
+def script_differences(event, script, row, context):
+    """A matching context/command pair still needs the scenario's authority."""
+    call = call_for(event, script)
+    args = call.get('arguments', {})
+    description = args.get('description', {})
+    description = {**description, **description.get('untrusted_content', {})}
+    action, command = call.get('action'), event['command']
+    refs = args.get('references') or [i['reference'] for i in description.get('items', []) if 'reference' in i]
+    if not refs and description.get('answered_reference'):
+        refs = [description['answered_reference']]
+    errors = []
+    expected_account = args.get('account') or description.get('account') or (refs[0].get('account') if refs else None)
+    if expected_account is not None:
+        if event.get('account') != expected_account:
+            errors.append('script.command.account')
+        if context.get('account') != expected_account:
+            errors.append('script.context.account')
+    actual = required(event, script)
+    if refs and command in UID_COMMANDS:
+        selected = actual.get('identities', [])
+        if not selected or any(ref not in [identity(v) for v in refs] for ref in selected):
+            errors.append('script.command.identities')
+        if any(identity(v) not in (context.get('identities') or []) for v in refs):
+            errors.append('script.context.identities')
+        if any(v not in [identity(ref) for ref in refs] for v in (context.get('identities') or [])):
+            errors.append('script.context.unapproved-identities')
+    expected = {}
+    if action in {'mail_move', 'mail_copy'}:
+        expected['destination'] = args.get('target')
+    elif action == 'mail_folder_rename':
+        expected.update(source=args.get('folder'), destination=args.get('name'))
+    elif action == 'mail_folder_create':
+        expected.update(source=None, destination=args.get('name'))
+    elif action == 'mail_folder_delete':
+        expected.update(source=description.get('folder'), destination=description.get('folder'))
+    elif action == 'mail_flag' and command == 'STORE':
+        flags = args.get('add') if actual.get('flags', [''])[0].startswith('+') else args.get('remove')
+        expected['flags'] = ['+FLAGS.SILENT' if actual.get('flags', [''])[0].startswith('+') else '-FLAGS.SILENT', '(' + ' '.join(flags or []) + ')']
+    elif action == 'mail_operation_repair':
+        stage = args.get('stage')
+        if row.get('repair_of') != args.get('operation_id') or row.get('payload', {}).get('stage') != stage:
+            errors.append('script.repair-stage')
+        if command not in ({'APPEND'} if stage == 'sent_copy' else {'STORE'} if stage == 'answered_flag' else set()):
+            errors.append('script.repair-command')
+    if command in {'DATA', 'RECEIVE'} and any(k in description for k in ('to', 'cc', 'bcc')):
+        expected['recipients'] = [address for _, address in getaddresses(description.get('to', []) + description.get('cc', []) + description.get('bcc', []))] if command == 'DATA' else description.get('to', []) + description.get('cc', []) + description.get('bcc', [])
+    if command == 'DATA' and description.get('from'):
+        expected['source'] = getaddresses([description['from']])[0][1]
+    if command == 'POST':
+        if 'target' in description:
+            expected['destination'] = description['target']
+        expected['body'] = 'List-Unsubscribe=One-Click'
+        if 'reference' in description:
+            expected['source'] = description['reference']
+    if command == 'CONFIGURE':
+        expected['arguments'] = args
+    for field, value in expected.items():
+        if actual.get(field) != value:
+            errors.append('script.command.' + field)
+        if context.get(field) != value:
+            errors.append('script.context.' + field)
+    if args.get('operation_id') and row.get('approval') is not None and action != 'mail_operation_repair' and row['approval'] != args:
+        errors.append('script.approval')
+    return errors

@@ -6,6 +6,7 @@ import unittest
 from unittest.mock import patch
 
 from aresos_control.common import Refused
+from owner_state_oracle.compare import retained_role
 from owner_state_oracle.driver import Driver
 from owner_state_oracle.gaps import Gaps
 from owner_state_oracle.model import Fact, Oracle
@@ -83,7 +84,7 @@ class ReviewRegressions(unittest.TestCase):
         self.imap.roles['Drafts'] = ['\\Drafts']
         page = self.data('filing_notices', {})
         wanted = {Fact(key, 'observed-role', detail='Trash')}
-        actual = {Fact(key, 'observed-role', detail='Trash') for n in page['items'] if 'inside Trash' in n['untrusted_content']['reason']}
+        actual = retained_role(key, 'Trash', decode(self.root / 'state', self.root / 'evidence'), page)
         self.known_gap('G22-evidence', wanted, actual)
 
     def test_review22_zero_byte_journal_enospc_recovers_without_restart_M10_M13(self):

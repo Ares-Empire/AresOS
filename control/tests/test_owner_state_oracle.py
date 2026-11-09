@@ -16,7 +16,7 @@ from owner_state_oracle.compare import pages
 class OwnerOracle(unittest.TestCase):
     def test_expectation_imports_are_standard_library_only(self):
         root = Path(__file__).resolve().parents[1] / 'owner_state_oracle'
-        allowed = {'contextlib', 'email', 'context', 'copy', 'dataclasses', 'hashlib', 'json', 'pathlib', 'sqlite3', 'shutil', 'tempfile', 'time', 're', 'gzip', 'os', 'argparse', 'model', 'records', 'local'}
+        allowed = {'contextlib', 'email', 'context', 'copy', 'dataclasses', 'hashlib', 'json', 'pathlib', 'sqlite3', 'shutil', 'tempfile', 'time', 're', 'gzip', 'os', 'argparse', 'unicodedata', 'model', 'records', 'local'}
         for name in ('__init__.py', 'records.py', 'model.py', 'compare.py', 'context.py', 'gaps.py', 'local.py'):
             tree = ast.parse((root / name).read_text())
             for node in ast.walk(tree):
@@ -99,9 +99,11 @@ class OwnerOracle(unittest.TestCase):
         record.rows['notice:n'] = {'id': 'n', 'source_key': 'op:g:send', 'check_kind': 'sent_copies'}
         first = oracle.expected(record)
         self.assertEqual(first, oracle.expected(record))
+        oracle.call('mail_notice_ack', {'operation_id': 'n' if 'notice:n' in record.rows else 'old'}, 123)
+        oracle.script[-1].update(start_seq=0, end_seq=1)
         record.events.append({'seq': 1, 'action': 'mail_notice_ack', 'set': {'notice:n': {**record.rows['notice:n'], 'ack': True}}})
         self.assertEqual(oracle.expected(record), set())
-        record.events.append({'seq': 2, 'action': 'mail_sent_copy_check', 'set': {'op:g:send': {'sent_copy_check': {'state': 'checked', 'clean': True}}}})
+        record.events.append({'seq': 2, 'action': 'mail_sent_copy_check', 'set': {'op:g:send': {**record.rows['op:g:send'], 'sent_copy_check': {'state': 'checked', 'clean': True}}}})
         oracle.call('mail_operation_status', {'operation_id': 'g:send'}, 124)
         oracle.script[-1]['end_seq'] = 2
         oracle.server('SENT', 'box', 'Sent', oracle.servers[0]['identities'][:1], source='op:g:send', before_seq=1)
@@ -194,6 +196,8 @@ class OwnerOracle(unittest.TestCase):
             record = Record(rows={'notice:old': first})
             one = oracle.warning(source, kind, evidence, record)
             self.assertEqual(one.occurrence, 'old')
+            oracle.call('mail_notice_ack', {'operation_id': 'old'}, 1)
+            oracle.script[-1].update(start_seq=0, end_seq=1)
             record.events = [{'seq': 1, 'action': 'mail_notice_ack', 'set': {'notice:old': {**first, 'ack': True}}},
                 {'seq': 2, 'action': 'mail_filing_check', 'set': {source: {'warning_checks': {kind: {'warning': False}}}}}]
             oracle.call('filing check', {}, 2)
@@ -298,9 +302,11 @@ class OwnerOracle(unittest.TestCase):
         old = {'id': 'old', 'source_key': 'op:g:send', 'check_kind': 'sent_copies'}
         record.rows['notice:old'] = old
         oracle.expected(record)
+        oracle.call('mail_notice_ack', {'operation_id': 'n' if 'notice:n' in record.rows else 'old'}, 123)
+        oracle.script[-1].update(start_seq=0, end_seq=1)
         record.events.append({'seq': 1, 'action': 'mail_notice_ack', 'set': {'notice:old': {**old, 'ack': True}}})
         self.assertEqual(oracle.expected(record), set())
-        record.events.append({'seq': 2, 'action': 'mail_sent_copy_check', 'set': {'op:g:send': {'sent_copy_check': {'state': 'checked', 'clean': True}}}})
+        record.events.append({'seq': 2, 'action': 'mail_sent_copy_check', 'set': {'op:g:send': {**record.rows['op:g:send'], 'sent_copy_check': {'state': 'checked', 'clean': True}}}})
         oracle.call('mail_operation_status', {'operation_id': 'g:send'}, 125)
         oracle.script[-1]['end_seq'] = 2
         oracle.server('SENT', 'box', 'Sent', oracle.servers[0]['identities'], source='op:g:send', before_seq=1)
@@ -316,7 +322,7 @@ class OwnerOracle(unittest.TestCase):
         evidence = {'target': 'Target', 'role': 'Trash'}
         saved = {'id': 'n', 'source_key': source, 'check_kind': 'rename', 'evidence_fingerprint': fingerprint(evidence)}
         record = Record(rows={source: {**context, 'state': 'partial'}, 'notice:n': saved},
-                        events=[{'seq': 1, 'action': 'mail_folder_rename', 'set': {source: {**context, 'state': 'started'}}}])
+                        events=[{'seq': 1, 'action': 'mail_folder_rename', 'set': {source: {**context, 'state': 'partial'}}}])
         oracle.detected.add(oracle.warning(source, 'rename', evidence, record, context))
         expected = oracle.expected(record)
         correct = {'operation_id': 'n', 'app': 'mail', 'state': 'partial', 'untrusted_content': {
@@ -506,7 +512,7 @@ class OwnerOracle(unittest.TestCase):
             gaps = Gaps(recording=True)
             gaps.groups = {g['id']: g for g in pack(entries)['groups']}
             gaps.entries, gaps.recording = values, False
-            gaps.verify({'flow'})
+            gaps.verify({'flow'}, artifact=False)
         verify(entries)
         mutations = []
         flipped = copy.deepcopy(entries)
@@ -767,7 +773,7 @@ class OwnerOracle(unittest.TestCase):
         from owner_state_oracle.context import differences
         for parent, child in (('g:a', 'g:z'), ('g:z', 'g:a')):
             oracle = Oracle()
-            oracle.call('mail_operation_repair', {'operation_id': parent}, 123)
+            oracle.call('mail_operation_repair', {'operation_id': parent, 'stage': 'sent_copy'}, 123)
             context = dict(command='APPEND', account='box', identities=[{'message_id': '<exact>'}],
                            roles={}, source='local', destination='Sent', sha256='wire')
             rows = {'op:' + parent: {'id': parent, 'state': 'partial', 'context': context},
@@ -821,3 +827,182 @@ class OwnerOracle(unittest.TestCase):
         oracle.script[-1]['end_seq'] = 2
         oracle.server('LIST', before_seq=1, roles={'Target': ['\\All'], 'Sent': ['\\Sent'], 'Drafts': ['\\Drafts'], 'Trash': ['\\Trash']})
         self.assertFalse(oracle.clean_proof(source, 'rename', 2))
+
+
+class StageOneFixMutations(unittest.TestCase):
+    def test_spontaneous_ack_cannot_erase_warning(self):
+        oracle, record = OwnerOracle.recorded(self)
+        row = {'id': 'n', 'source_key': 'op:g:send', 'check_kind': 'sent_copies', 'ack': True}
+        record.rows['notice:n'] = row
+        record.events = [{'seq': 1, 'action': 'mail_sent_copy_check', 'set': {'notice:n': row}}]
+        expected = oracle.expected(record)
+        self.assertTrue(any(f.kind == 'sent_copies' for f in expected))
+        self.assertIn(Fact('notice:n', 'unjustified-ack'), oracle.lifecycle_errors)
+        with self.assertRaises(AssertionError):
+            oracle.compare('automatic ack', expected, set())
+
+    def test_scripted_ack_cannot_close_unfinished_check(self):
+        oracle = Oracle()
+        source = 'mail:rename:r'
+        old = {'id': 'r', 'state': 'started', 'check_open': True, 'account': 'box'}
+        oracle.call('mail_notice_ack', {'operation_id': 'r'}, 1)
+        oracle.script[-1].update(start_seq=1, end_seq=2)
+        record = Record(events=[{'seq': 1, 'action': 'fixture', 'set': {source: old}},
+            {'seq': 2, 'action': 'mail_notice_ack', 'set': {source: {**old, 'state': 'done', 'check_open': False}}}])
+        expected = oracle.expected(record)
+        self.assertTrue(any(f.kind == 'recovery' for f in expected))
+        self.assertIn(Fact(source, 'unjustified-check-close'), oracle.lifecycle_errors)
+        with self.assertRaises(AssertionError):
+            oracle.compare('ack closes check', expected, set())
+
+    def test_archive_cannot_remove_unresolved_reservation(self):
+        oracle = Oracle()
+        row = {'id': 'g:r', 'app': 'mail', 'state': 'reserved'}
+        record = Record(events=[{'seq': 1, 'action': 'mail_prepare_send', 'set': {'op:g:r': row}},
+            {'seq': 2, 'action': 'control_archive', 'set': {'op:g:r': None}}])
+        expected = oracle.expected(record)
+        self.assertIn(Fact('op:g:r', 'unjustified-removal'), oracle.lifecycle_errors)
+        self.assertEqual(oracle.holds(record), {Fact('cancel:g:r', 'held')})
+        with self.assertRaises(AssertionError):
+            oracle.compare('archive drops reservation', expected, set())
+
+    def test_matching_context_and_command_cannot_change_script_uid(self):
+        from owner_state_oracle.context import differences
+        requested = {'account': 'box', 'folder': 'Source', 'uidvalidity': 1, 'uid': 1, 'message_id': '<one@mail.invalid>'}
+        wrong = {**requested, 'uid': 2, 'message_id': '<two@mail.invalid>'}
+        oracle = Oracle()
+        oracle.call('mail_flag', {'references': [requested], 'add': ['\\Seen']}, 1)
+        event = oracle.server('STORE', 'box', 'Source', [wrong], {}, arguments=['2', '+FLAGS.SILENT', '(\\Seen)'],
+            call_start_seq=0, created_before={'intent:x': 1}, committed_before={'intent:x': {
+                'state': 'started', 'action': 'mail_flag', 'context': {'command': 'STORE', 'account': 'box', 'roles': {},
+                'source': 'Source', 'identities': [wrong], 'flags': ['+FLAGS.SILENT', '(\\Seen)']}}})
+        self.assertIn('script.command.identities', differences(event, oracle.script)[1])
+        self.assertIn('script.context.identities', differences(event, oracle.script)[1])
+
+    def test_empty_healthy_catalogue_cannot_refuse_itself(self):
+        from owner_state_oracle.compare import compare_status
+        oracle = Oracle()
+        oracle.call('mail_filing_notices', {}, 1)
+        reply = {'ok': False, 'error': {'code': 'storage_limit'}}
+        oracle.reply(reply)
+        self.assertEqual(oracle.expected(Record(), live=True), set())
+        with self.assertRaises(AssertionError):
+            compare_status(reply, oracle, Record(), oracle.script[-1], oracle.compare, 'empty')
+        compare_status({'ok': True}, oracle, Record(), oracle.script[-1], oracle.compare, 'empty')
+
+    def background(self):
+        oracle = Oracle()
+        oracle.call('control_pending', {}, 1, {'background': True, 'trace': [(1, 'journal.write', 'ENOSPC'), (2, 'file.truncate', 'EIO')]})
+        return oracle
+
+    def test_background_first_cause_present_lost_and_restart(self):
+        from owner_state_oracle.compare import notice_facts
+        oracle = self.background()
+        expected = oracle.expected(Record())
+        notice = {'operation_id': 'background-storage', 'untrusted_content': {'reason': 'Disk full or storage quota exhausted; free storage and check the recorded request or operation before retrying.'}}
+        self.assertEqual(expected, notice_facts(notice, Record(), oracle))
+        with self.assertRaises(AssertionError):
+            oracle.compare('lost after failed persistence', expected, set())
+        restarted = Oracle()
+        restarted.script = copy.deepcopy(oracle.script)
+        self.assertEqual(restarted.expected(Record()), expected)
+        wrong = copy.deepcopy(notice)
+        wrong['untrusted_content']['reason'] = 'Storage I/O failed; check the disk.'
+        with self.assertRaises(AssertionError):
+            oracle.compare('cleanup replaced first cause', expected, notice_facts(wrong, Record(), oracle))
+
+    def test_every_action_error_and_continuation_envelope_keeps_live_warning(self):
+        from owner_state_oracle.compare import compare_envelope
+        oracle = self.background()
+        record = Record()
+        expected = oracle.expected(record)
+        reply = {'ok': True, 'pending': {'items': [], 'total': 0, 'cursor': None, 'notices': [
+            {'operation_id': 'background-storage', 'untrusted_content': {'reason': 'Disk full or storage quota exhausted'}}]}}
+        for label in ('original-action', 'error-reply', 'continuation-page'):
+            compare_envelope(label, reply, record, oracle, expected, oracle.compare)
+            wrong = copy.deepcopy(reply)
+            wrong['pending']['notices'] = []
+            with self.assertRaises(AssertionError):
+                compare_envelope(label, wrong, record, oracle, expected, oracle.compare)
+
+    def test_completed_qualification_comes_from_probe_evidence(self):
+        oracle = Oracle()
+        oracle.call('mail_account_add', {'id': 'new'}, 1)
+        oracle.server('DATA', 'new', accepted=True)
+        oracle.server('SENT', 'new', identities=[])
+        oracle.server('DELETE', 'new', accepted=False, response_code='NO', response_text=['[CANNOT] Generic refusal'])
+        record = Record(events=[{'seq': 1, 'action': 'mail_account_add', 'outcome': 'done', 'set': {'mail:account:new': {
+            'id': 'new', 'onboarded': True, 'ready': True, 'sent_policy': 'server', 'safe_folder_delete': True}}}])
+        expected = oracle.qualification_facts({}, record)
+        good = {'ok': True, 'data': {'accounts': [{'id': 'new', 'ready': False, 'sent_policy': 'client', 'safe_folder_delete': False, 'folder_delete_reason': 'Protection not proven; cleanup needs owner inspection.'}]}}
+        self.assertEqual(expected, oracle.qualification_facts(good, record, actual=True))
+        for field, value in (('ready', True), ('sent_policy', 'server'), ('safe_folder_delete', True), ('folder_delete_reason', 'Qualified: all safe.')):
+            wrong = copy.deepcopy(good)
+            wrong['data']['accounts'][0][field] = value
+            with self.subTest(field=field), self.assertRaises(AssertionError):
+                oracle.compare('qualification', expected, oracle.qualification_facts(wrong, record, actual=True))
+        oracle.call('mail_accounts', {}, 2)
+        self.assertEqual(expected, oracle.qualification_facts({}, record))
+
+    def test_recovery_handle_is_checked_on_pages_reads_and_ack(self):
+        from owner_state_oracle.compare import notice_facts
+        oracle = Oracle()
+        source = 'mail:rename:r'
+        record = Record(rows={source: {'id': 'r', 'state': 'started'}})
+        expected = oracle.expected(record)
+        good = {'operation_id': 'r', 'app': 'mail', 'state': 'unknown', 'untrusted_content': {'intent_key': source, 'recovery_warning': True, 'reason': 'Check roles.'}}
+        self.assertEqual(expected, notice_facts(good, record, oracle))
+        for label in ('page', 'repeat', 'restart'):
+            wrong = {**good, 'operation_id': 'changed'}
+            with self.assertRaises(AssertionError):
+                oracle.compare(label, expected, notice_facts(wrong, record, oracle))
+        oracle.call('mail_notice_ack', {'operation_id': 'r'}, 1)
+        record.events = [{'seq': 1, 'action': 'mail_notice_ack', 'set': {'notice:r': {'id': 'r', 'ack': True}}}]
+        after = oracle.expected(record)
+        self.assertIn(Fact(source, 'recovery-handle', 'check-' + fingerprint(source)[:32]), after)
+
+    def test_audit_checks_identity_explanation_evidence_and_marking(self):
+        from owner_state_oracle.compare import audit_fact
+        event = {'seq': 1, 'time': 1, 'action': 'mail_send', 'operation_id': 'g:x', 'summary': 'Synthetic explanation', 'outcome': 'partial', 'untrusted_content': {'stage': 'smtp_data', 'outcome': 'accepted'}}
+        expected = audit_fact(event, expected=True)
+        public = {**event, 'summary': 'Mail audit event', 'untrusted_content': {'summary': event['summary'], **event['untrusted_content']}}
+        self.assertEqual(expected, audit_fact(public))
+        wrongs = [{**public, 'operation_id': 'g:other'}, {**public, 'summary': 'wrong'},
+            {**public, 'untrusted_content': {'summary': 'wrong', 'stage': 'smtp_data', 'outcome': 'accepted'}},
+            {**public, 'untrusted_content': {'summary': event['summary'], 'stage': 'APPEND', 'outcome': 'accepted'}}]
+        unmarked = copy.deepcopy(public)
+        unmarked.update(unmarked.pop('untrusted_content'))
+        wrongs.append(unmarked)
+        for wrong in wrongs:
+            with self.assertRaises(AssertionError):
+                Oracle().compare('audit', {expected}, {audit_fact(wrong)})
+
+    def test_unbound_semantic_occurrence_binds_after_persistence_and_acks(self):
+        oracle, record = OwnerOracle.recorded(self)
+        first = oracle.expected(record)
+        semantic = dict(oracle.semantic_occurrences)
+        self.assertTrue(any(f.occurrence.startswith('uncommitted:') for f in first))
+        record.rows['notice:later'] = {'id': 'later', 'source_key': 'op:g:send', 'check_kind': 'sent_copies'}
+        bound = oracle.expected(record)
+        self.assertEqual(semantic, oracle.semantic_occurrences)
+        self.assertEqual({f.occurrence for f in bound}, {'later'})
+        oracle.call('mail_notice_ack', {'operation_id': 'later'}, 124)
+        oracle.script[-1].update(start_seq=0, end_seq=1)
+        record.events = [{'seq': 1, 'action': 'mail_notice_ack', 'set': {'notice:later': {**record.rows['notice:later'], 'ack': True}}}]
+        self.assertEqual(oracle.expected(record), set())
+        self.assertEqual(semantic, oracle.semantic_occurrences)
+
+    def test_D3_generic_warning_requires_committed_evidence_and_open_check(self):
+        from owner_state_oracle.compare import retained_role
+        source = 'mail:rename:r'
+        content = {'intent_key': source, 'reason': "Evidence was seen but couldn't be recorded; check Trash"}
+        notice = {'operation_id': 'generic', 'untrusted_content': content}
+        record = Record(rows={source: {'state': 'started'}, 'notice:generic': {
+            'id': 'generic', 'source_key': source, 'untrusted_content': content, 'ack': False}})
+        expected = {Fact(source, 'observed-role', detail='Trash')}
+        self.assertEqual(retained_role(source, 'Trash', record, {'items': [notice]}), expected)
+        for rows in ({source: {'state': 'started'}}, {'notice:generic': record.rows['notice:generic']},
+            {source: {'state': 'done'}, 'notice:generic': record.rows['notice:generic']}):
+            self.assertEqual(retained_role(source, 'Trash', Record(rows=rows), {'items': [notice]}), set())
+        vague = {**notice, 'untrusted_content': {'intent_key': source, 'reason': 'Not yet checked'}}
+        self.assertEqual(retained_role(source, 'Trash', record, {'items': [vague]}), set())

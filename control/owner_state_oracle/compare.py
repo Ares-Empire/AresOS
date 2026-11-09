@@ -1,6 +1,7 @@
 """Read each public surface in isolation; drain and validate its own pages."""
 import json
 import re
+import unicodedata
 from .model import Fact
 from .records import canonical, fingerprint
 
@@ -8,10 +9,14 @@ from .records import canonical, fingerprint
 def notice_facts(notice, record, oracle):
     occurrence = notice['operation_id']
     content = notice.get('untrusted_content', {})
+    if occurrence == 'background-storage':
+        reason = content.get('reason', '')
+        cause = 'storage_limit' if 'Disk full or storage quota exhausted' in reason else 'storage_error' if 'Storage I/O failed' in reason else 'unknown'
+        return {Fact('background:storage', 'background-storage', occurrence, cause)}
     saved = record.rows.get('notice:' + occurrence, {})
     source = saved.get('source_key') or content.get('intent_key')
     if content.get('check') == 'sent_copies':
-        return {Fact('op:' + content['operation_id'], 'unchecked'), Fact('op:' + content['operation_id'], 'unchecked-context', detail=canonical({'app': notice.get('app'), 'state': notice.get('state'), 'operation_identity': content.get('operation_id') == content['operation_id'], 'check': content.get('check'), 'not_yet_checked': 'not yet checked' in content.get('reason', '')}))}
+        return {Fact('op:' + content['operation_id'], 'unchecked-handle', occurrence), Fact('op:' + content['operation_id'], 'unchecked'), Fact('op:' + content['operation_id'], 'unchecked-context', detail=canonical({'app': notice.get('app'), 'state': notice.get('state'), 'operation_identity': content.get('operation_id') == content['operation_id'], 'check': content.get('check'), 'not_yet_checked': 'not yet checked' in content.get('reason', '')}))}
     if source is None and content.get('operation_id'):
         source = 'op:' + content['operation_id']
     if source is None:
@@ -23,7 +28,7 @@ def notice_facts(notice, record, oracle):
     if source is None:
         return {Fact('unbound:' + occurrence, 'unexpected')}
     if content.get('recovery_warning') or content.get('check_open') or saved.get('check_kind') == 'recovery':
-        return {Fact(source, 'recovery'), Fact(source, 'recovery-context', detail=canonical({'app': notice.get('app'), 'state': notice.get('state'), 'intent_identity': content.get('intent_key') == source, 'reason_present': bool(content.get('reason', '').strip())}))}
+        return {Fact(source, 'recovery-handle', occurrence), Fact(source, 'recovery'), Fact(source, 'recovery-context', detail=canonical({'app': notice.get('app'), 'state': notice.get('state'), 'intent_identity': content.get('intent_key') == source, 'reason_present': bool(content.get('reason', '').strip())}))}
     kind = saved.get('check_kind', 'rename' if source.startswith('mail:rename:') else 'filing')
     evidence = next((f.detail for f in oracle.detected if f.occurrence == occurrence), '')
     # Public catalogues disclose count/role, not full server identities. Exact
@@ -60,6 +65,7 @@ def notice_facts(notice, record, oracle):
               'reason_family': 'sent_copies' if str(content.get('message_count')) + ' copies' in reason and 'Sent' in reason else 'other'}
     result.add(Fact(source, 'notice-context', occurrence, canonical({field: values[field] for field in fields})))
     if content.get('unresolved_roles') or content.get('scan_complete') is False:
+        result.add(Fact(source, 'recovery-handle', occurrence))
         result.add(Fact(source, 'recovery', occurrence))
         result.add(Fact(source, 'recovery-context', occurrence, canonical({'app': notice.get('app'), 'state': notice.get('state'), 'intent_identity': content.get('intent_key') == source, 'reason_present': bool(content.get('reason', '').strip())})))
     return result
@@ -144,13 +150,75 @@ def ordered_notices(record, expected, app=None):
     groups = {}
     for fact in expected:
         if fact.kind != 'pending' and (app is None or record.rows.get(fact.source, {}).get('app', 'mail') == app):
-            group = notice_identity(record, fact)
+            family = 'unchecked' if fact.kind.startswith('unchecked') else 'recovery' if fact.kind.startswith('recovery') else ''
+            handle = next((f.occurrence for f in expected if f.source == fact.source and f.kind == family + '-handle'), None)
+            group = handle or notice_identity(record, fact)
             groups.setdefault(group, set()).add(fact)
     return sorted(groups.values(), key=lambda group: max(order(f) for f in group), reverse=True)
 
 
 def count_fact(value):
     return {Fact('catalogue', 'count', detail=str(value))}
+
+
+def visible(value):
+    if isinstance(value, str):
+        return ''.join('\\u%04x' % ord(c) if unicodedata.category(c) in {'Cc', 'Cf', 'Cs', 'Zl', 'Zp'} else '\\\\' if c == '\\' else c for c in value)
+    if isinstance(value, dict):
+        return {visible(k): visible(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [visible(v) for v in value]
+    return value
+
+
+def audit_fact(event, expected=False):
+    entry = {k: event.get(k) for k in ('seq', 'time', 'action', 'summary', 'outcome', 'operation_id')}
+    content = event.get('untrusted_content')
+    if expected and event['action'].startswith('mail_'):
+        entry['summary'] = 'Mail audit event'
+        content = dict(content or {})
+        if event['action'] in {'mail_move', 'mail_copy'}:
+            filing = content.get('filing', {})
+            if 'records' in filing or 'locations' in filing:
+                content = {'filing': {'filing_id': filing['id'], 'state': filing['state'], 'message_count': len(filing['sources']), 'locations_action': 'mail_filing_locations'}}
+            elif 'references' in content:
+                content = {'message_count': len(content['references']), 'locations_action': 'mail_filing_locations'}
+        content = {'summary': visible(event['summary']), **content}
+    if content is not None:
+        entry['untrusted_content'] = content
+    return Fact('event:' + str(event['seq']), event['action'], detail=canonical(entry))
+
+
+def compare_status(reply, oracle, record, call, check, label):
+    status = 'allowed' if reply.get('ok') is True else reply.get('error', {}).get('code', 'missing-status')
+    permitted = oracle.permitted_status(record, call)
+    check(label + '.status', {Fact('request', 'permitted', detail=canonical(sorted(permitted)))},
+          {Fact('request', 'permitted', detail=canonical(sorted(permitted)))} if status in permitted else {Fact('request', status)})
+
+
+def compare_envelope(label, reply, record, oracle, expected, check, app=None):
+    page = reply.get('pending', {})
+    wanted = ordered_pending(record, expected, app)
+    check(label + '.pending-head', set(wanted[:5]), pending_facts(page))
+    check(label + '.pending-total', count_fact(len(wanted)), count_fact(page.get('total', 0)))
+    check(label + '.pending-continuation', {Fact('pending', 'cursor')} if len(wanted) > 5 else set(),
+          {Fact('pending', 'cursor')} if page.get('cursor') else set())
+    notice_head(label, page, record, oracle, expected, check)
+
+
+def notice_head(label, page, record, oracle, expected, check):
+    wanted = ordered_notices(record, expected)
+    actual = [fact for n in page.get('notices', []) for fact in notice_facts(n, record, oracle)]
+    check(label + '.restore-lock', {Fact('restore', 'locked', detail=str(record.locked))},
+          {Fact('restore', 'locked', detail=str(page.get('restore_required', False)))})
+    check(label + '.notice-head', set().union(*wanted[:3]), set(actual))
+    check(label + '.notice-duplicates', set(), {Fact('catalogue', 'duplicate', detail=repr(f)) for f in actual if actual.count(f) > 1})
+    count = len(page.get('notices', [])) + page.get('notices_more', {}).get('count', 0)
+    check(label + '.notice-count', count_fact(len(wanted)), count_fact(count))
+    advertised = page.get('notices_more', {}).get('action')
+    check(label + '.notice-continuation', {Fact('catalogue', 'action', detail='mail_filing_notices')} if len(wanted) > 3 else set(),
+          {Fact('catalogue', 'action', detail=advertised)} if advertised else set())
+    return advertised
 
 
 def compare_views(read, oracle, snapshot, check, ordinary='mail_accounts'):
@@ -167,20 +235,7 @@ def compare_views(read, oracle, snapshot, check, ordinary='mail_accounts'):
         return result
 
     def head(label, page, record, expected):
-        wanted = ordered_notices(record, expected)
-        actual = notices(page, record)
-        check(label + '.restore-lock', {Fact('restore', 'locked', detail=str(record.locked))},
-              {Fact('restore', 'locked', detail=str(page.get('restore_required', False)))})
-        check(label + '.notice-head', set().union(*wanted[:3]), set(actual))
-        check(label + '.notice-duplicates', set(),
-              {Fact('catalogue', 'duplicate', detail=repr(f)) for f in actual if actual.count(f) > 1})
-        count = len(page.get('notices', [])) + page.get('notices_more', {}).get('count', 0)
-        check(label + '.notice-count', count_fact(len(wanted)), count_fact(count))
-        advertised = page.get('notices_more', {}).get('action')
-        check(label + '.notice-continuation',
-              {Fact('catalogue', 'action', detail='mail_filing_notices')} if len(wanted) > 3 else set(),
-              {Fact('catalogue', 'action', detail=advertised)} if advertised else set())
-        return advertised
+        return notice_head(label, page, record, oracle, expected, check)
 
     def catalogue(label, action):
         offset, seen = 0, []
@@ -253,8 +308,8 @@ def compare_views(read, oracle, snapshot, check, ordinary='mail_accounts'):
                 import time
                 day = time.strftime('%Y-%m-%d', time.localtime())
                 audit = sorted((e for e in record.events if e['seq'] in record.working_sequences and time.strftime('%Y-%m-%d', time.localtime(e['time'])) == day), key=lambda e: (e['time'], e['seq']))
-                wanted = [Fact('event:' + str(e['seq']), e['action'], detail=e['outcome']) for e in audit]
-                actual = [Fact('event:' + str(e['seq']), e['action'], detail=e['outcome']) for e in page.get('items', [])]
+                wanted = [audit_fact(e, expected=True) for e in audit]
+                actual = [audit_fact(e) for e in page.get('items', [])]
                 check(view + '.page', set(wanted[offset:offset + 5]), set(actual))
                 check(view + '.total', count_fact(len(wanted)), count_fact(page.get('total', 0)))
                 check(view + '.duplicates', set(), {Fact('audit', 'duplicate', detail=repr(f)) for f in actual if f in audit_seen or actual.count(f) > 1})
@@ -265,3 +320,25 @@ def compare_views(read, oracle, snapshot, check, ordinary='mail_accounts'):
         if advertised:
             catalogue(view + '.advertised', advertised)
     catalogue('mail catalogue', 'mail_filing_notices')
+
+
+def retained_role(source, role, record, page):
+    """D3 permits a committed generic warning only while its check is open."""
+    facts = set()
+    check = record.rows.get(source, {})
+    open_check = check.get('state') == 'started' or check.get('check_open')
+    for notice in page.get('items', []):
+        content = notice.get('untrusted_content', {})
+        saved = record.rows.get('notice:' + str(notice.get('operation_id')), {})
+        belongs = saved.get('source_key', content.get('intent_key')) == source
+        if belongs and 'inside ' + role in content.get('reason', ''):
+            facts.add(Fact(source, 'observed-role', detail=role))
+            continue
+        saved = record.rows.get('notice:' + str(notice.get('operation_id')), {})
+        stored = saved.get('untrusted_content', {})
+        reason = stored.get('reason', '')
+        if (open_check and not saved.get('ack') and saved.get('source_key', stored.get('intent_key')) == source and
+                content == stored and 'evidence was seen' in reason.lower() and
+                "couldn't be recorded" in reason.lower() and 'check ' + role.lower() in reason.lower()):
+            facts.add(Fact(source, 'observed-role', detail=role))
+    return facts

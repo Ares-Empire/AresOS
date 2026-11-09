@@ -9,7 +9,7 @@ from unittest.mock import patch
 from .records import decode, canonical
 from .model import Fact, Oracle
 from .context import MUTATIONS
-from .compare import compare_views, pages
+from .compare import compare_views, pages, compare_envelope, compare_status
 from .responses import read_response
 from storage_faults import outside_faults
 
@@ -23,6 +23,9 @@ class Driver:
         self.startup_sequence = max((fence['seq'] for fence in self.record.fences), default=0)
         self.record.locked |= any(seq <= self.startup_sequence for seq in self.record.unprepared_fences)
         self.errors = []
+        self.envelopes = []
+        self.envelopes_seen = set()
+        self.oracle.response_observer = self.capture_response
 
     def snapshot(self):
         f = self.scenario.fixture
@@ -57,12 +60,15 @@ class Driver:
     @contextmanager
     def observe(self, faults=None, delivered=True):
         s, f, oracle = self.scenario, self.scenario.fixture, self.oracle
+        from storage_faults import ACTIVE
+        faults = faults or ACTIVE
         previous_call = getattr(oracle, 'active_call', None)
         previous_start = getattr(oracle, 'active_start_seq', 0)
         oracle.active_start_seq = max(self.snapshot().committed, default=0)
         oracle.call(s.action, s.args, time.time(), {'mode': faults.mode, 'at': faults.fail_at,
-                    'cleanup': faults.cleanup_at} if faults else {})
+                    'cleanup': faults.cleanup_at, 'background': getattr(s, 'flow', '') in {'expiry', 'maintenance'}} if faults else {})
         self.call_index = len(oracle.script) - 1
+        oracle.script[self.call_index]['start_seq'] = oracle.active_start_seq
         oracle.active_call = oracle.call_id
         oracle.delimiters = {name: getattr(f.imap, 'separators', {}).get(name, '/') for name in f.imap.roles}
         if s.action != 'control_log' or 'cursor' not in s.args:
@@ -89,7 +95,7 @@ class Driver:
             before = self.identities(folder) if folder else []
             event = oracle.server(name, getattr(self, 'account_id', 'box'), folder, before, f.imap.roles, accepted=False, reply='lost', arguments=list(args), **self.precommit())
             answer = uid(name, *args, **kwargs)
-            event.update(accepted=answer[0] == 'OK', reply='delivered', roles_after=copy.deepcopy(f.imap.roles))
+            event.update(accepted=answer[0] == 'OK', reply='delivered', roles_after=copy.deepcopy(f.imap.roles), response_code=answer[0], response_text=[v.decode(errors='replace') if isinstance(v, bytes) else v for v in answer[1] or []])
             if name == 'SEARCH' and len(args) >= 4 and args[2] == 'Message-ID':
                 mid = args[3].strip('"')
                 identities = [{k: v for k, v in r.items() if k != 'sha256'} for r in self.identities(folder) if r['message_id'] == mid]
@@ -121,13 +127,13 @@ class Driver:
         def renamed(*args, **kwargs):
             event = oracle.server('RENAME', getattr(self, 'account_id', 'box'), args[0].strip(chr(34)), self.identities(args[0].strip(chr(34))), roles=f.imap.roles, accepted=False, reply='lost', arguments=list(args), **self.precommit())
             answer = rename(*args, **kwargs)
-            event.update(accepted=answer[0] == 'OK', reply='delivered', roles_after=copy.deepcopy(f.imap.roles))
+            event.update(accepted=answer[0] == 'OK', reply='delivered', roles_after=copy.deepcopy(f.imap.roles), response_code=answer[0], response_text=[v.decode(errors='replace') if isinstance(v, bytes) else v for v in answer[1] or []])
             return answer
         append = f.mail.append
         def appended(account, folder, raw, flags=None):
             event = oracle.server('APPEND', account['id'], folder, roles=f.imap.roles,
                 identities=[__import__('owner_state_oracle.transcript', fromlist=['Transcript']).Transcript.message(raw)], raw_sha256=__import__('hashlib').sha256(raw).hexdigest(), accepted=False, reply='lost',
-                **self.precommit())
+                append_flags=flags, **self.precommit())
             value = append(account, folder, raw, flags)
             event.update(accepted=True, reply='delivered', arrived=self.identities(folder))
             return value
@@ -152,7 +158,7 @@ class Driver:
             def folder_command(*args, _name=name, _original=original, **kwargs):
                 event = oracle.server(_name.upper(), getattr(self, 'account_id', 'box'), roles=f.imap.roles, accepted=False, reply='lost', arguments=list(args), **self.precommit())
                 answer = _original(*args, **kwargs)
-                event.update(accepted=answer[0] == 'OK', reply='delivered', roles_after=copy.deepcopy(f.imap.roles))
+                event.update(accepted=answer[0] == 'OK', reply='delivered', roles_after=copy.deepcopy(f.imap.roles), response_code=answer[0], response_text=[v.decode(errors='replace') if isinstance(v, bytes) else v for v in answer[1] or []])
                 return answer
             extra.enter_context(patch.object(f.imap, name, side_effect=folder_command))
         committed_snapshot = self.snapshot
@@ -248,6 +254,7 @@ class Driver:
         oracle.script[self.call_index]['end_seq'] = max(self.snapshot().committed, default=0)
         if faults:
             oracle.script[self.call_index]['faults']['trace'] = list(faults.failures)
+            oracle.script[self.call_index]['faults']['active_exhaustion'] = faults.mode == 'persistent' and faults.failed
         oracle.active_call = previous_call
         oracle.active_start_seq = previous_start
 
@@ -255,6 +262,36 @@ class Driver:
         if not hasattr(self, 'call_reply'):
             self.call_reply = copy.deepcopy(reply)
         self.oracle.script[self.call_index].update(reply='delivered' if delivered else 'lost', result=copy.deepcopy(reply))
+        self.capture_response(self.call_index, reply)
+
+    def capture_response(self, index, reply):
+        call = self.oracle.script[index]
+        if call['call'] in self.envelopes_seen or 'pending' not in reply:
+            return
+        self.envelopes_seen.add(call['call'])
+        record = self.snapshot()
+        active = getattr(self.oracle, 'active_call', None)
+        for pending in self.oracle.script:
+            if pending['call'] == active:
+                pending['end_seq'] = max(record.committed, default=0)
+        expected = self.oracle.expected(record)
+        self.envelopes.append((copy.deepcopy(call), copy.deepcopy(reply), record, expected))
+
+    def drain_envelopes(self, checker):
+        envelopes, self.envelopes = self.envelopes, []
+        for call, reply, record, expected in envelopes:
+            action = call['action']
+            # An early refusal can precede app routing and is all-app scoped.
+            app = action.split('_', 1)[0] if action.startswith(('mail_', 'testapp_')) else None
+            if not reply.get('ok') and reply.get('error', {}).get('code') in {'journal_incomplete', 'storage_limit', 'storage_error'}:
+                app = None
+            compare_envelope('envelope.' + action, reply, record, self.oracle, expected, checker, app)
+            if action == 'mail_accounts' or action in {'mail_account_add', 'mail_account_settings'}:
+                checker('qualification.' + action, self.oracle.qualification_facts(reply, record), self.oracle.qualification_facts(reply, record, actual=True))
+                if action == 'mail_account_add' and reply.get('ok') and self.oracle.qualification(record):
+                    caveat = any(not q['ready'] and q['sent_policy'] == 'client' for q in self.oracle.qualification(record).values())
+                    checker('qualification.sent-caveat', {Fact('qualification', 'bounded-client-caveat')} if caveat else set(),
+                        {Fact('qualification', 'bounded-client-caveat')} if 'bounded window' in reply.get('data', {}).get('notice', '') and 'unready' in reply['data']['notice'] else set())
 
     def compare(self, check=None):
         f = self.scenario.fixture
@@ -265,6 +302,9 @@ class Driver:
             with self.observe_view(action, args):
                 reply, schema_errors = read_response(lambda: f.engine.request({'v': 1, 'method': 'call', 'action': action, 'arguments': args}))
             self.reply(reply)
+            self.drain_envelopes(checker)
+            call = self.oracle.script[self.call_index]
+            compare_status(reply, self.oracle, self.snapshot(), call, checker, 'response.' + action)
             checker('response-schema.' + action, set(),
                 {Fact('response:' + action, 'schema', detail=error) for error in schema_errors})
             assert not any(event['command'] in MUTATIONS for event in self.oracle.servers[boundary:]), ('Read attempted a mutation', action)
@@ -275,6 +315,7 @@ class Driver:
             return reply
         checker = check or self.oracle.compare
         record = self.snapshot()
+        self.drain_envelopes(checker)
         if 'export' in getattr(self.scenario, 'flow', ''):
             destination = __import__('pathlib').Path(self.scenario.args['folder']) / self.scenario.args['name']
             with outside_faults():
@@ -297,6 +338,7 @@ class Driver:
         checker('completion', set(), self.oracle.completion_errors(self.snapshot()))
         compare_views(read, self.oracle, self.snapshot, checker, ordinary='testapp_list' if getattr(self.scenario, 'flow', '').startswith('testapp_') else 'mail_accounts')
         checker('clean-result-proof', set(), self.oracle.invalid_clean_results)
+        checker('lifecycle-proof', set(), self.oracle.lifecycle_errors)
         # Only after warning preservation has been checked on every view may
         # operation_status fetch evidence. Its committed approval/stages must be
         # exposed exactly, including recipients bound in the approval.

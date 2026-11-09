@@ -6,7 +6,7 @@ import unittest
 
 from owner_state_oracle.model import Fact, Oracle
 from owner_state_oracle.gaps import Gaps
-from owner_state_oracle.compare import pending_facts, restart_count
+from owner_state_oracle.compare import pending_facts, restart_count, audit_fact
 from owner_state_oracle.records import decode
 import test_integration as integration
 
@@ -21,6 +21,17 @@ class OwnerStateChannels(unittest.TestCase):
     hook_command = integration.Integration.hook_command
 
     def test_paged_committed_pending_through_every_installed_channel(self):
+        oracle = Oracle()
+        original_call = self.call
+        def scripted_call(user, action, args):
+            before = decode(self.root / 'state', self.root / 'independent')
+            oracle.call(action, args, time.time())
+            oracle.script[-1]['start_seq'] = max(before.committed, default=0)
+            reply = original_call(user, action, args)
+            oracle.script[-1]['end_seq'] = max(decode(self.root / 'state', self.root / 'independent').committed, default=0)
+            oracle.reply(reply)
+            return reply
+        self.call = scripted_call
         ids = []
         for index in range(7):
             reply = self.call(integration.OWNER, 'testapp_prepare_send', integration.message(subject='Fixture ' + str(index)))
@@ -29,7 +40,7 @@ class OwnerStateChannels(unittest.TestCase):
         cancelled = self.call(integration.OWNER, 'testapp_operation_cancel', {'operation_id': ids[-1]})
         self.assertTrue(cancelled['ok'], cancelled)
         record = decode(self.root / 'state', self.root / 'independent')
-        expected = {f.source[3:]: json.loads(f.detail)['state'] for f in Oracle().expected(record) if f.kind == 'pending'}
+        expected = {f.source[3:]: json.loads(f.detail)['state'] for f in oracle.expected(record) if f.kind == 'pending'}
         self.assertEqual(set(expected), set(ids))
 
         def drain(read, label):
@@ -85,7 +96,7 @@ class OwnerStateChannels(unittest.TestCase):
         gaps = Gaps()
         gaps.bind(record)
         check = gaps.checker('channel/passive-testapp-cursor')
-        wanted = {fact for fact in Oracle().expected(record) if fact.kind == 'pending' and fact.source[3:] in ids[5:]}
+        wanted = {fact for fact in oracle.expected(record) if fact.kind == 'pending' and fact.source[3:] in ids[5:]}
         check('own-page', wanted, pending_facts(continuation))
         check('unchanged-page', set(), {Fact('pending', 'page_changed')} if continuation.get('page_changed') else set())
         check.finish()
@@ -122,10 +133,10 @@ class OwnerStateChannels(unittest.TestCase):
                 audit = {}
             for event in page['items']:
                 self.assertNotIn(event['seq'], audit)
-                audit[event['seq']] = (event['action'], event['outcome'])
+                audit[event['seq']] = audit_fact(event)
             cursor = page['cursor']
             if cursor is None:
                 break
         record = decode(self.root / 'state', self.root / 'independent')
-        self.assertEqual(audit, {e['seq']: (e['action'], e['outcome']) for e in record.events
+        self.assertEqual(audit, {e['seq']: audit_fact(e, expected=True) for e in record.events
             if e['seq'] in record.working_sequences and time.strftime('%Y-%m-%d', time.localtime(e['time'])) == audit_day})

@@ -155,6 +155,10 @@ class Gaps:
                                    'R2.STORE': 'M04/M05', 'R2.EXPUNGE': 'M04', 'R2.POST': 'M04', 'R2.RECEIVE': 'M04',
                                    'R2.CONFIGURE': 'M05', 'R2.LOCAL_DELETE': 'M04', 'R2.LOCAL_CHANGE': 'M05/M12'}
                         row = ','.join(sorted({mapping[k] for k in kinds if k in mapping}))
+                    elif view.startswith('qualification'):
+                        row = 'M12/C05'
+                    elif 'background-storage' in kinds:
+                        row = 'M08'
                     elif view.startswith('restore'):
                         row = 'M09'
                     elif 'holds' in view:
@@ -176,16 +180,17 @@ class Gaps:
         return check
 
 
-    def verify(self, suites, shard=0, shards=1, worker=0, workers=1):
+    def verify(self, suites, shard=0, shards=1, worker=0, workers=1, artifact=True):
         actual = {g['id']: g for g in pack(self.entries)['groups'] if g['suite'] in suites}
         expected = {k: g for k, g in self.groups.items() if g['suite'] in suites and owned(g, shard, shards, worker, workers)}
         # Emit actual full lists even on strict failure. Only test data enters
         # these files; no credentials, fixture keys or production modules.
-        root = PATH.parents[1].parent / '.work' / ('control-ci' if suites == {'channel'} else 'mail-ci')
-        root.mkdir(parents=True, exist_ok=True)
-        name = '-'.join(sorted(suites)) if len(suites) < 4 else 'sweep'
-        with gzip.open(root / f'owner-gaps-{name}-{shard}-{worker}.json.gz', 'wt') as stream:
-            json.dump(full_pack(self.entries), stream, sort_keys=True)
+        if artifact:
+            root = PATH.parents[1].parent / '.work' / ('control-ci' if suites == {'channel'} else 'mail-ci')
+            root.mkdir(parents=True, exist_ok=True)
+            name = '-'.join(sorted(suites)) if len(suites) < 4 else 'sweep'
+            with gzip.open(root / f'owner-gaps-{name}-{shard}-{worker}.json.gz', 'wt') as stream:
+                json.dump(full_pack(self.entries), stream, sort_keys=True)
         if self.recording:
             return
         errors = []

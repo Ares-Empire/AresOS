@@ -77,6 +77,14 @@ class OwnerScenario(Scenario):
                 self.owner_oracle.script[index]['reply'] = 'lost'
                 raise
             self.owner_oracle.script[index].update(reply='delivered', result=reply)
+            observer = getattr(self.owner_oracle, 'response_observer', None)
+            if observer:
+                record = observer.__self__.snapshot()
+                self.owner_oracle.script[index]['end_seq'] = max(record.committed, default=0)
+                if fault:
+                    self.owner_oracle.script[index]['faults']['trace'] = list(fault.failures)
+                    self.owner_oracle.script[index]['faults']['active_exhaustion'] = fault.mode == 'persistent' and fault.failed
+                observer(index, reply)
             return reply
         self.script_patch = patch.object(Engine, 'request', side_effect=None, autospec=True)
         # Use a real function so Engine's descriptor still binds self.

@@ -218,6 +218,9 @@ def run(gaps):
         assert account['onboarded'] and account['sent_policy'] == 'client' and not account['ready'], account
         assert result['data']['notice'] and result['data']['probe_folder'], result
         compare(s, d, 'qualification-probes')
+        f.engine.close()
+        s.bind(Engine(f.root / 'state', f.root / 'evidence'))
+        compare(s, d, 'qualification-probes-restart')
     finally:
         s.close()
 
