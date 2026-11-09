@@ -768,7 +768,8 @@ field it can't confirm is safe isn't read; every result says plainly that this C
    click, in a task with no input of the extension's in flight, submits at once without a question; his input during
    Claude's in-flight input is held and asks; Claude's own dispatched input never counts as his, also when the page
    forges any message, attribute or global it can reach; a submission his input starts after a delay inside the short
-   limit is held and asks; one he starts after the limit has passed isn't held.
+   limit is held and asks, also when his same input first submitted at once without a question (the exemption ends
+  with that task); one he starts after the limit has passed isn't held.
 3. **The binding:** after approval, a change to any recorded item (address, document, frame, element, label, the
    form's action or method, a visible or hidden field, compose text outside the form, the account an adapter reads,
    recipients, chat, a confirmation's text or opener) is refused and asks again; a closed tab or a Chrome restart
