@@ -8,6 +8,7 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from aresos_control.chrome.policy import HOSTS, FIXED_HOSTS, classify
 from aresos_control.chrome.sites import recognize, recipients, KINDS
+from aresos_control.common import Refused
 import test_engine as engine_cases
 
 FIXTURE_HOSTS = {site: [site + '.test'] for site in HOSTS}
@@ -59,13 +60,15 @@ class SiteSemantics(unittest.TestCase):
         self.assertIsNone(semantic('gmail', 'Message Body', key='Enter', editable=True))
         self.assertEqual(semantic('gmail', key='#')['effect'], 'delete')
         self.assertFalse(semantic('gmail', key='#')['trusted'])
+        self.assertIsNone(semantic('gmail', key='#', data={}))
 
     def test_exact_recipient_sets_keep_roles_and_quoted_commas(self):
-        self.assertEqual(recipients('two@mail.test, one@mail.test;two@mail.test'), ['one@mail.test', 'two@mail.test'])
+        self.assertEqual(recipients('two@mail.test, one@mail.test,two@mail.test'), ['one@mail.test', 'two@mail.test'])
         self.assertEqual(recipients('"Last, First" <one@mail.test>, two@mail.test'),
                          ['"Last, First" <one@mail.test>', 'two@mail.test'])
         self.assertNotEqual(recipients('"Last, First" <one@mail.test>'), recipients('"Last", First <one@mail.test>'))
-        for invalid in ['"Unclosed, one@mail.test', 'One <one@mail.test', 'one@mail.test>', 'one@mail.test,,two@mail.test']:
+        for invalid in ['"Unclosed, one@mail.test', 'One <one@mail.test', 'one@mail.test>', 'one@mail.test,,two@mail.test',
+                        'Group:one@mail.test,two@mail.test;', 'one@mail.test;two@mail.test']:
             self.assertIsNone(recipients(invalid))
             data = reading('gmail'); data['to'] = invalid
             result = semantic('gmail', data=data)
@@ -175,6 +178,55 @@ class SiteOwnerRules(unittest.TestCase):
     def test_gemini_exact_account_owner_parameter(self):
         self.site('gemini'); self.allow(self.prepare())
         self.browser.facts['frames'][0]['adapter']['account'] = 'Changed synthetic identity'
+        self.assertFalse(self.call('submit_trusted', self.prepare())['ok'])
+
+    def test_failed_adapter_and_conservative_qualification_use_generic_rules(self):
+        for site, label in [('gmail', 'Send'), ('whatsapp', 'Send'), ('github', 'Comment'),
+                            ('gemini', 'Send'), ('deezer', 'Post comment')]:
+            self.site(site, label)
+            record = copy.deepcopy(self.engine.store.get('chrome:qualification'))
+            original = copy.deepcopy(record)
+            record['entries'][-1]['adapters'][site] = False
+            self.engine.store.write({'chrome:qualification': record}, 'chrome_test_setup', 'Synthetic adapter failure')
+            approval = self.prepare()
+            self.assertIsNone(approval['description']['untrusted_content']['page_state']['adapter'])
+            self.assertFalse(self.call('submit_trusted', approval)['ok'])
+            self.call('drop', {'operation_id': approval['operation_id']})
+            self.engine.store.write({'chrome:qualification': original}, 'chrome_test_setup', 'Restore synthetic qualification')
+            self.browser.version = '999.0.1.0'
+            approval = self.prepare()
+            self.assertIsNone(approval['description']['untrusted_content']['page_state']['adapter'])
+            self.assertFalse(self.call('submit_trusted', approval)['ok'])
+            self.call('drop', {'operation_id': approval['operation_id']})
+            self.browser.version = '157.0.1.0'
+
+    def test_prepared_trusted_operation_still_checks_binding(self):
+        # This engine double otherwise accepts every input. Model the extension's
+        # documented atomic check here; the browser suite tests the real reader/check.
+        original_call = self.browser.call
+
+        def guarded_call(name, **arguments):
+            if name == 'input' and arguments.get('binding', {}).get('adapter') != self.browser.facts['frames'][0]['adapter']:
+                raise Refused('stale_approval', 'Synthetic extension refused changed adapter facts')
+            return original_call(name, **arguments)
+
+        self.browser.call = guarded_call
+        self.site('gmail'); self.allow(self.prepare())
+        for field in ['account', 'to', 'cc', 'bcc', 'subject', 'text', 'attachments', 'preview']:
+            original = copy.deepcopy(self.browser.facts['frames'][0]['adapter'])
+            approval = self.prepare(); count = len(self.browser.dispatched)
+            data = self.browser.facts['frames'][0]['adapter']
+            data[field] = [] if field == 'attachments' else 'Changed synthetic ' + field
+            outcome = self.call('submit_trusted', approval)
+            self.assertTrue(outcome['ok'], outcome)
+            self.assertEqual(outcome['data']['operation']['state'], 'failed', field)
+            self.assertEqual(len(self.browser.dispatched), count)
+            self.browser.facts['frames'][0]['adapter'] = original
+
+    def test_owner_entry_does_not_cross_site_origin(self):
+        self.site('gemini'); self.allow(self.prepare())
+        self.chrome.hosts['gemini'].append('another.test')
+        self.browser.facts['url'] = self.browser.facts['frames'][0]['url'] = 'https://another.test/'
         self.assertFalse(self.call('submit_trusted', self.prepare())['ok'])
 
     def test_ineligible_actions_cannot_be_allowed(self):

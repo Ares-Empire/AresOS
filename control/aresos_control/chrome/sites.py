@@ -54,7 +54,9 @@ def recipients(value):
             if not angle:
                 return None
             angle = False
-        elif not quoted and not angle and char in ',;':
+        elif not quoted and not angle and char in ';:':
+            return None
+        elif not quoted and not angle and char == ',':
             if not value[start:index].strip():
                 return None
             parts.append(value[start:index].strip())

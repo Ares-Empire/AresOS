@@ -72,6 +72,12 @@ export async function siteMatrices({call,read,nav,target,counts,eventually,tab,f
       await denyTrust(prepared.approval,receiver(id,'Send','first'));await approved(prepared,receiver(id,'Send','first'));
     }
     id=await fresh('gmail');await fixture.mutate(id,'recipients-order');prepared=await call('click',await target('Send'));await approved(prepared,receiver(id,'Send','first'),{trusted:true});
+    for(const field of ['account','to','cc','bcc','subject','text','attachments','preview']){
+      id=await fresh('gmail');prepared=await call('click',await target('Send'));await fixture.mutate(id,field);
+      const changed=await rpc('submit_trusted',prepared.approval);assert.ok(!changed.ok||changed.data.operation.state==='failed',JSON.stringify(changed));assert.equal(evidence(receiver(id,'Send','first'),'trusted binding changed').count,0);
+      await rpc('submit_trusted',prepared.approval);assert.equal(counts(receiver(id,'Send','first')),0);
+      await approved(await call('click',await target('Send')),receiver(id,'Send','first'),{trusted:['subject','text','attachments','preview'].includes(field)});
+    }
     await lifecycle({fixture:'kind',mode:'widen'});id=await fresh('gmail');prepared=await call('click',await target('Send'));await denyTrust(prepared.approval,receiver(id,'Send','first'));await call('drop',{operation_id:prepared.approval.operation_id});await lifecycle({fixture:'kind',mode:'restore'});
     admin('chrome_sites',{command:'revoke',id:entry.id});id=await fresh('gmail');prepared=await call('click',await target('Send'));await denyTrust(prepared.approval,receiver(id,'Send','first'));await approved(prepared,receiver(id,'Send','first'));
   });
@@ -132,7 +138,7 @@ export async function siteMatrices({call,read,nav,target,counts,eventually,tab,f
     const id=await fresh('bank');assert.match(JSON.stringify(await call('read',{tab})),/Synthetic read-only balance/);
     const scroll=await call('scroll',{...await target('Amount'),x:0,y:30});assert.ok(!scroll.approval);
     for(const [verb,label,args]of [['fill','Amount',{text:'1'}],['click','Continue',{}],['upload','File',{path:'/fixture.txt'}],['check','Tick',{checked:true}],['select','Choice',{value:'b'}],['press','Amount',{key:'Enter'}]]){
-      const response=await rpc(verb,{...await target(label),...args});assert.equal(response.ok,false);assert.equal(response.error.code,'readonly_site');assert.equal(counts(receiver(id,'Continue')),0);
+      const response=await rpc(verb,{...await target(label),...args});assert.equal(response.ok,false);assert.equal(response.error.code,'readonly_site');assert.equal(counts(receiver(id,'Continue')),0);assert.equal(evidence(receiver(id,'Unexpected bank input'),'read-only input refused').count,0);
     }
     const form=await rpc('fill_form',{fields:[{...await target('Amount'),text:'1'}]});assert.equal(form.ok,false);assert.equal(form.error.code,'readonly_site');
     assert.ok(!(await call('click',await target('Account details'))).approval);await eventually(()=>counts(id+':link')===1,'bank link');
@@ -158,5 +164,6 @@ export async function siteMatrices({call,read,nav,target,counts,eventually,tab,f
     assert.match(prepared.approval.question,/fixture\.txt/);
     await call('drop',{operation_id:prepared.approval.operation_id});
   });
+  if(results.some(row=>!row.passed))throw new AggregateError(results.filter(row=>!row.passed).map(row=>Error(row.name+': '+row.error)),'Adapter requirements failed; see adapters.json and adapters-receiver.jsonl');
   return results;
 }

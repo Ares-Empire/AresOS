@@ -50,6 +50,7 @@ export function sitePage(url,host) {
     };
     if(variant==='child')addEventListener('message',event=>{if(event.data?.label&&confirm(event.data.text))send(event.data.label);});
     for(const button of document.querySelectorAll('button'))button.onclick=()=>confirmAction(button.textContent,scope(button));
+    if(site==='bank')for(const field of document.querySelectorAll('input,select'))for(const event of ['input','change','keydown'])field.addEventListener(event,()=>send('Unexpected bank input',scope(field)));
     for(const field of document.querySelectorAll('textarea'))field.onkeydown=event=>{
       if(event.key==='#'&&site==='gmail'){event.preventDefault();send('Delete shortcut',scope(field));}
       if(event.key==='Enter'&&(site!=='gmail'||event.ctrlKey||event.metaKey)){event.preventDefault();send('Enter',scope(field));}
