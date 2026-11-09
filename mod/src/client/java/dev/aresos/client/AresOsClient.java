@@ -25,8 +25,10 @@ public final class AresOsClient implements ClientModInitializer {
     public static final FocusReturn FOCUS_RETURN = new FocusReturn();
     private static long zoneFocusToken;
     private static long zoneVisit;
-    private static String lastLaunchApp;
-    private static long lastLaunchToken;
+    // Focus tokens of launches that may still fail later, by request ID; bounded, client thread only.
+    private static final java.util.Map<String, Long> LATE_TOKENS = new java.util.LinkedHashMap<>() {
+        @Override protected boolean removeEldestEntry(java.util.Map.Entry<String, Long> eldest) { return size() > 32; }
+    };
     private static KeyMapping modeToggle;
     private static AppLauncher launcher = System.getProperty("os.name").toLowerCase(Locale.ROOT).startsWith("windows")
             ? new WindowsAppLauncher() : new LinuxAppLauncher(AresOs::shell);
@@ -117,12 +119,11 @@ public final class AresOsClient implements ClientModInitializer {
             return;
         }
         long token = FOCUS_RETURN.arm(System.nanoTime());
-        lastLaunchApp = id;
-        lastLaunchToken = token;
         zoneFocusToken = visit == 0 ? 0 : token;
         zoneVisit = visit;
         try {
-            launcher.launch(app).whenComplete((ignored, error) -> {
+            launcher.launchTracked(app).whenComplete((requestId, error) -> {
+                if (error == null && requestId != null) client.execute(() -> LATE_TOKENS.put(requestId, token));
                 if (error != null) {
                     client.execute(() -> {
                         FOCUS_RETURN.cancel(token);
@@ -140,12 +141,16 @@ public final class AresOsClient implements ClientModInitializer {
         }
     }
 
-    /** AresOS without window tracking: an app that already counted as opened failed after all. */
-    public static void launchFailedLater(String id, String reason) {
+    /**
+     * AresOS without window tracking: a launch that already counted as opened failed after all. Only that launch's
+     * focus return and logo visit end; another launch of the same app is left alone.
+     */
+    public static void launchFailedLater(String requestId, String id, String reason) {
         var client = Minecraft.getInstance();
-        if (id.equals(lastLaunchApp)) {
-            FOCUS_RETURN.cancel(lastLaunchToken);
-            if (zoneFocusToken == lastLaunchToken) finishZone(false);
+        Long token = requestId == null ? null : LATE_TOKENS.remove(requestId);
+        if (token != null) {
+            FOCUS_RETURN.cancel(token);
+            if (zoneFocusToken == token) finishZone(false);
         }
         var app = AresOs.app(id);
         message(client, "Couldn't open " + (app == null ? id : app.name()) + ": " + reason);

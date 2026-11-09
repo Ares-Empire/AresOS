@@ -3,6 +3,7 @@ package dev.aresos.test;
 import dev.aresos.AresOs;
 import dev.aresos.client.AresOsClient;
 import dev.aresos.client.ShellFocusClient;
+import dev.aresos.client.launch.AppLauncher;
 import dev.aresos.client.launch.LinuxAppLauncher;
 import dev.aresos.config.AppDefinition;
 import dev.aresos.shell.ShellClient;
@@ -23,6 +24,7 @@ import net.minecraft.world.phys.Vec3;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /** Package 24: the AresOS (Linux) launcher and focus handling inside the game, driven without a real helper. */
@@ -82,12 +84,37 @@ public final class ShellFocusClientGameTest implements FabricClientGameTest {
                 context.waitFor(client -> client.player.position().distanceToSqr(EXIT) < 0.01);
                 context.runOnClient(client -> check(opened.size() == 1, "Focus return relaunched the app: " + opened));
 
-                // Without window tracking a launch counts once started; a failure reported later still shows and
-                // ends the logo visit without the return teleport.
-                move(context, world, new Vec3(0.5, Y, 3.5));
-                context.waitFor(client -> opened.size() == 2);
-                context.runOnClient(client -> AresOsClient.launchFailedLater("notepad", "it failed to start"));
+                // Without window tracking a launch counts once started and a failure can follow later. Launches are
+                // told apart by request ID: the first Notepad's late failure must not end the second one's visit.
+                var requests = new java.util.concurrent.atomic.AtomicInteger();
+                context.runOnClient(client -> AresOsClient.replaceLauncher(new AppLauncher() {
+                    @Override public CompletionStage<Void> launch(List<String> command) {
+                        throw new AssertionError("Tracked launches only");
+                    }
+                    @Override public CompletionStage<String> launchTracked(AppDefinition app) {
+                        opened.add(app.id());
+                        return CompletableFuture.completedFuture("r-" + requests.incrementAndGet());
+                    }
+                }));
+                context.runOnClient(client -> AresOsClient.launch("notepad"));  // r-1, from the hotbar
+                move(context, world, new Vec3(0.5, Y, 3.5));  // r-2, walking into the logo
+                context.waitFor(client -> opened.size() == 3);
+                context.runOnClient(client -> AresOsClient.launchFailedLater("r-1", "notepad", "it failed to start"));
                 context.waitFor(client -> overlay(client).equals("Couldn't open Notepad: it failed to start"));
+                world.getConnection().waitForServerboundPackets();
+                context.runOnClient(client -> ShellFocusClient.apply(client,
+                        new ShellClient.Focus(true, "app_closed", "notepad", true)));
+                world.getConnection().waitForServerboundPackets();
+                context.waitFor(client -> client.player.position().distanceToSqr(EXIT) < 0.01);
+
+                // The logo launch's own late failure ends its visit without the return teleport.
+                move(context, world, new Vec3(0.5, Y, 3.5));  // r-3
+                context.waitFor(client -> opened.size() == 4);
+                context.runOnClient(client -> {
+                    client.gui.hud.setOverlayMessage(net.minecraft.network.chat.Component.literal(""), false);
+                    AresOsClient.launchFailedLater("r-3", "notepad", "no answer from the app helper");
+                });
+                context.waitFor(client -> overlay(client).equals("Couldn't open Notepad: no answer from the app helper"));
                 world.getConnection().waitForServerboundPackets();
                 context.runOnClient(client -> ShellFocusClient.apply(client,
                         new ShellClient.Focus(true, "desktop_activated", null, false)));
@@ -95,7 +122,8 @@ public final class ShellFocusClientGameTest implements FabricClientGameTest {
                 context.runOnClient(client -> check(client.player.position().distanceToSqr(new Vec3(0.5, Y, 3.5)) < 0.01,
                         "A failed launch still teleported the player out of the logo"));
                 AresOs.LOGGER.info("24 shell focus checks passed: helper-less failure text, held keys and pointer "
-                        + "released on background, logo return on foreground, late failure ends the visit, world readiness");
+                        + "released on background, logo return on foreground, a late failure ends only its own "
+                        + "launch's visit, world readiness");
             }
         } finally {
             context.runOnClient(client -> {

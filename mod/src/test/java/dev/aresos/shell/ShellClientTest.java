@@ -237,15 +237,20 @@ class ShellClientTest {
         for (var open : stuck) assertEquals("unknown_app", refusal(open).code());
     }
 
+    private CopyOnWriteArrayList<String> lateFailures() {
+        var failures = new CopyOnWriteArrayList<String>();
+        client.addListener(new ShellClient.Listener() {
+            @Override public void launchFailed(String appId, String requestId, ShellClient.ShellException error) {
+                failures.add(appId + " " + requestId + ": " + error.code() + ": " + ShellClient.describe(error));
+            }
+        });
+        return failures;
+    }
+
     @Test void withoutWindowTrackingALaterFailureStillReachesThePlayer() throws Exception {
         helper.capabilities = List.of("list_apps", "open_app", "app_state", "world_ready", "heartbeat");
         connect();
-        var failures = new CopyOnWriteArrayList<String>();
-        client.addListener(new ShellClient.Listener() {
-            @Override public void launchFailed(String appId, ShellClient.ShellException error) {
-                failures.add(appId + ": " + error.code() + ": " + ShellClient.describe(error));
-            }
-        });
+        var failures = lateFailures();
         var launch = join(client.open("terminal"));
         assertEquals("starting", launch.state());
         helper.event("app_state", Map.of("request_id", "o-unknown", "state", "failed", "error", "launch_failed"));
@@ -253,11 +258,48 @@ class ShellClientTest {
                 "app_id", "terminal", "state", "failed", "error", "launch_failed"));
         FakeHelper.await(() -> !failures.isEmpty(), "the late failure");
         Thread.sleep(100);
-        assertEquals(List.of("terminal: launch_failed: it failed to start"), failures);
+        assertEquals(List.of("terminal " + launch.requestId() + ": launch_failed: it failed to start"), failures);
         // Reported once: a second failure event for the same launch is ignored.
         helper.event("app_state", Map.of("request_id", launch.requestId(), "state", "failed", "error", "launch_failed"));
         Thread.sleep(100);
         assertEquals(1, failures.size());
+    }
+
+    @Test void aLateFailureNamesItsOwnLaunchWhenTheSameAppRunsTwice() throws Exception {
+        helper.capabilities = List.of("list_apps", "open_app", "app_state", "world_ready", "heartbeat");
+        connect();
+        var failures = lateFailures();
+        var first = join(client.open("notepad"));
+        var second = join(client.open("notepad"));
+        assertNotEquals(first.requestId(), second.requestId());
+        helper.event("app_state", Map.of("request_id", first.requestId(), "app_id", "notepad", "state", "failed",
+                "error", "launch_failed"));
+        FakeHelper.await(() -> !failures.isEmpty(), "the first launch's failure");
+        Thread.sleep(100);
+        assertEquals(List.of("notepad " + first.requestId() + ": launch_failed: it failed to start"), failures);
+    }
+
+    @Test void aFailureWhileDisconnectedStillReachesThePlayerOnce() throws Exception {
+        helper.capabilities = List.of("list_apps", "open_app", "app_state", "world_ready", "heartbeat");
+        connect();
+        var failures = lateFailures();
+        var launch = join(client.open("terminal"));
+        // The helper records the failure but the event never arrives: the connection breaks first.
+        var recorded = helper.journal.get(launch.requestId());
+        recorded.addProperty("state", "failed");
+        recorded.addProperty("error", "launch_failed");
+        helper.drop();
+        FakeHelper.await(() -> !failures.isEmpty(), "the failure after reconnecting");
+        assertEquals(List.of("terminal " + launch.requestId() + ": launch_failed: it failed to start"), failures);
+        assertEquals(2, helper.received("open_app").size(), "the watched request is asked again, once");
+        assertEquals(launch.requestId(), helper.received("open_app").get(1).get("id").getAsString());
+        helper.event("app_state", Map.of("request_id", launch.requestId(), "state", "failed", "error", "launch_failed"));
+        helper.drop();
+        FakeHelper.await(() -> helper.connections.get() == 3 && client.status().state() == ShellClient.State.CONNECTED,
+                "a second reconnect");
+        Thread.sleep(200);
+        assertEquals(1, failures.size());
+        assertEquals(1, helper.launches.get());
     }
 
     @Test void focusEventsReachListenersInOrder() throws Exception {

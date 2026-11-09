@@ -24,8 +24,9 @@ public final class ShellFocusClient {
                 client.execute(() -> apply(client, focus));
             }
 
-            @Override public void launchFailed(String appId, ShellClient.ShellException error) {
-                Minecraft.getInstance().execute(() -> AresOsClient.launchFailedLater(appId, ShellClient.describe(error)));
+            @Override public void launchFailed(String appId, String requestId, ShellClient.ShellException error) {
+                Minecraft.getInstance().execute(() ->
+                        AresOsClient.launchFailedLater(requestId, appId, ShellClient.describe(error)));
             }
         });
         ClientTickEvents.END_CLIENT_TICK.register(client -> shell.world(readyWorld(client)));

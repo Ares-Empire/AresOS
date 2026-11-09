@@ -53,8 +53,8 @@ public final class ShellClient implements AutoCloseable {
         default void apps(List<App> apps) { }
         default void focus(Focus focus) { }
         default void status(Status status) { }
-        /** Without window tracking an open already counted as done; the helper reported a failure afterwards. */
-        default void launchFailed(String appId, ShellException error) { }
+        /** Without window tracking an open already counted as done; the helper reported its failure afterwards. */
+        default void launchFailed(String appId, String requestId, ShellException error) { }
     }
 
     /** A refusal carrying the helper's stable error code (B1), such as unknown_app, unavailable or no_window. */
@@ -338,6 +338,12 @@ public final class ShellClient implements AutoCloseable {
                 try { current.send(openRequest(open)); }
                 catch (IOException lost) { current.close(); }
             });
+            // Watched launches too: a failure the helper recorded while we were away comes back as their answer.
+            for (var open : watching.values()) later(() -> {
+                if (!watching.containsKey(open.id())) return;
+                try { current.send(openRequest(open)); }
+                catch (IOException lost) { current.close(); }
+            });
             later(() -> sendWorld(current));
             try {
                 while (!closed) dispatch(current.read());
@@ -464,8 +470,10 @@ public final class ShellClient implements AutoCloseable {
             }
             return;
         }
-        var open = opens.get(String.valueOf(text(message, "id")));
+        String id = String.valueOf(text(message, "id"));
+        var open = opens.get(id);
         if (open != null) update(open, message);
+        else if (watching.containsKey(id)) lateUpdate(id, message);
     }
 
     private void update(PendingOpen open, JsonObject message) {
@@ -497,7 +505,7 @@ public final class ShellClient implements AutoCloseable {
         String error = text(message, "error");
         var failure = new ShellException(String.valueOf(error), reason(error, text(message, "reason")));
         for (var listener : listeners) {
-            try { listener.launchFailed(open.appId(), failure); }
+            try { listener.launchFailed(open.appId(), open.id(), failure); }
             catch (RuntimeException problem) { LOG.log(System.Logger.Level.ERROR, "Shell listener failed", problem); }
         }
     }
