@@ -21,10 +21,13 @@ if request.get('fixture'):
         Path('/out/checkpoint-ready.json').unlink(missing_ok=True)
         Path('/out/checkpoint-release').unlink(missing_ok=True)
         Path('/run/aresos-tools/fixture-cut.json').write_text(json.dumps({'point':request['point']}))
-    elif command in {'expire','qualification','kind'}:
+    elif command in {'expire','qualification','kind','arm_delay'}:
         if command=='expire':Path('/run/aresos-tools/fixture-expire').write_text(request['operation_id'])
         elif command=='qualification':Path('/run/aresos-tools/fixture-qualification').write_text(request['mode'])
-        else:Path('/run/aresos-tools/fixture-kind').write_text(request['mode'])
+        elif command=='kind':Path('/run/aresos-tools/fixture-kind').write_text(request['mode'])
+        else:
+            Path('/out/arm-ready.json').unlink(missing_ok=True)
+            Path('/run/aresos-tools/fixture-arm-delay').write_text(str(request['milliseconds']))
         request={'action':'chrome_sites','arguments':{'command':'list'}}
         with socket.socket(socket.AF_UNIX) as connection:
             connection.connect('/run/aresos-tools/admin.sock');connection.sendall((json.dumps({'v':1,'method':'call',**request})+'\n').encode());print(connection.makefile().readline(),end='')

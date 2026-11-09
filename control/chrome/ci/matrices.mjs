@@ -24,9 +24,9 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
   async function setup(parameters) {await nav('matrix&'+new URLSearchParams(parameters));}
   const words=JSON.parse(fs.readFileSync('control/chrome/extension/policy.js','utf8').match(/\{[\s\S]*\}/)[0]).words;
   await check('GROUP 1 submit compose deletion and free-input matrix',async()=>{
-    for(const tag of ['default','submit'])for(const key of ['click','Enter','Space','field']){
+    for(const tag of ['default','submit','override','external','empty','invalid','clobbered'])for(const key of ['click','Enter','Space','field']){
       const id='submit-'+tag+'-'+key;await nav('action-matrix&mode=submit&id='+id+'&tag='+tag);
-      const result=key==='click'?await call('click',await target('Continue')):await call('press',{...await target(key==='field'?'Form field':'Continue'),key:key==='field'?'Enter':key});await approval(result,id);
+      const result=key==='click'?await call('click',await target('Continue')):await call('press',{...await target(key==='field'?'Form field':'Continue'),key:key==='field'?'Enter':key});await approval(result,id);assert.equal(counts('unapproved-'+id),0,'the effective submitter destination must match approval');
     }
     for(const tag of ['textarea','input','div'])for(const key of ['Enter','Ctrl+Enter','Cmd+Enter']){
       const id='compose-'+tag+'-'+key;await nav('action-matrix&mode=compose&id='+encodeURIComponent(id)+'&tag='+tag);
@@ -55,6 +55,13 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
       if(cases%81===0)console.log('GROUP 1 WORD_PROGRESS',cases,'strict receiver cases passed');
     }
   });
+  await check('GROUP 1 Unicode word matching agrees across service and guard',async()=>{
+    for(const [index,word]of ['ſend','veröﬀentlichen','beﬅellen'].entries()){
+      const id='unicode-word-'+index;await setup({id,mode:'activation',wrapped:'click',word});
+      const held=await call('click',await target('Continue'));assert.equal(counts(id),0);assert.equal(counts('handler-'+id),0);assert.ok(held.followups.some(item=>item.stopped));
+      await approval(await call('click',await target(word)),id);assert.equal(counts('handler-'+id),1);
+    }
+  });
   await check('GROUP 2 stopped page steps handler/resume matrix',async()=>{
     for(const submit of ['native','event','button'])for(const route of ['click','key','fill','select','check']){
       const id='stopped-'+submit+'-'+route;await setup({id,mode:'stopped',submit,route});let result;
@@ -79,7 +86,21 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
   await check('GROUP 2 loop with uncancelled enclosing submit sends once',async()=>{
     await nav('loop&id=uncancelled-loop');const result=await call('click',await target('Continue'));await approval(result,'uncancelled-loop');
   });
+  await check('GROUP 2 delayed submission stays held after slow frame arming',async()=>{
+    await nav('owner-input');await lifecycle({fixture:'arm_delay',milliseconds:650});
+    const result=await call('click',await target('Continue'));await approval(result,'scheduled-input');
+  });
   await check('GROUP 2 nested validation and fresh-frame fallback',async()=>{
+    for(const mode of ['implicit','null-original']){
+      const id='submitter-hijack-'+mode;await nav('submitter-hijack&id='+id+'&mode='+mode);
+      const prepared=mode==='implicit'?await call('press',{...await target('Form field'),key:'Enter'}):await call('click',await target('Continue'));
+      assert.equal(counts(id),0);const first=prepared.approval||prepared.followups.find(item=>item.approval).approval;await call('submit',first);
+      assert.equal(counts(id),0,'a different successful submitter needs its own approval');
+      let held,cursor;do{const current=await rpc('control_pending',{limit:10,...(cursor?{cursor}:{})});assert.equal(current.ok,true);
+      for(const row of current.data.items){if(row.app!=='chrome'||row.operation_id===first.operation_id||row.state!=='reserved')continue;const status=await call('operation_status',{operation_id:row.operation_id});if(status.operation.approval?.description?.untrusted_content?.page_state?.url?.includes(id))held=status.operation.approval;}cursor=current.data.cursor;}while(cursor);
+      assert.ok(held,'the additional submission is prepared separately');await approval({approval:held},id);
+      assert.match(fixture.arrivals.find(row=>new URL(row.url,'http://fixture.test').searchParams.get('case')===id).body,/which=other/);
+    }
     for(const mode of ['invalid','valid','double','other','nested']){
       const id='resume-'+mode;await nav('resume-matrix&id='+id+'&mode='+mode);
       const first=await call('click',await target('Continue'));assert.equal(counts(id),0);assert.equal(counts('handler-'+id),0);
@@ -113,11 +134,12 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
   await check('GROUP 3 binding every form fact and generic sibling draft',async()=>{
     for(const change of ['label','element','visible','hidden','action','method','encoding','target','document']){
       const id='binding-'+change;await nav('binding&id='+id);const prepared=await call('click',await target('Submit'));assert.ok(prepared.approval);
-      fixture.mutate(id,change);await delay(100);
+      await fixture.mutate(id,change);await delay(100);
       const result=await rpc('submit',prepared.approval);assert.ok(!result.ok||result.data.operation.state==='failed',JSON.stringify(result));assert.equal(counts(id),0);
     }
+    await nav('binding&id=before-input-change');const waiting=await call('click',await target('Submit'));await lifecycle({fixture:'arm_delay',milliseconds:650});const pending=rpc('submit',waiting.approval);await eventually(()=>fs.existsSync('/out/arm-ready.json'),'private arming barrier');await fixture.mutate('before-input-change','hidden');const refused=await pending;assert.ok(!refused.ok||refused.data.operation.state==='failed');assert.equal(counts('before-input-change'),0);
     await nav('binding&mode=sibling&id=sibling');const prepared=await call('click',await target('Send'));
-    assert.match(JSON.stringify(prepared.approval),/Existing sibling draft/);fixture.mutate('sibling','text');await delay(100);
+    assert.match(JSON.stringify(prepared.approval),/Existing sibling draft/);await fixture.mutate('sibling','text');await delay(100);
     const changed=await rpc('submit',prepared.approval);assert.ok(!changed.ok||changed.data.operation.state==='failed');assert.equal(counts('sibling'),0);
   });
   await check('GROUP 4 page confirmations bind their full text and ask independently',async()=>{
@@ -127,17 +149,17 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
       await approval(prepared,id);
     }
     await nav('page-dialog&id=dialog-change');const prepared=await call('click',await target('OK'));
-    fixture.mutate('dialog-change','dialog');await delay(100);const result=await rpc('submit',prepared.approval);
+    await fixture.mutate('dialog-change','dialog');await delay(100);const result=await rpc('submit',prepared.approval);
     assert.ok(!result.ok||result.data.operation.state==='failed');assert.equal(counts('dialog-change'),0);
   });
   await check('GROUP 3 cross-frame adapter empty and oversized drafts',async()=>{
     for(const mode of ['empty','oversized']){const id='draft-'+mode;await nav('cross-draft&id='+id+'&mode='+mode);assert.equal((await rpc('click',await target('Send'))).ok,false);assert.equal(counts(id),0);}
     await nav('cross-draft&id=frame-draft&mode=frame');const prepared=await call('click',await target('Send'));
-    assert.match(JSON.stringify(prepared.approval),/Existing cross-frame draft/);fixture.mutate('frame-draft','text');await delay(100);
+    assert.match(JSON.stringify(prepared.approval),/Existing cross-frame draft/);await fixture.mutate('frame-draft','text');await delay(100);
     const changed=await rpc('submit',prepared.approval);assert.ok(!changed.ok||changed.data.operation.state==='failed');assert.equal(counts('frame-draft'),0);
     for(const [site,change,label] of [['gmail','account','Send'],['gmail','recipient','Send'],['whatsapp','chat','Send']]){
       const id='adapter-bind-'+site+'-'+change;await nav('site&id='+id,site);const prepared=await call('click',await target(label));
-      fixture.mutate(id,change);await delay(100);const changed=await rpc('submit',prepared.approval);assert.ok(!changed.ok||changed.data.operation.state==='failed');assert.equal(counts(id+'-'+label),0);
+      await fixture.mutate(id,change);await delay(100);const changed=await rpc('submit',prepared.approval);assert.ok(!changed.ok||changed.data.operation.state==='failed');assert.equal(counts(id+'-'+label),0);
     }
   });
   await check('GROUP 4 exact native confirmation and mismatch matrix',async()=>{
@@ -162,7 +184,7 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
     const upload=caller('upload',{...await target('Upload'),path:'/home/owner/Downloads/fixture.txt'});assert.ok(upload.ok,JSON.stringify(upload));
     assert.match(upload.data.approval.question,/sha256/);assert.match(upload.data.approval.question,/fixture.txt/);await approval(upload.data,'upload-bytes');
     assert.equal(fixture.arrivals.find(row=>new URL(row.url,'http://fixture.test').searchParams.get('case')==='upload-bytes').body,'Exact synthetic upload bytes');
-    const send=await call('click',await target('Send'));fixture.mutate('upload-bytes','text');await delay(100);const changed=await rpc('submit',send.approval);assert.ok(!changed.ok||changed.data.operation.state==='failed');assert.equal(counts('after-upload'),0);
+    const send=await call('click',await target('Send'));await fixture.mutate('upload-bytes','text');await delay(100);const changed=await rpc('submit',send.approval);assert.ok(!changed.ok||changed.data.operation.state==='failed');assert.equal(counts('after-upload'),0);
   });
   await check('GROUP 6 exclusions through frame, popup, redirect, taking and history',async()=>{
     await nav('frame-excluded');assert.doesNotMatch(JSON.stringify(await read()),/EXCLUDED_PAGE_SENTINEL_20/);
@@ -202,7 +224,7 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
   });
   await check('GROUP 13 changed read-only preview is a stated residual',async()=>{
     await nav('binding&mode=sibling&id=preview-residual');const prepared=await call('click',await target('Send'));
-    fixture.mutate('preview-residual','preview');await delay(100);await approval(prepared,'preview-residual');
+    await fixture.mutate('preview-residual','preview');await delay(100);await approval(prepared,'preview-residual');
     assert.ok(fixture.arrivals.some(row=>row.body.includes('Changed read-only preview')));
   });
   await check('GROUP 8 deadline and tabs outside the group',async()=>{
@@ -244,7 +266,7 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
     trustOperation=first.approval.operation_id;
     const entry=admin('chrome_sites',{command:'allow',operation_id:trustOperation});
     for(const change of ['account','recipient']){
-      const id='adapter-bind-trust-'+change;await nav('site&id='+id,'gmail');fixture.mutate(id,change);await delay(100);
+      const id='adapter-bind-trust-'+change;await nav('site&id='+id,'gmail');await fixture.mutate(id,change);await delay(100);
       const prepared=await call('click',await target('Send'));assert.equal((await rpc('submit_trusted',prepared.approval)).ok,false);assert.equal(counts(id+'-Send'),0);await call('drop',{operation_id:prepared.approval.operation_id});
     }
     await lifecycle({fixture:'kind',mode:'widen'});await nav('site&id=trust-widened','gmail');const widened=await call('click',await target('Send'));assert.equal((await rpc('submit_trusted',widened.approval)).ok,false);assert.equal(counts('trust-widened-Send'),0);await call('drop',{operation_id:widened.approval.operation_id});await lifecycle({fixture:'kind',mode:'restore'});

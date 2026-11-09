@@ -70,6 +70,9 @@ boundary=open('/out/browser-boundary.jsonl','a',buffering=1)
 bridge.audit_sink=lambda data:boundary.write(json.dumps(data)+'\n')
 original_call=bridge.call
 def call(name,**arguments):
+    arm_delay=Path('/run/aresos-tools/fixture-arm-delay')
+    if name=='input' and arm_delay.exists():
+        arguments['fixture_arm_delay']=int(arm_delay.read_text());arm_delay.unlink()
     cut=Path('/run/aresos-tools/fixture-cut.json')
     if name in {'input','resume','dialog'} and cut.exists() and json.loads(cut.read_text()).get('point')=='after-input':
         arguments['fixture_cut']='after-input';cut.unlink()
@@ -77,6 +80,7 @@ def call(name,**arguments):
 bridge.call=call
 def event(value):
     print('CHROME_EVENT',json.dumps(value),flush=True)
+    if value.get('event')=='fixture_arm_wait':Path('/out/arm-ready.json').write_text(json.dumps({'operation':value['operation']}))
     if value.get('event')=='fixture_after_input':Path('/out/checkpoint-ready.json').write_text(json.dumps({'point':'after-input','operation':value['operation']}))
     return original_event(value)
 bridge.on_event=event

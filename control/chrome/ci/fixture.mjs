@@ -1,10 +1,11 @@
 import http from 'node:http';
 import fs from 'node:fs';
 const page=(body,script='')=>`<!doctype html><meta charset="utf-8"><title>Synthetic fixture</title><style>body{font:16px sans-serif;margin:20px}button,input,textarea{margin:8px}</style>${body}<script>${script}</script>`;
-export async function fixtures() {
-  const arrivals=[],streams=new Map();
+export async function fixtures(options={}) {
+  const arrivals=[],streams=new Map(),mutations=new Map();let mutationSequence=0;
   const server=http.createServer(async(req,res)=>{
     const url=new URL(req.url,'http://fixture.test:8765');
+    if(url.pathname==='/favicon.ico'){res.writeHead(204);res.end();return;}
     if(url.pathname === '/update.xml'){
       const {id,version}=JSON.parse(fs.readFileSync('/out/extension.json'));
       res.setHeader('Content-Type','application/xml');res.end(`<?xml version="1.0"?><gupdate xmlns="http://www.google.com/update2/response" protocol="2.0"><app appid="${id}"><updatecheck codebase="http://127.0.0.1:8765/extension.crx" version="${version}"/></app></gupdate>`);return;
@@ -13,11 +14,13 @@ export async function fixtures() {
     if(url.pathname === '/download'){res.setHeader('Content-Disposition','attachment; filename="synthetic-'+url.searchParams.get('id')+'.txt"');res.setHeader('Content-Type','text/plain');res.end('Synthetic downloadable bytes');return;}
     if(url.pathname === '/events'){res.writeHead(200,{'Content-Type':'text/event-stream','Cache-Control':'no-cache'});res.write(': ready\n\n');const id=url.searchParams.get('id');streams.set(id,res);res.on('close',()=>{if(streams.get(id)===res)streams.delete(id);});return;}
     if(url.pathname === '/observe'){let body='';for await(const part of req)body+=part;fs.appendFileSync('/out/page-events.jsonl',body+'\n');res.end('observed');return;}
-    if(url.pathname === '/receive') {
+    if(url.pathname==='/mutation-ack'){const pending=mutations.get(url.searchParams.get('nonce'));if(pending)pending();res.writeHead(204);res.end();return;}
+    if(url.pathname === '/receive'||url.pathname==='/'&&url.searchParams.has('field')&&url.searchParams.get('case')?.startsWith('submit-empty-')) {
       let body='';for await(const part of req)body+=part;
       const record={time:Date.now(),url:req.url,method:req.method,body,host:req.headers.host};arrivals.push(record);fs.appendFileSync('/out/receiver.jsonl',JSON.stringify(record)+'\n');
       res.end(page('<p>Received synthetic input</p>'));return;
     }
+    if(url.pathname!=='/'){res.writeHead(404);res.end('Unknown fixture path');return;}
     const kind=url.searchParams.get('case') || 'compose';
     // Mutation channels belong to the current fixture document. Old SSEs must
     // not exhaust Chrome's six HTTP/1.1 connections and hide later receivers.
@@ -41,7 +44,11 @@ export async function fixtures() {
     } else if(kind==='action-matrix') {
       const id=url.searchParams.get('id'),mode=url.searchParams.get('mode'),tag=url.searchParams.get('tag')||'textarea';
       const action='/receive?case='+encodeURIComponent(id);
-      if(mode==='submit')body='<form method="post" action="'+action+'" target="sink"><input name="field" aria-label="Form field" value="Current"><button'+(tag==='default'?'':' type="submit"')+'>Continue</button></form><iframe name="sink" hidden></iframe>';
+      if(mode==='submit'){
+        const button='<button'+(tag==='default'?'':' type="submit"')+(tag==='external'?' form="target-form"':'')+(tag==='override'?' formaction="'+action+'" formmethod="post" formenctype="text/plain" formtarget="sink"':tag==='empty'?' formaction="" formmethod="" formenctype="" formtarget="sink"':tag==='invalid'?' formaction="'+action+'" formmethod="invalid" formenctype="invalid" formtarget="sink"':'')+'>Continue</button>';
+        body=(tag==='external'?button:'')+'<form id="target-form" method="'+(tag==='override'?'get':'post')+'" action="'+(['override','empty','invalid'].includes(tag)?'/receive?case=unapproved-'+id:action)+'" target="sink"><input name="field" aria-label="Form field" value="Current">'+(['empty','invalid'].includes(tag)?'<input type="hidden" name="case" value="'+id+'">':'')+(tag==='external'?'':button)+'</form><iframe name="sink" hidden></iframe>';
+        if(tag==='clobbered')body=body.replace('</form>',['elements','action','method','enctype','target'].map(name=>'<input name="'+name+'" value="Synthetic clobber">').join('')+'</form>');
+      }
       else if(mode==='compose'){
         body=(tag==='div'?'<div contenteditable="true" aria-label="Compose">Existing draft</div>':'<'+tag+' aria-label="Compose" value="Existing draft">Existing draft</'+tag+'>');
         script=`document.querySelector('[aria-label=Compose]').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();fetch(${JSON.stringify(action)},{method:'POST',body:'compose'});}};`;
@@ -55,16 +62,20 @@ export async function fixtures() {
         body='<a href="'+url.searchParams.get('url').replaceAll('&','&amp;').replaceAll('"','&quot;')+'">Read more</a>';
         script=`document.querySelector('a').onclick=()=>fetch(${JSON.stringify(action)},{method:'POST',body:'must never click'});`;
       } else if(mode==='conservative'){
-        body='<button type="button" id="plain">Continue</button><textarea aria-label="Text">Existing draft</textarea><select aria-label="Choice"><option value="a">A</option><option value="b">B</option></select><input type="checkbox" aria-label="Tick"><a href="'+action+'" target="sink">Read more</a><form role="search" action="'+action+'" target="sink"><input type="search" name="q" value="Search" aria-label="Search"><button>Search now</button></form><iframe name="sink" hidden></iframe>';
+        body='<button type="button" id="plain">Continue</button><textarea aria-label="Text">Existing draft</textarea><select aria-label="Choice"><option value="a">A</option><option value="b">B</option></select><input type="checkbox" aria-label="Tick"><a href="'+action+'" target="sink">Read more</a><form role="search" action="'+action+'" target="sink"><input type="hidden" name="case" value="'+id+'"><input type="search" name="q" value="Search" aria-label="Search"><button>Search now</button></form><iframe name="sink" hidden></iframe>';
         script=`const send=()=>fetch(${JSON.stringify(action)},{method:'POST',body:'conservative'});document.querySelector('#plain').onclick=send;document.querySelector('select').onchange=send;document.querySelector('[type=checkbox]').onchange=send;`;
       } else if(mode==='free'){
-        body='<form role="search" action="'+action+'" target="sink"><input type="search" name="q" aria-label="Search"><button>Continue</button></form><textarea aria-label="Text">Initial</textarea><select aria-label="Choice"><option value="a">A</option><option value="b">B</option></select><input type="checkbox" aria-label="Tick"><a target="sink" href="'+action+'">Read more</a><iframe name="sink" hidden></iframe>';
+        body='<form role="search" action="'+action+'" target="sink"><input type="hidden" name="case" value="'+id+'"><input type="search" name="q" aria-label="Search"><button>Continue</button></form><textarea aria-label="Text">Initial</textarea><select aria-label="Choice"><option value="a">A</option><option value="b">B</option></select><input type="checkbox" aria-label="Tick"><a target="sink" href="'+action+'">Read more</a><iframe name="sink" hidden></iframe>';
         script=`document.querySelector('textarea').onkeydown=e=>{if(e.key==='Enter')fetch('/receive?case=unexpected-enter',{method:'POST'});};`;
       }
+    } else if(kind==='submitter-hijack') {
+      const id=url.searchParams.get('id'),mode=url.searchParams.get('mode');
+      body='<button type="button" id="continue">Continue</button><form action="/receive?case='+id+'" method="post" target="sink"><input aria-label="Form field" name="field" value="Current"><button type="submit" name="which" value="bound">Bound button</button><button type="submit" name="which" value="other">Other button</button></form><iframe name="sink" hidden></iframe>';
+      script=`const form=document.querySelector('form'),other=form.querySelector('[value=other]');${mode==='implicit'?"form.querySelector('input').onkeydown=event=>{if(event.key==='Enter'){event.preventDefault();form.requestSubmit(other);}};":"document.querySelector('#continue').onclick=()=>form.requestSubmit();form.onsubmit=event=>{if(!event.submitter){event.preventDefault();queueMicrotask(()=>form.requestSubmit(other));}};"}`;
     } else if(kind==='resume-matrix') {
       const id=url.searchParams.get('id'),mode=url.searchParams.get('mode');
       body='<button type="button">Continue</button><form action="/receive?case='+id+'" method="post" target="sink"><input name="value" required '+(mode==='invalid'?'':'value="valid"')+'><button type="submit">Submit</button></form><form id="other" action="/receive?case=other-'+id+'" method="post" target="sink"><input name="value" value="other"></form><iframe name="sink" hidden></iframe>';
-      script=`const form=document.querySelector('form');document.querySelector('button').onclick=()=>form.${mode==='invalid'?'submit()':'requestSubmit()'};let count=0;form.onsubmit=event=>{fetch('/receive?case=handler-'+${JSON.stringify(id)},{method:'POST'});${mode==='double'?"event.preventDefault();form.submit();form.submit();":mode==='other'?"document.querySelector('#other').submit();":mode==='nested'?"if(++count===1){event.preventDefault();form.requestSubmit();}else form.submit();":''}};`;
+      script=`const form=document.querySelector('form');document.querySelector('button').onclick=()=>form.${mode==='invalid'?'submit()':'requestSubmit()'};let count=0;form.onsubmit=function handler(event){fetch('/receive?case=handler-'+${JSON.stringify(id)},{method:'POST'});${mode==='double'?"event.preventDefault();form.submit();form.submit();":mode==='other'?"document.querySelector('#other').submit();":mode==='nested'?"if(++count===1)handler(event);form.submit();":''}};`;
     } else if(kind==='cross-draft') {
       const mode=url.searchParams.get('mode'),id=url.searchParams.get('id');
       body='<button type="button">Send</button>'+(mode==='empty'?'':mode==='oversized'?'<textarea aria-label="Long draft">'+('Synthetic long draft '.repeat(1200))+'</textarea>':'<iframe src="http://second.test:8766/?case=draft-inner&id='+id+'"></iframe>');
@@ -152,7 +163,7 @@ export async function fixtures() {
           const step=()=>{${step}};
           ${route==='click'?'trigger.onclick=step':route==='key'?'trigger.onkeydown=step':route==='fill'?'field.oninput=step':route==='select'?'choice.onchange=step':'check.onchange=step'};`;
       } else if(mode==='activation'||mode==='conservative-script'){
-        body='<button type="button">Continue</button><input aria-label="Trigger text"><select aria-label="Trigger choice"><option value="a">A</option><option value="b">B</option></select><input type="checkbox" aria-label="Trigger check"><a target="sink" href="'+action+'" aria-labelledby="external">Continue</a><span id="external">'+(mode==='conservative-script'?'Read more':'Delete')+'</span><iframe name="sink" hidden></iframe>';
+        body='<button type="button">Continue</button><input aria-label="Trigger text"><select aria-label="Trigger choice"><option value="a">A</option><option value="b">B</option></select><input type="checkbox" aria-label="Trigger check"><a target="sink" href="'+action+'" aria-labelledby="external">Continue</a><textarea aria-label="Message">Existing draft</textarea><span id="external">'+(mode==='conservative-script'?'Read more':url.searchParams.get('word')||'Delete')+'</span><iframe name="sink" hidden></iframe>';
         const wrapped=url.searchParams.get('wrapped')||'click';
         script=`const activate=()=>{const link=document.querySelector('a');${wrapped==='click'?'link.click()':"link.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:"+(wrapped==='cancelable'?'true':'false')+"}))"}};${route==='click'?"document.querySelector('button').onclick=activate":route==='key'?"document.querySelector('button').onkeydown=activate":route==='fill'?"document.querySelector('[aria-label=\"Trigger text\"]').oninput=activate":route==='select'?"document.querySelector('select').onchange=activate":"document.querySelector('[type=checkbox]').onchange=activate"};document.querySelector('a').onclick=()=>fetch('/receive?case=handler-'+${JSON.stringify(token)},{method:'POST'});`;
       } else if(mode==='residual-delay'){
@@ -185,7 +196,7 @@ export async function fixtures() {
     } else {res.statusCode=404;res.end('Unknown synthetic fixture');return;}
     const mutationId=['binding','page-dialog','upload','draft-inner'].includes(kind)||kind==='site'&&url.searchParams.get('id')?.startsWith('adapter-bind-')?url.searchParams.get('id'):null;
     if(mutationId)script+=`;new EventSource('/events?id='+${JSON.stringify(mutationId)}).onmessage=event=>{
-      const change=JSON.parse(event.data).change,form=document.querySelector('form'),button=document.querySelector('button');
+      const mutation=JSON.parse(event.data),change=mutation.change,form=document.querySelector('form'),button=document.querySelector('button');
       if(change==='label')button.textContent='Changed label';
       if(change==='element')button.replaceWith(button.cloneNode(true));
       if(change==='visible')document.querySelector('[name=visible]').value='Changed visible';
@@ -197,15 +208,26 @@ export async function fixtures() {
       if(change==='text'){const field=document.querySelector('[contenteditable],textarea');if(field.matches('input,textarea'))field.value='Changed draft';else field.textContent='Changed draft';}
       if(change==='preview')document.querySelector('[aria-label="Message preview"]').textContent='Changed read-only preview';
       if(change==='dialog')document.querySelector('[role=alertdialog] p').textContent='Delete another item?';
-      if(change==='document')location.href=location.href+'&generation=changed';
+      if(change==='document'){location.href=location.href+'&generation=changed&mutation_nonce='+encodeURIComponent(mutation.nonce);return;}
       if(change==='account'){const account=document.querySelector('[name=from],[aria-label="Signed in as"]');if('value'in account)account.value='Changed account';else account.textContent='Changed account';}
       if(change==='recipient')document.querySelector('[name=to]').value='other@example.invalid';
       if(change==='chat')document.querySelector('[aria-label="Chat name"]').textContent='Changed chat';
-    };`;
+      fetch('/mutation-ack?nonce='+encodeURIComponent(mutation.nonce),{keepalive:true});
+    };if(new URL(location.href).searchParams.has('mutation_nonce'))fetch('/mutation-ack?nonce='+encodeURIComponent(new URL(location.href).searchParams.get('mutation_nonce')),{keepalive:true});`;
     res.setHeader('Content-Type','text/html');res.setHeader('Cache-Control','no-store');res.end(page(body,script));
   });
-  await new Promise(resolve=>server.listen(8765,'0.0.0.0',resolve));
+  await new Promise(resolve=>server.listen(options.port??8765,'0.0.0.0',resolve));
   const second=http.createServer(server.listeners('request')[0]);
-  await new Promise(resolve=>second.listen(8766,'0.0.0.0',resolve));
-  return {arrivals,mutate:(id,change)=>{const stream=streams.get(id);if(!stream)throw Error('Mutation fixture stream is not connected: '+id);stream.write('data: '+JSON.stringify({change})+'\n\n');},close:()=>{for(const stream of streams.values())stream.end();server.close();second.close();}};
+  await new Promise(resolve=>second.listen(options.secondPort??8766,'0.0.0.0',resolve));
+  return {arrivals,port:server.address().port,mutate:async(id,change)=>{
+    const deadline=Date.now()+5000;
+    while(!streams.has(id)&&Date.now()<deadline)await new Promise(resolve=>setTimeout(resolve,10));
+    const stream=streams.get(id);if(!stream)throw Error('Mutation fixture stream is not connected: '+id);
+    const nonce=String(++mutationSequence);
+    await new Promise((resolve,reject)=>{
+      const timer=setTimeout(()=>{mutations.delete(nonce);reject(Error('Mutation did not complete: '+id+' '+change));},5000);
+      mutations.set(nonce,()=>{clearTimeout(timer);mutations.delete(nonce);resolve();});
+      stream.write('data: '+JSON.stringify({change,nonce})+'\n\n');
+    });
+  },close:()=>{for(const stream of streams.values())stream.end();server.close();second.close();}};
 }

@@ -17,7 +17,7 @@ function rpc(action,arguments_={}) {
   return new Promise((resolve,reject)=>{
     const socket=net.createConnection('/run/aresos-tools/act.sock');let buffer='';
     socket.setTimeout(20000,()=>socket.destroy(Error('Tool response timeout')));
-    socket.on('connect',()=>socket.write(JSON.stringify({v:1,method:'call',action:'chrome_'+action,arguments:arguments_})+'\n'));
+    socket.on('connect',()=>socket.write(JSON.stringify({v:1,method:'call',action:action==='control_pending'?action:'chrome_'+action,arguments:arguments_})+'\n'));
     socket.on('data',data=>{buffer+=data;if(buffer.includes('\n')){socket.end();const result=JSON.parse(buffer);fs.appendFileSync('/out/tool.jsonl',JSON.stringify({action,result})+'\n');resolve(result);}});
     socket.on('end',()=>{if(!buffer.includes('\n'))reject(Error('Service disconnected before its reply; inspect status, never replay'));});
     socket.on('error',reject);
