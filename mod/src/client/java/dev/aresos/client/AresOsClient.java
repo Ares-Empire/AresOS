@@ -27,7 +27,7 @@ public final class AresOsClient implements ClientModInitializer {
     private static long zoneVisit;
     private static KeyMapping modeToggle;
     private static AppLauncher launcher = System.getProperty("os.name").toLowerCase(Locale.ROOT).startsWith("windows")
-            ? new WindowsAppLauncher() : new LinuxAppLauncher();
+            ? new WindowsAppLauncher() : new LinuxAppLauncher(AresOs::shell);
 
     /** Allows client game tests to substitute a launcher without ever starting a real app. */
     public static AppLauncher replaceLauncher(AppLauncher replacement) {
@@ -40,6 +40,7 @@ public final class AresOsClient implements ClientModInitializer {
     public void onInitializeClient() {
         HomeButton.register();
         AppsScreen.register();
+        if (AresOs.shell() != null) ShellFocusClient.register(AresOs.shell());
         ClientPlayNetworking.registerGlobalReceiver(dev.aresos.mode.ModeSwitchStatePayload.TYPE,
                 (payload, context) -> ModeSwitchClient.receive(payload));
         ClientPlayNetworking.registerGlobalReceiver(ZoneLaunchPayload.TYPE, (payload, context) -> {
@@ -92,6 +93,11 @@ public final class AresOsClient implements ClientModInitializer {
         return close;
     }
 
+    /** The app helper gave the hub its focus back (AresOS); the GLFW focus path may already have done this. */
+    static void returnedFromApp() {
+        if (zoneVisit != 0) finishZone(true);
+    }
+
     private static void finishZone(boolean returned) {
         if (zoneVisit != 0 && ClientPlayNetworking.canSend(ZoneReturnPayload.TYPE))
             ClientPlayNetworking.send(new ZoneReturnPayload(zoneVisit, returned));
@@ -117,7 +123,7 @@ public final class AresOsClient implements ClientModInitializer {
                     client.execute(() -> {
                         FOCUS_RETURN.cancel(token);
                         if (zoneFocusToken == token) finishZone(false);
-                        message(client, "Couldn't open " + app.name() + (launcher instanceof LinuxAppLauncher ? ": app helper unavailable" : ""));
+                        message(client, "Couldn't open " + app.name() + failureDetail(error));
                     });
                     AresOs.LOGGER.warn("Could not launch app {}", id, error);
                 }
@@ -125,9 +131,14 @@ public final class AresOsClient implements ClientModInitializer {
         } catch (RuntimeException error) {
             FOCUS_RETURN.cancel(token);
             if (zoneFocusToken == token) finishZone(false);
-            message(client, "Couldn't open " + app.name() + (launcher instanceof LinuxAppLauncher ? ": app helper unavailable" : ""));
+            message(client, "Couldn't open " + app.name() + failureDetail(error));
             AresOs.LOGGER.warn("Could not launch app {}", id, error);
         }
+    }
+
+    /** Windows keeps its plain message; on AresOS the helper's reason says what to fix. */
+    private static String failureDetail(Throwable error) {
+        return launcher instanceof LinuxAppLauncher ? ": " + LinuxAppLauncher.reason(error) : "";
     }
 
     private static void message(Minecraft client, String text) {
