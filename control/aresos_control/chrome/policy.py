@@ -1,6 +1,6 @@
 """Chrome policy is service data; the extension receives a generated copy."""
 import re
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit, unquote
 
 from ..common import Refused
 
@@ -80,7 +80,7 @@ def classify(verb, arguments, facts, *, conservative=False, readonly=False, adap
             return 'form' if conservative else None
         return 'form'
     words = listed(' '.join(str(target.get(k, '')) for k in ('name', 'label', 'title', 'value', 'role')) +
-                   ' ' + (form or {}).get('action', '') + ' ' + (target.get('page_dialog') or {}).get('text',''))
+                   ' ' + unquote((form or {}).get('action', '')) + ' ' + (target.get('page_dialog') or {}).get('text',''))
     if target.get('page_dialog') and target.get('name','').casefold() in {'ok','yes','confirm','continue','ja','bestätigen','weiter'} and words:
         return 'delete' if words & DELETE else 'pay' if words & PAY else 'confirmation'
     return 'delete' if words & DELETE else 'pay' if words & PAY else 'send' if words else 'activation' if conservative else None

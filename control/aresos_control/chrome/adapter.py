@@ -82,7 +82,7 @@ class Chrome:
         elif event.get('event') == 'audit':
             sink = getattr(self.bridge, 'audit_sink', None)
             if sink is not None:
-                sink(event['data'])
+                sink(event.get('data'))
 
     def mode(self, acting=False):
         if not self.bridge.version:
@@ -357,15 +357,21 @@ class Chrome:
     def free(self, verb, payload=None, **arguments):
         # Even free changes have a committed operation/context before any dispatch (R2).
         op_id = self.store.generation + ':' + uuid.uuid4().hex
-        context = payload['binding'] if payload else arguments
+        context = payload['binding'] if payload else {**arguments, **({'before':self.bridge.call('tab_context',tab=arguments['tab'])} if 'tab' in arguments else {})}
         description = {'action':'chrome_' + verb,'untrusted_content':{'page_state':context,'input':payload['input'] if payload else arguments}}
         op = {'id':op_id,'generation':self.store.generation,'app':'chrome','action':'chrome_' + verb,
-              'input_hash':digest(description),'approval':{'description':visible(description)},'payload':payload or arguments,
+              'input_hash':digest(description),'approval':{'description':visible(description)},'payload':payload or context,
               'state':'submitting','expires':0,'stages':{},'reason':'Free input may start; no replay after an interruption.'}
         self.store.write({'op:' + op_id:op},op['action'],'Chrome free-input context committed',op_id)
         self.store.checkpoint('chrome_before_dispatch')
         try:
             reply = self.bridge.call(**self.command(payload, op_id)) if payload else self.bridge.call(verb,**arguments)
+            if verb=='open':
+                op['payload']['created_tab']=copy.deepcopy(reply)
+                op['stages']['created_tab']=copy.deepcopy(reply)
+                self.store.write({'op:'+op_id:op},op['action'],'Created tab identity committed before address navigation',op_id)
+                if arguments['url']!='about:blank':
+                    self.bridge.call('navigate',tab=reply['tab'],url=arguments['url'])
         except Refused as exc:
             certain=exc.code in {'stale_reference','stale_approval','owner_signin','refused','permission_denied','chrome_unavailable'}
             op.update(state='failed' if certain else 'unknown',reason=('Nothing dispatched: ' if certain else 'Input may have run: ')+str(exc))

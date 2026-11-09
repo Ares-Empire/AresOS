@@ -178,3 +178,11 @@ test('group1 capitalized shipped Papierkorb holds wrappers and capture equally',
     assert.equal(delivered,0);assert.equal(f.reports.length,1);
   }
 });
+
+test('group7 replacing public wrapper prototypes and call intrinsics only adds holds',()=>{
+  const f=fixture(),form=new f.HTMLFormElement();f.arm(form,form);
+  vm.runInContext("Function.prototype.call=function(){throw Error('page replaced call')};Reflect.apply=()=>{throw Error('page replaced apply')};Object.defineProperty=()=>{throw Error('page replaced define')}",f.main);
+  assert.throws(()=>{f.HTMLFormElement.prototype.submit=function(){};});
+  form.submit();assert.equal(f.arrivals.length,0);
+  f.api.resume(f.reports[0].id,'approved');assert.equal(f.arrivals.length,1);
+});

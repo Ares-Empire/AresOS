@@ -103,6 +103,9 @@ class Daemon:
 
     def register_chrome_host(self, connection):
         bridge = self.engine.adapters['chrome'].bridge
+        for key in list(self.selector.get_map().values()):
+            if key.data=='chrome-peer' and key.fileobj is not bridge.connection:
+                self.selector.unregister(key.fd)
         previous = bridge.connection
         previous_fd = previous.fileno() if previous is not None else None
         try:

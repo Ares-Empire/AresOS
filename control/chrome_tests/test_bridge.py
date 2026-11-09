@@ -42,6 +42,20 @@ class Handshake(unittest.TestCase):
             daemon.selector.close()
             for connection in connections: connection.close()
 
+    def test_transport_closed_outside_selector_can_reconnect_on_reused_descriptor(self):
+        bridge=Bridge();daemon=Daemon.__new__(Daemon)
+        daemon.engine=SimpleNamespace(adapters={'chrome':SimpleNamespace(bridge=bridge)})
+        daemon.selector=selectors.DefaultSelector();pairs=[]
+        try:
+            for session in ['old','new']:
+                server,client=socket.socketpair();pairs.extend([server,client]);client.sendall(json.dumps({'event':'hello','session':session,'version':'157.0.1.0'}).encode()+b'\n')
+                daemon.register_chrome_host(server)
+                if session=='old':bridge.close()
+            self.assertEqual(bridge.session,'new');self.assertEqual(len(daemon.selector.get_map()),1)
+        finally:
+            daemon.selector.close()
+            for connection in pairs:connection.close()
+
     def test_invalid_chrome_handshake_leaves_descriptor_for_daemon_refusal(self):
         bridge = Bridge()
         server, client = socket.socketpair()
@@ -89,3 +103,19 @@ class FragmentedReplies(unittest.TestCase):
         self.assertEqual(bridge.call('read',tab=1)['text'],'é🦊'*300000)
         bridge.connection=Peer(True)
         with self.assertRaises(Refused):bridge.call('read',tab=1)
+
+    def test_failed_owner_event_drains_its_reply_before_the_next_command(self):
+        import json
+        from aresos_control.chrome.bridge import Bridge
+        class Peer:
+            def __init__(self):self.buffer=b''
+            def sendall(self,data):
+                identity=json.loads(data)['id']
+                self.buffer+=(json.dumps({'event':'released','tab':1})+'\n'+json.dumps({'id':identity,'ok':True,'data':{'reply':identity}})+'\n').encode()
+            def recv(self,size):value=self.buffer[:size];self.buffer=self.buffer[size:];return value
+            def close(self):pass
+        bridge=Bridge();bridge.connection=Peer();bridge.on_event=lambda event:(_ for _ in ()).throw(OSError('Synthetic failed event commit'))
+        with self.assertRaises(Refused) as error:bridge.call('input')
+        self.assertEqual(error.exception.code,'unknown')
+        bridge.on_event=lambda event:None
+        self.assertIn('reply',bridge.call('tabs'))

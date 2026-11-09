@@ -1,5 +1,6 @@
 """Signed, append-only qualification and per-build/per-major switches."""
 import json
+import os
 from pathlib import Path
 import re
 import subprocess
@@ -7,7 +8,7 @@ import tempfile
 import time
 import urllib.request
 
-from ..common import Refused, canonical
+from ..common import Refused, canonical, cleanup, storage_stream
 from .policy import CORE_GROUPS, HOSTS
 
 REPOSITORY = 'Ares-Empire/AresOS'
@@ -99,14 +100,21 @@ class Qualification:
             return
         url = f'https://raw.githubusercontent.com/{REPOSITORY}/refs/heads/chrome-qualification/control/chrome/qualification.json'
         try:
+            for obsolete in self.store.state_dir.glob('.qualification-*'):
+                obsolete.unlink()
             with urllib.request.urlopen(url, timeout=10) as stream:
                 data = stream.read(4 * 1024 * 1024 + 1)
             if len(data) > 4 * 1024 * 1024:
                 raise ValueError('Qualification exceeds delivery bound')
-            with tempfile.NamedTemporaryFile(dir=self.store.state_dir, suffix='.json') as temporary:
-                temporary.write(data)
-                temporary.flush()
-                self.accept(temporary.name, verifier)
+            self.store.ledger.admit(len(data)+8192)
+            fd,temporary=tempfile.mkstemp(dir=self.store.state_dir,prefix='.qualification-',suffix='.json')
+            try:
+                with storage_stream(os.fdopen(fd,'wb')) as stream:
+                    stream.write(data);stream.flush()
+                self.accept(temporary,verifier)
+            finally:
+                with cleanup('Qualification temporary unlink'):
+                    os.unlink(temporary)
             result = 'Verified record accepted.'
         except Exception:
             result = 'Qualification refresh unavailable or verification failed; held record retained.'

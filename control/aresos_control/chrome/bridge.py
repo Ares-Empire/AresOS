@@ -66,10 +66,16 @@ class Bridge:
             self.connection.sendall(body)
             assembled = bytearray()
             total = None
+            event_error = None
             while True:
                 reply = self.read()
                 if reply.get('event'):
-                    self.on_event(reply)
+                    try:
+                        self.on_event(reply)
+                    except Exception as exc:
+                        # Drain this command's own response before reporting the failed event commit.
+                        # Otherwise its late response poisons the next command identity.
+                        event_error = event_error or exc
                     continue
                 if reply.get('id') != identity:
                     raise Refused('transport_error', 'Chrome response identity changed; inspect status, never retry.')
@@ -90,6 +96,8 @@ class Bridge:
                         raise Refused('transport_error','Chrome assembled response identity changed.')
                 elif assembled:
                     raise Refused('transport_error','Incomplete Chrome response fragments.')
+                if event_error is not None:
+                    raise Refused('unknown','A Chrome owner event could not be committed; inspect status and never replay an input.') from event_error
                 if not reply.get('ok'):
                     raw = reply.get('error','refused: Chrome refused input')
                     code, separator, message = raw.partition(':')

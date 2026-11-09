@@ -30,6 +30,8 @@ class Browser:
         if name=='validity':return {'document':self.facts['frames'][0]['document'],'control':self.facts.get('control')}
         if name=='configure': return {'configured':True}
         if name in {'facts','read'}: return copy.deepcopy(self.facts)
+        if name=='tab_context':return {'tab':args['tab'],'url':self.facts['url'],'session':self.session}
+        if name=='open':self.dispatched.append((name,args));return {'tab':2,'session':self.session}
         if name=='tabs': return {'items':[{'tab':1,'url':self.facts['url'],'title':'Fixture'}]}
         self.dispatched.append((name,args))
         return {'checked':True,'dispatched':True,'steps':[]}
@@ -98,6 +100,18 @@ class Operations(unittest.TestCase):
             return original(name,**args)
         self.browser.call=checked
         result=self.call('click',self.target());self.assertTrue(result['ok'],result);self.assertEqual(len(self.browser.dispatched),1)
+
+    def test_r2_created_tab_identity_commits_before_navigation(self):
+        original=self.browser.call
+        def checked(name,**args):
+            if name=='navigate':
+                rows=[op for _,op in self.engine.store.iter_items('op:') if op['app']=='chrome']
+                self.assertEqual(rows[-1]['payload']['created_tab']['tab'],2)
+                self.assertEqual(rows[-1]['state'],'submitting')
+            return original(name,**args)
+        self.browser.call=checked
+        result=self.call('open',{'url':'https://fixture.test/'});self.assertTrue(result['ok'],result)
+        self.assertEqual([name for name,_ in self.browser.dispatched],['open','navigate'])
 
     def test_storage_admission_refusal_recovers_without_restart_and_prevents_dispatch(self):
         original=self.engine.store.ledger.admit

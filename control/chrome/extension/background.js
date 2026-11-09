@@ -8,7 +8,7 @@ const listSnapshots = new Map();
 const ownerRequests = new Map(), stagedUploads = new Map(), confirmationPlans = new Map(), dialogWake = new Map();
 function assertControl(tab,epoch=dispatchEpoch){if(!epoch || controlled.get(tab)?.epoch !== epoch)throw Error('stale_reference: control ended');}
 const audit = value => {
-  if(recording && port){const text=JSON.stringify(value);if(text && text.length>64000){for(let offset=0;offset<text.length;offset+=64000)port.postMessage({event:'audit',data:{json_fragment:text.slice(offset,offset+64000),offset,total:text.length}});}else port.postMessage({event:'audit',data:value});}
+  if(recording && port){const text=JSON.stringify(value??null);if(text && text.length>64000){for(let offset=0;offset<text.length;offset+=64000)port.postMessage({event:'audit',data:{json_fragment:text.slice(offset,offset+64000),offset,total:text.length}});}else port.postMessage({event:'audit',data:value??null});}
   return value;
 };
 function respond(value) {
@@ -64,7 +64,7 @@ async function take(tab) {
     throw Error('stale_reference: this document opened before the extension preload; the owner must reload it before control');
   }
   const original = {window:current.windowId,index:current.index,group:current.groupId,epoch:crypto.randomUUID()};
-  await chrome.debugger.attach({tabId:tab}, '1.3');
+  effectStarted=true;await chrome.debugger.attach({tabId:tab}, '1.3');
   await cdp(tab,'Page.enable');
   groupId = await chrome.tabs.group({tabIds:[tab],...(groupId === null ? {} : {groupId})});
   await chrome.tabGroups.update(groupId,{title:'Claude',color:'blue',collapsed:false});
@@ -173,6 +173,7 @@ async function collection(command) {
 async function dispatch(command) {
   const tab = command.tab ?? command.reference?.tab;
   const reference = command.reference;
+  if(command.name==='stop_popup'){await chrome.action.openPopup();return {opened:true};}
   if (command.name === 'audit') { recording=command.enabled === true; return {recording}; }
   if(command.name==='configure')return configure(command.excluded_hosts);
   if(!excludedHosts)throw Error('refused: owner-only excluded-sites setting is unavailable');
@@ -182,8 +183,7 @@ async function dispatch(command) {
   if (command.name === 'stop') return stop();
   if (command.name === 'open') {
     safeURL(command.url);
-    const created=await chrome.tabs.create({url:'about:blank'});await take(created.id);dispatchEpoch=controlled.get(created.id).epoch;
-    if(command.url !== 'about:blank')await cdp(created.id,'Page.navigate',{url:command.url});
+    effectStarted=true;const created=await chrome.tabs.create({url:'about:blank'});await take(created.id);dispatchEpoch=controlled.get(created.id).epoch;
     return {tab:created.id,session,group:groupId};
   }
   if (command.name === 'dialog_facts') {
@@ -202,6 +202,7 @@ async function dispatch(command) {
     for(const frame of await chrome.webNavigation.getAllFrames({tabId:tab})||[])try{await content(tab,frame.frameId,'finish_input',{generation:dispatchEpoch});}catch{}
     return {checked:true,dispatched:true,page:'Dialog answered once, as the page shows it.',steps:[]};
   }
+  if(command.name==='tab_context'){const current=await chrome.tabs.get(tab);safeURL(current.url);return {session,tab,url:current.url,title:current.title,control:controlled.get(tab)?.epoch||null,frames:(await chrome.webNavigation.getAllFrames({tabId:tab})||[]).map(frame=>({frame:frame.frameId,url:frame.url,document:frame.documentId}))};}
   if (command.name === 'validity') {
     await requireTab(tab);safeURL((await chrome.webNavigation.getFrame({tabId:tab,frameId:reference.frame})).url);
     return {session,control:controlled.get(tab).epoch,...await content(tab,reference.frame,'ready')};
