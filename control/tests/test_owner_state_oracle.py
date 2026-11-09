@@ -1039,6 +1039,15 @@ class StageOneFixMutations(unittest.TestCase):
         oracle, record = scenario()
         self.assertEqual(oracle.qualification(record)['new']['folder_delete_reason'], 'qualified')
         self.assertTrue(oracle.qualification(record)['new']['safe_folder_delete'])
+        oracle, record = scenario()
+        record.events[0]['set']['op:cleanup']['state'] = 'reserved'
+        expected = oracle.qualification(record)
+        later = copy.deepcopy(record.events[0]['set']['op:cleanup'])
+        later['state'] = 'failed'
+        record.events.append({'seq': 2, 'action': 'mail_delete', 'set': {'op:cleanup': later}})
+        restarted = Oracle()
+        restarted.script, restarted.servers = copy.deepcopy(oracle.script), copy.deepcopy(oracle.servers)
+        self.assertEqual(restarted.qualification(record), expected, 'Later expiry cannot rewrite why qualification failed')
         for kind in ('generic-cleaned', 'probe-missing', 'exact-cleanup-failed', 'empty-cleanup-failed', 'survival-unverified'):
             oracle, record = scenario()
             if kind == 'generic-cleaned':

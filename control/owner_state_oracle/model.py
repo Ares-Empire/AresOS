@@ -468,8 +468,8 @@ class Oracle:
             account_id = call['arguments'].get('id')
             if account_id in self.qualification_observed:
                 continue
-            completed = any(e['action'] == 'mail_account_add' and e.get('outcome') == 'done' and
-                'mail:account:' + str(account_id) in e['set'] for e in record.events)
+            completed = [e['seq'] for e in record.events if e['action'] == 'mail_account_add' and e.get('outcome') == 'done' and
+                'mail:account:' + str(account_id) in e['set']]
             if not completed:
                 continue
             events = [e for e in self.servers if e.get('account') == account_id and e['call'] == call['call']]
@@ -482,7 +482,7 @@ class Oracle:
             searches = [e for e in events[delivery_index:repair_index] if e['command'] == 'SENT']
             policy = 'server' if searches and searches[-1]['identities'] else 'client'
             ready = bool(deliveries) and policy == 'server'
-            safe, reason = self.probe_qualification(events, record)
+            safe, reason = self.probe_qualification(events, record, min(completed))
             self.qualification_observed[account_id] = {'ready': ready, 'sent_policy': policy,
                 'safe_folder_delete': safe, 'folder_delete_reason': reason}
         result = copy.deepcopy(self.qualification_observed)
@@ -496,7 +496,7 @@ class Oracle:
                     result[account].update(sent_policy=args['sent_policy'], ready=True)
         return result
 
-    def probe_qualification(self, events, record):
+    def probe_qualification(self, events, record, completed_at):
         probes = [e for e in events if e['command'] == 'DELETE']
         if not probes or probes[0].get('reply') != 'delivered':
             return False, 'survival-unverified'
@@ -509,7 +509,7 @@ class Oracle:
         nonempty = probe.get('response_code') == 'NO' and all(code == 'CANNOT' for code in codes) and bool(re.search(r'NON[- ]?EMPTY|NOT EMPTY|CONTAINS MESSAGES|HOLDS MAIL', text))
         if probe['accepted']:
             return False, 'probe-missing'
-        operations = [v for e in record.events for k, v in e['set'].items() if k.startswith('op:') and v]
+        operations = [v for e in record.events if e['seq'] <= completed_at for k, v in e['set'].items() if k.startswith('op:') and v]
         def outcome(action, predicate):
             matching = [v for v in operations if v.get('action') == action and predicate(v.get('payload', {}))]
             return matching[-1] if matching else {}
