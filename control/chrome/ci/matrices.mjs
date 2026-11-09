@@ -231,6 +231,12 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
     for(const file of ['browser-boundary.jsonl','tool.jsonl','service.txt'])assert.doesNotMatch(fs.readFileSync('/out/'+file,'utf8'),/SENTINEL_PRIVATE_PASSWORD_20/,file);
   });
   await check('GROUP 6 schemes links and forward routes',async()=>{
+    for(const method of ['get','post'])for(const override of [false,true]){
+      const id='excluded-form-'+method+'-'+override;
+      await nav('excluded-form&id='+id+'&method='+method+'&override='+override);
+      assert.equal((await rpc('click',await target('Continue'))).ok,false,'known excluded form destination refuses before any native input');
+      assert.equal(counts(id),0);assert.equal(counts('handler-'+id),0,'the submit button handler must never run');
+    }
     for(const url of ['file:///fixture','ftp://fixture.test/','chrome://settings','chrome-extension://fixture/','data:text/plain,fixture','blob:http://fixture.test/id','filesystem:http://fixture.test/temporary/id','view-source:http://fixture.test/','devtools://fixture/','intent://fixture/','tel:0000','javascript:void(0)','about:config','mailto:fixture@example.invalid']){
       assert.equal((await rpc('open',{url})).ok,false);assert.equal((await rpc('navigate',{tab,url})).ok,false);
       if(!url.startsWith('javascript:')){await nav('action-matrix&mode=badlink&id=badlink&url='+encodeURIComponent(url));assert.equal((await rpc('click',await target('Read more'))).ok,false);assert.equal(counts('badlink'),0);}

@@ -68,6 +68,10 @@ export async function fixtures(options={}) {
         body='<form role="search" action="'+action+'" target="sink"><input type="hidden" name="case" value="'+id+'"><input type="search" name="q" aria-label="Search"><button>Continue</button></form><textarea aria-label="Text">Initial</textarea><select aria-label="Choice"><option value="a">A</option><option value="b">B</option></select><input type="checkbox" aria-label="Tick"><a target="sink" href="'+action+'">Read more</a><iframe name="sink" hidden></iframe>';
         script=`document.querySelector('textarea').onkeydown=e=>{if(e.key==='Enter')fetch('/receive?case=unexpected-enter',{method:'POST'});};`;
       }
+    } else if(kind==='excluded-form') {
+      const id=url.searchParams.get('id'),method=url.searchParams.get('method'),override=url.searchParams.get('override')==='true',destination='http://approval.test:8765/receive?case='+encodeURIComponent(id);
+      body='<form role="'+(method==='get'?'search':'form')+'" action="'+(override?'/receive?case=wrong-'+id:destination)+'" method="'+method+'" target="_blank"><input type="search" name="q" value="Synthetic query" aria-label="Search"><button type="submit"'+(override?' formaction="'+destination+'"':'')+'>Continue</button></form>';
+      script=`document.querySelector('button').onclick=()=>fetch('/receive?case=handler-'+${JSON.stringify(id)},{method:'POST'});`;
     } else if(kind==='submitter-hijack') {
       const id=url.searchParams.get('id'),mode=url.searchParams.get('mode');
       body='<button type="button" id="continue">Continue</button><form action="/receive?case='+id+'" method="post" target="sink"><input aria-label="Form field" name="field" value="Current"><button type="submit" name="which" value="bound">Bound button</button><button type="submit" name="which" value="other">Other button</button></form><iframe name="sink" hidden></iframe>';
@@ -85,7 +89,7 @@ export async function fixtures(options={}) {
     } else if(kind==='fresh-activation') {
       const id=url.searchParams.get('id'),cancel=url.searchParams.get('cancel')==='true';
       body='<button type="button">Continue</button><a target="'+(url.searchParams.get('target')==='self'?'_self':'sink')+'" href="/receive?case='+id+'">Delete</a><iframe name="sink" hidden></iframe>';
-      script=`document.querySelector('button').onclick=()=>{const frame=document.createElement('iframe');document.body.append(frame);const raw=frame.contentWindow.EventTarget.prototype.dispatchEvent;raw.call(document.querySelector('a'),new MouseEvent('click',{bubbles:true,cancelable:${cancel}}));};document.querySelector('a').onclick=()=>fetch('/receive?case=handler-'+${JSON.stringify(id)},{method:'POST'});`;
+      script=`document.querySelector('button').onclick=()=>{const frame=document.createElement('iframe');frame.sandbox='allow-same-origin';document.body.append(frame);const raw=frame.contentWindow.EventTarget.prototype.dispatchEvent,native=Function.prototype.toString.call(raw).includes('[native code]');frame.remove();fetch('/observe',{method:'POST',body:JSON.stringify({id:${JSON.stringify(id)},phase:'fallback-source',native})});if(!native)throw Error('Fixture did not obtain a native dispatch function');raw.call(document.querySelector('a'),new MouseEvent('click',{bubbles:true,cancelable:${cancel}}));};document.querySelector('a').onclick=()=>fetch('/receive?case=handler-'+${JSON.stringify(id)},{method:'POST'});`;
     } else if(kind==='native-child') {
       const id=url.searchParams.get('id');body='<p>Native confirmation opener frame</p>';
       script=`onmessage=()=>{if(confirm('Delete branch fixture-repository / branch-1?'))fetch('/receive?case='+${JSON.stringify(id+'-Delete branch')},{method:'POST',body:'confirmed from frame'});};`;
