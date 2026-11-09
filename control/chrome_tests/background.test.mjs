@@ -31,6 +31,38 @@ function lifecycleFixture(){
 }
 async function spin(f,expression){for(let count=0;count<200&&!f.run(expression);count++)await Promise.resolve();assert.equal(!!f.run(expression),true,expression);}
 
+function startupFixture(){
+  const f=fixture();f.run("globalThis.startup=[];excludedHosts=[];groupId=1;chrome.tabs.get=async()=>({url:'http://fixture.test/',groupId:1});chrome.webNavigation={getAllFrames:async()=>[]};chrome.runtime={getURL:path=>'chrome-extension://fixture/'+path};chrome.debugger={sendCommand:async(source,method,parameters)=>{startup.push({source,method,parameters});if(method==='Debugger.setBreakpointByUrl')return {breakpointId:'inert-breakpoint'};if(method==='Runtime.evaluate')return parameters.returnByValue?{result:{value:'private-document'}}:{result:{objectId:'private-cleanup'}};if(method==='Runtime.callFunctionOn')return parameters.returnByValue?{result:{value:'private-document'}}:{result:{objectId:'relay'}};if(method==='DOM.describeNode')return {node:{backendNodeId:1}};if(method==='DOM.resolveNode')return {object:{objectId:'isolated-relay'}};return {};}};preloadBundle=Promise.resolve(['// guard fixture','// reader fixture','// wrapper fixture']);controlled.set(7,{epoch:'epoch'});");return f;
+}
+async function startupContexts(f,prefix,start=1,source={tabId:7}){
+  for(const context of [{id:start,uniqueId:prefix+'-main',origin:'http://fixture.test',auxData:{isDefault:true,frameId:'frame'}},{id:start+1,uniqueId:prefix+'-isolated',origin:'chrome-extension://fixture',auxData:{isDefault:false,frameId:'frame'}}])await f.run(`preloadEvent(${JSON.stringify(source)},'Runtime.executionContextCreated',{context:${JSON.stringify(context)}})`);
+  await f.run(`preloadEvent(${JSON.stringify(source)},'Debugger.scriptParsed',{scriptId:${JSON.stringify(prefix)},executionContextId:${start+1},url:'chrome-extension://fixture/context.js'})`);
+}
+const paused=(f,script,source={tabId:7})=>f.run(`preloadEvent(${JSON.stringify(source)},'Debugger.paused',{hitBreakpoints:['inert-breakpoint'],callFrames:[{location:{scriptId:${JSON.stringify(script)}}}]})`);
+
+test('removing a frame during bootstrap does not poison the still-controlled parent',async()=>{
+  const f=startupFixture(),source={tabId:7,sessionId:'child'};await f.run("prepareTarget({tabId:7,sessionId:'child'},7,'child-target')");await startupContexts(f,'removed',1,source);
+  f.run('preloadBundle=new Promise(resolve=>{globalThis.finishBundle=resolve})');const pending=paused(f,'removed',source);
+  await spin(f,"preloadTargets.get('[7,\"child\"]').installing.size===1");f.run("destroyedTarget(preloadTargets.get('[7,\"child\"]'));finishBundle(['//guard','//reader','//page'])");await pending;
+  assert.equal(f.run('controlled.has(7)'),true);assert.equal(f.run('controlled.get(7).preloadError'),undefined);assert.equal(f.run('[...preloadTargets.values()].some(state=>state.failures?.size)'),false);
+});
+
+test('a cancelled old bootstrap cannot poison or resume the replacement document pause',async()=>{
+  const f=startupFixture();await f.run('prepareTarget({tabId:7})');await startupContexts(f,'old');
+  f.run("const send=chrome.debugger.sendCommand;chrome.debugger.sendCommand=(source,method,parameters)=>{if(method==='Runtime.evaluate'&&parameters.uniqueContextId.startsWith('old'))throw Error('Native old context destroyed');return send(source,method,parameters)};preloadBundle=new Promise(resolve=>{globalThis.finishBundle=resolve});");
+  const old=paused(f,'old');await spin(f,"preloadTargets.get('[7,null]').installing.size===1");
+  for(const id of [1,2])await f.run(`preloadEvent({tabId:7},'Runtime.executionContextDestroyed',{executionContextId:${id}})`);
+  await startupContexts(f,'new',3);const current=paused(f,'new');f.run("finishBundle(['//guard','//reader','//page'])");await Promise.all([old,current]);
+  assert.equal(f.run('controlled.get(7).preloadError'),undefined);assert.equal(f.run("preloadTargets.get('[7,null]').failures.size"),0);assert.equal(f.run("preloadTargets.get('[7,null]').documents.get('new-main').ready"),true);
+  assert.equal(f.run("startup.filter(item=>item.method==='Debugger.resume').length"),1,'only the replacement bootstrap resumes its own pause');
+});
+
+test('a real live bootstrap failure refuses until its native document ends',async()=>{
+  const f=startupFixture();await f.run('prepareTarget({tabId:7})');await startupContexts(f,'live');
+  f.run("const send=chrome.debugger.sendCommand;chrome.debugger.sendCommand=(source,method,parameters)=>method==='Runtime.evaluate'?Promise.resolve({exceptionDetails:{text:'Native startup failure'}}):send(source,method,parameters)");await paused(f,'live');
+  await assert.rejects(f.run('facts(7)'),/could not install/);await f.run("preloadEvent({tabId:7},'Runtime.executionContextsCleared',{})");await assert.doesNotReject(f.run('facts(7)'));
+});
+
 test('Stop cancels a tab admission still awaiting attach without grouping it',async()=>{
   const f=lifecycleFixture();f.run('chrome.debugger.attach=()=>new Promise(resolve=>{globalThis.finishAttach=resolve})');
   const pending=f.run('take(7)');await spin(f,"typeof finishAttach==='function'");await f.run('stop()');f.run('finishAttach()');

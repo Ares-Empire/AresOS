@@ -24,7 +24,7 @@ async function preloadCommand(source,method,parameters={}){
 }
 function assertTarget(state){if(preloadTargets.get(targetKey(state.source))!==state||controlled.get(state.tab)?.epoch!==state.epoch)throw Error('stale_reference: control ended during document setup');}
 function contextChanged(state){for(const done of state.cleanupWaiters||[])done();state.cleanupWaiters?.clear();}
-function destroyedTarget(state){state.contexts.clear();state.scripts.clear();state.documents.clear();contextChanged(state);if(preloadTargets.get(targetKey(state.source))===state)preloadTargets.delete(targetKey(state.source));}
+function destroyedTarget(state){state.contexts.clear();state.scripts.clear();state.documents.clear();state.failures?.clear();contextChanged(state);if(preloadTargets.get(targetKey(state.source))===state)preloadTargets.delete(targetKey(state.source));}
 async function contextGone(state,identity){
   while([...state.contexts.values()].some(context=>context.uniqueId===identity)){
     if(state.detached&&state.targetId)try{if(!(await chrome.debugger.getTargets()).some(target=>target.id===state.targetId)){destroyedTarget(state);return;}}catch{}
@@ -35,7 +35,7 @@ async function contextGone(state,identity){
 }
 async function targetCommand(state,method,parameters={}){assertTarget(state);const value=await preloadCommand(state.source,method,parameters);assertTarget(state);return value;}
 async function prepareTarget(source,tab=source.tabId,targetId=null){
-  const state={source,tab,targetId,epoch:controlled.get(tab)?.epoch,contexts:new Map(),scripts:new Map(),documents:new Map(),installing:new Set()};preloadTargets.set(targetKey(source),state);
+  const state={source,tab,targetId,epoch:controlled.get(tab)?.epoch,contexts:new Map(),scripts:new Map(),documents:new Map(),failures:new Map(),installing:new Set()};preloadTargets.set(targetKey(source),state);
   await targetCommand(state,'Page.enable');
   const tree=await targetCommand(state,'Page.getFrameTree');state.frameId=tree.frameTree?.frame.id||targetId;
   await targetCommand(state,'Runtime.enable');
@@ -84,10 +84,12 @@ async function preloadEvent(source,method,params){
     if(child.tab!==state.tab&&owner&&owner.epoch===child.epoch)await release(child.tab);return;
   }
   if(method==='Runtime.executionContextCreated'){state.contexts.set(params.context.id,params.context);return;}
-  if(method==='Runtime.executionContextDestroyed'){const old=state.contexts.get(params.executionContextId);state.contexts.delete(params.executionContextId);for(const [script,context]of state.scripts)if(context===params.executionContextId)state.scripts.delete(script);for(const [key,document]of state.documents)if(document.main===old?.uniqueId)state.documents.delete(key);else if(document.isolated===old?.uniqueId)document.ready=false;contextChanged(state);return;}
-  if(method==='Runtime.executionContextsCleared'){state.contexts.clear();state.scripts.clear();state.documents.clear();contextChanged(state);return;}
+  if(method==='Runtime.executionContextDestroyed'){const old=state.contexts.get(params.executionContextId);state.contexts.delete(params.executionContextId);for(const [script,context]of state.scripts)if(context===params.executionContextId)state.scripts.delete(script);for(const [key,document]of state.documents)if(document.main===old?.uniqueId)state.documents.delete(key);else if(document.isolated===old?.uniqueId)document.ready=false;for(const [key,failure]of state.failures||[])if(old?.uniqueId&&(failure.main===old.uniqueId||failure.isolated===old.uniqueId))state.failures.delete(key);contextChanged(state);return;}
+  if(method==='Runtime.executionContextsCleared'){state.contexts.clear();state.scripts.clear();state.documents.clear();state.failures?.clear();contextChanged(state);return;}
   if(method==='Debugger.scriptParsed'){if(params.url===chrome.runtime.getURL('context.js'))state.scripts.set(params.scriptId,params.executionContextId);return;}
   if(method!=='Debugger.paused')return;
+  const pause=Symbol();state.pause=pause;let startup;
+  const sameDocument=()=>!startup||state.contexts.get(startup.main.id)?.uniqueId===startup.main.uniqueId&&state.contexts.get(startup.isolated.id)?.uniqueId===startup.isolated.uniqueId;
   let complete;const installing=new Promise(resolve=>{complete=resolve;});state.installing??=new Set();state.installing.add(installing);
   try{
     assertTarget(state);
@@ -96,6 +98,7 @@ async function preloadEvent(source,method,params){
     if(context?.origin!==chrome.runtime.getURL('').replace(/\/$/,'')||context.auxData?.isDefault!==false)throw Error('refused: startup context identity is unavailable');
     const main=[...state.contexts.values()].find(value=>value.auxData?.isDefault&&value.auxData.frameId===context.auxData.frameId);
     if(!main?.uniqueId||!context.uniqueId)throw Error('refused: startup document identity is unavailable');
+    startup={main,isolated:context};
     if(state.documents.has(main.uniqueId))return;
     const [guard,reader,page]=await bundle();
     assertTarget(state);
@@ -113,8 +116,8 @@ async function preloadEvent(source,method,params){
     const activated=await targetCommand(state,'Runtime.callFunctionOn',{objectId:installed.cleanup,functionDeclaration:'function(){return this.activate();}',returnByValue:true});
     if(activated.exceptionDetails)throw Error('refused: document guard activation failed');
     installed.ready=true;
-  }catch(error){const current=controlled.get(state.tab);if(current)current.preloadError=String(error);port?.postMessage({event:'reader_error',error:String(error),tab:state.tab});}
-  finally{try{if(controlled.get(state.tab)?.epoch===state.epoch)await targetCommand(state,'Debugger.resume');}catch{}state.installing.delete(installing);complete();}
+  }catch(error){if(preloadTargets.get(targetKey(source))===state&&controlled.get(state.tab)?.epoch===state.epoch&&sameDocument()){state.failures??=new Map();state.failures.set(startup?.main.uniqueId||'unknown',{main:startup?.main.uniqueId,isolated:startup?.isolated.uniqueId,error:String(error)});port?.postMessage({event:'reader_error',error:String(error),tab:state.tab});}}
+  finally{try{if(state.pause===pause&&sameDocument()&&controlled.get(state.tab)?.epoch===state.epoch)await targetCommand(state,'Debugger.resume');}catch{}state.installing.delete(installing);complete();}
 }
 function isPreloaded(tab,document){return [...preloadTargets.values()].some(state=>state.tab===tab&&[...state.documents.values()].some(value=>value.ready&&value.document===document));}
 async function lateReader(tab){
@@ -365,7 +368,7 @@ async function boundedRelease(tab,promise){return Promise.race([promise,new Prom
 async function stop() { stopGeneration++;await Promise.all([...controlled.keys()].map(tab=>release(tab)));await badge();return {stopped:true,cleanup_pending:releasing.size+admissions.size}; }
 async function facts(tab, reference) {
   const current = await requireTab(tab);
-  if(controlled.get(tab).preloadError)throw Error('refused: this tab could not install its document-start guard; open its address fresh in a Claude tab');
+  if([...preloadTargets.values()].some(state=>state.tab===tab&&state.failures?.size))throw Error('refused: this tab could not install its document-start guard; open its address fresh in a Claude tab');
   if (reference && (reference.session !== session || reference.tab !== tab)) throw Error('stale_reference: browser session changed; read again');
   if(dialogs.has(tab)){
     const dialog=dialogs.get(tab);safeURL(dialog.frame_url);
