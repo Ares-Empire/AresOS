@@ -32,8 +32,14 @@ def checkpoint(point):
         while not release.exists():time.sleep(.005)
         release.unlink();cut.unlink(missing_ok=True)
 daemon.engine.store.checkpoint=checkpoint
+from aresos_control.chrome.sites import KINDS
+original_kind_scope=KINDS['gmail_send']['scope']
 original_request=daemon.engine.request
 def request(value,admin=False):
+    kind=Path('/run/aresos-tools/fixture-kind')
+    if kind.exists():
+        mode=kind.read_text();kind.unlink()
+        KINDS['gmail_send']['scope']=original_kind_scope+(' and widened synthetic recipients' if mode=='widen' else '')
     qualification=Path('/run/aresos-tools/fixture-qualification')
     if qualification.exists():
         mode=qualification.read_text();qualification.unlink()

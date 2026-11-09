@@ -54,6 +54,9 @@ export async function fixtures() {
       } else if(mode==='badlink'){
         body='<a href="'+url.searchParams.get('url').replaceAll('&','&amp;').replaceAll('"','&quot;')+'">Read more</a>';
         script=`document.querySelector('a').onclick=()=>fetch(${JSON.stringify(action)},{method:'POST',body:'must never click'});`;
+      } else if(mode==='conservative'){
+        body='<button type="button" id="plain">Continue</button><textarea aria-label="Text">Existing draft</textarea><select aria-label="Choice"><option value="a">A</option><option value="b">B</option></select><input type="checkbox" aria-label="Tick"><a href="'+action+'" target="sink">Read more</a><form role="search" action="'+action+'" target="sink"><input type="search" name="q" value="Search" aria-label="Search"><button>Search now</button></form><iframe name="sink" hidden></iframe>';
+        script=`const send=()=>fetch(${JSON.stringify(action)},{method:'POST',body:'conservative'});document.querySelector('#plain').onclick=send;document.querySelector('select').onchange=send;document.querySelector('[type=checkbox]').onchange=send;`;
       } else if(mode==='free'){
         body='<form role="search" action="'+action+'" target="sink"><input type="search" name="q" aria-label="Search"><button>Continue</button></form><textarea aria-label="Text">Initial</textarea><select aria-label="Choice"><option value="a">A</option><option value="b">B</option></select><input type="checkbox" aria-label="Tick"><a target="sink" href="'+action+'">Read more</a><iframe name="sink" hidden></iframe>';
         script=`document.querySelector('textarea').onkeydown=e=>{if(e.key==='Enter')fetch('/receive?case=unexpected-enter',{method:'POST'});};`;

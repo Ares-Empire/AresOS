@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import {setTimeout as delay} from 'node:timers/promises';
 
 export async function matrices({call,read,nav,target,counts,eventually,tab,fixture,admin,rpc,caller,ownerNavigate,ownerKey,ownerHistory,ownerBookmark,lifecycle,restoreControl,stopClick,baseline}) {
-  const results=[];
+  const results=[];let trustOperation;
   async function check(name,fn) {
     try {await fn();results.push({name,passed:true});console.log(name,'PASS');}
     catch(error){results.push({name,passed:false,error:String(error.stack)});console.error(name,'FAIL',error.stack);
@@ -235,11 +235,13 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
   });
   await check('GROUP 11 exact owner kind, recipients, account and revocation',async()=>{
     await nav('site&id=trust-initial','gmail');const first=await call('click',await target('Send'));await approval(first,'trust-initial-Send');
-    const entry=admin('chrome_sites',{command:'allow',operation_id:first.approval.operation_id});
+    trustOperation=first.approval.operation_id;
+    const entry=admin('chrome_sites',{command:'allow',operation_id:trustOperation});
     for(const change of ['account','recipient']){
       const id='adapter-bind-trust-'+change;await nav('site&id='+id,'gmail');fixture.mutate(id,change);await delay(100);
       const prepared=await call('click',await target('Send'));assert.equal((await rpc('submit_trusted',prepared.approval)).ok,false);assert.equal(counts(id+'-Send'),0);await call('drop',{operation_id:prepared.approval.operation_id});
     }
+    await lifecycle({fixture:'kind',mode:'widen'});await nav('site&id=trust-widened','gmail');const widened=await call('click',await target('Send'));assert.equal((await rpc('submit_trusted',widened.approval)).ok,false);assert.equal(counts('trust-widened-Send'),0);await call('drop',{operation_id:widened.approval.operation_id});await lifecycle({fixture:'kind',mode:'restore'});
     await nav('site&id=trust-next','gmail');const next=await call('click',await target('Send'));await call('submit_trusted',next.approval);
     await eventually(()=>counts('trust-next-Send')===1,'trusted receiver');
     admin('chrome_sites',{command:'revoke',id:entry.id});
@@ -247,12 +249,16 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
     assert.ok(revoked.approval);assert.equal(counts('trust-revoked-Send'),0);
   });
   await check('QUALIFICATION conservative activations ask and core failures gate before reads',async()=>{
+    admin('chrome_sites',{command:'allow',operation_id:trustOperation});
     await lifecycle({fixture:'qualification',mode:'conservative'});
-    await nav('action-matrix&mode=free&id=conservative');const view=await call('read',{tab});assert.match(view.version_notice,/not qualified/);
-    for(const [verb,label,args] of [['click','Continue',{}],['select','Choice',{value:'b'}],['check','Tick',{checked:true}]]){
-      const prepared=await call(verb,{...await target(label),...args});assert.ok(prepared.approval);assert.equal(counts('conservative'),0);await call('drop',{operation_id:prepared.approval.operation_id});
+    for(const [index,[verb,label,args]]of [['click','Continue',{}],['select','Choice',{value:'b'}],['check','Tick',{checked:true}],['click','Read more',{}],['press','Continue',{key:'Enter'}],['press','Continue',{key:'Space'}],['click','Search now',{}]].entries()){
+      const id='conservative-'+index;await nav('action-matrix&mode=conservative&id='+id);const view=await call('read',{tab});assert.match(view.version_notice,/not qualified/);
+      const prepared=await call(verb,{...await target(label),...args});await approval(prepared,id);
     }
     const typing=await call('fill',{...await target('Text'),text:'Plain text\nwith line breaks'});assert.ok(!typing.approval);assert.equal(counts('unexpected-enter'),0);
+    await nav('site&id=conservative-bank','bank');
+    for(const [verb,label,args]of [['fill','Amount',{text:'1'}],['click','Continue',{}],['upload','File',{path:'/fixture.txt'}]])assert.equal((await rpc(verb,{...await target(label),...args})).error.code,'readonly_site');
+    await nav('site&id=conservative-gmail','gmail');const generic=await call('click',await target('Send'));assert.equal(generic.approval.description.untrusted_content.page_state.adapter,null);assert.equal((await rpc('submit_trusted',generic.approval)).ok,false);assert.equal(counts('conservative-gmail-Send'),0);
     await lifecycle({fixture:'qualification',mode:'password_exclusion'});
     assert.equal((await rpc('read',{tab})).ok,false);
     await lifecycle({fixture:'qualification',mode:'qualified'});
