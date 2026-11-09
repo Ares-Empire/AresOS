@@ -27,12 +27,11 @@ class ReviewRegressions(unittest.TestCase):
     owner_archive = checks28.Checks28.owner_archive
 
     def known_gap(self, gap, expected, actual):
-        registry = Gaps(recording=True)
+        registry = Gaps()
         check = registry.checker(gap)
         check('assertion', expected, actual)
         check.finish()
-        import base64, gzip, json
-        print('OWNER-GAP-NAMED:' + base64.b64encode(gzip.compress(json.dumps(registry.entries, sort_keys=True).encode())).decode(), flush=True)
+        self.assertEqual(registry.seen, {key for key in registry.entries if key.startswith(gap + '/')})
 
     def test_review22_live_rename_trash_with_unresolved_drafts_M03_C03(self):
         scenario = Scenario('filing_rename')

@@ -81,15 +81,14 @@ class OwnerStateChannels(unittest.TestCase):
         self.assertEqual([i['operation_id'] for i in passive['items']], ids[:5])
         self.assertIsNotNone(passive['cursor'])
         continuation = self.call(integration.OWNER, 'control_pending', {'cursor': passive['cursor']})['data']
-        gaps = Gaps(recording=True)
+        gaps = Gaps()
         gaps.bind(record)
         check = gaps.checker('channel/passive-testapp-cursor')
         wanted = {fact for fact in Oracle().expected(record) if fact.kind == 'pending' and fact.source[3:] in ids[5:]}
         check('own-page', wanted, pending_facts(continuation))
         check('unchanged-page', set(), {Fact('pending', 'page_changed')} if continuation.get('page_changed') else set())
         check.finish()
-        import base64, gzip
-        print('OWNER-GAP-CHANNELS:' + base64.b64encode(gzip.compress(json.dumps(gaps.entries, sort_keys=True).encode())).decode(), flush=True)
+        self.assertEqual(gaps.seen, {key for key in gaps.entries if key.startswith('channel/')})
         for name in ('Stop', 'UserPromptSubmit'):
             process = self.launch(integration.OWNER, ['hook', name], input=json.dumps({'hook_event_name': name}))
             self.assertEqual(process.returncode, 0, process.stderr)
