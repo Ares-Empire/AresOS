@@ -1,65 +1,71 @@
 # Qualification requirement map
 
-Specification **read** from `origin/main` after fetch (2026-11-09): brief 20, “Qualifying each new Chrome stable”, and CONTROL section 6. Qualification/continuation instructions are local: those paths are absent on `origin/main`. Starting source: `e5e0c8be`. This map is committed before implementation. **Read** means inspected, not executed; **missing** includes incomplete evidence.
+Specification **read** from `origin/main` after fetch (2026-11-09): brief 20, “Qualifying each new Chrome stable”, and CONTROL section 6. Qualification/continuation instructions are local: those paths are absent on `origin/main`. Starting source: `e5e0c8be`. The initial map was committed before implementation (`6a4fed17`); this is its final audit. Owned tests are run locally; runner evidence and outstanding shared integration are in QUALIFICATION-REPORT.md. **Read** means inspected, not executed; **missing** includes incomplete evidence.
 
-Paths below are relative to `control/`. Q = `aresos_control/chrome/qualification.py`; P = `chrome/qualify.py`; W = `.github/workflows/control-chrome.yml`; E = `aresos_control/chrome/adapter.py`. Existing tests are under `chrome_tests/`.
+Paths below are relative to `control/`. Q = `aresos_control/chrome/qualification.py`; P = `chrome/qualify.py`; W = `.github/workflows/control-chrome-qualification.yml`; E = `aresos_control/chrome/adapter.py`. Existing tests are under `chrome_tests/`.
 
-| ID | Requirement / required test | Implementation read | Starting evidence / gap |
+| ID | Requirement / required test | Implementation read | Final test evidence / integration status |
 |---|---|---|---|
-| B1 | Hash complete extension, page script, host, installed service, shared engine/approval, definitions and words | `chrome/build.py:inputs/build_hash` | `test_build.Build.test_complete_installed_runtime_including_shared_approval_changes_identity`; missing independent inventory and install/hash parity checks |
-| B2 | Workflow and install compute same build; installed service uses its own build only | W identity check; `ci/setup.sh`; E constructor | **missing** installed-ID validation/parity evidence |
-| B3 | Another build's pass never enables this build | Q `switches` | `test_policy.Policy.test_qualification_failure_patch_beta_build_and_conservative_rules`; missing explicit changed-shared-code old/new service case |
-| T1 | Daily Google Linux repository lookup for stable AND beta, full version/exact package | P `packages`, W schedule | `test_publisher.Publisher.test_lookup_both_channels_and_newest_three_builds_twice`; malformed/duplicate metadata **missing** |
-| T2 | Main plus newest three shipped builds in builds.json | P `plan` | same test; strict registry validation **missing** |
-| T3 | Every main push and daily run: each unrecorded build/full-version/channel twice | P `plan`, W plan/pairs | same test; recorded-pair suppression and missing-job accounting **missing** |
-| R1 | Per build/full version/channel and run: four core groups, all six adapters, booleans | Q `validate_record`, P `aggregate` | missing-repeat test; malformed records and wrong identity **missing** |
-| R2 | A missing/failed repeat or group cannot pass | P `aggregate`; `chrome/ci/verdicts.mjs` | `test_missing_repeat_or_missing_group_never_qualifies`; whole absent pair / failed job with stale result **missing** |
-| R3 | Issue names failing groups; publisher refusal opens issue | P `notify` | stub notification test; bounded/new-only failure details and all refusal paths **missing** |
-| P1 | Data branch only, never main; main-only publishing/issue/PR mutations | P CLI guard; W publish job | `test_real_remote_mutations_refuse_on_this_branch_and_notifications_are_stubs`; all mutation commands/refs **missing** |
-| P2 | Verify current published attestation before append, as service does | P `prepare`, Q `verify` | stub verification-order test; genuine bundle verification **missing** |
-| P3 | Current record append-only against shipped main baseline | P `prepare`, Q `append_only` | existing rollback test; altered/reordered/duplicate baseline rows **missing** |
-| P4 | Outside-workflow inserted entry: publish nothing, open issue | P `prepare`, `notify` | separate stub tests; integrated local-repository refusal **missing** |
-| P5 | Non-append-only published branch: publish nothing, open issue | P `prepare`, `notify` | separate tests; integrated local-repository refusal **missing** |
-| P6 | Publisher serialized, not cancelled midway | W publish concurrency | **read** only; exact concurrency contract test **missing** |
-| P7 | Attest candidate, verify it, push data branch, open unmerged shipped-copy PR | W attest/publish; P publish/notify | stub notification test; full hermetic local publication **missing** |
-| D1 | Fetch HTTPS daily and on extension version not held for own build | Q `refresh`; E `maintenance` | **missing** runtime scheduling/caller tests |
-| D2 | Verify repository's qualification workflow on main with supported gh verifier | Q `verify` | `chrome/ci/attestation.py` real subject/wrong branch test; actual altered bundle/wrong workflow/missing bundle **missing** |
-| D3 | Use own package workflow attestation + altered copies as fixtures | W delivery-attestation | existing live API subject test; retained bundle fixture **missing** |
-| D4 | New valid record is used and retained across restart | Q `accept/record` | **missing** durable-store delivery test |
-| D5 | Missing attestation refused; held kept | Q `accept/refresh` | **missing** |
-| D6 | Altered attestation refused; held kept | Q `accept/refresh` | **missing** actual altered-bundle test |
-| D7 | Other workflow refused; held kept | Q `verify` | **missing** actual verifier test |
-| D8 | Other branch refused; held kept | Q `verify` | existing real wrong-branch test; durable held assertion **missing** |
-| D9 | Dropped held row refused; held kept | Q `append_only/accept` | `test_qualification_delivery_append_only_and_wrong_build`; delivery-store assertion **missing** |
-| D10 | Changed held row refused; held kept | Q `append_only/accept` | same; delivery-store assertion **missing** |
-| D11 | Offline keeps held and logs reason | Q `refresh` | **missing** transport/log/rate-limit tests |
-| G1 | Failed adapter off; site uses generic rules | Q `switches`; E input recognition | switch test; service generic fallback **missing** |
-| G2 | Failed core group refuses dependent actions with reason | E `mode` | password revalidation test; each group/read/act surface **missing** |
-| G3 | Failed patch, later unrecorded patch same major: still off | Q `switches` | existing switch test; service path **missing** |
-| G4 | Later patch of qualified major runs normally | Q `switches` | existing switch test; service path **missing** |
-| G5 | Passing beta enables major's stable, even before beta full-version number | Q `switches` | partial test; explicit pre-beta-version stable **missing** |
-| G6 | Failed beta → stable still off, never conservative | Q `switches` | **missing** explicit sequence |
-| G7 | Passing beta → failed stable off from stable onward → passing patch back on | Q `switches` | **missing** explicit sequence / channel tie |
-| G8 | Recorded failure takes precedence over conservative allowances | Q `switches`; E mode | **missing** major with recorded later failure but no earlier applicable entry |
-| C1 | Conservative only for own build's wholly unrecorded major; adapters off | Q `switches` | existing policy/engine tests; recorded-major edge **missing** |
-| C2 | Conservative synthetic mail send uses generic binding | E recognition | browser `QUALIFICATION conservative activations ask and core failures gate before reads`; service proof **missing** |
-| C3 | Existing don't-ask-again suspended; asks | E `trusted` | same browser matrix; service proof **missing** |
-| C4 | Link click asks, zero before approval / once after | E/policy | browser matrix and policy test; service case **missing** |
-| C5 | Tick asks, zero before approval / once after | E/policy | same; service case **missing** |
-| C6 | List choice asks, zero before approval / once after | E/policy | same; service case **missing** |
-| C7 | Enter on control asks, zero before approval / once after | E/policy | same; service case **missing** |
-| C8 | Space on control asks, zero before approval / once after | E/policy | same; service case **missing** |
-| C9 | Any form submission asks (GET search too) | E/policy/guard | browser search case; explicit stopped form/resume service proof **missing** |
-| C10 | Read free | E `read` | browser matrix reads; explicit no-preparation service case **missing** |
-| C11 | Scroll free | E/policy | **missing** conservative service/browser case |
-| C12 | Typing free | E/policy | browser fill case; service case **missing** |
-| C13 | Navigate by address free | E navigate | browser nav helper; explicit service case **missing** |
-| C14 | Unknown field safety means no value read; exclusion still runs | extension reader (core ownership) | **missing** explicit conservative unknown-safety browser case; service cannot prove getter behavior |
-| C15 | Read-only site filling refused | E/policy owner list | browser matrix; existing engine combined test |
-| C16 | Read-only button refused | E/policy owner list | same |
-| C17 | Read-only upload refused | E/policy owner list | same |
-| C18 | Every result has plain unqualified-version notice, errors included | E reads + engine envelope | `test_conservative_notice_on_every_result_and_independent_bank_restriction`; full public call surface **missing** |
+| B1 | Hash complete extension, page script, host, installed service, shared engine/approval, definitions and words | `chrome/build.py:inputs/build_hash` | `test_build.Build.test_runtime_inventory_includes_entrypoints_definitions_settings_and_every_extension_asset`; `test_clean_runtime_copy_has_same_identity_and_every_runtime_area_changes_it` **run**. |
+| B2 | Workflow and install compute same build; installed service uses its own build only | W identity check; `ci/setup.sh`; E constructor | Same copy-identity test; `test_qualification_service.Service.test_installed_build_id_is_used_and_shared_code_new_build_pass_cannot_enable_old_build` **run**. Actual image integration H1/H2 remains **read**. |
+| B3 | Another build's pass never enables this build | Q `switches` | `test_build.Build.test_complete_installed_runtime_including_shared_approval_changes_identity` uses actual old/new hashes and proves the changed build cannot enable the old one; **run**. |
+| T1 | Daily Google Linux repository lookup for stable AND beta, full version/exact package | P `packages`, W schedule | `test_publisher.Publisher.test_lookup_both_channels_and_newest_three_builds_twice`, `test_metadata_rejects_missing_duplicate_channels_and_unpinned_packages` **run**. |
+| T2 | Main plus newest three shipped builds in builds.json | P `plan` | Same lookup test; `test_plan_suppresses_only_exact_recorded_pairs_and_rejects_bad_registry` **run**. Empty registry retained; shipping contract below. |
+| T3 | Every main push and daily run: each unrecorded build/full-version/channel twice | P `plan`, W plan/pairs | Same plan-suppression test; `test_qualification.Workflow.test_main_only_mutations_serialized_publication_and_daily_stable_beta_pairs` **run**. Main schedule execution H6 remains **not run**. |
+| R1 | Per build/full version/channel and run: four core groups, all six adapters, booleans | Q `validate_record`, P `aggregate` | `test_qualification.Records.test_strict_schema_rejects_malformed_entries_and_non_boolean_passes`; pair identity test **run**. |
+| R2 | A missing/failed repeat or group cannot pass | P `aggregate`; `chrome/ci/verdicts.mjs` | `test_aggregation_accounts_for_wholly_missing_jobs_and_requires_two_strict_results`, `test_pair_result_requires_measured_build_and_exact_browser_version`; Node `QUALIFICATION observer preserves process failures and distinguishes completed failures from interrupted suites` **run**. Completion binds pair and result/matrix digests. Real group12 missing means all false. |
+| R3 | Issue names failing groups; publisher refusal opens issue | P `notify` | Stub notifications in existing publisher test and local-repository refusal test **run**; real Sigstore publisher refusal cases in `chrome/ci/attestation.py` run on CI. No real issues/PRs from branch jobs. |
+| P1 | Data branch only, never main; main-only publishing/issue/PR mutations | P CLI guard; W publish job | `test_all_non_main_mutation_commands_refuse_before_git_or_github`, hermetic publish test **run**; branch workflow jobs skip real publication. |
+| P2 | Verify current published attestation before append, as service does | P `prepare`, Q `verify` | `test_publisher_verifies_existing_before_append_and_never_signs_inserted_entry` **run**. Real bundle publisher fixture in `chrome/ci/attestation.py`; verifier is shared with service. |
+| P3 | Current record append-only against shipped main baseline | P `prepare`, Q `append_only` | Existing publisher baseline test plus `test_qualification.Records.test_append_only_rejects_removed_changed_reordered_and_duplicate_history` **run**; genuine-signature baseline-mismatch case in attestation fixture. |
+| P4 | Outside-workflow inserted entry: publish nothing, open issue | P `prepare`, `notify` | `test_local_repository_publish_only_changes_data_branch_and_verifies_both_subjects` **run**: ref unchanged and issue stub called; real unsigned-insertion verification in attestation fixture. |
+| P5 | Non-append-only published branch: publish nothing, open issue | P `prepare`, `notify` | Same hermetic local repository test **run**; authentic bundle against non-append-only shipped baseline also refused in attestation fixture. |
+| P6 | Publisher serialized, not cancelled midway | W publish concurrency | Workflow concurrency contract test **run**, production serialization configuration **read**. Main production execution H6 **not run**. |
+| P7 | Attest candidate, verify it, push data branch, open unmerged shipped-copy PR | W attest/publish; P publish/notify | `test_local_repository_publish_only_changes_data_branch_and_verifies_both_subjects` plus stub PR test **run**. Main branch ref unchanged in local repo; real publication H6 deliberately **not run**. |
+| D1 | Fetch HTTPS daily and on extension version not held for own build | Q `refresh`; E `maintenance` | `test_daily_https_fetch_and_forced_unknown_version_refresh`, `test_runtime_connection_refresh_for_uncovered_version_once_and_daily_caller` **run**. Daemon connect/minute-loop callers **read**. Installed network integration H1/H2 outstanding. |
+| D2 | Verify repository's qualification workflow on main with supported gh verifier | Q `verify` | `test_gh_verifier_is_fixed_to_repository_workflow_main_and_hosted_runners`, `test_runtime_verifier_uses_bounded_anonymous_bundle_lookup` **run**; actual gh verification is in attestation workflow. Default branch stays main. |
+| D3 | Use own package workflow attestation + altered copies as fixtures | W delivery-attestation | Own run42687597384 subject + Sigstore bundle committed under `chrome_tests/fixtures/qualification/42687597384/`; actual replay and temporary altered copies in attestation workflow. No manual crypto. |
+| D4 | New valid record is used and retained across restart | Q `accept/record` | `test_valid_update_is_used_after_service_restart`, `test_image_upgrade_reconciles_older_held_history_and_can_fetch_again` **run**; actual signed newer-record use in attestation workflow. |
+| D5 | Missing attestation refused; held kept | Q `accept/refresh` | `test_failed_verification_and_dropped_or_changed_history_leave_held_unchanged` **run**; actual missing-bundle refusal in attestation workflow. |
+| D6 | Altered attestation refused; held kept | Q `accept/refresh` | Same service delivery test **run**; actual altered DSSE signature and altered subject refusal in attestation workflow. |
+| D7 | Other workflow refused; held kept | Q `verify` | Same service delivery test **run**; real bundle with mismatched expected workflow refused in attestation workflow. |
+| D8 | Other branch refused; held kept | Q `verify` | Same service delivery test **run**; actual wrong source branch and production-main rejection of branch fixture in attestation workflow. |
+| D9 | Dropped held row refused; held kept | Q `append_only/accept` | Same service delivery test **run**; actual correctly signed record that drops held history refused in attestation workflow. |
+| D10 | Changed held row refused; held kept | Q `append_only/accept` | Same service delivery test **run**; correctly signed record that changes held history refused in attestation workflow. |
+| D11 | Offline keeps held and logs reason | Q `refresh` | `test_offline_keeps_held_logs_reason_and_obeys_retry_interval`, `test_bad_signature_rollback_malformed_and_oversized_downloads_keep_held` **run**; safe reason logged, no transport detail copied. |
+| G1 | Failed adapter off; site uses generic rules | Q `switches`; E input recognition | `test_failed_adapter_falls_back_to_generic_without_disabling_healthy_adapters` **run** through actual engine. Shared verdict aggregation over-disables adapters (H5). |
+| G2 | Failed core group refuses dependent actions with reason | E `mode` | `test_each_failed_core_group_refuses_acting_with_reason_and_password_group_refuses_reads` **run** for every core group, reason and version, no dispatch. |
+| G3 | Failed patch, later unrecorded patch same major: still off | Q `switches` | `test_failed_patch_stays_off_on_unrecorded_patch_then_passing_patch_restores` **run** through service. |
+| G4 | Later patch of qualified major runs normally | Q `switches` | Same service test plus `test_only_own_build_and_major_count_and_later_qualified_patch_is_normal` **run**. |
+| G5 | Passing beta enables major's stable, even before beta full-version number | Q `switches` | `test_beta_stable_failure_and_later_passing_patch_sequence` **run**, including stable version lower than its advance beta. |
+| G6 | Failed beta → stable still off, never conservative | Q `switches` | `test_failed_beta_then_stable_and_future_recorded_failure_never_conservative` **run**. |
+| G7 | Passing beta → failed stable off from stable onward → passing patch back on | Q `switches` | `test_beta_stable_failure_and_later_passing_patch_sequence`, `test_newer_beta_failure_is_not_hidden_by_older_stable_pass` **run**. Failure requires a higher patch passing later in immutable history. |
+| G8 | Recorded failure takes precedence over conservative allowances | Q `switches`; E mode | Same failed-beta/future-record test **run**; failure precedes conservative allowances. |
+| C1 | Conservative only for own build's wholly unrecorded major; adapters off | Q `switches` | `test_only_own_build_and_major_count_and_later_qualified_patch_is_normal`, service mail fallback test **run**. |
+| C2 | Conservative synthetic mail send uses generic binding | E recognition | `test_conservative_mail_uses_generic_rules_and_suspends_existing_owner_entry` **run** through service. Independent receiver browser case H3 pending integrated head. |
+| C3 | Existing don't-ask-again suspended; asks | E `trusted` | Same service test **run**, existing allow is refused by trusted submit and ordinary submit asks. Browser H3 pending. |
+| C4 | Link click asks, zero before approval / once after | E/policy | `test_conservative_link_click_asks_then_dispatches_once` **run**. Browser receiver H3 pending. |
+| C5 | Tick asks, zero before approval / once after | E/policy | `test_conservative_tick_asks_then_dispatches_once` **run**. Browser receiver H3 pending. |
+| C6 | List choice asks, zero before approval / once after | E/policy | `test_conservative_list_choice_asks_then_dispatches_once` **run**. Browser receiver H3 pending. |
+| C7 | Enter on control asks, zero before approval / once after | E/policy | `test_conservative_enter_control_asks_then_dispatches_once` **run**. Browser receiver H3 pending. |
+| C8 | Space on control asks, zero before approval / once after | E/policy | `test_conservative_space_control_asks_then_dispatches_once` **run**. Browser receiver H3 pending. |
+| C9 | Any form submission asks (GET search too) | E/policy/guard | `test_conservative_search_form_submission_asks_then_dispatches_once`, `test_conservative_stopped_form_submission_is_prepared_and_resumes_once` **run**. Browser both resume kinds H3 pending. |
+| C10 | Read free | E `read` | `test_conservative_read_scroll_type_and_address_navigation_remain_free` **run**. Browser H3 pending. |
+| C11 | Scroll free | E/policy | Same service free-case test **run**, explicit scroll. Browser H3 pending. |
+| C12 | Typing free | E/policy | Same service free-case test **run**, explicit fill. Browser H3 pending. |
+| C13 | Navigate by address free | E navigate | Same service free-case test **run**, explicit navigate by address. Browser H3 pending. |
+| C14 | Unknown field safety means no value read; exclusion still runs | extension reader (core ownership) | Node `QUALIFICATION conservative reader excludes unknown safety: missing style property` and `throwing style getter` **run**, actual reader value getter count zero, including binding. Actual all-frame browser instrumentation H3 pending. |
+| C15 | Read-only site filling refused | E/policy owner list | `test_conservative_readonly_fill_button_upload_refused_independent_of_adapters` **run**. Browser H3 pending. |
+| C16 | Read-only button refused | E/policy owner list | Same service read-only test **run**. Browser H3 pending. |
+| C17 | Read-only upload refused | E/policy owner list | Same service read-only test **run**, refusal before upload staging. Browser H3 pending. |
+| C18 | Every result has plain unqualified-version notice, errors included | E reads + engine envelope | `test_every_public_result_including_invalid_calls_carries_conservative_notice` **run** for every declared Chrome action, including owner-only refusals; valid free/prepared/readonly results also tested. Browser H3 pending. |
 
 Browser evidence remains the core harness's independent receiver logs, exclusively in runner containers. When a required browser case depends on unfinished injection/reload/task rules, this side build adds strict service coverage and lists the exact browser integration case in QUALIFICATION-REPORT.md; it does not replace core behavior.
 
 Initial registries are empty deliberately: no fabricated passing rows and no invented shipped builds. Workflow runs on this branch so far: **run** `gh run list --branch pkg/20-chrome-qual` returned `[]`.
+
+## Shipping registry and unresolved integration
+
+**Read:** `builds.json` stays `{"format":1,"builds":[]}` until an image really ships. The lead/image builder adds `{"commit":"<full 40-hex commit>","build":"<that commit's build.py output>","shipped_at":"<UTC ISO-8601 time, with Z>"}`. The planner validates all rows, then selects the newest three. Archived builds retain their shipped hash algorithm; `test_archived_build_uses_its_own_identity_algorithm` proves the driver never substitutes its current inventory.
+
+H1 installed network policy; H2 supported verifier installation/cache; H3 integrated conservative browser/receiver cases; H4 real group12 precedence evidence; H5 per-adapter verdict aggregation; H6 actual main-only production publication. These are explicit pending integration items, detailed in QUALIFICATION-REPORT.md. No row claims that source reading or a synthetic extension peer is browser/installed-image evidence.
