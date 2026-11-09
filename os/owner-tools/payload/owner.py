@@ -38,6 +38,13 @@ MODIFIED = ('requested-packages', 'requested-base-removals', 'requested-base-loc
     'requested-base-remote-replacements', 'requested-local-packages', 'requested-local-fileoverride-packages',
     'base-removals', 'base-local-replacements', 'base-remote-replacements', 'packages', 'modules',
     'requested-modules', 'regenerate-initramfs')
+RELEASE_REFERENCE = r'ghcr\.io/ares-empire/aresos@sha256:[0-9a-f]{64}'
+RELEASE_IDENTITY = r'https://github\.com/Ares-Empire/AresOS/\.github/workflows/[A-Za-z0-9._-]+\.yml@refs/[A-Za-z0-9._/-]+'
+# The only installed tools without a release history: package 15f's bundle,
+# installed on the laptop on 2026-11-08. Any other history-less bundle STOPs.
+LEGACY_TOOLS = ('3ef85c4adab3c8a5daf5bf26c2a40805d24bcb0c17b9327cfc55e7e96aeebefc',)
+LOGIN_REFUSAL = ('Registry login missing, expired or unreachable: run sudo /var/lib/ares/at login, '
+                 'then run this command again; nothing was changed')
 
 
 class Stop(ValueError):
@@ -47,6 +54,62 @@ class Stop(ValueError):
 def require(condition, message):
     if not condition:
         raise Stop(message)
+
+
+def unique_pairs(pairs):
+    # Reject duplicate JSON keys, rather than silently accepting the last one.
+    result = {}
+    for name, value in pairs:
+        require(name not in result, 'Duplicate JSON key: ' + str(name))
+        result[name] = value
+    return result
+
+
+def image_reference(deployment):
+    return deployment['container-image-reference'].removeprefix('ostree-unverified-registry:').removeprefix('ostree-image-signed:docker://')
+
+
+def lineage(root):
+    """The bundle's tools version and its append-only AresOS release records.
+
+    Records are oldest first; the last one is the bundle's target and must be
+    release.json's exact reference and signature identity. Each record states
+    its own daily-account rule; nothing is inferred from a missing value.
+    """
+    root = pathlib.Path(root)
+    value = json.loads((root / 'history.json').read_text(), object_pairs_hook=unique_pairs)
+    require(isinstance(value, dict) and list(value) == ['tools_version', 'releases'], 'Invalid tools history fields')
+    version, rows = value['tools_version'], value['releases']
+    require(type(version) is int and version >= 2, 'Invalid tools version')
+    require(isinstance(rows, list) and rows, 'Empty release history')
+    for row in rows:
+        require(isinstance(row, dict) and list(row) == ['reference', 'identity', 'daily_wheel'], 'Invalid release record fields')
+        require(isinstance(row['reference'], str) and re.fullmatch(RELEASE_REFERENCE, row['reference'])
+            and isinstance(row['identity'], str) and re.fullmatch(RELEASE_IDENTITY, row['identity'])
+            and type(row['daily_wheel']) is bool, 'Invalid release record')
+    digests = [row['reference'].split('@')[1] for row in rows]
+    require(len(set(digests)) == len(digests) and BASE not in digests, 'Duplicate or stock release in history')
+    release = json.loads((root / 'release.json').read_text())
+    require(release['reference'] == rows[-1]['reference'] and release['signature']['identity'] == rows[-1]['identity'],
+        'Release target differs from the newest history record')
+    return dict(tools_version=version, releases=rows)
+
+
+def installed_lineage(root, fingerprint):
+    """Read an installed bundle's history as data; its code is never run."""
+    if (pathlib.Path(root) / 'history.json').exists():
+        value = lineage(root)
+        return value['tools_version'], value['releases']
+    require(fingerprint in LEGACY_TOOLS, 'Installed tools have no release history and are not the known 15f tools; get help')
+    release = json.loads((pathlib.Path(root) / 'release.json').read_text())
+    # Version 1 recorded one release and no account rule; the newer history
+    # must start with exactly that release and then states its rule.
+    return 1, [dict(reference=release['reference'], identity=release['signature']['identity'], daily_wheel=None)]
+
+
+def extends(old, new):
+    return len(new) >= len(old) and all(a['reference'] == b['reference'] and a['identity'] == b['identity']
+        and (a['daily_wheel'] is None or a['daily_wheel'] == b['daily_wheel']) for a, b in zip(old, new))
 
 
 def login_properties(host, session, names, message):
@@ -242,7 +305,16 @@ def preflight_prepare(state, processes, saved=None, updater_names=()):
     return stock
 
 
-def preflight_recovery(state, processes, saved, release, keep=False):
+def known_releases(release, history):
+    """Known AresOS references, oldest first; the target is always the last."""
+    known = list(history) if history is not None else [release]
+    require(known and known[-1] == release and len(set(known)) == len(known)
+        and all(isinstance(r, str) and '@sha256:' in r for r in known), 'Release history/target mismatch')
+    return {r.split('@')[1]: (i, r) for i, r in enumerate(known)}
+
+
+def preflight_recovery(state, processes, saved, release, keep=False, history=None):
+    known = known_releases(release, history)
     booted = agree(state)
     idle(state, processes)
     require(keep or booted['container-image-reference-digest'] != BASE, 'Use keep-stock on booted stock; rollback would select the other deployment')
@@ -257,39 +329,79 @@ def preflight_recovery(state, processes, saved, release, keep=False):
     require(stock['pinned'] and all(stock[k] == old[k] for k in ('container-image-reference', 'container-image-reference-digest')),
             'Saved stock pin/reference/digest changed')
     ares, = [d for d in rows if d is not stock]
-    require(not ares['pinned'] and ares['container-image-reference-digest'] == release.split('@')[1]
-            and ares['container-image-reference'].removeprefix('ostree-unverified-registry:').removeprefix('ostree-image-signed:docker://') == release,
+    digest = ares['container-image-reference-digest']
+    require(not ares['pinned'] and digest in known and image_reference(ares) == known[digest][1],
             'Wrong AresOS target')
     require(booted is (stock if keep else ares),
             'Use keep-stock on booted stock' if not keep else 'keep-stock requires booted saved stock')
     return stock
 
 
-def qualified_state(state, saved, release):
+def slot_identity(slot):
+    return (slot['ostree']['checksum'], slot['ostree']['deploySerial'], slot['ostree']['stateroot'])
+
+
+def qualified_state(state, saved, release, history=None):
+    """Accept only the reviewed deployment lists; refuse every other shape.
+
+    history lists the known AresOS release references, oldest first, ending
+    with the target release. Without it only the target is known (the shapes
+    before package 22). The shapes are: the prepared stock list, the first
+    switch staged, the AresOS/stock pair (optionally a queued stock rollback),
+    an update staged over a running AresOS, and afterwards two AresOS releases
+    plus the pinned stock (optionally a queued return to the previous one).
+    """
+    known = known_releases(release, history)
+    target = release.split('@')[1]
     booted = agree(state)
     rows = state['rpm']['deployments']
     status = state['bootc']['status']
     stock = [d for d in rows if key(d) == tuple(saved['stock_identity'])]
     require(len(stock) == 1 and stock[0]['pinned'] and all(stock[0][k] == saved['stock'][k]
         for k in ('container-image-reference', 'container-image-reference-digest')), 'Saved stock changed')
-    ares = [d for d in rows if d['container-image-reference-digest'] == release.split('@')[1]]
+    stock = stock[0]
+    ares = [d for d in rows if d['container-image-reference-digest'] in known]
     if not ares:
         require(state == saved['state'], 'Unexpected prepared deployment list/pending state')
         return
-    require(len(ares) == 1 and not ares[0]['pinned'] and ares[0]['checksum'] != stock[0]['checksum']
-        and ares[0]['container-image-reference'].removeprefix('ostree-unverified-registry:').removeprefix('ostree-image-signed:docker://') == release,
-        'Unexpected AresOS identity or origin')
+    for d in ares:
+        require(not d['pinned'] and d['checksum'] != stock['checksum']
+            and image_reference(d) == known[d['container-image-reference-digest']][1],
+            'Unexpected AresOS identity or origin')
+    require(len({d['container-image-reference-digest'] for d in ares}) == len(ares), 'Duplicate AresOS release deployment')
+    is_ares = lambda row: any(row is d for d in ares)
     staged = [d for d in rows if d.get('staged')]
-    if staged:
-        require(staged == ares and status.get('staged') and not status.get('rollbackQueued')
-            and key(booted) == tuple(saved['stock_identity']), 'Unexpected staged switch')
+    if staged and booted is stock:
+        require(staged == ares and ares[0]['container-image-reference-digest'] == target and status.get('staged')
+            and not status.get('rollbackQueued'), 'Unexpected staged switch')
         retained = [d for d in rows if not d.get('staged')]
         require(retained == saved['state']['rpm']['deployments'], 'Switch changed the retained stock list')
-    else:
-        require(len(rows) == 2 and status.get('staged') is None, 'Final pair has extra/missing deployments')
+        return
+    if staged:
+        # An update: the newest release staged over a running, older release,
+        # with the pinned stock last and at most one older AresOS between.
+        retained = [d for d in rows if not d.get('staged')]
+        require(len(staged) == 1 and staged[0]['container-image-reference-digest'] == target and is_ares(staged[0])
+            and status.get('staged') and slot_identity(status['staged']) == key(staged[0])
+            and not status.get('rollbackQueued') and is_ares(booted)
+            and known[booted['container-image-reference-digest']][0] < known[target][0], 'Unexpected staged update')
+        require(rows[0] is staged[0] and len(retained) in (2, 3) and retained[0] is booted and retained[-1] is stock
+            and all(is_ares(d) for d in retained[1:-1]), 'Unexpected deployments beside a staged update')
+        return
+    require(status.get('staged') is None, 'Final deployments have a pending stage')
+    if len(rows) == 2:
         if status.get('rollbackQueued'):
-            require(booted is ares[0] and status['rollback']['ostree']['checksum'] == stock[0]['checksum']
-                and status['rollback']['ostree']['deploySerial'] == stock[0]['serial'], 'Wrong queued rollback')
+            require(booted is ares[0] and status['rollback']['ostree']['checksum'] == stock['checksum']
+                and status['rollback']['ostree']['deploySerial'] == stock['serial'], 'Wrong queued rollback')
+        return
+    require(len(rows) == 3 and len(ares) == 2 and rows[-1] is stock, 'Final pair has extra/missing deployments')
+    require(is_ares(booted), 'Stock is booted beside two AresOS releases; get help')
+    other, = [d for d in ares if d is not booted]
+    require(status.get('rollback') and slot_identity(status['rollback']) == key(other), 'Wrong AresOS rollback deployment')
+    if status.get('rollbackQueued'):
+        require(rows[0] is other and rows[1] is booted, 'Wrong queued return to the previous AresOS')
+    else:
+        require(rows[0] is booted and rows[1] is other, 'The running AresOS is not the default')
 
 
 def setup_identity(record):
@@ -476,6 +588,32 @@ def validate_login(username, secret, reference):
     except (urllib.error.URLError, OSError, ValueError, KeyError) as error:
         # Never include a request/header/token or underlying authentication error.
         raise Stop('Private release read failed; check read:packages permission/expiry and network; no credential was written') from None
+
+
+def stored_login(reference):
+    """The saved registry login must read the target manifest; it is never recorded.
+
+    A missing, expired or unusable login is a refusal that points to login.
+    Wrong ownership or mode is not a login problem and keeps its own message.
+    """
+    if not AUTH.exists() and not AUTH.is_symlink():
+        raise Stop(LOGIN_REFUSAL)
+    authentication()
+    username = secret = None
+    try:
+        try:
+            value = json.loads(AUTH.read_text())
+            encoded = value['auths']['ghcr.io']['auth']
+            username, secret = base64.b64decode(encoded, validate=True).decode().split(':', 1)
+            require(re.fullmatch('[a-zA-Z0-9-]+', username) and secret, LOGIN_REFUSAL)
+        except (OSError, ValueError, KeyError, TypeError, AttributeError):
+            raise Stop(LOGIN_REFUSAL) from None
+        try:
+            validate_login(username, secret, reference)
+        except (Stop, AttributeError, TypeError):
+            raise Stop(LOGIN_REFUSAL) from None
+    finally:
+        del username, secret
 
 
 def media_module(payload=None):
@@ -719,6 +857,21 @@ class Tools:
         self.host.trace.append(dict(observation='deployment-processes', processes=processes, mutation=False))
         return processes
 
+    def lineage(self):
+        # Read lazily: diagnostic recorders are built without __init__.
+        value = getattr(self, '_lineage', None)
+        if value is None:
+            value = lineage(self.payload)
+            require(value['releases'][-1]['reference'] == self.release['reference'], 'Release target differs from history')
+            self._lineage = value
+        return value
+
+    def known(self):
+        return [row['reference'] for row in self.lineage()['releases']]
+
+    def qualified(self, state, saved=None):
+        qualified_state(state, saved if saved is not None else self.load('prepared'), self.release['reference'], self.known())
+
     def load(self, name):
         path = self.store / (name + '.json')
         require(path.is_file() and not path.is_symlink(), 'Missing private ' + name + ' record')
@@ -819,7 +972,7 @@ class Tools:
     def title(self):
         saved = self.load('prepared')
         state = observations(self.host)
-        qualified_state(state, saved, self.release['reference'])
+        self.qualified(state, saved)
         idle(state, self.processes())
         matches = [d for d in state['rpm']['deployments'] if key(d) == tuple(saved['stock_identity'])]
         require(len(matches) == 1 and matches[0]['pinned'] and
@@ -858,8 +1011,38 @@ class Tools:
         paused_state(self.host, self.pause)
         return state
 
+    def before_update(self):
+        """Read-only: a running AresOS that may stage the bundle's newer release."""
+        require(not (self.store / 'layout-pending.json').exists(), 'Layout trial is unfinished; prove it or revert first')
+        saved = self.load('prepared')
+        disk_record(self.host, self.load('disks'))
+        state = observations(self.host)
+        idle(state, self.processes())
+        self.qualified(state, saved)
+        rows, status = state['rpm']['deployments'], state['bootc']['status']
+        require(not status.get('staged') and not any(d.get('staged') for d in rows), 'A staged deployment already exists; do not reboot; get help')
+        require(not status.get('rollbackQueued'), 'A rollback is queued; do not update; get help')
+        booted = agree(state)
+        known = known_releases(self.release['reference'], self.known())
+        digest, target = booted['container-image-reference-digest'], self.release['reference'].split('@')[1]
+        # No downgrade can pass: the target is the history's newest record, and
+        # a running release newer than these tools is unknown to them and STOPs.
+        require(digest in known, 'Update starts only from a running AresOS release; get help')
+        require(digest != target, 'This release is already running; nothing to update')
+        require(not any(d['container-image-reference-digest'] == target for d in rows), 'Target release is already deployed; get help')
+        for d in rows:
+            if d['container-image-reference-digest'] != BASE:
+                require(not any(d.get(k) for k in MODIFIED) and d.get('unlocked', 'none') == 'none', 'Modified AresOS deployment; get help')
+        validate_bls(state, resolved_bls())
+        return state, booted
+
     def login(self):
-        self.before_switch()
+        # Before the first switch the stock rules apply unchanged; on a
+        # running AresOS a login only serves an update to the bundle's release.
+        if agree(observations(self.host))['container-image-reference-digest'] == BASE:
+            self.before_switch()
+        else:
+            self.before_update()
         require(sys.stdin.isatty(), 'Login requires a real hidden terminal prompt')
         podman = shutil.which('podman', path='/usr/bin:/usr/sbin')
         require(podman and pathlib.Path(podman).is_absolute(), 'podman is missing')
@@ -898,7 +1081,7 @@ class Tools:
         require(self.load('verified') == dict(reference=self.release['reference'], prepared=self.load('prepared')['stock_identity']), 'Verify this exact release first')
         self.script('switch', {'REFERENCE': self.release['reference']})
         state = observations(self.host)
-        qualified_state(state, self.load('prepared'), self.release['reference'])
+        self.qualified(state)
         slot = state['bootc']['status']['staged']
         require(slot and slot['image']['image']['image'] == self.release['reference']
             and slot['image']['imageDigest'] == self.release['reference'].split('@')[1]
@@ -909,24 +1092,76 @@ class Tools:
         saved = self.load('prepared')
         disk_record(self.host, self.load('disks'))
         state = observations(self.host)
-        preflight_recovery(state, self.processes(), saved, self.release['reference'], keep)
+        preflight_recovery(state, self.processes(), saved, self.release['reference'], keep, self.known())
         if keep:
             self.script('default-stock', {'STOCK_CHECKSUM': saved['stock_identity'][0], 'BASE_DIGEST': BASE})
         else:
             self.script('rollback', {'BASE_DIGEST': BASE})
             require(observations(self.host)['bootc']['status']['rollbackQueued'] is True, 'Rollback was not queued; do not reboot')
         after = observations(self.host)
-        qualified_state(after, saved, self.release['reference'])
+        self.qualified(after, saved)
         require(sorted(state['rpm']['deployments'], key=key) == sorted(after['rpm']['deployments'], key=key),
                 'Recovery changed deployment identities or flags; do not reboot')
         return ['Saved stock is default' if keep else 'Saved stock rollback queued', *self.title()]
+
+    def update(self):
+        """Verify and stage the bundle's newer signed release over the running one.
+
+        The running AresOS stays as rollback and the pinned stock stays as it
+        is. Every refusal before the staging step leaves the system unchanged.
+        """
+        before, booted = self.before_update()
+        target, identity = self.release['reference'], self.release['signature']['identity']
+        stored_login(target)
+        require(shutil.which('cosign', path='/usr/sbin:/usr/bin:/sbin:/bin'), 'cosign is missing')
+        self.script('verify', {'REFERENCE': target, 'IDENTITY': identity})
+        self.script('update', {'REFERENCE': target, 'CURRENT': image_reference(booted),
+                               'CURRENT_DIGEST': booted['container-image-reference-digest']})
+        after = observations(self.host)
+        self.qualified(after)
+        status = after['bootc']['status']
+        slot = status['staged']
+        require(slot and slot['image']['image']['image'] == target and slot['image']['imageDigest'] == target.split('@')[1]
+            and not status['rollbackQueued'] and key(agree(after)) == key(booted), 'Staged update identity mismatch; do not reboot')
+        retained = [d for d in after['rpm']['deployments'] if not d.get('staged')]
+        require(retained == before['rpm']['deployments'], 'Update changed the retained deployments; do not reboot; get help')
+        lines = ['Signed exact release staged ' + target, 'Running release stays as rollback ' + image_reference(booted)]
+        if len(retained) == 3:
+            lines.append('Older AresOS ' + image_reference(retained[1]) + ' is removed when the update finishes at shutdown')
+        return [*lines, *self.title(), 'Reboot only after saving this refreshed title; F12 then Linux']
+
+    def previous(self):
+        """Queue the previous AresOS release after an update; the stock pin stays."""
+        require(not (self.store / 'layout-pending.json').exists(), 'Layout trial is unfinished; prove it or revert first')
+        saved = self.load('prepared')
+        disk_record(self.host, self.load('disks'))
+        state = observations(self.host)
+        idle(state, self.processes())
+        self.qualified(state, saved)
+        rows, status = state['rpm']['deployments'], state['bootc']['status']
+        require(not status.get('staged') and not status.get('rollbackQueued'), 'Pending deployment or queued rollback; get help')
+        booted = agree(state)
+        known = known_releases(self.release['reference'], self.known())
+        require(len(rows) == 3 and booted['container-image-reference-digest'] in known,
+            'No previous AresOS beside the running one; nothing to return to')
+        other = rows[1]
+        require(known[other['container-image-reference-digest']][0] < known[booted['container-image-reference-digest']][0],
+            'The other AresOS is newer; previous only returns from an update')
+        self.script('previous', {'PREVIOUS': image_reference(other), 'PREVIOUS_DIGEST': other['container-image-reference-digest'],
+                                 'PREVIOUS_CHECKSUM': other['checksum']})
+        after = observations(self.host)
+        require(after['bootc']['status']['rollbackQueued'] is True, 'Return was not queued; do not reboot')
+        self.qualified(after, saved)
+        require(sorted(rows, key=key) == sorted(after['rpm']['deployments'], key=key),
+            'Return changed deployment identities or flags; do not reboot')
+        return ['Previous AresOS queued for the next start ' + image_reference(other), *self.title()]
 
     def reboot(self):
         require(not (self.store / 'layout-pending.json').exists(), 'Layout trial is unfinished; prove it or revert first')
         saved = self.load('prepared')
         state = observations(self.host)
         idle(state, self.processes())
-        qualified_state(state, saved, self.release['reference'])
+        self.qualified(state, saved)
         title = self.load('title')
         require(title['state'] == state and title['bls'] == resolved_bls(), 'Title is stale; run title and save it before reboot')
         media = media_module(self.payload)
@@ -939,7 +1174,7 @@ class Tools:
         saved = self.load('prepared')
         state = observations(self.host)
         idle(state, self.processes())
-        qualified_state(state, saved, self.release['reference'])
+        self.qualified(state, saved)
         disk_record(self.host, self.load('disks'))
         settings = self.keyboard()
         dump = self.host.read('dumpkeys', '-C', '/dev/tty3', '--keys-only')
@@ -954,12 +1189,19 @@ class Tools:
         options = [bls_arguments(e) for e in keyboard_entries(state, saved, bls)]
         require(not any(re.match(r'(?:rd\.)?vconsole\.keymap(?:[._]toggle)?(?:=|$)', a) for args in [cmdline, *options] for a in args),
             'A booted or retained keymap override remains')
-        if state['bootc']['status']['booted']['image']['imageDigest'] == self.release['reference'].split('@')[1]:
-            require(self.host.read('id', '-u', 'ares').strip() == '1001' and 'wheel' not in self.host.read('id', '-nG', 'ares').split(),
-                'Daily account identity/privilege differs')
+        booted = state['bootc']['status']['booted']['image']['imageDigest']
+        records = {row['reference'].split('@')[1]: row for row in self.lineage()['releases']}
+        if booted in records:
+            # Each release's own record says whether ares is an administrator;
+            # exactly that answer is required, never either.
+            wheel = records[booted]['daily_wheel']
+            require(self.host.read('id', '-u', 'ares').strip() == '1001'
+                and ('wheel' in self.host.read('id', '-nG', 'ares').split()) is wheel,
+                'Daily account identity/privilege differs from this release record')
             self.host.read('pgrep', '-u', 'ares', '-x', 'labwc')
             self.host.read('pgrep', '-u', 'ares', '-x', 'foot')
         else:
+            require(booted == BASE, 'Unknown booted image; get help')
             self.script('stock-session')
         return ['System console ' + profile + '; X11 ' + settings['X11Layout'] + ' variant ' + settings['X11Variant'],
                 'Loaded y/z map, cmdline and all retained BLS maps passed', *self.title(),
@@ -1038,7 +1280,7 @@ class Tools:
         if action == 'begin':
             require(profile in profiles, 'Choose de, us or us-intl')
             state = observations(self.host)
-            preflight_recovery(state, self.processes(), self.load('prepared'), self.release['reference'])
+            preflight_recovery(state, self.processes(), self.load('prepared'), self.release['reference'], history=self.known())
             disk_record(self.host, self.load('disks'))
             session = self.session()
             old = self.keyboard()
@@ -1068,7 +1310,7 @@ class Tools:
             saved = self.load('prepared')
             booted = agree(state)
             stock_side = booted['container-image-reference-digest'] == BASE
-            preflight_recovery(state, self.processes(), saved, self.release['reference'], keep=stock_side)
+            preflight_recovery(state, self.processes(), saved, self.release['reference'], keep=stock_side, history=self.known())
             disk_record(self.host, self.load('disks'))
             require(current != value['administrator'] and (current['boot'] != value['administrator']['boot']
                 or current['started_us'] > value['began_us']), 'Abandon requires a fresh physical administrator login')
@@ -1141,14 +1383,7 @@ class Tools:
                 'After boot check loaded console keys and physical typing in the labwc terminal']
 
 
-def install(payload, host=None):
-    payload = pathlib.Path(payload)
-    fingerprint = checked_bundle(payload)
-    require(sys.stdin.isatty(), 'Install requires the two independently recorded disk serials')
-    target = input('Photographed Crucial serial: ').strip()
-    protected = input('Windows baseline Micron serial: ').strip()
-    require(target and protected and target != protected, 'Missing or equal disk serials')
-    host = host if host is not None else Host()
+def tools_stick(host, payload, fingerprint):
     media = media_module(payload)
     device = media.find(host, require)
     require(device is not None, 'Tools USB label not found')
@@ -1162,6 +1397,171 @@ def install(payload, host=None):
         mounted['fstype'] == 'exfat' and pathlib.Path(mounted['target']) / 'ares-tools' == source,
         'Bundle is not on the labelled removable tools USB')
     require(checked_bundle(source) == fingerprint, 'Private bootstrap copy differs from the tools USB')
+    return device
+
+
+def discard_partial_copy(stage, payload):
+    if stage.exists() or stage.is_symlink():
+        require(not stage.is_symlink() and stage.is_dir() and stage.stat().st_uid == os.geteuid(), 'Unsafe partial payload directory')
+        expected_files = {p.relative_to(payload).as_posix(): p for p in payload.rglob('*') if p.is_file()}
+        # Clean only this journal's private, structurally exact partial
+        # copy. Never recurse through a link or delete an unknown path.
+        for p in stage.rglob('*'):
+            relative = p.relative_to(stage).as_posix()
+            require(not p.is_symlink() and p.stat().st_uid == os.geteuid()
+                and (p.is_dir() and any(n.startswith(relative + '/') for n in expected_files)
+                or p.is_file() and relative in expected_files
+                and expected_files[relative].read_bytes().startswith(p.read_bytes())), 'Unrecognized partial payload; preserve it')
+        for p in sorted(stage.rglob('*'), key=lambda p: len(p.parts), reverse=True):
+            require(p.resolve().is_relative_to(HOME.resolve()), 'Partial-copy cleanup escaped installation')
+            p.rmdir() if p.is_dir() else p.unlink()
+        stage.rmdir()
+
+
+def seal_copy(stage):
+    for p in [stage, *stage.rglob('*')]:
+        p.chmod(0o700 if p.is_dir() or p.name == 'at' else 0o600)
+        if p.is_file():
+            with p.open('rb') as stream: os.fsync(stream.fileno())
+    for directory in sorted([stage, *[p for p in stage.rglob('*') if p.is_dir()]], key=lambda p: len(p.parts), reverse=True):
+        sync_directory(directory)
+    sync_directory(HOME)
+
+
+UPDATE_NAMES = ('diagnostics', 'install-intent.json', 'tools', 'records', 'at',
+                'tools-update-intent.json', '.update-tools', 'retired-tools')
+
+
+def installed_update(fingerprint):
+    """Other tools over a completed installation are an update, never a reinstall.
+
+    The first-install route stays unchanged: no installation, an unfinished
+    one, or a rerun of the bundle it was installed from.
+    """
+    if HOME.is_symlink() or not HOME.is_dir():
+        return False
+    journal = HOME / 'tools-update-intent.json'
+    if journal.exists() or journal.is_symlink():
+        return True
+    intent = HOME / 'install-intent.json'
+    if intent.is_symlink() or not intent.is_file():
+        return False
+    value = json.loads(intent.read_text())
+    return isinstance(value, dict) and value.get('phase') == 'complete' and value.get('manifest') != fingerprint
+
+
+def update_tools(payload, fingerprint, host):
+    """Replace the installed tools with a newer reviewed bundle, keeping records.
+
+    Runs from the bootstrap's verified private copy, like install. Older or
+    same-version tools, a release history that does not extend the installed
+    one, or a deployment state the new tools would refuse all STOP before any
+    write. The old tools move, never get deleted, to retired-tools/<manifest>.
+    """
+    require(sys.stdin.isatty(), 'Tools update runs only from the physical recovery console')
+    device = tools_stick(host, payload, fingerprint)
+    owned_directory(HOME)
+    for name in ('records', 'diagnostics', 'retired-tools'):
+        if (HOME / name).exists() or (HOME / name).is_symlink():
+            owned_directory(HOME / name)
+    require(all(p.name in UPDATE_NAMES or p.name.startswith(('.install-intent.', '.tools-update-intent.'))
+        and p.name.endswith('.new') for p in HOME.iterdir()), 'Unexpected installation files; preserve them and get help')
+    home = object.__new__(Tools); home.store = HOME
+    records = object.__new__(Tools); records.store = HOME / 'records'
+    installed = home.load('install-intent')
+    require(installed.get('schema') == 'install1' and installed.get('phase') == 'complete', 'Installation is unfinished; get help')
+    disk_record(host, records.load('disks'))
+    entry = HOME / 'at'
+    require(entry.is_symlink() and os.readlink(entry) == 'tools/at', 'Unexpected installed entry point')
+    new = lineage(payload)
+    current, staged, retired = HOME / 'tools', HOME / '.update-tools', HOME / 'retired-tools'
+    journal = HOME / 'tools-update-intent.json'
+    intent = home.load('tools-update-intent') if journal.exists() or journal.is_symlink() else None
+    if intent is None or intent.get('phase') == 'complete':
+        require(not staged.exists() and not staged.is_symlink(), 'Unjournalled partial tools copy; preserve it and get help')
+        require(not current.is_symlink() and current.is_dir(), 'Installed tools are missing; get help')
+        private_tree(current)
+        old = checked_bundle(current)
+        require(intent is None or intent.get('manifest') == old, 'Tools update journal differs from the installed tools; get help')
+        if old == fingerprint:
+            return ['Tools already installed; nothing changed', 'manifest SHA256 ' + fingerprint]
+        old_version, old_history = installed_lineage(current, old)
+        require(new['tools_version'] > old_version, 'Installed tools are version ' + str(old_version)
+            + '; refusing version ' + str(new['tools_version']) + ' (downgrade or same version)')
+        require(extends(old_history, new['releases']), 'Bundle release history does not extend the installed one; get help')
+        require(not (retired / old).exists() and not (retired / old).is_symlink(), 'Retired tools already exist; get help')
+        # The new tools must accept today's system before they replace the old ones.
+        checker = Tools(payload, host, HOME / 'records')
+        require(not (checker.store / 'layout-pending.json').exists(), 'Layout trial is unfinished; prove it or revert first')
+        if (checker.store / 'prepare-intent.json').exists():
+            require(checker.load('prepare-intent').get('phase') == 'complete', 'Prepare is unfinished; get help')
+        state = observations(host)
+        idle(state, checker.processes())
+        checker.qualified(state)
+        intent = dict(schema='tools-update1', previous=old, manifest=fingerprint, previous_version=old_version,
+            tools_version=new['tools_version'], tools_volume_uuid=device['volume']['uuid'], phase='copy')
+        home.save('tools-update-intent', intent)
+    else:
+        require(intent.get('schema') == 'tools-update1' and intent.get('manifest') == fingerprint
+            and intent.get('tools_volume_uuid') == device['volume']['uuid']
+            and intent.get('phase') in ('copy', 'swap', 'records'),
+            'Interrupted tools update does not exactly match this bundle/stick; get help')
+    def advance(phase):
+        intent['phase'] = phase
+        home.save('tools-update-intent', intent)
+    old, held = intent['previous'], retired / intent['previous']
+    if intent['phase'] == 'copy':
+        require(checked_bundle(current) == old and not held.exists(), 'Installed tools changed during the update')
+        discard_partial_copy(staged, payload)
+        shutil.copytree(payload, staged, symlinks=False, copy_function=shutil.copy2)
+        seal_copy(staged)
+        require(checked_bundle(staged) == fingerprint, 'Staged tools differ; preserve diagnostics')
+        advance('swap')
+    if intent['phase'] == 'swap':
+        if staged.exists() or staged.is_symlink():
+            require(not staged.is_symlink() and checked_bundle(staged) == fingerprint, 'Staged tools differ; get help')
+            if current.exists() or current.is_symlink():
+                require(not current.is_symlink() and checked_bundle(current) == old and not held.exists(),
+                    'Unexpected installed tools during the swap; get help')
+                if not retired.exists():
+                    retired.mkdir(mode=0o700)
+                    sync_directory(HOME)
+                owned_directory(retired)
+                current.replace(held)
+                sync_directory(retired)
+                sync_directory(HOME)
+            require(not current.exists() and checked_bundle(held) == old, 'Retired tools differ; get help')
+            staged.replace(current)
+            sync_directory(HOME)
+        require(not staged.exists() and checked_bundle(current) == fingerprint and checked_bundle(held) == old,
+            'Tools swap is ambiguous; get help')
+        # The receipt name is journalled, so a resumed update writes it once.
+        intent['receipt'] = datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%S.%fZ') + '-tools-update'
+        advance('records')
+    if intent['phase'] == 'records':
+        require(checked_bundle(current) == fingerprint, 'Published tools differ')
+        require(re.fullmatch(r'[0-9]{8}T[0-9]{6}\.[0-9]{6}Z-tools-update', intent.get('receipt', '')), 'Invalid tools update journal')
+        if not (records.store / (intent['receipt'] + '.json')).exists():
+            records.save(intent['receipt'], dict(status='passed', command=['install'], manifest=fingerprint, previous_manifest=old,
+                tools_version=intent['tools_version'], previous_version=intent['previous_version'],
+                releases=new['releases'], tools_volume_uuid=device['volume']['uuid'], trace=host.trace))
+        advance('complete')
+    return ['Tools updated from version ' + str(intent['previous_version']) + ' to ' + str(intent['tools_version']),
+            'manifest SHA256 ' + fingerprint, 'Previous tools kept in /var/lib/ares/retired-tools (private)',
+            'Release target ' + new['releases'][-1]['reference']]
+
+
+def install(payload, host=None):
+    payload = pathlib.Path(payload)
+    fingerprint = checked_bundle(payload)
+    if installed_update(fingerprint):
+        return update_tools(payload, fingerprint, host if host is not None else Host())
+    require(sys.stdin.isatty(), 'Install requires the two independently recorded disk serials')
+    target = input('Photographed Crucial serial: ').strip()
+    protected = input('Windows baseline Micron serial: ').strip()
+    require(target and protected and target != protected, 'Missing or equal disk serials')
+    host = host if host is not None else Host()
+    device = tools_stick(host, payload, fingerprint)
     expected = dict(target=target, protected=protected)
     identity = setup_identity(disk_record(host, expected))
     # No writes until every bundle/destination/disk preflight has passed.
@@ -1199,29 +1599,9 @@ def install(payload, host=None):
         recorder.save('install-intent', intent)
     if intent['phase'] == 'copy':
         require(not destination.exists() and not destination.is_symlink(), 'Unexpected published tools during copy')
-        if stage.exists() or stage.is_symlink():
-            require(not stage.is_symlink() and stage.is_dir() and stage.stat().st_uid == os.geteuid(), 'Unsafe partial payload directory')
-            expected_files = {p.relative_to(payload).as_posix(): p for p in payload.rglob('*') if p.is_file()}
-            # Clean only this journal's private, structurally exact partial
-            # copy. Never recurse through a link or delete an unknown path.
-            for p in stage.rglob('*'):
-                relative = p.relative_to(stage).as_posix()
-                require(not p.is_symlink() and p.stat().st_uid == os.geteuid()
-                    and (p.is_dir() and any(n.startswith(relative + '/') for n in expected_files)
-                    or p.is_file() and relative in expected_files
-                    and expected_files[relative].read_bytes().startswith(p.read_bytes())), 'Unrecognized partial payload; preserve it')
-            for p in sorted(stage.rglob('*'), key=lambda p: len(p.parts), reverse=True):
-                require(p.resolve().is_relative_to(HOME.resolve()), 'Partial-copy cleanup escaped installation')
-                p.rmdir() if p.is_dir() else p.unlink()
-            stage.rmdir()
+        discard_partial_copy(stage, payload)
         shutil.copytree(payload, stage, symlinks=False, copy_function=shutil.copy2)
-        for p in [stage, *stage.rglob('*')]:
-            p.chmod(0o700 if p.is_dir() or p.name == 'at' else 0o600)
-            if p.is_file():
-                with p.open('rb') as stream: os.fsync(stream.fileno())
-        for directory in sorted([stage, *[p for p in stage.rglob('*') if p.is_dir()]], key=lambda p: len(p.parts), reverse=True):
-            sync_directory(directory)
-        sync_directory(HOME)
+        seal_copy(stage)
         require(checked_bundle(stage) == fingerprint, 'Staged bundle differs; preserve diagnostics')
         advance('records')
     if intent['phase'] == 'records':
@@ -1306,7 +1686,7 @@ def main():
     require(os.geteuid() == 0, 'Use sudo from the authenticated ares-recovery session')
     host = Host()
     known = {'install', 'prepare', 'records', 'title', 'login', 'verify', 'switch', 'rollback',
-        'keep-stock', 'export', 'layout', 'reboot', 'check', 'logs'}
+        'keep-stock', 'export', 'layout', 'reboot', 'check', 'logs', 'update', 'previous'}
     command = sys.argv[1] if len(sys.argv) >= 2 and sys.argv[1] in known else 'invalid'
     # Never record arbitrary argv: an accidentally pasted credential is not a
     # command. Layout choices are the only accepted extra arguments.
@@ -1336,7 +1716,8 @@ def main():
             methods = {'prepare': tools.prepare, 'records': tools.records, 'title': tools.title,
                        'login': tools.login, 'verify': tools.verify, 'switch': tools.switch,
                        'rollback': tools.recover, 'keep-stock': lambda: tools.recover(True), 'export': tools.export,
-                       'layout': lambda: tools.layout(*action[1:]), 'reboot': tools.reboot, 'check': tools.check, 'logs': tools.logs}
+                       'layout': lambda: tools.layout(*action[1:]), 'reboot': tools.reboot, 'check': tools.check, 'logs': tools.logs,
+                       'update': tools.update, 'previous': tools.previous}
             lines = methods[command]()
             result.update(status='passed', result=lines)
             stamp = datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%S.%fZ')

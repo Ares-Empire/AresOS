@@ -1,5 +1,5 @@
 {
-  "install": "sudo bash -c 'set -euo pipefail\nexport PATH=/usr/sbin:/usr/bin:/sbin:/bin; umask 077\ntrap \"echo STOP bootstrap: verification or install refused\" ERR\np=$(mktemp -d /run/ares-bootstrap.XXXXXX); mkdir \"$p/m\"\nmount -o ro,nodev,nosuid,noexec LABEL=ARESTOOLS \"$p/m\"; trap \"umount $p/m\" EXIT\ncd \"$p\"; cp -R --no-preserve=mode,ownership m/ares-tools .; test ! -L ares-tools; cd ares-tools\ntest -z \"$(find . ! -type d ! -type f -print -quit)\"\necho \"3ef85c4adab3c8a5daf5bf26c2a40805d24bcb0c17b9327cfc55e7e96aeebefc  SHA256SUMS\" | sha256sum -c --strict\ncmp -s \\\n  <(find . -type f -printf \"%P\\n\" | sort) \\\n  <({ cut -c67- SHA256SUMS; echo SHA256SUMS; } | sort)\nsha256sum -c --strict SHA256SUMS\nbash ./at install'",
+  "install": "sudo bash -c 'set -euo pipefail\nexport PATH=/usr/sbin:/usr/bin:/sbin:/bin; umask 077\ntrap \"echo STOP bootstrap: verification or install refused\" ERR\np=$(mktemp -d /run/ares-bootstrap.XXXXXX); mkdir \"$p/m\"\nmount -o ro,nodev,nosuid,noexec LABEL=ARESTOOLS \"$p/m\"; trap \"umount $p/m\" EXIT\ncd \"$p\"; cp -R --no-preserve=mode,ownership m/ares-tools .; test ! -L ares-tools; cd ares-tools\ntest -z \"$(find . ! -type d ! -type f -print -quit)\"\necho \"2a9965ea5a6cf5018959d489f8c2340bf412ddbe89a130c6ebd6695fdbe48c39  SHA256SUMS\" | sha256sum -c --strict\ncmp -s \\\n  <(find . -type f -printf \"%P\\n\" | sort) \\\n  <({ cut -c67- SHA256SUMS; echo SHA256SUMS; } | sort)\nsha256sum -c --strict SHA256SUMS\nbash ./at install'",
   "prepare": "sudo /var/lib/ares/at prepare",
   "records": "sudo /var/lib/ares/at records",
   "title": "sudo /var/lib/ares/at title",
@@ -12,6 +12,8 @@
   "check": "sudo /var/lib/ares/at check",
   "reboot": "sudo /var/lib/ares/at reboot",
   "logs": "sudo /var/lib/ares/at logs",
+  "update": "sudo /var/lib/ares/at update",
+  "previous": "sudo /var/lib/ares/at previous",
   "layout-us": "sudo /var/lib/ares/at layout begin us",
   "layout-intl": "sudo /var/lib/ares/at layout begin us-intl",
   "layout-de": "sudo /var/lib/ares/at layout begin de",

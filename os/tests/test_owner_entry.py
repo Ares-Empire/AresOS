@@ -61,7 +61,7 @@ def entry_stdout():
             stack.enter_context(patch.object(owner,'Host',return_value=host))
             handlers={method:stack.enter_context(patch.object(owner.Tools,method,return_value=['SYNTHETIC handler complete']))
                       for method in ('prepare','records','title','login','verify','switch','recover','export',
-                                     'check','reboot','logs','layout')}
+                                     'check','reboot','logs','layout','update','previous')}
             handlers['install']=stack.enter_context(patch.object(owner,'install',return_value=['SYNTHETIC install complete']))
             argv=arguments(command)
             stack.enter_context(patch.object(owner.sys,'argv',['at',*argv]))

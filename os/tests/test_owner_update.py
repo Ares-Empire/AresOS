@@ -1,0 +1,729 @@
+"""Update route: shapes, at update/previous/check, and tools updating themselves.
+
+Deployment lists start from the retained package 13 AresOS/stock pair. Newer
+releases are synthetic digests; bootc's own staging and rollback list rules are
+modelled in ordinary JSON. The real release-script bodies execute against that
+model. No registry, credential, privilege, disk or boot setting is touched.
+"""
+import base64
+import contextlib
+import copy
+import hashlib
+import io
+import json
+import os
+import pathlib
+import re
+import shutil
+import sys
+import tempfile
+import unittest
+from unittest.mock import Mock, patch
+
+import test_owner_tools as common
+from guest_shell import syntax
+from test_owner_devices import FixtureHost, fixture
+
+ROOT, owner = common.ROOT, common.owner
+PAYLOAD = ROOT / 'os/owner-tools/payload'
+VALUES = {r['kind']: r['value'] for r in json.loads((ROOT / 'os/tests/fixtures/owner-tools/retained-parsers.json').read_text())}
+RELEASE = json.loads((ROOT / 'os/manifest/release.json').read_text())
+R13 = RELEASE['reference']
+R21 = 'ghcr.io/ares-empire/aresos@sha256:' + '21' * 32
+R30 = 'ghcr.io/ares-empire/aresos@sha256:' + '30' * 32
+R99 = 'ghcr.io/ares-empire/aresos@sha256:' + '99' * 32
+IDENTITY = 'https://github.com/Ares-Empire/AresOS/.github/workflows/os-image.yml@refs/heads/main'
+BASE_STATE = dict(rpm=VALUES['aresos rpm-ostree-status'], bootc=VALUES['aresos bootc-status'])
+R13_ROW = next(d for d in BASE_STATE['rpm']['deployments'] if d['booted'])
+STOCK_ROW = next(d for d in BASE_STATE['rpm']['deployments'] if d['pinned'])
+CHECKSUMS = {R13: R13_ROW['checksum'], R21: 'c1' * 32, R30: 'c3' * 32, R99: 'c9' * 32}
+DE = dict(VConsoleKeymap='de', VConsoleKeymapToggle='', X11Layout='de', X11Model='pc105', X11Variant='', X11Options='')
+
+
+def record(reference, wheel, identity=IDENTITY):
+    return dict(reference=reference, identity=RELEASE['signature']['identity'] if reference == R13 else identity, daily_wheel=wheel)
+
+
+H13 = [record(R13, False)]
+H21 = [record(R13, False), record(R21, True)]
+H30 = [*H21, record(R30, True)]
+
+
+def release_row(reference, booted=False, staged=False, checksum=None):
+    row = copy.deepcopy(R13_ROW)
+    row.update(checksum=checksum or CHECKSUMS[reference], serial=0, booted=booted, staged=staged, pinned=False,
+               **{'container-image-reference': 'ostree-unverified-registry:' + reference,
+                  'container-image-reference-digest': reference.split('@')[1]})
+    return row
+
+
+def stock_row(booted=False):
+    return dict(copy.deepcopy(STOCK_ROW), booted=booted)
+
+
+def slot(row):
+    return dict(ostree=dict(checksum=row['checksum'], deploySerial=row['serial'], stateroot=row['osname']),
+                pinned=row['pinned'], image=dict(image=dict(image=owner.image_reference(row), transport='registry'),
+                                                  imageDigest=row['container-image-reference-digest']))
+
+
+def machine(rows):
+    """rpm-ostree rows in deployment order, with bootc's slots derived by its rules.
+
+    Staged first; rollback is the first other deployment; it is queued when it
+    precedes the booted one (bootc status, as in the retained fixtures).
+    """
+    rows = copy.deepcopy(rows)
+    booted = next(i for i, r in enumerate(rows) if r['booted'])
+    staged = [r for r in rows if r.get('staged')]
+    others = [i for i, r in enumerate(rows) if not r.get('staged') and i != booted]
+    bootc = copy.deepcopy(BASE_STATE['bootc'])
+    bootc['status'].update(booted=slot(rows[booted]), staged=slot(staged[0]) if staged else None,
+                           rollback=slot(rows[others[0]]) if others else None,
+                           rollbackQueued=bool(others) and others[0] < booted)
+    return dict(rpm=dict(copy.deepcopy(BASE_STATE['rpm']), deployments=rows), bootc=bootc)
+
+
+def pair(reference=R13):
+    return machine([release_row(reference, booted=True), stock_row()])
+
+
+def staged_update():
+    return machine([release_row(R21, staged=True), release_row(R13, booted=True), stock_row()])
+
+
+def updated():
+    return machine([release_row(R21, booted=True), release_row(R13), stock_row()])
+
+
+def queued_previous():
+    return machine([release_row(R13), release_row(R21, booted=True), stock_row()])
+
+
+def returned():
+    return machine([release_row(R13, booted=True), release_row(R21), stock_row()])
+
+
+def staged_later():
+    return machine([release_row(R30, staged=True), release_row(R21, booted=True), release_row(R13), stock_row()])
+
+
+def prepared():
+    state = dict(rpm=copy.deepcopy(VALUES['after-pin rpm-ostree-status']), bootc=copy.deepcopy(VALUES['after-pin bootc-status']))
+    stock = owner.agree(state)
+    return dict(state=state, stock=copy.deepcopy(stock), stock_identity=list(owner.key(stock)))
+
+
+def bls_for(state):
+    entries = []
+    for number, row in enumerate([d for d in state['rpm']['deployments'] if not d.get('staged')], 1):
+        name = ('Bazzite stock ' if row['container-image-reference-digest'] == owner.BASE else 'AresOS ') + row['checksum'][:8]
+        entries.append(dict(file='/boot/loader/entries/ostree-%d.conf' % number,
+            content='title %s\noptions quiet ostree=/ostree/boot.1/default/%s/%d\n' % (name, row['checksum'], row['serial']),
+            title=name, target='/sysroot/ostree/deploy/default/deploy/%s.%d' % (row['checksum'], row['serial']),
+            identity=[row['checksum'], row['serial'], row['osname']]))
+    return entries
+
+
+def write_bundle(destination, history=None, target=None, drop=(), extra=None):
+    """Reviewed payload bytes with only release data replaced; manifests regenerated."""
+    files = {row['path']: (PAYLOAD / row['path']).read_bytes() for row in json.loads((PAYLOAD / 'SHA256.json').read_text())}
+    if history is not None:
+        files['history.json'] = (json.dumps(history, indent=2) + '\n').encode()
+    if target is not None:
+        release = copy.deepcopy(RELEASE)
+        release['reference'], release['signature']['identity'] = target['reference'], target['identity']
+        files['release.json'] = (json.dumps(release, indent=2) + '\n').encode()
+    for name in drop:
+        files.pop(name)
+    files.update(extra or {})
+    destination = pathlib.Path(destination)
+    destination.mkdir(parents=True)
+    rows = []
+    for name in sorted(files):
+        (destination / name).parent.mkdir(parents=True, exist_ok=True)
+        (destination / name).write_bytes(files[name])
+        rows.append(dict(sha256=hashlib.sha256(files[name]).hexdigest(), path=name))
+    raw = (json.dumps(rows, indent=2) + '\n').encode()
+    sums = ''.join(r['sha256'] + '  ' + r['path'] + '\n' for r in rows) + hashlib.sha256(raw).hexdigest() + '  SHA256.json\n'
+    (destination / 'SHA256.json').write_bytes(raw)
+    (destination / 'SHA256SUMS').write_text(sums)
+    assert owner.checked_bundle(destination) == hashlib.sha256(sums.encode()).hexdigest()
+    return hashlib.sha256(sums.encode()).hexdigest()
+
+
+def history(rows, version=3):
+    return dict(tools_version=version, releases=rows)
+
+
+class Machine(owner.Host):
+    """Host adapter over an ordinary JSON machine; mutations only change that model."""
+
+    def __init__(self, state, wheel=False, signed=None):
+        super().__init__()
+        self.state, self.wheel, self.signed = copy.deepcopy(state), wheel, signed or {}
+        self.changes = []
+
+    def read(self, *command, **unused):
+        self.trace.append(dict(command=list(command), mutation=False))
+        if command == ('id', '-u', 'ares'):
+            return '1001\n'
+        if command == ('id', '-nG', 'ares'):
+            return 'ares wheel\n' if self.wheel else 'ares\n'
+        if command[0] == 'pgrep':
+            return '4242\n'
+        if command[0] == 'dumpkeys':
+            return json.loads((ROOT / 'os/tests/fixtures/owner-tools/dumpkeys-de.json').read_text())
+        raise AssertionError('Unmodelled read: ' + repr(command))
+
+    def json(self, *command):
+        self.trace.append(dict(command=list(command), mutation=False))
+        if command == ('rpm-ostree', 'status', '--json'):
+            return copy.deepcopy(self.state['rpm'])
+        if command == ('bootc', 'status', '--json'):
+            return copy.deepcopy(self.state['bootc'])
+        raise AssertionError('Unmodelled query: ' + repr(command))
+
+    def mutate(self, *command, **unused):
+        self.trace.append(dict(command=list(command), mutation=True))
+        self.changes.append(command)
+
+    def script(self, text, name, mutation=True):
+        syntax(name, text)
+        self.trace.append(dict(script=name, mutation=mutation))
+        if name == 'verify':
+            # cosign: only a signature by the recorded identity verifies.
+            identity = re.search(r"--certificate-identity '([^']+)'", text)[1]
+            reference = re.findall(r"'([^']+)'", text.strip().splitlines()[-1])[-1]
+            if self.signed.get(reference) != identity:
+                raise owner.Stop('Shared step failed: verify; preserve diagnostics and do not reboot')
+            return ''
+        marker = text.split("<<'", 1)[1].split("'", 1)[0]
+        body = text.split("<<'" + marker + "'\n", 1)[1].split('\n' + marker + '\n', 1)[0]
+        tail = text.split('\n' + marker + '\n', 1)[1].strip()
+        answer = lambda argv, **kw: json.dumps(self.state['bootc' if argv[0] == 'bootc' else 'rpm'])
+        with patch('subprocess.check_output', side_effect=answer), contextlib.redirect_stdout(io.StringIO()):
+            try:
+                exec(compile(body, name, 'exec'), {'__name__': 'owner_shared_step'})
+            except AssertionError:
+                raise owner.Stop('Shared step failed: ' + name + '; preserve diagnostics and do not reboot') from None
+        rows = self.state['rpm']['deployments']
+        if tail.startswith('bootc switch --retain '):
+            reference = tail.split()[-1]
+            self.state = machine([release_row(reference, staged=True), *rows])
+        elif tail == 'bootc rollback':
+            booted = next(i for i, r in enumerate(rows) if r['booted'])
+            other = next(i for i, r in enumerate(rows) if not r.get('staged') and i != booted)
+            self.state = machine([rows[other], rows[booted], *[r for i, r in enumerate(rows) if i not in (other, booted)]])
+        else:
+            raise AssertionError('Unmodelled shared step: ' + tail)
+        self.changes.append(tail)
+        return ''
+
+
+@contextlib.contextmanager
+def route(state, bundle_history=H21, target=None, wheel=False, signed=None, login=True):
+    """Tools over a synthetic target bundle and a modelled running machine."""
+    target = target or bundle_history[-1]
+    with tempfile.TemporaryDirectory(dir=ROOT / 'os/tests') as temporary, contextlib.ExitStack() as stack:
+        root = pathlib.Path(temporary)
+        payload = root / 'payload'
+        write_bundle(payload, history(bundle_history), target)
+        store = root / 'records'
+        store.mkdir()
+        host = Machine(state, wheel, {R21: IDENTITY, R30: IDENTITY} if signed is None else signed)
+        tools = owner.Tools(payload, host, store)
+        tools.processes = lambda: []
+        tools.keyboard = lambda: dict(DE)
+        tools.save('prepared', prepared())
+        tools.save('disks', dict(target='TARGET', protected='KEEP'))
+        tools.save('network-verified', {})
+        auth = root / 'auth.json'
+        if login:
+            encoded = base64.b64encode(b'synthetic:fixture-only').decode()
+            auth.write_text(json.dumps(dict(auths={'ghcr.io': dict(auth=encoded)})))
+        stack.enter_context(patch.object(owner, 'AUTH', auth))
+        stack.enter_context(patch.object(owner, 'authentication'))
+        tools.validated = stack.enter_context(patch.object(owner, 'validate_login'))
+        stack.enter_context(patch.object(owner, 'disk_record', return_value=dict(target='TARGET', esp_guid='fixture')))
+        stack.enter_context(patch.object(owner, 'resolved_bls', side_effect=lambda: bls_for(host.state)))
+        stack.enter_context(patch.object(owner, 'runtime_state', return_value={}))
+        stack.enter_context(patch.object(owner, 'media_module', return_value=Mock(find=Mock(return_value=None))))
+        real_which = shutil.which
+        stack.enter_context(patch.object(owner.shutil, 'which',
+            side_effect=lambda name, *a, **kw: '/usr/bin/cosign' if name == 'cosign' else real_which(name, *a, **kw)))
+        original = pathlib.Path.read_text
+        stack.enter_context(patch.object(pathlib.Path, 'read_text',
+            lambda p, *a, **kw: 'BOOT_IMAGE=fixture quiet\n' if str(p) == '/proc/cmdline' else original(p, *a, **kw)))
+        yield tools, host, store
+
+
+class ShapeTest(unittest.TestCase):
+    def accept(self, state, known):
+        refs = [row['reference'] for row in known]
+        owner.qualified_state(state, prepared(), refs[-1], refs)
+
+    def refuse(self, state, known, message=None):
+        refs = [row['reference'] for row in known]
+        with self.assertRaises(owner.Stop) as caught:
+            owner.qualified_state(state, prepared(), refs[-1], refs)
+        if message:
+            self.assertIn(message, str(caught.exception))
+
+    def test_model_reproduces_the_retained_pair_and_bootc_slots_of_every_retained_stage(self):
+        self.assertEqual(pair()['rpm']['deployments'], BASE_STATE['rpm']['deployments'])
+        self.assertEqual(owner.key(owner.agree(pair())), owner.key(owner.agree(BASE_STATE)))
+        for stage in ('after-pin', 'after-switch-staged', 'aresos', 'after-rollback-queued', 'rollback'):
+            real = VALUES[stage + ' bootc-status']['status']
+            model = machine(VALUES[stage + ' rpm-ostree-status']['deployments'])['bootc']['status']
+            with self.subTest(stage=stage):
+                for name in ('booted', 'staged', 'rollback'):
+                    self.assertEqual((model[name] or {}).get('ostree'), (real[name] or {}).get('ostree'))
+                self.assertEqual(model['rollbackQueued'], real['rollbackQueued'])
+
+    def test_every_update_shape_is_accepted(self):
+        for name, state, known in (('pair before update', pair(), H21), ('staged update', staged_update(), H21),
+                                   ('after the reboot', updated(), H21), ('queued previous', queued_previous(), H21),
+                                   ('previous booted', returned(), H21), ('later update staged', staged_later(), H30),
+                                   ('updated, newer bundle', updated(), H30), ('pair, current tools', pair(), H13)):
+            with self.subTest(name=name):
+                self.accept(state, known)
+
+    def test_wrong_shapes_are_refused(self):
+        def rows(state):
+            return copy.deepcopy(state['rpm']['deployments'])
+        cases = {
+            'staged older release': (machine([release_row(R13, staged=True, checksum='d1' * 32), release_row(R21, booted=True), stock_row()]), H21),
+            'staged not the target': (staged_update(), H30),
+            'unknown running release': (machine([release_row(R99, booted=True), release_row(R13), stock_row()]), H21),
+            'unknown pair release': (pair(R99), H21),
+            'stock not last': (machine([release_row(R21, booted=True), stock_row(), release_row(R13)]), H21),
+            'stock booted beside two releases': (machine([release_row(R21), release_row(R13), stock_row(True)]), H21),
+            'four deployments': (machine([release_row(R30, booted=True), release_row(R21), release_row(R13), stock_row()]), H30),
+            'two staged rows': (machine([release_row(R30, staged=True), release_row(R21, staged=True), release_row(R13, booted=True), stock_row()]), H30),
+            'same release twice': (machine([release_row(R21, booted=True), release_row(R21, checksum='d2' * 32), stock_row()]), H21),
+            'extra deployment beside a staged update': (machine([release_row(R30, staged=True), release_row(R21, booted=True),
+                                                                 release_row(R13), stock_row(), dict(stock_row(), serial=9, pinned=False)]), H30),
+        }
+        for change in ('pinned release', 'unpinned stock', 'stock digest', 'origin', 'queued staged', 'wrong rollback slot', 'running not default'):
+            state = updated() if change not in ('queued staged',) else staged_update()
+            if change == 'pinned release':
+                state = machine([dict(rows(state)[0]), dict(rows(state)[1], pinned=True), rows(state)[2]])
+            elif change == 'unpinned stock':
+                state = machine([*rows(state)[:2], dict(rows(state)[2], pinned=False)])
+            elif change == 'stock digest':
+                state = machine([*rows(state)[:2], dict(rows(state)[2], **{'container-image-reference-digest': 'sha256:' + 'e' * 64})])
+            elif change == 'origin':
+                state = machine([dict(rows(state)[0], **{'container-image-reference': 'ostree-unverified-registry:ghcr.io/other/aresos@' + R21.split('@')[1]}), *rows(state)[1:]])
+            elif change == 'queued staged':
+                state['bootc']['status']['rollbackQueued'] = True
+            elif change == 'wrong rollback slot':
+                state['bootc']['status']['rollback'] = slot(rows(state)[2])
+            else:
+                state = machine([release_row(R13), release_row(R21, booted=True), stock_row()])
+                state['bootc']['status']['rollbackQueued'] = False
+            cases[change] = (state, H21)
+        for name, (state, known) in cases.items():
+            with self.subTest(name=name):
+                self.refuse(state, known)
+
+    def test_recovery_and_layout_pair_accepts_any_known_release_but_only_the_pair(self):
+        saved = prepared()
+        refs = [row['reference'] for row in H21]
+        self.assertEqual(owner.key(owner.preflight_recovery(pair(), [], saved, R21, history=refs)), tuple(saved['stock_identity']))
+        for state in (updated(), staged_update(), pair(R99)):
+            with self.subTest(state=state['bootc']['status']['booted']['image']['imageDigest'][:16]):
+                with self.assertRaises(owner.Stop):
+                    owner.preflight_recovery(state, [], saved, R21, history=refs)
+        with self.assertRaisesRegex(owner.Stop, 'Wrong AresOS target'):
+            owner.preflight_recovery(pair(), [], saved, R21)
+
+
+class HistoryTest(unittest.TestCase):
+    def test_reviewed_history_ends_with_the_pinned_release_and_r13_is_not_wheel(self):
+        value = owner.lineage(PAYLOAD)
+        self.assertEqual(value['tools_version'], 2)
+        self.assertEqual(value['releases'], H13)
+        self.assertEqual(value['releases'][-1]['reference'], RELEASE['reference'])
+        self.assertIs(value['releases'][0]['daily_wheel'], False)
+        self.assertEqual((ROOT / 'os/owner-tools/history.json').read_bytes(), (PAYLOAD / 'history.json').read_bytes())
+
+    def test_every_release_declares_exactly_one_account_rule_and_history_stays_strict(self):
+        good = history(H21)
+        mutations = {
+            'either': lambda v: v['releases'][1].update(daily_wheel=None),
+            'string rule': lambda v: v['releases'][1].update(daily_wheel='either'),
+            'missing rule': lambda v: v['releases'][1].pop('daily_wheel'),
+            'extra field': lambda v: v['releases'][1].update(note='x'),
+            'old version': lambda v: v.update(tools_version=1),
+            'empty': lambda v: v.update(releases=[]),
+            'duplicate digest': lambda v: v['releases'].append(dict(v['releases'][1])),
+            'stock digest': lambda v: v['releases'].append(record('ghcr.io/ares-empire/aresos@' + owner.BASE, True)),
+            'other registry': lambda v: v['releases'][1].update(reference='ghcr.io/other/aresos@' + R21.split('@')[1]),
+            'other identity': lambda v: v['releases'][1].update(identity='https://github.com/someone/AresOS/.github/workflows/x.yml@refs/heads/main'),
+            'quoted identity': lambda v: v['releases'][1].update(identity=IDENTITY + "'"),
+        }
+        with tempfile.TemporaryDirectory(dir=ROOT / 'os/tests') as temporary:
+            root = pathlib.Path(temporary)
+            write_bundle(root / 'good', good, H21[-1])
+            self.assertEqual(owner.lineage(root / 'good')['releases'], H21)
+            for name, change in mutations.items():
+                value = copy.deepcopy(good)
+                change(value)
+                with self.subTest(name=name), self.assertRaises((owner.Stop, KeyError)):
+                    target = H21[-1] if name not in ('duplicate digest', 'stock digest') else value['releases'][-1]
+                    write_bundle(root / name.replace(' ', '-'), value, target)
+                    owner.lineage(root / name.replace(' ', '-'))
+            write_bundle(root / 'mismatch', good, record(R30, True))
+            with self.assertRaisesRegex(owner.Stop, 'newest history record'):
+                owner.lineage(root / 'mismatch')
+            (root / 'dup').mkdir()
+            shutil.copy(PAYLOAD / 'release.json', root / 'dup/release.json')
+            (root / 'dup/history.json').write_text('{"tools_version": 2, "tools_version": 3, "releases": []}')
+            with self.assertRaisesRegex(owner.Stop, 'Duplicate JSON key'):
+                owner.lineage(root / 'dup')
+
+    def test_installed_history_must_be_a_prefix_and_legacy_tools_are_only_the_15f_bundle(self):
+        legacy = [dict(reference=R13, identity=RELEASE['signature']['identity'], daily_wheel=None)]
+        self.assertTrue(owner.extends(legacy, H21))
+        self.assertTrue(owner.extends(H21, H30))
+        self.assertFalse(owner.extends(H30, H21))
+        self.assertFalse(owner.extends([record(R13, True)], H21))
+        self.assertFalse(owner.extends([record(R21, True)], H21))
+        report = (ROOT / 'reviews/15f-lenovo-firmware-entry/REPORT.md').read_text()
+        self.assertEqual(owner.LEGACY_TOOLS, (re.search(r'fingerprint: `([0-9a-f]{64})`', report)[1],))
+
+
+class UpdateCommandTest(unittest.TestCase):
+    def unchanged(self, tools, host, store, method, message):
+        before = (copy.deepcopy(host.state), {p.name: p.read_bytes() for p in store.iterdir()})
+        with self.assertRaises(owner.Stop) as caught:
+            method()
+        self.assertIn(message, str(caught.exception))
+        self.assertEqual(host.changes, [])
+        self.assertEqual(before, (host.state, {p.name: p.read_bytes() for p in store.iterdir()}))
+        return caught.exception
+
+    def test_update_verifies_then_stages_keeping_running_release_and_pinned_stock(self):
+        with route(pair()) as (tools, host, store):
+            lines = tools.update()
+            self.assertEqual(host.state['rpm']['deployments'], staged_update()['rpm']['deployments'])
+            self.assertEqual([t.get('script') for t in host.trace if t.get('script')], ['verify', 'update'])
+            tools.validated.assert_called_once_with('synthetic', 'fixture-only', R21)
+            self.assertEqual(lines[:2], ['Signed exact release staged ' + R21, 'Running release stays as rollback ' + R13])
+            self.assertIn('Title is provisional until the next boot; refresh after boot', lines)
+            title = tools.load('title')
+            self.assertEqual(title['state'], host.state)
+            self.assertEqual(title['title']['identity'], prepared()['stock_identity'])
+            self.assertFalse(any('older AresOS' in line.lower() for line in lines))
+
+    def test_later_update_names_the_older_release_ostree_removes_at_shutdown(self):
+        with route(updated(), H30) as (tools, host, store):
+            lines = tools.update()
+            self.assertEqual(host.state['rpm']['deployments'], staged_later()['rpm']['deployments'])
+            self.assertIn('Older AresOS ' + R13 + ' is removed when the update finishes at shutdown', lines)
+
+    def test_refusals_before_any_change(self):
+        cases = [
+            ('staged deployment', staged_update(), H21, {}, 'staged deployment already exists'),
+            ('queued stock rollback', machine([stock_row(), release_row(R13, booted=True)]), H21, {}, 'rollback is queued'),
+            ('queued previous', queued_previous(), H30, {}, 'rollback is queued'),
+            ('nothing newer', pair(), H13, {}, 'already running; nothing to update'),
+            ('booted stock', machine([stock_row(True), release_row(R13)]), H21, {}, 'running AresOS release'),
+            ('target already deployed', returned(), H21, {}, 'already deployed'),
+            ('running release unknown (bundle older)', updated(), H13, {}, 'Final pair has extra/missing deployments'),
+            ('layered packages', machine([dict(release_row(R13, booted=True), **{'requested-packages': ['x']}), stock_row()]), H21, {}, 'Modified AresOS'),
+            ('unlocked', machine([dict(release_row(R13, booted=True), unlocked='development'), stock_row()]), H21, {}, 'Modified AresOS'),
+            ('missing login', pair(), H21, dict(login=False), owner.LOGIN_REFUSAL),
+            ('unsigned', pair(), H21, dict(signed={}), 'Shared step failed: verify'),
+            ('wrong identity', pair(), H21, dict(signed={R21: IDENTITY.replace('main', 'pkg/evil')}), 'Shared step failed: verify'),
+        ]
+        for name, state, known, options, message in cases:
+            with self.subTest(name=name), route(state, known, **options) as (tools, host, store):
+                self.unchanged(tools, host, store, tools.update, message)
+
+    def test_expired_login_points_to_login_and_never_records_the_secret(self):
+        with route(pair()) as (tools, host, store):
+            tools.validated.side_effect = owner.Stop('Private release read failed')
+            error = self.unchanged(tools, host, store, tools.update, 'run sudo /var/lib/ares/at login')
+            self.assertNotIn('fixture-only', str(error) + json.dumps(host.trace))
+            owner.AUTH.write_text('{"auths": {"ghcr.io": {}}}')
+            self.unchanged(tools, host, store, tools.update, owner.LOGIN_REFUSAL)
+
+    def test_active_updater_layout_trial_or_transaction_refuse(self):
+        with route(pair()) as (tools, host, store):
+            tools.processes = lambda: [dict(exe='/usr/bin/bootc', excluded_as_daemon=False)]
+            self.unchanged(tools, host, store, tools.update, 'client active')
+            tools.processes = lambda: []
+            host.state['rpm']['transaction'] = ['upgrade', 'uupd', 'socket']
+            self.unchanged(tools, host, store, tools.update, 'transaction active')
+            host.state['rpm']['transaction'] = None
+            tools.save('layout-pending', {})
+            self.unchanged(tools, host, store, tools.update, 'Layout trial is unfinished')
+
+    def test_stale_title_blocks_the_reboot_and_a_fresh_title_allows_it(self):
+        with route(pair()) as (tools, host, store):
+            tools.update()
+            original = owner.resolved_bls.side_effect
+            owner.resolved_bls.side_effect = lambda: [dict(e, title=e['title'] + ' changed') for e in original()]
+            with self.assertRaisesRegex(owner.Stop, 'Title is stale'):
+                tools.reboot()
+            self.assertEqual(host.changes, ['bootc switch --retain ' + R21])
+            owner.resolved_bls.side_effect = original
+            tools.title()
+            tools.reboot()
+            self.assertEqual(host.changes[-1], ('systemctl', 'reboot'))
+
+    def test_check_title_and_reboot_accept_each_update_shape(self):
+        for state, known in ((staged_update(), H21), (updated(), H21), (queued_previous(), H21), (returned(), H21), (staged_later(), H30)):
+            wheel = state['bootc']['status']['booted']['image']['imageDigest'] != R13.split('@')[1]
+            with self.subTest(booted=state['bootc']['status']['booted']['ostree']['checksum'][:4]), route(state, known, wheel=wheel) as (tools, host, store):
+                self.assertIn('Loaded y/z map, cmdline and all retained BLS maps passed', tools.check())
+                tools.reboot()
+
+
+class AccountRuleTest(unittest.TestCase):
+    def test_each_release_requires_exactly_its_own_wheel_rule(self):
+        for state, wheel, ok in ((updated(), True, True), (updated(), False, False),
+                                 (returned(), False, True), (returned(), True, False),
+                                 (pair(), False, True), (pair(), True, False)):
+            booted = state['bootc']['status']['booted']['image']['imageDigest']
+            with self.subTest(release=booted[:16], wheel=wheel), route(state, wheel=wheel) as (tools, host, store):
+                if ok:
+                    tools.check()
+                else:
+                    with self.assertRaisesRegex(owner.Stop, 'differs from this release record'):
+                        tools.check()
+
+    def test_current_tools_keep_r13_without_wheel(self):
+        with route(pair(), H13, wheel=True) as (tools, host, store):
+            with self.assertRaisesRegex(owner.Stop, 'differs from this release record'):
+                tools.check()
+
+
+class PreviousTest(unittest.TestCase):
+    def test_previous_queues_the_older_release_and_keeps_every_deployment(self):
+        with route(updated()) as (tools, host, store):
+            lines = tools.previous()
+            self.assertEqual(host.changes, ['bootc rollback'])
+            self.assertEqual(host.state['rpm']['deployments'], queued_previous()['rpm']['deployments'])
+            self.assertEqual(lines[0], 'Previous AresOS queued for the next start ' + R13)
+            self.assertEqual(tools.load('title')['state'], host.state)
+            tools.reboot()
+
+    def test_previous_refuses_without_an_older_release_or_with_pending_work(self):
+        for name, state, message in (('pair', pair(), 'nothing to return to'),
+                                     ('other is newer', returned(), 'previous only returns from an update'),
+                                     ('staged', staged_update(), 'Pending deployment'),
+                                     ('already queued', queued_previous(), 'Pending deployment')):
+            with self.subTest(name=name), route(state) as (tools, host, store):
+                UpdateCommandTest.unchanged(self, tools, host, store, tools.previous, message)
+
+
+class LoginTest(unittest.TestCase):
+    def test_login_on_aresos_needs_a_newer_target_and_otherwise_keeps_the_stock_rules(self):
+        with route(pair()) as (tools, host, store), patch.object(owner.sys.stdin, 'isatty', return_value=False):
+            with self.assertRaisesRegex(owner.Stop, 'Login requires a real hidden terminal prompt'):
+                tools.login()
+        with route(pair(), H13) as (tools, host, store):
+            with self.assertRaisesRegex(owner.Stop, 'already running; nothing to update'):
+                tools.login()
+        with route(staged_update()) as (tools, host, store):
+            with self.assertRaisesRegex(owner.Stop, 'staged deployment already exists'):
+                tools.login()
+
+
+class ToolsHost(FixtureHost):
+    def __init__(self, tree, usb, state):
+        super().__init__(tree, usb)
+        self.state = state
+
+    def json(self, *command):
+        if command == ('rpm-ostree', 'status', '--json'):
+            return copy.deepcopy(self.state['rpm'])
+        if command == ('bootc', 'status', '--json'):
+            return copy.deepcopy(self.state['bootc'])
+        return super().json(*command)
+
+
+class ToolsUpdateTest(unittest.TestCase):
+    """The bootstrap's install entry over an existing installation."""
+
+    def setUp(self):
+        bytecode = patch.object(sys, 'dont_write_bytecode', True)
+        bytecode.start()
+        self.addCleanup(bytecode.stop)
+
+    @contextlib.contextmanager
+    def installation(self, installed=None, stick=None, state=None):
+        """installed/stick: (history or None for a history-less bundle, target, extra files)."""
+        with tempfile.TemporaryDirectory(dir=ROOT / 'os/tests') as temporary, contextlib.ExitStack() as stack:
+            root = pathlib.Path(temporary)
+            home = root / 'home'
+            home.mkdir(mode=0o700)
+            (home / 'records').mkdir(mode=0o700)
+            usb = root / 'usb'
+            usb.mkdir()
+            if stick is None:
+                fingerprint = common.fixture_bundle(usb / 'ares-tools')
+            else:
+                fingerprint = write_bundle(usb / 'ares-tools', *stick)
+            if installed is None:
+                old = write_bundle(home / 'tools', drop=('history.json', 'release/update.sh', 'release/previous.sh'),
+                                   extra={'owner.py': b'# package 15f stand-in\n'})
+                stack.enter_context(patch.object(owner, 'LEGACY_TOOLS', (old,)))
+            else:
+                old = write_bundle(home / 'tools', *installed)
+            for path in [home / 'tools', *(home / 'tools').rglob('*')]:
+                path.chmod(0o700 if path.is_dir() or path.name == 'at' else 0o600)
+            os.symlink('tools/at', home / 'at')
+            writer = object.__new__(owner.Tools)
+            writer.store = home
+            writer.save('install-intent', dict(schema='install1', manifest='1' * 64, disks=dict(target='TARGET', protected='KEEP'),
+                identity={}, tools_volume_uuid='earlier', phase='complete'))
+            writer.store = home / 'records'
+            writer.save('disks', dict(target='TARGET', protected='KEEP'))
+            writer.save('prepared', prepared())
+            host = ToolsHost(fixture(), usb, state or pair())
+            stack.enter_context(patch.object(owner, 'HOME', home))
+            stack.enter_context(patch.object(owner.sys.stdin, 'isatty', return_value=True))
+            stack.enter_context(patch.object(owner.Tools, 'processes', lambda self: []))
+            self.private = stack.enter_context(patch.object(owner, 'private_tree'))
+            run = lambda: owner.install(usb / 'ares-tools', host)
+            yield home, run, fingerprint, old, host
+
+    def snapshot(self, home):
+        return {p.relative_to(home).as_posix(): (p.read_bytes() if p.is_file() and not p.is_symlink() else os.readlink(p) if p.is_symlink() else None)
+                for p in home.rglob('*')}
+
+    def updated(self, home, fingerprint, old):
+        self.assertEqual(owner.checked_bundle(home / 'tools'), fingerprint)
+        self.assertEqual(owner.checked_bundle(home / 'retired-tools' / old), old)
+        self.assertEqual(os.readlink(home / 'at'), 'tools/at')
+        self.assertFalse((home / '.update-tools').exists())
+        intent = json.loads((home / 'tools-update-intent.json').read_text())
+        self.assertEqual((intent['phase'], intent['previous'], intent['manifest']), ('complete', old, fingerprint))
+        self.assertEqual(len(list((home / 'records').glob('*-tools-update.json'))), 1)
+
+    def test_older_installed_tools_are_replaced_and_kept_and_records_survive(self):
+        with self.installation() as (home, run, fingerprint, old, host):
+            records = {p.name: p.read_bytes() for p in (home / 'records').iterdir()}
+            lines = run()
+            self.updated(home, fingerprint, old)
+            self.assertEqual(lines[:2], ['Tools updated from version 1 to 2', 'manifest SHA256 ' + fingerprint])
+            self.assertEqual({k: v for k, v in records.items()}, {p.name: p.read_bytes() for p in (home / 'records').iterdir()
+                                                                if not p.name.endswith('-tools-update.json')})
+            receipt = json.loads(next((home / 'records').glob('*-tools-update.json')).read_text())
+            self.assertEqual((receipt['previous_manifest'], receipt['manifest'], receipt['releases']), (old, fingerprint, H13))
+            self.private.assert_any_call(home / 'tools')
+            self.assertFalse(any(row.get('mutation') for row in host.trace))
+            again = self.snapshot(home)
+            self.assertEqual(run(), ['Tools already installed; nothing changed', 'manifest SHA256 ' + fingerprint])
+            self.assertEqual(again, self.snapshot(home))
+
+    def test_newer_bundle_over_history_tools_extends_the_installed_history(self):
+        with self.installation(installed=(history(H13, 2), H13[-1]), stick=(history(H21, 3), H21[-1])) as (home, run, fingerprint, old, host):
+            self.assertEqual(run()[:2], ['Tools updated from version 2 to 3', 'manifest SHA256 ' + fingerprint])
+            self.updated(home, fingerprint, old)
+            self.assertEqual(owner.lineage(home / 'tools')['releases'], H21)
+
+    def test_downgrade_same_version_foreign_history_and_unknown_legacy_refuse_without_writes(self):
+        cases = {
+            'downgrade': dict(installed=(history(H21, 3), H21[-1])),
+            'same version, other bytes': dict(installed=(history(H13, 2), H13[-1], (), {'media.py': b'# other\n'})),
+            'history rewritten': dict(installed=(history(H13, 2), H13[-1]), stick=(history([record(R13, True), record(R21, True)], 3), H21[-1])),
+            'history dropped a release': dict(installed=(history(H21, 2), H21[-1]), stick=(history([record(R13, False), record(R30, True)], 3), record(R30, True))),
+        }
+        messages = {'downgrade': 'refusing version 2', 'same version, other bytes': 'same version',
+                    'history rewritten': 'does not extend', 'history dropped a release': 'does not extend'}
+        for name, options in cases.items():
+            with self.subTest(name=name), self.installation(**options) as (home, run, fingerprint, old, host):
+                before = self.snapshot(home)
+                with self.assertRaisesRegex(owner.Stop, messages[name]):
+                    run()
+                self.assertEqual(before, self.snapshot(home))
+        with self.installation() as (home, run, fingerprint, old, host), patch.object(owner, 'LEGACY_TOOLS', ('0' * 64,)):
+            before = self.snapshot(home)
+            with self.assertRaisesRegex(owner.Stop, 'not the known 15f tools'):
+                run()
+            self.assertEqual(before, self.snapshot(home))
+
+    def test_state_the_new_tools_would_refuse_blocks_the_update_without_writes(self):
+        for name, state, record_name in (('unknown staged image', machine([release_row(R99, staged=True), release_row(R13, booted=True), stock_row()]), None),
+                                         ('layout trial', pair(), 'layout-pending'),
+                                         ('unfinished prepare', pair(), 'prepare-intent')):
+            with self.subTest(name=name), self.installation(state=state) as (home, run, fingerprint, old, host):
+                if record_name:
+                    writer = object.__new__(owner.Tools)
+                    writer.store = home / 'records'
+                    writer.save(record_name, dict(phase='pin'))
+                before = self.snapshot(home)
+                with self.assertRaises(owner.Stop):
+                    run()
+                self.assertEqual(before, self.snapshot(home))
+
+    def test_interrupted_update_resumes_after_each_step(self):
+        steps = []
+        with self.installation() as (home, run, fingerprint, old, host):
+            original = owner.Tools.save
+            with patch.object(owner.Tools, 'save', new=lambda obj, name, value: (steps.append(name), original(obj, name, value))[1]):
+                run()
+        self.assertEqual(steps, ['tools-update-intent'] * 3 + [steps[3], 'tools-update-intent'])
+        # Every file copy, every rename (five record writes and the two swaps)
+        # and every record write.
+        injections = [('copy', n) for n in range(1, len(common.bundle.PAYLOAD) + 3)] + \
+                     [('replace', n) for n in range(1, 8)] + [('save', n) for n in range(1, 6)]
+        for kind, stop in injections:
+            with self.subTest(kind=kind, stop=stop), self.installation() as (home, run, fingerprint, old, host):
+                seen = 0
+                def hit():
+                    nonlocal seen
+                    seen += 1
+                    if seen == stop:
+                        raise OSError('injected after ' + kind)
+                if kind == 'copy':
+                    real = shutil.copy2
+                    hook = patch('shutil.copy2', side_effect=lambda *a, **kw: (real(*a, **kw), hit())[0])
+                elif kind == 'replace':
+                    real = pathlib.Path.replace
+                    hook = patch.object(pathlib.Path, 'replace', new=lambda p, t: (real(p, t), hit())[0])
+                else:
+                    real = owner.Tools.save
+                    hook = patch.object(owner.Tools, 'save', new=lambda obj, name, value: (real(obj, name, value), hit())[0])
+                with hook, self.assertRaises(OSError):
+                    run()
+                run()
+                self.updated(home, fingerprint, old)
+
+    def test_interrupted_update_resumes_only_with_the_same_bundle_and_stick(self):
+        with self.installation() as (home, run, fingerprint, old, host):
+            with patch('shutil.copytree', side_effect=OSError('interrupt')), self.assertRaises(OSError):
+                run()
+            intent = json.loads((home / 'tools-update-intent.json').read_text())
+            writer = object.__new__(owner.Tools)
+            writer.store = home
+            writer.save('tools-update-intent', dict(intent, manifest='f' * 64))
+            before = self.snapshot(home)
+            with self.assertRaisesRegex(owner.Stop, 'does not exactly match'):
+                run()
+            self.assertEqual(before, self.snapshot(home))
+
+    def test_unchanged_first_install_route_refuses_an_updated_installation(self):
+        """The 15f tools run this unchanged route: they cannot downgrade an update."""
+        with self.installation() as (home, run, fingerprint, old, host):
+            run()
+            before = self.snapshot(home)
+            intent = json.loads((home / 'install-intent.json').read_text())
+            writer = object.__new__(owner.Tools)
+            writer.store = home
+            writer.save('install-intent', dict(intent, manifest=fingerprint, identity=owner.setup_identity(
+                owner.disk_record(host, dict(target='TARGET', protected='KEEP'))), tools_volume_uuid='CAFE-1234'))
+            before = self.snapshot(home)
+            with patch.object(owner, 'installed_update', return_value=False), patch('builtins.input', side_effect=['TARGET', 'KEEP']), \
+                    self.assertRaisesRegex(owner.Stop, 'Unexpected installation files'):
+                run()
+            self.assertEqual(before, self.snapshot(home))
+
+
+if __name__ == '__main__':
+    unittest.main()
