@@ -5,6 +5,7 @@ import sqlite3
 import uuid
 
 from .common import RESULT_LIMIT, WIRE_LIMIT, Refused, canonical, storage_refusal, shortened
+from .paging import fragment_window
 
 
 def owner_warnings(value, path=()):
@@ -22,17 +23,12 @@ def owner_warnings(value, path=()):
 
 def observation_page(store, cursor):
     snapshot = store.observation_snapshot
-    try:
-        token, raw_offset = cursor.split(':')
-        offset = int(raw_offset)
-        if snapshot is None or token != snapshot['id'] or not 0 <= offset < len(snapshot['json']):
-            raise ValueError()
-    except (ValueError, AttributeError) as exc:
-        raise Refused('stale_reference', 'Observation snapshot changed or service restarted; inspect operation status and filing locations.') from exc
-    end = min(offset + 6000, len(snapshot['json']))
+    if snapshot is None:
+        raise Refused('stale_reference', 'Observation snapshot changed or service restarted; inspect operation status and filing locations.')
+    offset, end, next_cursor, status = fragment_window(snapshot['id'], len(snapshot['json']), cursor)
     return {'stages': {}, 'evidence': {}, 'warnings': snapshot['warnings'],
-            'count': len(snapshot['json']), 'cursor': f'{token}:{end}' if end < len(snapshot['json']) else None,
-            'fragments': [{'offset': offset, 'json': snapshot['json'][offset:end]}]}
+            'count': len(snapshot['json']), 'cursor': next_cursor,
+            'fragments': [{'offset': offset, 'json': snapshot['json'][offset:end]}], **status}
 
 
 class Observations:
@@ -91,7 +87,7 @@ def bound_result(result, store=None, limit=RESULT_LIMIT):
     snapshot = store.observation_snapshot if store is not None else None
     page = result.get('data', {})
     if (snapshot is not None and 'fragments' in page and
-            page.get('count') == len(snapshot['json']) and set(page) == {
+            page.get('count') == len(snapshot['json']) and set(page) - {'page_changed'} == {
                 'stages', 'evidence', 'warnings', 'count', 'cursor', 'fragments'}):
         # Paging an oversized warning envelope must not replace the snapshot
         # with another copy of the same pending envelope on every read.

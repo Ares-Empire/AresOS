@@ -151,4 +151,6 @@ class JournalStreaming(EngineCase):
         self.assertEqual(seen, expected)
         cursor = self.data('control_log', {'limit': 1})['cursor']
         self.engine.store.write({}, 'fixture', 'Log changed')
-        self.assertEqual(self.call('control_log', {'cursor': cursor})['error']['code'], 'stale_reference')
+        changed = self.data('control_log', {'cursor': cursor})
+        self.assertIn('restarted', changed['page_changed'])
+        self.assertEqual([event['seq'] for event in changed['items']], expected[:5])

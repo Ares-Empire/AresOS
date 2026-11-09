@@ -1,6 +1,5 @@
 import base64
 import copy
-import hashlib
 import imaplib
 import logging
 import sqlite3
@@ -16,6 +15,7 @@ from .common import CHUNK_SIZE, FILE_LIMIT, RESULT_LIMIT, Refused, approval_inpu
 from .definitions import APPS, BY_NAME, tools_for
 from .storage import Store
 from .results import Observations
+from .paging import ordered_page
 from .testapp import Receiver, TestApp
 from .mail.adapter import Mail
 
@@ -101,38 +101,17 @@ class Engine:
             return result
 
     def _pending(self, app=None, args=None, resolve_checks=True):
-        args, offset, version = args or {}, 0, None
-        try:
-            if 'cursor' in args:
-                version, raw_offset = args['cursor'].split(':')
-                offset = int(raw_offset)
-                if offset < 0:
-                    raise ValueError()
-        except ValueError as exc:
-            raise Refused('stale_reference', 'Page changed; read again without the cursor.') from exc
-        # Hash the same canonical [scope, summaries] incrementally. Only the
-        # returned page is retained; full approvals never enter this response.
-        hashed = hashlib.sha256(b'["pending",[')
-        items, total = [], 0
-        for _, op in self.store.iter_items('op:'):
-            if ((app is not None and op['app'] != app) or
-                    not (op['state'] in {'reserved', 'submitting', 'partial', 'unknown'} or
-                         (op.get('notice') and not op.get('ack')))):
-                continue
-            summary = {'operation_id': op['id'], 'app': op['app'], 'state': op['state'], 'reason': op['reason']}
-            if total:
-                hashed.update(b',')
-            hashed.update(canonical(summary).encode())
-            if total >= offset and len(items) < args.get('limit', 5):
-                items.append(summary)
-            total += 1
-        hashed.update(b']]')
-        token = hashed.hexdigest()
-        if offset > total or (version is not None and version != token):
-            raise Refused('stale_reference', 'Page changed; read again without the cursor.')
-        end = offset + len(items)
-        return {'items': items, 'total': total, 'cursor': f'{token}:{end}' if end < total else None,
-                'restore_required': self.store.locked} | self.notices(resolve_checks=resolve_checks)
+        notices = self.notices(resolve_checks=resolve_checks)
+        def rows():
+            for key, op in self.store.iter_items('op:'):
+                if ((app is not None and op['app'] != app) or
+                        not (op['state'] in {'reserved', 'submitting', 'partial', 'unknown'} or
+                             (op.get('notice') and not op.get('ack')))):
+                    continue
+                created = self.store.db.execute('SELECT created FROM retained WHERE k=?', (key,)).fetchone()
+                yield ((created[0] if created else 0, op['id']),
+                       {'operation_id': op['id'], 'app': op['app'], 'state': op['state'], 'reason': op['reason']})
+        return ordered_page(rows, args, ['pending', app]) | {'restore_required': self.store.locked} | notices
 
     def page(self, values, args, scope):
         token, offset = digest([scope, values]), 0
@@ -451,23 +430,16 @@ class Engine:
             return observation_page(self.store, args['cursor'])
         if name == "control_log":
             day = time.strftime("%Y-%m-%d", time.localtime())
-            token = digest(['log:' + day, self.store.sequence, self.store.head_hash])
-            offset, limit = 0, args.get('limit', 5)
-            if 'cursor' in args:
-                try:
-                    version, raw_offset = args['cursor'].split(':')
-                    offset = int(raw_offset)
-                    if version != token or offset < 0:
-                        raise ValueError()
-                except ValueError as exc:
-                    raise Refused('stale_reference', 'Log changed; read again without the cursor.') from exc
-            entries, total = [], 0
-            for event in self.store.iter_audit():
-                if time.strftime("%Y-%m-%d", time.localtime(event["time"])) != day:
-                    continue
-                total += 1
-                if total <= offset or len(entries) >= limit:
-                    continue
+            # Continuations read committed warnings: revalidating here would
+            # itself add audit rows and invalidate every continuation forever.
+            notices = self.notices(resolve_checks='cursor' not in args)
+            def rows():
+                for event in self.store.iter_audit():
+                    if time.strftime("%Y-%m-%d", time.localtime(event["time"])) == day:
+                        yield (event['time'], event['seq']), event
+            page = ordered_page(rows, args, ['log', day])
+            entries = []
+            for event in page['items']:
                 entry = {k: event[k] for k in ("seq", "time", "action", "summary", "outcome", "operation_id")}
                 if event["action"].startswith("mail_"):
                     # Historical Mail summaries may predate structured marking.
@@ -480,10 +452,8 @@ class Engine:
                 elif "untrusted_content" in event:
                     entry["untrusted_content"] = event["untrusted_content"]
                 entries.append(entry)
-            if offset > total:
-                raise Refused('stale_reference', 'Log changed; read again without the cursor.')
-            end = offset + len(entries)
-            return {'items': entries, 'total': total, 'cursor': f'{token}:{end}' if end < total else None} | self.notices()
+            page['items'] = entries
+            return page | notices
         app, verb = action.app, action.verb
         adapter = self.adapters[app]
         if verb.startswith("prepare_"):

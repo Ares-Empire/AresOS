@@ -135,6 +135,26 @@ class Lifecycle29(unittest.TestCase):
         self.assertTrue(self.engine.store.get('notice:' + occurrence)['ack'])
         self.assertEqual(self.data('filing_notices', {})['items'], [new])
 
+    def test_review29_legacy_ack_adopts_unchanged_warning_then_distinguishes_changed_evidence(self):
+        operation, occurrence = self.duplicate()
+        self.data('notice_ack', {'operation_id': occurrence})
+        op = self.engine.operation(operation['id'])
+        op.pop('warning_checks')
+        notice = self.engine.store.get('notice:' + occurrence)
+        for field in ('check_kind', 'evidence_fingerprint', 'source_key'):
+            notice.pop(field)
+        notice['untrusted_content'].pop('intent_key')
+        self.engine.store.write({'op:' + op['id']: op, 'notice:' + occurrence: notice},
+                                'fixture', 'Synthetic pre-occurrence records')
+        self.restart()
+        self.assertFalse(self.data('filing_notices', {})['items'])
+        adopted = self.engine.store.get('notice:' + occurrence)
+        self.assertTrue(adopted['ack'])
+        self.assertEqual(adopted['created_at'], notice['created_at'])
+        self.imap.boxes['Sent'][3] = self.imap.boxes['Sent'].pop(2)
+        new = self.data('filing_notices', {})['items'][0]
+        self.assertNotEqual(new['operation_id'], occurrence)
+
     def test_review29_clean_keeps_unacknowledged_occurrence_and_recurrence_starts_another(self):
         op, occurrence = self.duplicate()
         raw = self.imap.boxes['Sent'].pop(2)

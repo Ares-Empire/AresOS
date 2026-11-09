@@ -21,7 +21,8 @@ class Pending21(EngineCase):
             # Exclude one-time Python module imports from response memory.
             self.engine.notices()
             expected = []
-            for _, op in self.engine.store.iter_items('op:'):
+            ordered = sorted(self.engine.store.iter_items('op:'), key=lambda row: (self.engine.store.retained_at(row[0]), row[1]['id']))
+            for _, op in ordered:
                 expected.append({'operation_id': op['id'], 'app': op['app'], 'state': op['state'], 'reason': op['reason']})
                 if len(expected) == 10:
                     break
@@ -36,15 +37,18 @@ class Pending21(EngineCase):
             self.assertEqual(first['items'] + second['items'], expected)
             self.assertEqual(first['total'], count)
             self.assertEqual(second['total'], count)
-            self.assertTrue(first['cursor'].endswith(':5'))
-            self.assertTrue(second['cursor'].endswith(':10'))
+            self.assertTrue(first['cursor'])
+            self.assertTrue(second['cursor'])
+            self.assertNotEqual(first['cursor'], second['cursor'])
             self.assertLess(peak, 1024 * 1024)
             metrics.append(peak)
             op = self.engine.operation(expected[0]['operation_id'])
             op['reason'] = 'Synthetic changed pending state ' + str(count)
             self.engine.store.write({'op:' + op['id']: op}, 'fixture', 'Synthetic change', op['id'])
             result = self.call('control_pending', {'cursor': first['cursor']})
-            self.assertEqual(result['error']['code'], 'stale_reference')
+            self.assertTrue(result['ok'], result)
+            self.assertIn('restarted', result['data']['page_changed'])
+            self.assertEqual(result['data']['items'][0]['reason'], op['reason'])
         print('Review21 pending peak bytes, 1k/10k unknown operations:', metrics)
 
     def test_review21_pending_never_reads_approval_description_and_keeps_canonical_cursor(self):
@@ -63,5 +67,7 @@ class Pending21(EngineCase):
             self.assertEqual(result['items'], expected)
             self.assertEqual(result['total'], 1)
             self.assertIsNone(result['cursor'])
-            cursor = digest(['pending', expected]) + ':0'
-            self.assertEqual(self.engine.pending(args={'cursor': cursor})['items'], expected)
+            cursor = digest(['pending', expected]) + ':WzAsInN5bnRoZXRpYyJd'
+            restarted = self.engine.pending(args={'cursor': cursor})
+            self.assertEqual(restarted['items'], expected)
+            self.assertIn('restarted', restarted['page_changed'])
