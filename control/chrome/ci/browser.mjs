@@ -55,6 +55,24 @@ try {
   await nav('residual');const rows=await read();const unlabeled=rows.find(row=>row.expected.role==='button');await call('click',{reference:unlabeled.reference,expected:unlabeled.expected});await eventually(()=>counts('residual-click')===1,'residual fetch');console.log('GROUP 13 residual ordinary-click fetch OBSERVED, NOT HELD');
   fs.writeFileSync('/out/smoke.json',JSON.stringify({passed:true,kind:'core smoke only',measurements:(await read()).length}));
   console.log('Chrome fixture smoke PASS');
+  // A real X input belongs to the owner, even while a task from Claude's input is pending.
+  // Do not substitute a tool click: that would test another Claude input instead.
+  await nav('owner-input');
+  const continued=target('Continue').then(item=>call('click',item));
+  await eventually(()=>counts('owner-start')===1,'Claude handler started');
+  const ownerAt=Date.now();
+  execFileSync('xdotool',['key','--clearmodifiers','Tab','Return']);
+  const ownerDelay=ownerAt-fixture.arrivals.find(row=>row.url.includes('case=owner-start')).time;
+  const continuedResult=await continued;
+  await delay(150);
+  const evidence={ownerInput:'X keyboard Tab then Return, outside the tool',ownerDelayMs:ownerDelay,
+    ownerArrivals:counts('owner-input'),scheduledArrivals:counts('scheduled-input'),result:continuedResult};
+  fs.writeFileSync('/out/owner-input.json',JSON.stringify(evidence,null,2));
+  console.log('GROUP 8 owner input evidence',JSON.stringify(evidence));
+  assert.ok(ownerDelay<300,'Owner test missed the active hold window');
+  assert.equal(counts('scheduled-input'),0,'Scheduled submission from Claude input must stay held');
+  assert.equal(counts('owner-input'),1,'Owner submission must run normally while a Claude task is pending');
+  console.log('GROUP 8 owner input PASS');
 } catch(error) {
   try{execFileSync('import',['-window','root','/out/failure.png']);}catch{}
   throw error;

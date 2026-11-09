@@ -27,6 +27,9 @@ export async function fixtures() {
     } else if(kind==='activation') {
       body='<button id="continue">Continue</button><a href="/receive?case=activation">Delete</a>';
       script="document.querySelector('button').onclick=()=>document.querySelector('a').dispatchEvent(new MouseEvent('click',{cancelable:false,bubbles:true}));";
+    } else if(kind==='owner-input') {
+      body='<button id="continue" type="button">Continue</button><form id="owner" action="/receive?case=owner-input" method="post" target="sink"><input type="hidden" name="source" value="owner"><button type="submit">Submit by owner</button></form><form id="scheduled" action="/receive?case=scheduled-input" method="post" target="sink"><input type="hidden" name="source" value="scheduled"></form><iframe name="sink" hidden></iframe>';
+      script="document.querySelector('#continue').onclick=()=>{fetch('/receive?case=owner-start',{method:'POST',body:'Claude input started'});setTimeout(()=>document.querySelector('#scheduled').submit(),350);};";
     } else if(kind==='password') {
       body='<input type="password" aria-label="Secret" value="SENTINEL_PRIVATE_PASSWORD_20"><input aria-label="Current" autocomplete="current-password" value="SENTINEL_PRIVATE_PASSWORD_20"><input aria-label="Masked" style="-webkit-text-security:disc" value="SENTINEL_PRIVATE_PASSWORD_20"><input aria-label="Switch" type="password" value="SENTINEL_PRIVATE_PASSWORD_20"><button>Show</button>';
       script="document.querySelector('button').onclick=()=>document.querySelector('[aria-label=Switch]').type='text';";
