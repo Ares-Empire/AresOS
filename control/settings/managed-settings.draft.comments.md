@@ -7,7 +7,7 @@ come from `definitions.py`. The generated JSON contains exactly these keys:
 
 | Key | Purpose | Source |
 | --- | --- | --- |
-| `permissions.ask` | One exact `mcp__<installed-app>__<verb>` rule for each public asking send/delete; owner-only and explicitly trusted sends are excluded. | Decision 24, section 7; action definitions. [Permission precedence](https://code.claude.com/docs/en/permissions#precedence-among-rules-hooks-and-mods). |
+| `permissions.ask` | One exact `mcp__<served-app>__<verb>` rule for each public asking send/delete, including testapp; owner-only and explicitly trusted sends are excluded. | Decision 24, section 7; action definitions. [Permission precedence](https://code.claude.com/docs/en/permissions#precedence-among-rules-hooks-and-mods). |
 | `hooks.Stop` | Existing fixed notification command: remind Claude about pending/unfinished work, with its continuation guard. | Rule 4.10; `aresos_control/hooks.py`; [Stop contract](https://code.claude.com/docs/en/hooks#stop). |
 | `hooks.UserPromptSubmit` | Existing fixed notification command: add pending work to the next prompt. Its shell guard always exits successfully. | Rule 4.10; `aresos_control/hooks.py`; [prompt contract](https://code.claude.com/docs/en/hooks#userpromptsubmit). |
 
@@ -23,6 +23,13 @@ non-writable, non-symlink path components remain required. Extra installed keys,
 rules and hooks are accepted. User-scope MCP entries in `user-mcp.json` use the
 normal `claude mcp add-json --scope user` interface (see `control/README.md`).
 There is no generated exclusive `managed-mcp.json`.
+
+All apps served by the engine need their asking rules, even if their MCP entry
+is not installed by default. The six rules include `mcp__testapp__send` and
+`mcp__testapp__delete`: the service serves testapp, while only the harness installs
+its user-scope MCP entry, named `testapp`. Shipped `user-mcp.json` installs only
+`control` and `mail`. The generator rejects missing entries for any other served
+app and rules that fail to name an exposed tool under its installed server name.
 
 **Read:** rolling Anthropic documentation, 2026-11-09. **Run:** the model-free
 native harness pins Claude Code **2.1.319** and records each precedence case,

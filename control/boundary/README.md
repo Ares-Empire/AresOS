@@ -20,7 +20,8 @@ stand-in in this container only; full hooks run in the base/Mail suites.
 
 `precedence.py` installs testapp and Mail fixtures using the real
 `claude mcp add-json --scope user` command. The generated slim policy includes
-testapp only for these tests. Claude runs with its normal user, project and local
+testapp's asks because the service serves it; only its MCP entry is harness-only.
+Claude runs with its normal user, project and local
 settings sources; skip cases assert `system/init.permissionMode=bypassPermissions`.
 The fixed Messages response calls both `mcp__testapp__list` and
 `mcp__testapp__send`. The independent `stub.py` HTTP listener logs each actual

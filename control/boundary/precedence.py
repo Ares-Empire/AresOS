@@ -9,7 +9,7 @@ from pathlib import Path
 from native import ROOT, OUT, POLICY, Session, tool
 from boundary_assertions import tool_text
 from aresos_control.boundary_policy import managed_settings
-from aresos_control.definitions import APPS, instructions_for, tools_for
+from aresos_control.definitions import instructions_for, tools_for
 
 SEND = 'mcp__testapp__send'
 LIST = 'mcp__testapp__list'
@@ -89,7 +89,7 @@ def precedence_checks(run, put):
         cases.insert(0, ('positive-skip-no-managed-ask', True, 'none', None, None))
         summary = []
         for case, skip, scope, event, level in cases:
-            policy = managed_settings(apps=APPS)
+            policy = managed_settings()
             settings = {name: {} for name in SCOPES}
             if scope in SCOPES:
                 settings[scope]['permissions'] = {'allow': [SEND, LIST]}

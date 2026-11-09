@@ -1,6 +1,7 @@
 """Generated app policy. Add an app to definitions; no launcher or source locks.
 
-The testapp is installed only by the disposable harness, with apps=APPS.
+The service serves every app in APPS, so every public asking tool needs a rule.
+Only the disposable harness installs testapp's user-scope MCP entry.
 A trusted_send marker is explicit and requires the adapter's owner-entry check
 on every submission; it must never be inferred from a verb's name.
 """
@@ -17,8 +18,8 @@ def installed_apps():
 
 
 def asking_rules(apps=None):
-    from .definitions import ACTIONS
-    apps = installed_apps() if apps is None else apps
+    from .definitions import ACTIONS, APPS
+    apps = APPS if apps is None else apps
     return [f'mcp__{a.app}__{a.verb}' for a in ACTIONS
             if a.app in apps and a.effect in {'send', 'delete'} and not a.owner_only and not a.trusted_send]
 

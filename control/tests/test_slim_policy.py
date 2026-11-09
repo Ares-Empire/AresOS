@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 from unittest.mock import patch
 
+import generate
 from aresos_control.boundary_policy import asking_rules, managed_settings, notification_hooks, user_mcp, OWNER_INSTRUCTIONS
 from aresos_control.common import Refused
 from aresos_control.definitions import ACTIONS, APPS, BY_NAME, COMMON_INSTRUCTIONS, tools_for, instructions_for
@@ -23,13 +24,39 @@ class SlimPolicy(EngineCase):
         self.assertFalse((ROOT / 'control/settings/managed-mcp.json').exists())
         servers = user_mcp()
         self.assertEqual(json.loads((ROOT / 'control/settings/user-mcp.json').read_text()), servers)
-        installed = {f'mcp__{app}__{t["name"]}' for app in servers for t in tools_for(app)}
+        self.assertEqual(set(servers), APPS - {'testapp'})
+        installed = {f'mcp__{app}__{t["name"]}' for app in {*servers, 'testapp'} for t in tools_for(app)}
         self.assertTrue(set(asking_rules()) <= installed)
         for action in ACTIONS:
             rule = f'mcp__{action.app}__{action.verb}'
             expected = action.effect in {'send', 'delete'} and not action.owner_only and not action.trusted_send
             self.assertEqual(rule in asking_rules(APPS), expected)
-            self.assertEqual(rule in asking_rules(), expected and action.app in servers)
+            self.assertEqual(rule in asking_rules(), expected)
+
+    def test_every_engine_adapter_asking_tool_has_a_default_rule(self):
+        self.assertLessEqual(set(self.engine.adapters), APPS)
+        rules = asking_rules()
+        for app in self.engine.adapters:
+            for tool in tools_for(app):
+                action = BY_NAME[f'{app}_{tool["name"]}']
+                if action.effect in {'send', 'delete'} and not action.trusted_send:
+                    self.assertIn(f'mcp__{app}__{tool["name"]}', rules)
+
+    def test_generator_rejects_misnamed_rules_including_harness_tools(self):
+        for rule in ('mcp__mail__send_wrong', 'mcp__testapp__send_wrong', 'mcp__other__send',
+                     'mcp__renamed_mail__send', 'mcp__testapp__fixture_configure'):
+            with self.subTest(rule=rule), patch('generate.asking_rules', return_value=[*asking_rules(), rule]):
+                with self.assertRaisesRegex(ValueError, 'exposed tool'):
+                    generate.generated()
+
+    def test_generator_rejects_any_missing_server_except_testapp(self):
+        for app in user_mcp():
+            servers = user_mcp()
+            del servers[app]
+            with self.subTest(app=app), patch('generate.user_mcp', return_value=servers):
+                with self.assertRaisesRegex(ValueError, 'missing user-scope MCP entries: ' + app):
+                    generate.generated()
+        generate.generated()
 
     def test_shared_instructions_generated_once_and_approval_text_stays_at_use(self):
         from aresos_control.mail.definitions import MAIL_INSTRUCTIONS

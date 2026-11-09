@@ -34,10 +34,15 @@ def generated():
         files[f"control/generated/{app}-tools.json"] = json.dumps(tools_for(app), indent=2) + "\n"
         files[f"control/generated/{app}-instructions.txt"] = instructions_for(app) + "\n"
     servers = user_mcp()
-    installed = {f"mcp__{app}__{tool['name']}" for app in servers for tool in tools_for(app)}
+    missing_apps = APPS - servers.keys() - {'testapp'}
+    if missing_apps:
+        raise ValueError("Served apps missing user-scope MCP entries: " + ', '.join(sorted(missing_apps)))
+    # testapp is served too; only its MCP installation belongs to the harness.
+    installed = {f"mcp__{app}__{tool['name']}" for app in APPS
+                 if app in servers or app == 'testapp' for tool in tools_for(app)}
     ask = asking_rules()
     if not set(ask) <= installed:
-        raise ValueError("Asking rule names a tool not installed at user scope")
+        raise ValueError("Asking rule must name an exposed tool of an installed served app (or harness testapp)")
     files["control/settings/ask-rules.json"] = json.dumps({"permissions": {"ask": ask}}, indent=2) + "\n"
     files['control/settings/managed-settings.draft.json'] = json.dumps(managed_settings(), indent=2) + '\n'
     files['control/settings/user-mcp.json'] = json.dumps(servers, indent=2) + '\n'

@@ -271,7 +271,7 @@ is run by this package. MCP contract **read**:
 ## Slim Claude Code setup (decision 24)
 
 `boundary_policy.py` is the single definition for the generated managed settings:
-`permissions.ask` for installed asking tools and the existing `Stop` and
+`permissions.ask` for every served asking tool and the existing `Stop` and
 `UserPromptSubmit` notification hooks. No sandbox, deny list, source lock, plugin
 lock or forced permission mode is shipped. The generated `settings/CLAUDE.md`
 states that only the owner in the session gives instructions; it enforces nothing.
@@ -296,9 +296,11 @@ INSTALL
 The checkout path above is an example for image setup, not a host installer.
 Existing unrelated MCP entries are retained. Server names must stay stable:
 `mcp__mail__send` names the `send` tool on the installed `mail` server.
-`testapp` is a fixture, omitted from shipped entries and shipped asks; the harness
-explicitly installs it at user scope and generates its test asks with `apps=APPS`.
-A generator check rejects an ask whose installed server/tool does not exist.
+`testapp` is served by the service, so its send/delete asks are shipped and
+required too. Only its MCP entry is omitted from `user-mcp.json`; the harness
+installs it at user scope under the name `testapp`. A generator check rejects an
+ask that does not name an exposed tool of a served app under its installed server
+name. Testapp is the sole exception to requiring a shipped user-scope entry.
 
 Before preparing or submitting asking work, the service reads only the installed
 managed settings through root-owned, non-writable, non-symlink path components.

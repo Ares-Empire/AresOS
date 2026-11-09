@@ -45,6 +45,31 @@ class InstalledBoundary(EngineCase):
         self.settings.write_text(json.dumps(self.original))
         self.engine.boundary.require()
 
+    def require_testapp_rule(self, verb):
+        reference = self.data('testapp_list')['items'][0]['reference']
+        approval = (self.approval if verb == 'send' else
+                    self.data('testapp_prepare_delete', {'references': [reference]})['approval'])
+        settings = copy.deepcopy(self.original)
+        missing = f'mcp__testapp__{verb}'
+        settings['permissions']['ask'].remove(missing)
+        self.assertTrue(set(asking_rules({'mail'})) <= set(settings['permissions']['ask']))
+        self.settings.write_text(json.dumps(settings))
+        before = self.engine.store.get('testapp')
+        with patch.object(self.engine.adapters['testapp'], 'execute', wraps=self.engine.adapters['testapp'].execute) as execute:
+            result = self.call(f'testapp_{verb}', approval)
+            self.assertEqual(result['error']['code'], 'boundary_not_installed', result)
+            self.assertIn(missing, result['error']['message'])
+            execute.assert_not_called()
+        self.assertEqual(self.engine.operation(approval['operation_id'])['state'], 'reserved')
+        self.assertEqual(self.engine.store.get('testapp'), before)
+        self.assertEqual(self.engine.receiver.evidence(approval['operation_id'])['arrivals'], [])
+
+    def test_testapp_send_requires_its_rule_even_with_every_mail_rule(self):
+        self.require_testapp_rule('send')
+
+    def test_testapp_delete_requires_its_rule_even_with_every_mail_rule(self):
+        self.require_testapp_rule('delete')
+
     def test_invalid_ask_shapes_refuse_without_dispatch(self):
         for settings in ([], {}, {'permissions': None}, {'permissions': {'ask': '*'}},
                          {'permissions': {'ask': [None]}}):
