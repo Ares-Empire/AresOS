@@ -580,6 +580,168 @@ repairs. These modal findings are closed at focused source/Node level;
 actual Chrome modal ordering and receiver behavior still require the
 authorized Linux runner. No SAFE or full final-run claim is made.
 
+## Follow-up: page steps after dialogs and document replacement
+
+Reviewed source at `76d39fa29cb6ddf205e707a2354d7e42fcbcf992` at the
+builder's request. Both following reporting gaps were confirmed with plain
+Node probes of the actual guard/page/background functions; no production
+implementation was edited and no browser was used.
+
+1. **P1 — Answering a native dialog does not collect its resumed handler's
+   held steps.** The dialog branch answers the modal, finishes frame input
+   handling and immediately returns `steps:[]`. A resumed handler can call
+   `form.submit()` while the preceding input's private hold is active; the
+   guard stops it, but no poll runs in that command. **Run:** connect the
+   actual background dispatcher to the actual page/isolated guard in their
+   existing VM fixtures. The mocked native answer invokes the resumed
+   handler's `form.submit()` before returning. Output:
+   `receiverArrivals:0, returnedSteps:0, heldKinds:['native_submit'],
+   contentCommands:['finish_input']`. The submission stays held, so this is
+   not an unapproved send. It is a missing required preparation/owner-visible
+   check, potentially invisible until an unrelated later input polls it.
+   A normal read does not poll held steps. The dialog command should use
+   the same bounded post-input collection as ordinary input, without
+   automatically resuming any newly held submission.
+
+2. **P1 — Document replacement can erase an unknown fallback activation
+   before it is reported.** The isolated capture fallback correctly stores
+   `activation_unknown` for a noncancelable raw activation. Its only copy
+   is initially the old document's guard Map; background later polls the
+   currently loaded frames. **Run with the browser default explicitly
+   simulated:** actual guard capture handles a raw noncancelable Delete-link
+   click; because it cannot prevent that default, the probe replaces the
+   current reader with a fresh document, then lets actual background
+   dispatch finish and poll. Output:
+   `simulatedDefaultNavigations:1, returnedSteps:0,
+   discardedOldDocumentKinds:['activation_unknown'], newDocumentSteps:0`.
+   Node does not establish Chrome's actual navigation/network delivery, but
+   demonstrates the source lifetime gap. This is not the accepted residual
+   of an unrecognizable send, nor a stale-document refusal: the tool
+   recognized the asking activation and then lost its required unknown
+   report before the service could commit it.
+
+The suggested small repair is a private ISOLATED-to-background observation
+notification before returning from capture, including the private document,
+dispatch nonce and step ID, with sender tab/frame and control checks.
+Deduplicate notification versus later poll by document/step identity.
+Keep an unknown activation report even when its old document is gone; do
+not reinterpret its element IDs in a replacement document. A MAIN event,
+attribute or global must never carry relaxing authority.
+
+Native event forwarding must also preserve bridge ordering: an event
+received during an outstanding `Bridge.call()` must not immediately enter
+`Chrome.steps()` and make a nested browser read while the extension's
+serial command is still running. Commit its observation/check context
+without browser I/O, and prepare a resumable step only after the current
+command completes. Actual notification delivery across navigation needs
+strict Linux receiver and owner-warning evidence.
+
+### Private observed-step repair and regression coverage
+
+The builder added a private isolated-world report callback, an authenticated
+background queue, shared post-dialog/post-input `collectSteps()`, and
+`Chrome.observe_step()` to commit an open check without browser I/O.
+Reviewed this changing worktree based on `76d39fa2`. **Read:** native
+observation handling performs only store reads/writes, avoiding the nested
+bridge-call deadlock described above. Stale or missing frames are handled
+without interpreting old element IDs in the replacement document. A reply
+with a still-open dialog now remains unknown instead of claiming completion.
+
+At the builder's explicit delegation, this reviewer added five Node
+regressions to `background.test.mjs` (no production edits):
+
+- actual background dialog answering plus actual page/guard code collects
+  the resumed handler's `native_submit`, with **zero native arrivals**;
+- an authenticated queued `activation_unknown` survives replacement of its
+  source document and is forwarded only once, including a late repeat;
+- private notification and later polling of the same document/frame/step
+  produce one result;
+- the runtime handler rejects a wrong extension sender, generation,
+  uncontrolled tab, invalid frame and malformed kind/document, and obtains
+  frame identity from the sender rather than the payload;
+- queued and polled steps together must respect the 512-step plus one
+  truthful overflow-warning limit.
+
+**First run:**
+`node --test control/chrome_tests/background.test.mjs`:
+**14 tests, 13 passed, 1 failed**, 2266.932 ms. The strict last regression
+exposed another **P2 bound bypass**: `observeStep()` capped its queue, but
+`collectSteps()` inserted every polled step into an unbounded Map before
+merging it. Six hundred polled steps plus the queued overflow produced
+more than 513 results. The failing assertion at line 179 was retained and
+sent immediately to the builder for a production fix.
+
+These VM tests exercise source identity, dispatch and notification behavior;
+they do not prove Chrome delivers the isolated message before a real
+document is destroyed. That part remains a strict Linux receiver check.
+
+### Acknowledged collection and retired-control retest
+
+The builder subsequently changed collection to retain private observations
+until an explicit `ack_steps` command after the service commits its result
+or preparation. The service now leaves an observed check open if a modal
+prevents its document check; it does not treat the modal's empty frame view
+as proof that the old document disappeared. A committed prepared-operation
+identity prevents an acknowledgement retry from reserving that same held
+submission again. **Read:** acknowledgement follows the corresponding
+`Store.write()`; observation receipt still performs no browser I/O.
+
+At the builder's additional test delegation, this reviewer updated the
+queue tests to require retention until acknowledgement and added regressions
+for modal retention and retired controls. **Run:**
+`node --test control/chrome_tests/background.test.mjs`:
+**16 tests passed, 0 failed**, 3839.107875 ms, against working files based
+on `76d39fa29cb6ddf205e707a2354d7e42fcbcf992`.
+
+The strict previously failing combined poll/queue cap now passes: at most
+512 individual steps plus one truthful unknown overflow warning, retained
+until acknowledged. Repeated collection under a modal does not clear the
+queue; after the modal closes, repeated collection returns the same source
+step until acknowledgement, and a late repeat cannot resurrect it.
+The retired-control test uses a fake timer: late observations are accepted
+for the captured old epoch, while `assertControl` still rejects acting
+under that epoch, including after a new control epoch is installed. The
+tombstone expires after the configured 900,000 ms and the retired map stays
+at its 32-entry bound. No long timer was started by that test.
+
+`git diff --check` was clean. Only the authorized
+`background.test.mjs` regressions and this report were edited by this
+reviewer. The collection/lifetime findings now have focused source/Node
+repair evidence; native notification delivery, navigation/default action
+and independent receiver behavior remain Linux-runner verification work.
+
+## Focused native-input lifecycle review before batch 46
+
+Reviewed the next uncommitted lifecycle changes based on `76d39fa2`.
+At the builder's explicit delegation, added four browser-free lifecycle
+tests in `background.test.mjs`, and updated the existing keydown-modal
+fixture's `tabs.update` mock so it still reaches the CDP race it tests.
+No production implementation was edited by this reviewer.
+
+**Run:** `node --test control/chrome_tests/background.test.mjs`:
+**20 tests passed, 0 failed**, 4430.865625 ms. The new tests establish:
+
+- all frame guards are armed before the headed tab is activated; the fresh
+  binding read follows activation and precedes native input; a label changed
+  by activation refuses before keydown;
+- release removes acting authority and wakes both a pending CDP input and
+  an effectful content call, detaches the debugger before page clearing, and
+  completes when the fake one-second clear deadline fires even if the page
+  never answers;
+- a tab update awaiting fresh tab data cannot release a replacement control
+  object; the handler uses the fresh tab's actual group instead of the
+  stale event snapshot, while a genuine current group change still releases;
+- a late detach event preserves a live replacement attachment, and a failed
+  probe associated with the old control cannot release its replacement;
+  failure of the actual current attachment still releases it.
+
+**Read:** the private post-input control check, object identity checks and
+attachment probe align with those tests. No new blocker was found in this
+limited lifecycle source review. The fake timer test starts no long timer;
+no browser, profile or container was used. Headed focus behavior and actual
+Chrome event/attachment ordering remain batch-46 runner evidence, not a
+result of these Node mocks. This is still an interim review.
+
 ## Final focused closure and package-pin source check
 
 Working-tree review based on

@@ -534,3 +534,146 @@ within this focused review. The actual runner must prove the opaque click and
 retained-event cases, including their independent receiver counts. This is not
 a final SAFE verdict or permission to relax the owner's strict default-task
 case.
+
+### Follow-up: durable private observations of held steps
+
+Reviewed at HEAD `76d39fa29cb6ddf205e707a2354d7e42fcbcf992` with concurrent
+working-tree changes. The new path reports held steps through isolated
+extension messaging, authenticates the extension sender and private tab epoch,
+queues observations across document loss, and commits an open service intent
+without nested bridge I/O. The later polling/queued merge performs preparation
+or warning resolution. This observation path does not grant an allowance,
+resume a step or clear the in-flight mark. No new relaxing action path was
+found in the source reviewed.
+
+Four state/delivery issues were sent to the parent during this review:
+
+1. **A valid late observation could be lost after control release.** The
+   initial `observeStep()` accepted only currently controlled epochs. A
+   document's unknown activation could trigger an excluded navigation and
+   release before its private message was handled. A Node probe began
+   `collectSteps`, removed the controlled epoch, then delivered its legitimate
+   old observation; it printed
+   `oldControlledObservationAccepted: false, committedNotifications: 0,
+   collectedSteps: 0`. This models event ordering; it does not establish the
+   frequency of that order in Chrome. Retained authenticated observation
+   context must never authorize subsequent input.
+2. **Modal opacity was treated as proof of document loss.** A dialog can open
+   between collection and service processing. The native-modal read path then
+   returns `frames: []`. `steps()` treated that as a changed document and
+   committed the still-live held submission as done/dropped. A Python probe
+   using `Operations` observed exactly that committed state and the reason
+   `The stopped step document changed; no resumption is possible.` A modal
+   instead requires an unresolved/open check until identity can be established.
+3. **Polling bypassed the observation queue's bound.** `collectSteps()` added
+   every polled entry to its result map, independently of the 512-step queue
+   bound. The initial focused background run printed 13 passed, 1 failed: the
+   newly added `combined queued and polled steps stay capped with one truthful
+   overflow warning` assertion failed. The combined merge requires one bound
+   and an explicit uncertainty warning for overflow.
+4. **The daemon could strand complete notification lines in its decoder.**
+   The selector's Chrome-peer branch initially processed one `Bridge.read()`
+   result per socket-readiness event. A single recv can buffer more complete
+   lines while emptying the kernel socket. A plain Python `socketpair` probe
+   sent two JSON events and read the first through the actual Bridge; it
+   printed `first: 1, kernelReadable: false, secondCompleteLineBuffered: true`.
+   Already-buffered complete lines need processing without waiting for another
+   readiness signal, so observations reach committed owner state promptly.
+
+These findings concern missing or prematurely resolved owner-visible facts;
+the probes did not demonstrate an unapproved submission. They remain relevant
+to R1 and the rule that checks stay open until their result is committed.
+The reviewer used only Node mocks and plain Python, including a local anonymous
+socketpair. No browser, profile or real service was accessed. Repair recheck
+and the final runner evidence remain required.
+
+### Private-observation repair recheck
+
+The four reported issues were repaired in the working tree and rechecked.
+Retired tab epochs are retained for observations only, bounded to 15 minutes
+and 32 records; action authorization still requires current control. Combined
+polling and notification collection now returns at most 512 steps plus one
+explicit unknown-overflow step. Collection retains queued entries until the
+service acknowledges their committed results through the private
+`ack_steps` command.
+
+The service now leaves modal-blocked checks `started`, and later normal reads
+can process retained steps after their initial bridge read has completed.
+`event(held_step)` still only commits the observed intent and performs no
+nested bridge request. A completed submission preparation records its
+operation id so a failed acknowledgement does not reserve it again.
+
+The daemon now drains complete decoder-buffered events in batches of 128 and
+checks that buffer before serving later client reads. It no longer relies on
+new kernel readiness to process already-received complete messages.
+
+Commands run by this reviewer after these repairs:
+
+```sh
+node --test control/chrome_tests/background.test.mjs
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/chrome_tests python3 -m unittest test_bridge.ConnectionDelivery.test_daemon_drains_complete_buffered_events_without_waiting_for_socket_readiness -v
+```
+
+The background suite printed 16 passed, 0 failed, 0 skipped. Its passing cases
+include retired-epoch observation without input authority, bounded expiration,
+combined polling/notification overflow, and retention through a modal until
+private acknowledgement. The focused Python socketpair test printed
+`Ran 1 test` and `OK`; it processed 200 events as batches of 128 and 72.
+
+An additional plain Python probe used the actual service methods with the
+`Operations` fixture. It made every bridge call raise during the observation
+callback, confirmed that modal opacity left the source `started`, forced a
+transport error on the first acknowledgement after preparation committed, and
+retried processing. It exited 0 and printed:
+
+```text
+{"eventNestedIO":false,"modalCheckStayed":"started","reservedBeforeAckRetry":1,"reservedAfterAckRetry":1}
+```
+
+The reported defects are closed at the source and focused-test level. No
+additional relaxing path or confirmed owner-state defect was found in this
+recheck. These checks do not establish durable delivery of an observation that
+never reaches the service, or replace the existing pre-dispatch operation
+record and unknown-outcome handling. Final runner evidence remains required;
+there is no final SAFE verdict.
+
+### Final data-only event protocol and lifecycle source recheck
+
+The final MAIN dispatch descriptor contains a primitive event name, Boolean
+flags, and lazy primitive data; it no longer passes an Event or submitter DOM
+object. ISOLATED always constructs a fresh untrusted event and classifies its
+actual native type. Password targets skip the event-data getter. Page getters
+run before the final consequential-click decision; they cannot supply a trusted
+event or a private allowance. Prior cancellation is copied and cancellation of
+the fresh dispatch is returned to the caller. No new authority bypass was
+found in this protocol source read.
+
+For `requestSubmit(button)`, MAIN uses captured native receiver/form/type
+getters to reject the wrong receiver or another form's submitter before the
+report. The report is dispatched on the actual submitter and contains only
+`kind` and `with_submitter`; ISOLATED derives the form and calls its captured
+native `requestSubmit`, whose validation and guarded submit event remain in
+force. The two new tests covering descriptor contents, wrong-form rejection,
+fresh-event trust and cancellation were inspected, not rerun by this reviewer.
+
+Control-stop wakes now produce an interrupted outcome; the post-effect
+`assertControl` prevents reporting a released dispatch as successful. Stale
+tab-update callbacks compare a fresh tab snapshot and the same control object;
+stale detach callbacks probe the current attachment before releasing it.
+
+One remaining source race was sent to the implementer: the awaited final arm
+can finish after Stop releases control, and the following `tabs.update` still
+activates the released tab before the later control assertion. Activation may
+run focus/visibility handlers after its guard was cleared. Assert current
+control immediately before calling `tabs.update`, not only afterward. This
+finding concerns the newly added activation step; the primitive event protocol
+does not grant that authority.
+
+This was source-only review, with no browser execution or new test-pass claim.
+The strict owner default-task gap and required receiver-run evidence remain;
+this is not a final SAFE verdict.
+
+
+### Parent closure of the final pre-activation race
+
+**Read/run:** the input path now asserts control before reading selected-tab state and again immediately before the synchronous activation branch. It selects only an inactive controlled tab and marks that activation as a possible effect before calling Chrome. A later binding refusal cannot claim that no activation happened. The full browser-free Node suite passed64/64 after this closure; the reviewer’s preceding source finding is retained above. Actual container activation and interleaving evidence remains pending.
