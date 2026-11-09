@@ -35,6 +35,9 @@ class Writers(fixture.Operations):
             def run():
                 with patch('urllib.request.urlopen',return_value=io.BytesIO(candidate)):
                     return self.chrome.qualification.refresh(now=1000000000,verifier=lambda _:None)
+        elif flow=='observation':
+            step={'id':'h1','kind':'activation_unknown','element':'e1','submitter':None,'frame':0,'document':'document-1','cancellable':False}
+            run=lambda:self.chrome.event({'event':'held_step','session':self.browser.session,'tab':1,'step':step})
         elif flow in {'activation','stopped'}:
             step={'id':'h1','kind':'activation' if flow=='activation' else 'native_submit','element':'e1','submitter':None,'frame':0,'document':'document-1','cancellable':True}
             run=lambda:self.chrome.steps([step],1)
@@ -88,7 +91,7 @@ class Writers(fixture.Operations):
 
     def test_every_chrome_durable_writer_single_persistent_cleanup_pairs_restart_space_restored(self):
         counts={'single':0,'persistent':0,'pairs':0}
-        flows=['readonly','allow','revoke','trusted','qualification','delivery','activation','stopped','acknowledgement','release','upload_copy']
+        flows=['readonly','allow','revoke','trusted','qualification','delivery','observation','activation','stopped','acknowledgement','release','upload_copy']
         for flow in flows:
             clean=self.sweep_case(flow);self.tearDown();self.setUp()
             for point,label in enumerate(clean.points,1):

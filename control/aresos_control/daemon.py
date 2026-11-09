@@ -41,6 +41,11 @@ class Daemon:
     def serve(self):
         refresh_at = 0
         while not self.stopping:
+            bridge=self.engine.adapters['chrome'].bridge
+            if bridge.connection is not None and b'\n' in bridge.buffer:
+                self.drain_chrome_events(bridge.connection,buffered=True)
+                if b'\n' in bridge.buffer:
+                    continue
             if time.monotonic() >= refresh_at:
                 refresh_at = time.monotonic() + 60
                 try:
@@ -54,15 +59,9 @@ class Daemon:
                 pass
             for key, _ in self.selector.select(timeout=0.1):
                 if key.data == 'chrome-peer':
-                    bridge = self.engine.adapters['chrome'].bridge
-                    try:
-                        bridge.on_event(bridge.read())
-                    except Exception:
-                        try:
-                            self.selector.unregister(key.fileobj)
-                        except Exception:
-                            pass
-                        bridge.close()
+                    self.drain_chrome_events(key.fileobj)
+                    if b'\n' in self.engine.adapters['chrome'].bridge.buffer:
+                        break
                     continue
                 connection, _ = key.fileobj.accept()
                 connection.settimeout(2)
@@ -100,6 +99,19 @@ class Daemon:
                         send(connection, result, result=True)
                     except Exception:
                         pass
+
+    def drain_chrome_events(self,connection,buffered=False):
+        bridge=self.engine.adapters['chrome'].bridge
+        try:
+            for index in range(128):
+                if (buffered or index) and b'\n' not in bridge.buffer:
+                    break
+                bridge.on_event(bridge.read())
+        except Exception as exc:
+            try:self.selector.unregister(connection)
+            except Exception:pass
+            bridge.close()
+            self.engine.background_error(exc)
 
     def register_chrome_host(self, connection):
         bridge = self.engine.adapters['chrome'].bridge

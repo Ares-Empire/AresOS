@@ -67,7 +67,11 @@ class Chrome:
         self.qualification = Qualification(self.store, build, shipped)
 
     def event(self, event):
-        if event.get('event') == 'released':
+        if event.get('event') == 'held_step':
+            if event.get('session')!=self.bridge.session or type(event.get('tab')) is not int or not isinstance(event.get('step'),dict):
+                raise Refused('invalid_input','Invalid private Chrome step observation.')
+            self.observe_step(event['step'],event['tab'])
+        elif event.get('event') == 'released':
             for key, operation in self.store.iter_items('op:'):
                 context = operation.get('payload', {}).get('binding', {})
                 if operation['app'] == 'chrome' and operation['state'] == 'reserved' and context.get('session') == event.get('session') and context.get('tab') == event.get('tab'):
@@ -203,6 +207,8 @@ class Chrome:
         mode = self.mode()
         facts = self.bridge.call('read', tab=args['tab'])
         self.allowed_url(facts['url'])
+        if not facts.get('dialog') and isinstance(self.bridge,Bridge):
+            self.steps(self.bridge.call('queued_steps',tab=args['tab']),args['tab'])
         token = view_identity(facts)
         condition_met=True
         if verb == 'wait':
@@ -375,6 +381,8 @@ class Chrome:
         self.steps(reply.get('steps', []), operation['payload']['reference']['tab'])
         if any(step['kind']=='activation_unknown' for step in reply.get('steps',[])):
             return 'unknown', 'Input ran, but a page activation may have happened; inspect the page and never replay.'
+        if reply.get('dialog'):
+            return 'unknown','The page is still handling input behind a dialog. Inspect and answer it separately; never replay the input.'
         return 'done', 'Dispatched once, as the page shows it; this does not prove what the site did.'
 
     def command(self, payload, operation=None, approved=False):
@@ -445,34 +453,49 @@ class Chrome:
         followups=self.steps(reply.get('steps', []),payload['reference']['tab']) if payload else []
         if any(step['kind']=='activation_unknown' for step in reply.get('steps',[])):
             op.update(state='unknown',reason='Input ran, but a page activation may have happened; inspect the page and never replay.')
+        if reply.get('dialog'):
+            op.update(state='unknown',reason='The page is still handling input behind a dialog. Inspect and answer it separately; never replay the input.')
         self.store.write({'op:' + op_id:op},op['action'],'Chrome free input recorded',op_id)
         return {'operation_id':op_id,'untrusted_content':visible(reply),'followups':followups}
+
+    def observe_step(self,step,tab):
+        source_id=digest([self.bridge.session,tab,step]);key='intent:chrome:'+source_id
+        source=self.store.get(key)
+        if source is None:
+            source={'id':source_id,'app':'chrome','state':'started','step':step,'tab':tab}
+            self.store.write({key:source},'chrome_page_step','Page step check open',outcome='started')
+        return key,source
 
     def steps(self, steps, tab):
         followups=[]
         for step in steps:
-            source_id = digest([self.bridge.session, tab, step])
-            key = 'intent:chrome:' + source_id
-            source = self.store.get(key, {'id':source_id,'app':'chrome'})
-            source.update(state='started',step=step,tab=tab)
-            self.store.write({key:source},'chrome_page_step','Page step check open',outcome='started')
+            key,source=self.observe_step(step,tab)
+            if source['state']=='done':
+                if step['kind'] in {'native_submit','submit_event'} and source.get('prepared_operation'):
+                    self.bridge.call('ack_steps',tab=tab,steps=[step]);continue
+                source.update(state='started',step=step,tab=tab)
+                self.store.write({key:source},'chrome_page_step','Page step recheck open',outcome='started')
             facts = self.bridge.call('read',tab=tab)
-            frame = next(item for item in facts['frames'] if item['frame'] == step['frame'])
-            if not step.get('document') or frame['document']!=step['document']:
+            if facts.get('dialog'):
+                followups.append({'pending':True,'reason':'A native dialog still blocks the step identity check; the committed check remains open.'})
+                continue
+            frame = next((item for item in facts['frames'] if item['frame'] == step['frame']),None)
+            if not frame or not step.get('document') or frame['document']!=step['document']:
                 source.update(state='done',reason='The stopped step document changed; no resumption is possible.')
                 changes={}
                 if step['kind']=='activation_unknown':
                     text='An activation in the previous document may have happened. Never resume it; inspect the page with the owner.'
                     changes,_=check_result(self.store,source,key,'page_activation',step,{'reason':text,'warning':text})
                 self.store.write({key:source,**changes},'chrome_page_step','Stale page step result committed without dispatch')
+                self.bridge.call('ack_steps',tab=tab,steps=[step])
                 followups.append({'dropped':True,'reason':source['reason']})
                 continue
             reference = {'session':facts['session'],'tab':tab,'frame':frame['frame'],'document':frame['document'],
                          'view':view_identity(facts),'element':step.get('submitter') or step['element']}
             if step['kind'] in {'native_submit','submit_event'}:
                 payload, _ = self.payload('click',{'reference':reference},hold=step)
-                followups.append(self.engine.reserve('chrome','submit',payload))
-                source.update(state='done',reference=reference)
+                prepared=self.engine.reserve('chrome','submit',payload);followups.append(prepared)
+                source.update(state='done',reference=reference,prepared_operation=prepared['approval']['operation_id'])
                 self.store.write({key:source},'chrome_page_step','Stopped submission preparation committed')
             else:
                 source['reference'] = reference
@@ -482,6 +505,7 @@ class Chrome:
                 source['state'] = 'done'
                 self.store.write({key:source,**changes},'chrome_page_step','Page activation result committed',untrusted_content={'warning':text})
                 followups.append({'stopped':step['kind']!='activation_unknown','unknown':step['kind']=='activation_unknown','reason':text})
+            self.bridge.call('ack_steps',tab=tab,steps=[step])
         return followups
 
     def trusted(self, operation):

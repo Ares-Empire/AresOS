@@ -29,6 +29,8 @@ class Browser:
     def call(self,name,**args):
         if name=='validity':return {'document':self.facts['frames'][0]['document'],'control':self.facts.get('control'),'element_present':True}
         if name=='configure': return {'configured':True}
+        if name=='ack_steps': return {'acknowledged':True}
+        if name=='queued_steps': return []
         if name in {'facts','read'}: return copy.deepcopy(self.facts)
         if name=='tab_context':return {'tab':args['tab'],'url':self.facts['url'],'session':self.session}
         if name=='open':self.dispatched.append((name,args));return {'tab':2,'session':self.session}

@@ -136,3 +136,21 @@ class ConnectionDelivery(unittest.TestCase):
         finally:
             daemon.selector.close()
             for connection in pairs:connection.close()
+
+    def test_daemon_drains_complete_buffered_events_without_waiting_for_socket_readiness(self):
+        from aresos_control.daemon import Daemon
+        from types import SimpleNamespace
+        import selectors
+        bridge=Bridge();server,client=socket.socketpair();server.settimeout(.2);bridge.connection=server
+        received=[];bridge.on_event=received.append;errors=[]
+        daemon=Daemon.__new__(Daemon);daemon.selector=selectors.DefaultSelector()
+        daemon.engine=SimpleNamespace(adapters={'chrome':SimpleNamespace(bridge=bridge)},background_error=errors.append)
+        try:
+            client.sendall(b''.join(json.dumps({'event':'fixture','index':index}).encode()+b'\n' for index in range(200)))
+            daemon.drain_chrome_events(server)
+            self.assertEqual(len(received),128);self.assertIn(b'\n',bridge.buffer)
+            daemon.drain_chrome_events(server,buffered=True)
+            self.assertEqual([row['index'] for row in received],list(range(200)))
+            self.assertEqual(bridge.buffer,b'');self.assertEqual(errors,[])
+        finally:
+            daemon.selector.close();server.close();client.close()

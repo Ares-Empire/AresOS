@@ -156,3 +156,46 @@ class Reads(unittest.TestCase):
         current=self.engine.pending()
         self.assertTrue(all(item['app']=='mail' for item in current['notices']))
         self.assertEqual(current['notices_more'],{'count':2,'action':'control_notices'})
+
+    def test_private_observation_commits_an_open_check_without_browser_io_and_survives_restart(self):
+        from unittest.mock import patch
+        step={**self.step(),'kind':'activation_unknown','cancellable':False}
+        event={'event':'held_step','session':self.browser.session,'tab':1,'step':step}
+        with patch.object(self.browser,'call',side_effect=AssertionError('nested browser call')):
+            self.chrome.event(event);sequence=self.engine.store.sequence
+            self.chrome.event(event);self.assertEqual(self.engine.store.sequence,sequence)
+        self.assertEqual(self.chrome.notice_page()['total'],1)
+        with self.failed_reads():self.assertEqual(self.chrome.notice_page()['total'],1)
+        self.engine.close()
+        from aresos_control.engine import Engine
+        self.engine=Engine(self.root/'state',self.root/'evidence');self.chrome=self.engine.adapters['chrome'];self.chrome.bridge=self.browser;self.chrome.read_owner_hosts=lambda:[]
+        self.assertGreaterEqual(self.chrome.notice_page()['total'],1);self.assertEqual(self.browser.dispatched,[])
+
+    def test_open_dialog_keeps_a_dispatched_input_unknown_and_never_replays(self):
+        approval=self.prepare();original=self.browser.call
+        def modal(name,**args):
+            result=original(name,**args)
+            if name=='input':result['dialog']={'kind':'confirm','text':'Continue?'}
+            return result
+        self.browser.call=modal
+        sent=self.call('submit',approval);self.assertTrue(sent['ok'],sent)
+        self.assertEqual(sent['data']['operation']['state'],'unknown')
+        self.call('submit',approval);self.assertEqual(len(self.browser.dispatched),1)
+
+    def test_a_modal_is_not_evidence_that_an_observed_submission_document_disappeared(self):
+        import copy
+        from unittest.mock import patch
+        step={**self.step(),'kind':'native_submit'};full=copy.deepcopy(self.browser.facts)
+        self.browser.facts.update(frames=[],dialog={'kind':'confirm','text':'Continue?'})
+        original=self.browser.call;acks=[]
+        def call(name,**args):
+            if name=='ack_steps':acks.extend(args['steps'])
+            return original(name,**args)
+        with patch.object(self.browser,'call',side_effect=call):
+            result=self.chrome.steps([step],1)
+            self.assertTrue(result[0]['pending']);self.assertEqual(acks,[])
+            key,source=next(self.engine.store.iter_items('intent:chrome:'));self.assertEqual(source['state'],'started')
+            self.browser.facts=full
+            prepared=self.chrome.steps([step],1);self.assertIn('approval',prepared[0]);self.assertEqual(len(acks),1)
+            same=self.chrome.steps([step],1);self.assertEqual(same,[]);self.assertEqual(len(acks),2)
+            self.assertEqual(len([v for _,v in self.engine.store.iter_items('op:') if v['state']=='reserved']),1)
