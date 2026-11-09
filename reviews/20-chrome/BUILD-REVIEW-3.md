@@ -466,3 +466,99 @@ The producer tests construct result rows; they do not establish that the
 browser assertions run, that every fixture matches its intended case, or
 that the complete runner passes. Full final runner sets remain pending;
 this report does not issue SAFE.
+
+## Focused review of asynchronous modal completion
+
+Reviewed the uncommitted `finishFrames()` and per-dispatch nonce changes
+on a worktree based on `95ed8ac1baf97b0e41ed593fed4920de0883413b`.
+**Run:**
+`node --test control/chrome_tests/background.test.mjs control/chrome_tests/page.test.mjs`
+passed **29 tests, 0 failed**, including the regression that an old delayed
+finish cannot clear a newly armed dispatch in the same control epoch.
+
+**Read:** background gives each input its own private `dispatch_nonce`,
+passes it in every frame's arm/finish messages, and `guard.finish()` checks
+both epoch and nonce after its later task before relaxing the in-flight
+mark. A release changes the epoch or clears generation; a new input changes
+the nonce. This addresses the stale-finish relaxation race at source/Node
+level, without putting authority in MAIN.
+
+**Run:** browser-free probes of the actual `finishFrames()` showed:
+
+- normal completion sends finish messages to both mocked frames and carries
+  the supplied nonce;
+- when a finish reply stays pending, a private dialog notification releases
+  the helper, skips later frames while the dialog remains open, and removes
+  its waiter;
+- if a dialog is already present, the helper returns without sending finish
+  to any frame; deleting that dialog afterward does not itself restart
+  finishing in the helper.
+
+Two further source concerns were sent promptly to the builder:
+
+1. **Covered-dialog close can leave frames unfinished.** The early-return
+   case also covers a dialog currently being auto-accepted by the exact
+   confirmation handler. If its close notification arrives after that
+   return, the remaining frames did not receive finish messages, and no
+   separate `chrome_dialog` call follows the auto-accept. Their in-flight
+   marks can therefore remain set until another tool input. Ensure a
+   covered close finishes all armed frames under the same private nonce,
+   or that finishing resumes after that close. This is a source/timing
+   concern; no actual Chrome event ordering was run here.
+2. **Effectful content commands still await modal-blocked replies.**
+   `content('focus'/'select'/'install_file')` initially waits directly on
+   `tabs.sendMessage`. Reader focus/input/change handlers run before that
+   reply. A synchronous uncovered native confirm in one of those handlers
+   can block the reply while background serial waits on it, leaving
+   `chrome_dialog` queued behind the action that needs it. The new race
+   helper covers final finish messages, not these earlier content commands.
+   A generalized modal race must also stop intermediate dispatch: an early
+   return from focus does not establish that the reader verified the bound
+   active element, so subsequent key/text input must not proceed on that
+   assumption. Select/upload may have only partly handled their events;
+   preserve truthful partial/unknown/dialog observations. These paths were
+   source-reviewed, not reproduced in a browser by this reviewer.
+
+**Run:** generated **159 fixture pages** through disposable local HTTP
+servers and compiled each extracted inline script with `new vm.Script`:
+**159 scripts compiled, zero syntax failures**. Covered the new native
+confirmation variants, all six synthetic site adapters and confirmation
+modes, owner replay variants, and matrix handler routes. None of those page
+scripts was executed; no browser, profile, container or real site was used.
+The servers were closed after the probe. Compilation proves syntax only,
+not page behavior or receiver assertions.
+
+## Final focused closure and package-pin source check
+
+Working-tree review based on
+`40d6a04d670fc704cccb19102cf32be25eb6f685`. **Run:**
+
+- The committed-state command above passed **11 tests in 0.139s, OK**.
+  `test_unreadable_committed_projection_prioritizes_warning_inside_three_notice_bound`
+  now verifies the exception branch: the explicit Chrome-unavailable marker
+  is first and the complete compact envelope remains at three notices.
+  **Read:** that branch prepends the marker and caps the combined list.
+  The exception-path cap finding is closed at focused source/test level.
+- `PYTHONPATH=control python3 -m unittest discover -s control/chrome_tests -p 'test_publisher.py' -v`:
+  **5 tests in 0.059s, OK**.
+- Direct `qualify.packages()` probes accepted an exact synthetic official
+  stable/beta filename plus 64-digit lowercase hexadecimal checksum and
+  rejected a foreign-host filename, path traversal, wrong architecture,
+  wrong package name, nonhex checksum and short checksum.
+- `git diff --check` was clean.
+
+**Read:** package URLs are constructed under the fixed official HTTPS
+repository from an exact validated filename containing the selected channel,
+full package version and amd64 suffix. Both branch fixtures and qualification
+pairs pass the resolved URL and SHA256 to Docker. The Dockerfile checks the
+downloaded file's checksum before installation; `run.sh` compares the actual
+installed full Chrome version with the requested version before tests start.
+Qualification pairs use the current driver's CI/tests with the separately
+checked runtime build; branch fixture jobs do not enter the main-only
+qualification publisher. No new defect was found in this limited pin-path
+source review.
+
+No Google package was downloaded, Docker build run, browser started, or data
+branch written by this reviewer. Actual pinned-package installation, both
+installation routes, attestation and the complete final receiver sets still
+need runner evidence. This remains an interim review, not SAFE.

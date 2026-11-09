@@ -244,3 +244,293 @@ No remaining blocking defect was found in these three repaired paths within
 this follow-up's scope. That is **not** a final SAFE verdict: the required
 twice-passing final-head runner evidence and the broader acceptance obligations
 still govern completion.
+
+## Follow-up: approved Enter and the implicit submitter
+
+Reviewed at HEAD `95ed8ac1baf97b0e41ed593fed4920de0883413b` with working-tree
+changes. The parent reported a runner failure at `42620316119`: approved Enter
+in a field was holding the browser's implicit submitter click. This reviewer
+did not run a browser or independently certify that runner result. The reviewed
+repair infers the default submitter by DOM tree order and form ownership,
+binds its identity and effective form destination, passes those through private
+extension messages, and gives its trusted click one activation pass after input.
+The owner's default-task exemption remains outside this permission.
+
+**P1 found: another submitter could consume the primary form allowance.**
+Although the click exception matched the private implicit element,
+`allowance()` compared only action, method, encoding and target. A handler for
+the approved field's keydown could call `form.requestSubmit(otherButton)` with
+the same destination and consume the primary allowance. Another submitter may
+carry different successful button name/value data. The new regression tested
+another button's click, but did not test its `requestSubmit` route.
+
+A browser-free Node probe ran the actual guard using the existing page fixture:
+it armed an approved field and implicit button, delivered the trusted mock
+keydown, and called `requestSubmit` with the other button. It exited 0 with:
+
+```text
+{"wrongSubmitter":"e4","approvedSubmitter":"e3","arrivals":["event"],"reports":[]}
+```
+
+This is a simulated native submission, not HTTP evidence. The finding was sent
+immediately to the parent. The primary and further event allowances need an
+explicit submitter policy; the required native-submit loop exception should
+remain separately bounded rather than silently granting another submitter.
+
+**P1 found: empty overrides were not described as the browser uses them.**
+`formFacts()` used truthiness for `formaction`, `formmethod` and `formenctype`.
+Present-but-empty attributes therefore fell back to the base form values.
+The browser instead resolves empty `formaction` to the document URL, and empty
+or invalid method/encoding values to their defined defaults. See the
+[HTML submission attributes and their IDL getters](https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#form-submission-attributes).
+This affects both the approval and the new allowance comparison, which use the
+same reader; comparing two identically incorrect descriptions cannot catch it.
+
+A Node probe extracted actual `formFacts()` and supplied a mock submitter with
+present-empty attributes and the browser-defined native getter results. It
+printed base action `https://fixture.test/bare`, method `post` and encoding
+`multipart/form-data` in the binding, while the native overrides supplied
+`https://fixture.test/current`, `get` and
+`application/x-www-form-urlencoded`. No browser was used. Attribute presence
+and native normalized getters, plus empty/invalid override fixtures, are
+required to close this mismatch. This finding was sent to the parent.
+
+**Additional gate concern:** the implicit-click condition used `mark.input`,
+which capture sets for trusted `keydown`, `input` **or** `change`. It did not
+establish the narrower stated condition of the approved target's keydown.
+The parent was advised to retain a distinct private matching-keydown fact for
+the implicit-click exception. Whether a page-triggered native editing command
+can produce the relevant trusted event in the runner was not tested here;
+that specific exploit must not be claimed as browser-proven.
+
+The focused command run before repairs to these findings was:
+
+```sh
+node --test control/chrome_tests/page.test.mjs control/chrome_tests/reader.test.mjs
+```
+
+It printed 25 tests passed, 0 failed, 0 skipped. The two adverse probes above
+show why that result alone did not establish the newly added permission.
+Repair and final receiver evidence remain required; this follow-up does not
+relax the owner's strict default-task case or issue a SAFE verdict.
+
+### Implicit-submitter repair recheck
+
+The parent repaired these findings in the working tree, and this reviewer
+re-ran focused probes. `formFacts()` now first checks that the candidate is an
+actual submit/image control belonging to this form, tests override attribute
+presence, and reads the native normalized `formAction`, `formMethod`,
+`formEnctype` and `formTarget` properties. The extracted-function probe now
+returned the correct empty-override destination, GET method, URL-encoded
+encoding and empty target.
+
+The isolated guard now retains a separate matching-keydown fact, including the
+native key and Ctrl/Cmd/Alt/Shift modifiers. Its implicit primary submission
+requires that fact and the bound submitter. Node probes with modifier masks
+0, 1, 2, 4, 8 and 15 each established: trusted input before keydown held;
+mismatched modifiers held; another same-destination submitter held; the
+matching key and submitter produced one mock arrival; a repeated submission
+held. No browser input or receiver was used.
+
+**A further P1 variant was found and repaired during recheck.** The first
+repair conditioned further-event identity enforcement on the approved
+submitter being non-null. Resuming `requestSubmit()` with no submitter could
+therefore let its handler call `requestSubmit(otherButton)` through the further
+allowance. The actual guard probe printed:
+
+```text
+{"approvedSubmitter":null,"actualSubmitter":"e2","arrivals":["event"],"reports":1}
+```
+
+After the parent removed that truthiness exemption, every non-null event
+submitter must equal the bound one, including when the bound value is null.
+The identical adverse probe then exited 0 with assertions for no arrival and
+a new hold, printing:
+
+```text
+{"approvedSubmitter":null,"actualSubmitter":null,"arrivals":[],"reports":2}
+```
+
+The last recheck command was:
+
+```sh
+node --test control/chrome_tests/page.test.mjs control/chrome_tests/reader.test.mjs
+```
+
+It printed 27 tests passed, 0 failed, 0 skipped, including the null-submitter
+regression, native normalized override getter regression and unchanged native
+submission loop tests. The earlier recheck, before adding those two tests,
+printed 25 passed. These are mocked DOM results. The reported implicit-path
+defects are closed at the source/focused-test level; final real receiver runs
+must still prove the added permission and override cases. No remaining blocker
+was found within this repair recheck's scope, and no final SAFE verdict or
+owner-default-task exemption is implied.
+
+### Follow-up: form-name clobbering and capture exceptions
+
+Reviewed the further working-tree repair at the same HEAD. The reader now
+obtains `elements`, `action`, `method`, `enctype` and `target` through isolated
+native `HTMLFormElement` getters and queries the form through the native
+`Element` method. The guard catches inspection exceptions around capture,
+cancels a cancellable event and stops propagation before attempting to report
+a non-resumable activation. Label inspection in reporting has a fallback.
+
+No relaxing bypass was found in this scoped review. Two additional
+browser-free probes exercised the repair:
+
+- A Node probe extracted the real reader helper and `formFacts()` functions.
+  The mock form's page-owned `elements`, `action`, `method`, `enctype`, `target`
+  and `querySelector` properties all threw on access; its native prototype
+  getters returned separate values. The probe exited 0 with
+  `pageOwnedPropertyReads: 0`, `nativeQueries: 1` and the expected native
+  destination, method, encoding, target and fields.
+- A Node guard probe modified the test fixture **in memory only** so event
+  listeners swallowed exceptions, matching the browser behavior relevant to
+  the original failure. With `reader.form()` and `reader.target()` throwing,
+  `requestSubmit()` and a cancellable native click each produced zero mock
+  arrivals and zero page-handler invocations, with a non-resumable stopped
+  activation. A noncancellable native click also invoked no handler and was
+  reported as `activation_unknown`, not as stopped; resume refused all three.
+  The mock does not emulate a noncancellable click's navigation default, so
+  the unknown classification remains necessary.
+
+The second probe found a minor report inconsistency: the exception handler
+initially omitted the `cancellable` argument, so an unknown noncancellable
+step incorrectly carried `cancellable: true`. The parent passed the actual
+event flag. The focused recheck then printed:
+
+```text
+{"kind":"activation_unknown","cancellable":false}
+```
+
+The reviewer also ran:
+
+```sh
+node --test control/chrome_tests/page.test.mjs control/chrome_tests/reader.test.mjs
+```
+
+It printed 28 tests passed, 0 failed, 0 skipped. Only this report was edited by
+the reviewer. Native form getter behavior and the clobbered-form fixture still
+need the final authorized runner evidence; these mock results do not certify
+the whole Chrome stage or change the strict owner-input requirement.
+
+### Design review: opaque MAIN-world event reconstruction
+
+This is review of a **proposal**, not an implemented or verified repair. The
+parent reported runner evidence that wrapped `dispatchEvent(MouseEvent)` and
+retained-event replay reached neither handlers nor held steps, despite working
+`.click()` wrappers. Native getter failure on an opaque cross-world Event is
+a hypothesis to test; this reviewer did not reproduce it in Chrome. No new
+executable tests were run for this design-only review.
+
+The proposed fallback can preserve the security boundary if it discards an
+opaque original completely and constructs a fresh, untrusted native event in
+ISOLATED. A forged `keyup` hint must produce only an untrusted keyup; it must
+never cause an opaque original click to be dispatched. The final native type
+of whichever event will actually be dispatched must determine interception.
+A successfully native-branded original must be classified from its native
+type, not from MAIN's hint.
+
+Required constraints sent to the parent:
+
+- Read and validate each hint once into bounded primitive locals. Use a fixed
+  constructor map and an explicit option allowlist; do not select a global
+  constructor or copy arbitrary object properties from page data.
+- Never copy or synthesize authority-bearing state: `isTrusted`, event phase,
+  target/currentTarget, owner verdict, approval marks or allowances. Do not
+  copy opaque `detail`, DOM nodes, `view`, data-transfer objects or other
+  arbitrary native objects through this fallback.
+- Evaluate all page-reachable lazy getters before the final target/type
+  classification. Do not invoke another page getter/function between that
+  classification and native dispatch: a malicious getter could otherwise
+  change the target's asking semantics or the selected event. Exceptions,
+  excessive values and unsupported reconstruction must add a hold/refusal.
+- Check password protection before reading event data. For a protected
+  target, do not invoke getters that can reveal input text, including
+  `InputEvent.data` or transfer data. Filtering after extraction is too late.
+- A fresh event must remain untrusted, so retained physical input replay can
+  never restore the owner exemption. Test contradictory type hints, forged
+  options, getter reentrancy, getters changing the target, and noncancellable
+  asking clicks with real receiver logs.
+
+Cloning has a compatibility consequence that must not be hidden: event identity,
+the original object's `defaultPrevented`, and its dispatch-in-progress state
+are not automatically preserved. In particular, a listener receiving a clone
+can attempt to dispatch the original object again while the clone runs, where
+the native original-object path would reject reentrancy. A private MAIN
+per-original in-progress check may add a hold, but cannot grant a pass.
+Cancellation return values and original-object state need explicit treatment;
+do not claim full native Event semantics without evidence. Strict wrappers and
+captured intrinsics are appropriate hardening, not authorization on their own.
+
+The same opacity problem must not weaken `requestSubmit(submitter)`. First
+attempt captured native form/type access on the actual candidate. If that
+fails, a MAIN selector, id, index, `.form` claim or a missing submitter check
+cannot establish identity. A native report dispatched on the actual submitter
+can expose its real node through the isolated composed path, with its form
+derived privately; however, that still must preserve the original receiver's
+form identity and equality. Invalid
+`requestSubmit.call(otherForm, submitter)` must not silently become a valid
+submission on the submitter's form. If both identities cannot be established,
+hold/refuse instead of guessing.
+
+This assessment identifies conditions for a safe protocol, not approval of
+an implementation. The actual patch and strict runner regressions still need
+review. The parent's diagnosis of interop failure and any compatibility gains
+remain unverified by this design-only follow-up; no SAFE verdict is issued.
+
+### Opaque-event implementation recheck
+
+The parent then implemented the fallback, and this reviewer read the actual
+working-tree `page.js` and `guard.js`. The guarded original path first requires
+native Event recognition and reads the native type; the opaque path creates a
+fresh untrusted event from validated primitive options. The original opaque
+object is not dispatched. The actual event type and current target are checked
+after descriptor-data getters finish. Protected targets skip the data getter.
+Neither arbitrary event detail nor DOM objects are copied as constructor
+options. `requestSubmit` identity handling was not weakened; failure to unwrap
+its supplied submitter remains a refusal/hold, with runner compatibility still
+to be demonstrated.
+
+Two issues in the first implementation were sent to the parent and repaired
+during review:
+
+- MAIN's reentrancy set originally looked up `WeakSet.has/add/delete` through
+  mutable page prototypes. These methods are now captured and invoked using
+  captured `Reflect.apply`.
+- A single native getter per property let KeyboardEvent's modifier getters
+  overwrite MouseEvent's. The getter table now retains native alternatives and
+  tries their brand checks, without reading arbitrary Event expandos in Chrome.
+
+A custom Node VM probe modeled opaque cross-world recognition by using a
+separate isolated Event subclass while retaining the existing mock DOM
+dispatch. In both baseline and page-patched-WeakSet cases, recursive use of the
+original produced `handlers: 1, rejected: 1`. This is a model of the proposed
+boundary behavior, not a real Chrome interoperability result.
+
+The focused command was run twice during this implementation review:
+
+```sh
+node --test control/chrome_tests/page.test.mjs control/chrome_tests/reader.test.mjs
+```
+
+Both runs printed 34 tests passed, 0 failed, 0 skipped. Relevant passing cases
+include contradictory opaque type hints, no trusted-owner forgery, descriptor
+getters changing the target before classification, protected-target data getter
+skipping, recursive event rejection and stale-finish nonce rejection. These
+mock tests do not establish that Chrome exposes each lazy descriptor or native
+Event reference in the way the implementation expects.
+
+A final hardening concern was sent to the parent: MAIN still traversed its
+captured getter arrays and field lists using page-mutable array iteration, and
+added the per-original dispatch mark after descriptor extraction. Indexed
+iteration plus marking before getter evaluation would close that remaining
+prototype/reentrancy surface. No approved-send bypass was demonstrated through
+that concern. Clone identity, cancellation and unsupported-event compatibility
+remain the limitations described in the design review above.
+
+No new confirmed unapproved-send defect was found in the implemented fallback
+within this focused review. The actual runner must prove the opaque click and
+retained-event cases, including their independent receiver counts. This is not
+a final SAFE verdict or permission to relax the owner's strict default-task
+case.

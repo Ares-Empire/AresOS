@@ -34,6 +34,7 @@ function safeURL(address) {
 }
 async function cdp(tab, method, parameters = {}) {
   if (!POLICY.cdpMethods.includes(method)) throw Error('permission_denied: DevTools method not allowed');
+  if(method.startsWith('Input.')&&dialogs.has(tab))throw Error('unknown: a page dialog interrupted the input sequence; inspect the dialog and operation status, never retry');
   if(method.startsWith('Input.') || ['Page.navigate','Page.navigateToHistoryEntry','Page.reload','Page.handleJavaScriptDialog','DOM.setFileInputFiles'].includes(method)){assertControl(tab);effectStarted=true;}
   const pending=chrome.debugger.sendCommand({tabId:tab},method,parameters);
   if(recording)audit({method,parameters,phase:'dispatched'});

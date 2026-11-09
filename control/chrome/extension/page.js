@@ -13,7 +13,8 @@
     }
   }
   const read=(event,key)=>{
-    if(getters[key]){for(const getter of getters[key])try{return invoke(getter,event,[]);}catch{}throw new TypeError('Invalid event brand');}
+    const alternatives=getters[key];
+    if(alternatives){for(let index=0;index<alternatives.length;index++)try{return invoke(alternatives[index],event,[]);}catch{}throw new TypeError('Invalid event brand');}
     // Test doubles have no native descriptors; Chrome never reads expandos.
     if(!getters.type)return event[key];
   };
@@ -29,13 +30,16 @@
   install(HTMLFormElement.prototype,'requestSubmit',function(submitter) { report(this,{kind:'request_submit',submitter}); });
   install(HTMLElement.prototype,'click',function() { report(this,{kind:'click'}); });
   install(EventTarget.prototype,'dispatchEvent',function(event) {
-    if(invoke(has,dispatching,[event])||read(event,'eventPhase'))throw new DOMException('The event is already being dispatched.','InvalidStateError');
+    if(invoke(has,dispatching,[event]))throw new DOMException('The event is already being dispatched.','InvalidStateError');
+    invoke(add,dispatching,[event]);
+    try{
+    if(read(event,'eventPhase'))throw new DOMException('The event is already being dispatched.','InvalidStateError');
     const detail={kind:'dispatch',event,event_type:read(event,'type'),event_flags:{bubbles:read(event,'bubbles'),cancelable:read(event,'cancelable'),composed:read(event,'composed')}};
     // Some Chrome world boundaries cannot unwrap the original Event. These are
     // data hints only: the isolated side then creates a new, untrusted event.
-    define(detail,'event_data',{get(){const data={};for(const key of ['key','code','location','repeat','ctrlKey','shiftKey','altKey','metaKey','button','buttons','clientX','clientY','screenX','screenY','data','inputType','isComposing'])try{data[key]=read(event,key);}catch{}return data;}});
-    invoke(add,dispatching,[event]);
-    try{const delivered=report(this,detail);if(!delivered)invoke(prevent,event,[]);return delivered;}
+    define(detail,'event_data',{get(){const data={},keys=['key','code','location','repeat','ctrlKey','shiftKey','altKey','metaKey','button','buttons','clientX','clientY','screenX','screenY','data','inputType','isComposing'];for(let index=0;index<keys.length;index++){const key=keys[index];try{data[key]=read(event,key);}catch{}}return data;}});
+    const delivered=report(this,detail);if(!delivered)invoke(prevent,event,[]);return delivered;
+    }
     finally{invoke(remove,dispatching,[event]);}
   });
 })();
