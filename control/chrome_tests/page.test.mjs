@@ -48,7 +48,8 @@ function fixture() {
   }
   const document=new EventTarget();document.getElementById=key=>document.labels?.[key];
   const window={addEventListener(type,fn){if(!windowListeners.has(type))windowListeners.set(type,[]);windowListeners.get(type).push(fn);}};
-  const globals={window,document,performance:{now:()=>now},setTimeout,Symbol,Event,CustomEvent,EventTarget,Element,HTMLElement,HTMLInputElement,HTMLFormElement,DOMException,URL};
+  class MessageChannel {port1={};port2={postMessage:token=>setImmediate(()=>this.port1.onmessage?.({data:token}))};}
+  const globals={window,document,performance:{now:()=>now},setTimeout,MessageChannel,Symbol,Event,CustomEvent,EventTarget,Element,HTMLElement,HTMLInputElement,HTMLFormElement,DOMException,URL};
   const isolated=vm.createContext({...globals});
   vm.runInContext(fs.readFileSync('control/chrome/extension/guard.js','utf8'),isolated);
   const guard=vm.runInContext("globalThis[Symbol.for('aresos.chrome.guard.v2')]",isolated);
@@ -62,7 +63,7 @@ function fixture() {
   assert.equal(vm.runInContext("globalThis[Symbol.for('aresos.chrome.guard.v2')]",main),undefined);
   function arm(target,form,operation=null,conservative=false){guard.arm({generation:'epoch',config:{...policy,conservative},target:id(target),form:form ? id(form):null,operation,primary_submission:false});}
   const api={...guard,resume:(id,operation)=>{const step=reports.find(item=>item.id===id);return guard.resume(id,operation,step?.submitter||step?.element,step?.element);}};
-  return {api,guard,arrivals,bridgeDetails,get reports(){reports.push(...guard.steps());return reports;},document,HTMLFormElement,HTMLElement,Event,CustomEvent,originalDispatch,arm,main,id,advance:milliseconds=>{now+=milliseconds;}};
+  return {api,guard,arrivals,bridgeDetails,get reports(){reports.push(...guard.steps());return reports;},document,HTMLFormElement,HTMLElement,HTMLInputElement,Event,CustomEvent,originalDispatch,arm,main,id,advance:milliseconds=>{now+=milliseconds;}};
 }
 
 test('group2 native submit resumes without checks or submit events',()=>{
@@ -144,14 +145,27 @@ test('group7 public controls and forged identity/report events cannot relax isol
   assert.throws(()=>f.api.resume(step.id,'approved'));assert.equal(f.arrivals.length,1);
 });
 
-test('group2 owner exemption is synchronous and never covers delayed or in-flight input',async()=>{
-  const f=fixture(),form=new f.HTMLFormElement(),button=new f.HTMLElement();f.arm(button,null);
-  button.addEventListener('click',()=>form.submit());
-  f.originalDispatch.call(button,new f.Event('click',{isTrusted:true}));assert.equal(f.arrivals.length,0,'in-flight owner is held');
+test('group2 owner task exempts exactly its form once and never delayed or in-flight input',async()=>{
+  const f=fixture(),form=new f.HTMLFormElement(),field=new f.HTMLInputElement();field.form=form;f.arm(field,null);
+  field.addEventListener('keydown',()=>form.submit());
+  f.originalDispatch.call(field,new f.Event('keydown',{key:'Enter',isTrusted:true}));assert.equal(f.arrivals.length,0,'in-flight owner is held');
   await f.api.finish('epoch');
-  f.originalDispatch.call(button,new f.Event('click',{isTrusted:true}));assert.equal(f.arrivals.length,1,'synchronous owner handler is exempt');
-  form.submit();assert.equal(f.arrivals.length,1,'the exemption ends when dispatch ends');
+  f.originalDispatch.call(field,new f.Event('keydown',{key:'Enter',isTrusted:true}));assert.equal(f.arrivals.length,1,'synchronous owner handler is exempt');
+  form.submit();assert.equal(f.arrivals.length,1,'one input cannot grant a second submission');
+  await new Promise(resolve=>setImmediate(resolve));
+  form.submit();assert.equal(f.arrivals.length,1,'the exemption ends on the private channel task');
   assert.ok(f.reports.length>=2);
+});
+
+test('group2 owner default after event dispatch is exact-form exact-submitter and one-use',async()=>{
+  const f=fixture(),form=new f.HTMLFormElement(),other=new f.HTMLFormElement(),field=new f.HTMLInputElement(),button=new f.HTMLElement();field.form=form;button.form=form;button.type='submit';
+  f.arm(field,null);await f.api.finish('epoch');
+  f.originalDispatch.call(field,new f.Event('keydown',{key:'Enter',isTrusted:true}));
+  other.submit();form.requestSubmit(button);assert.equal(f.arrivals.length,0,'a timer cannot use another form or submitter while the owner mark waits');
+  form.requestSubmit();assert.equal(f.arrivals.length,1,'default action after eventPhase resets still belongs to this exact input');
+  form.requestSubmit();assert.equal(f.arrivals.length,1,'the task mark grants exactly one submission');
+  f.originalDispatch.call(field,new f.Event('keyup',{key:'Enter',isTrusted:true}));await new Promise(resolve=>setImmediate(resolve));
+  form.submit();assert.equal(f.arrivals.length,1,'a later task cannot retain ownership');
 });
 
 test('group7 preparation cannot grant a page a submission before trusted dispatch',()=>{

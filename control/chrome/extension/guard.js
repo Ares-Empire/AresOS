@@ -12,8 +12,26 @@
   const currentPhase = event => phase ? phase.call(event) : event.eventPhase;
   const type = event => eventType ? eventType.call(event) : event.type;
   const active = () => generation !== null && (inFlight || performance.now() < until);
-  // eventPhase proves only synchronous dispatch, never the following default action/task.
-  const ownerDispatch = () => !inFlight && owner && owner.isTrusted && currentPhase(owner) !== 0;
+  const ownerTasks=new MessageChannel();
+  ownerTasks.port1.onmessage=event=>{if(owner?.token===event.data)owner=null;};
+  function ownerInput(event,element) {
+    if(!event.isTrusted||inFlight)return;
+    const kind=type(event),key=event.key;
+    let form=null,submitter=null;
+    if(kind==='click'&&element instanceof Element){const target=control(element);if(target.form&&reader.target(target).submit){form=target.form;submitter=target;}}
+    if(['keydown','keypress','keyup'].includes(kind)&&key==='Enter'&&element instanceof Element){
+      form=element.form||null;
+      if(form&&reader.target(element).submit)submitter=element;
+      else if(form){const implicit=reader.target(element).implicit_submitter;submitter=implicit?reader.element(implicit):null;}
+    }
+    const token=++sequence;
+    owner={event,form,submitter,token,consumed:false};
+    ownerTasks.port2.postMessage(token);
+  }
+  function ownerSubmission(form,submitter) {
+    if(inFlight||!owner||owner.consumed||!owner.event.isTrusted||owner.form!==form||owner.submitter!==(submitter||null))return false;
+    owner.consumed=true;return true;
+  }
   const control=element=>element.closest('button,input,a,[role=button],[role=link],[role=menuitem],[onclick]') || element;
   function facts(element) { return reader.target(element); }
   function decoded(value) { try{return decodeURIComponent(value);}catch{return value;} }
@@ -66,7 +84,7 @@
   }
   function submit(form, submitter, kind) {
     if (!(form instanceof HTMLFormElement)) return;
-    if (!active() || ownerDispatch() || search(reader.form(form,submitter)) || allowance(form,null,submitter)) {
+    if (!active() || ownerSubmission(form,submitter) || search(reader.form(form,submitter)) || allowance(form,null,submitter)) {
       if (kind === 'native_submit') native.submit.call(form);
       else if (submitter) native.requestSubmit.call(form,submitter);
       else native.requestSubmit.call(form);
@@ -81,9 +99,9 @@
     }
   }
   function captureInput(event,root) {
-    if (event.isTrusted && ['pointerdown','mousedown','click','keydown','keyup','input','change'].includes(type(event)) && !inFlight) owner=event;
-    if (!active() || ownerDispatch()) return;
     let element=event.composedPath()[0];
+    if(['pointerdown','pointerup','pointermove','mousedown','mouseup','click','keydown','keypress','keyup'].includes(type(event)))ownerInput(event,element);
+    if (!active()) return;
     if (!(element instanceof Element)) return;
     const nodeRoot=element.getRootNode();
     if(root===window ? nodeRoot!==document || globalThis.chrome?.dom?.openOrClosedShadowRoot(element) : nodeRoot!==root)return;
@@ -94,9 +112,10 @@
       if(type(event)==='keydown'&&expected&&event.key===expected.key&&!!event.ctrlKey===!!(expected.modifiers&2)&&!!event.metaKey===!!(expected.modifiers&4)&&!!event.altKey===!!(expected.modifiers&1)&&!!event.shiftKey===!!(expected.modifiers&8))mark.keydown=true;
     }
     if (type(event) === 'submit') {
-      if (search(reader.form(element,event.submitter)) || allowance(element,event,event.submitter)) return;
+      if (ownerSubmission(element,event.submitter) || search(reader.form(element,event.submitter)) || allowance(element,event,event.submitter)) return;
       event.preventDefault();event.stopImmediatePropagation();report('submit_event',element,event.submitter);
     } else if (type(event) === 'click' && asks(element)) {
+      if(!inFlight&&event.isTrusted)return;
       // Only the browser's trusted event for this private, approved dispatch consumes the mark.
       if (inFlight && event.isTrusted && mark && !mark.activation && (element === mark.target || mark.implicit===element&&mark.keydown&&element.form===mark.form)) { mark.input=true;mark.activation=true;return; }
       if (event.cancelable) event.preventDefault();
@@ -143,7 +162,7 @@
         }
         const isClick=detail.kind === 'click' || type(original) === 'click';
         // All page-controlled getters have finished before this final check.
-        if (element instanceof Element && active() && !ownerDispatch() && isClick && asks(element)) {
+        if (element instanceof Element && active() && isClick && asks(element)) {
           report('activation',control(element),null,original?.cancelable ?? true);event.preventDefault();return;
         }
         delivery=true;
@@ -160,7 +179,7 @@
     if (root===document || roots.has(root)) return;
     roots.add(root);
     root.addEventListener('aresos-page-call-v2',onCall,true);
-    for (const kind of ['pointerdown','mousedown','click','keydown','keyup','input','change','submit']) root.addEventListener(kind,event=>capture(event,root),true);
+    for (const kind of ['pointerdown','pointerup','pointermove','mousedown','mouseup','click','keydown','keypress','keyup','input','change','submit']) root.addEventListener(kind,event=>capture(event,root),true);
   }
   watch(window);
   // This object exists only in the extension's isolated world. MAIN has no API or capability.

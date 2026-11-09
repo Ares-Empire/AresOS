@@ -10,7 +10,7 @@ const server=http.createServer((request,response)=>{
   }else if(request.url==='/update.xml'){
     const extension=JSON.parse(fs.readFileSync('/out/extension.json'));
     response.setHeader('Content-Type','text/xml');response.end(`<?xml version="1.0"?><gupdate xmlns="http://www.google.com/update2/response" protocol="2.0"><app appid="${extension.id}"><updatecheck codebase="http://127.0.0.1:8765/extension.crx" version="${extension.version}"/></app></gupdate>`);
-  }else if(request.url==='/extension.crx')response.end(fs.readFileSync('/workspace/.work/20-package/extension.crx'));
+  }else if(request.url==='/extension.crx')response.end(fs.readFileSync('/workspace/.work/20-package/own-extension.crx'));
   else response.end(`<script>let handlers=0;window.addEventListener('probe-event',()=>handlers++);const result=window.dispatchEvent(new Event('probe-event',{cancelable:true}));fetch('/report',{method:'POST',body:JSON.stringify({phase:'first-page-script',result,handlers,privateVisible:typeof probePrivate})});</script>`);
 });
 await new Promise(resolve=>server.listen(8765,'0.0.0.0',resolve));
