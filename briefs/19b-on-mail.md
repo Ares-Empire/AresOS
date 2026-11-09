@@ -33,5 +33,7 @@ Everything else in `briefs/19b-owner-state.md` stands. Where they differ, this n
 - **Restore:** this package closes the limit recorded in Mail round 29. After a restore, free-change checks, warnings
   and acknowledgements are re-derived from the projection. Remove round 29's restore sentence from the restore
   result and description once it is no longer true, and test the restore cases of the warning lifecycle.
-- **Mail's suites and the full fault sweep** (all modes and shards) still pass. Mail's workflows run on this branch's
-  pushes.
+- **Mail's suites and the full fault sweep** (all modes and shards) still pass.
+- **CI for this PR:** `control-base.yml` and `control-mail.yml` run only on pull requests to `main`. Add `pkg/19-mail`
+  to their `pull_request` branches, so this PR runs them; that is the only workflow change. `control-boundary.yml`
+  already runs on any pull request.
