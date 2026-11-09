@@ -12,11 +12,11 @@
   "rule": "The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
     {
-      "sha256": "c59c356e56f4a19b0cde68e51a20fb49f5abba2a0cf3ed505bc1d70a0e2a643c",
+      "sha256": "1790cbddcafaaee3593282a141913ce4f62f42b71bb49febb5b5b0aec25d99cf",
       "path": "docs/EMERGENCY.md"
     },
     {
-      "sha256": "6382ef586f222c579c6483cfe0811df196f9a62a2ff72ce6e59544f8a84ccca5",
+      "sha256": "06ecc530c42ca0e819ae030dd4e73cf63fc3c699ca478184df8aaf2374d5df51",
       "path": "docs/INSTALL.md"
     },
     {
@@ -24,23 +24,31 @@
       "path": "os/owner-tools/bundle.py"
     },
     {
-      "sha256": "45330cfd78e40a001892ed7b9f2803be101fedc1e9e3634e5eb2dfe3558c509e",
+      "sha256": "196f328eb3e73e2a23fa2035665adb1b1198703947ca23bbd909ec2d8422c782",
       "path": "os/owner-tools/commands.json"
     },
     {
-      "sha256": "d520b11e35f14e8c832d3a9b9aa3eee53e1cf7796df18976c9dc7aeab728566c",
+      "sha256": "148e2ad19c0f31f6d3791cd1ac8a191bdebc9a6286aeb2ce6d5b095115de8c46",
+      "path": "os/owner-tools/media.py"
+    },
+    {
+      "sha256": "7b193c8ad9144836554480f3b3c83673c45784b36a67a826f0ae25efbf9a3860",
       "path": "os/owner-tools/owner.py"
     },
     {
-      "sha256": "9ae8973eefd96d062b0ec6b95330b1244a558e7d91ec014c347aefd996d90bc6",
+      "sha256": "33cb1fa9018022be8ae6bde3dc36517eff585a1b1384f6efc15b92666d32aa44",
       "path": "os/owner-tools/payload/SHA256.json"
     },
     {
-      "sha256": "2a9965ea5a6cf5018959d489f8c2340bf412ddbe89a130c6ebd6695fdbe48c39",
+      "sha256": "712a571005f1c2a9d743fba77a1b1bb8ecffbec499078d42015820b223a23cf4",
       "path": "os/owner-tools/payload/SHA256SUMS"
     },
     {
-      "sha256": "d520b11e35f14e8c832d3a9b9aa3eee53e1cf7796df18976c9dc7aeab728566c",
+      "sha256": "148e2ad19c0f31f6d3791cd1ac8a191bdebc9a6286aeb2ce6d5b095115de8c46",
+      "path": "os/owner-tools/payload/media.py"
+    },
+    {
+      "sha256": "7b193c8ad9144836554480f3b3c83673c45784b36a67a826f0ae25efbf9a3860",
       "path": "os/owner-tools/payload/owner.py"
     },
     {
@@ -48,7 +56,11 @@
       "path": "os/tests/test_checkout_sources.py"
     },
     {
-      "sha256": "5e126108420b1abcc4c47eda4ab55bd7f834ec0c90077457a6a08b900877da19",
+      "sha256": "4589ba5f2b859ef97a449b032530a158a6277ce5962940550ca2e20ef961d386",
+      "path": "os/tests/test_owner_diagnostics.py"
+    },
+    {
+      "sha256": "6da8ca27bf1b2d6c471ea209a29336dd749b5bf30708faccd0c40bb5f09db95c",
       "path": "os/tests/test_owner_entry.py"
     },
     {
@@ -60,7 +72,7 @@
       "path": "os/tests/test_owner_firmware.py"
     },
     {
-      "sha256": "87dad92d76d4817555df7e43adb559a13177d3f593741d3203439a69e13e6a1a",
+      "sha256": "5a51f79b18fe89644ac90b05573e4100bde7a05075defcff654de431499feb90",
       "path": "os/tests/test_owner_path.py"
     },
     {

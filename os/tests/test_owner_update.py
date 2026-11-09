@@ -18,6 +18,7 @@ import shutil
 import sys
 import tempfile
 import unittest
+from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 import test_owner_tools as common
@@ -163,6 +164,7 @@ class Machine(owner.Host):
         super().__init__()
         self.state, self.wheel, self.signed = copy.deepcopy(state), wheel, signed or {}
         self.changes = []
+        self.during_verify = None
 
     def read(self, *command, **unused):
         self.trace.append(dict(command=list(command), mutation=False))
@@ -174,6 +176,8 @@ class Machine(owner.Host):
             return '4242\n'
         if command[0] == 'dumpkeys':
             return json.loads((ROOT / 'os/tests/fixtures/owner-tools/dumpkeys-de.json').read_text())
+        if command == ('efibootmgr', '-v'):
+            return 'BootCurrent: 0001\n'
         raise AssertionError('Unmodelled read: ' + repr(command))
 
     def json(self, *command):
@@ -192,6 +196,8 @@ class Machine(owner.Host):
         syntax(name, text)
         self.trace.append(dict(script=name, mutation=mutation))
         if name == 'verify':
+            if self.during_verify:
+                self.during_verify()
             # cosign: only a signature by the recorded identity verifies.
             identity = re.search(r"--certificate-identity '([^']+)'", text)[1]
             reference = re.findall(r"'([^']+)'", text.strip().splitlines()[-1])[-1]
@@ -227,9 +233,9 @@ def route(state, bundle_history=H21, target=None, wheel=False, signed=None, logi
     target = target or bundle_history[-1]
     with tempfile.TemporaryDirectory(dir=ROOT / 'os/tests') as temporary, contextlib.ExitStack() as stack:
         root = pathlib.Path(temporary)
-        payload = root / 'payload'
+        payload = root / 'home/tools'
         write_bundle(payload, history(bundle_history), target)
-        store = root / 'records'
+        store = root / 'home/records'
         store.mkdir()
         host = Machine(state, wheel, {R21: IDENTITY, R30: IDENTITY} if signed is None else signed)
         tools = owner.Tools(payload, host, store)
@@ -238,6 +244,8 @@ def route(state, bundle_history=H21, target=None, wheel=False, signed=None, logi
         tools.save('prepared', prepared())
         tools.save('disks', dict(target='TARGET', protected='KEEP'))
         tools.save('network-verified', {})
+        tools.boot = ['boot-1']
+        stack.enter_context(patch.object(owner, 'boot_id', side_effect=lambda: tools.boot[0]))
         auth = root / 'auth.json'
         if login:
             encoded = base64.b64encode(b'synthetic:fixture-only').decode()
@@ -245,7 +253,7 @@ def route(state, bundle_history=H21, target=None, wheel=False, signed=None, logi
         stack.enter_context(patch.object(owner, 'AUTH', auth))
         stack.enter_context(patch.object(owner, 'authentication'))
         tools.validated = stack.enter_context(patch.object(owner, 'validate_login'))
-        stack.enter_context(patch.object(owner, 'disk_record', return_value=dict(target='TARGET', esp_guid='fixture')))
+        stack.enter_context(patch.object(owner, 'disk_record', return_value=dict(target=dict(path='/dev/FIXTURE', serial='TARGET'), esp_guid='fixture')))
         stack.enter_context(patch.object(owner, 'resolved_bls', side_effect=lambda: bls_for(host.state)))
         stack.enter_context(patch.object(owner, 'runtime_state', return_value={}))
         stack.enter_context(patch.object(owner, 'media_module', return_value=Mock(find=Mock(return_value=None))))
@@ -384,8 +392,14 @@ class HistoryTest(unittest.TestCase):
                 owner.lineage(root / 'dup')
 
     def test_installed_history_must_be_a_prefix_and_legacy_tools_are_only_the_15f_bundle(self):
-        legacy = [dict(reference=R13, identity=RELEASE['signature']['identity'], daily_wheel=None)]
+        with tempfile.TemporaryDirectory(dir=ROOT / 'os/tests') as temporary:
+            old = write_bundle(pathlib.Path(temporary) / 'legacy', drop=('history.json',))
+            with patch.object(owner, 'LEGACY_TOOLS', (old,)):
+                version, legacy = owner.installed_lineage(pathlib.Path(temporary) / 'legacy', old)
+        self.assertEqual((version, legacy), (1, H13))
+        self.assertIs(legacy[0]['daily_wheel'], False)
         self.assertTrue(owner.extends(legacy, H21))
+        self.assertFalse(owner.extends(legacy, [record(R13, True), record(R21, True)]))
         self.assertTrue(owner.extends(H21, H30))
         self.assertFalse(owner.extends(H30, H21))
         self.assertFalse(owner.extends([record(R13, True)], H21))
@@ -397,10 +411,11 @@ class HistoryTest(unittest.TestCase):
 class UpdateCommandTest(unittest.TestCase):
     def unchanged(self, tools, host, store, method, message):
         before = (copy.deepcopy(host.state), {p.name: p.read_bytes() for p in store.iterdir()})
+        offset = len(host.changes)
         with self.assertRaises(owner.Stop) as caught:
             method()
         self.assertIn(message, str(caught.exception))
-        self.assertEqual(host.changes, [])
+        self.assertEqual(host.changes[offset:], [])
         self.assertEqual(before, (host.state, {p.name: p.read_bytes() for p in store.iterdir()}))
         return caught.exception
 
@@ -416,6 +431,13 @@ class UpdateCommandTest(unittest.TestCase):
             self.assertEqual(title['state'], host.state)
             self.assertEqual(title['title']['identity'], prepared()['stock_identity'])
             self.assertFalse(any('older AresOS' in line.lower() for line in lines))
+            outcome = tools.load(owner.OUTCOME)
+            staged = [list(owner.key(d)) for d in host.state['rpm']['deployments']]
+            self.assertEqual((outcome['kind'], outcome['boot'], outcome['reference'], outcome['booted']),
+                             ('update', 'boot-1', R21, staged[0]))
+            self.assertEqual(outcome['pending'], staged)
+            self.assertEqual(outcome['expected'], [list(owner.key(d)) for d in updated()['rpm']['deployments']])
+            self.assertEqual(outcome['before'], [list(owner.key(d)) for d in pair()['rpm']['deployments']])
 
     def test_later_update_names_the_older_release_ostree_removes_at_shutdown(self):
         with route(updated(), H30) as (tools, host, store):
@@ -533,6 +555,146 @@ class LoginTest(unittest.TestCase):
                 tools.login()
 
 
+class OutcomeTest(unittest.TestCase):
+    """check/title/records PASS only for the exact start that update/previous recorded."""
+
+    def stopped(self, tools, host, store, method, message):
+        return UpdateCommandTest.unchanged(self, tools, host, store, method, message)
+
+    def test_update_is_confirmed_only_by_the_recorded_new_start(self):
+        with route(pair()) as (tools, host, store):
+            tools.update()
+            self.assertIn('Update to ' + R21 + ' is not finished until the restart', tools.check())
+            host.state, host.wheel, tools.boot[0] = updated(), True, 'boot-2'
+            self.assertIn('Update to ' + R21 + ' confirmed after the restart', tools.check())
+            self.assertFalse((store / (owner.OUTCOME + '.json')).exists())
+            receipt, = store.glob('*-outcome-confirmed.json')
+            self.assertEqual(json.loads(receipt.read_text())['confirmed_state'], host.state)
+            self.assertNotIn('confirmed', ' '.join(tools.check()))
+
+    def test_failed_finalization_stops_every_confirmation_until_help_retries_the_update(self):
+        with route(pair()) as (tools, host, store):
+            tools.update()
+            # The staged update was lost at the restart: the old list is back.
+            host.state, tools.boot[0] = pair(), 'boot-2'
+            for name, method in (('check', tools.check), ('title', tools.title), ('reboot', tools.reboot),
+                                 ('rollback', tools.recover), ('layout', lambda: tools.layout('begin', 'us')),
+                                 ('previous', tools.previous)):
+                with self.subTest(command=name):
+                    self.stopped(tools, host, store, method, 'did not finish at the restart')
+            # keep-stock needs booted stock and refuses earlier, also unchanged.
+            self.stopped(tools, host, store, lambda: tools.recover(True), 'keep-stock requires booted saved stock')
+            with self.assertRaisesRegex(owner.Stop, 'did not finish at the restart'):
+                tools.records()
+            # After Help, the same update may run once more from the unchanged list.
+            tools.update()
+            self.assertEqual(host.changes, ['bootc switch --retain ' + R21] * 2)
+            self.assertEqual(len(list(store.glob('*-outcome-retried.json'))), 1)
+            host.state, host.wheel, tools.boot[0] = updated(), True, 'boot-3'
+            self.assertIn('Update to ' + R21 + ' confirmed after the restart', tools.check())
+
+    def test_still_staged_after_the_restart_or_changed_before_it_stops(self):
+        with route(pair()) as (tools, host, store):
+            tools.update()
+            host.state = pair()
+            self.stopped(tools, host, store, tools.check, 'changed before the restart')
+            self.stopped(tools, host, store, tools.reboot, 'changed before the restart')
+            host.state, tools.boot[0] = staged_update(), 'boot-2'
+            for method in (tools.check, tools.title, tools.update):
+                self.stopped(tools, host, store, method, 'it is still pending')
+
+    def test_an_unsuccessful_previous_stops_and_a_successful_one_is_confirmed(self):
+        with route(updated(), wheel=True) as (tools, host, store):
+            tools.previous()
+            self.assertEqual(tools.load(owner.OUTCOME)['booted'], list(owner.key(release_row(R13))))
+            host.state, tools.boot[0] = queued_previous(), 'boot-2'
+            self.stopped(tools, host, store, tools.check, 'it is still pending')
+            host.state = updated()
+            for method in (tools.check, tools.title, tools.update):
+                self.stopped(tools, host, store, method, 'return to ' + R13 + ' did not finish at the restart')
+            tools.previous()
+            self.assertEqual(host.changes, ['bootc rollback'] * 2)
+            host.state, host.wheel, tools.boot[0] = returned(), False, 'boot-3'
+            self.assertIn('Return to ' + R13 + ' confirmed after the restart', tools.check())
+
+
+class LockTest(unittest.TestCase):
+    """One owner command at a time, and everything rechecked just before staging."""
+
+    @contextlib.contextmanager
+    def entry(self, state):
+        """The real dispatcher over the modelled machine; the lock is a real flock."""
+        with route(state) as (tools, host, store), contextlib.ExitStack() as stack:
+            home = store.parent
+            for name, value in (('HOME', home), ('STOP_RECORDS', home / 'diagnostics'), ('__file__', str(home / 'tools/owner.py')),
+                                ('LOCK', home.parent / 'ares-owner.lock')):
+                stack.enter_context(patch.object(owner, name, value))
+            stack.enter_context(patch.object(owner.os, 'geteuid', return_value=0))
+            stack.enter_context(patch.object(owner.os, 'umask'))
+            stack.enter_context(patch.object(owner, 'private_tree'))
+            stack.enter_context(patch.object(owner, 'Host', return_value=host))
+            stack.enter_context(patch.object(owner.Tools, 'processes', lambda self: []))
+            stack.enter_context(patch.object(owner.Tools, 'keyboard', lambda self: dict(DE)))
+            real_stat = pathlib.Path.stat
+            stack.enter_context(patch.object(pathlib.Path, 'stat', lambda p, *a, **kw:
+                SimpleNamespace(st_uid=0, st_mode=0o40700) if p == home else real_stat(p, *a, **kw)))
+
+            def run(*argv):
+                out = io.StringIO()
+                with patch.object(owner.sys, 'argv', ['at', *argv]), contextlib.redirect_stdout(out):
+                    owner.main()
+                return out.getvalue()
+            yield tools, host, store, run
+
+    def test_lock_admits_one_command_never_follows_a_link_and_is_released(self):
+        with tempfile.TemporaryDirectory(dir=ROOT / 'os/tests') as temporary:
+            root = pathlib.Path(temporary)
+            with patch.object(owner, 'LOCK', root / 'ares-owner.lock'):
+                first = owner.owner_lock()
+                with self.assertRaisesRegex(owner.Stop, 'Another owner command is running'):
+                    owner.owner_lock()
+                os.close(first)
+                os.close(owner.owner_lock())
+            (root / 'elsewhere').write_text('')
+            os.symlink(root / 'elsewhere', root / 'link.lock')
+            with patch.object(owner, 'LOCK', root / 'link.lock'), self.assertRaises(OSError):
+                owner.owner_lock()
+
+    def test_a_layout_trial_during_update_verification_is_refused_and_the_update_completes(self):
+        with self.entry(pair()) as (tools, host, store, run):
+            refused = []
+
+            def concurrent():
+                with self.assertRaisesRegex(owner.Stop, 'Another owner command is running') as caught:
+                    run('layout', 'begin', 'us')
+                refused.append(str(caught.exception))
+                self.assertFalse((store / 'layout-pending.json').exists())
+            host.during_verify = concurrent
+            output = run('update')
+            self.assertEqual(len(refused), 1)
+            self.assertIn('PASS update\n', output)
+            self.assertEqual(host.changes, ['bootc switch --retain ' + R21])
+            host.during_verify = None
+            self.assertIn('PASS title\n', run('title'))
+
+    def test_changes_during_verification_are_caught_immediately_before_staging(self):
+        changes = {
+            'layout trial': (lambda tools, host: tools.save('layout-pending', {}), 'Layout trial is unfinished'),
+            'transaction': (lambda tools, host: host.state['rpm'].update(transaction=['upgrade', 'uupd', 'socket']), 'transaction active'),
+            'staged elsewhere': (lambda tools, host: setattr(host, 'state', staged_update()), 'staged deployment already exists'),
+            'queued rollback': (lambda tools, host: setattr(host, 'state', machine([stock_row(), release_row(R13, booted=True)])), 'rollback is queued'),
+            'list changed': (lambda tools, host: setattr(host, 'state', machine([release_row(R13, booted=True, checksum='d4' * 32), stock_row()])),
+                             'changed during verification'),
+        }
+        for name, (change, message) in changes.items():
+            with self.subTest(change=name), route(pair()) as (tools, host, store):
+                host.during_verify = lambda: change(tools, host)
+                with self.assertRaisesRegex(owner.Stop, message):
+                    tools.update()
+                self.assertEqual(host.changes, [])
+                self.assertFalse((store / (owner.OUTCOME + '.json')).exists())
+
+
 class ToolsHost(FixtureHost):
     def __init__(self, tree, usb, state):
         super().__init__(tree, usb)
@@ -634,8 +796,10 @@ class ToolsUpdateTest(unittest.TestCase):
             'history rewritten': dict(installed=(history(H13, 2), H13[-1]), stick=(history([record(R13, True), record(R21, True)], 3), H21[-1])),
             'history dropped a release': dict(installed=(history(H21, 2), H21[-1]), stick=(history([record(R13, False), record(R30, True)], 3), record(R30, True))),
         }
+        cases['15f rule rewritten'] = dict(stick=(history([record(R13, True), record(R21, True)], 3), H21[-1]))
         messages = {'downgrade': 'refusing version 2', 'same version, other bytes': 'same version',
-                    'history rewritten': 'does not extend', 'history dropped a release': 'does not extend'}
+                    'history rewritten': 'does not extend', 'history dropped a release': 'does not extend',
+                    '15f rule rewritten': 'does not extend'}
         for name, options in cases.items():
             with self.subTest(name=name), self.installation(**options) as (home, run, fingerprint, old, host):
                 before = self.snapshot(home)
@@ -694,6 +858,48 @@ class ToolsUpdateTest(unittest.TestCase):
                     run()
                 run()
                 self.updated(home, fingerprint, old)
+
+    def test_resumed_update_reruns_the_system_preflight_before_copy_or_swap(self):
+        changes = {
+            'transaction': (lambda home, host: host.state['rpm'].update(transaction=['upgrade', 'uupd', 'socket']),
+                            lambda home, host: host.state['rpm'].update(transaction=None)),
+            'layout trial': (lambda home, host: (home / 'records/layout-pending.json').write_text('{}'),
+                             lambda home, host: (home / 'records/layout-pending.json').unlink()),
+            'unknown staged image': (lambda home, host: setattr(host, 'state', machine([release_row(R99, staged=True),
+                                         release_row(R13, booted=True), stock_row()])),
+                                     lambda home, host: setattr(host, 'state', pair())),
+        }
+        # Interrupted in the copy phase, between the two swap renames, and
+        # after the swap (the third journal write).
+        for (kind, stop) in (('copy', 2), ('replace', 3), ('save', 3)):
+            for name, (change, undo) in changes.items():
+                with self.subTest(kind=kind, stop=stop, change=name), self.installation() as (home, run, fingerprint, old, host):
+                    seen = 0
+
+                    def hit():
+                        nonlocal seen
+                        seen += 1
+                        if seen == stop:
+                            raise OSError('injected after ' + kind)
+                    if kind == 'copy':
+                        real = shutil.copy2
+                        hook = patch('shutil.copy2', side_effect=lambda *a, **kw: (real(*a, **kw), hit())[0])
+                    elif kind == 'replace':
+                        real = pathlib.Path.replace
+                        hook = patch.object(pathlib.Path, 'replace', new=lambda p, t: (real(p, t), hit())[0])
+                    else:
+                        real = owner.Tools.save
+                        hook = patch.object(owner.Tools, 'save', new=lambda obj, n, v: (real(obj, n, v), hit())[0])
+                    with hook, self.assertRaises(OSError):
+                        run()
+                    change(home, host)
+                    before = self.snapshot(home)
+                    with self.assertRaises(owner.Stop):
+                        run()
+                    self.assertEqual(before, self.snapshot(home))
+                    undo(home, host)
+                    run()
+                    self.updated(home, fingerprint, old)
 
     def test_interrupted_update_resumes_only_with_the_same_bundle_and_stick(self):
         with self.installation() as (home, run, fingerprint, old, host):

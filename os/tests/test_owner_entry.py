@@ -54,6 +54,7 @@ def entry_stdout():
             stack.enter_context(patch.object(owner,'__file__',str(payload/'owner.py')))
             stack.enter_context(patch.object(owner,'HOME',home))
             stack.enter_context(patch.object(owner,'STOP_RECORDS',home/'diagnostics'))
+            stack.enter_context(patch.object(owner,'LOCK',root/'ares-owner.lock'))
             stack.enter_context(patch.object(owner.os,'geteuid',return_value=0))
             stack.enter_context(patch.object(pathlib.Path,'stat',fixture_stat))
             def private(path): check.assertIn(path,(payload,records))
