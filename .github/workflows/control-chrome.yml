@@ -1,7 +1,7 @@
 name: Control Chrome
 on:
   push:
-    branches: [pkg/20-chrome, main]
+    branches: [pkg/20-chrome, pkg/20-chrome-adapters, pkg/20-chrome-qual, main]
     paths: ['control/**', 'docs/control/TOOLS.md', 'reviews/20-chrome/**', '.github/workflows/control-chrome.yml']
   pull_request:
     branches: [main]
