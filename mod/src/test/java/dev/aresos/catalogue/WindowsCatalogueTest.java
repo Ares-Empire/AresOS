@@ -36,7 +36,11 @@ class WindowsCatalogueTest {
         row.addProperty("name","Renamed Fixture Store App");
         assertEquals(apps.stream().map(AppDefinition::id).toList(),catalogue.listApps().stream().map(AppDefinition::id).toList());
     }
-    @Test void linuxCatalogueIsAnUnavailableHelperStub() { assertTrue(new LinuxAppCatalogue().listApps().isEmpty()); assertEquals("aresos-shell/1.0",LinuxAppCatalogue.PROTOCOL); }
+    /** Package 24: without a helper connection the Linux catalogue fails closed instead of returning apps. */
+    @Test void linuxCatalogueWithoutAHelperFailsClosed() {
+        var error = assertThrows(java.io.IOException.class, () -> new LinuxAppCatalogue().listApps());
+        assertTrue(error.getMessage().contains("aresos-shell/1.0")); assertEquals("aresos-shell/1.0",LinuxAppCatalogue.PROTOCOL);
+    }
     @Test void nativeShortcutIdentityIncludesArgvAndWorkingDirectory() throws Exception {
         Path root = directory.resolve("menu"), a = directory.resolve("project-a"), b = directory.resolve("project-b");
         Files.createDirectories(root); Files.createDirectories(a); Files.createDirectories(b);
