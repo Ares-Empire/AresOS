@@ -28,7 +28,7 @@ def unfinished(store, cutoff=None, keys=None):
             "substr(source.k,1,13)='mail:account:') ORDER BY source.k", (cutoff,))
         rows = ((key, json.loads(value)) for key, value in encoded)
     for key, value in rows:
-        if key.startswith(('mail:filing:', 'mail:rename:')) and value.get('state') == 'started':
+        if key.startswith(('mail:filing:', 'mail:rename:')) and (value.get('state') == 'started' or value.get('check_open')):
             yield key, value['id'], 'mail', 'Filing was interrupted. Messages or folders may have moved into a special folder, including Trash. Nothing is moved back or deleted automatically. Check your mail program and the filing audit before repeating.'
         elif key.startswith('op:') and value.get('state') in {'submitting', 'unknown', 'partial'}:
             yield key, 'recovery-' + value['id'], value['app'], 'An approved operation or local repair is unfinished. Delivery, deletion, POST or APPEND may already have happened, and Sent copies may be duplicated. Inspect operation_status and the server; never resubmit automatically.'
@@ -78,7 +78,13 @@ def recovery_notices(store, include_checks=True):
                       'no probes are repeated automatically.')
         row = store.db.execute('SELECT created FROM retained WHERE k=?', (key,)).fetchone()
         created = row[0] if row is not None else 0
-        if store.get('notice:' + notice_id) is None:
+        existing = store.get('notice:' + notice_id)
+        if filing and existing and existing.get('ack'):
+            # Acknowledging an occurrence cannot certify its unfinished check.
+            yield {'id': 'check-' + digest(key)[:32], 'app': app, 'state': 'unknown', 'ack': False,
+                   'created_at': int(created * 1_000_000_000), 'check_only': True,
+                   'untrusted_content': {'reason': reason, 'intent_key': key, 'check_open': True}}
+        elif existing is None:
             yield {'id': notice_id, 'app': app, 'state': 'unknown', 'ack': False,
                    'created_at': int(created * 1_000_000_000), 'untrusted_content': {
                        'reason': reason, 'intent_key': key, 'recovery_warning': True}}
@@ -95,6 +101,8 @@ def recover_intents(store, persist=True):
     store.startup_intents = getattr(store, 'startup_intents', set()) | {
         (key, notice_id) for key, notice_id, _, _ in unfinished(store)}
     for notice in islice(recovery_notices(store), 3):
+        if notice.get('check_only'):
+            continue
         store.defer_notice(notice['id'], {'notice:' + notice['id']: notice},
                            'control_intent_recovery', 'Unfinished durable intent needs owner inspection')
     if persist:
