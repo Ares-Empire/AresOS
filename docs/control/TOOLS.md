@@ -7387,6 +7387,16 @@ Input:
     },
     "enabled": {
       "type": "boolean"
+    },
+    "cursor": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "limit": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 10
     }
   },
   "required": [

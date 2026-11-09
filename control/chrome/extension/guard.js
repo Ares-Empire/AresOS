@@ -13,8 +13,10 @@
   const active = () => generation !== null && (inFlight || performance.now() < until);
   // eventPhase proves only synchronous dispatch, never the following default action/task.
   const ownerDispatch = () => !inFlight && owner && currentPhase(owner) !== 0;
+  const control=element=>element.closest('button,input,a,[role=button],[role=link],[role=menuitem],[onclick]') || element;
   function facts(element) { return reader.target(element); }
   function asks(element) {
+    element=control(element);
     const target = facts(element), form = reader.form(element);
     if (form && target.submit && !search(form)) return true;
     if (target.editable) return false;
@@ -41,11 +43,14 @@
       else native.requestSubmit.call(form);
     } else report(kind,form,submitter);
   }
-  function capture(event) {
+  function capture(event,root) {
     if (event.isTrusted && ['pointerdown','mousedown','click','keydown','keyup','input','change'].includes(type(event)) && !inFlight) owner=event;
     if (!active() || ownerDispatch()) return;
-    const element=event.composedPath()[0];
+    let element=event.composedPath()[0];
     if (!(element instanceof Element)) return;
+    const nodeRoot=element.getRootNode();
+    if(root===window ? nodeRoot!==document || globalThis.chrome?.dom?.openOrClosedShadowRoot(element) : nodeRoot!==root)return;
+    if(type(event)==='click')element=control(element);
     if (inFlight && event.isTrusted && mark && element === mark.target && ['keydown','input','change'].includes(type(event))) mark.input=true;
     if (type(event) === 'submit') {
       if (search(reader.form(element,event.submitter)) || allowance(element)) return;
@@ -62,7 +67,11 @@
     // The element comes from native event dispatch, never a page-supplied identity string.
     event.stopImmediatePropagation();
     const element=event.composedPath()[0];
-    if (!(element instanceof Element) || !reader) { event.preventDefault();return; }
+    if (!reader) { event.preventDefault();return; }
+    if (!(element instanceof Element)) {
+      try {if(event.detail?.kind==='dispatch' && event.detail.event instanceof Event){if(!native.dispatch.call(element,event.detail.event))event.preventDefault();}else event.preventDefault();}catch{event.preventDefault();}
+      return;
+    }
     try {
       const detail=event.detail;
       if (detail?.kind === 'native_submit') submit(element,null,'native_submit');
@@ -77,7 +86,7 @@
         const original=detail.kind === 'dispatch' ? detail.event : null;
         const isClick=detail.kind === 'click' || type(original) === 'click';
         if (active() && !ownerDispatch() && isClick && asks(element)) {
-          report('activation',element,null,original?.cancelable ?? true);event.preventDefault();return;
+          report('activation',control(element),null,original?.cancelable ?? true);event.preventDefault();return;
         }
         if (original) { if (!native.dispatch.call(element,original)) event.preventDefault(); }
         else native.click.call(element);
@@ -85,10 +94,10 @@
     } catch { event.preventDefault(); } // Invalid/forged reports can only add a hold.
   }
   function watch(root) {
-    if (roots.has(root)) return;
+    if (root===document || roots.has(root)) return;
     roots.add(root);
     root.addEventListener('aresos-page-call-v2',onCall,true);
-    for (const kind of ['pointerdown','mousedown','click','keydown','keyup','input','change','submit']) root.addEventListener(kind,capture,true);
+    for (const kind of ['pointerdown','mousedown','click','keydown','keyup','input','change','submit']) root.addEventListener(kind,event=>capture(event,root),true);
   }
   watch(window);
   // This object exists only in the extension's isolated world. MAIN has no API or capability.

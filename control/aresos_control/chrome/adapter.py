@@ -14,7 +14,7 @@ from ..paging import fragment_window, ordered_page
 from ..warnings import check_result
 from .bridge import Bridge
 from .exclusions import owner_hosts
-from .policy import allowed_url, classify, HOSTS
+from .policy import allowed_url, classify, HOSTS, hostname
 from .qualification import Qualification, switches
 from .sites import recognize, KINDS
 
@@ -170,7 +170,11 @@ class Chrome:
                     continue
                 single = self.bridge.call('facts', reference=reference)
                 selected = next(f for f in single['frames'] if f['frame'] == reference['frame'])
-                return {'untrusted_content': visible({'form': selected['form']}), 'version_notice':mode['notice']}
+                encoded = canonical(visible(selected['form']))
+                offset,end,cursor,status = fragment_window(digest([token,'form',selected['form']]),len(encoded),args.get('cursor'),16000)
+                if status:raise Refused('stale_reference','Form changed; read again without the cursor.')
+                content={'form':visible(selected['form'])} if len(encoded)<=16000 else {'form_json_fragment':encoded[offset:end]}
+                return {'untrusted_content':content,'characters':len(encoded),'offset':offset,'cursor':cursor,'version_notice':mode['notice']}
             for row in frame['rows']:
                 if verb == 'find' and args['text'].casefold() not in canonical(row).casefold():
                     continue
@@ -189,9 +193,12 @@ class Chrome:
 
     def prepare(self, verb, payload):
         state = payload['binding']
+        if payload.get('adapter', {}).get('confirmation') if payload.get('adapter') else False:
+            payload = copy.deepcopy(payload)
+            payload['confirmation'] = {**payload['adapter']['confirmation'], 'frame':state['frame']}
         description = {'action':'chrome_submit','untrusted_content':{'page_state':state,'input':payload['input'],
                        'resume_kind':payload.get('resume_kind'),'file':payload.get('file'),
-                       'confirmation':payload.get('adapter', {}).get('confirmation') if payload.get('adapter') else None}}
+                       'confirmation':payload.get('confirmation')}}
         question = self.question(verb, description)
         return question, description, copy.deepcopy(payload)
 
@@ -250,7 +257,7 @@ class Chrome:
         addresses = [state['url'], state.get('frame_url') or state.get('dialog', {}).get('frame_url', state['url'])]
         for address in addresses:
             self.allowed_url(address)
-        readonly = any(self.store.get('chrome:readonly:' + (urlsplit(address).hostname or ''), False) for address in addresses)
+        readonly = any(self.store.get('chrome:readonly:' + hostname(address), False) for address in addresses)
         if readonly:
             if payload.get('native_dialog') or payload.get('resume_kind'):
                 raise Refused('readonly_site', 'This site is now read-only; the prepared action was refused before dispatch.')
@@ -300,6 +307,8 @@ class Chrome:
             release(self, path)
         stage('checked', 'Page matched the bound approval immediately before input.')
         stage('dispatched', 'Input or same-kind submission dispatched once; delivery is not proven.')
+        if reply.get('confirmations'):
+            stage('confirmation', canonical(visible(reply['confirmations'])))
         stage('page', canonical(visible(reply)))
         self.steps(reply.get('steps', []), operation['payload']['reference']['tab'])
         return 'done', 'Dispatched once, as the page shows it; this does not prove what the site did.'
@@ -310,14 +319,14 @@ class Chrome:
         return {'name':'resume' if payload.get('resume_kind') else 'input',
                 'reference':payload['reference'],'tab':payload['reference']['tab'],'input':payload['input'],
                 'kind':payload['kind'],'conservative':payload.get('conservative',False),'adapter':bool(payload.get('adapter')),'binding':payload['binding'],
-                'operation':operation,'approved':approved,'primary_submission':bool(payload['binding'].get('form') and (payload['binding']['target'].get('submit') or payload['input'].get('verb')=='press' and payload['input'].get('key','').split('+')[-1]=='Enter' and payload['binding']['target'].get('editable'))),**({'hold':payload['hold']} if payload.get('hold') else {})}
+                'operation':operation,'approved':approved,'confirmation':payload.get('confirmation'),'primary_submission':bool(payload['binding'].get('form') and (payload['binding']['target'].get('submit') or payload['input'].get('verb')=='press' and payload['input'].get('key','').split('+')[-1]=='Enter' and payload['binding']['target'].get('editable'))),**({'hold':payload['hold']} if payload.get('hold') else {})}
 
     def payload(self, verb, args, *, hold=None):
         mode = self.mode(acting=True)
         facts, frame = self.facts(args['reference'])
         if args.get('expected') is not None and args['expected'] != visible(frame['target']):
             raise Refused('stale_reference', 'Element no longer holds its expected state; read again.')
-        readonly = any(self.store.get('chrome:readonly:' + (urlsplit(url).hostname or ''), False) for url in [facts['url'],frame['url']])
+        readonly = any(self.store.get('chrome:readonly:' + hostname(url), False) for url in [facts['url'],frame['url']])
         adapter = recognize(frame['url'], frame['adapter'], frame['target'], verb, args, self.hosts, mode['adapters'])
         kind = classify(verb,args,frame,conservative=mode['conservative'],readonly=readonly,adapter=adapter)
         if hold:
@@ -405,9 +414,17 @@ class Chrome:
     def sites(self, args):
         command = args['command']
         if command == 'list':
-            return {'untrusted_content':{'readonly':self.store.items('chrome:readonly:'),'allowed':self.store.items('chrome:allow:'),'recent':[{'operation_id':op['id'],'question':op['approval'].get('question'),'eligible':bool(op['payload'].get('adapter',{}).get('trusted'))} for _,op in self.store.iter_items('op:') if op['app']=='chrome' and op['state']=='done' and op['action']=='chrome_submit'][-10:]}}
+            def rows():
+                for prefix,kind in [('chrome:readonly:','readonly'),('chrome:allow:','allowed')]:
+                    for key,value in self.store.iter_items(prefix):
+                        yield ((0,key), {'kind':kind,'id':key[len(prefix):],'value':visible(value)})
+                for key,op in self.store.iter_items('op:'):
+                    if op['app']=='chrome' and op['state']=='done' and op['action']=='chrome_submit':
+                        yield ((1,key),{'kind':'recent','operation_id':op['id'],'question':op['approval'].get('question'),
+                            'eligible':bool((op['payload'].get('adapter') or {}).get('trusted'))})
+            return ordered_page(rows,args,['chrome','sites']) | {'untrusted_content':True}
         if command == 'readonly':
-            address = self.allowed_url(args['site']); host = urlsplit(address).hostname
+            address = self.allowed_url(args['site']); host = hostname(address)
             self.store.write({'chrome:readonly:' + host:args.get('enabled',True)},'chrome_sites','Owner changed read-only site')
             return {'readonly':host,'enabled':args.get('enabled',True)}
         if command == 'revoke':
@@ -443,8 +460,7 @@ class Chrome:
         if verb in {'tabs','downloads','bookmarks','history'}:
             self.mode()
             reply = self.bridge.call(verb,**args)
-            values = reply['items']
-            return ordered_page(lambda:(((index,str(index)),visible(value)) for index,value in enumerate(values)),args,['chrome',verb]) | {'untrusted_content':True}
+            return visible(reply) | {'untrusted_content':True}
         if verb == 'fill_form':
             for field in args['fields']:
                 self.payload('fill',field)
@@ -469,7 +485,7 @@ class Chrome:
             facts=self.bridge.call('dialog_facts',tab=args['tab'])
             if facts['dialog'] != args['expected']:
                 raise Refused('stale_approval','Dialog or opener changed; read and prepare again.')
-            readonly=any(self.store.get('chrome:readonly:'+(urlsplit(url).hostname or ''),False) for url in [facts['url'],facts['dialog']['frame_url']])
+            readonly=any(self.store.get('chrome:readonly:'+hostname(url),False) for url in [facts['url'],facts['dialog']['frame_url']])
             if readonly:
                 raise Refused('readonly_site','This site is read-only; the owner must answer its dialogs.')
             kind=classify('dialog',args,{'dialog':facts['dialog']},conservative=mode['conservative'])

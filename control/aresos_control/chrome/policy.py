@@ -26,6 +26,10 @@ def listed(text):
     return set(re.findall(r'\w+', text.casefold())) & {w.casefold() for w in WORDS}
 
 
+def hostname(address):
+    return (urlsplit(address).hostname or '').encode('idna').decode('ascii').rstrip('.').lower()
+
+
 def allowed_url(address, extra_hosts=()):
     if address == 'about:blank':
         return address
@@ -33,7 +37,7 @@ def allowed_url(address, extra_hosts=()):
         parsed = urlsplit(address)
         if parsed.scheme not in {'http', 'https'} or not parsed.hostname or parsed.username or parsed.password:
             raise ValueError()
-        host_name = parsed.hostname.encode('idna').decode('ascii').rstrip('.')
+        host_name = hostname(address)
         if any(host_name == host or host_name.endswith('.' + host) for host in [*FIXED_HOSTS, *extra_hosts]):
             raise ValueError()
         parsed.port
