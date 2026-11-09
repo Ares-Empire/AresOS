@@ -339,6 +339,10 @@ Closing discipline: the first batch includes the lead's previously local `28536e
 
 The final `.work/` inventory printed `[]`: **no files over 500,000,000 bytes** remain. No system software was installed on the Mac, and no local container or Gradle daemon was started. The original stop probe and independent review records remain unchanged; the first stop note changed only its heading.
 
+**Lead, round 29 (2026-11-09) — judgment calls accepted:** both of Codex's judgment calls above are accepted by the lead: an old notice adopts its first fingerprint only when its warning content matches, keeping its acknowledgement and creation time; and location evidence is kept per occurrence, within the existing admission caps.
+
+**Description fix (lead-approved, 2026-11-09, made by the package lead without a Codex run):** the `operation_status` and `operation_repair` descriptions said "one bounded notice per detected count". They now say what is built: a new notice starts only when the set of matching Sent copies changes, and acknowledging a notice covers that occurrence only. Only those two descriptions and their generated copies (`control/generated/mail-tools.json`, `docs/control/TOOLS.md`) change; no behaviour or test changes. Local checks: `python3 control/generate.py --check` (`Generated artifacts match definitions`), the base tests `test_approval_questions test_strict_json test_boundary_exact test_review29_paging` (`Ran 24 tests; OK`) and `test_review29_lifecycle` (OK). This commit is the last one that changes code; its two-pass runs on all three workflows are recorded in PR #9's body.
+
 
 ## Review fixes, round 28
 
