@@ -73,6 +73,8 @@ All runs below are on this branch; commits `a9d1912d` (helper), `8c6a7596` (late
 
 ## JUDGMENT-CALL
 
+**Owner answer (board #155, relayed by the integrator on 2026-11-10): "Yes to all"**: KWrite as Notepad, a new Chrome window per click, the command block / compass looks. These behaviours stay as built. JUDGMENT-CALL 5 was added after that question and still waits for the owner.
+
 1. **Notepad on AresOS is KWrite.** It is in the base image already (no package change), opens one plain window per launch like Windows Notepad, and has a stable Wayland app_id. Rejected: Kate (heavier, reuses one running instance and restores sessions), nano in a terminal (not a notepad window), any editor not in the image (would touch package 21's lock). Changing it later costs one registry file and its test line.
 2. **The hub window gets the identity `aresos-desktop` on Linux** (a client mixin sets GLFW's Wayland app_id and X11 class before the window exists). Without a stable identity the helper cannot hand focus back to the hub when an app closes; titles are not an identity (B2), and guessing from activation timing is fragile. Rejected: no active return (labwc would focus whatever window is next, often another app), or title matching. Package 23 and labwc window rules can use the same name. Undoing it means removing the mixin and the helper constant; Windows never runs it.
 3. **Every click launches, also for the browser.** A click on the browser logo while Chrome is open asks Chrome for a new window, like a Windows shortcut. Rejected: raising the existing window for single-instance apps (more like a phone home screen). A few lines in `open_app` if the owner prefers raising.
@@ -96,7 +98,8 @@ All runs below are on this branch; commits `a9d1912d` (helper), `8c6a7596` (late
 
 ## Open questions
 
-- Should a click on the browser logo raise the open Chrome window instead of opening a new one? (JUDGMENT-CALL 3.)
+- ~~Should a click on the browser logo raise the open Chrome window instead of opening a new one?~~ Answered: a new window per click (board #155).
+- Is the 0.5 s focus hand-off acceptable? (JUDGMENT-CALL 5.)
 - Where should desktop readiness be exposed for package 23's supervisor: a state file from the helper, or only the guardian's channel (package 25)?
 
 ## Review fixes (review 1, gpt-6-astra high, CHANGES-NEEDED at `e25c429`)
@@ -145,3 +148,17 @@ Brief `briefs/24-review-fixes-2.md`. Review 2 confirmed round 1's points 1, 2 an
 - **Shell client unit tests** (JUnit launcher): `tests=17 failed=0`, six runs in a row.
 - **Compile cross-check without Gradle:** all 103 main, client and game-test sources type-check with `javac` against the cached Minecraft and Fabric jars, except the unchanged `includeIntegrated` line that needs Loom's access widener.
 - **Still pending, as after round 1:** the Gradle `build`, the two full `build runClientGameTest` runs on the final head, and the full WSL suite plain and `-B`. The owner's Lunar Client game has been running throughout and free RAM stayed around 2 GB (below 6 GB for Gradle and 4 GB for a full suite), and no client test may start while Lunar runs.
+
+## Review fixes 3 (review 3, gpt-6-astra high, CHANGES-NEEDED at `645a054`)
+
+Brief `briefs/24-review-fixes-3.md`. Review 3 confirmed the rest of round 2. Commits `5b1e7191` (helper) and `4651aa2b` (game test).
+
+1. **P2, apps that outlive a helper restart kept their journal entries forever.** After a restart, a launch whose scope is still running had no process handle in the new helper, so its exit was never seen. The helper now keeps such scopes in a watch list and checks them every 5 s (`SCOPE_CHECK`, one `systemctl --user is-active` call each). When one ends: without window tracking, a one-process app becomes `closed` and a handed-over app (Chrome) is settled; with tracking, a launch that ended before showing a window fails with `launch_failed`, as a live launch would (a handed-over launch keeps waiting for its window until its deadline). Tests: `test_a_restart_keeps_watching_running_apps_until_they_end` (a full journal of running launches, a restart, `journal_full` while they run, the apps exit, the next check closes or settles them, a replay still gets its `closed` answer and the same launch ID, `journal_full` until the replay horizon passes, then a new launch starts) and `test_with_window_tracking_a_restarted_launch_whose_app_exits_fails`. Both fail against the previous helper.
+2. **P3, the two-launch game test bypassed the focus token.** It injected `shell_focus`, which finishes a logo visit without asking `FOCUS_RETURN`. The step now drives the real path: Notepad from the hotbar (`r-1`), Notepad through its logo (`r-2`), focus lost (the app takes the screen), `r-1`'s delayed failure arrives, focus regained through `pauseIfInactive`. Only `r-2`'s own focus token can then return the player in front of the logo, so code that cancels the second launch's token (or ends its visit) fails the test. The third launch's own late failure (`r-3`) is checked the same way: after focus comes back the player stays in the logo. `pauseOnLostFocus` is off for this step and restored afterwards.
+
+### Verification after review fixes 3
+
+- **Python, Windows:** `test_aresos_shell` `Ran 53 tests`, `OK (skipped=3)` (Linux-only socket tests).
+- **WSL, fresh clone of `4651aa2b`, plain and `-B`:** `test_aresos_shell` `Ran 53 tests` `OK`, `test_checkout_sources` `Ran 4 tests` `OK`, `test_owner_path` `Ran 36 tests` `OK`, `bash -n os/build.sh` and `py_compile` clean.
+- **Compile cross-check without Gradle:** all 103 main, client and game-test sources type-check with `javac` against the cached Minecraft and Fabric jars, except the unchanged `includeIntegrated` line that needs Loom's access widener.
+- **Still pending:** the Gradle `build`, the two full `build runClientGameTest` runs on the final head (the only run of the rewritten two-launch step), and the full WSL suite plain and `-B`. The owner's Lunar Client game was still running and free RAM stayed around 2 GB.
