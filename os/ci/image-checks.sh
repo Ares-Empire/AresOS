@@ -55,9 +55,12 @@ set -x
 reuse_probe() {
     # One shell authenticates once; then a child keeps that shell as the
     # parent of sudo -n, as `exec` from a program it started would.
+    # The child is not the last command, so bash cannot exec it in place.
     runuser -u ares -- /usr/bin/bash -c '
         sudo -S -p "" true < /tmp/reuse-password || exit 90
         /usr/bin/bash -c "exec sudo -n true"
+        status=$?
+        exit "$status"
     '
 }
 # Control: the earlier per-parent-process ticket does let that child in, so
