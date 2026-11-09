@@ -21,6 +21,7 @@ record={'format':1,'entries':[{'build':build,'version':version,'channel':'stable
 engine.store.write({'chrome:qualification':record},'chrome_test_setup','Synthetic qualification input for fixture tests')
 engine.close()
 daemon=Daemon(config)
+daemon.engine.adapters['chrome'].refresh_qualification=False
 bridge=daemon.engine.adapters['chrome'].bridge
 original_event=bridge.on_event
 original_accept=bridge.accept

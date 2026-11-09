@@ -27,6 +27,7 @@ class Browser:
              'target':target,'rows':[target],'form':None,'editable':[{'element':'e2','label':'Body','value':'Existing draft'}],'item':'Fixture item',
              'adapter':{'account':None}}],'dialog':None}
     def call(self,name,**args):
+        if name=='validity':return {'document':self.facts['frames'][0]['document'],'control':self.facts.get('control')}
         if name=='configure': return {'configured':True}
         if name in {'facts','read'}: return copy.deepcopy(self.facts)
         if name=='tabs': return {'items':[{'tab':1,'url':self.facts['url'],'title':'Fixture'}]}

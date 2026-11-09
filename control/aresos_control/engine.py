@@ -113,8 +113,10 @@ class Engine:
                              (op.get('notice') and not op.get('ack')))):
                     continue
                 created = self.store.db.execute('SELECT created FROM retained WHERE k=?', (key,)).fetchone()
-                yield ((created[0] if created else 0, op['id']),
-                       {'operation_id': op['id'], 'app': op['app'], 'state': op['state'], 'reason': op['reason']})
+                row = {'operation_id': op['id'], 'app': op['app'], 'state': op['state'], 'reason': op['reason']}
+                if op['app'] == 'chrome' and op['state'] == 'reserved':
+                    row.update(self.adapters['chrome'].pending_state(op))
+                yield ((created[0] if created else 0, op['id']), row)
         return ordered_page(rows, args, ['pending', app]) | {'restore_required': self.store.locked} | notices
 
     def page(self, values, args, scope):

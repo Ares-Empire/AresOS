@@ -48,6 +48,7 @@ class Chrome:
         self.bridge = Bridge()
         self.bridge.on_event = self.event
         self.trusted_context = False
+        self.refresh_qualification = True
         self.hosts = HOSTS
         self.read_owner_hosts = owner_hosts
         self.upload_dir = Path("/run/aresos-tools/uploads")
@@ -90,12 +91,38 @@ class Chrome:
         if getattr(self, '_configured_exclusions', None) != (self.bridge.session, hosts):
             self.bridge.call('configure', excluded_hosts=hosts)
             self._configured_exclusions = (self.bridge.session, hosts)
+        self.maintenance()
         mode = switches(self.qualification.record(), self.qualification.build, self.bridge.version)
         groups = ['classification','page_script','binding','password_exclusion'] if acting else ['password_exclusion']
         for group in groups:
             if not mode['core'][group]:
                 raise Refused('qualification_failed', f'Chrome {self.bridge.version}: {group} failed qualification; this action is off until fixed.')
         return mode
+
+    def maintenance(self):
+        if not self.refresh_qualification or not isinstance(self.bridge, Bridge) or not self.bridge.version:
+            return
+        identity = (self.bridge.session, self.bridge.version)
+        uncovered = not any(item['build'] == self.qualification.build and item['version'] == self.bridge.version
+                            for item in self.qualification.record()['entries'])
+        force = uncovered and getattr(self, '_refresh_attempted', None) != identity
+        self._refresh_attempted = identity
+        self.qualification.refresh(force=force)
+
+    def pending_state(self, operation):
+        payload = operation.get('payload', {})
+        state = payload.get('binding', {})
+        try:
+            if payload.get('process_session') != self.process_session or state.get('session') != self.bridge.session:
+                raise Refused('stale_approval', 'Browser or service session changed; drop this preparation and prepare again.')
+            self.mode(acting=True)
+            self.check_readonly(payload)
+            live = self.bridge.call('validity', reference=payload['reference'])
+            if live.get('document') != state.get('document') or live.get('control') != state.get('control'):
+                raise Refused('stale_approval', 'Tab control or document changed; drop and prepare again.')
+            return {'validity':'current'}
+        except Refused as exc:
+            return {'validity':'refused', 'reason':str(exc), 'refusal_code':exc.code}
 
     def allowed_url(self, address):
         return allowed_url(address, self.read_owner_hosts())
@@ -252,6 +279,7 @@ class Chrome:
         self.mode(acting=True)
         self.check_readonly(payload)
         command = self.command(payload, operation['id'], approved=True)
+        path = None
         if payload.get('file'):
             from .uploads import copy_for_browser
             data, path = copy_for_browser(self, payload['file'])
@@ -267,6 +295,9 @@ class Chrome:
             if exc.code in {'stale_reference','stale_approval','owner_signin','refused'}:
                 raise NothingLeft(str(exc)) from exc
             raise
+        finally:
+            from .uploads import release
+            release(self, path)
         stage('checked', 'Page matched the bound approval immediately before input.')
         stage('dispatched', 'Input or same-kind submission dispatched once; delivery is not proven.')
         stage('page', canonical(visible(reply)))
@@ -336,6 +367,11 @@ class Chrome:
     def steps(self, steps, tab):
         followups=[]
         for step in steps:
+            source_id = digest([self.bridge.session, tab, step])
+            key = 'intent:chrome:' + source_id
+            source = self.store.get(key, {'id':source_id,'app':'chrome'})
+            source.update(state='started',step=step,tab=tab)
+            self.store.write({key:source},'chrome_page_step','Page step check open',outcome='started')
             facts = self.bridge.call('read',tab=tab)
             frame = next(item for item in facts['frames'] if item['frame'] == step['frame'])
             reference = {'session':facts['session'],'tab':tab,'frame':frame['frame'],'document':frame['document'],
@@ -343,11 +379,10 @@ class Chrome:
             if step['kind'] in {'native_submit','submit_event'}:
                 payload, _ = self.payload('click',{'reference':reference},hold=step)
                 followups.append(self.engine.reserve('chrome','submit',payload))
+                source.update(state='done',reference=reference)
+                self.store.write({key:source},'chrome_page_step','Stopped submission preparation committed')
             else:
-                # A warning-producing postcheck stays open until its result commits.
-                source = {'id':uuid.uuid4().hex,'app':'chrome','state':'started','step':step,'reference':reference}
-                key = 'intent:chrome:' + source['id']
-                self.store.write({key:source},'chrome_page_step','Page activation check open',outcome='started')
+                source['reference'] = reference
                 text = 'The page activated an asking control by itself; it may have happened. Never resume this activation.' if step['kind'] == 'activation_unknown' else 'The page tried to activate an asking control by itself; it was stopped. Act on the current control to prepare fresh asking input if wanted.'
                 changes, _ = check_result(self.store,source,key,'page_activation',step,{'reason':text,'warning':text,'reference':reference})
                 source['state'] = 'unknown' if step['kind'] == 'activation_unknown' else 'done'

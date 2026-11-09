@@ -92,10 +92,10 @@ class Qualification:
         self.store.write({'chrome:qualification': candidate}, 'chrome_qualification', 'Verified append-only Chrome qualification update')
         return candidate
 
-    def refresh(self, *, now=None, verifier=verify):
+    def refresh(self, *, now=None, verifier=verify, force=False):
         now = time.time() if now is None else now
         previous = self.store.get('chrome:qualification_fetch', {})
-        if now - previous.get('time', 0) < 86400:
+        if not force and now - previous.get('time', 0) < 86400:
             return
         url = f'https://raw.githubusercontent.com/{REPOSITORY}/refs/heads/chrome-qualification/control/chrome/qualification.json'
         try:

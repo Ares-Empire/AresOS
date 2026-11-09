@@ -36,7 +36,7 @@ def unfinished(store, cutoff=None, keys=None):
             yield key, 'recovery-' + key[7:], value['app'], 'A caller export is unfinished. Its recovery space is still held. Inspect the destination file and recorded export before repeating or resolving it.'
         elif key.startswith('mail:account:') and not value.get('onboarded', value.get('ready', False)):
             yield key, 'recovery-' + digest(key)[:32], 'mail', 'Owner account setup is unfinished. Probes may already have sent mail or created folders. Inspect the setup log and server; never repeat probes automatically.'
-        elif key.startswith('intent:'):
+        elif key.startswith('intent:') and (value.get('app') != 'chrome' or value.get('state') in {'started','unknown'}):
             yield key, value['id'], value['app'], 'A change was interrupted before its completion was recorded. It may already have changed the server. Inspect the audit and your app before repeating.'
 
     if not hasattr(store, 'legacy_intents'):
@@ -59,6 +59,8 @@ def unfinished(store, cutoff=None, keys=None):
 def recovery_notices(store, include_checks=True):
     candidates = getattr(store, 'startup_intents', set())
     keys = {key for key, _ in candidates if not key.startswith('legacy-intent:')}
+    chrome_checks = {key for key,value in store.iter_items('intent:chrome:') if value.get('state') in {'started','unknown'}}
+    keys.update(chrome_checks)
     if include_checks:
         keys.update(open_filings(store))
         keys.update(key for key, value in store.iter_items('mail:account:')
@@ -66,7 +68,7 @@ def recovery_notices(store, include_checks=True):
     for key, notice_id, app, reason in unfinished(store, keys=keys):
         filing = key.startswith(('mail:filing:', 'mail:rename:'))
         account = key.startswith('mail:account:')
-        if (key, notice_id) not in candidates and not (include_checks and (filing or account)):
+        if (key, notice_id) not in candidates and key not in chrome_checks and not (include_checks and (filing or account)):
             continue
         if filing:
             reason = ('Filing roles and locations are not yet checked. The interrupted check has no committed result. '
