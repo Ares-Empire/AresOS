@@ -52,7 +52,9 @@ import stat
 import struct
 import subprocess
 import sys
+import threading
 import time
+import queue
 
 LOG = logging.getLogger('aresos-shell')
 
@@ -68,8 +70,9 @@ HELLO_TIMEOUT = 10.0
 WINDOW_TIMEOUT = 30.0
 # A close this soon after its window lost focus is the compositor handing focus on, not the owner switching.
 HANDOFF = 0.5
-# How often scopes of launches from before a restart are checked (one systemctl call each).
+# Pause between the end of one scope check and the start of the next (one batched systemctl call each).
 SCOPE_CHECK = 5.0
+SCOPE_TIMEOUT = 5.0
 JOURNAL_LIMIT = 256
 # Well beyond the mod's 45-second open timeout, the only window in which it resends a request ID.
 REPLAY_HORIZON = 600.0
@@ -447,13 +450,110 @@ class ScopeLauncher:
                           stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                           start_new_session=True, close_fds=True)
 
-    def is_active(self, unit):
+
+
+# ---------------------------------------------------------------- scope watching
+
+ACTIVE, GONE, UNKNOWN = 'active', 'gone', 'unknown'
+RUNNING_STATES = frozenset({'active', 'activating', 'deactivating', 'reloading', 'refreshing'})
+LIST_SCOPES = [SYSTEMCTL, '--user', 'list-units', '--type=scope', '--all', '--no-legend', '--plain', '--no-pager']
+
+
+def parse_scopes(text):
+    """Unit name to ACTIVE state from `systemctl list-units --plain --no-legend`, or None if any line is odd."""
+    states = {}
+    for line in text.splitlines():
+        fields = line.split()
+        if not fields:
+            continue
+        if fields[0] in ('*', '●'):  # status bullets, should --plain ever keep them
+            fields = fields[1:]
+        if len(fields) < 4 or not fields[0].endswith('.scope'):
+            return None
+        states[fields[0]] = fields[2]
+    return states
+
+
+def query_scopes(units, run=subprocess.run, timeout=SCOPE_TIMEOUT):
+    """One batched call for all units: each is ACTIVE, GONE or UNKNOWN (the call failed or made no sense)."""
+    try:
+        done = run(LIST_SCOPES, capture_output=True, text=True, timeout=timeout, stdin=subprocess.DEVNULL)
+    except (OSError, ValueError, subprocess.SubprocessError):
+        return {unit: UNKNOWN for unit in units}
+    states = parse_scopes(done.stdout) if done.returncode == 0 and isinstance(done.stdout, str) else None
+    if states is None:
+        return {unit: UNKNOWN for unit in units}
+    # A transient scope started with --collect disappears from the list once it has ended.
+    return {unit: ACTIVE if states.get(unit) in RUNNING_STATES else GONE for unit in units}
+
+
+class ScopeWatcher:
+    """Checks launch scopes on its own thread, never on the event loop.
+
+    The event loop says which units to watch (`watch`); one thread runs one batched query per pass, waits
+    SCOPE_CHECK after each pass ends, and posts the answers to a queue with a wake-up byte for the loop.
+    """
+
+    def __init__(self, run=subprocess.run, interval=SCOPE_CHECK, timeout=SCOPE_TIMEOUT):
+        self.run = run
+        self.interval = interval
+        self.timeout = timeout
+        self.lock = threading.Lock()
+        self.units = frozenset()
+        self.results = queue.SimpleQueue()
+        self.stopping = threading.Event()
+        self.thread = None
+        self.reader, self.writer = socket.socketpair()
+        self.reader.setblocking(False)
+        self.writer.setblocking(False)
+
+    def watch(self, units):
+        with self.lock:
+            self.units = frozenset(units)
+
+    def start(self):
+        self.thread = threading.Thread(target=self.loop, name='aresos-scope-watcher', daemon=True)
+        self.thread.start()
+
+    def loop(self):
+        while not self.stopping.wait(self.interval):
+            try:
+                self.check()
+            except Exception:
+                LOG.exception('scope check failed; trying again next pass')
+
+    def check(self):
+        """One pass; tests call it directly instead of running the thread."""
+        with self.lock:
+            units = self.units
+        if not units:
+            return
+        self.results.put(query_scopes(units, self.run, self.timeout))
         try:
-            return self.run([SYSTEMCTL, '--user', 'is-active', '--quiet', unit], timeout=5,
-                            stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
-                            stderr=subprocess.DEVNULL).returncode == 0
-        except (OSError, subprocess.SubprocessError):
-            return False
+            self.writer.send(b'w')
+        except OSError:
+            pass  # a full wake-up buffer already holds a wake-up
+
+    def take(self):
+        """All answers posted since the last call, oldest first."""
+        try:
+            while self.reader.recv(4096):
+                pass
+        except OSError:
+            pass
+        answers = []
+        while True:
+            try:
+                answers.append(self.results.get_nowait())
+            except queue.Empty:
+                return answers
+
+    def stop(self):
+        self.stopping.set()
+        if self.thread is not None:
+            self.thread.join(self.timeout + 1)
+        self.reader.close()
+        self.writer.close()
 
 
 # ---------------------------------------------------------------- windows
@@ -738,11 +838,14 @@ class Helper:
     """The protocol state machine. Sockets and the compositor stay outside it."""
 
     def __init__(self, registry_dir, instance, nonce, journal_path, launcher=None, windows=None,
-                 activate=None, clock=time.monotonic, executable=None, window_timeout=WINDOW_TIMEOUT, registry=None):
+                 activate=None, clock=time.monotonic, executable=None, window_timeout=WINDOW_TIMEOUT, registry=None,
+                 watcher=None):
         self.instance = instance
         self.nonce = nonce
         self.apps, self.revision = registry or load_registry(registry_dir)
         self.launcher = launcher or ScopeLauncher()
+        # Started by build(); tests drive its passes directly.
+        self.watcher = watcher or ScopeWatcher(run=self.launcher.run)
         self.windows = windows
         self.activate_window = activate
         self.clock = clock
@@ -766,8 +869,6 @@ class Helper:
         self.handoff = None
         self.returning_until = None
         self.adopting = set()
-        self.scopes = {}
-        self.next_scope_check = 0.0
         self.world = None
         self.last_heartbeat = None
         self.reconcile()
@@ -779,18 +880,27 @@ class Helper:
     # -- restart reconciliation
 
     def reconcile(self):
-        """Never relaunch after a restart: settle every launch the journal still calls open."""
+        """Never relaunch after a restart: settle every launch the journal still calls open.
+
+        One batched scope query (not one per launch) says which apps still run; an unknown answer decides nothing
+        and leaves the launch to the scope watcher.
+        """
+        units = {entry['unit'] for entry in self.journal.entries.values()
+                 if entry['state'] not in FINAL and not entry.get('settled') and entry.get('unit')}
+        states = query_scopes(units, self.watcher.run, self.watcher.timeout) if units else {}
         changed = False
         for request_id, entry in self.journal.entries.items():
             if entry['state'] in FINAL:
                 continue
-            active = bool(entry.get('unit')) and self.launcher.is_active(entry['unit'])
+            scope = states.get(entry.get('unit'), GONE)
             if entry['state'] == 'launching':
-                if active:
-                    entry['state'] = 'starting'
-                else:
+                if scope == GONE:
                     entry.update(state='failed', error='launch_uncertain',
                                  message='the helper restarted while starting this app; it was not retried')
+                else:
+                    entry['state'] = 'starting'
+                    if scope == UNKNOWN:
+                        entry['uncertain'] = True  # if it turns out gone, it never surely started
                 self.journal.touch(entry)
                 changed = True
                 if entry['state'] in FINAL:
@@ -802,20 +912,16 @@ class Helper:
                     self.deadlines[request_id] = self.clock() + self.window_timeout
                 else:
                     self.adopting.add(request_id)
-            else:
-                # Without window tracking only the scope says whether a one-process-per-launch app still runs.
-                app = self.apps.get(entry['app_id'])
-                if not active and (app is None or app.instance == 'multi'):
-                    entry['state'] = 'closed'
-                    self.journal.touch(entry)
-                    changed = True
-                elif not active and entry['state'] == 'starting' and not entry.get('settled'):
+            elif scope == GONE and not entry.get('settled'):
+                state, fields = self.end_of_scope(entry)
+                if state == 'settled':
                     entry['settled'] = True
+                elif state is not None:
+                    entry['state'] = state
+                    entry.update(fields)
+                if state is not None:
                     self.journal.touch(entry)
                     changed = True
-            if active and entry['state'] == 'starting' and not entry.get('settled'):
-                # Its process belonged to the old helper; watch the scope instead until it ends.
-                self.scopes[request_id] = entry['unit']
         if changed:
             self.journal.save()
 
@@ -1086,33 +1192,56 @@ class Helper:
         self.journal.touch(entry)
         self.journal.save()
 
-    def scope_ended(self, request_id):
-        """A launch from before a restart ended; the old helper's exit code is unknown, so judge by kind."""
-        entry = self.journal.entries.get(request_id)
-        if entry is None or entry['state'] != 'starting':
-            return
+    def end_of_scope(self, entry):
+        """What a launch becomes once its scope is gone and no process of ours can say how it ended."""
         app = self.apps.get(entry['app_id'])
         single = app is not None and app.instance == 'single'
+        if entry.get('uncertain'):
+            return 'failed', {'error': 'launch_uncertain',
+                              'message': 'the helper restarted while starting this app; it was not retried'}
         if self.windows is None:
-            if single:
-                self.settle(request_id)
-            else:
-                self.set_state(request_id, 'closed')
-        elif not single:
-            self.set_state(request_id, 'failed', error='launch_failed', message='exited before showing a window')
-        # With window tracking, a handed-over launch keeps waiting for its window until its deadline.
+            # A one-process app has closed; a handed-over app's answer can't change any more.
+            return ('settled', {}) if single else ('closed', {})
+        if entry['state'] == 'starting' and not single:
+            return 'failed', {'error': 'launch_failed', 'message': 'exited before showing a window'}
+        # With window tracking, windows decide the rest (a handed-over launch waits for its window).
+        return None, {}
+
+    def watched_units(self):
+        """Unit to request ID for every launch whose end only its scope can show.
+
+        Without window tracking that is every unresolved launch, focused and background included. With tracking,
+        windows decide, except for a launch still starting that this helper did not start itself (no process).
+        """
+        units = {}
+        for request_id, entry in self.journal.entries.items():
+            if entry['state'] in FINAL or entry.get('settled') or not entry.get('unit'):
+                continue
+            if self.windows is None or (entry['state'] == 'starting' and request_id not in self.processes):
+                units[entry['unit']] = request_id
+        return units
+
+    def scopes_answered(self):
+        """Apply the scope watcher's answers. Only GONE ends a launch; UNKNOWN keeps it and its watch."""
+        watched = self.watched_units()
+        for answers in self.watcher.take():
+            for unit, state in answers.items():
+                request_id = watched.get(unit)
+                # A launch with its own process is ended by that process and its exit code, never by the list.
+                if state != GONE or request_id is None or request_id in self.processes:
+                    continue
+                entry = self.journal.entries.get(request_id)
+                if entry is None or entry['state'] in FINAL or entry.get('settled'):
+                    continue
+                state_after, fields = self.end_of_scope(entry)
+                if state_after == 'settled':
+                    self.settle(request_id)
+                elif state_after is not None:
+                    self.set_state(request_id, state_after, **fields)
+        self.watcher.watch(self.watched_units())
 
     def tick(self):
         now = self.clock()
-        if self.scopes and now >= self.next_scope_check:
-            self.next_scope_check = now + SCOPE_CHECK
-            for request_id, unit in list(self.scopes.items()):
-                entry = self.journal.entries.get(request_id)
-                if entry is None or entry['state'] != 'starting' or entry.get('settled'):
-                    del self.scopes[request_id]
-                elif not self.launcher.is_active(unit):
-                    del self.scopes[request_id]
-                    self.scope_ended(request_id)
         for conn in list(self.connections):
             if not conn.authenticated and now - conn.opened > HELLO_TIMEOUT:
                 conn.finish()
@@ -1144,6 +1273,7 @@ class Helper:
                 if entry is not None and entry['state'] == 'starting':
                     self.set_state(request_id, 'failed', error='no_window',
                                    message='no matching window appeared')
+        self.scopes_answered()
 
     def windows_changed(self):
         """Apply the compositor's changes so far.
@@ -1345,6 +1475,7 @@ class Server:
         self.selector.register(self.listener, selectors.EVENT_READ, 'listener')
         if wayland is not None:
             self.selector.register(wayland.sock, selectors.EVENT_READ, 'wayland')
+        self.selector.register(helper.watcher.reader, selectors.EVENT_READ, 'scopes')
 
     def watch(self, peer):
         events = selectors.EVENT_READ | (selectors.EVENT_WRITE if peer.outbuf else 0)
@@ -1382,6 +1513,8 @@ class Server:
             elif key.data == 'wayland':
                 self.wayland.readable()
                 self.helper.windows_changed()
+            elif key.data == 'scopes':
+                self.helper.scopes_answered()
             else:
                 peer = key.data
                 if mask & selectors.EVENT_WRITE:
@@ -1413,6 +1546,7 @@ class Server:
             peer.close()
         self.selector.close()
         self.listener.close()
+        self.helper.watcher.stop()
         try:
             os.unlink(self.path)
         except FileNotFoundError:
@@ -1432,6 +1566,8 @@ def build(registry_dir, instance, nonce, journal_path, environ=None, launcher=No
         wayland, windows = None, None
     helper = Helper(registry_dir, instance, nonce, journal_path, launcher=launcher, windows=windows,
                     activate=wayland.activate if wayland else None, clock=clock, registry=registry)
+    helper.watcher.watch(helper.watched_units())
+    helper.watcher.start()
     return helper, wayland
 
 

@@ -6,9 +6,11 @@ import pathlib
 import socket
 import stat
 import struct
+import subprocess
 import sys
 import tempfile
 import threading
+import time
 import types
 import unittest
 from unittest import mock
@@ -60,22 +62,41 @@ class Base(unittest.TestCase):
         self.active_units = set()
         self.windows = None
         self.activations = []
+        self.systemctl_calls = []
+        self.scope_answer = None
 
     def clock(self):
         return self.now[0]
 
+    def systemctl(self, argv, **options):
+        """The batched scope listing: the units in active_units run; scope_answer overrides with a failure."""
+        self.systemctl_calls.append(list(argv))
+        if isinstance(self.scope_answer, BaseException):
+            raise self.scope_answer
+        if self.scope_answer is not None:
+            return mock.Mock(returncode=self.scope_answer[0], stdout=self.scope_answer[1])
+        listing = ''.join(f'{unit} loaded active running AresOS app\n' for unit in sorted(self.active_units))
+        return mock.Mock(returncode=0, stdout=listing)
+
+    def scope_pass(self, helper):
+        """One pass of the watcher, then the event loop applies its answers."""
+        helper.watcher.watch(helper.watched_units())
+        helper.watcher.check()
+        helper.tick()
+
     def launcher(self):
-        run = mock.Mock(side_effect=lambda argv, **k: mock.Mock(returncode=0 if argv[-1] in self.active_units else 3))
-        return shell.ScopeLauncher(popen=self.popen, run=run, environ={
+        return shell.ScopeLauncher(popen=self.popen, run=self.systemctl, environ={
             'HOME': '/var/home/ares', 'PATH': '/usr/bin', 'WAYLAND_DISPLAY': 'wayland-0',
             'ARESOS_LAUNCH_NONCE': NONCE, 'ARESOS_DESKTOP_INSTANCE': INSTANCE, 'NOTIFY_SOCKET': '/run/notify'})
 
     def helper(self, registry=REGISTRY, missing=('/usr/bin/google-chrome',), tracked=False):
         if tracked:
             self.windows = shell.Windows(clock=self.clock)
-        return shell.Helper(str(registry), INSTANCE, NONCE, self.journal, launcher=self.launcher(),
-                            windows=self.windows, activate=self.activate if tracked else None, clock=self.clock,
-                            executable=lambda path: path not in missing)
+        helper = shell.Helper(str(registry), INSTANCE, NONCE, self.journal, launcher=self.launcher(),
+                              windows=self.windows, activate=self.activate if tracked else None, clock=self.clock,
+                              executable=lambda path: path not in missing)
+        self.addCleanup(helper.watcher.stop)
+        return helper
 
     def activate(self, handle):
         self.activations.append(handle)
@@ -486,14 +507,16 @@ class LaunchTest(Base):
         self.active_units = {entry['unit'] for entry in helper.journal.entries.values()}  # all still running
         restarted = self.helper(missing=())
         conn = self.connect(restarted)
-        self.assertEqual(len(restarted.scopes), shell.JOURNAL_LIMIT)
+        self.assertEqual(len(restarted.watched_units()), shell.JOURNAL_LIMIT)
         self.assertEqual(restarted.processes, {})
+        # One batched listing at start-up, not one call per launch.
+        self.assertEqual(self.systemctl_calls, [shell.LIST_SCOPES])
         self.assertEqual(self.request(restarted, conn, 'open_app', 'n-1', app_id='notepad')['error'], 'journal_full')
         # The apps quit after the restart; the next scope check notices without any process handle.
         self.active_units = set()
-        self.now[0] += shell.SCOPE_CHECK
-        restarted.tick()
-        self.assertEqual(restarted.scopes, {})
+        self.scope_pass(restarted)
+        self.assertEqual(restarted.watched_units(), {})
+        self.assertEqual(len(self.systemctl_calls), 2)
         self.assertTrue(restarted.journal.entries['o-0'].get('settled'))  # Chrome handed over
         terminal = restarted.journal.entries['o-1']
         self.assertEqual(terminal['state'], 'closed')
@@ -511,15 +534,17 @@ class LaunchTest(Base):
         helper = shell.Helper(str(REGISTRY), INSTANCE, NONCE, self.journal, launcher=self.launcher(),
                               windows=self.windows, activate=self.activate, clock=self.clock,
                               executable=lambda path: True)
+        self.addCleanup(helper.watcher.stop)
         conn = self.connect(helper)
         launch = self.request(helper, conn, 'open_app', 'o-1', app_id='terminal')
         self.active_units = {helper.journal.entries['o-1']['unit']}
         restarted = shell.Helper(str(REGISTRY), INSTANCE, NONCE, self.journal, launcher=self.launcher(),
                                  windows=shell.Windows(clock=self.clock), activate=self.activate, clock=self.clock,
                                  executable=lambda path: True)
-        self.assertEqual(list(restarted.scopes), ['o-1'])
+        self.addCleanup(restarted.watcher.stop)
+        self.assertEqual(list(restarted.watched_units().values()), ['o-1'])
         self.active_units = set()
-        restarted.tick()
+        self.scope_pass(restarted)
         entry = restarted.journal.entries['o-1']
         self.assertEqual((entry['state'], entry['error'], entry['launch_id']), ('failed', 'launch_failed',
                                                                                 launch['launch_id']))
@@ -604,6 +629,165 @@ class LaunchTest(Base):
         again = self.request(helper, conn, 'open_app', f'o-{last}', app_id='browser' if last % 3 == 0 else 'terminal')
         self.assertIn(again['state'], ('starting', 'closed'))
         self.assertEqual(len(launched), shell.JOURNAL_LIMIT * 2)
+
+
+class ScopeWatcherTest(Base):
+    """One batched scope listing per pass, on its own thread, with three answers."""
+
+    def answer(self, returncode=0, stdout='', error=None):
+        def run(argv, **options):
+            self.systemctl_calls.append((list(argv), options.get('timeout')))
+            if error is not None:
+                raise error
+            return mock.Mock(returncode=returncode, stdout=stdout)
+        return run
+
+    def test_the_batched_listing_answers_active_gone_and_unknown(self):
+        units = ['u-active.scope', 'u-activating.scope', 'u-stopping.scope', 'u-bullet.scope', 'u-inactive.scope',
+                 'u-failed.scope', 'u-absent.scope']
+        listing = ('u-active.scope loaded active running AresOS app: Terminal\n'
+                   'u-activating.scope loaded activating start AresOS app\n'
+                   'u-stopping.scope loaded deactivating stop-sigterm AresOS app\n'
+                   '● u-bullet.scope loaded active running AresOS app\n'
+                   'u-inactive.scope loaded inactive dead AresOS app\n'
+                   'u-failed.scope loaded failed failed AresOS app\n'
+                   'other.scope loaded active running Something else\n\n')
+        states = shell.query_scopes(units, self.answer(stdout=listing), timeout=3)
+        self.assertEqual(states, {'u-active.scope': 'active', 'u-activating.scope': 'active',
+                                  'u-stopping.scope': 'active', 'u-bullet.scope': 'active',
+                                  'u-inactive.scope': 'gone', 'u-failed.scope': 'gone', 'u-absent.scope': 'gone'})
+        self.assertEqual(self.systemctl_calls, [(shell.LIST_SCOPES, 3)])
+        self.assertEqual(shell.query_scopes(units, self.answer(stdout='')), {unit: 'gone' for unit in units})
+        for run in (self.answer(returncode=1, stdout=listing), self.answer(stdout='u-active.scope loaded\n'),
+                    self.answer(stdout='this is not a unit list at all\n'), self.answer(stdout=None),
+                    self.answer(error=subprocess.TimeoutExpired(shell.LIST_SCOPES, 3)),
+                    self.answer(error=FileNotFoundError('systemctl'))):
+            with self.subTest(run=run):
+                self.assertEqual(shell.query_scopes(units, run), {unit: 'unknown' for unit in units})
+
+    def restarted_with(self, entries, tracked=False):
+        with open(self.journal, 'w') as handle:
+            json.dump({'instance': INSTANCE, 'launches': entries}, handle)
+        if tracked:
+            return self.helper(missing=(), tracked=True)
+        self.windows = None
+        return self.helper(missing=())
+
+    def test_unknown_answers_keep_the_launch_until_a_real_gone(self):
+        unit = 'app-aresos-terminal-t1.scope'
+        self.active_units = {unit}
+        helper = self.restarted_with({'o-1': {'app_id': 'terminal', 'launch_id': 't1', 'state': 'starting',
+                                              'unit': unit}})
+        for failure in (subprocess.TimeoutExpired(shell.LIST_SCOPES, 5), OSError('busy'), (1, ''),
+                        (0, 'garbage\n'), None):
+            self.scope_answer = failure
+            self.scope_pass(helper)
+            with self.subTest(failure=repr(failure)):
+                self.assertEqual(helper.journal.entries['o-1']['state'], 'starting')
+                self.assertEqual(helper.watched_units(), {unit: 'o-1'})
+        self.scope_answer = None
+        self.active_units = set()
+        self.scope_pass(helper)
+        self.assertEqual(helper.journal.entries['o-1']['state'], 'closed')
+        self.assertEqual(helper.watched_units(), {})
+
+    def test_an_unknown_answer_at_start_up_decides_nothing(self):
+        self.scope_answer = subprocess.TimeoutExpired(shell.LIST_SCOPES, 5)
+        helper = self.restarted_with({
+            'o-1': {'app_id': 'terminal', 'launch_id': 't1', 'state': 'launching', 'unit': 'u1.scope'},
+            'o-2': {'app_id': 'notepad', 'launch_id': 'n1', 'state': 'starting', 'unit': 'u2.scope'}})
+        entries = helper.journal.entries
+        self.assertEqual((entries['o-1']['state'], entries['o-2']['state']), ('starting', 'starting'))
+        self.scope_answer = None  # both turn out gone
+        self.scope_pass(helper)
+        # The interrupted launch never surely started; the other one ran and ended.
+        self.assertEqual((entries['o-1']['state'], entries['o-1']['error']), ('failed', 'launch_uncertain'))
+        self.assertEqual(entries['o-2']['state'], 'closed')
+        self.popen.assert_not_called()
+
+    def test_tracking_lost_after_a_restart_still_ends_focused_and_background_launches(self):
+        entries = {}
+        for number in range(shell.JOURNAL_LIMIT):
+            app_id = 'browser' if number % 4 == 0 else 'notepad'
+            entries[f'o-{number}'] = {'app_id': app_id, 'launch_id': f'l{number}', 'unit': f'u{number}.scope',
+                                      'state': 'focused' if number == 1 else 'background'}
+        self.active_units = {entry['unit'] for entry in entries.values()}
+        helper = self.restarted_with(entries)  # the compositor is gone: no window tracking now
+        conn = self.connect(helper)
+        self.assertNotIn('windows', helper.capabilities)
+        self.assertEqual(len(helper.watched_units()), shell.JOURNAL_LIMIT)
+        self.assertEqual(self.request(helper, conn, 'open_app', 'n-1', app_id='terminal')['error'], 'journal_full')
+        self.assertEqual(self.request(helper, conn, 'open_app', 'o-1', app_id='notepad')['state'], 'focused')
+        self.active_units = set()
+        self.scope_pass(helper)
+        self.assertEqual(helper.watched_units(), {})
+        self.assertEqual(helper.journal.entries['o-1']['state'], 'closed')
+        self.assertTrue(helper.journal.entries['o-0'].get('settled'))
+        again = self.request(helper, conn, 'open_app', 'o-1', app_id='notepad')
+        self.assertEqual((again['state'], again['launch_id']), ('closed', 'l1'))
+        self.assertEqual(self.request(helper, conn, 'open_app', 'n-2', app_id='terminal')['error'], 'journal_full')
+        self.now[0] += shell.REPLAY_HORIZON
+        self.assertEqual(self.request(helper, conn, 'open_app', 'n-3', app_id='terminal')['state'], 'starting')
+        self.assertEqual(self.popen.call_count, 1)
+
+    def test_with_tracking_windows_decide_and_only_inherited_starting_launches_are_watched(self):
+        self.active_units = {'u1.scope', 'u2.scope', 'u3.scope'}
+        helper = self.restarted_with({
+            'o-1': {'app_id': 'notepad', 'launch_id': 'n1', 'state': 'focused', 'unit': 'u1.scope'},
+            'o-2': {'app_id': 'terminal', 'launch_id': 't1', 'state': 'starting', 'unit': 'u2.scope'},
+            'o-3': {'app_id': 'browser', 'launch_id': 'b1', 'state': 'starting', 'unit': 'u3.scope'}}, tracked=True)
+        self.assertEqual(helper.journal.entries['o-1']['state'], 'closed')  # no Notepad window is open
+        self.assertEqual(helper.watched_units(), {'u2.scope': 'o-2', 'u3.scope': 'o-3'})
+        live = self.request(helper, self.connect(helper), 'open_app', 'o-4', app_id='notepad')
+        self.assertEqual(live['state'], 'starting')
+        self.assertNotIn('o-4', helper.watched_units().values())  # its own process decides
+        self.active_units = set()
+        self.scope_pass(helper)
+        self.assertEqual(helper.journal.entries['o-2']['error'], 'launch_failed')
+        self.assertEqual(helper.journal.entries['o-3']['state'], 'starting')  # Chrome waits for its window
+
+    def test_a_slow_check_never_holds_up_the_helper(self):
+        started, release = threading.Event(), threading.Event()
+        passes = []
+
+        def slow(argv, **options):
+            passes.append([time.monotonic()])
+            started.set()
+            release.wait(5)
+            passes[-1].append(time.monotonic())
+            return mock.Mock(returncode=0, stdout=f'{still} loaded active running AresOS app\n')
+
+        unit, still = 'app-aresos-terminal-t1.scope', 'app-aresos-terminal-t2.scope'
+        self.active_units = {unit, still}
+        helper = self.restarted_with({
+            'o-1': {'app_id': 'terminal', 'launch_id': 't1', 'state': 'starting', 'unit': unit},
+            'o-2': {'app_id': 'terminal', 'launch_id': 't2', 'state': 'starting', 'unit': still}})
+        conn = self.connect(helper)
+        helper.watcher.run = slow
+        helper.watcher.interval = 0.05
+        helper.watcher.watch(helper.watched_units())
+        helper.watcher.start()
+        self.assertTrue(started.wait(5))
+        began = time.monotonic()
+        self.assertTrue(self.request(helper, conn, 'list_apps', 'l-1')['ok'])
+        helper.tick()
+        self.assertLess(time.monotonic() - began, 0.5, 'a reply waited for the scope check')
+        self.assertEqual(helper.journal.entries['o-1']['state'], 'starting')
+        release.set()
+        deadline = time.monotonic() + 5
+        while helper.journal.entries['o-1']['state'] != 'closed' and time.monotonic() < deadline:
+            time.sleep(0.02)
+            helper.tick()
+        self.assertEqual(helper.journal.entries['o-1']['state'], 'closed')
+        self.assertEqual(helper.journal.entries['o-2']['state'], 'starting')
+        # The next pass waits a full interval after the previous one ended.
+        while len(passes) < 3 and time.monotonic() < deadline:
+            time.sleep(0.02)
+        helper.watcher.stop()
+        self.assertGreaterEqual(len(passes), 2)
+        for done, following in zip(passes, passes[1:]):
+            if len(done) == 2:
+                self.assertGreaterEqual(following[0] - done[1], 0.04)
 
 
 class WindowTest(Base):
@@ -1091,6 +1275,41 @@ class ServerTest(Base):
         self.assertEqual({row['id'] for row in self.receive(server, client)['apps']}, {'terminal', 'notepad', 'browser'})
         with self.assertRaises(SystemExit):
             shell.Server(path, self.helper())
+
+    def test_replies_flow_while_a_scope_check_hangs_and_its_answer_wakes_the_loop(self):
+        unit = 'app-aresos-terminal-t1.scope'
+        with open(self.journal, 'w') as handle:
+            json.dump({'instance': INSTANCE, 'launches': {
+                'o-1': {'app_id': 'terminal', 'launch_id': 't1', 'state': 'starting', 'unit': unit}}}, handle)
+        self.active_units = {unit}
+        path = os.path.join(self.folder.name, 'aresos', 'shell.sock')
+        server = self.server(path)
+        helper = server.helper
+        started, release = threading.Event(), threading.Event()
+
+        def hanging(argv, **options):
+            started.set()
+            release.wait(10)
+            return mock.Mock(returncode=0, stdout='')
+
+        helper.watcher.run = hanging
+        helper.watcher.interval = 0.01
+        helper.watcher.watch(helper.watched_units())
+        helper.watcher.start()
+        self.assertTrue(started.wait(5))
+        client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        self.addCleanup(client.close)
+        client.connect(path)
+        began = time.monotonic()
+        self.line(client, {'id': 'h-1', 'op': 'hello', 'major': 1, 'minor': 0, 'capabilities': ALL,
+                           'instance': INSTANCE, 'nonce': NONCE})
+        self.assertTrue(self.receive(server, client)['ok'])
+        self.assertLess(time.monotonic() - began, 1.0, 'the reply waited for the hanging scope check')
+        release.set()
+        deadline = time.monotonic() + 5
+        while helper.journal.entries['o-1']['state'] != 'closed' and time.monotonic() < deadline:
+            server.step(0.05)
+        self.assertEqual(helper.journal.entries['o-1']['state'], 'closed')
 
     def test_an_unexpected_error_drops_only_that_connection(self):
         path = os.path.join(self.folder.name, 'aresos', 'shell.sock')
