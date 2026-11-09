@@ -21,8 +21,9 @@ Review records: [REVIEW.md](REVIEW.md), [REVIEW-2.md](REVIEW-2.md),
 [SECURITY-REVIEW-14.md](SECURITY-REVIEW-14.md),
 [SECURITY-REVIEW-15.md](SECURITY-REVIEW-15.md),
 [SECURITY-REVIEW-16.md](SECURITY-REVIEW-16.md),
-[SECURITY-REVIEW-17.md](SECURITY-REVIEW-17.md), and
-[SECURITY-REVIEW-18.md](SECURITY-REVIEW-18.md).
+[SECURITY-REVIEW-17.md](SECURITY-REVIEW-17.md),
+[SECURITY-REVIEW-18.md](SECURITY-REVIEW-18.md), and
+[SECURITY-REVIEW-19.md](SECURITY-REVIEW-19.md).
 
 ## For the owner: decisions before merge
 
@@ -57,6 +58,225 @@ The owner answered: “Agree on 8, names etc are enough. Agree on everything els
 - Complete onboarding with your aliases, authentication, TLS trust, special folders, delayed Sent behavior and folder-deletion guard; the tests use synthetic accounts only.
 - Check complete approvals on both terminal and phone, then try the seven everyday Claude mail tasks; automated protocol tests do not establish how usable those flows feel.
 - Send a forwarded `.eml` to recipients using Apple Mail, Outlook, Thunderbird, Gmail on the web and iOS Mail, and check how each opens or saves the exact attachment; the round-5 documentation does not establish its presentation.
+
+## Review fixes, round 27
+
+**Done:** implements brief `19-review-fixes-27` against security review 19's
+`ce73b0f3`, under the lead's round-25 refined disk bar. The previously local lead
+commit `cc749b0c` (review and brief) accompanies the first code push. Work stays
+on `pkg/19-mail` and draft PR #9; no merge, rebase, force push or push to main.
+
+**Lead decision, round 27:** “A check that can produce an owner warning stays
+open until its result, clean or warning, is committed.” Action completion and
+check completion are separate. An unresolved check reruns with live, read-only
+evidence when possible; otherwise the owner sees “not yet checked.” This is the
+lead's rule, not a new owner policy decision.
+
+**Inventory C — checks that can produce Mail owner warnings:**
+
+| Check | Committed open source; when the check closes | Recovery / pending / Mail notices | Named evidence |
+| --- | --- | --- | --- |
+| Duplicate Sent copies after SMTP, client APPEND, repair, settlement or explicit status, including late copies and registered checks on failed actions | `op:` retains account/composition/Message-ID identity. `sent_copy_check=open` commits with reservation/submitting, before APPEND, or before the first explicit evidence read of a legacy record. A successful local-stage/repair transaction commits a clean result; a duplicate result commits its count and notice atomically. Changed counts open the check before the result write. | Explicit pending, notice and log reads revalidate retained registrations, including previously clean results. Passive envelopes disclose committed open checks without entering IMAP. This also recovers when admission refused the reopening write itself. Failed server reads or result writes produce an operation-qualified “not yet checked” notice. No SMTP, APPEND or repair runs. Unchanged committed results add no history. Open sources and unacknowledged duplicate-warning sources cannot be archived. | `Checks27.test_review27_duplicate_result_refused_pending_recovers_without_status_or_restart`; `test_review27_duplicate_result_refused_catalogue_recovers_after_restart_before_status`; `test_review27_registered_check_survives_failed_action_state`; `test_review27_new_check_refuses_before_live_read_if_registration_cannot_commit`; `test_review27_clean_send_is_quiet_and_unreachable_recheck_is_explicit`; `test_review27_open_check_and_warning_source_cannot_be_archived`; `test_review27_missing_transport_context_leaves_the_check_explicitly_unchecked`; `test_review27_evidence_is_reused_only_within_the_current_request` |
+| MOVE / COPY post-command role drift and missing COPYUID/destination evidence | `mail:filing:` commits `started`, account, preparation roles, exact sources/hashes/target and progress before commands. Normal clean completion commits `done`; warning completion commits `partial`, notice and location pages together. | New interrupted records rerun LIST/role resolution and exact-byte location scans. A complete scan commits a conservative partial warning, not inferred action success. Missing legacy context, unreachable servers, incomplete scans or refused storage keep `started` visible as “not yet checked,” in this session and after restart. Nothing is moved, copied or deleted by recovery. | `Checks27.test_review27_move_copy_and_rename_recheck_after_failed_result_commit` (move/copy subtests); existing `Recovery26.test_review26_move_role_changes_to_trash_all_later_writes_refused_restart_warns` |
+| RENAME / folder-move post-command destination and ancestor roles | `mail:rename:` commits `started`, account, source/target, message count and preparation roles before RENAME. Existing clean/warning transactions close it with the result. | New interrupted records rerun LIST and role resolution. A visible destination produces a committed conservative partial warning. An absent destination, missing legacy account context, unavailable roles or refused write leaves “not yet checked.” No RENAME is repeated. | Same new test (rename subtest); `Checks27.test_review27_current_session_legacy_filing_checks_are_not_yet_checked`; existing `RenamePolicy15b` tests |
+| Location-scan completeness | The same filing source remains `started` until a result commits. A normal interrupted-scan result is a committed warning with `scan_complete=false` and exact paged observations. | During recovery, a scan that cannot finish leaves the source open and explicitly unchecked; a later complete read-only scan can commit the warning and complete pages. Existing committed incomplete-scan warnings remain until acknowledgement. | New move/copy subtests force an incomplete rerun, assert `started` and “not yet checked,” then verify complete pages after the server recovers; existing `FilingNotices11` and `Responses25` scan/paging tests |
+| Owner setup / Sent-policy / nonempty-folder deletion qualification and probe survival/cleanup | The initial `mail:account:` record commits incomplete setup before probes; approved probe operations retain their own intents/stages. Final account records commit qualification results and any caveats or refusals. | An incomplete account derives an unchecked qualification warning immediately and after restart. Probes cannot safely rerun automatically; the owner inspects setup and server evidence. Completed negative qualification remains a committed account result. | `Checks27.test_review27_current_session_setup_check_stays_visible_without_repeating_probes`; existing `Recovery26.test_review26_every_durable_intent_has_a_notice_and_ack_survives_restart`; existing onboarding/qualification tests in CI |
+
+Other catalogue sources were inspected: approved-operation outcomes, interrupted
+free changes/draft APPENDs and exports, expiry/cancellation, and restore are
+action/transaction outcomes, with the committed sources inventoried in round
+26's table C. They do not run a separate warning-producing read-only postcheck.
+Their existing pending/inspection/acknowledgement rules remain. Background disk
+admission is a live diagnostic, not a mailbox postcondition; a real unfinished
+transaction retains its independent fence and recovery latch. This round adds
+no persistent refusal based on yesterday's storage diagnostic.
+
+**Should-fixes:** startup recovery captures identities actually unfinished
+before and after prepared replay. It no longer decides from row creation time.
+`Checks27.test_review27_reserved_at_startup_then_successful_send_has_no_recovery_notice`
+finishes a previously reserved send without an unfinished notice;
+`test_review27_submitting_at_startup_still_has_recovery_notice` preserves the
+real interruption warning. Existing missing/future-retention timestamp cases
+still apply because the source identities, not timestamps, decide eligibility.
+
+`Scenario.assert_duplicate_warnings` pages the public catalogue and requires
+each observed operation's own warning and exact copy count **before** any
+`operation_status` or replay read after restart. It replaces the insufficient
+“some notice exists” assertion; all stage/completion/remote-mutation assertions
+remain. `Checks27.test_review27_warning_assertion_rejects_review19_loss_before_status`
+models the old missing-warning view with an unrelated notice: the old nonempty
+assertion passes, the new assertion fails, and the fixed public view recovers
+the affected warning without status.
+
+**Files changed and why:** `engine.py` commits clean check results with action
+stages/repairs and resolves explicit pending/notices/log reads. Ordinary response
+envelopes read committed sources without entering an adapter; open checks still
+show “not yet checked.”
+Within one active request the envelope reuses that request's live search; the
+next request/direct view rechecks the server. Registration is part of the
+reservation transaction, preserving earlier stage-fault injection assertions.
+`mail/adapter.py` registers/rechecks Sent sources and commits results/notices;
+`mail/filing.py` adds preparation context and read-only interrupted checks;
+`recovery.py` captures startup identities and derives current unchecked notices;
+`storage.py` batches only real startup notices into ordinary writes and
+invalidates a disposable filing-key cache before writes. The cache contains
+candidate keys only; the committed row is reread and startup/replay rebuilds it.
+`archive.py` protects unresolved check/warning sources. `test_review27_checks.py`
+adds the named regressions; `test_review23_sweep.py` adds the stronger assertion
+and moves it before status. Two base approval-test fixtures are updated as
+described below; their refusal/execution/state/arrival assertions remain. No generated schema
+change is required; the new check bookkeeping stays private. `requests.py`
+defines a closed, read-only private `pending` envelope; `proxy.py` uses it when
+rejecting input, and `daemon.py` obtains the same passive warning view for
+authorized ingress refusals. This adds no public tool or execution authority.
+
+**Stop-condition audit:** this uses compatible fields on existing action rows,
+their existing notices/acknowledgements, and live read-only checks. It needs
+neither a new committed projection of all owner state nor a server-event-log
+oracle. The sweep's existing assertion is strengthened, not rebuilt. R1–R3 as
+a whole remain deferred; missing legacy context stays explicitly unchecked.
+
+**Verified — first code batch (superseded):** `9c1951837c8ca507bac56854c822900829439eae`.
+The local pre-push checks on that head were:
+
+- `python3 control/generate.py --check`: `Generated artifacts match definitions`.
+- `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/mail_tests:.work/round10/vendor python3 .work/round10/check-local.py`: `Python syntax OK: 135 files`; `Ran 167 tests in 848.373s`; `OK`. All 14 new `Checks27` tests passed. The unchanged fault mechanisms covered all 22 flows: 5,298 single, 5,298 persistent and 13,371 cleanup-pair cases, raw sweep elapsed 756.608s. Live admission recovery covered 146 cases across 19 flows.
+- `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/tests:.work/round10/vendor python3 -m unittest test_operations test_record test_crashes test_approval_questions test_strict_json test_boundary test_boundary_exact test_ingress_bounds test_journal_closed test_policy_sources test_archive test_journal_capacity test_journal_streaming test_restore_batches test_review21_pending test_review21_storage test_review22_protocol test_review22_storage test_review23_results test_review24_exports`: `Ran 105 tests in 93.900s`; `OK`. Record-growth and 1k/10k journal/restore/pending memory checks also printed their measurements and passed.
+
+**Development verification:** memory-only probes on the archived `ce73b0f3`
+code reproduced both review examples: no duplicate notice before any further
+status after restart, and an unfinished notice on a successful send reserved
+at startup. The new assertion's unrelated-notice probe passed on the fixed
+code. Targeted reruns also retained the earlier stage-failure, short-write,
+full-capacity, quiet-period/fresh-connection and restore/crash assertions.
+
+Earlier local attempts are not acceptance evidence: one intermediate full run
+printed `Ran 165 tests in 1037.823s; FAILED (failures=6, errors=4)`, and its
+non-sweep diagnostic printed `Ran 162 tests in 200.197s; FAILED (failures=5,
+errors=4)`. Missing synthetic transport metadata, extra preflight transactions
+and a repeated search in one request were fixed in production code at that
+stage. The remaining cleanup-pair failure reached no injected write:
+parallel local suites/subprocesses reinstall the same macOS policy fixture.
+A controlled concurrent installer reproduced 2 `boundary_not_installed`
+refusals in 100 reads; the final fixture was restored. The pair passed 100
+isolated repetitions, and the complete final sweep passed **serially**.
+Partial development sweeps/fail-fast runs and a mistakenly selected local
+container-backed module were interrupted and are not claimed as passes. All
+required pre-push suites run serially from this point; CI jobs use separate
+runner/container filesystems.
+
+**CI ingress correction:** the first code batch's [Mail run 42535291149,
+attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42535291149/attempts/1)
+passed all four fault shards, but its container selection printed `Ran 285 tests
+in 733.284s; FAILED (failures=7, errors=1)`. Existing
+`ServerApprovals13.test_round13_real_mcp_socket_cli_wrong_orders_no_arrival_or_imap_then_once`
+and `ServerJSON14.test_round14_real_proxy_socket_cli_duplicates_no_arrival_or_deletion_then_once`
+correctly rejected extra IMAP reads caused by response envelopes, catalogue
+startup and completed replays. Those tests and all their assertions remain
+unchanged. Production now uses passive envelopes, with live checks only on
+explicit owner views. The new
+`Checks27.test_review27_refusal_catalogue_and_completed_replay_do_not_read_mail`
+covers service/proxy rejection, catalogue, completed replay, authorized daemon
+errors, closed private snapshot input, warning retention and a following live
+pending read. All 45 targeted tests passed (`Ran 45 tests in 3.256s; OK`).
+The first head's base and boundary workflows passed twice, but are superseded
+as acceptance evidence by the final code head recorded below.
+
+**Base fixture correction / push discipline deviation:** the private read
+transport also required adapting
+`ApprovalQuestions.test_round13_wrong_orders_and_extra_or_missing_keys_stop_before_submission`
+and `test_testapp_changed_and_removed_question_never_send_or_delete` in
+`control/tests/test_approval_questions.py`. Their mocks now route `client.request`
+into the real Engine instead of mocking `client.call`. The outbound assertion
+requires the complete `{'method': 'pending'}` request, rather than only the old
+`control_pending` action name. All stale-approval, execution/stage/adapter,
+reserved-state, mailbox and arrival assertions remain; none was removed.
+
+The local base run first printed `Ran 105 tests in 94.052s; FAILED (errors=21)`
+because those two fixtures still attempted a real unused socket. I mistakenly
+started the second push before inspecting that exit status. Its automatic
+[Mail 42539100217](https://github.com/Ares-Empire/AresOS/actions/runs/42539100217),
+[base 42539100205](https://github.com/Ares-Empire/AresOS/actions/runs/42539100205)
+and [boundary 42539100175](https://github.com/Ares-Empire/AresOS/actions/runs/42539100175)
+runs all finished `cancelled`; they are not acceptance evidence. The fixtures
+were corrected (`Ran 6 tests in 0.114s; OK`). The corrective code push was
+chained after all required local commands with `&&`, so a failed check prevented
+that push. The report-only push verifies the passed serial gate checkpoint and
+unchanged code head before committing. This is a deviation from the
+two-push/six-run-ID aim, recorded rather than claimed as compliant.
+
+**Final code/test head:** `f2231bb6bfbbd2adfb4e858245b93f71e45ab1f5`.
+The corrective full local Mail run printed `Python syntax OK: 135 files`;
+`Ran 168 tests in 782.265s`; `OK`. All 15 new tests passed. Generated artifacts
+matched. The same required serial base command printed `Ran 105 tests in
+97.148s; OK`. The guarded push ran only after both commands and `git diff
+--check` exited zero. The raw sweep covered 5,243 single, 5,243 persistent and
+13,181 cleanup-pair faults across all 22 flows in 691.004s; live admission
+recovery covered 145 cases across 19 flows.
+
+The same mandatory commands ran again, serially, before the report-only push:
+`Generated artifacts match definitions`; `Python syntax OK: 135 files`;
+`Ran 168 tests in 791.459s; OK`; `Ran 105 tests in 94.321s; OK`.
+The complete command chain, including `git diff --check`, exited zero.
+All three workflows passed twice on the last code/test head. The final
+report-only head's qualification is recorded in draft PR #9 after this push.
+
+| Last-code workflow | Attempt 1 | Attempt 2 |
+| --- | --- | --- |
+| [Control Mail 42540760321](https://github.com/Ares-Empire/AresOS/actions/runs/42540760321) | PASS, all five jobs; containers 17m29s, sweep shards 0–3 23m10s / 8m34s / 5m21s / 4m22s | PASS, all five jobs; containers 18m25s, sweep shards 0–3 16m42s / 6m43s / 4m58s / 4m29s |
+| [Control base 42540760304](https://github.com/Ares-Empire/AresOS/actions/runs/42540760304) | PASS, 3m46s; `Ran 135 tests in 190.778s; OK` | PASS, 3m58s; `Ran 135 tests in 198.124s; OK` |
+| [Control boundary 42540760202](https://github.com/Ares-Empire/AresOS/actions/runs/42540760202) | PASS, 3m17s; `Ran 16 tests in 0.011s; OK` | PASS, 3m15s; `Ran 16 tests in 0.013s; OK` |
+
+All workflow attempts in this table use the exact last code/test head above.
+Every later commit changes only files under `reviews/`; the final-head runs
+are recorded in draft PR #9's body. Repeats rerun the same automatic PR run ID
+with `gh run rerun`; no manual workflow dispatch or validation-only push.
+
+Closing discipline: four pushes total (first batch with the lead commit,
+premature correction, guarded fixture correction, then this report). They
+create 12 automatic workflow IDs, including the three cancelled intermediate
+IDs above and the superseded first Mail failure. Final-head qualification
+is in the PR body. Every push retains normal privacy-hook
+verification; no hook bypass was used.
+
+Mail attempt 1 printed `Ran 135 tests in 182.014s; OK`, `Control base suite
+PASS`, `Ran 286 tests in 822.921s; OK`, and `Control Mail suite PASS`.
+Each sweep shard ran four tests: 1,341.376s / 468.276s / 283.371s / 227.087s,
+all `OK` and `Control Mail suite PASS`. Attempt 2 printed `Ran 135 tests in
+213.902s; OK`, `Control base suite PASS`, `Ran 286 tests in 851.077s; OK`,
+and `Control Mail suite PASS`; each sweep shard printed four tests in
+954.539s / 362.055s / 256.511s / 229.654s, all `OK` and suite `PASS`.
+Both attempts independently discovered 5,282 single, 5,282 persistent and
+13,105 cleanup-pair Linux fault points; all 22 flows and 145 live-admission
+recovery cases passed. Fault counts can differ from macOS because discovery
+uses the actual OS/VFS writes. Metadata was checked for both attempts, every
+job and the exact head before committing this report.
+
+**Not verified:** real accounts, physical disk failure/power loss, owner-facing
+terminal/phone usability and forwarded-file presentation. Local tests use
+synthetic fixtures; isolated Linux containers run on GitHub. No Minecraft or
+Gradle work is part of this run.
+
+**JUDGMENT-CALL:** follows the lead's rule. Retained Sent registrations are
+rechecked on explicit pending/notices/log reads even after a clean result so
+late copies and failed reopening writes remain discoverable. This costs
+read-only server queries on those views;
+unchanged results do not grow the journal. Checking only rows marked open was
+rejected because admission can refuse the reopening write itself. Changing this
+later requires check scheduling/cache changes and recovery regressions, with no
+mailbox migration. Rechecking every response was rejected after CI showed that
+rejections, catalogues and completed replays must stay out of IMAP. Those paths
+now disclose the same committed open sources without a remote check. Interrupted filing records produce
+conservative warnings after inspection, not assumed remote success. No cleanup
+or replay authority changes.
+
+**PLAN-GAP:** none requiring a larger package. Legacy records that lack check
+context require owner inspection and remain “not yet checked.”
+
+**Open questions:** none requiring an owner answer during this run. The existing
+real-account checks remain. Closing inventory: `find .work -type f -size +500M
+-print` produced no paths. No large download, local container, system install or
+Gradle daemon was started; temporary test processes have exited.
 
 ## Review fixes, round 26
 
