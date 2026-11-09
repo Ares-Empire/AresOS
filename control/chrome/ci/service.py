@@ -21,6 +21,9 @@ record={'format':1,'entries':[{'build':build,'version':version,'channel':'stable
 engine.store.write({'chrome:qualification':record},'chrome_test_setup','Synthetic qualification input for fixture tests')
 engine.close()
 daemon=Daemon(config)
+bridge=daemon.engine.adapters['chrome'].bridge
+original_event=bridge.on_event
+bridge.on_event=lambda event:(print('CHROME_EVENT',json.dumps(event),flush=True),original_event(event))[-1]
 daemon.engine.adapters['chrome'].hosts={name:[name+'.test'] for name in HOSTS}
 try:
     daemon.serve()

@@ -1,5 +1,6 @@
 // Isolated world only. Never serialise HTML, attributes or forms in bulk.
 (() => {
+  try {
   const elements = new Map(), ids = new WeakMap(), protectedFields = new WeakSet(), held = new Map();
   const documentId = crypto.randomUUID();
   let sequence = 0, revision = 0;
@@ -173,7 +174,11 @@
         const element = elements.get(message.element);
         if (!element?.isConnected) throw Error('stale_reference: read again');
         if (password(element)) throw Error('owner_signin: password fields belong to the owner');
-        element.focus(); value = {focused:true};
+        element.focus();
+        let focused=document.activeElement;
+        while(focused && chrome.dom.openOrClosedShadowRoot(focused)?.activeElement)focused=chrome.dom.openOrClosedShadowRoot(focused).activeElement;
+        if(focused !== element)throw Error('refused: this element cannot receive keyboard input; use a focusable control');
+        value = {focused:true};
       } else if (message.command === 'select' || message.command === 'check') {
         const element = elements.get(message.element);
         if (!element?.isConnected || password(element)) throw Error('stale_reference: read again');
@@ -187,4 +192,5 @@
   });
   // Fixed functions used by scripting.executeScript; DOM identity never comes from a selector supplied by the caller.
   globalThis[Symbol.for('aresos.chrome.reader.v1')] = {element: key => elements.get(key)};
+  } catch(error) { console.error('AresOS reader preload',error); chrome.runtime.sendMessage({event:'reader_error',error:String(error.stack || error)}); }
 })();

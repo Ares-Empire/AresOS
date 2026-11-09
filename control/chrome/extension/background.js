@@ -2,7 +2,7 @@ import {POLICY} from './policy.js';
 
 const session = crypto.randomUUID();
 const controlled = new Map(), used = new Set(), dialogs = new Map();
-let groupId = null, port = null, serial = Promise.resolve(), recording = false;
+let groupId = null, port = null, serial = Promise.resolve(), recording = false, effectStarted = false;
 const ownerRequests = new Map(), dialogOrigins = new Map();
 const audit = value => { if (recording && port) port.postMessage({event:'audit',data:value}); return value; };
 function safeURL(address) {
@@ -13,6 +13,7 @@ function safeURL(address) {
 }
 async function cdp(tab, method, parameters = {}) {
   if (!POLICY.cdpMethods.includes(method)) throw Error('permission_denied: DevTools method not allowed');
+  if(method.startsWith('Input.') || ['Page.navigate','Page.navigateToHistoryEntry','Page.reload','Page.handleJavaScriptDialog','DOM.setFileInputFiles'].includes(method))effectStarted=true;
   return audit(await chrome.debugger.sendCommand({tabId:tab}, method, parameters));
 }
 async function badge() { await chrome.action.setBadgeText({text:controlled.size ? 'ON' : ''}); await chrome.action.setBadgeBackgroundColor({color:'#2468ca'}); }
@@ -47,6 +48,7 @@ async function main(tab, frame, command, args=[]) {
   return audit(output[0]?.result);
 }
 async function content(tab, frame, command, parameters={}) {
+  if(['focus','select','check','install_file'].includes(command))effectStarted=true;
   const reply = audit(await chrome.tabs.sendMessage(tab,{command,...parameters},{frameId:frame}));
   if (!reply?.ok) throw Error(reply?.error || 'stale_reference: page changed; read again');
   return reply.data;
@@ -162,7 +164,7 @@ async function dispatch(command) {
   if (command.expected && stable(command.expected) !== stable(target)) throw Error('stale_reference: element no longer holds the expected state');
   if (command.operation) used.add(command.operation); // consume before any event can enter the page
   await main(tab,reference.frame,'arm',[POLICY,target.element,frame.form?.element,command.operation || null]);
-  if (command.name === 'resume') await main(tab,reference.frame,'resume',[command.hold,command.operation]);
+  if (command.name === 'resume') { effectStarted=true; await main(tab,reference.frame,'resume',[command.hold,command.operation]); }
   else {
     const input = command.input;
     if (target.password) throw Error('owner_signin: password fields belong to the owner');
@@ -203,13 +205,15 @@ async function connect() {
   port.onMessage.addListener(message=>{
     if (message.owner_reply) { const pending=ownerRequests.get(message.owner_reply); if(pending){ownerRequests.delete(message.owner_reply);pending(message.result);} return; }
     serial=serial.then(async()=>{
+      effectStarted=false;
       try { port.postMessage({id:message.id,ok:true,data:await dispatch(message.command)}); }
-      catch(error) { port?.postMessage({id:message.id,ok:false,error:String(error.message)}); }
+      catch(error) { port?.postMessage({id:message.id,ok:false,error:effectStarted ? 'unknown: Input may have started; inspect status and the page, never retry. '+String(error.message):String(error.message)}); }
     });
   });
   port.onDisconnect.addListener(()=>{ port=null; stop().finally(()=>setTimeout(connect,1000)); });
 }
 chrome.runtime.onMessage.addListener((message,sender,reply)=>{
+  if(sender.id === chrome.runtime.id && message?.event === 'reader_error') { port?.postMessage({event:'reader_error',error:message.error,tab:sender.tab?.id,frame:sender.frameId});reply({received:true});return; }
   if(sender.id === chrome.runtime.id && controlled.has(sender.tab?.id) && message?.event === 'dialog_origin') {
     const origin={frame:sender.frameId,document:sender.documentId,frame_url:sender.url,kind:message.kind,text:message.text};
     dialogOrigins.set(sender.tab.id,origin);
