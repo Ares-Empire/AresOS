@@ -89,14 +89,14 @@ resolve an obligation.
 | acknowledgement | Exact scripted occurrence/operation identity; matching acknowledgement commit within that call | That occurrence, terminal operation notice, or explicitly acknowledged generic intent |
 | submission | Scripted full approval; matching submission commit order | Reservation cancellation hold |
 | completion | Scripted approval; every approved effect accepted with the exact identities/recipients; result committed after effects | Approved work, operation recovery, cancellation/settlement holds |
-| failure | Correlated injected fault or failed/lost server reply; result commit order | Approved work, operation recovery and associated holds |
+| failure | Fresh submission in the same call, no accepted or lost effect, and a correlated fault or delivered negative reply; result commit order | Approved work, operation recovery and associated holds |
 | uncertainty | Correlated attempt/fault; commit order | Cancellation hold; recovery remains |
 | clean_check | Independently clean raw evidence; matching result committed after the read in the same call | Open check / unchecked notice; occurrences remain |
 | check_result | Raw server result; matching result commit order | Open check / unchecked notice; occurrences remain |
 | cancellation | Exact scripted operation; previously reserved; cancellation commit order | Approved work and cancellation hold; creates an acknowledgement obligation |
 | expiry | Scripted clock reaches validated reservation expiry; previously reserved; expiry commit order | Approved work and cancellation hold; creates an acknowledgement obligation |
 | settlement | Exact scripted repair identity; read-only absence evidence; settlement commit order | Approved work, operation recovery, settlement hold |
-| restore | Scripted confirmation; bounded rollback interval; independent commit order | None |
+| restore | Scripted confirmation after an independently decoded restore precondition; bounded rollback interval; independent commit order | None |
 | archive | Scripted archive; no remaining obligation; qualified archive manifest; commit order | None (already resolved history only) |
 | onboarding_completion | Scripted account identity; delivered probe evidence; onboarding completion commit order | Incomplete-account recovery |
 | intent_completion | Scripted action; correlated effect/reply; result commit order | Generic intent recovery |
@@ -135,3 +135,25 @@ source commit, once per read/result pair. `warning_checks[*].warning` and
 `sent_copy_check.clean` are compared claims; flipping them cannot select a new
 epoch or close a retained check. A later clean result still preserves every
 unacknowledged occurrence.
+
+The driver establishes initial obligations before the first action or reply. Its
+script records the independently decoded restore precondition before each call;
+a confirmation request alone cannot authorize a restore marker. A new local
+fault cannot settle earlier unknown work, and a failed action cannot hide an
+already accepted or lost effect. Generic-intent/export scope comes from the
+script and remains immutable. Stage-event metadata is compared to its full
+committed stage. Filing clean results use post-command LIST evidence; an outcome
+label never selects a clean epoch.
+
+The systematic state vocabulary is the union of the documented states and all
+observed state/outcome/stage-result values in the corpus. Generic intent and export app scopes are compared to their scripted action and remain immutable. Event metadata is
+mutated too. Fault samples are discovered immediately after an accepted command,
+so single, persistent, cleanup and restart samples contain live obligations.
+Full location details and permitted request statuses join notices, pending work,
+holds and qualification in the exact expected-set comparison.
+
+Expiry/cancellation notices have separate `operation-notice` facts. Their
+validated reason survives a later recovery state; a generic restore reason
+cannot replace it. Pending pages compare that notice fact with the independently
+retained obligation while continuing to count one operation row. A scripted,
+committed acknowledgement is the only notice discharge.

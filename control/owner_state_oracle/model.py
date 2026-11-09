@@ -260,6 +260,7 @@ class Oracle:
             facts.add(Fact('background:storage', 'background-storage', 'background-storage', self.background['code']))
         previous = {}
         calls = {call['call']: call for call in self.script}
+        last_mutations = self.last_filing_mutations()
         for event in record.events:
             for source, value in event['set'].items():
                 if not isinstance(value, dict):
@@ -269,20 +270,21 @@ class Oracle:
                 if value.get('sent_copy_check'):
                     kinds.add('sent_copies')
                 for kind in kinds:
-                    evidence_index, evidence = self.read_evidence(source, kind, event['seq'], calls)
+                    evidence_index, evidence = self.read_evidence(source, kind, event['seq'], calls, last_mutations)
                     stage = event.get('untrusted_content', {})
                     result_commit = event['action'] in {'mail_sent_copy_check', 'mail_filing_check'} or (
-                        kind == 'sent_copies' and stage.get('stage') == 'sent_copy' and stage.get('outcome') == 'done') or (
-                        kind in {'filing', 'rename'} and event['action'] in {'mail_move', 'mail_copy', 'mail_folder_rename'} and event.get('outcome') == 'done')
+                        kind == 'sent_copies' and stage.get('stage') == 'sent_copy') or (
+                        kind in {'filing', 'rename'} and event['action'] in {'mail_move', 'mail_copy', 'mail_folder_rename'})
                     clean = result_commit and self.clean_evidence(source, kind, evidence)
                     claimed = value.get('warning_checks', {}).get(kind, {}).get('warning')
                     prior = previous.get(source, {})
                     new_clean_claim = claimed is False and prior.get('warning_checks', {}).get(kind, {}).get('warning') is not False
                     if kind == 'sent_copies' and value.get('sent_copy_check', {}).get('clean') and not prior.get('sent_copy_check', {}).get('clean'):
                         new_clean_claim = True
-                    if new_clean_claim and not clean:
+                    runtime = event['seq'] > getattr(self, 'seed_sequence', 0)
+                    if runtime and new_clean_claim and not clean:
                         self.invalid_clean_results.add(Fact(source, 'unverified-clean', detail=kind))
-                    if claimed is True and clean:
+                    if runtime and claimed is True and clean:
                         self.lifecycle_errors.add(Fact(source, 'false-warning-result', detail=kind + ':' + str(event['seq'])))
                     # Raw evidence selects clean epochs; a production boolean
                     # is only a claim compared above. One read/result pair can
@@ -299,6 +301,10 @@ class Oracle:
                 previous[source] = value
         for key, row in record.rows.items():
             if key.startswith('op:'):
+                notice = self.operation_notices.get(key)
+                if notice and 'operation:' + row['id'] not in self.acknowledged and (app is None or row['app'] == app):
+                    kind = 'expired' if notice.get('reason', '').startswith('expired:') else 'cancelled'
+                    facts.add(Fact(key, 'operation-notice', row['id'], kind))
                 if app is None or row['app'] == app:
                     if row['state'] in {'reserved', 'submitting', 'partial', 'unknown'} or (
                             key in self.operation_notices and 'operation:' + row['id'] not in self.acknowledged):
@@ -515,6 +521,10 @@ class Oracle:
             return True
         return False
 
+    def restore_proof(self, event):
+        return any(c['action'] == 'control_restore_confirm' and c.get('restore_precondition') is True and
+                   c.get('start_seq', -1) < event['seq'] <= c.get('end_seq', -1) for c in self.script)
+
     def result_proof(self, source, kind, sequence):
         calls = {call['call']: call for call in self.script}
         for evidence in self.servers:
@@ -563,7 +573,7 @@ class Oracle:
             kind, proofs = 'cancellation', dict(scripted_identity=self.scripted_transition(event, '_operation_cancel', identity), reserved=True, commit_order=ordered)
         elif event['action'] == 'control_restore_confirm' and after == 'unknown':
             kind, proofs = 'restore', dict(scripted_confirmation=self.scripted_transition(event, 'control_restore_confirm'),
-                rollback_interval=any(f['seq'] < event['seq'] and any(op['id'] == identity for op in f.get('operations', [])) for f in record.fences), commit_order=ordered)
+                rollback_interval=self.restore_proof(event) and any(f['seq'] < event['seq'] and any(op['id'] == identity for op in f.get('operations', [])) for f in record.fences), commit_order=ordered)
         elif after == 'done':
             kind, proofs = 'completion', dict(scripted_approval=bool(own) or self.resolution_proof(record, event, key, row),
                 required_effects=self.resolution_proof(record, event, key, row), commit_order=ordered)
@@ -574,7 +584,12 @@ class Oracle:
             kind, proofs = 'settlement', dict(scripted_identity=self.scripted_transition(event, '_operation_repair', parent),
                 read_only_evidence=bool(evidence), commit_order=ordered)
         elif after in {'failed', 'refused'}:
-            kind, proofs = 'failure', dict(fault_or_negative_reply=bool(fault or negative), commit_order=ordered)
+            started_here = any(c.get('start_seq', -1) < prior['seq'] < event['seq'] and
+                               (prior['set'].get(key) or {}).get('state') == 'submitting'
+                               for c in own for prior in record.events)
+            no_effect = not any(e['accepted'] or e['reply'] != 'delivered' for e in commands)
+            kind, proofs = 'failure', dict(fault_or_negative_reply=bool(
+                before in {None, 'reserved', 'submitting'} and started_here and no_effect and (fault or negative)), commit_order=ordered)
         elif after in {'unknown', 'partial'} and before in {None, 'reserved', 'submitting', 'unknown', 'partial', 'done'}:
             kind, proofs = 'uncertainty', dict(attempt_or_fault=bool(commands or fault or negative or self.scripted_transition(event, '_notice_ack', identity)), commit_order=ordered)
         else:
@@ -619,12 +634,18 @@ class Oracle:
             event = next(e for e in record.events if e['seq'] == seq)
             self.resolve('restore', 'sequence:' + str(seq),
                 scripted_confirmation=self.scripted_transition(event, 'control_restore_confirm'),
-                rollback_interval=first <= seq and last < seq, commit_order=seq in record.committed)
+                rollback_interval=self.restore_proof(event) and first <= seq and last < seq, commit_order=seq in record.committed)
         changed = {key for event in record.events for key in event['set']}
         rows = {key: value for key, value in record.rows.items() if key not in changed}
         resolved = set()
         for event in record.events:
             self.resolution_sequence = event['seq']
+            stage = event.get('untrusted_content', {})
+            if 'stage' in stage and 'outcome' in stage:
+                source = 'op:' + str(event.get('operation_id'))
+                row = event['set'].get(source) or {}
+                if row.get('stages', {}).get(stage['stage']) != stage['outcome']:
+                    self.lifecycle_errors.add(Fact(source, 'changed-stage-event', detail=str(event['seq'])))
             for key, value in event['set'].items():
                 old = rows.get(key, {})
                 if key.startswith(('intent:', 'mail:filing:', 'mail:rename:')) and value:
@@ -640,6 +661,24 @@ class Oracle:
                     if value.get('app', app) != app:
                         self.lifecycle_errors.add(Fact(key, 'unjustified-app-scope'))
                         value = {**value, 'app': app}
+                    elif 'app' not in value:
+                        value = {**value, 'app': app}
+                if key.startswith(('intent:', 'export:')) and value:
+                    if old and value.get('app') != old.get('app'):
+                        self.lifecycle_errors.add(Fact(key, 'changed-source-scope'))
+                        value = {**value, 'app': old.get('app')}
+                    if not old:
+                        calls = [c for c in self.script if c.get('start_seq', -1) < event['seq'] <= c.get('end_seq', -1)]
+                        apps = {c['action'].split('_', 1)[0] for c in calls if c['action'].startswith(('mail_', 'testapp_'))}
+                        apps.update(c['arguments']['app'] for c in calls if c['arguments'].get('app') in {'mail', 'testapp'})
+                        if len(apps) == 1:
+                            expected_app = next(iter(apps))
+                            if value.get('app') != expected_app:
+                                self.lifecycle_errors.add(Fact(key, 'unjustified-app-scope'))
+                                value = {**value, 'app': expected_app}
+                if key.startswith('mail:account:') and value and value.get('app', 'mail') != 'mail':
+                    self.lifecycle_errors.add(Fact(key, 'unjustified-app-scope'))
+                    value = {**value, 'app': 'mail'}
                 if key.startswith('mail:account:') and value and value.get('id') != key.removeprefix('mail:account:'):
                     self.lifecycle_errors.add(Fact(key, 'account-identity'))
                 if key in {'generation', 'restore_pending'} and value != old:
@@ -1135,8 +1174,17 @@ class Oracle:
                            'observed_locations': sorted(found, key=canonical), 'scan_complete': scan_complete})
         return sorted(result, key=canonical)
 
-    def read_evidence(self, source, kind, sequence, calls=None):
+    def last_filing_mutations(self):
+        result = {}
+        for index, event in enumerate(self.servers):
+            if event['command'] in {'MOVE', 'COPY', 'RENAME'}:
+                source, _ = bind_context(event, self.script)
+                result[event['call'], source] = index
+        return result
+
+    def read_evidence(self, source, kind, sequence, calls=None, last_mutations=None):
         calls = calls if calls is not None else {c['call']: c for c in self.script}
+        last_mutations = last_mutations if last_mutations is not None else self.last_filing_mutations()
         context = self.warning_contexts.get(source, self.lifecycle_known.get(source, {}))
         for index in range(len(self.servers) - 1, -1, -1):
             evidence = self.servers[index]
@@ -1147,6 +1195,11 @@ class Oracle:
             if kind == 'sent_copies' and evidence['command'] == 'SENT' and evidence.get('source') == source:
                 return index, evidence
             if kind in {'filing', 'rename'} and evidence['command'] == 'LIST' and evidence.get('account') in {None, context.get('account')}:
+                # A pre-command LIST is admission evidence, never the result
+                # of the later filing. Commit outcome labels cannot choose
+                # whether the post-command check was clean.
+                if last_mutations.get((evidence['call'], source), -1) > index:
+                    continue
                 return index, evidence
         return None, None
 

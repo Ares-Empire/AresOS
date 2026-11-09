@@ -35,6 +35,9 @@ class Driver:
         self.startup_sequence = max((fence['seq'] for fence in self.record.fences), default=0)
         self.record.startup_sequence = self.startup_sequence
         self.record.locked |= any(seq <= self.startup_sequence for seq in self.record.unprepared_fences)
+        # Establish starting obligations before the first action can restore or
+        # remove their rows. Reading the first reply is already too late.
+        self.oracle.expected(self.record)
         self.errors = []
         self.envelopes = []
         self.envelopes_seen = set()
@@ -96,11 +99,13 @@ class Driver:
         faults = faults or ACTIVE
         previous_call = getattr(oracle, 'active_call', None)
         previous_start = getattr(oracle, 'active_start_seq', 0)
-        oracle.active_start_seq = max(self.snapshot().committed, default=0)
+        before = self.snapshot()
+        oracle.active_start_seq = max(before.committed, default=0)
         oracle.call(s.action, s.args, time.time(), {'mode': faults.mode, 'at': faults.fail_at,
                     'cleanup': faults.cleanup_at, 'background': getattr(s, 'flow', '') in {'expiry', 'maintenance'}} if faults else {})
         self.call_index = len(oracle.script) - 1
         oracle.script[self.call_index]['start_seq'] = oracle.active_start_seq
+        oracle.script[self.call_index]['restore_precondition'] = before.locked
         # These four results are made by Scenario.call, not a public request.
         oracle.script[self.call_index]['synthetic_result'] = s.flow if getattr(s, 'flow', '') in {
             'expiry', 'maintenance', 'restart_index', 'restart_tail'} else None

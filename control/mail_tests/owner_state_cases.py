@@ -393,6 +393,36 @@ def run(gaps):
         finally:
             s.close()
 
+    # The first observed reply can itself be a restore. The driver must have
+    # established the starting incomplete-account obligation before that call.
+    s = OwnerScenario('send')
+    gaps.aliases = {}
+    try:
+        import sqlite3
+        from contextlib import closing
+        f = s.fixture
+        backup = f.root / 'before-account.sqlite'
+        with closing(sqlite3.connect(backup)) as db:
+            f.engine.store.db.backup(db)
+        account = {**f.engine.store.get('mail:account:box'), 'id': 'new', 'onboarded': False, 'ready': False}
+        f.engine.store.write({'mail:account:new': account}, 'fixture', 'Explicit initial incomplete account')
+        d = Driver(s)
+        f.engine.close()
+        (f.root / 'state/control.sqlite').write_bytes(backup.read_bytes())
+        s.bind(Engine(f.root / 'state', f.root / 'evidence'))
+        d._snapshot_key = None
+        assert f.engine.store.locked
+        with d.observe_view('control_restore_confirm', {'confirm': 'invalidate earlier approvals'}):
+            restored = f.engine.request({'v': 1, 'method': 'call', 'action': 'control_restore_confirm',
+                'arguments': {'confirm': 'invalidate earlier approvals'}}, True)
+        d.reply(restored)
+        assert restored['ok'], restored
+        assert f.engine.store.get('mail:account:new') is None
+        assert any(fact.source == 'mail:account:new' and fact.kind == 'recovery' for fact in d.oracle.expected(d.snapshot()))
+        compare(s, d, 'initial-account-first-reply-restore')
+    finally:
+        s.close()
+
     s = OwnerScenario('send')
     gaps.aliases = {}
     try:

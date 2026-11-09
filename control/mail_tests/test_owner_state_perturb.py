@@ -8,7 +8,7 @@ from unittest.mock import patch
 from aresos_control.engine import Engine
 from owner_state_oracle.driver import Driver
 from owner_state_oracle.gaps import Gaps
-from owner_state_oracle.perturb import check, freeze
+from owner_state_oracle.perturb import check, freeze, state_vocabulary
 import owner_state_cases
 import test_owner_state_regressions as regressions
 import test_review23_sweep as sweep_fixtures
@@ -69,21 +69,36 @@ class SystematicPerturbations(unittest.TestCase):
                     recordings.extend(last_regression.values())
                 finally:
                     case.doCleanups()
+            from test_owner_state_sweep import OwnerScenario
+            from storage_faults import OSWrites
+            label[0] = 'discover-post-effect-boundaries'
+            boundaries = {}
+            for flow, command in (('send', 'DATA'), ('delete_permanent', 'EXPUNGE'),
+                                  ('onboarding', 'DATA'), ('filing_move', 'MOVE')):
+                scenario = OwnerScenario(flow)
+                try:
+                    driver, fault = Driver(scenario), OSWrites()
+                    with driver.observe(fault), fault.wrap(scenario.fixture.engine.store):
+                        result = scenario.call()
+                    driver.reply(result)
+                    accepted = next(e for e in driver.oracle.servers if e['command'] == command and e['accepted'])
+                    boundaries[flow] = accepted['fault_point'] + 1
+                    self.assertLessEqual(boundaries[flow], len(fault.points))
+                finally:
+                    scenario.close()
             for flow, number, mode, cleanup, phase in (
                     ('send', None, 'single', None, 'live'),
                     ('repair', None, 'single', None, 'live'),
-                    ('delete_permanent', 1, 'single', None, 'live'),
-                    ('onboarding', 1, 'persistent', None, 'live'),
-                    ('filing_move', 1, 'single', None, 'crash')):
+                    ('delete_permanent', boundaries['delete_permanent'], 'single', None, 'live'),
+                    ('onboarding', boundaries['onboarding'], 'persistent', None, 'live'),
+                    ('filing_move', boundaries['filing_move'], 'single', None, 'crash')):
                 label[0] = f'sweep/{flow}/{number}/{mode}/{cleanup}/{phase}'
                 _, cleanups = exercise(flow, number, mode, cleanup, Gaps(recording=True), phase)
             # Discover an actual cleanup pair; don't invent a fault boundary.
-            from test_owner_state_sweep import OwnerScenario
-            from storage_faults import OSWrites
             scenario = OwnerScenario('send')
             try:
                 driver = Driver(scenario)
-                fault = OSWrites(1)
+                fault = OSWrites(boundaries['send'])
                 with driver.observe(fault), fault.wrap(scenario.fixture.engine.store):
                     result = scenario.call()
                 driver.reply(result)
@@ -92,10 +107,11 @@ class SystematicPerturbations(unittest.TestCase):
             finally:
                 scenario.close()
             label[0] = 'sweep/send/cleanup-pair/crash'
-            exercise('send', 1, 'single', cleanup, Gaps(recording=True), 'crash')
+            exercise('send', boundaries['send'], 'single', cleanup, Gaps(recording=True), 'crash')
         counts = Counter()
+        states = state_vocabulary([record for _, _, record in recordings])
         for scenario, oracle, record in recordings:
-            checked = check(scenario, oracle, record)
+            checked = check(scenario, oracle, record, states)
             counts.update(checked)
             print(f'Owner perturbation scenario={scenario} total={sum(checked.values())} slipped=0', flush=True)
         self.assertTrue(all(counts[kind] for kind in ('boolean', 'state', 'row', 'sequence', 'effect', 'restore')))

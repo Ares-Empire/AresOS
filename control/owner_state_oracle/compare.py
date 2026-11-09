@@ -71,7 +71,17 @@ def notice_facts(notice, record, oracle):
 
 
 def pending_facts(page):
-    return {Fact('op:' + row['operation_id'], 'pending', detail=canonical({'state': row['state'], 'reason': 'RESTORED_EVIDENCE' if 'restored' in row.get('reason', '').lower() and any(word in row.get('reason', '').lower() for word in ('newer', 'missing')) else row.get('reason')})) for row in page.get('items', [])}
+    result = {Fact('op:' + row['operation_id'], 'pending', detail=canonical({'state': row['state'], 'reason': 'RESTORED_EVIDENCE' if 'restored' in row.get('reason', '').lower() and any(word in row.get('reason', '').lower() for word in ('newer', 'missing')) else row.get('reason')})) for row in page.get('items', [])}
+    for row in page.get('items', []):
+        for kind in ('expired', 'cancelled'):
+            if kind + ':' in row.get('reason', '').lower():
+                result.add(Fact('op:' + row['operation_id'], 'operation-notice', row['operation_id'], kind))
+    return result
+
+
+def pending_page(rows, expected):
+    sources = {fact.source for fact in rows}
+    return set(rows) | {fact for fact in expected if fact.kind == 'operation-notice' and fact.source in sources}
 
 
 def restart_count(count, label):
@@ -148,7 +158,7 @@ def ordered_notices(record, expected, app=None):
         return created, identity
     groups = {}
     for fact in expected:
-        if fact.kind != 'pending' and (app is None or record.rows.get(fact.source, {}).get('app', 'mail') == app):
+        if fact.kind not in {'pending', 'operation-notice'} and (app is None or record.rows.get(fact.source, {}).get('app', 'mail') == app):
             family = 'unchecked' if fact.kind.startswith('unchecked') else 'recovery' if fact.kind.startswith('recovery') else ''
             handle = next((f.occurrence for f in expected if f.source == fact.source and f.kind == family + '-handle'), None)
             group = handle or notice_identity(record, fact)
@@ -191,7 +201,7 @@ def compare_envelope(label, reply, record, oracle, expected, check, app=None):
           {Fact('response', 'pending-envelope')} if isinstance(reply.get('pending'), dict) else set())
     page = reply.get('pending', {})
     wanted = ordered_pending(record, expected, app)
-    check(label + '.pending-head', set(wanted[:5]), pending_facts(page))
+    check(label + '.pending-head', pending_page(wanted[:5], expected), pending_facts(page))
     check(label + '.pending-total', count_fact(len(wanted)), count_fact(page.get('total', 0)))
     check(label + '.pending-continuation', {Fact('pending', 'cursor')} if len(wanted) > 5 else set(),
           {Fact('pending', 'cursor')} if page.get('cursor') else set())
@@ -255,7 +265,7 @@ def compare_views(read, oracle, snapshot, check, ordinary='mail_accounts'):
     reply = read(ordinary, {})
     page = reply.get('pending', {})
     wanted = ordered_pending(record, expected, app=ordinary.split('_', 1)[0])
-    check('passive.pending-head', set(wanted[:5]), pending_facts(page))
+    check('passive.pending-head', pending_page(wanted[:5], expected), pending_facts(page))
     check('passive.pending-total', count_fact(len(wanted)), count_fact(page.get('total', 0)))
     check('passive.pending-continuation', {Fact('pending', 'cursor')} if len(wanted) > 5 else set(),
           {Fact('pending', 'cursor')} if page.get('cursor') else set())
@@ -272,7 +282,7 @@ def compare_views(read, oracle, snapshot, check, ordinary='mail_accounts'):
             check('passive.pending-page-changed', set(), {Fact('pending', 'page_changed')} if continuation.get('page_changed') else set())
             if continuation.get('page_changed'):
                 offset = 0
-            check('passive.pending-page', set(wanted[offset:offset + 5]), pending_facts(continuation))
+            check('passive.pending-page', pending_page(wanted[offset:offset + 5], fresh), pending_facts(continuation))
             check('passive.pending-page-total', count_fact(len(wanted)), count_fact(continuation.get('total', 0)))
             offset += len(continuation.get('items', []))
             cursor = continuation.get('cursor')
@@ -295,7 +305,7 @@ def compare_views(read, oracle, snapshot, check, ordinary='mail_accounts'):
             if action == 'control_pending':
                 wanted = ordered_pending(record, expected)
                 actual = list(pending_facts(page))
-                check(view + '.page', set(wanted[offset:offset + 1]), set(actual))
+                check(view + '.page', pending_page(wanted[offset:offset + 1], expected), set(actual))
                 check(view + '.total', count_fact(len(wanted)), count_fact(page.get('total', 0)))
                 check(view + '.duplicates', set(), {Fact('pending', 'duplicate', detail=repr(f)) for f in actual if f in seen})
                 seen.extend(actual)
@@ -313,7 +323,7 @@ def compare_views(read, oracle, snapshot, check, ordinary='mail_accounts'):
                 audit_seen.extend(actual)
             offset += len(page.get('items', []))
             advertised = head(view, page, record, expected) or advertised
-        check(view + '.complete', set(wanted), set(seen if action == 'control_pending' else audit_seen))
+        check(view + '.complete', pending_page(wanted, expected) if action == 'control_pending' else set(wanted), set(seen if action == 'control_pending' else audit_seen))
         if advertised:
             catalogue(view + '.advertised', advertised)
     catalogue('mail catalogue', 'mail_filing_notices')

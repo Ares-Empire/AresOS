@@ -1,5 +1,7 @@
 """Systematic decoded-record mutations. No production imports or classifiers."""
 import copy
+from .model import Fact
+from .records import canonical
 
 STATES = ('reserved', 'submitting', 'unknown', 'partial', 'done', 'failed', 'refused',
           'started', 'checked', 'open', 'clean', 'warning', 'cancelled', 'expired', 'settled')
@@ -7,7 +9,32 @@ EFFECT_FIELDS = {'target', 'destination', 'last_known_destination', 'recipients'
                  'flags', 'add', 'remove', 'sha256', 'raw_sha256', 'wire_sha256', 'sent_wire_sha256',
                  'hash', 'input_hash', 'composition_hash', 'evidence_fingerprint', 'fingerprint',
                  'source', 'sources', 'reference', 'references', 'identities', 'items', 'folder', 'uid',
-                 'message_id', 'account', 'mode', 'repair_of'}
+                 'message_id', 'account', 'mode', 'repair_of', 'operation_id', 'stage', 'app'}
+
+
+def is_state(key, path):
+    return key in {'state', 'outcome'} or 'stages' in path and (
+        key in {'sent_copy', 'answered_flag', 'smtp_data', 'folder_probe', 'folder', 'https_post'} or
+        key.startswith(('target:', 'recipient:', 'rcpt:')))
+
+
+def state_vocabulary(records):
+    result = set(STATES)
+    def visit(value, path=()):
+        if isinstance(value, dict):
+            for key, child in value.items():
+                if isinstance(child, str) and is_state(key, path):
+                    result.add(child)
+                visit(child, path + (key,))
+        elif isinstance(value, list):
+            for child in value:
+                visit(child, path)
+    for record in records:
+        visit(record.rows)
+        visit(record.events)
+        visit(record.fences)
+        visit(record.prepared)
+    return tuple(sorted(result))
 
 
 def alter(value):
@@ -22,33 +49,34 @@ def alter(value):
     return 'perturbed'
 
 
-def leaves(value, path=()):
+def leaves(value, path=(), states=STATES):
     if isinstance(value, dict):
         for key, child in value.items():
             here = path + (key,)
             if isinstance(child, bool):
                 yield here, 'boolean', not child
-            elif key == 'state' and isinstance(child, str):
-                for state in STATES:
+            elif is_state(key, path) and isinstance(child, str):
+                for state in states:
                     if child != state:
                         yield here, 'state', state
             elif key in EFFECT_FIELDS:
                 replacement = ('0' if child[0] != '0' else '1') + child[1:] if ('hash' in key or 'fingerprint' in key) and isinstance(child, str) and child else alter(child)
                 yield here, 'effect', replacement
             if isinstance(child, (dict, list)):
-                yield from leaves(child, here)
+                yield from leaves(child, here, states)
     elif isinstance(value, list):
         for index, child in enumerate(value):
-            yield from leaves(child, path + (index,))
+            yield from leaves(child, path + (index,), states)
 
 
-def mutations(record):
+def mutations(record, states=None):
+    states = states or state_vocabulary([record])
     changed = copy.copy(record)
     changed.locked = not changed.locked
     yield 'locked', 'boolean', changed
     for group in ('fences', 'prepared'):
         for index, value in enumerate(getattr(record, group)):
-            for path, kind, replacement in leaves(value):
+            for path, kind, replacement in leaves(value, states=states):
                 changed = copy.copy(record)
                 versions = list(getattr(record, group))
                 versions[index] = copy.deepcopy(value)
@@ -66,7 +94,7 @@ def mutations(record):
         changed.rows = dict(record.rows)
         del changed.rows[key]
         yield 'remove-row:' + key, 'row', changed
-        for path, kind, replacement in leaves(row):
+        for path, kind, replacement in leaves(row, states=states):
             changed = copy.copy(record)
             changed.rows = {**record.rows, key: copy.deepcopy(row)}
             value = changed.rows[key]
@@ -76,6 +104,16 @@ def mutations(record):
             yield 'rows/' + key + '/' + '/'.join(map(str, path)), kind, changed
     for index, event in enumerate(record.events):
         seq = event['seq']
+        metadata = {key: value for key, value in event.items() if key not in {'set', 'record'}}
+        for path, kind, replacement in leaves(metadata, states=states):
+            changed = copy.copy(record)
+            changed.events = list(record.events)
+            changed.events[index] = {**event, **copy.deepcopy(metadata)}
+            target = changed.events[index]
+            for part in path[:-1]:
+                target = target[part]
+            target[path[-1]] = replacement
+            yield 'event-metadata/' + str(seq) + '/' + '/'.join(map(str, path)), kind, changed
         changed = copy.copy(record)
         changed.events = list(record.events)
         changed.events.pop(index)
@@ -94,7 +132,7 @@ def mutations(record):
             changed.events[index] = {**event, 'set': dict(event['set'])}
             del changed.events[index]['set'][key]
             yield 'remove-event-row:' + str(seq) + '/' + key, 'row', changed
-            for path, kind, replacement in leaves(row):
+            for path, kind, replacement in leaves(row, states=states):
                 changed = copy.copy(record)
                 changed.events = list(record.events)
                 changed.events[index] = {**event, 'set': {**event['set'], key: copy.deepcopy(row)}}
@@ -137,15 +175,20 @@ def evaluate(oracle, record):
     expected = current.expected(record)
     expected |= current.hold_facts(current.projection(record))
     expected |= current.qualification_facts({}, record)
+    expected.update(Fact(source, 'locations', occurrence, canonical(locations))
+                    for occurrence, (source, locations) in current.location_evidence.items())
+    if current.script:
+        expected.add(Fact('request', 'permitted-status', detail=canonical(sorted(
+            current.permitted_status(record, current.script[-1])))))
     errors = current.completion_errors(record) | current.context_errors() | current.local_context_errors(record, getattr(current, 'seed_sequence', 0))
     errors |= current.lifecycle_errors | current.invalid_clean_results
     return expected, errors
 
 
-def check(label, oracle, record):
+def check(label, oracle, record, states=None):
     expected, errors = evaluate(oracle, record)
     counts = {}
-    for field, kind, changed in mutations(record):
+    for field, kind, changed in mutations(record, states):
         actual, differences = evaluate(oracle, changed)
         counts[kind] = counts.get(kind, 0) + 1
         if actual != expected and not (differences - errors):

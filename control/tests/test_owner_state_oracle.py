@@ -1565,3 +1565,52 @@ class StageOneRoundThree(unittest.TestCase):
         self.assertEqual(projected.rows['op:g:repair']['payload'], args)
         self.assertIn(Fact('settle:g:repair', 'held'), oracle.holds(record))
         self.assertIn(Fact('op:g:repair', 'unapproved-repair-context'), oracle.lifecycle_errors)
+
+    def test_a_current_storage_fault_cannot_resolve_earlier_unknown_work(self):
+        oracle = Oracle()
+        oracle.call('mail_operation_status', {'operation_id': 'g:d'}, 2, {'trace': [(1, 'journal.write', 'ENOSPC')]})
+        oracle.script[-1].update(start_seq=1, end_seq=2)
+        row = {'id': 'g:d', 'action': 'mail_delete', 'app': 'mail', 'state': 'unknown'}
+        record = Record(events=[{'seq': 1, 'action': 'fixture', 'set': {'op:g:d': row}},
+            {'seq': 2, 'action': 'mail_delete', 'set': {'op:g:d': {**row, 'state': 'failed', 'notice': False}}}])
+        self.assertTrue(any(f.kind == 'recovery' for f in oracle.expected(record)))
+        self.assertIn(Fact('op:g:d', 'unjustified-resolution'), oracle.lifecycle_errors)
+
+    def test_stage_event_metadata_is_compared_to_its_committed_stage(self):
+        oracle = Oracle()
+        row = {'id': 'g:d', 'action': 'mail_send', 'app': 'mail', 'state': 'submitting', 'stages': {'sent_copy': 'done'}}
+        record = Record(events=[{'seq': 1, 'action': 'mail_send', 'operation_id': 'g:d',
+            'untrusted_content': {'stage': 'sent_copy', 'outcome': 'failed'}, 'set': {'op:g:d': row}}])
+        oracle.expected(record)
+        self.assertIn(Fact('op:g:d', 'changed-stage-event', detail='1'), oracle.lifecycle_errors)
+
+    def test_restore_requires_an_independently_observed_restore_precondition(self):
+        for locked in (False, True):
+            oracle = Oracle()
+            oracle.call('control_restore_confirm', {'confirm': 'invalidate earlier approvals'}, 1)
+            oracle.script[-1].update(start_seq=1, end_seq=2, restore_precondition=locked)
+            event = {'seq': 2, 'action': 'control_restore_confirm', 'set': {'generation': 'new'}}
+            self.assertEqual(oracle.restore_proof(event), locked)
+            oracle.expected(Record(events=[event], committed={2}))
+            self.assertEqual(Fact('sequence:2', 'unsupported-resolution', detail='restore') in oracle.lifecycle_errors, not locked)
+
+    def test_intent_and_export_scope_come_from_the_script(self):
+        for source in ('intent:i', 'export:e'):
+            oracle = Oracle()
+            oracle.call('mail_attachment_save', {}, 1)
+            oracle.script[-1].update(start_seq=0, end_seq=1)
+            row = {'id': source.split(':')[1], 'action': 'testapp_send', 'app': 'testapp', 'state': 'started'}
+            record = Record(events=[{'seq': 1, 'action': 'mail_attachment_save', 'set': {source: row}}])
+            self.assertTrue(any(f.source == source and f.kind == 'recovery' for f in oracle.expected(record, app='mail')))
+            self.assertIn(Fact(source, 'unjustified-app-scope'), oracle.lifecycle_errors)
+
+    def test_expiry_notice_survives_a_different_current_recovery_state(self):
+        oracle, record = StageOneRoundTwo.expired(self)
+        initial = oracle.expected(record)
+        notice = Fact('op:g:r', 'operation-notice', 'g:r', 'expired')
+        self.assertIn(notice, initial)
+        recovered = {**record.events[-1]['set']['op:g:r'], 'state': 'unknown',
+                     'reason': 'Restored log: newer evidence is missing.', 'notice': False}
+        self.assertIn(notice, oracle.expected(Record(rows={'op:g:r': recovered})))
+        from owner_state_oracle.compare import pending_facts
+        self.assertNotIn(notice, pending_facts({'items': [{'operation_id': 'g:r', **recovered}]}))

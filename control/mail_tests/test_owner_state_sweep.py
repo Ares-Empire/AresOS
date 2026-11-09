@@ -82,7 +82,9 @@ class OwnerScenario(Scenario):
             self.owner_oracle.script[index]['request_method'] = envelope.get('method')
             observer = getattr(self.owner_oracle, 'response_observer', None)
             if observer:
-                self.owner_oracle.script[index]['start_seq'] = max(observer.__self__.snapshot().committed, default=0)
+                before = observer.__self__.snapshot()
+                self.owner_oracle.script[index]['start_seq'] = max(before.committed, default=0)
+                self.owner_oracle.script[index]['restore_precondition'] = before.locked
             try:
                 reply = request(engine, envelope, *args, **kwargs)
             except BaseException:
