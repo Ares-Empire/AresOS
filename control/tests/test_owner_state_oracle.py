@@ -16,7 +16,7 @@ from owner_state_oracle.compare import pages
 class OwnerOracle(unittest.TestCase):
     def test_expectation_imports_are_standard_library_only(self):
         root = Path(__file__).resolve().parents[1] / 'owner_state_oracle'
-        allowed = {'contextlib', 'email', 'context', 'copy', 'dataclasses', 'hashlib', 'json', 'pathlib', 'sqlite3', 'shutil', 'tempfile', 'time', 're', 'model', 'records', 'local'}
+        allowed = {'contextlib', 'email', 'context', 'copy', 'dataclasses', 'hashlib', 'json', 'pathlib', 'sqlite3', 'shutil', 'tempfile', 'time', 're', 'gzip', 'os', 'argparse', 'model', 'records', 'local'}
         for name in ('__init__.py', 'records.py', 'model.py', 'compare.py', 'context.py', 'gaps.py', 'local.py'):
             tree = ast.parse((root / name).read_text())
             for node in ast.walk(tree):
@@ -461,13 +461,13 @@ class OwnerOracle(unittest.TestCase):
         self.assertEqual(event['call'], call)
 
     def test_grouped_gap_storage_preserves_exact_cases_without_wildcards(self):
-        from owner_state_oracle.gaps import Gaps, pack, unpack
+        from owner_state_oracle.gaps import Gaps, full_pack, unpack
         recorded = Gaps(recording=True)
         for case in ('flow/single/1', 'flow/single/2'):
             check = recorded.checker(case)
             check('warning', {Fact('source', 'warning')}, set())
             check.finish()
-        packed = pack(recorded.entries)
+        packed = full_pack(recorded.entries)
         self.assertEqual(len(packed['groups']), 1)
         self.assertEqual(unpack(packed), recorded.entries)
         strict = Gaps(recording=True)
@@ -478,27 +478,49 @@ class OwnerOracle(unittest.TestCase):
             check.finish()
 
     def test_every_pinned_gap_belongs_to_an_executed_suite(self):
-        from owner_state_oracle.gaps import PATH, unpack
+        from owner_state_oracle.gaps import PATH, owned
         sweep = Path(__file__).resolve().parents[1] / 'mail_tests/test_owner_state_sweep.py'
         owners = {'contract', 'channel', 'G22-rename', 'G22-evidence', 'G22-latch'}
         for node in ast.parse(sweep.read_text()).body:
-            if isinstance(node, ast.Assign) and any(isinstance(target, ast.Name) and target.id in {'FLOWS', 'EXTRA'} for target in node.targets):
+            if isinstance(node, ast.Assign) and any(isinstance(t, ast.Name) and t.id in {'FLOWS', 'EXTRA'} for t in node.targets):
                 owners.update(ast.literal_eval(node.value))
-        for case, detail in unpack(json.loads(PATH.read_text())).items():
-            with self.subTest(case=case):
-                self.assertIn(case.split('/')[0], owners, 'An unowned gap would evade suite completeness')
-                self.assertIn(detail['stage'], (2, 3))
-                self.assertTrue(detail['row'])
-                delta = detail['delta']
-                self.assertGreater(delta['calls'], 0)
-                self.assertTrue(delta['failures'])
-                seen = set()
-                for failure in delta['failures']:
-                    self.assertTrue(failure['missing'] or failure['extra'])
-                    for page in failure['pages']:
-                        self.assertIn(page, range(delta['calls']))
-                        self.assertNotIn(page, seen)
-                        seen.add(page)
+        ledger = json.loads(PATH.read_text())
+        self.assertEqual(ledger['format'], 3)
+        ids = set()
+        for group in ledger['groups']:
+            self.assertNotIn(group['id'], ids)
+            ids.add(group['id'])
+            self.assertIn(group['suite'], owners)
+            self.assertIn(group['stage'], (2, 3))
+            self.assertTrue(group['row'])
+            self.assertGreater(group['count'], 0)
+            self.assertEqual(len(group['sha256']), 64)
+            count = sum(owned(group, shard, 4, worker, 3) for shard in range(4) for worker in range(3))
+            self.assertEqual(count, 12 if group['owner'] in {'suite', 'shared'} else 1)
+
+    def test_compact_ledger_pins_delta_keys_groups_and_execution(self):
+        from owner_state_oracle.gaps import Gaps, pack
+        entries = {f'flow/single/{p}/0/live/view': {'row': 'M14', 'stage': 3,
+            'delta': {'calls': 1, 'failures': [{'pages': [0], 'missing': [['a']], 'extra': []}]}} for p in (1, 2)}
+        def verify(values):
+            gaps = Gaps(recording=True)
+            gaps.groups = {g['id']: g for g in pack(entries)['groups']}
+            gaps.entries, gaps.recording = values, False
+            gaps.verify({'flow'})
+        verify(entries)
+        mutations = []
+        flipped = copy.deepcopy(entries)
+        next(iter(flipped.values()))['delta']['calls'] = 2
+        mutations.append(flipped)
+        mutations.append(dict(list(entries.items())[1:]))
+        mutations.append({**entries, 'flow/single/3/0/live/view': next(iter(entries.values()))})
+        moved = copy.deepcopy(entries)
+        next(iter(moved.values()))['row'] = 'M06'
+        mutations.append(moved)
+        mutations.append({})  # Every formerly failing assertion now passes.
+        for mutated in mutations:
+            with self.assertRaises(AssertionError):
+                verify(mutated)
 
     def test_isolated_sweep_process_failure_cannot_report_success(self):
         from contextlib import redirect_stdout

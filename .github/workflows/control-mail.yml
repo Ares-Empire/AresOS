@@ -25,6 +25,7 @@ jobs:
           path: |
             .work/mail-ci/base.txt
             .work/mail-ci/mail.txt
+            .work/mail-ci/owner-gaps-*.json.gz
             .work/mail-ci/isolation.txt
             .work/mail-ci/greenmail.txt
             .work/mail-ci/dovecot.txt
@@ -50,6 +51,7 @@ jobs:
           path: |
             .work/mail-ci/setup.txt
             .work/mail-ci/mail.txt
+            .work/mail-ci/owner-gaps-*.json.gz
             .work/mail-ci/isolation.txt
             .work/mail-ci/greenmail.txt
             .work/mail-ci/dovecot.txt

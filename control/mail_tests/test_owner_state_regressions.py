@@ -31,7 +31,7 @@ class ReviewRegressions(unittest.TestCase):
         check = registry.checker(gap)
         check('assertion', expected, actual)
         check.finish()
-        self.assertEqual(registry.seen, {key for key in registry.entries if key.startswith(gap + '/')})
+        registry.verify({gap})
 
     def test_review22_live_rename_trash_with_unresolved_drafts_M03_C03(self):
         scenario = Scenario('filing_rename')

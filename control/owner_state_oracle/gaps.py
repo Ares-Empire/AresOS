@@ -1,5 +1,8 @@
 """Exact assertion deltas. No skips, wildcard matches or exception swallowing."""
 import json
+import hashlib
+import gzip
+import os
 from pathlib import Path
 
 PATH = Path(__file__).resolve().parents[2] / 'reviews/19b-owner-state/KNOWN-GAPS.json'
@@ -20,7 +23,7 @@ def unpack(value):
     return entries
 
 
-def pack(entries):
+def full_pack(entries):
     # Duplicate deltas share storage; every case name remains explicit.
     groups = {}
     for case, detail in sorted(entries.items()):
@@ -29,10 +32,51 @@ def pack(entries):
     return {'format': 2, 'groups': list(groups.values())}
 
 
+BUCKETS = 12  # Four CI shards, three isolated workers per shard.
+
+
+def owner(key):
+    parts = key.split('/')
+    if len(parts) > 2 and parts[1] in {'single', 'persistent'} and parts[2].isdigit():
+        point = int(parts[2])
+        return 'shared' if not point else str(int.from_bytes(hashlib.sha256(f'{parts[0]}/{point}'.encode()).digest()[:8]) % BUCKETS)
+    return 'suite'
+
+
+def pack(entries):
+    groups = {}
+    for key, detail in sorted(entries.items()):
+        identity = [key.split('/')[0], owner(key), detail['row'], detail['stage']]
+        group_id = json.dumps(identity, separators=(',', ':'))
+        group = groups.setdefault(group_id, {'id': group_id, 'suite': identity[0], 'owner': identity[1],
+            'row': detail['row'], 'stage': detail['stage'], 'keys': []})
+        group['keys'].append([key, detail])
+    result = []
+    for group in groups.values():
+        keys = group.pop('keys')
+        # Newline-delimited canonical [key,{row,stage,delta}] records. The row,
+        # stage, calls and exact missing/extra facts/pages all enter the digest.
+        digest = hashlib.sha256()
+        for value in keys:
+            digest.update((json.dumps(value, sort_keys=True, ensure_ascii=True, separators=(',', ':')) + '\n').encode())
+        result.append({**group, 'count': len(keys), 'sha256': digest.hexdigest(), 'samples': [value[0] for value in keys[:3]]})
+    return {'format': 3, 'buckets': BUCKETS, 'groups': sorted(result, key=lambda g: g['id'])}
+
+
+def owned(group, shard=0, shards=1, worker=0, workers=1):
+    if group['owner'] in {'suite', 'shared'}:
+        return True
+    assert BUCKETS % (shards * workers) == 0, 'Ledger ownership requires a divisor of twelve workers'
+    bucket = int(group['owner'])
+    return bucket % shards == shard and (bucket // shards) % workers == worker
+
+
 class Gaps:
     def __init__(self, recording=False):
         self.recording = recording
-        self.entries = {} if recording else unpack(json.loads(PATH.read_text()))
+        self.groups = {} if recording else {g['id']: g for g in json.loads(PATH.read_text())['groups']}
+        self.entries = {}
+        self.executed = set()
         self.seen = set()
         self.aliases = {}
         self._indexed_entries = None
@@ -85,6 +129,7 @@ class Gaps:
                 kinds_seen.setdefault(view, set()).update(f.kind for f in expected ^ actual)
                 sources_seen.setdefault(view, set()).update(f.source for f in expected ^ actual)
         def finish():
+            self.executed.add(case)
             expected_keys = self.by_case.get(case, set())
             actual_keys = {case + '/' + view for view in calls}
             assert expected_keys <= actual_keys, ('Known-gap assertion not executed', sorted(expected_keys - actual_keys))
@@ -96,7 +141,7 @@ class Gaps:
                     assert delta['failures'], ('Unexpected pass; remove this known gap', key)
                     assert self.entries[key]['delta'] == delta, ('Known gap changed; possible regression', key, self.entries[key], delta)
                 elif delta['failures']:
-                    if not self.recording:
+                    if not self.recording and not self.groups:
                         raise AssertionError(('Unlisted owner-state gap', key, delta))
                     kinds = kinds_seen.get(view, set())
                     r2 = any(k.startswith('R2.') for k in kinds)
@@ -125,9 +170,69 @@ class Gaps:
                     else:
                         row = 'M06' if 'recovery' in kinds else 'M07/C01' if 'sent_copies' in kinds else 'M03/C03' if 'rename' in kinds else 'M02/C02' if 'filing' in kinds else 'M14'
                     self.entries[key] = {'row': row, 'stage': 2 if r2 else 3, 'delta': delta}
+                    self.seen.add(key)
                     self.by_case.setdefault(case, set()).add(key)
         check.finish = finish
         return check
 
+
+    def verify(self, suites, shard=0, shards=1, worker=0, workers=1):
+        actual = {g['id']: g for g in pack(self.entries)['groups'] if g['suite'] in suites}
+        expected = {k: g for k, g in self.groups.items() if g['suite'] in suites and owned(g, shard, shards, worker, workers)}
+        # Emit actual full lists even on strict failure. Only test data enters
+        # these files; no credentials, fixture keys or production modules.
+        root = PATH.parents[1].parent / '.work' / ('control-ci' if suites == {'channel'} else 'mail-ci')
+        root.mkdir(parents=True, exist_ok=True)
+        name = '-'.join(sorted(suites)) if len(suites) < 4 else 'sweep'
+        with gzip.open(root / f'owner-gaps-{name}-{shard}-{worker}.json.gz', 'wt') as stream:
+            json.dump(full_pack(self.entries), stream, sort_keys=True)
+        if self.recording:
+            return
+        errors = []
+        for key in sorted(expected.keys() | actual.keys()):
+            old, new = expected.get(key), actual.get(key)
+            if old == new:
+                continue
+            if old is None:
+                reason = 'Unlisted gap'
+            elif new is None:
+                reason = 'Unexpected pass or owned group not executed'
+            elif new['count'] < old['count']:
+                reason = 'Unexpected pass or removed key; known gap changed'
+            elif new['count'] > old['count']:
+                reason = 'Unlisted gap or added key; known gap changed'
+            else:
+                reason = 'Known gap changed'
+            errors.append((reason, key, old, new))
+        assert not errors, errors
+
     def save(self):
         PATH.write_text(json.dumps(pack(self.entries), sort_keys=True, indent=2) + '\n')
+
+
+def main():
+    import argparse
+    parser = argparse.ArgumentParser(description='Convert/diff a full .work ledger or merge CI actual lists; never writes full lists in reviews.')
+    parser.add_argument('inputs', nargs='+')
+    parser.add_argument('--output', required=True)
+    parser.add_argument('--full', action='store_true')
+    args = parser.parse_args()
+    entries = {}
+    for name in args.inputs:
+        opener = gzip.open if name.endswith('.gz') else open
+        with opener(name, 'rt') as stream:
+            for key, detail in unpack(json.load(stream)).items():
+                if key in entries and entries[key] != detail:
+                    raise ValueError(('Conflicting shared capture', key))
+                entries[key] = detail
+    output = Path(args.output)
+    if args.full and '.work' not in output.parts:
+        parser.error('Full lists must stay under .work/')
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(json.dumps(full_pack(entries) if args.full else pack(entries), sort_keys=True, indent=2) + '\n')
+    print(json.dumps({'assertions': len(entries), 'groups': len(pack(entries)['groups']),
+        'stages': {stage: sum(v['stage'] == stage for v in entries.values()) for stage in (2, 3)}, 'bytes': output.stat().st_size}))
+
+
+if __name__ == '__main__':
+    main()

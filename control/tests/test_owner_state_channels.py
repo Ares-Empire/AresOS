@@ -89,7 +89,7 @@ class OwnerStateChannels(unittest.TestCase):
         check('own-page', wanted, pending_facts(continuation))
         check('unchanged-page', set(), {Fact('pending', 'page_changed')} if continuation.get('page_changed') else set())
         check.finish()
-        self.assertEqual(gaps.seen, {key for key in gaps.entries if key.startswith('channel/')})
+        gaps.verify({'channel'})
         for name in ('Stop', 'UserPromptSubmit'):
             process = self.launch(integration.OWNER, ['hook', name], input=json.dumps({'hook_event_name': name}))
             self.assertEqual(process.returncode, 0, process.stderr)

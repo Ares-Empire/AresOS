@@ -104,3 +104,9 @@ None blocking stage 1. The next run should begin at stage 2 with this ledger and
 ## Workspace cleanup
 
 **Run:** a recursive `.work/` inventory found no file over 500 MB. Removed 572,520,370 bytes of duplicate captured ledgers and superseded boundary copies; retained raw Linux evidence and the committed pin. Abandoned local captures were discarded. No large disk image was downloaded, and no Gradle daemon was started.
+
+## Stage 1, fixes round 1
+
+**Run — L1 before expectation changes:** converted the original format-2 full list to format 3. `LEDGER-CONVERSION.json` records source/result SHA-256 and sizes; independent rehashing matched every digest and all 675,562 assertion keys (44,856 stage 2; 630,706 stage 3). The committed summary is 804,042 bytes in 1,623 ownership groups. Each digest pins the key, row, stage and exact calls/missing/extra/page delta. The full list remains only under `.work/` and in CI artifacts. `KNOWN-GAPS.md` documents regenerate/diff commands. `gaps.verify` checks absent/unlisted/changed groups and every owned group; twelve buckets map wholly to the four-shard, three-worker CI split, with shared clean groups checked by all workers.
+
+**Run — L1 local checks:** oracle suite: `Ran 50 tests`, `OK`; generator: `Generated artifacts match definitions`; `git diff --check`: no output. Compact-ledger mutations reject a changed delta, removed/added key, unexpected pass and moved group, and unchanged input passes. The expectation-import AST check still includes `gaps.py`.

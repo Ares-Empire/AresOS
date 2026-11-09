@@ -8,4 +8,4 @@ class OwnerStateContracts(unittest.TestCase):
     def test_matrix_contracts(self):
         gaps = Gaps()
         owner_state_cases.run(gaps)
-        self.assertEqual(gaps.seen, {key for key in gaps.entries if key.startswith('contract/')})
+        gaps.verify({'contract'})

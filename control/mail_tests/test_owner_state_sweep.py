@@ -302,6 +302,5 @@ class OwnerStateSweep(unittest.TestCase):
                                     exercise(flow, number, cleanup_at=cleanup_at, gaps=gaps, phase='crash')
                                     counts['pairs'] += 1
             print(f'Owner oracle flow={flow} points={len(points)} elapsed={time.monotonic()-started:.3f}s', flush=True)
-        relevant = {key for key in gaps.entries if key.split('/')[0] in FLOWS + EXTRA and owns_case(key, shard, shards, worker, workers)}
-        self.assertEqual(gaps.seen, relevant)
+        gaps.verify(set(FLOWS + EXTRA), shard, shards, worker, workers)
         print(f'Owner oracle shard={shard}/{shards} worker={worker}/{workers} modes={dict(counts)} strict expected failures={len(gaps.seen)}', flush=True)
