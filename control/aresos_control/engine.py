@@ -69,7 +69,7 @@ class Engine:
         result = {'notices': page['items']}
         if page['cursor']:
             result['notices_more'] = {'count': page['total'] - len(page['items']),
-                                      'action': 'mail_filing_notices'}
+                                      'action': 'chrome_notices' if app=='chrome' else 'mail_filing_notices'}
         return result
 
     def pending(self, app=None, args=None, resolve_checks=True):
@@ -515,7 +515,7 @@ class Engine:
                     notice["ack"] = True
                     changes = {"notice:" + notice["id"]: notice}
                     source_key = notice.get('untrusted_content', {}).get('intent_key', '')
-                    if source_key.startswith('intent:'):
+                    if source_key.startswith('intent:') and not source_key.startswith('intent:chrome:'):
                         changes[source_key] = None
                     elif source_key.startswith(('mail:filing:', 'mail:rename:')):
                         source = self.store.get(source_key)

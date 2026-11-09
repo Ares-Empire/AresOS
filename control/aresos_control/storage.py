@@ -525,7 +525,7 @@ class Store:
         # adapters using started/done, in the same admitted transaction.
         intent_key = self.active_intents.get(action)
         explicit = operation_id or any(k.startswith(('op:', 'mail:filing:', 'mail:rename:',
-                                                     'export:', 'mail:account:')) for k in changes)
+                                                     'export:', 'mail:account:', 'intent:chrome:')) for k in changes)
         tracked_intent = not explicit and (outcome == 'started' or intent_key is not None)
         if tracked_intent:
             changes = dict(changes)

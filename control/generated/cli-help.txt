@@ -79,5 +79,6 @@ Actions (input is the definition's JSON object; --help on any action shows its s
   aresos chrome submit_trusted [send]
   aresos chrome drop [change]
   aresos chrome operation_status [read]
+  aresos chrome notices [read]
   aresos chrome notice_ack [change]
   aresos admin chrome sites [change]
