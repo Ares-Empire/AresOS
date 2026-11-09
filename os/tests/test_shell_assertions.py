@@ -185,7 +185,7 @@ bootc() { echo TRANSACTION_MUST_NOT_RUN; }
 id() { if [[ $1 == -nG ]]; then echo "ares ${WHEEL-wheel}"; else echo 1001; fi; }
 python3() { cat >/dev/null; }
 sudo() {
-    printf 'Matching Defaults entries for ares on fixture:\\n    !visiblepw, %s\\n\\n' "${DEFAULTS-timestamp_type=ppid}"
+    printf 'Matching Defaults entries for ares on fixture:\\n    !visiblepw, %s\\n\\n' "${DEFAULTS-timestamp_timeout=0}"
     printf 'User ares may run the following commands on fixture:\\n    %s\\n' "${RULE-(ALL) ALL}"
 }
 runuser() {
@@ -208,7 +208,7 @@ pgrep() {
         self.assertIn('Daily account is in wheel', baseline.stdout)
         cases = [({'WHEEL': ''}, 'Daily account is not in wheel'),
                  ({'RULE': '(ALL) NOPASSWD: ALL'}, 'Daily account has a passwordless sudo rule'),
-                 ({'DEFAULTS': '!authenticate, timestamp_type=ppid'}, 'Daily account has a passwordless sudo rule'),
+                 ({'DEFAULTS': '!authenticate, timestamp_timeout=0'}, 'Daily account has a passwordless sudo rule'),
                  ({'PASSWORDLESS_EXIT': '0'}, 'Daily account ran sudo without a password')]
         # A missing grant or a reusable password cache fails without a message.
         cases += [({'RULE': '(root) /usr/bin/true'}, ''), ({'DEFAULTS': 'env_reset'}, '')]

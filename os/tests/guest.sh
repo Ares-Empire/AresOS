@@ -30,7 +30,7 @@ if grep -Eq 'NOPASSWD|!authenticate' <<< "$sudo_policy"; then
 fi
 grep -Eq '^User ares may run the following commands on .+:$' <<< "$sudo_policy"
 grep -Eq '^[[:space:]]+\(ALL\) ALL$' <<< "$sudo_policy"
-grep -Eq 'timestamp_type=ppid' <<< "$sudo_policy"
+grep -Eq 'timestamp_timeout=0' <<< "$sudo_policy"
 if runuser -u ares -- sudo -n true; then
     echo 'Daily account ran sudo without a password'
     exit 1

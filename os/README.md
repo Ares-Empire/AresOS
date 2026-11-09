@@ -86,9 +86,9 @@ never pushes, signs or publishes.
 
 The `ares` account is UID 1001 and, since the owner's 2026-11-09 decision
 ("Like Windows", package 21), a member of `wheel` behind its own password. The
-image sets no password, so `sudo` fails until the owner sets one; sudo remembers
-it only per parent process (`/etc/sudoers.d/aresos-everyday`), and the build
-refuses any passwordless sudo rule.
+image sets no password, so `sudo` fails until the owner sets one; sudo asks for
+it every time and keeps no ticket (`/etc/sudoers.d/aresos-everyday`), and the
+build refuses any passwordless sudo rule.
 Its image-owned `sysusers.d` declaration also creates it during boot when the
 installer's locally modified passwd/group files survive the rebase. The
 installer administrator is preserved at UID 1000; neither account is renumbered.
