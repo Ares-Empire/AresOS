@@ -26,7 +26,7 @@ The extension receives these exclusions over native messaging, builds session
 DNR rules for controlled tabs, and registers its content scripts with runtime
 exclusions. A changed list ends control before its new rules take effect.
 
-Copy all control/aresos_control runtime modules, generated/, settings/, launch.py,
+Copy all control/aresos_control runtime modules and their unicode_words.json data, generated/, settings/, launch.py,
 requirements.lock and chrome/{extension,native_host.py,build.py,packaging,
 qualification.json} into the installed service tree. During the image build,
 compute `python3 control/chrome/build.py` on the complete source tree and write

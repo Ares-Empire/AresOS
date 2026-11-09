@@ -1,10 +1,13 @@
 """Chrome policy is service data; the extension receives a generated copy."""
 import re
+import json
+from bisect import bisect_right
+from pathlib import Path
 from urllib.parse import urlsplit, unquote
 
 from ..common import Refused
 
-WORD_LIST_VERSION = 1
+WORD_LIST_VERSION = 2
 WORDS = ('send submit post publish reply comment buy pay order book subscribe unsubscribe '
          'delete remove discard clear empty trash senden absenden schicken posten veröffentlichen '
          'antworten kommentieren kaufen bezahlen zahlen bestellen buchen abonnieren abbestellen '
@@ -22,8 +25,25 @@ CDP_METHODS = ['Input.dispatchMouseEvent', 'Input.dispatchKeyEvent', 'Input.inse
                'Page.enable', 'Page.handleJavaScriptDialog']
 
 
+# Frozen data keeps service/Chrome Unicode versions and locale from disagreeing.
+UNICODE_WORDS=json.loads(Path(__file__).with_name('unicode_words.json').read_text())
+WORD_STARTS=[start for start,_ in UNICODE_WORDS['ranges']]
+
+def folded(text):
+    return ''.join(UNICODE_WORDS['fold'].get(char,char) for char in text)
+
 def listed(text):
-    return set(re.findall(r'\w+', text.casefold())) & {w.casefold() for w in WORDS}
+    matches=set();word=''
+    for char in folded(text):
+        point=ord(char);index=bisect_right(WORD_STARTS,point)-1
+        if index>=0 and point<=UNICODE_WORDS['ranges'][index][1]:word+=char
+        else:
+            if word in WORD_SET:matches.add(word)
+            word=''
+    if word in WORD_SET:matches.add(word)
+    return matches
+
+WORD_SET={folded(word) for word in WORDS}
 
 
 def hostname(address):
