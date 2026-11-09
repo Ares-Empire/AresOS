@@ -14,10 +14,12 @@ def check_result(store, source, source_key, kind, evidence, content=None, notice
     """
     checks = source.setdefault('warning_checks', {})
     previous = checks.get(kind, {})
-    fingerprint = digest(evidence)
     if content is None:
-        checks[kind] = {**previous, 'warning': False, 'fingerprint': fingerprint}
+        # Fingerprints identify warning evidence. A clean result only ends
+        # that condition; keep its previous occurrence for history/ack.
+        checks[kind] = {**previous, 'warning': False}
         return {}, None
+    fingerprint = digest(evidence)
     if previous.get('warning') and previous.get('fingerprint') == fingerprint:
         return {}, previous['occurrence_id']
     base = notice_id or source['id']
