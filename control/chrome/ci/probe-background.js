@@ -19,7 +19,11 @@ chrome.debugger.onEvent.addListener(async(source,method,params)=>{
     injection.catch(error=>report({phase:'late-injection-error',error:String(error)}));
     const context=contexts.get(source.tabId)||await Promise.race([ready,new Promise((_,reject)=>{timeout=setTimeout(()=>reject(Error('No real extension world while paused')),5000);})]);
     clearTimeout(timeout);
-    const evaluated=await command(source.tabId,'Runtime.evaluate',{contextId:context.id,disableBreaks:true,expression:"globalThis.probePrivate=true;window.addEventListener('probe-event',event=>{event.preventDefault();event.stopImmediatePropagation();},true);JSON.stringify({runtime:chrome.runtime.id,closedShadowAPI:typeof chrome.dom.openOrClosedShadowRoot})",returnByValue:true});
+    const evaluated=await command(source.tabId,'Runtime.evaluate',{contextId:context.id,disableBreaks:true,expression:`globalThis.probePrivate=true;
+      window.addEventListener('probe-event',event=>{event.preventDefault();event.stopImmediatePropagation();},true);
+      const nativeDispatch=EventTarget.prototype.dispatchEvent,nativeType=Object.getOwnPropertyDescriptor(Event.prototype,'type').get;
+      window.addEventListener('probe-original',event=>{let type,delivered,error;try{type=nativeType.call(event.detail.event);delivered=nativeDispatch.call(event.target,event.detail.event);}catch(value){error=String(value);}fetch('/report',{method:'POST',body:JSON.stringify({phase:'original-event-native-delivery',type,delivered,error})});},true);
+      JSON.stringify({runtime:chrome.runtime.id,closedShadowAPI:typeof chrome.dom.openOrClosedShadowRoot})`,returnByValue:true});
     await report({phase:'private-extension-evaluation-before-resume',evaluated});
     installed.add(source.tabId);
     const result='Extension world installed before page scripts';
