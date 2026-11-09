@@ -19,7 +19,11 @@ from aresos_control.common import Refused
 
 class Publisher(unittest.TestCase):
     def test_lookup_both_channels_and_newest_three_builds_twice(self):
-        versions=qualify.packages('Package: google-chrome-stable\nVersion: 157.0.1.0-1\n\nPackage: google-chrome-beta\nVersion: 158.0.2.0-1\n')
+        metadata='\n\n'.join('Package: google-chrome-'+channel+'\nVersion: '+version+'-1\nFilename: pool/main/g/google-chrome-'+channel+'/google-chrome-'+channel+'_'+version+'-1_amd64.deb\nSHA256: '+'1'*64 for channel,version in [('stable','157.0.1.0'),('beta','158.0.2.0')])
+        versions=qualify.packages(metadata)
+        self.assertTrue(versions['stable']['package_url'].endswith('157.0.1.0-1_amd64.deb'))
+        self.assertEqual(versions['stable']['package_sha256'],'1'*64)
+        with self.assertRaises(ValueError):qualify.packages(metadata.replace('SHA256:', 'Missing:'))
         registry={'format':1,'builds':[{'commit':str(i)*40,'build':str(i)*64,'shipped_at':str(i)} for i in range(1,5)]}
         matrix=qualify.plan(registry,versions,{'format':1,'entries':[]},'a'*40,'a'*64)['include']
         self.assertEqual(len(matrix),16)

@@ -17,7 +17,7 @@ concurrency:
 jobs:
   fixtures:
     runs-on: ubuntu-24.04
-    timeout-minutes: 40
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
@@ -26,15 +26,32 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           persist-credentials: false
+      - name: Resolve the exact stable package and checksum
+        id: package
+        run: |
+          python3 - <<'PY'
+          import gzip,os,sys,urllib.request
+          sys.path.insert(0,'control/chrome')
+          from qualify import PACKAGES,packages
+          with urllib.request.urlopen(PACKAGES,timeout=20) as response:
+              package=packages(gzip.decompress(response.read()).decode())['stable']
+          with open(os.environ['GITHUB_OUTPUT'],'a') as output:
+              for name in ['version','package_url','package_sha256']:
+                  output.write(name+'='+package[name]+'\n')
+          PY
       - name: Build disposable branded-Chrome container
-        run: git archive HEAD control docs/control/TOOLS.md | docker build -t aresos-chrome-fixture -f control/chrome/ci/Dockerfile -
+        env:
+          PACKAGE_URL: ${{ steps.package.outputs.package_url }}
+          PACKAGE_SHA256: ${{ steps.package.outputs.package_sha256 }}
+        run: git archive HEAD control docs/control/TOOLS.md | docker build --build-arg PACKAGE_URL="$PACKAGE_URL" --build-arg PACKAGE_SHA256="$PACKAGE_SHA256" -t aresos-chrome-fixture -f control/chrome/ci/Dockerfile -
       - name: Browser fixtures only inside Linux container, sandbox on
         env:
           INSTALL_MODE: ${{ matrix.install }}
+          QUALIFICATION_VERSION: ${{ steps.package.outputs.version }}
         run: |
           set -euo pipefail
           mkdir -p .work/20-chrome/ci
-          docker run --rm --network none --cap-add SYS_ADMIN --security-opt seccomp=unconfined --security-opt apparmor=unconfined --shm-size=512m -e INSTALL_MODE -e GITHUB_RUN_ID -e GITHUB_SHA -v "$PWD/.work/20-chrome/ci:/out" aresos-chrome-fixture
+          timeout --signal=TERM --kill-after=30s 50m docker run --rm --network none --cap-add SYS_ADMIN --security-opt seccomp=unconfined --security-opt apparmor=unconfined --shm-size=512m -e INSTALL_MODE -e QUALIFICATION_VERSION -e GITHUB_RUN_ID -e GITHUB_SHA -v "$PWD/.work/20-chrome/ci:/out" aresos-chrome-fixture
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
@@ -63,7 +80,7 @@ jobs:
     needs: qualification-plan
     if: needs.qualification-plan.result == 'success' && needs.qualification-plan.outputs.matrix != '' && fromJSON(needs.qualification-plan.outputs.matrix).include[0] != null
     runs-on: ubuntu-24.04
-    timeout-minutes: 40
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.qualification-plan.outputs.matrix) }}
@@ -84,17 +101,19 @@ jobs:
       - name: Build the requested channel in a disposable container
         env:
           CHANNEL: ${{ matrix.channel }}
+          PACKAGE_URL: ${{ matrix.package_url }}
+          PACKAGE_SHA256: ${{ matrix.package_sha256 }}
         run: |
           cp -R driver/control/chrome/ci/. runtime/control/chrome/ci/
           cp -R driver/control/chrome_tests/. runtime/control/chrome_tests/
-          tar -C runtime -cf - control docs/control/TOOLS.md | docker build --build-arg CHANNEL="$CHANNEL" -t qualification -f runtime/control/chrome/ci/Dockerfile -
+          tar -C runtime -cf - control docs/control/TOOLS.md | docker build --build-arg CHANNEL="$CHANNEL" --build-arg PACKAGE_URL="$PACKAGE_URL" --build-arg PACKAGE_SHA256="$PACKAGE_SHA256" -t qualification -f runtime/control/chrome/ci/Dockerfile -
       - name: Run full receiver suite; repeat is a separate matrix job
         env:
           INSTALL_MODE: policy
           QUALIFICATION_VERSION: ${{ matrix.version }}
         run: |
           mkdir -p .work/20-chrome/ci
-          docker run --rm --network none --cap-add SYS_ADMIN --security-opt seccomp=unconfined --security-opt apparmor=unconfined --shm-size=512m -e INSTALL_MODE -e QUALIFICATION_VERSION -e GITHUB_RUN_ID -e GITHUB_SHA -v "$PWD/.work/20-chrome/ci:/out" qualification
+          timeout --signal=TERM --kill-after=30s 50m docker run --rm --network none --cap-add SYS_ADMIN --security-opt seccomp=unconfined --security-opt apparmor=unconfined --shm-size=512m -e INSTALL_MODE -e QUALIFICATION_VERSION -e GITHUB_RUN_ID -e GITHUB_SHA -v "$PWD/.work/20-chrome/ci:/out" qualification
       - name: Retain pair identity even when the test failed
         if: always()
         env:

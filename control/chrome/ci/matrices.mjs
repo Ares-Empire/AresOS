@@ -11,6 +11,7 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
     catch(error){results.push({name,passed:false,error:String(error.stack)});console.error(name,'FAIL',error.stack);
       // Preserve the failed assertion, then start a fresh browser for the next independent group.
       // Never retry this case or turn its result into a pass.
+      if(name.startsWith('QUALIFICATION')||name.startsWith('GROUP 11'))try{await lifecycle({fixture:'kind',mode:'restore'});await lifecycle({fixture:'qualification',mode:'qualified'});}catch(recovery){console.error('FIXTURE POLICY CLEANUP FAILED',String(recovery));}
       if(!name.startsWith('GROUP 9'))try{await lifecycle('kill_chrome');await lifecycle('start_chrome');tab=await restoreControl();}catch(recovery){console.error('FIXTURE RECOVERY FAILED',String(recovery));}
     }
   }
@@ -42,12 +43,16 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
     const link=await call('click',await target('Read more'));assert.ok(!link.approval);await eventually(()=>counts('free')===2,'ordinary link stays free');
   });
   await check('GROUP 1 what asks word/label/key matrix',async()=>{
-    for(const word of words)for(const label of ['name','aria','title','value','labelledby','hidden_labelledby','label','role','formaction'])for(const route of ['click','Enter','Space']){
-      const id='word-'+word+'-'+label+'-'+route;await setup({id,mode:'word',word,label});
-      const row=(await read()).find(row=>row.expected.role==='button'||row.expected.name==='Continue');assert.ok(row);
-      const args={reference:row.reference,expected:row.expected};
-      const result=route==='click'?await call('click',args):await call('press',{...args,key:route});
-      await approval(result,id);
+    let cases=0;
+    for(const word of words)for(const label of ['name','aria','title','value','labelledby','hidden_labelledby','label','role','formaction']){
+      const id='word-'+word+'-'+label;await setup({id,mode:'word',word,label});
+      for(const route of ['click','Enter','Space']){
+        const row=(await read()).find(row=>row.expected.role==='button'||row.expected.name==='Continue');assert.ok(row);
+        const args={reference:row.reference,expected:row.expected};
+        const result=route==='click'?await call('click',args):await call('press',{...args,key:route});
+        await approval(result,id+'-'+route);cases++;
+      }
+      if(cases%81===0)console.log('GROUP 1 WORD_PROGRESS',cases,'strict receiver cases passed');
     }
   });
   await check('GROUP 2 stopped page steps handler/resume matrix',async()=>{
@@ -281,6 +286,7 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
   await check('FEATURE tools forms options find wait fill_form scroll and full catalogues',async()=>{
     await nav('features&id=tools');const first=await target('First');const form=await call('read_form',{tab,reference:first.reference});
     assert.match(JSON.stringify(form),/Hidden field/);assert.match(JSON.stringify(form),/Disabled option/);assert.match(JSON.stringify(form),/Second option/);
+    for(const value of ['missing','c'])assert.equal((await rpc('select',{...await target('Choice'),value})).ok,false);
     const found=await call('find',{tab,text:'Findable synthetic paragraph'});assert.match(found.untrusted_content.tree,/Findable synthetic paragraph/);
     assert.equal((await call('wait',{tab,text:'Findable synthetic paragraph',timeout_ms:500})).condition_met,true);
     assert.equal((await call('wait',{tab,text:'Never present sentinel',timeout_ms:50})).condition_met,false);

@@ -29,7 +29,12 @@ def packages(data):
                 match = re.fullmatch(r'(\d+\.\d+\.\d+\.\d+)-\d+', fields['Version'])
                 if not match:
                     raise ValueError('Chrome package must name a complete version')
-                found[channel] = {'version':match[1], 'package_version':fields['Version']}
+                filename=fields.get('Filename','');checksum=fields.get('SHA256','')
+                expected='pool/main/g/google-chrome-'+channel+'/google-chrome-'+channel+'_'+fields['Version']+'_amd64.deb'
+                if filename!=expected or not re.fullmatch('[0-9a-f]{64}',checksum):
+                    raise ValueError('Chrome metadata must include the exact package filename and SHA256')
+                found[channel] = {'version':match[1], 'package_version':fields['Version'],
+                    'package_url':'https://dl.google.com/linux/chrome/deb/'+filename,'package_sha256':checksum}
     if set(found) != {'stable','beta'}:
         raise ValueError('Stable and beta must both be present in Google package metadata')
     return found

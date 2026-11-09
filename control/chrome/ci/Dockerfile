@@ -1,7 +1,10 @@
 FROM node:22-bookworm-slim
 ARG CHANNEL=stable
+ARG PACKAGE_URL
+ARG PACKAGE_SHA256
 RUN apt-get update -qq && apt-get install -y --no-install-recommends python3 git ca-certificates curl xvfb xauth openbox xdotool dbus-x11 iproute2 procps imagemagick sudo \
- && curl -fsSL "https://dl.google.com/linux/direct/google-chrome-${CHANNEL}_current_amd64.deb" -o /tmp/chrome.deb \
+ && curl -fsSL "${PACKAGE_URL:-https://dl.google.com/linux/direct/google-chrome-${CHANNEL}_current_amd64.deb}" -o /tmp/chrome.deb \
+ && if [ -n "$PACKAGE_SHA256" ]; then printf '%s  /tmp/chrome.deb\n' "$PACKAGE_SHA256" | sha256sum -c -; fi \
  && apt-get install -y /tmp/chrome.deb && rm /tmp/chrome.deb \
  && ln -s "/usr/bin/google-chrome-${CHANNEL}" /usr/local/bin/qualification-chrome \
  && usermod -l owner -d /home/owner -m node && groupmod -n owner node && useradd -m -u 1001 aresos-tools
