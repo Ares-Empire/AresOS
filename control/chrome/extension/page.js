@@ -48,6 +48,19 @@
     if(unsafe || !getter){secretFields.add(element);return '';}
     return getter.call(element);
   }
+  function text(node) {
+    if(node.nodeType===Node.TEXT_NODE)return node.textContent;
+    if(!(node instanceof Element) || ['SCRIPT','STYLE','NOSCRIPT','INPUT','TEXTAREA','SELECT'].includes(node.tagName))return '';
+    if(node.hidden || style && (style(node).display==='none' || style(node).visibility==='hidden'))return '';
+    return [...(node.childNodes || [])].map(text).join(' ');
+  }
+  function name(element) {
+    const root=element.getRootNode?.();
+    const labelled=(element.getAttribute('aria-labelledby') || '').split(/\s+/).map(key=>root?.getElementById?.(key)).filter(Boolean);
+    return (labelled.length ? labelled.map(text).join(' ') : element.getAttribute('aria-label') ||
+      (element.labels?.length ? [...element.labels].map(text).join(' ') : element.getAttribute('alt') || element.getAttribute('title') ||
+      (['BUTTON','A','SUMMARY'].includes(element.tagName) || element.hasAttribute?.('role') ? text(element) : element.getAttribute('placeholder') || ''))).replace(/\s+/g,' ').trim();
+  }
   function asks(node) {
     const element = control(node);
     if (!element) return false;
@@ -56,7 +69,7 @@
       if (!(form.method.toLowerCase() === 'get' && (form.role === 'search' || form.querySelector('input[type=search]')))) return true;
     }
     if (element.matches('textarea,[contenteditable]') || element instanceof HTMLInputElement && ['password','text','search','email','tel','url'].includes(element.type)) return false;
-    const labels = [element.getAttribute('aria-label'), element.getAttribute('title'), element.getAttribute('role'), element.textContent,
+    const labels = [name(element), element.getAttribute('title'), element.getAttribute('role'),
       (element instanceof HTMLInputElement && !['password', 'text', 'search', 'email', 'tel', 'url'].includes(element.type) || globalThis.HTMLButtonElement && element instanceof HTMLButtonElement) ? inputValue(element) : '', element.form?.action];
     return words(labels.join(' '));
   }

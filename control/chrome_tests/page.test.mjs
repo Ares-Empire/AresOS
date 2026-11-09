@@ -25,6 +25,8 @@ function fixture() {
   }
   class Element extends EventTarget {
     isConnected=true;tagName='DIV';type='';textContent='';form=null;role='';
+    get childNodes(){return [{nodeType:3,textContent:this.textContent}];}
+    getRootNode(){return document;}
     closest(){return this;}
     getAttribute(name){return this[name]||null;}
     matches(){return false;}
@@ -38,14 +40,15 @@ function fixture() {
     submit(){arrivals.push('native');}
     requestSubmit(submitter){if(!this.valid)return;const event=new Event('submit',{submitter});if(this.dispatchEvent(event))arrivals.push('event');}
   }
-  const document=new EventTarget();document.addEventListener('aresos-page-step',event=>reports.push(event.detail));
+  const document=new EventTarget();document.getElementById=key=>document.labels?.[key];document.addEventListener('aresos-page-step',event=>reports.push(event.detail));
   const window={addEventListener(type,fn){if(!windowListeners.has(type))windowListeners.set(type,[]);windowListeners.get(type).push(fn);}};
-  const context=vm.createContext({window,document,performance:{now:()=>0},Symbol,Event,CustomEvent,EventTarget,Element,HTMLElement,HTMLInputElement,HTMLFormElement});
+  const originalDispatch=EventTarget.prototype.dispatchEvent;
+  const context=vm.createContext({window,document,Node:{TEXT_NODE:3},performance:{now:()=>0},Symbol,Event,CustomEvent,EventTarget,Element,HTMLElement,HTMLInputElement,HTMLFormElement});
   vm.runInContext(fs.readFileSync('control/chrome/extension/page.js','utf8'),context);
   const api=vm.runInContext("globalThis[Symbol.for('aresos.chrome.page.v1')]",context);
   function identify(id,element){if(!element)return;element.dispatchEvent(new CustomEvent('aresos-reader-identity',{bubbles:true,composed:true,detail:{id}}));}
   const config={words:['send','delete'],holdMs:500};
-  return {api,arrivals,reports,HTMLFormElement,HTMLElement,Event,identify,arm:(target,form,op=null)=>{identify('target',target);identify('form',form);api.arm(config,'target','form',op);}};
+  return {api,arrivals,reports,document,HTMLFormElement,HTMLElement,Event,originalDispatch,identify,arm:(target,form,op=null)=>{identify('target',target);identify('form',form);api.arm(config,'target','form',op);}};
 }
 
 test('group2 native submit resumes without checks or submit events',()=>{
@@ -93,4 +96,23 @@ test('group1 GET searches stay free but a POST submitter override is held',()=>{
   f.arm(form,form,null);form.requestSubmit();assert.equal(f.arrivals.length,1);assert.equal(f.reports.length,0);
   const button=new f.HTMLElement();button.formmethod='post';form.requestSubmit(button);
   assert.equal(f.arrivals.length,1);assert.equal(f.reports.length,1);
+});
+
+test('review1 external accessible labels ask in both wrappers and capture fallback',()=>{
+  for(const source of ['labelledby','label'])for(const route of ['click','dispatch','fallback']){
+    const f=fixture(),button=new f.HTMLElement(),label=new f.HTMLElement();
+    button.tagName='BUTTON';label.textContent='Delete';
+    if(source==='labelledby'){button['aria-labelledby']='deletion';f.document.labels={deletion:label};}
+    else button.labels=[label];
+    let delivered=0;button.addEventListener('click',()=>delivered++);f.arm(button,null);
+    if(route==='click')button.click();
+    else if(route==='dispatch')button.dispatchEvent(new f.Event('click'));
+    else {
+      // A different realm's dispatch bypasses the wrapper but reaches capture.
+      const event=new f.Event('click');event.target=button;
+      // The fixture's pre-wrapper dispatch is saved below via the returned class.
+      f.originalDispatch.call(button,event);
+    }
+    assert.equal(delivered,0,`${source}/${route}`);assert.equal(f.reports.length,1,`${source}/${route}`);
+  }
 });
