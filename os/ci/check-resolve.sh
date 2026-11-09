@@ -74,7 +74,9 @@ show() { for file in "$@"; do printf -- '--- %s\n' "$file"; cat "$file" 2>&1; do
         printf -- '--- %s\n' "$file"; strings "$file" 2>/dev/null | grep -iE 'rpm-ostree|bootc|ostree|uupd|pkexec' | head -20
     done
     section audio
-    rpm -q wireplumber pipewire-utils
+    rpm -qf /usr/bin/wpctl /usr/bin/pkttyagent
+    section xdg-mime-lookup
+    sed -n '1115,1210p' /usr/bin/xdg-mime
     section labwc-defaults
     ls -la /etc/xdg/labwc /usr/share/labwc 2>&1
 } > "$out/inventory.txt" 2>&1
@@ -160,7 +162,7 @@ PY
     dnf5 --disable-repo='*' --enable-repo=fedora --enable-repo=updates --setopt=install_weak_deps=False \
         install --assumeno util-linux-script qrencode brightnessctl "$chrome/google-chrome.rpm"
     section available
-    dnf5 --disable-repo='*' --enable-repo=fedora --enable-repo=updates repoquery --showduplicates \
+    dnf5 --disable-repo='*' --enable-repo=fedora --enable-repo=updates repoquery \
         --qf '%{full_nevra} %{repoid}\n' util-linux-script util-linux-core util-linux qrencode brightnessctl \
         liberation-fonts foot labwc greetd grim fcft libsfdo utf8proc wlroots0.19 xdg-desktop-portal-wlr \
         greetd-selinux
@@ -179,12 +181,18 @@ PY
 # missing Fedora providers, resolved exactly as build.sh does.
 names=()
 while read -r nevra; do names+=("$nevra"); done < <(python3 -c 'import json; [print(p["nevra"]) for p in json.load(open("/tmp/aresos/packages.lock.json"))["packages"]]')
-util=$(rpm -q --qf '%{VERSION}-%{RELEASE}' util-linux-core)
-names+=("util-linux-script-$util.x86_64" qrencode brightnessctl)
-while read -r provider; do
-    case $provider in ''|---*) continue ;; esac
-    names+=("$provider")
-done < "$chrome/providers.txt"
+# The first resolution (run 42700611570) showed util-linux-script exists only
+# as 2.41.6, which moves the whole util-linux family (both arches) with it,
+# and that Chrome needs only liberation-fonts-all from Fedora.
+names+=(util-linux-script qrencode brightnessctl liberation-fonts-all)
+for name in util-linux util-linux-core libblkid libfdisk liblastlog2 libmount libsmartcols libuuid; do
+    for arch in x86_64 i686; do
+        if rpm -q "$name.$arch" >/dev/null 2>&1; then
+            names+=("$(dnf5 --disable-repo='*' --enable-repo=fedora --enable-repo=updates repoquery -q \
+                --latest-limit=1 --arch="$arch" --qf '%{full_nevra}\n' "$name" | head -1)")
+        fi
+    done
+done
 {
     printf 'Requested: %s\n' "${names[*]}"
     rm -rf /tmp/ares-rpms
