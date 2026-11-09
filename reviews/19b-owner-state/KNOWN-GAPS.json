@@ -1,1024 +1,7809 @@
 {
   "assertions": {
-    "archive/persistent/1/0/live-restored/aresos log.notices": {
+    "archive/single/0/0/live-restored/aresos log.complete": {
       "delta": {
-        "extra": [
-          [
-            "op:#1",
-            "unchecked",
-            "",
-            ""
-          ]
-        ],
-        "missing": []
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [],
+            "missing": [
+              [
+                "event:#10",
+                "mail_sent_copy_attempt",
+                "",
+                "submitting"
+              ],
+              [
+                "event:#11",
+                "mail_send",
+                "",
+                "submitting"
+              ],
+              [
+                "event:#12",
+                "mail_send",
+                "",
+                "submitting"
+              ],
+              [
+                "event:#13",
+                "mail_send",
+                "",
+                "done"
+              ],
+              [
+                "event:#14",
+                "mail_compose",
+                "",
+                "done"
+              ],
+              [
+                "event:#15",
+                "mail_send",
+                "",
+                "reserved"
+              ],
+              [
+                "event:#16",
+                "mail_send",
+                "",
+                "submitting"
+              ],
+              [
+                "event:#17",
+                "mail_send",
+                "",
+                "submitting"
+              ],
+              [
+                "event:#18",
+                "mail_send",
+                "",
+                "submitting"
+              ],
+              [
+                "event:#19",
+                "mail_send",
+                "",
+                "submitting"
+              ],
+              [
+                "event:#3",
+                "control_initialize",
+                "",
+                "done"
+              ],
+              [
+                "event:#5",
+                "testapp_initialize",
+                "",
+                "done"
+              ],
+              [
+                "event:#7",
+                "fixture",
+                "",
+                "done"
+              ],
+              [
+                "event:#9",
+                "mail_sent_copy_attempt",
+                "",
+                "submitting"
+              ]
+            ],
+            "page": 0
+          }
+        ]
       },
       "row": "M14",
       "stage": 3
     },
-    "archive/single/1/0/live-restored/aresos log.notices": {
+    "archive/single/0/0/live-restored/aresos log.page": {
       "delta": {
-        "extra": [
-          [
-            "op:#1",
-            "unchecked",
-            "",
-            ""
-          ]
-        ],
-        "missing": []
+        "calls": 3,
+        "failures": [
+          {
+            "extra": [
+              [
+                "event:#4",
+                "mail_sent_copy_check_open",
+                "",
+                "done"
+              ]
+            ],
+            "missing": [
+              [
+                "event:#3",
+                "control_initialize",
+                "",
+                "done"
+              ]
+            ],
+            "page": 0
+          },
+          {
+            "extra": [
+              [
+                "event:#6",
+                "mail_sent_copy_check",
+                "",
+                "done"
+              ]
+            ],
+            "missing": [
+              [
+                "event:#5",
+                "testapp_initialize",
+                "",
+                "done"
+              ]
+            ],
+            "page": 1
+          },
+          {
+            "extra": [
+              [
+                "event:#8",
+                "control_archive",
+                "",
+                "done"
+              ]
+            ],
+            "missing": [
+              [
+                "event:#7",
+                "fixture",
+                "",
+                "done"
+              ]
+            ],
+            "page": 2
+          }
+        ]
       },
       "row": "M14",
       "stage": 3
     },
-    "expiry/persistent/1/0/live-restored/aresos log.notices": {
+    "archive/single/0/0/live-restored/aresos log.total": {
       "delta": {
-        "extra": [
-          [
-            "unbound:#2",
-            "unexpected",
-            "",
-            ""
-          ]
-        ],
-        "missing": []
+        "calls": 3,
+        "failures": [
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "3"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "17"
+              ]
+            ],
+            "page": 0
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "3"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "17"
+              ]
+            ],
+            "page": 1
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "3"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "17"
+              ]
+            ],
+            "page": 2
+          }
+        ]
       },
       "row": "M14",
       "stage": 3
     },
-    "expiry/persistent/1/0/live-restored/control_pending.notices": {
+    "delete_trash/single/0/0/live-restored/R2.context-before-command": {
       "delta": {
-        "extra": [
-          [
-            "unbound:#2",
-            "unexpected",
-            "",
-            ""
-          ]
-        ],
-        "missing": []
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "command:#2",
+                "R2.MOVE",
+                "",
+                "[\"destination\",\"preparation roles\"]"
+              ],
+              [
+                "command:#3",
+                "R2.MOVE",
+                "",
+                "[\"destination\",\"preparation roles\"]"
+              ]
+            ],
+            "missing": [],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M05",
+      "stage": 2
+    },
+    "draft_append/single/0/0/live-restored/R2.context-before-command": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "command:#3",
+                "R2.APPEND",
+                "",
+                "[\"destination\",\"message identity\"]"
+              ]
+            ],
+            "missing": [],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M05",
+      "stage": 2
+    },
+    "expiry/persistent/1/0/exhausted/aresos log.notice-count": {
+      "delta": {
+        "calls": 5,
+        "failures": [
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "page": 0
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "page": 1
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "page": 2
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "page": 3
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "page": 4
+          }
+        ]
       },
       "row": "M14",
       "stage": 3
     },
-    "expiry/persistent/1/0/live-restored/mail catalogue.notices": {
+    "expiry/persistent/1/0/exhausted/aresos log.notice-head": {
       "delta": {
-        "extra": [
-          [
-            "unbound:#2",
-            "unexpected",
-            "",
-            ""
-          ]
-        ],
-        "missing": []
+        "calls": 5,
+        "failures": [
+          {
+            "extra": [
+              [
+                "unbound:#3",
+                "unexpected",
+                "",
+                ""
+              ]
+            ],
+            "missing": [],
+            "page": 0
+          },
+          {
+            "extra": [
+              [
+                "unbound:#3",
+                "unexpected",
+                "",
+                ""
+              ]
+            ],
+            "missing": [],
+            "page": 1
+          },
+          {
+            "extra": [
+              [
+                "unbound:#3",
+                "unexpected",
+                "",
+                ""
+              ]
+            ],
+            "missing": [],
+            "page": 2
+          },
+          {
+            "extra": [
+              [
+                "unbound:#3",
+                "unexpected",
+                "",
+                ""
+              ]
+            ],
+            "missing": [],
+            "page": 3
+          },
+          {
+            "extra": [
+              [
+                "unbound:#3",
+                "unexpected",
+                "",
+                ""
+              ]
+            ],
+            "missing": [],
+            "page": 4
+          }
+        ]
       },
       "row": "M14",
       "stage": 3
     },
-    "expiry/persistent/1/0/live-restored/passive.notices": {
+    "expiry/persistent/1/0/exhausted/control_pending.notice-count": {
       "delta": {
-        "extra": [
-          [
-            "unbound:#2",
-            "unexpected",
-            "",
-            ""
-          ]
-        ],
-        "missing": []
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "page": 0
+          }
+        ]
       },
       "row": "M14",
       "stage": 3
     },
-    "expiry/single/1/0/live-restored/aresos log.notices": {
+    "expiry/persistent/1/0/exhausted/control_pending.notice-head": {
       "delta": {
-        "extra": [
-          [
-            "unbound:#2",
-            "unexpected",
-            "",
-            ""
-          ]
-        ],
-        "missing": []
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "unbound:#3",
+                "unexpected",
+                "",
+                ""
+              ]
+            ],
+            "missing": [],
+            "page": 0
+          }
+        ]
       },
       "row": "M14",
       "stage": 3
     },
-    "expiry/single/1/0/live-restored/control_pending.notices": {
+    "expiry/persistent/1/0/exhausted/mail catalogue.complete": {
       "delta": {
-        "extra": [
-          [
-            "unbound:#2",
-            "unexpected",
-            "",
-            ""
-          ]
-        ],
-        "missing": []
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "unbound:#3",
+                "unexpected",
+                "",
+                ""
+              ]
+            ],
+            "missing": [],
+            "page": 0
+          }
+        ]
       },
       "row": "M14",
       "stage": 3
     },
-    "expiry/single/1/0/live-restored/mail catalogue.notices": {
+    "expiry/persistent/1/0/exhausted/mail catalogue.page": {
       "delta": {
-        "extra": [
-          [
-            "unbound:#2",
-            "unexpected",
-            "",
-            ""
-          ]
-        ],
-        "missing": []
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "unbound:#3",
+                "unexpected",
+                "",
+                ""
+              ]
+            ],
+            "missing": [],
+            "page": 0
+          }
+        ]
       },
       "row": "M14",
       "stage": 3
     },
-    "expiry/single/1/0/live-restored/passive.notices": {
+    "expiry/persistent/1/0/exhausted/mail catalogue.total": {
       "delta": {
-        "extra": [
-          [
-            "unbound:#2",
-            "unexpected",
-            "",
-            ""
-          ]
-        ],
-        "missing": []
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "page": 0
+          }
+        ]
       },
       "row": "M14",
       "stage": 3
     },
-    "maintenance/persistent/1/0/live-restored/aresos log.notices": {
+    "expiry/persistent/1/0/exhausted/passive.notice-count": {
       "delta": {
-        "extra": [
-          [
-            "unbound:#1",
-            "unexpected",
-            "",
-            ""
-          ]
-        ],
-        "missing": []
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "page": 0
+          }
+        ]
       },
       "row": "M14",
       "stage": 3
     },
-    "maintenance/persistent/1/0/live-restored/control_pending.notices": {
+    "expiry/persistent/1/0/exhausted/passive.notice-head": {
       "delta": {
-        "extra": [
-          [
-            "unbound:#1",
-            "unexpected",
-            "",
-            ""
-          ]
-        ],
-        "missing": []
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "unbound:#3",
+                "unexpected",
+                "",
+                ""
+              ]
+            ],
+            "missing": [],
+            "page": 0
+          }
+        ]
       },
       "row": "M14",
       "stage": 3
     },
-    "maintenance/persistent/1/0/live-restored/mail catalogue.notices": {
+    "expiry/persistent/1/0/live-restored/aresos log.notice-count": {
       "delta": {
-        "extra": [
-          [
-            "unbound:#1",
-            "unexpected",
-            "",
-            ""
-          ]
-        ],
-        "missing": []
+        "calls": 5,
+        "failures": [
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "page": 0
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "page": 1
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "page": 2
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "page": 3
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "page": 4
+          }
+        ]
       },
       "row": "M14",
       "stage": 3
     },
-    "maintenance/persistent/1/0/live-restored/passive.notices": {
+    "expiry/persistent/1/0/live-restored/aresos log.notice-head": {
       "delta": {
-        "extra": [
-          [
-            "unbound:#1",
-            "unexpected",
-            "",
-            ""
-          ]
-        ],
-        "missing": []
+        "calls": 5,
+        "failures": [
+          {
+            "extra": [
+              [
+                "unbound:#3",
+                "unexpected",
+                "",
+                ""
+              ]
+            ],
+            "missing": [],
+            "page": 0
+          },
+          {
+            "extra": [
+              [
+                "unbound:#3",
+                "unexpected",
+                "",
+                ""
+              ]
+            ],
+            "missing": [],
+            "page": 1
+          },
+          {
+            "extra": [
+              [
+                "unbound:#3",
+                "unexpected",
+                "",
+                ""
+              ]
+            ],
+            "missing": [],
+            "page": 2
+          },
+          {
+            "extra": [
+              [
+                "unbound:#3",
+                "unexpected",
+                "",
+                ""
+              ]
+            ],
+            "missing": [],
+            "page": 3
+          },
+          {
+            "extra": [
+              [
+                "unbound:#3",
+                "unexpected",
+                "",
+                ""
+              ]
+            ],
+            "missing": [],
+            "page": 4
+          }
+        ]
       },
       "row": "M14",
       "stage": 3
     },
-    "maintenance/single/1/0/live-restored/aresos log.notices": {
+    "expiry/persistent/1/0/live-restored/control_pending.notice-count": {
       "delta": {
-        "extra": [
-          [
-            "unbound:#1",
-            "unexpected",
-            "",
-            ""
-          ]
-        ],
-        "missing": []
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "page": 0
+          }
+        ]
       },
       "row": "M14",
       "stage": 3
     },
-    "maintenance/single/1/0/live-restored/control_pending.notices": {
+    "expiry/persistent/1/0/live-restored/control_pending.notice-head": {
       "delta": {
-        "extra": [
-          [
-            "unbound:#1",
-            "unexpected",
-            "",
-            ""
-          ]
-        ],
-        "missing": []
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "unbound:#3",
+                "unexpected",
+                "",
+                ""
+              ]
+            ],
+            "missing": [],
+            "page": 0
+          }
+        ]
       },
       "row": "M14",
       "stage": 3
     },
-    "maintenance/single/1/0/live-restored/mail catalogue.notices": {
+    "expiry/persistent/1/0/live-restored/mail catalogue.complete": {
       "delta": {
-        "extra": [
-          [
-            "unbound:#1",
-            "unexpected",
-            "",
-            ""
-          ]
-        ],
-        "missing": []
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "unbound:#3",
+                "unexpected",
+                "",
+                ""
+              ]
+            ],
+            "missing": [],
+            "page": 0
+          }
+        ]
       },
       "row": "M14",
       "stage": 3
     },
-    "maintenance/single/1/0/live-restored/passive.notices": {
+    "expiry/persistent/1/0/live-restored/mail catalogue.page": {
       "delta": {
-        "extra": [
-          [
-            "unbound:#1",
-            "unexpected",
-            "",
-            ""
-          ]
-        ],
-        "missing": []
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "unbound:#3",
+                "unexpected",
+                "",
+                ""
+              ]
+            ],
+            "missing": [],
+            "page": 0
+          }
+        ]
       },
       "row": "M14",
       "stage": 3
     },
-    "repair/persistent/1/0/live-restored/aresos log.notices": {
+    "expiry/persistent/1/0/live-restored/mail catalogue.total": {
       "delta": {
-        "extra": [],
-        "missing": [
-          [
-            "op:#1",
-            "recovery",
-            "",
-            ""
-          ]
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "expiry/persistent/1/0/live-restored/passive.notice-count": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "expiry/persistent/1/0/live-restored/passive.notice-head": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "unbound:#3",
+                "unexpected",
+                "",
+                ""
+              ]
+            ],
+            "missing": [],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "expiry/single/1/0/live-restored/aresos log.notice-count": {
+      "delta": {
+        "calls": 5,
+        "failures": [
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "page": 0
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "page": 1
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "page": 2
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "page": 3
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "page": 4
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "expiry/single/1/0/live-restored/aresos log.notice-head": {
+      "delta": {
+        "calls": 5,
+        "failures": [
+          {
+            "extra": [
+              [
+                "unbound:#3",
+                "unexpected",
+                "",
+                ""
+              ]
+            ],
+            "missing": [],
+            "page": 0
+          },
+          {
+            "extra": [
+              [
+                "unbound:#3",
+                "unexpected",
+                "",
+                ""
+              ]
+            ],
+            "missing": [],
+            "page": 1
+          },
+          {
+            "extra": [
+              [
+                "unbound:#3",
+                "unexpected",
+                "",
+                ""
+              ]
+            ],
+            "missing": [],
+            "page": 2
+          },
+          {
+            "extra": [
+              [
+                "unbound:#3",
+                "unexpected",
+                "",
+                ""
+              ]
+            ],
+            "missing": [],
+            "page": 3
+          },
+          {
+            "extra": [
+              [
+                "unbound:#3",
+                "unexpected",
+                "",
+                ""
+              ]
+            ],
+            "missing": [],
+            "page": 4
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "expiry/single/1/0/live-restored/control_pending.notice-count": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "expiry/single/1/0/live-restored/control_pending.notice-head": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "unbound:#3",
+                "unexpected",
+                "",
+                ""
+              ]
+            ],
+            "missing": [],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "expiry/single/1/0/live-restored/mail catalogue.complete": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "unbound:#3",
+                "unexpected",
+                "",
+                ""
+              ]
+            ],
+            "missing": [],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "expiry/single/1/0/live-restored/mail catalogue.page": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "unbound:#3",
+                "unexpected",
+                "",
+                ""
+              ]
+            ],
+            "missing": [],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "expiry/single/1/0/live-restored/mail catalogue.total": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "expiry/single/1/0/live-restored/passive.notice-count": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "expiry/single/1/0/live-restored/passive.notice-head": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "unbound:#3",
+                "unexpected",
+                "",
+                ""
+              ]
+            ],
+            "missing": [],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "folder_create/single/0/0/live-restored/R2.context-before-command": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "command:#3",
+                "R2.CREATE",
+                "",
+                "[\"destination\"]"
+              ]
+            ],
+            "missing": [],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M05",
+      "stage": 2
+    },
+    "maintenance/persistent/1/0/exhausted/aresos log.notice-count": {
+      "delta": {
+        "calls": 4,
+        "failures": [
+          {
+            "extra": [
+              [
+                "catalogue:#1",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#1",
+                "count",
+                "",
+                "0"
+              ]
+            ],
+            "page": 0
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#1",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#1",
+                "count",
+                "",
+                "0"
+              ]
+            ],
+            "page": 1
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#1",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#1",
+                "count",
+                "",
+                "0"
+              ]
+            ],
+            "page": 2
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#1",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#1",
+                "count",
+                "",
+                "0"
+              ]
+            ],
+            "page": 3
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "maintenance/persistent/1/0/exhausted/aresos log.notice-head": {
+      "delta": {
+        "calls": 4,
+        "failures": [
+          {
+            "extra": [
+              [
+                "unbound:#2",
+                "unexpected",
+                "",
+                ""
+              ]
+            ],
+            "missing": [],
+            "page": 0
+          },
+          {
+            "extra": [
+              [
+                "unbound:#2",
+                "unexpected",
+                "",
+                ""
+              ]
+            ],
+            "missing": [],
+            "page": 1
+          },
+          {
+            "extra": [
+              [
+                "unbound:#2",
+                "unexpected",
+                "",
+                ""
+              ]
+            ],
+            "missing": [],
+            "page": 2
+          },
+          {
+            "extra": [
+              [
+                "unbound:#2",
+                "unexpected",
+                "",
+                ""
+              ]
+            ],
+            "missing": [],
+            "page": 3
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "maintenance/persistent/1/0/exhausted/control_pending.notice-count": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "catalogue:#1",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#1",
+                "count",
+                "",
+                "0"
+              ]
+            ],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "maintenance/persistent/1/0/exhausted/control_pending.notice-head": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "unbound:#2",
+                "unexpected",
+                "",
+                ""
+              ]
+            ],
+            "missing": [],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "maintenance/persistent/1/0/exhausted/mail catalogue.complete": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "unbound:#2",
+                "unexpected",
+                "",
+                ""
+              ]
+            ],
+            "missing": [],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "maintenance/persistent/1/0/exhausted/mail catalogue.page": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "unbound:#2",
+                "unexpected",
+                "",
+                ""
+              ]
+            ],
+            "missing": [],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "maintenance/persistent/1/0/exhausted/mail catalogue.total": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "catalogue:#1",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#1",
+                "count",
+                "",
+                "0"
+              ]
+            ],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "maintenance/persistent/1/0/exhausted/passive.notice-count": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "catalogue:#1",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#1",
+                "count",
+                "",
+                "0"
+              ]
+            ],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "maintenance/persistent/1/0/exhausted/passive.notice-head": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "unbound:#2",
+                "unexpected",
+                "",
+                ""
+              ]
+            ],
+            "missing": [],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "maintenance/persistent/1/0/live-restored/aresos log.notice-count": {
+      "delta": {
+        "calls": 4,
+        "failures": [
+          {
+            "extra": [
+              [
+                "catalogue:#1",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#1",
+                "count",
+                "",
+                "0"
+              ]
+            ],
+            "page": 0
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#1",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#1",
+                "count",
+                "",
+                "0"
+              ]
+            ],
+            "page": 1
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#1",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#1",
+                "count",
+                "",
+                "0"
+              ]
+            ],
+            "page": 2
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#1",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#1",
+                "count",
+                "",
+                "0"
+              ]
+            ],
+            "page": 3
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "maintenance/persistent/1/0/live-restored/aresos log.notice-head": {
+      "delta": {
+        "calls": 4,
+        "failures": [
+          {
+            "extra": [
+              [
+                "unbound:#2",
+                "unexpected",
+                "",
+                ""
+              ]
+            ],
+            "missing": [],
+            "page": 0
+          },
+          {
+            "extra": [
+              [
+                "unbound:#2",
+                "unexpected",
+                "",
+                ""
+              ]
+            ],
+            "missing": [],
+            "page": 1
+          },
+          {
+            "extra": [
+              [
+                "unbound:#2",
+                "unexpected",
+                "",
+                ""
+              ]
+            ],
+            "missing": [],
+            "page": 2
+          },
+          {
+            "extra": [
+              [
+                "unbound:#2",
+                "unexpected",
+                "",
+                ""
+              ]
+            ],
+            "missing": [],
+            "page": 3
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "maintenance/persistent/1/0/live-restored/control_pending.notice-count": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "catalogue:#1",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#1",
+                "count",
+                "",
+                "0"
+              ]
+            ],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "maintenance/persistent/1/0/live-restored/control_pending.notice-head": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "unbound:#2",
+                "unexpected",
+                "",
+                ""
+              ]
+            ],
+            "missing": [],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "maintenance/persistent/1/0/live-restored/mail catalogue.complete": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "unbound:#2",
+                "unexpected",
+                "",
+                ""
+              ]
+            ],
+            "missing": [],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "maintenance/persistent/1/0/live-restored/mail catalogue.page": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "unbound:#2",
+                "unexpected",
+                "",
+                ""
+              ]
+            ],
+            "missing": [],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "maintenance/persistent/1/0/live-restored/mail catalogue.total": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "catalogue:#1",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#1",
+                "count",
+                "",
+                "0"
+              ]
+            ],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "maintenance/persistent/1/0/live-restored/passive.notice-count": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "catalogue:#1",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#1",
+                "count",
+                "",
+                "0"
+              ]
+            ],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "maintenance/persistent/1/0/live-restored/passive.notice-head": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "unbound:#2",
+                "unexpected",
+                "",
+                ""
+              ]
+            ],
+            "missing": [],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "maintenance/single/1/0/live-restored/aresos log.notice-count": {
+      "delta": {
+        "calls": 4,
+        "failures": [
+          {
+            "extra": [
+              [
+                "catalogue:#1",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#1",
+                "count",
+                "",
+                "0"
+              ]
+            ],
+            "page": 0
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#1",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#1",
+                "count",
+                "",
+                "0"
+              ]
+            ],
+            "page": 1
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#1",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#1",
+                "count",
+                "",
+                "0"
+              ]
+            ],
+            "page": 2
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#1",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#1",
+                "count",
+                "",
+                "0"
+              ]
+            ],
+            "page": 3
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "maintenance/single/1/0/live-restored/aresos log.notice-head": {
+      "delta": {
+        "calls": 4,
+        "failures": [
+          {
+            "extra": [
+              [
+                "unbound:#2",
+                "unexpected",
+                "",
+                ""
+              ]
+            ],
+            "missing": [],
+            "page": 0
+          },
+          {
+            "extra": [
+              [
+                "unbound:#2",
+                "unexpected",
+                "",
+                ""
+              ]
+            ],
+            "missing": [],
+            "page": 1
+          },
+          {
+            "extra": [
+              [
+                "unbound:#2",
+                "unexpected",
+                "",
+                ""
+              ]
+            ],
+            "missing": [],
+            "page": 2
+          },
+          {
+            "extra": [
+              [
+                "unbound:#2",
+                "unexpected",
+                "",
+                ""
+              ]
+            ],
+            "missing": [],
+            "page": 3
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "maintenance/single/1/0/live-restored/control_pending.notice-count": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "catalogue:#1",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#1",
+                "count",
+                "",
+                "0"
+              ]
+            ],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "maintenance/single/1/0/live-restored/control_pending.notice-head": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "unbound:#2",
+                "unexpected",
+                "",
+                ""
+              ]
+            ],
+            "missing": [],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "maintenance/single/1/0/live-restored/mail catalogue.complete": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "unbound:#2",
+                "unexpected",
+                "",
+                ""
+              ]
+            ],
+            "missing": [],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "maintenance/single/1/0/live-restored/mail catalogue.page": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "unbound:#2",
+                "unexpected",
+                "",
+                ""
+              ]
+            ],
+            "missing": [],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "maintenance/single/1/0/live-restored/mail catalogue.total": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "catalogue:#1",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#1",
+                "count",
+                "",
+                "0"
+              ]
+            ],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "maintenance/single/1/0/live-restored/passive.notice-count": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "catalogue:#1",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#1",
+                "count",
+                "",
+                "0"
+              ]
+            ],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "maintenance/single/1/0/live-restored/passive.notice-head": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "unbound:#2",
+                "unexpected",
+                "",
+                ""
+              ]
+            ],
+            "missing": [],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "onboarding/single/0/0/live-restored/R2.context-before-command": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "command:#10",
+                "R2.APPEND",
+                "",
+                "[\"destination\"]"
+              ],
+              [
+                "command:#8",
+                "R2.CREATE",
+                "",
+                "[\"destination\"]"
+              ],
+              [
+                "command:#9",
+                "R2.APPEND",
+                "",
+                "[\"account\",\"destination\",\"message identity\"]"
+              ]
+            ],
+            "missing": [],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M05",
+      "stage": 2
+    },
+    "password/single/0/0/live-restored/R2.context-before-command": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "command:#2",
+                "R2.CREATE",
+                "",
+                "[\"account\",\"destination\",\"intent identity\"]"
+              ]
+            ],
+            "missing": [],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M05",
+      "stage": 2
+    },
+    "repair/persistent/1/0/exhausted/aresos log.notice-count": {
+      "delta": {
+        "calls": 12,
+        "failures": [
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "page": 0
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "page": 1
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "page": 2
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "page": 3
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "page": 4
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "page": 5
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "page": 6
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "page": 7
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "page": 8
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "page": 9
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "page": 10
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "page": 11
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "repair/persistent/1/0/exhausted/aresos log.notice-head": {
+      "delta": {
+        "calls": 12,
+        "failures": [
+          {
+            "extra": [],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 0
+          },
+          {
+            "extra": [],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 1
+          },
+          {
+            "extra": [],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 2
+          },
+          {
+            "extra": [],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 3
+          },
+          {
+            "extra": [],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 4
+          },
+          {
+            "extra": [],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 5
+          },
+          {
+            "extra": [],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 6
+          },
+          {
+            "extra": [],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 7
+          },
+          {
+            "extra": [],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 8
+          },
+          {
+            "extra": [],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 9
+          },
+          {
+            "extra": [],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 10
+          },
+          {
+            "extra": [],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 11
+          }
         ]
       },
       "row": "M06",
       "stage": 3
     },
-    "repair/persistent/1/0/live-restored/control_pending.notices": {
+    "repair/persistent/1/0/exhausted/control_pending.notice-count": {
       "delta": {
-        "extra": [],
-        "missing": [
-          [
-            "op:#1",
-            "recovery",
-            "",
-            ""
-          ]
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "repair/persistent/1/0/exhausted/control_pending.notice-head": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 0
+          }
         ]
       },
       "row": "M06",
       "stage": 3
     },
-    "repair/persistent/1/0/live-restored/mail catalogue.notices": {
+    "repair/persistent/1/0/exhausted/mail catalogue.complete": {
       "delta": {
-        "extra": [],
-        "missing": [
-          [
-            "op:#1",
-            "recovery",
-            "",
-            ""
-          ]
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 0
+          }
         ]
       },
       "row": "M06",
       "stage": 3
     },
-    "repair/persistent/1/0/live-restored/passive.notices": {
+    "repair/persistent/1/0/exhausted/mail catalogue.page": {
       "delta": {
-        "extra": [],
-        "missing": [
-          [
-            "op:#1",
-            "recovery",
-            "",
-            ""
-          ]
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 0
+          }
         ]
       },
       "row": "M06",
       "stage": 3
     },
-    "repair/single/1/0/live-restored/aresos log.notices": {
+    "repair/persistent/1/0/exhausted/mail catalogue.total": {
       "delta": {
-        "extra": [],
-        "missing": [
-          [
-            "op:#1",
-            "recovery",
-            "",
-            ""
-          ]
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "repair/persistent/1/0/exhausted/passive.notice-count": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "repair/persistent/1/0/exhausted/passive.notice-head": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 0
+          }
         ]
       },
       "row": "M06",
       "stage": 3
     },
-    "repair/single/1/0/live-restored/control_pending.notices": {
+    "repair/persistent/1/0/live-restored/aresos log.notice-count": {
       "delta": {
-        "extra": [],
-        "missing": [
-          [
-            "op:#1",
-            "recovery",
-            "",
-            ""
-          ]
+        "calls": 12,
+        "failures": [
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "page": 0
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "page": 1
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "page": 2
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "page": 3
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "page": 4
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "page": 5
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "page": 6
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "page": 7
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "page": 8
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "page": 9
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "page": 10
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "page": 11
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "repair/persistent/1/0/live-restored/aresos log.notice-head": {
+      "delta": {
+        "calls": 12,
+        "failures": [
+          {
+            "extra": [],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 0
+          },
+          {
+            "extra": [],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 1
+          },
+          {
+            "extra": [],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 2
+          },
+          {
+            "extra": [],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 3
+          },
+          {
+            "extra": [],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 4
+          },
+          {
+            "extra": [],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 5
+          },
+          {
+            "extra": [],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 6
+          },
+          {
+            "extra": [],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 7
+          },
+          {
+            "extra": [],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 8
+          },
+          {
+            "extra": [],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 9
+          },
+          {
+            "extra": [],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 10
+          },
+          {
+            "extra": [],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 11
+          }
         ]
       },
       "row": "M06",
       "stage": 3
     },
-    "repair/single/1/0/live-restored/mail catalogue.notices": {
+    "repair/persistent/1/0/live-restored/control_pending.notice-count": {
       "delta": {
-        "extra": [],
-        "missing": [
-          [
-            "op:#1",
-            "recovery",
-            "",
-            ""
-          ]
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "repair/persistent/1/0/live-restored/control_pending.notice-head": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 0
+          }
         ]
       },
       "row": "M06",
       "stage": 3
     },
-    "repair/single/1/0/live-restored/passive.notices": {
+    "repair/persistent/1/0/live-restored/mail catalogue.complete": {
       "delta": {
-        "extra": [],
-        "missing": [
-          [
-            "op:#1",
-            "recovery",
-            "",
-            ""
-          ]
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 0
+          }
         ]
       },
       "row": "M06",
       "stage": 3
     },
-    "settlement/persistent/1/0/crash-restart/aresos log.notices": {
+    "repair/persistent/1/0/live-restored/mail catalogue.page": {
       "delta": {
-        "extra": [
-          [
-            "op:#2",
-            "sent_copies",
-            "occurrence:#4",
-            "{\"count\":2}"
-          ]
-        ],
-        "missing": [
-          [
-            "op:#2",
-            "sent_copies",
-            "occurrence:#3",
-            "{\"count\":2}"
-          ]
-        ]
-      },
-      "row": "M07",
-      "stage": 3
-    },
-    "settlement/persistent/1/0/crash-restart/control_pending.notices": {
-      "delta": {
-        "extra": [
-          [
-            "op:#2",
-            "sent_copies",
-            "occurrence:#4",
-            "{\"count\":2}"
-          ]
-        ],
-        "missing": [
-          [
-            "op:#2",
-            "sent_copies",
-            "occurrence:#3",
-            "{\"count\":2}"
-          ]
-        ]
-      },
-      "row": "M07",
-      "stage": 3
-    },
-    "settlement/persistent/1/0/crash-restart/mail catalogue.notices": {
-      "delta": {
-        "extra": [
-          [
-            "op:#2",
-            "sent_copies",
-            "occurrence:#4",
-            "{\"count\":2}"
-          ]
-        ],
-        "missing": [
-          [
-            "op:#2",
-            "sent_copies",
-            "occurrence:#3",
-            "{\"count\":2}"
-          ]
-        ]
-      },
-      "row": "M07",
-      "stage": 3
-    },
-    "settlement/persistent/1/0/crash-restart/passive.notices": {
-      "delta": {
-        "extra": [
-          [
-            "op:#2",
-            "unchecked",
-            "",
-            ""
-          ]
-        ],
-        "missing": [
-          [
-            "op:#2",
-            "sent_copies",
-            "occurrence:#3",
-            "{\"count\":2}"
-          ]
-        ]
-      },
-      "row": "M07",
-      "stage": 3
-    },
-    "settlement/persistent/1/0/live-restored/aresos log.notices": {
-      "delta": {
-        "extra": [
-          [
-            "op:#2",
-            "unchecked",
-            "",
-            ""
-          ]
-        ],
-        "missing": [
-          [
-            "op:#1",
-            "recovery",
-            "",
-            ""
-          ],
-          [
-            "op:#2",
-            "recovery",
-            "",
-            ""
-          ],
-          [
-            "op:#2",
-            "sent_copies",
-            "occurrence:#3",
-            "{\"count\":2}"
-          ]
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 0
+          }
         ]
       },
       "row": "M06",
       "stage": 3
     },
-    "settlement/persistent/1/0/live-restored/control_pending.notices": {
+    "repair/persistent/1/0/live-restored/mail catalogue.total": {
       "delta": {
-        "extra": [
-          [
-            "op:#2",
-            "unchecked",
-            "",
-            ""
-          ]
-        ],
-        "missing": [
-          [
-            "op:#1",
-            "recovery",
-            "",
-            ""
-          ],
-          [
-            "op:#2",
-            "recovery",
-            "",
-            ""
-          ],
-          [
-            "op:#2",
-            "sent_copies",
-            "occurrence:#3",
-            "{\"count\":2}"
-          ]
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "repair/persistent/1/0/live-restored/passive.notice-count": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "repair/persistent/1/0/live-restored/passive.notice-head": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 0
+          }
         ]
       },
       "row": "M06",
       "stage": 3
     },
-    "settlement/persistent/1/0/live-restored/mail catalogue.notices": {
+    "repair/single/0/0/live-restored/R2.context-before-command": {
       "delta": {
-        "extra": [
-          [
-            "op:#2",
-            "unchecked",
-            "",
-            ""
-          ]
-        ],
-        "missing": [
-          [
-            "op:#1",
-            "recovery",
-            "",
-            ""
-          ],
-          [
-            "op:#2",
-            "recovery",
-            "",
-            ""
-          ],
-          [
-            "op:#2",
-            "sent_copies",
-            "occurrence:#3",
-            "{\"count\":2}"
-          ]
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "command:#3",
+                "R2.APPEND",
+                "",
+                "[\"destination\"]"
+              ]
+            ],
+            "missing": [],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M05",
+      "stage": 2
+    },
+    "repair/single/1/0/live-restored/aresos log.notice-count": {
+      "delta": {
+        "calls": 12,
+        "failures": [
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "page": 0
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "page": 1
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "page": 2
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "page": 3
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "page": 4
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "page": 5
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "page": 6
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "page": 7
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "page": 8
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "page": 9
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "page": 10
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "page": 11
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "repair/single/1/0/live-restored/aresos log.notice-head": {
+      "delta": {
+        "calls": 12,
+        "failures": [
+          {
+            "extra": [],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 0
+          },
+          {
+            "extra": [],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 1
+          },
+          {
+            "extra": [],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 2
+          },
+          {
+            "extra": [],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 3
+          },
+          {
+            "extra": [],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 4
+          },
+          {
+            "extra": [],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 5
+          },
+          {
+            "extra": [],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 6
+          },
+          {
+            "extra": [],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 7
+          },
+          {
+            "extra": [],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 8
+          },
+          {
+            "extra": [],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 9
+          },
+          {
+            "extra": [],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 10
+          },
+          {
+            "extra": [],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 11
+          }
         ]
       },
       "row": "M06",
+      "stage": 3
+    },
+    "repair/single/1/0/live-restored/control_pending.notice-count": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "repair/single/1/0/live-restored/control_pending.notice-head": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M06",
+      "stage": 3
+    },
+    "repair/single/1/0/live-restored/mail catalogue.complete": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M06",
+      "stage": 3
+    },
+    "repair/single/1/0/live-restored/mail catalogue.page": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M06",
+      "stage": 3
+    },
+    "repair/single/1/0/live-restored/mail catalogue.total": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "repair/single/1/0/live-restored/passive.notice-count": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#2",
+                "count",
+                "",
+                "2"
+              ]
+            ],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "repair/single/1/0/live-restored/passive.notice-head": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M06",
+      "stage": 3
+    },
+    "restore/persistent/1/0/exhausted/aresos log.complete": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [],
+            "missing": [
+              [
+                "event:#2",
+                "control_initialize",
+                "",
+                "done"
+              ],
+              [
+                "event:#3",
+                "testapp_initialize",
+                "",
+                "done"
+              ],
+              [
+                "event:#4",
+                "fixture",
+                "",
+                "done"
+              ]
+            ],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "restore/persistent/1/0/exhausted/aresos log.page": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [],
+            "missing": [
+              [
+                "event:#2",
+                "control_initialize",
+                "",
+                "done"
+              ]
+            ],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "restore/persistent/1/0/exhausted/aresos log.total": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "catalogue:#1",
+                "count",
+                "",
+                "0"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#1",
+                "count",
+                "",
+                "3"
+              ]
+            ],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "restore/persistent/1/0/live-restored/aresos log.complete": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [],
+            "missing": [
+              [
+                "event:#2",
+                "control_initialize",
+                "",
+                "done"
+              ],
+              [
+                "event:#3",
+                "testapp_initialize",
+                "",
+                "done"
+              ],
+              [
+                "event:#4",
+                "fixture",
+                "",
+                "done"
+              ]
+            ],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "restore/persistent/1/0/live-restored/aresos log.page": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [],
+            "missing": [
+              [
+                "event:#2",
+                "control_initialize",
+                "",
+                "done"
+              ]
+            ],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "restore/persistent/1/0/live-restored/aresos log.total": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "catalogue:#1",
+                "count",
+                "",
+                "0"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#1",
+                "count",
+                "",
+                "3"
+              ]
+            ],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "restore/single/1/0/live-restored/aresos log.complete": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [],
+            "missing": [
+              [
+                "event:#2",
+                "control_initialize",
+                "",
+                "done"
+              ],
+              [
+                "event:#3",
+                "testapp_initialize",
+                "",
+                "done"
+              ],
+              [
+                "event:#4",
+                "fixture",
+                "",
+                "done"
+              ]
+            ],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "restore/single/1/0/live-restored/aresos log.page": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [],
+            "missing": [
+              [
+                "event:#2",
+                "control_initialize",
+                "",
+                "done"
+              ]
+            ],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "restore/single/1/0/live-restored/aresos log.total": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "catalogue:#1",
+                "count",
+                "",
+                "0"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#1",
+                "count",
+                "",
+                "3"
+              ]
+            ],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "send/single/0/0/live-restored/R2.context-before-command": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "command:#2",
+                "R2.APPEND",
+                "",
+                "[\"destination\"]"
+              ]
+            ],
+            "missing": [],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M05",
+      "stage": 2
+    },
+    "settlement/persistent/1/0/exhausted/aresos log.notice-count": {
+      "delta": {
+        "calls": 17,
+        "failures": [
+          {
+            "extra": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "3"
+              ]
+            ],
+            "page": 0
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "3"
+              ]
+            ],
+            "page": 1
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "3"
+              ]
+            ],
+            "page": 2
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "3"
+              ]
+            ],
+            "page": 3
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "3"
+              ]
+            ],
+            "page": 4
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "3"
+              ]
+            ],
+            "page": 5
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "3"
+              ]
+            ],
+            "page": 6
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "3"
+              ]
+            ],
+            "page": 7
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "3"
+              ]
+            ],
+            "page": 8
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "3"
+              ]
+            ],
+            "page": 9
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "3"
+              ]
+            ],
+            "page": 10
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "3"
+              ]
+            ],
+            "page": 11
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "3"
+              ]
+            ],
+            "page": 12
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "3"
+              ]
+            ],
+            "page": 13
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "3"
+              ]
+            ],
+            "page": 14
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "3"
+              ]
+            ],
+            "page": 15
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "3"
+              ]
+            ],
+            "page": 16
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "settlement/persistent/1/0/exhausted/aresos log.notice-head": {
+      "delta": {
+        "calls": 17,
+        "failures": [
+          {
+            "extra": [
+              [
+                "op:#1",
+                "unchecked",
+                "",
+                ""
+              ]
+            ],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ],
+              [
+                "op:#1",
+                "sent_copies",
+                "occurrence:#4",
+                "{\"count\":2}"
+              ],
+              [
+                "op:#2",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 0
+          },
+          {
+            "extra": [
+              [
+                "op:#1",
+                "unchecked",
+                "",
+                ""
+              ]
+            ],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ],
+              [
+                "op:#1",
+                "sent_copies",
+                "occurrence:#4",
+                "{\"count\":2}"
+              ],
+              [
+                "op:#2",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 1
+          },
+          {
+            "extra": [
+              [
+                "op:#1",
+                "unchecked",
+                "",
+                ""
+              ]
+            ],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ],
+              [
+                "op:#1",
+                "sent_copies",
+                "occurrence:#4",
+                "{\"count\":2}"
+              ],
+              [
+                "op:#2",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 2
+          },
+          {
+            "extra": [
+              [
+                "op:#1",
+                "unchecked",
+                "",
+                ""
+              ]
+            ],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ],
+              [
+                "op:#1",
+                "sent_copies",
+                "occurrence:#4",
+                "{\"count\":2}"
+              ],
+              [
+                "op:#2",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 3
+          },
+          {
+            "extra": [
+              [
+                "op:#1",
+                "unchecked",
+                "",
+                ""
+              ]
+            ],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ],
+              [
+                "op:#1",
+                "sent_copies",
+                "occurrence:#4",
+                "{\"count\":2}"
+              ],
+              [
+                "op:#2",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 4
+          },
+          {
+            "extra": [
+              [
+                "op:#1",
+                "unchecked",
+                "",
+                ""
+              ]
+            ],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ],
+              [
+                "op:#1",
+                "sent_copies",
+                "occurrence:#4",
+                "{\"count\":2}"
+              ],
+              [
+                "op:#2",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 5
+          },
+          {
+            "extra": [
+              [
+                "op:#1",
+                "unchecked",
+                "",
+                ""
+              ]
+            ],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ],
+              [
+                "op:#1",
+                "sent_copies",
+                "occurrence:#4",
+                "{\"count\":2}"
+              ],
+              [
+                "op:#2",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 6
+          },
+          {
+            "extra": [
+              [
+                "op:#1",
+                "unchecked",
+                "",
+                ""
+              ]
+            ],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ],
+              [
+                "op:#1",
+                "sent_copies",
+                "occurrence:#4",
+                "{\"count\":2}"
+              ],
+              [
+                "op:#2",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 7
+          },
+          {
+            "extra": [
+              [
+                "op:#1",
+                "unchecked",
+                "",
+                ""
+              ]
+            ],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ],
+              [
+                "op:#1",
+                "sent_copies",
+                "occurrence:#4",
+                "{\"count\":2}"
+              ],
+              [
+                "op:#2",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 8
+          },
+          {
+            "extra": [
+              [
+                "op:#1",
+                "unchecked",
+                "",
+                ""
+              ]
+            ],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ],
+              [
+                "op:#1",
+                "sent_copies",
+                "occurrence:#4",
+                "{\"count\":2}"
+              ],
+              [
+                "op:#2",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 9
+          },
+          {
+            "extra": [
+              [
+                "op:#1",
+                "unchecked",
+                "",
+                ""
+              ]
+            ],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ],
+              [
+                "op:#1",
+                "sent_copies",
+                "occurrence:#4",
+                "{\"count\":2}"
+              ],
+              [
+                "op:#2",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 10
+          },
+          {
+            "extra": [
+              [
+                "op:#1",
+                "unchecked",
+                "",
+                ""
+              ]
+            ],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ],
+              [
+                "op:#1",
+                "sent_copies",
+                "occurrence:#4",
+                "{\"count\":2}"
+              ],
+              [
+                "op:#2",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 11
+          },
+          {
+            "extra": [
+              [
+                "op:#1",
+                "unchecked",
+                "",
+                ""
+              ]
+            ],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ],
+              [
+                "op:#1",
+                "sent_copies",
+                "occurrence:#4",
+                "{\"count\":2}"
+              ],
+              [
+                "op:#2",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 12
+          },
+          {
+            "extra": [
+              [
+                "op:#1",
+                "unchecked",
+                "",
+                ""
+              ]
+            ],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ],
+              [
+                "op:#1",
+                "sent_copies",
+                "occurrence:#4",
+                "{\"count\":2}"
+              ],
+              [
+                "op:#2",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 13
+          },
+          {
+            "extra": [
+              [
+                "op:#1",
+                "unchecked",
+                "",
+                ""
+              ]
+            ],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ],
+              [
+                "op:#1",
+                "sent_copies",
+                "occurrence:#4",
+                "{\"count\":2}"
+              ],
+              [
+                "op:#2",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 14
+          },
+          {
+            "extra": [
+              [
+                "op:#1",
+                "unchecked",
+                "",
+                ""
+              ]
+            ],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ],
+              [
+                "op:#1",
+                "sent_copies",
+                "occurrence:#4",
+                "{\"count\":2}"
+              ],
+              [
+                "op:#2",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 15
+          },
+          {
+            "extra": [
+              [
+                "op:#1",
+                "unchecked",
+                "",
+                ""
+              ]
+            ],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ],
+              [
+                "op:#1",
+                "sent_copies",
+                "occurrence:#4",
+                "{\"count\":2}"
+              ],
+              [
+                "op:#2",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 16
+          }
+        ]
+      },
+      "row": "M06",
+      "stage": 3
+    },
+    "settlement/persistent/1/0/exhausted/control_pending.notice-count": {
+      "delta": {
+        "calls": 2,
+        "failures": [
+          {
+            "extra": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "3"
+              ]
+            ],
+            "page": 0
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "3"
+              ]
+            ],
+            "page": 1
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "settlement/persistent/1/0/exhausted/control_pending.notice-head": {
+      "delta": {
+        "calls": 2,
+        "failures": [
+          {
+            "extra": [
+              [
+                "op:#1",
+                "unchecked",
+                "",
+                ""
+              ]
+            ],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ],
+              [
+                "op:#1",
+                "sent_copies",
+                "occurrence:#4",
+                "{\"count\":2}"
+              ],
+              [
+                "op:#2",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 0
+          },
+          {
+            "extra": [
+              [
+                "op:#1",
+                "unchecked",
+                "",
+                ""
+              ]
+            ],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ],
+              [
+                "op:#1",
+                "sent_copies",
+                "occurrence:#4",
+                "{\"count\":2}"
+              ],
+              [
+                "op:#2",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 1
+          }
+        ]
+      },
+      "row": "M06",
+      "stage": 3
+    },
+    "settlement/persistent/1/0/exhausted/mail catalogue.complete": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "op:#1",
+                "unchecked",
+                "",
+                ""
+              ]
+            ],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ],
+              [
+                "op:#1",
+                "sent_copies",
+                "occurrence:#4",
+                "{\"count\":2}"
+              ],
+              [
+                "op:#2",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M06",
+      "stage": 3
+    },
+    "settlement/persistent/1/0/exhausted/mail catalogue.page": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "op:#1",
+                "unchecked",
+                "",
+                ""
+              ]
+            ],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ],
+              [
+                "op:#1",
+                "sent_copies",
+                "occurrence:#4",
+                "{\"count\":2}"
+              ],
+              [
+                "op:#2",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M06",
+      "stage": 3
+    },
+    "settlement/persistent/1/0/exhausted/mail catalogue.total": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "3"
+              ]
+            ],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "settlement/persistent/1/0/exhausted/passive.notice-continuation": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [],
+            "missing": [
+              [
+                "catalogue:#3",
+                "action",
+                "",
+                "mail_filing_notices"
+              ]
+            ],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "settlement/persistent/1/0/exhausted/passive.notice-count": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "4"
+              ]
+            ],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "settlement/persistent/1/0/exhausted/passive.notice-head": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "op:#1",
+                "unchecked",
+                "",
+                ""
+              ]
+            ],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ],
+              [
+                "op:#1",
+                "sent_copies",
+                "occurrence:#4",
+                "{\"count\":2}"
+              ],
+              [
+                "op:#2",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M06",
+      "stage": 3
+    },
+    "settlement/persistent/1/0/live-restored/aresos log.notice-count": {
+      "delta": {
+        "calls": 17,
+        "failures": [
+          {
+            "extra": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "3"
+              ]
+            ],
+            "page": 0
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "3"
+              ]
+            ],
+            "page": 1
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "3"
+              ]
+            ],
+            "page": 2
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "3"
+              ]
+            ],
+            "page": 3
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "3"
+              ]
+            ],
+            "page": 4
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "3"
+              ]
+            ],
+            "page": 5
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "3"
+              ]
+            ],
+            "page": 6
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "3"
+              ]
+            ],
+            "page": 7
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "3"
+              ]
+            ],
+            "page": 8
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "3"
+              ]
+            ],
+            "page": 9
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "3"
+              ]
+            ],
+            "page": 10
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "3"
+              ]
+            ],
+            "page": 11
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "3"
+              ]
+            ],
+            "page": 12
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "3"
+              ]
+            ],
+            "page": 13
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "3"
+              ]
+            ],
+            "page": 14
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "3"
+              ]
+            ],
+            "page": 15
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "3"
+              ]
+            ],
+            "page": 16
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "settlement/persistent/1/0/live-restored/aresos log.notice-head": {
+      "delta": {
+        "calls": 17,
+        "failures": [
+          {
+            "extra": [
+              [
+                "op:#1",
+                "unchecked",
+                "",
+                ""
+              ]
+            ],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ],
+              [
+                "op:#1",
+                "sent_copies",
+                "occurrence:#4",
+                "{\"count\":2}"
+              ],
+              [
+                "op:#2",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 0
+          },
+          {
+            "extra": [
+              [
+                "op:#1",
+                "unchecked",
+                "",
+                ""
+              ]
+            ],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ],
+              [
+                "op:#1",
+                "sent_copies",
+                "occurrence:#4",
+                "{\"count\":2}"
+              ],
+              [
+                "op:#2",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 1
+          },
+          {
+            "extra": [
+              [
+                "op:#1",
+                "unchecked",
+                "",
+                ""
+              ]
+            ],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ],
+              [
+                "op:#1",
+                "sent_copies",
+                "occurrence:#4",
+                "{\"count\":2}"
+              ],
+              [
+                "op:#2",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 2
+          },
+          {
+            "extra": [
+              [
+                "op:#1",
+                "unchecked",
+                "",
+                ""
+              ]
+            ],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ],
+              [
+                "op:#1",
+                "sent_copies",
+                "occurrence:#4",
+                "{\"count\":2}"
+              ],
+              [
+                "op:#2",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 3
+          },
+          {
+            "extra": [
+              [
+                "op:#1",
+                "unchecked",
+                "",
+                ""
+              ]
+            ],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ],
+              [
+                "op:#1",
+                "sent_copies",
+                "occurrence:#4",
+                "{\"count\":2}"
+              ],
+              [
+                "op:#2",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 4
+          },
+          {
+            "extra": [
+              [
+                "op:#1",
+                "unchecked",
+                "",
+                ""
+              ]
+            ],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ],
+              [
+                "op:#1",
+                "sent_copies",
+                "occurrence:#4",
+                "{\"count\":2}"
+              ],
+              [
+                "op:#2",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 5
+          },
+          {
+            "extra": [
+              [
+                "op:#1",
+                "unchecked",
+                "",
+                ""
+              ]
+            ],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ],
+              [
+                "op:#1",
+                "sent_copies",
+                "occurrence:#4",
+                "{\"count\":2}"
+              ],
+              [
+                "op:#2",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 6
+          },
+          {
+            "extra": [
+              [
+                "op:#1",
+                "unchecked",
+                "",
+                ""
+              ]
+            ],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ],
+              [
+                "op:#1",
+                "sent_copies",
+                "occurrence:#4",
+                "{\"count\":2}"
+              ],
+              [
+                "op:#2",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 7
+          },
+          {
+            "extra": [
+              [
+                "op:#1",
+                "unchecked",
+                "",
+                ""
+              ]
+            ],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ],
+              [
+                "op:#1",
+                "sent_copies",
+                "occurrence:#4",
+                "{\"count\":2}"
+              ],
+              [
+                "op:#2",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 8
+          },
+          {
+            "extra": [
+              [
+                "op:#1",
+                "unchecked",
+                "",
+                ""
+              ]
+            ],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ],
+              [
+                "op:#1",
+                "sent_copies",
+                "occurrence:#4",
+                "{\"count\":2}"
+              ],
+              [
+                "op:#2",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 9
+          },
+          {
+            "extra": [
+              [
+                "op:#1",
+                "unchecked",
+                "",
+                ""
+              ]
+            ],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ],
+              [
+                "op:#1",
+                "sent_copies",
+                "occurrence:#4",
+                "{\"count\":2}"
+              ],
+              [
+                "op:#2",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 10
+          },
+          {
+            "extra": [
+              [
+                "op:#1",
+                "unchecked",
+                "",
+                ""
+              ]
+            ],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ],
+              [
+                "op:#1",
+                "sent_copies",
+                "occurrence:#4",
+                "{\"count\":2}"
+              ],
+              [
+                "op:#2",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 11
+          },
+          {
+            "extra": [
+              [
+                "op:#1",
+                "unchecked",
+                "",
+                ""
+              ]
+            ],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ],
+              [
+                "op:#1",
+                "sent_copies",
+                "occurrence:#4",
+                "{\"count\":2}"
+              ],
+              [
+                "op:#2",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 12
+          },
+          {
+            "extra": [
+              [
+                "op:#1",
+                "unchecked",
+                "",
+                ""
+              ]
+            ],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ],
+              [
+                "op:#1",
+                "sent_copies",
+                "occurrence:#4",
+                "{\"count\":2}"
+              ],
+              [
+                "op:#2",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 13
+          },
+          {
+            "extra": [
+              [
+                "op:#1",
+                "unchecked",
+                "",
+                ""
+              ]
+            ],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ],
+              [
+                "op:#1",
+                "sent_copies",
+                "occurrence:#4",
+                "{\"count\":2}"
+              ],
+              [
+                "op:#2",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 14
+          },
+          {
+            "extra": [
+              [
+                "op:#1",
+                "unchecked",
+                "",
+                ""
+              ]
+            ],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ],
+              [
+                "op:#1",
+                "sent_copies",
+                "occurrence:#4",
+                "{\"count\":2}"
+              ],
+              [
+                "op:#2",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 15
+          },
+          {
+            "extra": [
+              [
+                "op:#1",
+                "unchecked",
+                "",
+                ""
+              ]
+            ],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ],
+              [
+                "op:#1",
+                "sent_copies",
+                "occurrence:#4",
+                "{\"count\":2}"
+              ],
+              [
+                "op:#2",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 16
+          }
+        ]
+      },
+      "row": "M06",
+      "stage": 3
+    },
+    "settlement/persistent/1/0/live-restored/control_pending.notice-count": {
+      "delta": {
+        "calls": 2,
+        "failures": [
+          {
+            "extra": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "3"
+              ]
+            ],
+            "page": 0
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "3"
+              ]
+            ],
+            "page": 1
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "settlement/persistent/1/0/live-restored/control_pending.notice-head": {
+      "delta": {
+        "calls": 2,
+        "failures": [
+          {
+            "extra": [
+              [
+                "op:#1",
+                "unchecked",
+                "",
+                ""
+              ]
+            ],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ],
+              [
+                "op:#1",
+                "sent_copies",
+                "occurrence:#4",
+                "{\"count\":2}"
+              ],
+              [
+                "op:#2",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 0
+          },
+          {
+            "extra": [
+              [
+                "op:#1",
+                "unchecked",
+                "",
+                ""
+              ]
+            ],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ],
+              [
+                "op:#1",
+                "sent_copies",
+                "occurrence:#4",
+                "{\"count\":2}"
+              ],
+              [
+                "op:#2",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 1
+          }
+        ]
+      },
+      "row": "M06",
+      "stage": 3
+    },
+    "settlement/persistent/1/0/live-restored/mail catalogue.complete": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "op:#1",
+                "unchecked",
+                "",
+                ""
+              ]
+            ],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ],
+              [
+                "op:#1",
+                "sent_copies",
+                "occurrence:#4",
+                "{\"count\":2}"
+              ],
+              [
+                "op:#2",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M06",
+      "stage": 3
+    },
+    "settlement/persistent/1/0/live-restored/mail catalogue.page": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "op:#1",
+                "unchecked",
+                "",
+                ""
+              ]
+            ],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ],
+              [
+                "op:#1",
+                "sent_copies",
+                "occurrence:#4",
+                "{\"count\":2}"
+              ],
+              [
+                "op:#2",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M06",
+      "stage": 3
+    },
+    "settlement/persistent/1/0/live-restored/mail catalogue.total": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "3"
+              ]
+            ],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M14",
       "stage": 3
     },
     "settlement/persistent/1/0/live-restored/passive.notice-count": {
       "delta": {
-        "extra": [
-          [
-            "count:#0",
-            "count",
-            "",
-            "1"
-          ]
-        ],
-        "missing": [
-          [
-            "count:#0",
-            "count",
-            "",
-            "4"
-          ]
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "3"
+              ]
+            ],
+            "page": 0
+          }
         ]
       },
       "row": "M14",
       "stage": 3
     },
-    "settlement/single/1/0/crash-restart/aresos log.notices": {
+    "settlement/persistent/1/0/live-restored/passive.notice-head": {
       "delta": {
-        "extra": [
-          [
-            "op:#2",
-            "sent_copies",
-            "occurrence:#4",
-            "{\"count\":2}"
-          ]
-        ],
-        "missing": [
-          [
-            "op:#2",
-            "sent_copies",
-            "occurrence:#3",
-            "{\"count\":2}"
-          ]
-        ]
-      },
-      "row": "M07",
-      "stage": 3
-    },
-    "settlement/single/1/0/crash-restart/control_pending.notices": {
-      "delta": {
-        "extra": [
-          [
-            "op:#2",
-            "sent_copies",
-            "occurrence:#4",
-            "{\"count\":2}"
-          ]
-        ],
-        "missing": [
-          [
-            "op:#2",
-            "sent_copies",
-            "occurrence:#3",
-            "{\"count\":2}"
-          ]
-        ]
-      },
-      "row": "M07",
-      "stage": 3
-    },
-    "settlement/single/1/0/crash-restart/mail catalogue.notices": {
-      "delta": {
-        "extra": [
-          [
-            "op:#2",
-            "sent_copies",
-            "occurrence:#4",
-            "{\"count\":2}"
-          ]
-        ],
-        "missing": [
-          [
-            "op:#2",
-            "sent_copies",
-            "occurrence:#3",
-            "{\"count\":2}"
-          ]
-        ]
-      },
-      "row": "M07",
-      "stage": 3
-    },
-    "settlement/single/1/0/crash-restart/passive.notices": {
-      "delta": {
-        "extra": [
-          [
-            "op:#2",
-            "unchecked",
-            "",
-            ""
-          ]
-        ],
-        "missing": [
-          [
-            "op:#2",
-            "sent_copies",
-            "occurrence:#3",
-            "{\"count\":2}"
-          ]
-        ]
-      },
-      "row": "M07",
-      "stage": 3
-    },
-    "settlement/single/1/0/live-restored/aresos log.notices": {
-      "delta": {
-        "extra": [
-          [
-            "op:#2",
-            "unchecked",
-            "",
-            ""
-          ]
-        ],
-        "missing": [
-          [
-            "op:#1",
-            "recovery",
-            "",
-            ""
-          ],
-          [
-            "op:#2",
-            "recovery",
-            "",
-            ""
-          ],
-          [
-            "op:#2",
-            "sent_copies",
-            "occurrence:#3",
-            "{\"count\":2}"
-          ]
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "op:#1",
+                "unchecked",
+                "",
+                ""
+              ]
+            ],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ],
+              [
+                "op:#1",
+                "sent_copies",
+                "occurrence:#4",
+                "{\"count\":2}"
+              ],
+              [
+                "op:#2",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 0
+          }
         ]
       },
       "row": "M06",
       "stage": 3
     },
-    "settlement/single/1/0/live-restored/control_pending.notices": {
+    "settlement/single/1/0/live-restored/aresos log.notice-count": {
       "delta": {
-        "extra": [
-          [
-            "op:#2",
-            "unchecked",
-            "",
-            ""
-          ]
-        ],
-        "missing": [
-          [
-            "op:#1",
-            "recovery",
-            "",
-            ""
-          ],
-          [
-            "op:#2",
-            "recovery",
-            "",
-            ""
-          ],
-          [
-            "op:#2",
-            "sent_copies",
-            "occurrence:#3",
-            "{\"count\":2}"
-          ]
+        "calls": 17,
+        "failures": [
+          {
+            "extra": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "3"
+              ]
+            ],
+            "page": 0
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "3"
+              ]
+            ],
+            "page": 1
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "3"
+              ]
+            ],
+            "page": 2
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "3"
+              ]
+            ],
+            "page": 3
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "3"
+              ]
+            ],
+            "page": 4
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "3"
+              ]
+            ],
+            "page": 5
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "3"
+              ]
+            ],
+            "page": 6
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "3"
+              ]
+            ],
+            "page": 7
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "3"
+              ]
+            ],
+            "page": 8
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "3"
+              ]
+            ],
+            "page": 9
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "3"
+              ]
+            ],
+            "page": 10
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "3"
+              ]
+            ],
+            "page": 11
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "3"
+              ]
+            ],
+            "page": 12
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "3"
+              ]
+            ],
+            "page": 13
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "3"
+              ]
+            ],
+            "page": 14
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "3"
+              ]
+            ],
+            "page": 15
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "3"
+              ]
+            ],
+            "page": 16
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "settlement/single/1/0/live-restored/aresos log.notice-head": {
+      "delta": {
+        "calls": 17,
+        "failures": [
+          {
+            "extra": [
+              [
+                "op:#1",
+                "unchecked",
+                "",
+                ""
+              ]
+            ],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ],
+              [
+                "op:#1",
+                "sent_copies",
+                "occurrence:#4",
+                "{\"count\":2}"
+              ],
+              [
+                "op:#2",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 0
+          },
+          {
+            "extra": [
+              [
+                "op:#1",
+                "unchecked",
+                "",
+                ""
+              ]
+            ],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ],
+              [
+                "op:#1",
+                "sent_copies",
+                "occurrence:#4",
+                "{\"count\":2}"
+              ],
+              [
+                "op:#2",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 1
+          },
+          {
+            "extra": [
+              [
+                "op:#1",
+                "unchecked",
+                "",
+                ""
+              ]
+            ],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ],
+              [
+                "op:#1",
+                "sent_copies",
+                "occurrence:#4",
+                "{\"count\":2}"
+              ],
+              [
+                "op:#2",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 2
+          },
+          {
+            "extra": [
+              [
+                "op:#1",
+                "unchecked",
+                "",
+                ""
+              ]
+            ],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ],
+              [
+                "op:#1",
+                "sent_copies",
+                "occurrence:#4",
+                "{\"count\":2}"
+              ],
+              [
+                "op:#2",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 3
+          },
+          {
+            "extra": [
+              [
+                "op:#1",
+                "unchecked",
+                "",
+                ""
+              ]
+            ],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ],
+              [
+                "op:#1",
+                "sent_copies",
+                "occurrence:#4",
+                "{\"count\":2}"
+              ],
+              [
+                "op:#2",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 4
+          },
+          {
+            "extra": [
+              [
+                "op:#1",
+                "unchecked",
+                "",
+                ""
+              ]
+            ],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ],
+              [
+                "op:#1",
+                "sent_copies",
+                "occurrence:#4",
+                "{\"count\":2}"
+              ],
+              [
+                "op:#2",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 5
+          },
+          {
+            "extra": [
+              [
+                "op:#1",
+                "unchecked",
+                "",
+                ""
+              ]
+            ],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ],
+              [
+                "op:#1",
+                "sent_copies",
+                "occurrence:#4",
+                "{\"count\":2}"
+              ],
+              [
+                "op:#2",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 6
+          },
+          {
+            "extra": [
+              [
+                "op:#1",
+                "unchecked",
+                "",
+                ""
+              ]
+            ],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ],
+              [
+                "op:#1",
+                "sent_copies",
+                "occurrence:#4",
+                "{\"count\":2}"
+              ],
+              [
+                "op:#2",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 7
+          },
+          {
+            "extra": [
+              [
+                "op:#1",
+                "unchecked",
+                "",
+                ""
+              ]
+            ],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ],
+              [
+                "op:#1",
+                "sent_copies",
+                "occurrence:#4",
+                "{\"count\":2}"
+              ],
+              [
+                "op:#2",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 8
+          },
+          {
+            "extra": [
+              [
+                "op:#1",
+                "unchecked",
+                "",
+                ""
+              ]
+            ],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ],
+              [
+                "op:#1",
+                "sent_copies",
+                "occurrence:#4",
+                "{\"count\":2}"
+              ],
+              [
+                "op:#2",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 9
+          },
+          {
+            "extra": [
+              [
+                "op:#1",
+                "unchecked",
+                "",
+                ""
+              ]
+            ],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ],
+              [
+                "op:#1",
+                "sent_copies",
+                "occurrence:#4",
+                "{\"count\":2}"
+              ],
+              [
+                "op:#2",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 10
+          },
+          {
+            "extra": [
+              [
+                "op:#1",
+                "unchecked",
+                "",
+                ""
+              ]
+            ],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ],
+              [
+                "op:#1",
+                "sent_copies",
+                "occurrence:#4",
+                "{\"count\":2}"
+              ],
+              [
+                "op:#2",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 11
+          },
+          {
+            "extra": [
+              [
+                "op:#1",
+                "unchecked",
+                "",
+                ""
+              ]
+            ],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ],
+              [
+                "op:#1",
+                "sent_copies",
+                "occurrence:#4",
+                "{\"count\":2}"
+              ],
+              [
+                "op:#2",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 12
+          },
+          {
+            "extra": [
+              [
+                "op:#1",
+                "unchecked",
+                "",
+                ""
+              ]
+            ],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ],
+              [
+                "op:#1",
+                "sent_copies",
+                "occurrence:#4",
+                "{\"count\":2}"
+              ],
+              [
+                "op:#2",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 13
+          },
+          {
+            "extra": [
+              [
+                "op:#1",
+                "unchecked",
+                "",
+                ""
+              ]
+            ],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ],
+              [
+                "op:#1",
+                "sent_copies",
+                "occurrence:#4",
+                "{\"count\":2}"
+              ],
+              [
+                "op:#2",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 14
+          },
+          {
+            "extra": [
+              [
+                "op:#1",
+                "unchecked",
+                "",
+                ""
+              ]
+            ],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ],
+              [
+                "op:#1",
+                "sent_copies",
+                "occurrence:#4",
+                "{\"count\":2}"
+              ],
+              [
+                "op:#2",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 15
+          },
+          {
+            "extra": [
+              [
+                "op:#1",
+                "unchecked",
+                "",
+                ""
+              ]
+            ],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ],
+              [
+                "op:#1",
+                "sent_copies",
+                "occurrence:#4",
+                "{\"count\":2}"
+              ],
+              [
+                "op:#2",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 16
+          }
         ]
       },
       "row": "M06",
       "stage": 3
     },
-    "settlement/single/1/0/live-restored/mail catalogue.notices": {
+    "settlement/single/1/0/live-restored/control_pending.notice-count": {
       "delta": {
-        "extra": [
-          [
-            "op:#2",
-            "unchecked",
-            "",
-            ""
-          ]
-        ],
-        "missing": [
-          [
-            "op:#1",
-            "recovery",
-            "",
-            ""
-          ],
-          [
-            "op:#2",
-            "recovery",
-            "",
-            ""
-          ],
-          [
-            "op:#2",
-            "sent_copies",
-            "occurrence:#3",
-            "{\"count\":2}"
-          ]
+        "calls": 2,
+        "failures": [
+          {
+            "extra": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "3"
+              ]
+            ],
+            "page": 0
+          },
+          {
+            "extra": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "3"
+              ]
+            ],
+            "page": 1
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "settlement/single/1/0/live-restored/control_pending.notice-head": {
+      "delta": {
+        "calls": 2,
+        "failures": [
+          {
+            "extra": [
+              [
+                "op:#1",
+                "unchecked",
+                "",
+                ""
+              ]
+            ],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ],
+              [
+                "op:#1",
+                "sent_copies",
+                "occurrence:#4",
+                "{\"count\":2}"
+              ],
+              [
+                "op:#2",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 0
+          },
+          {
+            "extra": [
+              [
+                "op:#1",
+                "unchecked",
+                "",
+                ""
+              ]
+            ],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ],
+              [
+                "op:#1",
+                "sent_copies",
+                "occurrence:#4",
+                "{\"count\":2}"
+              ],
+              [
+                "op:#2",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 1
+          }
         ]
       },
       "row": "M06",
+      "stage": 3
+    },
+    "settlement/single/1/0/live-restored/mail catalogue.complete": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "op:#1",
+                "unchecked",
+                "",
+                ""
+              ]
+            ],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ],
+              [
+                "op:#1",
+                "sent_copies",
+                "occurrence:#4",
+                "{\"count\":2}"
+              ],
+              [
+                "op:#2",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M06",
+      "stage": 3
+    },
+    "settlement/single/1/0/live-restored/mail catalogue.page": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "op:#1",
+                "unchecked",
+                "",
+                ""
+              ]
+            ],
+            "missing": [
+              [
+                "op:#1",
+                "recovery",
+                "",
+                ""
+              ],
+              [
+                "op:#1",
+                "sent_copies",
+                "occurrence:#4",
+                "{\"count\":2}"
+              ],
+              [
+                "op:#2",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M06",
+      "stage": 3
+    },
+    "settlement/single/1/0/live-restored/mail catalogue.total": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "3"
+              ]
+            ],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M14",
+      "stage": 3
+    },
+    "settlement/single/1/0/live-restored/passive.notice-continuation": {
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [],
+            "missing": [
+              [
+                "catalogue:#3",
+                "action",
+                "",
+                "mail_filing_notices"
+              ]
+            ],
+            "page": 0
+          }
+        ]
+      },
+      "row": "M14",
       "stage": 3
     },
     "settlement/single/1/0/live-restored/passive.notice-count": {
       "delta": {
-        "extra": [
-          [
-            "count:#0",
-            "count",
-            "",
-            "1"
-          ]
-        ],
-        "missing": [
-          [
-            "count:#0",
-            "count",
-            "",
-            "4"
-          ]
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#3",
+                "count",
+                "",
+                "4"
+              ]
+            ],
+            "page": 0
+          }
         ]
       },
       "row": "M14",
       "stage": 3
     },
-    "status/persistent/1/0/live-restored/aresos log.notices": {
+    "settlement/single/1/0/live-restored/passive.notice-head": {
       "delta": {
-        "extra": [
-          [
-            "op:#1",
-            "unchecked",
-            "",
-            ""
-          ]
-        ],
-        "missing": []
-      },
-      "row": "M14",
-      "stage": 3
-    },
-    "status/single/1/0/live-restored/aresos log.notices": {
-      "delta": {
-        "extra": [
-          [
-            "op:#1",
-            "unchecked",
-            "",
-            ""
-          ]
-        ],
-        "missing": []
-      },
-      "row": "M14",
-      "stage": 3
-    },
-    "testapp_delete/persistent/1/0/crash-restart/passive.pending-count": {
-      "delta": {
-        "extra": [
-          [
-            "count:#0",
-            "count",
-            "",
-            "1"
-          ]
-        ],
-        "missing": [
-          [
-            "count:#0",
-            "count",
-            "",
-            "2"
-          ]
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [],
+            "missing": [
+              [
+                "op:#1",
+                "sent_copies",
+                "occurrence:#4",
+                "{\"count\":2}"
+              ],
+              [
+                "op:#2",
+                "recovery",
+                "",
+                ""
+              ]
+            ],
+            "page": 0
+          }
         ]
       },
-      "row": "M14",
+      "row": "M06",
       "stage": 3
     },
-    "testapp_delete/persistent/1/0/live-restored/passive.pending-count": {
+    "unsubscribe_mailto/single/0/0/live-restored/R2.context-before-command": {
       "delta": {
-        "extra": [
-          [
-            "count:#0",
-            "count",
-            "",
-            "1"
-          ]
-        ],
-        "missing": [
-          [
-            "count:#0",
-            "count",
-            "",
-            "2"
-          ]
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "command:#2",
+                "R2.APPEND",
+                "",
+                "[\"destination\"]"
+              ]
+            ],
+            "missing": [],
+            "page": 0
+          }
         ]
       },
-      "row": "M14",
-      "stage": 3
-    },
-    "testapp_delete/single/1/0/crash-restart/passive.pending-count": {
-      "delta": {
-        "extra": [
-          [
-            "count:#0",
-            "count",
-            "",
-            "1"
-          ]
-        ],
-        "missing": [
-          [
-            "count:#0",
-            "count",
-            "",
-            "2"
-          ]
-        ]
-      },
-      "row": "M14",
-      "stage": 3
-    },
-    "testapp_delete/single/1/0/live-restored/passive.pending-count": {
-      "delta": {
-        "extra": [
-          [
-            "count:#0",
-            "count",
-            "",
-            "1"
-          ]
-        ],
-        "missing": [
-          [
-            "count:#0",
-            "count",
-            "",
-            "2"
-          ]
-        ]
-      },
-      "row": "M14",
-      "stage": 3
-    },
-    "testapp_send/persistent/1/0/crash-restart/passive.pending-count": {
-      "delta": {
-        "extra": [
-          [
-            "count:#0",
-            "count",
-            "",
-            "1"
-          ]
-        ],
-        "missing": [
-          [
-            "count:#0",
-            "count",
-            "",
-            "2"
-          ]
-        ]
-      },
-      "row": "M14",
-      "stage": 3
-    },
-    "testapp_send/persistent/1/0/live-restored/passive.pending-count": {
-      "delta": {
-        "extra": [
-          [
-            "count:#0",
-            "count",
-            "",
-            "1"
-          ]
-        ],
-        "missing": [
-          [
-            "count:#0",
-            "count",
-            "",
-            "2"
-          ]
-        ]
-      },
-      "row": "M14",
-      "stage": 3
-    },
-    "testapp_send/single/1/0/crash-restart/passive.pending-count": {
-      "delta": {
-        "extra": [
-          [
-            "count:#0",
-            "count",
-            "",
-            "1"
-          ]
-        ],
-        "missing": [
-          [
-            "count:#0",
-            "count",
-            "",
-            "2"
-          ]
-        ]
-      },
-      "row": "M14",
-      "stage": 3
-    },
-    "testapp_send/single/1/0/live-restored/passive.pending-count": {
-      "delta": {
-        "extra": [
-          [
-            "count:#0",
-            "count",
-            "",
-            "1"
-          ]
-        ],
-        "missing": [
-          [
-            "count:#0",
-            "count",
-            "",
-            "2"
-          ]
-        ]
-      },
-      "row": "M14",
-      "stage": 3
+      "row": "M05",
+      "stage": 2
     }
   },
   "format": 1

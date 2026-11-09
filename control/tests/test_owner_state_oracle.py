@@ -16,7 +16,7 @@ from owner_state_oracle.compare import pages
 class OwnerOracle(unittest.TestCase):
     def test_expectation_imports_are_standard_library_only(self):
         root = Path(__file__).resolve().parents[1] / 'owner_state_oracle'
-        allowed = {'contextlib', 'copy', 'dataclasses', 'hashlib', 'json', 'pathlib', 'sqlite3', 'shutil', 'tempfile', 'model', 'records'}
+        allowed = {'contextlib', 'copy', 'dataclasses', 'hashlib', 'json', 'pathlib', 'sqlite3', 'shutil', 'tempfile', 'time', 'model', 'records'}
         for name in ('__init__.py', 'records.py', 'model.py', 'compare.py'):
             tree = ast.parse((root / name).read_text())
             for node in ast.walk(tree):
@@ -147,3 +147,52 @@ class OwnerOracle(unittest.TestCase):
         path.write_bytes(path.read_bytes().replace(b'"format":2', b'"format":999'))
         with self.assertRaisesRegex(ValueError, 'Unsupported'):
             decode(state, evidence)
+
+    def test_real_expectation_path_rejects_every_mutation_without_precommand_context(self):
+        for command in ('DATA', 'APPEND', 'MOVE', 'COPY', 'STORE', 'EXPUNGE', 'CREATE', 'DELETE', 'RENAME', 'POST', 'RECEIVE'):
+            oracle = Oracle()
+            oracle.call('synthetic mutation', {}, 1)
+            oracle.server(command, 'box', accepted=True, reply='lost')
+            with self.subTest(command=command):
+                self.assertTrue(oracle.context_errors(), command)
+
+    def test_raw_trash_list_warns_even_if_production_claims_done_and_closed(self):
+        oracle = Oracle()
+        context = {'mail:rename:r': {'id': 'r', 'account': 'box', 'source': 'Source', 'target': 'Target', 'roles_before': {}}}
+        oracle.call('mail_folder_rename', {'account': 'box', 'folder': 'Source', 'name': 'Target'}, 1)
+        oracle.server('RENAME', 'box', roles={'Target': []}, arguments=['Source', 'Target'], committed_before=context)
+        oracle.server('LIST', 'box', roles={'Target': ['\\Trash']})
+        record = Record(rows={'mail:rename:r': {**context['mail:rename:r'], 'state': 'done', 'check_open': False}})
+        self.assertTrue(any(f.kind == 'rename' and f.detail == '{"role":"Trash"}' for f in oracle.expected(record)))
+
+    def test_bad_completion_without_server_acceptance_is_caught(self):
+        oracle = Oracle()
+        row = {'id': 'g:s', 'action': 'mail_send', 'state': 'done'}
+        self.assertTrue(oracle.completion_errors(Record(rows={'op:g:s': row})))
+        oracle.server('DATA', identities=[{'message_id': '<g.s@mail.aresos.invalid>'}])
+        self.assertFalse(oracle.completion_errors(Record(rows={'op:g:s': row})))
+
+    def test_filing_clean_ack_recurrence_uses_a_new_occurrence(self):
+        for kind in ('rename', 'filing'):
+            oracle = Oracle()
+            source = 'mail:rename:r' if kind == 'rename' else 'mail:filing:r'
+            evidence = {'target': 'Target', 'role': 'Trash'}
+            first = {'id': 'old', 'source_key': source, 'check_kind': kind,
+                     'evidence_fingerprint': fingerprint(evidence)}
+            record = Record(rows={'notice:old': first})
+            one = oracle.warning(source, kind, evidence, record)
+            self.assertEqual(one.occurrence, 'old')
+            record.events = [{'seq': 1, 'action': 'mail_notice_ack', 'set': {'notice:old': {**first, 'ack': True}}},
+                {'seq': 2, 'action': 'mail_filing_check', 'set': {source: {'warning_checks': {kind: {'warning': False}}}}}]
+            oracle.expected(record)
+            record.rows['notice:new'] = {**first, 'id': 'new'}
+            two = oracle.warning(source, kind, evidence, record)
+            self.assertEqual(two.occurrence, 'new')
+            self.assertNotEqual(one, two)
+
+    def test_occurrence_binding_matches_evidence_not_last_unused_notice(self):
+        oracle = Oracle()
+        a, b = {'target': 'A', 'role': 'Trash'}, {'target': 'B', 'role': 'Drafts'}
+        record = Record(rows={'notice:a': {'id': 'a', 'source_key': 'mail:rename:r', 'check_kind': 'rename', 'evidence_fingerprint': fingerprint(a)},
+                              'notice:b': {'id': 'b', 'source_key': 'mail:rename:r', 'check_kind': 'rename', 'evidence_fingerprint': fingerprint(b)}})
+        self.assertEqual(oracle.warning('mail:rename:r', 'rename', a, record).occurrence, 'a')

@@ -33,7 +33,7 @@ def notice_facts(notice, record, oracle):
         evidence = canonical({'role': 'Trash' if 'Trash' in reason else 'Drafts' if 'inside Drafts' in reason else 'ordinary'})
     result = {Fact(source, kind, occurrence, evidence)}
     if content.get('unresolved_roles') or content.get('scan_complete') is False:
-        result.add(Fact(source, 'recovery'))
+        result.add(Fact(source, 'recovery', occurrence))
     return result
 
 
@@ -60,62 +60,121 @@ def pages(read, action, arguments=None, section='data'):
         args['cursor'] = cursor
 
 
-def compare_views(read, oracle, snapshot, check, ordinary='mail_accounts'):
-    """check(view, expected, actual) may classify one known assertion failure.
+def source_order(record, source):
+    return next(((event['time'], event['seq']) for event in record.events if event['set'].get(source) is not None), (0, 0))
 
-    Each view computes its own actual set. An earlier view's successful warning
-    must never be used to fill a later view. Passive disclosure is checked first,
-    before explicit reads can recreate evidence. All log and pending pages run.
+
+def ordered_pending(record, expected, app=None):
+    return sorted((f for f in expected if f.kind == 'pending' and
+                   (app is None or record.rows.get(f.source, {}).get('app') == app)),
+                  key=lambda f: (*source_order(record, f.source), f.source))
+
+
+def ordered_notices(record, expected, app=None):
+    def order(fact):
+        saved = record.rows.get('notice:' + fact.occurrence, {})
+        created = saved.get('created_at')
+        if created is None:
+            created = int(source_order(record, fact.source)[0] * 1_000_000_000)
+        return created, fact.occurrence or fact.source
+    groups = {}
+    for fact in expected:
+        if fact.kind != 'pending' and (app is None or record.rows.get(fact.source, {}).get('app', 'mail') == app):
+            groups.setdefault(fact.occurrence or fact.source + ':' + fact.kind, set()).add(fact)
+    return sorted(groups.values(), key=lambda group: max(order(f) for f in group), reverse=True)
+
+
+def count_fact(value):
+    return {Fact('catalogue', 'count', detail=str(value))}
+
+
+def compare_views(read, oracle, snapshot, check, ordinary='mail_accounts'):
+    """No view borrows another view's values. Validate heads and every page.
+
+    Log and pending advertise a named notice continuation rather than a notice
+    cursor. Validate their head/count/advertisement first, then follow exactly
+    that advertised action as part of that view's disclosure.
     """
+    def notices(page, record):
+        result = []
+        for notice in page.get('notices', []):
+            result.extend(notice_facts(notice, record, oracle))
+        return result
+
+    def head(label, page, record, expected):
+        wanted = ordered_notices(record, expected)
+        actual = notices(page, record)
+        check(label + '.restore-lock', {Fact('restore', 'locked', detail=str(record.locked))},
+              {Fact('restore', 'locked', detail=str(page.get('restore_required', False)))})
+        check(label + '.notice-head', set().union(*wanted[:3]), set(actual))
+        check(label + '.notice-duplicates', set(),
+              {Fact('catalogue', 'duplicate', detail=repr(f)) for f in actual if actual.count(f) > 1})
+        count = len(page.get('notices', [])) + page.get('notices_more', {}).get('count', 0)
+        check(label + '.notice-count', count_fact(len(wanted)), count_fact(count))
+        advertised = page.get('notices_more', {}).get('action')
+        check(label + '.notice-continuation',
+              {Fact('catalogue', 'action', detail='mail_filing_notices')} if len(wanted) > 3 else set(),
+              {Fact('catalogue', 'action', detail=advertised)} if advertised else set())
+        return advertised
+
+    def catalogue(label, action):
+        offset, seen = 0, []
+        for number, page in enumerate(pages(read, action)):
+            record = snapshot()
+            expected = oracle.expected(record, live=True, app='mail' if action == 'mail_filing_notices' else None)
+            if page.get('page_changed'):
+                offset, seen = 0, []
+            wanted = ordered_notices(record, expected, app='mail' if action == 'mail_filing_notices' else None)
+            actual = []
+            for notice in page.get('items', []):
+                actual.extend(notice_facts(notice, record, oracle))
+            check(label + '.page', set().union(*wanted[offset:offset + 3]), set(actual))
+            check(label + '.total', count_fact(len(wanted)), count_fact(page.get('total', 0)))
+            check(label + '.duplicates', set(), {Fact('catalogue', 'duplicate', detail=repr(f)) for f in actual if f in seen or actual.count(f) > 1})
+            seen.extend(actual)
+            offset += len(page.get('items', []))
+        check(label + '.complete', set().union(*wanted), set(seen))
+
     record = snapshot()
     expected = oracle.expected(record)
     reply = read(ordinary, {})
     page = reply.get('pending', {})
-    actual = pending_facts(page)
-    for n in page.get('notices', []):
-        actual |= notice_facts(n, record, oracle)
-    # Pending envelopes are a bounded first page with explicit continuation.
-    exp_pending = {f for f in expected if f.kind == 'pending'}
-    exp_notices = expected - exp_pending
-    limit = len(page.get('items', [])) + (page.get('total', 0) - len(page.get('items', [])))
-    check('passive.pending-count', {Fact('count', 'count', detail=str(len(exp_pending)))},
-          {Fact('count', 'count', detail=str(limit))})
-    if len(exp_pending) <= len(page.get('items', [])):
-        check('passive.pending', exp_pending, {f for f in actual if f.kind == 'pending'})
-    if len(exp_notices) <= 3:
-        check('passive.notices', exp_notices, {f for f in actual if f.kind != 'pending'})
-    else:
-        count = len(page.get('notices', [])) + page.get('notices_more', {}).get('count', 0)
-        check('passive.notice-count', {Fact('count', 'count', detail=str(len(exp_notices)))},
-              {Fact('count', 'count', detail=str(count))})
-    for view, action in [('control_pending', 'control_pending'), ('aresos log', 'control_log'),
-                         ('mail catalogue', 'mail_filing_notices')]:
-        actual_pending, actual_notices = set(), set()
-        for page in pages(read, action, {'limit': 1} if action.startswith('control_') else {}):
+    wanted = ordered_pending(record, expected, app=ordinary.split('_', 1)[0])
+    check('passive.pending-head', set(wanted[:5]), pending_facts(page))
+    check('passive.pending-total', count_fact(len(wanted)), count_fact(page.get('total', 0)))
+    check('passive.pending-continuation', {Fact('pending', 'cursor')} if len(wanted) > 5 else set(),
+          {Fact('pending', 'cursor')} if page.get('cursor') else set())
+    advertised = head('passive', page, record, expected)
+    if advertised:
+        catalogue('passive.advertised', advertised)
+    for view, action in [('control_pending', 'control_pending'), ('aresos log', 'control_log')]:
+        offset, seen, audit_seen, advertised = 0, [], [], None
+        for page in pages(read, action, {'limit': 1}):
             record = snapshot()
-            expected = oracle.expected(record, live=True, app='mail' if action == 'mail_filing_notices' else None)
+            expected = oracle.expected(record, live=True)
             if page.get('page_changed'):
-                actual_pending, actual_notices = set(), set()
+                offset, seen, audit_seen = 0, [], []
             if action == 'control_pending':
-                actual_pending |= pending_facts(page)
-            notices = page.get('items', []) if action == 'mail_filing_notices' else page.get('notices', [])
-            for n in notices:
-                actual_notices |= notice_facts(n, record, oracle)
-        if action != 'mail_filing_notices' and len(expected - {f for f in expected if f.kind == 'pending'}) > 3:
-            wanted_head = sorted((f for f in expected if f.kind != 'pending'),
-                key=lambda f: (record.rows.get('notice:' + f.occurrence, {}).get('created_at', 0), f.occurrence), reverse=True)[:3]
-            check(view + '.notice-head', set(wanted_head), actual_notices)
-        if action == 'control_pending':
-            check(view + '.pending', {f for f in expected if f.kind == 'pending'}, actual_pending)
-        wanted = {f for f in expected if f.kind != 'pending'}
-        # Log/pending use the catalogue continuation for notices beyond three;
-        # its pages are read for THIS view, with no union from another view.
-        if action != 'mail_filing_notices' and len(wanted) > 3:
-            actual_notices = set()
-            for page in pages(read, 'mail_filing_notices'):
-                record = snapshot()
-                expected = oracle.expected(record, live=True)
-                for n in page['items']:
-                    actual_notices |= notice_facts(n, record, oracle)
-            wanted = {f for f in expected if f.kind != 'pending'}
-        check(view + '.notices', wanted, actual_notices)
+                wanted = ordered_pending(record, expected)
+                actual = list(pending_facts(page))
+                check(view + '.page', set(wanted[offset:offset + 1]), set(actual))
+                check(view + '.total', count_fact(len(wanted)), count_fact(page.get('total', 0)))
+                check(view + '.duplicates', set(), {Fact('pending', 'duplicate', detail=repr(f)) for f in actual if f in seen})
+                seen.extend(actual)
+            else:
+                # Audit inclusion is determined by the test clock and committed
+                # events, independent of the service's iterator/filter.
+                import time
+                day = time.strftime('%Y-%m-%d', time.localtime())
+                audit = sorted((e for e in record.events if e['seq'] in record.working_sequences and time.strftime('%Y-%m-%d', time.localtime(e['time'])) == day), key=lambda e: (e['time'], e['seq']))
+                wanted = [Fact('event:' + str(e['seq']), e['action'], detail=e['outcome']) for e in audit]
+                actual = [Fact('event:' + str(e['seq']), e['action'], detail=e['outcome']) for e in page.get('items', [])]
+                check(view + '.page', set(wanted[offset:offset + 1]), set(actual))
+                check(view + '.total', count_fact(len(wanted)), count_fact(page.get('total', 0)))
+                audit_seen.extend(actual)
+            offset += len(page.get('items', []))
+            advertised = head(view, page, record, expected) or advertised
+        check(view + '.complete', set(wanted), set(seen if action == 'control_pending' else audit_seen))
+        if advertised:
+            catalogue(view + '.advertised', advertised)
+    catalogue('mail catalogue', 'mail_filing_notices')

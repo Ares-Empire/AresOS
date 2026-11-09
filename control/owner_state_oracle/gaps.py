@@ -35,23 +35,44 @@ class Gaps:
         return sorted(result)
 
     def checker(self, case):
+        calls, failures, kinds_seen = {}, {}, {}
         def check(view, expected, actual):
-            key = case + '/' + view
-            # Bind common values before differences so random UUID sorting
-            # cannot make a recorded failure non-reproducible.
             self.facts(expected)
             self.facts(actual)
-            delta = {'missing': self.facts(expected - actual), 'extra': self.facts(actual - expected)}
-            if key in self.entries:
-                self.seen.add(key)
-                assert expected != actual, ('Unexpected pass; remove this known gap', key)
-                assert self.entries[key]['delta'] == delta, ('Known gap changed; possible regression', key, self.entries[key], delta)
-            elif expected != actual:
-                if not self.recording:
-                    raise AssertionError(('Unlisted owner-state gap', key, delta))
-                kinds = {f.kind for f in expected ^ actual}
-                row = 'M06' if 'recovery' in kinds else 'M07' if 'sent_copies' in kinds else 'M14'
-                self.entries[key] = {'row': row, 'stage': 3, 'delta': delta}
+            number = calls.get(view, 0)
+            calls[view] = number + 1
+            if expected != actual:
+                failures.setdefault(view, []).append({'page': number, 'missing': self.facts(expected - actual), 'extra': self.facts(actual - expected)})
+                kinds_seen.setdefault(view, set()).update(f.kind for f in expected ^ actual)
+        def finish():
+            for view, count in calls.items():
+                key = case + '/' + view
+                delta = {'calls': count, 'failures': failures.get(view, [])}
+                if key in self.entries:
+                    self.seen.add(key)
+                    assert delta['failures'], ('Unexpected pass; remove this known gap', key)
+                    assert self.entries[key]['delta'] == delta, ('Known gap changed; possible regression', key, self.entries[key], delta)
+                elif delta['failures']:
+                    if not self.recording:
+                        raise AssertionError(('Unlisted owner-state gap', key, delta))
+                    kinds = kinds_seen.get(view, set())
+                    r2 = any(k.startswith('R2.') for k in kinds)
+                    if case.startswith('G22-rename') or case.startswith('G22-evidence'):
+                        row = 'M03/C03'
+                    elif case.startswith('G22-latch'):
+                        row = 'M08/M10/M13'
+                    elif r2:
+                        row = 'M02/M03/M04/M05/M12'
+                    elif view.startswith('restore'):
+                        row = 'M09'
+                    elif 'holds' in view:
+                        row = 'M10/M11'
+                    elif 'locations' in view:
+                        row = 'M02/C04'
+                    else:
+                        row = 'M06' if 'recovery' in kinds else 'M07/C01' if 'sent_copies' in kinds else 'M03/C03' if 'rename' in kinds else 'M02/C02' if 'filing' in kinds else 'M14'
+                    self.entries[key] = {'row': row, 'stage': 2 if r2 else 3, 'delta': delta}
+        check.finish = finish
         return check
 
     def save(self):

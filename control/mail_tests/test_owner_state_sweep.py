@@ -2,12 +2,15 @@
 from collections import Counter
 from contextlib import contextmanager
 import os
+import shutil
+import tempfile
 import time
 import unittest
 from unittest.mock import patch
 
 from aresos_control.engine import Engine
 from owner_state_oracle.driver import Driver
+from owner_state_oracle.model import Oracle
 from owner_state_oracle.gaps import Gaps
 from test_review23_sweep import Scenario
 from storage_faults import OSWrites
@@ -22,7 +25,36 @@ EXTRA = ('draft_append', 'folder_create', 'folder_delete', 'onboarding', 'flag',
 
 class OwnerScenario(Scenario):
     def __init__(self, flow):
-        super().__init__('send' if flow in EXTRA else flow)
+        self.owner_oracle = Oracle()
+        request = Engine.request
+        def scripted(engine, envelope, *args, **kwargs):
+            from storage_faults import ACTIVE
+            fault = ACTIVE
+            clock = time.time()
+            self.owner_oracle.call(envelope.get('action', envelope.get('method')), envelope.get('arguments', {}), clock,
+                {'mode': fault.mode, 'at': fault.fail_at, 'cleanup': fault.cleanup_at} if fault else {})
+            index = len(self.owner_oracle.script) - 1
+            try:
+                reply = request(engine, envelope, *args, **kwargs)
+            except BaseException:
+                self.owner_oracle.script[index]['reply'] = 'lost'
+                raise
+            self.owner_oracle.script[index].update(reply='delivered', result=reply)
+            return reply
+        self.script_patch = patch.object(Engine, 'request', side_effect=None, autospec=True)
+        # Use a real function so Engine's descriptor still binds self.
+        self.script_patch = patch.object(Engine, 'request', scripted)
+        self.script_patch.start()
+        try:
+            super().__init__('send' if flow in EXTRA else flow)
+        except BaseException:
+            self.script_patch.stop()
+            raise
+        self.stack.callback(self.script_patch.stop)
+        from owner_state_oracle.transcript import Transcript
+        for raw in self.delivered:
+            self.owner_oracle.server('DATA', 'box', identities=[Transcript.message(raw)], accepted=True, fixture_seed=True)
+
         if flow not in EXTRA:
             return
         f = self.fixture
@@ -108,7 +140,7 @@ class OwnerScenario(Scenario):
         return super().call()
 
 
-def exercise(flow, number=None, mode='single', cleanup_at=None, gaps=None):
+def exercise(flow, number=None, mode='single', cleanup_at=None, gaps=None, phase='live'):
     s = OwnerScenario(flow)
     gaps.aliases = {}
     try:
@@ -125,20 +157,32 @@ def exercise(flow, number=None, mode='single', cleanup_at=None, gaps=None):
             assert points, ('Flow did not reach a durable boundary', flow)
         if number is not None:
             assert fault.failed, (case, points)
-        if flow.startswith('restart_') and number is not None and not reply['ok']:
-            s.bind(Engine(s.fixture.root / 'state', s.fixture.root / 'evidence'))
-        if mode == 'persistent':
-            exhaustion = OSWrites(1, mode='persistent')
-            with exhaustion.wrap(s.fixture.engine.store):
-                d.compare(gaps.checker(case + '/exhausted'))
-        # Assert positives before ANY status read; compare the passive view first.
-        d.compare(gaps.checker(case + '/live-restored'))
-        s.fixture.engine.close()
-        s.bind(Engine(s.fixture.root / 'state', s.fixture.root / 'evidence'))
-        if s.fixture.engine.store.locked:
-            s.fixture.engine.request({'v': 1, 'method': 'call', 'action': 'control_restore_confirm',
-                'arguments': {'confirm': 'invalidate earlier approvals'}}, True)
-        d.compare(gaps.checker(case + '/crash-restart'))
+        if phase == 'crash':
+            # Copy the crash bytes BEFORE any view, flush or orderly close.
+            # Closing the old handles may roll back; restore the captured bytes
+            # so the new Engine sees exactly the injected boundary instead.
+            f = s.fixture
+            with tempfile.TemporaryDirectory(prefix='crash-bytes-', dir=f.root) as temporary:
+                saved = __import__('pathlib').Path(temporary)
+                for name in ('state', 'evidence'):
+                    shutil.copytree(f.root / name, saved / name)
+                f.engine.close()
+                for name in ('state', 'evidence'):
+                    shutil.rmtree(f.root / name)
+                    shutil.copytree(saved / name, f.root / name)
+            s.bind(Engine(f.root / 'state', f.root / 'evidence'))
+            if f.engine.store.locked:
+                f.engine.request({'v': 1, 'method': 'call', 'action': 'control_restore_confirm',
+                    'arguments': {'confirm': 'invalidate earlier approvals'}}, True)
+            d.compare(gaps.checker(case + '/crash-restart'))
+        else:
+            if flow.startswith('restart_') and number is not None and not reply['ok']:
+                s.bind(Engine(s.fixture.root / 'state', s.fixture.root / 'evidence'))
+            if mode == 'persistent':
+                exhaustion = OSWrites(1, mode='persistent')
+                with exhaustion.wrap(s.fixture.engine.store):
+                    d.compare(gaps.checker(case + '/exhausted'))
+            d.compare(gaps.checker(case + '/live-restored'))
         return points, cleanups
     finally:
         s.close()
@@ -160,12 +204,15 @@ class OwnerStateSweep(unittest.TestCase):
                 for mode in ('single', 'persistent'):
                     with self.subTest(flow=flow, point=number, mode=mode):
                         _, cleanups = exercise(flow, number, mode, gaps=gaps)
+                        exercise(flow, number, mode, gaps=gaps, phase='crash')
                         counts[mode] += 1
+                        counts['crash'] += 1
                     if mode == 'single':
                         for cleanup_at, _, _ in cleanups:
                             if cleanup_at > number:
                                 with self.subTest(flow=flow, point=number, cleanup=cleanup_at):
                                     exercise(flow, number, cleanup_at=cleanup_at, gaps=gaps)
+                                    exercise(flow, number, cleanup_at=cleanup_at, gaps=gaps, phase='crash')
                                     counts['pairs'] += 1
             print(f'Owner oracle flow={flow} points={len(points)} elapsed={time.monotonic()-started:.3f}s', flush=True)
         import base64, gzip, json

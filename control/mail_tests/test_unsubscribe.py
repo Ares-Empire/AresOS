@@ -8,6 +8,8 @@ from smtp_fixture import SMTPFixture
 from aresos_control.mail import codec
 from dkim_fixture import signed
 from owner_state_oracle.transcript import TRACE
+from owner_state_oracle.model import Oracle
+from owner_state_oracle.records import decode
 
 
 class Unsubscribe(MailCase):
@@ -17,6 +19,7 @@ class Unsubscribe(MailCase):
         read = self.data('read',{'reference':ref})
         self.assertEqual(read['untrusted_content']['unsubscribe'],[target])
         self.assertFalse(self.call('prepare_unsubscribe',{'reference':ref,'target':'mailto:other@mail.invalid'})['ok'])
+        trace_start = len(TRACE.events)
         with SMTPFixture(self.root) as smtp:
             account = {**self.account,'smtp_host':'localhost','smtp_port':smtp.port}
             self.engine.store.write({'mail:account:box':account},'fixture','SMTP')
@@ -30,8 +33,13 @@ class Unsubscribe(MailCase):
             self.assertEqual(codec.body(msg).strip(),'Unsubscribe this address')
             self.data('unsubscribe',approval)
             self.assertEqual(len(smtp.arrivals()),1)
+            oracle = Oracle()
+            oracle.script, oracle.servers = TRACE.script, TRACE.events[trace_start:]
+            self.assertFalse(oracle.completion_errors(decode(self.root / 'state', self.root / 'independent')))
+            self.assertTrue(any(e['command'] == 'DATA' and e['account'] == 'box' and e['identities'] for e in oracle.servers))
 
     def test_https_one_click_post_exact_no_cookies_no_redirect_no_get(self):
+        trace_start = len(TRACE.events)
         requests = []
         status = [204]
         class Handler(BaseHTTPRequestHandler):
@@ -65,6 +73,10 @@ class Unsubscribe(MailCase):
             self.assertEqual(requests[0][0],'/leave?token=synthetic')
             self.assertEqual(requests[0][2],b'List-Unsubscribe=One-Click')
             self.assertNotIn('Cookie',requests[0][1])
+            oracle = Oracle()
+            oracle.script, oracle.servers = TRACE.script, TRACE.events[trace_start:]
+            self.assertFalse(oracle.completion_errors(decode(self.root / 'state', self.root / 'independent')))
+            self.assertTrue(any(e['command'] == 'POST' and e['reply'] == 'delivered' for e in oracle.servers))
             self.data('unsubscribe',approval)
             self.assertEqual(len(requests),1)
             status[0] = 302

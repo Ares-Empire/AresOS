@@ -7,6 +7,7 @@ from unittest.mock import patch
 
 from aresos_control.common import Refused
 from owner_state_oracle.driver import Driver
+from owner_state_oracle.gaps import Gaps
 from owner_state_oracle.model import Fact, Oracle
 from owner_state_oracle.records import decode
 from test_review23_sweep import Scenario
@@ -25,15 +26,13 @@ class ReviewRegressions(unittest.TestCase):
     submit = prior.Checks27.submit
     owner_archive = checks28.Checks28.owner_archive
 
-    def known_gap(self, gap, assertion):
-        # Only this final assertion is expected to fail. Broken setup, wrong
-        # trigger, a different exception, or an unexpected pass fails the test.
-        try:
-            assertion()
-        except AssertionError:
-            print('STRICT-XFAIL ' + gap, flush=True)
-        else:
-            self.fail('Unexpected pass: remove known gap ' + gap)
+    def known_gap(self, gap, expected, actual):
+        registry = Gaps(recording=True)
+        check = registry.checker(gap)
+        check('assertion', expected, actual)
+        check.finish()
+        import base64, gzip, json
+        print('OWNER-GAP-NAMED:' + base64.b64encode(gzip.compress(json.dumps(registry.entries, sort_keys=True).encode())).decode(), flush=True)
 
     def test_review22_live_rename_trash_with_unresolved_drafts_M03_C03(self):
         scenario = Scenario('filing_rename')
@@ -52,12 +51,12 @@ class ReviewRegressions(unittest.TestCase):
             self.assertEqual(scenario.remote['RENAME'], 1)
             self.assertEqual(f.imap.roles['Renamed'], ['\\Trash'])
             self.assertEqual(f.imap.roles['Drafts'], [])
-            self.assertTrue(any(e['command'] == 'WARNING' and e['evidence']['role'] == 'Trash' for e in d.oracle.servers))
+            self.assertTrue(any(e['command'] == 'LIST' and e['roles'].get('Renamed') == ['\\Trash'] for e in d.oracle.servers))
             # One precise equality: observed Trash may not become "unverified".
             expected = {Fact('rename', 'role', detail='Trash')}
             reason = reply['data']['reason']
             actual = {Fact('rename', 'role', detail='Trash' if 'Trash' in reason else 'unverified')}
-            self.known_gap('G22-rename M03/C03 stage=3', lambda: d.oracle.compare('live rename role', expected, actual))
+            self.known_gap('G22-rename', expected, actual)
         finally:
             scenario.close()
 
@@ -80,13 +79,13 @@ class ReviewRegressions(unittest.TestCase):
         with patch.object(self.engine.store, 'write', side_effect=refuse), driver.observe():
             failed = self.call('filing_notices', {})
         driver.reply(failed)
-        self.assertTrue(any(e['command'] == 'WARNING' and e['evidence']['role'] == 'Trash' for e in driver.oracle.servers))
+        self.assertTrue(any(e['command'] == 'LIST' and e['roles'].get('Target') == ['\\Trash'] for e in driver.oracle.servers))
         self.imap.roles['Target'], self.imap.roles['Trash'] = [], ['\\Trash']
         self.imap.roles['Drafts'] = ['\\Drafts']
         page = self.data('filing_notices', {})
         wanted = {Fact(key, 'observed-role', detail='Trash')}
         actual = {Fact(key, 'observed-role', detail='Trash') for n in page['items'] if 'inside Trash' in n['untrusted_content']['reason']}
-        self.known_gap('G22-evidence M03/C03 stage=3', lambda: driver.oracle.compare('retained observed role', wanted, actual))
+        self.known_gap('G22-evidence', wanted, actual)
 
     def test_review22_zero_byte_journal_enospc_recovers_without_restart_M10_M13(self):
         oracle = Oracle()
@@ -102,8 +101,8 @@ class ReviewRegressions(unittest.TestCase):
         oracle.call('mail_compose', {'text': 'healthy local write'}, 101)
         reply = self.call('compose', {'account': 'box', 'to': ['peer@mail.invalid'], 'text': 'healthy local write'})
         oracle.reply(reply)
-        self.known_gap('G22-latch M10/M13 stage=3', lambda: oracle.compare('healthy write',
-            {Fact('request', 'allowed')}, {Fact('request', 'allowed' if reply['ok'] else reply['error']['code'])}))
+        self.known_gap('G22-latch',
+            {Fact('request', 'allowed')}, {Fact('request', 'allowed' if reply['ok'] else reply['error']['code'])})
 
     # These remain named regression tests (not expected failures), and the
     # independent sweep separately exercises their operations/views.

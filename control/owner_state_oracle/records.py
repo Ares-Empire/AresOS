@@ -24,6 +24,7 @@ class Record:
     fences: list = field(default_factory=list)
     prepared: list = field(default_factory=list)
     committed: set = field(default_factory=set)
+    working_sequences: set = field(default_factory=set)
     generation: str = None
     locked: bool = False
 
@@ -69,6 +70,7 @@ def decode(state, evidence):
         with closing(sqlite3.connect(copied)) as db:
             events = [json.loads(v) for (v,) in db.execute('SELECT value FROM events ORDER BY seq')]
             head = db.execute('SELECT seq,hash FROM head WHERE id=1').fetchone()
+    result.working_sequences = {event['seq'] for event in events}
     for event in events:
         seq = event['seq']
         if seq not in fences or event['record'] != fences[seq]:

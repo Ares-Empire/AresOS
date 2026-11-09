@@ -19,6 +19,17 @@ class Transcript:
         return self.correlation
 
     def command(self, command, account=None, folder=None, roles=None, **values):
+        if account is None and self.script:
+            def selected(value):
+                if isinstance(value, dict):
+                    if isinstance(value.get('account'), str):
+                        return value['account']
+                    for child in value.values():
+                        found = selected(child)
+                        if found:
+                            return found
+                return None
+            account = selected(self.script[-1]['arguments'])
         event = dict(call=self.correlation, command=command, account=account, folder=folder,
                      roles=roles, identities=[], attempted=True, accepted=False, reply='lost', **values)
         with self.lock:
