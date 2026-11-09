@@ -1000,6 +1000,25 @@ class ServerTest(Base):
         with self.assertRaises(SystemExit):
             shell.Server(path, self.helper())
 
+    def test_an_unexpected_error_drops_only_that_connection(self):
+        path = os.path.join(self.folder.name, 'aresos', 'shell.sock')
+        server = self.server(path)
+        hello = {'id': 'h-1', 'op': 'hello', 'major': 1, 'minor': 0, 'capabilities': ALL,
+                 'instance': INSTANCE, 'nonce': NONCE}
+        broken, healthy = (socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) for _ in range(2))
+        for client in (broken, healthy):
+            self.addCleanup(client.close)
+            client.connect(path)
+        server.step(0.2)
+        server.step(0.2)
+        with mock.patch.object(server.helper, 'handle_line', side_effect=RuntimeError('bug')):
+            self.line(broken, hello)
+            server.step(0.2)
+        broken.settimeout(2)
+        self.assertEqual(broken.recv(10), b'')
+        self.line(healthy, hello)
+        self.assertTrue(self.receive(server, healthy)['ok'])
+
     def test_other_users_are_refused_and_stale_sockets_replaced(self):
         path = os.path.join(self.folder.name, 'aresos', 'shell.sock')
         os.makedirs(os.path.dirname(path), mode=0o700)
