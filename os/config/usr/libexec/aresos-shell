@@ -68,6 +68,8 @@ HELLO_TIMEOUT = 10.0
 WINDOW_TIMEOUT = 30.0
 # A close this soon after its window lost focus is the compositor handing focus on, not the owner switching.
 HANDOFF = 0.5
+# How often scopes of launches from before a restart are checked (one systemctl call each).
+SCOPE_CHECK = 5.0
 JOURNAL_LIMIT = 256
 # Well beyond the mod's 45-second open timeout, the only window in which it resends a request ID.
 REPLAY_HORIZON = 600.0
@@ -764,6 +766,8 @@ class Helper:
         self.handoff = None
         self.returning_until = None
         self.adopting = set()
+        self.scopes = {}
+        self.next_scope_check = 0.0
         self.world = None
         self.last_heartbeat = None
         self.reconcile()
@@ -809,6 +813,9 @@ class Helper:
                     entry['settled'] = True
                     self.journal.touch(entry)
                     changed = True
+            if active and entry['state'] == 'starting' and not entry.get('settled'):
+                # Its process belonged to the old helper; watch the scope instead until it ends.
+                self.scopes[request_id] = entry['unit']
         if changed:
             self.journal.save()
 
@@ -1079,8 +1086,33 @@ class Helper:
         self.journal.touch(entry)
         self.journal.save()
 
+    def scope_ended(self, request_id):
+        """A launch from before a restart ended; the old helper's exit code is unknown, so judge by kind."""
+        entry = self.journal.entries.get(request_id)
+        if entry is None or entry['state'] != 'starting':
+            return
+        app = self.apps.get(entry['app_id'])
+        single = app is not None and app.instance == 'single'
+        if self.windows is None:
+            if single:
+                self.settle(request_id)
+            else:
+                self.set_state(request_id, 'closed')
+        elif not single:
+            self.set_state(request_id, 'failed', error='launch_failed', message='exited before showing a window')
+        # With window tracking, a handed-over launch keeps waiting for its window until its deadline.
+
     def tick(self):
         now = self.clock()
+        if self.scopes and now >= self.next_scope_check:
+            self.next_scope_check = now + SCOPE_CHECK
+            for request_id, unit in list(self.scopes.items()):
+                entry = self.journal.entries.get(request_id)
+                if entry is None or entry['state'] != 'starting' or entry.get('settled'):
+                    del self.scopes[request_id]
+                elif not self.launcher.is_active(unit):
+                    del self.scopes[request_id]
+                    self.scope_ended(request_id)
         for conn in list(self.connections):
             if not conn.authenticated and now - conn.opened > HELLO_TIMEOUT:
                 conn.finish()

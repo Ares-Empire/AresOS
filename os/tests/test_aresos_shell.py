@@ -478,6 +478,52 @@ class LaunchTest(Base):
                          first['launch_id'])
         self.assertEqual(self.popen.call_count, 2)
 
+    def test_a_restart_keeps_watching_running_apps_until_they_end(self):
+        helper = self.helper(missing=())
+        conn = self.connect(helper)
+        for number in range(shell.JOURNAL_LIMIT):
+            self.request(helper, conn, 'open_app', f'o-{number}', app_id='browser' if number % 4 == 0 else 'terminal')
+        self.active_units = {entry['unit'] for entry in helper.journal.entries.values()}  # all still running
+        restarted = self.helper(missing=())
+        conn = self.connect(restarted)
+        self.assertEqual(len(restarted.scopes), shell.JOURNAL_LIMIT)
+        self.assertEqual(restarted.processes, {})
+        self.assertEqual(self.request(restarted, conn, 'open_app', 'n-1', app_id='notepad')['error'], 'journal_full')
+        # The apps quit after the restart; the next scope check notices without any process handle.
+        self.active_units = set()
+        self.now[0] += shell.SCOPE_CHECK
+        restarted.tick()
+        self.assertEqual(restarted.scopes, {})
+        self.assertTrue(restarted.journal.entries['o-0'].get('settled'))  # Chrome handed over
+        terminal = restarted.journal.entries['o-1']
+        self.assertEqual(terminal['state'], 'closed')
+        # Their answers stay for replays while a resend is still possible ...
+        again = self.request(restarted, conn, 'open_app', 'o-1', app_id='terminal')
+        self.assertEqual((again['state'], again['launch_id']), ('closed', terminal['launch_id']))
+        self.assertEqual(self.request(restarted, conn, 'open_app', 'n-2', app_id='notepad')['error'], 'journal_full')
+        # ... and make room once the replay horizon has passed.
+        self.now[0] += shell.REPLAY_HORIZON
+        self.assertEqual(self.request(restarted, conn, 'open_app', 'n-3', app_id='notepad')['state'], 'starting')
+        self.assertEqual(self.popen.call_count, shell.JOURNAL_LIMIT + 1)
+
+    def test_with_window_tracking_a_restarted_launch_whose_app_exits_fails(self):
+        self.windows = shell.Windows(clock=self.clock)
+        helper = shell.Helper(str(REGISTRY), INSTANCE, NONCE, self.journal, launcher=self.launcher(),
+                              windows=self.windows, activate=self.activate, clock=self.clock,
+                              executable=lambda path: True)
+        conn = self.connect(helper)
+        launch = self.request(helper, conn, 'open_app', 'o-1', app_id='terminal')
+        self.active_units = {helper.journal.entries['o-1']['unit']}
+        restarted = shell.Helper(str(REGISTRY), INSTANCE, NONCE, self.journal, launcher=self.launcher(),
+                                 windows=shell.Windows(clock=self.clock), activate=self.activate, clock=self.clock,
+                                 executable=lambda path: True)
+        self.assertEqual(list(restarted.scopes), ['o-1'])
+        self.active_units = set()
+        restarted.tick()
+        entry = restarted.journal.entries['o-1']
+        self.assertEqual((entry['state'], entry['error'], entry['launch_id']), ('failed', 'launch_failed',
+                                                                                launch['launch_id']))
+
     def test_launches_in_progress_are_never_forgotten(self):
         helper = self.helper()
         conn = self.connect(helper)
