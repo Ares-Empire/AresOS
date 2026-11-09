@@ -1,0 +1,41 @@
+name: Control Chrome
+on:
+  push:
+    branches: [pkg/20-chrome, main]
+    paths: ['control/**', 'docs/control/TOOLS.md', 'reviews/20-chrome/**', '.github/workflows/control-chrome.yml']
+  pull_request:
+    branches: [main]
+    paths: ['control/**', 'docs/control/TOOLS.md', 'reviews/20-chrome/**', '.github/workflows/control-chrome.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: control-chrome-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  fixtures:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        install: [external, policy]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Build disposable branded-Chrome container
+        run: git archive HEAD control docs/control/TOOLS.md | docker build -t aresos-chrome-fixture -f control/chrome/ci/Dockerfile -
+      - name: Browser fixtures only inside Linux container, sandbox on
+        env:
+          INSTALL_MODE: ${{ matrix.install }}
+        run: |
+          set -euo pipefail
+          mkdir -p .work/20-chrome/ci
+          docker run --rm --network none --cap-add SYS_ADMIN --security-opt seccomp=unconfined --security-opt apparmor=unconfined --shm-size=512m -e INSTALL_MODE -e GITHUB_RUN_ID -e GITHUB_SHA -v "$PWD/.work/20-chrome/ci:/out" aresos-chrome-fixture
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: control-chrome-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.install }}
+          path: .work/20-chrome/ci/
+          retention-days: 14
