@@ -26,6 +26,8 @@ settings are:
 {
   "permissions": {
     "ask": [
+      "mcp__testapp__send",
+      "mcp__testapp__delete",
       "mcp__mail__send",
       "mcp__mail__delete",
       "mcp__mail__folder_delete",
@@ -57,8 +59,6 @@ settings are:
     ]
   }
 }
-```json
-{"permissions":{"ask":["mcp__mail__send","mcp__mail__delete","mcp__mail__folder_delete","mcp__mail__unsubscribe"]}}
 ```
 
 The hook commands/timeouts are unchanged; `managed-hooks.json` is now generated
@@ -72,9 +72,12 @@ messages are data. There are no other generated managed settings keys.
 `claude mcp add-json --scope user` arguments, retaining the fixed isolated Python
 proxy command. `control/README.md` documents installation as the owner and removal
 of the obsolete exclusive file during image migration. No `os/` setup was changed.
-The generator checks every shipped ask names an installed, exposed tool.
-Testapp is deliberately a fixture: no shipped server or ask. The native harness
-installs it at user scope and requests test asks explicitly with `apps=APPS`.
+The generator checks every shipped ask names an exposed tool of a served app
+under its installed server name. The service serves testapp too, so both its
+send/delete rules are shipped and required. Testapp is the sole exception to a
+shipped user-scope MCP entry: only the native harness installs that entry, named
+`testapp`. All other served apps must have entries in `user-mcp.json`. The native
+harness now uses the default generated policy, including testapp's asks.
 
 **read — asking admission:** `Boundary` reads only the managed settings through
 protected descriptors. Every directory and the regular leaf remain root-owned,
@@ -120,6 +123,8 @@ automatically. Add app-wide rules to `instructions_for(app)`; regenerate every
 artifact. Public send/delete asks automatically. A future trusted submit must be
 explicitly marked, implement the current owner-entry checker and retain Chrome's
 own exact-state binding. Existing fixed server names must match their ask names.
+Chrome must ship its normal user MCP entry; only testapp is exempt. Every served
+app's asking tools require managed asks even if its MCP entry is not installed yet.
 
 ## Removed checks and why
 
@@ -252,13 +257,85 @@ verb. The explicit metadata/default-deny adapter contract is ready, but a real M
 free-send feature was not invented or silently exempted. All existing Mail
 send/delete tools retain asks.
 
-**run/read:** PR #25 conflicts with current main, so GitHub does not schedule its
+**read:** PR #25 conflicts with current main, so GitHub does not schedule its
 pull-request checks. The parallel-start note forbids merging main until the lead
-instructs it. Validation uses the unchanged `workflow_dispatch` entry points on
-this branch; both edited workflows retain only pull_request and workflow_dispatch
-triggers and this review folder's path filter. After Mail merges, the later package
+instructs it. The original round used `workflow_dispatch`; round 1 review fixes
+restore path-filtered push checks on this branch. Once main is integrated and PR
+checks resume, the `pkg/18d-base-slim` push triggers double runs and can be dropped
+at that merge. Boundary retains its push check on main without cancelling runs
+on main. After Mail merges, the later package
 must merge main, regenerate every artifact, rerun every Control workflow twice and
 review the combined head. No branch was merged during this run.
+
+## Review fixes, round 1
+
+**read — finding 1, push checks:** both base and boundary workflows now have a
+`pkg/18d-base-slim` push trigger with the same path filter as their PR trigger.
+Boundary's main push check is restored; its concurrency guard cancels older runs
+only away from main. The branch push checks can be removed when main is integrated
+and conflict-free PR checks resume, as described above.
+
+**read — finding 2, native inputs:** boundary uses `control/**` in both push and
+PR filters, covering definitions, generated instructions/tools and all existing
+boundary/settings inputs.
+
+**read — package lead's testapp gap:** `Engine._initialize_adapters` always
+registers testapp, and `Proxy` accepts every app in `APPS`; `service.json` has no
+disable switch. The default `asking_rules()` and `managed_settings()` now cover
+all of `APPS`. The generated settings and boundary precondition require six asks,
+including testapp send/delete. Shipped MCP entries remain exactly control/mail.
+The generator rejects missing entries for every other served app, misnamed rules,
+unknown server names and owner-only/unexposed tools. All artifacts were regenerated;
+only the two policy JSON files changed. The settings comments and both code READMEs
+now explain the same split; TOOLS.md contains no ask list and regenerated unchanged.
+
+Regression tests remove each testapp rule while retaining every Mail ask and
+verify `boundary_not_installed`, no adapter execution, unchanged fixture state,
+reserved approval and no receiver arrival. Separate coverage checks every engine
+adapter's public asking tools against the default rules. The native precedence
+harness now uses the default policy rather than requesting a special testapp set.
+
+**run — local:** `python3 control/generate.py --check` printed
+`Generated artifacts match definitions`. The following command printed
+`Ran 7 tests in 1.906s` / `OK`:
+
+```sh
+PYTHONPATH=control:control/tests .work/18d-review/venv/bin/python -m unittest -v \
+  test_slim_policy.SlimPolicy.test_exact_slim_keys_hooks_and_installed_tool_names \
+  test_slim_policy.SlimPolicy.test_every_engine_adapter_asking_tool_has_a_default_rule \
+  test_slim_policy.SlimPolicy.test_generator_rejects_misnamed_rules_including_harness_tools \
+  test_slim_policy.SlimPolicy.test_generator_rejects_any_missing_server_except_testapp \
+  test_slim_policy.SlimPolicy.test_shared_instructions_generated_once_and_approval_text_stays_at_use \
+  test_slim_policy.SlimPolicy.test_identity_real_and_effective_must_both_equal_configured_owner \
+  test_operations.Generated.test_artifact_drift_effects_ask_rules_and_owner_only_absent
+```
+
+`PYTHONPATH=control .work/18d-review/venv/bin/python -m unittest discover -s
+control/boundary -p test_native.py -v` printed `Ran 11 tests in 0.008s` / `OK`.
+AST parsing every Control Python source printed `Python syntax OK`.
+Local YAML assertions confirmed equal push/PR filters, both branch triggers,
+`control/**` coverage, and the boundary main concurrency guard, printing
+`control-base: push/PR filters and concurrency OK` and the same for boundary.
+`git diff --check` printed nothing. Docker again reported
+`Cannot connect to the Docker daemon`; the full unmodified root-owned-path,
+service-refusal, base, Mail and native suites therefore run on Linux CI, not here.
+Only a worktree-local virtual environment was installed; no system software or
+host settings changed. Storage audit: `Remaining .work files over 500 MB: []`.
+
+**read/run — targeted reviews:** fresh `gpt-6.1-sol` high and `gpt-6-astra`
+security reviews both returned **SAFE**, with no findings on source changes
+`e5e89d2d..6744dfe5`. Both independently checked generator and workflow invariants.
+Their supplemental missing-rule probes used a mocked policy reader; these are
+admission-code checks, not evidence for root-owned filesystem integration.
+
+**Final-head execution accounting:** the round's five-execution procedure is one
+push-triggered base run and its same-run rerun (attempts 1/2), one push-triggered
+boundary run and its same-run rerun (attempts 1/2), and one Mail dispatch with
+`gh workflow run control-mail.yml --ref pkg/18d-base-slim` (attempt 1). Base and
+boundary are not manually dispatched. The actual run IDs, attempts, execution
+count, head and exact outputs are recorded in draft PR #25 after this report's
+single final push, avoiding a report/head self-reference loop. This paragraph
+describes the procedure; passing evidence is the completed runs linked in the PR.
 
 ## Open questions
 
