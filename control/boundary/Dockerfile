@@ -13,15 +13,13 @@ COPY control/boundary/ ./
 COPY control/aresos_control/ ./aresos_control/
 COPY control/settings/ /etc/claude-code/
 RUN python3 -m unittest -v test_native \
-    && gcc -static -O2 -Wall -Wextra -Werror launcher.c -o /usr/local/bin/aresos-assistant \
-    && gcc -shared -fPIC -O2 -Wall -Wextra -Werror env-load.c -o /opt/aresos-control/env-load.so \
     && useradd --uid 10001 --create-home assistant \
     && useradd --uid 10002 --no-create-home aresos-tools \
-    && useradd --uid 10003 --create-home coder \
-    && mkdir -p /home/assistant/work /home/coder/work /tmp/claude \
+    && mkdir -p /home/assistant/work /tmp/claude \
     && chown assistant:assistant /home/assistant/work \
     && chown assistant:assistant /tmp/claude && chmod 700 /tmp/claude \
-    && chown coder:coder /home/coder/work \
+    && mkdir -p /usr/libexec/aresos-control \
+    && cp notification-fixture.py /usr/libexec/aresos-control/launch.py \
     && cp /etc/claude-code/managed-settings.draft.json /etc/claude-code/managed-settings.json \
     && python3 -c 'from aresos_control.boundary import Boundary; Boundary().require(); print("Installed boundary precondition PASS")' \
     && python3 /opt/aresos-control/configure.py \

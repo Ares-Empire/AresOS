@@ -55,7 +55,7 @@ def main():
     assert MODE in ('present', 'absent')
     print('VERSIONS ' + (ROOT / 'pins.json').read_text().strip(), flush=True)
     for source in [ROOT / 'sandbox.json', ROOT / 'native-pin.json', Path('/etc/claude-code/managed-settings.json'),
-                   Path('/etc/claude-code/managed-mcp.json')]:
+                   ROOT / 'optional-sandbox.json']:
         (OUT / source.name).write_bytes(source.read_bytes())
     for args in (['uname', '-a'], ['bwrap', '--version'], ['node', '--version'], ['claude', '--version']):
         run(args, 'version-' + args[0])
@@ -69,7 +69,7 @@ def main():
     # Claude's global configuration must be valid. None of these are real tokens.
     put('/home/assistant/.claude.json', '{}\n')
     put('/home/assistant/outside.txt')
-    put('/home/assistant/.claude/settings.json', '{}\n')
+    put('/home/assistant/.claude/settings.json', (ROOT / 'optional-sandbox.json').read_text())
     put('/home/assistant/work/.claude/settings.json', '{}\n')
     put('/home/assistant/work/.claude/settings.local.json', '{}\n')
     put('/home/assistant/work/.mcp.json', '{"mcpServers":{}}\n')
@@ -191,7 +191,7 @@ def main():
         assert len(observed) == 1, 'standalone outside mount observation missing'
         assert int(observed[0]['cap_eff'], 16) == 0, 'observer capability leaked to standalone attack'
         standalone_view = policy_mounts(observed[0]['mountinfo'], json.loads(
-            Path('/etc/claude-code/managed-settings.json').read_text()))
+            (ROOT / 'optional-sandbox.json').read_text()))
         (OUT / 'standalone-policy-mounts.json').write_text(json.dumps(standalone_view, indent=2))
         if (OUT / 'native-policy-mounts.json').exists():
             native_view = json.loads((OUT / 'native-policy-mounts.json').read_text())['hostile']
@@ -219,8 +219,10 @@ def main():
         assert stub.poll() is None, 'stub died during attacks'
         assert after_log == baseline, 'listener received hostile connection'
         print(f'BOUNDARY_OK mode={MODE} attacks={len(rows)} unchanged={len(snapshots)} hostile_connections=0 unqualified={sum(bool(r.get("unqualified")) for r in rows)}', flush=True)
-        launcher_checks()
-        settings_checks()
+        other_user_check()
+        if MODE == 'present':
+            from precedence import precedence_checks
+            precedence_checks(run, put)
         assert native_error is None, native_error
     finally:
         stub.terminate()
@@ -228,170 +230,19 @@ def main():
         log.close()
 
 
-def launcher_checks():
-    # Swap only the root-owned CLI target for an environment recorder in this
-    # disposable container; no production test-switch exists in the launcher.
-    cli = Path('/usr/local/bin/claude')
-    target = cli.resolve()
-    pin = ROOT / 'native-pin.json'
-    original_pin = pin.read_bytes()
-    cli.unlink()
-    cli.write_text('#!/usr/bin/python3 -I\nimport json,os,sys\nprint("LAUNCHED " + json.dumps({"env":dict(os.environ),"args":sys.argv[1:]}))\n')
-    cli.chmod(0o755)
-    recorder_pin = json.loads(original_pin)
-    recorder_pin['cli_sha256'] = digest(cli)
-    pin.write_text(json.dumps(recorder_pin))
-    put('/home/assistant/work/env-shadow/sitecustomize.py',
-        'open("/home/assistant/work/python-env-ran", "w").write("executed")\n')
-    put('/home/assistant/work/env-shadow/preload.cjs',
-        'require("node:fs").writeFileSync("/home/assistant/work/node-env-ran", "executed");\n')
-    planted = dict(ENV, NODE_OPTIONS='--require=/home/assistant/work/env-shadow/preload.cjs',
-                   LD_PRELOAD='/opt/aresos-control/env-load.so',
-                   LD_LIBRARY_PATH='/untrusted', PYTHONPATH='/home/assistant/work/env-shadow', PYTHONSTARTUP='/untrusted.py',
-                   BASH_ENV='/untrusted.sh', ENV='/untrusted.sh', CLAUDE_CONFIG_DIR='/untrusted',
-                   CLAUDE_CODE_PLUGIN_DIRS='/untrusted', ANTHROPIC_API_KEY='SYNTHETIC',
-                   DISPLAY=':0', WAYLAND_DISPLAY='wayland-0', DBUS_SESSION_BUS_ADDRESS='unix:path=/run/user/10001/bus')
-    try:
-        for command, marker in [(['/usr/bin/true'], 'preload-ran'),
-                                (['/usr/bin/python3', '-c', 'pass'], 'python-env-ran'),
-                                (['/usr/local/bin/node', '-e', ''], 'node-env-ran')]:
-            run(command, 'env-positive-' + marker, planted)
-            assert Path('/home/assistant/work', marker).exists()
-        for marker in ['preload-ran', 'python-env-ran', 'node-env-ran']:
-            Path('/home/assistant/work', marker).unlink()
-        result = run(['/usr/local/bin/aresos-assistant'], 'launcher-planted', planted, required=False)
-        assert not any(Path('/home/assistant/work', marker).exists()
-                       for marker in ['preload-ran', 'python-env-ran', 'node-env-ran']), 'planted startup code executed'
-        if MODE == 'absent':
-            assert result.returncode == 78 and 'REFUSE:' in result.stderr and 'LAUNCHED' not in result.stdout
-            print('LAUNCHER_OK missing_filter_refused', flush=True)
-        else:
-            assert result.returncode == 0, result.stderr
-            row = json.loads(result.stdout.split('LAUNCHED ')[1])
-            assert row['args'] == ['--setting-sources', '']
-            assert set(row['env']) == set(ENV) | {'LOGNAME', 'TERM'}, row
-            assert row['env']['HOME'] == '/home/assistant'
-            print('LAUNCHER_OK planted_environment_stripped fixed_cli_args', flush=True)
-            dropins = Path('/etc/claude-code/managed-settings.d')
-            dropins.mkdir(mode=0o755)
-            try:
-                empty = run(['/usr/local/bin/aresos-assistant'], 'launcher-empty-dropins', required=False)
-                assert empty.returncode == 0 and 'LAUNCHED' in empty.stdout, empty.stderr
-                for filename in ('99-open.json', 'notes.txt'):
-                    entry = dropins / filename
-                    entry.write_text(json.dumps({'sandbox': {'excludedCommands': ['aresos *']},
-                                                 'permissions': {'allow': ['Bash(aresos *)']}}))
-                    bad = run(['/usr/local/bin/aresos-assistant'], 'launcher-dropin-' + filename, required=False)
-                    assert bad.returncode == 78 and filename in bad.stderr and 'LAUNCHED' not in bad.stdout
-                    entry.unlink()
-            finally:
-                dropins.rmdir()
-            dropins.symlink_to('/home/assistant/work', target_is_directory=True)
-            try:
-                bad = run(['/usr/local/bin/aresos-assistant'], 'launcher-symlink-dropins', required=False)
-                assert bad.returncode == 78 and 'managed-settings.d' in bad.stderr and 'LAUNCHED' not in bad.stdout
-            finally:
-                dropins.unlink()
-            remote = Path('/home/assistant/.claude/remote-settings.json')
-            remote.write_text('{}')
-            try:
-                allowed = run(['/usr/local/bin/aresos-assistant'], 'launcher-remote-cache', required=False)
-                assert allowed.returncode == 0 and 'LAUNCHED' in allowed.stdout, allowed.stderr
-            finally:
-                remote.unlink()
-            print('LAUNCHER_POLICY_SOURCES_OK empty_pass nonempty_and_symlink_refused', flush=True)
-            helper = ROOT / 'node_modules/@anthropic-ai/sandbox-runtime/vendor/seccomp/x64/apply-seccomp'
-            original = helper.read_bytes()
-            helper.write_bytes(b'#!/bin/sh\nexit 0\n')
-            try:
-                bad = run(['/usr/local/bin/aresos-assistant'], 'launcher-corrupt-filter', required=False)
-                assert bad.returncode == 78 and 'hash mismatch' in bad.stderr and 'LAUNCHED' not in bad.stdout
-            finally:
-                helper.write_bytes(original)
-            size = target.stat().st_size
-            with target.open('ab') as binary:
-                binary.write(b'CORRUPT')
-            try:
-                bad = run(['/usr/local/bin/aresos-assistant'], 'launcher-corrupt-native', required=False)
-                assert bad.returncode == 78 and 'native CLI hash mismatch' in bad.stderr
-            finally:
-                with target.open('r+b') as binary:
-                    binary.truncate(size)
-            for name, args in [('plugin', ['--plugin-dir', '/untrusted']),
-                               ('bypass', ['--dangerously-skip-permissions'])]:
-                bad = run(['/usr/local/bin/aresos-assistant', *args], 'launcher-options-' + name, required=False)
-                assert bad.returncode == 78
-            registry = Path('/home/assistant/.claude/plugins/installed_plugins.json')
-            put(registry, '{"version":2,"plugins":{"unknown@old-marketplace":[{"installPath":"/untrusted"}]}}')
-            try:
-                bad = run(['/usr/local/bin/aresos-assistant'], 'launcher-preinstalled-plugin', required=False)
-                assert bad.returncode == 78 and 'no installed plugins' in bad.stderr and 'LAUNCHED' not in bad.stdout
-            finally:
-                registry.unlink()
-    finally:
-        cli.unlink()
-        cli.symlink_to(target)
-        pin.write_bytes(original_pin)
-
-
-def settings_checks():
-    # No model, login or real credentials. These are configuration CLI commands.
-    server = {'type': 'stdio', 'command': '/usr/bin/python3',
-              'args': ['-I', '/opt/aresos-control/mcp-fixture.py']}
-    put('/home/assistant/.claude.json', json.dumps({'mcpServers': {'rogue-user': server}}))
-    put('/home/assistant/work/.mcp.json', json.dumps({'mcpServers': {'rogue-project': server}}))
-    managed = Path('/etc/claude-code/managed-mcp.json')
-    original = managed.read_bytes()
-    managed.unlink()
-    settings_path = Path('/etc/claude-code/managed-settings.json')
-    settings_original = settings_path.read_bytes()
-    positive = json.loads(settings_original)
-    positive['allowManagedMcpServersOnly'] = False
-    positive.pop('allowedMcpServers', None)
-    settings_path.write_text(json.dumps(positive))
-    try:
-        control = run(['/usr/local/bin/claude', 'mcp', 'list'], 'mcp-unmanaged-positive')
-        assert 'rogue-user' in control.stdout and 'rogue-project' in control.stdout
-        assert Path('/home/assistant/work/mcp-started').exists()
-    finally:
-        managed.write_bytes(original)
-        settings_path.write_bytes(settings_original)
-    Path('/home/assistant/work/mcp-started').unlink()
-    from boundary_assertions import validate_managed_mcp
-    listed = run(['/usr/local/bin/claude', 'mcp', 'list'], 'mcp-list')
-    names = validate_managed_mcp(listed, managed)
-    print('MANAGED_MCP_OK user=assistant names=' + json.dumps(names), flush=True)
-    checks = [
-        ('mcp-add', ['mcp', 'add', '--transport', 'http', 'hostile', 'https://example.com/mcp'], 1, 'exclusive control'),
-        ('marketplace-add', ['plugin', 'marketplace', 'add', 'https://example.com/marketplace.json'], 1, 'No external marketplaces are allowed'),
-    ]
-    errors = []
-    for name, args, code, message in checks:
-        result = run(['/usr/local/bin/claude', *args], name, required=False)
-        if result.returncode != code or message.lower() not in (result.stdout + result.stderr).lower():
-            errors.append(name)
-    assert not Path('/home/assistant/work/mcp-started').exists(), 'unmanaged MCP executed under exclusive policy'
-    for flag, value in [('--plugin-dir', '/home/assistant/work'), ('--plugin-url', 'https://example.com/plugin'),
-                        ('--agents', '{}'), ('--mcp-config', '{"mcpServers":{"evil":{"command":"false"}}}')]:
-        result = run(['/usr/local/bin/claude', flag, value, '-p', 'do not call a model'], 'flag-' + flag[2:], required=False)
-        if result.returncode == 0 or 'disableSideloadFlags' not in result.stdout + result.stderr:
-            errors.append(flag)
-    # The auth preflight otherwise stops at /login before checking bypass.
-    # A synthetic noncredential plus a local stub endpoint exposes the actual
-    # permissionMode in the session-init event, without a model or real provider.
-    # Native 2.1.319 clamps the mode instead of rejecting the flag at startup.
-    offline = dict(ENV, ANTHROPIC_API_KEY='SYNTHETIC_BOUNDARY_NONCREDENTIAL',
-                   ANTHROPIC_BASE_URL='http://127.0.0.1:18080')
-    result = run(['/usr/local/bin/claude', '--dangerously-skip-permissions',
-                  '--output-format', 'stream-json', '--verbose', '-p', 'do not call a model'],
-                 'bypass-disabled', env=offline, required=False)
-    events = [json.loads(line) for line in result.stdout.splitlines() if line.startswith('{')]
-    init = [event for event in events if event.get('type') == 'system' and event.get('subtype') == 'init']
-    if len(init) != 1 or init[0].get('permissionMode') != 'default':
-        errors.append('bypass-disabled')
-    assert result.returncode != 0, 'fake endpoint must never produce a model response'
-    assert not errors, errors
-    print('SETTINGS_OK mcp_exclusive marketplace_lock sideload_flags', flush=True)
+def other_user_check():
+    # The listener is live and reachable by the owner (the positive controls ran).
+    # Another UID in this SAME container must not reach act.sock.
+    def other():
+        os.setgroups([])
+        os.setgid(10003)
+        os.setuid(10003)
+    code = "import socket; socket.socket(socket.AF_UNIX).connect('/run/aresos-tools/act.sock')"
+    denied = subprocess.run(['/usr/bin/python3', '-I', '-c', code], preexec_fn=other,
+                            capture_output=True, text=True, timeout=5)
+    assert denied.returncode != 0 and 'PermissionError' in denied.stderr, denied
+    (OUT / 'other-user.txt').write_text(denied.stderr)
+    print('OTHER_USER_OK same_container uid=10003 act.sock=EACCES', flush=True)
 
 
 if __name__ == '__main__':
