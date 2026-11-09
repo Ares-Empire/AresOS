@@ -673,6 +673,54 @@ This was source-only review, with no browser execution or new test-pass claim.
 The strict owner default-task gap and required receiver-run evidence remain;
 this is not a final SAFE verdict.
 
+### Flat payload getters, excluded form destinations and finish interruption
+
+Reviewed the subsequent flat enumerable primitive payload getters. The bridge
+still constructs a fresh untrusted event and checks the resulting native type;
+raw getter fallback supplies data, not identity or permission. A source/mock
+probe nevertheless found a password-exclusion race: the first payload getter
+could mark the target protected, after the initial password check, and its later
+`data` getter still ran. The actual page/guard source probe printed
+`{"protectedAtDataRead":true,"payloadDataReads":1}`. Added the strict regression
+`a descriptor getter protecting the target prevents every later payload read`.
+It failed with `1 !== 0` before repair. The implementer's sticky protection
+check before each payload getter closes this reproducer; the test now passes.
+
+The known form-action exclusion gap was present in the reviewed source:
+service preflight checked links but not submission actions, while GET searches
+could bypass the guard without checking their destination. Existing network
+rules block excluded main/subframe destinations in controlled tabs, so this
+source finding alone does not prove a receiver arrival. A newly opened form
+target also cannot be assumed covered by the old tab's rule. The repair checks
+known form destinations in service preparation and twice in background input
+preflight, and gives the isolated search predicate the private excluded-host
+list. Added `GET search cannot bypass private excluded destinations or unsafe
+URLs`, covering the exact excluded host, a subdomain with trailing dot, a
+JavaScript URL and credentials. Both wrapped native submission paths remain
+held for all four cases. The existing allowed GET-search/POST-override test
+still passes. The mock now exposes URL and uses an absolute search action to
+match the browser's normalized native form action.
+
+Also found that `finishFrames` ignored an interrupted Stop wake and returned
+`uncertain_finish:false`. Added `Stop during finish keeps the handler
+completion uncertain`; it failed with `false !== true`. The repair returns
+uncertainty on that wake while retaining observed holds. Service free and
+approved execution both process returned steps and mark uncertain completion
+unknown. The earlier tab-activation race is also closed in current source:
+control is asserted before and after the awaited tab lookup and immediately
+before any needed activation.
+
+Final focused reviewer command:
+
+```sh
+node --test --test-name-pattern='Stop during finish|descriptor getter protecting|GET search' control/chrome_tests/page.test.mjs control/chrome_tests/background.test.mjs
+```
+
+It printed 4 passed, 0 failed, 0 skipped. These findings are closed at source
+and focused mock-test level. Real sandbox-frame dispatch, excluded form target
+receiver behavior, and the required final runner passes remain runner evidence;
+no local browser was accessed and no final SAFE verdict is made.
+
 
 ### Parent closure of the final pre-activation race
 

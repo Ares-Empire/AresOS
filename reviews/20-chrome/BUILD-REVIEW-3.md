@@ -742,6 +742,69 @@ no browser, profile or container was used. Headed focus behavior and actual
 Chrome event/attachment ordering remain batch-46 runner evidence, not a
 result of these Node mocks. This is still an interim review.
 
+## Flat event payload, navigated-frame finish and destination retest
+
+Reviewed changing working files based on
+`6bcbc124559740bd46a9d59e1b0dd7f78b4b6e4c`, following the builder's report
+that runner batch 46 still had failing named rows. Those runner results
+were not independently inspected by this reviewer in this pass.
+
+Added authorized Node regressions (no production edits):
+
+- flat lazy event fields preserve key/code/modifiers in a **fresh untrusted
+  event**, without passing the original page-owned Event object;
+- protected targets do not demand the original input event's data getter;
+- a flat primitive getter that changes a harmless button's name to Delete
+  completes before final classification, so activation is held;
+- cleanup failure for a genuinely replaced native frame preserves queued
+  holds; the same native document without completion, or an unavailable
+  replacement check, sets uncertain completion;
+- actual background input replies retain the queued unknown activation and
+  propagate `uncertain_finish` instead of dropping the observation;
+- GET and POST form destinations changed to an excluded host during arming
+  refuse both input and resumption, with **no supplied binding**, proving
+  the fresh destination check itself is decisive. The tests require two
+  fact reads, completed arming, and no focus/input/resume/native dispatch;
+- an allowed GET search destination still reaches native keydown/keyup
+  without a binding.
+
+Coordinated test ownership with the independent security reviewer, who
+added separate sticky per-getter protection, blocked-search and interrupted
+finish tests. Their production fixes were reviewed here only within this
+focused source scope. **Read:** MAIN exposes lazy primitive payload fields;
+the isolated guard constructs a fresh untrusted event, rechecks protection
+while demanding payloads and classifies after page-owned getters finish.
+`finishFrames()` no longer lets a missing iframe cleanup discard the private
+queue, and the service maps uncertain completion to `unknown` for both
+approved and free input.
+
+**Run evidence:**
+
+- Initial combined run: **55/56 passed**. The new propagation test lacked a
+  `chrome.tabs.get` mock after the selected-tab read was introduced. Fixed
+  that test model with an explicit active-state read and update; no
+  production code or assertion was weakened.
+- `node --test control/chrome_tests/background.test.mjs control/chrome_tests/page.test.mjs`:
+  **56 tests passed**, 5390.617291 ms, after that correction.
+- `node --test control/chrome_tests/*.test.mjs`: **73 tests passed**,
+  5415.19275 ms. This preceded adding the two final destination tests.
+- `node --test --test-name-pattern='destination' control/chrome_tests/background.test.mjs`:
+  **2 tests passed**, 567.582125 ms, covering the negative and positive
+  destination paths above.
+- Small actual-Engine Python probes: `uncertain_finish` returned operation
+  state **unknown** for an approved input and a free input.
+- Generated and compiled the four current sandboxed native-fallback
+  variants (cancelable/noncancelable, self/sink). All compiled; each
+  requires proving a native function before calling it. No fixture script
+  was executed. Whether sandboxing actually supplies the required genuine
+  native function is still a browser-runner assertion.
+- `git diff --check`: clean.
+
+No new unaddressed defect was found in this limited retest. These passing
+plain Node/Python checks do not turn batch 46's reported failures into
+passes; final receiver sets and real Chrome event/navigation behavior are
+still pending. No SAFE or final qualification claim is made.
+
 ## Final focused closure and package-pin source check
 
 Working-tree review based on
