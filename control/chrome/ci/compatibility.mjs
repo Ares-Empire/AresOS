@@ -32,6 +32,13 @@ document.querySelector('#continue').onclick=()=>{
 }
 
 const key=(...keys)=>execFileSync('xdotool',['key','--clearmodifiers',...keys]);
+export function nativeCompatibilityClick(){
+  const windows=execFileSync('xdotool',['search','--onlyvisible','--class','[Gg]oogle-chrome'],{encoding:'utf8'}).trim().split('\n');
+  const window=windows.at(-1);execFileSync('xdotool',['windowactivate','--sync',window]);
+  const geometry=execFileSync('xdotool',['getwindowgeometry','--shell',window],{encoding:'utf8'});
+  const width=Number(geometry.match(/^WIDTH=(\d+)/m)[1]),height=Number(geometry.match(/^HEIGHT=(\d+)/m)[1]);
+  execFileSync('xdotool',['mousemove','--window',window,String(Math.floor(width/2)),String(Math.floor(height/2)),'click','1']);
+}
 export function nativeNavigate(url){key('ctrl+l');execFileSync('xdotool',['type','--clearmodifiers','--delay','1',url]);key('Return');}
 export async function measureCompatibility({id,fixture,eventually,start}){
   await eventually(()=>fixture.compatibility.some(value=>value.id===id&&value.phase==='ready'),'native compatibility page ready');
@@ -52,8 +59,9 @@ export async function withoutExtension({fixture,eventually,descriptor}){
   const profile=fs.mkdtempSync('/tmp/aresos-native-baseline-');
   const browser=spawn('qualification-chrome',[`--user-data-dir=${profile}`,'--disable-extensions','--no-first-run','--no-default-browser-check','--password-store=basic','--gtk-version=3','--host-resolver-rules=MAP *.test 127.0.0.1','http://fixture.test:8765/?case=native-compat&id=baseline'],{stdio:['ignore',descriptor,descriptor]});
   try{
-    const measured=await measureCompatibility({id:'baseline',fixture,eventually,start:()=>key('Tab','Return')});
+    const measured=await measureCompatibility({id:'baseline',fixture,eventually,start:nativeCompatibilityClick});
     fs.writeFileSync('/out/native-baseline.json',JSON.stringify(measured,null,2));return measured;
+  }catch(error){try{execFileSync('import',['-window','root','/out/native-failure.png']);}catch{}throw error;
   }finally{browser.kill('SIGTERM');await delay(500);if(browser.exitCode===null)browser.kill('SIGKILL');fs.rmSync(profile,{recursive:true,force:true});}
 }
 

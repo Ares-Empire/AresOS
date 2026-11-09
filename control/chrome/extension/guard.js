@@ -8,6 +8,7 @@
   };
   const phase = Object.getOwnPropertyDescriptor(Event.prototype, 'eventPhase')?.get;
   const eventType = Object.getOwnPropertyDescriptor(Event.prototype, 'type')?.get;
+  const formElements=Object.getOwnPropertyDescriptor(HTMLFormElement.prototype,'elements')?.get;
   const held = new Map(), roots = new Map(), consumed = new Set();
   let reader, generation = null, dispatchNonce = null, config, until = 0, inFlight = false, mark = null, owner = null, sequence = 0;
   let relayControl=null,legacyBridge=true;const relayListeners=[];
@@ -16,25 +17,39 @@
   const active = () => generation !== null && (inFlight || performance.now() < until);
   const ownerTasks=new MessageChannel();
   ownerTasks.port1.onmessage=event=>{if(owner?.token===event.data)owner=null;};
+  const ownerMutations=globalThis.MutationObserver?new MutationObserver(()=>{if(owner)owner.changed=true;}):null;
+  const ownerMutationOptions={subtree:true,attributes:true,childList:true,characterData:true};
+  ownerMutations?.observe(document,ownerMutationOptions);
+  function nativeDefault(element,form,submitter){
+    if(!form)return false;
+    if(submitter)return !submitter.matches(':disabled');
+    if(!(element instanceof HTMLInputElement)||!['','text','search','url','tel','email','password'].includes(element.type))return false;
+    const blocking=['','text','search','url','tel','email','password','date','month','week','time','datetime-local','number'];
+    try{const fields=formElements?formElements.call(form):form.elements||[element];let count=0;for(let index=0;index<fields.length;index++)if(fields[index] instanceof HTMLInputElement&&blocking.includes(fields[index].type))count++;return count<=1;}catch{return false;}
+  }
   function ownerInput(event,element) {
     if(!event.isTrusted||inFlight)return;
     const kind=type(event),key=event.key;
-    let form=null,submitter=null;
-    if(kind==='click'&&element instanceof Element){const target=control(element);if(target.form&&reader.target(target).submit){form=target.form;submitter=target;}}
+    let form=null,submitter=null,defaultSubmission=false;
+    if(kind==='click'&&element instanceof Element){const target=control(element);if(target.form&&reader.target(target).submit){form=target.form;submitter=target;defaultSubmission=nativeDefault(target,form,submitter);}}
     if(['keydown','keypress','keyup'].includes(kind)&&key==='Enter'&&element instanceof Element){
       form=element.form||null;
       if(form&&reader.target(element).submit)submitter=element;
       else if(form){const implicit=reader.target(element).implicit_submitter;submitter=implicit?reader.element(implicit):null;}
+      defaultSubmission=['keydown','keypress'].includes(kind)&&nativeDefault(element,form,submitter);
     }
     const token=++sequence;
-    owner={event,form,submitter,token,consumed:false};
+    ownerMutations?.takeRecords();
+    owner={event,form,submitter,token,defaultSubmission,consumed:false,changed:false};
     ownerTasks.port2.postMessage(token);
   }
-  function ownerSubmission(form,submitter) {
+  function ownerSubmission(form,submitter,event=null) {
     if(inFlight||!owner||owner.consumed||!owner.event.isTrusted||owner.form!==form||owner.submitter!==(submitter||null))return false;
+    if(currentPhase(owner.event)===0&&(!owner.defaultSubmission||owner.event.defaultPrevented||!event?.isTrusted||owner.changed||ownerMutations?.takeRecords().length))return false;
     owner.consumed=true;return true;
   }
   const control=element=>element.closest('button,input,a,[role=button],[role=link],[role=menuitem],[onclick]') || element;
+  const eventElement=node=>node instanceof Element?node:node?.parentElement||(globalThis.ShadowRoot&&node instanceof ShadowRoot?node.host:null);
   function facts(element) { return reader.target(element); }
   function decoded(value) { try{return decodeURIComponent(value);}catch{return value;} }
   function listed(value) {
@@ -101,7 +116,7 @@
     }
   }
   function captureInput(event,root) {
-    let element=event.composedPath()[0];
+    let element=eventElement(event.composedPath()[0]);
     if(['pointerdown','pointerup','pointermove','mousedown','mouseup','click','keydown','keypress','keyup'].includes(type(event)))ownerInput(event,element);
     if (!active()) return;
     if (!(element instanceof Element)) return;
@@ -114,7 +129,7 @@
       if(type(event)==='keydown'&&expected&&event.key===expected.key&&!!event.ctrlKey===!!(expected.modifiers&2)&&!!event.metaKey===!!(expected.modifiers&4)&&!!event.altKey===!!(expected.modifiers&1)&&!!event.shiftKey===!!(expected.modifiers&8))mark.keydown=true;
     }
     if (type(event) === 'submit') {
-      if (ownerSubmission(element,event.submitter) || search(reader.form(element,event.submitter)) || allowance(element,event,event.submitter)) return;
+      if (ownerSubmission(element,event.submitter,event) || search(reader.form(element,event.submitter)) || allowance(element,event,event.submitter)) return;
       event.preventDefault();event.stopImmediatePropagation();report('submit_event',element,event.submitter);
     } else if (type(event) === 'click' && asks(element)) {
       if(!inFlight&&event.isTrusted)return;
@@ -183,6 +198,7 @@
   }
   function watch(root) {
     if (root===document || roots.has(root)) return;
+    if(root instanceof Node)ownerMutations?.observe(root,ownerMutationOptions);
     const listeners=[];
     const listen=(kind,listener,capture)=>{root.addEventListener(kind,listener,capture);listeners.push([kind,listener,capture]);};
     roots.set(root,listeners);
@@ -221,7 +237,7 @@
         const stage=stack.at(-1);if(!stage?.target||stage.detail.request!==event.detail)return;
         // Pop before entering page handlers; nested requests get their own record.
         drop(stage.detail.request);
-        const element=stage.target instanceof Element?stage.target:stage.target.parentElement;
+        const element=eventElement(stage.target);
         if(['click','dispatch'].includes(stage.detail.kind)){
           const name=stage.detail.kind==='click'?'click':stage.detail.event_type;
           if(typeof name!=='string')return;
@@ -249,7 +265,7 @@
       if (generation===epoch && dispatchNonce===nonce) { until=Math.max(until,performance.now()+config.holdMs);inFlight=false;mark=null; }
     },
     clear() { generation=null;until=0;inFlight=false;mark=null;owner=null;held.clear(); },
-    dispose() { if(relayControl){native.dispatch.call(relayControl,new Event('aresos-relay-cleanup'));for(const [kind,listener]of relayListeners)relayControl.removeEventListener(kind,listener);}relayControl=null;relayListeners.length=0;this.clear();for(const [root,listeners] of roots)for(const [kind,listener,capture]of listeners)root.removeEventListener(kind,listener,capture);roots.clear();ownerTasks.port1.close();ownerTasks.port2.close();reader?.dispose?.();reader=null;delete globalThis[Symbol.for('aresos.chrome.guard.v2')]; },
+    dispose() { let restored=true;if(relayControl){restored=!native.dispatch.call(relayControl,new Event('aresos-relay-cleanup',{cancelable:true}));for(const [kind,listener]of relayListeners)relayControl.removeEventListener(kind,listener);}relayControl=null;relayListeners.length=0;this.clear();ownerMutations?.disconnect();for(const [root,listeners] of roots)for(const [kind,listener,capture]of listeners)root.removeEventListener(kind,listener,capture);roots.clear();ownerTasks.port1.close();ownerTasks.port2.close();reader?.dispose?.();reader=null;delete globalThis[Symbol.for('aresos.chrome.guard.v2')];return restored; },
     steps() { const result=[...held.values()].filter(step=>!step.reported).map(step=>{step.reported=true;return {id:step.id,kind:step.kind,document:step.document,label:step.label,element:step.element,submitter:step.submitter,cancellable:step.cancellable};});return result; },
     resume(id,operation,element,form) {
       const step=held.get(id);

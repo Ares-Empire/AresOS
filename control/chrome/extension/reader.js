@@ -240,8 +240,8 @@
         if(staged.size===staged.file.size)staged.ready=new File(staged.chunks,staged.file.name,{type:'application/octet-stream',lastModified:0});
         value={offset:staged.size};
       }
-      else if (message.command === 'clear') { controlGeneration=null; files.clear(); guard.dispose(); value={cleared:true}; }
-      else if (message.command === 'dispose') { guard.dispose();value={disposed:true}; }
+      else if (message.command === 'clear') { controlGeneration=null; files.clear();value={cleared:true,restored:guard.dispose(),document:documentId}; }
+      else if (message.command === 'dispose') {value={disposed:true,restored:guard.dispose(),document:documentId}; }
       else if (['set_control','arm','resume'].includes(message.command)) {}
       else if (message.command === 'hit') value={hit:hit(elements.get(message.element),message.x,message.y)};
       else if (message.command === 'reload_state') value=reloadState();

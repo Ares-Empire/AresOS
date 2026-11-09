@@ -5,7 +5,7 @@ import {spawn,execFileSync} from 'node:child_process';
 import {setTimeout as delay} from 'node:timers/promises';
 import {fixtures} from './fixture.mjs';
 import {matrices} from './matrices.mjs';
-import {measureCompatibility,nativeNavigate,compareCompatibility} from './compatibility.mjs';
+import {measureCompatibility,nativeNavigate,nativeCompatibilityClick,compareCompatibility} from './compatibility.mjs';
 if(process.platform !== 'linux' || process.env.GITHUB_ACTIONS !== 'true' || !fs.existsSync('/.dockerenv'))throw Error('Browser runs only in GitHub Linux containers');
 const fixture=await fixtures();
 const profile=fs.mkdtempSync('/tmp/aresos-chrome-fixture-');
@@ -36,7 +36,7 @@ try {
   chrome=spawn('qualification-chrome',args,{stdio:['ignore',descriptor,descriptor]});
   const tabs=await eventually(async()=>{const result=await rpc('tabs');return result.ok && result.data.items.length && result.data.items;},'extension native connection',45000);
   nativeNavigate('http://fixture.test:8765/?case=native-compat&id=outside');
-  const outside=await measureCompatibility({id:'outside',fixture,eventually,start:()=>execFileSync('xdotool',['key','--clearmodifiers','Tab','Return'])});
+  const outside=await measureCompatibility({id:'outside',fixture,eventually,start:nativeCompatibilityClick});
   compareCompatibility(outside,baseline.native);fs.writeFileSync('/out/native-outside.json',JSON.stringify(outside,null,2));
   // The extension is installed before this owner-created document, then take attaches to it.
   execFileSync('xdotool',['key','--clearmodifiers','ctrl+l']);
@@ -89,7 +89,7 @@ try {
     console.log('GROUP 8 owner input PASS');baseline.owner=true;
   } catch(error) { failures.push(error); console.error('GROUP 8 owner input FAIL',error.message); }
   // A denial must not conceal an unasked send. Every hostile route keeps receiver checks strict.
-  let forgedPasses=0;for(const attack of ['page-forgery','hostile']) {
+  let forgedPasses=0;for(const attack of ['page-forgery','hostile','relay-hostile']) {
     await nav(attack);const forged=await call('click',await target('Continue'));await delay(100);
     const evidence={attack,arrivalsBefore:counts(attack),result:forged};
     fs.writeFileSync('/out/'+attack+'.json',JSON.stringify(evidence,null,2));
@@ -101,12 +101,16 @@ try {
       forgedPasses++;console.log('GROUP 7 page forgery PASS',attack,'receiver: 0 before, 1 after, 1 after replay');
     } catch(error) { failures.push(error); console.error('GROUP 7 page forgery FAIL',attack,error.message); }
   }
-  baseline.forgery=forgedPasses===2;
+  baseline.forgery=forgedPasses===3;
   const admin=(action,arguments_)=>{const result=JSON.parse(execFileSync('sudo',['-n','/usr/bin/python3','/workspace/control/chrome/ci/admin.py',JSON.stringify({action,arguments:arguments_})],{encoding:'utf8'}));assert.ok(result.ok,JSON.stringify(result));return result.data;};
   const caller=(verb,args)=>JSON.parse(execFileSync('python3',['control/chrome/ci/call.py',verb,JSON.stringify(args)],{encoding:'utf8',env:{...process.env,GITHUB_ACTIONS:'true'}}));
   let browserWindow=execFileSync('xdotool',['getactivewindow'],{encoding:'utf8'}).trim();
   const ownerNavigate=async(url)=>{execFileSync('xdotool',['windowactivate','--sync',browserWindow]);execFileSync('xdotool',['key','--clearmodifiers','ctrl+1']);execFileSync('xdotool',['key','--clearmodifiers','ctrl+l']);execFileSync('xdotool',['type','--clearmodifiers','--delay','1',url]);execFileSync('xdotool',['key','Return']);await delay(400);};
-  for(const failure of await matrices({call,read,nav,target,counts,eventually,tab,fixture,admin,rpc,caller,ownerNavigate,baseline,isolationAfter:()=>{const finalListeners=execFileSync('ss',['-lntp'],{encoding:'utf8'}).split('\n').filter(line=>line.includes('\"chrome\"'));assert.equal(finalListeners.length,0,'Chrome must still have no listening port after all tools');fs.writeFileSync('/out/isolation-after.json',JSON.stringify({listeners:finalListeners}));},ownerHistory:async(direction)=>{execFileSync('xdotool',['key','--clearmodifiers',direction==='back'?'alt+Left':'alt+Right']);await delay(400);},ownerBookmark:()=>execFileSync('xdotool',['key','--clearmodifiers','ctrl+d','Return']),lifecycle:async(command)=>{
+  for(const failure of await matrices({call,read,nav,target,counts,eventually,tab,fixture,admin,rpc,caller,ownerNavigate,baseline,
+    ownerDismiss:()=>execFileSync('xdotool',['key','--clearmodifiers','Escape']),
+    isolationAfter:()=>{const finalListeners=execFileSync('ss',['-lntp'],{encoding:'utf8'}).split('\n').filter(line=>line.includes('\"chrome\"'));assert.equal(finalListeners.length,0,'Chrome must still have no listening port after all tools');fs.writeFileSync('/out/isolation-after.json',JSON.stringify({listeners:finalListeners}));},
+    ownerHistory:async(direction)=>{execFileSync('xdotool',['key','--clearmodifiers',direction==='back'?'alt+Left':'alt+Right']);await delay(400);},
+    ownerBookmark:()=>execFileSync('xdotool',['key','--clearmodifiers','ctrl+d','Return']),lifecycle:async(command)=>{
     if(command==='kill_chrome'){chrome.kill('SIGKILL');return;}
     if(command==='start_chrome'){chrome=spawn('qualification-chrome',args,{stdio:['ignore',descriptor,descriptor]});await delay(1500);browserWindow=execFileSync('xdotool',['getactivewindow'],{encoding:'utf8'}).trim();return;}
     if(command==='kill_host'){const lines=execFileSync('ps',['-u','1000','-o','pid=,args='],{encoding:'utf8'}).split('\n');for(const line of lines)if(line.includes('/usr/libexec/aresos-control/chrome/native_host.py'))process.kill(Number(line.trim().split(/\s+/)[0]),'SIGKILL');return;}

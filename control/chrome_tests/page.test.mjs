@@ -46,7 +46,7 @@ function fixture({relay=false}={}) {
   class HTMLFormElement extends HTMLElement {
     tagName='FORM'; method='post';action='/receive';valid=true;
     submit(){arrivals.push('native');}
-    requestSubmit(submitter){if(!this.valid)return;const event=new Event('submit',{submitter});if(originalDispatch.call(this,event))arrivals.push('event');}
+    requestSubmit(submitter){if(!this.valid)return;const event=new Event('submit',{submitter,isTrusted:true});if(originalDispatch.call(this,event))arrivals.push('event');}
   }
   const document=new EventTarget();document.getElementById=key=>document.labels?.[key];
   if(relay)document.createElement=()=>{const node=new HTMLElement();node.root=node;node.ownerDocument=document;node.isConnected=false;node.parentNode=null;return node;};
@@ -94,6 +94,15 @@ test('private options never run inherited getters, patched enumeration or array 
   const f=fixture({relay:true}),button=new f.HTMLElement();button.textContent='Ordinary control';button.tagName='BUTTON';f.arm(button,null);let received=0;button.addEventListener('click',()=>received++);
   vm.runInContext("globalThis.callbacks=0;Object.keys=()=>{callbacks++;throw 'page keys'};for(const key of ['bubbles','composed','get','set','request']){const description=Object.create(null);description.configurable=true;description.get=function(){callbacks++;throw 'page getter'};Object.defineProperty(Object.prototype,key,description);}Array.prototype[Symbol.iterator]=function(){callbacks++;throw 'page iterator'}",f.main);
   assert.equal(button.dispatchEvent(new f.Event('click')),true);assert.equal(received,1);assert.equal(vm.runInContext('callbacks',f.main),0);
+});
+
+test('cleanup preserves a site seal and reports a frozen wrapper without abandoning the other natives',()=>{
+  for(const frozen of [false,true]){
+    const f=fixture({relay:true});Object.defineProperty(f.HTMLElement.prototype,'click',{configurable:false,writable:!frozen});
+    assert.equal(f.cleanup(),!frozen);assert.equal(f.EventTarget.prototype.dispatchEvent,f.originalDispatch,'one frozen property cannot abandon restoration of other methods');
+    assert.equal(f.guard.dispose(),!frozen);
+    const button=new f.HTMLElement();let delivered=0;button.addEventListener('click',()=>delivered++);button.click();assert.equal(delivered,1,'a retained frozen wrapper has native behavior after deactivation');
+  }
 });
 
 test('native behavior outside the own composed document includes detached and inert targets',()=>{
@@ -217,6 +226,22 @@ test('group2 owner default after event dispatch is exact-form exact-submitter an
   form.requestSubmit();assert.equal(f.arrivals.length,1,'the task mark grants exactly one submission');
   f.originalDispatch.call(field,new f.Event('keyup',{key:'Enter',isTrusted:true}));await new Promise(resolve=>setImmediate(resolve));
   form.submit();assert.equal(f.arrivals.length,1,'a later task cannot retain ownership');
+});
+
+test('owner marks cannot make cancelled defaults, keyup or a timer native submit count as owner input',async()=>{
+  for(const mode of ['cancelled','keyup','native-timer']){
+    const f=fixture(),form=new f.HTMLFormElement(),field=new f.HTMLInputElement();field.form=form;f.arm(field,null);await f.api.finish('epoch');
+    if(mode==='cancelled')field.addEventListener('keydown',event=>event.preventDefault());
+    f.originalDispatch.call(field,new f.Event(mode==='keyup'?'keyup':'keydown',{key:'Enter',isTrusted:true}));
+    if(mode==='native-timer')form.submit();else form.requestSubmit();
+    assert.equal(f.arrivals.length,0,mode+' cannot borrow the pending private task mark');assert.ok(f.reports.length);
+  }
+});
+
+test('owner defaults require an enabled submitter or an actual one-field implicit submission',async()=>{
+  const f=fixture(),form=new f.HTMLFormElement(),field=new f.HTMLInputElement(),other=new f.HTMLInputElement();field.form=form;other.form=form;form.elements=[field,other];f.arm(field,null);await f.api.finish('epoch');
+  f.originalDispatch.call(field,new f.Event('keydown',{key:'Enter',isTrusted:true}));form.requestSubmit();assert.equal(f.arrivals.length,0,'Enter cannot submit a multi-field form without a default button');
+  form.elements=[field];f.originalDispatch.call(field,new f.Event('keydown',{key:'Enter',isTrusted:true}));form.requestSubmit();assert.equal(f.arrivals.length,1,'the same one-field implicit submission is its native default');
 });
 
 test('group7 preparation cannot grant a page a submission before trusted dispatch',()=>{

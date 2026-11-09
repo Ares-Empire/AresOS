@@ -5,7 +5,7 @@ import {verdicts} from './verdicts.mjs';
 import {setTimeout as delay} from 'node:timers/promises';
 import {measureCompatibility,compareCompatibility} from './compatibility.mjs';
 
-export async function matrices({call,read,nav,target,counts,eventually,tab,fixture,admin,rpc,caller,ownerNavigate,ownerKey,ownerHistory,ownerBookmark,lifecycle,restoreControl,stopClick,baseline,isolationAfter}) {
+export async function matrices({call,read,nav,target,counts,eventually,tab,fixture,admin,rpc,caller,ownerNavigate,ownerKey,ownerDismiss,ownerHistory,ownerBookmark,lifecycle,restoreControl,stopClick,baseline,isolationAfter}) {
   const results=[];let trustOperation;
   async function check(name,fn) {
     try {await fn();results.push({name,passed:true});console.log(name,'PASS');}
@@ -36,10 +36,31 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
   }
   async function setup(parameters) {await nav('matrix&'+new URLSearchParams(parameters));}
   const words=JSON.parse(fs.readFileSync('control/chrome/extension/policy.js','utf8').match(/\{[\s\S]*\}/)[0]).words;
+  await check('GROUP 2 first-script natives are guarded in pages frames and popups',async()=>{
+    for(const kind of ['top','same','cross']){
+      const id='first-'+kind;await nav(kind==='top'?'preload-origin&id='+id:'preload-frame&id='+id+(kind==='cross'?'&cross=1':''));
+      await approval(await call('click',await target('Continue')),id);
+    }
+    await nav('preload-popup');await call('click',await target('Open window'));
+    const popup=await eventually(async()=>{const tabs=await call('tabs',{limit:10});return tabs.items.find(item=>item.url?.includes('id=first-popup'));},'guarded popup tab');assert.equal(popup.controlled,true);
+    const row=await eventually(async()=>{const page=await call('read',{tab:popup.tab});return page.untrusted_content.tree.split('\n').filter(line=>line.startsWith('{')).map(JSON.parse).find(row=>row.expected.name==='Continue');},'first-script popup target');
+    await approval(await call('click',{reference:row.reference,expected:row.expected}),'first-popup');await call('close_tab',{tab:popup.tab});
+  });
   await check('GROUP 7 native compatibility inside and outside Claude tabs',async()=>{
     await nav('native-compat&id=controlled');
     const controlled=await measureCompatibility({id:'controlled',fixture,eventually,start:async()=>call('click',await target('Continue'))});
     fs.writeFileSync('/out/native-controlled.json',JSON.stringify(controlled,null,2));compareCompatibility(controlled,baseline.native);
+  });
+  await check('GROUP 8 Stop under a native modal revokes input before deferred cleanup',async()=>{
+    await nav('stop-modal&id=stop-modal');const prepared=await call('click',await target('Send'));
+    const opened=await call('click',await target('Continue'));assert.ok(opened.untrusted_content.dialog);assert.equal(counts('stop-modal'),0);
+    const started=Date.now();await lifecycle({fixture:'stop'});assert.ok(Date.now()-started<3000,'Stop must return while the modal still blocks script cleanup');
+    const stopped=JSON.parse(fs.readFileSync('/out/stop-result.json'));assert.equal(stopped.stopped,true);assert.ok(stopped.cleanup_pending);
+    assert.equal((await call('tabs')).items.find(item=>item.tab===tab).controlled,false);
+    const denied=await rpc('submit',prepared.approval);assert.ok(!denied.ok||denied.data.operation.state==='failed');assert.equal(counts('stop-modal'),0);
+    ownerDismiss();await eventually(async()=>!(await call('tabs')).items.find(item=>item.tab===tab).cleanup_pending,'modal cleanup finishes after native owner dismissal');assert.equal(counts('stop-modal'),0,'Stop and dismissal never send the prepared work');
+    await fixture.mutate('stop-modal','owner-native-click');await eventually(()=>counts('stop-modal')===1,'a cached page click works natively after release');
+    await call('take_tab',{tab});
   });
   await check('GROUP 8 taken tabs preserve reads and guard the first input reload',async()=>{
     for(const mode of ['clean','dirty','media']){
@@ -54,6 +75,7 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
     }
     await call('release_tab',{tab});await ownerNavigate('http://fixture.test:8765/?case=take-post');ownerKey();
     await eventually(()=>counts('taken-post')===1,'one native POST loaded the document');await call('take_tab',{tab});const denied=await rpc('click',await target('Continue'));assert.equal(denied.ok,false);assert.match(denied.error.message,/form submission|request method/);await delay(150);assert.equal(counts('taken-post'),1,'refusal must not resubmit POST');
+    await call('navigate',{tab,url:'http://fixture.test:8765/?case=features&id=post-history'});await eventually(async()=>String((await call('read',{tab})).untrusted_content.url).includes('id=post-history'),'GET after POST');assert.equal((await rpc('navigate',{tab,direction:'back'})).ok,false);assert.equal(counts('taken-post'),1,'history must not resubmit POST');
   });
   await check('GROUP 1 submit compose deletion and free-input matrix',async()=>{
     for(const tag of ['default','submit','override','external','empty','invalid','clobbered'])for(const key of ['click','Enter','Space','field']){
@@ -256,6 +278,8 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
     for(const file of ['browser-boundary.jsonl','tool.jsonl','service.txt'])assert.doesNotMatch(fs.readFileSync('/out/'+file,'utf8'),/SENTINEL_PRIVATE_PASSWORD_20/,file);
   });
   await check('GROUP 6 schemes links and forward routes',async()=>{
+    await nav('features&id=repeat-reload');let previous=(await target('First')).reference.document;
+    for(let index=0;index<2;index++){await call('navigate',{tab,direction:'reload'});await eventually(async()=>{const fresh=(await target('First')).reference.document;if(fresh===previous)return false;previous=fresh;return true;},'fresh guarded GET reload');}
     for(const method of ['get','post'])for(const override of [false,true]){
       const id='excluded-form-'+method+'-'+override;
       await nav('excluded-form&id='+id+'&method='+method+'&override='+override);

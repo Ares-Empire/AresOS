@@ -1,5 +1,6 @@
 // MAIN, document_start. Wrapper-local recursion tracking grants no authority.
-// With no isolated listener a wrapper holds. All native effects run in ISOLATED.
+// Private ISOLATED decisions permit native clicks/events; missing decisions hold.
+// Forms and resumptions stay in ISOLATED. No page can reach the private carrier.
 (() => {
   'use strict';
   const dispatch=EventTarget.prototype.dispatchEvent, Report=CustomEvent;
@@ -9,6 +10,7 @@
   const property=(object,key,value,enumerable=false)=>{const description=create(null);description.value=value;description.enumerable=enumerable;define(object,key,description);};
   const descriptor=Object.getOwnPropertyDescriptor;
   const ownDocument=document,root=globalThis.Node?.prototype.getRootNode;
+  const nodeType=globalThis.Node?descriptor(Node.prototype,'nodeType')?.get:null;
   const saved={submit:HTMLFormElement.prototype.submit,requestSubmit:HTMLFormElement.prototype.requestSubmit,click:HTMLElement.prototype.click,dispatchEvent:dispatch};
   const nativeString=Function.prototype.toString,nativeStrings=new WeakMap(),getString=WeakMap.prototype.get,setString=WeakMap.prototype.set;
   const connected=target=>{try{return root?invoke(root,target,[options({composed:true})])===ownDocument:target.getRootNode({composed:true})===ownDocument;}catch{return false;}};
@@ -83,6 +85,7 @@
   install(HTMLElement.prototype,'click',function() { if(!enabled||!connected(this))return invoke(saved.click,this,[]);report(this,{kind:'click'}); });
   install(EventTarget.prototype,'dispatchEvent',function(event) {
     if(!enabled||!connected(this))return invoke(saved.dispatchEvent,this,[event]);
+    if(nodeType&&invoke(nodeType,this,[])===10)return invoke(saved.dispatchEvent,this,[event]);
     // These event types have no asking native activation. Their handlers still
     // enter the click/submit wrappers, while object identity and custom data stay native.
     if(getters.type){const kind=read(event,'type');if(kind!=='click'&&kind!=='submit')return invoke(saved.dispatchEvent,this,[event]);}
@@ -102,8 +105,8 @@
   });
   // Runtime.evaluate retains this return value as a private remote handle. It is
   // never a global or a DOM capability the page can invoke to end its hold.
-  function cleanup(){closed=true;enabled=false;for(let index=0;index<installed.length;index++){const item=installed[index],current=descriptor(item.prototype,item.name);if(current&&descriptor(current,'value')&&current.value===item.value)define(item.prototype,item.name,item.previous);}if(privateControl)invoke(removeListener,privateControl,['aresos-relay-cleanup',cleanup]);}
-  if(privateControl)privateControl.addEventListener('aresos-relay-cleanup',cleanup);
+  function cleanup(){closed=true;enabled=false;let restored=true;for(let index=0;index<installed.length;index++){const item=installed[index],current=descriptor(item.prototype,item.name);if(current&&descriptor(current,'value')&&current.value===item.value){try{define(item.prototype,item.name,item.previous);}catch{try{define(item.prototype,item.name,options({value:item.previous.value}));}catch{restored=false;}}}}return restored;}
+  if(privateControl)privateControl.addEventListener('aresos-relay-cleanup',event=>{if(cleanup())event.preventDefault();});
   if(privateRelay)return {activate,cleanup,relay:privateRelay};
   activate();return cleanup;
 })();

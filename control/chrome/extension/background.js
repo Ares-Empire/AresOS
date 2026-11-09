@@ -13,7 +13,8 @@ const dialogInputs=new WeakMap();
 const preloadTargets=new Map();
 const releasing=new Map(),admissions=new Map();
 let stopGeneration=0;
-const documentMethods=new Map();
+const documentMethods=new Map(),currentDocuments=new Map();
+function navigationRecord(map,key,value){map.delete(key);map.set(key,value);if(map.size>20000)map.delete(map.keys().next().value);}
 const targetKey=source=>JSON.stringify([source.tabId,source.sessionId||null]);
 let preloadBundle;
 const bundle=()=>preloadBundle??=Promise.all(['guard.js','reader.js','page.js'].map(async file=>(await fetch(chrome.runtime.getURL(file))).text()));
@@ -22,6 +23,8 @@ async function preloadCommand(source,method,parameters={}){
   return audit(await chrome.debugger.sendCommand(source,method,parameters));
 }
 function assertTarget(state){if(preloadTargets.get(targetKey(state.source))!==state||controlled.get(state.tab)?.epoch!==state.epoch)throw Error('stale_reference: control ended during document setup');}
+function contextChanged(state){for(const done of state.cleanupWaiters||[])done();state.cleanupWaiters?.clear();}
+async function contextGone(state,identity){while([...state.contexts.values()].some(context=>context.uniqueId===identity)){await new Promise(resolve=>{state.cleanupWaiters??=new Set();state.cleanupWaiters.add(resolve);});}}
 async function targetCommand(state,method,parameters={}){assertTarget(state);const value=await preloadCommand(state.source,method,parameters);assertTarget(state);return value;}
 async function prepareTarget(source,tab=source.tabId){
   const state={source,tab,epoch:controlled.get(tab)?.epoch,contexts:new Map(),scripts:new Map(),documents:new Map(),installing:new Set()};preloadTargets.set(targetKey(source),state);
@@ -59,9 +62,9 @@ async function preloadEvent(source,method,params){
   const state=preloadTargets.get(targetKey(source));if(!state)return;
   if(method==='Target.detachedFromTarget'){const childKey=targetKey({...source,sessionId:params.sessionId}),child=preloadTargets.get(childKey);preloadTargets.delete(childKey);if(child&&child.tab!==state.tab&&controlled.has(child.tab))await release(child.tab);return;}
   if(method==='Runtime.executionContextCreated'){state.contexts.set(params.context.id,params.context);return;}
-  if(method==='Runtime.executionContextDestroyed'){state.contexts.delete(params.executionContextId);return;}
-  if(method==='Runtime.executionContextsCleared'){state.contexts.clear();state.scripts.clear();state.documents.clear();return;}
-  if(method==='Debugger.scriptParsed'){state.scripts.set(params.scriptId,params.executionContextId);return;}
+  if(method==='Runtime.executionContextDestroyed'){const old=state.contexts.get(params.executionContextId);state.contexts.delete(params.executionContextId);for(const [script,context]of state.scripts)if(context===params.executionContextId)state.scripts.delete(script);for(const [key,document]of state.documents)if(document.main===old?.uniqueId)state.documents.delete(key);else if(document.isolated===old?.uniqueId)document.ready=false;contextChanged(state);return;}
+  if(method==='Runtime.executionContextsCleared'){state.contexts.clear();state.scripts.clear();state.documents.clear();contextChanged(state);return;}
+  if(method==='Debugger.scriptParsed'){if(params.url===chrome.runtime.getURL('context.js'))state.scripts.set(params.scriptId,params.executionContextId);return;}
   if(method!=='Debugger.paused')return;
   let complete;const installing=new Promise(resolve=>{complete=resolve;});state.installing??=new Set();state.installing.add(installing);
   try{
@@ -131,6 +134,7 @@ function safeDestination(frame,command) {
   const submitting=target.submit&&(['click','check','select'].includes(input.verb)||input.verb==='press'&&['Enter','Space',' '].includes(key))||input.verb==='press'&&key==='Enter'&&target.editable;
   if(frame.form&&(command.kind||command.name==='resume'||submitting))safeURL(frame.form.action);
 }
+function rememberGet(tab,loaderId){const current=controlled.get(tab);if(!current||!loaderId)return;current.getLoaders??=new Set();current.getLoaders.add(loaderId);while(current.getLoaders.size>64)current.getLoaders.delete(current.getLoaders.values().next().value);}
 async function cdp(tab, method, parameters = {}) {
   if (!POLICY.cdpMethods.includes(method)) throw Error('permission_denied: DevTools method not allowed');
   if(method.startsWith('Input.')&&dialogs.has(tab))throw Error('unknown: a page dialog interrupted the input sequence; inspect the dialog and operation status, never retry');
@@ -286,13 +290,15 @@ async function reloadIdentity(tab){
   const tree=await cdp(tab,'Page.getFrameTree'),frames=await chrome.webNavigation.getAllFrames({tabId:tab})||[];
   const top=frames.find(frame=>frame.frameId===0);
   if(!top||!tree.frameTree?.frame.loaderId||tree.frameTree.frame.url!==top.url)throw Error('stale_reference: navigation changed; read again');
-  for(const frame of frames){if(frame.url==='about:blank')continue;const method=documentMethods.get(JSON.stringify([tab,frame.frameId]));if(method?.document!==frame.documentId||method.method!=='GET')throw Error('refused: this document was loaded by a form submission or its request method is unknown; open its address fresh in a Claude tab');}
-  return {loaderId:tree.frameTree.frame.loaderId,frames:frames.map(frame=>[frame.frameId,frame.documentId,frame.url])};
+  for(const frame of frames){if(frame.url==='about:blank')continue;const method=documentMethods.get(JSON.stringify([tab,frame.frameId]));if(method?.document===frame.documentId&&method.method!=='GET')throw Error('refused: this document was loaded by a form submission; open its address fresh in a Claude tab');if(frame.frameId===0&&controlled.get(tab)?.getLoaders?.has(tree.frameTree.frame.loaderId))continue;if(method?.document!==frame.documentId||method.method!=='GET')throw Error('refused: this document was loaded by a form submission or its request method is unknown; open its address fresh in a Claude tab');}
+  rememberGet(tab,tree.frameTree.frame.loaderId);
+  return {loaderId:tree.frameTree.frame.loaderId,frameId:tree.frameTree.frame.id||null,frames:frames.map(frame=>[frame.frameId,frame.documentId,frame.url])};
 }
 async function reloadChecked(tab,initial){
   const current=await reloadIdentity(tab);
   if(initial&&stable(current)!==stable(initial))throw Error('stale_reference: the document changed before its guarded reload; read again');
-  await cdp(tab,'Page.reload',{loaderId:current.loaderId});
+  const owner=controlled.get(tab),pending={frameId:current.frameId,document:current.frames.find(frame=>frame[0]===0)?.[1]};owner.getReload=pending;
+  try{await cdp(tab,'Page.reload',{loaderId:current.loaderId});}catch(error){if(owner.getReload===pending)delete owner.getReload;throw error;}
 }
 async function release(tab) {
   if(releasing.has(tab))return boundedRelease(tab,releasing.get(tab).promise);
@@ -310,8 +316,11 @@ async function release(tab) {
     await Promise.all(children.map(async child=>{await release(child);if(releasing.has(child))await releasing.get(child).promise;}));
     await Promise.allSettled([...original.settingUp||[],...[...preloadTargets.values()].filter(state=>state.tab===tab).flatMap(state=>[...state.installing||[]])]);
     for(const [key,state]of preloadTargets){if(state.tab!==tab)continue;
-      for(const value of state.documents.values())try{await preloadCommand(state.source,'Runtime.callFunctionOn',{objectId:value.cleanup,functionDeclaration:'function(){return this.cleanup();}',returnByValue:true});}catch{}
-      for(const context of state.contexts.values())if(context.origin===chrome.runtime.getURL('').replace(/\/$/,''))try{await preloadCommand(state.source,'Runtime.evaluate',{uniqueContextId:context.uniqueId,expression:'globalThis[Symbol.for("aresos.chrome.guard.v2")]?.dispose()',disableBreaks:true});}catch{}
+      const blocked=new Map();
+      for(const value of state.documents.values())try{const result=await preloadCommand(state.source,'Runtime.callFunctionOn',{objectId:value.cleanup,functionDeclaration:'function(){return this.cleanup();}',returnByValue:true});if(result.exceptionDetails||result.result?.value!==true)blocked.set(value.main,value.document);}catch{blocked.set(value.main,value.document);}
+      for(const context of state.contexts.values())if(context.origin===chrome.runtime.getURL('').replace(/\/$/,''))try{const result=await preloadCommand(state.source,'Runtime.evaluate',{uniqueContextId:context.uniqueId,expression:'globalThis[Symbol.for("aresos.chrome.guard.v2")]?.dispose() ?? true',disableBreaks:true,returnByValue:true});if(result.exceptionDetails||result.result?.value!==true)blocked.set(context.uniqueId,null);}catch{blocked.set(context.uniqueId,null);}
+      if(blocked.size)try{for(const frame of await chrome.webNavigation.getAllFrames({tabId:tab})||[])try{const result=await content(tab,frame.frameId,'clear');if(result.restored===true)for(const [identity,document]of blocked)if(document===result.document)blocked.delete(identity);}catch{}}catch{}
+      await Promise.all([...blocked.keys()].map(identity=>contextGone(state,identity)));
       try{await preloadCommand(state.source,'Debugger.disable');}catch{}
       preloadTargets.delete(key);
     }
@@ -326,7 +335,7 @@ async function release(tab) {
   record.promise.catch(error=>port?.postMessage({event:'reader_error',error:'Private cleanup remains pending: '+String(error),tab}));
   return boundedRelease(tab,record.promise);
 }
-async function boundedRelease(tab,promise){return Promise.race([promise,new Promise(resolve=>setTimeout(()=>resolve({stopped:tab,cleanup_pending:true,message:'Input authority ended. The tab stays in the Claude group until its blocked page can restore native behavior; answer its dialog yourself.'}),1000))]);}
+async function boundedRelease(tab,promise){return Promise.race([promise,new Promise(resolve=>setTimeout(()=>resolve({stopped:tab,cleanup_pending:true,message:'Stopped. Finish returning this tab by closing its dialog or navigating away.'}),1000))]);}
 async function stop() { stopGeneration++;await Promise.all([...controlled.keys()].map(tab=>release(tab)));await badge();return {stopped:true,cleanup_pending:releasing.size+admissions.size}; }
 async function facts(tab, reference) {
   const current = await requireTab(tab);
@@ -491,13 +500,13 @@ async function dispatch(command) {
   }
   if (command.name === 'close_tab') { await release(tab); await chrome.tabs.remove(tab); return {closed:tab}; }
   if (command.name === 'navigate') {
-    if (command.url) { safeURL(command.url); await cdp(tab,'Page.navigate',{url:command.url}); }
+    if (command.url) { safeURL(command.url);const navigated=await cdp(tab,'Page.navigate',{url:command.url});rememberGet(tab,navigated?.loaderId); }
     else if (command.direction === 'reload') await reloadChecked(tab);
     else {
       const history = await cdp(tab,'Page.getNavigationHistory');
       const entry = history.entries[history.currentIndex + (command.direction === 'back' ? -1:1)];
       if (!entry) throw Error('refused: no history entry in that direction');
-      safeURL(entry.url); await cdp(tab,'Page.navigateToHistoryEntry',{entryId:entry.id});
+      safeURL(entry.url);if(entry.transitionType==='form_submit')throw Error('refused: a form-loaded history entry may resubmit; open its address fresh in a Claude tab');await cdp(tab,'Page.navigateToHistoryEntry',{entryId:entry.id});
     }
     return {navigated:true};
   }
@@ -604,17 +613,33 @@ chrome.tabs.onUpdated.addListener(async(tab,change)=>{
   if(current.groupId!==groupId){release(tab);return;}
   if(change.url)try{safeURL(current.url);}catch{release(tab);}
 });
-chrome.tabs.onRemoved.addListener(tab=>{ if (controlled.has(tab)) release(tab); });
+chrome.tabs.onRemoved.addListener(tab=>{if(controlled.has(tab))release(tab);for(const map of [documentMethods,currentDocuments])for(const key of map.keys())if(key.startsWith('['+tab+','))map.delete(key);});
 // Passive, exact-document method metadata only: no headers, bodies or interception.
 chrome.webRequest.onCompleted.addListener(({tabId,frameId,type,method,documentId})=>{
-  if(tabId>=0&&documentId&&['main_frame','sub_frame'].includes(type))documentMethods.set(JSON.stringify([tabId,frameId]),{document:documentId,method});
+  const key=JSON.stringify([tabId,frameId]);
+  if(tabId>=0&&documentId&&currentDocuments.get(key)===documentId&&['main_frame','sub_frame'].includes(type))navigationRecord(documentMethods,key,{document:documentId,method});
 },{urls:['http://*/*','https://*/*'],types:['main_frame','sub_frame']});
-chrome.webNavigation.onCommitted.addListener(({tabId,frameId,documentId})=>{
-  const key=JSON.stringify([tabId,frameId]);if(documentMethods.get(key)?.document!==documentId)documentMethods.delete(key);
+chrome.webNavigation.onCommitted.addListener(({tabId,frameId,documentId,transitionType})=>{
+  const key=JSON.stringify([tabId,frameId]);
+  const previous=currentDocuments.get(key),owner=controlled.get(tabId),reload=frameId===0?owner?.getReload:null;
+  navigationRecord(currentDocuments,key,documentId);
+  if(documentMethods.get(key)?.document!==documentId){
+    documentMethods.delete(key);
+    // Chrome omits the new navigation document ID from some webRequest events.
+    // These top-level transitions originate GET requests; form_submit/reload,
+    // restoration and ambiguous subframe transitions never get this fallback.
+    if(frameId===0&&(['typed','link'].includes(transitionType)||transitionType==='reload'&&reload?.document===previous))navigationRecord(documentMethods,key,{document:documentId,method:'GET'});
+  }
+  if(frameId===0&&owner)delete owner.getReload;
+  if(recording)audit({navigation_method:{tab:tabId,frame:frameId,document:documentId,transition:transitionType,method:documentMethods.get(key)?.method||'unknown'}});
 });
 chrome.debugger.onEvent.addListener(async(source,method,params)=>{
   if(method.startsWith('Runtime.')||method.startsWith('Debugger.')||method.startsWith('Target.')){await preloadEvent(source,method,params);return;}
   if(source.sessionId){const state=preloadTargets.get(targetKey(source));if(!state)return;source={tabId:state.tab};}
+  if(method==='Page.frameStartedNavigating'){
+    const owner=controlled.get(source.tabId),pending=owner?.getReload;
+    if(pending&&params.frameId===pending.frameId){if(['reload','reloadBypassingCache'].includes(params.navigationType))rememberGet(source.tabId,params.loaderId);else delete owner.getReload;}
+  }
   if (method === 'Page.javascriptDialogOpening') {
     const tab=source.tabId;
     try{safeURL(params.url);}catch{

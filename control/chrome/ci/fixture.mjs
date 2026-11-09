@@ -35,8 +35,18 @@ export async function fixtures(options={}) {
     // not exhaust Chrome's six HTTP/1.1 connections and hide later receivers.
     if(!['draft-inner','password-inner'].includes(kind))for(const [id,stream]of streams){stream.end();streams.delete(id);}
     let body,script='';
-    if(kind==='native-compat'){
-      body='<button type="button" id="continue">Continue</button>';script=compatibilityScript(url.searchParams.get('id'));
+    if(kind==='stop-modal'){
+      body='<form action="/receive?case=stop-modal" method="post" target="sink"><input name="draft" value="Saved"><button type="button" id="send">Send</button></form><button type="button" id="continue">Continue</button><iframe name="sink" hidden></iframe>';
+      script="const cachedClick=HTMLElement.prototype.click;document.querySelector('#send').onclick=()=>fetch('/receive?case=stop-modal',{method:'POST'});document.querySelector('#continue').onclick=()=>confirm('Continue browsing?');globalThis.afterControlProbe=()=>cachedClick.call(document.querySelector('#send'));";
+    }else if(kind==='preload-origin'){
+      const id=url.searchParams.get('id');body='<form method="post" action="/receive?case='+id+'" target="sink"><input name="draft" value="Saved"><button type="button">Continue</button></form><iframe name="sink" hidden></iframe>';
+      script="const firstScriptSubmit=HTMLFormElement.prototype.submit;document.querySelector('button').onclick=()=>firstScriptSubmit.call(document.querySelector('form'));";
+    }else if(kind==='preload-frame'){
+      const id=url.searchParams.get('id'),origin=url.searchParams.get('cross')==='1'?'http://cross.test:8766':'';body='<iframe width="800" height="300" src="'+origin+'/?case=preload-origin&id='+id+'"></iframe>';
+    }else if(kind==='preload-popup'){
+      body='<button type="button">Open window</button>';script="document.querySelector('button').onclick=()=>window.open('http://popup.test:8766/?case=preload-origin&id=first-popup','_blank');";
+    }else if(kind==='native-compat'){
+      body='<button type="button" id="continue" style="position:fixed;inset:0;width:100vw;height:100vh;margin:0;z-index:99999">Continue</button>';script=compatibilityScript(url.searchParams.get('id'));
     }else if(kind==='take-post'){
       body='<form method="post" action="/post-document?case=taken-post"><button type="submit">Load POST</button></form>';
     }else if(kind==='take-state'){
@@ -200,13 +210,26 @@ export async function fixtures(options={}) {
         document.querySelector('button').onclick=()=>{
           for(const fn of functions){for(const key of Reflect.ownKeys(fn)){try{void fn[key];}catch{}}}
           for(const fn of functions)for(const arg of ['forged',{operation:'forged',generation:'forged',approved:true}]){try{fn(arg,arg,arg,arg,arg,true);}catch{}}
-          for(const type of ['aresos-reader-identity','aresos-page-step','aresos-dialog-origin','aresos-watch-root','message','aresos-page-call-v2']){
+          for(const type of ['aresos-reader-identity','aresos-page-step','aresos-dialog-origin','aresos-watch-root','message','aresos-page-call-v2','aresos-relay-meta','aresos-relay-target','aresos-relay-deliver','aresos-relay-drop','aresos-relay-cleanup']){
             try{dispatch.call(form,new CustomEvent(type,{bubbles:true,cancelable:true,detail:{id:'e1',kind:'native_submit',operation:'forged',generation:'forged',approved:true}}));}catch{}
           }
           for(const [prototype,key] of [[HTMLFormElement.prototype,'submit'],[HTMLFormElement.prototype,'requestSubmit'],[HTMLElement.prototype,'click'],[EventTarget.prototype,'dispatchEvent']])try{Object.defineProperty(prototype,key,{value:()=>{throw Error('page takeover')},configurable:true});}catch{}
           form.setAttribute('data-aresos-approved','true');globalThis.postMessage({command:'resume',operation:'forged',approved:true},'*');
           Object.prototype.approved=true;Array.prototype[Symbol.iterator]=function*(){yield 'forged';};
           submit.call(form);
+        };`;
+    } else if(kind==='relay-hostile'){
+      body='<button type="button" id="continue">Continue</button><button type="button" id="delete">Delete</button><form action="/receive?case=relay-hostile" method="post" target="sink"><input name="draft" value="Saved"></form><iframe name="sink" hidden></iframe>';
+      script=`const form=document.querySelector('form'),submit=HTMLFormElement.prototype.submit,dispatch=EventTarget.prototype.dispatchEvent;
+        document.querySelector('#continue').onclick=()=>{
+          const event=new MouseEvent('click',{cancelable:false,bubbles:true});dispatch.call(document.querySelector('#delete'),event);
+          const disclosed=event.target;
+          if(disclosed?.firstElementChild)try{dispatch.call(disclosed.firstElementChild,new Event('aresos-relay-cleanup'));}catch{}
+          let callbacks=0;const define=Object.defineProperty;
+          for(const key of ['bubbles','composed','get','set','request']){const descriptor=Object.create(null);descriptor.configurable=true;descriptor.get=()=>{callbacks++;throw 'Inherited page getter'};define(Object.prototype,key,descriptor);}
+          Object.keys=()=>{callbacks++;throw 'Page keys'};Array.prototype[Symbol.iterator]=()=>{callbacks++;throw 'Page iterator'};
+          submit.call(form);
+          fetch('/observe',{method:'POST',body:JSON.stringify({id:'relay-hostile',phase:'private-carrier-disclosure',disclosed:!!disclosed,callbacks})});
         };`;
     } else if(kind==='password') {
       body='<input type="password" aria-label="Secret" value="SENTINEL_PRIVATE_PASSWORD_20"><input aria-label="Current" autocomplete="current-password" value="SENTINEL_PRIVATE_PASSWORD_20"><input aria-label="Masked" style="-webkit-text-security:disc" value="SENTINEL_PRIVATE_PASSWORD_20"><input aria-label="Switch" type="password" value="SENTINEL_PRIVATE_PASSWORD_20"><button>Show</button>';
@@ -233,6 +256,7 @@ export async function fixtures(options={}) {
       if(change==='account'){const account=document.querySelector('[name=from],[aria-label="Signed in as"]');if('value'in account)account.value='Changed account';else account.textContent='Changed account';}
       if(change==='recipient')document.querySelector('[name=to]').value='other@example.invalid';
       if(change==='chat')document.querySelector('[aria-label="Chat name"]').textContent='Changed chat';
+      if(change==='owner-native-click')globalThis.afterControlProbe();
       fetch('/mutation-ack?nonce='+encodeURIComponent(mutation.nonce),{keepalive:true});
     };if(new URL(location.href).searchParams.has('mutation_nonce'))fetch('/mutation-ack?nonce='+encodeURIComponent(new URL(location.href).searchParams.get('mutation_nonce')),{keepalive:true});`;
     res.setHeader('Content-Type','text/html');res.setHeader('Cache-Control','no-store');res.end(page(body,script));

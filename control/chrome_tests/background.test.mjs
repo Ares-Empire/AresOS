@@ -58,6 +58,24 @@ test('a POST document arriving during reload inspection is never reloaded',async
   await assert.rejects(f.run("dispatch({name:'navigate',tab:7,direction:'reload'})"),/form submission/);assert.equal(f.run('reloads'),0);
 });
 
+test('a failed live native restoration stays grouped until that context is destroyed',async()=>{
+  const f=lifecycleFixture();f.run("globalThis.clockTimers=[];setTimeout=(callback,delay)=>{clockTimers.push({callback,delay});return 0};controlled.set(7,{epoch:'epoch'});preloadTargets.set('[7,null]',{source:{tabId:7},tab:7,contexts:new Map([[1,{id:1,uniqueId:'main',origin:'http://fixture.test/'}]]),scripts:new Map(),documents:new Map([['main',{main:'main',document:'document',cleanup:'restore'}]]),installing:new Set()});chrome.debugger.sendCommand=async(source,method)=>{lifecycleCalls.push(method);return {result:{value:false}}};");
+  const pending=f.run('release(7)');await spin(f,"preloadTargets.get('[7,null]').cleanupWaiters?.size===1");
+  assert.equal(f.run("lifecycleCalls.includes('ungroup')"),false);assert.equal(f.run('controlled.size'),0);
+  f.run('clockTimers.find(timer=>timer.delay===1000).callback()');assert.equal((await pending).cleanup_pending,true);
+  await f.run("preloadEvent({tabId:7},'Runtime.executionContextDestroyed',{executionContextId:1})");await spin(f,'releasing.size===0');assert.equal(f.run("lifecycleCalls.includes('ungroup')"),true);
+});
+
+test('only exact current-document completion or trusted address/link navigation establishes GET',()=>{
+  const f=fixture();f.run("chrome.runtime={getURL:path=>'chrome-extension://fixture/'+path};chrome.webRequest={onCompleted:{addListener:listener=>{globalThis.completed=listener}}};chrome.webNavigation={onCommitted:{addListener:listener=>{globalThis.committed=listener}}};");
+  const source=fs.readFileSync('control/chrome/extension/background.js','utf8');f.run(source.slice(source.indexOf('// Passive, exact-document'),source.indexOf('chrome.debugger.onEvent.addListener(')));
+  f.run("committed({tabId:7,frameId:0,documentId:'get',transitionType:'typed'});completed({tabId:7,frameId:0,type:'main_frame',documentId:'older',method:'POST'})");assert.equal(f.run("documentMethods.get('[7,0]').document"),'get');
+  f.run("committed({tabId:7,frameId:0,documentId:'post',transitionType:'form_submit'});completed({tabId:7,frameId:0,type:'main_frame',documentId:'get',method:'GET'})");assert.equal(f.run("documentMethods.has('[7,0]')"),false);
+  f.run("completed({tabId:7,frameId:0,type:'main_frame',documentId:'post',method:'POST'})");assert.equal(f.run("documentMethods.get('[7,0]').method"),'POST');
+  f.run("committed({tabId:7,frameId:0,documentId:'next',transitionType:'link'});completed({tabId:7,frameId:0,type:'main_frame',documentId:'post',method:'POST'})");assert.equal(f.run("documentMethods.get('[7,0]').document"),'next');
+  f.run("committed({tabId:7,frameId:0,documentId:'keyword',transitionType:'keyword'})");assert.equal(f.run("documentMethods.has('[7,0]')"),false,'an address-bar search could itself use POST');
+});
+
 test('owner exclusions are mandatory and the private audit switch needs no page access',async()=>{
   const f=fixture();
   await assert.rejects(f.run("dispatch({name:'tabs'})"),/owner-only excluded-sites/);
@@ -82,7 +100,7 @@ test('startup evaluates only fixed bundles in authenticated private contexts bef
   const f=fixture();f.run("globalThis.startup=[];chrome.runtime={getURL:path=>'chrome-extension://fixture/'+path};chrome.debugger={sendCommand:async(source,method,parameters)=>{startup.push({source,method,parameters});if(method==='Debugger.setBreakpointByUrl')return {breakpointId:'inert-breakpoint'};if(method==='Runtime.evaluate')return parameters.returnByValue?{result:{value:'private-document'}}:{result:{objectId:'private-cleanup'}};if(method==='Runtime.callFunctionOn')return parameters.returnByValue?{result:{value:'private-document'}}:{result:{objectId:'relay'}};if(method==='DOM.describeNode')return {node:{backendNodeId:1}};if(method==='DOM.resolveNode')return {object:{objectId:'isolated-relay'}};return {};}};preloadBundle=Promise.resolve(['// guard fixture','// reader fixture','// wrapper fixture']);controlled.set(7,{epoch:'epoch'});");
   await f.run('prepareTarget({tabId:7})');
   for(const context of [{id:1,uniqueId:'main',origin:'http://fixture.test',auxData:{isDefault:true,frameId:'frame'}},{id:2,uniqueId:'isolated',origin:'chrome-extension://fixture',auxData:{isDefault:false,frameId:'frame'}}])await f.run(`preloadEvent({tabId:7},'Runtime.executionContextCreated',{context:${JSON.stringify(context)}})`);
-  await f.run("preloadEvent({tabId:7},'Debugger.scriptParsed',{scriptId:'bootstrap',executionContextId:2})");
+  await f.run("preloadEvent({tabId:7},'Debugger.scriptParsed',{scriptId:'bootstrap',executionContextId:2,url:'chrome-extension://fixture/context.js'})");
   await f.run("preloadEvent({tabId:7},'Debugger.paused',{hitBreakpoints:['inert-breakpoint'],callFrames:[{location:{scriptId:'bootstrap'}}]})");
   const commands=Array.from(f.run('startup'));
   const evaluated=commands.filter(value=>value.method==='Runtime.evaluate');
