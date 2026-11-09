@@ -2,7 +2,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 const page=(body,script='')=>`<!doctype html><meta charset="utf-8"><title>Synthetic fixture</title><style>body{font:16px sans-serif;margin:20px}button,input,textarea{margin:8px}</style>${body}<script>${script}</script>`;
 export async function fixtures() {
-  const arrivals=[];
+  const arrivals=[],streams=new Map();
   const server=http.createServer(async(req,res)=>{
     const url=new URL(req.url,'http://fixture.test:8765');
     if(url.pathname === '/update.xml'){
@@ -10,6 +10,7 @@ export async function fixtures() {
       res.setHeader('Content-Type','application/xml');res.end(`<?xml version="1.0"?><gupdate xmlns="http://www.google.com/update2/response" protocol="2.0"><app appid="${id}"><updatecheck codebase="http://127.0.0.1:8765/extension.crx" version="${version}"/></app></gupdate>`);return;
     }
     if(url.pathname === '/extension.crx'){res.end(fs.readFileSync('/workspace/.work/20-package/own-extension.crx'));return;}
+    if(url.pathname === '/events'){res.writeHead(200,{'Content-Type':'text/event-stream','Cache-Control':'no-cache'});res.write(': ready\n\n');streams.set(url.searchParams.get('id'),res);req.on('close',()=>streams.delete(url.searchParams.get('id')));return;}
     if(url.pathname === '/receive') {
       let body='';for await(const part of req)body+=part;
       const record={time:Date.now(),url:req.url,method:req.method,body,host:req.headers.host};arrivals.push(record);fs.appendFileSync('/out/receiver.jsonl',JSON.stringify(record)+'\n');
@@ -30,9 +31,29 @@ export async function fixtures() {
     } else if(kind==='owner-input') {
       body='<button id="continue" type="button">Continue</button><form id="owner" action="/receive?case=owner-input" method="post" target="sink"><input type="hidden" name="source" value="owner"><button type="submit">Submit by owner</button></form><form id="scheduled" action="/receive?case=scheduled-input" method="post" target="sink"><input type="hidden" name="source" value="scheduled"></form><iframe name="sink" hidden></iframe>';
       script="document.querySelector('#continue').onclick=()=>{fetch('/receive?case=owner-start',{method:'POST',body:'Claude input started'});setTimeout(()=>document.querySelector('#scheduled').submit(),300);};";
+    } else if(kind==='owner-task') {
+      const id=url.searchParams.get('id')||'owner-task',delay=Number(url.searchParams.get('delay')||100),busy=Number(url.searchParams.get('busy')||0);
+      body='<button type="button" id="continue">Continue</button><button type="button" id="owner">Owner input</button><form action="/receive?case='+id+'" method="post" target="sink"><input name="source" value="owner task"></form><iframe name="sink" hidden></iframe>';
+      script=`const form=document.querySelector('form');document.querySelector('#continue').onclick=()=>{fetch('/receive?case=task-start',{method:'POST',body:${JSON.stringify(id)}});const until=performance.now()+${busy};while(performance.now()<until){};};
+        document.querySelector('#owner').onkeydown=event=>{if(event.key==='Enter'){event.preventDefault();form.submit();if(event.isTrusted)setTimeout(()=>form.submit(),${delay});}};`;
     } else if(kind==='page-forgery') {
       body='<button type="button">Continue</button><form action="/receive?case=page-forgery" method="post" target="sink"><input type="hidden" name="source" value="page-forged-mark"></form><iframe name="sink" hidden></iframe>';
       script="document.querySelector('button').onclick=()=>{const api=globalThis[Symbol.for('aresos.chrome.page.v1')];for(const name of ['stop','arm','resume','drop']){try{api?.[name]?.('page-invented-epoch');}catch{}}document.querySelector('form').submit();};";
+    } else if(kind==='binding') {
+      const id=url.searchParams.get('id')||'binding',mode=url.searchParams.get('mode')||'form';
+      if(mode==='form')body='<form action="/receive?case='+id+'" method="post" target="sink"><input name="visible" aria-label="Visible" value="Original"><input type="hidden" name="hidden" value="Hidden original"><input type="password" aria-label="Private sign-in" value="SENTINEL_PRIVATE_PASSWORD_20"><button type="submit">Submit</button></form><iframe name="sink" hidden></iframe>';
+      else body='<div contenteditable="true" aria-label="Message">Existing sibling draft</div><section role="region" aria-label="Recipients"><input aria-label="Recipient" value="recipient@example.invalid"><button type="button">Send</button></section><p aria-label="Message preview">Original read-only preview</p>';
+      script=`if(${JSON.stringify(mode)}!=='form')document.querySelector('button').onclick=()=>fetch('/receive?case='+${JSON.stringify(id)},{method:'POST',body:document.querySelector('[contenteditable]').textContent+' / '+document.querySelector('[aria-label="Message preview"]').textContent});`;
+    } else if(kind==='page-dialog') {
+      const id=url.searchParams.get('id')||'dialog',text=url.searchParams.get('text')||'Delete this synthetic item?';
+      body='<div role="alertdialog" aria-modal="true"><p>'+text+'</p><button type="button">OK</button></div>';
+      script=`document.querySelector('button').onclick=()=>fetch('/receive?case='+${JSON.stringify(id)},{method:'POST',body:'confirmed'});`;
+    } else if(kind==='loop') {
+      const id=url.searchParams.get('id')||'loop';body='<button type="button">Continue</button><form action="/receive?case='+id+'" method="post" target="sink"><input name="source" value="same-kind-loop"></form><iframe name="sink" hidden></iframe>';
+      script="const form=document.querySelector('form');document.querySelector('button').onclick=()=>form.requestSubmit();form.onsubmit=()=>form.submit();";
+    } else if(kind==='upload') {
+      const id=url.searchParams.get('id')||'upload';body='<input type="file" aria-label="Upload"><textarea aria-label="Message">Existing draft independent of upload</textarea><button type="button">Send</button>';
+      script=`document.querySelector('[type=file]').onchange=async event=>fetch('/receive?case='+${JSON.stringify(id)},{method:'POST',body:await event.target.files[0].text()});document.querySelector('button').onclick=()=>fetch('/receive?case=after-upload',{method:'POST',body:document.querySelector('textarea').value});`;
     } else if(kind==='password-matrix') {
       body='<button type="button">Show</button><div id="open"></div><div id="closed"></div><iframe src="http://second.test:8766/?case=password-inner"></iframe>';
       script=`const markup='<input type="password" aria-label="Type password" value="SENTINEL_PRIVATE_PASSWORD_20"><input autocomplete="current-password" aria-label="Current password" value="SENTINEL_PRIVATE_PASSWORD_20"><input autocomplete="new-password" aria-label="New password" value="SENTINEL_PRIVATE_PASSWORD_20"><input autocomplete="one-time-code" aria-label="Code" value="SENTINEL_PRIVATE_PASSWORD_20"><input style="-webkit-text-security:disc" aria-label="Masked password" value="SENTINEL_PRIVATE_PASSWORD_20"><input aria-label="Late password" value="SENTINEL_PRIVATE_PASSWORD_20">';
@@ -106,10 +127,28 @@ export async function fixtures() {
       body='<button aria-label="">●</button><textarea aria-label="Autosave"></textarea>';
       script="document.querySelector('button').onclick=()=>fetch('/receive?case=residual-click',{method:'POST',body:'ordinary click'});document.querySelector('textarea').oninput=e=>fetch('/receive?case=residual-autosave',{method:'POST',body:e.target.value});";
     } else {res.statusCode=404;res.end('Unknown synthetic fixture');return;}
+    const mutationId=url.searchParams.get('id');
+    if(mutationId)script+=`;new EventSource('/events?id='+${JSON.stringify(mutationId)}).onmessage=event=>{
+      const change=JSON.parse(event.data).change,form=document.querySelector('form'),button=document.querySelector('button');
+      if(change==='label')button.textContent='Changed label';
+      if(change==='element')button.replaceWith(button.cloneNode(true));
+      if(change==='visible')document.querySelector('[name=visible]').value='Changed visible';
+      if(change==='hidden')document.querySelector('[name=hidden]').value='Changed hidden';
+      if(change==='action')form.action='/receive?case=changed-destination';
+      if(change==='method')form.method='get';
+      if(change==='encoding')form.enctype='text/plain';
+      if(change==='target')form.target='_self';
+      if(change==='text')document.querySelector('[contenteditable],textarea').textContent='Changed draft';
+      if(change==='preview')document.querySelector('[aria-label="Message preview"]').textContent='Changed read-only preview';
+      if(change==='dialog')document.querySelector('[role=alertdialog] p').textContent='Delete another item?';
+      if(change==='document')location.href=location.href+'&generation=changed';
+      if(change==='account'){const account=document.querySelector('[name=from],[aria-label="Signed in as"]');if('value'in account)account.value='Changed account';else account.textContent='Changed account';}
+      if(change==='recipient')document.querySelector('[name=to]').value='other@example.invalid';
+    };`;
     res.setHeader('Content-Type','text/html');res.end(page(body,script));
   });
   await new Promise(resolve=>server.listen(8765,'0.0.0.0',resolve));
   const second=http.createServer(server.listeners('request')[0]);
   await new Promise(resolve=>second.listen(8766,'0.0.0.0',resolve));
-  return {arrivals,close:()=>{server.close();second.close();}};
+  return {arrivals,mutate:(id,change)=>{const stream=streams.get(id);if(!stream)throw Error('Mutation fixture stream is not connected: '+id);stream.write('data: '+JSON.stringify({change})+'\n\n');},close:()=>{for(const stream of streams.values())stream.end();server.close();second.close();}};
 }

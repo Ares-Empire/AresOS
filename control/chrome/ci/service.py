@@ -18,9 +18,27 @@ build=engine.adapters['chrome'].qualification.build
 # This store is disposable test input. No qualification pass is shipped by this bootstrap.
 record={'format':1,'entries':[{'build':build,'version':version,'channel':'stable','run':'synthetic-fixture-setup',
                               'core':dict.fromkeys(CORE_GROUPS,True),'adapters':dict.fromkeys(HOSTS,True)}]}
-engine.store.write({'chrome:qualification':record},'chrome_test_setup','Synthetic qualification input for fixture tests')
+if not engine.store.get('chrome:qualification'):
+    engine.store.write({'chrome:qualification':record},'chrome_test_setup','Synthetic qualification input for fixture tests')
 engine.close()
 daemon=Daemon(config)
+Path('/run/aresos-tools/fixture-service.pid').write_text(str(os.getpid()))
+def checkpoint(point):
+    cut=Path('/run/aresos-tools/fixture-cut.json')
+    if cut.exists() and json.loads(cut.read_text()).get('point')==point:
+        Path('/out/checkpoint-ready.json').write_text(json.dumps({'point':point}))
+        import time
+        release=Path('/out/checkpoint-release')
+        while not release.exists():time.sleep(.005)
+        release.unlink();cut.unlink(missing_ok=True)
+daemon.engine.store.checkpoint=checkpoint
+original_request=daemon.engine.request
+def request(value,admin=False):
+    popup=Path('/run/aresos-tools/fixture-popup')
+    if popup.exists():
+        popup.unlink();daemon.engine.adapters['chrome'].bridge.call('stop_popup')
+    return original_request(value,admin)
+daemon.engine.request=request
 daemon.engine.adapters['chrome'].refresh_qualification=False
 bridge=daemon.engine.adapters['chrome'].bridge
 original_event=bridge.on_event

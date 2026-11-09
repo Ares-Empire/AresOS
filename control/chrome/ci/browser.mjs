@@ -12,13 +12,14 @@ const args=[`--user-data-dir=${profile}`,'--no-first-run','--no-default-browser-
 assert.ok(!args.some(arg=>arg==='--no-sandbox'||arg.startsWith('--remote-debugging')));
 fs.writeFileSync('/out/launch.json',JSON.stringify(args));
 const descriptor=fs.openSync('/out/chrome.txt','a');
-const chrome=spawn('qualification-chrome',args,{stdio:['ignore',descriptor,descriptor]});
+let chrome=spawn('qualification-chrome',args,{stdio:['ignore',descriptor,descriptor]});
 function rpc(action,arguments_={}) {
   return new Promise((resolve,reject)=>{
     const socket=net.createConnection('/run/aresos-tools/act.sock');let buffer='';
     socket.setTimeout(20000,()=>socket.destroy(Error('Tool response timeout')));
     socket.on('connect',()=>socket.write(JSON.stringify({v:1,method:'call',action:'chrome_'+action,arguments:arguments_})+'\n'));
     socket.on('data',data=>{buffer+=data;if(buffer.includes('\n')){socket.end();const result=JSON.parse(buffer);fs.appendFileSync('/out/tool.jsonl',JSON.stringify({action,result})+'\n');resolve(result);}});
+    socket.on('end',()=>{if(!buffer.includes('\n'))reject(Error('Service disconnected before its reply; inspect status, never replay'));});
     socket.on('error',reject);
   });
 }
@@ -91,7 +92,15 @@ try {
     } catch(error) { failures.push(error); console.error('GROUP 7 page forgery FAIL',attack,error.message); }
   }
   const admin=(action,arguments_)=>{const result=JSON.parse(execFileSync('sudo',['-n','/usr/bin/python3','/workspace/control/chrome/ci/admin.py',JSON.stringify({action,arguments:arguments_})],{encoding:'utf8'}));assert.ok(result.ok,JSON.stringify(result));return result.data;};
-  for(const failure of await matrices({call,read,nav,target,counts,eventually,tab,fixture,admin,rpc}))failures.push(Error(failure.name+': '+failure.error));
+  const caller=(verb,args)=>JSON.parse(execFileSync('python3',['control/chrome/ci/call.py',verb,JSON.stringify(args)],{encoding:'utf8',env:{...process.env,GITHUB_ACTIONS:'true'}}));
+  let browserWindow=execFileSync('xdotool',['getactivewindow'],{encoding:'utf8'}).trim();
+  const ownerNavigate=async(url)=>{execFileSync('xdotool',['windowactivate','--sync',browserWindow]);execFileSync('xdotool',['key','--clearmodifiers','ctrl+1']);execFileSync('xdotool',['key','--clearmodifiers','ctrl+l']);execFileSync('xdotool',['type','--clearmodifiers','--delay','1',url]);execFileSync('xdotool',['key','Return']);await delay(400);};
+  for(const failure of await matrices({call,read,nav,target,counts,eventually,tab,fixture,admin,rpc,caller,ownerNavigate,lifecycle:async(command)=>{
+    if(command==='kill_chrome'){chrome.kill('SIGKILL');return;}
+    if(command==='start_chrome'){chrome=spawn('qualification-chrome',args,{stdio:['ignore',descriptor,descriptor]});await delay(1500);browserWindow=execFileSync('xdotool',['getactivewindow'],{encoding:'utf8'}).trim();return;}
+    if(command==='kill_host'){const lines=execFileSync('ps',['-u','1000','-o','pid=,args='],{encoding:'utf8'}).split('\n');for(const line of lines)if(line.includes('/usr/libexec/aresos-control/chrome/native_host.py'))process.kill(Number(line.trim().split(/\s+/)[0]),'SIGKILL');return;}
+    return JSON.parse(execFileSync('sudo',['-n','/usr/bin/python3','/workspace/control/chrome/ci/admin.py',JSON.stringify(command)],{encoding:'utf8'}));
+  },restoreControl:async()=>{await eventually(async()=>{const result=await rpc('tabs');return result.ok&&result.data.items.length;},'native reconnect',45000);const tabs=await call('tabs');tab=tabs.items.find(item=>item.url?.startsWith('http://fixture.test'))?.tab??tabs.items.find(item=>!item.url?.includes('approval.test'))?.tab;await ownerNavigate('http://fixture.test:8765/?case=compose');await call('take_tab',{tab});return tab;},stopClick:()=>execFileSync('xdotool',['key','--clearmodifiers','Return']),ownerKey:()=>execFileSync('xdotool',['key','--clearmodifiers','Tab','Return'])}))failures.push(Error(failure.name+': '+failure.error));
   if(failures.length)throw new AggregateError(failures,'Strict owner-input and page-forgery regressions failed');
 } catch(error) {
   try{execFileSync('import',['-window','root','/out/failure.png']);}catch{}

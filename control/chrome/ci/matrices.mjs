@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {setTimeout as delay} from 'node:timers/promises';
 
-export async function matrices({call,read,nav,target,counts,eventually,tab,fixture,admin,rpc}) {
+export async function matrices({call,read,nav,target,counts,eventually,tab,fixture,admin,rpc,caller,ownerNavigate,ownerKey,lifecycle,restoreControl,stopClick}) {
   const results=[];
   async function check(name,fn) {
     try {await fn();results.push({name,passed:true});console.log(name,'PASS');}
@@ -45,6 +45,78 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
       const direct=await call('click',await target('Delete'));await approval(direct,id);
       assert.equal(counts('handler-'+id),1);
     }
+  });
+  await check('GROUP 2 loop with uncancelled enclosing submit sends once',async()=>{
+    await nav('loop&id=uncancelled-loop');const result=await call('click',await target('Continue'));await approval(result,'uncancelled-loop');
+  });
+  await check('GROUP 2 owner synchronous task delayed work and in-flight interleavings',async()=>{
+    for(const [id,busy,after] of [['owner-sync',0,130],['owner-flight',250,60],['owner-after-limit',0,650]]){
+      await nav('owner-task&id='+id+'&busy='+busy+'&delay=100');
+      const continued=call('click',await target('Continue'));
+      let record;const deadline=Date.now()+5000;
+      while(!record&&Date.now()<deadline){record=fixture.arrivals.find(row=>row.url.includes('case=task-start')&&row.body===id);if(!record)await delay(5);}
+      assert.ok(record);await delay(Math.max(0,record.time+after-Date.now()));ownerKey();await continued;await delay(150);
+      if(id==='owner-sync')assert.equal(counts(id),1,'synchronous owner submission passes; delayed second submission stays held');
+      if(id==='owner-flight')assert.equal(counts(id),0,'owner input during the marked dispatch stays held');
+      if(id==='owner-after-limit')assert.equal(counts(id),2,'owner work after the limit is ordinary browser work');
+    }
+  });
+  await check('GROUP 3 binding every form fact and generic sibling draft',async()=>{
+    for(const change of ['label','element','visible','hidden','action','method','encoding','target','document']){
+      const id='binding-'+change;await nav('binding&id='+id);const prepared=await call('click',await target('Submit'));assert.ok(prepared.approval);
+      fixture.mutate(id,change);await delay(100);
+      const result=await rpc('submit',prepared.approval);assert.ok(!result.ok||result.data.operation.state==='failed',JSON.stringify(result));assert.equal(counts(id),0);
+    }
+    await nav('binding&mode=sibling&id=sibling');const prepared=await call('click',await target('Send'));
+    assert.match(JSON.stringify(prepared.approval),/Existing sibling draft/);fixture.mutate('sibling','text');await delay(100);
+    const changed=await rpc('submit',prepared.approval);assert.ok(!changed.ok||changed.data.operation.state==='failed');assert.equal(counts('sibling'),0);
+  });
+  await check('GROUP 4 page confirmations bind their full text and ask independently',async()=>{
+    for(const text of ['Delete this synthetic item?','Submit this synthetic request?']){
+      const id='dialog-'+text.split(' ')[0];await nav('page-dialog&id='+id+'&text='+encodeURIComponent(text));
+      const prepared=await call('click',await target('OK'));assert.ok(prepared.approval);assert.match(prepared.approval.question,new RegExp(text.slice(0,-1)));
+      await approval(prepared,id);
+    }
+    await nav('page-dialog&id=dialog-change');const prepared=await call('click',await target('OK'));
+    fixture.mutate('dialog-change','dialog');await delay(100);const result=await rpc('submit',prepared.approval);
+    assert.ok(!result.ok||result.data.operation.state==='failed');assert.equal(counts('dialog-change'),0);
+  });
+  await check('GROUP 5 question fields, hidden values, password label, upload path and hash',async()=>{
+    await nav('binding&id=question');const prepared=await call('click',await target('Submit'));const text=JSON.stringify(prepared.approval);
+    assert.match(text,/Hidden original/);assert.match(text,/Private sign-in/);assert.doesNotMatch(text,/SENTINEL_PRIVATE_PASSWORD_20/);assert.match(prepared.approval.question,/hidden/);
+    await nav('upload&id=upload-bytes');fs.mkdirSync('/home/owner/Downloads',{recursive:true});fs.writeFileSync('/home/owner/Downloads/fixture.txt','Exact synthetic upload bytes');
+    const upload=caller('upload',{...await target('Upload'),path:'/home/owner/Downloads/fixture.txt'});assert.ok(upload.ok,JSON.stringify(upload));
+    assert.match(upload.data.approval.question,/sha256/);assert.match(upload.data.approval.question,/fixture.txt/);await approval(upload.data,'upload-bytes');
+    assert.equal(fixture.arrivals.find(row=>new URL(row.url,'http://fixture.test').searchParams.get('case')==='upload-bytes').body,'Exact synthetic upload bytes');
+    const send=await call('click',await target('Send'));fixture.mutate('upload-bytes','text');await delay(100);const changed=await rpc('submit',send.approval);assert.ok(!changed.ok||changed.data.operation.state==='failed');assert.equal(counts('after-upload'),0);
+  });
+  await check('GROUP 6 exclusions through frame, popup, redirect, taking and history',async()=>{
+    await nav('frame-excluded');assert.doesNotMatch(JSON.stringify(await read()),/EXCLUDED_PAGE_SENTINEL_20/);
+    await nav('popup-excluded');await call('click',await target('Continue'));await delay(250);
+    const tabs=await call('tabs');for(const item of tabs.items.filter(item=>item.url?.includes('approval.test'))){const result=await rpc('take_tab',{tab:item.tab});assert.equal(result.ok,false);}
+    await nav('redirect');const redirected=await rpc('read',{tab});assert.equal(redirected.ok,false);
+    await ownerNavigate('http://approval.test:8765/?case=excluded');assert.equal((await rpc('take_tab',{tab})).ok,false);
+    await ownerNavigate('http://fixture.test:8765/?case=compose');await call('take_tab',{tab});
+    const back=await rpc('navigate',{tab,direction:'back'});assert.equal(back.ok,false);assert.doesNotMatch(JSON.stringify(await read()),/EXCLUDED_PAGE_SENTINEL_20/);
+  });
+  await check('GROUP 7 all password kinds across open closed and cross-site roots',async()=>{
+    await nav('password-matrix');assert.doesNotMatch(JSON.stringify(await read()),/SENTINEL_PRIVATE_PASSWORD_20/);
+    await call('click',await target('Show'));assert.doesNotMatch(JSON.stringify(await read()),/SENTINEL_PRIVATE_PASSWORD_20/);
+    for(const file of ['browser-boundary.jsonl','tool.jsonl','service.txt'])assert.doesNotMatch(fs.readFileSync('/out/'+file,'utf8'),/SENTINEL_PRIVATE_PASSWORD_20/,file);
+  });
+  await check('GROUP 8 drop release close and stale references never dispatch prepared work',async()=>{
+    for(const action of ['drop','release_tab']){
+      await nav('compose');const prepared=await call('click',await target('Send'));const before=counts('compose');
+      await call(action,action==='drop'?{operation_id:prepared.approval.operation_id}:{tab});
+      const result=await rpc('submit',prepared.approval);assert.ok(!result.ok||result.data.operation.state==='failed');assert.equal(counts('compose'),before);
+      if(action==='release_tab')await call('take_tab',{tab});
+    }
+    const opened=await call('open',{url:'http://fixture.test:8765/?case=compose'});await call('close_tab',{tab:opened.untrusted_content.tab || opened.tab});
+  });
+  await check('GROUP 13 changed read-only preview is a stated residual',async()=>{
+    await nav('binding&mode=sibling&id=preview-residual');const prepared=await call('click',await target('Send'));
+    fixture.mutate('preview-residual','preview');await delay(100);await approval(prepared,'preview-residual');
+    assert.ok(fixture.arrivals.some(row=>row.body.includes('Changed read-only preview')));
   });
   const adapters={};
   for(const [site,actions] of Object.entries({gmail:['Send'],whatsapp:['Send'],github:['Comment','Submit review','Merge pull request','Close issue','Delete branch','Delete tag','Delete repository','Save settings'],gemini:['Send','Delete chat','Share chat'],deezer:['Play','Pause','Skip','Seek','Volume','Queue','Like','Follow','Add to playlist','Remove from playlist','Delete playlist','Share track','Subscribe']})){
@@ -88,6 +160,34 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
     assert.match(tree,/Paragraph 119/);assert.match(tree,/Field 79/);
     const measurement={characters:tree.length,utf8_bytes:Buffer.byteLength(tree),pages,milliseconds:Date.now()-started,token_estimate:Math.ceil(tree.length/4)};
     fs.writeFileSync('/out/view-measurements.json',JSON.stringify(measurement,null,2));console.log('VIEW MEASURED',JSON.stringify(measurement));
+  });
+  await check('GROUP 8 actual popup Stop button drops all prepared work',async()=>{
+    await nav('compose');const prepared=await call('click',await target('Send'));const before=counts('compose');
+    await lifecycle({fixture:'popup'});await delay(150);stopClick();await delay(200);
+    const result=await rpc('submit',prepared.approval);assert.ok(!result.ok||result.data.operation.state==='failed');assert.equal(counts('compose'),before);
+    assert.equal((await call('tabs')).items.find(item=>item.tab===tab).controlled,false);
+    await call('take_tab',{tab});
+  });
+  await check('GROUP 9 Chrome host service crash cutpoints never replay',async()=>{
+    for(const component of ['chrome','host','service'])for(const phase of ['before-check','after-submitting','after-input']){
+      const id='crash-'+component+'-'+phase;await nav('binding&id='+id);const prepared=await call('click',await target('Submit'));assert.ok(prepared.approval);
+      let pending;
+      if(phase==='after-submitting'){
+        await lifecycle({fixture:'cut',point:'submitting'});pending=rpc('submit',prepared.approval).catch(error=>({transport:String(error)}));
+        await eventually(()=>fs.existsSync('/out/checkpoint-ready.json'),'durable submitting barrier');
+      } else if(phase==='after-input'){
+        pending=rpc('submit',prepared.approval).catch(error=>({transport:String(error)}));
+        await eventually(()=>counts(id)===1,'input before crash');
+      }
+      await lifecycle(component==='service'?{fixture:'kill_service'}:'kill_'+component);
+      if(phase==='after-submitting'&&component!=='service')fs.writeFileSync('/out/checkpoint-release','release');
+      if(component==='service')await lifecycle({fixture:'start_service'});else if(component==='chrome')await lifecycle('start_chrome');
+      if(pending)await pending;
+      tab=await restoreControl();const before=counts(id);
+      assert.equal(before,phase==='after-input'?1:0,'receiver cutpoint '+id);
+      const replay=await rpc('submit',prepared.approval);assert.ok(!replay.ok||replay.data.operation.state!=='reserved');await delay(100);assert.equal(counts(id),before,'restart must never replay '+id);
+      console.log('GROUP 9 CUT',id,'receiver',before,JSON.stringify(replay));
+    }
   });
   fs.writeFileSync('/out/matrices.json',JSON.stringify(results,null,2));
   return results.filter(item=>!item.passed);
