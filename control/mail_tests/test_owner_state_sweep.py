@@ -13,6 +13,7 @@ from owner_state_oracle.driver import Driver
 from owner_state_oracle.model import Oracle
 from owner_state_oracle.gaps import Gaps
 from owner_state_oracle.clock import scripted_calendar
+from owner_state_oracle.identity import scripted_ids
 from test_review23_sweep import Scenario
 from storage_faults import OSWrites
 
@@ -51,6 +52,7 @@ class OwnerScenario(Scenario):
         self.clock_patches = ExitStack()
         self.clock_patches.enter_context(patch('time.time', side_effect=lambda: self.test_clock))
         self.clock_patches.enter_context(scripted_calendar())
+        self.clock_patches.enter_context(scripted_ids(flow))
         self.owner_oracle = Oracle()
         request = Engine.request
         def scripted(engine, envelope, *args, **kwargs):
@@ -219,13 +221,28 @@ def exercise(flow, number=None, mode='single', cleanup_at=None, gaps=None, phase
 
 class OwnerStateSweep(unittest.TestCase):
     def test_constructor_failure_restores_request_and_clock(self):
-        request, clock, localtime = Engine.request, time.time, time.localtime
+        import uuid
+        request, clock, localtime, nanos, identity = Engine.request, time.time, time.localtime, time.time_ns, uuid.uuid4
         with patch.object(Scenario, '__init__', side_effect=RuntimeError('Synthetic constructor failure')):
             with self.assertRaisesRegex(RuntimeError, 'Synthetic constructor failure'):
                 OwnerScenario('send')
         self.assertIs(Engine.request, request)
         self.assertIs(time.time, clock)
         self.assertIs(time.localtime, localtime)
+        self.assertIs(time.time_ns, nanos)
+        self.assertIs(uuid.uuid4, identity)
+
+    def test_repeated_fault_is_independent_of_ambient_identity_order(self):
+        import uuid
+        results = []
+        for ambient in (1, (1 << 128) - 1):
+            gaps = Gaps(recording=True)
+            with patch.object(uuid, 'uuid4', return_value=uuid.UUID(int=ambient)) as outside:
+                points = exercise('repair', 185, gaps=gaps)
+                self.assertIs(uuid.uuid4, outside)
+                outside.assert_not_called()
+            results.append((points, gaps.entries))
+        self.assertEqual(results[0], results[1])
 
     def test_shards_cover_every_fault_and_keep_its_cleanup_and_crash_cases(self):
         for shards in (1, 2, 4):
@@ -246,7 +263,8 @@ class OwnerStateSweep(unittest.TestCase):
                                     for shard in range(shards) for worker in range(workers)))
 
     def test_all_flows_all_storage_modes_independent_views(self):
-        gaps, counts = Gaps(), Counter()
+        # Temporary diagnostic capture; this revision deliberately cannot pass.
+        gaps, counts = Gaps(recording=True), Counter()
         shard, shards = int(os.environ.get('MAIL_SWEEP_SHARD', '0')), int(os.environ.get('MAIL_SWEEP_SHARDS', '1'))
         worker, workers = int(os.environ.get('OWNER_SWEEP_WORKER', '0')), int(os.environ.get('OWNER_SWEEP_WORKERS', '1'))
         self.assertGreater(shards, 0)
@@ -274,6 +292,8 @@ class OwnerStateSweep(unittest.TestCase):
                                     exercise(flow, number, cleanup_at=cleanup_at, gaps=gaps, phase='crash')
                                     counts['pairs'] += 1
             print(f'Owner oracle flow={flow} points={len(points)} elapsed={time.monotonic()-started:.3f}s', flush=True)
-        relevant = {key for key in gaps.entries if key.split('/')[0] in FLOWS + EXTRA and owns_case(key, shard, shards, worker, workers)}
-        self.assertEqual(gaps.seen, relevant)
-        print(f'Owner oracle shard={shard}/{shards} worker={worker}/{workers} modes={dict(counts)} strict expected failures={len(gaps.seen)}', flush=True)
+        import base64, gzip, json
+        payload = base64.b64encode(gzip.compress(json.dumps(gaps.entries, sort_keys=True).encode())).decode()
+        print('OWNER-GAP-DETERMINISTIC:' + payload, flush=True)
+        print(f'DIAGNOSTIC owner oracle shard={shard}/{shards} worker={worker}/{workers} modes={dict(counts)} captured assertions={len(gaps.entries)}', flush=True)
+        self.fail('Diagnostic capture only; pin exact assertions and restore strict verification')

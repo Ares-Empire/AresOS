@@ -9,5 +9,6 @@ def scripted_calendar():
     real_localtime = time.localtime
     def localtime(seconds=None):
         return real_localtime(time.time() if seconds is None else seconds)
-    with patch.object(time, 'localtime', side_effect=localtime):
+    with patch.object(time, 'localtime', side_effect=localtime), \
+            patch.object(time, 'time_ns', side_effect=lambda: int(time.time() * 1_000_000_000)):
         yield

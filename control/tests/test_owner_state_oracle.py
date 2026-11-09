@@ -699,6 +699,7 @@ class OwnerOracle(unittest.TestCase):
         from unittest.mock import patch
         from owner_state_oracle.clock import scripted_calendar
         real_localtime = time.localtime
+        real_nanos = time.time_ns
         epoch = 1794225600
         host_date = real_localtime(epoch + 10 * 86400)
         def host_localtime(seconds=None):
@@ -707,15 +708,55 @@ class OwnerOracle(unittest.TestCase):
             self.assertEqual(time.localtime(), host_date)
             with scripted_calendar():
                 self.assertEqual(time.localtime(), real_localtime(epoch))
+                self.assertEqual(time.time_ns(), epoch * 1_000_000_000)
                 self.assertEqual(time.localtime(0), real_localtime(0))
                 with patch.object(time, 'time', return_value=epoch + 86400):
                     self.assertEqual(time.localtime(), real_localtime(epoch + 86400))
+                    self.assertEqual(time.time_ns(), (epoch + 86400) * 1_000_000_000)
             self.assertIs(time.localtime, host)
             with self.assertRaisesRegex(RuntimeError, 'synthetic'):
                 with scripted_calendar():
                     raise RuntimeError('synthetic')
             self.assertIs(time.localtime, host)
         self.assertIs(time.localtime, real_localtime)
+        self.assertIs(time.time_ns, real_nanos)
+
+    def test_fixture_ids_are_unique_reproducible_and_scoped(self):
+        import uuid
+        from owner_state_oracle.identity import scripted_ids
+        original = uuid.uuid4
+        sequences = []
+        for _ in range(2):
+            with scripted_ids('repair'):
+                sequences.append([uuid.uuid4() for _ in range(32)])
+            self.assertIs(uuid.uuid4, original)
+        self.assertEqual(sequences[0], sequences[1])
+        self.assertEqual(len(set(sequences[0])), 32)
+        self.assertTrue(all(value.version == 4 for value in sequences[0]))
+        self.assertNotEqual(sequences[0], sorted(sequences[0]))
+        with scripted_ids('onboarding'):
+            self.assertNotEqual(uuid.uuid4(), sequences[0][0])
+        with self.assertRaisesRegex(RuntimeError, 'synthetic'):
+            with scripted_ids('repair'):
+                raise RuntimeError('synthetic')
+        self.assertIs(uuid.uuid4, original)
+
+    def test_repair_context_binding_handles_both_opaque_id_orders(self):
+        from owner_state_oracle.context import differences
+        for parent, child in (('g:a', 'g:z'), ('g:z', 'g:a')):
+            oracle = Oracle()
+            oracle.call('mail_operation_repair', {'operation_id': parent}, 123)
+            context = dict(command='APPEND', account='box', identities=[{'message_id': '<exact>'}],
+                           roles={}, source='local', destination='Sent', sha256='wire')
+            rows = {'op:' + parent: {'id': parent, 'state': 'partial', 'context': context},
+                    'op:' + child: {'id': child, 'state': 'submitting', 'repair_of': parent,
+                                   'action': 'mail_operation_repair', 'payload': {'stage': 'sent_copy'}, 'context': dict(context)}}
+            # Match the production scan's lexicographic ordering in both cases.
+            event = oracle.server('APPEND', 'box', 'Sent', [{'message_id': '<exact>'}], {},
+                                  raw_sha256='wire', committed_before=dict(sorted(rows.items())))
+            self.assertEqual(differences(event, oracle.script), ('op:' + child, []))
+            event['committed_before']['op:' + child]['context']['destination'] = 'Wrong'
+            self.assertEqual(differences(event, oracle.script), ('op:' + child, ['destination']))
 
     def test_special_rename_role_cannot_supply_clean_proof(self):
         oracle = Oracle()
