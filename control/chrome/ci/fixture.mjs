@@ -33,6 +33,34 @@ export async function fixtures() {
     } else if(kind==='page-forgery') {
       body='<button type="button">Continue</button><form action="/receive?case=page-forgery" method="post" target="sink"><input type="hidden" name="source" value="page-forged-mark"></form><iframe name="sink" hidden></iframe>';
       script="document.querySelector('button').onclick=()=>{const api=globalThis[Symbol.for('aresos.chrome.page.v1')];for(const name of ['stop','arm','resume','drop']){try{api?.[name]?.('page-invented-epoch');}catch{}}document.querySelector('form').submit();};";
+    } else if(kind==='password-matrix') {
+      body='<button type="button">Show</button><div id="open"></div><div id="closed"></div><iframe src="http://second.test:8766/?case=password-inner"></iframe>';
+      script=`const markup='<input type="password" aria-label="Type password" value="SENTINEL_PRIVATE_PASSWORD_20"><input autocomplete="current-password" aria-label="Current password" value="SENTINEL_PRIVATE_PASSWORD_20"><input autocomplete="new-password" aria-label="New password" value="SENTINEL_PRIVATE_PASSWORD_20"><input autocomplete="one-time-code" aria-label="Code" value="SENTINEL_PRIVATE_PASSWORD_20"><input style="-webkit-text-security:disc" aria-label="Masked password" value="SENTINEL_PRIVATE_PASSWORD_20"><input aria-label="Late password" value="SENTINEL_PRIVATE_PASSWORD_20">';
+        const roots=[document.body,document.querySelector('#open').attachShadow({mode:'open'}),document.querySelector('#closed').attachShadow({mode:'closed'})];
+        for(const root of roots){const container=document.createElement('section');container.innerHTML=markup;root.append(container);container.querySelector('[aria-label="Late password"]').type='password';}
+        document.querySelector('button').onclick=()=>{for(const root of roots)for(const field of root.querySelectorAll('input'))if(field.type==='password')field.type='text';};`;
+    } else if(kind==='password-inner') {
+      body='<input type="password" aria-label="Cross-site password" value="SENTINEL_PRIVATE_PASSWORD_20"><input autocomplete="current-password" value="SENTINEL_PRIVATE_PASSWORD_20"><input style="-webkit-text-security:disc" value="SENTINEL_PRIVATE_PASSWORD_20">';
+    } else if(kind==='excluded') {
+      body='<p>EXCLUDED_PAGE_SENTINEL_20</p><input aria-label="Excluded" value="EXCLUDED_PAGE_SENTINEL_20">';
+    } else if(kind==='frame-excluded') {
+      body='<p>Allowed outer page</p><iframe src="http://approval.test:8765/?case=excluded"></iframe>';
+    } else if(kind==='redirect') {
+      res.writeHead(302,{Location:'http://approval.test:8765/?case=excluded'});res.end();return;
+    } else if(kind==='popup-excluded') {
+      body='<button type="button">Continue</button>';script="document.querySelector('button').onclick=()=>window.open('http://approval.test:8765/?case=excluded','_blank');";
+    } else if(kind==='site') {
+      const site=(req.headers.host||'').split('.')[0],token=url.searchParams.get('id')||site,context='fixture-repository / branch-1';
+      const account='<p aria-label="Signed in as">Synthetic account</p>';
+      if(site==='gmail')body='<section role="dialog" aria-label="Compose"><input name="from" value="Synthetic account"><input name="to" value="recipient@example.invalid"><input name="cc" value="copy@example.invalid"><input name="bcc" value="hidden@example.invalid"><input name="subjectbox" value="Synthetic subject"><textarea aria-label="Message Body">Synthetic mail body</textarea><span aria-label="Attachment: fixture.txt">fixture.txt 3 bytes</span><button type="button">Send</button></section>';
+      if(site==='whatsapp')body='<main>'+account+'<p aria-label="Chat name">Synthetic chat</p><textarea aria-label="Type a message">Synthetic chat body</textarea><button type="button">Send</button><button type="button">Open chat</button></main>';
+      if(site==='github')body='<main>'+account+'<p aria-label="Action context">'+context+'</p><textarea name="comment">Synthetic review</textarea>'+['Comment','Submit review','Merge pull request','Close issue','Delete branch','Delete tag','Delete repository','Save settings','Star'].map(label=>'<button type="button">'+label+'</button>').join('')+'</main>';
+      if(site==='gemini')body='<main>'+account+'<textarea aria-label="Enter a prompt here">Synthetic question</textarea><button type="button">Send</button><button type="button">Delete chat</button><button type="button">Share chat</button></main>';
+      if(site==='deezer')body='<main>'+account+['Play','Pause','Skip','Seek','Volume','Queue','Like','Follow','Add to playlist','Remove from playlist','Delete playlist','Share track','Subscribe'].map(label=>'<button type="button">'+label+'</button>').join('')+'</main>';
+      if(site==='bank')body='<main><p>Synthetic read-only balance</p><a href="?case=site&id=bank-link">Account details</a><input aria-label="Amount"><input type="file" aria-label="File"><button type="button">Continue</button></main>';
+      script=`const send=label=>fetch('/receive?case='+encodeURIComponent(${JSON.stringify(token)}+'-'+label),{method:'POST',body:JSON.stringify({label,fields:[...document.querySelectorAll('input,textarea')].map(field=>({name:field.name||field.getAttribute('aria-label'),value:field.value}))})});
+        for(const button of document.querySelectorAll('button'))button.onclick=()=>{if(button.textContent==='Delete branch' && !confirm('Delete branch ${context}?'))return;send(button.textContent);};
+        for(const field of document.querySelectorAll('textarea'))field.onkeydown=event=>{if(event.key==='Enter' && (${JSON.stringify(site)}!=='gmail'||event.ctrlKey||event.metaKey)){event.preventDefault();send('Enter');}};`;
     } else if(kind==='matrix') {
       const token=url.searchParams.get('id'),route=url.searchParams.get('route')||'click',mode=url.searchParams.get('mode')||'word',word=url.searchParams.get('word')||'Send',label=url.searchParams.get('label')||'name';
       const action='/receive?case='+encodeURIComponent(token);
@@ -81,7 +109,7 @@ export async function fixtures() {
     res.setHeader('Content-Type','text/html');res.end(page(body,script));
   });
   await new Promise(resolve=>server.listen(8765,'0.0.0.0',resolve));
-  const second=http.createServer((req,res)=>{res.setHeader('Content-Type','text/html');res.end(page('<input aria-label="Cross-site message" value="Cross-origin draft">'));});
+  const second=http.createServer(server.listeners('request')[0]);
   await new Promise(resolve=>second.listen(8766,'0.0.0.0',resolve));
   return {arrivals,close:()=>{server.close();second.close();}};
 }

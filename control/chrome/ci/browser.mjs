@@ -27,7 +27,7 @@ async function eventually(fn,label,timeout=15000){const until=Date.now()+timeout
 let tab;
 async function read(){let tree='',cursor;do{const result=await call('read',{tab,...(cursor?{cursor}:{})});tree+=result.untrusted_content.tree;cursor=result.cursor;}while(cursor);return tree.split('\n').filter(line=>line.startsWith('{')).map(JSON.parse);}
 async function target(label){const row=await eventually(async()=>(await read()).find(row=>row.expected.name===label),label);return {reference:row.reference,expected:row.expected};}
-async function nav(kind){await call('navigate',{tab,url:'http://fixture.test:8765/?case='+kind});await eventually(async()=>{const rows=await read();return rows.length;},'page reader');await delay(250);}
+async function nav(kind,host='fixture'){await call('navigate',{tab,url:'http://'+host+'.test:8765/?case='+kind});await eventually(async()=>{const rows=await read();return rows.length;},'page reader');await delay(250);}
 const counts=kind=>fixture.arrivals.filter(row=>new URL(row.url,'http://fixture.test').searchParams.get('case')===kind).length;
 try {
   const tabs=await eventually(async()=>{const result=await rpc('tabs');return result.ok && result.data.items.length && result.data.items;},'extension native connection',45000);
@@ -90,7 +90,8 @@ try {
       console.log('GROUP 7 page forgery PASS',attack,'receiver: 0 before, 1 after, 1 after replay');
     } catch(error) { failures.push(error); console.error('GROUP 7 page forgery FAIL',attack,error.message); }
   }
-  for(const failure of await matrices({call,read,nav,target,counts,eventually,tab,fixture}))failures.push(Error(failure.name+': '+failure.error));
+  const admin=(action,arguments_)=>{const result=JSON.parse(execFileSync('sudo',['-n','/usr/bin/python3','/workspace/control/chrome/ci/admin.py',JSON.stringify({action,arguments:arguments_})],{encoding:'utf8'}));assert.ok(result.ok,JSON.stringify(result));return result.data;};
+  for(const failure of await matrices({call,read,nav,target,counts,eventually,tab,fixture,admin,rpc}))failures.push(Error(failure.name+': '+failure.error));
   if(failures.length)throw new AggregateError(failures,'Strict owner-input and page-forgery regressions failed');
 } catch(error) {
   try{execFileSync('import',['-window','root','/out/failure.png']);}catch{}

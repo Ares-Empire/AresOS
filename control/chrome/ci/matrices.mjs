@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {setTimeout as delay} from 'node:timers/promises';
 
-export async function matrices({call,read,nav,target,counts,eventually,tab,fixture}) {
+export async function matrices({call,read,nav,target,counts,eventually,tab,fixture,admin,rpc}) {
   const results=[];
   async function check(name,fn) {
     try {await fn();results.push({name,passed:true});console.log(name,'PASS');}
@@ -45,6 +45,36 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
       const direct=await call('click',await target('Delete'));await approval(direct,id);
       assert.equal(counts('handler-'+id),1);
     }
+  });
+  const adapters={};
+  for(const [site,actions] of Object.entries({gmail:['Send'],whatsapp:['Send'],github:['Comment','Submit review','Merge pull request','Close issue','Delete branch','Delete tag','Delete repository','Save settings'],gemini:['Send','Delete chat','Share chat'],deezer:['Play','Pause','Skip','Seek','Volume','Queue','Like','Follow','Add to playlist','Remove from playlist','Delete playlist','Share track','Subscribe']})){
+    await check('GROUP 10 adapter '+site,async()=>{
+      for(const label of actions){
+        const id='site-'+site+'-'+label;await nav('site&id='+encodeURIComponent(id),site);
+        const result=await call('click',await target(label));
+        const free=site==='deezer' && ['Play','Pause','Skip','Seek','Volume','Queue','Like','Follow','Add to playlist'].includes(label);
+        if(free){assert.ok(!result.approval);await eventually(()=>counts(id+'-'+label)===1,'free '+label);}
+        else {await approval(result,id+'-'+label);if(label==='Delete branch')assert.ok((await call('operation_status',{operation_id:result.approval.operation_id})).operation.stages.confirmation);}
+      }
+      adapters[site]=true;
+    });
+  }
+  await check('GROUP 10 read-only bank',async()=>{
+    admin('chrome_sites',{command:'readonly',site:'http://bank.test:8765/',enabled:true});await nav('site&id=bank','bank');
+    for(const [verb,label,extra] of [['fill','Amount',{text:'1'}],['click','Continue',{}],['upload','File',{path:'/fixture.txt'}]]){
+      const result=await rpc(verb,{...await target(label),...extra});
+      assert.equal(result.ok,false,JSON.stringify(result));assert.equal(result.error.code,'readonly_site');
+    }
+    adapters.bank=true;
+  });
+  await check('GROUP 11 exact owner kind, recipients, account and revocation',async()=>{
+    await nav('site&id=trust-initial','gmail');const first=await call('click',await target('Send'));await approval(first,'trust-initial-Send');
+    const entry=admin('chrome_sites',{command:'allow',operation_id:first.approval.operation_id});
+    await nav('site&id=trust-next','gmail');const next=await call('click',await target('Send'));await call('submit_trusted',next.approval);
+    await eventually(()=>counts('trust-next-Send')===1,'trusted receiver');
+    admin('chrome_sites',{command:'revoke',id:entry.id});
+    await nav('site&id=trust-revoked','gmail');const revoked=await call('click',await target('Send'));
+    assert.ok(revoked.approval);assert.equal(counts('trust-revoked-Send'),0);
   });
   await check('GROUP 13 autosave and after-limit submissions are not held',async()=>{
     await nav('residual');await call('fill',{...await target('Autosave'),text:'Synthetic autosave'});
