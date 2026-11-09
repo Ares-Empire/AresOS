@@ -9,6 +9,8 @@ import dev.aresos.config.AppDefinition;
 import dev.aresos.shell.ShellClient;
 import dev.aresos.test.mixin.AppsTestAccess;
 import dev.aresos.test.mixin.HudTestAccess;
+import dev.aresos.test.mixin.MinecraftTestAccess;
+import dev.aresos.test.mixin.WindowTestAccess;
 import dev.aresos.world.DesktopWorld;
 import dev.aresos.zone.AppZone;
 import dev.aresos.zone.ZoneData;
@@ -96,31 +98,39 @@ public final class ShellFocusClientGameTest implements FabricClientGameTest {
                         return CompletableFuture.completedFuture("r-" + requests.incrementAndGet());
                     }
                 }));
-                context.runOnClient(client -> AresOsClient.launch("notepad"));  // r-1, from the hotbar
-                move(context, world, new Vec3(0.5, Y, 3.5));  // r-2, walking into the logo
-                context.waitFor(client -> opened.size() == 3);
-                context.runOnClient(client -> AresOsClient.launchFailedLater("r-1", "notepad", "it failed to start"));
-                context.waitFor(client -> overlay(client).equals("Couldn't open Notepad: it failed to start"));
-                world.getConnection().waitForServerboundPackets();
-                context.runOnClient(client -> ShellFocusClient.apply(client,
-                        new ShellClient.Focus(true, "app_closed", "notepad", true)));
-                world.getConnection().waitForServerboundPackets();
-                context.waitFor(client -> client.player.position().distanceToSqr(EXIT) < 0.01);
+                // The real return path: the app takes the screen (focus lost), the first launch's failure arrives,
+                // the owner comes back (focus regained). Only the second launch's own focus token returns the player.
+                boolean pauseSetting = context.computeOnClient(client -> client.options.pauseOnLostFocus);
+                try {
+                    context.runOnClient(client -> client.options.pauseOnLostFocus = false);
+                    context.runOnClient(client -> AresOsClient.launch("notepad"));  // r-1, from the hotbar
+                    move(context, world, new Vec3(0.5, Y, 3.5));  // r-2, walking into the logo
+                    context.waitFor(client -> opened.size() == 3);
+                    context.runOnClient(ShellFocusClientGameTest::loseFocus);
+                    context.runOnClient(client -> AresOsClient.launchFailedLater("r-1", "notepad", "it failed to start"));
+                    context.waitFor(client -> overlay(client).equals("Couldn't open Notepad: it failed to start"));
+                    context.runOnClient(ShellFocusClientGameTest::regainFocus);
+                    world.getConnection().waitForServerboundPackets();
+                    context.waitFor(client -> client.player.position().distanceToSqr(EXIT) < 0.01);
 
-                // The logo launch's own late failure ends its visit without the return teleport.
-                move(context, world, new Vec3(0.5, Y, 3.5));  // r-3
-                context.waitFor(client -> opened.size() == 4);
-                context.runOnClient(client -> {
-                    client.gui.hud.setOverlayMessage(net.minecraft.network.chat.Component.literal(""), false);
-                    AresOsClient.launchFailedLater("r-3", "notepad", "no answer from the app helper");
-                });
-                context.waitFor(client -> overlay(client).equals("Couldn't open Notepad: no answer from the app helper"));
-                world.getConnection().waitForServerboundPackets();
-                context.runOnClient(client -> ShellFocusClient.apply(client,
-                        new ShellClient.Focus(true, "desktop_activated", null, false)));
-                context.waitTicks(10);
-                context.runOnClient(client -> check(client.player.position().distanceToSqr(new Vec3(0.5, Y, 3.5)) < 0.01,
-                        "A failed launch still teleported the player out of the logo"));
+                    // The logo launch's own late failure ends its visit: regaining focus no longer returns the player.
+                    move(context, world, new Vec3(0.5, Y, 3.5));  // r-3
+                    context.waitFor(client -> opened.size() == 4);
+                    context.runOnClient(ShellFocusClientGameTest::loseFocus);
+                    context.runOnClient(client ->
+                            AresOsClient.launchFailedLater("r-3", "notepad", "no answer from the app helper"));
+                    context.waitFor(client -> overlay(client).equals("Couldn't open Notepad: no answer from the app helper"));
+                    context.runOnClient(ShellFocusClientGameTest::regainFocus);
+                    world.getConnection().waitForServerboundPackets();
+                    context.waitTicks(10);
+                    context.runOnClient(client -> check(client.player.position().distanceToSqr(new Vec3(0.5, Y, 3.5)) < 0.01,
+                            "A failed launch still teleported the player out of the logo"));
+                } finally {
+                    context.runOnClient(client -> {
+                        ((WindowTestAccess) (Object) client.getWindow()).aresos$setFocused(true);
+                        client.options.pauseOnLostFocus = pauseSetting;
+                    });
+                }
                 AresOs.LOGGER.info("24 shell focus checks passed: helper-less failure text, held keys and pointer "
                         + "released on background, logo return on foreground, a late failure ends only its own "
                         + "launch's visit, world readiness");
@@ -143,6 +153,17 @@ public final class ShellFocusClientGameTest implements FabricClientGameTest {
         });
         context.waitFor(client -> client.player.position().distanceToSqr(point) < 0.01);
         context.waitTicks(5);
+    }
+
+    private static void loseFocus(net.minecraft.client.Minecraft client) {
+        ((WindowTestAccess) (Object) client.getWindow()).aresos$setFocused(false);
+        ((MinecraftTestAccess) client).aresos$setLastActiveTime(0);
+        ((MinecraftTestAccess) client).aresos$pauseIfInactive();
+    }
+
+    private static void regainFocus(net.minecraft.client.Minecraft client) {
+        ((WindowTestAccess) (Object) client.getWindow()).aresos$setFocused(true);
+        ((MinecraftTestAccess) client).aresos$pauseIfInactive();
     }
 
     private static String overlay(net.minecraft.client.Minecraft client) {
