@@ -185,6 +185,35 @@ class Lifecycle29(unittest.TestCase):
         self.assertTrue(self.engine.store.get('notice:' + occurrence)['ack'])
         self.assertEqual(len(self.engine.store.items('notice:')), 2)
 
+    def test_review29_uncommitted_deferred_result_cannot_overwrite_acknowledgement(self):
+        from aresos_control.warnings import check_result
+        key = 'mail:rename:deferred'
+        source = {'id': 'deferred', 'state': 'started'}
+        self.engine.store.write({key: source}, 'mail_folder_rename', 'Synthetic intent')
+        checked = {**source, 'state': 'partial'}
+        notices, occurrence = check_result(self.engine.store, checked, key, 'rename',
+            {'target': 'Target', 'role': 'Trash'}, {'filing_id': source['id'], 'reason': 'Synthetic observed drift'})
+        self.engine.store.defer_notice(occurrence, {key: checked, **notices},
+            'mail_folder_rename', 'Synthetic result that still cannot fit')
+        write = self.engine.store.write
+        def refuse(changes, action, *args, **kwargs):
+            if action == 'mail_folder_rename':
+                raise Refused('storage_limit', 'Synthetic result still cannot fit')
+            return write(changes, action, *args, **kwargs)
+        with patch.object(self.engine.store, 'write', side_effect=refuse):
+            reply = self.call('notice_ack', {'operation_id': occurrence})
+        self.assertFalse(reply['ok'], reply)
+        self.assertEqual(reply['error']['code'], 'storage_limit')
+        self.assertIsNone(self.engine.store.get('notice:' + occurrence))
+        self.assertEqual(self.engine.store.get(key), source)
+        self.assertTrue(self.engine.store.deferred_notices)
+        self.data('notice_ack', {'operation_id': occurrence})
+        self.engine.store.flush_notices()
+        self.assertTrue(self.engine.store.get('notice:' + occurrence)['ack'])
+        self.assertFalse(self.engine.store.deferred_notices)
+        self.restart()
+        self.assertFalse(self.data('filing_notices', {})['items'])
+
     def test_review29_archive_and_expiry_keep_unacknowledged_history_then_never_resurrect_ack(self):
         from aresos_control.archive import archive
         op, first = self.duplicate()

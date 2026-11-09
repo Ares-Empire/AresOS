@@ -491,6 +491,11 @@ class Engine:
             adapter.drop(op)
             return {"operation": self.public_operation(op)}
         if verb == "notice_ack":
+            # Persist this occurrence first: a delayed result must never
+            # replace an acknowledgement with its earlier unacknowledged row.
+            if any('notice:' + args['operation_id'] in changes
+                   for changes, _, _ in self.store.deferred_notices.values()):
+                self.store.flush_notices()
             notice = self.store.get("notice:" + args["operation_id"])
             if notice is None:
                 from .recovery import recovery_notices
