@@ -1,0 +1,214 @@
+#!/usr/bin/bash
+# Runs inside a locally built AresOS image as root, without network or
+# systemd. Every line that starts with PASS is a checked package 21 decision.
+set -euxo pipefail
+pass() { set +x; printf 'PASS %s\n' "$*"; set -x; }
+expect_failure() {
+    # Run a command that must fail; keep its output as evidence.
+    local output status=0
+    output=$("$@" 2>&1) || status=$?
+    printf '%s\n' "$output"
+    if [[ $status == 0 ]]; then
+        echo "Unexpectedly succeeded: $*"
+        exit 1
+    fi
+    LAST_FAILURE=$output
+}
+
+# --- The everyday account: wheel, a password it does not have yet.
+systemd-tmpfiles --create /usr/lib/tmpfiles.d/aresos.conf
+test -d /var/home/ares
+getent group wheel
+id -nG ares | grep -qw wheel
+pass 'ares is in wheel'
+password=$(getent shadow ares | cut -d: -f2)
+case $password in '!'* | '*'*) ;; *) echo 'ares has a password in the image'; exit 1 ;; esac
+pass 'the image sets no password for ares (locked)'
+policy=$(LC_ALL=C sudo -l -U ares)
+printf '%s\n' "$policy"
+grep -Eq '^[[:space:]]+\(ALL\) ALL$' <<< "$policy"
+grep -q 'timestamp_type=ppid' <<< "$policy"
+if grep -Eq 'NOPASSWD|!authenticate' <<< "$policy"; then
+    echo 'Passwordless sudo rule for ares'
+    exit 1
+fi
+if grep -rhEv '^[[:space:]]*(#|$)' /etc/sudoers /etc/sudoers.d | grep -E 'NOPASSWD|!authenticate'; then
+    echo 'Passwordless sudo rule in the image'
+    exit 1
+fi
+visudo --check
+test "$(stat -c '%a %u %g' /etc/sudoers.d/aresos-everyday)" = '440 0 0'
+pass 'sudo for ares: (ALL) ALL with a password, timestamp per parent process, no passwordless rule'
+expect_failure runuser -u ares -- sudo -n true
+grep -q 'password is required' <<< "$LAST_FAILURE"
+pass 'sudo as ares fails without a password'
+
+# --- OS updaters stay out of reach; Flatpak and Homebrew are his.
+for command in uupd ujust topgrade bazzite-updater bazzite-portal bazaar plasma-discover gnome-software; do
+    path=$(command -v "$command" || true)
+    if [[ -n $path ]]; then
+        runuser -u ares -- test ! -x "$path"
+    fi
+done
+pass 'uupd, ujust, topgrade, the Bazzite updater/portal and the stores are not executable by ares'
+runuser -u ares -- test -x /usr/bin/flatpak
+runuser -u ares -- flatpak --version
+runuser -u ares -- test -x /usr/bin/brew
+pass 'flatpak and brew are executable by ares'
+while read -r unit; do
+    test "$(systemctl --root=/ is-enabled "$unit" 2>/dev/null || true)" = masked
+done < /usr/share/aresos/policy/masked-system-units.txt
+while read -r unit; do
+    test "$(systemctl --root=/ --global is-enabled "$unit" 2>/dev/null || true)" = masked
+done < /usr/share/aresos/policy/masked-user-units.txt
+for unit in flatpak-system-update.timer flatpak-system-update.service bootc-fetch-apply-updates.timer \
+    rpm-ostreed-automatic.timer uupd.timer fwupd-refresh.timer brew-update.timer brew-upgrade.timer; do
+    grep -qx "$unit" /usr/share/aresos/policy/masked-system-units.txt
+done
+for unit in flatpak-system-helper.service; do
+    test "$(systemctl --root=/ is-enabled "$unit" 2>/dev/null || true)" != masked
+done
+for unit in flatpak-portal.service flatpak-session-helper.service; do
+    test "$(systemctl --root=/ --global is-enabled "$unit" 2>/dev/null || true)" != masked
+done
+python3 /usr/libexec/aresos-audit --output /tmp/updaters.json
+pass 'automatic updaters masked; Flatpak helpers available; static updater audit passes'
+
+# --- Google Chrome from the image, under /usr, without a side updater.
+lock=/usr/share/aresos/manifest/google-chrome.lock.json
+test "$(rpm -q --qf '%{NEVRA}' google-chrome-stable)" = "$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["nevra"])' "$lock")"
+for command in google-chrome google-chrome-stable; do
+    test "$(readlink -f "/usr/bin/$command")" = /usr/lib/opt/google/chrome/google-chrome
+done
+test -x /usr/lib/opt/google/chrome/chrome
+stat -c '%a %U %n' /usr/lib/opt/google/chrome/chrome-sandbox
+test "$(stat -c '%a %u' /usr/lib/opt/google/chrome/chrome-sandbox)" = '4755 0'
+test ! -e /var/opt/google
+test ! -e /var/opt
+rpm -ql google-chrome-stable | grep '^/opt/google/' | sed 's|^/opt/|/usr/lib/opt/|' | while read -r file; do
+    test -e "$file" || test -L "$file"
+done
+pass 'Chrome NEVRA matches its pin; every packaged /opt file lives under /usr/lib/opt; commands point there'
+version=$(runuser -u ares -- env HOME=/tmp google-chrome --version)
+printf '%s\n' "$version"
+grep -Eq '^Google Chrome [0-9.]+' <<< "$version"
+pass "ares can run google-chrome: $version"
+systemd-tmpfiles --create /usr/lib/tmpfiles.d/aresos-google-chrome.conf
+test "$(readlink /var/opt/google)" = /usr/lib/opt/google
+test "$(readlink -f /opt/google/chrome/google-chrome)" = /usr/lib/opt/google/chrome/google-chrome
+runuser -u ares -- env HOME=/tmp /opt/google/chrome/google-chrome --version
+pass 'tmpfiles links /opt/google to the image copy'
+if grep -rlis 'dl.google.com\|google-chrome' /etc/yum.repos.d /etc/dnf /etc/zypp 2>/dev/null; then
+    echo 'A Google repository file exists'
+    exit 1
+fi
+if find /etc/cron.* /etc/crontab /etc/anacrontab /var/spool/cron -iname '*google*' 2>/dev/null | grep .; then
+    echo 'A Google cron job exists'
+    exit 1
+fi
+test ! -e /etc/cron.daily/google-chrome
+if rpm -q gpg-pubkey --qf '%{NAME}-%{VERSION}\n' | grep -i eb4c1bfd4f042f6dddccec917721f63bd38b4796; then
+    echo 'The image rpm database trusts Google'\''s key'
+    exit 1
+fi
+grep -qx 'repo_add_once="false"' /etc/default/google-chrome
+pass 'no Google repository, cron job or trusted key in the image'
+test -f /usr/share/applications/google-chrome.desktop
+grep -q '^Exec=/usr/bin/google-chrome-stable' /usr/share/applications/google-chrome.desktop
+handler=$(runuser -u ares -- env HOME=/var/home/ares XDG_CURRENT_DESKTOP=AresOS xdg-mime query default x-scheme-handler/https)
+test "$handler" = google-chrome.desktop
+handler=$(runuser -u ares -- env HOME=/var/home/ares XDG_CURRENT_DESKTOP=AresOS xdg-mime query default x-scheme-handler/http)
+test "$handler" = google-chrome.desktop
+pass 'xdg-open sends http and https links to Chrome in the AresOS session'
+test ! -e /etc/opt/chrome || test -d /etc/opt/chrome
+mkdir -p /etc/opt/chrome/policies/managed
+rmdir /etc/opt/chrome/policies/managed /etc/opt/chrome/policies
+pass '/etc/opt/chrome/policies can be created for the control layer'
+
+# --- The daily login shell: PATH, Homebrew through /usr/bin/brew, no Flatpak errors.
+# A stand-in for the stock administrator who owns the inherited Homebrew.
+useradd --uid 1000 --no-create-home --shell /sbin/nologin aresos-fixture-owner
+for stage in absent present; do
+    if [[ $stage == present ]]; then
+        # The inherited stock prefix, owned by UID 1000 and denied by an earlier image.
+        mkdir -p /var/home/linuxbrew/.linuxbrew/bin
+        printf '#!/bin/sh\nprintf "%%s\\n" "$*" >> /tmp/brew-calls\necho FIXTURE_BREW\n' > /var/home/linuxbrew/.linuxbrew/bin/brew
+        chmod 0755 /var/home/linuxbrew/.linuxbrew/bin/brew
+        touch /tmp/brew-calls
+        chmod 0666 /tmp/brew-calls
+        chown -R 1000:1000 /var/home/linuxbrew
+        setfacl -m u:1001:--- /var/home/linuxbrew
+        systemd-tmpfiles --create /usr/lib/tmpfiles.d/aresos-inherited-homebrew.conf
+        getfacl -n /var/home/linuxbrew | grep -qx 'user:1001:r-x'
+        runuser -u ares -- mkdir -p /var/home/ares/.local/share/flatpak/exports/bin
+    fi
+    runuser -l ares -c 'printf "%s\n" "$PATH"' > /tmp/login-path 2> /tmp/login-errors
+    cat /tmp/login-path /tmp/login-errors
+    test ! -s /tmp/login-errors
+    login_path=$(cat /tmp/login-path)
+    case $login_path in /var/home/ares/.local/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin*) ;; *) exit 1 ;; esac
+    if [[ $stage == present ]]; then
+        case :$login_path: in *:/usr/sbin:/home/linuxbrew/.linuxbrew/bin:*) ;; *) exit 1 ;; esac
+        case :$login_path: in *:/var/home/ares/.local/share/flatpak/exports/bin:*) ;; *) exit 1 ;; esac
+    else
+        case :$login_path: in *linuxbrew*) exit 1 ;; esac
+    fi
+    pass "daily login PATH with Homebrew $stage: $login_path (no errors printed)"
+done
+runuser -u ares -- env HOME=/var/home/ares /usr/lib/systemd/user-environment-generators/60-flatpak > /tmp/generator 2> /tmp/generator-errors
+test ! -s /tmp/generator-errors
+pass 'the 60-flatpak user environment generator runs for ares without errors'
+test "$(runuser -l ares -c 'command -v brew')" = /usr/bin/brew
+test "$(runuser -l ares -c 'brew --version')" = FIXTURE_BREW
+grep -qx -- '--version' /tmp/brew-calls
+expect_failure runuser -l ares -c 'brew install aresos-never-installed < /dev/null'
+grep -q 'Homebrew belongs to aresos-fixture-owner; sudo asks for your own password' <<< "$LAST_FAILURE"
+grep -Eq 'sudo: (a terminal is required|a password is required)' <<< "$LAST_FAILURE"
+if grep -q install /tmp/brew-calls; then
+    echo 'Homebrew ran an install for ares without a password'
+    exit 1
+fi
+test "$(stat -c %u /var/home/linuxbrew/.linuxbrew)" = 1000
+pass 'ares runs read-only brew directly; installs go through sudo as the prefix owner and fail without a password'
+
+# --- Terminal, keys, polkit agent, tools.
+grep -qx 'font=monospace:size=16' /etc/xdg/foot/foot.ini
+pass 'foot default font size 16 (a user foot.ini replaces this file)'
+grep -qx '/usr/libexec/kf6/polkit-kde-authentication-agent-1 &' /usr/share/aresos/labwc/autostart
+test -x /usr/libexec/kf6/polkit-kde-authentication-agent-1
+rpm -qf /usr/libexec/kf6/polkit-kde-authentication-agent-1
+pass 'the labwc session starts the base image polkit agent'
+python3 - <<'PY'
+import os, xml.etree.ElementTree as ET
+root = ET.parse('/usr/share/aresos/labwc/rc.xml').getroot()
+binds = {b.get('key'): b.find('action').get('command') for b in root.iter('keybind')}
+library = open(next(p for p in ('/usr/lib64/libxkbcommon.so.0',) if os.path.exists(p)), 'rb').read()
+for key in ('XF86MonBrightnessUp', 'XF86MonBrightnessDown', 'XF86AudioRaiseVolume', 'XF86AudioLowerVolume',
+            'XF86AudioMute', 'XF86AudioMicMute'):
+    command = binds[key].split()
+    assert os.access(command[0], os.X_OK), (key, command)
+    assert b'\0' + key.encode() + b'\0' in library, f'{key} is not a keysym name libxkbcommon knows'
+    print(key, '->', ' '.join(command))
+assert binds['W-C-Escape'] == '/usr/bin/aresos-terminal --recovery'
+PY
+pass 'brightness, volume, mute and mic-mute keys are bound to brightnessctl and wpctl; recovery terminal kept'
+for command in script qrencode brightnessctl wpctl; do
+    command -v "$command"
+done
+script --version
+qrencode -t UTF8 'AresOS' > /dev/null
+brightnessctl --version
+rpm -q util-linux-script qrencode brightnessctl
+pass 'script, qrencode and brightnessctl are installed'
+
+# --- Rootless containers: subordinate IDs, and the boot service that adds them.
+grep -x 'ares:524288:65536' /etc/subuid
+grep -x 'ares:524288:65536' /etc/subgid
+before=$(sha256sum /etc/subuid /etc/subgid)
+/usr/libexec/aresos-subids
+test "$(sha256sum /etc/subuid /etc/subgid)" = "$before"
+test "$(systemctl --root=/ is-enabled aresos-subids.service)" = enabled
+pass 'ares has subordinate ID ranges; the boot service is enabled and idempotent'
+
+set +x
+echo IMAGE_CHECKS_PASSED

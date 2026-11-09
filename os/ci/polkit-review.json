@@ -1,0 +1,25 @@
+{
+  "comment": "Package 21: what the daily account `ares` (in wheel, owner 2026-11-09) may do through polkit. polkit-check.js evaluates the built image's real rules against this.",
+  "os_change_prefixes": [
+    "org.projectatomic.rpmostree1.",
+    "org.freedesktop.sysupdate1.",
+    "org.freedesktop.fwupd.",
+    "org.bazzite."
+  ],
+  "reviewed_passwordless_wheel": {},
+  "probe_actions": [],
+  "expected": {
+    "org.freedesktop.Flatpak.app-install": {"rule": "auth_admin_keep", "without_wheel": "auth_admin_keep"},
+    "org.freedesktop.Flatpak.runtime-install": {"rule": "auth_admin_keep"},
+    "org.freedesktop.Flatpak.app-uninstall": {"rule": "auth_admin_keep"},
+    "org.freedesktop.Flatpak.app-update": {"rule": null, "effective": "yes"},
+    "org.freedesktop.systemd1.manage-unit-files": {"rule": null, "effective": "auth_admin_keep"},
+    "org.freedesktop.systemd1.manage-units": {"rule": null, "effective": "auth_admin_keep"},
+    "org.freedesktop.policykit.exec": {"rule": null, "effective": "auth_admin"},
+    "org.gtk.vfs.file-operations-helper": {"rule": "auth_admin_keep"},
+    "org.freedesktop.NetworkManager.settings.modify.system": {"rule": "auth_admin_keep"},
+    "org.projectatomic.rpmostree1.upgrade": {"rule": "no", "without_wheel": "no"},
+    "org.projectatomic.rpmostree1.rebase": {"rule": "no"},
+    "org.freedesktop.fwupd.update-internal": {"rule": "no"}
+  }
+}
