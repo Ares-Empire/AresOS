@@ -106,6 +106,26 @@ class Records(unittest.TestCase):
             with self.assertRaises(Refused): q.verify('record.json')
             self.assertEqual(runner.call_count, 1)
 
+    def test_runtime_verifier_uses_bounded_anonymous_bundle_lookup(self):
+        with tempfile.TemporaryDirectory(dir=WORK) as directory:
+            path = Path(directory)/'record.json'; path.write_text('{}')
+            payload = json.dumps({'attestations':[{'bundle':{'fixture':'untrusted bundle'}}]}).encode()
+            def runner(command, **kwargs):
+                if command[1] == '--version': return Mock(stdout='gh version 2.102.0')
+                bundle = Path(command[command.index('--bundle')+1])
+                self.assertEqual(json.loads(bundle.read_text()), {'fixture':'untrusted bundle'})
+                self.assertEqual(kwargs['env']['XDG_CACHE_HOME'], str(path.parent/'qualification-verifier-cache'))
+                return Mock()
+            with patch.object(q.subprocess, 'run', side_effect=runner), patch.object(q.urllib.request, 'urlopen', return_value=io.BytesIO(payload)) as transport:
+                q.verify(path)
+            request = transport.call_args.args[0]
+            self.assertTrue(request.full_url.startswith('https://api.github.com/'))
+            self.assertNotIn('Authorization', request.headers)
+            self.assertEqual(list(path.parent.glob('.qualification-bundle-*')), [])
+            for data in [b'{"attestations":[]}', b'x'*(4*1024*1024+1)]:
+                with patch.object(q.subprocess, 'run', return_value=Mock(stdout='gh version 2.102.0')), patch.object(q.urllib.request, 'urlopen', return_value=io.BytesIO(data)), self.assertRaises(Refused):
+                    q.verify(path)
+
 
 class Delivery(unittest.TestCase):
     def setUp(self):

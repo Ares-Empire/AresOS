@@ -25,6 +25,14 @@ def exercise(path, bundle, branch):
         qualification.accept(path, verifier)
         assert qualification.record() == candidate
         print('QUALIFICATION DELIVERY newer valid attested record used PASS', flush=True)
+        credentials = {key: os.environ.pop(key) for key in ['GH_TOKEN', 'GITHUB_TOKEN'] if key in os.environ}
+        try:
+            # Exercise the runtime default: public HTTPS lookup, no personal
+            # authentication, gh --bundle with the same source policy.
+            verify(path, branch=branch)
+        finally:
+            os.environ.update(credentials)
+        print('QUALIFICATION DELIVERY anonymous bundle lookup and verification PASS', flush=True)
         original = path.read_bytes()
         altered = copy.deepcopy(json.loads(bundle.read_text()))
         signature = altered['dsseEnvelope']['signatures'][0]['sig']

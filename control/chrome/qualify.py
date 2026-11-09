@@ -45,7 +45,7 @@ def packages(data):
 
 
 def plan(registry, versions, record, head, build):
-    if type(registry) is not dict or set(registry) != {'format', 'builds'} or registry['format'] != 1 or type(registry['builds']) is not list:
+    if type(registry) is not dict or set(registry) != {'format', 'builds'} or type(registry['format']) is not int or registry['format'] != 1 or type(registry['builds']) is not list:
         raise ValueError('Invalid shipped build registry')
     identities = set()
     dated = []

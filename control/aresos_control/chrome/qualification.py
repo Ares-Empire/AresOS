@@ -1,5 +1,6 @@
 """Signed, append-only qualification and per-build/per-major switches."""
 import json
+import hashlib
 import os
 from pathlib import Path
 import re
@@ -89,9 +90,28 @@ def verify(path, *, branch='main', bundle=None, workflow=WORKFLOW):
     command = ['gh', 'attestation', 'verify', str(path), '--repo', REPOSITORY,
                '--signer-workflow', REPOSITORY + '/' + workflow,
                '--source-ref', 'refs/heads/' + branch, '--deny-self-hosted-runners']
-    if bundle:
-        command += ['--bundle', str(bundle)]
-    subprocess.run(command, check=True, capture_output=True, timeout=30)
+    environment = {**os.environ, 'XDG_CACHE_HOME': str(Path(path).resolve().parent/'qualification-verifier-cache')}
+    if bundle is not None:
+        subprocess.run([*command, '--bundle', str(bundle)], check=True, capture_output=True, timeout=30, env=environment)
+        return
+    # Public repository delivery must work without the owner's GitHub login.
+    # Fetch untrusted bundles anonymously, then let gh verify their signatures
+    # and identity offline. An API response is never itself trusted evidence.
+    digest = hashlib.sha256(Path(path).read_bytes()).hexdigest()
+    request = urllib.request.Request(f'https://api.github.com/repos/{REPOSITORY}/attestations/sha256:{digest}?per_page=100',
+                                     headers={'Accept':'application/vnd.github+json', 'X-GitHub-Api-Version':'2022-11-28'})
+    with urllib.request.urlopen(request, timeout=10) as response:
+        data = response.read(4*1024*1024+1)
+    if len(data) > 4*1024*1024:
+        raise Refused('qualification_invalid', 'Qualification attestation exceeds the delivery bound.')
+    attestations = json.loads(data).get('attestations')
+    if not isinstance(attestations, list) or not attestations:
+        raise Refused('qualification_invalid', 'Qualification attestation is missing; held record retained.')
+    with storage_stream(tempfile.NamedTemporaryFile(dir=Path(path).parent, prefix='.qualification-bundle-', mode='w')) as temporary:
+        for attestation in attestations:
+            temporary.write(json.dumps(attestation['bundle'])+'\n')
+        temporary.flush()
+        subprocess.run([*command, '--bundle', temporary.name], check=True, capture_output=True, timeout=30, env=environment)
 
 
 class Qualification:
@@ -125,7 +145,7 @@ class Qualification:
                 data = stream.read(4 * 1024 * 1024 + 1)
             if len(data) > 4 * 1024 * 1024:
                 raise ValueError('Qualification exceeds delivery bound')
-            self.store.ledger.admit(len(data)+8192)
+            self.store.ledger.admit(len(data)+4*1024*1024+8192)
             fd,temporary=tempfile.mkstemp(dir=self.store.state_dir,prefix='.qualification-',suffix='.json')
             try:
                 with storage_stream(os.fdopen(fd,'wb')) as stream:
