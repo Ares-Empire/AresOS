@@ -7,6 +7,11 @@ on:
     branches: [main]
     paths: ['control/**', 'docs/control/TOOLS.md', 'reviews/20-chrome/**', '.github/workflows/control-chrome.yml']
   workflow_dispatch:
+    inputs:
+      injection_probe:
+        description: 'Run only the controlled-document injection experiment (not acceptance)'
+        type: boolean
+        default: false
   schedule:
     - cron: '19 4 * * *'
 permissions:
@@ -48,10 +53,11 @@ jobs:
         env:
           INSTALL_MODE: ${{ matrix.install }}
           QUALIFICATION_VERSION: ${{ steps.package.outputs.version }}
+          INJECTION_PROBE: ${{ inputs.injection_probe && 'true' || 'false' }}
         run: |
           set -euo pipefail
           mkdir -p .work/20-chrome/ci
-          timeout --signal=TERM --kill-after=30s 85m docker run --rm --network none --cap-add SYS_ADMIN --security-opt seccomp=unconfined --security-opt apparmor=unconfined --shm-size=512m -e INSTALL_MODE -e QUALIFICATION_VERSION -e GITHUB_RUN_ID -e GITHUB_SHA -v "$PWD/.work/20-chrome/ci:/out" aresos-chrome-fixture
+          timeout --signal=TERM --kill-after=30s 85m docker run --rm --network none --cap-add SYS_ADMIN --security-opt seccomp=unconfined --security-opt apparmor=unconfined --shm-size=512m -e INSTALL_MODE -e QUALIFICATION_VERSION -e INJECTION_PROBE -e GITHUB_RUN_ID -e GITHUB_SHA -v "$PWD/.work/20-chrome/ci:/out" aresos-chrome-fixture
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:

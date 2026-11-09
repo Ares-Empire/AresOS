@@ -3,7 +3,14 @@ import {generateKeyPairSync} from 'node:crypto';
 import {packageExtension} from '../packaging/pack.mjs';
 if(process.platform !== 'linux' || process.env.GITHUB_ACTIONS !== 'true' || !fs.existsSync('/.dockerenv'))throw Error('CI Linux container only');
 const pair=generateKeyPairSync('rsa',{modulusLength:2048});
-const result=packageExtension('/workspace/control/chrome/extension','/workspace/.work/20-package',pair.privateKey.export({type:'pkcs8',format:'pem'}));
+let extension='/workspace/control/chrome/extension';
+if(process.env.INJECTION_PROBE==='true'){
+  extension='/workspace/.work/20-probe-extension';fs.mkdirSync(extension,{recursive:true});
+  fs.writeFileSync(extension+'/manifest.json',JSON.stringify({manifest_version:3,name:'Controlled injection experiment',version:'1.0.0',permissions:['debugger','tabs','scripting'],host_permissions:['http://*.test/*'],background:{service_worker:'background.js'}}));
+  fs.copyFileSync('/workspace/control/chrome/ci/probe-background.js',extension+'/background.js');
+  fs.writeFileSync(extension+'/isolated.js',"globalThis.probePrivate=true;window.addEventListener('probe-event',event=>{event.preventDefault();event.stopImmediatePropagation();},true);");
+}
+const result=packageExtension(extension,'/workspace/.work/20-package',pair.privateKey.export({type:'pkcs8',format:'pem'}));
 fs.writeFileSync('/out/extension.json',JSON.stringify({id:result.id,version:result.version}));
 fs.mkdirSync('/etc/aresos/control',{recursive:true});
 fs.writeFileSync('/etc/aresos/control/chrome-excluded-sites.json',JSON.stringify({format:1,hosts:['approval.test']}),{mode:0o640});

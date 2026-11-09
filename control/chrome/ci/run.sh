@@ -10,6 +10,11 @@ if test -n "${QUALIFICATION_VERSION:-}"; then
   test "$(qualification-chrome --version | cut -d ' ' -f 3)" = "$QUALIFICATION_VERSION"
 fi
 python3 control/generate.py --check
+if test "${INJECTION_PROBE:-}" = true; then
+  node control/chrome/ci/prepare.mjs
+  runuser -u owner -- env GITHUB_ACTIONS=true dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1000x24' node control/chrome/ci/probe.mjs 2>&1 | tee /out/injection-probe.txt
+  exit
+fi
 python3 -m unittest discover -s control/chrome_tests -v 2>&1 | tee /out/python.txt
 node --test control/chrome_tests/*.test.mjs 2>&1 | tee /out/node.txt
 node control/chrome/ci/prepare.mjs
