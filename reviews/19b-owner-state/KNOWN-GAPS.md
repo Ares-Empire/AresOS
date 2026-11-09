@@ -1,5 +1,7 @@
 # Stage 1 known gaps
 
+The current executable pin is the round-2 pin described below; earlier sections retain their historical conversion and verification evidence.
+
 The list starts with Mail review 22's three blocking cases. They remain failures in production; stage 1 exposes them without changing their assertions.
 
 | Named assertion | Matrix row | Closing stage | Expected / observed |
@@ -77,3 +79,57 @@ Every exact assertion's row, closing stage, calls and missing/extra/page delta i
 **Run — deterministic caller input:** the first strict repetition at `92f587de` exposed random temporary-directory components in full audit deltas. `CALLER-REPLAY.json` proves that the two complete Linux captures agree exactly after replaying only the now-deterministic caller input in 2,380 assertions. `caller_name` preserves the original directory-name width, and `flock` isolates shared cases. The pin above has been replayed to those literal deterministic paths; counts, rows/stages, calls and pages are unchanged. The runtime comparator performs no path normalization and still rejects a wrong target. `caller_capture.py` is only an offline historical-capture converter; REPORT.md gives its replay command. Fresh CI artifacts already contain deterministic paths and use the ordinary regenerate/diff command above.
 
 **Run — strict verification:** base [42669403736](https://github.com/Ares-Empire/AresOS/actions/runs/42669403736), Mail [42669403515](https://github.com/Ares-Empire/AresOS/actions/runs/42669403515) and boundary [42669647155](https://github.com/Ares-Empire/AresOS/actions/runs/42669647155) passed base/boundary attempts 1 and 2 and Mail attempts 1 and 3 on `25dfdd63714bf80ef55ec4b106eac359f344a82b`. Every compact group matched both times; details and exact log lines are in REPORT.md.
+
+## Stage 1, fixes round 2 pin
+
+**Run:** merged all 17 full-list artifacts from Mail [42687523943](https://github.com/Ares-Empire/AresOS/actions/runs/42687523943), attempt 1, and base [42687524469](https://github.com/Ares-Empire/AresOS/actions/runs/42687524469), attempt 1, at `72d3ac77375594f867f0127a7939388c63121159`. Every worker completed all 32 flows and failed only at the superseded compact pin. This is a diagnostic capture. `LEDGER-CAPTURE-R2.json` pins its artifact hashes and resulting compact bytes.
+
+Current pin: **1,629,889 exact keys**, **44,857 stage 2 / 1,585,032 stage 3**, **1,716 groups / 868,337 bytes**. Compared with round 1: 48,348 added keys, 67,379 removed, 1,320,217 retained keys with changed deltas. Required recovery obligations replace incorrect old expectations of an empty catalogue; additional expiry, probe, metadata and final-response proofs expose new gaps. Archive clock input is corrected (353 discovered points versus 356), with no other flow's point count changed. REPORT.md explains these changes and the validation-only app/action guard added after capture. No production gap is claimed closed, and no comparison is skipped or weakened.
+
+| Flow / suite | Stage 2 | Stage 3 |
+| --- | ---: | ---: |
+| `G22-evidence` | 0 | 1 |
+| `G22-latch` | 0 | 1 |
+| `G22-rename` | 0 | 1 |
+| `archive` | 0 | 56,152 |
+| `attachment_export` | 0 | 67,394 |
+| `cancel` | 0 | 10,224 |
+| `channel` | 0 | 2 |
+| `contract` | 16 | 356 |
+| `delete_permanent` | 3,131 | 65,766 |
+| `delete_trash` | 1,879 | 42,564 |
+| `draft_append` | 629 | 8,137 |
+| `expiry` | 0 | 12,211 |
+| `export_rollback` | 0 | 75,238 |
+| `filing_copy` | 0 | 67,721 |
+| `filing_move` | 0 | 67,721 |
+| `filing_rename` | 1,134 | 32,508 |
+| `flag` | 594 | 7,721 |
+| `folder_create` | 594 | 7,721 |
+| `folder_delete` | 1,234 | 30,819 |
+| `folder_review` | 889 | 14,281 |
+| `maintenance` | 0 | 6,303 |
+| `onboarding` | 19,883 | 334,922 |
+| `password` | 1 | 1,961 |
+| `repair` | 1,908 | 82,460 |
+| `restore` | 0 | 17,287 |
+| `send` | 4,865 | 160,393 |
+| `settings` | 924 | 14,281 |
+| `settlement` | 0 | 31,777 |
+| `status` | 0 | 22,587 |
+| `testapp_config` | 721 | 7,844 |
+| `testapp_delete` | 0 | 39,100 |
+| `testapp_export` | 0 | 20,227 |
+| `testapp_send` | 0 | 58,118 |
+| `unsubscribe_https` | 1,253 | 54,165 |
+| `unsubscribe_mailto` | 5,202 | 167,068 |
+
+Regenerate the complete actual list and compact pin from the downloaded artifacts:
+
+```sh
+PYTHONPATH=control python3 -m owner_state_oracle.gaps .work/19b-round2/capture/*/*/owner-gaps-*.json.gz --full --output .work/19b-round2/actual-full.json
+PYTHONPATH=control python3 -m owner_state_oracle.gaps .work/19b-round2/actual-full.json --output .work/19b-round2/actual-compact.json
+diff -u reviews/19b-owner-state/KNOWN-GAPS.json .work/19b-round2/actual-compact.json
+```
+
+The compact checker still covers every exact key, row, stage, call, missing/extra fact and page position. Final strict workflow evidence is in REPORT.md; captures and the earlier cancelled snapshots are not green verification.
