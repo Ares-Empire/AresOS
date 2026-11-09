@@ -47,15 +47,16 @@ pass 'sudo as ares fails without a password'
 # A successful sudo must leave nothing a later command can reuse, not even a
 # child of the same shell that execs sudo -n (review 1). The throwaway
 # password exists only in this check container and is kept out of the trace.
+install -m 0600 -o ares -g ares /dev/null /tmp/reuse-password
 set +x
-reuse_password=$(head -c 18 /dev/urandom | base64)
-printf 'ares:%s\n' "$reuse_password" | chpasswd
+head -c 18 /dev/urandom | base64 > /tmp/reuse-password
+printf 'ares:%s\n' "$(cat /tmp/reuse-password)" | chpasswd
 set -x
 reuse_probe() {
     # One shell authenticates once; then a child keeps that shell as the
     # parent of sudo -n, as `exec` from a program it started would.
-    runuser -u ares -- env REUSE_PASSWORD="$reuse_password" /usr/bin/bash -c '
-        printf "%s\n" "$REUSE_PASSWORD" | sudo -S -p "" true || exit 90
+    runuser -u ares -- /usr/bin/bash -c '
+        sudo -S -p "" true < /tmp/reuse-password || exit 90
         /usr/bin/bash -c "exec sudo -n true"
     '
 }
@@ -72,6 +73,7 @@ expect_failure reuse_probe
 test "$LAST_STATUS" = 1
 grep -q 'a password is required' <<< "$LAST_FAILURE"
 usermod -p '!*' ares
+rm /tmp/reuse-password
 test "$(getent shadow ares | cut -d: -f2)" = '!*'
 pass 'after a successful sudo, a child exec of sudo -n is refused (the old ppid ticket allowed it)'
 
