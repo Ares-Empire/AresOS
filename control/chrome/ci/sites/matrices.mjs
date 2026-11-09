@@ -109,6 +109,11 @@ export async function siteMatrices({call,read,nav,target,counts,eventually,tab,f
     const id=await fresh('github'),star=await call('click',await target('Star'));assert.ok(!star.approval);await eventually(()=>counts(receiver(id,'Star'))===1,'free star');
     for(const field of ['account','context','text','preview','attachments'])await refusedAfterChange('github',field,'Comment');
   });
+  await check('GROUP 10 ADAPTER clear merge settings and sharing variants stay guarded',async()=>{
+    for(const [site,labels]of [['github',['Squash and merge','Rebase and merge','Confirm merge','Close this issue','Update settings','Add comment','Unstar repository']],['gemini',['Share conversation','Share','Delete conversation']],['deezer',['Share album','Share artist','Share to a contact','Unlike track','Unfollow artist']]])for(const label of labels){
+      const id=await fresh(site),prepared=await call('click',await target(label));assert.equal(evidence(receiver(id,label),'alias before approval').count,0);assert.ok(state(prepared).adapter);await denyTrust(prepared.approval,receiver(id,label));await approved(prepared,receiver(id,label));
+    }
+  });
   await check('GROUP 4 ADAPTER every named GitHub confirmation mismatch',async()=>{
     for(const label of ['Merge pull request','Close issue','Close pull request','Delete branch','Delete tag','Delete repository','Save settings'])for(const mismatch of ['kind','text','frame','site','button','twice']){
       const id=await fresh('github','&mismatch='+mismatch),key=receiver(id,label),prepared=await call('click',await target(label));assert.ok(prepared.approval.description.untrusted_content.confirmation);

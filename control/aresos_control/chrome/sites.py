@@ -1,4 +1,5 @@
 """Versioned page semantics. Incomplete or unfamiliar pages use the generic rules."""
+import re
 from urllib.parse import urlsplit
 
 from ..common import digest
@@ -82,6 +83,7 @@ def recognize(url, reading, target, verb, args, hosts=None, enabled=None):
     if not isinstance(reading, dict) or not isinstance(target, dict):
         return None
     label = target.get('name', '').casefold().strip()
+    label_words = set(re.findall(r'\w+', label))
     key = args.get('key', '') if verb == 'press' else ''
     activation = verb == 'click' or verb == 'press' and key in {'Enter', 'Space', ' '}
     editing = target.get('editable', False)
@@ -109,10 +111,10 @@ def recognize(url, reading, target, verb, args, hosts=None, enabled=None):
     elif site == 'gemini' and scoped and account:
         if text and (activation and not editing and label in {'send', 'send message', 'submit', 'senden'} or editing and key == 'Enter'):
             result = {'kind': 'gemini_question', 'effect': 'send', 'parameters': {}}
-        elif activation and not editing and label in {'delete chat', 'chat löschen', 'share chat', 'chat teilen'}:
+        elif activation and not editing and label_words & {'delete', 'löschen', 'share', 'teilen'}:
             result = {'kind': 'gemini_chat', 'effect': 'delete' if listed(label) & DELETE else 'send', 'parameters': {}}
     elif site == 'github' and scoped and account and reading.get('context') and activation and not editing:
-        if label in {'star', 'unstar'}:
+        if label in {'star', 'unstar'} or 'unstar' in label_words:
             result = {'kind': 'github_star', 'effect': 'change' if label == 'star' else 'delete',
                       'parameters': {'repository': reading['context']}}
         elif label in GITHUB_ACTIONS:
@@ -122,12 +124,18 @@ def recognize(url, reading, target, verb, args, hosts=None, enabled=None):
                 if confirmation:
                     result['confirmation'] = {'kind': 'confirm', 'text': confirmation.format(context=reading['context']),
                                               'frame_url': url, 'button': 'OK'}
+        elif listed(label) or label_words & {'merge', 'close', 'review', 'settings'} and 'help' not in label_words:
+            # Keep sends such as “Squash and merge” guarded even when their exact
+            # dialog sequence isn't one of the fixed plans above.
+            words = listed(label)
+            result = {'kind': 'github_action', 'effect': 'delete' if words & DELETE else 'pay' if words & PAY else 'send',
+                      'parameters': {'context': reading['context'], 'action': target['name']}}
     elif site == 'deezer' and scoped and activation and not editing:
         if label in DEEZER_FREE and not target.get('submit'):
             result = {'kind': 'deezer_library', 'effect': 'change', 'parameters': {}}
-        elif label in DEEZER_REMOVE or listed(label) or label in {'share', 'share track', 'share playlist', 'teilen'}:
+        elif label in DEEZER_REMOVE or listed(label) or label_words & {'share', 'teilen', 'unlike', 'unfollow'}:
             words = listed(label)
-            result = {'kind': 'deezer_action', 'effect': 'delete' if label in DEEZER_REMOVE or words & DELETE else 'pay' if words & PAY else 'send', 'parameters': {}}
+            result = {'kind': 'deezer_action', 'effect': 'delete' if label in DEEZER_REMOVE or label_words & {'unlike', 'unfollow'} or words & DELETE else 'pay' if words & PAY else 'send', 'parameters': {}}
     if result is None:
         return None
     result = common | result

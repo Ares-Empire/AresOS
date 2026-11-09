@@ -132,6 +132,18 @@ class SiteSemantics(unittest.TestCase):
             result = semantic('gemini', label)
             self.assertEqual(result['effect'], effect); self.assertFalse(result['trusted'])
 
+    def test_clear_merge_close_settings_and_share_variants_remain_guarded(self):
+        for site, labels in [('github', ['Squash and merge', 'Rebase and merge', 'Confirm merge', 'Close this issue', 'Update settings', 'Add comment', 'Unstar repository']),
+                             ('gemini', ['Share conversation', 'Share', 'Delete conversation']),
+                             ('deezer', ['Share album', 'Share artist', 'Share to a contact', 'Unlike track', 'Unfollow artist'])]:
+            for label in labels:
+                result = semantic(site, label)
+                self.assertIsNotNone(result, (site, label))
+                self.assertEqual(result['effect'], 'delete' if label.startswith(('Delete', 'Unlike', 'Unfollow', 'Unstar')) else 'send')
+                self.assertFalse(result['trusted'])
+        for site in ['gemini', 'deezer']:
+            self.assertIsNone(semantic(site, 'Shareability help'))
+
     def test_deezer_removals_and_free_playback_cannot_exempt_a_form(self):
         for label in ['Play', 'Pause', 'Skip', 'Next', 'Previous', 'Seek', 'Volume', 'Queue', 'Like', 'Follow', 'Add to playlist', 'Add to library']:
             self.assertEqual(semantic('deezer', label)['effect'], 'change', label)
