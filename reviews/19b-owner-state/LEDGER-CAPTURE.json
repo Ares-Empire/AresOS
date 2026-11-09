@@ -1,0 +1,230 @@
+{
+  "assertions": 1648920,
+  "base_run": 42657093657,
+  "by_suite": {
+    "G22-evidence": {
+      "3": 1
+    },
+    "G22-latch": {
+      "3": 1
+    },
+    "G22-rename": {
+      "3": 1
+    },
+    "archive": {
+      "3": 58409
+    },
+    "attachment_export": {
+      "3": 74755
+    },
+    "cancel": {
+      "3": 10149
+    },
+    "channel": {
+      "3": 2
+    },
+    "contract": {
+      "2": 16,
+      "3": 348
+    },
+    "delete_permanent": {
+      "2": 3131,
+      "3": 65571
+    },
+    "delete_trash": {
+      "2": 1879,
+      "3": 42519
+    },
+    "draft_append": {
+      "2": 629,
+      "3": 8061
+    },
+    "expiry": {
+      "3": 11508
+    },
+    "export_rollback": {
+      "3": 84481
+    },
+    "filing_copy": {
+      "3": 67373
+    },
+    "filing_move": {
+      "3": 67373
+    },
+    "filing_rename": {
+      "2": 1134,
+      "3": 32296
+    },
+    "flag": {
+      "2": 594,
+      "3": 7656
+    },
+    "folder_create": {
+      "2": 594,
+      "3": 7656
+    },
+    "folder_delete": {
+      "2": 1234,
+      "3": 30850
+    },
+    "folder_review": {
+      "2": 889,
+      "3": 16512
+    },
+    "maintenance": {
+      "3": 6303
+    },
+    "onboarding": {
+      "2": 19883,
+      "3": 334740
+    },
+    "password": {
+      "2": 1,
+      "3": 1896
+    },
+    "repair": {
+      "2": 1908,
+      "3": 82005
+    },
+    "restore": {
+      "3": 17110
+    },
+    "send": {
+      "2": 4865,
+      "3": 159407
+    },
+    "settings": {
+      "2": 924,
+      "3": 14140
+    },
+    "settlement": {
+      "3": 31622
+    },
+    "status": {
+      "3": 22587
+    },
+    "testapp_config": {
+      "2": 721,
+      "3": 7779
+    },
+    "testapp_delete": {
+      "3": 38962
+    },
+    "testapp_export": {
+      "3": 24021
+    },
+    "testapp_send": {
+      "3": 57842
+    },
+    "unsubscribe_https": {
+      "2": 1253,
+      "3": 54045
+    },
+    "unsubscribe_mailto": {
+      "2": 5202,
+      "3": 166082
+    }
+  },
+  "bytes": 858685,
+  "delta_from_original": {
+    "added": 1012928,
+    "changed": 544176,
+    "removed": 39570
+  },
+  "files": [
+    {
+      "assertions": 2,
+      "path": "base/owner-gaps-channel-0-0.json.gz",
+      "sha256": "7035a5e08f5a910c8a3c086cd86a11080b66f0b899d391c92a8ca367b9ea10e3"
+    },
+    {
+      "assertions": 1,
+      "path": "suite/owner-gaps-G22-evidence-0-0.json.gz",
+      "sha256": "39c6b0da8aa64d94e8f150c2312334903e360bad60012afed58186eb4f26ff78"
+    },
+    {
+      "assertions": 1,
+      "path": "suite/owner-gaps-G22-latch-0-0.json.gz",
+      "sha256": "c1203b5a0adafa3b97bf6bc1472ea0e75fce44f8990f7d1cfcbdf44eab1ef24b"
+    },
+    {
+      "assertions": 1,
+      "path": "suite/owner-gaps-G22-rename-0-0.json.gz",
+      "sha256": "8e3f9d1a8f486273329832b98e64d0a9a14dddb80c50b340e978c2a72b85a078"
+    },
+    {
+      "assertions": 364,
+      "path": "suite/owner-gaps-contract-0-0.json.gz",
+      "sha256": "595b86f788f0b4c09a0173569e0deeee0b06340bc63ed6f6f44a59675fe634d5"
+    },
+    {
+      "assertions": 127957,
+      "path": "sweep-0/owner-gaps-sweep-0-0.json.gz",
+      "sha256": "e90eb22c027dabd706059f1a057e474333c6bc687b43f8a7938feff8c35dbe14"
+    },
+    {
+      "assertions": 143732,
+      "path": "sweep-0/owner-gaps-sweep-0-1.json.gz",
+      "sha256": "8d49e944fe22778dad562323d86b8687f862c1b57a2c55f3f6768c6188752026"
+    },
+    {
+      "assertions": 142578,
+      "path": "sweep-0/owner-gaps-sweep-0-2.json.gz",
+      "sha256": "ad3b1e02b001657e4ee27a4000fe9c18116d1f88b2d956db51c7b0cbe4164289"
+    },
+    {
+      "assertions": 127011,
+      "path": "sweep-1/owner-gaps-sweep-1-0.json.gz",
+      "sha256": "dd63187c5ac8510107efea90b7883f2240e66fb054d294b3133e21828b193aad"
+    },
+    {
+      "assertions": 141020,
+      "path": "sweep-1/owner-gaps-sweep-1-1.json.gz",
+      "sha256": "9471353d69023322b8beeb76aec77ced53cdcfe5094a7db80c29878c337374ae"
+    },
+    {
+      "assertions": 131414,
+      "path": "sweep-1/owner-gaps-sweep-1-2.json.gz",
+      "sha256": "6b4c9582fa3b7584ab12b9bc3b7a869c4410d12ad3c69d77c2cad7e138b3d25e"
+    },
+    {
+      "assertions": 148684,
+      "path": "sweep-2/owner-gaps-sweep-2-0.json.gz",
+      "sha256": "3dc70ec42345d5faab07b0cde976aea270b94a8e9cc130ae451b1b1d51f58bbb"
+    },
+    {
+      "assertions": 132511,
+      "path": "sweep-2/owner-gaps-sweep-2-1.json.gz",
+      "sha256": "d58e2f92cab4e3598c876436b11594c339f82ed630cb4dbb7f7ee5e1a86c5086"
+    },
+    {
+      "assertions": 133555,
+      "path": "sweep-2/owner-gaps-sweep-2-2.json.gz",
+      "sha256": "4cf692fb692863da04518004e20fd8c762857d26893ada3b586505a4039bd370"
+    },
+    {
+      "assertions": 139583,
+      "path": "sweep-3/owner-gaps-sweep-3-0.json.gz",
+      "sha256": "633cdb351492a01ab8f533425ff04c785569a2c33232961c6d2563d779eba3be"
+    },
+    {
+      "assertions": 148063,
+      "path": "sweep-3/owner-gaps-sweep-3-1.json.gz",
+      "sha256": "2af6a0eee7757077dca133dd3e2965a6dee41c24700d5b0c7c4e40edbad6be65"
+    },
+    {
+      "assertions": 133037,
+      "path": "sweep-3/owner-gaps-sweep-3-2.json.gz",
+      "sha256": "7301f7d07b30e95742f5110ad24c92027ab7f5510854de2b736cbe6a190345c9"
+    }
+  ],
+  "groups": 1697,
+  "ledger_sha256": "77c5af11abcbf374bdd4d5b11eb2c3ba4488184a349c2393d9296e72f47d56fc",
+  "mail_run": 42657094358,
+  "source": "0b6cfec6b2439b1141ad08addc2fc4913e2a960c",
+  "stages": {
+    "2": 44857,
+    "3": 1604063
+  },
+  "workers": 12
+}

@@ -28,48 +28,48 @@ The corrected pin replaces full local repair, settlement, filing move/copy/renam
 
 The original 115 non-sweep entries came from diagnostic Mail run [42613046233](https://github.com/Ares-Empire/AresOS/actions/runs/42613046233) and installed-channel base run [42613046019](https://github.com/Ares-Empire/AresOS/actions/runs/42613046019); the single corrected contract entry is identified above. HTTPS POST context failures remain assigned M04. Diagnostics never count as passing verification.
 
-There are **675,562 assertion-specific failures**, stored in **1,501 exact delta groups**: **44,856 for stage 2**, **630,706 for stage 3**. These counts include repeated fault sites and independent public views; they are not counts of distinct root causes.
+## Stage 1, fixes round 1 pin
 
-Stage 2 failures concern exact context committed before each attempted mutation. Stage 3 failures concern disclosure from durable records during SQLite failure, current holds/generation/refusals, retained evidence and warning lifecycle, and each view's own continuation. The list deliberately stays nonempty at this stopping point. Stages 2 and 3 must remove entries as their exact assertions begin passing.
+**Run:** the completed Linux capture is Mail [42657094358](https://github.com/Ares-Empire/AresOS/actions/runs/42657094358), attempt 1, source `0b6cfec6`; installed-channel data is from base [42657093657](https://github.com/Ares-Empire/AresOS/actions/runs/42657093657), attempt 1. All twelve workers ran all 32 flows. Each worker's only failing test was its final comparison to the superseded pin; the inherited sweeps passed. The suite's 316 tests and the base's 207 tests passed. This is capture evidence, not strict green verification.
+
+The merged full lists agree on every shared clean key. Every nonshared key belongs to exactly its worker; all twelve owners and all five dedicated suite/named prefixes are present. `LEDGER-CAPTURE.json` records artifact hashes, counts and the committed ledger hash. The pin contains **1,648,920 exact assertion failures**, **44,857 for stage 2** and **1,604,063 for stage 3**, in **1,697 groups / 858,685 bytes**. Relative to the original full list, 1,012,928 keys were added, 39,570 removed and 544,176 retained keys changed their exact row/stage/delta. The many added keys primarily come from per-response envelopes and read-status checks; corrected background, lifecycle, binding, qualification and audit expectations also change or remove earlier incorrect deltas. These are changes in oracle coverage and correctness, not production gap closure.
 
 | Flow / suite owner | Stage 2 assertions | Stage 3 assertions |
 | --- | ---: | ---: |
-| `G22-rename` | 0 | 1 |
 | `G22-evidence` | 0 | 1 |
 | `G22-latch` | 0 | 1 |
-| `send` | 4,865 | 59,495 |
-| `repair` | 1,908 | 33,922 |
-| `delete_trash` | 1,879 | 16,551 |
-| `delete_permanent` | 3,131 | 25,421 |
-| `unsubscribe_mailto` | 5,202 | 61,716 |
-| `unsubscribe_https` | 1,253 | 20,986 |
-| `status` | 0 | 8,141 |
-| `settlement` | 0 | 14,013 |
-| `cancel` | 0 | 1,922 |
-| `restore` | 0 | 7,518 |
-| `attachment_export` | 0 | 34,630 |
-| `testapp_export` | 0 | 8,291 |
-| `password` | 1 | 1,504 |
-| `filing_move` | 0 | 28,942 |
-| `filing_copy` | 0 | 28,942 |
-| `filing_rename` | 1,134 | 14,812 |
-| `expiry` | 0 | 4,396 |
-| `maintenance` | 0 | 2,701 |
-| `restart_index` | 0 | 0 |
-| `restart_tail` | 0 | 0 |
-| `export_rollback` | 0 | 37,356 |
-| `archive` | 0 | 13,201 |
-| `draft_append` | 629 | 5,621 |
-| `folder_create` | 594 | 5,364 |
-| `folder_delete` | 1,234 | 12,041 |
-| `onboarding` | 19,883 | 125,135 |
-| `flag` | 594 | 5,364 |
-| `settings` | 924 | 8,792 |
-| `folder_review` | 889 | 8,792 |
-| `testapp_send` | 0 | 18,116 |
-| `testapp_delete` | 0 | 12,673 |
-| `testapp_config` | 721 | 4,248 |
-| `contract` | 15 | 95 |
+| `G22-rename` | 0 | 1 |
+| `archive` | 0 | 58,409 |
+| `attachment_export` | 0 | 74,755 |
+| `cancel` | 0 | 10,149 |
 | `channel` | 0 | 2 |
+| `contract` | 16 | 348 |
+| `delete_permanent` | 3,131 | 65,571 |
+| `delete_trash` | 1,879 | 42,519 |
+| `draft_append` | 629 | 8,061 |
+| `expiry` | 0 | 11,508 |
+| `export_rollback` | 0 | 84,481 |
+| `filing_copy` | 0 | 67,373 |
+| `filing_move` | 0 | 67,373 |
+| `filing_rename` | 1,134 | 32,296 |
+| `flag` | 594 | 7,656 |
+| `folder_create` | 594 | 7,656 |
+| `folder_delete` | 1,234 | 30,850 |
+| `folder_review` | 889 | 16,512 |
+| `maintenance` | 0 | 6,303 |
+| `onboarding` | 19,883 | 334,740 |
+| `password` | 1 | 1,896 |
+| `repair` | 1,908 | 82,005 |
+| `restore` | 0 | 17,110 |
+| `send` | 4,865 | 159,407 |
+| `settings` | 924 | 14,140 |
+| `settlement` | 0 | 31,622 |
+| `status` | 0 | 22,587 |
+| `testapp_config` | 721 | 7,779 |
+| `testapp_delete` | 0 | 38,962 |
+| `testapp_export` | 0 | 24,021 |
+| `testapp_send` | 0 | 57,842 |
+| `unsubscribe_https` | 1,253 | 54,045 |
+| `unsubscribe_mailto` | 5,202 | 166,082 |
 
-Every key names its matrix row and closing stage in JSON. COVERAGE.md maps every row to its executable cases, including rows whose focused cases currently pass. No production gap is claimed closed in stage 1.
+Every exact assertion's row, closing stage, calls and missing/extra/page delta is covered by its group's digest. The full lists are generated only under `.work/` and uploaded as artifacts. Nothing is skipped; a changed digest/count/group, unexpected pass, unlisted failure or unexecuted owned group fails. Remaining stage-2 gaps concern pre-command context; stage-3 gaps concern durable disclosure, lifecycle and current refusals. The list intentionally remains nonempty at this stage-1 stopping point.
