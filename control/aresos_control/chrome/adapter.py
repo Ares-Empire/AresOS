@@ -1,4 +1,5 @@
 """Chrome on the shared Adapter/Engine: prepare first, dispatch once, never replay."""
+import base64
 import copy
 import json
 from pathlib import Path
@@ -42,8 +43,11 @@ class Chrome:
 
     def __init__(self, engine, build=None, record=None):
         self.engine, self.store, self.blobs = engine, engine.store, engine.blobs
+        self.process_session = uuid.uuid4().hex
         self.bridge = Bridge()
+        self.bridge.on_event = self.event
         self.hosts = HOSTS
+        self.upload_dir = Path("/run/aresos-tools/uploads")
         if build is None:
             installed = RUNTIME / 'chrome' / 'build-id.json'
             if installed.exists():
@@ -55,6 +59,26 @@ class Chrome:
                 build = module.build_hash()
         shipped = record if record is not None else json.loads((RUNTIME / 'chrome' / 'qualification.json').read_text())
         self.qualification = Qualification(self.store, build, shipped)
+
+    def event(self, event):
+        if event.get('event') == 'released':
+            for key, operation in self.store.iter_items('op:'):
+                context = operation.get('payload', {}).get('binding', {})
+                if operation['app'] == 'chrome' and operation['state'] == 'reserved' and context.get('session') == event.get('session') and context.get('tab') == event.get('tab'):
+                    operation.update(state='failed', reason='Control ended; prepared input was dropped without dispatch.', notice=True)
+                    self.store.write({key:operation}, 'chrome_operation_cancel', 'Chrome control ended; operation dropped', operation['id'])
+        elif event.get('event') == 'owner_sites':
+            try:
+                result = self.engine.request({'v':1,'method':'call','action':'chrome_sites','arguments':event['arguments']},admin=True)
+            except Exception:
+                result = {'ok':False,'error':{'code':'refused','message':'Owner list unavailable; use the admin command.'}}
+            if self.bridge.connection:
+                from ..protocol import send
+                send(self.bridge.connection, {'owner_reply':event['request_id'],'result':result})
+        elif event.get('event') == 'audit':
+            sink = getattr(self.bridge, 'audit_sink', None)
+            if sink is not None:
+                sink(event['data'])
 
     def mode(self, acting=False):
         if not self.bridge.version:
@@ -106,14 +130,14 @@ class Chrome:
                     continue
                 reference = {'session':facts['session'],'tab':facts['tab'],'frame':frame['frame'],'document':frame['document'],'view':token,'element':row['element']}
                 rows.append({'reference':reference,'expected':{k:v for k,v in row.items() if k != 'text'},'text':row.get('text','')})
-        lines = [canonical(row) for row in rows]
+        lines = [canonical(visible(row)) for row in rows]
         tree = '\n'.join(lines) or '(empty readable page)'
         offset, end, cursor, status = fragment_window(token, len(tree), args.get('cursor'), 16000)
         # Unlike catalogue paging, a page-view cursor must never silently restart.
         if status:
             raise Refused('stale_reference', 'Page changed; read again without the cursor.')
         return {'tab':facts['tab'],'document':[(frame['frame'],frame['document']) for frame in facts['frames']],
-                'untrusted_content':{'url':facts['url'],'title':facts['title'],'tree':tree[offset:end]},
+                'untrusted_content':{'url':visible(facts['url']),'title':visible(facts['title']),'tree':tree[offset:end]},
                 'view':token,'characters':len(tree),'offset':offset,'cursor':cursor,'version_notice':mode['notice']}
 
     def prepare(self, verb, payload):
@@ -127,12 +151,19 @@ class Chrome:
     def question(self, verb, description):
         data = description['untrusted_content']
         state = data['page_state']
+        if state.get('dialog'):
+            dialog=state['dialog']
+            return f"On {state['url']}, as the page shows it, {'accept' if data['input'].get('accept') else 'dismiss'} {dialog['kind']} '{dialog['text']}' from frame {dialog['frame']}?"
         target = state.get('target', {})
         site = state.get('frame_url', state.get('url', ''))
         label = target.get('name') or data['input'].get('key') or data['input']['verb']
         summary = f"On {site}, as the page shows it, activate '{label}'"
         adapter = state.get('adapter')
         if adapter:
+            if payload_kind := adapter.get('target'):
+                summary += f" ('{payload_kind}')"
+            if adapter.get('context'):
+                summary += f" for '{adapter['context']}'"
             if adapter.get('account'):
                 summary += f" as '{adapter['account']}'"
             if adapter.get('chat'):
@@ -155,6 +186,8 @@ class Chrome:
 
     def revalidate(self, operation):
         mode = self.mode(acting=True)
+        if operation['payload'].get('process_session') != self.process_session:
+            raise Refused('stale_approval', 'Chrome service restarted; drop this preparation, read and prepare again.')
         site_adapter = operation['payload'].get('adapter')
         if site_adapter and not mode['adapters'].get(site_adapter['site']):
             raise Refused('stale_approval', 'The site adapter is no longer qualified; prepare again under the generic rules.')
@@ -185,6 +218,15 @@ class Chrome:
     def execute(self, operation, stage):
         payload = operation['payload']
         command = self.command(payload, operation['id'])
+        if payload.get('file'):
+            from .uploads import copy_for_browser
+            data, path = copy_for_browser(self, payload['file'])
+            for offset in range(0,len(data),512*1024):
+                self.bridge.call('stage_file',reference=payload['reference'],token=operation['id'],offset=offset,
+                                 bytes=base64.b64encode(data[offset:offset+512*1024]).decode(),file=payload['file'])
+            if not data:
+                self.bridge.call('stage_file',reference=payload['reference'],token=operation['id'],offset=0,bytes='',file=payload['file'])
+            command['upload'] = {'token':operation['id'],'file':payload['file']}
         try:
             reply = self.bridge.call(**command)
         except Refused as exc:
@@ -198,6 +240,8 @@ class Chrome:
         return 'done', 'Dispatched once, as the page shows it; this does not prove what the site did.'
 
     def command(self, payload, operation=None):
+        if payload.get('native_dialog'):
+            return {'name':'dialog','tab':payload['reference']['tab'],'binding':payload['binding'],'input':payload['input'],'operation':operation}
         return {'name':'resume' if payload.get('resume_kind') else 'input',
                 'reference':payload['reference'],'tab':payload['reference']['tab'],'input':payload['input'],
                 'kind':payload['kind'],'adapter':bool(payload.get('adapter')),'binding':payload['binding'],
@@ -206,7 +250,7 @@ class Chrome:
     def payload(self, verb, args, *, hold=None):
         mode = self.mode(acting=True)
         facts, frame = self.facts(args['reference'])
-        if args.get('expected') is not None and args['expected'] != frame['target']:
+        if args.get('expected') is not None and args['expected'] != visible(frame['target']):
             raise Refused('stale_reference', 'Element no longer holds its expected state; read again.')
         readonly = self.store.get('chrome:readonly:' + (urlsplit(frame['url']).hostname or ''), False)
         adapter = recognize(frame['url'], frame['adapter'], frame['target'], verb, args, self.hosts, mode['adapters'])
@@ -220,7 +264,7 @@ class Chrome:
                 raise Refused('refused', "Can't tell what this sends: no editable text. Use an adapter or the owner's own click.")
         if state.get('item') is not None and len(state['item']) > 8000:
             raise Refused('asking_input_too_large', 'The affected item is too large to show whole; use a smaller item or the owner.')
-        result = {'reference':args['reference'],'input':{'verb':verb,**{k:v for k,v in args.items() if k not in {'reference','expected','file','path'}}},
+        result = {'process_session':self.process_session, 'reference':args['reference'],'input':{'verb':verb,**{k:v for k,v in args.items() if k not in {'reference','expected','file','path'}}},
                   'kind':kind,'adapter':adapter,'binding':state}
         if hold:
             result.update(hold=hold['id'],resume_kind=hold['kind'])
@@ -284,7 +328,7 @@ class Chrome:
     def sites(self, args):
         command = args['command']
         if command == 'list':
-            return {'untrusted_content':{'readonly':self.store.items('chrome:readonly:'),'allowed':self.store.items('chrome:allow:')}}
+            return {'untrusted_content':{'readonly':self.store.items('chrome:readonly:'),'allowed':self.store.items('chrome:allow:'),'recent':[{'operation_id':op['id'],'question':op['approval'].get('question'),'eligible':bool(op['payload'].get('adapter',{}).get('trusted'))} for _,op in self.store.iter_items('op:') if op['app']=='chrome' and op['state']=='done' and op['action']=='chrome_submit'][-10:]}}
         if command == 'readonly':
             address = allowed_url(args['site']); host = urlsplit(address).hostname
             self.store.write({'chrome:readonly:' + host:args.get('enabled',True)},'chrome_sites','Owner changed read-only site')
@@ -331,7 +375,18 @@ class Chrome:
             self.mode(acting=True)
             if 'url' in args: allowed_url(args['url'])
             return self.free(verb,**args)
-        payload, _ = self.payload(verb,args)
+        if verb == 'dialog':
+            mode=self.mode(acting=True)
+            facts=self.bridge.call('dialog_facts',tab=args['tab'])
+            if facts['dialog'] != args['expected']:
+                raise Refused('stale_approval','Dialog or opener changed; read and prepare again.')
+            readonly=self.store.get('chrome:readonly:'+(urlsplit(facts['url']).hostname or ''),False)
+            if readonly:
+                raise Refused('readonly_site','This site is read-only; the owner must answer its dialogs.')
+            kind=classify('dialog',args,{'dialog':facts['dialog']},conservative=mode['conservative'])
+            payload={'process_session':self.process_session,'reference':{'tab':args['tab']},'input':{'verb':'dialog',**args},'binding':facts,'kind':kind,'adapter':None,'native_dialog':True}
+        else:
+            payload, _ = self.payload(verb,args)
         if payload['kind']:
             return self.engine.reserve('chrome','submit',payload)
         return self.free(verb,payload)

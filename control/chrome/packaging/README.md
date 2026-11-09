@@ -9,8 +9,8 @@ Replace EXTENSION_ID in native-host.json, policy.json and update.xml with the
 reported ID. Set UPDATE_URL to the image's local HTTPS update endpoint and CRX_URL
 to the published signed package. Install the policy root-owned under
 /etc/opt/chrome/policies/managed/, and the native manifest root-owned under
-/etc/opt/chrome/native-messaging-hosts/. Install native_host.py root-owned at its
-fixed manifest path with mode 0755. Its only endpoint is chrome.sock; the service
+/etc/opt/chrome/native-messaging-hosts/. Install the host launcher root-owned at its fixed manifest path with mode 0755,
+and native_host.py beside it with mode 0644. Its only endpoint is chrome.sock; the service
 checks Linux SO_PEERCRED against the configured owner, independently of mode bits.
 A same-named user-level host is an accepted decision-24 residual.
 

@@ -7,7 +7,7 @@ import {fixtures} from './fixture.mjs';
 if(process.platform !== 'linux' || process.env.GITHUB_ACTIONS !== 'true' || !fs.existsSync('/.dockerenv'))throw Error('Browser runs only in GitHub Linux containers');
 const fixture=await fixtures();
 const profile=fs.mkdtempSync('/tmp/aresos-chrome-fixture-');
-const args=[`--user-data-dir=${profile}`,'--no-first-run','--no-default-browser-check','--password-store=basic','--start-maximized','--gtk-version=3','--disable-background-mode','--host-resolver-rules=MAP *.test 127.0.0.1','http://fixture.test:8765/?case=compose'];
+const args=[`--user-data-dir=${profile}`,'--no-first-run','--no-default-browser-check','--password-store=basic','--start-maximized','--gtk-version=3','--disable-background-mode','--host-resolver-rules=MAP *.test 127.0.0.1','about:blank'];
 assert.ok(!args.some(arg=>arg==='--no-sandbox'||arg.startsWith('--remote-debugging')));
 fs.writeFileSync('/out/launch.json',JSON.stringify(args));
 const descriptor=fs.openSync('/out/chrome.txt','a');
@@ -30,7 +30,13 @@ async function nav(kind){await call('navigate',{tab,url:'http://fixture.test:876
 const counts=kind=>fixture.arrivals.filter(row=>row.url.includes('case='+kind)).length;
 try {
   const tabs=await eventually(async()=>{const result=await rpc('tabs');return result.ok && result.data.items.length && result.data.items;},'extension native connection',45000);
-  tab=tabs.find(item=>item.url?.includes('fixture.test'))?.tab;assert.ok(tab !== undefined);
+  // The extension is installed before this owner-created document, then take attaches to it.
+  execFileSync('xdotool',['key','--clearmodifiers','ctrl+l']);
+  execFileSync('xdotool',['type','--clearmodifiers','--delay','1','http://fixture.test:8765/?case=compose']);
+  execFileSync('xdotool',['key','--clearmodifiers','Return']);
+  await delay(1000);
+  const current=await call('tabs');
+  tab=current.items.find(item=>item.url?.includes('fixture.test'))?.tab;assert.ok(tab !== undefined);
   await call('take_tab',{tab});
   const processes=execFileSync('ps',['-C','chrome','-o','pid,args'],{encoding:'utf8'});assert.doesNotMatch(processes,/--no-sandbox|--remote-debugging-(port|pipe)/);
   const listeners=execFileSync('ss',['-lntp'],{encoding:'utf8'}).split('\n').filter(line=>line.includes('"chrome"'));assert.equal(listeners.length,0);fs.writeFileSync('/out/isolation.json',JSON.stringify({processes,listeners}));

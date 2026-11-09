@@ -15,6 +15,7 @@ class Bridge:
         self.session = self.version = None
         self.buffer = b''
         self.events = []
+        self.on_event = lambda event: self.events.append(event)
 
     def read(self):
         while b'\n' not in self.buffer:
@@ -56,7 +57,7 @@ class Bridge:
             while True:
                 reply = self.read()
                 if reply.get('event'):
-                    self.events.append(reply)
+                    self.on_event(reply)
                     continue
                 if reply.get('id') != identity:
                     raise Refused('transport_error', 'Chrome response identity changed; inspect status, never retry.')

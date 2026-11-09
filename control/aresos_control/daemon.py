@@ -45,6 +45,17 @@ class Daemon:
                 # Engine records the cause and owner notice before re-raising.
                 pass
             for key, _ in self.selector.select(timeout=0.1):
+                if key.data == 'chrome-peer':
+                    bridge = self.engine.adapters['chrome'].bridge
+                    try:
+                        bridge.on_event(bridge.read())
+                    except Exception:
+                        try:
+                            self.selector.unregister(key.fileobj)
+                        except Exception:
+                            pass
+                        bridge.close()
+                    continue
                 connection, _ = key.fileobj.accept()
                 connection.settimeout(2)
                 if key.data == 'chrome':
@@ -52,8 +63,16 @@ class Daemon:
                         _, uid, _ = struct.unpack('3i', connection.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED, struct.calcsize('3i')))
                         if uid != self.config['owner_uid']:
                             raise Refused('permission_denied', 'Chrome native host must run as the configured owner.')
-                        self.engine.adapters['chrome'].bridge.accept(connection)
+                        bridge = self.engine.adapters['chrome'].bridge
+                        previous = bridge.connection
+                        bridge.accept(connection)
+                        if previous is not None:
+                            try:
+                                self.selector.unregister(previous)
+                            except Exception:
+                                pass
                         connection.settimeout(15)
+                        self.selector.register(connection, selectors.EVENT_READ, 'chrome-peer')
                     except Exception as exc:
                         try:
                             send(connection, self.error_result(exc, False), result=True)

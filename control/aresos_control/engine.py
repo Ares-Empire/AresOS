@@ -593,6 +593,16 @@ class Engine:
                 self.store.remember_storage(exc)
                 self.store.observations.storage(exc)
             result = self._admitted_request(request, admin)
+            if isinstance(request, dict) and str(request.get('action','')).startswith('chrome_'):
+                chrome = self.adapters['chrome']
+                if chrome.bridge.version:
+                    try:
+                        from .chrome.qualification import switches
+                        notice = switches(chrome.qualification.record(), chrome.qualification.build, chrome.bridge.version)['notice']
+                        if notice:
+                            result.setdefault('pending', {})['chrome_version_notice'] = notice
+                    except Exception as exc:
+                        self.store.observations.storage(exc)
             return self.store.observations.finish(result, self.store)
         finally:
             self.store.in_request = previous_request

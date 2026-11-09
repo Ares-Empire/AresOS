@@ -3,7 +3,7 @@
   const elements = new Map(), ids = new WeakMap(), protectedFields = new WeakSet(), held = new Map();
   const documentId = crypto.randomUUID();
   let sequence = 0, revision = 0;
-  const traces = [];
+  const traces = [], files = new Map();
   function roots(root = document) {
     const found = [root];
     for (const element of root.querySelectorAll('*')) {
@@ -129,6 +129,10 @@
       attachments: nodes.filter(node => node.matches('[aria-label^="Attachment:"]')).map(node => ({label:name(node), text:text(node)})),
       target: target ? name(target) : null};
   }
+  document.addEventListener('aresos-dialog-origin',event=>{
+    if(['alert','confirm','prompt'].includes(event.detail?.kind) && typeof event.detail?.text === 'string')
+      chrome.runtime.sendMessage({event:'dialog_origin',kind:event.detail.kind,text:event.detail.text});
+  },true);
   document.addEventListener('aresos-page-step', event => {
     const value = event.detail;
     if (!value || !['native_submit','submit_event','activation','activation_unknown'].includes(value.kind) || !(value.target instanceof Element)) return;
@@ -136,9 +140,34 @@
   }, true);
   chrome.runtime.onMessage.addListener((message, sender, reply) => {
     if (sender.id !== chrome.runtime.id || !message || typeof message.command !== 'string') return;
+    if (message.command === 'install_file') {
+      (async()=>{
+        const staged=files.get(message.token), element=elements.get(message.element);
+        if(!staged || !element?.isConnected || element.type !== 'file')throw Error('stale_reference: upload field or bytes changed');
+        const file=new File(staged.chunks,staged.file.name,{type:'application/octet-stream',lastModified:0});
+        const hash=[...new Uint8Array(await crypto.subtle.digest('SHA-256',await file.arrayBuffer()))].map(value=>value.toString(16).padStart(2,'0')).join('');
+        if(hash !== staged.file.sha256 || file.size !== staged.file.size)throw Error('stale_approval: upload hash mismatch');
+        files.delete(message.token);
+        const transfer=new DataTransfer();transfer.items.add(file);element.files=transfer.files;
+        element.dispatchEvent(new Event('input',{bubbles:true}));element.dispatchEvent(new Event('change',{bubbles:true}));
+        reply({ok:true,data:{installed:true,sha256:hash,size:file.size}});
+      })().catch(error=>reply({ok:false,error:String(error.message)}));
+      return true;
+    }
     try {
       let value;
-      if (message.command === 'read' || message.command === 'facts') value = snapshot(message.element);
+      if (message.command === 'stage_file') {
+        if(!files.has(message.token)) {
+          if(message.offset !== 0 || files.size >= 2)throw Error('refused: upload staging limit');
+          files.set(message.token,{file:message.file,chunks:[],size:0});
+        }
+        const staged=files.get(message.token), bytes=Uint8Array.from(atob(message.bytes),char=>char.charCodeAt(0));
+        if(staged.size !== message.offset || staged.size+bytes.length > staged.file.size || staged.size+bytes.length > 25*1024*1024)throw Error('refused: upload offset or size mismatch');
+        staged.chunks.push(bytes);staged.size+=bytes.length;value={offset:staged.size};
+      }
+      else if (message.command === 'clear') { files.clear(); held.clear(); value={cleared:true}; }
+      else if (message.command === 'ready') value = {preload:true,document:documentId};
+      else if (message.command === 'read' || message.command === 'facts') value = snapshot(message.element);
       else if (message.command === 'steps') { value = [...held.values()]; held.clear(); }
       else if (message.command === 'focus') {
         const element = elements.get(message.element);

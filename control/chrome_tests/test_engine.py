@@ -102,3 +102,35 @@ class Operations(unittest.TestCase):
 
 
 if __name__=='__main__':unittest.main()
+
+class OwnerRules(Operations):
+    def gmail(self):
+        self.chrome.hosts={**HOSTS,'gmail':['gmail.test']}
+        facts=self.browser.facts;facts['url']='https://gmail.test/'
+        frame=facts['frames'][0];frame['url']=facts['url']
+        frame['adapter']={'account':'Synthetic account','to':'recipient@example.invalid','cc':'','bcc':'hidden@example.invalid',
+                          'subject':'Synthetic subject','text':'Current text','attachments':[],'chat':None,'context':None,'preview':None,'target':'Send'}
+
+    def test_group11_owner_only_exact_parameters_revocation_and_widened_kind(self):
+        self.gmail();approval=self.prepare();self.assertTrue(self.call('submit',approval)['ok'])
+        args={'command':'allow','operation_id':approval['operation_id']}
+        self.assertFalse(self.call('sites',args)['ok'])
+        allowed=self.call('sites',args,True);self.assertTrue(allowed['ok'],allowed)
+        trusted=self.prepare();self.assertTrue(self.call('submit_trusted',trusted)['ok'])
+        self.browser.facts['frames'][0]['adapter']['to']='other@example.invalid'
+        changed=self.prepare();self.assertFalse(self.call('submit_trusted',changed)['ok'])
+        self.browser.facts['frames'][0]['adapter']['to']='recipient@example.invalid'
+        current=self.prepare()
+        from aresos_control.chrome.sites import KINDS
+        with patch.dict(KINDS['gmail_send'],scope='wider kind'):
+            self.assertFalse(self.call('submit_trusted',current)['ok'])
+        self.assertTrue(self.call('sites',{'command':'revoke','id':allowed['data']['id']},True)['ok'])
+        self.assertFalse(self.call('submit_trusted',current)['ok'])
+
+    def test_conservative_notice_on_every_result_and_independent_bank_restriction(self):
+        self.assertTrue(self.call('sites',{'command':'readonly','site':'https://fixture.test/','enabled':True},True)['ok'])
+        self.browser.version='999.0.1.0'
+        result=self.call('click',self.target())
+        self.assertFalse(result['ok']);self.assertEqual(result['error']['code'],'readonly_site')
+        self.assertIn('chrome_version_notice',result['pending'])
+        self.assertEqual(self.browser.dispatched,[])

@@ -2,8 +2,9 @@ import {POLICY} from './policy.js';
 
 const session = crypto.randomUUID();
 const controlled = new Map(), used = new Set(), dialogs = new Map();
-let groupId = null, port = null, serial = Promise.resolve();
-const audit = value => { /* Browser responses are forwarded verbatim to the CI recorder. */ return value; };
+let groupId = null, port = null, serial = Promise.resolve(), recording = false;
+const ownerRequests = new Map(), dialogOrigins = new Map();
+const audit = value => { if (recording && port) port.postMessage({event:'audit',data:value}); return value; };
 function safeURL(address) {
   if (address === 'about:blank') return address;
   let url; try { url = new URL(address); } catch { throw Error('refused: only web addresses are allowed'); }
@@ -23,6 +24,12 @@ async function rules() {
 async function take(tab) {
   const current = await chrome.tabs.get(tab); safeURL(current.url);
   if (controlled.has(tab)) return {tab, session, group:groupId};
+  if (current.url !== 'about:blank') try {
+    const ready=await chrome.tabs.sendMessage(tab,{command:'ready'},{frameId:0});
+    if(!ready?.ok || !ready.data.preload) throw Error('guard absent');
+  } catch {
+    throw Error('stale_reference: this document opened before the extension preload; the owner must reload it before control');
+  }
   const original = {window:current.windowId,index:current.index,group:current.groupId};
   await chrome.debugger.attach({tabId:tab}, '1.3');
   await cdp(tab,'Page.enable');
@@ -54,7 +61,7 @@ async function release(tab) {
   const original = controlled.get(tab);
   controlled.delete(tab); dialogs.delete(tab);
   try {
-    for (const frame of await chrome.webNavigation.getAllFrames({tabId:tab}) || []) await main(tab,frame.frameId,'stop');
+    for (const frame of await chrome.webNavigation.getAllFrames({tabId:tab}) || []) { await main(tab,frame.frameId,'stop'); await content(tab,frame.frameId,'clear'); }
   } catch {}
   try { await chrome.debugger.detach({tabId:tab}); } catch {}
   if (original) {
@@ -99,15 +106,40 @@ const stable = value => JSON.stringify(value, function(key,value) { return value
 async function dispatch(command) {
   const tab = command.tab ?? command.reference?.tab;
   const reference = command.reference;
+  if (command.name === 'audit') { recording=command.enabled === true; return {recording}; }
   if (command.name === 'tabs') return {session,items:(await chrome.tabs.query({})).map(tab=>({tab:tab.id,title:tab.title,url:tab.url,controlled:controlled.has(tab.id) && tab.groupId === groupId}))};
   if (command.name === 'take_tab') return take(tab);
   if (command.name === 'release_tab') return release(tab);
   if (command.name === 'stop') return stop();
-  if (command.name === 'open') { safeURL(command.url); const created = await chrome.tabs.create({url:command.url}); return take(created.id); }
+  if (command.name === 'open') {
+    safeURL(command.url);
+    const created=await chrome.tabs.create({url:'about:blank'});await take(created.id);
+    if(command.url !== 'about:blank')await cdp(created.id,'Page.navigate',{url:command.url});
+    return {tab:created.id,session,group:groupId};
+  }
   if (command.name === 'downloads') return {items:await chrome.downloads.search({limit:10,query:command.text ? [command.text]:[]})};
   if (command.name === 'history') return {items:await chrome.history.search({text:command.text || '',maxResults:10})};
   if (command.name === 'bookmarks') return {items:await chrome.bookmarks.search(command.text || {})};
+  if (command.name === 'dialog_facts') {
+    const current=await requireTab(tab), dialog=dialogs.get(tab);
+    if(!dialog || dialog.frame === undefined)throw Error('refused: dialog opener is not yet established; inspect with the owner');
+    safeURL(dialog.frame_url);return {session,tab,url:current.url,dialog};
+  }
+  if (command.name === 'dialog') {
+    const current=await requireTab(tab), dialog=dialogs.get(tab);
+    const expected={session,tab,url:current.url,dialog};
+    if(!dialog || dialog.frame === undefined || stable(expected)!==stable(command.binding))throw Error('stale_approval: dialog or its opener changed');
+    safeURL(dialog.frame_url);
+    if(command.operation && used.has(command.operation))throw Error('refused: dialog operation already attempted');
+    if(command.operation)used.add(command.operation);
+    await cdp(tab,'Page.handleJavaScriptDialog',{accept:command.input.accept,...(command.input.text === undefined ? {}:{promptText:command.input.text})});
+    return {checked:true,dispatched:true,page:'Dialog answered once, as the page shows it.',steps:[]};
+  }
   if (command.name === 'read' || command.name === 'facts') return facts(tab,reference);
+  if (command.name === 'stage_file') {
+    await requireTab(tab);
+    return content(tab,reference.frame,'stage_file',{token:command.token,offset:command.offset,bytes:command.bytes,file:command.file});
+  }
   await requireTab(tab);
   if (command.name === 'close_tab') { await release(tab); await chrome.tabs.remove(tab); return {closed:tab}; }
   if (command.name === 'navigate') {
@@ -151,7 +183,8 @@ async function dispatch(command) {
         await cdp(tab,'Input.dispatchKeyEvent',{type:'keyDown',key:normalized,code,modifiers,windowsVirtualKeyCode:{Enter:13,Space:32,Delete:46,Backspace:8}[key] || key.toUpperCase().charCodeAt(0)});
         await cdp(tab,'Input.dispatchKeyEvent',{type:'keyUp',key:normalized,code,modifiers});
       }
-    } else if (['select','check'].includes(input.verb)) await content(tab,reference.frame,input.verb,{element:reference.element,...input});
+    } else if (input.verb === 'upload') await content(tab,reference.frame,'install_file',{element:reference.element,token:command.upload.token});
+    else if (['select','check'].includes(input.verb)) await content(tab,reference.frame,input.verb,{element:reference.element,...input});
     else if (input.verb === 'scroll') await cdp(tab,'Input.dispatchMouseEvent',{type:'mouseWheel',x:target.box.x+1,y:target.box.y+1,deltaX:input.x,deltaY:input.y});
     else throw Error('permission_denied: unsupported input');
   }
@@ -168,6 +201,7 @@ async function connect() {
   const version=entropy.fullVersionList.find(item=>item.brand === 'Google Chrome')?.version;
   port.postMessage({event:'hello',session,version});
   port.onMessage.addListener(message=>{
+    if (message.owner_reply) { const pending=ownerRequests.get(message.owner_reply); if(pending){ownerRequests.delete(message.owner_reply);pending(message.result);} return; }
     serial=serial.then(async()=>{
       try { port.postMessage({id:message.id,ok:true,data:await dispatch(message.command)}); }
       catch(error) { port?.postMessage({id:message.id,ok:false,error:String(error.message)}); }
@@ -176,11 +210,24 @@ async function connect() {
   port.onDisconnect.addListener(()=>{ port=null; stop().finally(()=>setTimeout(connect,1000)); });
 }
 chrome.runtime.onMessage.addListener((message,sender,reply)=>{
+  if(sender.id === chrome.runtime.id && controlled.has(sender.tab?.id) && message?.event === 'dialog_origin') {
+    const origin={frame:sender.frameId,document:sender.documentId,frame_url:sender.url,kind:message.kind,text:message.text};
+    dialogOrigins.set(sender.tab.id,origin);
+    const dialog=dialogs.get(sender.tab.id);
+    if(dialog && dialog.kind===origin.kind && dialog.text===origin.text && dialog.frame_url===origin.frame_url)Object.assign(dialog,origin);
+    reply({received:true});return;
+  }
   const popup=chrome.runtime.getURL('popup.html'),details=chrome.runtime.getURL('details.html');
   if (sender.id !== chrome.runtime.id || ![popup,details].includes(sender.url) || sender.frameId && sender.frameId !== 0) return;
   if (message?.command === 'stop') { stop().then(reply); return true; }
   // Details requests are data for the service's owner-only endpoint, never page input.
-  if (sender.url === details && !sender.tab?.id) return;
+  if (sender.url === details && sender.tab?.id && sender.frameId === 0 && message?.command === 'sites') {
+    const request_id=crypto.randomUUID();
+    ownerRequests.set(request_id,reply);
+    port?.postMessage({event:'owner_sites',request_id,arguments:message.arguments});
+    setTimeout(()=>{if(ownerRequests.has(request_id)){ownerRequests.delete(request_id);reply({ok:false,error:{message:'Service unavailable; use the admin command.'}});}},10000);
+    return true;
+  }
 });
 chrome.tabs.onUpdated.addListener((tab,change,current)=>{
   if (controlled.has(tab) && current.groupId !== groupId) release(tab);
@@ -189,7 +236,12 @@ chrome.tabs.onUpdated.addListener((tab,change,current)=>{
 chrome.tabs.onRemoved.addListener(tab=>{ if (controlled.has(tab)) release(tab); });
 chrome.webNavigation.onCreatedNavigationTarget.addListener(event=>{ if (controlled.has(event.sourceTabId)) serial=serial.then(()=>take(event.tabId)).catch(()=>release(event.tabId)); });
 chrome.debugger.onEvent.addListener((source,method,params)=>{
-  if (method === 'Page.javascriptDialogOpening') dialogs.set(source.tabId,{kind:params.type,text:params.message,frame_url:params.url,button:'OK'});
+  if (method === 'Page.javascriptDialogOpening') {
+    const origin=dialogOrigins.get(source.tabId);dialogOrigins.delete(source.tabId);
+    const dialog={id:crypto.randomUUID(),kind:params.type,text:params.message,frame_url:params.url,button:'OK'};
+    if(origin && origin.kind===dialog.kind && origin.text===dialog.text && origin.frame_url===dialog.frame_url)Object.assign(dialog,origin);
+    dialogs.set(source.tabId,dialog);
+  }
   if (method === 'Page.javascriptDialogClosed') dialogs.delete(source.tabId);
 });
 chrome.debugger.onDetach.addListener(source=>{ if (controlled.has(source.tabId)) release(source.tabId); });

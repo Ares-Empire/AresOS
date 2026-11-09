@@ -1,1 +1,1 @@
-{"name":"org.aresos.chrome","description":"AresOS Chrome relay","path":"/usr/libexec/aresos-control/chrome/native_host.py","type":"stdio","allowed_origins":["chrome-extension://EXTENSION_ID/"]}
+{"name":"org.aresos.chrome","description":"AresOS Chrome relay","path":"/usr/libexec/aresos-control/chrome/host","type":"stdio","allowed_origins":["chrome-extension://EXTENSION_ID/"]}

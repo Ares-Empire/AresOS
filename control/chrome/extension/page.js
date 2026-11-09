@@ -12,6 +12,16 @@
   let until = 0, policy = null, mark = null, sequence = 0;
   const identities = new Map();
   document.addEventListener('aresos-reader-identity', event => { if (event.detail?.element instanceof Element) identities.set(event.detail.id, event.detail.element); }, true);
+  for (const kind of ['alert','confirm','prompt']) {
+    const original=window[kind];
+    if(typeof original !== 'function')continue;
+    window[kind]=function(...args) {
+      const remaining=active() ? Math.max(0,until-performance.now()):0;
+      native.dispatch.call(document,new CustomEvent('aresos-dialog-origin',{detail:{kind,text:String(args[0] ?? '')}}));
+      try { return original.apply(this,args); }
+      finally { if(remaining)until=performance.now()+remaining; }
+    };
+  }
   const held = new Map(), seenRoots = new WeakSet();
   const active = () => performance.now() < until;
   const words = text => policy && String(text).toLocaleLowerCase().match(/[\p{L}\p{N}_]+/gu)?.some(w => policy.words.includes(w));
