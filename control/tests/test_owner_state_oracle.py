@@ -1402,3 +1402,22 @@ class StageOneRoundTwo(unittest.TestCase):
         self.assertIn('script.context.account', errors)
         self.assertIn('script.probe-creation', errors)
         self.assertIn('script.command.destination', errors)
+
+    def test_false_app_flag_cannot_hide_a_scripted_mail_reservation(self):
+        oracle = Oracle()
+        row = {'id': 'g:r', 'app': 'testapp', 'action': 'mail_send', 'state': 'reserved'}
+        record = Record(events=[{'seq': 1, 'action': 'mail_send', 'set': {'op:g:r': row}}])
+        expected = oracle.expected(record, app='mail')
+        self.assertTrue(any(f.kind == 'pending' for f in expected))
+        self.assertIn(Fact('op:g:r', 'unjustified-app-scope'), oracle.lifecycle_errors)
+        with self.assertRaises(AssertionError):
+            oracle.compare('false app scope', expected, set())
+
+    def test_coherent_wrong_app_and_action_cannot_hide_scripted_reservation(self):
+        oracle = Oracle()
+        oracle.call('mail_prepare_send', {}, 1)
+        oracle.script[-1].update(start_seq=0, end_seq=1)
+        row = {'id': 'g:r', 'app': 'testapp', 'action': 'testapp_send', 'state': 'reserved'}
+        record = Record(events=[{'seq': 1, 'action': 'testapp_send', 'set': {'op:g:r': row}}])
+        self.assertTrue(any(f.kind == 'pending' for f in oracle.expected(record, app='mail')))
+        self.assertIn(Fact('op:g:r', 'unjustified-operation-action'), oracle.lifecycle_errors)

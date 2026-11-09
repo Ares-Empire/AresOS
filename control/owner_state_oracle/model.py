@@ -370,6 +370,13 @@ class Oracle:
         for event in record.events:
             for key, value in event['set'].items():
                 old = rows.get(key, {})
+                if isinstance(value, dict) and value.get('action', '').startswith(('mail_', 'testapp_')):
+                    app = value['action'].split('_', 1)[0]
+                    if value.get('app', app) != app:
+                        self.lifecycle_errors.add(Fact(key, 'unjustified-app-scope'))
+                        value = {**value, 'app': app}
+                if key.startswith('mail:account:') and value and value.get('id') != key.removeprefix('mail:account:'):
+                    self.lifecycle_errors.add(Fact(key, 'account-identity'))
                 if key in {'generation', 'restore_pending'} and value != old:
                     initial = key == 'generation' and event['action'] in {'control_initialize', 'fixture'} and not old
                     if not initial and not self.scripted_transition(event, 'control_restore_confirm'):
@@ -389,6 +396,25 @@ class Oracle:
                         if not min(c['clock'] for c in calls) * 1_000_000_000 - 1 <= value['created_at'] <= event['time'] * 1_000_000_000 + 1:
                             self.lifecycle_errors.add(Fact(key, 'notice-creation-time'))
                 if key.startswith('op:') and value:
+                    if not old and event['seq'] > getattr(self, 'seed_sequence', 0):
+                        calls = [c for c in self.script if c.get('start_seq', -1) < event['seq'] <= c.get('end_seq', -1)]
+                        allowed = set()
+                        for call in calls:
+                            action = call['action']
+                            if '_prepare_' in action:
+                                allowed.add(action.replace('_prepare_', '_'))
+                            elif action == 'mail_account_add':
+                                allowed.update({'mail_send', 'mail_delete', 'mail_onboarding_folder_probe', 'mail_operation_repair'})
+                            elif action.endswith('_operation_repair') or call['arguments'].get('operation_id') == value.get('id'):
+                                allowed.add(action)
+                            elif action == 'control_restore_confirm':
+                                allowed.update(op.get('description', {}).get('action') for fence in record.fences
+                                               for op in fence.get('operations', []) if op['id'] == value.get('id'))
+                        if calls and value.get('action') and value['action'] not in allowed:
+                            self.lifecycle_errors.add(Fact(key, 'unjustified-operation-action'))
+                            apps = {action.split('_', 1)[0] for action in allowed if action}
+                            if len(apps) == 1:
+                                value = {**value, 'app': apps.pop()}
                     if value.get('id') != key[3:]:
                         self.lifecycle_errors.add(Fact(key, 'operation-identity'))
                     for field in ('id', 'app', 'action', 'payload', 'approval', 'expires', 'repair_of'):
