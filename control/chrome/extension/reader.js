@@ -16,7 +16,7 @@
   }
   const all = () => roots().flatMap(root => [...root.querySelectorAll('*')]);
   function password(element) {
-    if (!(element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement || element.isContentEditable)) return false;
+    if (!(element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement || element instanceof HTMLSelectElement || element instanceof HTMLButtonElement || element.isContentEditable)) return false;
     let unsafe = protectedFields.has(element);
     try {
       unsafe ||= element.type === 'password' || /(?:^|\s)(current-password|new-password|one-time-code)(?:\s|$)/i.test(element.getAttribute('autocomplete') || '') ||
@@ -69,7 +69,7 @@
     if (element instanceof HTMLInputElement) {
       if (element.type === 'file') value = [...element.files].map(file => ({name: file.name, size: file.size, lastModified: file.lastModified}));
       else value = element.value;
-    } else if (element instanceof HTMLTextAreaElement || element instanceof HTMLSelectElement) value = element.value;
+    } else if (element instanceof HTMLTextAreaElement || element instanceof HTMLSelectElement || element instanceof HTMLButtonElement) value = element.value;
     else if (element.isContentEditable) value = text(element);
     else return {};
     traces.push({element: id(element), value});
@@ -82,9 +82,10 @@
     return {BUTTON:'button',A:element.href ? 'link':'generic',TEXTAREA:'textbox',SELECT:'combobox',OPTION:'option',FORM:'form',DIALOG:'dialog',LI:'listitem',TR:'row',ARTICLE:'article',SECTION:'region',H1:'heading',H2:'heading',H3:'heading',P:'paragraph',TD:'cell',TH:'columnheader',IFRAME:'iframe'}[tag] || (element.isContentEditable ? 'textbox' : 'generic');
   }
   function field(element) {
+    const safe=safeValue(element);
     return {element: id(element), name: element.getAttribute('name') || '', label: name(element), type: element.type || element.getAttribute('role') || 'editable',
-      hidden: element.type === 'hidden', checked:!!element.checked, disabled:element.matches(':disabled'), multiple:!!element.multiple, readOnly:!!element.readOnly, ...safeValue(element),
-      ...(element instanceof HTMLSelectElement ? {options: [...element.options].map(option => ({label: text(option), value: option.value, selected: option.selected, disabled: option.matches(':disabled')}))} : {})};
+      hidden: element.type === 'hidden', checked:!!element.checked, disabled:element.matches(':disabled'), multiple:!!element.multiple, readOnly:!!element.readOnly, ...safe,
+      ...(element instanceof HTMLSelectElement && !safe.password ? {options: [...element.options].map(option => ({label: text(option), value: option.value, selected: option.selected, disabled: option.matches(':disabled')}))} : {})};
   }
   function formFacts(form, submitter) {
     if (!form) return null;

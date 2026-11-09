@@ -210,7 +210,7 @@ async function dispatch(command) {
   for(const other of snapshot.frames){
     assertControl(tab);
     await content(tab,other.frame,'set_control',{generation:dispatchEpoch});
-    await main(tab,other.frame,'arm',[POLICY,other.frame===reference.frame ? target.element:null,other.frame===reference.frame ? frame.form?.element:null,command.approved && other.frame===reference.frame ? command.operation:null,dispatchEpoch,!!command.primary_submission && other.frame===reference.frame]);
+    await main(tab,other.frame,'arm',[{...POLICY,conservative:command.conservative},other.frame===reference.frame ? target.element:null,other.frame===reference.frame ? frame.form?.element:null,command.approved && other.frame===reference.frame ? command.operation:null,dispatchEpoch,!!command.primary_submission && other.frame===reference.frame]);
   }
   assertControl(tab);
   if (command.name === 'resume') { effectStarted=true; await main(tab,reference.frame,'resume',[command.hold,command.operation]); }

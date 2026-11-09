@@ -82,3 +82,9 @@ class Policy(unittest.TestCase):
 
 
 if __name__=='__main__': unittest.main()
+
+class Conservative(Policy):
+    def test_conservative_preserves_generic_send_body_and_form_bindings(self):
+        self.assertEqual(classify('click',{}, {'target':{'name':'Send'}},conservative=True),'send')
+        self.assertEqual(classify('click',{}, {'target':{'submit':True},'form':{'search':True,'method':'get'}},conservative=True),'form')
+        self.assertEqual(classify('dialog',{'accept':True},{'dialog':{'text':'Proceed?'}},conservative=True),'activation')

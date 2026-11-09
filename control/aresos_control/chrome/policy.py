@@ -60,8 +60,6 @@ def classify(verb, arguments, facts, *, conservative=False, readonly=False, adap
         return 'delete' if words & DELETE else 'pay' if words & PAY else 'confirmation' if words else None
     if verb == 'press' and key in {'Delete', 'Backspace'} and not editable:
         return 'delete'
-    if conservative and activation:
-        return 'activation'
     if adapter and adapter.get('kind') and activation or adapter and adapter.get('shortcut') == key:
         return adapter['effect'] if adapter['effect'] != 'change' else None
     if verb == 'press' and key.split('+')[-1] == 'Enter' and editable and not search:
@@ -72,8 +70,10 @@ def classify(verb, arguments, facts, *, conservative=False, readonly=False, adap
         allowed_url(target['href'])
     form = facts.get('form')
     submit = target.get('submit') or verb == 'press' and key == 'Enter' and editable and form
-    if submit and not (form and form.get('search') and form.get('method', '').lower() == 'get'):
+    if submit:
+        if form and form.get('search') and form.get('method','').lower()=='get':
+            return 'form' if conservative else None
         return 'form'
     words = listed(' '.join(str(target.get(k, '')) for k in ('name', 'label', 'title', 'value', 'role')) +
                    ' ' + (form or {}).get('action', ''))
-    return 'delete' if words & DELETE else 'pay' if words & PAY else 'send' if words else None
+    return 'delete' if words & DELETE else 'pay' if words & PAY else 'send' if words else 'activation' if conservative else None

@@ -35,7 +35,7 @@ def actions(Action):
     for verb, extra, purpose in [('read', {}, 'Read a compact structural page tree with roles, names, safe values, states and boxes; passwords are excluded before extraction. Views are paged at 16000 characters.'),
         ('find', {'text': string()}, 'Find visible text across readable frames. Returns exact references and a bounded page.'),
         ('read_form', {'reference': REF}, 'Read every field and option of one form, including hidden fields and password presence only.'),
-        ('wait', {'text': string(), 'timeout_ms': {'type': 'integer', 'minimum': 0, 'maximum': 10000}}, 'Wait for text or a stable view, then return the page; never acts.')]:
+        ('wait', {'text': string(), 'element':obj({'role':string(64),'name':string()},[]), 'timeout_ms': {'type': 'integer', 'minimum': 0, 'maximum': 8000}}, 'Wait for text or a stable view, then return the page; never acts.')]:
         add(verb, 'read', obj({'tab': TAB, 'cursor': string(512), **extra}, ['tab'] + (['text'] if verb == 'find' else ['reference'] if verb == 'read_form' else [])), purpose)
     for verb, extra, purpose in [('click', {}, 'Click this exact control once if free, or prepare asking input without clicking.'),
         ('fill', {'text': {'type': 'string', 'maxLength': 20000}}, 'Replace field text; line breaks insert text, never Enter keys. A page-started submission is prepared separately.'),
@@ -46,7 +46,7 @@ def actions(Action):
         ('upload', {'path': string(), 'file': BLOB}, 'Prepare uploading a caller-side immutable file snapshot. Path and hash appear in approval; never opens a home path in the service.')]:
         required = list(TARGET) + [k for k in extra if k != 'file']
         add(verb, 'change', obj({**TARGET, **extra}, required), purpose)
-    add('fill_form', 'change', obj({'fields': array(obj({**TARGET, 'text': {'type': 'string', 'maxLength': 20000}}), 32)}),
+    add('fill_form', 'change', obj({'fields': {**array(obj({**TARGET, 'text': {'type': 'string', 'maxLength': 20000}}), 32),'minItems':1}}),
         'Fill exact fields in order, classifying each separately. Stops at the first prepared or stopped step and reports completed fields; never replays earlier input.')
     add('dialog', 'change', obj({'tab': TAB, 'expected': EXPECT, 'accept': {'type': 'boolean'}, 'text': {'type': 'string', 'maxLength': 4096}}, ['tab', 'expected', 'accept']),
         'Answer or dismiss Chrome alert, confirm or prompt. Accepting listed confirmation text prepares its own operation unless exactly named by an approved site adapter.')

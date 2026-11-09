@@ -46,6 +46,7 @@ class Chrome:
         self.process_session = uuid.uuid4().hex
         self.bridge = Bridge()
         self.bridge.on_event = self.event
+        self.trusted_context = False
         self.hosts = HOSTS
         self.upload_dir = Path("/run/aresos-tools/uploads")
         if build is None:
@@ -107,12 +108,20 @@ class Chrome:
         mode = self.mode()
         facts = self.bridge.call('read', tab=args['tab'])
         token = view_identity(facts)
+        condition_met=True
         if verb == 'wait':
-            deadline = time.monotonic() + args.get('timeout_ms', 1000) / 1000
-            while args.get('text') and args['text'] not in canonical(facts) and time.monotonic() < deadline:
-                time.sleep(.05)
-                facts = self.bridge.call('read', tab=args['tab'])
-                token = view_identity(facts)
+            deadline=time.monotonic()+args.get('timeout_ms',1000)/1000
+            previous=None;stable=0
+            while True:
+                rows=[row for frame in facts['frames'] for row in frame['rows']]
+                text_ok=not args.get('text') or args['text'] in canonical(rows)
+                element=args.get('element')
+                element_ok=not element or any(all(row.get(key)==value for key,value in element.items()) for row in rows)
+                stable=stable+1 if token==previous else 0
+                condition_met=text_ok and element_ok and (bool(args.get('text') or element) or stable>=2)
+                if condition_met or time.monotonic()>=deadline:break
+                previous=token;time.sleep(.05)
+                facts=self.bridge.call('read',tab=args['tab']);token=view_identity(facts)
         rows = []
         for frame in facts['frames']:
             allowed_url(frame['url'])
@@ -139,7 +148,7 @@ class Chrome:
             raise Refused('stale_reference', 'Page changed; read again without the cursor.')
         return {'tab':facts['tab'],'document':[(frame['frame'],frame['document']) for frame in facts['frames']],
                 'untrusted_content':{'url':visible(facts['url']),'title':visible(facts['title']),'tree':tree[offset:end]},
-                'view':token,'characters':len(tree),'offset':offset,'cursor':cursor,'version_notice':mode['notice']}
+                'view':token,'characters':len(tree),'offset':offset,'cursor':cursor,'version_notice':mode['notice'],**({'condition_met':condition_met} if verb=='wait' else {})}
 
     def prepare(self, verb, payload):
         state = payload['binding']
@@ -192,7 +201,7 @@ class Chrome:
         site_adapter = operation['payload'].get('adapter')
         if site_adapter and not mode['adapters'].get(site_adapter['site']):
             raise Refused('stale_approval', 'The site adapter is no longer qualified; prepare again under the generic rules.')
-        if operation['payload'].get('trusted') and not self.trusted(operation):
+        if self.trusted_context and not self.trusted(operation):
             raise Refused('refused', 'The owner entry no longer covers this exact kind, account and parameters; use chrome_submit to ask.')
         # The decisive fresh comparison is in the extension, immediately before input.
         if operation['payload']['binding']['session'] != self.bridge.session:
@@ -245,7 +254,7 @@ class Chrome:
             return {'name':'dialog','tab':payload['reference']['tab'],'binding':payload['binding'],'input':payload['input'],'operation':operation}
         return {'name':'resume' if payload.get('resume_kind') else 'input',
                 'reference':payload['reference'],'tab':payload['reference']['tab'],'input':payload['input'],
-                'kind':payload['kind'],'adapter':bool(payload.get('adapter')),'binding':payload['binding'],
+                'kind':payload['kind'],'conservative':payload.get('conservative',False),'adapter':bool(payload.get('adapter')),'binding':payload['binding'],
                 'operation':operation,'approved':approved,'primary_submission':bool(payload['binding'].get('form') and (payload['binding']['target'].get('submit') or payload['input'].get('verb')=='press' and payload['input'].get('key','').split('+')[-1]=='Enter' and payload['binding']['target'].get('editable'))),**({'hold':payload['hold']} if payload.get('hold') else {})}
 
     def payload(self, verb, args, *, hold=None):
@@ -261,12 +270,12 @@ class Chrome:
         state = binding(facts,args['reference'],kind,adapter)
         if kind == 'send' and not state['form'] and not adapter:
             fields = [field for document in state['editable'] for field in document['fields']]
-            if not any(isinstance(field.get('value'),str) and field['value'] for field in fields):
+            if not any(isinstance(field.get('value'),str) and field['value'] and field.get('type') not in {'checkbox','radio','select-one','select-multiple'} for field in fields):
                 raise Refused('refused', "Can't tell what this sends: no editable text. Use an adapter or the owner's own click.")
         if state.get('item') is not None and len(state['item']) > 8000:
             raise Refused('asking_input_too_large', 'The affected item is too large to show whole; use a smaller item or the owner.')
         result = {'process_session':self.process_session, 'reference':args['reference'],'input':{'verb':verb,**{k:v for k,v in args.items() if k not in {'reference','expected','file','path'}}},
-                  'kind':kind,'adapter':adapter,'binding':state}
+                  'kind':kind,'conservative':mode['conservative'],'adapter':adapter,'binding':state}
         if hold:
             result.update(hold=hold['id'],resume_kind=hold['kind'],input={'verb':'resume_submission','kind':hold['kind']})
         if verb == 'upload':
@@ -296,12 +305,12 @@ class Chrome:
             raise
         op['stages'] = {'dispatched':'Input dispatched once; delivery not proven.','page':visible(reply)}
         op.update(state='done',reason='Free input dispatched once, as the page shows it.')
-        if payload:
-            self.steps(reply.get('steps', []),payload['reference']['tab'])
+        followups=self.steps(reply.get('steps', []),payload['reference']['tab']) if payload else []
         self.store.write({'op:' + op_id:op},op['action'],'Chrome free input recorded',op_id)
-        return {'operation_id':op_id,'untrusted_content':visible(reply)}
+        return {'operation_id':op_id,'untrusted_content':visible(reply),'followups':followups}
 
     def steps(self, steps, tab):
+        followups=[]
         for step in steps:
             facts = self.bridge.call('read',tab=tab)
             frame = next(item for item in facts['frames'] if item['frame'] == step['frame'])
@@ -309,7 +318,7 @@ class Chrome:
                          'view':view_identity(facts),'element':step.get('submitter') or step['element']}
             if step['kind'] in {'native_submit','submit_event'}:
                 payload, _ = self.payload('click',{'reference':reference},hold=step)
-                self.engine.reserve('chrome','submit',payload)
+                followups.append(self.engine.reserve('chrome','submit',payload))
             else:
                 # A warning-producing postcheck stays open until its result commits.
                 source = {'id':uuid.uuid4().hex,'app':'chrome','state':'started','step':step,'reference':reference}
@@ -319,6 +328,8 @@ class Chrome:
                 changes, _ = check_result(self.store,source,key,'page_activation',step,{'reason':text,'warning':text,'reference':reference})
                 source['state'] = 'unknown' if step['kind'] == 'activation_unknown' else 'done'
                 self.store.write({key:source,**changes},'chrome_page_step','Page activation result committed',untrusted_content={'warning':text})
+                followups.append({'stopped':step['kind']!='activation_unknown','unknown':step['kind']=='activation_unknown','reason':text})
+        return followups
 
     def trusted(self, operation):
         mode = self.mode(acting=True)
@@ -362,9 +373,13 @@ class Chrome:
             if not self.trusted(operation):
                 raise Refused('refused','No current owner entry covers this exact kind, account and parameters; call chrome_submit to ask.')
             # The trusted decision is checked again immediately before dispatch.
-            operation['payload']['trusted'] = True
+            operation['payload']['authorization']={'route':'owner_rule','entry_id':self.allow_id(operation),'kind_hash':operation['payload']['adapter']['kind_hash']}
             self.store.write({'op:' + operation['id']:operation},'chrome_submit_trusted','Trusted-kind revalidation',operation['id'])
-            return self.engine.submit(BY_NAME['chrome_submit'],args)
+            self.trusted_context=True
+            try:
+                return self.engine.submit(BY_NAME['chrome_submit'],args)
+            finally:
+                self.trusted_context=False
         if verb in {'read','read_form','find','wait'}: return self.read(verb,args)
         if verb in {'tabs','downloads','bookmarks','history'}:
             self.mode()
@@ -372,12 +387,20 @@ class Chrome:
             values = reply['items']
             return ordered_page(lambda:(((index,str(index)),visible(value)) for index,value in enumerate(values)),args,['chrome',verb]) | {'untrusted_content':True}
         if verb == 'fill_form':
-            completed = []
             for field in args['fields']:
-                result = self.call('fill',field)
-                completed.append(result)
-                if 'approval' in result: break
-            return {'completed':completed}
+                self.payload('fill',field)
+            completed=[]
+            for index,field in enumerate(args['fields']):
+                try:
+                    current=self.bridge.call('facts',reference=field['reference'])
+                    frame=next(frame for frame in current['frames'] if frame['frame']==field['reference']['frame'])
+                    expected={**field['expected'],'box':frame['target']['box'],'onscreen':frame['target']['onscreen']}
+                    fresh={**field,'reference':{**field['reference'],'view':view_identity(current)},'expected':expected}
+                    result=self.call('fill',fresh);completed.append(result)
+                    if result.get('approval') or result.get('followups'):break
+                except Refused as exc:
+                    return {'state':'partial' if completed else 'refused','completed':completed,'next_field':index,'reason':str(exc)}
+            return {'completed':completed,'remaining':len(args['fields'])-len(completed)}
         if verb in {'open','navigate','take_tab','release_tab','close_tab'}:
             self.mode(acting=True)
             if 'url' in args: allowed_url(args['url'])
@@ -387,7 +410,7 @@ class Chrome:
             facts=self.bridge.call('dialog_facts',tab=args['tab'])
             if facts['dialog'] != args['expected']:
                 raise Refused('stale_approval','Dialog or opener changed; read and prepare again.')
-            readonly=self.store.get('chrome:readonly:'+(urlsplit(facts['url']).hostname or ''),False)
+            readonly=any(self.store.get('chrome:readonly:'+(urlsplit(url).hostname or ''),False) for url in [facts['url'],facts['dialog']['frame_url']])
             if readonly:
                 raise Refused('readonly_site','This site is read-only; the owner must answer its dialogs.')
             kind=classify('dialog',args,{'dialog':facts['dialog']},conservative=mode['conservative'])

@@ -6190,10 +6190,27 @@ Input:
       "minLength": 1,
       "maxLength": 4096
     },
+    "element": {
+      "type": "object",
+      "properties": {
+        "role": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
     "timeout_ms": {
       "type": "integer",
       "minimum": 0,
-      "maximum": 10000
+      "maximum": 8000
     }
   },
   "required": [
@@ -6858,7 +6875,8 @@ Input:
         ],
         "additionalProperties": false
       },
-      "maxItems": 32
+      "maxItems": 32,
+      "minItems": 1
     }
   },
   "required": [

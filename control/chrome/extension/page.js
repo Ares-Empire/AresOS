@@ -29,7 +29,7 @@
   function control(node) {
     return node instanceof Element ? node.closest('button,input,a,[role=button],[role=link],[role=menuitem],[onclick]') || node : null;
   }
-  const secretFields=new WeakSet(), inputValueGetter=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value')?.get;
+  const secretFields=new WeakSet(), inputValueGetter=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value')?.get, buttonValueGetter=globalThis.HTMLButtonElement ? Object.getOwnPropertyDescriptor(HTMLButtonElement.prototype,'value')?.get:null;
   const attribute=Element.prototype.getAttribute, style=globalThis.getComputedStyle;
   let protectionObserver=null;
   const protect=records=>{
@@ -44,8 +44,9 @@
     let unsafe=secretFields.has(element);
     try{unsafe ||= attribute.call(element,'type')==='password' || /(?:^|\s)(current-password|new-password|one-time-code)(?:\s|$)/i.test(attribute.call(element,'autocomplete') || '') || !style || style(element).webkitTextSecurity!=='none';}
     catch{unsafe=true;}
-    if(unsafe || !inputValueGetter){secretFields.add(element);return '';}
-    return inputValueGetter.call(element);
+    const getter=element instanceof HTMLInputElement ? inputValueGetter:buttonValueGetter;
+    if(unsafe || !getter){secretFields.add(element);return '';}
+    return getter.call(element);
   }
   function asks(node) {
     const element = control(node);
@@ -56,7 +57,7 @@
     }
     if (element.matches('textarea,[contenteditable]') || element instanceof HTMLInputElement && ['password','text','search','email','tel','url'].includes(element.type)) return false;
     const labels = [element.getAttribute('aria-label'), element.getAttribute('title'), element.getAttribute('role'), element.textContent,
-      element instanceof HTMLInputElement && !['password', 'text', 'search', 'email', 'tel', 'url'].includes(element.type) ? inputValue(element) : '', element.form?.action];
+      (element instanceof HTMLInputElement && !['password', 'text', 'search', 'email', 'tel', 'url'].includes(element.type) || globalThis.HTMLButtonElement && element instanceof HTMLButtonElement) ? inputValue(element) : '', element.form?.action];
     return words(labels.join(' '));
   }
   function report(kind, target, submitter, cancellable = true) {
@@ -65,7 +66,7 @@
     native.dispatch.call(target, new CustomEvent('aresos-page-step', {bubbles:true,composed:true,detail: {id, kind, submitter, cancellable}}));
     return id;
   }
-  const searchForm=(form,submitter)=>((submitter?.getAttribute('formmethod') || form.method).toLowerCase()==='get') && (form.role==='search' || !!form.querySelector('input[type=search]'));
+  const searchForm=(form,submitter)=>!policy?.conservative && ((submitter?.getAttribute('formmethod') || form.method).toLowerCase()==='get') && (form.role==='search' || !!form.querySelector('input[type=search]'));
   function allowSubmission(form) {
     if (!mark || mark.form !== form) return false;
     if (!mark.primarySubmission) { mark.primarySubmission = true; return true; }
