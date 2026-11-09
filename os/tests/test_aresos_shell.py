@@ -284,6 +284,35 @@ class ProtocolTest(Base):
         self.assertFalse(conn.closing)
         self.assertTrue(self.request(helper, conn, 'list_apps', 'ok-1')['ok'])
 
+    def test_wrong_types_and_lone_surrogates_get_errors_and_the_connection_keeps_working(self):
+        helper = self.helper()
+        conn = Conn()
+        helper.connected(conn)
+        hello = dict(major=1, minor=0, capabilities=ALL, instance=INSTANCE, nonce=NONCE)
+        for bad in (dict(hello, nonce='\ud800' + NONCE), dict(hello, instance=INSTANCE + '\udfff'),
+                    dict(hello, capabilities=[[]]), dict(hello, capabilities={'a': 1}), dict(hello, op=[])):
+            reply = self.request(helper, conn, bad.pop('op', 'hello'), 'h-0', **bad)
+            with self.subTest(bad=ascii(bad)[:80]):
+                self.assertEqual((reply['ok'], reply['error']), (False, 'malformed'))
+                self.assertFalse(conn.closing)
+        self.assertTrue(self.request(helper, conn, 'hello', 'h-1', **hello)['ok'])
+        cases = [('list_apps', dict(op=[])), ('list_apps', dict(op={})), ('list_apps', dict(op=7)),
+                 ('list_apps', dict(op=None)), ('list_apps', dict(op=True)), ('list_apps', {'\udfff': 1}),
+                 ('open_app', dict(app_id={})), ('open_app', dict(app_id=[])), ('open_app', dict(app_id='\ud800')),
+                 ('open_app', dict(app_id=None)), ('world_ready', dict(instance=INSTANCE, nonce=NONCE, world=[])),
+                 ('world_ready', dict(instance=INSTANCE, nonce=NONCE, world={'id': [], 'desktop': True})),
+                 ('heartbeat', dict(instance=INSTANCE, nonce=NONCE, ready='yes'))]
+        for index, (op, fields) in enumerate(cases):
+            fields = dict(fields)
+            reply = self.request(helper, conn, fields.pop('op', op), f'x-{index}', **fields)
+            with self.subTest(op=op, fields=ascii(fields)[:80]):
+                self.assertFalse(reply['ok'])
+                self.assertEqual(reply['error'], 'malformed')
+                self.assertFalse(conn.closing)
+        self.assertTrue(self.request(helper, conn, 'list_apps', 'l-1')['ok'])
+        self.assertEqual(self.request(helper, conn, 'open_app', 'o-1', app_id='terminal')['state'], 'starting')
+        self.popen.assert_called_once()
+
     def test_oversized_messages_are_refused_and_close_the_connection(self):
         for raw in (b'x' * (shell.MAX_MESSAGE + 1), b'{"pad":"' + b'x' * shell.MAX_MESSAGE + b'"}\n'):
             helper = self.helper()
@@ -402,11 +431,67 @@ class LaunchTest(Base):
         first = self.request(helper, conn, 'open_app', 'o-1', app_id='terminal')
         if os.name == 'posix':
             self.assertEqual(stat.S_IMODE(os.stat(self.journal).st_mode), 0o600)
+        self.active_units = {f'app-aresos-terminal-{first["launch_id"]}.scope'}  # the terminal still runs
         restarted = self.helper()
         conn = self.connect(restarted)
         again = self.request(restarted, conn, 'open_app', 'o-1', app_id='terminal')
         self.assertEqual((again['launch_id'], again['state']), (first['launch_id'], 'starting'))
         self.assertEqual(self.popen.call_count, 1)
+
+    def test_without_window_tracking_a_restart_closes_launches_whose_scope_ended(self):
+        helper = self.helper(missing=())
+        conn = self.connect(helper)
+        terminal = self.request(helper, conn, 'open_app', 'o-1', app_id='terminal')
+        self.request(helper, conn, 'open_app', 'o-2', app_id='browser')
+        restarted = self.helper(missing=())
+        conn = self.connect(restarted)
+        # foot is one process per launch: its ended scope means it closed. Chrome hands over, so it stays as it was.
+        again = self.request(restarted, conn, 'open_app', 'o-1', app_id='terminal')
+        self.assertEqual((again['state'], again['launch_id']), ('closed', terminal['launch_id']))
+        self.assertEqual(self.request(restarted, conn, 'open_app', 'o-2', app_id='browser')['state'], 'starting')
+        self.assertEqual(self.popen.call_count, 2)
+
+    def test_a_full_journal_refuses_new_launches_and_keeps_every_replayable_answer(self):
+        helper = self.helper()
+        conn = self.connect(helper)
+        first = self.request(helper, conn, 'open_app', 'o-0', app_id='terminal')
+        for number in range(1, shell.JOURNAL_LIMIT):
+            self.request(helper, conn, 'open_app', f'u-{number}', app_id='unknown')
+        refused = self.request(helper, conn, 'open_app', 'n-1', app_id='notepad')
+        self.assertEqual((refused['ok'], refused['error'], refused['state']), (False, 'journal_full', 'failed'))
+        self.assertEqual(self.popen.call_count, 1)
+        # Recent answers survive the pressure, also across a restart.
+        self.active_units = {f'app-aresos-terminal-{first["launch_id"]}.scope'}
+        for current in (helper, self.helper()):
+            conn = self.connect(current)
+            self.assertEqual(self.request(current, conn, 'open_app', 'u-1', app_id='unknown')['error'], 'unknown_app')
+            self.assertEqual(self.request(current, conn, 'open_app', 'o-0', app_id='terminal')['launch_id'],
+                             first['launch_id'])
+            self.assertEqual(self.request(current, conn, 'open_app', 'n-2', app_id='notepad')['error'], 'journal_full')
+        self.assertEqual(self.popen.call_count, 1)
+        # Once finished answers are older than any resend can be, they make room; the running launch stays.
+        self.now[0] += shell.REPLAY_HORIZON + 1
+        restarted = self.helper()
+        conn = self.connect(restarted)
+        self.assertEqual(self.request(restarted, conn, 'open_app', 'n-3', app_id='notepad')['state'], 'starting')
+        self.assertEqual(self.request(restarted, conn, 'open_app', 'o-0', app_id='terminal')['launch_id'],
+                         first['launch_id'])
+        self.assertEqual(self.popen.call_count, 2)
+
+    def test_launches_in_progress_are_never_forgotten(self):
+        helper = self.helper()
+        conn = self.connect(helper)
+        first = self.request(helper, conn, 'open_app', 'o-0', app_id='terminal')
+        for number in range(1, shell.JOURNAL_LIMIT):
+            self.request(helper, conn, 'open_app', f'o-{number}', app_id='terminal')
+        self.now[0] += shell.REPLAY_HORIZON * 10
+        self.active_units = {f'app-aresos-terminal-{first["launch_id"]}.scope'}
+        for current in (helper, self.helper()):
+            conn = self.connect(current)
+            self.assertEqual(self.request(current, conn, 'open_app', 'n-1', app_id='notepad')['error'], 'journal_full')
+            again = self.request(current, conn, 'open_app', 'o-0', app_id='terminal')
+            self.assertEqual((again['launch_id'], again['state']), (first['launch_id'], 'starting'))
+        self.assertEqual(self.popen.call_count, shell.JOURNAL_LIMIT)
 
     def test_a_launch_interrupted_by_a_crash_is_reconciled_not_retried(self):
         units = {'o-dead': 'app-aresos-terminal-dead.scope', 'o-alive': 'app-aresos-notepad-alive.scope'}
@@ -572,6 +657,8 @@ class WindowTest(Base):
         self.open('notepad', 'o-2')
         self.window(3, 'org.kde.kwrite', activated=True)
         before = self.focus_events()
+        # The owner switched to Notepad a while ago; only then does the terminal close.
+        self.now[0] += shell.HANDOFF + 1
         self.close(2)
         self.assertEqual(self.focus_events(), before)
         self.assertEqual(self.activations, [])
@@ -773,6 +860,107 @@ class WaylandTest(unittest.TestCase):
         self.assertIn(0xff000009, windows.toplevels)
         with self.assertRaises(shell.WaylandError):
             client.feed(struct.pack('=II', 50, (4 << 16)))
+
+
+def wire_toplevel(handle, app_id, active, manager=50):
+    message, string = FakeCompositor.message, shell.ForeignToplevels.string
+    return (message(manager, 0, struct.pack('=I', handle)) + message(handle, 1, string(app_id))
+            + wire_state(handle, active))
+
+
+def wire_state(handle, active):
+    states = struct.pack('=I', 2) if active else b''
+    return (FakeCompositor.message(handle, 4, struct.pack('=I', len(states)) + states)
+            + FakeCompositor.message(handle, 5))
+
+
+class StartupTest(Base):
+    def test_production_startup_ties_restarted_launches_to_the_windows_already_open(self):
+        with open(self.journal, 'w') as handle:
+            json.dump({'instance': INSTANCE, 'launches': {
+                'o-1': {'app_id': 'notepad', 'launch_id': 'n1', 'state': 'focused', 'unit': 'u1'},
+                'o-2': {'app_id': 'terminal', 'launch_id': 't1', 'state': 'background', 'unit': 'u2'},
+                'o-3': {'app_id': 'notepad', 'launch_id': 'n2', 'state': 'launching', 'unit': 'u3'},
+                'o-4': {'app_id': 'browser', 'launch_id': 'b1', 'state': 'starting', 'unit': 'u4'},
+            }}, handle)
+        client_end, server_end = socket.socketpair()
+        self.addCleanup(client_end.close)
+        self.addCleanup(server_end.close)
+        compositor = FakeCompositor(server_end)
+        thread = threading.Thread(target=compositor.serve, args=([('aresos-desktop', True), ('org.kde.kwrite', False)],))
+        thread.start()
+
+        def connect(windows, environ):
+            with mock.patch.object(shell.socket, 'socket', return_value=Wrapped(client_end)), \
+                    mock.patch.object(shell.socket, 'AF_UNIX', getattr(socket, 'AF_UNIX', 1), create=True):
+                return shell.ForeignToplevels.connect(windows, {'WAYLAND_DISPLAY': 'wayland-1',
+                                                                'XDG_RUNTIME_DIR': '/run/user/1001'})
+
+        helper, wayland = shell.build(str(REGISTRY), INSTANCE, NONCE, self.journal, launcher=self.launcher(),
+                                      clock=self.clock, connect=connect)
+        thread.join(5)
+        kwrite = FakeCompositor.TOPLEVEL + 1
+        entries = helper.journal.entries
+        self.assertIn('windows', helper.capabilities)
+        self.assertEqual(helper.windows.toplevels[kwrite].owner, 'notepad')
+        self.assertEqual(helper.handles, {'o-1': {kwrite}})
+        self.assertEqual(entries['o-1']['state'], 'background')  # the desktop has the focus
+        self.assertEqual(entries['o-2']['state'], 'closed')  # no terminal window is left
+        self.assertEqual((entries['o-3']['state'], entries['o-3']['error']), ('failed', 'launch_uncertain'))
+        self.assertEqual(entries['o-4']['state'], 'starting')
+        wayland.feed(FakeCompositor.message(kwrite, 6))
+        helper.windows_changed()
+        self.assertEqual(entries['o-1']['state'], 'closed')
+        self.popen.assert_not_called()
+
+
+class SplitReadTest(Base):
+    """A socket read is not a compositor batch: the focus result must not depend on where reads split."""
+    DESKTOP, TERMINAL, NOTEPAD = 0xff000001, 0xff000002, 0xff000003
+
+    def run_split(self, stream, split, number):
+        windows = shell.Windows(clock=self.clock)
+        client_end, server_end = socket.socketpair()
+        self.addCleanup(client_end.close)
+        self.addCleanup(server_end.close)
+        wayland = shell.ForeignToplevels(client_end, windows)
+        wayland.kinds.update({50: 'manager', 60: 'seat'})
+        wayland.seat = 60
+        activations = []
+        helper = shell.Helper(str(REGISTRY), INSTANCE, NONCE, os.path.join(self.folder.name, f'j{number}.json'),
+                              launcher=self.launcher(), windows=windows,
+                              activate=lambda handle: activations.append(handle) or True,
+                              clock=self.clock, executable=lambda path: True)
+        conn = self.connect(helper)
+        wayland.feed(wire_toplevel(self.DESKTOP, 'aresos-desktop', True)
+                     + wire_toplevel(self.TERMINAL, 'aresos.terminal', False))
+        helper.windows_changed()
+        self.request(helper, conn, 'open_app', 'o-1', app_id='notepad')
+        wayland.feed(wire_state(self.DESKTOP, False) + wire_toplevel(self.NOTEPAD, 'org.kde.kwrite', True))
+        helper.windows_changed()
+        before = len(conn.events('shell_focus'))
+        wayland.feed(stream[:split])
+        helper.windows_changed()
+        wayland.feed(stream[split:])
+        helper.windows_changed()
+        # The compositor follows the helper's request and activates the desktop.
+        wayland.feed(wire_state(self.TERMINAL, False) + wire_state(self.DESKTOP, True))
+        helper.windows_changed()
+        focus = [(e['focus'], e['reason'], e.get('app_id')) for e in conn.events('shell_focus')[before:]]
+        return focus, activations, helper.journal.entries['o-1']['state']
+
+    def test_close_and_refocus_give_the_same_result_at_every_split(self):
+        closed = FakeCompositor.message(self.NOTEPAD, 6)
+        refocus = wire_state(self.TERMINAL, True)
+        orders = {'compositor refocuses first': wire_state(self.NOTEPAD, False) + refocus + closed,
+                  'close first': closed + refocus}
+        expected = ([('foreground', 'app_closed', 'notepad')], [self.DESKTOP], 'closed')
+        number = 0
+        for name, stream in orders.items():
+            for split in range(len(stream) + 1):
+                number += 1
+                with self.subTest(order=name, split=split):
+                    self.assertEqual(self.run_split(stream, split, number), expected)
 
 
 @unittest.skipUnless(sys.platform.startswith('linux'), 'needs Linux Unix sockets and SO_PEERCRED')
