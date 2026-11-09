@@ -23,6 +23,13 @@ engine.close()
 daemon=Daemon(config)
 bridge=daemon.engine.adapters['chrome'].bridge
 original_event=bridge.on_event
+original_accept=bridge.accept
+def accept(connection):
+    original_accept(connection)
+    bridge.call('audit',enabled=True)
+bridge.accept=accept
+boundary=open('/out/browser-boundary.jsonl','a',buffering=1)
+bridge.audit_sink=lambda data:boundary.write(json.dumps(data)+'\n')
 bridge.on_event=lambda event:(print('CHROME_EVENT',json.dumps(event),flush=True),original_event(event))[-1]
 daemon.engine.adapters['chrome'].hosts={name:[name+'.test'] for name in HOSTS}
 try:

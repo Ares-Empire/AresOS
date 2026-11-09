@@ -28,7 +28,7 @@ function fixture(fields) {
   const chrome={dom:{openOrClosedShadowRoot:()=>null},runtime:{id:'fixture',onMessage:{addListener(fn){listener=fn;}}}};
   class MutationObserver {constructor(fn){this.fn=fn;}observe(){}}
   const context=vm.createContext({document,chrome,crypto:{getRandomValues:array=>array.fill(1)},MutationObserver,
-    Element,HTMLInputElement,HTMLTextAreaElement,HTMLSelectElement,Node:{TEXT_NODE:3},CustomEvent:class{},
+    Element,HTMLElement:Element,HTMLInputElement,HTMLTextAreaElement,HTMLSelectElement,Node:{TEXT_NODE:3},CustomEvent:class{},
     getComputedStyle:element=>({display:'block',visibility:'visible',webkitTextSecurity:element.mask || 'none'}),
     location:{href:'https://fixture.test/'},scrollX:0,scrollY:0,innerWidth:100,innerHeight:100});
   vm.runInContext(fs.readFileSync('control/chrome/extension/reader.js','utf8'),context);

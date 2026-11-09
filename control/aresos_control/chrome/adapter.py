@@ -124,7 +124,7 @@ class Chrome:
                     continue
                 single = self.bridge.call('facts', reference=reference)
                 selected = next(f for f in single['frames'] if f['frame'] == reference['frame'])
-                return {'untrusted_content': {'form': selected['form']}, 'version_notice':mode['notice']}
+                return {'untrusted_content': visible({'form': selected['form']}), 'version_notice':mode['notice']}
             for row in frame['rows']:
                 if verb == 'find' and args['text'].casefold() not in canonical(row).casefold():
                     continue
@@ -132,7 +132,8 @@ class Chrome:
                 rows.append({'reference':reference,'expected':{k:v for k,v in row.items() if k != 'text'},'text':row.get('text','')})
         lines = [canonical(visible(row)) for row in rows]
         tree = '\n'.join(lines) or '(empty readable page)'
-        offset, end, cursor, status = fragment_window(token, len(tree), args.get('cursor'), 16000)
+        cursor_token=digest([token,verb,args.get('text')])
+        offset, end, cursor, status = fragment_window(cursor_token, len(tree), args.get('cursor'), 16000)
         # Unlike catalogue paging, a page-view cursor must never silently restart.
         if status:
             raise Refused('stale_reference', 'Page changed; read again without the cursor.')
@@ -151,12 +152,12 @@ class Chrome:
     def question(self, verb, description):
         data = description['untrusted_content']
         state = data['page_state']
-        if state.get('dialog'):
+        if state.get('dialog') and data['input']['verb']=='dialog':
             dialog=state['dialog']
             return f"On {state['url']}, as the page shows it, {'accept' if data['input'].get('accept') else 'dismiss'} {dialog['kind']} '{dialog['text']}' from frame {dialog['frame']}?"
         target = state.get('target', {})
         site = state.get('frame_url', state.get('url', ''))
-        label = target.get('name') or data['input'].get('key') or data['input']['verb']
+        label = ('resume '+data['resume_kind'] if data.get('resume_kind') else target.get('name') or data['input'].get('key') or data['input']['verb'])
         summary = f"On {site}, as the page shows it, activate '{label}'"
         adapter = state.get('adapter')
         if adapter:
@@ -245,7 +246,7 @@ class Chrome:
         return {'name':'resume' if payload.get('resume_kind') else 'input',
                 'reference':payload['reference'],'tab':payload['reference']['tab'],'input':payload['input'],
                 'kind':payload['kind'],'adapter':bool(payload.get('adapter')),'binding':payload['binding'],
-                'operation':operation,'approved':approved,**({'hold':payload['hold']} if payload.get('hold') else {})}
+                'operation':operation,'approved':approved,'primary_submission':bool(payload['binding'].get('form') and (payload['binding']['target'].get('submit') or payload['input'].get('verb')=='press' and payload['input'].get('key','').split('+')[-1]=='Enter' and payload['binding']['target'].get('editable'))),**({'hold':payload['hold']} if payload.get('hold') else {})}
 
     def payload(self, verb, args, *, hold=None):
         mode = self.mode(acting=True)
@@ -267,7 +268,7 @@ class Chrome:
         result = {'process_session':self.process_session, 'reference':args['reference'],'input':{'verb':verb,**{k:v for k,v in args.items() if k not in {'reference','expected','file','path'}}},
                   'kind':kind,'adapter':adapter,'binding':state}
         if hold:
-            result.update(hold=hold['id'],resume_kind=hold['kind'])
+            result.update(hold=hold['id'],resume_kind=hold['kind'],input={'verb':'resume_submission','kind':hold['kind']})
         if verb == 'upload':
             file = args.get('file')
             if not file or self.store.get('blob:' + digest(file)) != file:

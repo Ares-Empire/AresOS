@@ -4,12 +4,13 @@
   const elements = new Map(), ids = new WeakMap(), protectedFields = new WeakSet(), held = new Map();
   const documentId = [...crypto.getRandomValues(new Uint8Array(16))].map(value=>value.toString(16).padStart(2,'0')).join('');
   let sequence = 0, revision = 0, controlGeneration = null;
-  const traces = [], files = new Map();
+  const traces = [], files = new Map(), watchedRoots = new WeakSet();
+  const shadow=element=>element instanceof HTMLElement ? chrome.dom.openOrClosedShadowRoot(element):null;
   function roots(root = document) {
     const found = [root];
     for (const element of root.querySelectorAll('*')) {
-      const shadow = chrome.dom.openOrClosedShadowRoot(element);
-      if (shadow) found.push(...roots(shadow));
+      const childShadow = shadow(element);
+      if (childShadow) { document.dispatchEvent(new CustomEvent('aresos-watch-root',{detail:{root:childShadow}})); found.push(...roots(childShadow)); }
     }
     return found;
   }
@@ -25,10 +26,11 @@
     return unsafe;
   }
   function remember(root) {
+    if(!watchedRoots.has(root)){watchedRoots.add(root);root.addEventListener('aresos-page-step',onStep,true);}
     for (const element of root.querySelectorAll('input,textarea,[contenteditable]')) password(element);
     for (const element of root.querySelectorAll('*')) {
-      const shadow = chrome.dom.openOrClosedShadowRoot(element);
-      if (shadow) { observer.observe(shadow, {subtree: true, attributes: true, childList: true, characterData: true, attributeOldValue: true}); remember(shadow); }
+      const childShadow = shadow(element);
+      if (childShadow) { document.dispatchEvent(new CustomEvent('aresos-watch-root',{detail:{root:childShadow}})); observer.observe(childShadow, {subtree: true, attributes: true, childList: true, characterData: true, attributeOldValue: true}); remember(childShadow); }
     }
   }
   const observer = new MutationObserver(changes => {
@@ -44,7 +46,7 @@
   observer.observe(document, {subtree: true, attributes: true, childList: true, characterData: true, attributeOldValue: true});
   remember(document);
   const id = element => {
-    if (!ids.has(element)) { const key = 'e' + (++sequence); ids.set(element, key); elements.set(key, element); document.dispatchEvent(new CustomEvent('aresos-reader-identity', {detail:{id:key, element}})); }
+    if (!ids.has(element)) { const key = 'e' + (++sequence); ids.set(element, key); elements.set(key, element); element.dispatchEvent(new CustomEvent('aresos-reader-identity', {bubbles:true,composed:true,detail:{id:key}})); }
     return ids.get(element);
   };
   function text(node) {
@@ -103,6 +105,24 @@
   function itemText(element) {
     return text(element.closest('li,tr,article,form,dialog,[role=dialog],[role=alertdialog],[role=region]') || element).replace(/\s+/g, ' ').trim();
   }
+  function embedding(element) {
+    const box=element.getBoundingClientRect();let aligned=true;
+    for(let ancestor=element;ancestor;ancestor=ancestor.parentElement || ancestor.getRootNode().host){
+      const transform=getComputedStyle(ancestor).transform;
+      if(transform && transform!=='none'){
+        const matrix=new DOMMatrixReadOnly(transform);
+        if(!matrix.is2D || matrix.b!==0 || matrix.c!==0 || matrix.a<=0 || matrix.d<=0)aligned=false;
+      }
+    }
+    return {element:id(element),url:element.srcdoc ? 'about:srcdoc':element.src || 'about:blank',box:{x:box.x,y:box.y,width:box.width,height:box.height},
+      width:element.offsetWidth,height:element.offsetHeight,borderX:element.clientLeft,borderY:element.clientTop,aligned};
+  }
+  function hit(element,x,y){
+    let actual=document.elementFromPoint(x,y);
+    while(actual){const root=shadow(actual),deeper=root?.elementFromPoint(x,y);if(!deeper || deeper===actual)break;actual=deeper;}
+    for(let node=actual;node;node=node.parentElement || node.getRootNode().host)if(node===element)return true;
+    return false;
+  }
   function snapshot(elementId) {
     const element = elementId ? elements.get(elementId) : null;
     if (elementId && (!element || !element.isConnected)) throw Error('stale_reference: element is gone; read again');
@@ -116,7 +136,7 @@
     const editable = nodes.filter(node => node.matches('input,textarea,select,[contenteditable]') && !['hidden','button','submit','reset','image','file'].includes(node.type)).map(field);
     return {document: documentId, revision, url: location.href, title: document.title, scroll: {x:scrollX,y:scrollY}, rows,
       target: element ? targetFacts(element) : null, form: element ? formFacts(element.form || (element.tagName === 'FORM' ? element : null), element) : null,
-      editable, item: element ? itemText(element) : '', adapter: adapterRead(nodes, element), trace: traces.splice(0)};
+      editable, embeds:nodes.filter(node=>node.tagName==='IFRAME').map(embedding), item: element ? itemText(element) : '', adapter: adapterRead(nodes, element), trace: traces.splice(0)};
   }
   function adapterRead(nodes, target) {
     const scope=target?.closest('form,[role=dialog],[role=region][aria-label],main,[role=main]');
@@ -142,11 +162,13 @@
     if(['alert','confirm','prompt'].includes(event.detail?.kind) && typeof event.detail?.text === 'string')
       chrome.runtime.sendMessage({event:'dialog_origin',kind:event.detail.kind,text:event.detail.text});
   },true);
-  document.addEventListener('aresos-page-step', event => {
-    const value = event.detail;
-    if (!value || !['native_submit','submit_event','activation','activation_unknown'].includes(value.kind) || !(value.target instanceof Element)) return;
-    held.set(value.id, {id:value.id, kind:value.kind, element:id(value.target), submitter:value.submitter ? id(value.submitter):null, cancellable:value.cancellable});
-  }, true);
+  function onStep(event) {
+    const value=event.detail,element=event.composedPath()[0];
+    if(!value || !['native_submit','submit_event','activation','activation_unknown'].includes(value.kind) || !(element instanceof Element))return;
+    let submitter=null;
+    if(value.submitter){try{submitter=all().find(node=>Node.prototype.isSameNode.call(node,value.submitter));}catch{return;}}
+    held.set(value.id,{id:value.id,kind:value.kind,element:id(element),submitter:submitter ? id(submitter):null,cancellable:value.cancellable});
+  }
   chrome.runtime.onMessage.addListener((message, sender, reply) => {
     if (sender.id !== chrome.runtime.id || !message || typeof message.command !== 'string') return;
     try {
@@ -174,6 +196,7 @@
       }
       else if (message.command === 'clear') { controlGeneration=null; files.clear(); held.clear(); value={cleared:true}; }
       else if (message.command === 'set_control') {}
+      else if (message.command === 'hit') value={hit:hit(elements.get(message.element),message.x,message.y)};
       else if (message.command === 'ready') value = {preload:true,document:documentId};
       else if (message.command === 'read' || message.command === 'facts') value = snapshot(message.element);
       else if (message.command === 'steps') { value = [...held.values()]; held.clear(); }
@@ -183,7 +206,7 @@
         if (password(element)) throw Error('owner_signin: password fields belong to the owner');
         element.focus();
         let focused=document.activeElement;
-        while(focused && chrome.dom.openOrClosedShadowRoot(focused)?.activeElement)focused=chrome.dom.openOrClosedShadowRoot(focused).activeElement;
+        while(focused && shadow(focused)?.activeElement)focused=shadow(focused).activeElement;
         if(focused !== element)throw Error('refused: this element cannot receive keyboard input; use a focusable control');
         value = {focused:true};
       } else if (message.command === 'select' || message.command === 'check') {

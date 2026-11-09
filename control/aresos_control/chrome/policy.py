@@ -55,6 +55,7 @@ def classify(verb, arguments, facts, *, conservative=False, readonly=False, adap
     if verb == 'upload':
         return 'upload'
     if verb == 'dialog' and arguments.get('accept'):
+        if conservative:return 'activation'
         words = listed(facts.get('dialog', {}).get('text', '') + ' ' + facts.get('dialog', {}).get('button', ''))
         return 'delete' if words & DELETE else 'pay' if words & PAY else 'confirmation' if words else None
     if verb == 'press' and key in {'Delete', 'Backspace'} and not editable:

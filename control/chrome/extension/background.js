@@ -65,7 +65,7 @@ async function release(tab) {
   controlled.delete(tab); dialogs.delete(tab);
   for(const [token,stage] of stagedUploads)if(stage.tab===tab)stagedUploads.delete(token);
   try {
-    for (const frame of await chrome.webNavigation.getAllFrames({tabId:tab}) || []) { await main(tab,frame.frameId,'stop'); await content(tab,frame.frameId,'clear'); }
+    for (const frame of await chrome.webNavigation.getAllFrames({tabId:tab}) || []) { await main(tab,frame.frameId,'stop',[original?.epoch]); await content(tab,frame.frameId,'clear'); }
   } catch {}
   try { await chrome.debugger.detach({tabId:tab}); } catch {}
   if (original) {
@@ -90,10 +90,10 @@ async function facts(tab, reference) {
     try { safeURL(frame.url); } catch { if (reference?.frame === frame.frameId) throw Error('refused: excluded frame'); continue; }
     const snapshot = await content(tab,frame.frameId,reference?.frame === frame.frameId ? 'facts':'read',reference?.frame === frame.frameId ? {element:reference.element}:{});
     if (reference?.frame === frame.frameId && snapshot.document !== reference.document) throw Error('stale_reference: document changed');
-    result.push({frame:frame.frameId,...snapshot});
+    result.push({frame:frame.frameId,parent:frame.parentFrameId,...snapshot});
   }
   if (reference && !result.some(frame=>frame.frame === reference.frame)) throw Error('stale_reference: frame is gone');
-  return {session,tab,group:groupId,control:controlled.get(tab).epoch,url:current.url,title:current.title,frames:result,dialog:dialogs.get(tab) || null};
+  return {session,tab,group:groupId,control:controlled.get(tab).epoch,url:current.url,title:current.title,frames:result,frame_tree:frames.map(frame=>({frame:frame.frameId,parent:frame.parentFrameId,url:frame.url})),dialog:dialogs.get(tab) || null};
 }
 function binding(facts, reference, kind, adapter) {
   const frame = facts.frames.find(frame=>frame.frame === reference.frame);
@@ -107,6 +107,25 @@ function binding(facts, reference, kind, adapter) {
     adapter:adapter ? frame.adapter:null,dialog:facts.dialog};
 }
 const stable = value => JSON.stringify(value, function(key,value) { return value && !Array.isArray(value) && typeof value === 'object' ? Object.fromEntries(Object.entries(value).sort(([a],[b])=>a.localeCompare(b))) : value; });
+async function pointer(tab,snapshot,reference,target){
+  let x=target.box.x+target.box.width/2,y=target.box.y+target.box.height/2;
+  let child=snapshot.frames.find(frame=>frame.frame===reference.frame);
+  if(!(await content(tab,child.frame,'hit',{element:target.element,x,y})).hit)throw Error('stale_reference: another element covers the target');
+  while(child.parent>=0){
+    const parent=snapshot.frames.find(frame=>frame.frame===child.parent);
+    if(!parent)throw Error('refused: parent frame is excluded');
+    const siblings=snapshot.frame_tree.filter(frame=>frame.parent===child.parent && frame.url===child.url);
+    if(siblings.length>1)throw Error('refused: duplicate frame addresses make pointer targeting ambiguous; use a keyboard control or the owner');
+    const candidates=parent.embeds.filter(embed=>embed.url===child.url);
+    const embed=candidates.length===1 ? candidates[0]:parent.embeds.length===1 ? parent.embeds[0]:null;
+    if(!embed?.aligned || !embed.width || !embed.height)throw Error('refused: frame geometry cannot be established safely');
+    x=embed.box.x+(x+embed.borderX)*embed.box.width/embed.width;
+    y=embed.box.y+(y+embed.borderY)*embed.box.height/embed.height;
+    if(!(await content(tab,parent.frame,'hit',{element:embed.element,x,y})).hit)throw Error('stale_reference: parent frame is covered or moved');
+    child=parent;
+  }
+  return {x,y};
+}
 async function dispatch(command) {
   const tab = command.tab ?? command.reference?.tab;
   const reference = command.reference;
@@ -191,16 +210,16 @@ async function dispatch(command) {
   for(const other of snapshot.frames){
     assertControl(tab);
     await content(tab,other.frame,'set_control',{generation:dispatchEpoch});
-    await main(tab,other.frame,'arm',[POLICY,other.frame===reference.frame ? target.element:null,other.frame===reference.frame ? frame.form?.element:null,command.approved && other.frame===reference.frame ? command.operation:null]);
+    await main(tab,other.frame,'arm',[POLICY,other.frame===reference.frame ? target.element:null,other.frame===reference.frame ? frame.form?.element:null,command.approved && other.frame===reference.frame ? command.operation:null,dispatchEpoch,!!command.primary_submission && other.frame===reference.frame]);
   }
   assertControl(tab);
   if (command.name === 'resume') { effectStarted=true; await main(tab,reference.frame,'resume',[command.hold,command.operation]); }
   else {
     const input = command.input;
     if (target.password) throw Error('owner_signin: password fields belong to the owner');
-    if (input.verb === 'click') {
+    if (input.verb === 'click' || input.verb === 'check' && target.states.checked!==input.checked) {
       if (target.href && !target.href.startsWith('javascript:')) safeURL(target.href);
-      const x=target.box.x+target.box.width/2, y=target.box.y+target.box.height/2;
+      const {x,y}=await pointer(tab,snapshot,reference,target);
       await cdp(tab,'Input.dispatchMouseEvent',{type:'mousePressed',x,y,button:'left',clickCount:1});
       await cdp(tab,'Input.dispatchMouseEvent',{type:'mouseReleased',x,y,button:'left',clickCount:1});
     } else if (input.verb === 'fill' || input.verb === 'press') {
@@ -216,8 +235,9 @@ async function dispatch(command) {
         await cdp(tab,'Input.dispatchKeyEvent',{type:'keyUp',key:normalized,code,modifiers});
       }
     } else if (input.verb === 'upload') await content(tab,reference.frame,'install_file',{element:reference.element,token:command.upload.token});
-    else if (['select','check'].includes(input.verb)) await content(tab,reference.frame,input.verb,{element:reference.element,...input});
-    else if (input.verb === 'scroll') await cdp(tab,'Input.dispatchMouseEvent',{type:'mouseWheel',x:target.box.x+1,y:target.box.y+1,deltaX:input.x,deltaY:input.y});
+    else if (input.verb === 'check') {}
+    else if (input.verb === 'select') await content(tab,reference.frame,input.verb,{element:reference.element,...input});
+    else if (input.verb === 'scroll') {const point=await pointer(tab,snapshot,reference,target);await cdp(tab,'Input.dispatchMouseEvent',{type:'mouseWheel',...point,deltaX:input.x,deltaY:input.y});}
     else throw Error('permission_denied: unsupported input');
   }
   await new Promise(resolve=>setTimeout(resolve,POLICY.holdMs + 25));

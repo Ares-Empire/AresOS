@@ -10,8 +10,9 @@
     attachShadow: Element.prototype.attachShadow,
   };
   let until = 0, policy = null, mark = null, sequence = 0;
-  const identities = new Map();
-  document.addEventListener('aresos-reader-identity', event => { if (event.detail?.element instanceof Element) identities.set(event.detail.id, event.detail.element); }, true);
+  const identities = new Map(), revoked = new Set();
+  function identify(event){const element=event.composedPath()[0];if(element instanceof Element && typeof event.detail?.id==='string')identities.set(event.detail.id,element);}
+  document.addEventListener('aresos-watch-root',event=>{try{Node.prototype.isSameNode.call(event.detail.root,event.detail.root);watch(event.detail.root);}catch{}},true);
   for (const kind of ['alert','confirm','prompt']) {
     const original=window[kind];
     if(typeof original !== 'function')continue;
@@ -28,6 +29,24 @@
   function control(node) {
     return node instanceof Element ? node.closest('button,input,a,[role=button],[role=link],[role=menuitem],[onclick]') || node : null;
   }
+  const secretFields=new WeakSet(), inputValueGetter=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value')?.get;
+  const attribute=Element.prototype.getAttribute, style=globalThis.getComputedStyle;
+  let protectionObserver=null;
+  const protect=records=>{
+    for(const record of records)if(record.type==='attributes' && (record.attributeName==='type' && record.oldValue==='password' || record.attributeName==='autocomplete' && /(?:password|one-time-code)/.test(record.oldValue || '')))secretFields.add(record.target);
+  };
+  if(typeof MutationObserver==='function'){
+    protectionObserver=new MutationObserver(protect);
+    protectionObserver.observe(document,{subtree:true,attributes:true,attributeOldValue:true});
+  }
+  function inputValue(element){
+    if(protectionObserver)protect(protectionObserver.takeRecords());
+    let unsafe=secretFields.has(element);
+    try{unsafe ||= attribute.call(element,'type')==='password' || /(?:^|\s)(current-password|new-password|one-time-code)(?:\s|$)/i.test(attribute.call(element,'autocomplete') || '') || !style || style(element).webkitTextSecurity!=='none';}
+    catch{unsafe=true;}
+    if(unsafe || !inputValueGetter){secretFields.add(element);return '';}
+    return inputValueGetter.call(element);
+  }
   function asks(node) {
     const element = control(node);
     if (!element) return false;
@@ -37,13 +56,13 @@
     }
     if (element.matches('textarea,[contenteditable]') || element instanceof HTMLInputElement && ['password','text','search','email','tel','url'].includes(element.type)) return false;
     const labels = [element.getAttribute('aria-label'), element.getAttribute('title'), element.getAttribute('role'), element.textContent,
-      element instanceof HTMLInputElement && !['password', 'text', 'search', 'email', 'tel', 'url'].includes(element.type) ? element.value : '', element.form?.action];
+      element instanceof HTMLInputElement && !['password', 'text', 'search', 'email', 'tel', 'url'].includes(element.type) ? inputValue(element) : '', element.form?.action];
     return words(labels.join(' '));
   }
   function report(kind, target, submitter, cancellable = true) {
     const id = 'h' + (++sequence);
     if (kind === 'native_submit' || kind === 'submit_event') held.set(id, {kind, form: target, submitter});
-    native.dispatch.call(document, new CustomEvent('aresos-page-step', {detail: {id, kind, target, submitter, cancellable}}));
+    native.dispatch.call(target, new CustomEvent('aresos-page-step', {bubbles:true,composed:true,detail: {id, kind, submitter, cancellable}}));
     return id;
   }
   const searchForm=(form,submitter)=>((submitter?.getAttribute('formmethod') || form.method).toLowerCase()==='get') && (form.role==='search' || !!form.querySelector('input[type=search]'));
@@ -76,6 +95,8 @@
       if (allowSubmission(event.target)) return;
       event.preventDefault(); event.stopImmediatePropagation();
       report('submit_event', event.target, event.submitter);
+    } else if (mark?.target?.getRootNode().host===event.composedPath()[0]) {
+      return;
     } else if (asks(event.composedPath()[0])) {
       if (mark && !mark.input && control(event.composedPath()[0]) === mark.target) { mark.input = true; return; }
       if (event.cancelable) event.preventDefault();
@@ -86,6 +107,8 @@
   function watch(root) {
     if (seenRoots.has(root)) return;
     seenRoots.add(root);
+    if(protectionObserver && root!==window)protectionObserver.observe(root,{subtree:true,attributes:true,attributeOldValue:true});
+    root.addEventListener('aresos-reader-identity',identify,true);
     root.addEventListener('submit', capture, true);
     root.addEventListener('click', capture, true);
   }
@@ -95,12 +118,13 @@
   };
   // Called only by fixed extension functions; no script text or CDP methods cross the host channel.
   globalThis[key] = {
-    arm(config, target, form, operation) {
+    arm(config, target, form, operation, epoch, primarySubmission=false) {
+      if(revoked.has(epoch))throw Error('stale_reference: control ended');
       target = identities.get(target); form = identities.get(form);
       policy = config; until = performance.now() + config.holdMs;
-      mark = operation ? {id: operation, target, form, input: false, primarySubmission: false, furtherSubmission: false} : null;
+      mark = operation ? {id: operation, target, form, input: false, primarySubmission:!primarySubmission, furtherSubmission: false} : null;
     },
-    stop() { until = 0; mark = null; held.clear(); },
+    stop(epoch) { revoked.add(epoch); until = 0; mark = null; held.clear(); },
     drop(id) { held.delete(id); },
     resume(id, operation) {
       const step = held.get(id);
