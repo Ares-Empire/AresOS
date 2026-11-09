@@ -42,7 +42,11 @@ fi
 systemd-sysusers /usr/lib/sysusers.d/aresos.conf
 passwd --lock ares
 passwd --lock root
-chmod 0755 /usr/bin/aresos-session /usr/bin/aresos-terminal /usr/libexec/aresos-audit /usr/libexec/aresos-keyboard
+chmod 0755 /usr/bin/aresos-session /usr/bin/aresos-terminal /usr/bin/brew /usr/libexec/aresos-audit \
+    /usr/libexec/aresos-keyboard /usr/libexec/aresos-subids
+chmod 0440 /etc/sudoers.d/aresos-everyday
+/usr/libexec/aresos-subids
+systemctl enable aresos-subids.service
 
 while read -r unit; do
     systemctl disable "$unit" 2>/dev/null || true
@@ -79,26 +83,35 @@ for dir in /etc/xdg/autostart /usr/etc/xdg/autostart /usr/share/autostart /etc/s
 done
 rm -rf /etc/skel/Desktop /etc/skel/.config/autostart
 
-# Ares never belongs to wheel. Also remove upstream NOPASSWD update grants.
+# Ares is in wheel behind its own password (owner, 2026-11-09). Remove the
+# upstream NOPASSWD update grants as before, then refuse any passwordless rule
+# that is left: admin rights need his password.
 python3 - <<'PY'
 import pathlib, re
-for path in [pathlib.Path('/etc/sudoers'), *pathlib.Path('/etc/sudoers.d').glob('*')]:
+paths = [pathlib.Path('/etc/sudoers'), *sorted(pathlib.Path('/etc/sudoers.d').glob('*'))]
+for path in paths:
     if path.is_file():
         lines = path.read_text().splitlines(keepends=True)
         if any('NOPASSWD' in line and re.search(r'uupd|update|upgrade|bootc|ostree|topgrade|flatpak|brew', line, re.I) for line in lines):
             if path.name == 'sudoers':
                 raise SystemExit('Unexpected updater grant in main sudoers; review required')
             path.unlink()
+left = [f'{path}: {line.strip()}' for path in paths if path.is_file()
+        for line in path.read_text().splitlines()
+        if not line.lstrip().startswith('#') and re.search(r'NOPASSWD|!\s*authenticate', line)]
+if left:
+    raise SystemExit('Passwordless sudo rule needs review: ' + '; '.join(left))
 PY
-for command in uupd ujust topgrade bazzite-updater bazzite-portal bazaar plasma-discover gnome-software flatpak brew; do
+visudo --check
+# The OS image, firmware and app store stay out of the daily account's reach.
+# Flatpak and Homebrew are his apps now and stay executable.
+for command in uupd ujust topgrade bazzite-updater bazzite-portal bazaar plasma-discover gnome-software; do
     path=$(command -v "$command" || true)
     [[ -z $path ]] || chmod 0700 "$(readlink -f "$path")"
 done
-# Upstream's interactive setup appends brew to PATH even when shellenv fails.
-# Keep it for the recovery owner, but never evaluate it as the daily account.
-for script in /etc/profile.d/brew.sh /etc/profile.d/brew-bash-completion.sh; do
-    sed -i '1a if [ "$(id -u)" = 1001 ]; then return 0; fi' "$script"
-done
+# aresos.sh sets the daily account's PATH, Homebrew's included. Upstream's
+# interactive setup would append Homebrew a second time.
+sed -i '1a if [ "$(id -u)" = 1001 ]; then return 0; fi' /etc/profile.d/brew.sh
 for entry in /usr/share/applications/*.desktop; do
     if grep -Eiq '(^Exec=.*(uupd|ujust|topgrade|bazzite-(updater|portal)|bazaar|plasma-discover|gnome-software)|update|upgrade|rebase)' "$entry"; then
         rm -f "$entry"

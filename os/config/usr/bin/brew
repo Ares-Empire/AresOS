@@ -1,0 +1,34 @@
+#!/usr/bin/bash
+# Homebrew on Linux has one owner for its fixed prefix. On AresOS that is the
+# stock administrator (UID 1000), so a rollback to stock keeps a working
+# Homebrew. The owner runs it directly. Anyone else runs read-only commands
+# directly and everything else as the owner, after sudo asks for their own
+# password, so Homebrew keeps a single owner.
+set -euo pipefail
+prefix=/home/linuxbrew/.linuxbrew
+real=$prefix/bin/brew
+if [[ ! -x $real ]]; then
+    printf 'brew: Homebrew is not installed in %s\n' "$prefix" >&2
+    exit 127
+fi
+owner=$(stat -L -c %u "$prefix")
+if [[ $(id -u) == "$owner" ]]; then
+    exec "$real" "$@"
+fi
+case ${1-} in
+    '' | -h | --help | help | -v | --version | --prefix | --cellar | --repository | --repo | --cache | --env | \
+    shellenv | config | --config | doctor | dr | commands | list | ls | info | abv | search | -S | desc | \
+    home | homepage | deps | uses | leaves | outdated | options | missing | cat | log | formulae | casks | \
+    tap-info | which-formula)
+        exec "$real" "$@" ;;
+esac
+if [[ $owner == 0 ]]; then
+    printf 'brew: %s belongs to root; Homebrew refuses to run as root\n' "$prefix" >&2
+    exit 1
+fi
+printf 'brew: Homebrew belongs to %s; sudo asks for your own password.\n' \
+    "$(getent passwd "$owner" | cut -d: -f1 || echo "UID $owner")" >&2
+# The owner cannot enter a private home directory; relative paths in the
+# arguments therefore refer to the prefix, not to the caller's directory.
+cd "$prefix"
+exec sudo -u "#$owner" -H -- /usr/bin/env HOMEBREW_NO_AUTO_UPDATE=1 "$real" "$@"

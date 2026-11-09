@@ -13,18 +13,35 @@ password = subprocess.check_output(['getent', 'shadow', 'ares'], text=True).spli
 assert password.startswith(('!', '*')), 'Daily account password is not locked'
 print('ARESOS_DAILY_ACCOUNT_LOCKED')
 PY
+# Owner, 2026-11-09: the daily account is an administrator behind its own
+# password. The image sets none, so it stays locked and sudo cannot succeed.
 if id -nG ares | grep -qw wheel; then
-    echo 'Daily account belongs to wheel'
+    echo 'Daily account is in wheel'
+else
+    echo 'Daily account is not in wheel'
     exit 1
 fi
-# Root can successfully list an empty policy; that exit status is not a grant.
+# Root can successfully list a policy; that exit status alone is not a grant.
 sudo_policy=$(LC_ALL=C sudo -l -U ares 2>&1 || true)
 printf '%s\n' "$sudo_policy"
-grep -Eq '^User ares is not allowed to run sudo on .+\.$' <<< "$sudo_policy"
-for executable in uupd ujust topgrade bazzite-updater bazzite-portal bazaar plasma-discover gnome-software flatpak brew; do
+if grep -Eq 'NOPASSWD|!authenticate' <<< "$sudo_policy"; then
+    echo 'Daily account has a passwordless sudo rule'
+    exit 1
+fi
+grep -Eq '^User ares may run the following commands on .+:$' <<< "$sudo_policy"
+grep -Eq '^[[:space:]]+\(ALL\) ALL$' <<< "$sudo_policy"
+grep -Eq 'timestamp_type=ppid' <<< "$sudo_policy"
+if runuser -u ares -- sudo -n true; then
+    echo 'Daily account ran sudo without a password'
+    exit 1
+fi
+# The OS image, firmware and store stay out of the daily path; apps do not.
+for executable in uupd ujust topgrade bazzite-updater bazzite-portal bazaar plasma-discover gnome-software; do
     path=$(command -v "$executable" || true)
     [[ -z $path ]] || runuser -u ares -- test ! -x "$path"
 done
+runuser -u ares -- test -x /usr/bin/flatpak
+runuser -u ares -- test -x /usr/bin/brew
 for unit in sddm gdm lightdm; do
     if systemctl is-active --quiet "$unit.service"; then
         echo "Competing display manager is active: $unit"

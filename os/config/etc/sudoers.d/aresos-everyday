@@ -1,0 +1,5 @@
+# Everyday account like Windows (owner, 2026-11-09): `ares` is in wheel and
+# sudo asks for his own password. A typed password is remembered only for
+# commands from the same parent process (normally the shell he typed it in),
+# so another program running as him, such as Claude Code, cannot reuse it.
+Defaults:ares timestamp_type=ppid
