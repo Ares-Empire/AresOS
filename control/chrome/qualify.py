@@ -64,7 +64,16 @@ def prepare(repo, entries, baseline, verifier=verify):
     current = json.loads(path.read_text())
     verifier(path)
     append_only(baseline,current)
-    candidate = {'format':1,'entries':[*current['entries'],*entries]}
+    indexed={(item['build'],item['version'],item['channel']):item for item in current['entries']}
+    added=[]
+    for item in entries:
+        existing=indexed.get((item['build'],item['version'],item['channel']))
+        if existing:
+            if existing['core']!=item['core'] or existing['adapters']!=item['adapters']:
+                raise ValueError('Conflicting repeat for an immutable qualification pair; publish nothing')
+            continue
+        added.append(item)
+    candidate = {'format':1,'entries':[*current['entries'],*added]}
     append_only(current,candidate)
     return candidate
 
@@ -118,7 +127,15 @@ def main():
     args=parser.parse_args();root=Path(args.root)
     if args.command=='plan':
         with urllib.request.urlopen(PACKAGES,timeout=30) as response:data=gzip.decompress(response.read(8*1024*1024)).decode()
-        matrix=plan(json.loads((root/'control/chrome/builds.json').read_text()),packages(data),json.loads((root/RECORD).read_text()),git(root,'rev-parse','HEAD'),build_hash(root.resolve()))
+        held=json.loads((root/RECORD).read_text())
+        exists=git(root,'ls-remote','--heads','origin','refs/heads/'+DATA_BRANCH)
+        if exists:
+            git(root,'fetch','origin',DATA_BRANCH)
+            content=git(root,'show','FETCH_HEAD:'+RECORD)
+            with tempfile.NamedTemporaryFile(dir=root,suffix='.json',mode='w') as temporary:
+                temporary.write(content+'\n');temporary.flush();verify(temporary.name)
+                held=append_only(held,json.loads(content))
+        matrix=plan(json.loads((root/'control/chrome/builds.json').read_text()),packages(data),held,git(root,'rev-parse','HEAD'),build_hash(root.resolve()))
         print(json.dumps(matrix));return
     if args.command=='pair':
         identity=json.loads(os.environ['QUALIFICATION_PAIR'])
@@ -126,6 +143,7 @@ def main():
         result_path=Path(args.artifacts)/'qualification-result.json'
         result=json.loads(result_path.read_text()) if result_path.exists() else {}
         identity.update(core=result.get('core',{}),adapters=result.get('adapters',{}))
+        Path(args.artifacts).mkdir(parents=True,exist_ok=True)
         (Path(args.artifacts)/'pair.json').write_text(json.dumps(identity));return
     # A branch/test invocation cannot publish, open issues or create a pull request.
     if os.environ.get('GITHUB_REF')!='refs/heads/main' or os.environ.get('GITHUB_REPOSITORY')!=REPOSITORY:
@@ -155,9 +173,12 @@ def main():
         exists=git(repository,'-c','credential.helper=!gh auth git-credential','ls-remote','--heads','origin','refs/heads/'+DATA_BRANCH)
         git(repository,'-c','credential.helper=!gh auth git-credential','fetch','origin',DATA_BRANCH if exists else 'main')
         git(repository,'checkout','-b',DATA_BRANCH,'FETCH_HEAD')
+        if exists:verify(repository/RECORD)
         held=json.loads((repository/RECORD).read_text());append_only(held,json.loads(candidate.read_text()))
         (repository/RECORD).write_bytes(candidate.read_bytes())
         git(repository,'add',RECORD)
+        if subprocess.run(['git','-C',str(repository),'diff','--cached','--quiet']).returncode==0:
+            print('Verified record already published; no change.');return
         git(repository,'-c','user.name=Chrome qualification','-c','user.email=qualification@users.noreply.github.com','commit','-m','Append attested Chrome qualification results')
         git(repository,'-c','credential.helper=!gh auth git-credential','push','origin','HEAD:refs/heads/'+DATA_BRANCH)
 

@@ -42,6 +42,17 @@ class Publisher(unittest.TestCase):
             rollback={'format':1,'entries':[]};path.write_text(json.dumps(rollback))
             with self.assertRaises(Refused):qualify.prepare(root,[],held,Mock())
 
+    def test_an_unmerged_baseline_update_does_not_block_a_new_pair(self):
+        with tempfile.TemporaryDirectory(dir=ROOT/'.work/20-chrome') as temporary:
+            root=Path(temporary);path=root/qualify.RECORD;path.parent.mkdir(parents=True)
+            published={'format':1,'entries':[entry(),entry(version='158.0.1.0',channel='beta')]}
+            baseline={'format':1,'entries':[entry()]};path.write_text(json.dumps(published))
+            repeated=entry(version='158.0.1.0',channel='beta');repeated['run']='next-run'
+            result=qualify.prepare(root,[repeated,entry(version='158.0.2.0',channel='beta')],baseline,Mock())
+            self.assertEqual(len(result['entries']),3);self.assertEqual(result['entries'][:2],published['entries'])
+            repeated['core']['binding']=False
+            with self.assertRaises(ValueError):qualify.prepare(root,[repeated],baseline,Mock())
+
     def test_real_remote_mutations_refuse_on_this_branch_and_notifications_are_stubs(self):
         result=subprocess.run([sys.executable,str(ROOT/'control/chrome/qualify.py'),'publish'],cwd=ROOT,capture_output=True,text=True,env={'GITHUB_REF':'refs/heads/pkg/20-chrome','GITHUB_REPOSITORY':qualify.REPOSITORY})
         self.assertNotEqual(result.returncode,0);self.assertIn('restricted',result.stderr)

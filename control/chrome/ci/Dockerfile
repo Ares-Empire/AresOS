@@ -1,6 +1,6 @@
 FROM node:22-bookworm-slim
 ARG CHANNEL=stable
-RUN apt-get update -qq && apt-get install -y --no-install-recommends python3 ca-certificates curl xvfb xauth openbox xdotool dbus-x11 iproute2 procps imagemagick sudo \
+RUN apt-get update -qq && apt-get install -y --no-install-recommends python3 git ca-certificates curl xvfb xauth openbox xdotool dbus-x11 iproute2 procps imagemagick sudo \
  && curl -fsSL "https://dl.google.com/linux/direct/google-chrome-${CHANNEL}_current_amd64.deb" -o /tmp/chrome.deb \
  && apt-get install -y /tmp/chrome.deb && rm /tmp/chrome.deb \
  && ln -s "/usr/bin/google-chrome-${CHANNEL}" /usr/local/bin/qualification-chrome \

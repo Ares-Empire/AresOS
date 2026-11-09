@@ -53,6 +53,8 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - id: plan
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           python3 control/chrome/qualify.py plan > .work-qualification-matrix.json
@@ -68,16 +70,24 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
+          path: driver
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
           ref: ${{ matrix.commit }}
+          path: runtime
           persist-credentials: false
       - name: Check exact installed runtime identity
         env:
           EXPECTED_BUILD: ${{ matrix.build }}
-        run: test "$(python3 control/chrome/build.py)" = "$EXPECTED_BUILD"
+        run: test "$(python3 runtime/control/chrome/build.py)" = "$EXPECTED_BUILD"
       - name: Build the requested channel in a disposable container
         env:
           CHANNEL: ${{ matrix.channel }}
-        run: git archive HEAD control docs/control/TOOLS.md | docker build --build-arg CHANNEL="$CHANNEL" -t qualification -f control/chrome/ci/Dockerfile -
+        run: |
+          cp -R driver/control/chrome/ci/. runtime/control/chrome/ci/
+          cp -R driver/control/chrome_tests/. runtime/control/chrome_tests/
+          tar -C runtime -cf - control docs/control/TOOLS.md | docker build --build-arg CHANNEL="$CHANNEL" -t qualification -f runtime/control/chrome/ci/Dockerfile -
       - name: Run full receiver suite; repeat is a separate matrix job
         env:
           INSTALL_MODE: policy
@@ -89,7 +99,7 @@ jobs:
         if: always()
         env:
           QUALIFICATION_PAIR: ${{ toJSON(matrix) }}
-        run: python3 control/chrome/qualify.py pair --artifacts .work/20-chrome/ci
+        run: python3 driver/control/chrome/qualify.py pair --artifacts .work/20-chrome/ci
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
