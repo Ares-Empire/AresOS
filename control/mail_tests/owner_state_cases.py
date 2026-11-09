@@ -139,6 +139,14 @@ def run(gaps):
         compare(s, d, 'legacy-open-intent')
         f.data('notice_ack', {'operation_id': 'old'})
         compare(s, d, 'legacy-ack')
+        approval = f.approval('send', f.compose())
+        new_id = approval['operation_id']
+        assert f.engine.store.get('op:' + new_id)['state'] == 'reserved'
+        compare(s, d, 'legacy-new-reservation')
+        cancelled = f.call('operation_cancel', {'operation_id': new_id})
+        assert cancelled['ok'] and cancelled['data']['operation']['state'] == 'failed', cancelled
+        assert cancelled['data']['operation']['reason'] == 'cancelled: nothing submitted', cancelled
+        compare(s, d, 'legacy-new-cancel')
     finally:
         s.close()
 
