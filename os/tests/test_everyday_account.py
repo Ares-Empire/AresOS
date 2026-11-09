@@ -108,6 +108,27 @@ class TerminalShellTest(unittest.TestCase):
         self.assertIn("if [[ ${1-} == --recovery ]]; then", wrapper)
         self.assertIn('export ARESOS_TERMINAL=$mode', wrapper)
         self.assertIn('--rcfile /usr/share/aresos/bashrc -i', wrapper)
+        exec_line, = [line for line in wrapper.splitlines() if line.startswith('exec ')]
+        self.assertTrue(exec_line.startswith('exec /usr/bin/foot --title=AresOS /usr/bin/bash '), exec_line)
+
+    def test_a_broken_foot_first_on_path_is_never_run(self):
+        # Review 1: ~/.local/bin heads his PATH, so a broken `foot` there must
+        # not take away either terminal. The real wrapper runs; whatever
+        # /usr/bin/foot does on this host, the shadowing one must stay unused.
+        with tempfile.TemporaryDirectory() as directory:
+            shadow = pathlib.Path(directory, 'bin')
+            shadow.mkdir()
+            marker = pathlib.Path(directory, 'broken-foot-ran')
+            (shadow / 'foot').write_text(f'#!/bin/sh\ntouch {marker}\nexit 3\n')
+            (shadow / 'foot').chmod(0o755)
+            for argument in ([], ['--recovery']):
+                with self.subTest(argument=argument):
+                    result = subprocess.run(['bash', str(CONFIG / 'usr/bin/aresos-terminal'), *argument],
+                                            capture_output=True, text=True, timeout=30,
+                                            env={'PATH': f'{shadow}:/usr/bin:/bin', 'HOME': directory})
+                    self.assertFalse(marker.exists(), result.stderr)
+                    if not os.path.exists('/usr/bin/foot'):
+                        self.assertIn('/usr/bin/foot', result.stderr)
 
 
 class DailyPathTest(unittest.TestCase):
@@ -143,14 +164,14 @@ class DailyPathTest(unittest.TestCase):
 
 
 class PolicyFilesTest(unittest.TestCase):
-    def test_sysusers_adds_wheel_and_sudo_remembers_passwords_per_parent_process(self):
+    def test_sysusers_adds_wheel_and_sudo_asks_for_the_password_every_time(self):
         lines = [l for l in (CONFIG / 'usr/lib/sysusers.d/aresos.conf').read_text().splitlines()
                  if l and not l.startswith('#')]
         self.assertEqual(lines, ['g ares 1001', 'u ares 1001:1001 "AresOS daily session" /var/home/ares /bin/bash',
                                  'm ares wheel'])
         sudoers = [l for l in (CONFIG / 'etc/sudoers.d/aresos-everyday').read_text().splitlines()
                    if l and not l.startswith('#')]
-        self.assertEqual(sudoers, ['Defaults:ares timestamp_type=ppid'])
+        self.assertEqual(sudoers, ['Defaults:ares timestamp_timeout=0'])
 
     def test_polkit_rule_denies_os_changes_and_asks_for_upstream_wheel_grants(self):
         rule = (CONFIG / 'usr/share/polkit-1/rules.d/00-aresos-maintenance.rules').read_text()
@@ -163,6 +184,21 @@ class PolicyFilesTest(unittest.TestCase):
         for action in ('org.freedesktop.Flatpak.app-install', 'org.gtk.vfs.file-operations-helper',
                        'org.freedesktop.NetworkManager.settings.modify.system'):
             self.assertIn(action, actions)
+        # Review 1: logind's next-boot and firmware-setup choices (and modem
+        # firmware) are open to any active session by default; deny them to
+        # ares outright, with or without wheel. Ordinary power actions stay.
+        denied = re.findall(r'"([^"]+)"', re.search(r'var aresosDeniedActions = \[(.*?)\];', rule, re.S).group(1))
+        self.assertEqual(denied, ['org.freedesktop.ModemManager1.Firmware',
+                                  'org.freedesktop.login1.set-reboot-parameter',
+                                  'org.freedesktop.login1.set-reboot-to-boot-loader-entry',
+                                  'org.freedesktop.login1.set-reboot-to-boot-loader-menu',
+                                  'org.freedesktop.login1.set-reboot-to-firmware-setup'])
+        self.assertIn('aresosDeniedActions.indexOf(action.id) >= 0) {\n        return polkit.Result.NO;', rule)
+        review = json.loads((ROOT / 'ci/polkit-review.json').read_text())
+        self.assertEqual(review['denied_actions'], denied)
+        for power in ('power-off', 'reboot', 'suspend'):
+            self.assertNotIn(f'org.freedesktop.login1.{power}"', rule)
+            self.assertEqual(review['expected'][f'org.freedesktop.login1.{power}'], {'rule': None, 'effective': 'yes'})
         self.assertNotIn('manage-unit-files', rule)
         self.assertIn('return polkit.Result.AUTH_ADMIN_KEEP;', rule)
         self.assertNotIn('Result.YES', rule)

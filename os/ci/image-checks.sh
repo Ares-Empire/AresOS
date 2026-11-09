@@ -13,6 +13,7 @@ expect_failure() {
         exit 1
     fi
     LAST_FAILURE=$output
+    LAST_STATUS=$status
 }
 
 # --- The everyday account: wheel, a password it does not have yet.
@@ -27,7 +28,7 @@ pass 'the image sets no password for ares (locked)'
 policy=$(LC_ALL=C sudo -l -U ares)
 printf '%s\n' "$policy"
 grep -Eq '^[[:space:]]+\(ALL\) ALL$' <<< "$policy"
-grep -q 'timestamp_type=ppid' <<< "$policy"
+grep -q 'timestamp_timeout=0' <<< "$policy"
 if grep -Eq 'NOPASSWD|!authenticate' <<< "$policy"; then
     echo 'Passwordless sudo rule for ares'
     exit 1
@@ -38,10 +39,41 @@ if grep -rhEv '^[[:space:]]*(#|$)' /etc/sudoers /etc/sudoers.d | grep -E 'NOPASS
 fi
 visudo --check
 test "$(stat -c '%a %u %g' /etc/sudoers.d/aresos-everyday)" = '440 0 0'
-pass 'sudo for ares: (ALL) ALL with a password, timestamp per parent process, no passwordless rule'
+pass 'sudo for ares: (ALL) ALL with a password, no remembered ticket, no passwordless rule'
 expect_failure runuser -u ares -- sudo -n true
 grep -q 'password is required' <<< "$LAST_FAILURE"
 pass 'sudo as ares fails without a password'
+
+# A successful sudo must leave nothing a later command can reuse, not even a
+# child of the same shell that execs sudo -n (review 1). The throwaway
+# password exists only in this check container and is kept out of the trace.
+set +x
+reuse_password=$(head -c 18 /dev/urandom | base64)
+printf 'ares:%s\n' "$reuse_password" | chpasswd
+set -x
+reuse_probe() {
+    # One shell authenticates once; then a child keeps that shell as the
+    # parent of sudo -n, as `exec` from a program it started would.
+    runuser -u ares -- env REUSE_PASSWORD="$reuse_password" /usr/bin/bash -c '
+        printf "%s\n" "$REUSE_PASSWORD" | sudo -S -p "" true || exit 90
+        /usr/bin/bash -c "exec sudo -n true"
+    '
+}
+# Control: the earlier per-parent-process ticket does let that child in, so
+# this probe can see reuse.
+printf 'Defaults:ares timestamp_timeout=5, timestamp_type=ppid\n' > /etc/sudoers.d/zz-reuse-control
+chmod 0440 /etc/sudoers.d/zz-reuse-control
+visudo --check
+reuse_probe
+rm /etc/sudoers.d/zz-reuse-control
+rm -rf /run/sudo/ts /var/run/sudo/ts
+expect_failure reuse_probe
+# 1 is sudo -n refusing; 90 would mean the first, real authentication failed.
+test "$LAST_STATUS" = 1
+grep -q 'a password is required' <<< "$LAST_FAILURE"
+usermod -p '!*' ares
+test "$(getent shadow ares | cut -d: -f2)" = '!*'
+pass 'after a successful sudo, a child exec of sudo -n is refused (the old ppid ticket allowed it)'
 
 # --- OS updaters stay out of reach; Flatpak and Homebrew are his.
 for command in uupd ujust topgrade bazzite-updater bazzite-portal bazaar plasma-discover gnome-software; do
@@ -172,6 +204,25 @@ test "$(stat -c %u /var/home/linuxbrew/.linuxbrew)" = 1000
 pass 'ares runs read-only brew directly; installs go through sudo as the prefix owner and fail without a password'
 
 # --- Terminal, keys, polkit agent, tools.
+# Review 1: a broken `foot` first on his PATH must not take either terminal
+# away. A recording stand-in replaces /usr/bin/foot in this container only.
+mv /usr/bin/foot /usr/bin/foot.real
+printf '#!/bin/sh\nprintf "%%s|%%s\\n" "$ARESOS_TERMINAL" "$*" >> /tmp/foot-calls\n' > /usr/bin/foot
+chmod 0755 /usr/bin/foot
+runuser -u ares -- mkdir -p /var/home/ares/.local/bin
+printf '#!/bin/sh\ntouch /tmp/broken-foot-ran\nexit 3\n' > /var/home/ares/.local/bin/foot
+chmod 0755 /var/home/ares/.local/bin/foot
+chown ares:ares /var/home/ares/.local/bin/foot
+touch /tmp/foot-calls
+chmod 0666 /tmp/foot-calls
+runuser -l ares -c 'test "$(command -v foot)" = /var/home/ares/.local/bin/foot && /usr/bin/aresos-terminal --recovery && /usr/bin/aresos-terminal'
+test ! -e /tmp/broken-foot-ran
+cat /tmp/foot-calls
+test "$(cat /tmp/foot-calls)" = "recovery|--title=AresOS /usr/bin/bash --rcfile /usr/share/aresos/bashrc -i
+normal|--title=AresOS /usr/bin/bash --rcfile /usr/share/aresos/bashrc -i"
+mv /usr/bin/foot.real /usr/bin/foot
+rm /var/home/ares/.local/bin/foot
+pass 'both terminals run /usr/bin/foot even with a broken foot first on PATH'
 grep -qx 'font=monospace:size=16' /etc/xdg/foot/foot.ini
 pass 'foot default font size 16 (a user foot.ini replaces this file)'
 grep -qx '/usr/libexec/kf6/polkit-kde-authentication-agent-1 &' /usr/share/aresos/labwc/autostart
