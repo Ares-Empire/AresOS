@@ -934,7 +934,7 @@ class StageOneFixMutations(unittest.TestCase):
         record = Record(events=[{'seq': 1, 'action': 'mail_account_add', 'outcome': 'done', 'set': {'mail:account:new': {
             'id': 'new', 'onboarded': True, 'ready': True, 'sent_policy': 'server', 'safe_folder_delete': True}}}])
         expected = oracle.qualification_facts({}, record)
-        good = {'ok': True, 'data': {'accounts': [{'id': 'new', 'ready': False, 'sent_policy': 'client', 'safe_folder_delete': False, 'folder_delete_reason': 'Protection not proven; cleanup needs owner inspection.'}]}}
+        good = {'ok': True, 'data': {'accounts': [{'id': 'new', 'ready': False, 'sent_policy': 'client', 'safe_folder_delete': False, 'folder_delete_reason': 'Probe survival or cleanup could not be verified; owner must inspect.'}]}}
         self.assertEqual(expected, oracle.qualification_facts(good, record, actual=True))
         for field, value in (('ready', True), ('sent_policy', 'server'), ('safe_folder_delete', True), ('folder_delete_reason', 'Qualified: all safe.')):
             wrong = copy.deepcopy(good)
@@ -1006,3 +1006,54 @@ class StageOneFixMutations(unittest.TestCase):
             self.assertEqual(retained_role(source, 'Trash', Record(rows=rows), {'items': [notice]}), set())
         vague = {**notice, 'untrusted_content': {'intent_key': source, 'reason': 'Not yet checked'}}
         self.assertEqual(retained_role(source, 'Trash', record, {'items': [vague]}), set())
+
+    def test_coherent_wrong_append_flags_are_not_authorized(self):
+        from owner_state_oracle.context import differences
+        oracle = Oracle()
+        oracle.call('mail_operation_repair', {'operation_id': 'g:parent', 'stage': 'sent_copy'}, 1)
+        context = {'command': 'APPEND', 'account': 'box', 'roles': {}, 'source': 'local', 'destination': 'Sent',
+            'sha256': 'wire', 'identities': [{'message_id': '<exact>'}], 'append_flags': '(\\Draft)'}
+        event = oracle.server('APPEND', 'box', 'Sent', [{'message_id': '<exact>'}], {}, append_flags='(\\Draft)', raw_sha256='wire',
+            committed_before={'op:g:repair': {'id': 'g:repair', 'state': 'submitting', 'repair_of': 'g:parent',
+            'action': 'mail_operation_repair', 'payload': {'stage': 'sent_copy'}, 'context': context}})
+        self.assertEqual(differences(event, oracle.script)[1], ['script.command.append-flags', 'script.context.append-flags'])
+        event['append_flags'] = event['committed_before']['op:g:repair']['context']['append_flags'] = '(\\Seen)'
+        self.assertEqual(differences(event, oracle.script)[1], [])
+
+    def test_qualification_distinguishes_each_negative_probe_reason(self):
+        ref = {'account': 'new', 'folder': 'Probe', 'uidvalidity': 1, 'uid': 1, 'message_id': '<probe@mail.invalid>', 'sha256': 'wire'}
+        def scenario():
+            oracle = Oracle()
+            oracle.call('mail_account_add', {'id': 'new'}, 1)
+            oracle.server('APPEND', 'new', 'Probe', arrived=[ref])
+            oracle.server('DELETE', 'new', arguments=['Probe'], accepted=False, response_code='NO', response_text=['[CANNOT] Nonempty DELETE forbidden'])
+            oracle.server('FETCH', 'new', 'Probe', identities=[ref])
+            oracle.server('EXPUNGE', 'new', 'Probe', identities=[ref], arguments=['1'])
+            oracle.server('DELETE', 'new', arguments=['Probe'], accepted=True, response_code='OK')
+            record = Record(events=[{'seq': 1, 'action': 'mail_account_add', 'outcome': 'done', 'set': {
+                'mail:account:new': {'id': 'new', 'onboarded': True},
+                'op:probe': {'action': 'mail_onboarding_folder_probe', 'state': 'refused', 'payload': {'folder': 'Probe'}},
+                'op:cleanup': {'action': 'mail_delete', 'state': 'done', 'payload': {'items': [{'reference': ref}]}},
+                'op:empty': {'action': 'mail_onboarding_folder_probe', 'state': 'done', 'payload': {'folder': 'Probe', 'empty': True}}}}])
+            return oracle, record
+        oracle, record = scenario()
+        self.assertEqual(oracle.qualification(record)['new']['folder_delete_reason'], 'qualified')
+        self.assertTrue(oracle.qualification(record)['new']['safe_folder_delete'])
+        for kind in ('generic-cleaned', 'probe-missing', 'exact-cleanup-failed', 'empty-cleanup-failed', 'survival-unverified'):
+            oracle, record = scenario()
+            if kind == 'generic-cleaned':
+                oracle.servers[1]['response_text'] = ['[CANNOT] Generic refusal']
+            elif kind == 'probe-missing':
+                oracle.servers[1]['accepted'] = True
+            elif kind == 'exact-cleanup-failed':
+                record.events[0]['set']['op:cleanup']['state'] = 'failed'
+            elif kind == 'empty-cleanup-failed':
+                record.events[0]['set']['op:empty']['state'] = 'failed'
+            else:
+                oracle.servers[2]['accepted'] = False
+            expected = oracle.qualification(record)['new']
+            self.assertEqual(expected['folder_delete_reason'], kind)
+            self.assertFalse(expected['safe_folder_delete'])
+            wrong = {'data': {'accounts': [{'id': 'new', **expected, 'folder_delete_reason': 'Qualified: fabricated'}]}}
+            with self.subTest(kind=kind), self.assertRaises(AssertionError):
+                oracle.compare('wrong qualification reason', oracle.qualification_facts({}, record), oracle.qualification_facts(wrong, record, actual=True))

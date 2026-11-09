@@ -267,6 +267,16 @@ def script_differences(event, script, row, context):
             errors.append('script.command.' + field)
         if context.get(field) != value:
             errors.append('script.context.' + field)
+    if command == 'APPEND' and 'append_flags' in event:
+        flags = '(\\Draft)' if action == 'mail_draft_save' else '(\\Seen)' if action in {'mail_send', 'mail_unsubscribe', 'mail_operation_repair'} else None
+        if action == 'mail_account_add' and event.get('folder') in (special_roles(event.get('roles')) or {}).get('sent', []):
+            flags = '(\\Seen)'
+        if event['append_flags'] != flags:
+            errors.append('script.command.append-flags')
+        # Legacy send/repair intent actions imply Seen. A new explicit context
+        # must spell out its flags rather than borrowing the attempted command.
+        if isinstance(row.get('context'), dict) and context.get('append_flags') != flags:
+            errors.append('script.context.append-flags')
     if args.get('operation_id') and row.get('approval') is not None and action != 'mail_operation_repair' and row['approval'] != args:
         errors.append('script.approval')
     return errors

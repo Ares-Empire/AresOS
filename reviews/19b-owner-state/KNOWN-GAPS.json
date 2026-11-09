@@ -2013,20 +2013,6 @@
       "suite": "contract"
     },
     {
-      "count": 3,
-      "id": "[\"contract\",\"suite\",\"M12/C05\",3]",
-      "owner": "suite",
-      "row": "M12/C05",
-      "samples": [
-        "contract/qualification-probes-restart/qualification.mail_accounts",
-        "contract/qualification-probes/qualification.mail_account_add",
-        "contract/qualification-probes/qualification.mail_accounts"
-      ],
-      "sha256": "226b191029df2a7ac338c39d7157cbbc534e9b8e34ee43e62a015d76d9a52cb8",
-      "stage": 3,
-      "suite": "contract"
-    },
-    {
       "count": 215,
       "id": "[\"contract\",\"suite\",\"M14\",3]",
       "owner": "suite",

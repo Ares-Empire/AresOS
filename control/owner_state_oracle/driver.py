@@ -50,9 +50,9 @@ class Driver:
         return dict(committed_before=copy.deepcopy(record.rows), created_before=created,
                     call_start_seq=getattr(self.oracle, 'active_start_seq', 0), before_seq=max(record.committed, default=0))
 
-    def identities(self, folder):
+    def identities(self, folder, account_id=None):
         f = self.scenario.fixture
-        return [dict(account=getattr(self, 'account_id', 'box'), folder=folder, uidvalidity=f.imap.validities[folder], uid=uid,
+        return [dict(account=account_id or getattr(self, 'account_id', 'box'), folder=folder, uidvalidity=f.imap.validities[folder], uid=uid,
                      message_id=str(BytesParser().parsebytes(raw, headersonly=True).get('Message-ID', '')),
                      sha256=__import__('hashlib').sha256(raw).hexdigest())
                 for uid, raw in f.imap.boxes.get(folder, {}).items()]
@@ -135,7 +135,7 @@ class Driver:
                 identities=[__import__('owner_state_oracle.transcript', fromlist=['Transcript']).Transcript.message(raw)], raw_sha256=__import__('hashlib').sha256(raw).hexdigest(), accepted=False, reply='lost',
                 append_flags=flags, **self.precommit())
             value = append(account, folder, raw, flags)
-            event.update(accepted=True, reply='delivered', arrived=self.identities(folder))
+            event.update(accepted=True, reply='delivered', arrived=self.identities(folder, account['id']))
             return value
         extra = ExitStack()
         imap = f.mail.transport.imap

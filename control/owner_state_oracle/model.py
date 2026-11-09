@@ -482,16 +482,9 @@ class Oracle:
             searches = [e for e in events[delivery_index:repair_index] if e['command'] == 'SENT']
             policy = 'server' if searches and searches[-1]['identities'] else 'client'
             ready = bool(deliveries) and policy == 'server'
-            # Qualification is the conjunction of independently observed probe
-            # survival, a specific refusal and exact cleanup, never a ready bit.
-            nonempty = next((e for e in probes if e.get('response_code') == 'NO' and 'NOTEMPTY' in str(e.get('response_text', '')).upper()), None)
-            refs = [ref for e in events if e['command'] == 'APPEND' and e['accepted'] for ref in e.get('arrived', [])]
-            survived = any(e['command'] == 'FETCH' and e['accepted'] and any(ref in e['identities'] for ref in refs) for e in events)
-            expunged = any(e['command'] == 'EXPUNGE' and e['accepted'] and any(str(ref['uid']) == str(e.get('arguments', [''])[0]) and ref['folder'] == e.get('folder') for ref in refs) for e in events)
-            empty_deleted = bool(nonempty and probes[-1]['accepted'] and probes[-1].get('arguments') == nonempty.get('arguments'))
-            safe = bool(nonempty and survived and expunged and empty_deleted)
+            safe, reason = self.probe_qualification(events, record)
             self.qualification_observed[account_id] = {'ready': ready, 'sent_policy': policy,
-                'safe_folder_delete': safe, 'folder_delete_reason': 'qualified' if safe else 'unproven'}
+                'safe_folder_delete': safe, 'folder_delete_reason': reason}
         result = copy.deepcopy(self.qualification_observed)
         for event in record.events:
             if event['action'] != 'mail_account_settings':
@@ -503,6 +496,43 @@ class Oracle:
                     result[account].update(sent_policy=args['sent_policy'], ready=True)
         return result
 
+    def probe_qualification(self, events, record):
+        probes = [e for e in events if e['command'] == 'DELETE']
+        if not probes or probes[0].get('reply') != 'delivered':
+            return False, 'survival-unverified'
+        probe = probes[0]
+        folder = (probe.get('arguments') or [''])[0].strip('"')
+        # The response code alone is insufficient: CANNOT is generic unless
+        # the server explicitly says that nonempty deletion is forbidden.
+        text = ' '.join(str(v) for v in probe.get('response_text', [])).upper()
+        codes = re.findall(r'\[([A-Z0-9-]+)(?:[^\]]*)\]', text)
+        nonempty = probe.get('response_code') == 'NO' and all(code == 'CANNOT' for code in codes) and bool(re.search(r'NON[- ]?EMPTY|NOT EMPTY|CONTAINS MESSAGES|HOLDS MAIL', text))
+        if probe['accepted']:
+            return False, 'probe-missing'
+        operations = [v for e in record.events for k, v in e['set'].items() if k.startswith('op:') and v]
+        def outcome(action, predicate):
+            matching = [v for v in operations if v.get('action') == action and predicate(v.get('payload', {}))]
+            return matching[-1] if matching else {}
+        initial = outcome('mail_onboarding_folder_probe', lambda p: p.get('folder') == folder and not p.get('empty'))
+        if initial.get('state') != 'refused':
+            return False, 'survival-unverified'
+        refs = [ref for e in events if e['command'] == 'APPEND' and e['accepted'] and e.get('folder') == folder for ref in e.get('arrived', [])]
+        survived = any(e['command'] == 'FETCH' and e['accepted'] and any(ref in e['identities'] for ref in refs) for e in events)
+        cleanup = outcome('mail_delete', lambda p: any(i.get('reference', {}).get('folder') == folder for i in p.get('items', [])))
+        if not survived or cleanup.get('state') in {None, 'reserved', 'submitting'}:
+            return False, 'survival-unverified'
+        expunged = any(e['command'] == 'EXPUNGE' and e['accepted'] and any(str(ref['uid']) == str(e.get('arguments', [''])[0]) and ref['folder'] == e.get('folder') for ref in refs) for e in events)
+        if cleanup.get('state') != 'done' or not expunged:
+            return False, 'exact-cleanup-failed'
+        if not nonempty:
+            return False, 'generic-cleaned'
+        empty = outcome('mail_onboarding_folder_probe', lambda p: p.get('folder') == folder and p.get('empty'))
+        if empty.get('state') in {None, 'reserved', 'submitting'}:
+            return False, 'survival-unverified'
+        if empty.get('state') != 'done' or not probes[-1]['accepted']:
+            return False, 'empty-cleanup-failed'
+        return True, 'qualified'
+
     def qualification_facts(self, reply, record, actual=False):
         if not actual:
             return {Fact('mail:account:' + account, 'qualification', detail=canonical(value)) for account, value in self.qualification(record).items()}
@@ -513,7 +543,12 @@ class Oracle:
             if account.get('id') not in self.qualification(record):
                 continue
             reason = account.get('folder_delete_reason', '')
-            family = 'qualified' if reason.startswith('Qualified:') else 'unproven' if any(word in reason.lower() for word in ('not proven', 'not qualified', 'unproven', 'failed', 'could not', 'disabled')) else 'missing'
+            family = ('qualified' if reason.startswith('Qualified:') else
+                'probe-missing' if 'did not survive' in reason else
+                'exact-cleanup-failed' if 'Exact probe UID EXPUNGE cleanup failed' in reason else
+                'empty-cleanup-failed' if 'Empty probe folder DELETE cleanup failed' in reason else
+                'generic-cleaned' if 'Exact probe removed; empty folder retained' in reason else
+                'survival-unverified' if 'could not be verified' in reason else 'unexplained')
             result.add(Fact('mail:account:' + account['id'], 'qualification', detail=canonical({
                 **{field: account.get(field) for field in ('ready', 'sent_policy', 'safe_folder_delete')}, 'folder_delete_reason': family})))
         return result
