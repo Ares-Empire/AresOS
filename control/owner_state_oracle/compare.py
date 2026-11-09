@@ -69,14 +69,19 @@ def pending_facts(page):
     return {Fact('op:' + row['operation_id'], 'pending', detail=canonical({'state': row['state'], 'reason': 'RESTORED_EVIDENCE' if 'restored' in row.get('reason', '').lower() and any(word in row.get('reason', '').lower() for word in ('newer', 'missing')) else row.get('reason')})) for row in page.get('items', [])}
 
 
+def restart_count(count, label):
+    count += 1
+    assert count <= 3, ('Nonconvergent changed catalogue', label)
+    return count
+
+
 def pages(read, action, arguments=None, section='data'):
     args, seen, restarts = dict(arguments or {}), set(), 0
     while True:
         reply = read(action, args)
         page = reply.get(section, {'items': [], 'total': 0, 'cursor': None, 'unavailable': reply.get('error', {}).get('code', 'missing')})
         if page.get('page_changed'):
-            restarts += 1
-            assert restarts <= 3, ('Nonconvergent changed catalogue', action)
+            restarts = restart_count(restarts, action)
             seen.clear()
         yield page
         cursor = page.get('cursor')

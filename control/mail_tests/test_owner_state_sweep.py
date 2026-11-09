@@ -1,6 +1,6 @@
 """Stage 1 independent owner-state comparisons at every inherited fault site."""
 from collections import Counter
-from contextlib import contextmanager
+from contextlib import contextmanager, ExitStack
 import os
 import shutil
 import tempfile
@@ -12,6 +12,7 @@ from aresos_control.engine import Engine
 from owner_state_oracle.driver import Driver
 from owner_state_oracle.model import Oracle
 from owner_state_oracle.gaps import Gaps
+from owner_state_oracle.clock import scripted_calendar
 from test_review23_sweep import Scenario
 from storage_faults import OSWrites
 
@@ -30,9 +31,26 @@ def owns_case(case, shard, shards, worker=0, workers=1):
 
 class OwnerScenario(Scenario):
     def __init__(self, flow):
+        try:
+            self._initialize(flow)
+        except BaseException:
+            try:
+                if hasattr(self, 'stack'):
+                    self.stack.close()
+                if hasattr(self, 'fixture'):
+                    self.fixture.doCleanups()
+            finally:
+                if hasattr(self, 'script_patch'):
+                    self.script_patch.stop()
+                if hasattr(self, 'clock_patches'):
+                    self.clock_patches.close()
+            raise
+
+    def _initialize(self, flow):
         self.test_clock = 1794225600.0
-        self.clock_patch = patch('time.time', side_effect=lambda: self.test_clock)
-        self.clock_patch.start()
+        self.clock_patches = ExitStack()
+        self.clock_patches.enter_context(patch('time.time', side_effect=lambda: self.test_clock))
+        self.clock_patches.enter_context(scripted_calendar())
         self.owner_oracle = Oracle()
         request = Engine.request
         def scripted(engine, envelope, *args, **kwargs):
@@ -55,12 +73,7 @@ class OwnerScenario(Scenario):
         # Use a real function so Engine's descriptor still binds self.
         self.script_patch = patch.object(Engine, 'request', scripted)
         self.script_patch.start()
-        try:
-            super().__init__('fixture' if flow in EXTRA else flow)
-        except BaseException:
-            self.script_patch.stop()
-            self.clock_patch.stop()
-            raise
+        super().__init__('fixture' if flow in EXTRA else flow)
         self.stack.callback(self.script_patch.stop)
         if flow not in EXTRA:
             return
@@ -144,7 +157,7 @@ class OwnerScenario(Scenario):
         try:
             super().close()
         finally:
-            self.clock_patch.stop()
+            self.clock_patches.close()
 
     def call(self):
         if self.flow == 'onboarding':
@@ -205,6 +218,15 @@ def exercise(flow, number=None, mode='single', cleanup_at=None, gaps=None, phase
 
 
 class OwnerStateSweep(unittest.TestCase):
+    def test_constructor_failure_restores_request_and_clock(self):
+        request, clock, localtime = Engine.request, time.time, time.localtime
+        with patch.object(Scenario, '__init__', side_effect=RuntimeError('Synthetic constructor failure')):
+            with self.assertRaisesRegex(RuntimeError, 'Synthetic constructor failure'):
+                OwnerScenario('send')
+        self.assertIs(Engine.request, request)
+        self.assertIs(time.time, clock)
+        self.assertIs(time.localtime, localtime)
+
     def test_shards_cover_every_fault_and_keep_its_cleanup_and_crash_cases(self):
         for shards in (1, 2, 4):
             for workers in (1, 2):

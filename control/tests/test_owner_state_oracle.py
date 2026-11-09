@@ -86,6 +86,13 @@ class OwnerOracle(unittest.TestCase):
         self.assertEqual([p['items'] for p in pages(read, 'log')], [[1], [2]])
         with self.assertRaisesRegex(AssertionError, 'did not advance'):
             list(pages(lambda *_: {'ok': True, 'data': {'cursor': 'same'}}, 'log'))
+        restarts = []
+        def changed(*_):
+            restarts.append(True)
+            return {'ok': True, 'data': {'page_changed': True, 'cursor': str(len(restarts))}}
+        with self.assertRaisesRegex(AssertionError, 'Nonconvergent changed catalogue'):
+            list(pages(changed, 'log'))
+        self.assertEqual(len(restarts), 4)
 
     def test_same_evidence_ack_clean_and_recurrence_are_independent(self):
         oracle, record = self.recorded()
@@ -686,6 +693,29 @@ class OwnerOracle(unittest.TestCase):
         with self.assertRaises(ValidationError) as raised:
             read_response(unrelated)
         self.assertIs(raised.exception, error)
+
+    def test_script_calendar_ignores_host_date_and_follows_effective_clock(self):
+        import time
+        from unittest.mock import patch
+        from owner_state_oracle.clock import scripted_calendar
+        real_localtime = time.localtime
+        epoch = 1794225600
+        host_date = real_localtime(epoch + 10 * 86400)
+        def host_localtime(seconds=None):
+            return host_date if seconds is None else real_localtime(seconds)
+        with patch.object(time, 'time', return_value=epoch), patch.object(time, 'localtime', side_effect=host_localtime) as host:
+            self.assertEqual(time.localtime(), host_date)
+            with scripted_calendar():
+                self.assertEqual(time.localtime(), real_localtime(epoch))
+                self.assertEqual(time.localtime(0), real_localtime(0))
+                with patch.object(time, 'time', return_value=epoch + 86400):
+                    self.assertEqual(time.localtime(), real_localtime(epoch + 86400))
+            self.assertIs(time.localtime, host)
+            with self.assertRaisesRegex(RuntimeError, 'synthetic'):
+                with scripted_calendar():
+                    raise RuntimeError('synthetic')
+            self.assertIs(time.localtime, host)
+        self.assertIs(time.localtime, real_localtime)
 
     def test_special_rename_role_cannot_supply_clean_proof(self):
         oracle = Oracle()

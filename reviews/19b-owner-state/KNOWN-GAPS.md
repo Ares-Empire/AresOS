@@ -12,9 +12,9 @@ The list starts with Mail review 22's three blocking cases. They remain failures
 
 A pass for a listed assertion fails with `Unexpected pass`; a changed delta, unlisted failure, omitted per-case view or unexecuted suite entry also fails. A base self-test checks every ledger key has an executed suite owner and valid nonempty failure pages. Setup, positive triggers, mutation attempts during reads, corrupt exports and nonadvancing cursors remain hard assertions outside the ledger.
 
-The data was collected from Linux diagnostic run [42613046233](https://github.com/Ares-Empire/AresOS/actions/runs/42613046233), all four sweep artifacts (two isolated workers each) plus the focused/named suite, and the installed-channel case in base run [42613046019](https://github.com/Ares-Empire/AresOS/actions/runs/42613046019). Diagnostics capture failures; the subsequent strict runs in REPORT.md verify this pinned list. HTTPS POST context failures are explicitly assigned M04.
+The data was collected from Linux diagnostic run [42613046233](https://github.com/Ares-Empire/AresOS/actions/runs/42613046233), all four sweep artifacts (two isolated workers each) plus the focused/named suite, and the installed-channel case in base run [42613046019](https://github.com/Ares-Empire/AresOS/actions/runs/42613046019). Diagnostics capture failures; the subsequent strict runs in REPORT.md verify this pinned list. The maintenance prefix was subsequently recollected locally after correcting implicit calendar reads to use the effective scripted clock. Before the fix, the complete local replay exactly matched all 2,914 Linux maintenance entries and all 62 fault boundaries. After the fix, the same full mode/cleanup/crash replay produced 2,701 entries: 234 removed, 21 added and no changed shared values. Only that prefix was replaced; all other assertion data is unchanged. The final full strict Linux repetitions verify this correction too. HTTPS POST context failures are explicitly assigned M04.
 
-There are **675,775 assertion-specific failures**, stored in **1,559 exact delta groups**: **44,856 for stage 2**, **630,919 for stage 3**. These counts include repeated fault sites and independent public views; they are not counts of distinct root causes.
+There are **675,562 assertion-specific failures**, stored in **1,559 exact delta groups**: **44,856 for stage 2**, **630,706 for stage 3**. These counts include repeated fault sites and independent public views; they are not counts of distinct root causes.
 
 Stage 2 failures concern exact context committed before each attempted mutation. Stage 3 failures concern disclosure from durable records during SQLite failure, current holds/generation/refusals, retained evidence and warning lifecycle, and each view's own continuation. The list deliberately stays nonempty at this stopping point. Stages 2 and 3 must remove entries as their exact assertions begin passing.
 
@@ -40,7 +40,7 @@ Stage 2 failures concern exact context committed before each attempted mutation.
 | `filing_copy` | 0 | 28,942 |
 | `filing_rename` | 1,134 | 14,812 |
 | `expiry` | 0 | 4,396 |
-| `maintenance` | 0 | 2,914 |
+| `maintenance` | 0 | 2,701 |
 | `restart_index` | 0 | 0 |
 | `restart_tail` | 0 | 0 |
 | `export_rollback` | 0 | 37,356 |

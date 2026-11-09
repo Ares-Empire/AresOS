@@ -1,11 +1,12 @@
 """The installed socket, CLI, MCP and hooks disclose the same committed work."""
 import asyncio
 import json
+import time
 import unittest
 
 from owner_state_oracle.model import Fact, Oracle
 from owner_state_oracle.gaps import Gaps
-from owner_state_oracle.compare import pending_facts
+from owner_state_oracle.compare import pending_facts, restart_count
 from owner_state_oracle.records import decode
 import test_integration as integration
 
@@ -105,11 +106,20 @@ class OwnerStateChannels(unittest.TestCase):
             tail = self.call(integration.OWNER, 'control_pending', {'cursor': value['cursor']})['data']
             self.assertEqual([i['operation_id'] for i in tail['items']], ids[5:])
             self.assertIsNone(tail['cursor'])
-        cursor, audit = None, {}
+        cursor, audit, audit_day, restarts = None, {}, None, 0
         while True:
+            day = time.strftime('%Y-%m-%d', time.localtime())
             terminal = self.launch(integration.OWNER, ['cli', 'log', '--input', json.dumps({'limit': 1, **({'cursor': cursor} if cursor else {})})])
             self.assertEqual(terminal.returncode, 0, terminal.stderr)
             page = json.loads(terminal.stdout)['data']
+            if day != time.strftime('%Y-%m-%d', time.localtime()) or audit_day is not None and day != audit_day:
+                restarts = restart_count(restarts, 'audit calendar')
+                cursor, audit, audit_day = None, {}, None
+                continue
+            audit_day = day
+            if page.get('page_changed'):
+                restarts = restart_count(restarts, 'audit catalogue')
+                audit = {}
             for event in page['items']:
                 self.assertNotIn(event['seq'], audit)
                 audit[event['seq']] = (event['action'], event['outcome'])
@@ -117,4 +127,5 @@ class OwnerStateChannels(unittest.TestCase):
             if cursor is None:
                 break
         record = decode(self.root / 'state', self.root / 'independent')
-        self.assertEqual(audit, {e['seq']: (e['action'], e['outcome']) for e in record.events if e['seq'] in record.working_sequences})
+        self.assertEqual(audit, {e['seq']: (e['action'], e['outcome']) for e in record.events
+            if e['seq'] in record.working_sequences and time.strftime('%Y-%m-%d', time.localtime(e['time'])) == audit_day})
