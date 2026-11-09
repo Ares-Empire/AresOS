@@ -53,8 +53,8 @@ function fixture({relay=false}={}) {
   if(relay)document.createElement=()=>{const node=new HTMLElement();node.root=node;node.ownerDocument=document;node.isConnected=false;node.parentNode=null;return node;};
   const window={addEventListener(type,fn){if(!windowListeners.has(type))windowListeners.set(type,[]);windowListeners.get(type).push(fn);},removeEventListener(type,fn){windowListeners.set(type,(windowListeners.get(type)||[]).filter(value=>value!==fn));}};
   class MessageChannel {port1={close(){}};port2={postMessage:token=>setImmediate(()=>this.port1.onmessage?.({data:token})),close(){}};}
-  class AbstractRange {get startContainer(){return this.start;}}
-  class StaticRange extends AbstractRange {constructor(options){super();this.start=options.startContainer;}}
+  class AbstractRange {}
+  class StaticRange extends AbstractRange {constructor(options){super();Object.defineProperty(this,'startContainer',{value:options.startContainer});}}
   class InputEvent extends Event {constructor(type,options={}){super(type,options);this.ranges=options.targetRanges?Array.from(options.targetRanges):[];}getTargetRanges(){return this.ranges;}}
   const globals={window,document,performance:{now:()=>now},setTimeout,MessageChannel,Symbol,Event,CustomEvent,EventTarget,Node,Element,HTMLElement,HTMLInputElement,HTMLFormElement,DOMException,URL,...(relay?{AbstractRange,StaticRange,InputEvent}:{})};
   const isolated=vm.createContext({...globals});

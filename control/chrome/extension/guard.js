@@ -223,7 +223,6 @@
       const carrier=node.firstElementChild,stack=[];
       const listen=(kind,listener)=>{carrier.addEventListener(kind,listener);relayListeners.push([kind,listener]);};
       const ranges=InputEvent.prototype.getTargetRanges;
-      const start=Object.getOwnPropertyDescriptor(AbstractRange.prototype,'startContainer').get;
       legacyBridge=false;relayControl=carrier;
       for(const [root,listeners]of roots)for(const [kind,listener,capture]of listeners)if(kind==='aresos-page-call-v2')root.removeEventListener(kind,listener,capture);
       const drop=request=>{if(stack.at(-1)?.detail.request===request)stack.pop();};
@@ -233,7 +232,10 @@
         if(!Number.isSafeInteger(detail.request))return;
         const stage={detail};stack.push(stage);
       });
-      listen('aresos-relay-target',event=>{const stage=stack.at(-1);if(stage&&''+stage.detail.request===event.data)stage.target=start.call(ranges.call(event)[0]);});
+      // The container getter's owning interface differs across Chrome versions.
+      // Read the real range in our isolated world, returned by the saved native
+      // method on a private event, without assuming that prototype layout.
+      listen('aresos-relay-target',event=>{const stage=stack.at(-1);if(stage&&''+stage.detail.request===event.data)stage.target=ranges.call(event)[0].startContainer;});
       listen('aresos-relay-deliver',event=>{
         const stage=stack.at(-1);if(!stage?.target||stage.detail.request!==event.detail)return;
         // Pop before entering page handlers; nested requests get their own record.
