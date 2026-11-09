@@ -423,3 +423,46 @@ probe above.
 
 These are focused browser-free checks, not the full storage sweep, base
 suite, full-size resource test or final Linux receiver runs.
+
+## Compact-envelope and qualification-producer follow-up
+
+Reviewed working files based on
+`8f361aa60a564a276a2c0349fbb729718d92be08`. **Run:** the committed-state
+test command above now passes **10 tests in 0.130s**, including
+`test_failed_sqlite_compact_envelope_with_cached_mail_and_current_chrome_stays_bounded`.
+**Read:** the normal committed-fallback branch now caps current Chrome plus
+explicitly unavailable other-app snapshot rows to three, while deriving the
+Chrome count and catalogue route from its current source.
+
+A remaining **P2 exception-path bound** was sent to the builder:
+when the independent Chrome source itself is unavailable, the exception
+branch initially appends its explicit Chrome-unavailable marker after three
+cached other-app notices. **Run:** cache three Mail notices, fail SQLite
+reads, and inject EIO from `chrome.notice_page()`: passive pending has
+**4 notices**, three Mail snapshots plus the Chrome-unavailable marker.
+The marker must remain visible, with the remaining snapshot rows capped
+within the same three-notice budget.
+
+The new `ci/verdicts.mjs` producer initially had three reproduced false-pass
+paths, which were reported and repaired during this focused review:
+
+- Missing or failed required group-13 rows set only an unused `groups[13]`
+  flag; all recorded core and adapter switches could still be true.
+- A passing duplicate could mask a failing duplicate, and a nonboolean
+  `passed:'false'` value counted as success.
+- A new failing check whose name had not been added to the mapping could
+  leave every recorded switch true while making the runner fail.
+
+**Read/run after repairs:** each required/support name now needs exactly
+one row with `passed === true`; group 13 contributes to the recorded
+page-script verdict; unknown names make support qualification fail closed.
+`node --test control/chrome_tests/verdicts.test.mjs` passed **6 tests,
+0 failed**, including the mandatory-row-to-recorded-switch invariant,
+duplicate/nonboolean evidence and unmapped extra rows. The strict owner
+gap still sets group 2 and `core.page_script` false. No further false-pass
+path was found in this limited producer review.
+
+The producer tests construct result rows; they do not establish that the
+browser assertions run, that every fixture matches its intended case, or
+that the complete runner passes. Full final runner sets remain pending;
+this report does not issue SAFE.

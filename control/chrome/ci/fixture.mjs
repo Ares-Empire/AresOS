@@ -151,10 +151,10 @@ export async function fixtures() {
         script=`const form=document.querySelector('form'),trigger=document.querySelector('#trigger'),field=document.querySelector('[aria-label="Trigger text"]'),choice=document.querySelector('select'),check=document.querySelector('[type=checkbox]');
           const step=()=>{${step}};
           ${route==='click'?'trigger.onclick=step':route==='key'?'trigger.onkeydown=step':route==='fill'?'field.oninput=step':route==='select'?'choice.onchange=step':'check.onchange=step'};`;
-      } else if(mode==='activation'){
-        body='<button type="button">Continue</button><a target="sink" href="'+action+'" aria-labelledby="external">Continue</a><span id="external">Delete</span><iframe name="sink" hidden></iframe>';
+      } else if(mode==='activation'||mode==='conservative-script'){
+        body='<button type="button">Continue</button><input aria-label="Trigger text"><select aria-label="Trigger choice"><option value="a">A</option><option value="b">B</option></select><input type="checkbox" aria-label="Trigger check"><a target="sink" href="'+action+'" aria-labelledby="external">Continue</a><span id="external">'+(mode==='conservative-script'?'Read more':'Delete')+'</span><iframe name="sink" hidden></iframe>';
         const wrapped=url.searchParams.get('wrapped')||'click';
-        script=`document.querySelector('button').onclick=()=>{const link=document.querySelector('a');${wrapped==='click'?'link.click()':"link.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:"+(wrapped==='cancelable'?'true':'false')+"}))"}};document.querySelector('a').onclick=()=>fetch('/receive?case=handler-'+${JSON.stringify(token)},{method:'POST'});`;
+        script=`const activate=()=>{const link=document.querySelector('a');${wrapped==='click'?'link.click()':"link.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:"+(wrapped==='cancelable'?'true':'false')+"}))"}};${route==='click'?"document.querySelector('button').onclick=activate":route==='key'?"document.querySelector('button').onkeydown=activate":route==='fill'?"document.querySelector('[aria-label=\"Trigger text\"]').oninput=activate":route==='select'?"document.querySelector('select').onchange=activate":"document.querySelector('[type=checkbox]').onchange=activate"};document.querySelector('a').onclick=()=>fetch('/receive?case=handler-'+${JSON.stringify(token)},{method:'POST'});`;
       } else if(mode==='residual-delay'){
         body='<button type="button">Continue</button><form action="'+action+'" method="post" target="sink"><input name="source" value="after-limit"></form><iframe name="sink" hidden></iframe>';
         script=`document.querySelector('button').onclick=()=>setTimeout(()=>document.querySelector('form').submit(),800);`;

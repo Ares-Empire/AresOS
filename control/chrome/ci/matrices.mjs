@@ -1,9 +1,10 @@
 // Synthetic browser cases, imported only by the Linux-container entry point.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import {verdicts} from './verdicts.mjs';
 import {setTimeout as delay} from 'node:timers/promises';
 
-export async function matrices({call,read,nav,target,counts,eventually,tab,fixture,admin,rpc,caller,ownerNavigate,ownerKey,ownerHistory,ownerBookmark,lifecycle,restoreControl,stopClick,baseline}) {
+export async function matrices({call,read,nav,target,counts,eventually,tab,fixture,admin,rpc,caller,ownerNavigate,ownerKey,ownerHistory,ownerBookmark,lifecycle,restoreControl,stopClick,baseline,isolationAfter}) {
   const results=[];let trustOperation;
   async function check(name,fn) {
     try {await fn();results.push({name,passed:true});console.log(name,'PASS');}
@@ -62,9 +63,9 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
     }
   });
   await check('GROUP 2 script activations never replay',async()=>{
-    for(const wrapped of ['click','cancelable','noncancelable']){
-      const id='activation-'+wrapped;await setup({id,mode:'activation',wrapped});
-      const result=await call('click',await target('Continue'));
+    for(const wrapped of ['click','cancelable','noncancelable'])for(const route of ['click','key','fill','select','check']){
+      const id='activation-'+wrapped+'-'+route;await setup({id,mode:'activation',wrapped,route});
+      const result=route==='click'?await call('click',await target('Continue')):route==='key'?await call('press',{...await target('Continue'),key:'x'}):route==='fill'?await call('fill',{...await target('Trigger text'),text:'Changed'}):route==='select'?await call('select',{...await target('Trigger choice'),value:'b'}):await call('check',{...await target('Trigger check'),checked:true});
       assert.equal(counts(id),0);assert.equal(counts('handler-'+id),0);assert.ok(result.followups.some(item=>item.stopped));
       const direct=await call('click',await target('Delete'));await approval(direct,id);
       assert.equal(counts('handler-'+id),1);
@@ -256,6 +257,7 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
       const prepared=await call(verb,{...await target(label),...args});await approval(prepared,id);
     }
     const typing=await call('fill',{...await target('Text'),text:'Plain text\nwith line breaks'});assert.ok(!typing.approval);assert.equal(counts('unexpected-enter'),0);
+    await setup({id:'conservative-script',mode:'conservative-script',route:'fill'});const scripted=await call('fill',{...await target('Trigger text'),text:'Free typing'});assert.equal(counts('conservative-script'),0);assert.equal(counts('handler-conservative-script'),0);assert.ok(scripted.followups.some(item=>item.stopped));await approval(await call('click',await target('Read more')),'conservative-script');assert.equal(counts('handler-conservative-script'),1);
     await nav('site&id=conservative-bank','bank');
     for(const [verb,label,args]of [['fill','Amount',{text:'1'}],['click','Continue',{}],['upload','File',{path:'/fixture.txt'}]])assert.equal((await rpc(verb,{...await target(label),...args})).error.code,'readonly_site');
     await nav('site&id=conservative-gmail','gmail');const generic=await call('click',await target('Send'));assert.equal(generic.approval.description.untrusted_content.page_state.adapter,null);assert.equal((await rpc('submit_trusted',generic.approval)).ok,false);assert.equal(counts('conservative-gmail-Send'),0);
@@ -329,25 +331,8 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
       console.log('GROUP 9 CUT',id,'receiver',before,JSON.stringify(replay));
     }
   });
-  const required={
-    1:['GROUP 1 what asks word/label/key matrix','GROUP 1 submit compose deletion and free-input matrix'],
-    2:['GROUP 2 stopped page steps handler/resume matrix','GROUP 2 script activations never replay','GROUP 2 loop with uncancelled enclosing submit sends once','GROUP 2 owner synchronous task delayed work and in-flight interleavings','GROUP 2 nested validation and fresh-frame fallback'],
-    3:['GROUP 3 binding every form fact and generic sibling draft','GROUP 3 cross-frame adapter empty and oversized drafts'],
-    4:['GROUP 4 page confirmations bind their full text and ask independently','GROUP 4 exact native confirmation and mismatch matrix'],
-    5:['GROUP 5 question fields, hidden values, password label, upload path and hash'],
-    6:['GROUP 6 exclusions through frame, popup, redirect, taking and history','GROUP 6 schemes links and forward routes'],
-    7:['GROUP 7 all password kinds across open closed and cross-site roots'],
-    8:['GROUP 8 drop release close and stale references never dispatch prepared work','GROUP 8 actual popup Stop button drops all prepared work','GROUP 8 deadline and tabs outside the group'],
-    9:['GROUP 9 Chrome host service crash cutpoints never replay'],
-    10:['GROUP 10 adapter gmail','GROUP 10 adapter whatsapp','GROUP 10 adapter github','GROUP 10 adapter gemini','GROUP 10 adapter deezer','GROUP 10 read-only bank'],
-    11:['GROUP 11 exact owner kind, recipients, account and revocation'],
-    13:['GROUP 13 changed read-only preview is a stated residual','GROUP 13 autosave and after-limit submissions are not held'],
-  };
-  const groups=Object.fromEntries(Object.entries(required).map(([group,names])=>[group,names.every(name=>results.some(result=>result.name===name&&result.passed))]));
-  groups[2] &&= baseline.owner===true;
-  groups[7] &&= baseline.forgery===true && baseline.isolation===true;
-  groups[13] &&= baseline.residual===true;
-  const qualified={groups,core:{classification:groups[1],page_script:groups[2]&&groups[8]&&groups[9],binding:groups[3]&&groups[4]&&groups[5],password_exclusion:groups[7]},adapters:Object.fromEntries(['gmail','whatsapp','github','bank','gemini','deezer'].map(site=>[site,adapters[site]===true]))};
+  await check('GROUP 7 no listening port after tool suite',async()=>isolationAfter());
+  const qualified=verdicts(results,baseline,adapters);
   fs.writeFileSync('/out/qualification-result.json',JSON.stringify(qualified,null,2));
   fs.writeFileSync('/out/matrices.json',JSON.stringify(results,null,2));
   return results.filter(item=>!item.passed);
