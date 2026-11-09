@@ -337,9 +337,11 @@ class Journal:
     """Launch results by request ID, kept across helper restarts (B1).
 
     Lives in $XDG_RUNTIME_DIR, so it ends with the login session, like the desktop instance it belongs to.
-    Replay protection is never dropped early: only a finished launch last changed at least REPLAY_HORIZON ago
-    may be forgotten (the mod resends a request ID only within its 45-second open timeout), and a launch still
-    in progress is never forgotten. With no room left, new launches are refused instead.
+    Replay protection is never dropped early: only a launch whose answer can no longer change, last changed at
+    least REPLAY_HORIZON ago, may be forgotten (the mod resends a request ID only within its 45-second open
+    timeout). Its answer is settled when it finished, or when it was handed over to a running app whose windows
+    can't be watched; how long that app stays open does not hold the entry. A launch still in progress is never
+    forgotten. With no room left, new launches are refused instead.
     """
 
     def __init__(self, path, instance, clock=time.monotonic):
@@ -385,7 +387,8 @@ class Journal:
             return True
         now = self.clock()
         expired = [key for key, entry in self.entries.items()
-                   if entry['state'] in FINAL and now - entry.get('updated', now) >= REPLAY_HORIZON]
+                   if (entry['state'] in FINAL or entry.get('settled'))
+                   and now - entry.get('updated', now) >= REPLAY_HORIZON]
         for key in expired:
             del self.entries[key]
         return len(self.entries) < JOURNAL_LIMIT
@@ -802,6 +805,10 @@ class Helper:
                     entry['state'] = 'closed'
                     self.journal.touch(entry)
                     changed = True
+                elif not active and entry['state'] == 'starting' and not entry.get('settled'):
+                    entry['settled'] = True
+                    self.journal.touch(entry)
+                    changed = True
         if changed:
             self.journal.save()
 
@@ -1063,6 +1070,15 @@ class Helper:
         event.update(fields)
         self.emit('app_state', **event)
 
+    def settle(self, request_id):
+        """This request's answer can no longer change, though the app may still run: replay retention may end."""
+        entry = self.journal.entries.get(request_id)
+        if entry is None or entry.get('settled'):
+            return
+        entry['settled'] = True
+        self.journal.touch(entry)
+        self.journal.save()
+
     def tick(self):
         now = self.clock()
         for conn in list(self.connections):
@@ -1080,6 +1096,11 @@ class Helper:
             if self.windows is None:
                 if code != 0:
                     self.set_state(request_id, 'failed', error='launch_failed', message=f'exited with status {code}')
+                elif app is not None and app.instance == 'single':
+                    # Handed over to the running instance, whose windows can't be watched here: answer settled.
+                    self.settle(request_id)
+                else:
+                    self.set_state(request_id, 'closed')
             elif code != 0 or (app is not None and app.instance == 'multi'):
                 self.set_state(request_id, 'failed', error='launch_failed',
                                message=f'exited with status {code} before showing a window')

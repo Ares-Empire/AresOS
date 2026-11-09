@@ -521,21 +521,43 @@ class LaunchTest(Base):
             self.assertEqual(len(json.load(handle)['launches']), shell.JOURNAL_LIMIT)
 
     def test_without_window_tracking_exit_codes_are_reported(self):
-        helper = self.helper()
+        helper = self.helper(missing=())
         conn = self.connect(helper)
-        processes = [Proc(), Proc()]
+        processes = [Proc(), Proc(), Proc()]
         self.popen.side_effect = lambda *a, **k: processes.pop(0)
         bad = self.request(helper, conn, 'open_app', 'o-1', app_id='terminal')
         good = self.request(helper, conn, 'open_app', 'o-2', app_id='notepad')
-        helper.processes['o-1'].code = 1
-        helper.processes['o-2'].code = 0
+        self.request(helper, conn, 'open_app', 'o-3', app_id='browser')
+        for request_id, code in (('o-1', 1), ('o-2', 0), ('o-3', 0)):
+            helper.processes[request_id].code = code
         helper.tick()
-        states = conn.events('app_state')
-        self.assertEqual([(e['request_id'], e['launch_id'], e['state'], e['error']) for e in states],
-                         [('o-1', bad['launch_id'], 'failed', 'launch_failed')])
-        self.assertEqual(helper.journal.entries['o-2']['state'], 'starting')
-        self.assertEqual(good['state'], 'starting')
+        states = [(e['request_id'], e['launch_id'], e['state'], e.get('error')) for e in conn.events('app_state')]
+        # A one-process app that exits cleanly has closed; Chrome handed over to its running instance.
+        self.assertEqual(states, [('o-1', bad['launch_id'], 'failed', 'launch_failed'),
+                                  ('o-2', good['launch_id'], 'closed', None)])
+        browser = helper.journal.entries['o-3']
+        self.assertEqual((browser['state'], browser.get('settled')), ('starting', True))
         self.assertEqual(conn.events('shell_focus'), [])
+
+    def test_without_window_tracking_the_journal_recovers_after_many_clean_exits(self):
+        helper = self.helper(missing=())
+        conn = self.connect(helper)
+        launched = []
+        self.popen.side_effect = lambda *a, **k: launched.append(Proc()) or launched[-1]
+        step = shell.REPLAY_HORIZON / 100
+        for number in range(shell.JOURNAL_LIMIT * 2):
+            app_id = 'browser' if number % 3 == 0 else 'terminal'
+            reply = self.request(helper, conn, 'open_app', f'o-{number}', app_id=app_id)
+            self.assertEqual(reply['state'], 'starting', f'launch {number} was refused: {reply}')
+            launched[-1].code = 0
+            helper.tick()
+            self.now[0] += step
+        self.assertEqual(len(launched), shell.JOURNAL_LIMIT * 2)
+        self.assertLessEqual(len(helper.journal.entries), shell.JOURNAL_LIMIT)
+        last = shell.JOURNAL_LIMIT * 2 - 1
+        again = self.request(helper, conn, 'open_app', f'o-{last}', app_id='browser' if last % 3 == 0 else 'terminal')
+        self.assertIn(again['state'], ('starting', 'closed'))
+        self.assertEqual(len(launched), shell.JOURNAL_LIMIT * 2)
 
 
 class WindowTest(Base):
@@ -664,6 +686,30 @@ class WindowTest(Base):
         self.assertEqual(self.activations, [])
         self.assertEqual(self.helper_.journal.entries['o-1']['state'], 'closed')
         self.assertEqual(self.helper_.journal.entries['o-2']['state'], 'focused')
+
+    def switch_then_close(self, delay):
+        """Notepad in front, the owner switches to the terminal, and Notepad's last window closes `delay` later."""
+        self.open('terminal', 'o-1')
+        self.window(2, 'aresos.terminal', activated=True)
+        self.open('notepad', 'o-2')
+        self.window(3, 'org.kde.kwrite', activated=True)
+        self.focus(2)
+        before = len(self.conn.events('shell_focus'))
+        self.now[0] += delay
+        self.close(3)
+        return [(e['focus'], e['reason'], e.get('app_id')) for e in self.conn.events('shell_focus')[before:]]
+
+    def test_a_close_just_inside_the_hand_off_window_returns_to_the_desktop(self):
+        # Indistinguishable from labwc focusing the next window as Notepad closes: the hub comes back.
+        self.assertEqual(self.switch_then_close(shell.HANDOFF - 0.1), [('foreground', 'app_closed', 'notepad')])
+        self.assertEqual(self.activations, [1])
+
+    def test_a_close_just_outside_the_hand_off_window_keeps_the_switched_to_app(self):
+        # The owner chose the terminal; Notepad closing in the background changes nothing.
+        self.assertEqual(self.switch_then_close(shell.HANDOFF + 0.1), [])
+        self.assertEqual(self.activations, [])
+        self.assertEqual(self.helper_.foreground_app, 'terminal')
+        self.assertEqual(self.helper_.journal.entries['o-2']['state'], 'closed')
 
     def test_dialogs_count_as_their_apps_windows(self):
         self.open('notepad', 'o-1')
