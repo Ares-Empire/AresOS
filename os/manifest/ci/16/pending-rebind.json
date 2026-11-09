@@ -6,36 +6,41 @@
     "PR #13 (f5bc2d4d): Stage B checked, Stage C released (docs/INSTALL.md, os/tests/test_owner_path.py)",
     "PR #22 (15f): Lenovo's own Fedora firmware entry accepted beside Bazzite; new tools fingerprint",
     "Package 15g: install-night owner-page corrections and route tests; checkout bytes recorded for the next rehearsal (no walk tables rebound)",
-    "Package 15gb: reviewed return routes, idle live-session shutdown exception and layout-proof wording; current checkout bytes retained without rebinding historical tables"
+    "Package 15gb: reviewed return routes, idle live-session shutdown exception and layout-proof wording; current checkout bytes retained without rebinding historical tables",
+    "Package 22: update route (at update, at previous, tools updating themselves), step 8 guide route, steps 4-7 in INSTALL-STATUS; new tools fingerprint"
   ],
   "rule": "The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
     {
-      "sha256": "7e66a9e2c59d136144667c7583b3dad1d1ae86e157020a2ef4034176923cfbf5",
+      "sha256": "c59c356e56f4a19b0cde68e51a20fb49f5abba2a0cf3ed505bc1d70a0e2a643c",
       "path": "docs/EMERGENCY.md"
     },
     {
-      "sha256": "4a4fe5c7680341826c4999c249351e17f6bee321b1f40169dc81cae27e6307c4",
+      "sha256": "6382ef586f222c579c6483cfe0811df196f9a62a2ff72ce6e59544f8a84ccca5",
       "path": "docs/INSTALL.md"
     },
     {
-      "sha256": "9cf43b79e596ccf6ebe4b4ba4acb25412380f50798d7835f44c51d3415c1158e",
+      "sha256": "499629256f83b8604eab9562cb4fd18684d4634f6e5a47b7b27f044a44588512",
+      "path": "os/owner-tools/bundle.py"
+    },
+    {
+      "sha256": "45330cfd78e40a001892ed7b9f2803be101fedc1e9e3634e5eb2dfe3558c509e",
       "path": "os/owner-tools/commands.json"
     },
     {
-      "sha256": "47fa612304a5e4fef7eb63a6d9fe14d4902e8c2a28fa1a58154e4a3ea592ab8d",
+      "sha256": "d520b11e35f14e8c832d3a9b9aa3eee53e1cf7796df18976c9dc7aeab728566c",
       "path": "os/owner-tools/owner.py"
     },
     {
-      "sha256": "6016fc223c4bca7fecb2289b1e90067cd143f6a54b65c2d7d25a679fc8364ded",
+      "sha256": "9ae8973eefd96d062b0ec6b95330b1244a558e7d91ec014c347aefd996d90bc6",
       "path": "os/owner-tools/payload/SHA256.json"
     },
     {
-      "sha256": "3ef85c4adab3c8a5daf5bf26c2a40805d24bcb0c17b9327cfc55e7e96aeebefc",
+      "sha256": "2a9965ea5a6cf5018959d489f8c2340bf412ddbe89a130c6ebd6695fdbe48c39",
       "path": "os/owner-tools/payload/SHA256SUMS"
     },
     {
-      "sha256": "47fa612304a5e4fef7eb63a6d9fe14d4902e8c2a28fa1a58154e4a3ea592ab8d",
+      "sha256": "d520b11e35f14e8c832d3a9b9aa3eee53e1cf7796df18976c9dc7aeab728566c",
       "path": "os/owner-tools/payload/owner.py"
     },
     {
@@ -43,7 +48,11 @@
       "path": "os/tests/test_checkout_sources.py"
     },
     {
-      "sha256": "2e3df413421456725a73eb985215704c514dd9468c91c83f6d533f7844020090",
+      "sha256": "5e126108420b1abcc4c47eda4ab55bd7f834ec0c90077457a6a08b900877da19",
+      "path": "os/tests/test_owner_entry.py"
+    },
+    {
+      "sha256": "1e14d1475eaec1a5bc7e3f096628b950dd9e8ca8e8fca3173115de3a56ddcebe",
       "path": "os/tests/test_owner_equality.py"
     },
     {
@@ -51,12 +60,17 @@
       "path": "os/tests/test_owner_firmware.py"
     },
     {
-      "sha256": "5ca96a288e1d0c98a463cd3c16b5af27df8394fa48f9be89cfa0f2d4194d68b9",
+      "sha256": "87dad92d76d4817555df7e43adb559a13177d3f593741d3203439a69e13e6a1a",
       "path": "os/tests/test_owner_path.py"
     },
     {
       "sha256": "6a88e2cb8547f2fba11588047654d196fc8705321d1d7c0a9b678649f0751536",
       "path": "os/tests/test_owner_step_limits.py"
     }
-  ]
+  ],
+  "unwalked_commands": [
+    "update",
+    "previous"
+  ],
+  "unwalked_rule": "Commands added by package 22 need a newer signed release, so no rehearsal has typed them yet. The release package's rehearsal walks them and removes them here; test_owner_equality refuses a listed command once it is typed."
 }

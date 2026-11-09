@@ -4,7 +4,7 @@ These are separate from initial installation. Use the [current gate/status table
 
 ## Later layout
 
-Backup Bazzite keeps the installer’s **German** layout. AresOS's later settings affect only its own deployment, not stock. Record old and proven new profiles before invoking finish. **Begin and revert change only the running console map. Only finish persists the console/greeter setting.** A restart during begin/revert reloads the last confirmed layout. An interrupted finish may already have persisted the proven new console map; use [abandoned-trial recovery](#abandoned-layout-trial), not an assumed old map. Qualification 21 includes a reset during a pending begin trial; direct US-to-stock rollback remains outside the stated runtime scope (see status table).
+Backup Bazzite keeps the installer’s **German** layout. AresOS's later settings affect only its own deployment, not stock. Record old and proven new profiles before invoking finish. **Begin and revert change only the running console map. Only finish persists the console/greeter setting.** A restart during begin/revert reloads the last confirmed layout. An interrupted finish may already have persisted the proven new console map; use [abandoned-trial recovery](#abandoned-layout-trial), not an assumed old map. Qualification 21 includes a reset during a pending begin trial; direct US-to-stock rollback remains outside the stated runtime scope (see status table). After an AresOS update (three deployments) a layout trial refuses before any change; get [Help](INSTALL-REFERENCE.md#help).
 
 Use the [console entry/exit reference](INSTALL-REFERENCE.md#console). **Return to this procedure** after entry. Keep the original **tty3 ares-recovery → sudo -i** session **OPEN** throughout; do not reboot or change the password to bypass failed typing. The unchanged password, made only of lowercase a–x and top-row digits 0–9, stays typeable in German, US International and plain US. The public `yz-/!ü` proof exercises the layout difference. In AresOS, begin US International:
 
@@ -108,7 +108,7 @@ Enter here after the recorded `PASS layout abandon`, including an already-cleare
 
 ## Recovery menu
 
-A failed **first** switch boot or stale/missing title always means **F12** (or **Fn+F12**) → **Windows → Help**. Do not use the provisional switch title for recovery.
+A failed **first** switch boot or stale/missing title always means **F12** (or **Fn+F12**) → **Windows → Help**. Do not use the provisional switch title for recovery. After an [update](INSTALL.md#update-aresos-to-a-new-release) there are three deployments and the rollback and keep-stock commands refuse, so do not use this menu; use that route's previous box or **F12 → Windows → Help**.
 
 For a later failure only, with your own first successful AresOS boot/final-pair check and a fresh record after the latest reorder: **F12** (or **Fn+F12**) → recorded Linux entry → GRUB. If hidden, **Esc** once, then **↓**. Match the **entire current stock title**, resolved by saved checksum **and serial and stateroot**; both rows may say Bazzite. Never guess by position/example digits. Missing, duplicate, truncated or different title → **STOP → [Help](INSTALL-REFERENCE.md#help)** via Windows. Do not select another row to experiment.
 

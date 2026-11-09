@@ -81,7 +81,7 @@ Import-Module ./docs/install-tools/OwnerTools.psm1 -Force
 Copy-AresOwnerTools -Source ./os/owner-tools/payload -DriveLetter T
 ```
 
-Require `PASS tools manifest SHA256 3ef85c4adab3c8a5daf5bf26c2a40805d24bcb0c17b9327cfc55e7e96aeebefc` and `PASS ARESTOOLS ready; safely eject and unplug before shutdown/restart or record B.` The Windows helper checks both SHA256.json and SHA256SUMS. Safely eject/unplug. Do not use WINDOWS RECOVERY. Run record B **after-bazzite**, both sticks absent; **Return to step 4** here with PASS.
+Require `PASS tools manifest SHA256 2a9965ea5a6cf5018959d489f8c2340bf412ddbe89a130c6ebd6695fdbe48c39` and `PASS ARESTOOLS ready; safely eject and unplug before shutdown/restart or record B.` The Windows helper checks both SHA256.json and SHA256SUMS. Safely eject/unplug. Do not use WINDOWS RECOVERY. Run record B **after-bazzite**, both sticks absent; **Return to step 4** here with PASS.
 - [ ] **F12** (or **Fn+F12**) → **Bazzite** (the installer's recorded Linux entry; [step 8 explains Fedora](#8-everyday-boot-and-recovery)) → **ares-recovery** sign-in. [Enter tty3 and become administrator](INSTALL-REFERENCE.md#console); **Return to step 4** here, keeping that session open. Only now insert ARESTOOLS. If text covers the prompt, press Enter. Type this entire 13-line block exactly; the continuation prompt is expected until the final quote:
 
 ```bash
@@ -92,7 +92,7 @@ p=$(mktemp -d /run/ares-bootstrap.XXXXXX); mkdir "$p/m"
 mount -o ro,nodev,nosuid,noexec LABEL=ARESTOOLS "$p/m"; trap "umount $p/m" EXIT
 cd "$p"; cp -R --no-preserve=mode,ownership m/ares-tools .; test ! -L ares-tools; cd ares-tools
 test -z "$(find . ! -type d ! -type f -print -quit)"
-echo "3ef85c4adab3c8a5daf5bf26c2a40805d24bcb0c17b9327cfc55e7e96aeebefc  SHA256SUMS" | sha256sum -c --strict
+echo "2a9965ea5a6cf5018959d489f8c2340bf412ddbe89a130c6ebd6695fdbe48c39  SHA256SUMS" | sha256sum -c --strict
 cmp -s \
   <(find . -type f -printf "%P\n" | sort) \
   <({ cut -c67- SHA256SUMS; echo SHA256SUMS; } | sort)
@@ -215,9 +215,100 @@ If order changes: repeat step 1's encryption check, **F2** (or **Fn+F2**) → **
 
 Tools stick: insert only after Linux is up and you are signed in; export → SAFE TO REMOVE → unplug before every shutdown/restart. If forgotten at power-on, do not select it; unplug and continue. Text over prompt → Enter. Backup stock keeps **German**, even after a later AresOS layout change.
 
-Later work is outside this installation path: [layout trial](INSTALL-PROCEDURES.md#later-layout), [rollback/keep-stock and recovery menu](INSTALL-PROCEDURES.md#recovery-menu), [optional removal/erasure](INSTALL-PROCEDURES.md#optional-removal-or-erasure). Each has its own checks and return destination; **Return to step 8** after a completed later procedure. No guessed GRUB positions, firmware resets, TPM clear, entry deletion or boot repair.
+Later work is outside this installation path: [update to a new release](#update-aresos-to-a-new-release), [layout trial](INSTALL-PROCEDURES.md#later-layout), [rollback/keep-stock and recovery menu](INSTALL-PROCEDURES.md#recovery-menu), [optional removal/erasure](INSTALL-PROCEDURES.md#optional-removal-or-erasure). Each has its own checks and return destination; **Return to step 8** after a completed later procedure. No guessed GRUB positions, firmware resets, TPM clear, entry deletion or boot repair.
 
 **Record:** current boot order, latest stock title, future procedure result. **STOP → go to the [symptom card](EMERGENCY.md)**, then [Help](INSTALL-REFERENCE.md#help) if unresolved; return to step 8 after resolution. When permanently leaving AresOS, continue to [step 9](#9-retire-access-and-return-to-windows).
+
+### Update AresOS to a new release
+
+**Update gate: require STEP 5 COMPLETE and a checked running AresOS before authentication or updating.** Use this route only when the maintainer announces a newer release and this guide carries its tools fingerprint. If the marker, step 7's record or the announcement is missing, STOP → [Help](INSTALL-REFERENCE.md#help).
+
+An update keeps Windows the firmware default, the **current AresOS as rollback** and the **corrected stock pinned**. After the first update there are three deployments; the stock rollback, keep-stock, recovery-menu and layout-trial procedures then refuse, and the way back is the **previous** box below or **F12 → Windows → Help**.
+
+- [ ] **Windows side** (the maintainer runs it): PowerShell 7 in the reviewed repository at the announced release, only ARESTOOLS connected; replace `T` with its actual D–Z letter, never C:. The first line keeps the old bundle under a dated name (skip it on a stick without `ares-tools`):
+
+```powershell
+Rename-Item -LiteralPath T:\ares-tools -NewName ('ares-tools-replaced-' + (Get-Date -Format yyyyMMdd-HHmm))
+Import-Module ./docs/install-tools/OwnerTools.psm1 -Force
+Copy-AresOwnerTools -Source ./os/owner-tools/payload -DriveLetter T
+```
+
+Require `PASS tools manifest SHA256 2a9965ea5a6cf5018959d489f8c2340bf412ddbe89a130c6ebd6695fdbe48c39` and `PASS ARESTOOLS ready; safely eject and unplug before shutdown/restart or record B.` Safely eject and unplug. Another fingerprint or any STOP → **STOP → [Help](INSTALL-REFERENCE.md#help)**; Return to this update route after resolution.
+
+- [ ] **AresOS, tools first:** all sticks absent, **F12** (or **Fn+F12**) → **Bazzite** → AresOS desktop. [Enter tty3 and become administrator](INSTALL-REFERENCE.md#console), then Return to this update route, keeping that session open. Only now insert ARESTOOLS. Type this entire 13-line block exactly, as in step 4; compare **line 8** with this guide before Enter:
+
+```bash
+sudo bash -c 'set -euo pipefail
+export PATH=/usr/sbin:/usr/bin:/sbin:/bin; umask 077
+trap "echo STOP bootstrap: verification or install refused" ERR
+p=$(mktemp -d /run/ares-bootstrap.XXXXXX); mkdir "$p/m"
+mount -o ro,nodev,nosuid,noexec LABEL=ARESTOOLS "$p/m"; trap "umount $p/m" EXIT
+cd "$p"; cp -R --no-preserve=mode,ownership m/ares-tools .; test ! -L ares-tools; cd ares-tools
+test -z "$(find . ! -type d ! -type f -print -quit)"
+echo "2a9965ea5a6cf5018959d489f8c2340bf412ddbe89a130c6ebd6695fdbe48c39  SHA256SUMS" | sha256sum -c --strict
+cmp -s \
+  <(find . -type f -printf "%P\n" | sort) \
+  <({ cut -c67- SHA256SUMS; echo SHA256SUMS; } | sort)
+sha256sum -c --strict SHA256SUMS
+bash ./at install'
+```
+
+Require `SHA256SUMS: OK`, every listed file's OK and `PASS install` with **Tools updated from version** and the same fingerprint (a repeat says **Tools already installed; nothing changed**). It asks no serials, keeps every record, keeps the replaced tools privately and refuses older tools (a downgrade) with nothing changed. Any STOP → [A tools command stopped](EMERGENCY.md#a-tools-command-stopped); Return to this update route only after Help.
+
+- [ ] **Stage the new release:**
+
+```bash
+sudo /var/lib/ares/at update
+```
+
+Require `PASS update`, **Signed exact release staged** with the announced release, **Running release stays as rollback** and **pin yes; transaction idle**. Before staging it checks the saved registry login, the signature, identity and digest; a pending deployment, queued rollback, running updater, unfinished layout trial or a release that is not newer STOPs with nothing changed. **If it STOPs with `Registry login missing, expired or unreachable`:** make a new **read:packages-only** token as in step 6 (record its note/expiry privately, never the secret), then:
+
+```bash
+sudo /var/lib/ares/at login
+sudo /var/lib/ares/at update
+```
+
+Enter the username and token **only at the hidden token prompt**; require `PASS login`, then `PASS update`. Any other STOP → **STOP → [Help](INSTALL-REFERENCE.md#help)**; never retry with another target or reboot.
+
+- [ ] **Title and stick:**
+
+```bash
+sudo /var/lib/ares/at title
+sudo /var/lib/ares/at export
+```
+
+Require `PASS title`, `PASS export` and **SAFE TO REMOVE ARESTOOLS**; unplug. Save the new title as **provisional** with its state and time; every older title is INVALID.
+
+- [ ] **Restart into the new release:**
+
+```bash
+sudo /var/lib/ares/at reboot
+```
+
+Require `PASS reboot` / `Reboot requested; Windows stays default; F12 then Linux for one Linux start` (screen may disappear). The update finishes during shutdown: a hang uses the [10-minute rule](INSTALL-REFERENCE.md#hung-shutdown-or-restart), never an immediate power hold. At power-on **F12** (or **Fn+F12**) → **Bazzite**. The new AresOS not starting, or the old one or stock returning → [Failed or bad update](EMERGENCY.md#failed-or-bad-update); never a guessed GRUB title or a repeated update.
+
+- [ ] **Check:** [tty3 → sudo -i](INSTALL-REFERENCE.md#console), then Return to this update route:
+
+```bash
+sudo /var/lib/ares/at check
+sudo /var/lib/ares/at title
+sudo /var/lib/ares/at records
+```
+
+Require `PASS check`, `PASS title` and `PASS records`: the new release booted, the previous AresOS as rollback, the corrected stock still pinned, labwc and foot running and the daily account exactly as this release's record says. Save the refreshed title; the provisional one is INVALID. Prove console and foot typing of `yz-/!ü` and fresh password sudo as in step 7.
+
+- [ ] **Administrator password, once:** on the first update to a release whose announcement says `ares` is an administrator, set its password in this root session with `sudo passwd ares`. Type a long, unique passphrase twice yourself, by the every-install rule: only **lowercase a–x and top-row digits 0–9**, so it types the same in German, US International and US. Require the line ending **updated successfully**. Never photograph, record or send it; keep it private. Then in foot as `ares`, run `sudo -v` and require that password to be accepted.
+
+- [ ] **If the new release misbehaves** but starts: in the tty3 root session:
+
+```bash
+sudo /var/lib/ares/at previous
+sudo /var/lib/ares/at title
+```
+
+Require `PASS previous`, **Previous AresOS queued for the next start** and `PASS title`; save that title, old titles are INVALID. Then `sudo /var/lib/ares/at reboot`, requiring `PASS reboot` / `Reboot requested; Windows stays default; F12 then Linux for one Linux start`, **F12** (or **Fn+F12**) → **Bazzite**, and repeat the check box: the previous release must be booted. Tell the maintainer; the newer release stays beside it until the next update.
+
+**Record:** tools fingerprint, every PASS line, staged and booted release, titles with times, whether the password was set (never the password). **STOP → go to [Help](INSTALL-REFERENCE.md#help)**; Return to this update route after resolution. When the check passes, [Return to step 8](#8-everyday-boot-and-recovery).
 
 ## 9. Retire access and return to Windows
 

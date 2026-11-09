@@ -15,6 +15,13 @@ The staged stock title is provisional. Do not try a GRUB row, repeat the switch 
 Stock KDE returning instead of AresOS also fails: `PASS check` can describe valid stock and does not prove the switch finished.
 **STOP → go to [Help](INSTALL-REFERENCE.md#help)**; return to [step 6](INSTALL.md#6-switch-to-aresos) only after help and the step 5 proof are complete.
 
+## Failed or bad update
+
+**Action:** new AresOS does not start, or the old one or stock appears instead: normal restart → **F12** (or **Fn+F12**) → **Windows Boot Manager** → get help. A hung restart uses the [10-minute wait](INSTALL-REFERENCE.md#hung-shutdown-or-restart).
+It starts but misbehaves: tty3 `ares-recovery` → `sudo -i` → `sudo /var/lib/ares/at previous`, require `PASS previous`, save the refreshed title, then `sudo /var/lib/ares/at reboot` (`PASS reboot` / `Reboot requested; Windows stays default; F12 then Linux for one Linux start`) → **F12** → **Bazzite** → [check](INSTALL.md#update-aresos-to-a-new-release).
+Never choose a guessed GRUB title, repeat the update, or use the stock rollback or keep-stock after an update; they refuse with three deployments.
+**STOP → go to [Help](INSTALL-REFERENCE.md#help)**; return to [step 8](INSTALL.md#8-everyday-boot-and-recovery) only after help or a passing check of the previous release.
+
 ## Blue MOK menu on first stock boot
 
 **Action:** only on **Perform MOK management**, select **Continue boot**, Enter. Never enroll or change keys. [Expected screen](INSTALL-REFERENCE.md#mok-screen).
@@ -22,8 +29,8 @@ Normal stock boot continues → Return to [step 4](INSTALL.md#4-install-and-prep
 
 ## Shutdown or restart hangs
 
-**Action:** keep AC/lid open; wait **at least 10 minutes** with no progress, including after a switch. Keep waiting if progress changes. Force off only after a successful completed install/tool command and normal shutdown request. **Idle-live-session exception:** no successful install/tool command is required for an idle live session after requesting desktop shutdown. In either case, no firmware/BIOS update, media write/export or layout trial may be in progress. Unknown completion or an error → Help; do not force off. After a switch, require the recorded switch/title PASS and the checked reboot request first. [Full conditions and interrupted-switch outcome](INSTALL-REFERENCE.md#hung-shutdown-or-restart).
-If those conditions permit a power hold, do it once until off → **F12 → Windows Boot Manager**. **STOP → go to [Help](INSTALL-REFERENCE.md#help)** before resuming; no switch retry or provisional GRUB title. Return to [step 4](INSTALL.md#4-install-and-prepare-corrected-stock) or the recorded calling step only after resolution; after a switch, Return to [step 6](INSTALL.md#6-switch-to-aresos) with step 5 proof rechecked.
+**Action:** keep AC/lid open; wait **at least 10 minutes** with no progress, including after a switch. Keep waiting if progress changes. Force off only after a successful completed install/tool command and normal shutdown request. **Idle-live-session exception:** no successful install/tool command is required for an idle live session after requesting desktop shutdown. In either case, no firmware/BIOS update, media write/export or layout trial may be in progress. Unknown completion or an error → Help; do not force off. After a switch, require the recorded switch/title PASS and the checked reboot request first; after an update, the recorded update/title PASS. [Full conditions and interrupted-switch outcome](INSTALL-REFERENCE.md#hung-shutdown-or-restart).
+If those conditions permit a power hold, do it once until off → **F12 → Windows Boot Manager**. **STOP → go to [Help](INSTALL-REFERENCE.md#help)** before resuming; no switch retry or provisional GRUB title. Return to [step 4](INSTALL.md#4-install-and-prepare-corrected-stock) or the recorded calling step only after resolution; after a switch, Return to [step 6](INSTALL.md#6-switch-to-aresos) with step 5 proof rechecked. After an update, return to the [update route](INSTALL.md#update-aresos-to-a-new-release).
 
 ## Stale or missing stock title
 

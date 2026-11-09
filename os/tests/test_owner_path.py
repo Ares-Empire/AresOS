@@ -22,6 +22,10 @@ STEP6 = '6-switch-to-aresos'
 GATE = ('**Entry gate: require STEP 5 COMPLETE and its evidence before '
         'authentication or switching. If absent, STOP')
 MARKER = 'All checks PASS: write **STEP 5 COMPLETE**'
+UPDATE = 'update-aresos-to-a-new-release'
+UPDATE_GATE = ('**Update gate: require STEP 5 COMPLETE and a checked running AresOS '
+               'before authentication or updating.**')
+SENSITIVE = re.compile(r'^sudo /var/lib/ares/at (?:login|switch|update)$')
 LINK = re.compile(r'(?<!!)\[[^\]\n]+\]\(([^\s)]+)\)')
 HEADING = re.compile(r'^#{1,6} (.+)$')
 
@@ -104,6 +108,22 @@ def walk(texts):
     if target('INSTALL.md', '#' + STEP5, texts) not in [
             target('INSTALL.md', url, texts) for url in LINK.findall(guide[gate])]:
         raise AssertionError('Gate must explicitly return to step 5')
+    # The update route has its own gate after step 7: without the step 5
+    # proof only its STOP links are followed, never the route below it.
+    updates = [i for i, line in enumerate(guide) if line.startswith(UPDATE_GATE)]
+    if len(updates) != 1 or UPDATE not in sections:
+        raise AssertionError('Missing/ambiguous update gate')
+    update_gate = updates[0]
+    route_end = next((i for i in range(sections[UPDATE] + 1, len(guide)) if HEADING.match(guide[i])
+                      and len(guide[i].split(' ', 1)[0]) <= 3), len(guide))
+    if not (sections['8-everyday-boot-and-recovery'] < sections[UPDATE] < update_gate < route_end):
+        raise AssertionError('Update gate must open the update route inside step 8')
+    gate_exits = [target('INSTALL.md', url, texts) for url in LINK.findall(guide[update_gate])]
+    if not gate_exits or any(t is None or t[0] == 'INSTALL.md' and sections[UPDATE] <= t[1] < route_end for t in gate_exits):
+        raise AssertionError('Update gate must STOP outside the update route')
+    for i, line in enumerate(guide):
+        if line == 'sudo /var/lib/ares/at update' and not update_gate < i < route_end:
+            raise AssertionError('Update command outside the gated update route')
 
     edges = {}
     for page, content in lines.items():
@@ -131,7 +151,7 @@ def walk(texts):
         page, i = node
         line = lines[page][i]
         route = (*route[-10:], f'{page}:{i + 1}')
-        if re.search(r'^sudo /var/lib/ares/at (?:login|switch)$', line):
+        if SENSITIVE.search(line):
             if not proof:
                 raise AssertionError('Authentication/switch bypasses step 5: ' + ' -> '.join(route))
             sensitive.add(line)
@@ -141,11 +161,13 @@ def walk(texts):
         if node == ('INSTALL.md', gate) and not proof:
             # Follow the visible conditional STOP return, not the success path.
             outgoing = [('INSTALL.md', sections[STEP5])]
+        if node == ('INSTALL.md', update_gate) and not proof:
+            outgoing = gate_exits
         for destination in outgoing:
             traversed.add((node, destination))
             queue.append((destination, proof, route))
-    if len(sensitive) != 2:
-        raise AssertionError('Authentication and switch must both remain reachable after proof')
+    if len(sensitive) != 3:
+        raise AssertionError('Authentication, switch and update must all remain reachable after proof')
     for source, destinations in edges.items():
         for destination in destinations:
             if (source, destination) not in traversed:
@@ -522,8 +544,19 @@ class OwnerPathTest(unittest.TestCase):
     def test_step4_pass_and_reviewed_tools_do_not_release_a_new_stage_or_vm_result(self):
         status = documents()['INSTALL-STATUS.md']
         stage = next(line for line in status.splitlines() if line.startswith('| Stage C —'))
-        for value in ('RELEASED 2026-11-07', 'Step 4 PASSED 2026-11-08', 'does not mark step 5'):
+        # Steps 5-7 are recorded as they happened (package 22), step 7 with
+        # its two open items; no update has run.
+        for value in ('RELEASED 2026-11-07', 'Step 4 PASSED 2026-11-08', 'Step 5 COMPLETE 2026-11-09',
+                      'Step 6 PASSED 2026-11-09', 'Step 7 PASSED 2026-11-09 with two items OPEN',
+                      'board #139', 'board #140', 'No step 8 update has run'):
             self.assertIn(value, stage)
+        hardware = next(line for line in status.splitlines() if line.startswith('| Early hardware / P1a |'))
+        for value in ('**Brightness FAIL** (board #139)', '**Power-button gate OPEN** (board #140)', 'stay OPEN'):
+            self.assertIn(value, hardware)
+        update = next(line for line in status.splitlines() if line.startswith('| Update route tools (package 22) |'))
+        for value in ('NOT USED', 'no newer release exists yet', 'no real update and no VM rehearsal',
+                      "with the owner's OK", 'pending-rebind.json', 'no new image or stage'):
+            self.assertIn(value, update)
         tools = next(line for line in status.splitlines() if line.startswith('| Post-release tools change |'))
         for value in ('PR #22', '3ef85c4a', 'unit-tested and reviewed', 'without a new VM rehearsal',
                       'pending-rebind.json', 'no new image or stage'):
@@ -864,6 +897,88 @@ class OwnerPathTest(unittest.TestCase):
         procedures = texts['INSTALL-PROCEDURES.md'].split('## Optional removal or erasure', 1)[1]
         self.assertLess(procedures.index('token retirement'), procedures.index('**Removal:**'))
         self.assertLess(procedures.index('token retirement'), procedures.index('**Erasure for reuse:**'))
+
+    def test_update_route_orders_windows_tools_update_title_reboot_check_with_pass_stop_and_returns(self):
+        import hashlib
+        import test_owner_tools as common
+        texts = documents()
+        guide = texts['INSTALL.md']
+        commands = json.loads((ROOT/'os/owner-tools/commands.json').read_text())
+        fingerprint = hashlib.sha256((ROOT/'os/owner-tools/payload/SHA256SUMS').read_bytes()).hexdigest()
+        route = section(guide, UPDATE)
+        self.assertIn(route, section(guide, '8-everyday-boot-and-recovery'))
+        self.assertTrue(route.splitlines()[2].startswith(UPDATE_GATE))
+        order = ('Copy-AresOwnerTools', 'PASS tools manifest SHA256 ' + fingerprint, 'Safely eject and unplug',
+                 '**F12** (or **Fn+F12**) → **Bazzite**', '```bash\n' + commands['install'] + '\n```', pass_line('install'),
+                 '**Tools updated from version**', commands['update'], pass_line('update'), '**Signed exact release staged**',
+                 commands['title'], commands['export'], 'SAFE TO REMOVE ARESTOOLS', commands['reboot'], pass_line('reboot'),
+                 '10-minute rule', '**F12** (or **Fn+F12**) → **Bazzite**', commands['check'], commands['title'],
+                 commands['records'], pass_line('check'), 'sudo passwd ares', commands['previous'], pass_line('previous'),
+                 '**Record:**', '[Return to step 8](#8-everyday-boot-and-recovery)')
+        position = 0
+        for value in order:
+            found = route.find(value, position)
+            self.assertGreaterEqual(found, 0, value)
+            position = found + len(value)
+        boxes = [line for line in route.splitlines() if line.startswith('- [ ]')]
+        self.assertEqual(len(boxes), 8)
+        self.assertGreaterEqual(route.count('STOP →'), 4)
+        self.assertGreaterEqual(route.count('Return to this update route'), 4)
+        # A login refusal points to login, then the same update once more.
+        refusal = common.owner.LOGIN_REFUSAL.split(':', 1)[0]
+        self.assertIn('**If it STOPs with `' + refusal + '`:**', route)
+        after = route.split(refusal, 1)[1]
+        self.assertTrue(after.index('```bash\n' + commands['login'] + '\n' + commands['update'] + '\n```') < after.index(pass_line('login')))
+        for value in ('read:packages-only', 'only at the hidden token prompt', 'never retry with another target'):
+            self.assertIn(value, route)
+        password = next(line for line in route.splitlines() if 'sudo passwd ares' in line)
+        for value in ('lowercase a–x and top-row digits 0–9', 'German, US International and US',
+                      'Never photograph, record or send it', 'keep it private', '`sudo -v`', 'once'):
+            self.assertIn(value, password)
+        for value in ('current AresOS as rollback', 'corrected stock pinned', 'three deployments', 'refuse',
+                      '**previous** box', '**F12 → Windows → Help**', 'provisional', 'INVALID',
+                      '[Failed or bad update](EMERGENCY.md#failed-or-bad-update)', 'never a guessed GRUB title'):
+            self.assertIn(value, route)
+        self.assertNotIn('INSTALL.md#5-', route)
+
+    def test_failed_update_card_returns_to_previous_aresos_or_windows_never_a_grub_title(self):
+        texts = documents()
+        commands = json.loads((ROOT/'os/owner-tools/commands.json').read_text())
+        card = section(texts['EMERGENCY.md'], 'failed-or-bad-update')
+        for value in ('Windows Boot Manager', commands['previous'], pass_line('previous'), commands['reboot'],
+                      pass_line('reboot'), '**Bazzite**', 'Never choose a guessed GRUB title', 'repeat the update',
+                      'stock rollback or keep-stock', '10-minute wait', '(INSTALL.md#8-everyday-boot-and-recovery)',
+                      '(INSTALL.md#update-aresos-to-a-new-release)'):
+            self.assertIn(value, card)
+        self.assertLess(card.index('Windows Boot Manager'), card.index(commands['previous']))
+        for page, anchor in (('INSTALL-PROCEDURES.md', 'recovery-menu'), ('INSTALL-PROCEDURES.md', 'later-layout')):
+            self.assertIn('three deployments', section(texts[page], anchor))
+        console = section(texts['INSTALL-REFERENCE.md'], 'console')
+        self.assertIn('[update](INSTALL.md#update-aresos-to-a-new-release)', console)
+        hang = section(texts['INSTALL-REFERENCE.md'], 'hung-shutdown-or-restart')
+        self.assertIn('[update route](INSTALL.md#update-aresos-to-a-new-release)', hang)
+
+    def test_update_gate_mutations_are_rejected(self):
+        texts = documents()
+        texts['INSTALL.md'] = texts['INSTALL.md'].replace(UPDATE_GATE, 'REMOVED', 1)
+        with self.assertRaisesRegex(AssertionError, 'Missing/ambiguous update gate'):
+            walk(texts)
+        texts = documents()
+        texts['INSTALL.md'] = texts['INSTALL.md'].replace(
+            '- [ ] **Stage the new release:**', '#### Fast update\n\n- [ ] **Stage the new release:**', 1)
+        texts['EMERGENCY.md'] = texts['EMERGENCY.md'].replace('(INSTALL-REFERENCE.md#help)', '(INSTALL.md#fast-update)', 1)
+        with self.assertRaisesRegex(AssertionError, 'bypasses step 5'):
+            walk(texts)
+        texts = documents()
+        line = next(l for l in texts['INSTALL.md'].splitlines() if l.startswith(UPDATE_GATE))
+        texts['INSTALL.md'] = texts['INSTALL.md'].replace(line, line.replace('(INSTALL-REFERENCE.md#help)', '(#' + UPDATE + ')'), 1)
+        with self.assertRaisesRegex(AssertionError, 'STOP outside the update route'):
+            walk(texts)
+        texts = documents()
+        texts['INSTALL.md'] = texts['INSTALL.md'].replace(
+            '## 8. Everyday boot', '```bash\nsudo /var/lib/ares/at update\n```\n\n## 8. Everyday boot', 1)
+        with self.assertRaisesRegex(AssertionError, 'outside the gated update route'):
+            walk(texts)
 
     def test_status_history_is_centralized_and_physical_gates_stay_open(self):
         for name in ('INSTALL.md', 'EMERGENCY.md'):
