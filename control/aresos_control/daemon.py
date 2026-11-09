@@ -76,6 +76,8 @@ class Daemon:
                     except Exception as exc:
                         try:
                             send(connection, self.error_result(exc, False), result=True)
+                        except Exception:
+                            pass
                         finally:
                             connection.close()
                     continue

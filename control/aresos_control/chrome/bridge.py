@@ -37,12 +37,18 @@ class Bridge:
                 raise Refused('permission_denied', 'One native host already controls this Chrome session.')
             self.close()
         self.connection, self.buffer = connection, b''
-        hello = self.read()
-        if (type(hello) is not dict or set(hello) != {'event','session','version'} or hello['event'] != 'hello' or
-                type(hello['session']) is not str or not 1 <= len(hello['session']) <= 64):
-            self.close()
-            raise Refused('permission_denied', 'Native host must identify one Chrome session and full version.')
-        version(hello['version'])
+        try:
+            hello = self.read()
+            if (type(hello) is not dict or set(hello) != {'event','session','version'} or hello['event'] != 'hello' or
+                    type(hello['session']) is not str or not 1 <= len(hello['session']) <= 64):
+                raise ValueError('Invalid native handshake')
+            version(hello['version'])
+        except Exception as exc:
+            # The accepting daemon still owns this descriptor and must send its
+            # refusal before closing it. Closing here killed the entire daemon.
+            self.connection, self.buffer = None, b''
+            self.session = self.version = None
+            raise Refused('permission_denied', 'Native host must identify one Chrome session and full version.') from exc
         self.session, self.version = hello['session'], hello['version']
 
     def call(self, name, **arguments):
@@ -75,3 +81,5 @@ class Bridge:
         if self.connection is not None:
             self.connection.close()
         self.connection = None
+        self.session = self.version = None
+        self.buffer = b''
