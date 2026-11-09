@@ -154,7 +154,10 @@ class Chrome:
         return summary + '?'
 
     def revalidate(self, operation):
-        self.mode(acting=True)
+        mode = self.mode(acting=True)
+        site_adapter = operation['payload'].get('adapter')
+        if site_adapter and not mode['adapters'].get(site_adapter['site']):
+            raise Refused('stale_approval', 'The site adapter is no longer qualified; prepare again under the generic rules.')
         if operation['payload'].get('trusted') and not self.trusted(operation):
             raise Refused('refused', 'The owner entry no longer covers this exact kind, account and parameters; use chrome_submit to ask.')
         # The decisive fresh comparison is in the extension, immediately before input.
@@ -242,9 +245,9 @@ class Chrome:
         reply = self.bridge.call(**self.command(payload, op_id)) if payload else self.bridge.call(verb,**arguments)
         op['stages'] = {'dispatched':'Input dispatched once; delivery not proven.','page':visible(reply)}
         op.update(state='done',reason='Free input dispatched once, as the page shows it.')
-        self.store.write({'op:' + op_id:op},op['action'],'Chrome free input recorded',op_id)
         if payload:
             self.steps(reply.get('steps', []),payload['reference']['tab'])
+        self.store.write({'op:' + op_id:op},op['action'],'Chrome free input recorded',op_id)
         return {'operation_id':op_id,'untrusted_content':visible(reply)}
 
     def steps(self, steps, tab):
@@ -269,7 +272,7 @@ class Chrome:
     def trusted(self, operation):
         mode = self.mode(acting=True)
         adapter = operation['payload'].get('adapter')
-        if mode['conservative'] or not adapter or not adapter.get('trusted'):
+        if mode['conservative'] or not adapter or not adapter.get('trusted') or not mode['adapters'].get(adapter['site']):
             return False
         entry = self.store.get('chrome:allow:' + self.allow_id(operation), {})
         return bool(entry and entry.get('kind_hash') == digest(KINDS.get(adapter['kind'])) and not entry.get('revoked'))

@@ -61,7 +61,9 @@ class Bridge:
                 if reply.get('id') != identity:
                     raise Refused('transport_error', 'Chrome response identity changed; inspect status, never retry.')
                 if not reply.get('ok'):
-                    code, _, message = reply.get('error','refused: Chrome refused input').partition(':')
+                    raw = reply.get('error','refused: Chrome refused input')
+                    code, separator, message = raw.partition(':')
+                    if not separator: message = raw
                     raise Refused(code if code in {'stale_reference','stale_approval','owner_signin','refused','permission_denied'} else 'refused', message.strip())
                 return reply['data']
         except (OSError, ValueError) as exc:

@@ -182,8 +182,8 @@ chrome.runtime.onMessage.addListener((message,sender,reply)=>{
   // Details requests are data for the service's owner-only endpoint, never page input.
   if (sender.url === details && !sender.tab?.id) return;
 });
-chrome.tabs.onUpdated.addListener((tab,change)=>{
-  if (controlled.has(tab) && change.groupId !== undefined && change.groupId !== groupId) release(tab);
+chrome.tabs.onUpdated.addListener((tab,change,current)=>{
+  if (controlled.has(tab) && current.groupId !== groupId) release(tab);
   if (controlled.has(tab) && change.url) { try { safeURL(change.url); } catch { release(tab); } }
 });
 chrome.tabs.onRemoved.addListener(tab=>{ if (controlled.has(tab)) release(tab); });
