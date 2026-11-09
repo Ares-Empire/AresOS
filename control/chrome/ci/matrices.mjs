@@ -187,9 +187,14 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
     await approval(exact,'exact-confirm-Delete branch');assert.ok((await call('operation_status',{operation_id:exact.approval.operation_id})).operation.stages.confirmation);
     for(const mismatch of ['text','prompt','frame','site','twice']){
       const id='confirm-'+mismatch;await nav('site&id='+id+'&confirm='+mismatch,'github');const prepared=await call('click',await target('Delete branch'));
+      // Keep a current preparation live so response decoration must check it
+      // while the mismatch leaves the renderer blocked on a native dialog.
+      const retained=await call('click',await target('Delete branch'));assert.ok(retained.approval);
       await call('submit',prepared.approval);assert.equal(counts(id+'-Delete branch'),0);
       const {dialog}=await call('read',{tab});assert.ok(dialog);const next=await call('dialog',{tab,expected:dialog,accept:true,...(mismatch==='prompt'?{text:'yes'}:{})});
       await approval(next,id+'-Delete branch');
+      assert.equal((await call('operation_status',{operation_id:retained.approval.operation_id})).operation.state,'reserved');
+      await call('drop',{operation_id:retained.approval.operation_id});assert.equal(counts(id+'-Delete branch'),1);
     }
     for(const [id,text,asks] of [['new-confirm','Delete this item?',true],['free-confirm','Continue?',false]]){
       await nav('native-confirm&id='+id+'&text='+encodeURIComponent(text));const continued=await call('click',await target('Continue'));assert.ok(!continued.approval);assert.equal(counts(id),0);

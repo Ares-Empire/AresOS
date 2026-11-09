@@ -328,3 +328,40 @@ test('an allowed GET search destination reaches native input without a binding',
   const reply=await f.run("dispatch({name:'input',tab:7,reference:{frame:0,element:'e1'},input:{verb:'press',key:'Enter'}})");
   assert.equal(reply.dispatched,true);assert.deepEqual(Array.from(f.run('effects')),['keyDown','keyUp']);
 });
+
+test('validity refuses an already open modal without contacting the renderer',{timeout:1000},async()=>{
+  const f=fixture();
+  f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({url:'http://fixture.test/'});dialogs.set(7,{kind:'confirm'});globalThis.readyCalls=0;chrome.webNavigation={getFrame:async()=>({url:'http://fixture.test/'})};chrome.tabs={sendMessage:()=>{readyCalls++;return new Promise(()=>{})}};");
+  await assert.rejects(f.run("dispatch({name:'validity',tab:7,reference:{frame:0,element:'e1'}})"),error=>/^refused:/.test(error.message)&&/dialog/i.test(error.message));
+  assert.equal(f.run('readyCalls'),0);assert.equal(f.run('effectStarted'),false);assert.equal(f.run('dialogWake.size'),0);
+});
+
+test('a modal opening during ready promptly refuses validity and disposes its private waiter',{timeout:1000},async()=>{
+  const f=fixture();
+  f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({url:'http://fixture.test/'});globalThis.readyCalls=0;chrome.webNavigation={getFrame:async()=>({url:'http://fixture.test/'})};chrome.tabs={sendMessage:()=>{readyCalls++;return new Promise(()=>{})}};");
+  const pending=f.run("dispatch({name:'validity',tab:7,reference:{frame:0,element:'e1'}})");
+  const rejected=assert.rejects(pending,error=>/^refused:/.test(error.message)&&/dialog/i.test(error.message));
+  for(let attempt=0;attempt<20&&!f.run('readyCalls');attempt++)await Promise.resolve();
+  assert.equal(f.run('readyCalls'),1);f.run("dialogs.set(7,{kind:'confirm'});wakeDialog(7)");await rejected;
+  assert.equal(f.run('dialogWake.size'),0);assert.equal(f.run('effectStarted'),false);
+});
+
+test('validity returns the same no-modal ready facts without dispatching input',async()=>{
+  const f=fixture();
+  f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({url:'http://fixture.test/'});globalThis.readyMessages=[];chrome.webNavigation={getFrame:async()=>({url:'http://fixture.test/'})};chrome.tabs={sendMessage:async(tab,message,options)=>{readyMessages.push({tab,message,frame:options.frameId});return {ok:true,data:{preload:true,document:'native-reader-document',element_present:true}}}};");
+  const result=await f.run("dispatch({name:'validity',tab:7,reference:{frame:2,element:'e7'}})");
+  assert.equal(result.session,'fixture-session');assert.equal(result.control,'epoch');
+  assert.equal(result.document,'native-reader-document');assert.equal(result.element_present,true);
+  assert.equal(f.run('readyMessages.length'),1);assert.equal(f.run('readyMessages[0].message.element'),'e7');assert.equal(f.run('readyMessages[0].frame'),2);
+  assert.equal(f.run('dialogWake.size'),0);assert.equal(f.run('effectStarted'),false);
+});
+
+test('a modal during native frame lookup refuses validity before starting ready',{timeout:1000},async()=>{
+  const f=fixture();
+  f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({url:'http://fixture.test/'});globalThis.frameReply=null;globalThis.readyCalls=0;chrome.webNavigation={getFrame:()=>new Promise(resolve=>{frameReply=resolve})};chrome.tabs={sendMessage:()=>{readyCalls++;return new Promise(()=>{})}};");
+  const pending=f.run("dispatch({name:'validity',tab:7,reference:{frame:0,element:'e1'}})");
+  const rejected=assert.rejects(pending,error=>/^refused:/.test(error.message)&&/dialog/i.test(error.message));
+  for(let attempt=0;attempt<20&&!f.run('frameReply');attempt++)await Promise.resolve();
+  assert.ok(f.run('frameReply'));f.run("dialogs.set(7,{kind:'confirm'});wakeDialog(7);frameReply({url:'http://fixture.test/'})");await rejected;
+  assert.equal(f.run('readyCalls'),0);assert.equal(f.run('effectStarted'),false);
+});

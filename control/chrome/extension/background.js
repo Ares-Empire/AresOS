@@ -104,13 +104,16 @@ async function take(tab) {
 }
 async function content(tab, frame, command, parameters={}) {
   const effectful=['focus','select','check','install_file'].includes(command);
+  const modalError=()=>Error(effectful?'unknown: a page dialog interrupted input handling; inspect the dialog and operation status, never retry the input':'refused: a native dialog blocks this frame query; inspect and answer the dialog before checking prepared elements');
+  if(dialogs.has(tab))throw modalError();
   if(effectful){assertControl(tab);parameters={...parameters,generation:dispatchEpoch};effectStarted=true;}
-  const wake=effectful?waitDialog(tab):null;
+  // Release already bounds best-effort clear; it must leave no modal waiter.
+  const wake=command==='clear'?null:waitDialog(tab);
   let reply;
   try{const pending=chrome.tabs.sendMessage(tab,{command,...parameters},{frameId:frame});reply=audit(await (wake?Promise.race([pending,wake.promise]):pending));}
   finally{wake?.dispose();}
-  if(reply?.dialog)throw Error('unknown: a page dialog interrupted input handling; inspect the dialog and operation status, never retry the input');
-  if(reply?.interrupted)throw Error('unknown: control ended during input handling; inspect status and never retry the input');
+  if(reply?.dialog)throw modalError();
+  if(reply?.interrupted)throw Error(effectful?'unknown: control ended during input handling; inspect status and never retry the input':'stale_reference: control ended during the frame query');
   if (!reply?.ok) throw Error(reply?.error || 'stale_reference: page changed; read again');
   return reply.data;
 }
