@@ -32,6 +32,10 @@ def generated():
     files = {}
     for app in apps:
         files[f"control/generated/{app}-tools.json"] = json.dumps(tools_for(app), indent=2) + "\n"
+    from aresos_control.chrome.policy import WORDS, WORD_LIST_VERSION, FIXED_HOSTS, CDP_METHODS, HOLD_MS
+    chrome_policy = {'words':[word.casefold() for word in WORDS], 'wordListVersion':WORD_LIST_VERSION,
+                     'fixedHosts':FIXED_HOSTS, 'cdpMethods':CDP_METHODS, 'holdMs':HOLD_MS}
+    files['control/chrome/extension/policy.js'] = 'export const POLICY = ' + json.dumps(chrome_policy, ensure_ascii=True, indent=2) + ';\n'
     ask = asking_rules()
     files["control/settings/ask-rules.json"] = json.dumps({"permissions": {"ask": ask}}, indent=2) + "\n"
     files['control/settings/managed-settings.draft.json'] = json.dumps(managed_settings(), indent=2) + '\n'

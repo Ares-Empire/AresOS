@@ -32,7 +32,7 @@ def check_result(store, source, source_key, kind, evidence, content=None, notice
         notice = copy.deepcopy(legacy)
     else:
         occurrence_id = base if legacy is None and not previous.get('occurrence_id') else base[:47] + '-' + uuid.uuid4().hex
-        notice = {'id': occurrence_id, 'app': 'mail', 'state': 'partial', 'ack': False,
+        notice = {'id': occurrence_id, 'app': source.get('app', 'mail'), 'state': 'partial', 'ack': False,
                   'created_at': time.time_ns(), 'untrusted_content': copy.deepcopy(content)}
     notice.update(check_kind=kind, evidence_fingerprint=fingerprint, source_key=source_key)
     notice['untrusted_content'].setdefault('intent_key', source_key)

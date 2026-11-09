@@ -336,7 +336,7 @@ class Generated(EngineCase):
         for name, content in module.generated().items():
             self.assertEqual((ROOT / name).read_text(), content, name)
         ask = json.loads((ROOT / "control/settings/ask-rules.json").read_text())["permissions"]["ask"]
-        self.assertEqual(set(ask), {f"mcp__{a.app}__{a.verb}" for a in ACTIONS if a.effect in {"send", "delete"} and not a.owner_only})
+        self.assertEqual(set(ask), {f"mcp__{a.app}__{a.verb}" for a in ACTIONS if a.effect in {"send", "delete"} and not a.owner_only and a.asks})
         for action in ACTIONS:
             self.assertIn(action.effect, {"read", "change", "send", "delete"})
             self.assertEqual(action.input.get("additionalProperties"), False)

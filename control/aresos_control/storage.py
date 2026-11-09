@@ -35,7 +35,7 @@ def sync_directory(path):
 
 def short_description(operation):
     description = operation["approval"]["description"]
-    if operation.get("app") == "mail" and "untrusted_content" in description:
+    if operation.get("app") in {"mail", "chrome"} and "untrusted_content" in description:
         result = {"action": description["action"], "untrusted_content": copy.deepcopy(description["untrusted_content"])}
         if operation.get('repair_of'):
             result['repair'] = {'repair_of': operation['repair_of'],

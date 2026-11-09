@@ -58,6 +58,7 @@ class Action:
     purpose: str
     owner_only: bool = False
     result: dict | None = None
+    asks: bool = True
 
     @property
     def name(self):
@@ -133,6 +134,8 @@ ACTIONS = [
 ]
 from .mail.definitions import actions as mail_actions
 ACTIONS += mail_actions(Action)
+from .chrome.definitions import actions as chrome_actions
+ACTIONS += chrome_actions(Action)
 BY_NAME = {a.name: a for a in ACTIONS}
 APPS = {a.app for a in ACTIONS}
 

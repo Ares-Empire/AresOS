@@ -6,7 +6,8 @@
       "mcp__mail__send",
       "mcp__mail__delete",
       "mcp__mail__folder_delete",
-      "mcp__mail__unsubscribe"
+      "mcp__mail__unsubscribe",
+      "mcp__chrome__submit"
     ]
   }
 }

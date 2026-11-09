@@ -38,6 +38,8 @@ class Engine:
         self.receiver = Receiver(self.store.evidence_dir, checkpoint, self.store.ledger)
         self.adapters = {"testapp": TestApp(self.store, self.blobs, self.receiver), "mail": Mail(self.store, self.blobs)}
         self.adapters['mail'].check_result = self.check_composition_result
+        from .chrome.adapter import Chrome
+        self.adapters['chrome'] = Chrome(self)
         self.ttl = ttl
 
     def check_composition_result(self, data):
@@ -48,6 +50,8 @@ class Engine:
     def close(self):
         if self.receiver is not None:
             self.receiver.db.close()
+        if hasattr(self, 'adapters') and 'chrome' in self.adapters:
+            self.adapters['chrome'].bridge.close()
         self.store.close()
 
     def operation(self, op_id, app=None):
@@ -459,6 +463,8 @@ class Engine:
         adapter = self.adapters[app]
         if verb.startswith("prepare_"):
             return self.reserve(app, verb.removeprefix("prepare_"), args)
+        if app == "chrome" and verb == "submit_trusted":
+            return adapter.call(verb, args)
         if action.effect in {"send", "delete"}:
             return self.submit(action, args)
         if verb == "operation_status":
@@ -482,7 +488,7 @@ class Engine:
             return result
         if verb == "operation_repair":
             return self.repair(app, args)
-        if verb == "operation_cancel":
+        if verb == "operation_cancel" or app == "chrome" and verb == "drop":
             op = self.operation(args["operation_id"], app)
             if op["state"] != "reserved":
                 raise Refused("refused", "Only reserved operations can be cancelled; inspect operation_status.")

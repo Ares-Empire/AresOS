@@ -32,7 +32,7 @@ class Daemon:
             listener.bind(str(path))
             # Peer credentials enforce identity even if the filesystem is made permissive.
             # act must be reachable without changing the service's supplementary groups.
-            os.chmod(path, 0o666 if kind == "act" else 0o600)
+            os.chmod(path, 0o666 if kind in {"act", "chrome"} else 0o600)
             listener.listen(16)
             self.selector.register(listener, selectors.EVENT_READ, kind)
             self.sockets.append(listener)
@@ -46,13 +46,27 @@ class Daemon:
                 pass
             for key, _ in self.selector.select(timeout=0.1):
                 connection, _ = key.fileobj.accept()
+                connection.settimeout(2)
+                if key.data == 'chrome':
+                    try:
+                        _, uid, _ = struct.unpack('3i', connection.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED, struct.calcsize('3i')))
+                        if uid != self.config['owner_uid']:
+                            raise Refused('permission_denied', 'Chrome native host must run as the configured owner.')
+                        self.engine.adapters['chrome'].bridge.accept(connection)
+                        connection.settimeout(15)
+                    except Exception as exc:
+                        try:
+                            send(connection, self.error_result(exc, False), result=True)
+                        finally:
+                            connection.close()
+                    continue
                 with connection:
                     connection.settimeout(2)
                     authorized = False
                     try:
                         _, uid, _ = struct.unpack("3i", connection.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED, struct.calcsize("3i")))
                         kind = key.data
-                        if kind == "chrome" or uid != (0 if kind == "admin" else self.config["owner_uid"]):
+                        if uid != (0 if kind == "admin" else self.config["owner_uid"]):
                             raise Refused("permission_denied", "This peer is not permitted on this socket; use act as owner, admin via sudo. Chrome bridge accepts nothing.")
                         authorized = True
                         request = receive(connection)

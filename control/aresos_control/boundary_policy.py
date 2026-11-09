@@ -4,7 +4,7 @@
 def asking_rules():
     from .definitions import ACTIONS
     return [f'mcp__{a.app}__{a.verb}' for a in ACTIONS
-            if a.effect in {'send', 'delete'} and not a.owner_only]
+            if a.effect in {'send', 'delete'} and not a.owner_only and a.asks]
 
 
 def managed_servers():

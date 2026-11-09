@@ -61,6 +61,14 @@ class Proxy:
                 elif result.get('error', {}).get('code') == 'unknown':
                     result['data']['saved'] = saved
                 return result
+            if self.app == "chrome" and verb == "upload":
+                if self.files is None:
+                    raise Refused("file_refused", "No caller folders configured for Chrome uploads.")
+                data, file_ref = self.files.read(arguments["path"])
+                imported = self.client.upload("chrome", file_ref, data)
+                if not imported["ok"]:
+                    return imported
+                arguments = {**arguments, "file": imported["data"]["file"]}
             if self.app == "mail" and verb == "compose":
                 arguments = dict(arguments)
                 imported = []
