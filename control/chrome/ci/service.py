@@ -34,6 +34,19 @@ def checkpoint(point):
 daemon.engine.store.checkpoint=checkpoint
 original_request=daemon.engine.request
 def request(value,admin=False):
+    qualification=Path('/run/aresos-tools/fixture-qualification')
+    if qualification.exists():
+        mode=qualification.read_text();qualification.unlink()
+        candidate=json.loads(json.dumps(record))
+        if mode=='conservative':candidate['entries']=[]
+        elif mode in CORE_GROUPS:candidate['entries'][0]['core'][mode]=False
+        elif mode!='qualified':raise ValueError('Unknown synthetic qualification mode')
+        daemon.engine.store.write({'chrome:qualification':candidate},'chrome_test_qualification','Synthetic qualification mode')
+    expiry=Path('/run/aresos-tools/fixture-expire')
+    if expiry.exists():
+        identifier=expiry.read_text();expiry.unlink()
+        operation=daemon.engine.operation(identifier,'chrome');operation['expires']=0
+        daemon.engine.store.write({'op:'+identifier:operation},'chrome_test_expire','Fixture deadline passed',identifier)
     popup=Path('/run/aresos-tools/fixture-popup')
     if popup.exists():
         popup.unlink();daemon.engine.adapters['chrome'].bridge.call('stop_popup')

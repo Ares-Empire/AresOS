@@ -15,12 +15,13 @@
   const ownerDispatch = () => !inFlight && owner && owner.isTrusted && currentPhase(owner) !== 0;
   const control=element=>element.closest('button,input,a,[role=button],[role=link],[role=menuitem],[onclick]') || element;
   function facts(element) { return reader.target(element); }
+  function decoded(value) { try{return decodeURIComponent(value);}catch{return value;} }
   function asks(element) {
     element=control(element);
     const target = facts(element), form = reader.form(element);
     if (form && target.submit) return !search(form);
     if (target.editable) return false;
-    return [target.name,target.label,target.title,target.role,target.page_dialog?.text,target.password ? '' : target.value,form?.action ? decodeURIComponent(form.action):'']
+    return [target.name,target.label,target.title,target.role,target.page_dialog?.text,target.password ? '' : target.value,form?.action ? decoded(form.action):'']
       .join(' ').toLocaleLowerCase().match(/[\p{L}\p{N}_]+/gu)?.some(word => config.words.includes(word)) || false;
   }
   const search = form => !config?.conservative && form?.method === 'get' && form.search;

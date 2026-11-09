@@ -21,6 +21,25 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
   }
   async function setup(parameters) {await nav('matrix&'+new URLSearchParams(parameters));}
   const words=JSON.parse(fs.readFileSync('control/chrome/extension/policy.js','utf8').match(/\{[\s\S]*\}/)[0]).words;
+  await check('GROUP 1 submit compose deletion and free-input matrix',async()=>{
+    for(const tag of ['default','submit'])for(const key of ['click','Enter','Space','field']){
+      const id='submit-'+tag+'-'+key;await nav('action-matrix&mode=submit&id='+id+'&tag='+tag);
+      const result=key==='click'?await call('click',await target('Continue')):await call('press',{...await target(key==='field'?'Form field':'Continue'),key:key==='field'?'Enter':key});await approval(result,id);
+    }
+    for(const tag of ['textarea','input','div'])for(const key of ['Enter','Ctrl+Enter','Cmd+Enter']){
+      const id='compose-'+tag+'-'+key;await nav('action-matrix&mode=compose&id='+encodeURIComponent(id)+'&tag='+tag);
+      await approval(await call('press',{...await target('Compose'),key}),id);
+    }
+    for(const key of ['Delete','Backspace']){const id='delete-'+key;await nav('action-matrix&mode=delete&id='+id);await approval(await call('press',{...await target('Selected item'),key}),id);}
+    await nav('action-matrix&mode=javascript&id=javascript');await approval(await call('click',await target('Delete')),'javascript');
+    await nav('action-matrix&mode=free&id=free');
+    for(const [verb,label,args] of [['fill','Text',{text:'Line one\nLine two'}],['select','Choice',{value:'b'}],['check','Tick',{checked:true}],['fill','Search',{text:'Search term'}]]){
+      const result=await call(verb,{...await target(label),...args});assert.ok(!result.approval);assert.equal(result.followups.length,0);
+    }
+    assert.equal(counts('unexpected-enter'),0);
+    const search=await call('click',await target('Continue'));assert.ok(!search.approval);await eventually(()=>counts('free')===1,'GET search stays free');
+    const link=await call('click',await target('Read more'));assert.ok(!link.approval);await eventually(()=>counts('free')===2,'ordinary link stays free');
+  });
   await check('GROUP 1 what asks word/label/key matrix',async()=>{
     for(const word of words)for(const label of ['name','aria','title','value','labelledby','hidden_labelledby','label','role','formaction'])for(const route of ['click','Enter','Space']){
       const id='word-'+word+'-'+label+'-'+route;await setup({id,mode:'word',word,label});
@@ -52,6 +71,24 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
   });
   await check('GROUP 2 loop with uncancelled enclosing submit sends once',async()=>{
     await nav('loop&id=uncancelled-loop');const result=await call('click',await target('Continue'));await approval(result,'uncancelled-loop');
+  });
+  await check('GROUP 2 nested validation and fresh-frame fallback',async()=>{
+    for(const mode of ['invalid','valid','double','other','nested']){
+      const id='resume-'+mode;await nav('resume-matrix&id='+id+'&mode='+mode);
+      const first=await call('click',await target('Continue'));assert.equal(counts(id),0);assert.equal(counts('handler-'+id),0);
+      await approval(first,id);assert.equal(counts('handler-'+id),mode==='invalid'?0:mode==='nested'?2:1);
+      assert.equal(counts('other-'+id),0);
+      if(mode==='double'||mode==='other'||mode==='nested'){
+        const notices=await call('notices');assert.ok(notices.total>0,'additional submission has its own pending check');
+      }
+    }
+    for(const cancel of [true,false]){
+      const id='fresh-'+cancel;await nav('fresh-activation&id='+id+'&cancel='+cancel);
+      const result=await call('click',await target('Continue'));assert.equal(counts('handler-'+id),0);
+      const held=result.followups.find(item=>cancel?item.stopped:item.unknown);assert.ok(held,JSON.stringify(result));
+      assert.ok(!held.approval,'fallback activations are never resumable');
+      if(cancel)assert.equal(counts(id),0);else assert.equal(result.operation.state,'unknown');
+    }
   });
   await check('GROUP 2 owner synchronous task delayed work and in-flight interleavings',async()=>{
     for(const [id,busy,after] of [['owner-sync',0,130],['owner-replay',0,130],['owner-flight',250,60],['owner-after-limit',0,650]]){
@@ -86,6 +123,31 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
     fixture.mutate('dialog-change','dialog');await delay(100);const result=await rpc('submit',prepared.approval);
     assert.ok(!result.ok||result.data.operation.state==='failed');assert.equal(counts('dialog-change'),0);
   });
+  await check('GROUP 3 cross-frame adapter empty and oversized drafts',async()=>{
+    for(const mode of ['empty','oversized']){const id='draft-'+mode;await nav('cross-draft&id='+id+'&mode='+mode);assert.equal((await rpc('click',await target('Send'))).ok,false);assert.equal(counts(id),0);}
+    await nav('cross-draft&id=frame-draft&mode=frame');const prepared=await call('click',await target('Send'));
+    assert.match(JSON.stringify(prepared.approval),/Existing cross-frame draft/);fixture.mutate('frame-draft','text');await delay(100);
+    const changed=await rpc('submit',prepared.approval);assert.ok(!changed.ok||changed.data.operation.state==='failed');assert.equal(counts('frame-draft'),0);
+    for(const [site,change,label] of [['gmail','account','Send'],['gmail','recipient','Send'],['whatsapp','chat','Send']]){
+      const id='adapter-bind-'+site+'-'+change;await nav('site&id='+id,site);const prepared=await call('click',await target(label));
+      fixture.mutate(id,change);await delay(100);const changed=await rpc('submit',prepared.approval);assert.ok(!changed.ok||changed.data.operation.state==='failed');assert.equal(counts(id+'-'+label),0);
+    }
+  });
+  await check('GROUP 4 exact native confirmation and mismatch matrix',async()=>{
+    await nav('site&id=exact-confirm','github');const exact=await call('click',await target('Delete branch'));assert.match(exact.approval.question,/Delete branch fixture-repository/);
+    await approval(exact,'exact-confirm-Delete branch');assert.ok((await call('operation_status',{operation_id:exact.approval.operation_id})).operation.stages.confirmation);
+    for(const mismatch of ['text','prompt']){
+      const id='confirm-'+mismatch;await nav('site&id='+id+'&confirm='+mismatch,'github');const prepared=await call('click',await target('Delete branch'));
+      await call('submit',prepared.approval);assert.equal(counts(id+'-Delete branch'),0);
+      const {dialog}=await call('read',{tab});assert.ok(dialog);const next=await call('dialog',{tab,expected:dialog,accept:true,...(mismatch==='prompt'?{text:'yes'}:{})});
+      await approval(next,id+'-Delete branch');
+    }
+    for(const [id,text,asks] of [['new-confirm','Delete this item?',true],['free-confirm','Continue?',false]]){
+      await nav('native-confirm&id='+id+'&text='+encodeURIComponent(text));const continued=await call('click',await target('Continue'));assert.ok(!continued.approval);assert.equal(counts(id),0);
+      const {dialog}=await call('read',{tab});assert.ok(dialog);const answer=await call('dialog',{tab,expected:dialog,accept:true});
+      if(asks)await approval(answer,id);else {assert.ok(!answer.approval);await eventually(()=>counts(id)===1,'free native confirmation');}
+    }
+  });
   await check('GROUP 5 question fields, hidden values, password label, upload path and hash',async()=>{
     await nav('binding&id=question');const prepared=await call('click',await target('Submit'));const text=JSON.stringify(prepared.approval);
     assert.match(text,/Hidden original/);assert.match(text,/Private sign-in/);assert.doesNotMatch(text,/SENTINEL_PRIVATE_PASSWORD_20/);assert.match(prepared.approval.question,/hidden/);
@@ -109,6 +171,17 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
     await call('click',await target('Show'));assert.doesNotMatch(JSON.stringify(await read()),/SENTINEL_PRIVATE_PASSWORD_20/);
     for(const file of ['browser-boundary.jsonl','tool.jsonl','service.txt'])assert.doesNotMatch(fs.readFileSync('/out/'+file,'utf8'),/SENTINEL_PRIVATE_PASSWORD_20/,file);
   });
+  await check('GROUP 6 schemes links and forward routes',async()=>{
+    for(const url of ['file:///fixture','ftp://fixture.test/','chrome://settings','chrome-extension://fixture/','data:text/plain,fixture','javascript:void(0)','about:config','mailto:fixture@example.invalid']){
+      assert.equal((await rpc('open',{url})).ok,false);assert.equal((await rpc('navigate',{tab,url})).ok,false);
+    }
+    await ownerNavigate('http://fixture.test:8765/?case=compose');await call('take_tab',{tab});
+    await ownerNavigate('http://approval.test:8765/?case=excluded');await ownerNavigate('http://fixture.test:8765/?case=compose');await call('take_tab',{tab});
+    // The excluded entry remains in forward history after the owner steps back twice.
+    await call('navigate',{tab,direction:'back'}).catch(()=>{});
+    assert.equal((await rpc('read',{tab})).ok,false);
+    await ownerNavigate('http://fixture.test:8765/?case=compose');await call('take_tab',{tab});
+  });
   await check('GROUP 8 drop release close and stale references never dispatch prepared work',async()=>{
     for(const action of ['drop','release_tab']){
       await nav('compose');const prepared=await call('click',await target('Send'));const before=counts('compose');
@@ -122,6 +195,11 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
     await nav('binding&mode=sibling&id=preview-residual');const prepared=await call('click',await target('Send'));
     fixture.mutate('preview-residual','preview');await delay(100);await approval(prepared,'preview-residual');
     assert.ok(fixture.arrivals.some(row=>row.body.includes('Changed read-only preview')));
+  });
+  await check('GROUP 8 deadline and tabs outside the group',async()=>{
+    await nav('binding&id=deadline');const prepared=await call('click',await target('Submit'));await lifecycle({fixture:'expire',operation_id:prepared.approval.operation_id});
+    const expired=await rpc('submit',prepared.approval);assert.ok(!expired.ok||expired.data.operation.state==='failed');assert.equal(counts('deadline'),0);
+    const outside=await target('Submit');await call('release_tab',{tab});const result=await rpc('click',outside);assert.equal(result.ok,false);assert.equal(counts('deadline'),0);await call('take_tab',{tab});
   });
   const adapters={};
   for(const [site,actions] of Object.entries({gmail:['Send'],whatsapp:['Send'],github:['Comment','Submit review','Merge pull request','Close issue','Delete branch','Delete tag','Delete repository','Save settings'],gemini:['Send','Delete chat','Share chat'],deezer:['Play','Pause','Skip','Seek','Volume','Queue','Like','Follow','Add to playlist','Remove from playlist','Delete playlist','Share track','Subscribe']})){
@@ -152,6 +230,17 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
     admin('chrome_sites',{command:'revoke',id:entry.id});
     await nav('site&id=trust-revoked','gmail');const revoked=await call('click',await target('Send'));
     assert.ok(revoked.approval);assert.equal(counts('trust-revoked-Send'),0);
+  });
+  await check('QUALIFICATION conservative activations ask and core failures gate before reads',async()=>{
+    await lifecycle({fixture:'qualification',mode:'conservative'});
+    await nav('action-matrix&mode=free&id=conservative');const view=await call('read',{tab});assert.match(view.version_notice,/not qualified/);
+    for(const [verb,label,args] of [['click','Continue',{}],['select','Choice',{value:'b'}],['check','Tick',{checked:true}]]){
+      const prepared=await call(verb,{...await target(label),...args});assert.ok(prepared.approval);assert.equal(counts('conservative'),0);await call('drop',{operation_id:prepared.approval.operation_id});
+    }
+    const typing=await call('fill',{...await target('Text'),text:'Plain text\nwith line breaks'});assert.ok(!typing.approval);assert.equal(counts('unexpected-enter'),0);
+    await lifecycle({fixture:'qualification',mode:'password_exclusion'});
+    assert.equal((await rpc('read',{tab})).ok,false);
+    await lifecycle({fixture:'qualification',mode:'qualified'});
   });
   await check('GROUP 13 autosave and after-limit submissions are not held',async()=>{
     await nav('residual');await call('fill',{...await target('Autosave'),text:'Synthetic autosave'});

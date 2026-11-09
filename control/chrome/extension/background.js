@@ -108,6 +108,7 @@ async function stop() { for (const tab of [...controlled.keys()]) await release(
 async function facts(tab, reference) {
   const current = await requireTab(tab);
   if (reference && (reference.session !== session || reference.tab !== tab)) throw Error('stale_reference: browser session changed; read again');
+  if(dialogs.has(tab)){if(reference)throw Error('stale_reference: a native dialog is open; inspect and answer it first');return {session,tab,group:groupId,control:controlled.get(tab).epoch,url:current.url,title:current.title,frames:[],frame_tree:[],dialog:dialogs.get(tab)};}
   const frames = await chrome.webNavigation.getAllFrames({tabId:tab}) || [];
   const result=[];
   for (const frame of frames) {

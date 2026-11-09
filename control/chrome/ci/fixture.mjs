@@ -31,6 +31,41 @@ export async function fixtures() {
     } else if(kind==='owner-input') {
       body='<button id="continue" type="button">Continue</button><form id="owner" action="/receive?case=owner-input" method="post" target="sink"><input type="hidden" name="source" value="owner"><button type="submit">Submit by owner</button></form><form id="scheduled" action="/receive?case=scheduled-input" method="post" target="sink"><input type="hidden" name="source" value="scheduled"></form><iframe name="sink" hidden></iframe>';
       script="document.querySelector('#continue').onclick=()=>{fetch('/receive?case=owner-start',{method:'POST',body:'Claude input started'});setTimeout(()=>document.querySelector('#scheduled').submit(),300);};";
+    } else if(kind==='action-matrix') {
+      const id=url.searchParams.get('id'),mode=url.searchParams.get('mode'),tag=url.searchParams.get('tag')||'textarea';
+      const action='/receive?case='+encodeURIComponent(id);
+      if(mode==='submit')body='<form method="post" action="'+action+'" target="sink"><input name="field" aria-label="Form field" value="Current"><button'+(tag==='default'?'':' type="submit"')+'>Continue</button></form><iframe name="sink" hidden></iframe>';
+      else if(mode==='compose'){
+        body=(tag==='div'?'<div contenteditable="true" aria-label="Compose">Existing draft</div>':'<'+tag+' aria-label="Compose" value="Existing draft">Existing draft</'+tag+'>');
+        script=`document.querySelector('[aria-label=Compose]').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();fetch(${JSON.stringify(action)},{method:'POST',body:'compose'});}};`;
+      } else if(mode==='delete'){
+        body='<article tabindex="0" aria-label="Selected item">Synthetic selected item</article>';
+        script=`document.querySelector('article').onkeydown=e=>{if(['Delete','Backspace'].includes(e.key)){e.preventDefault();fetch(${JSON.stringify(action)},{method:'POST',body:'delete'});}};`;
+      } else if(mode==='javascript'){
+        body='<a href="javascript:void(0)">Delete</a>';
+        script=`document.querySelector('a').onclick=()=>fetch(${JSON.stringify(action)},{method:'POST',body:'javascript link'});`;
+      } else if(mode==='free'){
+        body='<form role="search" action="'+action+'" target="sink"><input type="search" name="q" aria-label="Search"><button>Continue</button></form><textarea aria-label="Text">Initial</textarea><select aria-label="Choice"><option value="a">A</option><option value="b">B</option></select><input type="checkbox" aria-label="Tick"><a target="sink" href="'+action+'">Read more</a><iframe name="sink" hidden></iframe>';
+        script=`document.querySelector('textarea').onkeydown=e=>{if(e.key==='Enter')fetch('/receive?case=unexpected-enter',{method:'POST'});};`;
+      }
+    } else if(kind==='resume-matrix') {
+      const id=url.searchParams.get('id'),mode=url.searchParams.get('mode');
+      body='<button type="button">Continue</button><form action="/receive?case='+id+'" method="post" target="sink"><input name="value" required '+(mode==='invalid'?'':'value="valid"')+'><button type="submit">Submit</button></form><form id="other" action="/receive?case=other-'+id+'" method="post" target="sink"><input name="value" value="other"></form><iframe name="sink" hidden></iframe>';
+      script=`const form=document.querySelector('form');document.querySelector('button').onclick=()=>form.${mode==='invalid'?'submit()':'requestSubmit()'};let count=0;form.onsubmit=event=>{fetch('/receive?case=handler-'+${JSON.stringify(id)},{method:'POST'});${mode==='double'?"event.preventDefault();form.submit();form.submit();":mode==='other'?"document.querySelector('#other').submit();":mode==='nested'?"event.preventDefault();if(++count===1)form.requestSubmit();else form.submit();":''}};`;
+    } else if(kind==='cross-draft') {
+      const mode=url.searchParams.get('mode'),id=url.searchParams.get('id');
+      body='<button type="button">Send</button>'+(mode==='empty'?'':mode==='oversized'?'<textarea aria-label="Long draft">'+('Synthetic long draft '.repeat(1200))+'</textarea>':'<iframe src="http://second.test:8766/?case=draft-inner&id='+id+'"></iframe>');
+      script=`document.querySelector('button').onclick=()=>fetch('/receive?case='+${JSON.stringify(id)},{method:'POST',body:'sent'});`;
+    } else if(kind==='draft-inner') {
+      body='<textarea aria-label="Frame draft">Existing cross-frame draft</textarea>';
+    } else if(kind==='fresh-activation') {
+      const id=url.searchParams.get('id'),cancel=url.searchParams.get('cancel')==='true';
+      body='<button type="button">Continue</button><a target="sink" href="/receive?case='+id+'">Delete</a><iframe name="sink" hidden></iframe>';
+      script=`document.querySelector('button').onclick=()=>{const frame=document.createElement('iframe');document.body.append(frame);const raw=frame.contentWindow.EventTarget.prototype.dispatchEvent;raw.call(document.querySelector('a'),new MouseEvent('click',{bubbles:true,cancelable:${cancel}}));};document.querySelector('a').onclick=()=>fetch('/receive?case=handler-'+${JSON.stringify(id)},{method:'POST'});`;
+    } else if(kind==='native-confirm') {
+      const id=url.searchParams.get('id'),text=url.searchParams.get('text')||'Delete this item?',mode=url.searchParams.get('mode')||'confirm';
+      body='<button type="button">Continue</button>';
+      script=`document.querySelector('button').onclick=()=>{if(${mode==='prompt'?'prompt':mode==='alert'?'(value=>{alert(value);return true;})':'confirm'}(${JSON.stringify(text)}))fetch('/receive?case='+${JSON.stringify(id)},{method:'POST',body:'confirmed'});};`;
     } else if(kind==='owner-task') {
       const id=url.searchParams.get('id')||'owner-task',delay=Number(url.searchParams.get('delay')||100),replay=url.searchParams.get('replay')==='1',busy=Number(url.searchParams.get('busy')||0);
       body='<button type="button" id="continue">Continue</button><button type="button" id="owner">Owner input</button><form action="/receive?case='+id+'" method="post" target="sink"><input name="source" value="owner task"></form><iframe name="sink" hidden></iframe>';
@@ -80,7 +115,7 @@ export async function fixtures() {
       if(site==='deezer')body='<main>'+account+['Play','Pause','Skip','Seek','Volume','Queue','Like','Follow','Add to playlist','Remove from playlist','Delete playlist','Share track','Subscribe'].map(label=>'<button type="button">'+label+'</button>').join('')+'</main>';
       if(site==='bank')body='<main><p>Synthetic read-only balance</p><a href="?case=site&id=bank-link">Account details</a><input aria-label="Amount"><input type="file" aria-label="File"><button type="button">Continue</button></main>';
       script=`const send=label=>fetch('/receive?case='+encodeURIComponent(${JSON.stringify(token)}+'-'+label),{method:'POST',body:JSON.stringify({label,fields:[...document.querySelectorAll('input,textarea')].map(field=>({name:field.name||field.getAttribute('aria-label'),value:field.value}))})});
-        for(const button of document.querySelectorAll('button'))button.onclick=()=>{if(button.textContent==='Delete branch' && !confirm('Delete branch ${context}?'))return;send(button.textContent);};
+        for(const button of document.querySelectorAll('button'))button.onclick=()=>{if(button.textContent==='Delete branch' && !${url.searchParams.get('confirm')==='prompt'?'prompt':'confirm'}(${JSON.stringify(url.searchParams.get('confirm')==='text'?'Delete another branch?':'Delete branch '+context+'?')}))return;send(button.textContent);};
         for(const field of document.querySelectorAll('textarea'))field.onkeydown=event=>{if(event.key==='Enter' && (${JSON.stringify(site)}!=='gmail'||event.ctrlKey||event.metaKey)){event.preventDefault();send('Enter');}};`;
     } else if(kind==='matrix') {
       const token=url.searchParams.get('id'),route=url.searchParams.get('route')||'click',mode=url.searchParams.get('mode')||'word',word=url.searchParams.get('word')||'Send',label=url.searchParams.get('label')||'name';
@@ -147,6 +182,7 @@ export async function fixtures() {
       if(change==='document')location.href=location.href+'&generation=changed';
       if(change==='account'){const account=document.querySelector('[name=from],[aria-label="Signed in as"]');if('value'in account)account.value='Changed account';else account.textContent='Changed account';}
       if(change==='recipient')document.querySelector('[name=to]').value='other@example.invalid';
+      if(change==='chat')document.querySelector('[aria-label="Chat name"]').textContent='Changed chat';
     };`;
     res.setHeader('Content-Type','text/html');res.end(page(body,script));
   });
