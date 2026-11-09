@@ -58,6 +58,51 @@ class Projection:
             if isinstance(value,dict) and value.get('ack'):return True
         return False
 
+    def rebuild(self):
+        # A historical peak must not prevent later archive tombstones from
+        # taking effect. Scan bounded sorted windows through the whole history,
+        # retaining only final live keys, never all historical IDs or values.
+        sequence=0;previous='';end=0;generation=None;legacy=False
+        for _,end,record in self.committed_records():
+            if record['seq']!=sequence+1 or record['previous']!=previous or digest({k:v for k,v in record.items() if k!='hash'})!=record['hash']:
+                raise Refused('evidence_corrupt','Chrome owner-state history failed its hash chain.')
+            sequence=record['seq'];previous=record['hash'];generation=record['generation']
+            legacy |= 'chrome' not in record and any(op.get('description',{}).get('action','').startswith('chrome_') for op in record.get('operations',[]))
+        def updates(record):
+            if 'chrome' not in record:
+                for op in record.get('operations',[]):
+                    if op.get('description',{}).get('action','').startswith('chrome_'):
+                        yield 'op:'+op['id'], None if op['state'] in {'done','failed'} else {'state':'unknown'},op['id']
+            for key,value in record.get('chrome',{}).items():yield key,value,None
+        entries={};cursor='';self.ack_filter=bytearray(8192)
+        while True:
+            batch={}
+            for start,through,record in self.committed_records():
+                if through>end:break
+                for key,value,old_id in updates(record):
+                    if key<=cursor:continue
+                    if key not in batch and len(batch)==32:
+                        largest=max(batch)
+                        if key>largest:continue
+                        del batch[largest]
+                    old=batch.get(key,{'entry':None,'ack':False})
+                    ack=old['ack'] or isinstance(value,dict) and bool(value.get('ack'))
+                    entry=None if value is None else {'offset':start,'time':old['entry']['time'] if old['entry'] else record['time'],
+                        'ack':ack,'state':value.get('state') if isinstance(value,dict) else None}
+                    if entry is not None and old_id:entry['legacy']=old_id
+                    batch[key]={'entry':entry,'ack':ack}
+            if not batch:break
+            for key,known in batch.items():
+                if known['ack']:self.mark_ack(key)
+                if known['entry'] is not None:
+                    entries[key]=known['entry']
+                    if len(entries)>MAX_KEYS:
+                        # Leave the old checkpoint intact: a later appended
+                        # archive is rescanned and can make this read succeed.
+                        raise Refused('owner_state_unavailable','Chrome current owner-state index exceeds its bound; inspect and archive finished history.')
+            cursor=max(batch)
+        self.entries=entries;self.offset=end;self.sequence=sequence;self.hash=previous;self.generation=generation;self.legacy=legacy
+
     def sync(self):
         info=(self.store.evidence_dir/'operations.jsonl').stat()
         signature=(info.st_ino,info.st_size,info.st_mtime_ns)
@@ -74,6 +119,9 @@ class Projection:
                     key='op:'+operation['id']
                     if operation['state'] not in {'done','failed'}:
                         self.entries[key]={'offset':start,'time':record['time'],'ack':False,'state':'unknown','legacy':operation['id']}
+                    else:self.entries.pop(key,None)
+                    if len(self.entries)>MAX_KEYS:
+                        self.rebuild();self.signature=signature;return
             for key,value in record.get('chrome',{}).items():
                 if value is None:
                     self.entries.pop(key,None)
@@ -86,7 +134,7 @@ class Projection:
                 self.entries[key]={'offset':start,'time':previous['time'] if previous else record['time'],
                     'ack':bool(ack),'state':value.get('state') if isinstance(value,dict) else None}
                 if len(self.entries)>MAX_KEYS:
-                    raise Refused('owner_state_unavailable','Chrome current owner-state index exceeds its bound; inspect and archive finished history.')
+                    self.rebuild();self.signature=signature;return
             self.offset=end;self.sequence=record['seq'];self.hash=record['hash'];self.generation=record['generation']
         self.signature=signature
 

@@ -288,3 +288,86 @@ That scope fits Now's explicit Chrome storage requirements, provided it:
 This is a proposed repair scope, not an implemented or tested substitute
 for 19b. The final report should explicitly describe the additional record
 fields and the later migration to 19b's one shared read path and full oracle.
+
+## Review of the committed Chrome fallback repair
+
+Reviewed the new `chrome/committed.py`, additive `record['chrome']` journal
+metadata, Engine integration and private step identities in a changing
+worktree based on `40f380d6`; HEAD advanced to
+`e1f1bacf048afae2d1513ddeb0a425c78421b8ec` during this follow-up. The builder
+reported broader passing sweeps; those are not runs by this reviewer.
+
+**Run:**
+`PYTHONPATH=control python3 -m unittest discover -s control/chrome_tests -p 'test_committed.py' -v`
+passed **6 tests in 0.072s**. These establish useful focused repairs for the
+lost notice, stale session validity, acknowledgement/restart, tombstone and
+clean/recurrence cases, plus an appended-but-uncommitted tail. **Read:**
+the indexed values remain on disk, acknowledgement filter hits are checked
+against committed records, and per-document step identity plus local held
+form/submitter checks address the earlier cross-document collision. These
+are limited repair findings, not full browser or final-head evidence.
+
+The follow-up found the following further issues and sent them immediately
+to the builder:
+
+1. **P2 — Pending validity omitted failed adapter qualification.**
+   **Run:** prepare Gmail through its adapter, append a qualification entry
+   disabling Gmail, and move the synthetic browser to a later patch of that
+   major. Both healthy pending and `pending_projection()` returned
+   `validity:'current'`, while actual `Chrome.revalidate()` refused
+   `stale_approval: The site adapter is no longer qualified; prepare again
+   under the generic rules.` The builder subsequently added that adapter
+   check to the common pending path. That latest edit was source-reviewed,
+   not yet rerun by this reviewer.
+
+2. **P2 — Legacy completed operations were retained as unknown.**
+   The first projection implementation indexed an old reserved/submitting
+   compact operation as unknown, but did not remove it when a later legacy
+   compact record said `done` or `failed`. **Run:** create a real completed
+   fixture operation, copy its journal to a separate temporary directory,
+   remove the new Chrome metadata, and recompute its valid chain and commit
+   markers to model the preceding format. `Projection.rows('op:')` returned
+   the completed operation as unknown, despite its final compact state being
+   done. The builder subsequently added removal on those legacy terminal
+   states and a legacy-path key-count check. Source reviewed; no repeat of
+   this probe was run against that later edit. The separate migration
+   warning for missing old notice/check metadata can remain conservative.
+
+3. **P2 — Acknowledgement can leave a phantom paged warning count.**
+   The fallback removes cached Chrome notice rows, but initially retained
+   cached `notices_more` when the newly computed Chrome page had no cursor.
+   **Run:** cache four Chrome activation notices, then acknowledge one
+   through the actual action and inject `SQLITE_FULL` immediately after the
+   acknowledgement commit. The projection correctly returns three notices
+   and a catalogue with `total:3, cursor:None`; passive pending still has
+   `notices_more:{count:1,...}`, implying a fourth warning that no longer
+   exists. Remove/recompute the old pagination metadata with the rows.
+
+   The same probe exposed a healthy routing problem: with only Chrome
+   warnings, cached `notices_more.action` was `mail_filing_notices`, whose
+   implementation filters to Mail. It cannot fetch the omitted Chrome
+   occurrence. Global/mixed-app envelopes need explicit usable catalogue
+   routes; a healthy first page must not hide an inaccessible later page.
+
+4. **P2 — The key bound cannot recover after archived history.**
+   The scanner initially enforces `MAX_KEYS` as it encounters each historical
+   record. If a record exceeds the bound, it raises before advancing its
+   offset; later tombstones are never reached. The error tells the owner to
+   archive finished history, but appending that archive cannot fix it, and
+   a fresh projection fails at the same historical peak.
+
+   **Run:** write a valid committed synthetic journal in a temporary
+   directory and patch only the test's `MAX_KEYS` to 2: first record adds
+   `chrome:a,b`; second adds `chrome:c`; third deletes `a,b`. The final
+   current set has one key. Both fresh and repeated sync nevertheless
+   return `owner_state_unavailable`, stopped at sequence 1 with three
+   indexed keys. This establishes a history-peak refusal rather than the
+   claimed current-key bound. A bounded latest-key/window scan, like the
+   existing journal fallback pattern, can process subsequent tombstones
+   without retaining the entire historical peak. Merely moving the check
+   to the end while accumulating all keys would weaken the memory bound.
+
+No full suite, full fault sweep or browser was run for this follow-up. The
+focused probes use synthetic fixture data, fake SQLite read failures with
+the actual `SQLITE_FULL` code, and isolated temporary journal copies; they
+do not modify implementation or the live fixture journal.

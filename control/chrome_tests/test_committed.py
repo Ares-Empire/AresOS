@@ -89,3 +89,39 @@ class Reads(unittest.TestCase):
         record['hash']=digest(record)
         with open(self.root/'evidence'/'operations.jsonl','ab') as stream:stream.write((canonical(record)+'\n').encode())
         self.assertNotIn('invented',{item['operation_id'] for item in self.chrome.notice_page()['items']})
+
+    def test_ack_at_page_boundary_removes_stale_more_even_when_sqlite_is_full(self):
+        for number in range(4):
+            step=self.step();step['id']='h'+str(number);self.chrome.steps([step],1)
+        pending=self.engine.pending('chrome');self.assertEqual(pending['notices_more']['count'],1)
+        self.call('notice_ack',{'operation_id':pending['notices'][0]['operation_id']})
+        with self.failed_reads():
+            current=self.engine.pending('chrome',resolve_checks=False)
+            self.assertEqual(len(current['notices']),3)
+            self.assertNotIn('notices_more',current)
+
+    def test_shared_notice_route_retrieves_all_chrome_notices(self):
+        for number in range(4):
+            step=self.step();step['id']='h'+str(number);self.chrome.steps([step],1)
+        pending=self.engine.pending();self.assertEqual(pending['notices_more']['action'],'control_notices')
+        first=self.engine.dispatch('control_notices',{'limit':3})
+        second=self.engine.dispatch('control_notices',{'limit':3,'cursor':first['cursor']})
+        self.assertEqual(first['total'],4)
+        self.assertEqual(len({item['operation_id'] for item in first['items']+second['items']}),4)
+
+    def test_historical_index_peak_recovers_after_later_archive_tombstones(self):
+        from unittest.mock import patch
+        from aresos_control.chrome.committed import Projection
+        from aresos_control.common import Refused
+        store=self.engine.store
+        for key in ['a','b','c']:store.write({'chrome:test:'+key:{'value':key}},'chrome_test','Index-bound fixture')
+        projection=Projection(store)
+        # Qualification is one current key; three fixture keys exceed this cap.
+        with patch('aresos_control.chrome.committed.MAX_KEYS',3):
+            with self.assertRaises(Refused):projection.sync()
+            store.write({'chrome:test:a':None,'chrome:test:b':None},'chrome_test','Archive old fixture keys')
+            projection.sync()
+            self.assertEqual(projection.get('chrome:test:c'),{'value':'c'})
+            self.assertIsNone(projection.get('chrome:test:a'))
+            fresh=Projection(store);fresh.sync()
+            self.assertEqual(set(fresh.entries),set(projection.entries))

@@ -128,8 +128,11 @@ class Chrome:
                 if not all(mode['core'].values()):raise Refused('qualification_failed','Chrome core qualification currently refuses this operation.')
                 self.check_readonly(payload,self.committed.get)
             else:
-                self.mode(acting=True)
+                mode=self.mode(acting=True)
                 self.check_readonly(payload)
+            site_adapter=payload.get('adapter')
+            if site_adapter and not mode['adapters'].get(site_adapter['site']):
+                raise Refused('stale_approval','The site adapter is no longer qualified; prepare again under the generic rules.')
             live = self.bridge.call('validity', reference=payload['reference'])
             if live.get('document') != state.get('document') or live.get('control') != state.get('control') or live.get('element_present') is not True:
                 raise Refused('stale_approval', 'Tab control or document changed; drop and prepare again.')
@@ -242,7 +245,7 @@ class Chrome:
             raise Refused('stale_reference', 'Page changed; read again without the cursor.')
         return {'tab':facts['tab'],'document':[(frame['frame'],frame['document']) for frame in facts['frames']],
                 'untrusted_content':{'url':visible(facts['url']),'title':visible(facts['title']),'tree':tree[offset:end]},
-                'view':token,'characters':len(tree),'offset':offset,'cursor':cursor,'version_notice':mode['notice'],**({'condition_met':condition_met} if verb=='wait' else {})}
+                'dialog':visible(facts.get('dialog')),'view':token,'characters':len(tree),'offset':offset,'cursor':cursor,'version_notice':mode['notice'],**({'condition_met':condition_met} if verb=='wait' else {})}
 
     def prepare(self, verb, payload):
         state = payload['binding']
