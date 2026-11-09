@@ -512,6 +512,14 @@ itself has already happened (the text is typed, the box ticked); only the stoppe
 honest pages (*checked* for submissions, 17c); a page that sends in another way, or later than the limit, isn't
 stopped (below).
 
+**His own input in a Claude tab** (owner, 2026-11-09, board #138: "Yes, ask in that rare case"). A submission in the
+same browser task as his own input (a trusted input that arrived while the extension had no input of its own in
+flight) is his and isn't held. Within the short limit after Claude's input, the tool can't tell whose input started a
+delayed page step, so a submission his input starts after a delay inside that window is held and asks, like one of
+Claude's. When it's unclear whose input it was, the submission is held. The extension marks its own input as in
+flight before dispatching it and clears the mark only after the page has handled it; the mark and the verdict never
+pass through anything the page can see or write.
+
 **What can't be stopped is never reported as stopped.** An activation of an asking control that reaches the page
 without passing the wrappers (for example a click event dispatched with a function taken from a fresh frame before
 the extension's script ran there) is caught only by the capture listener, after delivery has begun. If the event can
@@ -707,7 +715,9 @@ own Chromium from the terminal and an empty profile, without his sign-ins.
 - **Read-only text a page sends** with a message (a preview beside the editor) isn't bound without an adapter, so it
   can change while the approval waits; the adapters for his usual sites bind it.
 - **`done` doesn't prove what the site did:** the tool sees the input and the page, not the network.
-- **His own clicks are his.** Nothing he does in his tabs is held or checked.
+- **His own clicks are his.** Nothing he does in tabs outside Claude's group is held or checked. In a Claude tab his
+  direct presses aren't held either; only a submission his input starts after a delay, within the short limit after
+  Claude's own input, is held and asked like Claude's, because the tool can't tell whose input started it (board #138).
 - **Under decision 24,** a tricked Claude, or another program of his user, could disturb the host or start Chrome in
   another way, as with any program of his (section 7).
 
