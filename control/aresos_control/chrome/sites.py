@@ -85,7 +85,9 @@ def recognize(url, reading, target, verb, args, hosts=None, enabled=None):
     key = args.get('key', '') if verb == 'press' else ''
     activation = verb == 'click' or verb == 'press' and key in {'Enter', 'Space', ' '}
     editing = target.get('editable', False)
-    scoped = bool(reading.get('scope')) and reading.get('scope_role') in {'dialog', 'form', 'region', 'main'}
+    # The reader's scope selector includes <main>, whose implicit role is currently
+    # reported as generic. A nonempty scope still proves it selected a known container.
+    scoped = bool(reading.get('scope')) and reading.get('scope_role') in {'dialog', 'form', 'region', 'main', 'generic'}
     account = isinstance(reading.get('account'), str) and bool(reading['account'].strip())
     text = isinstance(reading.get('text'), str) and isinstance(reading.get('attachments'), list)
     common = {'site': site, 'version': VERSIONS[site], 'account': reading.get('account')}

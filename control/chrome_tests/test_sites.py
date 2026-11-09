@@ -77,6 +77,16 @@ class SiteSemantics(unittest.TestCase):
         data = reading('gmail'); data['bcc'], data['cc'] = data['cc'], data['bcc']
         self.assertNotEqual(first, semantic('gmail', data=data)['parameters'])
 
+    def test_implicit_main_role_from_actual_reader_is_a_recognized_scope(self):
+        for site, label, effect in [('whatsapp', 'Send', 'send'), ('github', 'Merge pull request', 'send'),
+                                    ('gemini', 'Send', 'send'), ('deezer', 'Unlike', 'delete')]:
+            data = reading(site); data['scope_role'] = 'generic'
+            self.assertEqual(semantic(site, label, data=data)['effect'], effect)
+            data['scope'] = None
+            self.assertIsNone(semantic(site, label, data=data))
+        data = reading('gmail'); data['scope_role'] = 'generic'
+        self.assertEqual(semantic('gmail', 'Selected message', key='#', data=data)['effect'], 'delete')
+
     def test_whatsapp_message_shortcuts_and_no_trusted_kind(self):
         for label, key, editable in [('Send', '', False), ('Type a message', 'Enter', True)]:
             result = semantic('whatsapp', label, key=key, editable=editable)
