@@ -18,6 +18,7 @@ class Driver:
         self.scenario = scenario
         self.oracle = getattr(scenario, 'owner_oracle', None) or Oracle()
         self.record = self.snapshot()
+        self.context_start_sequence = max(self.record.committed, default=0)
         self.startup_sequence = max((fence['seq'] for fence in self.record.fences), default=0)
         self.record.locked |= any(seq <= self.startup_sequence for seq in self.record.unprepared_fences)
         self.errors = []
@@ -205,6 +206,14 @@ class Driver:
                 return connection.inner.close()
         extra.enter_context(patch.object(adapter.http.client, 'HTTPSConnection', LoggedHTTPS))
         receiver = f.engine.receiver
+        configure = receiver.configure
+        def configured(arguments):
+            event = oracle.server('CONFIGURE', 'fixture', arguments=arguments,
+                accepted=False, reply='lost', **self.precommit())
+            result = configure(arguments)
+            event.update(accepted=True, reply='delivered')
+            return result
+        extra.enter_context(patch.object(receiver, 'configure', side_effect=configured))
         accept = receiver.accept
         receiving = [None]
         checkpoint = receiver.checkpoint
@@ -250,10 +259,16 @@ class Driver:
         f = self.scenario.fixture
         def read(action, args):
             boundary = len(self.oracle.servers)
+            before = self.snapshot()
+            known_events = {event['seq'] for event in [*before.events, *before.prepared]}
             with self.observe_view(action, args):
                 reply = f.engine.request({'v': 1, 'method': 'call', 'action': action, 'arguments': args})
             self.reply(reply)
             assert not any(event['command'] in MUTATIONS for event in self.oracle.servers[boundary:]), ('Read attempted a mutation', action)
+            after = self.snapshot()
+            assert not any(event['seq'] not in known_events and event['action'] in {'testapp_delete', 'mail_account_settings', 'mail_account_folders'}
+                and any(key == 'testapp' or key.startswith('mail:account:') for key in event['set'])
+                for event in [*after.events, *after.prepared]), ('Read committed a local mutation', action)
             return reply
         checker = check or self.oracle.compare
         record = self.snapshot()
@@ -275,7 +290,7 @@ class Driver:
             actual_generation = {Fact('generation', 'unavailable', detail=type(error).__name__)}
         checker('restore-generation', {Fact('generation', 'matches')}, actual_generation)
         checker('recovery-holds', self.oracle.holds(record), {Fact(key, 'held') for key in f.engine.store.ledger.holds if key != 'replay'})
-        checker('R2.context-before-command', set(), self.oracle.context_errors())
+        checker('R2.context-before-command', set(), self.oracle.context_errors() | self.oracle.local_context_errors(record, self.context_start_sequence))
         checker('completion', set(), self.oracle.completion_errors(self.snapshot()))
         compare_views(read, self.oracle, self.snapshot, checker, ordinary='testapp_list' if getattr(self.scenario, 'flow', '').startswith('testapp_') else 'mail_accounts')
         checker('clean-result-proof', set(), self.oracle.invalid_clean_results)

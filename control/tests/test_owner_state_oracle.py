@@ -16,8 +16,8 @@ from owner_state_oracle.compare import pages
 class OwnerOracle(unittest.TestCase):
     def test_expectation_imports_are_standard_library_only(self):
         root = Path(__file__).resolve().parents[1] / 'owner_state_oracle'
-        allowed = {'contextlib', 'email', 'context', 'copy', 'dataclasses', 'hashlib', 'json', 'pathlib', 'sqlite3', 'shutil', 'tempfile', 'time', 're', 'model', 'records'}
-        for name in ('__init__.py', 'records.py', 'model.py', 'compare.py', 'context.py', 'gaps.py'):
+        allowed = {'contextlib', 'email', 'context', 'copy', 'dataclasses', 'hashlib', 'json', 'pathlib', 'sqlite3', 'shutil', 'tempfile', 'time', 're', 'model', 'records', 'local'}
+        for name in ('__init__.py', 'records.py', 'model.py', 'compare.py', 'context.py', 'gaps.py', 'local.py'):
             tree = ast.parse((root / name).read_text())
             for node in ast.walk(tree):
                 if isinstance(node, ast.Import):
@@ -154,7 +154,7 @@ class OwnerOracle(unittest.TestCase):
             decode(state, evidence)
 
     def test_real_expectation_path_rejects_every_mutation_without_precommand_context(self):
-        for command in ('DATA', 'APPEND', 'MOVE', 'COPY', 'STORE', 'EXPUNGE', 'CREATE', 'DELETE', 'RENAME', 'POST', 'RECEIVE'):
+        for command in ('DATA', 'APPEND', 'MOVE', 'COPY', 'STORE', 'EXPUNGE', 'CREATE', 'DELETE', 'RENAME', 'POST', 'RECEIVE', 'CONFIGURE'):
             oracle = Oracle()
             oracle.call('synthetic mutation', {}, 1)
             oracle.server(command, 'box', accepted=True, reply='lost')
@@ -509,6 +509,139 @@ class OwnerOracle(unittest.TestCase):
         self.assertIn('child=1', output.getvalue())
         self.assertIn('worker=0/2 exit=0', output.getvalue())
         self.assertIn('worker=1/2 exit=1', output.getvalue())
+
+    def local_delete_record(self):
+        items = {key: {'id': key, 'revision': 1, 'sender': 'fixture', 'subject': key, 'date': 'synthetic', 'flagged': False}
+                 for key in ('a', 'b')}
+        target = {'reference': {'scope': 'testapp/fixture/items', 'epoch': 'epoch', 'id': 'a', 'revision': 1},
+                  **{key: items['a'][key] for key in ('sender', 'subject', 'date')}}
+        arguments = {'operation_id': 'g:d', 'description': {'account': 'fixture', 'items': [target]}}
+        operation = {'id': 'g:d', 'action': 'testapp_delete', 'app': 'testapp', 'state': 'submitting',
+                     'approval': copy.deepcopy(arguments), 'payload': {'items': [target]}}
+        oracle = Oracle()
+        oracle.call('testapp_delete', arguments, 1)
+        events = [
+            {'seq': 1, 'time': 1, 'action': 'fixture', 'set': {'op:g:d': operation, 'testapp': {'epoch': 'epoch', 'items': items}}},
+            {'seq': 2, 'time': 1, 'action': 'testapp_delete', 'operation_id': 'g:d', 'set': {'testapp': {'epoch': 'epoch', 'items': {'b': items['b']}}}},
+            {'seq': 3, 'time': 1, 'action': 'testapp_delete', 'set': {'op:g:d': {**operation, 'state': 'done'}}}]
+        return oracle, Record(events=[copy.deepcopy(event) for event in events])
+
+    def test_local_delete_requires_prior_context_even_before_terminal_outcome(self):
+        oracle, record = self.local_delete_record()
+        self.assertEqual(oracle.local_context_errors(record), set())
+        del record.events[0]['set']['op:g:d']
+        self.assertTrue(oracle.local_context_errors(record))
+        record.events.pop()
+        self.assertTrue(oracle.local_context_errors(record), 'Submitting/partial effects require context too')
+
+    def test_local_delete_rejects_extra_target_wrong_reference_and_changed_survivor(self):
+        for mutation in ('extra', 'reference', 'survivor', 'no-effect'):
+            oracle, record = self.local_delete_record()
+            if mutation == 'extra':
+                record.events[1]['set']['testapp']['items'] = {}
+            elif mutation == 'reference':
+                record.events[0]['set']['op:g:d']['payload']['items'][0]['reference']['revision'] = 2
+            elif mutation == 'survivor':
+                record.events[1]['set']['testapp']['items']['b']['flagged'] = True
+            else:
+                record.events.pop(1)
+            with self.subTest(mutation=mutation):
+                self.assertTrue(oracle.local_context_errors(record))
+
+    def test_local_delete_allows_batches_and_prepared_effects_with_prior_context(self):
+        oracle, record = self.local_delete_record()
+        effect, terminal = record.events[1:]
+        record.events, record.prepared = record.events[:1], [effect]
+        self.assertEqual(oracle.local_context_errors(record), set())
+        record.events, record.prepared = [], [*record.events, effect]
+        self.assertTrue(oracle.local_context_errors(record))
+        oracle, record = self.local_delete_record()
+        item = record.events[0]['set']['testapp']['items']['b']
+        target = {'reference': {'scope': 'testapp/fixture/items', 'epoch': 'epoch', 'id': 'b', 'revision': 1},
+                  **{key: item[key] for key in ('sender', 'subject', 'date')}}
+        oracle.script[0]['arguments']['description']['items'].append(target)
+        operation = record.events[0]['set']['op:g:d']
+        operation['payload']['items'] = copy.deepcopy(oracle.script[0]['arguments']['description']['items'])
+        operation['approval'] = copy.deepcopy(oracle.script[0]['arguments'])
+        record.events[2]['seq'] = 4
+        record.events.insert(2, {'seq': 3, 'time': 1, 'action': 'testapp_delete', 'operation_id': 'g:d',
+                                'set': {'testapp': {'epoch': 'epoch', 'items': {}}}})
+        self.assertEqual(oracle.local_context_errors(record), set())
+        record.events.pop(2)
+        self.assertTrue(oracle.local_context_errors(record), 'Done requires the complete approved removal set')
+
+    def local_account_record(self, action):
+        before = {'id': 'box', 'format': 'plain', 'signature': '', 'special': {'sent': 'Sent'},
+                  'roots': {}, 'optional': {}, 'delimiter': '/'}
+        after = {**before, 'signature': 'new'} if action == 'mail_account_settings' else copy.deepcopy(before)
+        arguments = {'id': 'box', 'signature': 'new'} if action == 'mail_account_settings' else {
+            'id': 'box', 'roles_hash': fingerprint({key: after[key] for key in ('special', 'roots', 'optional', 'delimiter')})}
+        context = {'account': 'box', 'arguments': arguments, 'roles': {'sent': ['Sent']}}
+        oracle = Oracle()
+        oracle.call(action, arguments, 1)
+        events = [{'seq': 1, 'time': 1, 'action': 'fixture', 'set': {'mail:account:box': before,
+            'intent:local': {'action': action, 'state': 'started', 'context': context}}},
+            {'seq': 2, 'time': 1, 'action': action, 'set': {'mail:account:box': after}}]
+        return oracle, Record(events=[copy.deepcopy(event) for event in events])
+
+    def test_local_settings_and_role_review_require_exact_current_arguments(self):
+        for action in ('mail_account_settings', 'mail_account_folders'):
+            for mutation in ('arguments', 'effect', 'late', 'historical'):
+                oracle, record = self.local_account_record(action)
+                self.assertEqual(oracle.local_context_errors(record), set())
+                if mutation == 'arguments':
+                    record.events[0]['set']['intent:local']['context']['arguments'] = {'id': 'wrong'}
+                elif mutation == 'effect':
+                    record.events[1]['set']['mail:account:box']['signature'] = 'unexpected'
+                elif mutation == 'late':
+                    del record.events[0]['set']['intent:local']
+                else:
+                    record.events[0]['time'] = 0
+                with self.subTest(action=action, mutation=mutation):
+                    self.assertTrue(oracle.local_context_errors(record))
+
+    def test_fixture_configuration_requires_exact_pre_effect_arguments(self):
+        oracle = Oracle()
+        arguments = {'refuse': [], 'failure': 'none'}
+        oracle.call('testapp_fixture_configure', arguments, 1)
+        context = {'command': 'CONFIGURE', 'account': 'fixture', 'source': 'fixture',
+                   'destination': 'receiver/config', 'arguments': arguments}
+        event = oracle.server('CONFIGURE', 'fixture', arguments=arguments,
+            committed_before={'intent:x': {'action': 'testapp_fixture_configure', 'state': 'started', 'context': context}},
+            created_before={'intent:x': 2}, call_start_seq=1)
+        self.assertEqual(oracle.context_errors(), set())
+        event['arguments'] = {'refuse': ['extra'], 'failure': 'none'}
+        self.assertTrue(oracle.context_errors())
+        event['arguments'], event['committed_before'] = arguments, {}
+        self.assertTrue(oracle.context_errors())
+
+    def test_role_review_keeps_historical_and_old_and_current_protected_roots(self):
+        from owner_state_oracle.local import protected_roots
+        before = {'special': {'trash': 'Trash', 'drafts': 'Drafts'},
+            'roots': {'trash': {'folder': 'Trash', 'delimiter': '/'}, 'drafts': {'folder': 'Drafts', 'delimiter': '/'}},
+            'protected_special': {'trash': [{'folder': 'OldTrash', 'delimiter': '.'}],
+                                  'drafts': [{'folder': 'OldDrafts', 'delimiter': '.'}]}}
+        after = copy.deepcopy(before)
+        after['special']['trash'] = 'NewTrash'
+        after['roots']['trash'] = {'folder': 'NewTrash', 'delimiter': '/'}
+        after['protected_special']['trash'] += [before['roots']['trash'], after['roots']['trash']]
+        after['protected_special']['drafts'].append(before['roots']['drafts'])
+        self.assertTrue(protected_roots(before, after, None))
+        for mutation in ('history', 'old', 'current', 'extra'):
+            changed = copy.deepcopy(after)
+            if mutation == 'extra':
+                changed['protected_special']['trash'].append({'folder': 'Unapproved', 'delimiter': '/'})
+            else:
+                changed['protected_special']['trash'].pop({'history': 0, 'old': 1, 'current': 2}[mutation])
+            with self.subTest(mutation=mutation):
+                self.assertFalse(protected_roots(before, changed, None))
+        oracle, record = self.local_account_record('mail_account_folders')
+        historical = {'trash': [{'folder': 'OldTrash', 'delimiter': '.'}]}
+        record.events[0]['set']['mail:account:box']['protected_special'] = historical
+        record.events[1]['set']['mail:account:box']['protected_special'] = copy.deepcopy(historical)
+        self.assertEqual(oracle.local_context_errors(record), set())
+        record.events[1]['set']['mail:account:box']['protected_special'] = {}
+        self.assertTrue(oracle.local_context_errors(record))
 
     def test_special_rename_role_cannot_supply_clean_proof(self):
         oracle = Oracle()

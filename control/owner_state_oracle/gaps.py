@@ -107,7 +107,8 @@ class Gaps:
                     elif r2:
                         mapping = {'R2.DATA': 'M04', 'R2.APPEND': 'M04/M05/M12', 'R2.MOVE': 'M02/C02', 'R2.COPY': 'M02/C02',
                                    'R2.RENAME': 'M03/C03', 'R2.CREATE': 'M05/M12', 'R2.DELETE': 'M04/M12',
-                                   'R2.STORE': 'M04/M05', 'R2.EXPUNGE': 'M04', 'R2.POST': 'M04', 'R2.RECEIVE': 'M04'}
+                                   'R2.STORE': 'M04/M05', 'R2.EXPUNGE': 'M04', 'R2.POST': 'M04', 'R2.RECEIVE': 'M04',
+                                   'R2.CONFIGURE': 'M05', 'R2.LOCAL_DELETE': 'M04', 'R2.LOCAL_CHANGE': 'M05/M12'}
                         row = ','.join(sorted({mapping[k] for k in kinds if k in mapping}))
                     elif view.startswith('restore'):
                         row = 'M09'

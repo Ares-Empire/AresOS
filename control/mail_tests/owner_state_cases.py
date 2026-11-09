@@ -395,10 +395,15 @@ def run(gaps):
     try:
         f, d = s.fixture, Driver(s)
         f.imap.roles['Trash'], f.imap.roles['Target'] = [], ['\\Trash']
-        review = f.engine.request({'v': 1, 'method': 'call', 'action': 'mail_account_folders', 'arguments': {'id': 'box'}}, True)
+        with d.observe_view('mail_account_folders', {'id': 'box'}):
+            review = f.engine.request({'v': 1, 'method': 'call', 'action': 'mail_account_folders', 'arguments': {'id': 'box'}}, True)
+        d.reply(review)
         assert review['ok'], review
-        recorded = f.engine.request({'v': 1, 'method': 'call', 'action': 'mail_account_folders',
-            'arguments': {'id': 'box', 'roles_hash': review['data']['roles_hash']}}, True)
+        arguments = {'id': 'box', 'roles_hash': review['data']['roles_hash']}
+        with d.observe_view('mail_account_folders', arguments):
+            recorded = f.engine.request({'v': 1, 'method': 'call', 'action': 'mail_account_folders',
+                'arguments': arguments}, True)
+        d.reply(recorded)
         assert recorded['ok'], recorded
         ref = {'account': 'box', 'folder': 'Source', 'uidvalidity': f.imap.validities['Source'], 'uid': 1, 'message_id': f.imap.mid}
         refused = f.call('move', {'references': [ref], 'target': 'Trash'})
@@ -414,8 +419,11 @@ def run(gaps):
     try:
         f, d = s.fixture, Driver(s)
         f.approval('send', f.compose())
-        configured = f.engine.request({'v': 1, 'method': 'call', 'action': 'testapp_fixture_configure',
-            'arguments': {'refuse': [], 'failure': 'lost_answer'}}, True)
+        arguments = {'refuse': [], 'failure': 'lost_answer'}
+        with d.observe_view('testapp_fixture_configure', arguments):
+            configured = f.engine.request({'v': 1, 'method': 'call', 'action': 'testapp_fixture_configure',
+                'arguments': arguments}, True)
+        d.reply(configured)
         assert configured['ok'], configured
         with d.observe():
             result = s.call()

@@ -3,7 +3,7 @@ from email.utils import getaddresses
 
 ROLES = ('sent', 'drafts', 'trash', 'junk', 'archive')
 UID_COMMANDS = {'MOVE', 'COPY', 'STORE', 'EXPUNGE'}
-MUTATIONS = UID_COMMANDS | {'DATA', 'APPEND', 'CREATE', 'DELETE', 'RENAME', 'POST', 'RECEIVE'}
+MUTATIONS = UID_COMMANDS | {'DATA', 'APPEND', 'CREATE', 'DELETE', 'RENAME', 'POST', 'RECEIVE', 'CONFIGURE'}
 
 
 def special_roles(value):
@@ -155,6 +155,8 @@ def required(event, script):
         description = call.get('arguments', {}).get('description', {})
         result.update(source='fixture', destination='receiver', identities=event['identities'],
                       recipients=description.get('to', []) + description.get('cc', []) + description.get('bcc', []))
+    elif command == 'CONFIGURE':
+        result.update(source='fixture', destination='receiver/config', arguments=event.get('arguments'))
     return result
 
 
@@ -180,7 +182,7 @@ def permitted(row, call):
         return {'DATA', 'APPEND', 'STORE'}
     return {'mail_move': {'MOVE'}, 'mail_copy': {'COPY'}, 'mail_folder_rename': {'RENAME'},
             'mail_folder_create': {'CREATE'}, 'mail_draft_save': {'APPEND'}, 'mail_flag': {'STORE'},
-            'testapp_send': {'RECEIVE'}}.get(action)
+            'testapp_send': {'RECEIVE'}, 'testapp_fixture_configure': {'CONFIGURE'}}.get(action)
 
 
 def differences(event, script):
@@ -191,6 +193,8 @@ def differences(event, script):
     actual = decode(row, key, event.get('committed_before', {}), event['command'])
     allowed = permitted(row, call_for(event, script))
     missing = ['approved command'] if allowed is not None and event['command'] not in allowed else []
+    if event['command'] == 'CONFIGURE' and event.get('arguments') != call_for(event, script).get('arguments'):
+        missing.append('command arguments')
     for field, value in wanted.items():
         found = actual.get(field)
         if field == 'identities':

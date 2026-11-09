@@ -7,6 +7,7 @@ import json
 import re
 from .records import canonical, fingerprint
 from .context import bind as bind_context, differences as context_differences, special_roles, special_delimiters, MUTATIONS
+from .local import errors as local_errors
 
 
 @dataclass(frozen=True, order=True)
@@ -420,6 +421,9 @@ class Oracle:
             if missing:
                 errors.add(Fact('command:' + str(index), 'R2.' + event['command'], detail=canonical(missing)))
         return errors
+
+    def local_context_errors(self, record, after_sequence=0):
+        return {Fact(source, kind, detail=detail) for source, kind, detail in local_errors(record, self.script, after_sequence, self.servers)}
 
     def require_context(self, command, committed_before):
         """R2 order assertion uses the exact command's context, never latest kv."""
