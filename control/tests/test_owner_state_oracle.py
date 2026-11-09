@@ -352,8 +352,8 @@ class OwnerOracle(unittest.TestCase):
             oracle.call('mail_unsubscribe', {'operation_id': 'g:p', 'description': {'reference': ref}}, 1)
             oracle.server('POST', 'box', roles=roles, url=context['destination'], body=context['body'],
                 call_start_seq=10, created_before={'op:g:p': 2, 'op:g:other': 1}, committed_before={
-                    'op:g:p': {'id': 'g:p', 'state': 'submitting', 'context': value},
-                    'op:g:other': {'id': 'g:other', 'state': 'submitting', 'context': context}})
+                    'op:g:p': {'id': 'g:p', 'state': 'submitting', 'action': 'mail_unsubscribe', 'payload': {'method': 'POST'}, 'context': value},
+                    'op:g:other': {'id': 'g:other', 'state': 'submitting', 'action': 'mail_unsubscribe', 'payload': {'method': 'POST'}, 'context': context}})
             return oracle.context_errors()
         self.assertFalse(errors(context))
         for field in context:
@@ -380,3 +380,63 @@ class OwnerOracle(unittest.TestCase):
         oracle.server('LIST', 'box', roles=after)
         warned = oracle.expected(record)
         self.assertEqual({f.source for f in warned}, {'mail:rename:new'})
+
+    def test_trash_delete_context_does_not_authorize_expunge_before_crash(self):
+        oracle = Oracle()
+        ref = {'account': 'box', 'folder': 'Source', 'uidvalidity': 1, 'uid': 7, 'message_id': 'm'}
+        roles = {'special': {'sent': 'Sent', 'drafts': 'Drafts', 'trash': 'Trash'}}
+        row = {'id': 'g:d', 'app': 'mail', 'action': 'mail_delete', 'state': 'submitting',
+               'payload': {'mode': 'trash', 'items': [{'reference': ref}]}, 'roles_before': roles}
+        oracle.call('mail_delete', {'operation_id': 'g:d', 'description': {'mode': 'trash'}}, 1)
+        oracle.server('EXPUNGE', 'box', 'Source', [ref], {'Sent': ['\\Sent'], 'Drafts': ['\\Drafts'], 'Trash': ['\\Trash']},
+            arguments=['7'], committed_before={'op:g:d': row}, created_before={'op:g:d': 1}, call_start_seq=10)
+        self.assertFalse(oracle.completion_errors(Record(rows={'op:g:d': row})))
+        self.assertTrue(oracle.context_errors(), 'A matching UID cannot turn trash approval into permanent deletion')
+
+    def test_decoder_follows_hash_valid_archived_manifests_recursively(self):
+        import hashlib
+        state, evidence = self.disk()
+        with closing(sqlite3.connect(state / 'control.sqlite')) as db:
+            first = json.loads(db.execute('SELECT value FROM events').fetchone()[0])
+            directory = evidence / 'archives'
+            directory.mkdir()
+            raw_a = (canonical({'event': first}) + '\n').encode()
+            path_a = directory / 'a.jsonl'
+            path_a.write_bytes(raw_a)
+            second_record = {'format': 2, 'seq': 2, 'previous': first['record']['hash'], 'time': 124, 'generation': 'g', 'operations': []}
+            second_record['hash'] = fingerprint(second_record)
+            second = {'seq': 2, 'time': 124, 'action': 'control_archive', 'outcome': 'done',
+                'set': {'archive:a': {'path': str(path_a), 'sha256': hashlib.sha256(raw_a).hexdigest()}}, 'record': second_record}
+            raw_b = (canonical({'event': second}) + '\n').encode()
+            path_b = directory / 'b.jsonl'
+            path_b.write_bytes(raw_b)
+            third_record = {'format': 2, 'seq': 3, 'previous': second_record['hash'], 'time': 125, 'generation': 'g', 'operations': []}
+            third_record['hash'] = fingerprint(third_record)
+            third = {'seq': 3, 'time': 125, 'action': 'control_archive', 'outcome': 'done',
+                'set': {'archive:b': {'path': str(path_b), 'sha256': hashlib.sha256(raw_b).hexdigest()}}, 'record': third_record}
+            db.execute('DELETE FROM events')
+            db.execute('INSERT INTO events VALUES (?,?)', (3, canonical(third)))
+            db.execute('UPDATE head SET seq=3,hash=?', (third_record['hash'],))
+            db.commit()
+        with (evidence / 'operations.jsonl').open('a') as stream:
+            for value in (second_record, third_record):
+                stream.write(canonical(value) + '\n' + canonical({'commit': value['seq'], 'hash': value['hash']}) + '\n')
+        decoded = decode(state, evidence)
+        self.assertEqual(decoded.generation, 'g')
+        self.assertEqual([e['seq'] for e in decoded.events], [1, 2, 3])
+        self.assertEqual(decoded.working_sequences, {3})
+        path_a.write_bytes(raw_a + b'changed')
+        with self.assertRaisesRegex(ValueError, 'Archive publication hash'):
+            decode(state, evidence)
+
+    def test_unprepared_fence_is_distinct_from_a_replayable_prepared_event(self):
+        state, evidence = self.disk(marker=False)
+        prepared = decode(state, evidence)
+        self.assertEqual(prepared.unprepared_fences, set())
+        with closing(sqlite3.connect(state / 'control.sqlite')) as db:
+            db.execute('DELETE FROM events')
+            db.execute("UPDATE head SET seq=0,hash=''")
+            db.commit()
+        unprepared = decode(state, evidence)
+        self.assertEqual(unprepared.unprepared_fences, {1})
+        self.assertEqual(unprepared.rows, {})

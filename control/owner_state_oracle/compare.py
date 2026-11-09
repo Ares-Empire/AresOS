@@ -32,7 +32,14 @@ def notice_facts(notice, record, oracle):
         evidence = canonical({'count': content.get('message_count')})
     elif kind in {'rename', 'filing'}:
         reason = content.get('reason', '')
-        evidence = canonical({'role': 'Trash' if re.search(r'(?:inside |is now )(?:\\)?Trash', reason) else 'Drafts' if re.search(r'(?:inside |is now )(?:\\)?Drafts', reason) else 'unverified' if 'unverified role' in reason else 'ordinary'})
+        role_name = r'(?:Sent|Drafts|Trash|Junk|Archive|All|Flagged|Important)'
+        context = oracle.warning_contexts.get(source, {})
+        target = context.get('target', '')
+        shown = target[:64] + ('…' if len(target) > 64 else '')
+        prefix = r'inside ' if kind == 'rename' else r'(?:which is now |The target ' + re.escape(shown) + r' is now )'
+        matches = re.findall(prefix + r'((?:\\?' + role_name + r')(?:, ?\\?' + role_name + r')*)', reason)
+        names = sorted(set(re.findall(role_name, ' '.join(matches))))
+        evidence = canonical({'role': ', '.join(names) if names else 'unverified' if 'unverified role' in reason else 'ordinary'})
     result = {Fact(source, kind, occurrence, evidence)}
     expected_meta = next((json.loads(f.detail) for f in oracle.expected_context_facts if f.occurrence == occurrence), None) if hasattr(oracle, 'expected_context_facts') else None
     if expected_meta is None:

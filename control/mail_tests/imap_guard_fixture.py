@@ -105,7 +105,7 @@ class GuardedIMAPFixture:
                                 if command.upper() in {b'SELECT', b'EXAMINE'}:
                                     selected = arguments.strip(b'"').decode()
                                 event = fixture.trace.command(command.decode().upper(), None, selected,
-                                    dict(fixture.role_map or fixture.special_roles), principal=account,
+                                    dict(fixture.role_map or fixture.special_roles), principal=account, delimiters=dict(fixture.separators),
                                     arguments=arguments.decode(errors='replace') if command.upper() != b'LOGIN' else '[credentials omitted]')
                                 if fixture.disconnect_before_command(command.upper(), arguments):
                                     self.wfile.write(b'* BYE Scripted connection loss during reporting\r\n')

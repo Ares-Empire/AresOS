@@ -17,6 +17,10 @@ def special_roles(value):
             for role in ROLES if any(isinstance(flags, list) and '\\' + role in [flag.lower() for flag in flags] for flags in value.values())}
 
 
+def special_delimiters(roles, delimiters):
+    return {role: [delimiters.get(name, '/') for name in names] for role, names in (special_roles(roles) or {}).items()}
+
+
 def identity(value):
     return {key: value[key] for key in ('account', 'folder', 'uidvalidity', 'uid', 'message_id', 'operation_id') if key in value}
 
@@ -77,20 +81,27 @@ def decode(row, key, rows, command):
     mail = payload.get('composition', {}).get('mail', {})
     account = row.get('account') or payload.get('account') or mail.get('account')
     refs = row.get('sources') or [item['reference'] for item in payload.get('items', [])]
+    if not refs and mail.get('answered_reference'):
+        refs = [mail['answered_reference']]
     roles = row.get('roles_before') or original.get('roles_before')
     account = account or (refs[0].get('account') if refs else None)
     result = {'account': account, 'roles': special_roles(roles), 'identities': [identity(ref) for ref in refs]}
+    if isinstance(roles, dict) and roles.get('roots'):
+        result['delimiters'] = {role: [root['delimiter']] for role, root in roles['roots'].items() if role in ROLES}
     if key.startswith('mail:filing:'):
         result.update(command=row.get('verb', '').upper(), source=refs[0]['folder'] if refs else None,
                       destination=row.get('target'))
     elif key.startswith('mail:rename:'):
         result.update(command='RENAME', source=row.get('source'), destination=row.get('target'))
     elif command in UID_COMMANDS:
-        result.update(command=command, source=refs[0]['folder'] if refs else None)
+        declared = 'MOVE' if payload.get('mode') == 'trash' else command if payload.get('mode') == 'permanent' and command in {'STORE', 'EXPUNGE'} else 'STORE' if mail.get('answered_reference') else None
+        result.update(command=declared, source=refs[0]['folder'] if refs else None)
         if command == 'MOVE' and payload.get('mode') == 'trash':
             result['destination'] = (result['roles'] or {}).get('trash', [None])[0]
         if command == 'STORE' and payload.get('mode') == 'permanent':
             result['flags'] = ['+FLAGS.SILENT', '(\\Deleted)']
+        elif command == 'STORE' and mail.get('answered_reference'):
+            result['flags'] = ['+FLAGS.SILENT', '(\\Answered)']
     elif command in {'CREATE', 'DELETE'}:
         result.update(command=command, source=payload.get('folder') if command == 'DELETE' else None,
                       destination=payload.get('folder'))
@@ -115,6 +126,8 @@ def required(event, script):
     result = {'command': command, 'account': event.get('account')}
     if result['account'] != 'fixture':
         result['roles'] = special_roles(event.get('roles'))
+        if event.get('delimiters') is not None:
+            result['delimiters'] = special_delimiters(event.get('roles') or {}, event['delimiters'])
     if command in UID_COMMANDS:
         uid = int(args[0])
         result.update(source=event.get('folder'), identities=[identity(ref) for ref in event['identities'] if ref.get('uid') == uid])
@@ -145,13 +158,39 @@ def required(event, script):
     return result
 
 
+def permitted(row, call):
+    action = call.get('action')
+    arguments = call.get('arguments', {})
+    description = arguments.get('description', {})
+    if action == 'mail_delete':
+        mode = description.get('mode', arguments.get('mode'))
+    else:
+        mode = row.get('payload', {}).get('mode')
+        action = row.get('action', action)
+    if action == 'mail_delete':
+        return {'MOVE'} if mode == 'trash' else {'STORE', 'EXPUNGE'} if mode == 'permanent' else set()
+    if action in {'mail_folder_delete', 'mail_onboarding_folder_probe'}:
+        return {'DELETE'}
+    if action == 'mail_operation_repair':
+        stage = row.get('payload', {}).get('stage')
+        return {'APPEND'} if stage == 'sent_copy' else {'STORE'} if stage == 'answered_flag' else set()
+    if action == 'mail_unsubscribe' and row.get('payload', {}).get('method') == 'POST':
+        return {'POST'}
+    if action in {'mail_send', 'mail_unsubscribe'}:
+        return {'DATA', 'APPEND', 'STORE'}
+    return {'mail_move': {'MOVE'}, 'mail_copy': {'COPY'}, 'mail_folder_rename': {'RENAME'},
+            'mail_folder_create': {'CREATE'}, 'mail_draft_save': {'APPEND'}, 'mail_flag': {'STORE'},
+            'testapp_send': {'RECEIVE'}}.get(action)
+
+
 def differences(event, script):
     key, row = bind(event, script)
     if row is None:
         return key, ['current intent identity']
     wanted = required(event, script)
     actual = decode(row, key, event.get('committed_before', {}), event['command'])
-    missing = []
+    allowed = permitted(row, call_for(event, script))
+    missing = ['approved command'] if allowed is not None and event['command'] not in allowed else []
     for field, value in wanted.items():
         found = actual.get(field)
         if field == 'identities':

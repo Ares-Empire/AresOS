@@ -4,8 +4,9 @@ from email.utils import getaddresses
 import copy
 import hashlib
 import json
+import re
 from .records import canonical, fingerprint
-from .context import bind as bind_context, differences as context_differences, special_roles, MUTATIONS
+from .context import bind as bind_context, differences as context_differences, special_roles, special_delimiters, MUTATIONS
 
 
 @dataclass(frozen=True, order=True)
@@ -48,7 +49,7 @@ class Oracle:
                accepted=True, reply='delivered', **extra):
         event = {'call': getattr(self, 'active_call', None) or self.call_id, 'command': command, 'account': account, 'folder': folder,
                  'identities': copy.deepcopy(list(identities)), 'roles': copy.deepcopy(roles),
-                 'accepted': accepted, 'reply': reply, **copy.deepcopy(extra)}
+                 'accepted': accepted, 'reply': reply, 'delimiters': copy.deepcopy(getattr(self, 'delimiters', None)), **copy.deepcopy(extra)}
         self.servers.append(event)
         return event
 
@@ -74,7 +75,8 @@ class Oracle:
                        n['id'] not in self.occurrences.values()]
             self.occurrences[key] = matches[-1]['id'] if matches else 'uncommitted:' + hashlib.sha256(canonical(key).encode()).hexdigest()[:24]
         role = evidence.get('role', '') if isinstance(evidence, dict) else ''
-        detail = {'count': len(evidence)} if kind == 'sent_copies' else {'role': 'Trash' if 'Trash' in role else 'Drafts' if 'Drafts' in role else 'ordinary'}
+        names = sorted(set(re.findall(r'(?<![A-Za-z])(Sent|Drafts|Trash|Junk|Archive|All|Flagged|Important)(?![A-Za-z])', role)))
+        detail = {'count': len(evidence)} if kind == 'sent_copies' else {'role': ', '.join(names) if names else 'unverified' if 'unverified' in role else 'ordinary'}
         if isinstance(evidence, dict) and (evidence.get('unresolved_roles') or any(not row.get('scan_complete', True) for row in evidence.get('locations', []))):
             self.open_occurrences[source] = self.occurrences[key]
             self.open_checks.add(source)
@@ -178,7 +180,7 @@ class Oracle:
                 if target not in roles:
                     continue
                 observed = [flag.lstrip('\\').title() for folder, flags in roles.items()
-                            if target == folder or target.startswith(folder + '/') for flag in flags
+                            if target == folder or (event.get('delimiters') or {}).get(folder, '/') and target.startswith(folder + (event.get('delimiters') or {}).get(folder, '/')) for flag in flags
                             if flag.lower() in {'\\trash', '\\drafts', '\\sent', '\\junk', '\\archive'}]
                 role = ', '.join(sorted(set(observed))) or 'an ordinary folder'
                 unresolved = [kind for kind in ('sent', 'drafts', 'trash') if sum('\\' + kind in [v.lower() for v in flags] for flags in roles.values()) != 1]
@@ -235,9 +237,11 @@ class Oracle:
                 roles = event.get('roles') or {}
                 before = mutation.get('roles') or {}
                 observed = [flag.lstrip('\\').title() for folder, flags in roles.items()
-                            if target == folder or target and target.startswith(folder + '/')
+                            if target == folder or target and (event.get('delimiters') or {}).get(folder, '/') and target.startswith(folder + (event.get('delimiters') or {}).get(folder, '/'))
                             for flag in flags if flag.lower() in {'\\trash', '\\drafts', '\\sent', '\\junk', '\\archive'}]
-                if special_roles(roles) == special_roles(before) and not observed and not (mutation['command'] in {'MOVE', 'COPY'} and not mutation.get('copyuid_delivered')):
+                if mutation['command'] == 'RENAME':
+                    observed += [flag.lstrip('\\').title() for flag in roles.get(target, []) if flag.lower() in {'\\all', '\\flagged', '\\important'}]
+                if special_roles(roles) == special_roles(before) and special_delimiters(roles, event.get('delimiters') or {}) == special_delimiters(before, mutation.get('delimiters') or {}) and not observed and not (mutation['command'] in {'MOVE', 'COPY'} and not mutation.get('copyuid_delivered')):
                     continue
                 # Committed context binds this command to its intent identity;
                 # its claimed completion cannot suppress observed drift.
@@ -248,7 +252,7 @@ class Oracle:
                     role = ', '.join(sorted(set(observed))) or 'an ordinary folder'
                     evidence = {'target': target, 'role': role}
                     if kind == 'rename' and target in roles and roles[target]:
-                        evidence['role'] = ', '.join(sorted(flag.title() for flag in roles[target] if flag.lower() in {'\\trash', '\\drafts', '\\sent', '\\junk', '\\archive'})) or role
+                        evidence['role'] = ', '.join(sorted(flag.title() for flag in roles[target] if flag.lower() in {'\\trash', '\\drafts', '\\sent', '\\junk', '\\archive', '\\all', '\\flagged', '\\important'})) or role
                     if kind == 'filing':
                         evidence.update(locations=self.locations(context, event, mutation), unresolved_roles=unresolved)
                     self.detected.add(self.warning(source, kind, evidence, record, context))
@@ -333,7 +337,7 @@ class Oracle:
                 old = next((json.loads(key[2]) for key in self.occurrences if key[0] == source and key[1] == kind), {})
                 target, roles = old.get('target'), evidence.get('roles') or {}
                 complete = all(len(special_roles(roles).get(role, [])) == 1 for role in ('sent', 'drafts', 'trash'))
-                protected = any(target == folder or target and target.startswith(folder + '/') for role in ('trash', 'drafts', 'sent', 'junk', 'archive') for folder in special_roles(roles).get(role, []))
+                protected = any(target == folder or target and (evidence.get('delimiters') or {}).get(folder, '/') and target.startswith(folder + (evidence.get('delimiters') or {}).get(folder, '/')) for role in ('trash', 'drafts', 'sent', 'junk', 'archive') for folder in special_roles(roles).get(role, []))
                 failed_scan = any(e['call'] == evidence['call'] and e['command'] == 'FETCH' and not e['accepted'] for e in self.servers)
                 if target in roles and complete and not protected and not failed_scan:
                     return True

@@ -170,6 +170,8 @@ def exercise(flow, number=None, mode='single', cleanup_at=None, gaps=None, phase
             # Closing the old handles may roll back; restore the captured bytes
             # so the new Engine sees exactly the injected boundary instead.
             f = s.fixture
+            d.startup_sequence = max((fence['seq'] for fence in d.snapshot().fences), default=0)
+            d._snapshot_key = None
             with tempfile.TemporaryDirectory(prefix='crash-bytes-', dir=f.root) as temporary:
                 saved = __import__('pathlib').Path(temporary)
                 for name in ('state', 'evidence'):

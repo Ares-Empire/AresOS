@@ -18,6 +18,8 @@ class Driver:
         self.scenario = scenario
         self.oracle = getattr(scenario, 'owner_oracle', None) or Oracle()
         self.record = self.snapshot()
+        self.startup_sequence = max((fence['seq'] for fence in self.record.fences), default=0)
+        self.record.locked |= any(seq <= self.startup_sequence for seq in self.record.unprepared_fences)
         self.errors = []
 
     def snapshot(self):
@@ -28,6 +30,7 @@ class Driver:
             if key != getattr(self, '_snapshot_key', None):
                 self.record = decode(f.root / 'state', f.engine.store.evidence_dir)
                 self._snapshot_key = key
+            self.record.locked |= any(seq <= getattr(self, 'startup_sequence', 0) for seq in self.record.unprepared_fences)
         if hasattr(self, 'alias_callback'):
             self.alias_callback(self.record)
         return self.record
@@ -59,6 +62,7 @@ class Driver:
                     'cleanup': faults.cleanup_at} if faults else {})
         self.call_index = len(oracle.script) - 1
         oracle.active_call = oracle.call_id
+        oracle.delimiters = {name: getattr(f.imap, 'separators', {}).get(name, '/') for name in f.imap.roles}
         if s.action != 'control_log' or 'cursor' not in s.args:
             oracle.server('FIXTURE_STATE', 'box', roles=f.imap.roles, mailboxes={name: self.identities(name) for name in f.imap.boxes})
         # Command logs are memory-only. Reading their context cannot itself hit
@@ -66,6 +70,12 @@ class Driver:
         uid, listing, select = f.imap.uid, f.imap.list, f.imap.select
         def listed(*args, **kwargs):
             answer = listing(*args, **kwargs)
+            import re, json
+            for raw in answer[1]:
+                match = re.match(rb'\([^)]*\) (NIL|"[^"]*") (.*)', raw)
+                if match:
+                    name = match[2].strip(b'"').decode()
+                    oracle.delimiters[name] = None if match[1] == b'NIL' else json.loads(match[1])
             oracle.server('LIST', getattr(self, 'account_id', 'box'), before_seq=max(self.snapshot().committed, default=0), roles=f.imap.roles, mailboxes={name: self.identities(name) for name in f.imap.boxes})
             return answer
         def selected(*args, **kwargs):

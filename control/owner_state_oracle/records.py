@@ -25,6 +25,7 @@ class Record:
     prepared: list = field(default_factory=list)
     committed: set = field(default_factory=set)
     working_sequences: set = field(default_factory=set)
+    unprepared_fences: set = field(default_factory=set)
     generation: str = None
     locked: bool = False
 
@@ -81,19 +82,23 @@ def decode(state, evidence):
             result.events.append(event)
     # Pruned working history lives in a hash-qualified archive. Discover only
     # manifests in committed events, never by trusting the directory listing.
-    archived = {}
-    for event in result.events:
+    archived, queue, visited = {}, list(result.events), set()
+    while queue:
+        event = queue.pop()
         for key, manifest in event['set'].items():
-            if key.startswith('archive:') and manifest:
-                raw = Path(manifest['path']).read_bytes()
-                if hashlib.sha256(raw).hexdigest() != manifest['sha256']:
-                    raise ValueError('Archive publication hash mismatch')
-                for line in raw.splitlines():
-                    entry = json.loads(line)
-                    if 'event' in entry:
-                        old = entry['event']
-                        if old['seq'] in result.committed and old['record'] == fences.get(old['seq']):
-                            archived[old['seq']] = old
+            if not key.startswith('archive:') or not manifest or manifest['path'] in visited:
+                continue
+            visited.add(manifest['path'])
+            raw = Path(manifest['path']).read_bytes()
+            if hashlib.sha256(raw).hexdigest() != manifest['sha256']:
+                raise ValueError('Archive publication hash mismatch')
+            for line in raw.splitlines():
+                entry = json.loads(line)
+                if 'event' in entry:
+                    old = entry['event']
+                    if old['seq'] in result.committed and old['record'] == fences.get(old['seq']) and old['seq'] not in archived:
+                        archived[old['seq']] = old
+                        queue.append(old)
     result.events = sorted({e['seq']: e for e in [*archived.values(), *result.events]}.values(), key=lambda e: e['seq'])
     for event in result.events:
         for key, value in event['set'].items():
@@ -102,6 +107,8 @@ def decode(state, evidence):
             else:
                 result.rows[key] = value
     result.generation = result.rows.get('generation')
+    result.unprepared_fences = set(fences) - result.committed - {event['seq'] for event in result.prepared}
+    expected_head = fences[head[0]]['hash'] if head and head[0] in fences else '' if head and head[0] == 0 else None
     result.locked = bool(result.rows.get('restore_pending')) or bool(fences and
-        (head is None or head[0] != max(result.committed, default=0) or head[1] != fences[head[0]]['hash']))
+        (head is None or head[0] != max(result.committed, default=0) or head[1] != expected_head))
     return result
