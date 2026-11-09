@@ -1,13 +1,28 @@
 {
   "packages": [
+    {"nevra": "brightnessctl-0.5.1-16.fc44.x86_64", "sha256": "c35e64bbce4267178b377c897072c5ed29d161df31cfeb25e4228fe2eb98e718"},
     {"nevra": "fcft-3.3.3-2.fc44.x86_64", "sha256": "3a7657802b0f7a7d3311ff1d568db5124dc5f3bde0e7dc62340c17bd70f5c8e7"},
     {"nevra": "foot-1.27.0-1.fc44.x86_64", "sha256": "72a73c1a5241765b7a7944ffe676626db8d7848cfa983e2e10f46ef8bb03d019"},
     {"nevra": "greetd-0.10.3-6.fc44.x86_64", "sha256": "d6f3ab7263462e40f96dff09f17a7246fa1e0c0776ad0f4cab728cf62d3145a8"},
     {"nevra": "greetd-selinux-0.10.3-6.fc44.noarch", "sha256": "7feb07dfad123449fc05622fec614bf7d0a1b46017f249530769bc548d20019b"},
     {"nevra": "grim-1.5.0-3.fc44.x86_64", "sha256": "5e7bbe7da1a270a17fd5af19b436206414a2e9772e03b947aecd3addd5c8c43a"},
     {"nevra": "labwc-0.9.6-1.fc44.x86_64", "sha256": "9438b595a52653540f6d95c83453284c0d99b3f9f6c4df13320b21253916f60b"},
+    {"nevra": "libblkid-2.41.6-1.fc44.i686", "sha256": "5d0e80d66a42f91812628dad362ecb5f170ca3576f336c9f01a81539fb2e91d8"},
+    {"nevra": "libblkid-2.41.6-1.fc44.x86_64", "sha256": "3fafe612cf35d366ec6181a7d418793377fe849970d01536fd28160e694b9769"},
+    {"nevra": "liberation-fonts-all-1:2.1.5-15.fc44.noarch", "sha256": "04b8e565b6e057ba7f8f7a80d6b2f69fd1b5580ec92768b2303a68552e5488a9"},
+    {"nevra": "libfdisk-2.41.6-1.fc44.x86_64", "sha256": "1e8c1fef2b462e522ddda3f7d820528ecc741b9bb04e0ea34c73d540f8445baf"},
+    {"nevra": "liblastlog2-2.41.6-1.fc44.x86_64", "sha256": "6bf29ff92180cfcd7dda1fb598a555c90325b69ed14bb1e8983cf633ebc0b2c6"},
+    {"nevra": "libmount-2.41.6-1.fc44.i686", "sha256": "8ad3f5fbe5045cca73aa2018964534b872ba4ac13bb59b72c9aa38db798bd6b3"},
+    {"nevra": "libmount-2.41.6-1.fc44.x86_64", "sha256": "946f59978ab585da0c024fdbadc39adf22cda3d4479edd5fe1af6827908d4cda"},
     {"nevra": "libsfdo-0.1.3-5.fc44.x86_64", "sha256": "cd379ee0341741a074585ad8c56395781d74003d685f5ce40e68d3e5847d3ca0"},
+    {"nevra": "libsmartcols-2.41.6-1.fc44.x86_64", "sha256": "3c2126c728fa6572895e959b2978cde7061191d4ffcb98bfed3883fed0adcebd"},
+    {"nevra": "libuuid-2.41.6-1.fc44.i686", "sha256": "e17ef7c8d66c166317eeaec17a33b8b1bee36cc7905762c231fec2ccc0f6fa11"},
+    {"nevra": "libuuid-2.41.6-1.fc44.x86_64", "sha256": "d2e814ac547b1c486eb2b9416c852cd2e9dc1a846a3ab389f5eaaf3d74e58bda"},
+    {"nevra": "qrencode-4.1.1-12.fc44.x86_64", "sha256": "93e24cfcbbdfade16b9171da31d9bfaa23c4d2607a9f18b74f73dced893c2b0f"},
     {"nevra": "utf8proc-2.11.3-2.fc44.x86_64", "sha256": "419aaf827c994a0a243bbe79f99dfe80a3c387eb0e9bee529871d64641a70a15"},
+    {"nevra": "util-linux-2.41.6-1.fc44.x86_64", "sha256": "06d249fa3135967cca867dbf9ffc29d00cf5a771c97a606e08bea5ee8bf1fc22"},
+    {"nevra": "util-linux-core-2.41.6-1.fc44.x86_64", "sha256": "258b1cf34f94ab42c32618e256cc1e64a7dd4716180317c8806483d31d3ff318"},
+    {"nevra": "util-linux-script-2.41.6-1.fc44.x86_64", "sha256": "60c6db9d2d78232f0384a8f680a638b58aeb546f6443c122f43e4573c2d11f15"},
     {"nevra": "wlroots0.19-0.19.3-1.fc44.x86_64", "sha256": "815bb4a0419c0c27d71dfe64b1928f9943fbe9a3bc176c98a989fdf0f8b18f62"},
     {"nevra": "xdg-desktop-portal-wlr-0.8.4-1.fc44.x86_64", "sha256": "13e41f0d7e23462efd148c69834f32a53b69054bf0e0e445eeb8c303f6da13c1"}
   ]

@@ -1,3 +1,10 @@
 #!/usr/bin/bash
 set -euo pipefail
+# The recovery terminal (Super+Ctrl+Escape) skips the user's own ~/.bashrc, so
+# a broken file of his can never take away this way into the system.
+mode=normal
+if [[ ${1-} == --recovery ]]; then
+    mode=recovery
+fi
+export ARESOS_TERMINAL=$mode
 exec foot --title=AresOS /usr/bin/bash --rcfile /usr/share/aresos/bashrc -i
