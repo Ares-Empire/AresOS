@@ -126,11 +126,13 @@
     }
   },
   "bytes": 858685,
+  "caller_input_replay": "CALLER-REPLAY.json",
   "delta_from_original": {
     "added": 1012928,
     "changed": 544176,
     "removed": 39570
   },
+  "derivation": "python -m owner_state_oracle.caller_capture RAW_CAPTURE_GLOBS --output-dir .work/stable-capture; then python -m owner_state_oracle.gaps STABLE_CAPTURE_GLOBS --output .work/compact.json",
   "files": [
     {
       "assertions": 2,
@@ -219,7 +221,7 @@
     }
   ],
   "groups": 1697,
-  "ledger_sha256": "77c5af11abcbf374bdd4d5b11eb2c3ba4488184a349c2393d9296e72f47d56fc",
+  "ledger_sha256": "825ed71949f8e47e99a19ce60ce44a7aeb80428aed8bac39fc770452627aee51",
   "mail_run": 42657094358,
   "source": "0b6cfec6b2439b1141ad08addc2fc4913e2a960c",
   "stages": {
