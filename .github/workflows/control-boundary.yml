@@ -1,19 +1,25 @@
 name: Control boundary
 on:
+  push:
+    branches: [main, pkg/18d-base-slim]
+    paths:
+      - 'control/**'
+      - 'reviews/18b-control-boundary/**'
+      - 'reviews/18d-base-slim/**'
+      - '.github/workflows/control-boundary.yml'
   pull_request:
     paths:
-      - 'control/boundary/**'
-      - 'control/settings/**'
+      - 'control/**'
       - 'reviews/18b-control-boundary/**'
       - 'reviews/18d-base-slim/**'
       - '.github/workflows/control-boundary.yml'
   workflow_dispatch:
 permissions:
   contents: read
-# One run per PR push; rerun the same run to verify twice on one head.
+# Main keeps its check after each merge. Drop the package push trigger when PR checks resume.
 concurrency:
   group: control-boundary-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 jobs:
   hostile:
     runs-on: ubuntu-24.04
