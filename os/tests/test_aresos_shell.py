@@ -507,6 +507,27 @@ class WindowTest(Base):
         again = self.open('notepad', 'o-1')
         self.assertEqual((again['state'], again['launch_id']), ('focused', launch['launch_id']))
 
+    def test_a_window_that_names_its_app_late_is_still_claimed_once(self):
+        launch = self.open('notepad', 'o-1')
+        windows = self.windows
+        windows.new(2)
+        windows.state(1, False)
+        windows.done(1)
+        windows.state(2, True)
+        windows.done(2)
+        self.helper_.windows_changed()
+        self.assertEqual(self.helper_.journal.entries['o-1']['state'], 'starting')
+        windows.app_id(2, 'org.kde.kwrite')
+        windows.done(2)
+        self.helper_.windows_changed()
+        self.assertEqual(self.helper_.journal.entries['o-1']['state'], 'focused')
+        self.open('notepad', 'o-2')
+        windows.done(2)
+        self.helper_.windows_changed()
+        self.assertEqual(self.helper_.handles, {'o-1': {2}})
+        self.assertEqual(self.helper_.journal.entries['o-2']['state'], 'starting')
+        self.assertEqual(launch['state'], 'starting')
+
     def test_no_matching_window_fails_the_launch_and_never_hangs(self):
         self.open('notepad', 'o-1')
         self.window(2, 'org.other.app', activated=True)

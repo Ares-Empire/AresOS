@@ -470,10 +470,12 @@ class Windows:
         toplevel = self.toplevels.get(handle)
         if toplevel is None:
             return
-        toplevel.owner = self._owner(toplevel, set())
-        if not toplevel.ready:
-            toplevel.ready = True
+        owner = self._owner(toplevel, set())
+        # Some apps set their app_id only after the window first appears; announce it again when it becomes theirs.
+        if not toplevel.ready or (owner != toplevel.owner and toplevel not in self.opened):
             self.opened.append(toplevel)
+        toplevel.owner = owner
+        toplevel.ready = True
 
     def gone(self, handle):
         toplevel = self.toplevels.pop(handle, None)
@@ -1008,7 +1010,7 @@ class Helper:
                 returned = True
                 self.return_to_desktop(app, toplevel)
         for toplevel in opened:
-            if toplevel.owner in (None, Windows.SHELL):
+            if toplevel.owner in (None, Windows.SHELL) or any(toplevel.handle in h for h in self.handles.values()):
                 continue
             waiting = [request_id for request_id, entry in self.journal.entries.items()
                        if entry['state'] == 'starting' and entry['app_id'] == toplevel.owner
