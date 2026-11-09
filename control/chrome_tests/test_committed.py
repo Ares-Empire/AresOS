@@ -147,3 +147,12 @@ class Reads(unittest.TestCase):
             pending=self.engine.pending(resolve_checks=False)
             self.assertEqual(len(pending['notices']),3)
             self.assertEqual(pending['notices'][0]['operation_id'],'chrome-owner-state-unavailable')
+
+    def test_mail_only_continuation_keeps_existing_route_but_hidden_chrome_requires_shared_catalogue(self):
+        self.engine.store.write({'notice:mail-'+str(i):{'id':'mail-'+str(i),'app':'mail','state':'partial','ack':False,
+            'created_at':1e20+i,'untrusted_content':{'warning':'Synthetic Mail warning'}} for i in range(4)},'fixture','Synthetic Mail warnings')
+        self.assertEqual(self.engine.pending()['notices_more'],{'count':1,'action':'mail_filing_notices'})
+        self.chrome.steps([self.step()],1)
+        current=self.engine.pending()
+        self.assertTrue(all(item['app']=='mail' for item in current['notices']))
+        self.assertEqual(current['notices_more'],{'count':2,'action':'control_notices'})

@@ -78,8 +78,15 @@ class Engine:
             return {}
         result = {'notices': page['items']}
         if page['cursor']:
+            route = 'control_notices' if app is None else 'chrome_notices' if app == 'chrome' else 'mail_filing_notices'
+            # Preserve Mail's existing catalogue when every current notice is
+            # Mail. A Chrome row outside this compact page still needs the
+            # shared catalogue, so inspect its committed source as well.
+            if app is None and all(item.get('app') == 'mail' for item in page['items']):
+                if next(self.adapters['chrome'].notice_rows(), None) is None:
+                    route = 'mail_filing_notices'
             result['notices_more'] = {'count': page['total'] - len(page['items']),
-                                      'action': 'control_notices' if app is None else 'chrome_notices' if app == 'chrome' else 'mail_filing_notices'}
+                                      'action': route}
         return result
 
     def pending(self, app=None, args=None, resolve_checks=True):
@@ -129,7 +136,7 @@ class Engine:
                 # Other-app snapshots are explicitly unavailable; do not count them
                 # as current warnings or mix their cached cursor with this source.
                 result['notices']=(result['notices']+other_notices)[:3]
-                result['unavailable']='Some app state cannot be read from storage. Chrome warnings below are current; inspect other app state after recovery.'
+                result['unavailable']='Other app state is a storage snapshot. Chrome warnings below are current; recover storage and inspect other app state before proceeding.'
             except (Refused,OSError,sqlite3.Error,ValueError):
                 result['notices']=[{'operation_id':'chrome-owner-state-unavailable','app':'chrome','state':'unknown',
                     'untrusted_content':{'warning':'Current Chrome owner state cannot be read. Do not assume there is no pending work; recover storage and inspect the independent record before proceeding.'}},*result['notices']][:3]
