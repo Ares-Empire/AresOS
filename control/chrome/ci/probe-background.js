@@ -25,6 +25,18 @@ chrome.debugger.onEvent.addListener(async(source,method,params)=>{
       window.addEventListener('probe-original',event=>{let type,delivered,error;try{type=nativeType.call(event.detail.event);delivered=nativeDispatch.call(event.target,event.detail.event);}catch(value){error=String(value);}fetch('/report',{method:'POST',body:JSON.stringify({phase:'original-event-native-delivery',type,delivered,error})});},true);
       JSON.stringify({runtime:chrome.runtime.id,closedShadowAPI:typeof chrome.dom.openOrClosedShadowRoot})`,returnByValue:true});
     await report({phase:'private-extension-evaluation-before-resume',evaluated});
+    const relay=await command(source.tabId,'Runtime.evaluate',{disableBreaks:true,expression:`(()=>{
+      const relay=document.createElement('aresos-private-probe'),dispatch=EventTarget.prototype.dispatchEvent,type=Object.getOwnPropertyDescriptor(Event.prototype,'type').get;
+      EventTarget.prototype.dispatchEvent=function(event){if(type.call(event)!=='probe-relayed')return dispatch.call(this,event);dispatch.call(relay,new InputEvent('probe-target',{targetRanges:[new StaticRange({startContainer:this,startOffset:0,endContainer:this,endOffset:0})]}));dispatch.call(relay,event);return dispatch.call(relay,new Event('probe-deliver',{cancelable:true}));};return relay;
+    })()`});
+    const described=await command(source.tabId,'DOM.describeNode',{objectId:relay.result.objectId,depth:0});
+    const resolved=await command(source.tabId,'DOM.resolveNode',{backendNodeId:described.node.backendNodeId,executionContextId:context.id});
+    await command(source.tabId,'Runtime.callFunctionOn',{objectId:resolved.object.objectId,functionDeclaration:`function(){
+      let original,target;const dispatch=EventTarget.prototype.dispatchEvent;
+      this.addEventListener('probe-target',event=>{target=event.getTargetRanges()[0].startContainer;},true);
+      this.addEventListener('probe-relayed',event=>{original=event;event.stopImmediatePropagation();},true);
+      this.addEventListener('probe-deliver',event=>{try{const result=dispatch.call(target,original);if(!result)event.preventDefault();fetch('/report',{method:'POST',body:JSON.stringify({phase:'native-relay-delivery',result})});}catch(error){fetch('/report',{method:'POST',body:JSON.stringify({phase:'native-relay-error',error:String(error)})});}},true);
+    }`});
     installed.add(source.tabId);
     const result='Extension world installed before page scripts';
     await report({phase:'isolated-before-resume',elapsed:Date.now()-started,result});
