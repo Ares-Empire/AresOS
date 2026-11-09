@@ -216,6 +216,11 @@ class Engine:
             self.adapters[op["app"]].drop(op)
             return {"operation": self.public_operation(op)}
         adapter = self.adapters[action.app]
+        if action.trusted_send:
+            check = getattr(adapter, 'require_trusted_send', None)
+            if check is None:
+                raise Refused('permission_denied', 'No owner-only trusted-send entry checker is installed.')
+            check(action.verb, op)
         adapter.revalidate(op)
         if adapter.has_submission_evidence(op["id"]):
             op.update(state="unknown", reason="Far-side submission evidence already exists; inspect evidence, never submit again.")

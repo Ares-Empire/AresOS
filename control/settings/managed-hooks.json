@@ -1,5 +1,4 @@
 {
-  "_comment": "DRAFT: merge hooks into the owner's managed settings only after brief 18b. Ask rules are generated separately.",
   "hooks": {
     "Stop": [
       {

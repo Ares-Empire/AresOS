@@ -4,7 +4,7 @@ import sys
 
 from .common import FILE_LIMIT, WIRE_LIMIT, JSONInputError, Refused, cleanup, display_json, require_question, strict_json_loads, validate, storage_refusal
 from .definitions import obj, string
-from .definitions import APPS, BY_NAME
+from .definitions import APPS, BY_NAME, instructions_for
 from .files import FilePolicy, safe_name
 from .protocol import Client
 from .results import bounded
@@ -197,7 +197,7 @@ async def serve(app, config):
         return types.CallToolResult(content=[types.TextContent(type="text", text=display_json(result))],
                                     structured_content=result, is_error=not result["ok"])
 
-    server = Server("aresos-" + app, version="0.1.0", on_list_tools=list_tools, on_call_tool=call_tool)
+    server = Server("aresos-" + app, version="0.1.0", instructions=instructions_for(app), on_list_tools=list_tools, on_call_tool=call_tool)
     stdin = StrictMCPInput(app, MCPLineInput(sys.stdin.buffer))
     async with stdio_server(stdin=stdin) as (read_stream, write_stream):
         stdin.errors = write_stream

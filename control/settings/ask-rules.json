@@ -1,8 +1,6 @@
 {
   "permissions": {
     "ask": [
-      "mcp__testapp__send",
-      "mcp__testapp__delete",
       "mcp__mail__send",
       "mcp__mail__delete",
       "mcp__mail__folder_delete",

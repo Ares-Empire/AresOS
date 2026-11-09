@@ -3,8 +3,8 @@ import json
 from pathlib import Path
 import sys
 
-from aresos_control.definitions import ACTIONS, tools_for
-from aresos_control.boundary_policy import asking_rules, managed_settings, managed_mcp
+from aresos_control.definitions import ACTIONS, tools_for, instructions_for, APPS
+from aresos_control.boundary_policy import asking_rules, managed_settings, user_mcp, OWNER_INSTRUCTIONS
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -32,12 +32,21 @@ def generated():
     files = {}
     for app in apps:
         files[f"control/generated/{app}-tools.json"] = json.dumps(tools_for(app), indent=2) + "\n"
+        files[f"control/generated/{app}-instructions.txt"] = instructions_for(app) + "\n"
+    servers = user_mcp()
+    installed = {f"mcp__{app}__{tool['name']}" for app in servers for tool in tools_for(app)}
     ask = asking_rules()
+    if not set(ask) <= installed:
+        raise ValueError("Asking rule names a tool not installed at user scope")
     files["control/settings/ask-rules.json"] = json.dumps({"permissions": {"ask": ask}}, indent=2) + "\n"
     files['control/settings/managed-settings.draft.json'] = json.dumps(managed_settings(), indent=2) + '\n'
-    files['control/settings/managed-mcp.json'] = json.dumps(managed_mcp(), indent=2) + '\n'
+    files['control/settings/user-mcp.json'] = json.dumps(servers, indent=2) + '\n'
+    files['control/settings/CLAUDE.md'] = OWNER_INSTRUCTIONS
+    files['control/settings/managed-hooks.json'] = json.dumps({'hooks': managed_settings()['hooks']}, indent=2) + '\n'
     help_text = "Usage: aresos [admin] <app> <action> [--input JSON] [--json]\n       aresos log [--input JSON]\n\nActions (input is the definition's JSON object; --help on any action shows its schema):\n"
     doc = "# Control tools (generated; do not edit)\n\nSettings and packaging are drafts. Run `python3 control/generate.py` after editing the catalogue.\n\n"
+    for app in apps:
+        doc += f"## `{app}` server instructions (sent once at initialization)\n\n{instructions_for(app)}\n\n"
     for a in ACTIONS:
         command = f"aresos {'admin ' if a.owner_only else ''}{a.app} {a.verb}"
         help_text += f"  {command} [{a.effect}]\n"
