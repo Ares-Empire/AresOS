@@ -71,7 +71,12 @@ Updated 2026-11-09. The live truth is `git log`, `gh pr list` and `git worktree 
 
 - **Package 21** (brief `21-everyday-account-and-chrome.md`, empire brief 262): the everyday account like Windows, Chrome, PATH, foot font, small tools, key bindings, and a throwaway CI image build. A Claude agent builds it; Codex reviews.
 - **Package 22** (brief `22-update-route.md`, empire brief 263): `at update` to move the laptop to a new signed release, the step 8 guide, the admin password step, INSTALL-STATUS for steps 4–7. A Claude agent builds it; Codex reviews.
-- **Then:** 21b (backlight and power button, after a read-only check on the laptop in AresOS), a release package (rehearsal, then publishing with his OK), and Minecraft in AresOS (P2).
+- **Package 24** (brief `24-interface-v1.md`, empire brief 265): the OS helper (`aresos-shell/1.0`) and the mod's Linux client, so apps open from the hub on AresOS. Windows behaviour unchanged. A Claude agent builds it; Codex reviews.
+- **Ready, starts when 21 merges:** package 23 (brief `23-minecraft-starts.md`, empire brief 264): Prism and Java 25 in the image, the managed `AresDesktop` instance, the `AresHub` world, and a supervisor that boots into the hub.
+- **Then:**
+  - 21b: backlight and power button, after the read-only check on the laptop in AresOS (board #149 tells the next AresOS session).
+  - P2's remaining packages: 25 (guardian: clean save and shutdown) and 26 (backups).
+  - A release package: rehearsal, then publishing with his OK, then `at update` on the laptop.
 
 - **Package 12 (the companion in the hub)**: brief drafted 2026-10-25, waiting for the owner's go. A generic companion system in the mod (look packs as data, an original placeholder look), with the owner's Claude crab as a private pack outside this repo. The desktop companions live in the private repo `Ares-Empire/companions` (browser preview: `python tools/serve.py`, then http://127.0.0.1:8765/preview/).
 
