@@ -71,6 +71,9 @@ Updated 2026-11-09. The live truth is `git log`, `gh pr list` and `git worktree 
 
 - **Package 21** (brief `21-everyday-account-and-chrome.md`, empire brief 262): the everyday account like Windows, Chrome, PATH, foot font, small tools, key bindings, and a throwaway CI image build. A Claude agent builds it; Codex reviews.
 - **Package 22** (brief `22-update-route.md`, empire brief 263): `at update` to move the laptop to a new signed release, the step 8 guide, the admin password step, INSTALL-STATUS for steps 4–7. A Claude agent builds it; Codex reviews.
+  - PR #32 (built by a Claude agent; fingerprint `2a9965ea…`). Owner answers to its judgment calls (board #154, 2026-11-09, "Yes to both"):
+    - the laptop keeps the current and previous AresOS plus the pinned Bazzite backup, and older AresOS versions drop off;
+    - after the first update, `rollback`/`keep-stock`/the recovery menu and layout trials refuse until follow-up **22b** extends them. That follow-up comes before the second update. Meanwhile the way back is `at previous` or F12 → Windows.
 - **Package 24** (brief `24-interface-v1.md`, empire brief 265): the OS helper (`aresos-shell/1.0`) and the mod's Linux client, so apps open from the hub on AresOS. Windows behaviour unchanged. A Claude agent builds it; Codex reviews.
 - **Owner OK to merge and publish this round (2026-11-09: "Once its safe and done you can merge and publish"):** packages 21–24 merge after a fresh SAFE review and passing checks. The next AresOS release built from them may be published and pinned without asking again, once its rehearsal passes. Installing it on the laptop (`at update`) is still his own step. Anything outside this round still needs his OK.
 - **Ready, starts when 21 merges:** package 23 (brief `23-minecraft-starts.md`, empire brief 264): Prism and Java 25 in the image, the managed `AresDesktop` instance, the `AresHub` world, and a supervisor that boots into the hub.
