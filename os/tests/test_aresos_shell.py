@@ -673,6 +673,80 @@ class ScopeWatcherTest(Base):
         self.windows = None
         return self.helper(missing=())
 
+    def test_unrecognized_or_conflicting_states_are_unknown_never_gone(self):
+        units = ['u-odd.scope', 'u-maintenance.scope', 'u-shifted.scope', 'u-upper.scope', 'u-twice.scope',
+                 'u-same.scope', 'u-ended.scope', 'u-absent.scope']
+        listing = ('u-odd.scope loaded exploding running AresOS app\n'
+                   'u-maintenance.scope loaded maintenance cleaning AresOS app\n'
+                   'u-shifted.scope active running AresOS app\n'
+                   'u-upper.scope loaded INACTIVE dead AresOS app\n'
+                   'u-twice.scope loaded active running AresOS app\n'
+                   'u-twice.scope loaded inactive dead AresOS app\n'
+                   'u-same.scope loaded inactive dead AresOS app\n'
+                   'u-same.scope loaded inactive dead AresOS app\n'
+                   'u-ended.scope loaded failed failed AresOS app\n')
+        self.assertEqual(shell.query_scopes(units, self.answer(stdout=listing)), {
+            'u-odd.scope': 'unknown', 'u-maintenance.scope': 'unknown', 'u-shifted.scope': 'unknown',
+            'u-upper.scope': 'unknown', 'u-twice.scope': 'unknown', 'u-same.scope': 'gone',
+            'u-ended.scope': 'gone', 'u-absent.scope': 'gone'})
+        # A watched launch whose scope shows an unrecognized state is left alone.
+        unit = 'app-aresos-terminal-t1.scope'
+        self.active_units = {unit}
+        helper = self.restarted_with({'o-1': {'app_id': 'terminal', 'launch_id': 't1', 'state': 'starting',
+                                              'unit': unit}})
+        self.scope_answer = (0, f'{unit} loaded exploding running AresOS app\n')
+        self.scope_pass(helper)
+        self.assertEqual(helper.journal.entries['o-1']['state'], 'starting')
+        self.assertEqual(helper.watched_units(), {unit: 'o-1'})
+
+    def journal_on_disk(self):
+        with open(self.journal) as handle:
+            return json.load(handle)['launches']
+
+    def test_a_running_scope_clears_doubt_so_the_end_is_a_normal_close(self):
+        unit = 'u1.scope'
+        self.scope_answer = subprocess.TimeoutExpired(shell.LIST_SCOPES, 5)  # unknown at start-up
+        helper = self.restarted_with({'o-1': {'app_id': 'terminal', 'launch_id': 't1', 'state': 'launching',
+                                              'unit': unit}})
+        self.assertTrue(helper.journal.entries['o-1'].get('uncertain'))
+        self.scope_answer = None
+        self.active_units = {unit}  # then seen running
+        self.scope_pass(helper)
+        self.assertNotIn('uncertain', helper.journal.entries['o-1'])
+        self.assertNotIn('uncertain', self.journal_on_disk()['o-1'])
+        self.active_units = set()  # then gone
+        self.scope_pass(helper)
+        entry = helper.journal.entries['o-1']
+        self.assertEqual((entry['state'], entry.get('error')), ('closed', None))
+
+    def test_a_running_scope_at_start_up_clears_a_persisted_doubt(self):
+        self.active_units = {'u1.scope'}
+        helper = self.restarted_with({'o-1': {'app_id': 'terminal', 'launch_id': 't1', 'state': 'starting',
+                                              'unit': 'u1.scope', 'uncertain': True}})
+        self.assertNotIn('uncertain', helper.journal.entries['o-1'])
+        self.assertNotIn('uncertain', self.journal_on_disk()['o-1'])
+        self.active_units = set()
+        self.scope_pass(helper)
+        self.assertEqual(helper.journal.entries['o-1']['state'], 'closed')
+
+    def test_a_window_clears_doubt_so_its_close_is_normal(self):
+        self.scope_answer = subprocess.TimeoutExpired(shell.LIST_SCOPES, 5)
+        helper = self.restarted_with({'o-1': {'app_id': 'notepad', 'launch_id': 'n1', 'state': 'launching',
+                                              'unit': 'u1.scope'}}, tracked=True)
+        self.assertTrue(helper.journal.entries['o-1'].get('uncertain'))
+        for handle, app_id, active in ((1, 'aresos-desktop', False), (2, 'org.kde.kwrite', True)):
+            self.windows.new(handle)
+            self.windows.app_id(handle, app_id)
+            self.windows.state(handle, active)
+            self.windows.done(handle)
+        helper.windows_changed()
+        self.assertEqual(helper.journal.entries['o-1']['state'], 'focused')
+        self.assertNotIn('uncertain', self.journal_on_disk()['o-1'])
+        self.windows.gone(2)
+        helper.windows_changed()
+        entry = helper.journal.entries['o-1']
+        self.assertEqual((entry['state'], entry.get('error')), ('closed', None))
+
     def test_unknown_answers_keep_the_launch_until_a_real_gone(self):
         unit = 'app-aresos-terminal-t1.scope'
         self.active_units = {unit}
@@ -1305,10 +1379,16 @@ class ServerTest(Base):
                            'instance': INSTANCE, 'nonce': NONCE})
         self.assertTrue(self.receive(server, client)['ok'])
         self.assertLess(time.monotonic() - began, 1.0, 'the reply waited for the hanging scope check')
+        self.assertEqual(helper.journal.entries['o-1']['state'], 'starting')
         release.set()
-        deadline = time.monotonic() + 5
-        while helper.journal.entries['o-1']['state'] != 'closed' and time.monotonic() < deadline:
-            server.step(0.05)
+        # The answer must wake the selector by itself (well before its timeout), and that one event must apply it:
+        # no step(), so no tick() polling the queue.
+        began = time.monotonic()
+        events = server.selector.select(3.0)
+        self.assertLess(time.monotonic() - began, 2.0, 'the selector was not woken by the scope answer')
+        scopes = [(key, mask) for key, mask in events if key.data == 'scopes']
+        self.assertEqual(len(scopes), 1, f'no scopes event among {[key.data for key, _ in events]}')
+        server.handle(*scopes[0])
         self.assertEqual(helper.journal.entries['o-1']['state'], 'closed')
 
     def test_an_unexpected_error_drops_only_that_connection(self):

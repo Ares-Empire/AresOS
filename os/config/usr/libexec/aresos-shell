@@ -455,7 +455,10 @@ class ScopeLauncher:
 # ---------------------------------------------------------------- scope watching
 
 ACTIVE, GONE, UNKNOWN = 'active', 'gone', 'unknown'
+# systemd's ActiveState column. Only these two lists decide; any other value (maintenance, a future state, a typo)
+# is UNKNOWN, so an odd line can never end a launch.
 RUNNING_STATES = frozenset({'active', 'activating', 'deactivating', 'reloading', 'refreshing'})
+ENDED_STATES = frozenset({'inactive', 'failed'})
 LIST_SCOPES = [SYSTEMCTL, '--user', 'list-units', '--type=scope', '--all', '--no-legend', '--plain', '--no-pager']
 
 
@@ -470,8 +473,18 @@ def parse_scopes(text):
             fields = fields[1:]
         if len(fields) < 4 or not fields[0].endswith('.scope'):
             return None
-        states[fields[0]] = fields[2]
+        unit, state = fields[0], fields[2]
+        # A unit listed twice with different states says nothing certain.
+        states[unit] = state if states.get(unit, state) == state else None
     return states
+
+
+def classify(state):
+    if state in RUNNING_STATES:
+        return ACTIVE
+    if state in ENDED_STATES:
+        return GONE
+    return UNKNOWN
 
 
 def query_scopes(units, run=subprocess.run, timeout=SCOPE_TIMEOUT):
@@ -483,8 +496,8 @@ def query_scopes(units, run=subprocess.run, timeout=SCOPE_TIMEOUT):
     states = parse_scopes(done.stdout) if done.returncode == 0 and isinstance(done.stdout, str) else None
     if states is None:
         return {unit: UNKNOWN for unit in units}
-    # A transient scope started with --collect disappears from the list once it has ended.
-    return {unit: ACTIVE if states.get(unit) in RUNNING_STATES else GONE for unit in units}
+    # A transient scope started with --collect disappears from a complete, valid list once it has ended.
+    return {unit: classify(states[unit]) if unit in states else GONE for unit in units}
 
 
 class ScopeWatcher:
@@ -893,6 +906,9 @@ class Helper:
             if entry['state'] in FINAL:
                 continue
             scope = states.get(entry.get('unit'), GONE)
+            if scope == ACTIVE and entry.pop('uncertain', None):
+                self.journal.touch(entry)
+                changed = True
             if entry['state'] == 'launching':
                 if scope == GONE:
                     entry.update(state='failed', error='launch_uncertain',
@@ -1174,6 +1190,8 @@ class Helper:
             return
         entry['state'] = state
         entry.update(fields)
+        if state in ('focused', 'background'):
+            entry.pop('uncertain', None)  # a window confirms the app started
         self.journal.touch(entry)
         self.journal.save()
         if state in FINAL or state in ('focused', 'background'):
@@ -1191,6 +1209,13 @@ class Helper:
         entry['settled'] = True
         self.journal.touch(entry)
         self.journal.save()
+
+    def confirmed(self, request_id):
+        """Its app is seen running (scope or window): an interrupted start is no longer in doubt."""
+        entry = self.journal.entries.get(request_id)
+        if entry is not None and entry.pop('uncertain', None):
+            self.journal.touch(entry)
+            self.journal.save()
 
     def end_of_scope(self, entry):
         """What a launch becomes once its scope is gone and no process of ours can say how it ended."""
@@ -1227,6 +1252,8 @@ class Helper:
         for answers in self.watcher.take():
             for unit, state in answers.items():
                 request_id = watched.get(unit)
+                if state == ACTIVE and request_id is not None:
+                    self.confirmed(request_id)
                 # A launch with its own process is ended by that process and its exit code, never by the list.
                 if state != GONE or request_id is None or request_id in self.processes:
                     continue
@@ -1508,33 +1535,40 @@ class Server:
 
     def step(self, timeout=0.5):
         for key, mask in self.selector.select(timeout):
-            if key.data == 'listener':
-                self.accept()
-            elif key.data == 'wayland':
-                self.wayland.readable()
-                self.helper.windows_changed()
-            elif key.data == 'scopes':
-                self.helper.scopes_answered()
-            else:
-                peer = key.data
-                if mask & selectors.EVENT_WRITE:
-                    peer.flush()
-                if mask & selectors.EVENT_READ and not peer.closed:
-                    try:
-                        data = peer.sock.recv(65536)
-                    except BlockingIOError:
-                        continue
-                    except OSError:
-                        data = b''
-                    if not data:
-                        peer.close()
-                    elif not peer.closing:
-                        try:
-                            self.helper.receive(peer, data)
-                        except Exception:
-                            LOG.exception('unexpected error while handling a request; dropping that connection')
-                            peer.close()
+            self.handle(key, mask)
         self.helper.tick()
+
+    def handle(self, key, mask):
+        """One selector event: a new client, compositor news, scope answers or client traffic."""
+        if key.data == 'listener':
+            self.accept()
+            return
+        if key.data == 'wayland':
+            self.wayland.readable()
+            self.helper.windows_changed()
+            return
+        if key.data == 'scopes':
+            self.helper.scopes_answered()
+            return
+        peer = key.data
+        if mask & selectors.EVENT_WRITE:
+            peer.flush()
+        if not mask & selectors.EVENT_READ or peer.closed:
+            return
+        try:
+            data = peer.sock.recv(65536)
+        except BlockingIOError:
+            return
+        except OSError:
+            data = b''
+        if not data:
+            peer.close()
+        elif not peer.closing:
+            try:
+                self.helper.receive(peer, data)
+            except Exception:
+                LOG.exception('unexpected error while handling a request; dropping that connection')
+                peer.close()
 
     def run(self):
         while not self.stopping:
