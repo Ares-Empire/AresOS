@@ -220,7 +220,8 @@ class Engine:
             check = getattr(adapter, 'require_trusted_send', None)
             if check is None:
                 raise Refused('permission_denied', 'No owner-only trusted-send entry checker is installed.')
-            check(action.verb, op)
+            if check(action.verb, op) is not True:
+                raise Refused('permission_denied', 'No matching owner-only trusted-send entry.')
         adapter.revalidate(op)
         if adapter.has_submission_evidence(op["id"]):
             op.update(state="unknown", reason="Far-side submission evidence already exists; inspect evidence, never submit again.")

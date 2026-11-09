@@ -316,8 +316,8 @@ Run `python3 control/generate.py` and commit all generated files. App-wide guida
 belongs in `instructions_for(app)`; descriptions retain only action-specific rules.
 Every public send/delete asks unless **explicitly** marked `trusted_send=True`.
 A trusted send must implement `adapter.require_trusted_send(verb, operation)`:
-refuse unless a current matching owner-only entry authorizes the entire payload,
-and recheck on every submission. No existing Mail action is a trusted send on this
+return exactly `True` only when a current matching owner-only entry authorizes the
+entire payload, and recheck on every submission. Missing, false or empty decisions refuse. No existing Mail action is a trusted send on this
 branch. The base refuses a marked send without an installed checker. Do not mark
 a preparation, read, change, delete or owner-only action trusted. Chrome's future
 trusted submit must also preserve its own exact-state binding at execution.

@@ -552,7 +552,7 @@ print(json.dumps(results))
                     result = self.launch(uid, ["proxy", app], input="")
                     self.assertNotEqual(result.returncode, 0)
                     self.assertEqual(result.stdout, "")
-                    self.assertEqual(result.stderr, "AresOS MCP proxy requires the configured assistant user.\n")
+                    self.assertEqual(result.stderr, "AresOS MCP proxy requires the configured owner user (real and effective UID).\n")
 
     def test_proxy_isolated_from_planted_code_environment_and_pth(self):
         poison = self.home / "Documents/poison"
@@ -578,16 +578,19 @@ print(json.dumps(results))
             self.assertTrue(json.loads(result.stdout)["ok"])
             self.assertFalse(marker.exists())
             # Exercise the MCP launcher too, without executing Claude Code.
-            process = subprocess.Popen(["/usr/bin/python3", "-I", "-S", LAUNCH, "proxy", "testapp"],
-                                       preexec_fn=identity(OWNER), env=env, cwd=poison,
-                                       stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-            initialize = {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2025-11-25", "capabilities": {}, "clientInfo": {"name": "fixture", "version": "1"}}}
-            process.stdin.write(canonical(initialize) + "\n")
-            process.stdin.flush()
-            response = json.loads(process.stdout.readline())
-            self.assertIn("result", response)
-            process.terminate()
-            process.communicate(timeout=10)
+            from aresos_control.definitions import instructions_for
+            for app in ("control", "testapp", "mail"):
+                process = subprocess.Popen(["/usr/bin/python3", "-I", "-S", LAUNCH, "proxy", app],
+                                           preexec_fn=identity(OWNER), env=env, cwd=poison,
+                                           stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                initialize = {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2025-11-25", "capabilities": {}, "clientInfo": {"name": "fixture", "version": "1"}}}
+                process.stdin.write(canonical(initialize) + "\n")
+                process.stdin.flush()
+                response = json.loads(process.stdout.readline())
+                self.assertIn("result", response)
+                self.assertEqual(response["result"]["instructions"], instructions_for(app))
+                process.terminate()
+                process.communicate(timeout=10)
             self.assertFalse(marker.exists())
         finally:
             planted_pth.unlink()

@@ -220,6 +220,7 @@ def native_checks(run, put, mode, snapshots, stub):
         print('NATIVE_NOT_EXECUTED mode=' + mode + ' exact_command_approval_denied see=' +
               name + '-results.json', flush=True)
         # The brief forbids widening the grant after a real denial.
+        raise AssertionError('Optional native hostile commands did not execute; no qualification claimed')
     else:
         identities = {key: validate_sandbox_result(rows[key], container_identity()) for key in rows}
         assert all(identities.values()), 'approved native socket-state did not execute'

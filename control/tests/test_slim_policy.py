@@ -62,6 +62,7 @@ class SlimPolicy(EngineCase):
             entry = self.engine.store.get('fixture:owner-trusted-recipients')
             if entry != operation['payload']['to']:
                 raise Refused('permission_denied', 'No matching owner-only entry')
+            return True
         adapter = self.engine.adapters['testapp']
         adapter.require_trusted_send = require_entry
         with self.assertRaisesRegex(Refused, 'owner-only'):
