@@ -6,6 +6,9 @@ test "$(uname -s)" = Linux
 mkdir -p /out
 chmod 777 /out
 qualification-chrome --version | tee /out/chrome-version.txt
+if test -n "${QUALIFICATION_VERSION:-}"; then
+  test "$(qualification-chrome --version | cut -d ' ' -f 3)" = "$QUALIFICATION_VERSION"
+fi
 python3 control/generate.py --check
 python3 -m unittest discover -s control/chrome_tests -v 2>&1 | tee /out/python.txt
 node --test control/chrome_tests/*.test.mjs 2>&1 | tee /out/node.txt

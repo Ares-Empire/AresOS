@@ -6,6 +6,7 @@ import signal
 import socket
 import stat
 import struct
+import time
 
 from .common import FILE_LIMIT, Refused, cleanup, strict_json_loads, storage_refusal
 from .engine import Engine
@@ -38,7 +39,14 @@ class Daemon:
             self.sockets.append(listener)
 
     def serve(self):
+        refresh_at = 0
         while not self.stopping:
+            if time.monotonic() >= refresh_at:
+                refresh_at = time.monotonic() + 60
+                try:
+                    self.engine.adapters['chrome'].maintenance()
+                except Exception as exc:
+                    self.engine.background_error(exc)
             try:
                 self.engine.expire()
             except Exception:
