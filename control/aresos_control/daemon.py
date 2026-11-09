@@ -71,6 +71,9 @@ class Daemon:
                         if uid != self.config['owner_uid']:
                             raise Refused('permission_denied', 'Chrome native host must run as the configured owner.')
                         self.register_chrome_host(connection)
+                        # A coalesced hello can already contain observations.
+                        if b'\n' in self.chrome_bridge.buffer:
+                            break
                     except Exception as exc:
                         try:
                             send(connection, self.error_result(exc, False), result=True)
