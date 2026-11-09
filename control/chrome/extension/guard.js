@@ -1,14 +1,16 @@
 // ISOLATED, document_start. Only extension messages can relax these private holds.
 (() => {
   'use strict';
+  if(globalThis[Symbol.for('aresos.chrome.guard.v2')])return;
   const native = {
     submit: HTMLFormElement.prototype.submit, requestSubmit: HTMLFormElement.prototype.requestSubmit,
     click: HTMLElement.prototype.click, dispatch: EventTarget.prototype.dispatchEvent,
   };
   const phase = Object.getOwnPropertyDescriptor(Event.prototype, 'eventPhase')?.get;
   const eventType = Object.getOwnPropertyDescriptor(Event.prototype, 'type')?.get;
-  const held = new Map(), roots = new WeakSet(), consumed = new Set();
+  const held = new Map(), roots = new Map(), consumed = new Set();
   let reader, generation = null, dispatchNonce = null, config, until = 0, inFlight = false, mark = null, owner = null, sequence = 0;
+  let relayControl=null,legacyBridge=true;const relayListeners=[];
   const currentPhase = event => phase ? phase.call(event) : event.eventPhase;
   const type = event => eventType ? eventType.call(event) : event.type;
   const active = () => generation !== null && (inFlight || performance.now() < until);
@@ -122,15 +124,16 @@
       event.stopImmediatePropagation();report(event.cancelable ? 'activation' : 'activation_unknown',element,null,event.cancelable);
     }
   }
-  function onCall(event) {
+  function onCall(event,request=null) {
     // A page may forge this report. It can only request another normally guarded page step.
     // The element comes from native event dispatch, never a page-supplied identity string.
     event.stopImmediatePropagation();
-    const element=event.composedPath()[0];
+    const element=request?request.target:event.composedPath()[0];
     if (!reader) { event.preventDefault();return; }
     let delivery=false;
     try {
-      const detail=event.detail;
+      const detail=request?request.detail:event.detail;
+      if(element instanceof Element)watch(element.getRootNode());
       if (detail?.kind === 'native_submit') {delivery=true;submit(element,null,'native_submit');}
       else if (detail?.kind === 'request_submit') {
         // Validation and the native submit event must precede interception.
@@ -141,6 +144,8 @@
       } else if (detail?.kind === 'click' || detail?.kind === 'dispatch') {
         let original=null;
         if(detail.kind==='dispatch'){
+          if(request?.original){original=request.original;if(type(original)!==detail.event_type)throw Error('event type changed');}
+          else{
             const name=detail.event_type,flags=detail.event_flags;
             const prevented=flags?.prevented===true;
             if(typeof name!=='string'||!name.length||name.length>128)throw Error('invalid event type');
@@ -159,6 +164,7 @@
             const Constructor=/^key(?:down|up|press)$/.test(name)?globalThis.KeyboardEvent:/^(?:click|dblclick|mouse\w+|contextmenu)$/.test(name)?globalThis.MouseEvent:/^(?:beforeinput|input)$/.test(name)?globalThis.InputEvent:Event;
             original=new (Constructor||Event)(name,options);
             if(prevented)original.preventDefault();
+          }
         }
         const isClick=detail.kind === 'click' || type(original) === 'click';
         // All page-controlled getters have finished before this final check.
@@ -177,13 +183,59 @@
   }
   function watch(root) {
     if (root===document || roots.has(root)) return;
-    roots.add(root);
-    root.addEventListener('aresos-page-call-v2',onCall,true);
-    for (const kind of ['pointerdown','pointerup','pointermove','mousedown','mouseup','click','keydown','keypress','keyup','input','change','submit']) root.addEventListener(kind,event=>capture(event,root),true);
+    const listeners=[];
+    const listen=(kind,listener,capture)=>{root.addEventListener(kind,listener,capture);listeners.push([kind,listener,capture]);};
+    roots.set(root,listeners);
+    if(legacyBridge){listen('aresos-page-call-v2',event=>{
+      const element=event.composedPath()[0],shadow=element instanceof Element?globalThis.chrome?.dom?.openOrClosedShadowRoot(element):null;
+      // A closed root hides its inner target here. Install its native listener
+      // before this report reaches it; a host's own report uses the bubble fallback.
+      if(shadow){watch(shadow);return;}
+      onCall(event);
+    },true);
+    listen('aresos-page-call-v2',onCall,false);}
+    for (const kind of ['pointerdown','pointerup','pointermove','mousedown','mouseup','click','keydown','keypress','keyup','input','change','submit']) listen(kind,event=>capture(event,root),true);
   }
   watch(window);
   // This object exists only in the extension's isolated world. MAIN has no API or capability.
   globalThis[Symbol.for('aresos.chrome.guard.v2')] = {
+    get ready(){return !!reader;},
+    identity(){return reader?.document;},
+    relay(node){
+      if(!reader||!(node instanceof HTMLElement)||node.ownerDocument!==document||node.isConnected||node.parentNode||!node.firstElementChild)throw Error('invalid private relay');
+      const carrier=node.firstElementChild,stack=[];
+      const listen=(kind,listener)=>{carrier.addEventListener(kind,listener);relayListeners.push([kind,listener]);};
+      const ranges=InputEvent.prototype.getTargetRanges;
+      const start=Object.getOwnPropertyDescriptor(AbstractRange.prototype,'startContainer').get;
+      legacyBridge=false;relayControl=carrier;
+      for(const [root,listeners]of roots)for(const [kind,listener,capture]of listeners)if(kind==='aresos-page-call-v2')root.removeEventListener(kind,listener,capture);
+      const drop=request=>{if(stack.at(-1)?.detail.request===request)stack.pop();};
+      listen('aresos-relay-meta',event=>{
+        const detail=event.detail;
+        if(stack.length>=32||!['native_submit','request_submit','click','dispatch'].includes(detail?.kind))return;
+        if(!Number.isSafeInteger(detail.request))return;
+        const stage={detail};stack.push(stage);
+      });
+      listen('aresos-relay-target',event=>{const stage=stack.at(-1);if(stage&&''+stage.detail.request===event.data)stage.target=start.call(ranges.call(event)[0]);});
+      listen('aresos-relay-deliver',event=>{
+        const stage=stack.at(-1);if(!stage?.target||stage.detail.request!==event.detail)return;
+        // Pop before entering page handlers; nested requests get their own record.
+        drop(stage.detail.request);
+        const element=stage.target instanceof Element?stage.target:stage.target.parentElement;
+        if(['click','dispatch'].includes(stage.detail.kind)){
+          const name=stage.detail.kind==='click'?'click':stage.detail.event_type;
+          if(typeof name!=='string')return;
+          if(element)watch(element.getRootNode());
+          if(active()&&element&&(name==='click'&&asks(element)||name==='submit'&&!search(reader.form(element)))){report('activation',control(element));return;}
+          // This decision never leaves the private, detached control node. No
+          // original Event is transferred, so page code cannot discover the relay.
+          event.preventDefault();return;
+        }
+        onCall(event,stage);
+      });
+      listen('aresos-relay-drop',event=>drop(event.detail));
+      return reader.document;
+    },
     reader(value) { reader=value; }, watch,
     arm(value) {
       generation=value.generation;dispatchNonce=value.dispatch_nonce;config={...value.config,words:value.config.words.map(word=>word.toLowerCase())};inFlight=true;owner=null;until=performance.now()+config.holdMs;
@@ -197,6 +249,7 @@
       if (generation===epoch && dispatchNonce===nonce) { until=Math.max(until,performance.now()+config.holdMs);inFlight=false;mark=null; }
     },
     clear() { generation=null;until=0;inFlight=false;mark=null;owner=null;held.clear(); },
+    dispose() { if(relayControl){native.dispatch.call(relayControl,new Event('aresos-relay-cleanup'));for(const [kind,listener]of relayListeners)relayControl.removeEventListener(kind,listener);}relayControl=null;relayListeners.length=0;this.clear();for(const [root,listeners] of roots)for(const [kind,listener,capture]of listeners)root.removeEventListener(kind,listener,capture);roots.clear();ownerTasks.port1.close();ownerTasks.port2.close();reader?.dispose?.();reader=null;delete globalThis[Symbol.for('aresos.chrome.guard.v2')]; },
     steps() { const result=[...held.values()].filter(step=>!step.reported).map(step=>{step.reported=true;return {id:step.id,kind:step.kind,document:step.document,label:step.label,element:step.element,submitter:step.submitter,cancellable:step.cancellable};});return result; },
     resume(id,operation,element,form) {
       const step=held.get(id);

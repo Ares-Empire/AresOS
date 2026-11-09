@@ -5,6 +5,7 @@ import {spawn,execFileSync} from 'node:child_process';
 import {setTimeout as delay} from 'node:timers/promises';
 import {fixtures} from './fixture.mjs';
 import {matrices} from './matrices.mjs';
+import {measureCompatibility,nativeNavigate,compareCompatibility} from './compatibility.mjs';
 if(process.platform !== 'linux' || process.env.GITHUB_ACTIONS !== 'true' || !fs.existsSync('/.dockerenv'))throw Error('Browser runs only in GitHub Linux containers');
 const fixture=await fixtures();
 const profile=fs.mkdtempSync('/tmp/aresos-chrome-fixture-');
@@ -12,7 +13,7 @@ const args=[`--user-data-dir=${profile}`,'--no-first-run','--no-default-browser-
 assert.ok(!args.some(arg=>arg==='--no-sandbox'||arg.startsWith('--remote-debugging')));
 fs.writeFileSync('/out/launch.json',JSON.stringify(args));
 const descriptor=fs.openSync('/out/chrome.txt','a');
-let chrome=spawn('qualification-chrome',args,{stdio:['ignore',descriptor,descriptor]});
+let chrome;
 function rpc(action,arguments_={}) {
   return new Promise((resolve,reject)=>{
     const socket=net.createConnection('/run/aresos-tools/act.sock');let buffer='';
@@ -31,7 +32,12 @@ async function target(label){const row=await eventually(async()=>{const rows=(aw
 async function nav(kind,host='fixture'){const url='http://'+host+'.test:8765/?case='+kind;await call('navigate',{tab,url});await eventually(async()=>{const page=await call('read',{tab});return page.untrusted_content.url===url&&page.characters>0;},'fixture document committed');await delay(250);}
 const counts=kind=>fixture.arrivals.filter(row=>new URL(row.url,'http://fixture.test').searchParams.get('case')===kind).length;
 try {
+  baseline.native=JSON.parse(fs.readFileSync('/out/native-baseline.json','utf8'));
+  chrome=spawn('qualification-chrome',args,{stdio:['ignore',descriptor,descriptor]});
   const tabs=await eventually(async()=>{const result=await rpc('tabs');return result.ok && result.data.items.length && result.data.items;},'extension native connection',45000);
+  nativeNavigate('http://fixture.test:8765/?case=native-compat&id=outside');
+  const outside=await measureCompatibility({id:'outside',fixture,eventually,start:()=>execFileSync('xdotool',['key','--clearmodifiers','Tab','Return'])});
+  compareCompatibility(outside,baseline.native);fs.writeFileSync('/out/native-outside.json',JSON.stringify(outside,null,2));
   // The extension is installed before this owner-created document, then take attaches to it.
   execFileSync('xdotool',['key','--clearmodifiers','ctrl+l']);
   execFileSync('xdotool',['type','--clearmodifiers','--delay','1','http://fixture.test:8765/?case=compose']);
@@ -40,6 +46,9 @@ try {
   const current=await call('tabs');
   tab=current.items.find(item=>item.url?.includes('fixture.test'))?.tab;assert.ok(tab !== undefined);
   await call('take_tab',{tab});
+  const takenRead=await target('Send');
+  const firstInput=await rpc('click',takenRead);assert.equal(firstInput.ok,false);assert.equal(firstInput.error.code,'stale_reference');assert.equal(counts('compose'),0);
+  await eventually(async()=>{const current=await target('Send');return current.reference.document!==takenRead.reference.document;},'taken tab first input reloads and stales old references');
   execFileSync('import',['-window','root','/out/controlled.png']);
   const processes=execFileSync('ps',['-C','chrome','-o','pid,args'],{encoding:'utf8'});assert.doesNotMatch(processes,/--no-sandbox|--remote-debugging-(port|pipe)/);
   const listeners=execFileSync('ss',['-lntp'],{encoding:'utf8'}).split('\n').filter(line=>line.includes('"chrome"'));assert.equal(listeners.length,0);fs.writeFileSync('/out/isolation.json',JSON.stringify({processes,listeners}));baseline.isolation=true;
@@ -108,5 +117,5 @@ try {
   try{execFileSync('import',['-window','root','/out/failure.png']);}catch{}
   throw error;
 } finally {
-  chrome.kill('SIGTERM');await delay(500);if(chrome.exitCode===null)chrome.kill('SIGKILL');fixture.close();fs.rmSync(profile,{recursive:true,force:true});
+  chrome?.kill('SIGTERM');await delay(500);if(chrome&&chrome.exitCode===null)chrome.kill('SIGKILL');fixture.close();fs.rmSync(profile,{recursive:true,force:true});
 }

@@ -53,7 +53,20 @@ export const POLICY = {
     "Page.navigateToHistoryEntry",
     "Page.reload",
     "Page.enable",
-    "Page.handleJavaScriptDialog"
+    "Page.handleJavaScriptDialog",
+    "Runtime.enable",
+    "Runtime.evaluate",
+    "Runtime.callFunctionOn",
+    "Runtime.runIfWaitingForDebugger",
+    "Debugger.enable",
+    "Debugger.disable",
+    "Debugger.setBreakpointByUrl",
+    "Debugger.resume",
+    "Target.setAutoAttach",
+    "Target.detachFromTarget",
+    "DOM.describeNode",
+    "DOM.resolveNode",
+    "Page.getFrameTree"
   ],
   "holdMs": 500,
   "unicodeWords": {

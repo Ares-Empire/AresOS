@@ -44,7 +44,10 @@ class Policy(unittest.TestCase):
                 with self.assertRaises(Refused): allowed_url('https://'+prefix+host+'/')
         for url in ['http://localhost/','https://fixture.test/','about:blank']:
             self.assertEqual(allowed_url(url),url)
-        self.assertNotIn('Runtime.evaluate',CDP_METHODS)
+        self.assertEqual({method for method in CDP_METHODS if method.startswith('Runtime.')},
+                         {'Runtime.enable','Runtime.evaluate','Runtime.callFunctionOn','Runtime.runIfWaitingForDebugger'})
+        self.assertNotIn('Debugger.evaluateOnCallFrame', CDP_METHODS)
+        self.assertNotIn('Runtime.getProperties', CDP_METHODS)
         self.assertFalse(any(name.startswith(('Network.','Fetch.','Accessibility.','DOMSnapshot.')) for name in CDP_METHODS))
 
     def test_qualification_failure_patch_beta_build_and_conservative_rules(self):

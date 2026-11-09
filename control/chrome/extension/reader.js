@@ -4,6 +4,7 @@
   try {
   const elements = new Map(), ids = new WeakMap(), protectedFields = new WeakSet();
   const guard=globalThis[Symbol.for('aresos.chrome.guard.v2')];
+  if(guard.ready)return;
   const documentId = [...crypto.getRandomValues(new Uint8Array(16))].map(value=>value.toString(16).padStart(2,'0')).join('');
   let sequence = 0, revision = 0, controlGeneration = null;
   const traces = [], files = new Map(), watchedRoots = new WeakSet();
@@ -193,8 +194,23 @@
       chat:read(['header [title]','[aria-label="Chat name"]'],fields),context:read(['[aria-label="Action context"]'],fields),preview:read(['[aria-label="Message preview"]'],fields),
       attachments:fields.filter(node=>node.matches('[aria-label^="Attachment:"]')).map(node=>({label:name(node),text:text(node)})),target:target ? name(target):null};
   }
-  guard.reader({document:documentId,id,element:key=>elements.get(key),target:targetFacts,form:(element,submitter)=>formFacts(element.form || (element.tagName==='FORM' ? element:null),submitter || element),report:(step,generation)=>{chrome.runtime.sendMessage({event:'held_step',step,generation}).catch(()=>{});}});
-  chrome.runtime.onMessage.addListener((message, sender, reply) => {
+  guard.reader({document:documentId,id,element:key=>elements.get(key),target:targetFacts,form:(element,submitter)=>formFacts(element.form || (element.tagName==='FORM' ? element:null),submitter || element),report:(step,generation)=>{chrome.runtime.sendMessage({event:'held_step',step,generation}).catch(()=>{});},dispose:()=>{observer.disconnect();revisionObserver.disconnect();files.clear();elements.clear();traces.length=0;chrome.runtime.onMessage.removeListener(onMessage);}});
+  function reloadState(){
+    let unsaved=false;
+    for(const element of all()){
+      if(element.matches('input,textarea,select,[contenteditable]')){
+        if(password(element)){unsaved=true;continue;}
+        // There is no native defaultValue for rich text. A late reader cannot
+        // prove it unchanged, including an editor the owner emptied.
+        if(element.isContentEditable){unsaved=true;continue;}
+        if(element instanceof HTMLSelectElement)unsaved ||= [...element.options].some(option=>option.selected!==option.defaultSelected);
+        else if(['checkbox','radio'].includes(element.type))unsaved ||= element.checked!==element.defaultChecked;
+        else unsaved ||= element.value!==element.defaultValue;
+      }
+    }
+    return {unsaved,playing:all().some(element=>['AUDIO','VIDEO'].includes(element.tagName)&&!element.paused&&!element.ended)};
+  }
+  function onMessage(message, sender, reply) {
     if (sender.id !== chrome.runtime.id || !message || typeof message.command !== 'string') return;
     try {
       let value;
@@ -224,9 +240,11 @@
         if(staged.size===staged.file.size)staged.ready=new File(staged.chunks,staged.file.name,{type:'application/octet-stream',lastModified:0});
         value={offset:staged.size};
       }
-      else if (message.command === 'clear') { controlGeneration=null; files.clear(); guard.clear(); value={cleared:true}; }
+      else if (message.command === 'clear') { controlGeneration=null; files.clear(); guard.dispose(); value={cleared:true}; }
+      else if (message.command === 'dispose') { guard.dispose();value={disposed:true}; }
       else if (['set_control','arm','resume'].includes(message.command)) {}
       else if (message.command === 'hit') value={hit:hit(elements.get(message.element),message.x,message.y)};
+      else if (message.command === 'reload_state') value=reloadState();
       else if (message.command === 'ready') value = {preload:true,document:documentId,...(message.element?{element_present:!!elements.get(message.element)?.isConnected}:{})};
       else if (message.command === 'read' || message.command === 'facts') value = snapshot(message.element);
       else if (message.command === 'steps') { value = guard.steps(); }
@@ -255,6 +273,7 @@
       } else throw Error('permission_denied: unknown content command');
       reply({ok:true, data:value});
     } catch (error) { reply({ok:false, error:String(error.message)}); }
-  });
+  }
+  chrome.runtime.onMessage.addListener(onMessage);
   } catch(error) { console.error('AresOS reader preload',error); chrome.runtime.sendMessage({event:'reader_error',error:String(error.stack || error)}); }
 })();

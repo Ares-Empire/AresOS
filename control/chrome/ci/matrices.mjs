@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {verdicts} from './verdicts.mjs';
 import {setTimeout as delay} from 'node:timers/promises';
+import {measureCompatibility,compareCompatibility} from './compatibility.mjs';
 
 export async function matrices({call,read,nav,target,counts,eventually,tab,fixture,admin,rpc,caller,ownerNavigate,ownerKey,ownerHistory,ownerBookmark,lifecycle,restoreControl,stopClick,baseline,isolationAfter}) {
   const results=[];let trustOperation;
@@ -35,6 +36,25 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
   }
   async function setup(parameters) {await nav('matrix&'+new URLSearchParams(parameters));}
   const words=JSON.parse(fs.readFileSync('control/chrome/extension/policy.js','utf8').match(/\{[\s\S]*\}/)[0]).words;
+  await check('GROUP 7 native compatibility inside and outside Claude tabs',async()=>{
+    await nav('native-compat&id=controlled');
+    const controlled=await measureCompatibility({id:'controlled',fixture,eventually,start:async()=>call('click',await target('Continue'))});
+    fs.writeFileSync('/out/native-controlled.json',JSON.stringify(controlled,null,2));compareCompatibility(controlled,baseline.native);
+  });
+  await check('GROUP 8 taken tabs preserve reads and guard the first input reload',async()=>{
+    for(const mode of ['clean','dirty','media']){
+      const id='taken-'+mode;await call('release_tab',{tab});await ownerNavigate('http://fixture.test:8765/?case=take-state&id='+id+'&mode='+mode);
+      await eventually(()=>counts('loaded-'+id)===1,'taken page initial load');
+      if(mode==='media'){ownerKey();await eventually(()=>counts('playing-'+id)===1,'native media started');}
+      await call('take_tab',{tab});const before=await target('Continue');await read();await read();assert.equal(counts('loaded-'+id),1,'taking and reading never reload');
+      const first=await rpc('click',before);assert.equal(first.ok,false);
+      if(mode==='clean')assert.equal(first.error.code,'stale_reference');
+      else{assert.equal(first.error.code,'reload_required');assert.equal(counts('loaded-'+id),1,'dirty and playing pages are preserved until explicit repeat');const repeated=await rpc('click',{...before,reload_taken_tab:true});assert.equal(repeated.ok,false);assert.equal(repeated.error.code,'stale_reference');}
+      await eventually(()=>counts('loaded-'+id)===2,'only first input reloads');const fresh=await target('Continue');assert.notEqual(fresh.reference.document,before.reference.document);assert.equal((await rpc('click',before)).ok,false,'every old reference stays stale');await call('click',fresh);assert.equal(counts('loaded-'+id),2,'later input never repeats the reload');
+    }
+    await call('release_tab',{tab});await ownerNavigate('http://fixture.test:8765/?case=take-post');ownerKey();
+    await eventually(()=>counts('taken-post')===1,'one native POST loaded the document');await call('take_tab',{tab});const denied=await rpc('click',await target('Continue'));assert.equal(denied.ok,false);assert.match(denied.error.message,/form submission|request method/);await delay(150);assert.equal(counts('taken-post'),1,'refusal must not resubmit POST');
+  });
   await check('GROUP 1 submit compose deletion and free-input matrix',async()=>{
     for(const tag of ['default','submit','override','external','empty','invalid','clobbered'])for(const key of ['click','Enter','Space','field']){
       const id='submit-'+tag+'-'+key;await nav('action-matrix&mode=submit&id='+id+'&tag='+tag);

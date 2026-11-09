@@ -22,7 +22,10 @@ HOLD_MS = 500
 CORE_GROUPS = ['classification', 'page_script', 'binding', 'password_exclusion']
 CDP_METHODS = ['Input.dispatchMouseEvent', 'Input.dispatchKeyEvent', 'Input.insertText',
                'Page.navigate', 'Page.getNavigationHistory', 'Page.navigateToHistoryEntry', 'Page.reload',
-               'Page.enable', 'Page.handleJavaScriptDialog']
+               'Page.enable', 'Page.handleJavaScriptDialog',
+               'Runtime.enable', 'Runtime.evaluate', 'Runtime.callFunctionOn', 'Runtime.runIfWaitingForDebugger',
+               'Debugger.enable', 'Debugger.disable', 'Debugger.setBreakpointByUrl', 'Debugger.resume', 'Target.setAutoAttach', 'Target.detachFromTarget',
+               'DOM.describeNode', 'DOM.resolveNode', 'Page.getFrameTree']
 
 
 # Frozen data keeps service/Chrome Unicode versions and locale from disagreeing.

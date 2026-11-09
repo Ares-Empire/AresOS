@@ -6,7 +6,7 @@ import {execFileSync} from 'node:child_process';
 
 const policy=JSON.parse(fs.readFileSync('control/chrome/extension/policy.js','utf8').match(/\{[\s\S]*\}/)[0]);
 
-function fixture() {
+function fixture({relay=false}={}) {
   const windowListeners=new Map(),reports=[],arrivals=[],nodes=[],bridgeDetails=[];let now=0;
   class Event {
     constructor(type,options={}) {Object.assign(this,{type,cancelable:true,defaultPrevented:false,stopped:false,eventPhase:0,isTrusted:false,...options});}
@@ -18,6 +18,7 @@ function fixture() {
   class EventTarget {
     listeners=new Map();
     addEventListener(type,fn){if(!this.listeners.has(type))this.listeners.set(type,[]);this.listeners.get(type).push(fn);}
+    removeEventListener(type,fn){this.listeners.set(type,(this.listeners.get(type)||[]).filter(value=>value!==fn));}
     dispatchEvent(event){
       event.target=this;event.eventPhase=1;
       try {
@@ -29,15 +30,16 @@ function fixture() {
     }
   }
   const originalDispatch=EventTarget.prototype.dispatchEvent;
-  class Element extends EventTarget {
+  class Node extends EventTarget {getRootNode(){return this.root??document;}}
+  class Element extends Node {
     isConnected=true;tagName='DIV';type='';textContent='';form=null;role='';
     constructor(){super();nodes.push(this);}
     get childNodes(){return [{nodeType:3,textContent:this.textContent}];}
-    getRootNode(){return document;}
     closest(){return this;}
     getAttribute(name){return this[name]||null;}
     matches(){return false;}
     querySelector(){return null;}
+    appendChild(node){node.parentNode=this;this.firstElementChild??=node;return node;}
   }
   class HTMLElement extends Element {click(){originalDispatch.call(this,new Event('click'));}}
   class HTMLInputElement extends HTMLElement {}
@@ -47,9 +49,13 @@ function fixture() {
     requestSubmit(submitter){if(!this.valid)return;const event=new Event('submit',{submitter});if(originalDispatch.call(this,event))arrivals.push('event');}
   }
   const document=new EventTarget();document.getElementById=key=>document.labels?.[key];
-  const window={addEventListener(type,fn){if(!windowListeners.has(type))windowListeners.set(type,[]);windowListeners.get(type).push(fn);}};
-  class MessageChannel {port1={};port2={postMessage:token=>setImmediate(()=>this.port1.onmessage?.({data:token}))};}
-  const globals={window,document,performance:{now:()=>now},setTimeout,MessageChannel,Symbol,Event,CustomEvent,EventTarget,Element,HTMLElement,HTMLInputElement,HTMLFormElement,DOMException,URL};
+  if(relay)document.createElement=()=>{const node=new HTMLElement();node.root=node;node.ownerDocument=document;node.isConnected=false;node.parentNode=null;return node;};
+  const window={addEventListener(type,fn){if(!windowListeners.has(type))windowListeners.set(type,[]);windowListeners.get(type).push(fn);},removeEventListener(type,fn){windowListeners.set(type,(windowListeners.get(type)||[]).filter(value=>value!==fn));}};
+  class MessageChannel {port1={close(){}};port2={postMessage:token=>setImmediate(()=>this.port1.onmessage?.({data:token})),close(){}};}
+  class AbstractRange {get startContainer(){return this.start;}}
+  class StaticRange extends AbstractRange {constructor(options){super();this.start=options.startContainer;}}
+  class InputEvent extends Event {constructor(type,options={}){super(type,options);this.ranges=options.targetRanges?Array.from(options.targetRanges):[];}getTargetRanges(){return this.ranges;}}
+  const globals={window,document,performance:{now:()=>now},setTimeout,MessageChannel,Symbol,Event,CustomEvent,EventTarget,Node,Element,HTMLElement,HTMLInputElement,HTMLFormElement,DOMException,URL,...(relay?{AbstractRange,StaticRange,InputEvent}:{})};
   const isolated=vm.createContext({...globals});
   vm.runInContext(fs.readFileSync('control/chrome/extension/guard.js','utf8'),isolated);
   const guard=vm.runInContext("globalThis[Symbol.for('aresos.chrome.guard.v2')]",isolated);
@@ -58,13 +64,58 @@ function fixture() {
   function name(node){const labels=(node['aria-labelledby']||'').split(/\s+/).map(key=>document.getElementById(key)).filter(Boolean);return labels.length ? labels.map(label=>label.textContent).join(' ') : node['aria-label'] || node.labels?.map(label=>label.textContent).join(' ') || node.textContent;}
   guard.reader({document:'document-1',id,element:key=>elements.get(key),target:node=>({name:name(node),title:node.title,role:node.role,password:!!node.password,submit:!!node.form && node.type==='submit',editable:node instanceof HTMLInputElement}),form:(node,button)=>{const form=node.form || (node.tagName==='FORM' ? node:null);return form ? {method:button?.formmethod || form.method,search:form.role==='search',action:button?.formAction || form.action,encoding:form.encoding||'application/x-www-form-urlencoded',target:form.target||''}:null;}});
   const main=vm.createContext({...globals});
-  vm.runInContext(fs.readFileSync('control/chrome/extension/page.js','utf8'),main);
+  const nativeStrings=[HTMLFormElement.prototype.submit,HTMLFormElement.prototype.requestSubmit,HTMLElement.prototype.click,EventTarget.prototype.dispatchEvent].map(fn=>Function.prototype.toString.call(fn));
+  const installed=vm.runInContext(fs.readFileSync('control/chrome/extension/page.js','utf8'),main);
+  if(relay){guard.relay(installed.relay);installed.activate();}
+  const cleanup=relay?installed.cleanup:installed;
   assert.equal(vm.runInContext("globalThis[Symbol.for('aresos.chrome.page.v1')]",main),undefined);
   assert.equal(vm.runInContext("globalThis[Symbol.for('aresos.chrome.guard.v2')]",main),undefined);
   function arm(target,form,operation=null,conservative=false){guard.arm({generation:'epoch',config:{...policy,conservative},target:id(target),form:form ? id(form):null,operation,primary_submission:false});}
   const api={...guard,resume:(id,operation)=>{const step=reports.find(item=>item.id===id);return guard.resume(id,operation,step?.submitter||step?.element,step?.element);}};
-  return {api,guard,arrivals,bridgeDetails,get reports(){reports.push(...guard.steps());return reports;},document,HTMLFormElement,HTMLElement,HTMLInputElement,Event,CustomEvent,originalDispatch,arm,main,id,advance:milliseconds=>{now+=milliseconds;}};
+  return {api,guard,arrivals,bridgeDetails,cleanup,nativeStrings,Node,EventTarget,get reports(){reports.push(...guard.steps());return reports;},document,HTMLFormElement,HTMLElement,HTMLInputElement,Event,CustomEvent,originalDispatch,arm,main,id,advance:milliseconds=>{now+=milliseconds;}};
 }
+
+test('private permit keeps native Event identity and payload without exposing a carrier',()=>{
+  const f=fixture({relay:true}),button=new f.HTMLElement();button.textContent='Ordinary control';button.tagName='BUTTON';f.arm(button,null);
+  const event=new f.CustomEvent('click',{detail:{unchanged:true}});let same=false,payload;
+  button.addEventListener('click',actual=>{same=actual===event;payload=actual.detail;actual.preventDefault();});
+  assert.equal(button.dispatchEvent(event),false);assert.equal(same,true);assert.equal(payload,event.detail);assert.equal(event.target,button);assert.equal(f.reports.length,0);
+});
+
+test('held and failed private requests never disclose a relay or accept a forged cleanup',()=>{
+  const f=fixture({relay:true}),button=new f.HTMLElement(),form=new f.HTMLFormElement();button.textContent='Delete';button.tagName='BUTTON';let delivered=0;button.addEventListener('click',()=>delivered++);f.arm(button,null);
+  const event=new f.Event('click');assert.equal(button.dispatchEvent(event),false);assert.notEqual(event.target?.firstElementChild?.ownerDocument,f.document);assert.equal(event.target,undefined);assert.equal(delivered,0);
+  f.originalDispatch.call(form,new f.Event('aresos-relay-cleanup'));form.submit();assert.equal(f.arrivals.length,0);assert.equal(f.reports.filter(step=>step.kind==='native_submit').length,1);
+  const approved=f.reports.find(step=>step.kind==='native_submit');f.api.resume(approved.id,'one');assert.equal(f.arrivals.length,1);assert.throws(()=>f.api.resume(approved.id,'one'));
+  const cached=button.click;f.cleanup();f.guard.dispose();cached.call(button);assert.equal(delivered,1,'cached wrappers also return to native behavior after release');
+});
+
+test('private options never run inherited getters, patched enumeration or array iterators',()=>{
+  const f=fixture({relay:true}),button=new f.HTMLElement();button.textContent='Ordinary control';button.tagName='BUTTON';f.arm(button,null);let received=0;button.addEventListener('click',()=>received++);
+  vm.runInContext("globalThis.callbacks=0;Object.keys=()=>{callbacks++;throw 'page keys'};for(const key of ['bubbles','composed','get','set','request']){const description=Object.create(null);description.configurable=true;description.get=function(){callbacks++;throw 'page getter'};Object.defineProperty(Object.prototype,key,description);}Array.prototype[Symbol.iterator]=function(){callbacks++;throw 'page iterator'}",f.main);
+  assert.equal(button.dispatchEvent(new f.Event('click')),true);assert.equal(received,1);assert.equal(vm.runInContext('callbacks',f.main),0);
+});
+
+test('native behavior outside the own composed document includes detached and inert targets',()=>{
+  const f=fixture();
+  for(const root of [new f.EventTarget(),{inert:'DOMParser'},{inert:'createHTMLDocument'},{inert:'template'}]){
+    const node=new f.HTMLElement();node.root=root;let received=0;node.addEventListener('click',event=>{received++;event.preventDefault();});
+    f.arm(node,null);assert.equal(node.dispatchEvent(new f.Event('click')),false);assert.equal(received,1);
+    node.click();assert.equal(received,2);assert.equal(f.reports.length,0);
+  }
+  const bus=new f.EventTarget();let delivered=0;bus.addEventListener('message',()=>delivered++);
+  assert.equal(bus.dispatchEvent(new f.Event('message')),true);assert.equal(delivered,1);
+});
+
+test('native root check cannot be replaced and private cleanup restores the four natives',()=>{
+  const f=fixture(),button=new f.HTMLElement();button.tagName='BUTTON';button.textContent='Delete';f.arm(button,null);
+  f.Node.prototype.getRootNode=()=>({detached:true});button.click();assert.equal(f.reports.length,1);
+  const strings=vm.runInContext('[HTMLFormElement.prototype.submit,HTMLFormElement.prototype.requestSubmit,HTMLElement.prototype.click,EventTarget.prototype.dispatchEvent].map(fn=>Function.prototype.toString.call(fn))',f.main);
+  assert.deepEqual(Array.from(strings),f.nativeStrings);
+  const wrapped=f.HTMLElement.prototype.click;
+  f.cleanup();assert.notEqual(f.HTMLElement.prototype.click,wrapped);assert.equal(f.EventTarget.prototype.dispatchEvent,f.originalDispatch);
+  assert.equal(vm.runInContext('globalThis.cleanup',f.main),undefined);
+});
 
 test('group2 native submit resumes without checks or submit events',()=>{
   const f=fixture(),form=new f.HTMLFormElement();form.valid=false;
@@ -200,7 +251,8 @@ test('group1 capitalized shipped Papierkorb holds wrappers and capture equally',
 test('group7 replacing public wrapper prototypes and call intrinsics only adds holds',()=>{
   const f=fixture(),form=new f.HTMLFormElement();f.arm(form,form);
   vm.runInContext("Function.prototype.call=function(){throw Error('page replaced call')};Reflect.apply=()=>{throw Error('page replaced apply')};Object.defineProperty=()=>{throw Error('page replaced define')}",f.main);
-  assert.throws(()=>{f.HTMLFormElement.prototype.submit=function(){};});
+  const wrapper=f.HTMLFormElement.prototype.submit;
+  f.HTMLFormElement.prototype.submit=function(){return wrapper.apply(this,arguments);};
   form.submit();assert.equal(f.arrivals.length,0);
   f.api.resume(f.reports[0].id,'approved');assert.equal(f.arrivals.length,1);
 });

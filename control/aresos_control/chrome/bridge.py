@@ -102,7 +102,7 @@ class Bridge:
                     raw = reply.get('error','refused: Chrome refused input')
                     code, separator, message = raw.partition(':')
                     if not separator: message = raw
-                    raise Refused(code if code in {'stale_reference','stale_approval','owner_signin','refused','permission_denied','unknown','transport_error'} else 'refused', message.strip())
+                    raise Refused(code if code in {'stale_reference','stale_approval','reload_required','owner_signin','refused','permission_denied','unknown','transport_error'} else 'refused', message.strip())
                 return reply['data']
         except (OSError, ValueError, binascii.Error, TypeError) as exc:
             self.close()

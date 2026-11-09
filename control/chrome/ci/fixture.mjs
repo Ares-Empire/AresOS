@@ -1,8 +1,10 @@
 import http from 'node:http';
 import fs from 'node:fs';
+import {compatibilityScript} from './compatibility.mjs';
 const page=(body,script='')=>`<!doctype html><meta charset="utf-8"><title>Synthetic fixture</title><style>body{font:16px sans-serif;margin:20px}button,input,textarea{margin:8px}</style>${body}<script>${script}</script>`;
 export async function fixtures(options={}) {
   const arrivals=[],streams=new Map(),mutations=new Map();let mutationSequence=0;
+  const compatibility=[],compatibilityDownloads=[];
   const server=http.createServer(async(req,res)=>{
     const url=new URL(req.url,'http://fixture.test:8765');
     if(url.pathname==='/favicon.ico'){res.writeHead(204);res.end();return;}
@@ -11,7 +13,14 @@ export async function fixtures(options={}) {
       res.setHeader('Content-Type','application/xml');res.end(`<?xml version="1.0"?><gupdate xmlns="http://www.google.com/update2/response" protocol="2.0"><app appid="${id}"><updatecheck codebase="http://127.0.0.1:8765/extension.crx" version="${version}"/></app></gupdate>`);return;
     }
     if(url.pathname === '/extension.crx'){res.end(fs.readFileSync('/workspace/.work/20-package/own-extension.crx'));return;}
-    if(url.pathname === '/download'){res.setHeader('Content-Disposition','attachment; filename="synthetic-'+url.searchParams.get('id')+'.txt"');res.setHeader('Content-Type','text/plain');res.end('Synthetic downloadable bytes');return;}
+    if(url.pathname === '/download'){compatibilityDownloads.push(url.searchParams.get('id'));res.setHeader('Content-Disposition','attachment; filename="synthetic-'+url.searchParams.get('id')+'.txt"');res.setHeader('Content-Type','text/plain');res.end('Synthetic downloadable bytes');return;}
+    if(url.pathname==='/compat-report'){let body='';for await(const part of req)body+=part;const value=JSON.parse(body);compatibility.push(value);fs.appendFileSync('/out/native-compatibility.jsonl',JSON.stringify(value)+'\n');res.end('ok');return;}
+    if(url.pathname==='/tone.wav'){
+      const wav=Buffer.alloc(44+16000);wav.write('RIFF',0);wav.writeUInt32LE(wav.length-8,4);wav.write('WAVEfmt ',8);wav.writeUInt32LE(16,16);wav.writeUInt16LE(1,20);wav.writeUInt16LE(1,22);wav.writeUInt32LE(8000,24);wav.writeUInt32LE(16000,28);wav.writeUInt16LE(2,32);wav.writeUInt16LE(16,34);wav.write('data',36);wav.writeUInt32LE(16000,40);res.setHeader('Content-Type','audio/wav');res.end(wav);return;
+    }
+    if(url.pathname==='/post-document'){
+      let body='';for await(const part of req)body+=part;const record={time:Date.now(),url:req.url,method:req.method,body,host:req.headers.host};arrivals.push(record);fs.appendFileSync('/out/receiver.jsonl',JSON.stringify(record)+'\n');res.end(page('<button type="button">Continue</button>'));return;
+    }
     if(url.pathname === '/events'){res.writeHead(200,{'Content-Type':'text/event-stream','Cache-Control':'no-cache'});res.write(': ready\n\n');const id=url.searchParams.get('id');streams.set(id,res);res.on('close',()=>{if(streams.get(id)===res)streams.delete(id);});return;}
     if(url.pathname === '/observe'){let body='';for await(const part of req)body+=part;fs.appendFileSync('/out/page-events.jsonl',body+'\n');res.end('observed');return;}
     if(url.pathname==='/mutation-ack'){const pending=mutations.get(url.searchParams.get('nonce'));if(pending)pending();res.writeHead(204);res.end();return;}
@@ -26,7 +35,15 @@ export async function fixtures(options={}) {
     // not exhaust Chrome's six HTTP/1.1 connections and hide later receivers.
     if(!['draft-inner','password-inner'].includes(kind))for(const [id,stream]of streams){stream.end();streams.delete(id);}
     let body,script='';
-    if(kind==='features') {
+    if(kind==='native-compat'){
+      body='<button type="button" id="continue">Continue</button>';script=compatibilityScript(url.searchParams.get('id'));
+    }else if(kind==='take-post'){
+      body='<form method="post" action="/post-document?case=taken-post"><button type="submit">Load POST</button></form>';
+    }else if(kind==='take-state'){
+      const id=url.searchParams.get('id'),mode=url.searchParams.get('mode');
+      body='<button type="button" id="play">Play media</button><input aria-label="Draft" value="Saved"><button type="button" id="continue">Continue</button><audio loop src="/tone.wav"></audio><form method="post" action="/post-document?case='+id+'"><button type="submit">Load POST</button></form>';
+      script=`fetch('/receive?case=loaded-${id}',{method:'POST'});${mode==='dirty'?"document.querySelector('input').value='Unsaved';":''}document.querySelector('#play').onclick=()=>document.querySelector('audio').play().then(()=>fetch('/receive?case=playing-${id}',{method:'POST'}));`;
+    } else if(kind==='features') {
       body='<form><input aria-label="First" name="first" value="Original first"><input aria-label="Second" name="second" value="Original second"><select name="choice" aria-label="Choice"><option value="a">First option</option><option value="b">Second option</option><option value="c" disabled>Disabled option</option></select><input type="hidden" name="hidden" value="Hidden field"><input type="checkbox" name="tick" aria-label="Tick"></form><a href="/download?id='+url.searchParams.get('id')+'">Download fixture</a><p>Findable synthetic paragraph</p>';
     } else if(kind==='compose') {
       body='<label>Message<textarea aria-label="Message">Existing synthetic draft</textarea></label><button>Send</button><p aria-label="Preview">Read-only preview</p>';
@@ -99,7 +116,7 @@ export async function fixtures(options={}) {
       script=`document.querySelector('button').onclick=()=>{if(${mode==='prompt'?'prompt':mode==='alert'?'(value=>{alert(value);return true;})':'confirm'}(${JSON.stringify(text)}))${mode==='form'?"document.querySelector('form').submit()":"fetch('/receive?case='+"+JSON.stringify(id)+",{method:'POST',body:'confirmed'})"};};`;
     } else if(kind==='owner-task') {
       const id=url.searchParams.get('id')||'owner-task',delay=Number(url.searchParams.get('delay')||100),replay=url.searchParams.get('replay')==='1',busy=Number(url.searchParams.get('busy')||0);
-      body='<button type="button" id="continue">Continue</button><button type="button" id="owner">Owner input</button><form action="/receive?case='+id+'" method="post" target="sink"><input name="source" value="owner task"></form><iframe name="sink" hidden></iframe>';
+      body='<button type="button" id="continue">Continue</button><form action="/receive?case='+id+'" method="post" target="sink"><input id="owner" aria-label="Owner input" name="source" value="owner task"></form><iframe name="sink" hidden></iframe>';
       script=`const observe=(phase,event)=>fetch('/observe',{method:'POST',body:JSON.stringify({id:${JSON.stringify(id)},phase,time:Date.now(),trusted:event?.isTrusted,eventPhase:event?.eventPhase})});const form=document.querySelector('form');document.querySelector('#continue').onclick=()=>{fetch('/receive?case=task-start',{method:'POST',body:${JSON.stringify(id)}});const until=performance.now()+${busy};while(performance.now()<until){};};
         document.querySelector('#owner').onkeydown=event=>{if(event.key==='Enter')event.preventDefault();};document.querySelector('#owner').${replay?'onkeyup':'onkeydown'}=event=>{if(event.key==='Enter'){observe('owner-handler',event);event.preventDefault();form.submit();if(event.isTrusted)setTimeout(()=>{observe('delayed-handler',event);${replay?"document.querySelector('#owner').dispatchEvent(event)":'form.submit()'}},${delay});}};`;
     } else if(kind==='page-forgery') {
@@ -223,7 +240,7 @@ export async function fixtures(options={}) {
   await new Promise(resolve=>server.listen(options.port??8765,'0.0.0.0',resolve));
   const second=http.createServer(server.listeners('request')[0]);
   await new Promise(resolve=>second.listen(options.secondPort??8766,'0.0.0.0',resolve));
-  return {arrivals,port:server.address().port,mutate:async(id,change)=>{
+  return {arrivals,compatibility,compatibilityDownloads,port:server.address().port,mutate:async(id,change)=>{
     const deadline=Date.now()+5000;
     while(!streams.has(id)&&Date.now()<deadline)await new Promise(resolve=>setTimeout(resolve,10));
     const stream=streams.get(id);if(!stream)throw Error('Mutation fixture stream is not connected: '+id);

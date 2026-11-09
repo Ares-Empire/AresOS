@@ -17,6 +17,10 @@ if test "${INJECTION_PROBE:-}" = true; then
 fi
 python3 -m unittest discover -s control/chrome_tests -v 2>&1 | tee /out/python.txt
 node --test control/chrome_tests/*.test.mjs 2>&1 | tee /out/node.txt
+runuser -u owner -- env GITHUB_ACTIONS=true dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1000x24' bash -c '
+  openbox > /out/baseline-openbox.txt 2>&1 &
+  node control/chrome/ci/baseline.mjs
+' 2>&1 | tee /out/baseline.txt
 node control/chrome/ci/prepare.mjs
 runuser -u aresos-tools -- env PYTHONPATH=/workspace/control PYTHONDONTWRITEBYTECODE=1 GITHUB_ACTIONS=true python3 control/chrome/ci/service.py > /out/service.txt 2>&1 &
 service_pid=$!

@@ -408,6 +408,9 @@ class Chrome:
             self.allowed_url(href)
         adapter = recognize(frame['url'], frame['adapter'], frame['target'], verb, args, self.hosts, mode['adapters'])
         kind = classify(verb,args,frame,conservative=mode['conservative'],readonly=readonly,adapter=adapter)
+        if facts.get('needs_reload'):
+            self.free('prepare_control', tab=args['reference']['tab'], reload_taken_tab=args.get('reload_taken_tab', False))
+            raise Refused('stale_reference', 'The taken tab reloaded to install its page guard. Every old reference is stale; read again.')
         if hold:
             kind = 'form'
         state = binding(facts,args['reference'],kind,adapter)
@@ -453,12 +456,14 @@ class Chrome:
                 if arguments['url']!='about:blank':
                     self.bridge.call('navigate',tab=reply['tab'],url=arguments['url'])
         except Refused as exc:
-            certain=exc.code in {'stale_reference','stale_approval','owner_signin','refused','permission_denied','chrome_unavailable'}
+            certain=exc.code in {'stale_reference','stale_approval','reload_required','owner_signin','refused','permission_denied','chrome_unavailable'}
             op.update(state='failed' if certain else 'unknown',reason=('Nothing dispatched: ' if certain else 'Input may have run: ')+str(exc))
             self.store.write({'op:'+op_id:op},op['action'],'Chrome input refused before effect' if certain else 'Chrome input outcome unknown',op_id)
             raise
         op['stages'] = {'dispatched':'Input dispatched once; delivery not proven.','page':visible(reply)}
         op.update(state='done',reason='Free input dispatched once, as the page shows it.')
+        if reply.get('cleanup_pending'):
+            op.update(state='unknown',notice=True,reason='Input authority ended; native cleanup is still pending. Close the page dialog and inspect tabs before taking it again; never replay this operation.')
         followups=self.steps(reply.get('steps', []),payload['reference']['tab']) if payload else []
         if any(step['kind']=='activation_unknown' for step in reply.get('steps',[])):
             op.update(state='unknown',reason='Input ran, but a page activation may have happened; inspect the page and never replay.')

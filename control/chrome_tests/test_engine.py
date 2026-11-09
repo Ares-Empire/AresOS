@@ -61,6 +61,44 @@ class Operations(unittest.TestCase):
         result=self.call('click',self.target());self.assertTrue(result['ok'],result)
         return result['data']['approval']
 
+    def test_taken_read_preserves_document_and_first_input_commits_reload_before_staling(self):
+        self.browser.facts['needs_reload']=True
+        old=self.target();self.assertTrue(self.call('read',{'tab':1})['ok']);self.assertEqual(self.browser.dispatched,[])
+        original=self.browser.call
+        def request(name,**args):
+            if name=='prepare_control':
+                committed=[operation for _,operation in self.engine.store.iter_items('op:') if operation['action']=='chrome_prepare_control']
+                self.assertEqual(len(committed),1);self.assertEqual(committed[0]['state'],'submitting')
+                self.assertEqual(args,{'tab':1,'reload_taken_tab':False})
+                self.browser.facts['needs_reload']=False
+                self.browser.facts['frames'][0]['document']='new-document'
+                self.browser.dispatched.append((name,args));return {'reloaded':True}
+            return original(name,**args)
+        self.browser.call=request
+        result=self.call('click',old);self.assertFalse(result['ok']);self.assertEqual(result['error']['code'],'stale_reference')
+        self.assertEqual([name for name,_ in self.browser.dispatched],['prepare_control'])
+        self.assertFalse(self.call('click',old)['ok'])
+        self.assertTrue(self.call('click',self.target())['data']['approval'])
+
+    def test_taken_reload_warning_requires_explicit_repeat_and_readonly_never_reloads(self):
+        from aresos_control.common import Refused
+        self.browser.facts['needs_reload']=True
+        original=self.browser.call;attempts=[]
+        def request(name,**args):
+            if name=='prepare_control':
+                attempts.append(args)
+                if not args.get('reload_taken_tab'):raise Refused('reload_required','Unsaved text and playing media; explicit repeat required.')
+                self.browser.facts['needs_reload']=False;return {'reloaded':True}
+            return original(name,**args)
+        self.browser.call=request
+        result=self.call('click',self.target());self.assertEqual(result['error']['code'],'reload_required');self.assertEqual(self.browser.dispatched,[])
+        operations=[operation for _,operation in self.engine.store.iter_items('op:') if operation['action']=='chrome_prepare_control']
+        self.assertEqual(operations[0]['state'],'failed')
+        result=self.call('click',{**self.target(),'reload_taken_tab':True});self.assertEqual(result['error']['code'],'stale_reference');self.assertTrue(attempts[-1]['reload_taken_tab'])
+        self.browser.facts['needs_reload']=True
+        self.engine.store.write({'chrome:readonly:fixture.test':True},'chrome_test_readonly','Synthetic read-only restriction')
+        result=self.call('click',self.target());self.assertFalse(result['ok']);self.assertEqual(len(attempts),2)
+
     def test_group1_approval_first_exact_and_dispatch_once(self):
         approval=self.prepare();self.assertEqual(self.browser.dispatched,[])
         self.assertEqual(list(approval),['question','operation_id','description'])

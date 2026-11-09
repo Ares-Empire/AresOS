@@ -26,6 +26,38 @@ function stepFixture(){
 
 const heldStep=(id='h1')=>({id,document:'old-document',element:'e1',submitter:null,kind:'activation_unknown',cancellable:false,label:'Delete'});
 
+function lifecycleFixture(){
+  const f=fixture();f.run("const nativeTimer=setTimeout;setTimeout=(callback,delay)=>{const timer=nativeTimer(callback,delay);timer.unref?.();return timer};excludedHosts=[];groupId=1;globalThis.lifecycleCalls=[];chrome.runtime={getURL:path=>'chrome-extension://fixture/'+path};chrome.action={setBadgeText:async()=>{},setBadgeBackgroundColor:async()=>{}};chrome.webNavigation={getAllFrames:async()=>[]};chrome.tabs={get:async()=>({url:'http://fixture.test/',windowId:1,index:0,groupId:1}),group:async()=>{lifecycleCalls.push('group');return 1},ungroup:async()=>{lifecycleCalls.push('ungroup')},move:async()=>{}};chrome.tabGroups={update:async()=>{}};chrome.debugger={attach:async()=>{},detach:async()=>{lifecycleCalls.push('detach')},sendCommand:async(source,method,parameters)=>{lifecycleCalls.push(method);return {};}};");return f;
+}
+async function spin(f,expression){for(let count=0;count<200&&!f.run(expression);count++)await Promise.resolve();assert.equal(!!f.run(expression),true,expression);}
+
+test('Stop cancels a tab admission still awaiting attach without grouping it',async()=>{
+  const f=lifecycleFixture();f.run('chrome.debugger.attach=()=>new Promise(resolve=>{globalThis.finishAttach=resolve})');
+  const pending=f.run('take(7)');await spin(f,"typeof finishAttach==='function'");await f.run('stop()');f.run('finishAttach()');
+  await assert.rejects(pending,/control stopped/);assert.equal(f.run('controlled.size'),0);assert.equal(f.run("lifecycleCalls.includes('group')"),false);assert.equal(f.run("lifecycleCalls.includes('detach')"),true);
+});
+
+test('a popup whose identity arrives after Stop cannot resurrect control',async()=>{
+  const f=lifecycleFixture();f.run("controlled.set(7,{epoch:'parent'});preloadTargets.set('[7,null]',{source:{tabId:7},tab:7,epoch:'parent',contexts:new Map(),documents:new Map(),installing:new Set()});chrome.debugger.getTargets=()=>new Promise(resolve=>{globalThis.popupIdentity=resolve})");
+  const pending=f.run("preloadEvent({tabId:7},'Target.attachedToTarget',{sessionId:'popup-session',targetInfo:{type:'page',targetId:'popup'}})");
+  await spin(f,"typeof popupIdentity==='function'");await f.run('stop()');f.run("popupIdentity([{id:'popup',tabId:8}])");await pending;
+  assert.equal(f.run('controlled.size'),0);assert.equal(f.run("lifecycleCalls.includes('Runtime.runIfWaitingForDebugger')"),false);assert.equal(f.run("lifecycleCalls.includes('group')"),false);
+});
+
+test('Stop during blocked native cleanup returns pending and preserves handles until restoration',async()=>{
+  const f=lifecycleFixture();f.run("globalThis.clockTimers=[];setTimeout=(callback,delay)=>{clockTimers.push({callback,delay});return 0};controlled.set(7,{epoch:'epoch'});preloadTargets.set('[7,null]',{source:{tabId:7},tab:7,contexts:new Map(),documents:new Map([['main',{cleanup:'restore'}]]),installing:new Set()});chrome.debugger.sendCommand=(source,method)=>{lifecycleCalls.push(method);return method==='Runtime.callFunctionOn'?new Promise(resolve=>{globalThis.unblockCleanup=resolve}):Promise.resolve({})};");
+  const stopped=f.run('stop()');await spin(f,"typeof unblockCleanup==='function'");assert.equal(f.run('controlled.size'),0);assert.equal(f.run("lifecycleCalls.includes('detach')"),false);assert.equal(f.run("lifecycleCalls.includes('ungroup')"),false);
+  f.run('clockTimers.find(timer=>timer.delay===1000).callback()');const result=await stopped;assert.equal(result.stopped,true);assert.equal(result.cleanup_pending,1);assert.equal(f.run('preloadTargets.size'),1);
+  await assert.rejects(f.run('take(7)'),/cleanup is still pending/);
+  f.run('unblockCleanup({})');await spin(f,"releasing.size===0");assert.equal(f.run("lifecycleCalls.includes('detach')"),true);assert.equal(f.run("lifecycleCalls.includes('ungroup')"),true);
+});
+
+test('a POST document arriving during reload inspection is never reloaded',async()=>{
+  const f=fixture();f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({});facts=async()=>({needs_reload:true,frames:[{frame:0}]});globalThis.topDocument='get';globalThis.reloads=0;documentMethods.set('[7,0]',{document:'get',method:'GET'});chrome.webNavigation={getAllFrames:async()=>[{frameId:0,documentId:topDocument,url:'http://fixture.test/'}]};cdp=async(tab,method)=>{if(method==='Page.getFrameTree')return {frameTree:{frame:{url:'http://fixture.test/',loaderId:topDocument}}};reloads++};content=async()=>{topDocument='post';documentMethods.set('[7,0]',{document:'post',method:'POST'});return {unsaved:false,playing:false};};");
+  await assert.rejects(f.run("dispatch({name:'prepare_control',tab:7,reload_taken_tab:true})"),/form submission/);assert.equal(f.run('reloads'),0);
+  await assert.rejects(f.run("dispatch({name:'navigate',tab:7,direction:'reload'})"),/form submission/);assert.equal(f.run('reloads'),0);
+});
+
 test('owner exclusions are mandatory and the private audit switch needs no page access',async()=>{
   const f=fixture();
   await assert.rejects(f.run("dispatch({name:'tabs'})"),/owner-only excluded-sites/);
@@ -35,12 +67,42 @@ test('owner exclusions are mandatory and the private audit switch needs no page 
     assert.throws(()=>f.run(`safeURL(${JSON.stringify(address)})`),/approval\/settings/);
   }
   assert.equal(f.run("safeURL('https://fixture.test/')"),'https://fixture.test/');
-  assert.equal(f.registrations.length,2);
+  assert.equal(f.registrations.length,1);
   for(const script of f.registrations){
+    assert.equal(script.world,'ISOLATED');assert.deepEqual(Array.from(script.js),['context.js']);
     assert.equal(script.runAt,'document_start');
     assert.ok(script.excludeMatches.includes('https://*.approval.test/*'));
     assert.ok(script.excludeMatches.includes('https://*.approval.test./*'));
   }
+  assert.doesNotMatch(fs.readFileSync('control/chrome/extension/context.js','utf8'),/\b(?:window|document|globalThis|addEventListener|preventDefault|stopPropagation)\b/);
+  assert.equal(JSON.parse(fs.readFileSync('control/chrome/extension/manifest.json')).content_scripts,undefined);
+});
+
+test('startup evaluates only fixed bundles in authenticated private contexts before resuming',async()=>{
+  const f=fixture();f.run("globalThis.startup=[];chrome.runtime={getURL:path=>'chrome-extension://fixture/'+path};chrome.debugger={sendCommand:async(source,method,parameters)=>{startup.push({source,method,parameters});if(method==='Debugger.setBreakpointByUrl')return {breakpointId:'inert-breakpoint'};if(method==='Runtime.evaluate')return parameters.returnByValue?{result:{value:'private-document'}}:{result:{objectId:'private-cleanup'}};if(method==='Runtime.callFunctionOn')return parameters.returnByValue?{result:{value:'private-document'}}:{result:{objectId:'relay'}};if(method==='DOM.describeNode')return {node:{backendNodeId:1}};if(method==='DOM.resolveNode')return {object:{objectId:'isolated-relay'}};return {};}};preloadBundle=Promise.resolve(['// guard fixture','// reader fixture','// wrapper fixture']);controlled.set(7,{epoch:'epoch'});");
+  await f.run('prepareTarget({tabId:7})');
+  for(const context of [{id:1,uniqueId:'main',origin:'http://fixture.test',auxData:{isDefault:true,frameId:'frame'}},{id:2,uniqueId:'isolated',origin:'chrome-extension://fixture',auxData:{isDefault:false,frameId:'frame'}}])await f.run(`preloadEvent({tabId:7},'Runtime.executionContextCreated',{context:${JSON.stringify(context)}})`);
+  await f.run("preloadEvent({tabId:7},'Debugger.scriptParsed',{scriptId:'bootstrap',executionContextId:2})");
+  await f.run("preloadEvent({tabId:7},'Debugger.paused',{hitBreakpoints:['inert-breakpoint'],callFrames:[{location:{scriptId:'bootstrap'}}]})");
+  const commands=Array.from(f.run('startup'));
+  const evaluated=commands.filter(value=>value.method==='Runtime.evaluate');
+  assert.deepEqual(evaluated.map(value=>value.parameters.uniqueContextId),['isolated','main']);
+  assert.ok(evaluated.every(value=>value.parameters.disableBreaks===true));
+  assert.match(evaluated[0].parameters.expression,/guard fixture/);assert.match(evaluated[0].parameters.expression,/reader fixture/);
+  assert.equal(commands.at(-1).method,'Debugger.resume');assert.equal(f.run("isPreloaded(7,'private-document')"),true);
+  await f.run("preloadEvent({tabId:7},'Runtime.executionContextsCleared',{})");assert.equal(f.run("isPreloaded(7,'private-document')"),false);
+});
+
+test('taken-tab first input defers dirty or playing GET documents and refuses POST without a request',async()=>{
+  const f=fixture();f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({});facts=async()=>({needs_reload:true,frames:[{frame:0}]});globalThis.reloaded=0;globalThis.reloadChecks=0;content=async()=>{reloadChecks++;return {unsaved:true,playing:true}};chrome.webNavigation={getAllFrames:async()=>[{frameId:0,documentId:'doc',url:'http://fixture.test/'}]};cdp=async(tab,method,parameters)=>{if(method==='Page.getFrameTree')return {frameTree:{frame:{loaderId:'loader',url:'http://fixture.test/'}}};assertedMethod=method;reloaded++;globalThis.reloadParameters=parameters;};globalThis.assertedMethod=null;");
+  await assert.rejects(f.run("dispatch({name:'prepare_control',tab:7,reload_taken_tab:true})"),/request method is unknown/);
+  f.run("documentMethods.set('[7,0]',{document:'doc',method:'POST'})");
+  await assert.rejects(f.run("dispatch({name:'prepare_control',tab:7,reload_taken_tab:true})"),/form submission/);assert.equal(f.run('reloaded'),0);assert.equal(f.run('reloadChecks'),0);
+  f.run("documentMethods.set('[7,0]',{document:'doc',method:'GET'})");
+  await assert.rejects(f.run("dispatch({name:'prepare_control',tab:7})"),/reload_required:.*unsaved.*playing/);assert.equal(f.run('reloaded'),0);
+  assert.equal((await f.run("dispatch({name:'prepare_control',tab:7,reload_taken_tab:true})")).reloaded,true);assert.equal(f.run('reloaded'),1);assert.equal(f.run('assertedMethod'),'Page.reload');
+  assert.equal(f.run('reloadParameters.loaderId'),'loader');
+  f.run('facts=async()=>({needs_reload:false})');assert.equal((await f.run("dispatch({name:'prepare_control',tab:7})")).ready,true);assert.equal(f.run('reloaded'),1);
 });
 
 test('oversize browser replies distinguish a refused read from an unknown input outcome',()=>{
@@ -130,7 +192,7 @@ test('a keydown modal stops the remaining CDP input instead of waiting for a los
 test('answering a dialog collects a resumed handler submission without sending it',async()=>{
   const source=fs.readFileSync('control/chrome_tests/page.test.mjs','utf8');
   const policy=JSON.parse(fs.readFileSync('control/chrome/extension/policy.js','utf8').match(/\{[\s\S]*\}/)[0]);
-  const createPage=Function('fs','vm','assert','policy',source.slice(source.indexOf('function fixture()'),source.indexOf("\ntest('"))+'\nreturn fixture;')(fs,vm,assert,policy);
+  const createPage=Function('fs','vm','assert','policy',source.slice(source.indexOf('function fixture('),source.indexOf("\ntest('"))+'\nreturn fixture;')(fs,vm,assert,policy);
   const page=createPage(),form=new page.HTMLFormElement();page.arm(form,form);
   page.guard.arm({generation:'epoch',dispatch_nonce:'nonce',config:policy,target:page.id(form),form:page.id(form)});
   const f=fixture();
@@ -250,7 +312,7 @@ test('release wakes pending input and detaches before a bounded blocked clear',{
   const content=assert.rejects(f.run("content(7,0,'focus',{element:'e1'})"),/control ended during input handling/);
   let settled=false;const released=f.run('release(7)').then(()=>{settled=true});
   await Promise.all([native,content]);
-  for(let attempt=0;attempt<20&&!f.run('timers.some(timer=>timer.delay===1000)');attempt++)await Promise.resolve();
+  for(let attempt=0;attempt<100&&!f.run("timers.some(timer=>timer.delay===1000)&&calls.includes('clear')");attempt++)await Promise.resolve();
   assert.ok(f.run("calls.indexOf('detach')<calls.indexOf('clear')"),'debugger must detach before blocked page cleanup');
   assert.equal(settled,false);assert.equal(f.run('controlled.has(7)'),false);assert.equal(f.run('dialogWake.size'),0);
   f.run('timers.find(timer=>timer.delay===1000).callback()');await released;
