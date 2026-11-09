@@ -81,8 +81,21 @@ public final class ShellFocusClientGameTest implements FabricClientGameTest {
                 world.getConnection().waitForServerboundPackets();
                 context.waitFor(client -> client.player.position().distanceToSqr(EXIT) < 0.01);
                 context.runOnClient(client -> check(opened.size() == 1, "Focus return relaunched the app: " + opened));
+
+                // Without window tracking a launch counts once started; a failure reported later still shows and
+                // ends the logo visit without the return teleport.
+                move(context, world, new Vec3(0.5, Y, 3.5));
+                context.waitFor(client -> opened.size() == 2);
+                context.runOnClient(client -> AresOsClient.launchFailedLater("notepad", "it failed to start"));
+                context.waitFor(client -> overlay(client).equals("Couldn't open Notepad: it failed to start"));
+                world.getConnection().waitForServerboundPackets();
+                context.runOnClient(client -> ShellFocusClient.apply(client,
+                        new ShellClient.Focus(true, "desktop_activated", null, false)));
+                context.waitTicks(10);
+                context.runOnClient(client -> check(client.player.position().distanceToSqr(new Vec3(0.5, Y, 3.5)) < 0.01,
+                        "A failed launch still teleported the player out of the logo"));
                 AresOs.LOGGER.info("24 shell focus checks passed: helper-less failure text, held keys and pointer "
-                        + "released on background, logo return on foreground, world readiness");
+                        + "released on background, logo return on foreground, late failure ends the visit, world readiness");
             }
         } finally {
             context.runOnClient(client -> {

@@ -53,6 +53,8 @@ public final class ShellClient implements AutoCloseable {
         default void apps(List<App> apps) { }
         default void focus(Focus focus) { }
         default void status(Status status) { }
+        /** Without window tracking an open already counted as done; the helper reported a failure afterwards. */
+        default void launchFailed(String appId, ShellException error) { }
     }
 
     /** A refusal carrying the helper's stable error code (B1), such as unknown_app, unavailable or no_window. */
@@ -79,8 +81,13 @@ public final class ShellClient implements AutoCloseable {
     private final List<Listener> listeners = new CopyOnWriteArrayList<>();
     private final Map<String, PendingOpen> opens = new ConcurrentHashMap<>();
     private final CompletableFuture<List<App>> firstAttempt = new CompletableFuture<>();
+    private final Map<String, PendingOpen> watching = new ConcurrentHashMap<>();
+    // Writes can block when the helper stops reading, so they get their own thread; the watchdog never writes,
+    // so it can always notice a stalled write and close the connection, which unblocks the writer.
+    private final ExecutorService writer = Executors.newSingleThreadExecutor(
+            task -> Thread.ofPlatform().daemon().name("aresos-shell-writer").unstarted(task));
     private final ScheduledExecutorService timer = Executors.newSingleThreadScheduledExecutor(
-            task -> Thread.ofPlatform().daemon().name("aresos-shell-timer").unstarted(task));
+            task -> Thread.ofPlatform().daemon().name("aresos-shell-watchdog").unstarted(task));
     private volatile Status status = new Status(State.STARTING, "connecting to the app helper");
     private volatile List<App> apps = List.of();
     private volatile Connection connection;
@@ -134,7 +141,7 @@ public final class ShellClient implements AutoCloseable {
         }
         loop = Thread.ofPlatform().daemon().name("aresos-shell").start(this::run);
         long period = settings.heartbeat().toMillis();
-        timer.scheduleAtFixedRate(this::heartbeat, period, period, TimeUnit.MILLISECONDS);
+        timer.scheduleAtFixedRate(this::watch, period, period, TimeUnit.MILLISECONDS);
     }
 
     /** Waits for the first connection attempt; later reconnects refresh apps through {@link Listener#apps}. */
@@ -186,7 +193,7 @@ public final class ShellClient implements AutoCloseable {
 
     private boolean later(Runnable task) {
         try {
-            timer.execute(task);
+            writer.execute(task);
             return true;
         } catch (RejectedExecutionException closedAlready) {
             return false;
@@ -199,6 +206,7 @@ public final class ShellClient implements AutoCloseable {
         for (var current : new Connection[] {connection, attempt}) if (current != null) current.close();
         if (loop != null) loop.interrupt();
         timer.shutdownNow();
+        writer.shutdownNow();
         var error = new ShellException("closed", "app helper connection closed");
         opens.values().forEach(open -> open.future().completeExceptionally(error));
         firstAttempt.completeExceptionally(error);
@@ -223,6 +231,7 @@ public final class ShellClient implements AutoCloseable {
             case "launch_failed" -> "it failed to start";
             case "no_window" -> "no window appeared";
             case "launch_uncertain" -> "the app helper restarted while opening it";
+            case "journal_full" -> "too many launches just now, try again shortly";
             case "incompatible_version", "not_authorized" -> "app helper incompatible";
             default -> "app helper error (" + clip(code) + ")";
         };
@@ -323,8 +332,13 @@ public final class ShellClient implements AutoCloseable {
             }
             firstAttempt.complete(listed);
             // Requests the old connection may have carried: the helper answers a known ID without launching again.
-            for (var open : opens.values()) current.send(openRequest(open));
-            sendWorld(current);
+            // The writer sends them, so this thread starts reading at once and can never block both directions.
+            for (var open : opens.values()) later(() -> {
+                if (open.future().isDone()) return;
+                try { current.send(openRequest(open)); }
+                catch (IOException lost) { current.close(); }
+            });
+            later(() -> sendWorld(current));
             try {
                 while (!closed) dispatch(current.read());
             } catch (IOException lost) {
@@ -368,8 +382,10 @@ public final class ShellClient implements AutoCloseable {
         }
     }
 
+    /** Runs on the writer only, so reports on one connection never race; each change is reported once. */
     private void sendWorld(Connection current) {
         String id = world;
+        if (Objects.equals(id, current.reportedWorld)) return;
         try {
             if (id == null) current.send(heartbeatMessage(false));
             else {
@@ -379,20 +395,35 @@ public final class ShellClient implements AutoCloseable {
                 message.add("world", worldObject(id));
                 current.send(message);
             }
+            current.reportedWorld = id;
         } catch (IOException lost) { current.close(); }
     }
 
-    private void heartbeat() {
-        var current = connection;
-        if (current == null) return;
-        // A helper that stops answering (even heartbeats) is treated like one that went away.
-        if (System.nanoTime() - current.lastReceived > settings.heartbeat().toNanos() * 3 + settings.replyTimeout().toNanos()) {
-            LOG.log(System.Logger.Level.WARNING, "AresOS app helper stopped answering; reconnecting");
-            current.close();
-            return;
+    /** The watchdog. It never writes, so a write blocked on a helper that stopped reading cannot stop it. */
+    private void watch() {
+        try {
+            long now = System.nanoTime();
+            for (var current : new Connection[] {connection, attempt}) {
+                if (current != null && current.writing && now - current.writeStarted > settings.replyTimeout().toNanos()) {
+                    LOG.log(System.Logger.Level.WARNING, "AresOS app helper stopped reading; reconnecting");
+                    current.close();
+                }
+            }
+            var current = connection;
+            if (current == null) return;
+            // A helper that stops answering (even heartbeats) is treated like one that went away.
+            if (now - current.lastReceived > settings.heartbeat().toNanos() * 3 + settings.replyTimeout().toNanos()) {
+                LOG.log(System.Logger.Level.WARNING, "AresOS app helper stopped answering; reconnecting");
+                current.close();
+                return;
+            }
+            later(() -> {
+                try { current.send(heartbeatMessage(world != null)); }
+                catch (IOException | RuntimeException lost) { current.close(); }
+            });
+        } catch (RuntimeException error) {
+            LOG.log(System.Logger.Level.ERROR, "AresOS app helper watchdog failed", error);
         }
-        try { current.send(heartbeatMessage(world != null)); }
-        catch (IOException | RuntimeException lost) { current.close(); }
     }
 
     private JsonObject heartbeatMessage(boolean ready) {
@@ -416,8 +447,10 @@ public final class ShellClient implements AutoCloseable {
         if (message.has("event")) {
             switch (String.valueOf(text(message, "event"))) {
                 case "app_state" -> {
-                    var open = opens.get(String.valueOf(text(message, "request_id")));
+                    String id = String.valueOf(text(message, "request_id"));
+                    var open = opens.get(id);
                     if (open != null) update(open, message);
+                    else if (watching.containsKey(id)) lateUpdate(id, message);
                 }
                 case "shell_focus" -> {
                     var focus = new Focus("foreground".equals(text(message, "focus")), text(message, "reason"),
@@ -446,7 +479,27 @@ public final class ShellClient implements AutoCloseable {
             case "starting" -> !windows;
             default -> false;
         };
-        if (opened) open.future().complete(new Launch(open.id(), text(message, "launch_id"), state));
+        if (!opened) return;
+        if ("starting".equals(state)) {
+            // Counted as opened without a window to confirm it; a failure may still follow (systemd-run failing).
+            watching.put(open.id(), open);
+            try { timer.schedule(() -> watching.remove(open.id()), settings.openTimeout().toMillis(), TimeUnit.MILLISECONDS); }
+            catch (RejectedExecutionException closedAlready) { watching.remove(open.id()); }
+        }
+        open.future().complete(new Launch(open.id(), text(message, "launch_id"), state));
+    }
+
+    private void lateUpdate(String id, JsonObject message) {
+        String state = text(message, "state");
+        if (!"failed".equals(state) && !"closed".equals(state)) return;
+        var open = watching.remove(id);
+        if (open == null || !"failed".equals(state)) return;
+        String error = text(message, "error");
+        var failure = new ShellException(String.valueOf(error), reason(error, text(message, "reason")));
+        for (var listener : listeners) {
+            try { listener.launchFailed(open.appId(), failure); }
+            catch (RuntimeException problem) { LOG.log(System.Logger.Level.ERROR, "Shell listener failed", problem); }
+        }
     }
 
     private static List<App> parseApps(JsonObject reply) throws IOException {
@@ -488,6 +541,9 @@ public final class ShellClient implements AutoCloseable {
         private byte[] line = new byte[1024];
         private int length;
         volatile long lastReceived = System.nanoTime();
+        volatile boolean writing;
+        volatile long writeStarted;
+        volatile String reportedWorld;
         volatile boolean expired;
 
         Connection(SocketChannel channel) { this.channel = channel; }
@@ -496,8 +552,14 @@ public final class ShellClient implements AutoCloseable {
             byte[] bytes = (JSON.toJson(message) + "\n").getBytes(StandardCharsets.UTF_8);
             if (bytes.length > MAX_MESSAGE) throw new IOException("outgoing message too large");
             synchronized (writeLock) {
-                var buffer = ByteBuffer.wrap(bytes);
-                while (buffer.hasRemaining()) channel.write(buffer);
+                writeStarted = System.nanoTime();
+                writing = true;
+                try {
+                    var buffer = ByteBuffer.wrap(bytes);
+                    while (buffer.hasRemaining()) channel.write(buffer);
+                } finally {
+                    writing = false;
+                }
             }
         }
 

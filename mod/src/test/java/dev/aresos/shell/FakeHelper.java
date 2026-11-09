@@ -33,6 +33,9 @@ final class FakeHelper implements AutoCloseable {
     /** What a new launch reports first. */
     volatile String launchState = "starting";
     volatile boolean dropOnFirstOpen;
+    /** The first connection stops reading right after list_apps, like a hung helper. */
+    volatile boolean stallFirstConnection;
+    private final CountDownLatch released = new CountDownLatch(1);
     private final ServerSocketChannel server;
     private final Thread acceptor;
     private volatile SocketChannel current;
@@ -80,9 +83,16 @@ final class FakeHelper implements AutoCloseable {
                 var reply = override.apply(message);
                 if (reply == null) reply = standard(channel, message);
                 if (reply != null) send(channel, reply);
+                if (stallFirstConnection && "list_apps".equals(string(message, "op"))) {
+                    stallFirstConnection = false;
+                    released.await();
+                    return;
+                }
             }
         } catch (IOException | RuntimeException closed) {
             // The client went away or the test dropped the connection.
+        } catch (InterruptedException stopped) {
+            Thread.currentThread().interrupt();
         }
     }
 
@@ -202,6 +212,7 @@ final class FakeHelper implements AutoCloseable {
     }
 
     @Override public void close() throws IOException {
+        released.countDown();
         server.close();
         var channel = current;
         if (channel != null) channel.close();

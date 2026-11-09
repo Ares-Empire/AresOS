@@ -221,6 +221,45 @@ class ShellClientTest {
         assertEquals(1, helper.launches.get());
     }
 
+    @Test void aHelperThatStopsReadingIsDetectedAndReconnectedDespiteABlockedWrite() throws Exception {
+        helper.stallFirstConnection = true;
+        helper.launchState = "focused";
+        client = helper.client(new ShellClient.Settings(Duration.ofSeconds(1), Duration.ofSeconds(15),
+                Duration.ofMillis(200), Duration.ofMillis(50), Duration.ofMillis(200)));
+        client.start();
+        client.awaitApps(Duration.ofSeconds(5));
+        // Large requests fill the socket buffer of a helper that no longer reads, so the writer blocks.
+        var stuck = new ArrayList<CompletableFuture<ShellClient.Launch>>();
+        for (int i = 0; i < 12; i++) stuck.add(client.open("x".repeat(60_000)));
+        FakeHelper.await(() -> helper.connections.get() >= 2 && client.status().state() == ShellClient.State.CONNECTED,
+                "the watchdog to drop the stalled connection and reconnect");
+        assertEquals("focused", join(client.open("terminal")).state());
+        for (var open : stuck) assertEquals("unknown_app", refusal(open).code());
+    }
+
+    @Test void withoutWindowTrackingALaterFailureStillReachesThePlayer() throws Exception {
+        helper.capabilities = List.of("list_apps", "open_app", "app_state", "world_ready", "heartbeat");
+        connect();
+        var failures = new CopyOnWriteArrayList<String>();
+        client.addListener(new ShellClient.Listener() {
+            @Override public void launchFailed(String appId, ShellClient.ShellException error) {
+                failures.add(appId + ": " + error.code() + ": " + ShellClient.describe(error));
+            }
+        });
+        var launch = join(client.open("terminal"));
+        assertEquals("starting", launch.state());
+        helper.event("app_state", Map.of("request_id", "o-unknown", "state", "failed", "error", "launch_failed"));
+        helper.event("app_state", Map.of("request_id", launch.requestId(), "launch_id", launch.launchId(),
+                "app_id", "terminal", "state", "failed", "error", "launch_failed"));
+        FakeHelper.await(() -> !failures.isEmpty(), "the late failure");
+        Thread.sleep(100);
+        assertEquals(List.of("terminal: launch_failed: it failed to start"), failures);
+        // Reported once: a second failure event for the same launch is ignored.
+        helper.event("app_state", Map.of("request_id", launch.requestId(), "state", "failed", "error", "launch_failed"));
+        Thread.sleep(100);
+        assertEquals(1, failures.size());
+    }
+
     @Test void focusEventsReachListenersInOrder() throws Exception {
         connect();
         var focus = new CopyOnWriteArrayList<ShellClient.Focus>();

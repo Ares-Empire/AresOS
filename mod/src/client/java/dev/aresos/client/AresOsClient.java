@@ -25,6 +25,8 @@ public final class AresOsClient implements ClientModInitializer {
     public static final FocusReturn FOCUS_RETURN = new FocusReturn();
     private static long zoneFocusToken;
     private static long zoneVisit;
+    private static String lastLaunchApp;
+    private static long lastLaunchToken;
     private static KeyMapping modeToggle;
     private static AppLauncher launcher = System.getProperty("os.name").toLowerCase(Locale.ROOT).startsWith("windows")
             ? new WindowsAppLauncher() : new LinuxAppLauncher(AresOs::shell);
@@ -115,6 +117,8 @@ public final class AresOsClient implements ClientModInitializer {
             return;
         }
         long token = FOCUS_RETURN.arm(System.nanoTime());
+        lastLaunchApp = id;
+        lastLaunchToken = token;
         zoneFocusToken = visit == 0 ? 0 : token;
         zoneVisit = visit;
         try {
@@ -134,6 +138,17 @@ public final class AresOsClient implements ClientModInitializer {
             message(client, "Couldn't open " + app.name() + failureDetail(error));
             AresOs.LOGGER.warn("Could not launch app {}", id, error);
         }
+    }
+
+    /** AresOS without window tracking: an app that already counted as opened failed after all. */
+    public static void launchFailedLater(String id, String reason) {
+        var client = Minecraft.getInstance();
+        if (id.equals(lastLaunchApp)) {
+            FOCUS_RETURN.cancel(lastLaunchToken);
+            if (zoneFocusToken == lastLaunchToken) finishZone(false);
+        }
+        var app = AresOs.app(id);
+        message(client, "Couldn't open " + (app == null ? id : app.name()) + ": " + reason);
     }
 
     /** Windows keeps its plain message; on AresOS the helper's reason says what to fix. */
