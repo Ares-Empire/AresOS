@@ -202,7 +202,8 @@
       else if (message.command === 'stage_file') {
         if(!files.has(message.token)) {
           if(message.offset !== 0 || files.size >= 2)throw Error('refused: upload staging limit');
-          files.set(message.token,{file:message.file,chunks:[],size:0});
+          const staged={file:message.file,chunks:[],size:0};files.set(message.token,staged);
+          setTimeout(()=>{if(files.get(message.token)===staged)files.delete(message.token);},900000);
         }
         const staged=files.get(message.token), bytes=Uint8Array.from(atob(message.bytes),char=>char.charCodeAt(0));
         if(staged.size !== message.offset || staged.size+bytes.length > staged.file.size || staged.size+bytes.length > 25*1024*1024)throw Error('refused: upload offset or size mismatch');

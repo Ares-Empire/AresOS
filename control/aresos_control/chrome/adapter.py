@@ -102,6 +102,9 @@ class Chrome:
         return mode
 
     def maintenance(self):
+        if not isinstance(self.bridge, Bridge):return
+        from .uploads import prune
+        prune(self, admit=False)
         if not self.refresh_qualification or not isinstance(self.bridge, Bridge) or not self.bridge.version:
             return
         identity = (self.bridge.session, self.bridge.version)
@@ -346,16 +349,16 @@ class Chrome:
         self.check_readonly(payload)
         command = self.command(payload, operation['id'], approved=True)
         path = None
-        if payload.get('file'):
-            from .uploads import copy_for_browser
-            data, path = copy_for_browser(self, payload['file'])
-            for offset in range(0,len(data),512*1024):
-                self.bridge.call('stage_file',reference=payload['reference'],token=operation['id'],offset=offset,
-                                 bytes=base64.b64encode(data[offset:offset+512*1024]).decode(),file=payload['file'])
-            if not data:
-                self.bridge.call('stage_file',reference=payload['reference'],token=operation['id'],offset=0,bytes='',file=payload['file'])
-            command['upload'] = {'token':operation['id'],'file':payload['file']}
         try:
+            if payload.get('file'):
+                from .uploads import copy_for_browser
+                data, path = copy_for_browser(self, payload['file'])
+                for offset in range(0,len(data),512*1024):
+                    self.bridge.call('stage_file',reference=payload['reference'],token=operation['id'],offset=offset,
+                                     bytes=base64.b64encode(data[offset:offset+512*1024]).decode(),file=payload['file'])
+                if not data:
+                    self.bridge.call('stage_file',reference=payload['reference'],token=operation['id'],offset=0,bytes='',file=payload['file'])
+                command['upload'] = {'token':operation['id'],'file':payload['file']}
             reply = self.bridge.call(**command)
         except Refused as exc:
             if exc.code in {'stale_reference','stale_approval','owner_signin','refused'}:

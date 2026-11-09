@@ -222,6 +222,7 @@ async function dispatch(command) {
     if(!stage){
       if(command.offset !== 0 || stagedUploads.size>=2)throw Error('refused: upload staging limit');
       stage={tab,epoch:dispatchEpoch,file:command.file,chunks:[],size:0};stagedUploads.set(command.token,stage);
+      setTimeout(()=>{if(stagedUploads.get(command.token)===stage)stagedUploads.delete(command.token);},900000);
     }
     assertControl(tab,stage.epoch);
     const bytes=Uint8Array.from(atob(command.bytes),character=>character.charCodeAt(0));

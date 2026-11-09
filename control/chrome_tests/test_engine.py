@@ -83,6 +83,26 @@ class Operations(unittest.TestCase):
         self.call('submit',approval)
         self.assertEqual(self.browser.dispatched[0][1]['binding']['editable'],state['editable'])
 
+    def test_failed_upload_staging_releases_copy_and_idle_cleanup_expires_old_copies(self):
+        import os,time
+        from aresos_control.chrome.uploads import prune
+        from aresos_control.common import digest,Refused
+        self.chrome.upload_dir=self.root/'uploads'
+        data=b'Exact fixture bytes';key=self.engine.blobs.put(data,origin='caller_import')
+        file={'sha256':key,'size':len(data),'name':'fixture.txt','real_path':'/fixture/source.txt'}
+        self.engine.store.write({'blob:'+digest(file):file},'chrome_test','Synthetic imported file')
+        original=self.browser.call
+        def broken(name,**args):
+            if name=='stage_file':raise Refused('transport_error','Synthetic cut during staging')
+            return original(name,**args)
+        self.browser.call=broken
+        prepared=self.call('upload',{**self.target(),'path':'/fixture/source.txt','file':file})
+        self.assertTrue(prepared['ok'],prepared)
+        self.call('submit',prepared['data']['approval'])
+        self.assertEqual(list(self.chrome.upload_dir.iterdir()),[])
+        retained=self.chrome.upload_dir/'expired';retained.write_bytes(data);os.utime(retained,(time.time()-901,)*2)
+        prune(self.chrome,admit=False);self.assertFalse(retained.exists())
+
     def test_group8_drop_deadline_restart_never_dispatch(self):
         for mode in ['drop','expired']:
             approval=self.prepare()

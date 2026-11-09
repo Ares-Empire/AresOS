@@ -9,7 +9,7 @@ from ..common import Refused, cleanup, sha256, storage_stream
 from ..storage import sync_directory
 
 
-def prune(chrome, now=None):
+def prune(chrome, now=None, admit=True):
     directory = Path(chrome.upload_dir)
     if not directory.exists():
         return
@@ -21,7 +21,7 @@ def prune(chrome, now=None):
         if now - info.st_mtime >= 900:
             path.unlink()
     entries = list(directory.iterdir())
-    if len(entries) >= 2 or sum(path.stat().st_size for path in entries) > 50 * 1024 * 1024:
+    if admit and (len(entries) >= 2 or sum(path.stat().st_size for path in entries) > 50 * 1024 * 1024):
         raise Refused('refused', 'Two retained uploads are still in use; wait for expiry or ask the owner to inspect them.')
 
 

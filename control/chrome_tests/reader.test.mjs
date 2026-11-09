@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 
 function fixture(fields) {
-  let calls=0;
+  let calls=0;const timers=[];
   class Element {
     nodeType=1;tagName='INPUT';textContent='';childNodes=[];hidden=false;type='text';isContentEditable=false;labels=[];files=[];name='';
     constructor(config={}){Object.assign(this,config);}
@@ -30,13 +30,14 @@ function fixture(fields) {
   class MutationObserver {constructor(fn){this.fn=fn;this.records=[];observer=this;}observe(root,options){observationOptions.push(options);}takeRecords(){return this.records.splice(0);}}
   const context=vm.createContext({document,chrome,crypto:{getRandomValues:array=>array.fill(1)},MutationObserver,
     Element,HTMLElement:Element,HTMLInputElement,HTMLTextAreaElement,HTMLSelectElement,HTMLButtonElement,Node:{TEXT_NODE:3},CustomEvent:class{},
+    atob:value=>Buffer.from(value,'base64').toString('binary'),setTimeout:fn=>timers.push(fn),
     getComputedStyle:element=>({display:'block',visibility:'visible',webkitTextSecurity:element.mask || 'none'}),
     [Symbol.for('aresos.chrome.guard.v2')]:{watch(){},reader(){},arm(){},clear(){},resume(){return {resumed:'native_submit'};},steps(){return [];}},
     location:{href:'https://fixture.test/'},scrollX:0,scrollY:0,innerWidth:100,innerHeight:100});
   vm.runInContext(fs.readFileSync('control/chrome/extension/reader.js','utf8'),context);
   function read(){let result;listener({command:'read'},{id:'fixture'},value=>result=value);assert.equal(result.ok,true,JSON.stringify(result));return result;}
   function command(message){let result;listener(message,{id:'fixture'},value=>result=value);return result;}
-  return {nodes,read,command,observationOptions,mutations:()=>observer.records,calls:()=>calls};
+  return {nodes,read,command,observationOptions,expire:()=>{for(const fn of timers.splice(0))fn();},mutations:()=>observer.records,calls:()=>calls};
 }
 
 test('group7 protected values never reach a getter, source attribute, trace or binding',()=>{
@@ -92,4 +93,12 @@ test('group7 mutation API never requests old source values or character data',()
     assert.equal(options.characterDataOldValue,undefined);
   }
   assert.ok(f.observationOptions.some(options=>options.attributes&&!options.attributeOldValue));
+});
+
+
+test('group5 interrupted partial uploads expire instead of occupying both slots forever',()=>{
+  const f=fixture([]);f.command({command:'set_control',generation:'epoch'});
+  const stage=token=>f.command({command:'stage_file',generation:'epoch',token,offset:0,bytes:'YQ==',file:{size:2,name:'fixture.txt'}});
+  assert.equal(stage('one').ok,true);assert.equal(stage('two').ok,true);assert.equal(stage('three').ok,false);
+  f.expire();assert.equal(stage('three').ok,true);
 });

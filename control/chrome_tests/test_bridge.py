@@ -13,7 +13,7 @@ class Handshake(unittest.TestCase):
     def test_invalid_replacement_removes_eof_peer_and_next_host_can_connect(self):
         bridge = Bridge()
         daemon = Daemon.__new__(Daemon)
-        daemon.engine = SimpleNamespace(adapters={'chrome':SimpleNamespace(bridge=bridge)})
+        daemon.engine = SimpleNamespace(adapters={'chrome':SimpleNamespace(bridge=bridge,maintenance=lambda:None)})
         daemon.selector = selectors.DefaultSelector()
         connections=[]
         try:
@@ -44,7 +44,7 @@ class Handshake(unittest.TestCase):
 
     def test_transport_closed_outside_selector_can_reconnect_on_reused_descriptor(self):
         bridge=Bridge();daemon=Daemon.__new__(Daemon)
-        daemon.engine=SimpleNamespace(adapters={'chrome':SimpleNamespace(bridge=bridge)})
+        daemon.engine=SimpleNamespace(adapters={'chrome':SimpleNamespace(bridge=bridge,maintenance=lambda:None)})
         daemon.selector=selectors.DefaultSelector();pairs=[]
         try:
             for session in ['old','new']:
@@ -119,3 +119,20 @@ class FragmentedReplies(unittest.TestCase):
         self.assertEqual(error.exception.code,'unknown')
         bridge.on_event=lambda event:None
         self.assertIn('reply',bridge.call('tabs'))
+
+
+class ConnectionDelivery(unittest.TestCase):
+    def test_accepted_connection_refreshes_before_any_tool_and_rejected_replacement_does_not(self):
+        calls=[];bridge=Bridge();daemon=Daemon.__new__(Daemon)
+        daemon.engine=SimpleNamespace(adapters={'chrome':SimpleNamespace(bridge=bridge,maintenance=lambda:calls.append(bridge.version))})
+        daemon.selector=selectors.DefaultSelector();pairs=[]
+        try:
+            for session in ['first','rejected']:
+                server,client=socket.socketpair();pairs.extend([server,client]);client.sendall(json.dumps({'event':'hello','session':session,'version':'157.0.1.0'}).encode()+b'\n')
+                if session=='first':daemon.register_chrome_host(server)
+                else:
+                    with self.assertRaises(Refused):daemon.register_chrome_host(server)
+            self.assertEqual(calls,['157.0.1.0'])
+        finally:
+            daemon.selector.close()
+            for connection in pairs:connection.close()

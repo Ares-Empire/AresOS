@@ -126,6 +126,12 @@ class Daemon:
                 bridge.connection, bridge.buffer = None, b''
                 bridge.session = bridge.version = None
             raise
+        # An uncovered build/version is refreshed on connection, even before
+        # the first tool call; daily maintenance remains the offline retry.
+        try:
+            self.engine.adapters['chrome'].maintenance()
+        except Exception as exc:
+            self.engine.background_error(exc)
 
     def error_result(self, exc, authorized):
         from .results import bound_result
