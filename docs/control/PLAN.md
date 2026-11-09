@@ -282,6 +282,10 @@ the settings):
    - *Mail's boundary follow-up* (after Mail merges): the check of rounds 15 to 17, which refuses asking actions unless
      the managed files match exactly, becomes a check that every asking tool's ask rule is present in the managed
      settings, so his own MCP servers and settings are never blocked. Not a change to Mail now.
+   - *Brief 19b* (after Mail merges, before brief 20; may run alongside 18d): what he must learn (pending items,
+     warnings, refusals) is read from the committed record, never kept only in memory, and checked by a test oracle
+     that doesn't use production code. Mail review rounds 21 to 27 kept finding single cases of this; the owner
+     approved it as its own package on 2026-11-09 (board #126). Empire board brief 259.
    - *Brief 20* (Chrome): the light tool of decision 25 (`CONTROL.md` section 6), on the base.
    - *The add-tool brief* is dropped: he and Claude add tools as in normal Claude Code.
    - `laptop-aresos` owns `os/` and the accounts: the separate assistant and coder accounts aren't needed, and his own
@@ -647,3 +651,7 @@ tasks at any time.
   had put them "after the tool-user rounds", an order he never chose. Gemini's "ask a question" can be set to "don't
   ask again"; Deezer's playback and library additions are free, and removing, deleting, posting, sharing or paying
   asks.
+- **2026-11-09, 01:30:** brief 19b written ([brief](../../briefs/19b-owner-state.md), reviewed by `gpt-6.1-sol` high,
+  READY after two revisions). Mail's security reviews 14 to 20 each found a warning or refusal kept beside the
+  committed record; rounds 26 and 27 closed them at central points, and 19b makes it a rule for the base and Mail,
+  with an independent test oracle, in three stages. The owner approved it after Mail and before Chrome.
