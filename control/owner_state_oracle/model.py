@@ -43,6 +43,7 @@ class Oracle:
         self.qualification_observed = {}
         self.operation_notices = {}
         self.stages_examined = set()
+        self.commit_fault_points = {}
 
     def call(self, action, arguments, clock, faults=None):
         self.call_id += 1
@@ -727,7 +728,8 @@ class Oracle:
             return state if state in {None, 'reserved', 'submitting'} else None
         last = commands[-1]
         call = next((c for c in self.script if c['call'] == last['call']), {})
-        faults = [f for f in call.get('faults', {}).get('trace', []) if f[0] > last.get('fault_point', 0)]
+        observed_by = self.commit_fault_points.get((last['call'], commit['seq']), float('inf'))
+        faults = [f for f in call.get('faults', {}).get('trace', []) if last.get('fault_point', 0) < f[0] <= observed_by]
         ordered = last.get('before_seq', -1) < commit['seq'] <= call.get('end_seq', completed_at)
         if not ordered:
             self.lifecycle_errors.add(Fact(key, 'unjustified-probe-order', detail=action))

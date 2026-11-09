@@ -1311,6 +1311,12 @@ class StageOneRoundTwo(unittest.TestCase):
         self.assertEqual(oracle.qualification(record)['new']['folder_delete_reason'], 'exact-cleanup-failed')
         self.assertEqual(oracle.lifecycle_errors, set())
 
+    def test_fault_after_observed_probe_commit_cannot_justify_false_failure(self):
+        oracle, record = self.probes('failed', (35, 'journal.write', 'ENOSPC'))
+        oracle.commit_fault_points[(1, 2)] = 30
+        self.assertEqual(oracle.qualification(record)['new']['folder_delete_reason'], 'qualified')
+        self.assertTrue(any(f.source == 'op:cleanup' and f.kind == 'unjustified-probe-result' for f in oracle.lifecycle_errors))
+
     def test_open_account_and_filing_obligations_survive_row_removal(self):
         for key, row in (('mail:account:new', {'id': 'new', 'onboarded': False}),
                          ('mail:filing:f', {'id': 'f', 'state': 'started', 'account': 'box'})):

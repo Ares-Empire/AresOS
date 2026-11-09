@@ -39,6 +39,7 @@ class Driver:
         self.oracle.response_observer = self.capture_response
 
     def snapshot(self):
+        from storage_faults import ACTIVE
         f = self.scenario.fixture
         with outside_faults():
             paths = [f.root / 'state/control.sqlite', f.root / 'state/control.sqlite-journal', f.engine.store.evidence_dir / 'operations.jsonl']
@@ -47,6 +48,12 @@ class Driver:
                 self.record = decode(f.root / 'state', f.engine.store.evidence_dir)
                 self._snapshot_key = key
             self.record.locked |= any(seq <= getattr(self, 'startup_sequence', 0) for seq in self.record.unprepared_fences)
+            active = getattr(self.oracle, 'active_call', None)
+            if ACTIVE is not None and active is not None:
+                point = len(ACTIVE.points)
+                for event in self.record.events:
+                    marker = active, event['seq']
+                    self.oracle.commit_fault_points[marker] = min(point, self.oracle.commit_fault_points.get(marker, point))
         if hasattr(self, 'alias_callback'):
             self.alias_callback(self.record)
         return self.record
