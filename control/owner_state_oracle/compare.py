@@ -2,7 +2,7 @@
 import json
 import re
 from .model import Fact
-from .records import canonical
+from .records import canonical, fingerprint
 
 
 def notice_facts(notice, record, oracle):
@@ -114,17 +114,37 @@ def ordered_pending(record, expected, app=None):
                   key=lambda f: (source_order(record, f.source)[0], f.source))
 
 
+def notice_identity(record, fact):
+    if fact.occurrence:
+        return fact.occurrence
+    source = fact.source
+    row = record.rows.get(source, {})
+    if fact.kind in {'unchecked', 'unchecked-context'}:
+        return 'sent-check-' + fingerprint(source.removeprefix('op:'))[:32]
+    if source.startswith(('op:', 'export:')):
+        return 'recovery-' + source.split(':', 1)[1]
+    if source.startswith(('mail:filing:', 'mail:rename:')):
+        identity = row.get('id', source.rsplit(':', 1)[1])
+        if record.rows.get('notice:' + identity, {}).get('ack'):
+            return 'check-' + fingerprint(source)[:32]
+        return identity
+    if source.startswith(('mail:account:', 'legacy-intent:')):
+        return 'recovery-' + fingerprint(source)[:32]
+    return row.get('id', source)
+
+
 def ordered_notices(record, expected, app=None):
     def order(fact):
-        saved = record.rows.get('notice:' + fact.occurrence, {})
+        identity = notice_identity(record, fact)
+        saved = record.rows.get('notice:' + identity, {})
         created = saved.get('created_at')
         if created is None:
             created = int(source_order(record, fact.source)[0] * 1_000_000_000)
-        return created, fact.occurrence or fact.source
+        return created, identity
     groups = {}
     for fact in expected:
         if fact.kind != 'pending' and (app is None or record.rows.get(fact.source, {}).get('app', 'mail') == app):
-            group = fact.occurrence or fact.source + ':' + ('recovery' if fact.kind in {'recovery', 'recovery-context'} else 'unchecked' if fact.kind in {'unchecked', 'unchecked-context'} else fact.kind)
+            group = notice_identity(record, fact)
             groups.setdefault(group, set()).add(fact)
     return sorted(groups.values(), key=lambda group: max(order(f) for f in group), reverse=True)
 

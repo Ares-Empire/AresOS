@@ -59,10 +59,10 @@ def main(selection):
         return unittest.TextTestRunner(verbosity=2).run(unittest.defaultTestLoader.loadTestsFromNames(names))
     if parallel:
         environment = {**os.environ, 'PYTHONPATH': str(root) + os.pathsep + os.environ.get('PYTHONPATH', '')}
-        result, good = run_workers([sys.executable, '-m', 'unittest', '-v', 'test_owner_state_sweep'], environment, run)
+        result, good = run_workers([sys.executable, '-m', 'unittest', '-v', 'test_owner_state_sweep'], environment, run, count=3)
     else:
         result, good = run(), True
-    print(f'Mail selection={selection}: {result.testsRun} in-process tests; owner_workers={2 if parallel else 0}; elapsed={time.monotonic() - started:.3f}s', flush=True)
+    print(f'Mail selection={selection}: {result.testsRun} in-process tests; owner_workers={3 if parallel else 0}; elapsed={time.monotonic() - started:.3f}s', flush=True)
     return not result.wasSuccessful() or not good
 
 

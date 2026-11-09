@@ -506,16 +506,16 @@ class OwnerOracle(unittest.TestCase):
         import os
         import sys
         from ci.mail.tests import run_workers
-        output = io.StringIO()
         command = [sys.executable, '-c', 'import os,sys; w=os.environ["OWNER_SWEEP_WORKER"]; print("child="+w); sys.exit(int(w))']
-        with redirect_stdout(output):
-            result, good = run_workers(command, os.environ, lambda: 'parent result')
-        self.assertEqual(result, 'parent result')
-        self.assertFalse(good)
-        self.assertIn('child=0', output.getvalue())
-        self.assertIn('child=1', output.getvalue())
-        self.assertIn('worker=0/2 exit=0', output.getvalue())
-        self.assertIn('worker=1/2 exit=1', output.getvalue())
+        for count in (2, 3):
+            output = io.StringIO()
+            with redirect_stdout(output):
+                result, good = run_workers(command, os.environ, lambda: 'parent result', count=count)
+            self.assertEqual(result, 'parent result')
+            self.assertFalse(good)
+            for worker in range(count):
+                self.assertIn('child=' + str(worker), output.getvalue())
+                self.assertIn(f'worker={worker}/{count} exit={worker}', output.getvalue())
 
     def local_delete_record(self):
         items = {key: {'id': key, 'revision': 1, 'sender': 'fixture', 'subject': key, 'date': 'synthetic', 'flagged': False}
@@ -757,6 +757,38 @@ class OwnerOracle(unittest.TestCase):
             self.assertEqual(differences(event, oracle.script), ('op:' + child, []))
             event['committed_before']['op:' + child]['context']['destination'] = 'Wrong'
             self.assertEqual(differences(event, oracle.script), ('op:' + child, ['destination']))
+
+    def test_notice_order_uses_distinct_public_ids_even_when_source_time_ties(self):
+        from owner_state_oracle.compare import ordered_notices, notice_identity
+        record = Record(rows={'op:g:p': {'id': 'g:p', 'app': 'mail'}},
+                        events=[{'time': 12, 'seq': 1, 'set': {'op:g:p': {}}}])
+        facts = [Fact('op:g:p', kind) for kind in ('recovery', 'recovery-context', 'unchecked', 'unchecked-context')]
+        wanted = [set(facts[2:]), set(facts[:2])]
+        for values in (facts, list(reversed(facts)), set(facts)):
+            self.assertEqual(ordered_notices(record, values), wanted)
+        self.assertEqual(notice_identity(record, facts[0]), 'recovery-g:p')
+        self.assertEqual(notice_identity(record, facts[2]), 'sent-check-' + fingerprint('g:p')[:32])
+        import os
+        import subprocess
+        import sys
+        script = "from owner_state_oracle.compare import ordered_notices; from owner_state_oracle.model import Fact; from owner_state_oracle.records import Record; facts={Fact('op:g:p', k) for k in ('recovery','recovery-context','unchecked','unchecked-context')}; print([[f.kind for f in sorted(group)] for group in ordered_notices(Record(),facts)])"
+        for seed in ('1', '4'):
+            result = subprocess.run([sys.executable, '-c', script], env={**os.environ, 'PYTHONHASHSEED': seed},
+                                    capture_output=True, text=True, check=True)
+            self.assertEqual(result.stdout.strip(), "[['unchecked', 'unchecked-context'], ['recovery', 'recovery-context']]")
+
+    def test_synthetic_notice_id_formats_and_saved_creation_order(self):
+        from owner_state_oracle.compare import ordered_notices, notice_identity
+        record = Record(rows={'intent:generic': {'id': 'generic-id'}, 'mail:filing:f': {'id': 'f'},
+                              'mail:rename:r': {'id': 'r'}, 'notice:r': {'ack': True},
+                              'notice:recovery-g:p': {'created_at': 30}, 'notice:occurrence': {'created_at': 20}})
+        for source, identity in [('export:e', 'recovery-e'), ('mail:account:box', 'recovery-' + fingerprint('mail:account:box')[:32]),
+                                 ('intent:generic', 'generic-id'), ('mail:filing:f', 'f'),
+                                 ('mail:rename:r', 'check-' + fingerprint('mail:rename:r')[:32]),
+                                 ('legacy-intent:mail_flag:1', 'recovery-' + fingerprint('legacy-intent:mail_flag:1')[:32])]:
+            self.assertEqual(notice_identity(record, Fact(source, 'recovery')), identity)
+        recovery, warning = Fact('op:g:p', 'recovery'), Fact('op:g:p', 'sent_copies', 'occurrence')
+        self.assertEqual(ordered_notices(record, {warning, recovery}), [{recovery}, {warning}])
 
     def test_special_rename_role_cannot_supply_clean_proof(self):
         oracle = Oracle()

@@ -1,6 +1,7 @@
 """Stage 1 independent owner-state comparisons at every inherited fault site."""
 from collections import Counter
 from contextlib import contextmanager, ExitStack
+import hashlib
 import os
 import shutil
 import tempfile
@@ -26,8 +27,14 @@ EXTRA = ('draft_append', 'folder_create', 'folder_delete', 'onboarding', 'flag',
 
 
 def owns_case(case, shard, shards, worker=0, workers=1):
-    point = int(case.split('/')[2])
-    return point == 0 or ((point - 1) % shards == shard and ((point - 1) // shards) % workers == worker)
+    parts = case.split('/')
+    point = int(parts[2])
+    if point == 0:
+        return True
+    # Write transactions repeat syscall patterns. Direct point modulo grouped
+    # their expensive rollback/cleanup sites onto the same shard.
+    value = int.from_bytes(hashlib.sha256(f'{parts[0]}/{point}'.encode()).digest()[:8])
+    return value % shards == shard and (value // shards) % workers == worker
 
 
 class OwnerScenario(Scenario):
@@ -246,7 +253,7 @@ class OwnerStateSweep(unittest.TestCase):
 
     def test_shards_cover_every_fault_and_keep_its_cleanup_and_crash_cases(self):
         for shards in (1, 2, 4):
-            for workers in (1, 2):
+            for workers in (1, 2, 3):
                 for point in range(1, 102):
                     owners = []
                     for shard in range(shards):
@@ -261,6 +268,10 @@ class OwnerStateSweep(unittest.TestCase):
                     self.assertEqual(len(owners), 1)
                 self.assertTrue(all(owns_case('flow/single/0/0/live-restored/view', shard, shards, worker, workers)
                                     for shard in range(shards) for worker in range(workers)))
+        self.assertEqual({shard for flow in FLOWS + EXTRA for shard in range(4)
+                          if owns_case(f'{flow}/single/1', shard, 4)}, set(range(4)))
+        self.assertEqual({shard for point in range(1, 1409, 44) for shard in range(4)
+                          if owns_case(f'flow/single/{point}', shard, 4)}, set(range(4)))
 
     def test_all_flows_all_storage_modes_independent_views(self):
         gaps, counts = Gaps(), Counter()
