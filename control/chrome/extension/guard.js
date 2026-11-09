@@ -28,7 +28,7 @@
     held.set(id,{...step,node:element,button:submitter});
   }
   function allowance(form) {
-    if (!mark || mark.form !== form) return false;
+    if (!mark || !mark.input || mark.form !== form) return false;
     if (!mark.primary) { mark.primary = true; return true; }
     if (!mark.further) { mark.further = true; return true; }
     return false;
@@ -46,12 +46,13 @@
     if (!active() || ownerDispatch()) return;
     const element=event.composedPath()[0];
     if (!(element instanceof Element)) return;
+    if (inFlight && event.isTrusted && mark && element === mark.target && ['keydown','input','change'].includes(type(event))) mark.input=true;
     if (type(event) === 'submit') {
       if (search(reader.form(element,event.submitter)) || allowance(element)) return;
       event.preventDefault();event.stopImmediatePropagation();report('submit_event',element,event.submitter);
     } else if (type(event) === 'click' && asks(element)) {
       // Only the browser's trusted event for this private, approved dispatch consumes the mark.
-      if (inFlight && event.isTrusted && mark && !mark.input && element === mark.target) { mark.input=true;return; }
+      if (inFlight && event.isTrusted && mark && !mark.activation && element === mark.target) { mark.input=true;mark.activation=true;return; }
       if (event.cancelable) event.preventDefault();
       event.stopImmediatePropagation();report(event.cancelable ? 'activation' : 'activation_unknown',element,null,event.cancelable);
     }
@@ -97,6 +98,7 @@
       generation=value.generation;config=value.config;inFlight=true;owner=null;until=performance.now()+config.holdMs;
       mark=value.operation ? {id:value.operation,target:reader.element(value.target),form:reader.element(value.form),input:false,primary:!value.primary_submission,further:false} : null;
     },
+    direct(element) { if(inFlight && mark && reader.element(element)===mark.target)mark.input=true; },
     async finish(epoch) {
       // A private message plus a later browser task over-covers the synchronous input handlers.
       await new Promise(resolve=>setTimeout(resolve,0));

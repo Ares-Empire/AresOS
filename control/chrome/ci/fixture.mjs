@@ -33,6 +33,31 @@ export async function fixtures() {
     } else if(kind==='page-forgery') {
       body='<button type="button">Continue</button><form action="/receive?case=page-forgery" method="post" target="sink"><input type="hidden" name="source" value="page-forged-mark"></form><iframe name="sink" hidden></iframe>';
       script="document.querySelector('button').onclick=()=>{const api=globalThis[Symbol.for('aresos.chrome.page.v1')];for(const name of ['stop','arm','resume','drop']){try{api?.[name]?.('page-invented-epoch');}catch{}}document.querySelector('form').submit();};";
+    } else if(kind==='matrix') {
+      const token=url.searchParams.get('id'),route=url.searchParams.get('route')||'click',mode=url.searchParams.get('mode')||'word',word=url.searchParams.get('word')||'Send',label=url.searchParams.get('label')||'name';
+      const action='/receive?case='+encodeURIComponent(token);
+      const esc=value=>value.replaceAll('&','&amp;').replaceAll('"','&quot;').replaceAll('<','&lt;');
+      if(mode==='word'){
+        const attrs={name:'',aria:'aria-label="'+esc(word)+'"',title:'title="'+esc(word)+'"',value:'value="'+esc(word)+'"',labelledby:'aria-labelledby="external"',label:'id="word-control"'};
+        body='<textarea aria-label="Message">Matrix draft</textarea><button type="button" '+attrs[label]+'>'+esc(label==='name'?word:'Continue')+'</button><span id="external">'+esc(word)+'</span>'+(label==='label'?'<label for="word-control">'+esc(word)+'</label>':'');
+        script=`document.querySelector('button').onclick=()=>fetch(${JSON.stringify(action)},{method:'POST',body:'word'});`;
+      } else if(mode==='stopped'){
+        body='<form action="'+action+'" method="post" target="sink"><input name="content" value="bound"><button type="submit">Submit</button></form><button type="button" id="trigger">Continue</button><input aria-label="Trigger text"><select aria-label="Trigger choice"><option value="a">A</option><option value="b">B</option></select><input type="checkbox" aria-label="Trigger check"><iframe name="sink" hidden></iframe>';
+        const submit=url.searchParams.get('submit')||'native';
+        const step=submit==='native'?'form.submit()':submit==='event'?'form.requestSubmit()':submit==='button'?"form.querySelector('button').click()":'form.requestSubmit()';
+        script=`const form=document.querySelector('form'),trigger=document.querySelector('#trigger'),field=document.querySelector('[aria-label="Trigger text"]'),choice=document.querySelector('select'),check=document.querySelector('[type=checkbox]');
+          const step=()=>{${step}};
+          ${route==='click'?'trigger.onclick=step':route==='key'?'trigger.onkeydown=step':route==='fill'?'field.oninput=step':route==='select'?'choice.onchange=step':'check.onchange=step'};`;
+      } else if(mode==='activation'){
+        body='<button type="button">Continue</button><a target="sink" href="'+action+'" aria-labelledby="external">Continue</a><span id="external">Delete</span><iframe name="sink" hidden></iframe>';
+        const wrapped=url.searchParams.get('wrapped')||'click';
+        script=`document.querySelector('button').onclick=()=>{const link=document.querySelector('a');${wrapped==='click'?'link.click()':"link.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:"+(wrapped==='cancelable'?'true':'false')+"}))"}};document.querySelector('a').onclick=()=>fetch('/receive?case=handler-'+${JSON.stringify(token)},{method:'POST'});`;
+      } else if(mode==='residual-delay'){
+        body='<button type="button">Continue</button><form action="'+action+'" method="post" target="sink"><input name="source" value="after-limit"></form><iframe name="sink" hidden></iframe>';
+        script=`document.querySelector('button').onclick=()=>setTimeout(()=>document.querySelector('form').submit(),800);`;
+      } else if(mode==='long') {
+        body=Array.from({length:120},(_,index)=>'<p>Paragraph '+index+' '+('readable article text '.repeat(20))+'</p>').join('')+'<form>'+Array.from({length:80},(_,index)=>'<label>Field '+index+'<input name="field'+index+'" value="Synthetic value '+index+'"></label>').join('')+'</form>';
+      }
     } else if(kind==='hostile') {
       body='<button type="button">Continue</button><form action="/receive?case=hostile" method="post" target="sink"><input type="hidden" name="source" value="hostile"></form><iframe name="sink" hidden></iframe>';
       script=`const form=document.querySelector('form'),submit=HTMLFormElement.prototype.submit,dispatch=EventTarget.prototype.dispatchEvent;

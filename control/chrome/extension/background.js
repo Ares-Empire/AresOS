@@ -168,6 +168,10 @@ async function dispatch(command) {
     await cdp(tab,'Page.handleJavaScriptDialog',{accept:command.input.accept,...(command.input.text === undefined ? {}:{promptText:command.input.text})});
     return {checked:true,dispatched:true,page:'Dialog answered once, as the page shows it.',steps:[]};
   }
+  if (command.name === 'validity') {
+    await requireTab(tab);safeURL((await chrome.webNavigation.getFrame({tabId:tab,frameId:reference.frame})).url);
+    return {session,control:controlled.get(tab).epoch,...await content(tab,reference.frame,'ready')};
+  }
   if (command.name === 'read' || command.name === 'facts') return facts(tab,reference);
   if (command.name === 'stage_file') {
     await requireTab(tab);dispatchEpoch=controlled.get(tab).epoch;
@@ -241,7 +245,7 @@ async function dispatch(command) {
       } else {
         const parts=input.key.split('+'), key=parts.pop(), modifiers=(parts.includes('Ctrl')?2:0)|(parts.includes('Cmd')?4:0)|(parts.includes('Alt')?1:0)|(parts.includes('Shift')?8:0);
         const normalized=key === 'Space' ? ' ':key, code=normalized === ' ' ? 'Space':key;
-        await cdp(tab,'Input.dispatchKeyEvent',{type:'keyDown',key:normalized,code,modifiers,windowsVirtualKeyCode:{Enter:13,Space:32,Delete:46,Backspace:8}[key] || key.toUpperCase().charCodeAt(0)});
+        await cdp(tab,'Input.dispatchKeyEvent',{type:'keyDown',key:normalized,code,modifiers,windowsVirtualKeyCode:{Enter:13,Space:32,Delete:46,Backspace:8}[key] || key.toUpperCase().charCodeAt(0),...(['Enter','Space'].includes(key)?{text:key==='Enter'?'\r':' '}: {})});
         await cdp(tab,'Input.dispatchKeyEvent',{type:'keyUp',key:normalized,code,modifiers});
       }
     } else if (input.verb === 'upload') await content(tab,reference.frame,'install_file',{element:reference.element,token:command.upload.token});

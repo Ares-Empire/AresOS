@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {spawn,execFileSync} from 'node:child_process';
 import {setTimeout as delay} from 'node:timers/promises';
 import {fixtures} from './fixture.mjs';
+import {matrices} from './matrices.mjs';
 if(process.platform !== 'linux' || process.env.GITHUB_ACTIONS !== 'true' || !fs.existsSync('/.dockerenv'))throw Error('Browser runs only in GitHub Linux containers');
 const fixture=await fixtures();
 const profile=fs.mkdtempSync('/tmp/aresos-chrome-fixture-');
@@ -27,7 +28,7 @@ let tab;
 async function read(){let tree='',cursor;do{const result=await call('read',{tab,...(cursor?{cursor}:{})});tree+=result.untrusted_content.tree;cursor=result.cursor;}while(cursor);return tree.split('\n').filter(line=>line.startsWith('{')).map(JSON.parse);}
 async function target(label){const row=await eventually(async()=>(await read()).find(row=>row.expected.name===label),label);return {reference:row.reference,expected:row.expected};}
 async function nav(kind){await call('navigate',{tab,url:'http://fixture.test:8765/?case='+kind});await eventually(async()=>{const rows=await read();return rows.length;},'page reader');await delay(250);}
-const counts=kind=>fixture.arrivals.filter(row=>row.url.includes('case='+kind)).length;
+const counts=kind=>fixture.arrivals.filter(row=>new URL(row.url,'http://fixture.test').searchParams.get('case')===kind).length;
 try {
   const tabs=await eventually(async()=>{const result=await rpc('tabs');return result.ok && result.data.items.length && result.data.items;},'extension native connection',45000);
   // The extension is installed before this owner-created document, then take attaches to it.
@@ -89,6 +90,7 @@ try {
       console.log('GROUP 7 page forgery PASS',attack,'receiver: 0 before, 1 after, 1 after replay');
     } catch(error) { failures.push(error); console.error('GROUP 7 page forgery FAIL',attack,error.message); }
   }
+  for(const failure of await matrices({call,read,nav,target,counts,eventually,tab,fixture}))failures.push(Error(failure.name+': '+failure.error));
   if(failures.length)throw new AggregateError(failures,'Strict owner-input and page-forgery regressions failed');
 } catch(error) {
   try{execFileSync('import',['-window','root','/out/failure.png']);}catch{}

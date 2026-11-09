@@ -97,7 +97,7 @@ test('group2 free input in a form has no primary or further submission allowance
 
 test('group2 an approved change has only one same-form consequential submission',()=>{
   const f=fixture(),form=new f.HTMLFormElement(),field=new f.HTMLElement();field.form=form;
-  f.arm(field,form,'approved-change');form.submit();form.submit();
+  f.arm(field,form,'approved-change');f.api.direct('e1');form.submit();form.submit();
   assert.equal(f.arrivals.length,1);assert.equal(f.reports.length,1);
 });
 
@@ -148,4 +148,11 @@ test('group2 owner exemption is synchronous and never covers delayed or in-fligh
   f.originalDispatch.call(button,new f.Event('click',{isTrusted:true}));assert.equal(f.arrivals.length,1,'synchronous owner handler is exempt');
   form.submit();assert.equal(f.arrivals.length,1,'the exemption ends when dispatch ends');
   assert.ok(f.reports.length>=2);
+});
+
+test('group7 preparation cannot grant a page a submission before trusted dispatch',()=>{
+  const f=fixture(),form=new f.HTMLFormElement(),button=new f.HTMLElement();button.form=form;
+  f.arm(button,form,'approved');form.submit();assert.equal(f.arrivals.length,0);
+  f.originalDispatch.call(button,new f.Event('click',{isTrusted:true}));
+  form.submit();assert.equal(f.arrivals.length,0,'an unlabelled control without a trusted handler has no authority');
 });

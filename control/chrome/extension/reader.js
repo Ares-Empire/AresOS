@@ -173,6 +173,7 @@
       if (message.command === 'install_file') {
         const staged=files.get(message.token),element=elements.get(message.element);
         if(!staged?.ready || !element?.isConnected || element.type !== 'file')throw Error('stale_reference: upload field or staged bytes changed');
+        guard.direct(message.element);
         files.delete(message.token);
         const transfer=new DataTransfer();transfer.items.add(staged.ready);element.files=transfer.files;
         element.dispatchEvent(new Event('input',{bubbles:true}));element.dispatchEvent(new Event('change',{bubbles:true}));
@@ -190,7 +191,7 @@
         value={offset:staged.size};
       }
       else if (message.command === 'clear') { controlGeneration=null; files.clear(); guard.clear(); value={cleared:true}; }
-      else if (message.command === 'set_control') {}
+      else if (['set_control','arm','resume'].includes(message.command)) {}
       else if (message.command === 'hit') value={hit:hit(elements.get(message.element),message.x,message.y)};
       else if (message.command === 'ready') value = {preload:true,document:documentId};
       else if (message.command === 'read' || message.command === 'facts') value = snapshot(message.element);
@@ -207,6 +208,7 @@
       } else if (message.command === 'select' || message.command === 'check') {
         const element = elements.get(message.element);
         if (!element?.isConnected || password(element)) throw Error('stale_reference: read again');
+        guard.direct(message.element);
         if (message.command === 'select') element.value = message.value;
         else element.checked = message.checked;
         element.dispatchEvent(new Event('input', {bubbles:true})); element.dispatchEvent(new Event('change', {bubbles:true}));

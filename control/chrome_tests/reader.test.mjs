@@ -31,11 +31,12 @@ function fixture(fields) {
   const context=vm.createContext({document,chrome,crypto:{getRandomValues:array=>array.fill(1)},MutationObserver,
     Element,HTMLElement:Element,HTMLInputElement,HTMLTextAreaElement,HTMLSelectElement,HTMLButtonElement,Node:{TEXT_NODE:3},CustomEvent:class{},
     getComputedStyle:element=>({display:'block',visibility:'visible',webkitTextSecurity:element.mask || 'none'}),
-    [Symbol.for('aresos.chrome.guard.v2')]:{watch(){},reader(){},steps(){return [];}},
+    [Symbol.for('aresos.chrome.guard.v2')]:{watch(){},reader(){},arm(){},clear(){},resume(){return {resumed:'native_submit'};},steps(){return [];}},
     location:{href:'https://fixture.test/'},scrollX:0,scrollY:0,innerWidth:100,innerHeight:100});
   vm.runInContext(fs.readFileSync('control/chrome/extension/reader.js','utf8'),context);
   function read(){let result;listener({command:'read'},{id:'fixture'},value=>result=value);assert.equal(result.ok,true,JSON.stringify(result));return result;}
-  return {nodes,read,calls:()=>calls};
+  function command(message){let result;listener(message,{id:'fixture'},value=>result=value);return result;}
+  return {nodes,read,command,calls:()=>calls};
 }
 
 test('group7 protected values never reach a getter, source attribute, trace or binding',()=>{
@@ -61,4 +62,11 @@ test('group3 every field records checked, disabled and multiple state',()=>{
   const after=f.read().data.editable[0];
   assert.equal(before.checked,false);assert.equal(after.checked,true);assert.equal(after.disabled,true);assert.equal(after.multiple,true);
   assert.notDeepEqual(before,after);
+});
+
+test('isolated arm and resume messages reach the guard without falling through dispatch',()=>{
+  const f=fixture([]);assert.equal(f.command({command:'set_control',generation:'epoch'}).ok,true);
+  assert.equal(f.command({command:'arm',generation:'epoch'}).ok,true);
+  assert.equal(f.command({command:'resume',generation:'epoch',hold:'h1',operation:'op'}).ok,true);
+  assert.equal(f.command({command:'resume',generation:'forged',hold:'h1',operation:'op'}).ok,false);
 });
