@@ -239,6 +239,15 @@ def script_differences(event, script, row, context):
     expected = {}
     if action in {'mail_move', 'mail_copy'}:
         expected['destination'] = args.get('target')
+    elif action == 'mail_delete':
+        mode = description.get('mode', args.get('mode'))
+        if mode == 'trash':
+            # The script chooses the role; the independent pre-command LIST
+            # chooses its name. Neither command nor context chooses the target.
+            trash = (special_roles(event.get('roles')) or {}).get('trash', [])
+            expected['destination'] = trash[0] if len(trash) == 1 else None
+        elif mode == 'permanent' and command == 'STORE':
+            expected['flags'] = ['+FLAGS.SILENT', '(\\Deleted)']
     elif action == 'mail_folder_rename':
         expected.update(source=args.get('folder'), destination=args.get('name'))
     elif action == 'mail_folder_create':
@@ -246,8 +255,10 @@ def script_differences(event, script, row, context):
     elif action == 'mail_folder_delete':
         expected.update(source=description.get('folder'), destination=description.get('folder'))
     elif action == 'mail_flag' and command == 'STORE':
-        flags = args.get('add') if actual.get('flags', [''])[0].startswith('+') else args.get('remove')
-        expected['flags'] = ['+FLAGS.SILENT' if actual.get('flags', [''])[0].startswith('+') else '-FLAGS.SILENT', '(' + ' '.join(flags or []) + ')']
+        operations = flag_operations(args)
+        for label, value in (('command', actual), ('context', context)):
+            if value.get('flags') not in operations:
+                errors.append('script.' + label + '.flags')
     elif action == 'mail_operation_repair':
         stage = args.get('stage')
         if row.get('repair_of') != args.get('operation_id') or row.get('payload', {}).get('stage') != stage:
@@ -293,3 +304,30 @@ def script_differences(event, script, row, context):
     if args.get('operation_id') and row.get('approval') is not None and action != 'mail_operation_repair' and row['approval'] != args:
         errors.append('script.approval')
     return errors
+
+
+def flag_operations(arguments):
+    return [[sign + 'FLAGS.SILENT', '(' + ' '.join(arguments[name]) + ')']
+            for name, sign in (('add', '+'), ('remove', '-')) if arguments.get(name)]
+
+
+def missing_flag_commands(script, servers):
+    """Checking each attempted command alone cannot detect an omitted branch."""
+    result = []
+    for call in script:
+        if call['action'] != 'mail_flag' or call.get('reply') == 'pending' or call.get('parent') is not None:
+            continue
+        if not any(e['call'] == call['call'] for e in servers) and 'end_seq' not in call:
+            continue
+        events = [e for e in servers if e['call'] == call['call'] and e['command'] == 'STORE']
+        # A fault or a refused/lost command can legitimately interrupt a batch.
+        # It never authorizes an extra command (differences checks those).
+        if call.get('faults', {}).get('trace') or any(not e['accepted'] or e['reply'] != 'delivered' for e in events):
+            continue
+        for ref in call['arguments'].get('references', []):
+            for flags in flag_operations(call['arguments']):
+                matches = [e for e in events if e.get('account') == ref['account'] and e.get('folder') == ref['folder']
+                           and e.get('arguments') == [str(ref['uid']), *flags]]
+                if len(matches) != 1:
+                    result.append((call['call'], identity(ref), flags))
+    return result

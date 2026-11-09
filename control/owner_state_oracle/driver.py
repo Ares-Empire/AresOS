@@ -11,7 +11,14 @@ from .model import Fact, Oracle
 from .context import MUTATIONS
 from .compare import compare_views, pages, compare_envelope, compare_status
 from .responses import read_response
-from storage_faults import outside_faults
+
+
+@contextmanager
+def outside_faults():
+    # Base-container response-capture self-tests need no SQLite VFS injector.
+    from storage_faults import outside_faults as scope
+    with scope():
+        yield
 
 
 class Driver:
@@ -19,6 +26,10 @@ class Driver:
         self.scenario = scenario
         self.oracle = getattr(scenario, 'owner_oracle', None) or Oracle()
         self.record = self.snapshot()
+        if not hasattr(self.oracle, 'seed_sequence'):
+            # Fixture setup precedes the faulted script. Its explicitly seeded
+            # history is input; subsequent transitions need recorded evidence.
+            self.oracle.seed_sequence = max(self.record.committed, default=0)
         self.context_start_sequence = max(self.record.committed, default=0)
         self.startup_sequence = max((fence['seq'] for fence in self.record.fences), default=0)
         self.record.locked |= any(seq <= self.startup_sequence for seq in self.record.unprepared_fences)
@@ -41,6 +52,7 @@ class Driver:
         return self.record
 
     def precommit(self):
+        from storage_faults import ACTIVE
         record = self.snapshot()
         created = {}
         for event in record.events:
@@ -48,7 +60,8 @@ class Driver:
                 if value is not None:
                     created.setdefault(key, event['seq'])
         return dict(committed_before=copy.deepcopy(record.rows), created_before=created,
-                    call_start_seq=getattr(self.oracle, 'active_start_seq', 0), before_seq=max(record.committed, default=0))
+                    call_start_seq=getattr(self.oracle, 'active_start_seq', 0), before_seq=max(record.committed, default=0),
+                    fault_point=len(ACTIVE.points) if ACTIVE else 0)
 
     def identities(self, folder, account_id=None):
         f = self.scenario.fixture
@@ -69,10 +82,18 @@ class Driver:
                     'cleanup': faults.cleanup_at, 'background': getattr(s, 'flow', '') in {'expiry', 'maintenance'}} if faults else {})
         self.call_index = len(oracle.script) - 1
         oracle.script[self.call_index]['start_seq'] = oracle.active_start_seq
+        # These four results are made by Scenario.call, not a public request.
+        oracle.script[self.call_index]['synthetic_result'] = s.flow if getattr(s, 'flow', '') in {
+            'expiry', 'maintenance', 'restart_index', 'restart_tail'} else None
         oracle.active_call = oracle.call_id
         oracle.delimiters = {name: getattr(f.imap, 'separators', {}).get(name, '/') for name in f.imap.roles}
         if s.action != 'control_log' or 'cursor' not in s.args:
             oracle.server('FIXTURE_STATE', 'box', roles=f.imap.roles, mailboxes={name: self.identities(name) for name in f.imap.boxes})
+        if 'export' in getattr(s, 'flow', ''):
+            # This is the fixture's source byte string, before production has
+            # encoded, published or reported its export.
+            raw = b'Synthetic exported bytes'
+            oracle.server('EXPORT_INPUT', size=len(raw), sha256=__import__('hashlib').sha256(raw).hexdigest())
         # Command logs are memory-only. Reading their context cannot itself hit
         # an injected write or make an owner warning appear in production.
         uid, listing, select = f.imap.uid, f.imap.list, f.imap.select
@@ -184,7 +205,7 @@ class Driver:
                             if name == 'mail':
                                 sender[0] = args[0]
                             answer = method(*args, **kwargs)
-                            event.update(accepted=200 <= answer[0] < 300, reply='delivered')
+                            event.update(accepted=200 <= answer[0] < 300, reply='delivered', response_code=answer[0])
                             if name == 'rcpt' and event['accepted']:
                                 accepted_recipients.append(args[0])
                             return answer
@@ -266,7 +287,8 @@ class Driver:
 
     def capture_response(self, index, reply):
         call = self.oracle.script[index]
-        if call['call'] in self.envelopes_seen or 'pending' not in reply:
+        if call['call'] in self.envelopes_seen or call.get('synthetic_result') in {
+                'expiry', 'maintenance', 'restart_index', 'restart_tail'}:
             return
         self.envelopes_seen.add(call['call'])
         record = self.snapshot()

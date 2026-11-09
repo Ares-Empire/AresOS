@@ -38,6 +38,11 @@ def owns_case(case, shard, shards, worker=0, workers=1):
 
 
 class OwnerScenario(Scenario):
+    def advance_archive_clock(self):
+        # Age the real commits instead of rewriting their working timestamps
+        # away from the independently committed fence.
+        self.test_clock += 2
+
     def __init__(self, flow, point=0, mode='single', cleanup=0, phase='live'):
         try:
             self._initialize(flow, point, mode, cleanup, phase)
@@ -74,6 +79,10 @@ class OwnerScenario(Scenario):
                 {'mode': fault.mode, 'at': fault.fail_at, 'cleanup': fault.cleanup_at} if fault else {})
             index = len(self.owner_oracle.script) - 1
             self.owner_oracle.script[index]['parent'] = getattr(self.owner_oracle, 'active_call', None)
+            self.owner_oracle.script[index]['request_method'] = envelope.get('method')
+            observer = getattr(self.owner_oracle, 'response_observer', None)
+            if observer:
+                self.owner_oracle.script[index]['start_seq'] = max(observer.__self__.snapshot().committed, default=0)
             try:
                 reply = request(engine, envelope, *args, **kwargs)
             except BaseException:

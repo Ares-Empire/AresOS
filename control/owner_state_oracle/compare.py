@@ -197,6 +197,8 @@ def compare_status(reply, oracle, record, call, check, label):
 
 
 def compare_envelope(label, reply, record, oracle, expected, check, app=None):
+    check(label + '.present', {Fact('response', 'pending-envelope')},
+          {Fact('response', 'pending-envelope')} if isinstance(reply.get('pending'), dict) else set())
     page = reply.get('pending', {})
     wanted = ordered_pending(record, expected, app)
     check(label + '.pending-head', set(wanted[:5]), pending_facts(page))

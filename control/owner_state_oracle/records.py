@@ -72,10 +72,17 @@ def decode(state, evidence):
             events = [json.loads(v) for (v,) in db.execute('SELECT value FROM events ORDER BY seq')]
             head = db.execute('SELECT seq,hash FROM head WHERE id=1').fetchone()
     result.working_sequences = {event['seq'] for event in events}
+    def valid_event(event):
+        fence = fences.get(event['seq'])
+        if fence is None or event['record'] != fence or event['time'] != fence['time']:
+            raise ValueError('Working event does not match independent fence')
+        for operation in fence['operations']:
+            full = event['set'].get('op:' + operation['id'])
+            if full is not None and any(full.get(name) != operation[name] for name in ('id', 'generation', 'input_hash', 'state')):
+                raise ValueError('Operation differs from independent fence')
     for event in events:
         seq = event['seq']
-        if seq not in fences or event['record'] != fences[seq]:
-            raise ValueError('Working event does not match independent fence')
+        valid_event(event)
         if seq not in result.committed:
             result.prepared.append(event)
         else:
@@ -97,9 +104,13 @@ def decode(state, evidence):
                 if 'event' in entry:
                     old = entry['event']
                     if old['seq'] in result.committed and old['record'] == fences.get(old['seq']) and old['seq'] not in archived:
+                        valid_event(old)
                         archived[old['seq']] = old
                         queue.append(old)
     result.events = sorted({e['seq']: e for e in [*archived.values(), *result.events]}.values(), key=lambda e: e['seq'])
+    restored = any(e['action'] == 'control_restore_confirm' and e['set'].get('generation') for e in result.events)
+    if head and head[0] == max(result.committed, default=0) and not restored and result.committed - {e['seq'] for e in result.events}:
+        raise ValueError('Committed history missing from working log and qualified archives')
     for event in result.events:
         for key, value in event['set'].items():
             if value is None:

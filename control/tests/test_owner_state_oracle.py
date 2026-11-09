@@ -1055,8 +1055,10 @@ class StageOneFixMutations(unittest.TestCase):
             elif kind == 'probe-missing':
                 oracle.servers[1]['accepted'] = True
             elif kind == 'exact-cleanup-failed':
+                oracle.servers[3].update(accepted=False, response_code='NO')
                 record.events[0]['set']['op:cleanup']['state'] = 'failed'
             elif kind == 'empty-cleanup-failed':
+                oracle.servers[4].update(accepted=False, response_code='NO')
                 record.events[0]['set']['op:empty']['state'] = 'failed'
             else:
                 oracle.servers[2]['accepted'] = False
@@ -1135,3 +1137,248 @@ class StageOneFixMutations(unittest.TestCase):
         public['untrusted_content']['folder'] += '-wrong'
         with self.assertRaises(AssertionError):
             Oracle().compare('wrong caller target', {expected}, {audit_fact(public)})
+
+
+class StageOneRoundTwo(unittest.TestCase):
+    def expired(self, notice=True):
+        oracle = Oracle()
+        oracle.call('control_pending', {}, 11)
+        oracle.script[-1].update(start_seq=1, end_seq=2)
+        row = {'id': 'g:r', 'app': 'mail', 'state': 'reserved', 'expires': 10}
+        expired = {**row, 'state': 'failed', 'reason': 'expired: nothing submitted', 'notice': notice}
+        record = Record(events=[{'seq': 1, 'action': 'mail_send', 'set': {'op:g:r': row}},
+            {'seq': 2, 'action': 'mail_send', 'set': {'op:g:r': expired}}])
+        return oracle, record
+
+    def test_expiry_notice_false_cannot_erase_obligation(self):
+        oracle, record = self.expired(False)
+        expected = oracle.expected(record)
+        self.assertTrue(any(f.kind == 'pending' for f in expected))
+        self.assertIn(Fact('op:g:r', 'lost-operation-notice'), oracle.lifecycle_errors)
+        with self.assertRaises(AssertionError):
+            oracle.compare('expiry flag', expected, set())
+
+    def test_archive_cannot_remove_unacknowledged_expiry_including_first_read(self):
+        oracle, record = self.expired()
+        record.events.append({'seq': 3, 'action': 'control_archive', 'set': {'op:g:r': None}})
+        expected = oracle.expected(record)
+        self.assertTrue(any(f.kind == 'pending' for f in expected))
+        self.assertIn(Fact('op:g:r', 'unjustified-removal'), oracle.lifecycle_errors)
+        with self.assertRaises(AssertionError):
+            oracle.compare('archive expiry', expected, set())
+
+    def test_only_matching_committed_ack_ends_expiry_obligation(self):
+        for identity, committed in (('other', True), ('g:r', False), ('g:r', True)):
+            oracle, record = self.expired()
+            oracle.expected(record)
+            oracle.call('mail_notice_ack', {'operation_id': identity}, 12)
+            oracle.script[-1].update(start_seq=2, end_seq=3)
+            if committed:
+                record.events.append({'seq': 3, 'action': 'mail_notice_ack', 'set': {
+                    'op:g:r': {**record.events[1]['set']['op:g:r'], 'ack': True}}})
+            expected = oracle.expected(record)
+            self.assertEqual(any(f.kind == 'pending' for f in expected), not (identity == 'g:r' and committed))
+            if identity == 'g:r' and committed:
+                record.events.append({'seq': 4, 'action': 'control_archive', 'set': {'op:g:r': None}})
+                self.assertEqual(oracle.expected(record), set())
+                self.assertEqual(oracle.lifecycle_errors, set())
+
+    def test_expiry_obligation_survives_restore_and_restart(self):
+        oracle, record = self.expired()
+        expected = oracle.expected(record)
+        self.assertEqual(oracle.expected(Record()), expected)
+        restarted = Oracle()
+        restarted.script = copy.deepcopy(oracle.script)
+        self.assertEqual(restarted.expected(record), expected)
+
+    def test_coherent_wrong_delete_destination_violates_script(self):
+        from owner_state_oracle.context import differences
+        ref = {'account': 'box', 'folder': 'Source', 'uidvalidity': 1, 'uid': 1, 'message_id': '<one@mail.invalid>'}
+        oracle = Oracle()
+        oracle.call('mail_delete', {'operation_id': 'g:d', 'description': {'mode': 'trash', 'items': [{'reference': ref}]}}, 1)
+        roles = {'Trash': ['\\Trash'], 'Other': []}
+        row = {'id': 'g:d', 'state': 'submitting', 'context': {'account': 'box', 'command': 'MOVE',
+            'roles': {'trash': ['Trash']}, 'source': 'Source', 'destination': 'Other', 'identities': [ref]}}
+        event = oracle.server('MOVE', 'box', 'Source', [ref], roles, arguments=['1', 'Other'], committed_before={'op:g:d': row})
+        errors = differences(event, oracle.script)[1]
+        self.assertIn('script.command.destination', errors)
+        self.assertIn('script.context.destination', errors)
+        event['arguments'][1] = event['committed_before']['op:g:d']['context']['destination'] = 'Trash'
+        self.assertEqual(differences(event, oracle.script)[1], [])
+
+    def flag(self, add, remove, flags):
+        oracle = Oracle()
+        ref = {'account': 'box', 'folder': 'Source', 'uidvalidity': 1, 'uid': 1}
+        oracle.call('mail_flag', {'references': [ref], 'add': add, 'remove': remove}, 1)
+        oracle.script[-1].update(start_seq=0, end_seq=1)
+        row = {'state': 'started', 'action': 'mail_flag', 'context': {'account': 'box', 'command': 'STORE',
+            'roles': {}, 'source': 'Source', 'identities': [ref], 'flags': flags}}
+        oracle.server('STORE', 'box', 'Source', [ref], {}, arguments=['1', *flags],
+            call_start_seq=0, created_before={'intent:x': 1}, committed_before={'intent:x': row})
+        oracle.reply({'ok': True})
+        return oracle
+
+    def test_empty_removal_cannot_replace_requested_flag_addition(self):
+        oracle = self.flag(['\\Seen'], [], ['-FLAGS.SILENT', '()'])
+        errors = oracle.context_errors()
+        self.assertTrue(errors)
+        self.assertTrue(any('script.command.flags' in f.detail for f in errors))
+        self.assertTrue(any('missing' in f.detail for f in errors))
+
+    def test_complete_flag_plan_requires_both_nonempty_branches(self):
+        good = self.flag(['\\Seen'], [], ['+FLAGS.SILENT', '(\\Seen)'])
+        self.assertEqual(good.context_errors(), set())
+        incomplete = self.flag(['\\Seen'], ['\\Flagged'], ['-FLAGS.SILENT', '(\\Flagged)'])
+        self.assertTrue(any('missing' in f.detail and '\\\\Seen' in f.detail for f in incomplete.context_errors()))
+
+    def test_missing_original_onboarding_error_envelope_is_compared(self):
+        from owner_state_oracle.driver import Driver
+        oracle = StageOneFixMutations.background(self)
+        oracle.call('mail_account_add', {'id': 'new'}, 2)
+        oracle.script[-1]['request_method'] = 'mail_account_add'
+        driver = Driver.__new__(Driver)
+        driver.oracle, driver.envelopes_seen, driver.envelopes = oracle, set(), []
+        driver.snapshot = lambda: Record()
+        driver.capture_response(len(oracle.script) - 1, {'ok': False, 'error': {'code': 'storage_limit'}})
+        self.assertEqual(len(driver.envelopes), 1)
+        with self.assertRaises(AssertionError):
+            driver.drain_envelopes(oracle.compare)
+
+    def test_missing_envelope_fails_even_when_quiet_and_synthetic_results_are_named(self):
+        from owner_state_oracle.driver import Driver
+        from owner_state_oracle.compare import compare_envelope
+        oracle = Oracle()
+        with self.assertRaises(AssertionError):
+            compare_envelope('quiet original', {'ok': True}, Record(), oracle, set(), oracle.compare)
+        driver = Driver.__new__(Driver)
+        driver.oracle, driver.envelopes_seen, driver.envelopes = oracle, set(), []
+        driver.snapshot = lambda: Record()
+        for flow in ('expiry', 'maintenance', 'restart_index', 'restart_tail'):
+            oracle.call('control_pending', {}, 1)
+            oracle.script[-1]['synthetic_result'] = flow
+            driver.capture_response(len(oracle.script) - 1, {'ok': True})
+        self.assertEqual(driver.envelopes, [])
+
+    def probes(self, state='done', fault=None):
+        oracle = Oracle()
+        oracle.call('mail_account_add', {'id': 'new'}, 1, {'trace': [fault]} if fault else {})
+        oracle.script[-1].update(start_seq=0, end_seq=4)
+        ref = {'account': 'new', 'folder': 'Probe', 'uidvalidity': 1, 'uid': 1, 'message_id': '<probe@mail.invalid>'}
+        oracle.server('APPEND', 'new', 'Probe', arrived=[ref], before_seq=0)
+        oracle.server('DELETE', 'new', arguments=['Probe'], accepted=False, response_code='NO',
+            response_text=['[CANNOT] Nonempty DELETE forbidden'], before_seq=0, fault_point=10)
+        oracle.server('FETCH', 'new', 'Probe', identities=[ref])
+        oracle.server('EXPUNGE', 'new', 'Probe', identities=[ref], arguments=['1'], before_seq=1, fault_point=20)
+        oracle.server('DELETE', 'new', arguments=['Probe'], before_seq=2, fault_point=30)
+        oracle.server('DATA', 'new')
+        oracle.server('SENT', 'new', identities=[ref])
+        record = Record(events=[
+            {'seq': 1, 'action': 'mail_onboarding_folder_probe', 'set': {'op:probe': {'action': 'mail_onboarding_folder_probe',
+                'state': 'refused', 'payload': {'folder': 'Probe'}}}},
+            {'seq': 2, 'action': 'mail_delete', 'set': {'op:cleanup': {'action': 'mail_delete', 'state': state,
+                'payload': {'items': [{'reference': ref}]}}}},
+            {'seq': 3, 'action': 'mail_onboarding_folder_probe', 'set': {'op:empty': {'action': 'mail_onboarding_folder_probe',
+                'state': 'done', 'payload': {'folder': 'Probe', 'empty': True}}}},
+            {'seq': 4, 'action': 'mail_account_add', 'outcome': 'done', 'set': {'mail:account:new': {'id': 'new', 'onboarded': True}}}])
+        return oracle, record
+
+    def test_coherent_false_cleanup_state_and_public_reason_are_rejected(self):
+        oracle, record = self.probes('failed')
+        expected = oracle.qualification_facts({}, record)
+        self.assertTrue(any(f.kind == 'unjustified-probe-result' for f in oracle.lifecycle_errors))
+        wrong = {'data': {'accounts': [{'id': 'new', 'ready': True, 'sent_policy': 'server', 'safe_folder_delete': False,
+            'folder_delete_reason': 'Exact probe UID EXPUNGE cleanup failed'}]}}
+        with self.assertRaises(AssertionError):
+            oracle.compare('false qualification', expected, oracle.qualification_facts(wrong, record, actual=True))
+
+    def test_empty_probe_false_failure_and_wrong_commit_order_are_rejected(self):
+        for mutation in ('false-state', 'wrong-order'):
+            oracle, record = self.probes()
+            if mutation == 'false-state':
+                record.events[2]['set']['op:empty']['state'] = 'failed'
+            else:
+                oracle.servers[4]['before_seq'] = 3
+            self.assertEqual(oracle.qualification(record)['new']['folder_delete_reason'], 'qualified')
+            self.assertTrue(any(f.source == 'op:empty' and f.kind == 'unjustified-probe-result' for f in oracle.lifecycle_errors))
+
+    def test_probe_failure_needs_a_later_fault_or_failed_reply(self):
+        for fault, reason in (((5, 'journal.write', 'ENOSPC'), 'qualified'),
+                              ((25, 'journal.write', 'ENOSPC'), 'exact-cleanup-failed')):
+            oracle, record = self.probes('failed', fault)
+            self.assertEqual(oracle.qualification(record)['new']['folder_delete_reason'], reason)
+        oracle, record = self.probes('failed')
+        oracle.servers[3].update(accepted=False, response_code='NO')
+        self.assertEqual(oracle.qualification(record)['new']['folder_delete_reason'], 'exact-cleanup-failed')
+        self.assertEqual(oracle.lifecycle_errors, set())
+
+    def test_open_account_and_filing_obligations_survive_row_removal(self):
+        for key, row in (('mail:account:new', {'id': 'new', 'onboarded': False}),
+                         ('mail:filing:f', {'id': 'f', 'state': 'started', 'account': 'box'})):
+            oracle = Oracle()
+            record = Record(events=[{'seq': 1, 'action': 'fixture', 'set': {key: row}},
+                {'seq': 2, 'action': 'control_archive', 'set': {key: None}}])
+            expected = oracle.expected(record)
+            self.assertTrue(any(f.source == key and f.kind == 'recovery' for f in expected))
+            self.assertIn(Fact(key, 'unjustified-removal'), oracle.lifecycle_errors)
+
+    def test_mutated_committed_context_and_unproved_resolution_do_not_end_work(self):
+        oracle = Oracle()
+        oracle.call('mail_delete', {'operation_id': 'g:d'}, 1)
+        oracle.script[-1].update(start_seq=1, end_seq=3)
+        old = {'id': 'g:d', 'app': 'mail', 'action': 'mail_delete', 'state': 'submitting', 'payload': {'mode': 'trash'}}
+        record = Record(events=[{'seq': 1, 'action': 'mail_delete', 'set': {'op:g:d': old}},
+            {'seq': 2, 'action': 'mail_delete', 'set': {'op:g:d': {**old, 'state': 'done', 'payload': {'mode': 'permanent'}}}}])
+        expected = oracle.expected(record)
+        self.assertTrue(any(f.kind == 'recovery' for f in expected))
+        self.assertIn(Fact('op:g:d', 'changed-operation-context', detail='payload'), oracle.lifecycle_errors)
+        self.assertIn(Fact('op:g:d', 'unjustified-resolution'), oracle.lifecycle_errors)
+
+    def test_stage_outcome_needs_correlated_delivered_command(self):
+        for stage, outcome in (('smtp_data', 'accepted:250'), ('sent_copy', 'done'), ('folder', 'deleted')):
+            oracle = Oracle()
+            row = {'id': 'g:s', 'app': 'mail', 'action': 'mail_send', 'state': 'submitting', 'stages': {stage: outcome}}
+            record = Record(events=[{'seq': 1, 'action': 'mail_send', 'set': {'op:g:s': row}}])
+            oracle.expected(record)
+            self.assertIn(Fact('op:g:s', 'unjustified-stage', detail=stage), oracle.lifecycle_errors)
+
+    def test_forged_restore_archive_and_notice_metadata_are_detected(self):
+        oracle = Oracle()
+        oracle.call('mail_accounts', {}, 10)
+        oracle.script[-1].update(start_seq=0, end_seq=1)
+        record = Record(events=[{'seq': 1, 'time': 10, 'action': 'mail_accounts', 'set': {
+            'restore_pending': True, 'archived:g:s': {'seq': 1},
+            'notice:n': {'id': 'wrong', 'created_at': 1000}}}])
+        oracle.expected(record)
+        self.assertTrue({'unjustified-restore-transition', 'unjustified-archive-marker', 'notice-identity', 'notice-creation-time'} <=
+                        {f.kind for f in oracle.lifecycle_errors})
+
+    def test_decoder_validates_event_time_and_full_operation_against_fence(self):
+        state, evidence = OwnerOracle.disk(self)
+        with closing(sqlite3.connect(state / 'control.sqlite')) as db:
+            event = json.loads(db.execute('SELECT value FROM events').fetchone()[0])
+            event['time'] += 1
+            db.execute('UPDATE events SET value=?', (canonical(event),))
+            db.commit()
+        with self.assertRaisesRegex(ValueError, 'independent fence'):
+            decode(state, evidence)
+        event['time'] -= 1
+        operation = {'id': 'g:s', 'generation': 'g', 'input_hash': 'input', 'state': 'submitting'}
+        fence = event['record']
+        fence['operations'] = [operation]
+        fence['hash'] = fingerprint({k:v for k,v in fence.items() if k != 'hash'})
+        event['set']['op:g:s'] = {**operation, 'state': 'done'}
+        with closing(sqlite3.connect(state / 'control.sqlite')) as db:
+            db.execute('UPDATE events SET value=?', (canonical(event),))
+            db.execute('UPDATE head SET hash=?', (fence['hash'],))
+            db.commit()
+        (evidence / 'operations.jsonl').write_text(canonical(fence) + '\n' + canonical({'commit': 1, 'hash': fence['hash']}) + '\n')
+        with self.assertRaisesRegex(ValueError, 'Operation differs'):
+            decode(state, evidence)
+
+    def test_decoder_missing_history_cannot_be_justified_by_current_head(self):
+        state, evidence = OwnerOracle.disk(self)
+        with closing(sqlite3.connect(state / 'control.sqlite')) as db:
+            db.execute('DELETE FROM events')
+            db.commit()
+        with self.assertRaisesRegex(ValueError, 'Committed history missing'):
+            decode(state, evidence)

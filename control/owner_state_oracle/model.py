@@ -6,7 +6,7 @@ import hashlib
 import json
 import re
 from .records import canonical, fingerprint
-from .context import bind as bind_context, differences as context_differences, special_roles, special_delimiters, MUTATIONS
+from .context import bind as bind_context, differences as context_differences, special_roles, special_delimiters, missing_flag_commands, MUTATIONS
 from .local import errors as local_errors
 
 
@@ -41,6 +41,8 @@ class Oracle:
         self.background = None
         self.semantic_occurrences = {}
         self.qualification_observed = {}
+        self.operation_notices = {}
+        self.stages_examined = set()
 
     def call(self, action, arguments, clock, faults=None):
         self.call_id += 1
@@ -129,7 +131,8 @@ class Oracle:
         for key, row in record.rows.items():
             if key.startswith('op:'):
                 if app is None or row['app'] == app:
-                    if row['state'] in {'reserved', 'submitting', 'partial', 'unknown'} or (row.get('notice') and 'operation:' + row['id'] not in self.acknowledged):
+                    if row['state'] in {'reserved', 'submitting', 'partial', 'unknown'} or (
+                            (key in self.operation_notices or row.get('notice')) and 'operation:' + row['id'] not in self.acknowledged):
                         facts.add(Fact(key, 'pending', detail=canonical({'state': row['state'], 'reason': 'RESTORED_EVIDENCE' if 'restored' in row.get('reason', '').lower() and any(word in row.get('reason', '').lower() for word in ('newer', 'missing')) else row.get('reason')})))
                 if row['state'] in {'submitting', 'unknown', 'partial'} and (app is None or row['app'] == app):
                     facts.add(Fact(key, 'recovery'))
@@ -362,9 +365,43 @@ class Oracle:
     def lifecycle(self, record):
         changed = {key for event in record.events for key in event['set']}
         rows = {key: value for key, value in record.rows.items() if key not in changed}
+        resolved = set()
         for event in record.events:
             for key, value in event['set'].items():
-                old = rows.get(key, self.lifecycle_known.get(key, {}))
+                old = rows.get(key, {})
+                if key in {'generation', 'restore_pending'} and value != old:
+                    initial = key == 'generation' and event['action'] in {'control_initialize', 'fixture'} and not old
+                    if not initial and not self.scripted_transition(event, 'control_restore_confirm'):
+                        self.lifecycle_errors.add(Fact(key, 'unjustified-restore-transition'))
+                if key.startswith('archived:') and value:
+                    if event['action'] != 'control_archive' or value != {'seq': event['seq']} or event['set'].get('op:' + key[9:], 'absent') is not None:
+                        self.lifecycle_errors.add(Fact(key, 'unjustified-archive-marker'))
+                        continue
+                if key.startswith('notice:') and value:
+                    if value.get('id') != key[7:]:
+                        self.lifecycle_errors.add(Fact(key, 'notice-identity'))
+                    for field in ('id', 'source_key', 'check_kind', 'evidence_fingerprint', 'created_at'):
+                        if field in old and value.get(field) != old[field]:
+                            self.lifecycle_errors.add(Fact(key, 'changed-notice-context', detail=field))
+                    calls = [c for c in self.script if c.get('start_seq', -1) < event['seq'] <= c.get('end_seq', -1)]
+                    if not old and 'created_at' in value and 'time' in event and calls:
+                        if not min(c['clock'] for c in calls) * 1_000_000_000 - 1 <= value['created_at'] <= event['time'] * 1_000_000_000 + 1:
+                            self.lifecycle_errors.add(Fact(key, 'notice-creation-time'))
+                if key.startswith('op:') and value:
+                    if value.get('id') != key[3:]:
+                        self.lifecycle_errors.add(Fact(key, 'operation-identity'))
+                    for field in ('id', 'app', 'action', 'payload', 'approval', 'expires', 'repair_of'):
+                        if field in old and value.get(field) != old[field]:
+                            self.lifecycle_errors.add(Fact(key, 'changed-operation-context', detail=field))
+                            value = {**value, field: old[field]}
+                    if event['seq'] > getattr(self, 'seed_sequence', 0):
+                        self.stage_claims(event, key, old, value)
+                        if value.get('state') not in {'reserved', 'submitting', 'unknown', 'partial', 'done', 'failed', 'refused'}:
+                            self.lifecycle_errors.add(Fact(key, 'invalid-operation-state'))
+                            value = {**value, 'state': old.get('state', 'unknown')}
+                        if not old and value.get('state') in {'done', 'failed', 'refused'} and not self.resolution_proof(record, event, key, value):
+                            self.lifecycle_errors.add(Fact(key, 'unjustified-resolution'))
+                            value = {**value, 'state': 'unknown'}
                 if key.startswith('notice:') and value and value.get('ack') and not old.get('ack'):
                     if self.scripted_transition(event, '_notice_ack', value['id']):
                         self.acknowledged.add(value['id'])
@@ -388,21 +425,49 @@ class Oracle:
                         self.lifecycle_errors.add(Fact(key, 'unjustified-check-close'))
                         value = {**value, 'sent_copy_check': old['sent_copy_check']}
                 if key.startswith('op:') and old.get('state') == 'reserved' and value and value.get('state') in {'failed', 'done'}:
-                    expiry = value.get('reason', '').startswith('expired:') and any(c['clock'] >= old.get('expires', float('inf')) for c in self.script)
+                    expiry = (value.get('state') == 'failed' and value.get('reason', '').startswith('expired:') and
+                              any(c['clock'] >= old.get('expires', float('inf')) and
+                                  c.get('start_seq', -1) < event['seq'] <= c.get('end_seq', float('inf')) for c in self.script))
                     cancel = value.get('reason', '').startswith('cancelled:') and self.scripted_transition(event, '_operation_cancel', old['id'])
                     if not (expiry or cancel):
                         self.lifecycle_errors.add(Fact(key, 'unjustified-resolution'))
                         value = old
-                if value is None and key.startswith(('op:', 'mail:filing:', 'mail:rename:', 'intent:', 'export:')) and old:
-                    unresolved = old.get('state') in {'reserved', 'started', 'submitting', 'unknown', 'partial'} or old.get('check_open') or key.startswith(('intent:', 'export:'))
+                    else:
+                        self.operation_notices.setdefault(key, copy.deepcopy(value))
+                elif key.startswith('op:') and old.get('state') in {'submitting', 'unknown', 'partial'} and value and value.get('state') in {'done', 'failed', 'refused'}:
+                    if not self.resolution_proof(record, event, key, value):
+                        self.lifecycle_errors.add(Fact(key, 'unjustified-resolution'))
+                        value = {**value, 'state': old['state'], 'reason': old.get('reason', '')}
+                if key.startswith(('mail:filing:', 'mail:rename:')) and old.get('state') == 'started' and value and value.get('state') != 'started':
+                    if not self.result_proof(key, 'rename' if key.startswith('mail:rename:') else 'filing', event['seq']):
+                        self.lifecycle_errors.add(Fact(key, 'unjustified-check-close'))
+                        value = {**value, 'check_open': True}
+                if (key.startswith('mail:account:') and not old.get('onboarded', old.get('ready', False)) and value and
+                        value.get('onboarded', value.get('ready', False)) and event['seq'] > getattr(self, 'seed_sequence', 0)):
+                    calls = [c for c in self.script if c['action'] == 'mail_account_add' and c['arguments'].get('id') == key.removeprefix('mail:account:')
+                             and c.get('start_seq', -1) < event['seq'] <= c.get('end_seq', float('inf'))]
+                    if event['action'] != 'mail_account_add' or event.get('outcome') != 'done' or not calls or not any(
+                            e['command'] == 'DATA' and e['accepted'] and e['reply'] == 'delivered' and e['call'] in {c['call'] for c in calls} for e in self.servers):
+                        self.lifecycle_errors.add(Fact(key, 'unjustified-onboarding-close'))
+                        value = {**value, 'onboarded': False, 'ready': False}
+                if key.startswith('op:') and key in self.operation_notices and value and value.get('state') == 'failed':
+                    if 'operation:' + value['id'] not in self.acknowledged and not value.get('notice'):
+                        self.lifecycle_errors.add(Fact(key, 'lost-operation-notice'))
+                        value = {**value, 'notice': True}
+                if value is None and key.startswith(('op:', 'mail:filing:', 'mail:rename:', 'intent:', 'export:', 'mail:account:')) and old:
+                    unacknowledged = (key in self.operation_notices and 'operation:' + old['id'] not in self.acknowledged) or any(
+                        source == key and handle not in self.acknowledged for (source, *_), handle in self.occurrences.items())
+                    unresolved = (unacknowledged or old.get('state') in {'reserved', 'started', 'submitting', 'unknown', 'partial'} or old.get('check_open') or
+                                  key.startswith(('intent:', 'export:')) or key.startswith('mail:account:') and not old.get('onboarded', old.get('ready', False)))
                     acknowledged_intent = key.startswith('intent:') and self.scripted_transition(event, '_notice_ack', old.get('id'))
-                    completed_intent = key.startswith('intent:') and event['action'] == old.get('action') and self.scripted_transition(event, old.get('action', 'impossible'))
-                    completed_export = key.startswith('export:') and event['action'].endswith('_file_save') and any(c['action'] in {'saved', 'testapp_file_save', 'mail_file_save'} for c in self.script)
+                    completed_intent = key.startswith('intent:') and self.intent_result_proof(record, event, key, old)
+                    completed_export = key.startswith('export:') and self.export_result_proof(event, key, old)
                     if unresolved and not (acknowledged_intent or completed_intent or completed_export):
                         self.lifecycle_errors.add(Fact(key, 'unjustified-removal'))
                         value = old
                 if value is None:
                     rows.pop(key, None)
+                    resolved.add(key)
                 else:
                     rows[key] = value
         # Read-only synthetic fixtures may give rows directly; real decoded rows
@@ -410,12 +475,118 @@ class Oracle:
         if not record.events:
             rows = dict(record.rows)
         for key, old in self.lifecycle_known.items():
-            if key not in rows and key.startswith('op:') and old.get('state') in {'reserved', 'submitting', 'unknown', 'partial'}:
+            if not isinstance(old, dict):
+                continue
+            required_notice = key in self.operation_notices and 'operation:' + old['id'] not in self.acknowledged
+            unresolved = old.get('state') in {'reserved', 'started', 'submitting', 'unknown', 'partial'} or old.get('check_open') or key.startswith(('intent:', 'export:'))
+            if key not in rows and key not in resolved and (required_notice or unresolved):
                 rows[key] = old
-        self.lifecycle_known.update(rows)
+        self.lifecycle_known = rows.copy()
         result = copy.copy(record)
         result.rows = rows
         return result
+
+    def resolution_proof(self, record, event, key, row):
+        if event['seq'] <= getattr(self, 'seed_sequence', 0):
+            return True
+        calls = [c for c in self.script if c.get('start_seq', -1) < event['seq'] <= c.get('end_seq', -1)
+                 and (c.get('arguments', {}).get('operation_id') == row.get('id') or c['action'] == 'mail_account_add')]
+        commands = [e for e in self.servers if e['command'] in MUTATIONS and e.get('before_seq', -1) < event['seq']
+                    and bind_context(e, self.script)[0] == key]
+        if row.get('state') == 'done':
+            candidate = copy.copy(record)
+            candidate.rows = {**record.rows, key: row}
+            if any(f.source == key for f in self.completion_errors(candidate)):
+                return False
+            if row.get('action') == 'testapp_delete':
+                return bool(calls) and any(e['seq'] < event['seq'] and e.get('operation_id') == row.get('id') and 'testapp' in e['set'] for e in record.events)
+            parent = row.get('repair_of', row.get('id'))
+            evidence = [e for e in self.servers if e.get('source') == 'op:' + str(parent) and e['command'] == 'SENT'
+                        and e['identities'] and e.get('before_seq', -1) < event['seq']]
+            return bool(commands or evidence) and bool(calls or evidence)
+        return bool(any(c.get('faults', {}).get('trace') for c in calls) or
+                    any(not e['accepted'] or e['reply'] != 'delivered' for e in commands))
+
+    def stage_claims(self, commit, key, old, row):
+        marker = commit['seq'], key, canonical(row.get('stages', {}))
+        if marker in self.stages_examined:
+            return
+        self.stages_examined.add(marker)
+        parent = row.get('repair_of', row.get('id'))
+        mid = '<' + str(parent).replace(':', '.') + '@mail.aresos.invalid>'
+        payload = row.get('payload', {})
+        mail = payload.get('composition', {}).get('mail', {})
+        refs = [item['reference'] for item in payload.get('items', [])]
+        events = [e for e in self.servers if e.get('before_seq', -1) < commit['seq'] and (
+            bind_context(e, self.script)[0] == key or e.get('source') == 'op:' + str(parent) or
+            any(ref.get('message_id') == mid or ref.get('operation_id') == parent for ref in e.get('identities', [])))]
+        accepted = lambda command: [e for e in events if e['command'] == command and e['accepted'] and e['reply'] == 'delivered']
+        for name, outcome in row.get('stages', {}).items():
+            if old.get('stages', {}).get(name) == outcome:
+                continue
+            proof = True
+            if name == 'message_id':
+                proof = outcome == mid
+            elif name == 'smtp_data' and outcome.startswith('accepted:'):
+                proof = bool(accepted('DATA'))
+            elif name.startswith(('rcpt:', 'recipient:')) and outcome.startswith(('accepted', 'refused')):
+                address = name.split(':', 1)[1]
+                candidates = [e for e in events if e['command'] == ('RECEIVE' if row.get('app') == 'testapp' else 'RCPT') and address in e.get('recipients', []) and e['reply'] == 'delivered']
+                proof = bool(candidates) and candidates[-1]['accepted'] == outcome.startswith('accepted')
+            elif name == 'sent_copy' and outcome == 'done':
+                proof = bool(accepted('APPEND') or any(e['identities'] for e in accepted('SENT')) or
+                             any(e.get('stage') == name for e in accepted('LOCAL_STAGE')))
+            elif name == 'answered_flag' and outcome in {'done', 'not_needed'}:
+                if outcome == 'not_needed':
+                    proof = not mail.get('answered_reference')
+                else:
+                    proof = bool(accepted('STORE') or any(e.get('stage') == name for e in accepted('LOCAL_STAGE')))
+            elif name == 'folder_probe':
+                commands = [e for e in events if e['command'] == 'DELETE']
+                text = ' '.join(commands[-1].get('response_text', [])) if commands else ''
+                qualified = bool(commands and commands[-1].get('response_code') == 'NO' and
+                                 re.search(r'NON[- ]?EMPTY|NOT EMPTY|CONTAINS MESSAGES|HOLDS MAIL', text.upper()))
+                proof = bool(commands) and (outcome == 'nonempty_refusal') == qualified
+            elif name == 'folder' and outcome == 'deleted':
+                proof = bool(accepted('DELETE'))
+            elif name.startswith('target:') and outcome in {'trashed', 'expunged', 'marked_deleted_not_expunged'}:
+                ref = next((ref for ref in refs if fingerprint(ref) == name[7:]), None)
+                command = {'trashed': 'MOVE', 'expunged': 'EXPUNGE', 'marked_deleted_not_expunged': 'STORE'}[outcome]
+                proof = bool(ref and any(e.get('folder') == ref['folder'] and str(e.get('arguments', [''])[0]) == str(ref['uid']) for e in accepted(command)))
+            elif name == 'https_post' and outcome.isdigit():
+                proof = any(str(e.get('status')) == outcome for e in accepted('POST'))
+            if not proof:
+                self.lifecycle_errors.add(Fact(key, 'unjustified-stage', detail=name))
+
+    def intent_result_proof(self, record, event, key, old):
+        if event['action'] != old.get('action') or not self.scripted_transition(event, old.get('action', 'impossible')):
+            return False
+        if event['seq'] <= getattr(self, 'seed_sequence', 0):
+            return True
+        commands = [e for e in self.servers if bind_context(e, self.script)[0] == key and e.get('before_seq', -1) < event['seq']]
+        if commands:
+            return all(e['reply'] == 'delivered' for e in commands)
+        calls = [c for c in self.script if c['action'] == old['action'] and c.get('start_seq', -1) < event['seq'] <= c.get('end_seq', -1)]
+        if old.get('action') == 'mail_account_folders':
+            return any(e['call'] in {c['call'] for c in calls} and e['command'] == 'LIST' and e['accepted'] and e['reply'] == 'delivered'
+                       and e.get('account') in {c['arguments'].get('id') for c in calls} and e.get('before_seq', -1) < event['seq'] for e in self.servers)
+        if old.get('action') == 'mail_attachment_save':
+            inputs = [e for e in self.servers if e['command'] == 'EXPORT_INPUT']
+            return any(e['seq'] <= event['seq'] and any(name.startswith('export:') and value and any(
+                value.get('sha256') == source['sha256'] and value.get('size') == source['size'] for source in inputs)
+                for name, value in e['set'].items()) for e in record.events)
+        # Local settings and role review have a decoded effect in this very
+        # commit. Missing R2 context is checked separately by local.py.
+        return old.get('action') in {'mail_account_settings', 'mail_account_folders'} and any(
+            e['seq'] <= event['seq'] and e['action'] == old['action'] and self.scripted_transition(e, old['action']) and
+            any(name.startswith('mail:account:') and value for name, value in e['set'].items()) for e in record.events)
+
+    def export_result_proof(self, event, key, old):
+        if not event['action'].endswith('_file_save'):
+            return False
+        return any(c.get('start_seq', -1) < event['seq'] <= c.get('end_seq', -1) and (
+            c['action'] == 'saved' and c['arguments'].get('export_id') == key[7:] and c['arguments'].get('app') == old.get('app') or
+            c.get('faults', {}).get('trace') and event.get('outcome') == 'refused') for c in self.script)
 
     def public_handle(self, record, fact):
         if fact.occurrence:
@@ -475,7 +646,7 @@ class Oracle:
             events = [e for e in self.servers if e.get('account') == account_id and e['call'] == call['call']]
             if not events:
                 continue
-            deliveries = [e for e in events if e['command'] == 'DATA' and e['accepted']]
+            deliveries = [e for e in events if e['command'] == 'DATA' and e['accepted'] and e['reply'] == 'delivered']
             probes = [e for e in events if e['command'] == 'DELETE']
             delivery_index = next((i for i, e in enumerate(events) if e['command'] == 'DATA'), len(events))
             repair_index = next((i for i, e in enumerate(events) if i > delivery_index and e['command'] == 'APPEND'), len(events))
@@ -492,7 +663,8 @@ class Oracle:
             for setting in self.script:
                 args = setting.get('arguments', {})
                 account = args.get('id')
-                if setting['action'] == 'mail_account_settings' and account in result and 'sent_policy' in args and self.scripted_transition(event, 'mail_account_settings'):
+                if (setting['action'] == 'mail_account_settings' and account in result and 'sent_policy' in args and
+                        'mail:account:' + account in event['set'] and setting.get('start_seq', -1) < event['seq'] <= setting.get('end_seq', -1)):
                     result[account].update(sent_policy=args['sent_policy'], ready=True)
         return result
 
@@ -509,29 +681,70 @@ class Oracle:
         nonempty = probe.get('response_code') == 'NO' and all(code == 'CANNOT' for code in codes) and bool(re.search(r'NON[- ]?EMPTY|NOT EMPTY|CONTAINS MESSAGES|HOLDS MAIL', text))
         if probe['accepted']:
             return False, 'probe-missing'
-        operations = [v for e in record.events if e['seq'] <= completed_at for k, v in e['set'].items() if k.startswith('op:') and v]
-        def outcome(action, predicate):
-            matching = [v for v in operations if v.get('action') == action and predicate(v.get('payload', {}))]
-            return matching[-1] if matching else {}
-        initial = outcome('mail_onboarding_folder_probe', lambda p: p.get('folder') == folder and not p.get('empty'))
-        if initial.get('state') != 'refused':
+        def outcome(action, predicate, commands, success):
+            return self.probe_outcome(events, record, completed_at, action, predicate, commands, success)
+        initial = outcome('mail_onboarding_folder_probe', lambda p: p.get('folder') == folder and not p.get('empty'), [probe], 'refused')
+        if initial != 'refused':
             return False, 'survival-unverified'
         refs = [ref for e in events if e['command'] == 'APPEND' and e['accepted'] and e.get('folder') == folder for ref in e.get('arrived', [])]
-        survived = any(e['command'] == 'FETCH' and e['accepted'] and any(ref in e['identities'] for ref in refs) for e in events)
-        cleanup = outcome('mail_delete', lambda p: any(i.get('reference', {}).get('folder') == folder for i in p.get('items', [])))
-        if not survived or cleanup.get('state') in {None, 'reserved', 'submitting'}:
+        survived = any(e['command'] == 'FETCH' and e['accepted'] and e['reply'] == 'delivered' and any(ref in e['identities'] for ref in refs) for e in events)
+        expunges = [e for e in events if e['command'] == 'EXPUNGE' and any(
+            str(ref['uid']) == str(e.get('arguments', [''])[0]) and ref['folder'] == e.get('folder') for ref in refs)]
+        cleanup = outcome('mail_delete', lambda p: any(i.get('reference', {}).get('folder') == folder for i in p.get('items', [])), expunges, 'done')
+        if not survived or cleanup in {None, 'reserved', 'submitting'}:
             return False, 'survival-unverified'
-        expunged = any(e['command'] == 'EXPUNGE' and e['accepted'] and any(str(ref['uid']) == str(e.get('arguments', [''])[0]) and ref['folder'] == e.get('folder') for ref in refs) for e in events)
-        if cleanup.get('state') != 'done' or not expunged:
+        expunged = bool(expunges) and all(e['accepted'] and e['reply'] == 'delivered' for e in expunges)
+        if cleanup != 'done' or not expunged:
             return False, 'exact-cleanup-failed'
         if not nonempty:
             return False, 'generic-cleaned'
-        empty = outcome('mail_onboarding_folder_probe', lambda p: p.get('folder') == folder and p.get('empty'))
-        if empty.get('state') in {None, 'reserved', 'submitting'}:
+        empty_commands = probes[1:]
+        empty = outcome('mail_onboarding_folder_probe', lambda p: p.get('folder') == folder and p.get('empty'), empty_commands, 'done')
+        if empty in {None, 'reserved', 'submitting'}:
             return False, 'survival-unverified'
-        if empty.get('state') != 'done' or not probes[-1]['accepted']:
+        if empty != 'done' or not all(e['accepted'] and e['reply'] == 'delivered' for e in empty_commands):
             return False, 'empty-cleanup-failed'
         return True, 'qualified'
+
+    def probe_outcome(self, events, record, completed_at, action, predicate, commands, success):
+        """A committed state is a claim, not evidence of a failed probe.
+
+        Only faults after the correlated command can explain failure to commit
+        its delivered result. Earlier handled faults cannot excuse a later lie.
+        """
+        candidates = [(e, k, v) for e in record.events if e['seq'] <= completed_at
+                      for k, v in e['set'].items() if k.startswith('op:') and v and
+                      v.get('action') == action and predicate(v.get('payload', {}))]
+        if not candidates:
+            if commands:
+                self.lifecycle_errors.add(Fact('mail:account:' + str(events[0]['account']), 'missing-probe-result', detail=action))
+            return None
+        commit, key, row = candidates[-1]
+        state = row.get('state')
+        if not commands:
+            if state not in {None, 'reserved', 'submitting'}:
+                self.lifecycle_errors.add(Fact(key, 'unjustified-probe-result', detail=action))
+            return state if state in {None, 'reserved', 'submitting'} else None
+        last = commands[-1]
+        call = next((c for c in self.script if c['call'] == last['call']), {})
+        faults = [f for f in call.get('faults', {}).get('trace', []) if f[0] > last.get('fault_point', 0)]
+        ordered = last.get('before_seq', -1) < commit['seq'] <= call.get('end_seq', completed_at)
+        if not ordered:
+            self.lifecycle_errors.add(Fact(key, 'unjustified-probe-order', detail=action))
+        delivered = all(e['reply'] == 'delivered' for e in commands)
+        succeeded = delivered and all(e['accepted'] for e in commands)
+        expected = success if succeeded or (success == 'refused' and delivered and not last['accepted']) else None
+        if state == expected and ordered:
+            return state
+        if expected is not None and not faults:
+            self.lifecycle_errors.add(Fact(key, 'unjustified-probe-result', detail=canonical({'state': state, 'expected': expected, 'ordered': ordered})))
+            return expected
+        # Failed/lost replies or a later injected write fault can explain an
+        # uncertain/failed result, but never a fabricated successful result.
+        if state == 'done' and not succeeded:
+            self.lifecycle_errors.add(Fact(key, 'unjustified-probe-result', detail='successful result without delivered acceptance'))
+            return 'unknown'
+        return state
 
     def qualification_facts(self, reply, record, actual=False):
         if not actual:
@@ -662,6 +875,8 @@ class Oracle:
 
     def context_errors(self):
         errors = set()
+        for call, ref, flags in missing_flag_commands(self.script, self.servers):
+            errors.add(Fact('call:' + str(call), 'R2.STORE', detail=canonical({'missing': ref, 'flags': flags})))
         for index, event in enumerate(self.servers):
             if event['command'] not in MUTATIONS or event.get('fixture_seed'):
                 continue

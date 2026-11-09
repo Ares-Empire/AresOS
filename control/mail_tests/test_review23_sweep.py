@@ -110,15 +110,19 @@ class Scenario:
                 self.stack.enter_context(patch.object(f.imap, 'rename', side_effect=rename, create=True))
         elif flow == 'archive':
             self.seed_send(None)
+            advance = getattr(self, 'advance_archive_clock', None)
+            if advance:
+                advance()
             cutoff = time.time() - 1
             # Archive real closed rows and events, including VACUUM, rather
             # than an empty no-op export. The restore fence remains intact.
             with f.engine.store.db as db:
                 db.execute('UPDATE retained SET created=?', (cutoff - 1,))
-                for seq, value in db.execute('SELECT seq,value FROM events').fetchall():
-                    event = json.loads(value)
-                    event['time'] = cutoff - 1
-                    db.execute('UPDATE events SET value=? WHERE seq=?', (json.dumps(event), seq))
+                if not advance:
+                    for seq, value in db.execute('SELECT seq,value FROM events').fetchall():
+                        event = json.loads(value)
+                        event['time'] = cutoff - 1
+                        db.execute('UPDATE events SET value=? WHERE seq=?', (json.dumps(event), seq))
             self.action, self.args, self.admin = 'control_archive', {'before': cutoff, 'confirm': 'archive finished history'}, True
         elif flow in {'expiry', 'maintenance', 'restart_index', 'restart_tail'}:
             if flow == 'expiry':
