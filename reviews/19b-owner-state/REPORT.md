@@ -95,7 +95,7 @@ No real account/provider, owner machine integration or Minecraft/Gradle tests we
 
 **Read:** stage-1 acceptance is the coverage/oracle/comparison/strict-gap harness, not the full brief's empty-ledger acceptance. Remaining gaps name stage 2 or 3. This is the user's explicit stopping point.
 
-**Run — workflow budget:** 38 distinct workflow run IDs, 41 attempts including retries and cancelled runs. This exceeded the approximate 25-run target. Independent oracle review fixes, complete Linux baseline capture, calendar and UUID/nanosecond repeatability corrections, and required final repetitions account for the additional runs. Superseded and diagnostic runs are not passing verification.
+**Run — workflow budget:** 40 distinct workflow run IDs, 43 attempts including retries and cancelled runs. This exceeded the approximate 25-run target. Independent oracle review fixes, complete Linux baseline capture, calendar and UUID/nanosecond repeatability corrections, and required final repetitions account for the additional runs. Superseded, diagnostic and cancelled documentation-only runs are not passing verification. The report-only push `e32a3f02` restarted base/Mail because PR path filters use the cumulative diff; redundant runs [42649695450](https://github.com/Ares-Empire/AresOS/actions/runs/42649695450) and [42649695455](https://github.com/Ares-Empire/AresOS/actions/runs/42649695455) were cancelled. The closing report correction uses `[skip ci]` to avoid a reporting loop; its diff from tested source contains only the report/review documents.
 
 ## Open questions
 
