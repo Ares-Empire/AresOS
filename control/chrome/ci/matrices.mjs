@@ -35,6 +35,7 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
   }
   async function setup(parameters) {await nav('matrix&'+new URLSearchParams(parameters));}
   const words=JSON.parse(fs.readFileSync('control/chrome/extension/policy.js','utf8').match(/\{[\s\S]*\}/)[0]).words;
+  results.push(...await (await import('./sites/matrices.mjs')).siteMatrices({call,read,nav,target,counts,eventually,tab,fixture,admin,rpc,lifecycle}));
   await check('GROUP 1 submit compose deletion and free-input matrix',async()=>{
     for(const tag of ['default','submit','override','external','empty','invalid','clobbered'])for(const key of ['click','Enter','Space','field']){
       const id='submit-'+tag+'-'+key;await nav('action-matrix&mode=submit&id='+id+'&tag='+tag);

@@ -26,6 +26,7 @@ export async function fixtures(options={}) {
     // not exhaust Chrome's six HTTP/1.1 connections and hide later receivers.
     if(!['draft-inner','password-inner'].includes(kind))for(const [id,stream]of streams){stream.end();streams.delete(id);}
     let body,script='';
+    if(kind==='adapter-sites'){const site=(await import('./sites/fixture.mjs')).sitePage(url,req.headers.host);res.end(page(site.body,site.script));return;}
     if(kind==='features') {
       body='<form><input aria-label="First" name="first" value="Original first"><input aria-label="Second" name="second" value="Original second"><select name="choice" aria-label="Choice"><option value="a">First option</option><option value="b">Second option</option><option value="c" disabled>Disabled option</option></select><input type="hidden" name="hidden" value="Hidden field"><input type="checkbox" name="tick" aria-label="Tick"></form><a href="/download?id='+url.searchParams.get('id')+'">Download fixture</a><p>Findable synthetic paragraph</p>';
     } else if(kind==='compose') {
