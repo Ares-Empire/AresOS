@@ -8,7 +8,7 @@ if(process.env.INJECTION_PROBE==='true'){
   extension='/workspace/.work/20-probe-extension';fs.mkdirSync(extension,{recursive:true});
   fs.writeFileSync(extension+'/manifest.json',JSON.stringify({manifest_version:3,name:'Controlled injection experiment',version:'1.0.0',permissions:['debugger','tabs','scripting','dom'],host_permissions:['http://*.test/*'],background:{service_worker:'background.js'}}));
   fs.copyFileSync('/workspace/control/chrome/ci/probe-background.js',extension+'/background.js');
-  fs.writeFileSync(extension+'/context.js','// Inert isolated-world bootstrap. No page access or listeners.\n');
+  fs.writeFileSync(extension+'/context.js','// Inert isolated-world bootstrap. No page access or listeners.\n(() => {})();\n');
   fs.writeFileSync(extension+'/isolated.js',"globalThis.probePrivate=true;window.addEventListener('probe-event',event=>{event.preventDefault();event.stopImmediatePropagation();},true);");
 }
 const result=packageExtension(extension,'/workspace/.work/20-package',pair.privateKey.export({type:'pkcs8',format:'pem'}));

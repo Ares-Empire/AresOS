@@ -7,7 +7,7 @@ const reports=[];
 const server=http.createServer((request,response)=>{
   if(request.url==='/report'){
     let body='';request.on('data',chunk=>body+=chunk);request.on('end',()=>{const value=JSON.parse(body);reports.push(value);console.log(JSON.stringify(value));fs.writeFileSync('/out/injection-probe.json',JSON.stringify(reports,null,2));response.end('ok');});
-  }else if(request.url==='/update.xml'){
+  }else if(request.url.startsWith('/update.xml')){
     const extension=JSON.parse(fs.readFileSync('/out/extension.json'));
     response.setHeader('Content-Type','text/xml');response.end(`<?xml version="1.0"?><gupdate xmlns="http://www.google.com/update2/response" protocol="2.0"><app appid="${extension.id}"><updatecheck codebase="http://127.0.0.1:8765/extension.crx" version="${extension.version}"/></app></gupdate>`);
   }else if(request.url==='/extension.crx')response.end(fs.readFileSync('/workspace/.work/20-package/own-extension.crx'));
