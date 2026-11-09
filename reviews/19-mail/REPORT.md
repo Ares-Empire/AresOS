@@ -23,8 +23,9 @@ Review records: [REVIEW.md](REVIEW.md), [REVIEW-2.md](REVIEW-2.md),
 [SECURITY-REVIEW-16.md](SECURITY-REVIEW-16.md),
 [SECURITY-REVIEW-17.md](SECURITY-REVIEW-17.md),
 [SECURITY-REVIEW-18.md](SECURITY-REVIEW-18.md),
-[SECURITY-REVIEW-19.md](SECURITY-REVIEW-19.md), and
-[SECURITY-REVIEW-20.md](SECURITY-REVIEW-20.md).
+[SECURITY-REVIEW-19.md](SECURITY-REVIEW-19.md),
+[SECURITY-REVIEW-20.md](SECURITY-REVIEW-20.md), and
+[SECURITY-REVIEW-21.md](SECURITY-REVIEW-21.md).
 
 ## For the owner: decisions before merge
 
@@ -59,6 +60,180 @@ The owner answered: “Agree on 8, names etc are enough. Agree on everything els
 - Complete onboarding with your aliases, authentication, TLS trust, special folders, delayed Sent behavior and folder-deletion guard; the tests use synthetic accounts only.
 - Check complete approvals on both terminal and phone, then try the seven everyday Claude mail tasks; automated protocol tests do not establish how usable those flows feel.
 - Send a forwarded `.eml` to recipients using Apple Mail, Outlook, Thunderbird, Gmail on the web and iOS Mail, and check how each opens or saves the exact attachment; the round-5 documentation does not establish its presentation.
+
+## Review fixes, round 29
+
+**Done:** dependency audit, stop note and synthetic reproduction.
+**STOPPED — brief point 4; round-29 fixes are not implemented.** The restore
+part of the requested lifecycle needs independently committed check/source
+state in addition to occurrence records. The current permanent record cannot
+reconstruct an open filing check when an older SQLite backup predates its
+source. This is the run's scope judgment under the explicit stop condition,
+not a new lead decision. No production code, generated artifacts, workflow,
+or existing test changed. Security review 21's two blocking findings remain
+open. Work remains on `pkg/19-mail` and draft PR #9, without merging.
+
+**Lead decision, round 29 — read:** four separate committed facts: check
+(open, clean, warning); warning occurrence (id, operation, check kind,
+evidence fingerprint); per-occurrence acknowledgement; action resolution.
+Unchanged evidence preserves occurrence identity, creation time, order and
+acknowledgement. Changed evidence or a warning after a committed clean result
+starts a new occurrence. A clean result does not remove an unacknowledged
+occurrence. Only acknowledgement removes an occurrence from owner-visible
+warnings; rollback, archive, expiry, restore and restart must preserve this.
+An open check remains discoverable independently of acknowledgement. This is
+the lead's decision from brief `19-review-fixes-29` and the **Warning
+lifecycle** section read with
+`git show origin/main:briefs/19b-owner-state.md`; that main-only file was
+neither edited nor checked out.
+
+**Stop evidence — run:** [round29-stop-probe.py](round29-stop-probe.py)
+uses the unchanged production Engine, Store, recovery, acknowledgement and
+owner-confirmed restore paths. It creates only synthetic local data inside
+this worktree's `.work/round29/`, uses no mail server, and removes its temporary
+databases on completion. These are dependency reproductions, not passing
+round-29 regression or acceptance tests.
+
+1. Back up SQLite **before** a synthetic RENAME check source is created.
+   Commit that source as `started`, persist its recovery warning, and
+   acknowledge through `mail_notice_ack`. Assert the source is now
+   `partial, check_open=True`, the warning is acknowledged, and `open_filings`
+   still indexes the source. Restore the older backup, reopen the real Engine
+   and call owner `control_restore_confirm`. The confirmed store has no
+   source, no notice and no indexed open check. There is no account/target
+   context left with which recovery could read evidence later.
+2. Independently repeat with a backup **after** the source and recovery
+   warning, but **before** acknowledgement. After the same restore and
+   confirmation, the check survives, but the acknowledged recovery warning
+   has `ack=False` again.
+
+A third variant backs up before the intent and restores immediately after
+committing the open source, **before any recovery warning or acknowledgement
+exists**. The source again disappears. This directly distinguishes the
+missing check/source record from the allowed addition of occurrence records.
+
+The probe asserts that every permanent record in all three variants has
+`operations=[]` and only the existing compact fence fields (`format`, `seq`,
+`previous`, `time`, `generation`, `operations`, `hash`). The full source and
+acknowledgement writes were committed in SQLite; their journal hashes cannot
+reconstruct their values. The probe prints:
+
+```text
+REPRODUCED: open check without any occurrence -> check disappears after restore.
+REPRODUCED: backup before intent -> acknowledged-but-open check disappears after restore.
+REPRODUCED: backup before acknowledgement -> acknowledged recovery warning returns after restore.
+STOP-CONDITION evidence only; round-29 fixes are not implemented or verified.
+```
+
+**Why this exceeds the permitted occurrence additions — read / judgment:**
+`storage.py:Store.write` retains full changes only in SQLite's event/kv
+stores; its permanent fence contains compact approved-operation records.
+Free filing sources, check results and notice acknowledgement are absent.
+`Store._restore_operations` and `confirm_restore` reconstruct only those
+approved operations. A new occurrence id, fingerprint and per-occurrence
+acknowledgement in the existing stores could address example 2. They cannot
+address example 1: an open source must be recoverable even before there is a
+warning occurrence. Storing occurrences only when evidence finally becomes
+available leaves the source absent; storing them only in SQLite rolls them
+back with the backup. Preserving the required open-check lifecycle across
+restore therefore also needs an independent committed source/check record
+and reconstruction of that state. I treat that as the check/source part of
+19b's deferred owner-state projection, rather than quietly implementing it
+under occurrence bookkeeping.
+
+The minimum additional work is an independently retained record for filing
+and other check sources (operation/account identity, evidence context and
+open/clean/warning transitions), plus bounded restore reconstruction,
+compatibility and admission accounting. Then occurrence records and their
+acknowledgements must be replayed consistently with it. **Estimated, not
+built or measured:** one separately scoped projection/restore stage spanning
+roughly 5–7 production areas (storage and recovery; filing and Sent check
+writers; archive/retention; the common warning reader), plus per-kind
+rollback/crash/restore tests, likely several hundred lines. This is broader
+than the two local recovery/expiry and paging fixes. No rebuilt oracle was
+attempted or established as necessary; no part of 19b's R1–R3 was built.
+
+Brief point 4 says: “If this needs 19b's larger pieces (a new committed
+projection of owner state, the rebuilt oracle), stop: write in REPORT.md what
+and roughly how big, commit and push that note, and end the run with it as
+your final message. Don't build it.” It also explicitly allows occurrence
+records, fingerprints and per-occurrence acknowledgement; the missing
+**source before an occurrence exists** is the reason for this stop, not
+those allowed additions.
+
+**Findings / remaining work — read, not fixed:**
+
+- Finding 1: `recovery.py:unfinished` still recognizes filing sources only
+  when `state=started`, although `open_filings` recognizes `check_open`.
+  `retention.py:expire` can still delete acknowledged `partial` sources
+  without testing `check_open`. The review's full RENAME / IMAP outage /
+  acknowledge / 24-hour expiry / restored IMAP sequence has not been added
+  as a regression in this stopped run.
+- Finding 2: `mail/filing.py:resolve_checks` still resets notice timestamp
+  and acknowledgement on recheck. Its notice cursor hashes ids without the
+  ordering timestamps. Stable evidence fingerprints, distinct occurrences,
+  the four-RENAME paging regression and all generic lifecycle regressions
+  remain unimplemented. No existing test was weakened, skipped or deleted.
+
+**Catalogue inventory — read, not changed:** `mail_filing_notices` pages
+`mail/filing.py:notice_page`. Duplicate Sent warnings are entries in that
+same catalogue, not a separate duplicate-warning endpoint.
+`Engine.notices` uses it for the first-three warning envelopes on
+`control_pending`, `control_log` / `aresos log`, and ordinary responses.
+`control_pending` separately pages operation summaries in `Engine._pending`;
+`control_log` separately pages today's audit in `Engine.dispatch`.
+`control_observations` / `results.py:observation_page` pages a frozen oversized
+response's JSON fragments and repeats its warnings; `mail_filing_locations`
+pages location evidence, not an independent warning catalogue. The shared
+stable-order/cursor helper and its per-catalogue tests have not been built.
+The existing tests run below remain baseline checks and do not prove the
+round-29 catalogue requirement.
+
+**Files changed:** this section and the security-review-21 link in
+`reviews/19-mail/REPORT.md`; the synthetic dependency probe beside it. The
+already-local `f0779760` contains the lead's brief and security review and
+accompanies this run's single push. The review itself is not edited.
+
+**Verified — run:** required pre-push checks ran serially and the complete command chain
+exited zero:
+
+- `python3 control/generate.py --check`: `Generated artifacts match definitions`.
+- `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/mail_tests:.work/round10/vendor python3 .work/round10/check-local.py`: `Python syntax OK: 137 files`; `Ran 180 tests in 942.623s`; `OK`. All 22 sweep flows completed: 5,383 single faults, 5,383 persistent faults and 14,230 cleanup pairs; summed raw sweep time 850.622s. Live admission recovery covered 147 cases across 19 flows. No new lifecycle regression test is included in this unchanged suite.
+- `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/tests:.work/round10/vendor python3 -m unittest test_operations test_record test_crashes test_approval_questions test_strict_json test_boundary test_boundary_exact test_ingress_bounds test_journal_closed test_policy_sources test_archive test_journal_capacity test_journal_streaming test_restore_batches test_review21_pending test_review21_storage test_review22_protocol test_review22_storage test_review23_results test_review24_exports`: `Ran 105 tests in 93.880s`; `OK`. Record-growth and journal/restore/pending-memory checks also printed their measurements and passed.
+- `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:.work/round10/vendor python3 reviews/19-mail/round29-stop-probe.py`: exited zero after asserting all three current failure variants and printing the four lines above. Its Python syntax also parsed successfully. These are stop-dependency reproductions, not fixes or a green lifecycle suite.
+- `git diff --check`: exited zero, no output.
+
+Exact local output is in this worktree's `.work/round29/generated.txt`,
+`mail-local.txt`, `base-local.txt` and `stop-probe.txt`. No server/container,
+real account, model, system installation or Gradle daemon was used.
+
+**Not verified:** no round-29 fixes, lifecycle regression suite, Linux
+container rerun or new two-pass CI acceptance is claimed. Production and the existing test suite remain those of
+`4ef82404aba271911a4c012e40d65272cb997d9b`, whose two-pass workflow evidence is
+recorded in round 28 below. The lead's later `f0779760` includes `briefs/`
+as well as `reviews/`; this run's later commit changes only files under
+`reviews/`. Automatic final-head runs, if scheduled by the stop-note push,
+are identified in PR #9; no manual dispatch, validation-only push or rerun
+is requested after invoking the stop condition. Real-account, physical
+power-loss and owner-usability checks remain unverified.
+
+**JUDGMENT-CALL:** stop at the projection boundary described above. This is
+my scope judgment, separate from the lead's lifecycle decision. Implementing
+just the local expiry and pagination fixes and calling the round complete
+would leave the required restore behavior unsupported. Proceeding with an
+independent source/check projection would cross brief point 4. No policy or
+mailbox behavior was changed; resuming requires a brief that settles this
+projection dependency or explicitly narrows the restore requirement.
+
+**PLAN-GAP:** the current compact restore fence cannot preserve all four
+committed lifecycle facts for free filing checks. The two source-level
+review fixes are insufficient for the complete requested lifecycle. The
+stop condition provides the prescribed outcome; it is not a claim that
+security review 21 has been closed.
+
+**Open questions:** the lead must settle the projection dependency or scope
+before lifecycle implementation resumes. No mid-run permission request was
+made. Closing inventory: no files in `.work/` exceed 500,000,000 bytes (the check printed `[]`). No Gradle daemon was started, so none requires stopping.
 
 ## Review fixes, round 28
 
