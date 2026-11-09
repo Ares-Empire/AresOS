@@ -122,6 +122,44 @@ class FragmentedReplies(unittest.TestCase):
 
 
 class ConnectionDelivery(unittest.TestCase):
+    def test_retired_selector_connection_cannot_close_its_replacement(self):
+        bridge=Bridge();old,old_client=socket.socketpair();current,client=socket.socketpair();bridge.connection=current
+        errors=[];daemon=Daemon.__new__(Daemon);daemon.selector=selectors.DefaultSelector()
+        daemon.engine=SimpleNamespace(adapters={'chrome':SimpleNamespace(bridge=bridge)},background_error=errors.append)
+        try:
+            old.close();daemon.drain_chrome_events(old)
+            self.assertIs(bridge.connection,current);self.assertEqual(errors,[])
+        finally:
+            daemon.selector.close();old_client.close();current.close();client.close()
+
+    def test_stale_selector_readiness_never_closes_a_host_drained_by_a_tool(self):
+        bridge=Bridge();server,client=socket.socketpair();server.settimeout(.02);bridge.connection=server
+        errors=[];received=[];bridge.on_event=received.append
+        daemon=Daemon.__new__(Daemon);daemon.selector=selectors.DefaultSelector()
+        daemon.engine=SimpleNamespace(adapters={'chrome':SimpleNamespace(bridge=bridge)},background_error=errors.append)
+        try:
+            client.sendall(b'{"event":"fixture"}\n')
+            self.assertEqual(json.loads(server.recv(65536)),{'event':'fixture'})
+            daemon.drain_chrome_events(server)
+            self.assertIs(bridge.connection,server);self.assertEqual(errors,[])
+            client.sendall(b'{"event":"later"}\n');daemon.drain_chrome_events(server)
+            self.assertEqual(received,[{'event':'later'}]);self.assertEqual(errors,[])
+        finally:
+            daemon.selector.close();server.close();client.close()
+
+    def test_partial_unsolicited_observation_is_buffered_without_blocking_the_daemon(self):
+        bridge=Bridge();server,client=socket.socketpair();server.settimeout(.02);bridge.connection=server
+        errors=[];received=[];bridge.on_event=received.append
+        daemon=Daemon.__new__(Daemon);daemon.selector=selectors.DefaultSelector()
+        daemon.engine=SimpleNamespace(adapters={'chrome':SimpleNamespace(bridge=bridge)},background_error=errors.append)
+        try:
+            client.sendall(b'{"event":');daemon.drain_chrome_events(server)
+            self.assertEqual(bridge.buffer,b'{"event":');self.assertIs(bridge.connection,server);self.assertEqual(errors,[])
+            client.sendall(b'"later"}\n');daemon.drain_chrome_events(server)
+            self.assertEqual(received,[{'event':'later'}]);self.assertEqual(errors,[])
+        finally:
+            daemon.selector.close();server.close();client.close()
+
     def test_accepted_connection_refreshes_before_any_tool_and_rejected_replacement_does_not(self):
         calls=[];bridge=Bridge();daemon=Daemon.__new__(Daemon)
         daemon.engine=SimpleNamespace(adapters={'chrome':SimpleNamespace(bridge=bridge,maintenance=lambda:calls.append(bridge.version))})

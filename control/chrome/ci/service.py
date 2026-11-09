@@ -22,6 +22,13 @@ if not engine.store.get('chrome:qualification'):
     engine.store.write({'chrome:qualification':record},'chrome_test_setup','Synthetic qualification input for fixture tests')
 engine.close()
 daemon=Daemon(config)
+original_background_error=daemon.engine.background_error
+def background_error(error):
+    import traceback
+    print('FIXTURE_BACKGROUND_ERROR',repr(error),flush=True)
+    traceback.print_exception(type(error),error,error.__traceback__)
+    return original_background_error(error)
+daemon.engine.background_error=background_error
 Path('/run/aresos-tools/fixture-service.pid').write_text(str(os.getpid()))
 def checkpoint(point):
     cut=Path('/run/aresos-tools/fixture-cut.json')

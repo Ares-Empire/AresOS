@@ -2,6 +2,7 @@ import argparse
 import os
 from pathlib import Path
 import selectors
+import select
 import signal
 import socket
 import stat
@@ -11,6 +12,7 @@ import time
 from .common import FILE_LIMIT, Refused, cleanup, strict_json_loads, storage_refusal
 from .engine import Engine
 from .protocol import receive, send
+from .chrome.bridge import LIMIT as CHROME_MESSAGE_LIMIT
 
 
 class Daemon:
@@ -105,10 +107,24 @@ class Daemon:
 
     def drain_chrome_events(self,connection,buffered=False):
         bridge=self.engine.adapters['chrome'].bridge
+        if connection is not bridge.connection:
+            return
         try:
             for index in range(128):
-                if (buffered or index) and b'\n' not in bridge.buffer:
-                    break
+                if b'\n' not in bridge.buffer:
+                    if buffered or index or not select.select([connection],[],[],0)[0]:
+                        break
+                    # A tool handled earlier in this selector batch may have
+                    # drained the old readiness. Partial observations must not
+                    # block this loop while a later command waits for service.
+                    chunk=connection.recv(65536)
+                    if not chunk:
+                        raise Refused('transport_error','Chrome host disconnected; inspect committed operations, never retry an input.')
+                    bridge.buffer+=chunk
+                    if len(bridge.buffer)>CHROME_MESSAGE_LIMIT:
+                        raise Refused('invalid_input','Chrome message exceeds 1 MiB; read a smaller view.')
+                    if b'\n' not in bridge.buffer:
+                        break
                 bridge.on_event(bridge.read())
         except Exception as exc:
             try:self.selector.unregister(connection)
