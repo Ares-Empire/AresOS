@@ -3,10 +3,12 @@ from contextlib import contextmanager, ExitStack
 from email.parser import BytesParser
 import copy
 import time
+import sqlite3
 from unittest.mock import patch
 
 from .records import decode, canonical
 from .model import Fact, Oracle
+from .context import MUTATIONS
 from .compare import compare_views, pages
 from storage_faults import outside_faults
 
@@ -30,6 +32,16 @@ class Driver:
             self.alias_callback(self.record)
         return self.record
 
+    def precommit(self):
+        record = self.snapshot()
+        created = {}
+        for event in record.events:
+            for key, value in event['set'].items():
+                if value is not None:
+                    created.setdefault(key, event['seq'])
+        return dict(committed_before=copy.deepcopy(record.rows), created_before=created,
+                    call_start_seq=getattr(self.oracle, 'active_start_seq', 0), before_seq=max(record.committed, default=0))
+
     def identities(self, folder):
         f = self.scenario.fixture
         return [dict(account=getattr(self, 'account_id', 'box'), folder=folder, uidvalidity=f.imap.validities[folder], uid=uid,
@@ -41,16 +53,20 @@ class Driver:
     def observe(self, faults=None, delivered=True):
         s, f, oracle = self.scenario, self.scenario.fixture, self.oracle
         previous_call = getattr(oracle, 'active_call', None)
+        previous_start = getattr(oracle, 'active_start_seq', 0)
+        oracle.active_start_seq = max(self.snapshot().committed, default=0)
         oracle.call(s.action, s.args, time.time(), {'mode': faults.mode, 'at': faults.fail_at,
                     'cleanup': faults.cleanup_at} if faults else {})
         self.call_index = len(oracle.script) - 1
         oracle.active_call = oracle.call_id
+        if s.action != 'control_log' or 'cursor' not in s.args:
+            oracle.server('FIXTURE_STATE', 'box', roles=f.imap.roles, mailboxes={name: self.identities(name) for name in f.imap.boxes})
         # Command logs are memory-only. Reading their context cannot itself hit
         # an injected write or make an owner warning appear in production.
         uid, listing, select = f.imap.uid, f.imap.list, f.imap.select
         def listed(*args, **kwargs):
             answer = listing(*args, **kwargs)
-            oracle.server('LIST', getattr(self, 'account_id', 'box'), roles=f.imap.roles, mailboxes={name: self.identities(name) for name in f.imap.boxes})
+            oracle.server('LIST', getattr(self, 'account_id', 'box'), before_seq=max(self.snapshot().committed, default=0), roles=f.imap.roles, mailboxes={name: self.identities(name) for name in f.imap.boxes})
             return answer
         def selected(*args, **kwargs):
             answer = select(*args, **kwargs)
@@ -59,7 +75,7 @@ class Driver:
         def command(name, *args, **kwargs):
             folder = f.imap.selected
             before = self.identities(folder) if folder else []
-            event = oracle.server(name, getattr(self, 'account_id', 'box'), folder, before, f.imap.roles, accepted=False, reply='lost', arguments=list(args), committed_before=copy.deepcopy(self.snapshot().rows))
+            event = oracle.server(name, getattr(self, 'account_id', 'box'), folder, before, f.imap.roles, accepted=False, reply='lost', arguments=list(args), **self.precommit())
             answer = uid(name, *args, **kwargs)
             event.update(accepted=answer[0] == 'OK', reply='delivered', roles_after=copy.deepcopy(f.imap.roles))
             if name == 'SEARCH' and len(args) >= 4 and args[2] == 'Message-ID':
@@ -71,7 +87,7 @@ class Driver:
                     if isinstance(call.get('arguments'), dict) and isinstance(call['arguments'].get('operation_id'), str))
                 for operation_id in operation_ids:
                     if '<' + operation_id.replace(':', '.') + '@mail.aresos.invalid>' == mid:
-                        oracle.server('SENT', getattr(self, 'account_id', 'box'), folder, identities, f.imap.roles, source='op:' + operation_id)
+                        oracle.server('SENT', getattr(self, 'account_id', 'box'), folder, identities, f.imap.roles, source='op:' + operation_id, before_seq=max(record.committed, default=0))
             return answer
         response = f.imap.response
         def responded(name):
@@ -82,8 +98,8 @@ class Driver:
                 match = re.fullmatch(rb'([1-9]\d*) ([1-9]\d*) ([1-9]\d*)', raw)
                 for event in reversed(oracle.servers):
                     if event['command'] in {'MOVE', 'COPY'} and event['call'] == (getattr(oracle, 'active_call', None) or oracle.call_id) and 'copyuid_delivered' not in event:
-                        event['copyuid_delivered'] = bool(match)
-                        if match:
+                        event['copyuid_delivered'] = bool(match and int(match[2]) == int(event['arguments'][0]))
+                        if event['copyuid_delivered']:
                             ref = next((ref for ref in event['identities'] if ref['uid'] == int(match[2])), {})
                             event['destination'] = {k: v for k, v in ref.items() if k != 'sha256'}
                             event['destination'].update(folder=event['arguments'][1].strip('"'), uidvalidity=int(match[1]), uid=int(match[3]))
@@ -91,17 +107,17 @@ class Driver:
             return answer
         rename = getattr(f.imap, 'rename', None)
         def renamed(*args, **kwargs):
-            event = oracle.server('RENAME', getattr(self, 'account_id', 'box'), f.imap.selected, roles=f.imap.roles, accepted=False, reply='lost', arguments=list(args), committed_before=copy.deepcopy(self.snapshot().rows))
+            event = oracle.server('RENAME', getattr(self, 'account_id', 'box'), args[0].strip(chr(34)), self.identities(args[0].strip(chr(34))), roles=f.imap.roles, accepted=False, reply='lost', arguments=list(args), **self.precommit())
             answer = rename(*args, **kwargs)
             event.update(accepted=answer[0] == 'OK', reply='delivered', roles_after=copy.deepcopy(f.imap.roles))
             return answer
         append = f.mail.append
         def appended(account, folder, raw, flags=None):
             event = oracle.server('APPEND', account['id'], folder, roles=f.imap.roles,
-                raw_sha256=__import__('hashlib').sha256(raw).hexdigest(), accepted=False, reply='lost',
-                committed_before=copy.deepcopy(self.snapshot().rows))
+                identities=[__import__('owner_state_oracle.transcript', fromlist=['Transcript']).Transcript.message(raw)], raw_sha256=__import__('hashlib').sha256(raw).hexdigest(), accepted=False, reply='lost',
+                **self.precommit())
             value = append(account, folder, raw, flags)
-            event.update(accepted=True, reply='delivered', identities=self.identities(folder))
+            event.update(accepted=True, reply='delivered', arrived=self.identities(folder))
             return value
         extra = ExitStack()
         imap = f.mail.transport.imap
@@ -110,7 +126,9 @@ class Driver:
             previous = getattr(self, 'account_id', 'box')
             self.account_id = account['id']
             try:
+                event = oracle.server('CONNECT', account['id'], accepted=False, reply='lost')
                 with imap(account) as client:
+                    event.update(accepted=True, reply='delivered')
                     yield client
             finally:
                 self.account_id = previous
@@ -120,29 +138,37 @@ class Driver:
             if original is None:
                 continue
             def folder_command(*args, _name=name, _original=original, **kwargs):
-                event = oracle.server(_name.upper(), getattr(self, 'account_id', 'box'), roles=f.imap.roles, accepted=False, reply='lost', arguments=list(args), committed_before=copy.deepcopy(self.snapshot().rows))
+                event = oracle.server(_name.upper(), getattr(self, 'account_id', 'box'), roles=f.imap.roles, accepted=False, reply='lost', arguments=list(args), **self.precommit())
                 answer = _original(*args, **kwargs)
                 event.update(accepted=answer[0] == 'OK', reply='delivered', roles_after=copy.deepcopy(f.imap.roles))
                 return answer
             extra.enter_context(patch.object(f.imap, name, side_effect=folder_command))
         committed_snapshot = self.snapshot
+        before_context = self.precommit
         smtp = f.mail.transport.smtp
         @contextmanager
         def smtp_session(account):
             with smtp(account) as connection:
+                accepted_recipients, intended_recipients, sender = [], [], [None]
                 class LoggedSMTP:
                     def __getattr__(self, name):
                         method = getattr(connection, name)
                         if name not in {'mail', 'rcpt', 'data'}:
                             return method
                         def send(*args, **kwargs):
-                            event = oracle.server(name.upper(), account['id'], accepted=False, reply='lost',
-                                recipients=[args[0]] if name == 'rcpt' else [], committed_before=copy.deepcopy(committed_snapshot().rows))
+                            event = oracle.server(name.upper(), account['id'], roles=f.imap.roles, sender=sender[0], intended_recipients=list(intended_recipients), accepted=False, reply='lost',
+                                recipients=[args[0]] if name == 'rcpt' else list(accepted_recipients) if name == 'data' else [], **before_context())
                             if name == 'data':
                                 from .transcript import Transcript
                                 event['identities'] = [Transcript.message(args[0])]
+                            if name == 'rcpt':
+                                intended_recipients.append(args[0])
+                            if name == 'mail':
+                                sender[0] = args[0]
                             answer = method(*args, **kwargs)
                             event.update(accepted=200 <= answer[0] < 300, reply='delivered')
+                            if name == 'rcpt' and event['accepted']:
+                                accepted_recipients.append(args[0])
                             return answer
                         return send
                 yield LoggedSMTP()
@@ -152,9 +178,12 @@ class Driver:
         class LoggedHTTPS:
             def __init__(connection, *args, **kwargs):
                 connection.inner, connection.event = https(*args, **kwargs), None
+                connection.host = args[0]
+                connection.port = args[1] if len(args) > 1 else kwargs.get('port', 443)
             def request(connection, method, *args, **kwargs):
-                connection.event = oracle.server(method, 'box', accepted=False, reply='lost',
-                    arguments=list(args), committed_before=copy.deepcopy(self.snapshot().rows))
+                connection.event = oracle.server(method, 'box', roles=f.imap.roles, accepted=False, reply='lost',
+                    url='https://' + connection.host + (':' + str(connection.port) if connection.port != 443 else '') + (args[0] if args else '/'), body=kwargs.get('body'),
+                    arguments=list(args), **self.precommit())
                 value = connection.inner.request(method, *args, **kwargs)
                 connection.event['accepted'] = True
                 return value
@@ -167,20 +196,40 @@ class Driver:
         extra.enter_context(patch.object(adapter.http.client, 'HTTPSConnection', LoggedHTTPS))
         receiver = f.engine.receiver
         accept = receiver.accept
+        receiving = [None]
+        checkpoint = receiver.checkpoint
+        def received_checkpoint(name):
+            if name.startswith('receiver_arrival:') and receiving[0] is not None:
+                receiving[0]['accepted'] = True
+            return checkpoint(name)
+        extra.enter_context(patch.object(receiver, 'checkpoint', side_effect=received_checkpoint))
         def receive(operation_id, recipient, payload):
             event = oracle.server('RECEIVE', 'fixture', identities=[{'operation_id': operation_id}],
-                                  recipients=[recipient], accepted=False, reply='lost', committed_before=copy.deepcopy(self.snapshot().rows))
-            with outside_faults():
-                result = accept(operation_id, recipient, payload)
+                                  recipients=[recipient], accepted=False, reply='lost', **self.precommit())
+            receiving[0] = event
+            try:
+                with outside_faults():
+                    result = accept(operation_id, recipient, payload)
+            finally:
+                receiving[0] = None
             event.update(accepted=result == 'accepted', reply='delivered')
             return result
         extra.enter_context(patch.object(receiver, 'accept', side_effect=receive))
+        local_stage = receiver.local_stage
+        def receiver_stage(operation_id, stage):
+            event = oracle.server('LOCAL_STAGE', 'fixture', identities=[{'operation_id': operation_id}], stage=stage, accepted=False, reply='lost')
+            result = local_stage(operation_id, stage)
+            event.update(accepted=True, reply='delivered')
+            return result
+        extra.enter_context(patch.object(receiver, 'local_stage', side_effect=receiver_stage))
         with extra, patch.object(f.imap, 'response', side_effect=responded), patch.object(f.imap, 'rename', side_effect=renamed, create=True), patch.object(f.imap, 'uid', side_effect=command), patch.object(f.imap, 'list', side_effect=listed), \
              patch.object(f.imap, 'select', side_effect=selected), patch.object(f.mail, 'append', side_effect=appended):
             yield
+        oracle.script[self.call_index]['end_seq'] = max(self.snapshot().committed, default=0)
         if faults:
             oracle.script[self.call_index]['faults']['trace'] = list(faults.failures)
         oracle.active_call = previous_call
+        oracle.active_start_seq = previous_start
 
     def reply(self, reply, delivered=True):
         if not hasattr(self, 'call_reply'):
@@ -190,9 +239,11 @@ class Driver:
     def compare(self, check=None):
         f = self.scenario.fixture
         def read(action, args):
+            boundary = len(self.oracle.servers)
             with self.observe_view(action, args):
                 reply = f.engine.request({'v': 1, 'method': 'call', 'action': action, 'arguments': args})
             self.reply(reply)
+            assert not any(event['command'] in MUTATIONS for event in self.oracle.servers[boundary:]), ('Read attempted a mutation', action)
             return reply
         checker = check or self.oracle.compare
         record = self.snapshot()
@@ -208,12 +259,16 @@ class Driver:
                 saved = data.get('saved', data)
                 reported = {Fact('caller', 'published', detail=saved['sha256'])} if 'sha256' in saved else set()
                 checker('export-publication', wanted, reported)
-        checker('restore-generation', {Fact('generation', 'value', detail=str(record.generation))},
-            {Fact('generation', 'value', detail=str(f.engine.store.generation))})
+        try:
+            actual_generation = {Fact('generation', 'matches' if f.engine.store.generation == record.generation else 'mismatch')}
+        except (OSError, sqlite3.Error) as error:
+            actual_generation = {Fact('generation', 'unavailable', detail=type(error).__name__)}
+        checker('restore-generation', {Fact('generation', 'matches')}, actual_generation)
         checker('recovery-holds', self.oracle.holds(record), {Fact(key, 'held') for key in f.engine.store.ledger.holds if key != 'replay'})
         checker('R2.context-before-command', set(), self.oracle.context_errors())
         checker('completion', set(), self.oracle.completion_errors(self.snapshot()))
         compare_views(read, self.oracle, self.snapshot, checker, ordinary='testapp_list' if getattr(self.scenario, 'flow', '').startswith('testapp_') else 'mail_accounts')
+        checker('clean-result-proof', set(), self.oracle.invalid_clean_results)
         # Only after warning preservation has been checked on every view may
         # operation_status fetch evidence. Its committed approval/stages must be
         # exposed exactly, including recipients bound in the approval.

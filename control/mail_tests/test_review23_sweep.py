@@ -38,7 +38,9 @@ class Scenario:
         self.approval = None
         self.operation_id = None
         self.admin = False
-        if flow in {'send', 'cancel', 'restore'}:
+        if flow == 'fixture':
+            self.action, self.args = 'mail_accounts', {}
+        elif flow in {'send', 'cancel', 'restore'}:
             if flow == 'restore':
                 with closing(sqlite3.connect(f.root / 'backup.sqlite')) as backup:
                     f.engine.store.db.backup(backup)
@@ -174,6 +176,13 @@ class Scenario:
         def smtp(operation, composition, raw, stage):
             self.prior_commands['DATA'] += 1
             self.delivered.append(raw)
+            if hasattr(self, 'owner_oracle'):
+                from email.utils import getaddresses
+                from owner_state_oracle.transcript import Transcript
+                mail = composition['mail']
+                recipients = [address for _, address in getaddresses(mail['to'] + mail['cc'] + mail['bcc'])]
+                self.owner_oracle.server('DATA', 'box', identities=[Transcript.message(raw)], recipients=recipients,
+                                         accepted=True, fixture_seed=True)
             self.attempted_ids.add(operation['id'])
             stage('smtp_data', 'accepted:250')
             return 'done', 'Synthetic DATA accepted'

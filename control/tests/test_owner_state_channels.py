@@ -3,7 +3,9 @@ import asyncio
 import json
 import unittest
 
-from owner_state_oracle.model import Oracle
+from owner_state_oracle.model import Fact, Oracle
+from owner_state_oracle.gaps import Gaps
+from owner_state_oracle.compare import pending_facts
 from owner_state_oracle.records import decode
 import test_integration as integration
 
@@ -78,6 +80,16 @@ class OwnerStateChannels(unittest.TestCase):
         self.assertEqual(passive['total'], len(expected))
         self.assertEqual([i['operation_id'] for i in passive['items']], ids[:5])
         self.assertIsNotNone(passive['cursor'])
+        continuation = self.call(integration.OWNER, 'control_pending', {'cursor': passive['cursor']})['data']
+        gaps = Gaps(recording=True)
+        gaps.bind(record)
+        check = gaps.checker('channel/passive-testapp-cursor')
+        wanted = {fact for fact in Oracle().expected(record) if fact.kind == 'pending' and fact.source[3:] in ids[5:]}
+        check('own-page', wanted, pending_facts(continuation))
+        check('unchanged-page', set(), {Fact('pending', 'page_changed')} if continuation.get('page_changed') else set())
+        check.finish()
+        import base64, gzip
+        print('OWNER-GAP-CHANNELS:' + base64.b64encode(gzip.compress(json.dumps(gaps.entries, sort_keys=True).encode())).decode(), flush=True)
         for name in ('Stop', 'UserPromptSubmit'):
             process = self.launch(integration.OWNER, ['hook', name], input=json.dumps({'hook_event_name': name}))
             self.assertEqual(process.returncode, 0, process.stderr)

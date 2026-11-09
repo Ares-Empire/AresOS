@@ -1,4 +1,6 @@
 """Read each public surface in isolation; drain and validate its own pages."""
+import json
+import re
 from .model import Fact
 from .records import canonical
 
@@ -9,7 +11,7 @@ def notice_facts(notice, record, oracle):
     saved = record.rows.get('notice:' + occurrence, {})
     source = saved.get('source_key') or content.get('intent_key')
     if content.get('check') == 'sent_copies':
-        return {Fact('op:' + content['operation_id'], 'unchecked')}
+        return {Fact('op:' + content['operation_id'], 'unchecked'), Fact('op:' + content['operation_id'], 'unchecked-context', detail=canonical({'app': notice.get('app'), 'state': notice.get('state'), 'operation_identity': content.get('operation_id') == content['operation_id'], 'check': content.get('check'), 'not_yet_checked': 'not yet checked' in content.get('reason', '')}))}
     if source is None and content.get('operation_id'):
         source = 'op:' + content['operation_id']
     if source is None:
@@ -21,7 +23,7 @@ def notice_facts(notice, record, oracle):
     if source is None:
         return {Fact('unbound:' + occurrence, 'unexpected')}
     if content.get('recovery_warning') or content.get('check_open') or saved.get('check_kind') == 'recovery':
-        return {Fact(source, 'recovery')}
+        return {Fact(source, 'recovery'), Fact(source, 'recovery-context', detail=canonical({'app': notice.get('app'), 'state': notice.get('state'), 'intent_identity': content.get('intent_key') == source, 'reason_present': bool(content.get('reason', '').strip())}))}
     kind = saved.get('check_kind', 'rename' if source.startswith('mail:rename:') else 'filing')
     evidence = next((f.detail for f in oracle.detected if f.occurrence == occurrence), '')
     # Public catalogues disclose count/role, not full server identities. Exact
@@ -30,15 +32,34 @@ def notice_facts(notice, record, oracle):
         evidence = canonical({'count': content.get('message_count')})
     elif kind in {'rename', 'filing'}:
         reason = content.get('reason', '')
-        evidence = canonical({'role': 'Trash' if 'Trash' in reason else 'Drafts' if 'inside Drafts' in reason else 'ordinary'})
+        evidence = canonical({'role': 'Trash' if re.search(r'(?:inside |is now )(?:\\)?Trash', reason) else 'Drafts' if re.search(r'(?:inside |is now )(?:\\)?Drafts', reason) else 'unverified' if 'unverified role' in reason else 'ordinary'})
     result = {Fact(source, kind, occurrence, evidence)}
+    expected_meta = next((json.loads(f.detail) for f in oracle.expected_context_facts if f.occurrence == occurrence), None) if hasattr(oracle, 'expected_context_facts') else None
+    if expected_meta is None:
+        context = oracle.warning_contexts.get(source, {})
+        fields = {'app', 'state', 'intent_identity', 'preserves_messages'}
+        fields |= {'operation_identity', 'message_count', 'reason_family'} if kind == 'sent_copies' else {'filing_identity'}
+        if kind == 'rename' and 'message_count' in context or kind == 'filing' and context.get('sources'):
+            fields |= {'message_count', 'folders', 'folders_more', 'folders_more_text'}
+    else:
+        fields = set(expected_meta)
+    reason = content.get('reason', '')
+    values = {'app': notice.get('app'), 'state': notice.get('state'), 'intent_identity': content.get('intent_key') == source,
+              'preserves_messages': 'nothing' in reason.lower() and 'deleted' in reason.lower(),
+              'operation_identity': content.get('operation_id') == source.removeprefix('op:'),
+              'filing_identity': content.get('filing_id') == occurrence,
+              'message_count': content.get('message_count'), 'folders': content.get('folders'),
+              'folders_more': content.get('folders_more'), 'folders_more_text': content.get('folders_more_text'),
+              'reason_family': 'sent_copies' if str(content.get('message_count')) + ' copies' in reason and 'Sent' in reason else 'other'}
+    result.add(Fact(source, 'notice-context', occurrence, canonical({field: values[field] for field in fields})))
     if content.get('unresolved_roles') or content.get('scan_complete') is False:
         result.add(Fact(source, 'recovery', occurrence))
+        result.add(Fact(source, 'recovery-context', occurrence, canonical({'app': notice.get('app'), 'state': notice.get('state'), 'intent_identity': content.get('intent_key') == source, 'reason_present': bool(content.get('reason', '').strip())})))
     return result
 
 
 def pending_facts(page):
-    return {Fact('op:' + row['operation_id'], 'pending', detail=canonical({'state': row['state'], 'reason': row.get('reason')})) for row in page.get('items', [])}
+    return {Fact('op:' + row['operation_id'], 'pending', detail=canonical({'state': row['state'], 'reason': 'RESTORED_EVIDENCE' if 'restored' in row.get('reason', '').lower() and any(word in row.get('reason', '').lower() for word in ('newer', 'missing')) else row.get('reason')})) for row in page.get('items', [])}
 
 
 def pages(read, action, arguments=None, section='data'):
@@ -61,12 +82,23 @@ def pages(read, action, arguments=None, section='data'):
 
 
 def source_order(record, source):
-    return next(((event['time'], event['seq']) for event in record.events if event['set'].get(source) is not None), (0, 0))
+    known = next(((event['time'], event['seq']) for event in record.events if event['set'].get(source) is not None), None)
+    if known is None and source.startswith('op:'):
+        known = next(((fence['time'], fence['seq']) for fence in record.fences if any(op['id'] == source[3:] for op in fence.get('operations', []))), None)
+    return known or (0, 0)
+
+
+def source_app(record, source):
+    app = record.rows.get(source, {}).get('app')
+    if app is None and source.startswith('op:'):
+        action = next((op.get('description', {}).get('action', '') for fence in reversed(record.fences) for op in fence.get('operations', []) if op['id'] == source[3:]), '')
+        app = action.split('_', 1)[0]
+    return app
 
 
 def ordered_pending(record, expected, app=None):
     return sorted((f for f in expected if f.kind == 'pending' and
-                   (app is None or record.rows.get(f.source, {}).get('app') == app)),
+                   (app is None or source_app(record, f.source) == app)),
                   key=lambda f: (source_order(record, f.source)[0], f.source))
 
 
@@ -80,7 +112,8 @@ def ordered_notices(record, expected, app=None):
     groups = {}
     for fact in expected:
         if fact.kind != 'pending' and (app is None or record.rows.get(fact.source, {}).get('app', 'mail') == app):
-            groups.setdefault(fact.occurrence or fact.source + ':' + fact.kind, set()).add(fact)
+            group = fact.occurrence or fact.source + ':' + ('recovery' if fact.kind in {'recovery', 'recovery-context'} else 'unchecked' if fact.kind in {'unchecked', 'unchecked-context'} else fact.kind)
+            groups.setdefault(group, set()).add(fact)
     return sorted(groups.values(), key=lambda group: max(order(f) for f in group), reverse=True)
 
 
@@ -144,12 +177,33 @@ def compare_views(read, oracle, snapshot, check, ordinary='mail_accounts'):
     check('passive.pending-total', count_fact(len(wanted)), count_fact(page.get('total', 0)))
     check('passive.pending-continuation', {Fact('pending', 'cursor')} if len(wanted) > 5 else set(),
           {Fact('pending', 'cursor')} if page.get('cursor') else set())
+    if page.get('cursor'):
+        args, offset, visited = {'cursor': page['cursor']}, 5, set()
+        while True:
+            continuation = read('control_pending', args).get('data', {})
+            record = snapshot()
+            fresh = oracle.expected(record, live=True)
+            wanted = ordered_pending(record, fresh, app=ordinary.split('_', 1)[0])
+            # No pending membership/state changed between the envelope and
+            # this continuation; a scope mismatch must not pretend it did.
+            check('passive.pending-page-changed', set(), {Fact('pending', 'page_changed')} if continuation.get('page_changed') else set())
+            if continuation.get('page_changed'):
+                offset = 0
+            check('passive.pending-page', set(wanted[offset:offset + 5]), pending_facts(continuation))
+            check('passive.pending-page-total', count_fact(len(wanted)), count_fact(continuation.get('total', 0)))
+            offset += len(continuation.get('items', []))
+            cursor = continuation.get('cursor')
+            if cursor is None:
+                break
+            assert cursor not in visited, 'Passive pending continuation loop'
+            visited.add(cursor)
+            args['cursor'] = cursor
     advertised = head('passive', page, record, expected)
     if advertised:
         catalogue('passive.advertised', advertised)
     for view, action in [('control_pending', 'control_pending'), ('aresos log', 'control_log')]:
         offset, seen, audit_seen, advertised = 0, [], [], None
-        for page in pages(read, action, {'limit': 1}):
+        for page in pages(read, action, {'limit': 1 if action == 'control_pending' else 5}):
             record = snapshot()
             expected = oracle.expected(record, live=True)
             if page.get('page_changed'):
@@ -169,8 +223,9 @@ def compare_views(read, oracle, snapshot, check, ordinary='mail_accounts'):
                 audit = sorted((e for e in record.events if e['seq'] in record.working_sequences and time.strftime('%Y-%m-%d', time.localtime(e['time'])) == day), key=lambda e: (e['time'], e['seq']))
                 wanted = [Fact('event:' + str(e['seq']), e['action'], detail=e['outcome']) for e in audit]
                 actual = [Fact('event:' + str(e['seq']), e['action'], detail=e['outcome']) for e in page.get('items', [])]
-                check(view + '.page', set(wanted[offset:offset + 1]), set(actual))
+                check(view + '.page', set(wanted[offset:offset + 5]), set(actual))
                 check(view + '.total', count_fact(len(wanted)), count_fact(page.get('total', 0)))
+                check(view + '.duplicates', set(), {Fact('audit', 'duplicate', detail=repr(f)) for f in actual if f in audit_seen or actual.count(f) > 1})
                 audit_seen.extend(actual)
             offset += len(page.get('items', []))
             advertised = head(view, page, record, expected) or advertised

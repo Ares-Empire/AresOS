@@ -51,16 +51,12 @@ class OwnerScenario(Scenario):
         self.script_patch = patch.object(Engine, 'request', scripted)
         self.script_patch.start()
         try:
-            super().__init__('send' if flow in EXTRA else flow)
+            super().__init__('fixture' if flow in EXTRA else flow)
         except BaseException:
             self.script_patch.stop()
             self.clock_patch.stop()
             raise
         self.stack.callback(self.script_patch.stop)
-        from owner_state_oracle.transcript import Transcript
-        for raw in self.delivered:
-            self.owner_oracle.server('DATA', 'box', identities=[Transcript.message(raw)], accepted=True, fixture_seed=True)
-
         if flow not in EXTRA:
             return
         f = self.fixture
@@ -184,6 +180,7 @@ def exercise(flow, number=None, mode='single', cleanup_at=None, gaps=None, phase
                     shutil.copytree(saved / name, f.root / name)
             s.bind(Engine(f.root / 'state', f.root / 'evidence'))
             if f.engine.store.locked:
+                d.compare(gaps.checker(case + '/crash-locked'))
                 f.engine.request({'v': 1, 'method': 'call', 'action': 'control_restore_confirm',
                     'arguments': {'confirm': 'invalidate earlier approvals'}}, True)
             d.compare(gaps.checker(case + '/crash-restart'))

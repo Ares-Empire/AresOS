@@ -53,7 +53,7 @@ class Unsubscribe(MailCase):
                 self.send_response(status[0])
                 self.send_header('Location','https://must-not-follow.invalid')
                 self.end_headers()
-                event.update(accepted=True, reply='delivered', body=requests[-1][2].decode())
+                event.update(accepted=True, reply='delivered', status=status[0], body=requests[-1][2].decode())
         server = ThreadingHTTPServer(('0.0.0.0',0),Handler)
         ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         ctx.load_cert_chain(CERT / 'tls.crt',CERT / 'tls.key')

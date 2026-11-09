@@ -16,6 +16,9 @@ class Gaps:
         for key, value in record.rows.items():
             if key.startswith(('op:', 'mail:filing:', 'mail:rename:', 'intent:', 'export:', 'mail:account:')) and key not in self.aliases:
                 self.aliases[key] = (key.rsplit(':', 1)[0] if not key.startswith('op:') else 'op') + ':#' + str(len(self.aliases))
+            if key.startswith('op:'):
+                self.aliases['cancel:' + value['id']] = 'cancel(' + self.aliases[key] + ')'
+                self.aliases['settle:' + value['id']] = 'settle(' + self.aliases[key] + ')'
             if key.startswith('notice:') and value['id'] not in self.aliases:
                 self.aliases[value['id']] = 'occurrence:#' + str(len(self.aliases))
 
@@ -23,7 +26,7 @@ class Gaps:
         result = []
         for f in sorted(values):
             if f.source not in self.aliases:
-                self.aliases[f.source] = (f.source.rsplit(':', 1)[0] if not f.source.startswith('op:') else 'op') + ':#' + str(len(self.aliases))
+                self.aliases[f.source] = (f.source.rsplit(':', 1)[0] if not f.source.startswith(('op:', 'cancel:', 'settle:', 'unbound:')) else f.source.split(':', 1)[0]) + ':#' + str(len(self.aliases))
             # Occurrence aliases are separate: two warnings about the same
             # operation cannot collapse into one just because counts agree.
             identity = f.occurrence
@@ -35,16 +38,25 @@ class Gaps:
         return sorted(result)
 
     def checker(self, case):
-        calls, failures, kinds_seen = {}, {}, {}
+        calls, failures, kinds_seen, sources_seen = {}, {}, {}, {}
         def check(view, expected, actual):
             self.facts(expected)
             self.facts(actual)
             number = calls.get(view, 0)
             calls[view] = number + 1
             if expected != actual:
-                failures.setdefault(view, []).append({'page': number, 'missing': self.facts(expected - actual), 'extra': self.facts(actual - expected)})
+                delta = {'missing': self.facts(expected - actual), 'extra': self.facts(actual - expected)}
+                group = next((value for value in failures.setdefault(view, []) if value['missing'] == delta['missing'] and value['extra'] == delta['extra']), None)
+                if group is None:
+                    group = {'pages': [], **delta}
+                    failures[view].append(group)
+                group['pages'].append(number)
                 kinds_seen.setdefault(view, set()).update(f.kind for f in expected ^ actual)
+                sources_seen.setdefault(view, set()).update(f.source for f in expected ^ actual)
         def finish():
+            expected_keys = {key for key in self.entries if key.startswith(case + '/')}
+            actual_keys = {case + '/' + view for view in calls}
+            assert expected_keys <= actual_keys, ('Known-gap assertion not executed', sorted(expected_keys - actual_keys))
             for view, count in calls.items():
                 key = case + '/' + view
                 delta = {'calls': count, 'failures': failures.get(view, [])}
@@ -62,11 +74,20 @@ class Gaps:
                     elif case.startswith('G22-latch'):
                         row = 'M08/M10/M13'
                     elif r2:
-                        row = 'M02/M03/M04/M05/M12'
+                        mapping = {'R2.DATA': 'M04', 'R2.APPEND': 'M04/M05/M12', 'R2.MOVE': 'M02/C02', 'R2.COPY': 'M02/C02',
+                                   'R2.RENAME': 'M03/C03', 'R2.CREATE': 'M05/M12', 'R2.DELETE': 'M04/M12',
+                                   'R2.STORE': 'M04/M05', 'R2.EXPUNGE': 'M04', 'R2.RECEIVE': 'M04'}
+                        row = ','.join(sorted({mapping[k] for k in kinds if k in mapping}))
                     elif view.startswith('restore'):
                         row = 'M09'
                     elif 'holds' in view:
                         row = 'M10/M11'
+                    elif 'publication' in view:
+                        row = 'M11'
+                    elif any(source.startswith('mail:rename:') for source in sources_seen.get(view, set())):
+                        row = 'M03/C03/M14'
+                    elif any(source.startswith('mail:filing:') for source in sources_seen.get(view, set())):
+                        row = 'M02/C02/C04/M14'
                     elif 'locations' in view:
                         row = 'M02/C04'
                     else:

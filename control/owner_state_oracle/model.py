@@ -1,8 +1,11 @@
 """Expectations from calls, server evidence and committed local transitions only."""
 from dataclasses import dataclass
+from email.utils import getaddresses
 import copy
 import hashlib
+import json
 from .records import canonical, fingerprint
+from .context import bind as bind_context, differences as context_differences, special_roles, MUTATIONS
 
 
 @dataclass(frozen=True, order=True)
@@ -26,6 +29,11 @@ class Oracle:
         self.processed_server = 0
         self.location_evidence = {}
         self.open_occurrences = {}
+        self.warning_started = {}
+        self.examined_clean = set()
+        self.invalid_clean_results = set()
+        self.warning_contexts = {}
+        self.open_checks = set()
 
     def call(self, action, arguments, clock, faults=None):
         self.call_id += 1
@@ -44,12 +52,18 @@ class Oracle:
         self.servers.append(event)
         return event
 
-    def warning(self, source, kind, evidence, record):
+    def warning(self, source, kind, evidence, record, context=None):
         """Evidence selects occurrence; disk supplies only the opaque UUID binding.
 
         Deleting the notice must never delete the expected warning. A new UUID
         cannot excuse unchanged evidence, or hide a warning after acknowledgement.
         """
+        if context is not None:
+            self.warning_contexts.setdefault(source, copy.deepcopy(context))
+        elif source not in self.warning_contexts:
+            prepared = next((e['set'][source] for e in record.events if isinstance(e['set'].get(source), dict)), record.rows.get(source, {}))
+            self.warning_contexts[source] = copy.deepcopy(prepared)
+        self.warning_started.setdefault((source, kind), max(record.committed, default=max((event['seq'] for event in record.events), default=0)))
         encoded = canonical(evidence)
         key = (source, kind, encoded, self.epochs.get((source, kind), 0))
         expected_fingerprint = fingerprint(sorted({canonical(ref) for ref in evidence}) if kind == 'sent_copies' else evidence)
@@ -63,6 +77,12 @@ class Oracle:
         detail = {'count': len(evidence)} if kind == 'sent_copies' else {'role': 'Trash' if 'Trash' in role else 'Drafts' if 'Drafts' in role else 'ordinary'}
         if isinstance(evidence, dict) and (evidence.get('unresolved_roles') or any(not row.get('scan_complete', True) for row in evidence.get('locations', []))):
             self.open_occurrences[source] = self.occurrences[key]
+            self.open_checks.add(source)
+        elif source in self.open_checks and isinstance(evidence, dict):
+            current = record.rows.get(source, {})
+            checked = current.get('warning_checks', {}).get(kind, {})
+            if checked.get('fingerprint') == expected_fingerprint and not current.get('check_open') and current.get('state') != 'started':
+                self.open_checks.discard(source)
         if isinstance(evidence, dict) and 'locations' in evidence:
             self.location_evidence[self.occurrences[key]] = (source, copy.deepcopy(evidence['locations']))
         return Fact(source, kind, self.occurrences[key], canonical(detail))
@@ -79,27 +99,41 @@ class Oracle:
                 for key, value in event['set'].items():
                     if key.startswith('op:') and value and value.get('ack'):
                         self.acknowledged.add('operation:' + value['id'])
+        previous = {}
         for event in record.events:
             for source, value in event['set'].items():
                 if not isinstance(value, dict):
                     continue
-                for kind, checked in value.get('warning_checks', {}).items():
-                    if checked.get('warning') is False and event['seq'] > self.last_clean.get((source, kind), 0):
+                kinds = {kind for kind, checked in value.get('warning_checks', {}).items() if checked.get('warning') is False}
+                if value.get('sent_copy_check', {}).get('clean') and value.get('sent_copy_check', {}).get('state') == 'checked':
+                    kinds.add('sent_copies')
+                for kind in kinds:
+                    marker = source, kind, event['seq']
+                    if event['seq'] <= self.warning_started.get((source, kind), float('inf')) or marker in self.examined_clean:
+                        continue
+                    old = previous.get(source, {})
+                    changed = event['action'] in {'mail_sent_copy_check', 'mail_filing_check'} or (
+                        kind == 'sent_copies' and old.get('sent_copy_check', {}).get('state') == 'open' and value.get('sent_copy_check', {}).get('state') == 'checked') or old.get('warning_checks', {}).get(kind, {}).get('warning') is True
+                    if not changed:
+                        continue
+                    self.examined_clean.add(marker)
+                    if self.clean_proof(source, kind, event['seq']):
                         self.last_clean[source, kind] = event['seq']
                         self.epochs[source, kind] = self.epochs.get((source, kind), 0) + 1
+                        if kind in {'filing', 'rename'}:
+                            self.open_checks.discard(source)
+                    else:
+                        self.invalid_clean_results.add(Fact(source, 'unverified-clean', detail=kind))
+                previous[source] = value
         for key, row in record.rows.items():
             if key.startswith('op:'):
                 if app is None or row['app'] == app:
                     if row['state'] in {'reserved', 'submitting', 'partial', 'unknown'} or (row.get('notice') and 'operation:' + row['id'] not in self.acknowledged):
-                        facts.add(Fact(key, 'pending', detail=canonical({'state': row['state'], 'reason': row.get('reason')})))
+                        facts.add(Fact(key, 'pending', detail=canonical({'state': row['state'], 'reason': 'RESTORED_EVIDENCE' if 'restored' in row.get('reason', '').lower() and any(word in row.get('reason', '').lower() for word in ('newer', 'missing')) else row.get('reason')})))
                 if row['state'] in {'submitting', 'unknown', 'partial'} and (app is None or row['app'] == app):
                     facts.add(Fact(key, 'recovery'))
                 check = row.get('sent_copy_check', {})
                 if row['app'] == 'mail' and (app is None or app == 'mail'):
-                    clean_seq = max((e['seq'] for e in record.events if (e['set'].get(key) or {}).get('sent_copy_check', {}).get('clean')), default=0)
-                    if clean_seq > self.last_clean.get((key, 'sent_copies'), 0):
-                        self.last_clean[key, 'sent_copies'] = clean_seq
-                        self.epochs[key, 'sent_copies'] = self.epochs.get((key, 'sent_copies'), 0) + 1
                     failed_recheck = live and bool(check) and self.script and self.script[-1].get('result', {}).get('error', {}).get('code') in {'storage_limit', 'storage_error', 'journal_incomplete'}
                     if (check.get('state') == 'open' or failed_recheck) and not any(f.source == key and f.kind == 'sent_copies' and f.occurrence not in self.acknowledged for f in self.detected):
                         facts.add(Fact(key, 'unchecked'))
@@ -112,6 +146,23 @@ class Oracle:
                     key.startswith('mail:account:') and not row.get('onboarded', row.get('ready', False)))
                 if unfinished:
                     facts.add(Fact(key, 'recovery'))
+        if record.locked:
+            latest, local = {}, {}
+            for fence in record.fences:
+                for operation in fence.get('operations', []):
+                    latest[operation['id']] = (fence['seq'], operation)
+            for event in record.events:
+                for operation in event['record'].get('operations', []):
+                    local[operation['id']] = event['seq']
+            for operation_id, (sequence, operation) in latest.items():
+                source = 'op:' + operation_id
+                if record.rows.get('archived:' + operation_id) == {'seq': sequence}:
+                    continue
+                row = record.rows.get(source)
+                if row is None or local.get(operation_id) != sequence or row.get('state') == 'submitting':
+                    facts = {fact for fact in facts if not (fact.source == source and fact.kind == 'pending')}
+                    facts.add(Fact(source, 'pending', detail=canonical({'state': 'unknown', 'reason': 'RESTORED_EVIDENCE'})))
+                    facts.add(Fact(source, 'recovery'))
         # Recover raw LIST evidence for committed, unresolved checks too. Check
         # completion is a local committed fact; the role observation is remote.
         for event in self.servers[self.processed_server:]:
@@ -135,6 +186,40 @@ class Oracle:
                 if source.startswith('mail:filing:'):
                     evidence['locations'] = self.locations(context, event)
                 self.detected.add(self.warning(source, 'rename' if source.startswith('mail:rename:') else 'filing', evidence, record))
+        # Explicit healthy views must revalidate enrolled Sent identities even
+        # if a regression omits the actual SEARCH or loses a working row. The
+        # fixture's own mailbox state is independent evidence of what that
+        # required read would return; passive envelopes never use it.
+        call = self.script[-1] if self.script else {}
+        action, arguments = call.get('action'), call.get('arguments', {})
+        evidence_view = action in {'control_pending', 'mail_filing_notices'} or action == 'control_log' and 'cursor' not in arguments
+        if live and evidence_view:
+            states = [e for e in self.servers if e['command'] == 'FIXTURE_STATE']
+            if states:
+                state = states[-1]
+                unavailable = any(e['call'] == state['call'] and e['command'] == 'CONNECT' and not e['accepted'] for e in self.servers)
+                refused = call.get('result', {}).get('error', {}).get('code') in {'storage_limit', 'storage_error', 'journal_incomplete'}
+                registrations = {}
+                for event in record.events:
+                    for source, value in event['set'].items():
+                        if source.startswith('op:') and value and value.get('app') == 'mail' and value.get('payload', {}).get('composition'):
+                            registrations[source] = value
+                for source, operation in registrations.items():
+                    if 'archived:' + operation['id'] in record.rows:
+                        continue
+                    account_id = operation.get('payload', {}).get('composition', {}).get('mail', {}).get('account')
+                    account = record.rows.get('mail:account:' + str(account_id), {})
+                    role_map = state.get('roles') or {}
+                    required = account.get('special', {})
+                    roles_unresolved = any([name for name, flags in role_map.items() if '\\' + role in [f.lower() for f in flags]] != [required.get(role)] for role in ('sent', 'drafts', 'trash'))
+                    if unavailable or refused or roles_unresolved:
+                        facts.add(Fact(source, 'unchecked'))
+                        continue
+                    mid = '<' + operation['id'].replace(':', '.') + '@mail.aresos.invalid>'
+                    copies = [{k: v for k, v in ref.items() if k != 'sha256'}
+                              for ref in state.get('mailboxes', {}).get(required.get('sent'), []) if ref['message_id'] == mid]
+                    if len(copies) > 1:
+                        self.detected.add(self.warning(source, 'sent_copies', sorted(copies, key=canonical), record))
         # Every observed warning survives changed evidence/clean/action end,
         # until that occurrence has its own committed acknowledgement.
         # Interpret raw server commands and LIST replies here. The driver may
@@ -152,13 +237,12 @@ class Oracle:
                 observed = [flag.lstrip('\\').title() for folder, flags in roles.items()
                             if target == folder or target and target.startswith(folder + '/')
                             for flag in flags if flag.lower() in {'\\trash', '\\drafts', '\\sent', '\\junk', '\\archive'}]
-                if roles == before and not observed and not (mutation['command'] in {'MOVE', 'COPY'} and not mutation.get('copyuid_delivered')):
+                if special_roles(roles) == special_roles(before) and not observed and not (mutation['command'] in {'MOVE', 'COPY'} and not mutation.get('copyuid_delivered')):
                     continue
                 # Committed context binds this command to its intent identity;
                 # its claimed completion cannot suppress observed drift.
-                for source, context in mutation.get('committed_before', {}).items():
-                    if not source.startswith(('mail:filing:', 'mail:rename:')) or context.get('target') != target:
-                        continue
+                source, context = bind_context(mutation, self.script)
+                if source and source.startswith(('mail:filing:', 'mail:rename:')):
                     kind = 'rename' if source.startswith('mail:rename:') else 'filing'
                     unresolved = [kind for kind in ('sent', 'drafts', 'trash') if sum('\\' + kind in [v.lower() for v in flags] for flags in roles.values()) != 1]
                     role = ', '.join(sorted(set(observed))) or 'an ordinary folder'
@@ -167,7 +251,7 @@ class Oracle:
                         evidence['role'] = ', '.join(sorted(flag.title() for flag in roles[target] if flag.lower() in {'\\trash', '\\drafts', '\\sent', '\\junk', '\\archive'})) or role
                     if kind == 'filing':
                         evidence.update(locations=self.locations(context, event, mutation), unresolved_roles=unresolved)
-                    self.detected.add(self.warning(source, kind, evidence, record))
+                    self.detected.add(self.warning(source, kind, evidence, record, context))
         for event in self.servers[self.processed_server:]:
             if event['command'] == 'WARNING':
                 self.detected.add(self.warning(event['source'], event['kind'], event['evidence'], record))
@@ -176,11 +260,44 @@ class Oracle:
         self.processed_server = len(self.servers)
         facts.update(f for f in self.detected if f.occurrence not in self.acknowledged and
                      (app is None or app == 'mail'))
+        for fact in list(facts):
+            if fact.kind not in {'sent_copies', 'filing', 'rename'}:
+                continue
+            context = self.warning_contexts.get(fact.source, {})
+            meta = {'app': 'mail', 'state': 'partial', 'intent_identity': True, 'preserves_messages': True}
+            if fact.kind == 'sent_copies':
+                meta.update(operation_identity=True, message_count=json.loads(fact.detail)['count'], reason_family='sent_copies')
+            else:
+                meta.update(filing_identity=True)
+                if fact.kind == 'rename' and 'message_count' in context:
+                    meta['message_count'] = context['message_count']
+                    names = [context.get('source', ''), context.get('target', '')]
+                    meta.update(folders=[name[:64] + ('…' if len(name) > 64 else '') for name in names], folders_more=0, folders_more_text='')
+                elif fact.kind == 'filing' and context.get('sources'):
+                    names = {context['target']} | {ref['folder'] for ref in context['sources']}
+                    evidence_locations = self.location_evidence.get(fact.occurrence, (None, []))[1]
+                    names.update(ref['folder'] for item in evidence_locations for ref in item['observed_locations'])
+                    meta.update(message_count=len(context['sources']), folders=[name[:64] + ('…' if len(name) > 64 else '') for name in sorted(names)[:3]],
+                                folders_more=max(0, len(names) - 3), folders_more_text='and ' + str(len(names) - 3) + ' more' if len(names) > 3 else '')
+            facts.add(Fact(fact.source, 'notice-context', fact.occurrence, canonical(meta)))
+        for source in self.open_checks:
+            facts.add(Fact(source, 'recovery'))
         for source, occurrence in self.open_occurrences.items():
             recovery = Fact(source, 'recovery')
             if recovery in facts and occurrence not in self.acknowledged:
                 facts.remove(recovery)
                 facts.add(Fact(source, 'recovery', occurrence))
+        for fact in list(facts):
+            if fact.kind == 'recovery':
+                row = record.rows.get(fact.source, self.warning_contexts.get(fact.source, {}))
+                app_name = row.get('app', 'mail')
+                partial = any(w.occurrence == fact.occurrence and w.kind in {'filing', 'rename'} for w in self.detected) if fact.occurrence else False
+                facts.add(Fact(fact.source, 'recovery-context', fact.occurrence, canonical({
+                    'app': app_name, 'state': 'partial' if partial else 'unknown', 'intent_identity': True, 'reason_present': True})))
+            elif fact.kind == 'unchecked':
+                facts.add(Fact(fact.source, 'unchecked-context', detail=canonical({
+                    'app': 'mail', 'state': 'unknown', 'operation_identity': True, 'check': 'sent_copies', 'not_yet_checked': True})))
+        self.expected_context_facts = {f for f in facts if f.kind == 'notice-context'}
         return facts
 
 
@@ -202,6 +319,25 @@ class Oracle:
             result.append({'source': item['source'], 'last_known_destination': destination,
                            'observed_locations': sorted(found, key=canonical), 'scan_complete': scan_complete})
         return sorted(result, key=canonical)
+
+    def clean_proof(self, source, kind, sequence):
+        for evidence in self.servers:
+            call = next((call for call in self.script if call['call'] == evidence['call']), {})
+            before = evidence.get('before_seq')
+            if not isinstance(before, int) or not before < sequence <= call.get('end_seq', -1):
+                continue
+            if kind == 'sent_copies':
+                if evidence['command'] == 'SENT' and evidence.get('source') == source and len(evidence['identities']) <= 1:
+                    return True
+            elif evidence['command'] == 'LIST':
+                old = next((json.loads(key[2]) for key in self.occurrences if key[0] == source and key[1] == kind), {})
+                target, roles = old.get('target'), evidence.get('roles') or {}
+                complete = all(len(special_roles(roles).get(role, [])) == 1 for role in ('sent', 'drafts', 'trash'))
+                protected = any(target == folder or target and target.startswith(folder + '/') for role in ('trash', 'drafts', 'sent', 'junk', 'archive') for folder in special_roles(roles).get(role, []))
+                failed_scan = any(e['call'] == evidence['call'] and e['command'] == 'FETCH' and not e['accepted'] for e in self.servers)
+                if target in roles and complete and not protected and not failed_scan:
+                    return True
+        return False
 
     def request_state(self, record, call):
         if record.locked:
@@ -235,47 +371,48 @@ class Oracle:
             if action == 'mail_send' or action == 'mail_unsubscribe' and operation.get('payload', {}).get('composition'):
                 mid = '<' + operation['id'].replace(':', '.') + '@mail.aresos.invalid>'
                 deliveries = [e for e in self.servers if e['command'] == 'DATA' and e['accepted'] and any(i.get('message_id') == mid for i in e['identities'])]
+                mail = operation.get('payload', {}).get('composition', {}).get('mail', {})
+                recipients = sorted(address for _, address in getaddresses(mail.get('to', []) + mail.get('cc', []) + mail.get('bcc', [])))
+                if deliveries and (len(deliveries) != 1 or sorted(deliveries[0].get('recipients', [])) != recipients):
+                    errors.add(Fact(key, 'false-completion', detail='Accepted SMTP recipients differ from the full approved envelope'))
                 if not deliveries:
                     errors.add(Fact(key, 'false-completion', detail='No matching accepted SMTP DATA'))
+            elif action == 'mail_delete':
+                payload = operation.get('payload', {})
+                command = 'MOVE' if payload.get('mode') == 'trash' else 'EXPUNGE'
+                for target in payload.get('items', []):
+                    reference = target['reference']
+                    attempted = [e for e in self.servers if e['command'] == command and e['accepted'] and
+                        e.get('folder') == reference['folder'] and str((e.get('arguments') or [''])[0]) == str(reference['uid'])]
+                    if len(attempted) != 1:
+                        errors.add(Fact(key, 'false-completion', detail='Exact deletion target not accepted once: ' + str(reference['uid'])))
+            elif action == 'testapp_send':
+                payload = operation.get('payload', {})
+                for recipient in payload.get('to', []) + payload.get('cc', []) + payload.get('bcc', []):
+                    accepted = [e for e in self.servers if e['command'] == 'RECEIVE' and e['accepted'] and recipient in e.get('recipients', []) and any(i.get('operation_id') == operation['id'] for i in e['identities'])]
+                    if len(accepted) != 1:
+                        errors.add(Fact(key, 'false-completion', detail='Receiver did not accept exactly once: ' + recipient))
+                for stage in ('sent_copy', 'answered_flag'):
+                    if not any(e['command'] == 'LOCAL_STAGE' and e['accepted'] and e['stage'] == stage and any(i.get('operation_id') == operation['id'] for i in e['identities']) for e in self.servers):
+                        errors.add(Fact(key, 'false-completion', detail='Receiver stage missing: ' + stage))
+            elif action == 'testapp_delete':
+                current = record.rows.get('testapp', {}).get('items', {})
+                for target in operation.get('payload', {}).get('items', []):
+                    if target['reference']['id'] in current:
+                        errors.add(Fact(key, 'false-completion', detail='Requested fixture item still exists: ' + target['reference']['id']))
             elif action == 'mail_unsubscribe':
-                if not any(e['command'] == 'POST' and e['accepted'] for e in self.servers):
+                if not any(e['command'] == 'POST' and e['accepted'] and e.get('reply') == 'delivered' and 200 <= e.get('status', 0) < 300 for e in self.servers):
                     errors.add(Fact(key, 'false-completion', detail='No accepted POST'))
         return errors
 
     def context_errors(self):
         errors = set()
-        mutations = {'DATA', 'APPEND', 'MOVE', 'COPY', 'STORE', 'EXPUNGE', 'CREATE', 'DELETE', 'RENAME', 'POST', 'RECEIVE'}
         for index, event in enumerate(self.servers):
-            if event['command'] not in mutations or event.get('fixture_seed'):
+            if event['command'] not in MUTATIONS or event.get('fixture_seed'):
                 continue
-            rows = event.get('committed_before', {})
-            candidates = [v for k, v in rows.items() if k.startswith(('op:', 'intent:', 'mail:filing:', 'mail:rename:')) and isinstance(v, dict)]
-            command = event['command']
-            missing = set()
-            if not candidates:
-                missing.add('intent identity')
-            encoded = canonical(candidates)
-            account = event.get('account')
-            if account and canonical(account) not in encoded:
-                missing.add('account')
-            if command in {'APPEND', 'CREATE', 'DELETE', 'RENAME', 'MOVE', 'COPY'}:
-                target = event.get('folder') if command == 'APPEND' else (event.get('arguments') or [''])[-1].strip('"')
-                if target and canonical(target) not in encoded:
-                    missing.add('destination')
-            if command == 'APPEND' and event.get('raw_sha256') and event['raw_sha256'] not in encoded:
-                # Approved Sent copies also bind their immutable Message-ID and
-                # wire hash. Generic draft/probe identities have neither today.
-                identities = event.get('identities', [])
-                if not identities or not any(i.get('message_id') and i['message_id'] in encoded for i in identities):
-                    missing.add('message identity')
-            if command in {'MOVE', 'COPY', 'RENAME'} and not any('roles_before' in c for c in candidates):
-                missing.add('preparation roles')
-            if command in {'DATA', 'RECEIVE'}:
-                for recipient in event.get('recipients', []):
-                    if canonical(recipient) not in encoded:
-                        missing.add('recipients')
+            _, missing = context_differences(event, self.script)
             if missing:
-                errors.add(Fact('command:' + str(index), 'R2.' + command, detail=canonical(sorted(missing))))
+                errors.add(Fact('command:' + str(index), 'R2.' + event['command'], detail=canonical(missing)))
         return errors
 
     def require_context(self, command, committed_before):

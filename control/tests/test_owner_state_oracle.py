@@ -16,8 +16,8 @@ from owner_state_oracle.compare import pages
 class OwnerOracle(unittest.TestCase):
     def test_expectation_imports_are_standard_library_only(self):
         root = Path(__file__).resolve().parents[1] / 'owner_state_oracle'
-        allowed = {'contextlib', 'copy', 'dataclasses', 'hashlib', 'json', 'pathlib', 'sqlite3', 'shutil', 'tempfile', 'time', 'model', 'records'}
-        for name in ('__init__.py', 'records.py', 'model.py', 'compare.py'):
+        allowed = {'contextlib', 'email', 'context', 'copy', 'dataclasses', 'hashlib', 'json', 'pathlib', 'sqlite3', 'shutil', 'tempfile', 'time', 're', 'model', 'records'}
+        for name in ('__init__.py', 'records.py', 'model.py', 'compare.py', 'context.py'):
             tree = ast.parse((root / name).read_text())
             for node in ast.walk(tree):
                 if isinstance(node, ast.Import):
@@ -39,8 +39,8 @@ class OwnerOracle(unittest.TestCase):
     def test_script_and_server_logs_derive_lost_duplicate_reply_without_notice_rows(self):
         oracle, record = self.recorded()
         expected = oracle.expected(record)
-        self.assertEqual(len(expected), 1)
-        fact = next(iter(expected))
+        self.assertEqual(len(expected), 2)
+        fact = next(f for f in expected if f.kind == 'sent_copies')
         self.assertEqual((fact.source, fact.kind, fact.detail), ('op:g:send', 'sent_copies', '{"count":2}'))
         self.assertEqual(oracle.script[0]['reply'], 'lost')
         self.assertEqual(oracle.servers[0]['call'], oracle.script[0]['call'])
@@ -94,8 +94,13 @@ class OwnerOracle(unittest.TestCase):
         self.assertEqual(first, oracle.expected(record))
         record.events.append({'seq': 1, 'action': 'mail_notice_ack', 'set': {'notice:n': {**record.rows['notice:n'], 'ack': True}}})
         self.assertEqual(oracle.expected(record), set())
-        record.events.append({'seq': 2, 'action': 'mail_sent_copy_check', 'set': {'op:g:send': {'sent_copy_check': {'clean': True}}}})
-        oracle.server('SENT', 'box', 'Sent', oracle.servers[0]['identities'], source='op:g:send')
+        record.events.append({'seq': 2, 'action': 'mail_sent_copy_check', 'set': {'op:g:send': {'sent_copy_check': {'state': 'checked', 'clean': True}}}})
+        oracle.call('mail_operation_status', {'operation_id': 'g:send'}, 124)
+        oracle.script[-1]['end_seq'] = 2
+        oracle.server('SENT', 'box', 'Sent', oracle.servers[0]['identities'][:1], source='op:g:send', before_seq=1)
+        self.assertEqual(oracle.expected(record), set())
+        oracle.call('mail_operation_status', {'operation_id': 'g:send'}, 125)
+        oracle.server('SENT', 'box', 'Sent', oracle.servers[0]['identities'], source='op:g:send', before_seq=2)
         record.rows['notice:new'] = {'id': 'new', 'source_key': 'op:g:send', 'check_kind': 'sent_copies'}
         self.assertEqual({f.occurrence for f in oracle.expected(record)}, {'new'})
         # Restore older working state must not resurrect n's acknowledgement.
@@ -158,9 +163,9 @@ class OwnerOracle(unittest.TestCase):
 
     def test_raw_trash_list_warns_even_if_production_claims_done_and_closed(self):
         oracle = Oracle()
-        context = {'mail:rename:r': {'id': 'r', 'account': 'box', 'source': 'Source', 'target': 'Target', 'roles_before': {}}}
+        context = {'mail:rename:r': {'id': 'r', 'account': 'box', 'source': 'Source', 'target': 'Target', 'roles_before': {}, 'state': 'started'}}
         oracle.call('mail_folder_rename', {'account': 'box', 'folder': 'Source', 'name': 'Target'}, 1)
-        oracle.server('RENAME', 'box', roles={'Target': []}, arguments=['Source', 'Target'], committed_before=context)
+        oracle.server('RENAME', 'box', roles={'Target': []}, arguments=['Source', 'Target'], committed_before=context, created_before={'mail:rename:r': 1}, call_start_seq=0)
         oracle.server('LIST', 'box', roles={'Target': ['\\Trash']})
         record = Record(rows={'mail:rename:r': {**context['mail:rename:r'], 'state': 'done', 'check_open': False}})
         self.assertTrue(any(f.kind == 'rename' and f.detail == '{"role":"Trash"}' for f in oracle.expected(record)))
@@ -184,6 +189,9 @@ class OwnerOracle(unittest.TestCase):
             self.assertEqual(one.occurrence, 'old')
             record.events = [{'seq': 1, 'action': 'mail_notice_ack', 'set': {'notice:old': {**first, 'ack': True}}},
                 {'seq': 2, 'action': 'mail_filing_check', 'set': {source: {'warning_checks': {kind: {'warning': False}}}}}]
+            oracle.call('filing check', {}, 2)
+            oracle.script[-1]['end_seq'] = 2
+            oracle.server('LIST', before_seq=1, roles={'Target': [], 'Sent': ['\\Sent'], 'Drafts': ['\\Drafts'], 'Trash': ['\\Trash']})
             oracle.expected(record)
             record.rows['notice:new'] = {**first, 'id': 'new'}
             two = oracle.warning(source, kind, evidence, record)
@@ -230,3 +238,145 @@ class OwnerOracle(unittest.TestCase):
             return {'ok': True, 'pending': {'items': [{'operation_id': 'WRONG', 'state': 'reserved'}], 'total': 2, 'cursor': None}}
         with self.assertRaises(AssertionError):
             compare_views(read, oracle, lambda: record, oracle.compare)
+
+    def test_known_gap_requires_exact_failure_and_rejects_unexpected_pass(self):
+        from owner_state_oracle.gaps import Gaps
+        recorded = Gaps(recording=True)
+        check = recorded.checker('named-case')
+        check('page-equality', {Fact('source', 'warning')}, set())
+        check.finish()
+        strict = Gaps(recording=True)
+        strict.recording, strict.entries = False, copy.deepcopy(recorded.entries)
+        check = strict.checker('named-case')
+        check('page-equality', {Fact('source', 'warning')}, set())
+        check.finish()
+        self.assertEqual(strict.seen, {'named-case/page-equality'})
+        check = strict.checker('named-case')
+        check('page-equality', set(), set())
+        with self.assertRaisesRegex(AssertionError, 'Unexpected pass'):
+            check.finish()
+        check = strict.checker('named-case')
+        check('page-equality', {Fact('source', 'warning')}, {Fact('other', 'spurious')})
+        with self.assertRaisesRegex(AssertionError, 'Known gap changed'):
+            check.finish()
+
+    def test_missing_search_and_lost_working_row_do_not_erase_registered_duplicate_expectation(self):
+        oracle = Oracle()
+        operation = {'id': 'g:s', 'app': 'mail', 'state': 'done', 'payload': {'composition': {'mail': {'account': 'box'}}}}
+        record = Record(rows={'mail:account:box': {'special': {'sent': 'Sent', 'drafts': 'Drafts', 'trash': 'Trash'}}},
+            events=[{'seq': 1, 'time': 1, 'action': 'mail_send', 'set': {'op:g:s': operation}}])
+        oracle.call('control_pending', {}, 2)
+        oracle.server('FIXTURE_STATE', roles={'Sent': ['\\Sent'], 'Drafts': ['\\Drafts'], 'Trash': ['\\Trash']},
+            mailboxes={'Sent': [{'account': 'box', 'folder': 'Sent', 'uidvalidity': 1, 'uid': uid,
+                'message_id': '<g.s@mail.aresos.invalid>'} for uid in (1, 2)]})
+        oracle.reply({'ok': True})
+        expected = oracle.expected(record, live=True)
+        self.assertTrue(any(f.kind == 'sent_copies' for f in expected))
+        with self.assertRaises(AssertionError):
+            oracle.compare('omitted evidence read mutation', expected, set())
+
+    def test_known_gap_cannot_be_hidden_by_omitting_its_view(self):
+        from owner_state_oracle.gaps import Gaps
+        ledger = Gaps(recording=True)
+        check = ledger.checker('case')
+        check('warning', {Fact('source', 'warning')}, set())
+        check.finish()
+        ledger.recording = False
+        check = ledger.checker('case')
+        with self.assertRaisesRegex(AssertionError, 'not executed'):
+            check.finish()
+
+    def test_false_production_clean_cannot_resurrect_acknowledged_same_evidence(self):
+        oracle, record = self.recorded()
+        old = {'id': 'old', 'source_key': 'op:g:send', 'check_kind': 'sent_copies'}
+        record.rows['notice:old'] = old
+        oracle.expected(record)
+        record.events.append({'seq': 1, 'action': 'mail_notice_ack', 'set': {'notice:old': {**old, 'ack': True}}})
+        self.assertEqual(oracle.expected(record), set())
+        record.events.append({'seq': 2, 'action': 'mail_sent_copy_check', 'set': {'op:g:send': {'sent_copy_check': {'state': 'checked', 'clean': True}}}})
+        oracle.call('mail_operation_status', {'operation_id': 'g:send'}, 125)
+        oracle.script[-1]['end_seq'] = 2
+        oracle.server('SENT', 'box', 'Sent', oracle.servers[0]['identities'], source='op:g:send', before_seq=1)
+        record.rows['notice:new'] = {**old, 'id': 'new'}
+        self.assertEqual(oracle.expected(record), set())
+        self.assertTrue(oracle.invalid_clean_results)
+
+    def test_public_notice_must_expose_exact_context_not_only_opaque_id_and_role(self):
+        from owner_state_oracle.compare import notice_facts
+        oracle = Oracle()
+        source = 'mail:rename:r'
+        context = {'id': 'r', 'account': 'box', 'source': 'Source', 'target': 'Target', 'message_count': 3}
+        evidence = {'target': 'Target', 'role': 'Trash'}
+        saved = {'id': 'n', 'source_key': source, 'check_kind': 'rename', 'evidence_fingerprint': fingerprint(evidence)}
+        record = Record(rows={source: {**context, 'state': 'partial'}, 'notice:n': saved},
+                        events=[{'seq': 1, 'action': 'mail_folder_rename', 'set': {source: {**context, 'state': 'started'}}}])
+        oracle.detected.add(oracle.warning(source, 'rename', evidence, record, context))
+        expected = oracle.expected(record)
+        correct = {'operation_id': 'n', 'app': 'mail', 'state': 'partial', 'untrusted_content': {
+            'filing_id': 'n', 'message_count': 3, 'folders': ['Source', 'Target'], 'folders_more': 0, 'folders_more_text': '',
+            'intent_key': source, 'reason': 'Nothing was deleted. It is now Target, inside Trash.'}}
+        self.assertEqual(notice_facts(correct, record, oracle), expected)
+        for field in ('app', 'state', 'filing_id', 'message_count', 'folders', 'intent_key'):
+            wrong = copy.deepcopy(correct)
+            (wrong if field in {'app', 'state'} else wrong['untrusted_content'])[field] = 'WRONG'
+            with self.subTest(field=field), self.assertRaises(AssertionError):
+                oracle.compare('public context mutation', expected, notice_facts(wrong, record, oracle))
+
+    def test_exact_context_cannot_be_supplied_by_another_attempt_or_changed_fields(self):
+        ref = {'account': 'box', 'folder': 'Source', 'uidvalidity': 4, 'uid': 7, 'message_id': '<m@mail.invalid>'}
+        roles = {'Sent': ['\\Sent'], 'Drafts': ['\\Drafts'], 'Trash': ['\\Trash']}
+        context = {'command': 'STORE', 'account': 'box', 'roles': {'sent': ['Sent'], 'drafts': ['Drafts'], 'trash': ['Trash']},
+                   'source': 'Source', 'identities': [ref], 'flags': ['+FLAGS.SILENT', '(\\Seen)']}
+        def evaluate(current):
+            oracle = Oracle()
+            oracle.call('mail_flag', {'references': [ref], 'add': ['\\Seen']}, 1)
+            oracle.server('STORE', 'box', 'Source', [ref], roles, arguments=['7', '+FLAGS.SILENT', '(\\Seen)'],
+                call_start_seq=10, created_before={'intent:old': 1, 'intent:current': 11}, committed_before={
+                    'intent:old': {'state': 'started', 'action': 'mail_flag', 'context': context},
+                    'intent:current': {'state': 'started', 'action': 'mail_flag', 'context': current}})
+            return oracle.context_errors()
+        self.assertFalse(evaluate(context))
+        for field in context:
+            changed = copy.deepcopy(context)
+            changed[field] = None
+            with self.subTest(field=field):
+                self.assertTrue(evaluate(changed), field)
+
+    def test_post_context_binds_exact_url_body_source_and_current_operation(self):
+        ref = {'account': 'box', 'folder': 'Source', 'uidvalidity': 1, 'uid': 4, 'message_id': '<list@mail.invalid>'}
+        roles = {'Sent': ['\\Sent'], 'Drafts': ['\\Drafts'], 'Trash': ['\\Trash']}
+        context = {'command': 'POST', 'account': 'box', 'roles': {'sent': ['Sent'], 'drafts': ['Drafts'], 'trash': ['Trash']},
+                   'source': ref, 'destination': 'https://leave.mail.invalid/stop', 'body': 'List-Unsubscribe=One-Click'}
+        def errors(value):
+            oracle = Oracle()
+            oracle.call('mail_unsubscribe', {'operation_id': 'g:p', 'description': {'reference': ref}}, 1)
+            oracle.server('POST', 'box', roles=roles, url=context['destination'], body=context['body'],
+                call_start_seq=10, created_before={'op:g:p': 2, 'op:g:other': 1}, committed_before={
+                    'op:g:p': {'id': 'g:p', 'state': 'submitting', 'context': value},
+                    'op:g:other': {'id': 'g:other', 'state': 'submitting', 'context': context}})
+            return oracle.context_errors()
+        self.assertFalse(errors(context))
+        for field in context:
+            value = copy.deepcopy(context)
+            value[field] = 'WRONG'
+            with self.subTest(field=field):
+                self.assertTrue(errors(value))
+
+    def test_ordinary_rename_does_not_warn_or_bind_an_older_same_target(self):
+        oracle = Oracle()
+        old = {'id': 'old', 'account': 'box', 'source': 'Older', 'target': 'Target', 'state': 'done', 'message_count': 0}
+        new = {'id': 'new', 'account': 'box', 'source': 'Source', 'target': 'Target', 'state': 'started', 'message_count': 0}
+        before = {'Source': [], 'Sent': ['\\Sent'], 'Drafts': ['\\Drafts'], 'Trash': ['\\Trash']}
+        oracle.call('mail_folder_rename', {'account': 'box', 'folder': 'Source', 'name': 'Target'}, 1)
+        oracle.server('RENAME', 'box', roles=before, arguments=['Source', 'Target'],
+            committed_before={'mail:rename:old': old, 'mail:rename:new': new},
+            created_before={'mail:rename:old': 1, 'mail:rename:new': 11}, call_start_seq=10)
+        after = {**before, 'Target': []}
+        after.pop('Source')
+        oracle.server('LIST', 'box', roles=after)
+        record = Record(rows={'mail:rename:old': old, 'mail:rename:new': {**new, 'state': 'done'}})
+        self.assertEqual(oracle.expected(record), set())
+        after['Trash'], after['Target'] = [], ['\\Trash']
+        oracle.server('LIST', 'box', roles=after)
+        warned = oracle.expected(record)
+        self.assertEqual({f.source for f in warned}, {'mail:rename:new'})

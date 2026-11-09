@@ -24,7 +24,7 @@ def run(gaps):
         driver.compare(gaps.checker('contract/' + name))
 
     # Real clean outcomes: no duplicate-generating APPEND/race in these cases.
-    for flow in ('send', 'filing_move', 'filing_copy', 'delete_trash', 'delete_permanent'):
+    for flow in ('send', 'filing_move', 'filing_copy', 'filing_rename', 'delete_trash', 'delete_permanent'):
         s = OwnerScenario(flow)
         gaps.aliases = {}
         try:
@@ -41,8 +41,21 @@ def run(gaps):
                     result = uid(command, *args)
                     if command in {'MOVE', 'COPY'}:
                         f.imap.roles = copy.deepcopy(roles)
+                        if flow == 'filing_copy':
+                            f.imap.roles['Other'] = []
+                            f.imap.boxes['Other'] = {}
+                            f.imap.validities['Other'] = 999
                     return result
                 stack.enter_context(patch.object(f.imap, 'uid', side_effect=ordinary))
+                if flow == 'filing_rename':
+                    rename = f.imap.rename
+                    def ordinary_rename(source, target):
+                        result = rename(source, target)
+                        current = copy.deepcopy(roles)
+                        current[target.strip('"')] = current.pop(source.strip('"'))
+                        f.imap.roles = current
+                        return result
+                    stack.enter_context(patch.object(f.imap, 'rename', side_effect=ordinary_rename))
             d = Driver(s)
             with d.observe():
                 reply = s.call()
@@ -385,5 +398,25 @@ def run(gaps):
         assert not s.remote, s.remote
         assert d.snapshot().rows['mail:account:box']['protected_special']['trash']
         compare(s, d, 'qualification-protected-roles')
+    finally:
+        s.close()
+
+    s = OwnerScenario('testapp_send')
+    gaps.aliases = {}
+    try:
+        f, d = s.fixture, Driver(s)
+        f.approval('send', f.compose())
+        configured = f.engine.request({'v': 1, 'method': 'call', 'action': 'testapp_fixture_configure',
+            'arguments': {'refuse': [], 'failure': 'lost_answer'}}, True)
+        assert configured['ok'], configured
+        with d.observe():
+            result = s.call()
+        d.reply(result)
+        assert result['data']['operation']['state'] == 'unknown', result
+        assert any(e['command'] == 'RECEIVE' and e['accepted'] and e['reply'] == 'lost' for e in d.oracle.servers)
+        compare(s, d, 'mixed-app-lost-reply')
+        f.engine.close()
+        s.bind(Engine(f.root / 'state', f.root / 'evidence'))
+        compare(s, d, 'mixed-app-restart')
     finally:
         s.close()
