@@ -12,7 +12,7 @@ from ..common import Refused, canonical, cleanup, storage_stream
 from .policy import CORE_GROUPS, HOSTS
 
 REPOSITORY = 'Ares-Empire/AresOS'
-WORKFLOW = '.github/workflows/control-chrome.yml'
+WORKFLOW = '.github/workflows/control-chrome-qualification.yml'
 NOTICE = "This Chrome version is not qualified for this installed tool build; adapters and don't-ask-again are off and activating inputs ask."
 
 
@@ -23,15 +23,17 @@ def version(text):
 
 
 def validate_record(record):
-    if type(record) is not dict or set(record) != {'format', 'entries'} or record['format'] != 1 or type(record['entries']) is not list:
+    if type(record) is not dict or set(record) != {'format', 'entries'} or type(record['format']) is not int or record['format'] != 1 or type(record['entries']) is not list:
         raise Refused('qualification_invalid', 'Invalid Chrome qualification record; held record retained.')
     keys = set()
     for entry in record['entries']:
-        if set(entry) != {'build', 'version', 'channel', 'run', 'core', 'adapters'}:
+        if type(entry) is not dict or set(entry) != {'build', 'version', 'channel', 'run', 'core', 'adapters'}:
             raise Refused('qualification_invalid', 'Invalid qualification entry.')
         version(entry['version'])
-        if (not re.fullmatch(r'[0-9a-f]{64}', entry['build']) or entry['channel'] not in {'stable', 'beta'} or
+        if (type(entry['build']) is not str or not re.fullmatch(r'[0-9a-f]{64}', entry['build']) or
+                type(entry['channel']) is not str or entry['channel'] not in {'stable', 'beta'} or
                 type(entry['run']) is not str or not entry['run'] or
+                type(entry['core']) is not dict or type(entry['adapters']) is not dict or
                 set(entry['core']) != set(CORE_GROUPS) or set(entry['adapters']) != set(HOSTS) or
                 any(type(value) is not bool for value in [*entry['core'].values(), *entry['adapters'].values()])):
             raise Refused('qualification_invalid', 'Incomplete qualification result.')
@@ -56,24 +58,33 @@ def switches(record, build, chrome_version):
     entries = [entry for entry in validate_record(record)['entries'] if entry['build'] == build and version(entry['version'])[0] == current[0]]
     if not entries:
         return {'conservative': True, 'notice': NOTICE, 'core': {key: True for key in CORE_GROUPS}, 'adapters': {key: False for key in HOSTS}}
-    applicable = [entry for entry in entries if version(entry['version']) <= current]
-    # A beta qualification is evidence for its major before the first stable.
+    # Stable evidence supersedes advance beta evidence once this stable patch is
+    # reached. A higher-numbered beta tested earlier must not undo a stable failure.
+    stable = [entry for entry in entries if entry['channel'] == 'stable' and version(entry['version']) <= current]
+    beta = [entry for entry in entries if entry['channel'] == 'beta']
+    applicable = stable or [entry for entry in beta if version(entry['version']) <= current] or beta
     if not applicable:
-        applicable = [entry for entry in entries if entry['channel'] == 'beta']
-    if not applicable:
-        return {'conservative': True, 'notice': NOTICE, 'core': {key: True for key in CORE_GROUPS}, 'adapters': {key: False for key in HOSTS}}
-    chosen = max(applicable, key=lambda item: (version(item['version']), item['channel'] == 'stable'))
-    return {'conservative': False, 'notice': '', 'core': chosen['core'], 'adapters': chosen['adapters']}
+        # A recorded major is never the permissive conservative fallback. With
+        # only future stable evidence, use its earliest patch, including failures.
+        earliest = min(version(entry['version']) for entry in entries)
+        applicable = [entry for entry in entries if version(entry['version']) == earliest]
+    latest = max(version(entry['version']) for entry in applicable)
+    chosen = [entry for entry in applicable if version(entry['version']) == latest]
+    # A failure at the same full version cannot be erased by switching channels.
+    chosen += [entry for entry in entries if version(entry['version']) == latest and entry not in chosen]
+    return {'conservative': False, 'notice': '',
+            'core': {key: all(entry['core'][key] for entry in chosen) for key in CORE_GROUPS},
+            'adapters': {key: all(entry['adapters'][key] for entry in chosen) for key in HOSTS}}
 
 
-def verify(path, *, branch='main', bundle=None):
+def verify(path, *, branch='main', bundle=None, workflow=WORKFLOW):
     # Require the fixed gh verifier's security corrections; no hand-written crypto.
     output = subprocess.run(['gh', '--version'], check=True, capture_output=True, text=True, timeout=10).stdout
     match = re.search(r'gh version (\d+)\.(\d+)\.(\d+)', output)
     if not match or tuple(map(int, match.groups())) < (2, 102, 0):
         raise Refused('qualification_invalid', 'Qualification verification requires GitHub CLI 2.102.0 or newer.')
     command = ['gh', 'attestation', 'verify', str(path), '--repo', REPOSITORY,
-               '--signer-workflow', REPOSITORY + '/' + WORKFLOW,
+               '--signer-workflow', REPOSITORY + '/' + workflow,
                '--source-ref', 'refs/heads/' + branch, '--deny-self-hosted-runners']
     if bundle:
         command += ['--bundle', str(bundle)]
@@ -96,7 +107,7 @@ class Qualification:
     def refresh(self, *, now=None, verifier=verify, force=False):
         now = time.time() if now is None else now
         previous = self.store.get('chrome:qualification_fetch', {})
-        if not force and now - previous.get('time', 0) < 86400:
+        if not force and 'time' in previous and now - previous['time'] < 86400:
             return
         url = f'https://raw.githubusercontent.com/{REPOSITORY}/refs/heads/chrome-qualification/control/chrome/qualification.json'
         try:
@@ -116,6 +127,8 @@ class Qualification:
                 with cleanup('Qualification temporary unlink'):
                     os.unlink(temporary)
             result = 'Verified record accepted.'
-        except Exception:
-            result = 'Qualification refresh unavailable or verification failed; held record retained.'
+        except Exception as exc:
+            # Do not copy transport output or remote content into owner logs.
+            reason = exc.code if isinstance(exc, Refused) else type(exc).__name__
+            result = f'Qualification refresh refused ({reason}); held record retained.'
         self.store.write({'chrome:qualification_fetch': {'time': now, 'result': result}}, 'chrome_qualification', result)

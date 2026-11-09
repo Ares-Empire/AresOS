@@ -1,21 +1,78 @@
-"""Real GitHub verifier fixture. Pure Python; no browser or profile access."""
+"""Real Sigstore verifier and durable-delivery fixtures; no browser access."""
+import copy
+import json
 import os
 from pathlib import Path
 import sys
-sys.path.insert(0,str(Path(__file__).resolve().parents[2]))
-from aresos_control.chrome.qualification import verify
+import tempfile
 
-path=Path(sys.argv[1])
-branch=os.environ.get('GITHUB_HEAD_REF') or os.environ['GITHUB_REF_NAME']
-verify(path,branch=branch)
-original=path.read_bytes()
-try:
-    path.write_bytes(original+b' ')
-    try:verify(path,branch=branch)
-    except Exception:pass
-    else:raise AssertionError('Altered attestation subject was accepted')
-finally:path.write_bytes(original)
-try:verify(path,branch='untrusted-fixture-branch')
-except Exception:pass
-else:raise AssertionError('A different source branch was accepted')
-print('QUALIFICATION DELIVERY real attestation / altered bytes / wrong branch PASS')
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from aresos_control.chrome.qualification import Qualification, WORKFLOW, verify
+from aresos_control.storage import Store
+
+
+def exercise(path, bundle, branch):
+    candidate = json.loads(path.read_text())
+    baseline = {'format': 1, 'entries': candidate['entries'][:1]}
+    with tempfile.TemporaryDirectory(dir=path.parent) as directory:
+        root = Path(directory)
+        store = Store(root/'state', root/'evidence')
+        qualification = Qualification(store, candidate['entries'][0]['build'], baseline)
+        verifier = lambda subject: verify(subject, branch=branch, bundle=bundle)
+        qualification.accept(path, verifier)
+        assert qualification.record() == candidate
+        print('QUALIFICATION DELIVERY newer valid attested record used PASS', flush=True)
+        original = path.read_bytes()
+        altered = copy.deepcopy(json.loads(bundle.read_text()))
+        signature = altered['dsseEnvelope']['signatures'][0]['sig']
+        altered['dsseEnvelope']['signatures'][0]['sig'] = ('A' if signature[0] != 'A' else 'B') + signature[1:]
+        broken = root/'altered-bundle.json'
+        broken.write_text(json.dumps(altered))
+        cases = [
+            ('missing attestation', lambda subject: verify(subject, branch=branch, bundle=root/'missing.json')),
+            ('altered attestation', lambda subject: verify(subject, branch=branch, bundle=broken)),
+            ('wrong workflow', lambda subject: verify(subject, branch=branch, bundle=bundle, workflow='.github/workflows/untrusted-fixture.yml')),
+            ('wrong branch', lambda subject: verify(subject, branch='untrusted-fixture-branch', bundle=bundle)),
+            ('production main rejects branch fixture', lambda subject: verify(subject, bundle=bundle))
+        ]
+        if branch == 'main':
+            cases.pop()
+        for name, check in cases:
+            try:
+                qualification.accept(path, check)
+            except Exception:
+                assert qualification.record() == candidate
+            else:
+                raise AssertionError(name + ' was accepted')
+            print('QUALIFICATION DELIVERY ' + name + ' refused; held retained PASS', flush=True)
+        try:
+            path.write_bytes(original + b' ')
+            try:
+                qualification.accept(path, verifier)
+            except Exception:
+                assert qualification.record() == candidate
+            else:
+                raise AssertionError('Altered subject accepted')
+            print('QUALIFICATION DELIVERY altered subject refused; held retained PASS', flush=True)
+        finally:
+            path.write_bytes(original)
+        # Authentic signatures do not authorize rollback of local history.
+        for name, held in [('dropped held entry', {'format': 1, 'entries': candidate['entries'] + [{**candidate['entries'][-1], 'version': '999.0.1.0'}]}),
+                           ('changed held entry', copy.deepcopy(candidate))]:
+            if name == 'changed held entry':
+                held['entries'][-1]['core']['binding'] = not held['entries'][-1]['core']['binding']
+            # Each starts from its own previously held record, then verifies the
+            # genuine candidate. The append-only check must still refuse it.
+            store.write({'chrome:qualification': held}, 'chrome_fixture', 'Synthetic held qualification history')
+            try:
+                qualification.accept(path, verifier)
+            except Exception:
+                assert qualification.record() == held
+            else:
+                raise AssertionError(name + ' accepted')
+            print('QUALIFICATION DELIVERY ' + name + ' refused after real verification PASS', flush=True)
+        store.close()
+
+
+if __name__ == '__main__':
+    exercise(Path(sys.argv[1]), Path(sys.argv[2]), os.environ.get('GITHUB_HEAD_REF') or os.environ['GITHUB_REF_NAME'])

@@ -1,5 +1,6 @@
 """Qualification planning and append-only publishing. No browser is started here."""
 import argparse
+from datetime import datetime
 import gzip
 import json
 import os
@@ -11,7 +12,7 @@ import tempfile
 import urllib.request
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from aresos_control.chrome.qualification import REPOSITORY, WORKFLOW, append_only, validate_record, verify
+from aresos_control.chrome.qualification import REPOSITORY, WORKFLOW, append_only, validate_record, verify, version
 from aresos_control.chrome.policy import CORE_GROUPS, HOSTS
 from build import build_hash
 
@@ -26,7 +27,9 @@ def packages(data):
         fields = dict(line.split(': ', 1) for line in paragraph.splitlines() if ': ' in line and not line.startswith(' '))
         for channel in ['stable', 'beta']:
             if fields.get('Package') == 'google-chrome-' + channel:
-                match = re.fullmatch(r'(\d+\.\d+\.\d+\.\d+)-\d+', fields['Version'])
+                if channel in found:
+                    raise ValueError('Duplicate Chrome channel metadata')
+                match = re.fullmatch(r'(\d+\.\d+\.\d+\.\d+)-\d+', fields.get('Version', ''))
                 if not match:
                     raise ValueError('Chrome package must name a complete version')
                 filename=fields.get('Filename','');checksum=fields.get('SHA256','')
@@ -41,14 +44,25 @@ def packages(data):
 
 
 def plan(registry, versions, record, head, build):
-    if registry.get('format') != 1 or type(registry.get('builds')) is not list:
+    if type(registry) is not dict or set(registry) != {'format', 'builds'} or registry['format'] != 1 or type(registry['builds']) is not list:
         raise ValueError('Invalid shipped build registry')
-    shipped = sorted(registry['builds'], key=lambda item:item['shipped_at'], reverse=True)[:3]
+    identities = set()
+    dated = []
+    for item in registry['builds']:
+        if type(item) is not dict or set(item) != {'commit', 'build', 'shipped_at'}:
+            raise ValueError('Invalid shipped build entry')
+        validate_identity(item)
+        date = datetime.fromisoformat(item['shipped_at'].replace('Z', '+00:00'))
+        if date.tzinfo is None or item['build'] in identities:
+            raise ValueError('Ship dates need a timezone and build identities must be unique')
+        identities.add(item['build'])
+        dated.append((date, item))
+    shipped = [item for _, item in sorted(dated, key=lambda row: row[0], reverse=True)[:3]]
     builds = [{'commit':head,'build':build}, *shipped]
+    validate_record(record)
     matrix, seen = [], set()
     for item in builds:
-        if not re.fullmatch('[0-9a-f]{40}',item['commit']) or not re.fullmatch('[0-9a-f]{64}',item['build']):
-            raise ValueError('Registry requires a full commit and runtime build hash')
+        validate_identity(item)
         for channel, package in versions.items():
             key = item['build'],package['version'],channel
             if key in seen or any((entry['build'],entry['version'],entry['channel']) == key for entry in validate_record(record)['entries']):
@@ -57,6 +71,12 @@ def plan(registry, versions, record, head, build):
             for repeat in [1,2]:
                 matrix.append({**item,**package,'channel':channel,'repeat':repeat})
     return {'include':matrix}
+
+
+def validate_identity(item):
+    if any(type(item.get(key)) is not str or not re.fullmatch(pattern, item[key])
+           for key, pattern in [('commit', '[0-9a-f]{40}'), ('build', '[0-9a-f]{64}')]):
+        raise ValueError('Registry requires a full commit and runtime build hash')
 
 
 def git(repo, *arguments, check=True):
@@ -72,23 +92,37 @@ def prepare(repo, entries, baseline, verifier=verify):
     indexed={(item['build'],item['version'],item['channel']):item for item in current['entries']}
     added=[]
     for item in entries:
+        validate_record({'format': 1, 'entries': [item]})
         existing=indexed.get((item['build'],item['version'],item['channel']))
         if existing:
             if existing['core']!=item['core'] or existing['adapters']!=item['adapters']:
                 raise ValueError('Conflicting repeat for an immutable qualification pair; publish nothing')
             continue
         added.append(item)
+        indexed[item['build'], item['version'], item['channel']] = item
     candidate = {'format':1,'entries':[*current['entries'],*added]}
     append_only(current,candidate)
     return candidate
 
 
-def aggregate(root, run):
+def aggregate(root, run, expected=None):
     grouped = {}
     for path in Path(root).rglob('pair.json'):
         pair = json.loads(path.read_text())
+        validate_record({'format': 1, 'entries': [{key: pair[key] for key in ['build', 'version', 'channel', 'core', 'adapters']} | {'run': str(run)}]})
+        if type(pair.get('repeat')) is not int or pair['repeat'] not in {1, 2}:
+            raise ValueError('Invalid repeat identity')
         key = pair['build'],pair['version'],pair['channel']
         grouped.setdefault(key,[]).append(pair)
+    if expected is not None:
+        planned = {}
+        for item in expected['include']:
+            key = item['build'], item['version'], item['channel']
+            planned.setdefault(key, set()).add(item['repeat'])
+        if any(repeats != {1, 2} for repeats in planned.values()) or set(grouped) - set(planned):
+            raise ValueError('Unexpected or incomplete qualification plan')
+        for key in planned:
+            grouped.setdefault(key, [])
     entries=[]
     for (build,version,channel),pairs in sorted(grouped.items()):
         complete = len(pairs)==2 and {item['repeat'] for item in pairs}=={1,2}
@@ -123,11 +157,40 @@ def notify(candidate, published, runner=subprocess.run):
             '--body','Bring the shipped baseline up to date with the verified append-only data branch. Runtime delivery already uses the attested record. Review before merging.'])
 
 
+def publish(root, candidate, baseline, *, remote=None, verifier=verify):
+    """Only the main-only CLI uses the real remote; tests supply a local bare repo."""
+    verifier(candidate)
+    candidate_record = append_only(baseline, json.loads(candidate.read_text()))
+    with tempfile.TemporaryDirectory(dir=root/'.work') as temporary:
+        repository = Path(temporary)
+        git(repository, 'init')
+        git(repository, 'remote', 'add', 'origin', remote or 'https://github.com/'+REPOSITORY+'.git')
+        credentials = ('-c', 'credential.helper=!gh auth git-credential') if remote is None else ()
+        exists = git(repository, *credentials, 'ls-remote', '--heads', 'origin', 'refs/heads/'+DATA_BRANCH)
+        git(repository, *credentials, 'fetch', 'origin', DATA_BRANCH if exists else 'main')
+        git(repository, 'checkout', '-b', DATA_BRANCH, 'FETCH_HEAD')
+        if exists:
+            verifier(repository/RECORD)
+        held = json.loads((repository/RECORD).read_text())
+        append_only(baseline, held)
+        append_only(held, candidate_record)
+        (repository/RECORD).write_bytes(candidate.read_bytes())
+        git(repository, 'add', RECORD)
+        if subprocess.run(['git', '-C', str(repository), 'diff', '--cached', '--quiet']).returncode == 0:
+            print('Verified record already published; no change.')
+            return
+        git(repository, '-c', 'user.name=Chrome qualification', '-c', 'user.email=qualification@users.noreply.github.com',
+            'commit', '-m', 'Append attested Chrome qualification results')
+        git(repository, *credentials, 'push', 'origin', 'HEAD:refs/heads/'+DATA_BRANCH)
+
+
 def main():
     parser=argparse.ArgumentParser()
     parser.add_argument('command',choices=['plan','pair','prepare','publish','notify'])
     parser.add_argument('--root',default='.')
     parser.add_argument('--artifacts')
+    parser.add_argument('--plan')
+    parser.add_argument('--runtime-root')
     parser.add_argument('--candidate',default='.work/qualification-candidate.json')
     args=parser.parse_args();root=Path(args.root)
     if args.command=='plan':
@@ -147,7 +210,12 @@ def main():
         # A result file is emitted only by the complete browser suite. Missing/crashed runs fail every group.
         result_path=Path(args.artifacts)/'qualification-result.json'
         result=json.loads(result_path.read_text()) if result_path.exists() else {}
-        identity.update(core=result.get('core',{}),adapters=result.get('adapters',{}))
+        actual = (Path(args.artifacts)/'chrome-version.txt')
+        measured_version = actual.read_text().strip().split()[-1] if actual.exists() else None
+        measured_build = build_hash(Path(args.runtime_root).resolve()) if args.runtime_root else None
+        valid = measured_version == identity['version'] and measured_build == identity['build']
+        identity.update(core={key: valid and result.get('core', {}).get(key) is True for key in CORE_GROUPS},
+                        adapters={key: valid and result.get('adapters', {}).get(key) is True for key in HOSTS})
         Path(args.artifacts).mkdir(parents=True,exist_ok=True)
         (Path(args.artifacts)/'pair.json').write_text(json.dumps(identity));return
     # A branch/test invocation cannot publish, open issues or create a pull request.
@@ -157,7 +225,9 @@ def main():
     if args.command=='notify':
         notify(candidate,os.environ.get('PUBLISH_STATE')=='success');return
     if args.command=='prepare':
-        entries=aggregate(args.artifacts,os.environ['GITHUB_RUN_ID'])
+        if not args.plan:
+            raise ValueError('Publication requires the complete expected qualification plan')
+        entries=aggregate(args.artifacts,os.environ['GITHUB_RUN_ID'],json.loads(Path(args.plan).read_text()))
         baseline=json.loads(git(root,'show','origin/main:'+RECORD))
         exists=git(root,'ls-remote','--heads','origin','refs/heads/'+DATA_BRANCH)
         if not exists:
@@ -170,22 +240,8 @@ def main():
             (publication/RECORD).write_text(current+'\n')
             result=prepare(publication,entries,baseline)
         candidate.parent.mkdir(parents=True,exist_ok=True);candidate.write_text(json.dumps(result,separators=(',',':'))+'\n');return
-    verify(candidate)
-    # This local-only worktree is on the Linux publisher runner, never an owner's checkout.
-    with tempfile.TemporaryDirectory(dir=root/'.work') as temporary:
-        repository=Path(temporary)
-        git(repository,'init');git(repository,'remote','add','origin','https://github.com/'+REPOSITORY+'.git')
-        exists=git(repository,'-c','credential.helper=!gh auth git-credential','ls-remote','--heads','origin','refs/heads/'+DATA_BRANCH)
-        git(repository,'-c','credential.helper=!gh auth git-credential','fetch','origin',DATA_BRANCH if exists else 'main')
-        git(repository,'checkout','-b',DATA_BRANCH,'FETCH_HEAD')
-        if exists:verify(repository/RECORD)
-        held=json.loads((repository/RECORD).read_text());append_only(held,json.loads(candidate.read_text()))
-        (repository/RECORD).write_bytes(candidate.read_bytes())
-        git(repository,'add',RECORD)
-        if subprocess.run(['git','-C',str(repository),'diff','--cached','--quiet']).returncode==0:
-            print('Verified record already published; no change.');return
-        git(repository,'-c','user.name=Chrome qualification','-c','user.email=qualification@users.noreply.github.com','commit','-m','Append attested Chrome qualification results')
-        git(repository,'-c','credential.helper=!gh auth git-credential','push','origin','HEAD:refs/heads/'+DATA_BRANCH)
+    baseline=json.loads(git(root,'show','origin/main:'+RECORD))
+    publish(root,candidate,baseline)
 
 
 if __name__=='__main__':main()
