@@ -357,10 +357,7 @@ class Driver:
         checker('restore-generation', {Fact('generation', 'matches')}, actual_generation)
         checker('recovery-holds', self.oracle.holds(record), {Fact(key, 'held') for key in f.engine.store.ledger.holds if key != 'replay'})
         checker('R2.context-before-command', set(), self.oracle.context_errors() | self.oracle.local_context_errors(record, self.context_start_sequence))
-        checker('completion', set(), self.oracle.completion_errors(self.snapshot()))
         compare_views(read, self.oracle, self.snapshot, checker, ordinary='testapp_list' if getattr(self.scenario, 'flow', '').startswith('testapp_') else 'mail_accounts')
-        checker('clean-result-proof', set(), self.oracle.invalid_clean_results)
-        checker('lifecycle-proof', set(), self.oracle.lifecycle_errors)
         # Only after warning preservation has been checked on every view may
         # operation_status fetch evidence. Its committed approval/stages must be
         # exposed exactly, including recipients bound in the approval.
@@ -401,6 +398,11 @@ class Driver:
                         actual.append(__import__('json').loads(value))
             checker('locations', {Fact(source, 'locations', occurrence, canonical(expected))},
                 {Fact(source, 'locations', occurrence, canonical(sorted(actual, key=canonical)))} if available else set())
+        # Status/location reads can commit a result too. Their proof failures
+        # belong to this comparison, including the very last response.
+        checker('completion', set(), self.oracle.completion_errors(self.snapshot()))
+        checker('clean-result-proof', set(), self.oracle.invalid_clean_results)
+        checker('lifecycle-proof', set(), self.oracle.lifecycle_errors)
         if hasattr(checker, 'finish'):
             checker.finish()
 

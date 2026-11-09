@@ -247,6 +247,34 @@ def exercise(flow, number=None, mode='single', cleanup_at=None, gaps=None, phase
 
 
 class OwnerStateSweep(unittest.TestCase):
+    def test_last_status_committed_lie_is_in_same_comparisons_proof(self):
+        scenario = OwnerScenario('send')
+        try:
+            driver = Driver(scenario)
+            with driver.observe():
+                reply = scenario.call()
+            driver.reply(reply)
+            engine = scenario.fixture.engine
+            request = engine.request
+            def lying_status(envelope, *args, **kwargs):
+                result = request(envelope, *args, **kwargs)
+                if envelope.get('action') == 'mail_operation_status':
+                    key = 'op:' + envelope['arguments']['operation_id']
+                    row = engine.store.get(key)
+                    row['stages']['message_id'] = '<forged@mail.invalid>'
+                    engine.store.write({key: row}, 'fixture', 'Synthetic false status-stage commit')
+                return result
+            proofs = []
+            def check(label, expected, actual):
+                if label == 'lifecycle-proof':
+                    proofs.append(actual)
+            with patch.object(engine, 'request', side_effect=lying_status):
+                driver.compare(check)
+            self.assertEqual(len(proofs), 1)
+            self.assertTrue(any(f.kind == 'unjustified-stage' and f.detail == 'message_id' for f in proofs[0]))
+        finally:
+            scenario.close()
+
     def test_constructor_failure_restores_request_and_clock(self):
         import uuid
         request, clock, localtime, nanos, identity = Engine.request, time.time, time.localtime, time.time_ns, uuid.uuid4
