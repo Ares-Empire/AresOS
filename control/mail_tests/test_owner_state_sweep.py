@@ -263,8 +263,7 @@ class OwnerStateSweep(unittest.TestCase):
                                     for shard in range(shards) for worker in range(workers)))
 
     def test_all_flows_all_storage_modes_independent_views(self):
-        # Temporary diagnostic capture; this revision deliberately cannot pass.
-        gaps, counts = Gaps(recording=True), Counter()
+        gaps, counts = Gaps(), Counter()
         shard, shards = int(os.environ.get('MAIL_SWEEP_SHARD', '0')), int(os.environ.get('MAIL_SWEEP_SHARDS', '1'))
         worker, workers = int(os.environ.get('OWNER_SWEEP_WORKER', '0')), int(os.environ.get('OWNER_SWEEP_WORKERS', '1'))
         self.assertGreater(shards, 0)
@@ -292,8 +291,6 @@ class OwnerStateSweep(unittest.TestCase):
                                     exercise(flow, number, cleanup_at=cleanup_at, gaps=gaps, phase='crash')
                                     counts['pairs'] += 1
             print(f'Owner oracle flow={flow} points={len(points)} elapsed={time.monotonic()-started:.3f}s', flush=True)
-        import base64, gzip, json
-        payload = base64.b64encode(gzip.compress(json.dumps(gaps.entries, sort_keys=True).encode())).decode()
-        print('OWNER-GAP-DETERMINISTIC:' + payload, flush=True)
-        print(f'DIAGNOSTIC owner oracle shard={shard}/{shards} worker={worker}/{workers} modes={dict(counts)} captured assertions={len(gaps.entries)}', flush=True)
-        self.fail('Diagnostic capture only; pin exact assertions and restore strict verification')
+        relevant = {key for key in gaps.entries if key.split('/')[0] in FLOWS + EXTRA and owns_case(key, shard, shards, worker, workers)}
+        self.assertEqual(gaps.seen, relevant)
+        print(f'Owner oracle shard={shard}/{shards} worker={worker}/{workers} modes={dict(counts)} strict expected failures={len(gaps.seen)}', flush=True)
