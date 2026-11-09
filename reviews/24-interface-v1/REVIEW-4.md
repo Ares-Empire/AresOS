@@ -1,0 +1,9 @@
+- **P2 — [aresos-shell:1109](C:/Users/pab/AresOS-24-interface-v1/os/config/usr/libexec/aresos-shell:1109): scope polling blocks the event loop.** Each watched scope runs synchronous `systemctl` with a five-second timeout, delaying socket replies and compositor events. At capacity, one pass can block for 256 × 5 seconds. Scheduling from the pass’s start also allows immediate repeat polling when it takes over five seconds. **Fix:** use asynchronous, batched checks with bounded concurrency; schedule from completion and test responsiveness under slow checks.
+
+- **P2 — [aresos-shell:1113](C:/Users/pab/AresOS-24-interface-v1/os/config/usr/libexec/aresos-shell:1113): query failure is treated as app exit.** `is_active()` returns false on timeout or execution error, so the watcher permanently removes a potentially running scope and closes, fails or settles its launch. **Fix:** distinguish inactive from unknown; retain and retry unknown scopes. Test transient errors followed by recovery.
+
+- **P2 — [aresos-shell:816](C:/Users/pab/AresOS-24-interface-v1/os/config/usr/libexec/aresos-shell:816): recovery still misses persisted `focused`/`background` launches when window tracking becomes unavailable after restart.** Active scopes in these states never enter the watch list; their later exits leave journal capacity occupied indefinitely. **Fix:** watch all unresolved launches when tracking is unavailable, handle their terminal transitions, and test tracking loss → exit → replay retention → capacity recovery.
+
+The rewritten game test now exercises the focus token correctly by inspection. Pending integration runs are not blockers for this review.
+
+CHANGES-NEEDED
