@@ -1,0 +1,167 @@
+{
+  "head": "cc17235f05c7e79165ef2b703a2c419344061958",
+  "runs": [
+    {
+      "suite": "base",
+      "run": 42675036944,
+      "conclusion": "success",
+      "summaries": [
+        {
+          "line": 432,
+          "result": "Ran 142 tests in 230.918s"
+        },
+        {
+          "line": 434,
+          "result": "OK"
+        }
+      ]
+    },
+    {
+      "suite": "base",
+      "run": 42675075521,
+      "conclusion": "success",
+      "summaries": [
+        {
+          "line": 398,
+          "result": "Ran 142 tests in 165.891s"
+        },
+        {
+          "line": 400,
+          "result": "OK"
+        }
+      ]
+    },
+    {
+      "suite": "mail",
+      "run": 42675037157,
+      "conclusion": "success",
+      "summaries": [
+        {
+          "line": 413,
+          "result": "Ran 142 tests in 206.131s"
+        },
+        {
+          "line": 415,
+          "result": "OK"
+        },
+        {
+          "line": 847,
+          "result": "Ran 309 tests in 967.808s"
+        },
+        {
+          "line": 850,
+          "result": "OK"
+        },
+        {
+          "line": 1489,
+          "result": "Ran 4 tests in 734.976s"
+        },
+        {
+          "line": 1492,
+          "result": "OK"
+        },
+        {
+          "line": 1899,
+          "result": "Ran 4 tests in 339.337s"
+        },
+        {
+          "line": 1901,
+          "result": "OK"
+        },
+        {
+          "line": 2545,
+          "result": "Ran 4 tests in 1150.827s"
+        },
+        {
+          "line": 2547,
+          "result": "OK"
+        },
+        {
+          "line": 2955,
+          "result": "Ran 4 tests in 444.655s"
+        },
+        {
+          "line": 2957,
+          "result": "OK"
+        }
+      ]
+    },
+    {
+      "suite": "mail",
+      "run": 42675082608,
+      "conclusion": "success",
+      "summaries": [
+        {
+          "line": 418,
+          "result": "Ran 142 tests in 236.391s"
+        },
+        {
+          "line": 420,
+          "result": "OK"
+        },
+        {
+          "line": 851,
+          "result": "Ran 309 tests in 1003.335s"
+        },
+        {
+          "line": 854,
+          "result": "OK"
+        },
+        {
+          "line": 1493,
+          "result": "Ran 4 tests in 965.751s"
+        },
+        {
+          "line": 1495,
+          "result": "OK"
+        },
+        {
+          "line": 2126,
+          "result": "Ran 4 tests in 1116.916s"
+        },
+        {
+          "line": 2128,
+          "result": "OK"
+        },
+        {
+          "line": 2516,
+          "result": "Ran 4 tests in 615.125s"
+        },
+        {
+          "line": 2518,
+          "result": "OK"
+        },
+        {
+          "line": 2927,
+          "result": "Ran 4 tests in 469.266s"
+        },
+        {
+          "line": 2930,
+          "result": "OK"
+        }
+      ]
+    },
+    {
+      "suite": "boundary",
+      "run": 42675037035,
+      "conclusion": "success",
+      "summaries": [
+        {
+          "line": 894,
+          "result": "#14 0.215 Ran 16 tests in 0.015s"
+        }
+      ]
+    },
+    {
+      "suite": "boundary",
+      "run": 42675087990,
+      "conclusion": "success",
+      "summaries": [
+        {
+          "line": 868,
+          "result": "#14 0.205 Ran 16 tests in 0.013s"
+        }
+      ]
+    }
+  ]
+}
