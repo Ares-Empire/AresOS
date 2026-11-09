@@ -54,3 +54,23 @@ test('keyboard events carry native codes and printable text for letters and shor
   assert.equal(f.run("keyboard('#').code"),'Digit3');assert.equal(f.run("keyboard('#').modifiers"),8);assert.equal(f.run("keyboard('#').windowsVirtualKeyCode"),51);
   assert.equal(f.run("keyboard('Space').text"),' ');assert.equal(f.run("keyboard('Cmd+Enter').modifiers"),4);
 });
+
+test('a child modal interrupts a blocked finish without letting a later dispatch reuse its completion',async()=>{
+  const f=fixture();
+  f.run("globalThis.messages=[];globalThis.reply=null;chrome.tabs={sendMessage:(tab,message)=>{messages.push(message);return new Promise(resolve=>{reply=resolve;});}}");
+  const pending=f.run("finishFrames(7,[{frame:0},{frame:2}],'epoch','first')");
+  f.run("dialogs.set(7,{id:'child'});wakeDialog(7)");await pending;
+  assert.equal(f.run('messages.length'),1);assert.equal(f.run('messages[0].dispatch_nonce'),'first');
+  assert.equal(f.run('dialogWake.size'),0);f.run("reply({ok:true,data:{finished:true}})");
+});
+
+test('a modal from focus refuses the rest of an input instead of blocking the serial queue',async()=>{
+  const f=fixture();f.run("controlled.set(7,{epoch:'epoch'});dispatchEpoch='epoch';chrome.tabs={sendMessage:()=>new Promise(()=>{})}");
+  const pending=f.run("content(7,0,'focus',{element:'e1'})");f.run('wakeDialog(7)');
+  await assert.rejects(pending,/unknown: a page dialog interrupted input handling/);assert.equal(f.run('dialogWake.size'),0);
+});
+test('overlapping private dialog waits wake independently and dispose only themselves',async()=>{
+  const f=fixture();const first=f.run('globalThis.first=waitDialog(7);first.promise'),second=f.run('globalThis.second=waitDialog(7);second.promise');
+  f.run('first.dispose();wakeDialog(7)');assert.equal((await second).dialog,true);f.run('second.dispose()');assert.equal(f.run('dialogWake.size'),0);
+  void first;
+});

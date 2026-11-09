@@ -2,9 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import {execFileSync} from 'node:child_process';
+
+const policy=JSON.parse(fs.readFileSync('control/chrome/extension/policy.js','utf8').match(/\{[\s\S]*\}/)[0]);
 
 function fixture() {
-  const windowListeners=new Map(),reports=[],arrivals=[],nodes=[];
+  const windowListeners=new Map(),reports=[],arrivals=[],nodes=[];let now=0;
   class Event {
     constructor(type,options={}) {Object.assign(this,{type,cancelable:true,defaultPrevented:false,stopped:false,eventPhase:0,isTrusted:false,...options});}
     preventDefault(){if(this.cancelable)this.defaultPrevented=true;}
@@ -45,21 +48,21 @@ function fixture() {
   }
   const document=new EventTarget();document.getElementById=key=>document.labels?.[key];
   const window={addEventListener(type,fn){if(!windowListeners.has(type))windowListeners.set(type,[]);windowListeners.get(type).push(fn);}};
-  const globals={window,document,performance:{now:()=>0},setTimeout,Symbol,Event,CustomEvent,EventTarget,Element,HTMLElement,HTMLInputElement,HTMLFormElement};
+  const globals={window,document,performance:{now:()=>now},setTimeout,Symbol,Event,CustomEvent,EventTarget,Element,HTMLElement,HTMLInputElement,HTMLFormElement,DOMException};
   const isolated=vm.createContext({...globals});
   vm.runInContext(fs.readFileSync('control/chrome/extension/guard.js','utf8'),isolated);
   const guard=vm.runInContext("globalThis[Symbol.for('aresos.chrome.guard.v2')]",isolated);
   const ids=new Map(), elements=new Map();let sequence=0;
   function id(node){if(!ids.has(node)){const key='e'+(++sequence);ids.set(node,key);elements.set(key,node);}return ids.get(node);}
   function name(node){const labels=(node['aria-labelledby']||'').split(/\s+/).map(key=>document.getElementById(key)).filter(Boolean);return labels.length ? labels.map(label=>label.textContent).join(' ') : node['aria-label'] || node.labels?.map(label=>label.textContent).join(' ') || node.textContent;}
-  guard.reader({document:'document-1',id,element:key=>elements.get(key),target:node=>({name:name(node),title:node.title,role:node.role,submit:!!node.form && node.type==='submit',editable:node instanceof HTMLInputElement}),form:(node,button)=>{const form=node.form || (node.tagName==='FORM' ? node:null);return form ? {method:button?.formmethod || form.method,search:form.role==='search',action:form.action}:null;}});
+  guard.reader({document:'document-1',id,element:key=>elements.get(key),target:node=>({name:name(node),title:node.title,role:node.role,password:!!node.password,submit:!!node.form && node.type==='submit',editable:node instanceof HTMLInputElement}),form:(node,button)=>{const form=node.form || (node.tagName==='FORM' ? node:null);return form ? {method:button?.formmethod || form.method,search:form.role==='search',action:button?.formAction || form.action,encoding:form.encoding||'application/x-www-form-urlencoded',target:form.target||''}:null;}});
   const main=vm.createContext({...globals});
   vm.runInContext(fs.readFileSync('control/chrome/extension/page.js','utf8'),main);
   assert.equal(vm.runInContext("globalThis[Symbol.for('aresos.chrome.page.v1')]",main),undefined);
   assert.equal(vm.runInContext("globalThis[Symbol.for('aresos.chrome.guard.v2')]",main),undefined);
-  function arm(target,form,operation=null,conservative=false){guard.arm({generation:'epoch',config:{words:['send','delete','Papierkorb'],holdMs:500,conservative},target:id(target),form:form ? id(form):null,operation,primary_submission:false});}
+  function arm(target,form,operation=null,conservative=false){guard.arm({generation:'epoch',config:{...policy,conservative},target:id(target),form:form ? id(form):null,operation,primary_submission:false});}
   const api={...guard,resume:(id,operation)=>{const step=reports.find(item=>item.id===id);return guard.resume(id,operation,step?.submitter||step?.element,step?.element);}};
-  return {api,guard,arrivals,get reports(){reports.push(...guard.steps());return reports;},document,HTMLFormElement,HTMLElement,Event,CustomEvent,originalDispatch,arm,main};
+  return {api,guard,arrivals,get reports(){reports.push(...guard.steps());return reports;},document,HTMLFormElement,HTMLElement,Event,CustomEvent,originalDispatch,arm,main,id,advance:milliseconds=>{now+=milliseconds;}};
 }
 
 test('group2 native submit resumes without checks or submit events',()=>{
@@ -196,4 +199,87 @@ test('conservative mode holds ordinary page-script activations after free input'
     if(route==='click')button.click();else if(route==='dispatch')button.dispatchEvent(new f.Event('click'));else f.originalDispatch.call(button,new f.Event('click'));
     assert.equal(received,0);assert.equal(f.reports.length,1);assert.equal(f.reports[0].kind,'activation');
   }
+});
+
+
+test('approved field Enter allows only its bound trusted implicit submitter and effective destination',()=>{
+  const f=fixture(),form=new f.HTMLFormElement(),field=new f.HTMLElement(),button=new f.HTMLElement(),other=new f.HTMLElement();
+  field.form=form;button.form=form;other.form=form;button.type=other.type='submit';button.formAction='/approved-override';form.action='/bare-form';
+  const expected={action:'/approved-override',method:'post',encoding:'application/x-www-form-urlencoded',target:''};
+  f.guard.arm({generation:'epoch',config:{words:['send'],holdMs:500},operation:'approved',target:f.id(field),form:f.id(form),implicit:f.id(button),key_input:{key:'Enter',modifiers:0},approved_form:expected,primary_submission:true});
+  // The page cannot use a known submitter before the approved trusted key arrives.
+  f.originalDispatch.call(button,new f.Event('click',{isTrusted:true}));assert.equal(f.reports.length,1);
+  f.originalDispatch.call(field,new f.Event('input',{isTrusted:true}));f.originalDispatch.call(button,new f.Event('click',{isTrusted:true}));assert.equal(f.reports.length,2,'input/change is not the approved keydown');
+  f.originalDispatch.call(field,new f.Event('keydown',{isTrusted:true,key:'Enter'}));
+  form.requestSubmit(other);assert.equal(f.arrivals.length,0,'another successful submitter cannot consume the primary allowance');
+  form.submit();assert.equal(f.arrivals.length,0,'a native call with another destination gets its own question');
+  f.originalDispatch.call(button,new f.Event('click',{isTrusted:true}));
+  form.requestSubmit(button);assert.deepEqual(f.arrivals,['event']);
+  f.originalDispatch.call(other,new f.Event('click',{isTrusted:true}));
+  assert.equal(f.reports.length,5,'the other submitter never inherits this approval');
+});
+
+
+test('a resumed event with no submitter cannot add a successful button through its further allowance',()=>{
+  const f=fixture(),form=new f.HTMLFormElement(),other=new f.HTMLElement();other.form=form;other.type='submit';let handlers=0;
+  form.addEventListener('submit',event=>{handlers++;event.preventDefault();form.requestSubmit(other);});
+  f.arm(form,form);form.requestSubmit();f.api.resume(f.reports[0].id,'approved-no-submitter');
+  assert.equal(handlers,1);assert.equal(f.arrivals.length,0);assert.equal(f.reports.length,2);
+});
+
+
+test('a page-induced reader exception in submit capture can only add a hold',()=>{
+  const f=fixture(),form=new f.HTMLFormElement();let handlers=0;
+  form.addEventListener('submit',()=>handlers++);f.arm(form,form);
+  f.guard.reader({document:'document-1',id:f.id,element:()=>form,target(){throw Error('Synthetic DOM clobber');},form(){throw Error('Synthetic DOM clobber');}});
+  form.requestSubmit();assert.equal(f.arrivals.length,0);assert.equal(handlers,0);assert.equal(f.reports[0].kind,'activation');
+  f.originalDispatch.call(form,new f.Event('click',{cancelable:false}));assert.equal(f.reports[1].kind,'activation_unknown');assert.equal(f.reports[1].cancellable,false);
+});
+
+
+test('slow frame arming cannot consume the post-input hold window',async()=>{
+  const f=fixture(),form=new f.HTMLFormElement();f.arm(form,form);f.advance(1000);
+  await f.api.finish('epoch');form.submit();assert.equal(f.arrivals.length,0);assert.equal(f.reports.length,1);
+  f.advance(501);form.submit();assert.equal(f.arrivals.length,1,'after-limit ordinary work stays free');
+});
+
+
+test('service and isolated guard agree on frozen Unicode folding and whole-word boundaries',()=>{
+  const cases=['ſend','veröﬀentlichen','beﬅellen','İsend','resend','Send later','SEND','Papierkorb',...Object.keys(policy.unicodeWords.fold).flatMap(char=>[char+'send','send'+char])];
+  const source="import json,sys;from aresos_control.chrome.policy import listed;print(json.dumps([bool(listed(text)) for text in json.load(sys.stdin)]))";
+  const expected=JSON.parse(execFileSync('python3',['-c',source],{input:JSON.stringify(cases),encoding:'utf8',env:{...process.env,PYTHONPATH:'control',PYTHONDONTWRITEBYTECODE:'1'}}));
+  const f=fixture(),button=new f.HTMLElement();let received=0;button.tagName='BUTTON';button.addEventListener('click',()=>received++);
+  for(let index=0;index<cases.length;index++){
+    button.textContent=cases[index];f.arm(button,null);const before=received;button.click();
+    assert.equal(received===before,expected[index],cases[index]);
+  }
+});
+
+test('opaque event hints cannot deliver an original click or forge trusted ownership',async()=>{
+  const f=fixture(),button=new f.HTMLElement(),form=new f.HTMLFormElement();button.textContent='Delete';
+  let clicks=0;button.addEventListener('click',()=>clicks++);button.addEventListener('keyup',event=>{assert.equal(event.isTrusted,false);form.submit();});
+  f.arm(button,null);await f.api.finish('epoch');
+  const send=detail=>f.originalDispatch.call(button,new f.CustomEvent('aresos-page-call-v2',{detail:{kind:'dispatch',...detail}}));
+  send({event:{type:'click',isTrusted:true},event_type:'keyup',event_flags:{bubbles:true},event_data:{key:'Enter',isTrusted:true}});
+  assert.equal(clicks,0);assert.equal(f.arrivals.length,0);assert.equal(f.reports[0].kind,'native_submit');
+  send({event:{type:'keyup'},event_type:'click',event_flags:{cancelable:false}});
+  assert.equal(clicks,0);assert.equal(f.reports[1].kind,'activation');
+  send({event:{},event_type:{toString(){return 'click';}}});assert.equal(clicks,0);
+});
+test('opaque data getters finish before classification and are skipped for password targets',()=>{
+  const f=fixture(),button=new f.HTMLElement();button.textContent='Continue';let delivered=0,reads=0;button.addEventListener('click',()=>delivered++);f.arm(button,null);
+  const detail={kind:'dispatch',event:{},event_type:'click',event_flags:{cancelable:true},get event_data(){reads++;button.textContent='Delete';return {};}};
+  f.originalDispatch.call(button,new f.CustomEvent('aresos-page-call-v2',{detail}));assert.equal(delivered,0);assert.equal(reads,1);assert.equal(f.reports.length,1);
+  button.password=true;f.originalDispatch.call(button,new f.CustomEvent('aresos-page-call-v2',{detail}));assert.equal(reads,1);assert.equal(delivered,0);
+});
+test('dispatch wrappers reject recursive reuse of an event',()=>{
+  const f=fixture(),button=new f.HTMLElement(),event=new f.Event('keyup');let handlers=0;
+  button.addEventListener('keyup',()=>{handlers++;assert.throws(()=>button.dispatchEvent(event),/already being dispatched/);});
+  button.dispatchEvent(event);assert.equal(handlers,1);
+});
+test('an old delayed finish cannot clear a newly armed private dispatch',async()=>{
+  const f=fixture(),button=new f.HTMLElement(),form=new f.HTMLFormElement();button.addEventListener('click',()=>form.submit());
+  f.guard.arm({generation:'epoch',dispatch_nonce:'first',config:policy,target:f.id(button)});const old=f.guard.finish('epoch','first');
+  f.guard.arm({generation:'epoch',dispatch_nonce:'second',config:policy,target:f.id(button)});await old;
+  f.originalDispatch.call(button,new f.Event('click',{isTrusted:true}));assert.equal(f.arrivals.length,0);assert.equal(f.reports.length,1);
 });

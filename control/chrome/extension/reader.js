@@ -1,11 +1,15 @@
 // Isolated world only. Never serialise HTML, attributes or forms in bulk.
 (() => {
+  'use strict';
   try {
   const elements = new Map(), ids = new WeakMap(), protectedFields = new WeakSet();
   const guard=globalThis[Symbol.for('aresos.chrome.guard.v2')];
   const documentId = [...crypto.getRandomValues(new Uint8Array(16))].map(value=>value.toString(16).padStart(2,'0')).join('');
   let sequence = 0, revision = 0, controlGeneration = null;
   const traces = [], files = new Map(), watchedRoots = new WeakSet();
+  const formGetters=globalThis.HTMLFormElement?Object.fromEntries(['elements','action','method','enctype','target'].map(key=>[key,Object.getOwnPropertyDescriptor(HTMLFormElement.prototype,key)?.get])):{};
+  const formProperty=(form,key)=>formGetters[key]?formGetters[key].call(form):form[key];
+  const formQuery=(form,selector)=>Element.prototype.querySelector?Element.prototype.querySelector.call(form,selector):form.querySelector(selector);
   const shadow=element=>element instanceof HTMLElement ? chrome.dom.openOrClosedShadowRoot(element):null;
   function roots(root = document) {
     const found = [root];
@@ -104,10 +108,17 @@
   }
   function formFacts(form, submitter) {
     if (!form) return null;
-    return {element: id(form), action: submitter?.getAttribute('formaction') ? submitter.formAction : form.action,
-      method: (submitter?.getAttribute('formmethod') || form.method).toLowerCase(), encoding: submitter?.getAttribute('formenctype') || form.enctype,
-      target: submitter?.getAttribute('formtarget') ?? form.target, search: form.role === 'search' || !!form.querySelector('input[type=search]'),
-      fields: [...form.elements].map(field)};
+    const button=submitter?.form===form&&['submit','image'].includes(submitter.type)?submitter:null;
+    return {element: id(form), action: button?.hasAttribute('formaction') ? button.formAction : formProperty(form,'action'),
+      method: (button?.hasAttribute('formmethod') ? button.formMethod : formProperty(form,'method')).toLowerCase(),
+      encoding: button?.hasAttribute('formenctype') ? button.formEnctype : formProperty(form,'enctype'),
+      target: button?.hasAttribute('formtarget') ? button.formTarget : formProperty(form,'target'),
+      search: form.role === 'search' || !!formQuery(form,'input[type=search]'),
+      fields: [...formProperty(form,'elements')].map(field)};
+  }
+  function implicitSubmitter(element) {
+    if(!(element instanceof HTMLInputElement) || !element.form || ['button','submit','image','checkbox','radio','file','hidden','range','color'].includes(element.type))return null;
+    return [...element.getRootNode().querySelectorAll('button,input')].find(control=>control.form===element.form&&['submit','image'].includes(control.type)) || null;
   }
   function targetFacts(element) {
     const box = element.getBoundingClientRect(), value = safeValue(element);
@@ -115,6 +126,7 @@
     const page_dialog=dialog ? {element:id(dialog),kind:role(dialog),text:text(dialog).replace(/\s+/g,' ').trim(),button:name(element),fields:[...dialog.querySelectorAll('input,textarea,select,[contenteditable]')].map(field)} : null;
     return {element: id(element), role: role(element), page_dialog, name: name(element), label:element.labels?.length?[...element.labels].map(node=>text(node,true)).join(' ').replace(/\s+/g,' ').trim():name(element), title: element.getAttribute('title') || '', ...value,
       ...(element instanceof HTMLSelectElement && !value.password ? {options:field(element).options}:{}),
+      ...(implicitSubmitter(element) ? {implicit_submitter:id(implicitSubmitter(element))}:{}),
       href: element.tagName === 'A' ? element.href : null,
       editable: element instanceof HTMLInputElement && !['button','submit','image','checkbox','radio','file','hidden'].includes(element.type) || element instanceof HTMLTextAreaElement || element.isContentEditable,
       search: element.type === 'search' || element.getAttribute('role') === 'searchbox', submit: !!element.form && (element.type === 'submit' || element.type === 'image'),
@@ -158,7 +170,7 @@
     }).filter(Boolean);
     const editable = nodes.filter(node => node.matches('input,textarea,select,[contenteditable]') && !['hidden','button','submit','reset','image','file'].includes(node.type)).map(field);
     return {document: documentId, revision, url: location.href, title: document.title, scroll: {x:scrollX,y:scrollY}, rows,
-      target: element ? targetFacts(element) : null, form: element ? formFacts(element.form || (element.tagName === 'FORM' ? element : null), element) : null,
+      target: element ? targetFacts(element) : null, form: element ? formFacts(element.form || (element.tagName === 'FORM' ? element : null), implicitSubmitter(element) || element) : null,
       editable, embeds:nodes.filter(node=>node.tagName==='IFRAME').map(embedding), item: element ? itemText(element) : '', adapter: adapterRead(nodes, element), trace: traces.splice(0)};
   }
   function adapterRead(nodes, target) {
@@ -187,7 +199,7 @@
     try {
       let value;
       if (message.command === 'arm') { guard.arm(message); value={armed:true}; }
-      else if (message.command === 'finish_input') { guard.finish(message.generation).then(()=>reply({ok:true,data:{finished:true}})); return true; }
+      else if (message.command === 'finish_input') { guard.finish(message.generation,message.dispatch_nonce).then(()=>reply({ok:true,data:{finished:true}})); return true; }
       else if (message.command === 'resume') { if(message.generation!==controlGeneration)throw Error('stale_reference: control ended'); value=guard.resume(message.hold,message.operation,message.element,message.form); }
       else if (message.command === 'set_control') { controlGeneration=message.generation; value={controlled:true}; }
       else if (['focus','select','check','stage_file','install_file'].includes(message.command) && message.generation !== controlGeneration) throw Error('stale_reference: control ended');

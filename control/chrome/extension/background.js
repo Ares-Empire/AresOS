@@ -6,6 +6,13 @@ let groupId = null, port = null, serial = Promise.resolve(), recording = false, 
 let excludedHosts = null;
 const listSnapshots = new Map(), fixtureBarriers = new Map();
 const ownerRequests = new Map(), stagedUploads = new Map(), confirmationPlans = new Map(), dialogWake = new Map();
+const dialogInputs=new WeakMap();
+function waitDialog(tab){
+  let resolve;const promise=new Promise(done=>{resolve=done;});
+  if(!dialogWake.has(tab))dialogWake.set(tab,new Set());dialogWake.get(tab).add(resolve);
+  return {promise,dispose(){const waiting=dialogWake.get(tab);waiting?.delete(resolve);if(!waiting?.size)dialogWake.delete(tab);}};
+}
+function wakeDialog(tab){for(const resolve of dialogWake.get(tab)||[])resolve({dialog:true});}
 function assertControl(tab,epoch=dispatchEpoch){if(!epoch || controlled.get(tab)?.epoch !== epoch)throw Error('stale_reference: control ended');}
 const audit = value => {
   if(recording && port){const text=JSON.stringify(value??null);if(text && text.length>64000){for(let offset=0;offset<text.length;offset+=64000)port.postMessage({event:'audit',data:{json_fragment:text.slice(offset,offset+64000),offset,total:text.length}});}else port.postMessage({event:'audit',data:value??null});}
@@ -31,8 +38,8 @@ async function cdp(tab, method, parameters = {}) {
   const pending=chrome.debugger.sendCommand({tabId:tab},method,parameters);
   if(recording)audit({method,parameters,phase:'dispatched'});
   if(method.startsWith('Input.')) {
-    const wake=new Promise(resolve=>dialogWake.set(tab,resolve));
-    try{return audit(await Promise.race([pending,wake]));}finally{dialogWake.delete(tab);}
+    const wake=waitDialog(tab);
+    try{return audit(await Promise.race([pending,wake.promise]));}finally{wake.dispose();}
   }
   return audit(await pending);
 }
@@ -87,10 +94,23 @@ async function take(tab) {
   return {tab,session,group:groupId};
 }
 async function content(tab, frame, command, parameters={}) {
-  if(['focus','select','check','install_file'].includes(command)){assertControl(tab);parameters={...parameters,generation:dispatchEpoch};effectStarted=true;}
-  const reply = audit(await chrome.tabs.sendMessage(tab,{command,...parameters},{frameId:frame}));
+  const effectful=['focus','select','check','install_file'].includes(command);
+  if(effectful){assertControl(tab);parameters={...parameters,generation:dispatchEpoch};effectStarted=true;}
+  const wake=effectful?waitDialog(tab):null;
+  let reply;
+  try{const pending=chrome.tabs.sendMessage(tab,{command,...parameters},{frameId:frame});reply=audit(await (wake?Promise.race([pending,wake.promise]):pending));}
+  finally{wake?.dispose();}
+  if(reply?.dialog)throw Error('unknown: a page dialog interrupted input handling; inspect the dialog and operation status, never retry the input');
   if (!reply?.ok) throw Error(reply?.error || 'stale_reference: page changed; read again');
   return reply.data;
+}
+async function finishFrames(tab,frames,epoch,nonce){
+  for(const frame of frames){
+    if(dialogs.has(tab))return;
+    const wake=waitDialog(tab);
+    try{await Promise.race([content(tab,frame.frameId??frame.frame,'finish_input',{generation:epoch,dispatch_nonce:nonce}),wake.promise]);}
+    finally{wake.dispose();}
+  }
 }
 async function requireTab(tab) {
   const current = await chrome.tabs.get(tab);
@@ -145,7 +165,7 @@ function binding(facts, reference, kind, adapter) {
   if (!frame?.target) throw Error('stale_reference: target not found');
   const target = frame.target;
   return {session,tab:facts.tab,control:facts.control,url:facts.url,document:frame.document,frame:frame.frame,frame_url:frame.url,
-    target:Object.fromEntries(['element','role','name','label','title','href','value','password','states','editable','search','submit','page_dialog','options'].filter(key=>key in target).map(key=>[key,target[key]])),
+    target:Object.fromEntries(['element','role','name','label','title','href','value','password','states','editable','search','submit','page_dialog','options','implicit_submitter'].filter(key=>key in target).map(key=>[key,target[key]])),
     form:frame.form,
     editable:kind === 'send' && !frame.form && !adapter ? facts.frames.map(frame=>({frame:frame.frame,document:frame.document,url:frame.url,fields:frame.editable})) : null,
     item:['delete','pay','activation','confirmation'].includes(kind) ? frame.item : null,
@@ -221,7 +241,7 @@ async function dispatch(command) {
     if(command.operation && used.has(command.operation))throw Error('refused: dialog operation already attempted');
     if(command.operation)used.add(command.operation);
     await cdp(tab,'Page.handleJavaScriptDialog',{accept:command.input.accept,...(command.input.text === undefined ? {}:{promptText:command.input.text})});
-    for(const frame of await chrome.webNavigation.getAllFrames({tabId:tab})||[])try{await content(tab,frame.frameId,'finish_input',{generation:dispatchEpoch});}catch{}
+    await finishFrames(tab,await chrome.webNavigation.getAllFrames({tabId:tab})||[],dispatchEpoch,controlled.get(tab)?.inputNonce);
     return {checked:true,dispatched:true,page:'Dialog answered once, as the page shows it.',steps:[]};
   }
   if(command.name==='tab_context'){const current=await chrome.tabs.get(tab);safeURL(current.url);return {session,tab,url:current.url,title:current.title,control:controlled.get(tab)?.epoch||null,frames:(await chrome.webNavigation.getAllFrames({tabId:tab})||[]).map(frame=>({frame:frame.frameId,url:frame.url,document:frame.documentId}))};}
@@ -272,19 +292,26 @@ async function dispatch(command) {
     return {navigated:true};
   }
   if (command.name !== 'input' && command.name !== 'resume') throw Error('permission_denied: unknown fixed command');
-  const snapshot = await facts(tab,reference);
+  let snapshot = await facts(tab,reference);
   if (command.binding && stable(binding(snapshot,reference,command.kind,command.adapter)) !== stable(command.binding)) throw Error('stale_approval: page changed; prepare again');
   if (command.operation && used.has(command.operation)) throw Error('refused: operation already dispatched or attempted');
-  const frame = snapshot.frames.find(frame=>frame.frame === reference.frame), target = frame.target;
+  let frame = snapshot.frames.find(frame=>frame.frame === reference.frame), target = frame.target;
   if (!target) throw Error('stale_reference: read again');
   if (command.expected && stable(command.expected) !== stable(target)) throw Error('stale_reference: element no longer holds the expected state');
   if (command.operation) used.add(command.operation); // consume before any event can enter the page
   if(command.confirmation && command.operation)confirmationPlans.set(tab,{operation:command.operation,expected:command.confirmation,browser_document:frame.browser_document,matched:[]});
+  const keyInput=command.input?.verb==='press'?keyboard(command.input.key):null;
+  const inputNonce=crypto.randomUUID();controlled.get(tab).inputNonce=inputNonce;
   for(const other of snapshot.frames){
     assertControl(tab);
     await content(tab,other.frame,'set_control',{generation:dispatchEpoch});
-    await content(tab,other.frame,'arm',{config:{...POLICY,conservative:command.conservative},target:other.frame===reference.frame ? target.element:null,form:other.frame===reference.frame ? frame.form?.element:null,operation:command.approved && other.frame===reference.frame ? command.operation:null,generation:dispatchEpoch,primary_submission:!!command.primary_submission && other.frame===reference.frame});
+    await content(tab,other.frame,'arm',{config:{...POLICY,conservative:command.conservative},target:other.frame===reference.frame ? target.element:null,form:other.frame===reference.frame ? frame.form?.element:null,operation:command.approved && other.frame===reference.frame ? command.operation:null,generation:dispatchEpoch,dispatch_nonce:inputNonce,key_input:other.frame===reference.frame?keyInput:null,primary_submission:!!command.primary_submission && other.frame===reference.frame,implicit:other.frame===reference.frame&&command.input?.verb==='press'&&command.input.key.split('+').at(-1)==='Enter'?target.implicit_submitter:null,approved_form:command.approved&&other.frame===reference.frame?frame.form:null});
   }
+  if(recording&&command.fixture_arm_delay){port?.postMessage({event:'fixture_arm_wait',operation:command.operation});await new Promise(resolve=>setTimeout(resolve,command.fixture_arm_delay));}
+  // Arming other frames may take time. Compare again at the actual input boundary.
+  snapshot=await facts(tab,reference);
+  if(command.binding&&stable(binding(snapshot,reference,command.kind,command.adapter))!==stable(command.binding))throw Error('stale_approval: page changed during frame setup; prepare again');
+  frame=snapshot.frames.find(frame=>frame.frame===reference.frame);target=frame.target;
   assertControl(tab);
   if (command.name === 'resume') { effectStarted=true; await content(tab,reference.frame,'resume',{hold:command.hold,operation:command.operation,generation:dispatchEpoch,element:reference.element,form:frame.form?.element}); }
   else {
@@ -312,7 +339,7 @@ async function dispatch(command) {
     else if (input.verb === 'scroll') {const point=await pointer(tab,snapshot,reference,target);await cdp(tab,'Input.dispatchMouseEvent',{type:'mouseWheel',...point,deltaX:input.x,deltaY:input.y});}
     else throw Error('permission_denied: unsupported input');
   }
-  if(!dialogs.has(tab))for(const other of snapshot.frames)await content(tab,other.frame,'finish_input',{generation:dispatchEpoch});
+  await finishFrames(tab,snapshot.frames,dispatchEpoch,inputNonce);
   await new Promise(resolve=>setTimeout(resolve,POLICY.holdMs + 25));
   const steps=[];
   for (const frame of dialogs.has(tab) ? [] : await chrome.webNavigation.getAllFrames({tabId:tab}) || []) {
@@ -365,9 +392,10 @@ chrome.debugger.onEvent.addListener(async(source,method,params)=>{
     try{safeURL(params.url);}catch{
       // The browser pushes dialog events for all attached frames. Exclude its
       // opener before accessing or retaining the message, and leave it to him.
-      dialogs.set(tab,{frame_url:params.url,blocked:true});dialogWake.get(tab)?.({dialog:true});return;
+      dialogs.set(tab,{frame_url:params.url,blocked:true});wakeDialog(tab);return;
     }
     const dialog={id:crypto.randomUUID(),kind:params.type,text:params.message,frame_url:params.url,button:'OK'};
+    const input=controlled.get(tab);if(input?.inputNonce)dialogInputs.set(dialog,{epoch:input.epoch,nonce:input.inputNonce});
     dialogs.set(tab,dialog);
     const frames=await chrome.webNavigation.getAllFrames({tabId:tab}) || [];
     const origins=frames.filter(frame=>frame.url===params.url);
@@ -375,14 +403,19 @@ chrome.debugger.onEvent.addListener(async(source,method,params)=>{
     const plan=confirmationPlans.get(tab),expected=plan?.expected;
     const matched=expected && origins.length===1 && plan.browser_document===dialog.browser_document &&
       ['kind','text','frame_url','button','frame'].every(key=>expected[key]===dialog[key]);
+    wakeDialog(tab);
     if(matched){
       // Consume before entering the page again; a nested second dialog is a new question.
       plan.expected=null;plan.matched.push({...expected});
       try{await cdp(tab,'Page.handleJavaScriptDialog',{accept:true});}catch{}
     }
-    dialogWake.get(tab)?.({dialog:true});
   }
-  if (method === 'Page.javascriptDialogClosed') dialogs.delete(source.tabId);
+  if (method === 'Page.javascriptDialogClosed') {
+    const tab=source.tabId,input=dialogInputs.get(dialogs.get(tab));dialogs.delete(tab);
+    // Closing a covered dialog has no separate tool call to finish its input.
+    // Use the nonce captured at opening; an old close can never clear a new arm.
+    if(input)try{await finishFrames(tab,await chrome.webNavigation.getAllFrames({tabId:tab})||[],input.epoch,input.nonce);}catch{}
+  }
 });
 chrome.debugger.onDetach.addListener(source=>{ if (controlled.has(source.tabId)) release(source.tabId); });
 connect();
