@@ -447,7 +447,7 @@ class Oracle:
                     calls = [c for c in self.script if c['action'] == 'mail_account_add' and c['arguments'].get('id') == key.removeprefix('mail:account:')
                              and c.get('start_seq', -1) < event['seq'] <= c.get('end_seq', float('inf'))]
                     if event['action'] != 'mail_account_add' or event.get('outcome') != 'done' or not calls or not any(
-                            e['command'] == 'DATA' and e['accepted'] and e['reply'] == 'delivered' and e['call'] in {c['call'] for c in calls} for e in self.servers):
+                            e['command'] == 'DATA' and e['accepted'] and e['reply'] == 'delivered' and e.get('account') == key.removeprefix('mail:account:') and e['call'] in {c['call'] for c in calls} for e in self.servers):
                         self.lifecycle_errors.add(Fact(key, 'unjustified-onboarding-close'))
                         value = {**value, 'onboarded': False, 'ready': False}
                 if key.startswith('op:') and key in self.operation_notices and value and value.get('state') == 'failed':
@@ -880,7 +880,7 @@ class Oracle:
         for index, event in enumerate(self.servers):
             if event['command'] not in MUTATIONS or event.get('fixture_seed'):
                 continue
-            _, missing = context_differences(event, self.script)
+            _, missing = context_differences(event, self.script, self.servers)
             if missing:
                 errors.add(Fact('command:' + str(index), 'R2.' + event['command'], detail=canonical(missing)))
         return errors

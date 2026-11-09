@@ -185,7 +185,7 @@ def permitted(row, call):
             'testapp_send': {'RECEIVE'}, 'testapp_fixture_configure': {'CONFIGURE'}}.get(action)
 
 
-def differences(event, script):
+def differences(event, script, servers=()):
     key, row = bind(event, script)
     if row is None:
         return key, ['current intent identity']
@@ -202,11 +202,11 @@ def differences(event, script):
                 missing.append(field)
         elif found != value or value is None and field not in {'source'}:
             missing.append(field)
-    missing.extend(script_differences(event, script, row, actual))
+    missing.extend(script_differences(event, script, row, actual, servers))
     return key, sorted(set(missing))
 
 
-def script_differences(event, script, row, context):
+def script_differences(event, script, row, context, servers=()):
     """A matching context/command pair still needs the scenario's authority."""
     call = call_for(event, script)
     args = call.get('arguments', {})
@@ -222,6 +222,8 @@ def script_differences(event, script, row, context):
         refs = [description['answered_reference']]
     errors = []
     expected_account = args.get('account') or description.get('account') or (refs[0].get('account') if refs else None)
+    if action == 'mail_account_add':
+        expected_account = args.get('id')
     if expected_account is not None:
         if event.get('account') != expected_account:
             errors.append('script.command.account')
@@ -237,7 +239,39 @@ def script_differences(event, script, row, context):
         if any(v not in [identity(ref) for ref in refs] for v in (context.get('identities') or [])):
             errors.append('script.context.unapproved-identities')
     expected = {}
-    if action in {'mail_move', 'mail_copy'}:
+    if action == 'mail_account_add':
+        prior = []
+        for command_event in servers:
+            if command_event is event:
+                break
+            if command_event['call'] == event['call']:
+                prior.append(command_event)
+        creates = [e for e in prior if e['command'] == 'CREATE' and e['accepted'] and e['reply'] == 'delivered']
+        probe = creates[0].get('arguments', [''])[0].strip('"') if creates else None
+        if command == 'CREATE':
+            target = actual.get('destination')
+            if not target or not target.startswith('AresOS-probe-') or target in (event.get('roles') or {}) or creates:
+                errors.append('script.command.probe-folder')
+        elif command in {'DELETE', 'STORE', 'EXPUNGE'}:
+            expected.update(destination=probe) if command == 'DELETE' else expected.update(source=probe)
+            if not probe:
+                errors.append('script.probe-creation')
+            if command in {'STORE', 'EXPUNGE'}:
+                appended = [ref for e in prior if e['command'] == 'APPEND' and e['accepted'] and e.get('folder') == probe for ref in e.get('arrived', [])]
+                if not actual.get('identities') or any(ref not in [identity(v) for v in appended] for ref in actual['identities']):
+                    errors.append('script.command.probe-identities')
+                if command == 'STORE':
+                    expected['flags'] = ['+FLAGS.SILENT', '(\\Deleted)']
+        elif command == 'DATA':
+            addresses = args.get('addresses', [])
+            expected.update(source=addresses[0] if addresses else None, recipients=addresses[:1])
+        elif command == 'APPEND':
+            sent = (special_roles(event.get('roles')) or {}).get('sent', [])
+            permitted_targets = ([probe] if probe else []) + (sent if len(sent) == 1 else [])
+            for label, value in (('command', actual), ('context', context)):
+                if value.get('destination') not in permitted_targets:
+                    errors.append('script.' + label + '.probe-destination')
+    elif action in {'mail_move', 'mail_copy'}:
         expected['destination'] = args.get('target')
     elif action == 'mail_delete':
         mode = description.get('mode', args.get('mode'))

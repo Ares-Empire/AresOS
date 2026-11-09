@@ -1382,3 +1382,17 @@ class StageOneRoundTwo(unittest.TestCase):
             db.commit()
         with self.assertRaisesRegex(ValueError, 'Committed history missing'):
             decode(state, evidence)
+
+    def test_onboarding_context_cannot_authorize_another_account_or_unrelated_folder(self):
+        from owner_state_oracle.context import differences
+        oracle = Oracle()
+        oracle.call('mail_account_add', {'id': 'new', 'addresses': ['owner@mail.invalid']}, 1)
+        context = {'command': 'DELETE', 'account': 'other', 'roles': {}, 'source': 'Other', 'destination': 'Other', 'identities': []}
+        row = {'state': 'started', 'action': 'mail_account_add', 'context': context}
+        event = oracle.server('DELETE', 'other', roles={}, arguments=['Other'], call_start_seq=0,
+            created_before={'intent:x': 1}, committed_before={'intent:x': row})
+        errors = differences(event, oracle.script, oracle.servers)[1]
+        self.assertIn('script.command.account', errors)
+        self.assertIn('script.context.account', errors)
+        self.assertIn('script.probe-creation', errors)
+        self.assertIn('script.command.destination', errors)
