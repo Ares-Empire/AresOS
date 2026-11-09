@@ -1,7 +1,7 @@
 """Native managed-ask precedence, fixed tool calls and independent arrival logs.
 
-PermissionRequest does not run in print mode in pinned 2.1.319. Assert that
-observation separately from whether such a hook could approve an interactive ask.
+PermissionRequest outcomes are recorded separately from mandatory ask precedence.
+The observed version-pinned outcomes are compared only after all four cases run.
 """
 import json
 from pathlib import Path
@@ -30,17 +30,18 @@ def strings(value):
 
 
 def model_contract(requests):
-    # Initialization instructions enter the real Messages system field in full.
-    systems = '\n'.join(text for request in requests for text in strings(request['system']))
+    # Native 2.1.319 puts MCP instructions in an environment message. Capture
+    # system as well; inspect the whole actual prompt rather than assuming a role.
+    prompt = '\n'.join(text for request in requests for text in strings([request['system'], request['messages']]))
     definitions = {t['name']: t for request in requests for t in request['tools']}
     for app in ('testapp', 'mail'):
         expected = instructions_for(app)
-        assert expected in systems, 'Server instructions shortened or absent: ' + app
+        assert '## ' + app + '\n' + expected in prompt, 'Server instructions shortened or absent: ' + app
         for t in tools_for(app):
             sent = definitions['mcp__' + app + '__' + t['name']]
             assert sent['description'] == t['description'], 'Description changed: ' + t['name']
             assert sent['input_schema'] == t['inputSchema'], 'Schema changed: ' + t['name']
-    print('MCP_INSTRUCTIONS_OK apps=testapp,mail full_system_text full_tool_definitions', flush=True)
+    print('MCP_INSTRUCTIONS_OK apps=testapp,mail full_request_text system_captured full_tool_definitions', flush=True)
 
 
 def hook(put, case, event):
@@ -82,7 +83,9 @@ def precedence_checks(run, put):
                 cases.append((('skip-' if skip else 'normal-') + 'permission-' + level,
                               skip, 'none', 'PermissionRequest', level))
         # A send-arrival positive control proves the fixture has a working send path.
-        cases.insert(0, ('positive-no-managed-ask', False, 'all', None, None))
+        cases[:0] = [('positive-no-managed-ask-' + scope, False, scope, None, None)
+                     for scope in ('user', 'project', 'local', 'all', 'pre_allow')]
+        cases.insert(0, ('positive-skip-no-managed-ask', True, 'none', None, None))
         summary = []
         for case, skip, scope, event, level in cases:
             policy = managed_settings(apps=APPS)
@@ -101,7 +104,7 @@ def precedence_checks(run, put):
                 entry, marker = hook(put, case, event)
                 target = policy if level == 'managed' else settings['user']
                 target.setdefault('hooks', {})[event] = [entry]
-            if case == 'positive-no-managed-ask':
+            if 'no-managed-ask' in case:
                 policy['permissions']['ask'].remove(SEND)
             POLICY.write_text(json.dumps(policy))
             for name, path in SCOPES.items():
@@ -126,9 +129,13 @@ def precedence_checks(run, put):
             delta = (OUT / 'stub.txt').read_text()[len(receiver_before):]
             list_arrivals = delta.count('POST /precedence/list/' + case + ' HTTP/1.1')
             send_arrivals = delta.count('POST /precedence/send/' + case + ' HTTP/1.1')
-            expected_send = int(case == 'positive-no-managed-ask')
-            assert list_arrivals == 1 and send_arrivals == expected_send, (case, delta)
-            if expected_send:
+            expected_send = int('no-managed-ask' in case)
+            assert list_arrivals == 1, (case, delta)
+            if event != 'PermissionRequest':
+                assert send_arrivals == expected_send, (case, delta)
+            else:
+                assert send_arrivals in (0, 1), (case, delta)
+            if send_arrivals:
                 assert not rows['fixed-send'].get('is_error') and 'FIXTURE_SEND_RAN' in tool_text(rows['fixed-send'])
             else:
                 assert rows['fixed-send'].get('is_error'), (case, rows)
@@ -139,16 +146,17 @@ def precedence_checks(run, put):
             hook_calls = len(marker.read_text().splitlines()) if marker and marker.exists() else 0
             if event == 'PreToolUse':
                 assert hook_calls == 1, (case, hook_calls)
-            elif event == 'PermissionRequest':
-                # Print mode cannot answer an interactive PermissionRequest.
-                assert hook_calls == 0, 'Pinned print-mode behavior changed: re-evaluate interactive hooks'
             row = {'case': case, 'mode': init[0]['permissionMode'], 'list_arrivals': list_arrivals,
                    'send_arrivals': send_arrivals, 'hook_calls': hook_calls,
-                   'permission_request_interactive': 'unexercised' if event == 'PermissionRequest' else None}
+                   'permission_request_interactive': 'unexercised' if event == 'PermissionRequest' and not hook_calls else None}
             summary.append(row)
             print('PRECEDENCE ' + json.dumps(row, sort_keys=True), flush=True)
-        (OUT / 'precedence-summary.json').write_text(json.dumps(summary, indent=2))
-        print('PRECEDENCE_OK cases=' + str(len(summary)) + ' PermissionRequest=not_called_in_print interactive=18c', flush=True)
+            (OUT / 'precedence-summary.json').write_text(json.dumps(summary, indent=2))
+        observed = {r['case']: {'send_arrivals': r['send_arrivals'], 'hook_calls': r['hook_calls']}
+                    for r in summary if '-permission-' in r['case']}
+        expected = json.loads((ROOT / 'permission-request-expected.json').read_text())
+        assert observed == expected, 'Pinned PermissionRequest outcome changed: ' + json.dumps(observed)
+        print('PRECEDENCE_OK cases=' + str(len(summary)) + ' PermissionRequest=' + json.dumps(observed, sort_keys=True), flush=True)
     finally:
         POLICY.write_bytes(policy_original)
         config.write_bytes(config_original)

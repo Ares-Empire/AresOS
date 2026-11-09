@@ -29,12 +29,13 @@ send path works. Each managed-ask case must let list arrive and keep send away.
 Tests cover user/project/local/all allow rules and a user PreToolUse allow hook,
 in normal and skip modes. Hook markers prove the PreToolUse hook actually ran.
 User and managed PermissionRequest hooks are configured in both modes; their
-observed print-mode invocation count is frozen at zero. These cases **do not**
-qualify interactive approval; brief 18c must test that. The accepted residual
-is left open, not inferred from a print-mode denial.
+invocation counts and receiver arrivals are recorded and compared against a
+version-pinned outcome file. When print mode never invokes a hook, that case stays
+unqualified for brief 18c; an invoked allow that sends is the accepted residual.
 
 The Messages request must contain both app servers' entire instructions in the
-system field and each complete tool description/input schema. Shared rules are
+request (2.1.319 places them in its environment message), plus each complete tool
+description/input schema. Shared rules are
 not repeated in descriptions; asking descriptions still say to copy the question
 and approval unchanged. Any shortening fails the test and needs an explicit
 fallback decision. `precedence-summary.json` and receiver `stub.txt` are retained.

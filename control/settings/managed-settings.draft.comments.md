@@ -27,10 +27,10 @@ There is no generated exclusive `managed-mcp.json`.
 **Read:** rolling Anthropic documentation, 2026-11-09. **Run:** the model-free
 native harness pins Claude Code **2.1.319** and records each precedence case,
 receiver arrivals, complete tool definitions and server instructions in the
-Messages system field. See `reviews/18d-base-slim/REPORT.md` for actual run IDs.
-A `PermissionRequest` hook does not run in print mode on this pin; that cannot
-settle whether an interactive hook can approve a managed ask. Brief 18c must test
-that interaction. No source/plugin/hook/bypass lock is restored to avoid it.
+Messages request (including the complete system field). See `reviews/18d-base-slim/REPORT.md` for actual run IDs.
+The harness records `PermissionRequest` invocation counts and send arrivals in
+both modes. A case print mode cannot exercise remains an interactive check for
+brief 18c; an invoked hook approving a managed ask is an accepted residual. No source/plugin/hook/bypass lock is restored to avoid it.
 
 `control/boundary/optional-sandbox.json` is a **test fixture only**. It is never
 included in generated managed settings or installed by the base. It demonstrates

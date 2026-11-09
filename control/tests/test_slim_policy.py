@@ -64,6 +64,11 @@ class SlimPolicy(EngineCase):
                 raise Refused('permission_denied', 'No matching owner-only entry')
             return True
         adapter = self.engine.adapters['testapp']
+        for decision in (False, None, 1, 'allow'):
+            adapter.require_trusted_send = lambda verb, operation: decision
+            with self.subTest(decision=decision), self.assertRaisesRegex(Refused, 'owner-only'):
+                self.engine.submit(action, approval)
+            self.assertEqual(self.engine.receiver.evidence(approval['operation_id'])['arrivals'], [])
         adapter.require_trusted_send = require_entry
         with self.assertRaisesRegex(Refused, 'owner-only'):
             self.engine.submit(action, approval)
