@@ -77,4 +77,29 @@ assert status['status']['booted']['image'], status
 print('Deployment backend: bootc (OSTree storage)')
 PY
 loginctl list-sessions
+# polkit as the daily account's real active local session sees it (package 21
+# reviews 2 and 3). Above all, the passwordless Flatpak app update no longer
+# implies a system-wide runtime install, which needs the password.
+session=$(loginctl list-sessions --no-legend | awk '$3 == "ares" && $4 == "seat0" {print $1; exit}')
+loginctl show-session "$session" -p Active -p Remote -p Seat -p Class
+test "$(loginctl show-session "$session" -p Active --value)" = yes
+test "$(loginctl show-session "$session" -p Remote --value)" = no
+subject=$(pgrep -u ares -x labwc | head -1)
+test "$(cut -d: -f3 /proc/"$subject"/cgroup | grep -o 'session-[0-9]*\.scope')" = "session-$session.scope"
+polkit_answer() {
+    local status=0
+    pkcheck --action-id "$1" --process "$subject" > /dev/null 2>&1 || status=$?
+    printf 'polkit %s for ares: %s\n' "$1" "$status" >&2
+    echo "$status"
+}
+# pkcheck: 0 authorized, 1 not authorized, 2 needs authentication.
+test "$(polkit_answer org.freedesktop.Flatpak.app-update)" = 0
+test "$(polkit_answer org.freedesktop.Flatpak.runtime-update)" = 0
+test "$(polkit_answer org.freedesktop.Flatpak.runtime-install)" = 2
+test "$(polkit_answer org.freedesktop.Flatpak.app-install)" = 2
+test "$(polkit_answer org.freedesktop.systemd1.manage-units)" = 2
+test "$(polkit_answer org.freedesktop.login1.power-off)" = 0
+test "$(polkit_answer org.freedesktop.login1.set-reboot-to-firmware-setup)" = 1
+test "$(polkit_answer com.redhat.tuned.switch_profile)" = 1
+echo ARESOS_ACTIVE_SESSION_POLKIT_PASSED
 echo ARESOS_GUEST_CHECKS_PASSED
