@@ -1,0 +1,114 @@
+[
+  {
+    "run": "42888182810",
+    "mode": "policy",
+    "artifact_id": 13803891377,
+    "artifact_name": "control-chrome-42888182810-1-policy",
+    "artifact_attempt": 1,
+    "source": "1418fcdeb393afaefe54651d5fc1997c7ca900d5",
+    "runtime_source": "e5f3d8c5a713ff3e93e3ad700565cfa6ef75f130",
+    "files": [
+      {
+        "name": "adapters-receiver.jsonl",
+        "bytes": 217319,
+        "sha256": "ceebeb3e6bffb019925d6030359585a0779b1d9e6db04a041e303e7836d2c0c7"
+      },
+      {
+        "name": "browser.txt",
+        "bytes": 62078,
+        "sha256": "6ed71a7b5d5c75b1939a827554265f534f8cf57dd99f86a117526d7e63d0558b"
+      },
+      {
+        "name": "matrices.json",
+        "bytes": 6280,
+        "sha256": "acedafd643a6b552b129a1a29d09a51ed7696358b32de2746eba47254e3fada8"
+      },
+      {
+        "name": "node.txt",
+        "bytes": 34910,
+        "sha256": "69704cf3cbc66b37ecf3835775fc5866e73c65c9b9cf0b274f785600a9229b43"
+      },
+      {
+        "name": "popup-controls.jsonl",
+        "bytes": 4528,
+        "sha256": "d267e336d9a8465d76519e8b7fde916dd388655a4350f6ec93ab072d9daece0c"
+      },
+      {
+        "name": "python.txt",
+        "bytes": 39167,
+        "sha256": "37895a1d811a356909ca64bdd78888223237c455017b19cb67bb0e143630a8cb"
+      },
+      {
+        "name": "qualification-result.json",
+        "bytes": 481,
+        "sha256": "bd092bf0a1a1fe3df56ff1b78966fc0e464c9d1353fe666032c3b08b8af847fd"
+      },
+      {
+        "name": "receiver.jsonl",
+        "bytes": 240718,
+        "sha256": "d780f990555ce648f26d39376ca585b00272e587d32e19a38f093300341f16d9"
+      },
+      {
+        "name": "view-measurements.json",
+        "bytes": 116,
+        "sha256": "ead89663fa399be4c3f849f0ca24cc2c82612a02625884d95fb300f1239f677e"
+      }
+    ]
+  },
+  {
+    "run": "42888182810",
+    "mode": "external",
+    "artifact_id": 13803112857,
+    "artifact_name": "control-chrome-42888182810-1-external",
+    "artifact_attempt": 1,
+    "source": "1418fcdeb393afaefe54651d5fc1997c7ca900d5",
+    "runtime_source": "e5f3d8c5a713ff3e93e3ad700565cfa6ef75f130",
+    "files": [
+      {
+        "name": "adapters-receiver.jsonl",
+        "bytes": 217319,
+        "sha256": "527c726a9dbd7fbce9dce71a056f12168b6064fd4939abf04d73a5e19316df44"
+      },
+      {
+        "name": "browser.txt",
+        "bytes": 62372,
+        "sha256": "20a2144885528ae89663bafb9ddfcd0516ce9c01caaaa97b2d3d71175e3c08a8"
+      },
+      {
+        "name": "matrices.json",
+        "bytes": 6280,
+        "sha256": "acedafd643a6b552b129a1a29d09a51ed7696358b32de2746eba47254e3fada8"
+      },
+      {
+        "name": "node.txt",
+        "bytes": 34903,
+        "sha256": "70bc2498b2b653247d3d1bdb297f230b72555b3fa7f6be0f962d65eeeb27f1f1"
+      },
+      {
+        "name": "popup-controls.jsonl",
+        "bytes": 4590,
+        "sha256": "2d57fb692354d6a7fb07f34eec5569bbf84e9ed491500a1470c712c6553d907f"
+      },
+      {
+        "name": "python.txt",
+        "bytes": 39167,
+        "sha256": "de4a086d8298bb763ae00c1487780ede61c68b1d843b951b00fb17437fd67de0"
+      },
+      {
+        "name": "qualification-result.json",
+        "bytes": 481,
+        "sha256": "bd092bf0a1a1fe3df56ff1b78966fc0e464c9d1353fe666032c3b08b8af847fd"
+      },
+      {
+        "name": "receiver.jsonl",
+        "bytes": 240718,
+        "sha256": "23c342c6b710ca375a1e4e005ab3cb29475059c2e61bd0142d8d3648f5b84153"
+      },
+      {
+        "name": "view-measurements.json",
+        "bytes": 116,
+        "sha256": "6284a8661fa05e342e4ad02eeeb22e7cc78d87abd7a1976f0476e464d7fff0d0"
+      }
+    ]
+  }
+]

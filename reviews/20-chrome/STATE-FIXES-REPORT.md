@@ -1,6 +1,6 @@
 # Part S — state review fixes
 
-**Status: final-source CI verification pending; not acceptance evidence yet.** Draft PR [#34](https://github.com/Ares-Empire/AresOS/pull/34) targets `pkg/20-chrome`. Runtime and fixture source `e5f3d8c5`; runtime hash `7d84b3d1223caff2b40d9feb68ffba285fc6819eac89eca711494a692e576edc`.
+**Status: Part S complete; final-source suites green twice.** Draft PR [#34](https://github.com/Ares-Empire/AresOS/pull/34) targets `pkg/20-chrome`. Runtime and fixture source `e5f3d8c5`; runtime hash `7d84b3d1223caff2b40d9feb68ffba285fc6819eac89eca711494a692e576edc`.
 
 ## Done (read)
 
@@ -47,7 +47,11 @@ The scenario/receiver oracle has its own committed hash-chain decoder and import
 
 `node --test control/chrome_tests/*.test.mjs` passed **151 tests twice**, retained as [first](records/state-fixes/local-final-node-1.txt) and [repeat](records/state-fixes/local-final-node-2.txt), result lines 152/154/155. New clock-controlled catalogue tests walk all 80 captured rows for downloads, history and bookmarks over more than five minutes, prove the source is queried once, preserve idle expiry, reject wrong-scope/out-of-range cursor renewal, and retain the two-snapshot bound. The [renewal removal mutation](records/state-fixes/catalogue-removal-mutation.txt) fails. `python3 control/generate.py --check` printed `Generated artifacts match definitions`.
 
-Final-source Chrome, base and Mail workflows are pending. Earlier shared verification on runtime `0cd2ea49…` passed base twice (`42803081568`, `42803802686`) and Mail twice (`42803081760`, `42806364608`): 142 base tests, 309 Mail tests and every sweep shard. Exact older shared output lines are in [shared-summaries.json](records/state-fixes/shared-summaries.json). These precede the catalogue fix and are not claimed as final-source passes.
+Final-source Chrome passed twice: [`42846669867`](https://github.com/Ares-Empire/AresOS/actions/runs/42846669867) and [`42888182810`](https://github.com/Ares-Empire/AresOS/actions/runs/42888182810), both external and policy installation. Each mode ran all 202 Python tests, 151 Node tests and 61 named browser cases. All four retained browser passes satisfy the independent [receiver audit](records/state-fixes/receiver-audit.json): **135 approval sequences each at 0 before approval, 1 after, 1 after repeat; 20 independent free-dialog sequences each; unchanged native popup document/windows after Stop; one POST popup request**. Group 12 is deliberately false, as required until 18d. Per-S test/mutation output lines and actual run sources are in [state-test-index.json](records/state-fixes/state-test-index.json); Node result lines are in [node-test-index.json](records/state-fixes/node-test-index.json). Artifact manifests retain SHA-256, exact source, install mode and attempt: [first](records/state-fixes/42846669867-artifacts.json), [repeat](records/state-fixes/42888182810-artifacts.json).
+
+The first Chrome run's external runner lost communication with GitHub before it could upload logs or an artifact. Its [failure annotation](records/state-fixes/runner-loss-42846669867.json) is retained; no test result is inferred from that attempt. Only the failed job was rerun on the same commit. First acceptance uses policy attempt 1 and external attempt 2; the repeat ran both modes afresh. No test assertion was changed or bypassed.
+
+Final-source base passed twice: [`42846676171`](https://github.com/Ares-Empire/AresOS/actions/runs/42846676171), [`42870880216`](https://github.com/Ares-Empire/AresOS/actions/runs/42870880216), **142 tests each**. Mail passed twice: [`42846682893`](https://github.com/Ares-Empire/AresOS/actions/runs/42846682893), [`42870886492`](https://github.com/Ares-Empire/AresOS/actions/runs/42870886492), **142 base tests, 309 Mail tests and all four fault-sweep shards each**. Exact retained output excerpts, original artifact line numbers and hashes are in [shared-final-summaries.json](records/state-fixes/shared-final-summaries.json). All final workflows tested head `1418fcde`, whose runtime, tests and workflow files equal source `e5f3d8c5`; the difference is report/evidence only. Earlier shared passes on runtime `0cd2ea49…` remain historical in [shared-summaries.json](records/state-fixes/shared-summaries.json).
 
 Chrome `42803086121` timed out at 105 minutes; both 200-test Python suites passed, but browser matrices were incomplete ([record](records/state-fixes/timeout-42803086121.json)). Its replacement `42819687759` passed all 202 Python tests in both modes and the external browser job. Policy mode failed one of 61 named cases, **FEATURE tools forms options find wait fill_form scroll and full catalogues**, on absolute snapshot expiry. The [failed-job record](records/state-fixes/failure-42819687759-policy/record.json), browser log, matrix and Python output are retained separately. This failure caused the catalogue fix; neither workflow is full acceptance evidence.
 
@@ -55,7 +59,7 @@ Older local 200-case and 202-case passes, interrupted/superseded runs, and autom
 
 ## Not verified
 
-Twice-complete final-source Chrome, base and Mail workflows are pending. Local 202-case Python and 151-case Node suites are green twice. Synthetic tests do not establish real accounts, live sites, an installed image or the owner's desktop. Part P owns its panel cases; group 12 remains the existing 18d gap. This report does not close that gap or the owner-Enter panel boundary.
+Synthetic tests do not establish real accounts, live sites, an installed image or the owner's desktop. Part P owns its panel cases; group 12 remains the existing 18d gap. This report does not close that gap or the owner-Enter panel boundary. Final Part S local and Linux-container suites are green twice.
 
 ## JUDGMENT-CALL
 
@@ -63,10 +67,14 @@ Catalogue lifetime is five minutes of inactivity rather than five absolute minut
 
 ## PLAN-GAP
 
-Specification was fetched from `origin/main` before reading it with `git show`; continuation/integration briefs absent there were read on this branch, with `20-review-fixes.md` taking precedence. No new design change. Integration must retain the S12 dialog result location and the committed owner-entry read when combining the adapter changes. The contemporaneous combined-ref P27 failure belongs to the ongoing Part P build.
+Specification was fetched from `origin/main` before reading it with `git show`; continuation/integration briefs absent there were read on this branch, with `20-review-fixes.md` taking precedence. The long-catalogue lifetime case was missing from the brief and surfaced in CI; its change is the judgment call above. Integration must retain S12's dialog location, the committed stored-entry read, and the valid-cursor timestamp renewal when combining Part P edits. No committed identity or acknowledgement migration is introduced. The historical combined-ref P27 failure belongs to Part P's separate build.
 
 ## Open questions / run and disk ledger
 
-No owner answer is needed during this run. The lead's 2026-11-10 16:10 direction raises the state branch allowance to about **25** Chrome workflow runs and requires one blocking shell wait per run; no per-turn CI polling. Fourteen have been used: twelve cancelled/superseded diagnostics, one 105-minute timeout and one catalogue-expiry failure. Further fixes are batched before pushing. Only runs started by this build may be cancelled. A closing ledger and `.work/` files above 500 MB will be recorded after verification.
+No implementation question remains. The catalogue-lifetime judgment call goes to the owner before merge. The PR remains a draft into `pkg/20-chrome`; nothing was merged, force-pushed, or pushed to `main` or Part P's branch.
+
+The lead's 2026-11-10 16:10 direction raised the state branch allowance to about 25 Chrome runs and required blocking shell waits instead of per-turn CI polling. Closing [ledger](records/state-fixes/run-ledger.json): **16 GitHub run IDs, 17 executions including the failed-runner retry**, within that allowance. This includes twelve cancelled/superseded diagnostics, the 105-minute timeout, the catalogue-expiry failure, the final first run with its infrastructure retry, and the full repeat. The earlier cancelled/superseded runs were started by this build. No other build's workflow was cancelled. After the lead's direction, each run/batch was awaited with one blocking `gh run watch --exit-status --interval 60` shell call; failed-job logs were examined after completion. Successful records were retained and indexed programmatically for this report.
+
+Closing [disk inventory](records/state-fixes/work-inventory.json): no `.work/` file over 500 MiB and no retained large download, ISO, extracted image or browser profile. No Gradle daemon was started. No local test process started by this build remains.
 
 Identity lookups absent from the current set scan the committed journal; 19b should replace that slow path with its shared lookup while retaining these identities. Long-history performance beyond the retained stress cases is not measured here.
