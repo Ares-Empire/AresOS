@@ -179,10 +179,17 @@ text = flatpak.read_text()
 update = re.search(r'<action id="org\.freedesktop\.Flatpak\.app-update">.*?</action>', text, re.S)
 imply = re.compile(r'(<annotate key="org\.freedesktop\.policykit\.imply">)([^<]*)(</annotate>)')
 found = imply.findall(update.group(0)) if update else []
-if len(found) != 1 or 'org.freedesktop.Flatpak.runtime-install' not in found[0][1].split():
+# Exactly the reviewed targets (Flatpak 1.18.4), or the build stops for review.
+reviewed = ['org.freedesktop.Flatpak.runtime-install', 'org.freedesktop.Flatpak.runtime-update']
+if len(found) != 1 or found[0][1].split() != reviewed:
     raise SystemExit(f'Flatpak app-update implication changed upstream; review required: {found}')
-kept = ' '.join(name for name in found[0][1].split() if name != 'org.freedesktop.Flatpak.runtime-install')
-flatpak.write_text(text.replace(update.group(0), imply.sub(lambda m: m.group(1) + kept + m.group(3), update.group(0))))
+kept = 'org.freedesktop.Flatpak.runtime-update'
+edited = text.replace(update.group(0), imply.sub(lambda m: m.group(1) + kept + m.group(3), update.group(0)))
+after = re.search(r'<action id="org\.freedesktop\.Flatpak\.app-update">.*?</action>', edited, re.S)
+if ([targets for _, targets, _ in imply.findall(after.group(0))] != [kept]
+        or edited.replace(after.group(0), '') != text.replace(update.group(0), '')):
+    raise SystemExit('Flatpak app-update implication edit did not leave exactly runtime-update')
+flatpak.write_text(edited)
 print(f'polkit: Flatpak app-update now implies only: {kept}')
 PY
 # The OS image, firmware and app store stay out of the daily account's reach.

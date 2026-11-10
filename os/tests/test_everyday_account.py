@@ -221,29 +221,39 @@ class PolicyFilesTest(unittest.TestCase):
     def test_build_drops_only_the_runtime_install_implication_of_flatpak_app_update(self):
         # Review 3: polkitd grants an implied action when the subject has the
         # implying one outright, so the passwordless app-update installed runtimes.
+        # Review 4: the build accepts exactly the reviewed targets, nothing else.
         build = (ROOT / 'build.sh').read_text()
-        block = build.split("flatpak = actions / 'org.freedesktop.Flatpak.policy'", 1)[1].split('\nPY\n', 1)[0]
-        self.assertIn("raise SystemExit(f'Flatpak app-update implication changed upstream; review required: {found}')", block)
-        self.assertIn('Flatpak app-update now implies only', block)
-        with tempfile.TemporaryDirectory() as directory:
-            actions = pathlib.Path(directory)
-            policy = actions / 'org.freedesktop.Flatpak.policy'
-            imply = '<annotate key="org.freedesktop.policykit.imply">{}</annotate>'
-            original = ('<action id="org.freedesktop.Flatpak.app-install">' +
-                        imply.format('org.freedesktop.Flatpak.app-update org.freedesktop.Flatpak.runtime-install') +
-                        '</action>\n<action id="org.freedesktop.Flatpak.app-update"><defaults/>' +
-                        imply.format('org.freedesktop.Flatpak.runtime-install org.freedesktop.Flatpak.runtime-update') +
-                        '</action>\n')
-            policy.write_text(original)
-            exec(compile('import re\n' + "flatpak = actions / 'org.freedesktop.Flatpak.policy'" + block, 'build.sh', 'exec'),
-                 {'actions': actions, 'print': lambda *a: None})
-            self.assertEqual(policy.read_text(), original.replace(
-                'org.freedesktop.Flatpak.runtime-install org.freedesktop.Flatpak.runtime-update',
-                'org.freedesktop.Flatpak.runtime-update'))
-            # Run again: the implication is gone, so the build stops for review.
-            with self.assertRaises(SystemExit):
-                exec(compile('import re\n' + "flatpak = actions / 'org.freedesktop.Flatpak.policy'" + block,
-                             'build.sh', 'exec'), {'actions': actions, 'print': lambda *a: None})
+        statement = "flatpak = actions / 'org.freedesktop.Flatpak.policy'"
+        block = build.split(statement, 1)[1].split('\nPY\n', 1)[0]
+        code = compile('import re\n' + statement + block, 'build.sh', 'exec')
+        imply = '<annotate key="org.freedesktop.policykit.imply">{}</annotate>'
+        install, update = 'org.freedesktop.Flatpak.runtime-install', 'org.freedesktop.Flatpak.runtime-update'
+
+        def policy(targets):
+            return ('<action id="org.freedesktop.Flatpak.app-install">' +
+                    imply.format('org.freedesktop.Flatpak.app-update ' + install + ' ' + update) +
+                    '</action>\n<action id="org.freedesktop.Flatpak.app-update"><defaults/>' +
+                    imply.format(targets) + '</action>\n<action id="' + update + '"/>\n')
+
+        def run(targets):
+            with tempfile.TemporaryDirectory() as directory:
+                path = pathlib.Path(directory, 'org.freedesktop.Flatpak.policy')
+                path.write_text(policy(targets))
+                exec(code, {'actions': pathlib.Path(directory), 'print': lambda *a: None})
+                return path.read_text()
+
+        # Exactly the reviewed targets: only runtime-install goes, the rest of
+        # the file is untouched.
+        self.assertEqual(run(install + ' ' + update), policy(update))
+        # Added, removed, reordered, repeated or missing targets stop the build.
+        for targets in (install + ' ' + update + ' org.freedesktop.Flatpak.app-install',
+                        install + ' ' + update + ' org.freedesktop.systemd1.manage-units',
+                        install, update, update + ' ' + install, install + ' ' + install + ' ' + update, ''):
+            with self.subTest(targets=targets), self.assertRaisesRegex(SystemExit, 'review required'):
+                run(targets)
+        self.assertIn("reviewed = ['org.freedesktop.Flatpak.runtime-install', 'org.freedesktop.Flatpak.runtime-update']",
+                      block)
+        self.assertIn("raise SystemExit('Flatpak app-update implication edit did not leave exactly runtime-update')", block)
 
     def test_build_makes_every_polkit_default_uncached_and_refuses_leftovers(self):
         build = (ROOT / 'build.sh').read_text()
