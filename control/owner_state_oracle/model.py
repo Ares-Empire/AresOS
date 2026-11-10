@@ -635,6 +635,20 @@ class Oracle:
         context = self.warning_contexts.get(source, self.lifecycle_known.get(source, {}))
         if kind == 'rename' and context.get('target') not in (evidence.get('roles') or {}):
             return False
+        if kind == 'filing' and context.get('target') not in (evidence.get('roles') or {}):
+            # Destination loss is a warning-bearing result, never a clean
+            # resolution. The occurrence must survive in the committed prefix.
+            rows = {}
+            for event in getattr(getattr(self, '_effect_record', None), 'events', []):
+                if event['seq'] <= sequence:
+                    rows.update(event['set'])
+            result = rows.get(source) or {}
+            check = result.get('warning_checks', {}).get('filing', {})
+            notice = rows.get('notice:' + str(check.get('occurrence_id'))) or {}
+            if not (result.get('state') == 'partial' and check.get('warning') and
+                    notice.get('source_key') == source and notice.get('check_kind') == 'filing' and
+                    notice.get('evidence_fingerprint') == check.get('fingerprint')):
+                return False
         mutations = [e for e in self.servers if e['command'] in {'MOVE', 'COPY'} and self.bound(e)[0] == source]
         if kind == 'filing' and (source in evidence.get('check_sources', []) or any(not e.get('copyuid_delivered') for e in mutations)):
             scan = self.scan_result(source, evidence)

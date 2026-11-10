@@ -374,7 +374,9 @@ class StageTwoFixes(unittest.TestCase):
                 with self.subTest(kind=kind, related=related, target=target, scan=scan):
                     oracle, record, key = filing_case(kind, related, target, scan)
                     expected, failures = evaluate(oracle, record)
-                    valid = related and (target if kind == 'rename' else scan)
+                    # This fixture deliberately claims a clean result with no
+                    # occurrence. An absent filing destination needs a warning.
+                    valid = related and target and (scan or kind == 'rename')
                     self.assertEqual(any(f.kind == 'unjustified-check-close' for _, f in failures), not valid)
                     self.assertEqual(any(f.source == key and f.kind == 'recovery' for f in expected), not valid)
 

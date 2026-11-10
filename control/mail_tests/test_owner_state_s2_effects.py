@@ -15,7 +15,7 @@ from storage_faults import OSWrites
 
 
 class EffectRegressions(unittest.TestCase):
-    def filing_scan(self, body='valid', absent_target=False, lie=False):
+    def filing_scan(self, body='valid', absent_target=False, lie=False, omit_warning=False):
         scenario = OwnerScenario('fixture')
         try:
             fixture = scenario.fixture
@@ -43,6 +43,10 @@ class EffectRegressions(unittest.TestCase):
             def persisted(changes, action, *args, **kwargs):
                 if lie and action == 'mail_filing_check' and key in changes:
                     changes[key].update(state='done', check_open=False)
+                if omit_warning and action == 'mail_filing_check':
+                    for name in list(changes):
+                        if name.startswith('notice:'):
+                            del changes[name]
                 return write(changes, action, *args, **kwargs)
             with patch.object(fixture.imap, 'uid', side_effect=fetched), patch.object(fixture.engine.store, 'write', side_effect=persisted), driver.observe():
                 result = scenario.call()
@@ -75,6 +79,11 @@ class EffectRegressions(unittest.TestCase):
         self.assertTrue(all(item['scan_complete'] for item in row['locations']))
         self.assertFalse(any(f.kind in {'unjustified-check-close', 'unsupported-resolution'} for _, f in errors), errors)
         self.assertFalse(any(f.source == 'mail:filing:scan' and f.kind == 'recovery' for f in expected), expected)
+
+    def test_absent_filing_destination_requires_the_warning_to_be_committed(self):
+        expected, errors, _ = self.filing_scan(absent_target=True, omit_warning=True)
+        self.assertTrue(any(f.kind == 'unjustified-check-close' for _, f in errors))
+        self.assertTrue(any(f.source == 'mail:filing:scan' and f.kind == 'recovery' for f in expected))
 
     def test_relative_rename_uses_the_independently_listed_parent_delimiter(self):
         scenario = OwnerScenario('fixture')
