@@ -110,9 +110,6 @@ def desktop_session():
     assert all('ARESOS_LAUNCH_NONCE' not in r['env'] for r in prism), 'Prism must not get the launch nonce'
     scope = [r for r in prism if f'/aresos.slice/aresos-desktop-{runtime["launch"]}.scope' in r['cgroup']]
     assert scope, [(r['pid'], r['cgroup']) for r in prism]
-    folder = '/sys/fs/cgroup' + scope[0]['cgroup'].split('::', 1)[1]
-    memory_high = pathlib.Path(folder, 'memory.high').read_text().strip()
-    assert memory_high == str(5 * 1024 ** 3), memory_high
     instance = pathlib.Path('/var/home/ares/.local/share/PrismLauncher/instances/AresDesktop')
     links = {link: os.readlink(instance / link) for link in ('patches', 'libraries', 'minecraft/mods',
                                                               'minecraft/saves')}
@@ -126,9 +123,149 @@ def desktop_session():
     assert 'ID of instance to launch   : "AresDesktop"' in prism_log, prism_log[:3000]
     supervisor_log = pathlib.Path('/var/home/ares/.local/state/aresos/desktop.log').read_text(errors='replace')
     return dict(state=state, runtime={k: v for k, v in runtime.items() if k != 'nonce'}, links=links,
-                memory_high=memory_high, prism_scope=scope[0]['cgroup'],
+                prism_scope=scope[0]['cgroup'],
                 processes=[dict(pid=r['pid'], uid=r['uid'], cmdline=r['cmdline'][:4]) for r in ours],
                 supervisor_log=supervisor_log[-4000:], prism_log=prism_log[:6000])
+
+
+AS_ARES = ['runuser', '-u', 'ares', '--', 'env', '-i', 'HOME=/var/home/ares', 'XDG_RUNTIME_DIR=/run/user/1001',
+           'PATH=/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin']
+GIB = 1024 ** 3
+
+
+def desktop_status():
+    result = run(*AS_ARES, '/usr/libexec/aresos-desktop', 'status')
+    assert result['returncode'] == 0, result
+    return json.loads(result['stdout'])
+
+
+def cgroup_folder(pid):
+    line = next(l for l in pathlib.Path(f'/proc/{pid}/cgroup').read_text().splitlines() if l.startswith('0::'))
+    return '/sys/fs/cgroup' + line.split('::', 1)[1]
+
+
+def desktop_jvm():
+    """Package 23 review 1 (findings 1 and 4): a real JVM through the real wrapper and supervisor, as Prism would
+    start it from outside the desktop's scope. It must run in its own game scope with the 5 GiB target; killing that
+    whole scope must latch recovery and never start Minecraft again by itself."""
+    lock = json.loads(pathlib.Path('/usr/share/aresos/minecraft/desktop.lock.json').read_text())
+    instance = '/var/home/ares/.local/share/PrismLauncher/instances/AresDesktop'
+    pause = '/tmp/aresos-ci-jvm.paused'
+    # A real JVM that waits (HotSpot's PauseAtStartup) until its pause file is removed or it is killed.
+    wrapper = subprocess.Popen([*AS_ARES, 'INST_ID=AresDesktop', f'INST_DIR={instance}',
+                                '/usr/libexec/aresos-desktop-java', lock['java']['path'],
+                                '-XX:+UnlockDiagnosticVMOptions', '-XX:+PauseAtStartup',
+                                f'-XX:PauseAtStartupFile={pause}', '-version'],
+                               cwd=f'{instance}/minecraft', stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                               stderr=subprocess.STDOUT)
+    for _ in range(120):
+        state = desktop_status()
+        if state['jvm_pid']:
+            break
+        assert wrapper.poll() is None, wrapper.communicate()
+        time.sleep(0.5)
+    jvm = state['jvm_pid']
+    assert jvm, state
+    runtime = json.loads(pathlib.Path('/run/user/1001/aresos/desktop-runtime.json').read_text())
+    unit = f'aresos-game-{runtime["launch"]}.scope'
+    folder = cgroup_folder(jvm)
+    assert folder.endswith(f'/user@1001.service/aresos.slice/{unit}'), folder
+    memory_high = pathlib.Path(folder, 'memory.high').read_text().strip()
+    assert memory_high == str(5 * GIB), memory_high
+    assert os.path.realpath(f'/proc/{jvm}/exe') == os.path.realpath(lock['java']['path'])
+    environ = dict(item.split('=', 1) for item in pathlib.Path(f'/proc/{jvm}/environ').read_text().split('\0')
+                   if '=' in item)
+    assert environ.get('ARESOS_LAUNCH_NONCE') == runtime['nonce'], 'the JVM has the launch nonce'
+    assert environ.get('ARESOS_DESKTOP_INSTANCE') == runtime['instance']
+    assert '__NV_PRIME_RENDER_OFFLOAD' not in environ, 'no NVIDIA offload without the NVIDIA driver'
+    kill = run(*AS_ARES, '/usr/bin/systemctl', '--user', 'kill', '--signal=SIGKILL', unit)
+    assert kill['returncode'] == 0, kill
+    output, _ = wrapper.communicate(timeout=60)
+    assert wrapper.returncode == 128 + 9, (wrapper.returncode, output)
+    for _ in range(60):
+        state = desktop_status()
+        if state['latched']:
+            break
+        time.sleep(0.5)
+    assert (state['state'], state['reason'], state['latched']) == ('RECOVERY', 'killed', True), state
+    time.sleep(12)  # longer than the 5 s and 10 s crash backoffs: nothing may start again by itself
+    after = desktop_status()
+    assert (after['state'], after['reason'], after['jvm_pid']) == ('RECOVERY', 'killed', None), after
+    return dict(jvm_cgroup=folder, memory_high=memory_high, unit=unit, wrapper_exit=wrapper.returncode,
+                wrapper_output=output.decode(errors='replace')[-2000:], after=after)
+
+
+def survivors():
+    rows = processes()
+    wanted = {}
+    for row in rows:
+        if row['uid'] != 1001:
+            continue
+        if row['exe'] == '/usr/bin/labwc':
+            wanted['labwc'] = row
+        elif row['cmdline'][1:3] == ['/usr/libexec/aresos-desktop', 'supervise']:
+            wanted['supervisor'] = row
+        elif row['cmdline'][1:3] == ['/usr/libexec/aresos-desktop', 'session']:
+            wanted['keeper'] = row
+        elif row['cmdline'] == RECOVERY_TERMINAL:
+            wanted['recovery terminal'] = row
+    return {name: (row['pid'], row['cgroup']) for name, row in wanted.items()}
+
+
+def memory_protection():
+    """Package 23 review 1 (finding 9): the effective protection of the session and its ancestors, and oomd."""
+    found = survivors()
+    session = '/sys/fs/cgroup' + found['labwc'][1].split('::', 1)[1]
+    assert '/user.slice/user-1001.slice/session-' in session and session.endswith('.scope'), session
+    low = {}
+    for folder in ('/sys/fs/cgroup/user.slice', '/sys/fs/cgroup/user.slice/user-1001.slice', session):
+        low[folder] = pathlib.Path(folder, 'memory.low').read_text().strip()
+        assert low[folder] == str(GIB), low
+    for name in ('supervisor', 'recovery terminal'):
+        assert '/sys/fs/cgroup' + found[name][1].split('::', 1)[1] == session, found
+    avoid = {}
+    for name in ('user.oomd_avoid', 'trusted.oomd_avoid'):
+        try:
+            avoid[name] = os.getxattr(session, name).decode(errors='replace')
+        except OSError as error:
+            avoid[name] = f'unset ({error.strerror})'
+    assert any(not value.startswith('unset') for value in avoid.values()), avoid
+    oomd = run('systemctl', 'show', 'user@1001.service', '-p', 'ManagedOOMMemoryPressure',
+               '-p', 'ManagedOOMMemoryPressureLimit', '-p', 'ManagedOOMSwap')
+    oomctl = run('oomctl')
+    return dict(memory_low=low, oomd_avoid=avoid, user_service=oomd['stdout'], oomctl=oomctl['stdout'][-3000:],
+                oomd_active=run('systemctl', 'is-active', 'systemd-oomd.service')['stdout'].strip())
+
+
+HOG = '''
+import sys
+chunks = []
+while True:
+    chunk = bytearray(64 << 20)
+    chunk[::4096] = b"\\1" * (len(chunk) // 4096)
+    chunks.append(chunk)
+    print(len(chunks) * 64, flush=True)
+'''
+
+
+def memory_pressure():
+    """Package 23 review 1 (finding 9): exhaust memory from a cgroup next to the game's. The pressure source is
+    killed; the compositor, the supervisor and the recovery terminal survive, and the supervisor still answers."""
+    before = survivors()
+    assert set(before) == {'labwc', 'supervisor', 'keeper', 'recovery terminal'}, before
+    hog = subprocess.Popen([*AS_ARES, '/usr/bin/systemd-run', '--user', '--scope', '--quiet', '--slice=aresos.slice',
+                            '--unit=aresos-ci-pressure.scope', '--property=MemorySwapMax=0', '/usr/bin/python3', '-c',
+                            HOG], stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    output, _ = hog.communicate(timeout=600)
+    lines = output.decode(errors='replace').splitlines()
+    assert hog.returncode != 0, ('the pressure source was not stopped', lines[-5:])
+    after = survivors()
+    assert after == before, ('a protected process did not survive', before, after)
+    state = desktop_status()
+    kernel = run('journalctl', '-k', '-o', 'cat', '--no-pager', '-g', 'Out of memory|Killed process|oom-kill')
+    oomd = run('journalctl', '-u', 'systemd-oomd.service', '-o', 'cat', '--no-pager', '-n', '20')
+    return dict(hog_exit=hog.returncode, allocated_mib=lines[-1] if lines else None, survivors=after,
+                supervisor_state=state['state'], kernel=kernel['stdout'][-3000:], oomd=oomd['stdout'][-3000:])
 
 
 def check(action, request):
@@ -168,6 +305,9 @@ def check(action, request):
         assert names and not missing, ('shadowing programs missing', missing)
         result['terminals'] = terminal_shells(result['stdout'].split())
         result['desktop'] = desktop_session()
+        result['memory_protection'] = memory_protection()
+        result['game_scope'] = desktop_jvm()
+        result['pressure'] = memory_pressure()
         # greetd's wrapper (non-interactive, not a login shell) sources
         # /etc/profile before the session: its profile scripts keep the system PATH.
         # Review 6: a missing probe or no wrapper record fails instead of passing.
