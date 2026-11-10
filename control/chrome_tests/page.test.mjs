@@ -32,7 +32,7 @@ function fixture({relay=false,activate=true,link=true,browserDOM=false,walkers=f
     }
   }
   const originalDispatch=EventTarget.prototype.dispatchEvent;
-  class Node extends EventTarget {getRootNode(options={}){const root=this.root??this.ownerDocument??document;return options.composed&&root.host?root.host.getRootNode(options):root;}}
+  const shadowHosts=new WeakMap();class Node extends EventTarget {get host(){return shadowHosts.get(this);}set host(value){shadowHosts.set(this,value);}getRootNode(options={}){const root=this.root??this.ownerDocument??document;return options.composed&&root.host?root.host.getRootNode(options):root;}}
   class Element extends Node {
     isConnected=true;tagName='DIV';type='';textContent='';form=null;role='';
     constructor(){super();this.ownerDocument=document;nodes.push(this);}
@@ -64,7 +64,7 @@ function fixture({relay=false,activate=true,link=true,browserDOM=false,walkers=f
   class InputEvent extends Event {constructor(type,options={}){super(type,options);this.ranges=options.targetRanges?Array.from(options.targetRanges):[];}getTargetRanges(){return retarget?this.ranges.filter(range=>!range.startContainer.getRootNode().host):this.ranges;}}
   const walkerRoots=new WeakMap();class TreeWalker {constructor(root){walkerRoots.set(this,nativeNode(root));}get root(){if(!walkerRoots.has(this))throw TypeError('Invalid TreeWalker');const node=walkerRoots.get(this);return worldHandles?mainHandle(node):node;}}
   class Document {createTreeWalker(root){return new TreeWalker(root);}}
-  const globals={window,document,performance:{now:()=>now},setTimeout,MessageChannel,Symbol,Event,CustomEvent,EventTarget,Node,Element,HTMLElement,HTMLInputElement,HTMLFormElement,DOMException,URL,TextDecoder,Uint8Array,...(relay?{AbstractRange,StaticRange,InputEvent}:{}),...(walkers?{Document,TreeWalker}:browserDOM?{Document:class Document{}}:{})};
+  const globals={window,document,performance:{now:()=>now},setTimeout,MessageChannel,Symbol,Event,CustomEvent,EventTarget,Node,Element,HTMLElement,HTMLInputElement,HTMLFormElement,DOMException,URL,TextDecoder,Uint8Array,...(relay?{AbstractRange,StaticRange,InputEvent}:{}),...(walkers?{Document,TreeWalker,ShadowRoot:Node}:browserDOM?{Document:class Document{}}:{})};
   const dialogCalls=[],dialogReports=[];if(dialogs)Object.assign(globals,{alert:({alert(value){dialogCalls.push('alert');}}).alert,confirm:({confirm(value){dialogCalls.push('confirm');return true;}}).confirm,prompt:({prompt(value,initial){dialogCalls.push('prompt');return 'native response';}}).prompt});
   let guard;const isolated=vm.createContext({...globals,fixtureDialogPause:()=>onDialogBoundary(guard)});
   vm.runInContext(fs.readFileSync('control/chrome/extension/guard.js','utf8').replace('debugger;','fixtureDialogPause();'),isolated);
@@ -131,6 +131,7 @@ test('held and failed private requests never disclose a relay or accept a forged
 test('private options never run inherited getters, patched enumeration or array iterators',()=>{
   for(const walkers of [false,true]){
   const f=fixture({relay:true,walkers}),button=new f.HTMLElement();button.textContent='Ordinary control';button.tagName='BUTTON';f.arm(button,null);let received=0;button.addEventListener('click',()=>received++);
+  if(walkers)button.root=new f.HTMLElement().attachShadow({mode:'closed'});
   vm.runInContext("globalThis.callbacks=0;Object.keys=()=>{callbacks++;throw 'page keys'};for(const key of ['bubbles','composed','get','set','request','target_walker']){const description=Object.create(null);description.configurable=true;description.get=function(){callbacks++;throw 'page getter'};Object.defineProperty(Object.prototype,key,description);}Array.prototype[Symbol.iterator]=function(){callbacks++;throw 'page iterator'}",f.main);
   assert.equal(button.dispatchEvent(new f.Event('click')),true);assert.equal(received,1);assert.equal(vm.runInContext('callbacks',f.main),0);
   }

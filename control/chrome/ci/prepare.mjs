@@ -13,7 +13,8 @@ if(process.env.INJECTION_PROBE==='true'){
 }
 if(process.env.INJECTION_PROBE!=='true'){
   const instrumented='/workspace/.work/20-instrumented-extension';fs.cpSync(extension,instrumented,{recursive:true});extension=instrumented;
-  fs.writeFileSync(extension+'/guard.js',fs.readFileSync('/workspace/control/chrome/ci/password-ingress.js','utf8')+'\n'+fs.readFileSync(extension+'/guard.js','utf8'));
+  const guard=fs.readFileSync(extension+'/guard.js','utf8').replace('stack.push(stage);',`stack.push(stage);if(detail.target_walker)chrome.runtime.sendMessage({event:'reader_ingress',kind:'native_shadow_identity',value:{walker_getter:!!walkerRoot,target_present:!!stage.target,node:stage.target instanceof Node,element:stage.target instanceof Element,form:stage.target instanceof HTMLFormElement,own_root:stage.target?nativeRoot.call(stage.target,{composed:true})===document:null}}).catch(()=>{});`);
+  fs.writeFileSync(extension+'/guard.js',fs.readFileSync('/workspace/control/chrome/ci/password-ingress.js','utf8')+'\n'+guard);
   const background=fs.readFileSync(extension+'/background.js','utf8').replace("chrome.runtime.onMessage.addListener((message,sender,reply)=>{", "chrome.runtime.onMessage.addListener((message,sender,reply)=>{if(sender.id===chrome.runtime.id&&message?.event==='reader_ingress'){audit({reader_ingress:message});reply({received:true});return;}");
   fs.writeFileSync(extension+'/background.js',background);
 }

@@ -140,3 +140,15 @@ reading the MAIN handle's properties fails. A mutation bypassing the isolated
 conversion is rejected. Node: **205 passed**; mutation audit: **71 rejected,
 every baseline passed**. The next Linux trial remains required. Ledger: 144
 before the next push, expected 146 after.
+
+**Linux feedback, source `a64251e6`:** **42836125870 / 42836137343** failed
+the same pre-matrix native stopped-submission assertion. The second identity
+transport is also unverified. The next trial retains the previously proven
+InputEvent path for ordinary document endpoints, and limits the replacement to
+actual shadow endpoints authenticated by the saved native ShadowRoot host getter.
+Test-build-only instrumentation records native type/realm booleans at that
+handoff; no node properties, field values or contents are serialized. This will
+distinguish missing native getter support from a wrong-world node without adding
+Runtime subscriptions. The shadow test double and removal mutations remain
+mandatory; no receiver assertion is relaxed. Ledger: 146 before the next push,
+expected 148 after.

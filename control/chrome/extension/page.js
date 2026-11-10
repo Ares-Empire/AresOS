@@ -13,6 +13,7 @@
   const defaultView=globalThis.Document&&descriptor(Document.prototype,'defaultView')?.get;
   const windowDocument=descriptor(globalThis,'document')?.get||(globalThis.Window&&descriptor(Window.prototype,'document')?.get);
   const nodeType=globalThis.Node?descriptor(Node.prototype,'nodeType')?.get:null;
+  const shadowHost=globalThis.ShadowRoot&&descriptor(ShadowRoot.prototype,'host')?.get;
   const saved={submit:HTMLFormElement.prototype.submit,requestSubmit:HTMLFormElement.prototype.requestSubmit,click:HTMLElement.prototype.click,dispatchEvent:dispatch,attachShadow:globalThis.Element?.prototype.attachShadow};
   const nativeString=Function.prototype.toString,nativeStrings=new WeakMap(),getString=WeakMap.prototype.get,setString=WeakMap.prototype.set;
   const connected=target=>{try{const owner=root?invoke(root,target,[options({composed:true})]):target.getRootNode({composed:true});return owner===ownDocument||!!(defaultView?invoke(defaultView,owner,[]):owner.defaultView);}catch{return false;}};
@@ -54,10 +55,11 @@
   function report(target,detail,original=null) {
     if(privateRelay){
       const request=++requestSequence;property(detail,'request',request,true);
-      if(createWalker)property(detail,'target_walker',invoke(createWalker,ownDocument,[target]));
+      let shadow=false;try{shadow=!!(shadowHost&&invoke(shadowHost,invoke(root,target,[]),[]));}catch{}
+      if(createWalker&&shadow)property(detail,'target_walker',invoke(createWalker,ownDocument,[target]));
       invoke(dispatch,privateControl,[new Report('aresos-relay-meta',options({detail}))]);
       try{
-        if(!createWalker){
+        if(!createWalker||!shadow){
         const range=new TargetRange(options({startContainer:target,startOffset:0,endContainer:target,endOffset:0}));
         const ranges=create(null);property(ranges,iterator,()=>{let done=false;const result=create(null);result.next=()=>{const step=create(null);step.done=done;if(!done){done=true;step.value=range;}return step;};return result;});
         invoke(dispatch,privateControl,[new TargetEvent('aresos-relay-target',options({data:''+request,targetRanges:ranges}))]);
