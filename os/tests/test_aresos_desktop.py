@@ -1305,6 +1305,11 @@ class LoopTest(Base):
                 replies.append(json.loads(line))
         sock.close()
         self.assertEqual([r.get('error') for r in replies], ['malformed', 'not_authorized', 'unknown_operation'])
+        # A request that hits an unexpected error answers 'internal'; the supervisor keeps running.
+        with mock.patch.object(self.loop.supervisor, 'status', side_effect=RuntimeError('boom')):
+            self.assertEqual(desktop.request(self.paths, {'op': 'status'})['error'], 'internal')
+        self.assertTrue(self.thread.is_alive())
+        self.assertTrue(desktop.request(self.paths, {'op': 'status'})['ok'])
 
 
 if __name__ == '__main__':
