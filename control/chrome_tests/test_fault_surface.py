@@ -16,6 +16,7 @@ import test_engine as fixture
 from test_policy import entry
 from aresos_control.common import Refused
 from state_views import StateViews
+from state_sweeps import isolated_flows
 
 
 class Writers(StateViews,fixture.Operations):
@@ -134,22 +135,25 @@ class Writers(StateViews,fixture.Operations):
         self.compare_views('restart')
         return injector
 
-    def test_every_chrome_durable_writer_single_persistent_cleanup_pairs_restart_space_restored(self):
+    def sweep_flow(self,flow):
         counts={'single':0,'persistent':0,'pairs':0}
+        clean=self.sweep_case(flow);self.tearDown();self.setUp()
+        for point,label in enumerate(clean.points,1):
+            if label.endswith('.close'):continue
+            for mode in ['single','persistent']:
+                with self.subTest(flow=flow,point=point,label=label,mode=mode):
+                    observed=self.sweep_case(flow,point,mode);self.assertTrue(observed.failed);counts[mode]+=1
+                self.tearDown();self.setUp()
+            primary=self.sweep_case(flow,point);self.tearDown();self.setUp()
+            for secondary,_,_ in primary.cleanup_points:
+                if secondary<=point:continue
+                with self.subTest(flow=flow,point=point,cleanup=secondary):
+                    observed=self.sweep_case(flow,point,'single',secondary);self.assertTrue(observed.failed);counts['pairs']+=1
+                self.tearDown();self.setUp()
+        return counts
+
+    def test_every_chrome_durable_writer_single_persistent_cleanup_pairs_restart_space_restored(self):
         flows=['readonly','allow','revoke','trusted','qualification','delivery','observation','activation','stopped','acknowledgement','release','upload_copy',
                'drop','retirement','lost_queue','stopped_submit','restore']
-        for flow in flows:
-            clean=self.sweep_case(flow);self.tearDown();self.setUp()
-            for point,label in enumerate(clean.points,1):
-                if label.endswith('.close'):continue
-                for mode in ['single','persistent']:
-                    with self.subTest(flow=flow,point=point,label=label,mode=mode):
-                        observed=self.sweep_case(flow,point,mode);self.assertTrue(observed.failed);counts[mode]+=1
-                    self.tearDown();self.setUp()
-                primary=self.sweep_case(flow,point);self.tearDown();self.setUp()
-                for secondary,_,_ in primary.cleanup_points:
-                    if secondary<=point:continue
-                    with self.subTest(flow=flow,point=point,cleanup=secondary):
-                        observed=self.sweep_case(flow,point,'single',secondary);self.assertTrue(observed.failed);counts['pairs']+=1
-                    self.tearDown();self.setUp()
+        counts=isolated_flows(self,flows)
         print('Chrome full writer surface',counts,flush=True)

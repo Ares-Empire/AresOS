@@ -11,6 +11,7 @@ import test_engine
 from aresos_control.engine import Engine
 from aresos_control.common import canonical
 from state_views import StateViews
+from state_sweeps import isolated_flows
 
 
 class Storage(StateViews,test_engine.Operations):
@@ -64,27 +65,30 @@ class Storage(StateViews,test_engine.Operations):
             self.assertFalse(any(op['state']=='reserved' and op['id']==self.browser.dispatched[0][1].get('operation') for op in operations))
         return injector
 
-    def test_chrome_storage_single_persistent_cleanup_pairs_crash_restart_space_restored(self):
+    def sweep_flow(self,flow):
         counts={'single':0,'persistent':0,'pairs':0}
         # Each case gets its own committed log; no earlier fault can hide a later writer.
-        for flow in ['submit','free']:
-            clean=self.scenario(flow)
-            self.tearDown();self.setUp()
-            for point,label in enumerate(clean.points,1):
-                if label.endswith('.close'):
-                    continue  # Close is a secondary EIO site, as in Mail's injector.
-                for mode in ['single','persistent']:
-                    with self.subTest(flow=flow,point=point,label=label,mode=mode):
-                        observed=self.scenario(flow,point,mode)
-                        self.assertTrue(observed.failed,(flow,point,label))
-                        counts[mode]+=1
-                    self.tearDown();self.setUp()
-                primary=self.scenario(flow,point)
+        clean=self.scenario(flow)
+        self.tearDown();self.setUp()
+        for point,label in enumerate(clean.points,1):
+            if label.endswith('.close'):
+                continue  # Close is a secondary EIO site, as in Mail's injector.
+            for mode in ['single','persistent']:
+                with self.subTest(flow=flow,point=point,label=label,mode=mode):
+                    observed=self.scenario(flow,point,mode)
+                    self.assertTrue(observed.failed,(flow,point,label))
+                    counts[mode]+=1
                 self.tearDown();self.setUp()
-                for secondary,_,_ in primary.cleanup_points:
-                    if secondary<=point:continue
-                    with self.subTest(flow=flow,point=point,cleanup=secondary):
-                        observed=self.scenario(flow,point,'single',secondary)
-                        self.assertTrue(observed.failed);counts['pairs']+=1
-                    self.tearDown();self.setUp()
+            primary=self.scenario(flow,point)
+            self.tearDown();self.setUp()
+            for secondary,_,_ in primary.cleanup_points:
+                if secondary<=point:continue
+                with self.subTest(flow=flow,point=point,cleanup=secondary):
+                    observed=self.scenario(flow,point,'single',secondary)
+                    self.assertTrue(observed.failed);counts['pairs']+=1
+                self.tearDown();self.setUp()
+        return counts
+
+    def test_chrome_storage_single_persistent_cleanup_pairs_crash_restart_space_restored(self):
+        counts=isolated_flows(self,['submit','free'])
         print('Chrome durable-write sweep',counts,flush=True)
