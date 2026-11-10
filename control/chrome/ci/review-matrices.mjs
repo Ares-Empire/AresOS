@@ -4,6 +4,17 @@ import {allTabs} from './tabs.mjs';
 import {createHash} from 'node:crypto';
 
 export async function reviewMatrices({check,nav,call,rpc,target,read,counts,eventually,approval,receiverEvidence,fixture,getTab,ownerKey,ownerChooseFile,admin,ownerNavigate,ownerDismiss,nativeDonor,closeNativeDonor,setTab,lifecycle}){
+  await check('GROUP 4 REVIEW ordinary native dialogs from Claude owner and page tasks keep working',async()=>{
+    for(const kind of ['alert','confirm','prompt'])for(const origin of ['claude','owner','task'])for(const accept of kind==='alert'?[true]:[false,true]){
+      const id='review-dialog-'+kind+'-'+origin+'-'+accept;await nav('review-page&mode=native-dialog&dialog='+kind+'&id='+id);await delay(600);
+      if(origin==='claude'){const opened=await rpc('click',await target('Continue'));assert.ok(opened.ok||opened.error.code==='unknown',JSON.stringify(opened));}
+      else if(origin==='owner')ownerKey();else await fixture.mutate(id,'review-change');
+      const dialog=await eventually(async()=>(await call('read',{tab:getTab()})).dialog,'native '+kind+' from '+origin);assert.equal(dialog.kind,kind);assert.equal(receiverEvidence(id,'native dialog open').count,0);
+      const answer=await call('dialog',{tab:getTab(),expected:dialog,accept,...(kind==='prompt'?{text:'Synthetic answer'}:{})});
+      assert.equal(receiverEvidence(id,'after native answer').count,0,'answering cannot approve the resumed form');
+      await approval(answer,id);console.log('REVIEW P1 ANSWERED RECEIVER0/1/1',id);
+    }
+  });
   await check('GROUP 3 REVIEW ordinary blank and srcdoc editors bind drafts and send normally',async()=>{
     for(const variant of ['blank','srcdoc'])for(const changed of [false,true]){
       const id='review-editor-'+variant+'-'+changed;await nav('review-page&mode=inline-editor&variant='+variant+'&id='+id);
@@ -17,6 +28,7 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
     const opening=call('click',await target('File'));opening.catch(()=>{});await ownerChooseFile();await opening;
     await eventually(async()=>(await read()).some(row=>row.expected.name==='File'&&row.expected.value?.length===1),'owner chosen File is installed');
     const first=await call('click',await target('Submit'));assert.ok(first.approval);
+    assert.doesNotMatch(JSON.stringify(first.approval.description),/GOOD|EVIL/,'file bytes must never enter the approval or binding');
     for(const text of ['owner-picked.txt','4 bytes',createHash('sha256').update('GOOD').digest('hex')])assert.ok(first.approval.question.includes(text),first.approval.question);
     await fixture.mutate(id,'review-change');const refused=await rpc('submit',first.approval);assert.ok(!refused.ok||refused.data.operation.state==='failed');assert.equal(receiverEvidence(id,'selected bytes changed').count,0);
     const second=await call('click',await target('Submit'));assert.ok(second.approval.question.includes(createHash('sha256').update('EVIL').digest('hex')));await approval(second,id);
@@ -118,17 +130,6 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
     const child=await eventually(async()=>(await allTabs(call)).items.find(row=>row.url?.includes('/post-document?case=review-script-popup')),'POST popup exists');
     const page=await call('read',{tab:child.tab});const row=page.untrusted_content.tree.split('\n').filter(line=>line.startsWith('{')).map(JSON.parse).find(row=>row.expected.name==='Continue');assert.ok(row);
     const popupRefused=await rpc('click',{reference:row.reference,expected:row.expected});assert.equal(popupRefused.ok,false);assert.match(popupRefused.error.message,/form submission|request method/);assert.equal(counts('review-script-popup'),1);await call('close_tab',{tab:child.tab});
-  });
-  await check('GROUP 4 REVIEW ordinary native dialogs from Claude owner and page tasks keep working',async()=>{
-    for(const kind of ['alert','confirm','prompt'])for(const origin of ['claude','owner','task'])for(const accept of kind==='alert'?[true]:[false,true]){
-      const id='review-dialog-'+kind+'-'+origin+'-'+accept;await nav('review-page&mode=native-dialog&dialog='+kind+'&id='+id);await delay(600);
-      if(origin==='claude'){const opened=await rpc('click',await target('Continue'));assert.ok(opened.ok||opened.error.code==='unknown',JSON.stringify(opened));}
-      else if(origin==='owner')ownerKey();else await fixture.mutate(id,'review-change');
-      const dialog=await eventually(async()=>(await call('read',{tab:getTab()})).dialog,'native '+kind+' from '+origin);assert.equal(dialog.kind,kind);assert.equal(receiverEvidence(id,'native dialog open').count,0);
-      const answer=await call('dialog',{tab:getTab(),expected:dialog,accept,...(kind==='prompt'?{text:'Synthetic answer'}:{})});
-      assert.equal(receiverEvidence(id,'after native answer').count,0,'answering cannot approve the resumed form');
-      await approval(answer,id);console.log('REVIEW P1 ANSWERED RECEIVER0/1/1',id);
-    }
   });
   await check('GROUP 8 REVIEW no-op checks and isolated choices leave the owner tab selected',async()=>{
     const tab=getTab();await nav('features&id=review-noop');await call('check',{...await target('Tick'),checked:true});

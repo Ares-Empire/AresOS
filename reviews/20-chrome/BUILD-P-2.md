@@ -69,3 +69,12 @@ base, Mail and boundary twice; live signed-in sites; panel confirmation of owner
 verdicts, then exits red immediately. A successful run still executes every case and the full Python sweep;
 `assertComplete` still rejects missing cases. A browser-free test verifies the retained failure cannot qualify.
 This avoids spending another full matrix on failures already known in the same run.
+
+**Run — first short feedback batch:** source `683f333e`, Chrome **42816887474 / 42816898103**, both modes,
+failed at the actual native-chooser selection assertion. The file was not selected; no receiver effect was allowed.
+The new ordinary blank/srcdoc editor matrix passed before that failure. The retained external proof is
+[review-fixes-683-editors.json](records/review-fixes-683-editors.json): four independently audited 0/1/1 sequences,
+including both changed-draft refusals at zero. This is partial evidence, not complete acceptance. The chooser
+now activates the exact Open/Open File window, allows the native path field to settle, and captures its opened,
+path-entered and chosen states. Native dialogs run earlier in the next matrix. The receiver assertions remain
+unchanged. The ledger is 130 IDs before this push, 132 after it.
