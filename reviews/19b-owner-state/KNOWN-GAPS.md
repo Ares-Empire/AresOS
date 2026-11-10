@@ -1,6 +1,6 @@
 # Owner-state known gaps
 
-The current executable pin is the stage-2 fold pin described in the final section; earlier sections retain their historical conversion and verification evidence.
+The current executable pin is the stage-2 fixes-round-3 pin described in the final section; earlier sections retain their historical conversion and verification evidence.
 
 The list starts with Mail review 22's three blocking cases. They remain failures in production; stage 1 exposes them without changing their assertions.
 
@@ -421,3 +421,27 @@ Each complete matrix runs all 98 recordings / 2,080,065 alterations with no slip
 [LEDGER-STRICT-S2-FIXES-2.json](LEDGER-STRICT-S2-FIXES-2.json) pins all 106 fresh
 actual-list hashes, source, strict outputs and timings. This supersedes the
 capture's old-pin failures and diagnosed timeout as acceptance evidence.
+
+
+## Stage 2, fixes round 3 pin
+
+**Run:** the single Linux capture is Mail 42908389631 / base 42908382340, attempt 1, source `f9e52fd7`. All 53 owner-state actual lists completed and were ownership/shared-value checked and strictly reverified after packing. The pin contains **1,968,467 exact stage-3 keys / zero R2**, **2,011 groups / 924,737 bytes**, format 3, SHA-256 `356e8960830c6d46ee375462192ab7333593175ce8bd756ee5fe9e408b7982fc`. Capture alteration shard 6 failed mirror setup before tests; it supplies no owner-state list and is not claimed green. The two finished-head strict repetitions provide complete acceptance separately.
+
+The eleven changed point-zero groups and reasons are in REPORT.md and LEDGER-CAPTURE-S2-FIXES-3.json. Every flow now has a point-zero quiet contract; nine explicitly named production behaviours with exact view/count/digest are allowed by `control/mail_tests/owner_state_quiet_gaps.json`. All other flows require zero differences. Stage-3 gaps remain exact, rather than being suppressed.
+
+Regenerate a complete full list on demand (gzip output) from the downloaded capture artifacts, then regenerate/diff its compact form:
+
+```sh
+PYTHONPATH=control python3 -m owner_state_oracle.gaps .work/19b-s2-fixes-3/ci/42908389631-1/control-mail-*/*owner-gaps-*.json.gz .work/19b-s2-fixes-3/ci/42908382340-1/control-base-*/*owner-gaps-*.json.gz --full --output .work/19b-s2-fixes-3/full.json
+gzip -f .work/19b-s2-fixes-3/full.json
+PYTHONPATH=control python3 -m owner_state_oracle.gaps .work/19b-s2-fixes-3/full.json.gz --output .work/19b-s2-fixes-3/compact.json
+python3 - <<'PYCODE'
+import json
+from pathlib import Path
+p=Path('.work/19b-s2-fixes-3/compact.json')
+p.write_text(json.dumps(json.loads(p.read_text()),sort_keys=True,indent=1)+'\n')
+PYCODE
+diff -u reviews/19b-owner-state/KNOWN-GAPS.json .work/19b-s2-fixes-3/compact.json
+```
+
+No full gap list is committed. The final strict evidence is LEDGER-STRICT-S2-FIXES-3.json; both passes independently reassemble and check 53 fresh actual lists.

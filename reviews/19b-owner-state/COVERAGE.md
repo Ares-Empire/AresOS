@@ -232,3 +232,17 @@ The final Mail maxima are 40m05s and
 capture timeout and pure lookup-cost correction are documented separately.
 LEDGER-STRICT-S2-FIXES-2.json contains the complete evidence. Stage 3 remains
 unbuilt; the lead owns the scoped re-checks.
+
+
+Stage 2 fixes round 3 adds point-zero contracts for every one of the 34 flows,
+with nine explicitly named exact production-gap behaviours and zero oracle-side
+baseline differences. Onboarding self-probe/repair correlation, seed intent
+removal, testapp scope identity and repeated compact fences are checked.
+Filing-result state changes join row-removal controls as solely dependent on
+filing_claims. Independent repeated plant-free recordings replace the tautology.
+Scan arrival after LIST is accepted only with SEARCH-time inventory and every
+matching subsequent UID/body literal; all incomplete-FETCH negatives remain.
+Measured runtime partitioning executes the entire 98-recording corpus in 110
+disjoint parts. Local proof: 2,081,423 alterations, zero slips. The current exact
+compact pin and two strict repetitions are documented in the round-3 report and
+manifests; R1/R3/projection work remains stage 3.

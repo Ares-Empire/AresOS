@@ -2038,3 +2038,33 @@ was merged, and stage 3 was not started.
 **Run — local limitations and corrections:** the first mixed base/Mail runner invocation had a `support` import collision and did not pass. A direct child worker lacked the installed Linux boundary; the worktree-only subprocess wrapper corrected that, then all 13 action-context tests passed. The local installed-channel test cannot perform its Linux UID setup (`os.chown` PermissionError) and is left to Linux CI; no test assertion or platform setup was weakened. The successful base-only command is separate above. The two onboarding alteration failures were fixed in the validator and their affected partitions rerun, never pinned as production gaps.
 
 **Read — CI plan:** the capture and finished pin commits use `[skip ci]` to avoid duplicate automatic PR replays; the full named workflows are dispatched manually on each exact pushed source. This does not omit a test: base and Mail run once for capture, then base, Mail and boundary each run twice for strict acceptance. Every wait uses one blocking `gh run watch ID --exit-status --interval 60` command per named run.
+
+
+**Run — the single Linux capture and strict re-pin:** exact source `f9e52fd744eb6106e13c9d40fe6d80831902ff1a`, base [42908382340](https://github.com/Ares-Empire/AresOS/actions/runs/42908382340) and Mail [42908389631](https://github.com/Ares-Empire/AresOS/actions/runs/42908389631), attempt 1. Base prints `Ran 290 tests in 244.536s`, `OK`, `Control base suite PASS` at results.txt lines 419/421/428. All 48 owner workers complete their assigned flows and six tests; all four suite jobs complete. All **53** fresh full actual lists are ownership/shared-value checked, merged, packed and individually strictly verified against the new pin. The pin is **1,968,467 exact keys, zero R2, all stage 3 / 2,011 groups / 924,737 bytes**, format 3, SHA-256 `356e8960830c6d46ee375462192ab7333593175ce8bd756ee5fe9e408b7982fc`. The ledger remains compact and exact; full lists stay in .work and CI artifacts. LEDGER-CAPTURE-S2-FIXES-3.json records every input hash, job result and duration.
+
+**Run — capture classification:** 49 Mail jobs fail only their comparison with the superseded pin. Alteration shard 6 fails before any tests: Fedora mirror metadata download fails with curl receive/write errors. Its setup log and hash are retained; it has no completed test output and is never counted green. The other eleven alteration jobs complete 99 disjoint parts without slips. The longest completed Mail job is **20m30s** (alterations 0); longest suite is **20m25s**. This is diagnostic capture, not acceptance. No second capture or job rerun is requested; the complete 53 gap lists already suffice for the strict re-pin. All twelve alteration jobs must pass in each of the two finished-head repetitions below.
+
+**Run — every changed point-0 group:** these eleven changes remove oracle-side defects. No other point-0 group changes count or digest. The all-flow quiet test continues to permit only the nine exact production behaviours listed above.
+
+| Flow / row | Previous keys | Round 3 keys | Why |
+| --- | ---: | ---: | --- |
+| archive / M14 | 1 | 0 | Fence repeats the pre-archive operation; lifecycle separately validates archive. |
+| filing_copy / M02/C02/C04/M14 | 1 | 0 | Preparation has no destination yet; validate post-command results. |
+| filing_move / M02/C02/C04/M14 | 1 | 0 | Preparation has no destination yet; validate post-command results. |
+| folder_review / M06 | 10 | 0 | Seed intent removal is setup input. |
+| folder_review / M14 | 10 | 0 | Seed intent removal is setup input. |
+| onboarding / M06 | 11 | 0 | Self-probe and internal repair bind to their scripted account-add call; qualification excludes intent-only completion. |
+| onboarding / M10/M11 | 1 | 0 | Self-probe and internal repair bind to their scripted account-add call; qualification excludes intent-only completion. |
+| onboarding / M12/C05 | 2 | 0 | Self-probe and internal repair bind to their scripted account-add call; qualification excludes intent-only completion. |
+| onboarding / M12/C05/M14 | 1 | 0 | Self-probe and internal repair bind to their scripted account-add call; qualification excludes intent-only completion. |
+| onboarding / M14 | 29 | 0 | Self-probe and internal repair bind to their scripted account-add call; qualification excludes intent-only completion. |
+| testapp_delete / M14 | 1 | 0 | Account comes from reference scope; fence can repeat an unchanged operation. |
+
+The total pin shrinks by 74,865 keys and seven groups from round 2. Corrected qualifications, payload validation and retained-record comparisons also change exact fault-mode deltas. No assertion is wildcarded or weakened; strict verification requires all retained deltas to match exactly. Capture verification commands:
+
+```sh
+python3 .work/19b-s2-fixes-3/ci/validate.py 42908389631 1 capture
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/mail_tests OWNER_BASE_RUN=42908382340 .work/venv/bin/python .work/19b-s2-fixes-3/ci/harvest.py 42908389631 1 repin
+```
+
+The validator permits only the named pre-test mirror setup failure, plus exact superseded-pin comparison failures. Harvest requires all 53 full lists, correct flow ownership and shared equality, zero R2, and strict verification of every input after packing.
