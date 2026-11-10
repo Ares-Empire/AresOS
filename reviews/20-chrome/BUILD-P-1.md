@@ -52,9 +52,11 @@ owner handoff / non-cancellable uncertainty, whose different meaning is stated i
 
 ## Local verification checkpoint
 
-**Run:** `node --test control/chrome_tests/*.test.mjs`: **186 tests, 186 pass, 0 fail/cancelled/skipped**, 6.230 s.
+**Run:** `node --test control/chrome_tests/*.test.mjs`: **187 tests, 187 pass, 0 fail/cancelled/skipped**, 6.164 s.
 Full Python checkpoints: **176 tests, OK, 342.094 s**; **180 tests, OK, 323.556 s**;
-**181 tests, OK, 281.713 s**. A final full run including the modified Gmail-key test is pending.
+**181 tests, OK, 281.713 s**. The final full run including the modified Gmail-key test:
+`PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/chrome_tests python3 -B -m unittest discover -s control/chrome_tests -q`:
+**182 tests, OK, 451.435 s**.
 `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/chrome_tests python3 -B -m unittest test_questions test_policy test_sites test_unit -q`:
 **42 tests, OK, 0.496 s**.
 `python3 control/generate.py --check`: `Generated artifacts match definitions`. `git diff --check`: clean.
@@ -125,3 +127,10 @@ insufficient. Dedicated throwing-getter and background expectation tests cover b
 stopped-step polling and validity checks. The added mutations remove each precollection check independently.
 CI ordering now runs the focused page Python and all Node checks first, then the complete browser matrix, then the
 unchanged full Python sweep. A green job still requires every suite; earlier browser failures return sooner.
+
+**Built/run — retained receiver boundaries:** `receiver-evidence.mjs` now retains the actual arrival rows at
+each shared before-approval, after-approval and after-repeat assertion in `page-receiver.jsonl`. Changed-binding
+refusals, borrowed-native handler exclusion, uncertainty and native-dialog owner handoffs also record their
+observed rows. The browser-free snapshot test proves later delivery cannot rewrite the before record. No temporal
+assertion was removed or relaxed. `b7093b54` queued Chrome runs **42807683395** and **42807692322**; these are
+superseded by the receiver-evidence source before they start. The ledger is 124 IDs before the next push (126 after).
