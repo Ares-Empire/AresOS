@@ -40,6 +40,8 @@ class Mutations(unittest.TestCase):
              'test_state_crashes.CrashCuts.test_s11_actual_process_cuts_before_and_after_input_keep_every_committed_view'),
             ('S6 lost queue','aresos_control/chrome/adapter.py',[("            self.reconcile_checks(facts,queued)","            pass")],
              'test_state_fixes.StateFixes.test_s6_lost_queue_resolves_native_check_and_preserves_uncertain_occurrence'),
+            ('S6 stale queue returns','aresos_control/chrome/adapter.py',[("                if source.get('resumable') is False:","                if False:")],
+             'test_state_fixes.StateFixes.test_s6_a_stale_step_cannot_be_prepared_if_the_same_queue_entry_returns'),
             ('S7 admission','aresos_control/engine.py',[("                        and request.get('action')!='chrome_drop'\n",'')],
              'test_state_fixes.StateFixes.test_s7_drop_spends_cancel_reservation_at_history_and_physical_boundaries'),
             ('S8 public archive','aresos_control/engine.py',[("if exc.code!='owner_state_unavailable':raise","if True:raise")],

@@ -204,6 +204,17 @@ class StateFixes(unittest.TestCase):
         self.reopen();self.assertEqual(self.chrome.notice_page()['total'],0)
         self.assertEqual(self.browser.dispatched,[])
 
+    def test_s6_a_stale_step_cannot_be_prepared_if_the_same_queue_entry_returns(self):
+        step={**self.step(),'kind':'native_submit'}
+        self.chrome.observe_step(step,1)
+        self.assertTrue(self.call('read',{'tab':1})['ok'])
+        key,source=next(self.engine.store.iter_items('intent:chrome:'))
+        self.assertEqual(source['result'],'stale')
+        self.assertEqual(self.chrome.steps([step],1),[])
+        self.assertFalse(any(value['app']=='chrome' and value['state']=='reserved' for _,value in self.engine.store.items('op:')))
+        self.assertEqual(self.engine.store.get(key)['state'],'done')
+        self.assertEqual(self.browser.dispatched,[])
+
     def test_s7_drop_spends_cancel_reservation_at_history_and_physical_boundaries(self):
         from aresos_control.space import SAFETY_FLOOR
         from collections import namedtuple

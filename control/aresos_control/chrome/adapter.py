@@ -524,6 +524,8 @@ class Chrome:
         for step in steps:
             key,source=self.observe_step(step,tab)
             if source['state']=='done':
+                if source.get('resumable') is False:
+                    self.bridge.call('ack_steps',tab=tab,steps=[step]);continue
                 if step['kind'] in {'native_submit','submit_event'} and source.get('prepared_operation'):
                     self.bridge.call('ack_steps',tab=tab,steps=[step]);continue
                 source.update(state='started',step=step,tab=tab)
@@ -534,7 +536,7 @@ class Chrome:
                 continue
             frame = next((item for item in facts['frames'] if item['frame'] == step['frame']),None)
             if not frame or not step.get('document') or frame['document']!=step['document']:
-                source.update(state='done',reason='The stopped step document changed; no resumption is possible.')
+                source.update(state='done',result='stale',resumable=False,reason='The stopped step document changed; no resumption is possible.')
                 changes={}
                 if step['kind']=='activation_unknown':
                     text='An activation in the previous document may have happened. Never resume it; inspect the page with the owner.'
