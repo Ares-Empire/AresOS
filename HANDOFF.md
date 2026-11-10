@@ -120,7 +120,8 @@ The baton from the last session. Read it after `STATE.md`. Overwrite it when you
     - Package 27 stays first.
   - **Disk (2026-11-10 23:10 UTC): C: had 0 MB, now 2.3 GB free.**
     - `C:/Users/pab/AresOS-delete-me` holds 114.7 GB: package 14's old replay ISOs and squashfs images.
-    - Board #173 asks the owner to OK its permanent deletion. On "Yes", delete it. On "myself", remind him.
+    - Board #173: the owner answered "Yes, delete it". Claude Code's safety check refused the deletion (irreversible local destruction) because the OK came only through the board.
+    - Either he deletes it himself (Explorer: select the folder, Shift+Delete), or he OKs it in the chat and the command is retried.
     - Agents keep disk use minimal meanwhile.
     - The WSL disk image is 14.2 GB with about 3 GB in use; compacting it needs admin.
 - **Owner to-dos:**
