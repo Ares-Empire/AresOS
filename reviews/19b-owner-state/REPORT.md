@@ -1,9 +1,10 @@
 # 19b — owner state
 
-**Current status — stage 2 fixes round 2 verification in progress (2026-11-10):**
-The scoped oracle and RENAME fixes are implemented. Local verification precedes
-one Linux capture, strict re-pinning and two finished-source Control workflow
-passes. The round-2 section below supersedes round 1’s validator-control claims.
+**Current status — stage 2 fixes round 2 complete:**
+The scoped oracle, scan-evidence and RENAME fixes are complete. Control base,
+Mail (all 64 jobs) and boundary passed twice on `b8b2df32`. Both fresh
+53-list merges reproduce the strict pin with zero R2 gaps; journal growth is
+zero. The round-2 section below includes all diagnostics and final evidence.
 Stage 3 has not been started.
 
 ## Done
@@ -1780,10 +1781,10 @@ field audit and coherent alteration coverage; no field exclusion was added.
 
 These are proof-provenance counts, not claims that each validator is indispensable. The comparison-level plant/removal controls and redundancy table above provide that separate evidence. Linux capture and final strict acceptance follow below.
 
-**Run — one Linux capture and strict re-pin:** source `67ead6e4`, base
+**Run — named Linux capture and strict re-pin:** source `67ead6e4`, base
 [42852025144](https://github.com/Ares-Empire/AresOS/actions/runs/42852025144)
 and Mail [42852031436](https://github.com/Ares-Empire/AresOS/actions/runs/42852031436),
-attempt 1. GitHub did not start automatic PR checks after the normal push;
+attempt 1. No automatic PR checks were visible when the manual capture was dispatched;
 both workflows were dispatched explicitly on that exact pushed head. One
 blocking shell loop ran `gh run watch ID --exit-status --interval 60` for each
 named run. No per-turn `gh run view` polling was used.
@@ -1814,8 +1815,8 @@ candidates; directly bound effects and correlated source events keep the same
 order and membership. No input, expectation, effect, assertion, field, fault
 case, workflow shard or timeout changes. The 53 captured owner-state inputs
 remain applicable; both final strict repetitions must independently reproduce
-the exact pin and run the complete alteration matrix. No second Linux capture
-is used. The optimized local unit/focused checks print **146 tests / OK** and
+the exact pin and run the complete alteration matrix. Only this named capture
+supplies the pin; the automatic PR replay is counted below. The optimized local unit/focused checks print **146 tests / OK** and
 **13 tests / OK**. The affected complete alteration shard is rerun locally before
 pushing the finished strict source; its result follows below.
 
@@ -1839,3 +1840,110 @@ shrinks by 14,548 keys and six groups overall; retained fault-mode deltas remain
 exact, and all R1/R3/projection work stays assigned to stage 3.
 
 **Run — optimized timeout shard:** `OWNER_PERTURB_SHARD=9 OWNER_PERTURB_SHARDS=12` with the same local policy command completes **8 recordings / 252,353 alterations / zero slipped**, `Ran 1 test in 726.914s`, `OK`. Its complete kinds, coherent/owner-set-change counts and every validator counter equal the preoptimization complete local shard exactly. This is a local runtime recheck; the final two Linux passes below establish the per-job margin. The runtime-fix log hashes are in LEDGER-CAPTURE-S2-FIXES-2.json.
+
+
+**Run — finished round-2 strict pair:** source `b8b2df32dc0667feebf8fd7a11feef9053dae4a3`. Control base,
+Mail and boundary each passed attempts **1 and 2** below. The first proof and
+all artifacts were saved and strictly verified before requesting the second.
+No code, test, selection, workflow or pin changed between them.
+
+| Workflow | Run | Attempt 1 | Attempt 2 |
+| --- | --- | --- | --- |
+| Control base | [42868500267](https://github.com/Ares-Empire/AresOS/actions/runs/42868500267) | Ran 289 tests in 220.773s; OK; Control base suite PASS | Ran 289 tests in 169.258s; OK; Control base suite PASS |
+| Control Mail | [42868506005](https://github.com/Ares-Empire/AresOS/actions/runs/42868506005) | All 64 jobs PASS; maximum 40m05s | All 64 jobs PASS; maximum 39m26s |
+| Control boundary | [42868512263](https://github.com/Ares-Empire/AresOS/actions/runs/42868512263) | PASS; exact source; SETTINGS_OK with and without seccomp | PASS; exact source; SETTINGS_OK with and without seccomp |
+
+Every one of the **128 Mail jobs in the two required strict passes** is below the unchanged 45-minute cap.
+The affected alteration shard 9 completes in **40m05s**
+and **39m26s**. These measured results,
+not the earlier cancelled diagnostic, establish this round's runtime acceptance.
+
+| Mail job group | Attempt 1 maximum | Attempt 2 maximum |
+| --- | ---: | ---: |
+| Suite | 16m14s | 14m33s |
+| Alterations | 40m05s | 39m26s |
+| Ordinary sweep | 14m35s | 17m51s |
+| Onboarding | 7m59s | 19m24s |
+
+Each repetition independently completes **98 recordings / 2,080,065 alterations /
+267,100 coherent variants / 15,899 owner-set changes / zero slipped**, all thirteen
+production field-kind controls relative to their healthy flows, and all seven
+single-validator comparisons with the documented redundancy. All per-validator
+own-catch and owner-set-change counts reproduce the round-2 local table exactly.
+The operation/filing removal controls also pass; their sole-validator limitations
+are explicit above and in FORMAT.md. No provenance-only rejection is called an
+indispensability proof.
+
+Each repetition independently merges all **53 fresh complete actual lists**, checks
+unique/shared ownership and exact agreement, strictly verifies every input, then
+reproduces all **2,043,332 exact stage-3 keys / zero R2**, **2,018
+groups / 926,382 bytes**, SHA-256 `4d370725e0e9caeb46d1a5b79d60083a82bc1bd8d8baff18d756c97c5227e70e` byte-for-byte. No input
+is borrowed from the capture or other repetition. The committed
+[LEDGER-STRICT-S2-FIXES-2.json](LEDGER-STRICT-S2-FIXES-2.json) records all **106** fresh
+actual-list hashes, full job timings, source, attempts and exact output lines/log
+hashes. This is final acceptance evidence. The single diagnostic capture and its
+timeout remain separately classified above.
+
+**Run — CI commands:** the three workflows used for the required strict pair
+were explicitly dispatched on the pushed branch. Each wait is one shell loop over the named runs, invoking only
+`gh run watch ID --exit-status --interval 60`. The second pass reruns each entire
+workflow. Mail's rerun request returned HTTP 502; one immediate confirmation read
+showed attempt 2 already queued on the correct source, so it was not retried and
+no extra attempt was created. After each completed pass, the artifacts were saved
+and verified with:
+
+```sh
+python3 .work/19b-s2-fixes-2/ci/validate.py 42868506005 2 strict
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/mail_tests OWNER_BASE_RUN=42868500267 .work/venv/bin/python .work/19b-s2-fixes-2/ci/harvest.py 42868506005 2 strict
+python3 .work/19b-s2-fixes-2/ci/proof.py 42868506005 42868500267 42868512263 2
+```
+
+Use attempt 1 for the first proof. Validation prints all 64 strict Mail job logs
+green; harvest reproduces the exact counts/digest and zero R2 above; proof records
+all three passing workflows, job durations and the complete alteration matrix.
+KNOWN-GAPS.md gives the standalone 53-input reproduction command. Only the named 53-list capture supplied the pin. The later automatic PR replay
+at the same head is included in the accounting below and was not used for
+regeneration after the semantically identical runtime fix.
+
+**Run — workflow accounting:** this round adds **9 workflow IDs /
+12 attempts / 327 jobs**: the named capture pair
+(two IDs / two attempts), three required strict workflows twice (three IDs / six
+attempts), and four automatic PR runs (four IDs / four attempts). The named
+diagnostic has 25 old-pin comparison failures and one cancelled alteration job;
+every one of the 132 jobs in the two required strict passes is green. Branch totals move from **93 IDs /
+112 attempts** to **102 IDs /
+124 attempts**. The strict manifest includes all nine runs and the job accounting.
+
+**Run / read — additional automatic work:** the automatic PR runs were not visible
+when I manually dispatched the workflows. They later appeared at both pushed
+heads: base/Mail `42852439744` / `42852439246` at the capture head, and
+`42868447366` / `42868447312` at the finished head. This duplicated CI work.
+The capture-head Mail replay failed; the finished-head base/Mail replays passed.
+Their run metadata, job counts, conclusions and maximum durations are included
+in the strict manifest, but none of their lists is used for the pin or either required strict proof. The complete
+accounting includes them rather than reporting only the five manual run IDs.
+No additional capture was requested to regenerate the ledger.
+
+The package lead owns the three scoped re-checks; no own stage review was run.
+
+**Not verified:** real accounts/provider behavior and stage-3 R1/R3/projection
+closure remain outside this round. The existing stage-3 gaps are retained exactly;
+this round closes R2 and the listed oracle/RENAME findings only.
+
+**JUDGMENT-CALL:** none beyond the specified fixes. The UIDVALIDITY guard restores
+the required namespace check, and the oracle runtime change only avoids unrelated
+lookups; no approval, question or action changes.
+
+**PLAN-GAP:** no new gap. D3 and the existing stage-3 obligations remain for the
+separate next stage. **Open questions:** none for this round.
+
+**Run / read — closing scope and housekeeping:** there is no change to
+`warnings.py` or `paging.py`. Production code, tests, workflow definitions and
+KNOWN-GAPS.json remain identical to the twice-tested source `b8b2df32`.
+The closing commit contains only report/coverage/known-gap documentation and the
+strict proof manifest, and uses `[skip ci]` with the normal privacy pre-push hook.
+No force-push or `--no-verify` is used. The final `.work/` inventory of regular
+files over 500,000,000 bytes is **[]**. No large image/download,
+system installation or Gradle daemon was started. No real account or reviewer
+probe file was modified. PR #26 remains a draft against `pkg/19-mail`; nothing
+was merged, and stage 3 was not started.

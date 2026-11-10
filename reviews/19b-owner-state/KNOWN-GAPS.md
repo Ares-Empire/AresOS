@@ -409,3 +409,15 @@ assert raw == Path('reviews/19b-owner-state/KNOWN-GAPS.json').read_bytes()
 print('53 strict inputs; 2,043,332 stage-3 keys; zero R2; byte-identical pin')
 PY
 ```
+
+
+**Run — round-2 final strict pair:** base 42868500267, Mail 42868506005 and
+boundary 42868512263 pass attempts 1 and 2 on `b8b2df32dc0667feebf8fd7a11feef9053dae4a3`. Both
+fresh 53-list merges reproduce this pin byte-for-byte: 2,043,332
+stage-3 keys, zero R2, 2,018 groups and 926,382 bytes.
+All 128 final Mail jobs are under 45 minutes; maxima are
+40m05s / 39m26s.
+Each complete matrix runs all 98 recordings / 2,080,065 alterations with no slips.
+[LEDGER-STRICT-S2-FIXES-2.json](LEDGER-STRICT-S2-FIXES-2.json) pins all 106 fresh
+actual-list hashes, source, strict outputs and timings. This supersedes the
+capture's old-pin failures and diagnosed timeout as acceptance evidence.

@@ -220,3 +220,15 @@ validators explicitly. Terminal operation-row removal is caught only by
 stage_claims; move/copy/rename result-row removal only by filing_claims on this
 corpus. FORMAT.md and the round-2 report explain why ignoring a field can be
 invisible to expected-set alterations and require production plants instead.
+
+
+Round 2's finished source `b8b2df32dc0667feebf8fd7a11feef9053dae4a3` passes base 42868500267,
+Mail 42868506005 (all 64 jobs) and boundary 42868512263 at attempts 1 and 2.
+Each full alteration pass covers 98 recordings and 2,080,065 alterations,
+including 267,100 coherent variants, with zero slips. Both fresh 53-list
+merges reproduce the 926,382-byte pin byte-for-byte, with zero R2 gaps.
+The final Mail maxima are 40m05s and
+39m26s, both below 45 minutes. The diagnostic
+capture timeout and pure lookup-cost correction are documented separately.
+LEDGER-STRICT-S2-FIXES-2.json contains the complete evidence. Stage 3 remains
+unbuilt; the lead owns the scoped re-checks.
