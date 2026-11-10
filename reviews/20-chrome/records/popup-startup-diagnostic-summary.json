@@ -35,7 +35,8 @@
         "text": "DIAGNOSTIC ONLY: no acceptance result is produced."
       }
     ],
-    "page_autoattach_events": 0
+    "page_autoattach_events": 0,
+    "control_field_scope": "The child controlled:false field is disposable-probe privateTabs bookkeeping, not production Claude-group state; native opener metadata, absent first-script marker and zero auto-attach events are separate observations."
   },
   {
     "run": 42728905415,
@@ -73,6 +74,7 @@
         "text": "DIAGNOSTIC ONLY: no acceptance result is produced."
       }
     ],
-    "page_autoattach_events": 0
+    "page_autoattach_events": 0,
+    "control_field_scope": "The child controlled:false field is disposable-probe privateTabs bookkeeping, not production Claude-group state; native opener metadata, absent first-script marker and zero auto-attach events are separate observations."
   }
 ]

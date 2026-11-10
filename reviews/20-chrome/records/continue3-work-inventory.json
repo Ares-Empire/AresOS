@@ -1,6 +1,6 @@
 {
   "root": ".work/",
-  "total_bytes": 643051385,
+  "total_bytes": 643057897,
   "files_over_500_MiB": [],
   "large_downloads_or_extracted_images": [],
   "removed_old_payload_bytes": 354025623,
@@ -25,5 +25,6 @@
       "path": ".work/20-chrome/continue3/ac75-push/control-chrome-42720646939-1-external/tool.jsonl",
       "bytes": 26732921
     }
-  ]
+  ],
+  "checked_at_utc": "2026-11-10T01:00:14.469102+00:00"
 }
