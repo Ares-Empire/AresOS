@@ -35,11 +35,18 @@ jobs:
         id: package
         run: |
           python3 - <<'PY'
-          import gzip,os,sys,urllib.request
+          import gzip,os,sys,time,urllib.error,urllib.request
           sys.path.insert(0,'control/chrome')
           from qualify import PACKAGES,packages
-          with urllib.request.urlopen(PACKAGES,timeout=20) as response:
-              package=packages(gzip.decompress(response.read()).decode())['stable']
+          for attempt in range(3):
+              try:
+                  with urllib.request.urlopen(PACKAGES,timeout=20) as response:
+                      package=packages(gzip.decompress(response.read()).decode())['stable']
+                  break
+              except (urllib.error.URLError, TimeoutError, ConnectionError):
+                  if attempt == 2:
+                      raise
+                  time.sleep(2)
           with open(os.environ['GITHUB_OUTPUT'],'a') as output:
               for name in ['version','package_url','package_sha256']:
                   output.write(name+'='+package[name]+'\n')

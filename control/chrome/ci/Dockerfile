@@ -3,7 +3,7 @@ ARG CHANNEL=stable
 ARG PACKAGE_URL
 ARG PACKAGE_SHA256
 RUN apt-get update -qq && apt-get install -y --no-install-recommends python3 git ca-certificates curl xvfb xauth openbox xdotool dbus-x11 iproute2 procps imagemagick sudo \
- && curl -fsSL "${PACKAGE_URL:-https://dl.google.com/linux/direct/google-chrome-${CHANNEL}_current_amd64.deb}" -o /tmp/chrome.deb \
+ && curl -fsSL --retry 3 --retry-all-errors --retry-delay 2 --connect-timeout 20 --max-time 180 "${PACKAGE_URL:-https://dl.google.com/linux/direct/google-chrome-${CHANNEL}_current_amd64.deb}" -o /tmp/chrome.deb \
  && if [ -n "$PACKAGE_SHA256" ]; then printf '%s  /tmp/chrome.deb\n' "$PACKAGE_SHA256" | sha256sum -c -; fi \
  && apt-get install -y /tmp/chrome.deb && rm /tmp/chrome.deb \
  && ln -s "/usr/bin/google-chrome-${CHANNEL}" /usr/local/bin/qualification-chrome \
