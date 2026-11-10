@@ -135,6 +135,35 @@ class ActionContexts(unittest.TestCase):
                 reached.append(True)
         self.assertEqual(reached, [])
 
+    def test_reuse_requires_identical_durable_context_and_a_writable_store(self):
+        from aresos_control.action_context import context, mutation
+        from aresos_control.common import Refused
+        scenario = OwnerScenario('send')
+        self.addCleanup(scenario.close)
+        store = scenario.fixture.engine.store
+        key = 'op:' + scenario.operation_id
+        row = store.get(key)
+        value = context(store, 'DATA', 'box', destination='smtp')
+        row.update(state='submitting', context=value, context_version=1)
+        store.write({key: row}, 'fixture', 'Synthetic existing pre-command commit', scenario.operation_id)
+        sequence = store.sequence
+        with mutation(store, value, source_key=key):
+            pass
+        self.assertEqual(store.sequence, sequence)
+        changed = {**value, 'destination': 'changed'}
+        with patch.object(store, 'write', side_effect=OSError(errno.ENOSPC, 'Synthetic changed-context failure')):
+            with self.assertRaises(OSError):
+                with mutation(store, changed, source_key=key):
+                    self.fail('A refused replacement context entered the effect')
+        self.assertEqual(store.get(key)['context'], value)
+        store.write_failed = True
+        try:
+            with self.assertRaises(Refused):
+                with mutation(store, value, source_key=key):
+                    self.fail('An incomplete transaction entered the effect')
+        finally:
+            store.write_failed = False
+
     def test_local_free_flag_is_committed_before_effect_and_refused_commit_blocks_it(self):
         for fail in (False, True):
             scenario = OwnerScenario('fixture')
@@ -223,3 +252,62 @@ class ActionContexts(unittest.TestCase):
         self.assertEqual(row['context']['delimiters']['junk'], ['/', '.'])
         self.assertEqual(driver.oracle.context_errors(), set())
         self.assertEqual(row['context']['destination'], 'Created')
+
+
+class ContextWriteFences(unittest.TestCase):
+    def worker(self, flow, mode='discover', occurrence=0, point='none'):
+        from pathlib import Path
+        import pickle
+        import shutil
+        import signal
+        import subprocess
+        import sys
+        import tempfile
+        from support import WORK
+        with tempfile.TemporaryDirectory(dir=WORK) as directory:
+            output = Path(directory) / 'capture.pickle'
+            result = subprocess.run([sys.executable, str(Path(__file__).with_name('context_worker.py')),
+                flow, mode, str(occurrence), point, str(output)], capture_output=True, text=True, timeout=30)
+            self.assertEqual(result.returncode, -signal.SIGKILL if mode == 'crash' else 0, result.stdout + result.stderr)
+            capture = pickle.loads(output.read_bytes())
+            root = Path(capture['root'])
+            try:
+                if mode != 'discover':
+                    self.assertTrue(capture['reached'], (flow, mode, occurrence, point))
+                for event in capture['servers']:
+                    if event['command'] not in MUTATIONS or event.get('fixture_seed'):
+                        continue
+                    self.assertEqual(differences(event, capture['script'], capture['servers'])[1], [],
+                        (flow, mode, occurrence, point, event['command']))
+                    key, _ = bind(event, capture['script'])
+                    if mode == 'crash' or mode == 'failure' and key in capture['blocked_keys']:
+                        self.assertLess(event['write_number'], occurrence,
+                            ('command reached server after its context write failed/crashed', flow, occurrence, point, event['command']))
+                if mode == 'crash':
+                    # Real process death, then normal recovery: it may finish a
+                    # prepared local commit, but must never replay an effect.
+                    engine = Engine(root / 'state', root / 'evidence')
+                    try:
+                        for table, rows in capture['receiver'].items():
+                            self.assertEqual(engine.receiver.db.execute('SELECT * FROM ' + table).fetchall(), rows)
+                    finally:
+                        engine.close()
+            finally:
+                if root.exists():
+                    shutil.rmtree(root)
+            return capture['writes']
+
+    def test_failure_and_real_crash_at_every_write_of_every_mutation_flow(self):
+        counts = {}
+        for flow in FLOWS + ('local_flag',):
+            count = counts[flow] = self.worker(flow)
+            self.assertGreater(count, 0, flow)
+            for occurrence in range(1, count + 1):
+                for mode, point in (('failure', 'before_write'), ('failure', 'journal_appended'),
+                                    ('failure', 'sqlite_prepared'), ('failure', 'sqlite_committed'),
+                                    ('failure', 'journal_committed'), ('crash', 'journal_appended'),
+                                    ('crash', 'sqlite_prepared'), ('crash', 'sqlite_committed'),
+                                    ('crash', 'journal_committed')):
+                    with self.subTest(flow=flow, write=occurrence, mode=mode, point=point):
+                        self.worker(flow, mode, occurrence, point)
+        print('R2 write-fence coverage:', counts, flush=True)

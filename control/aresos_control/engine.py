@@ -6,7 +6,7 @@ import sqlite3
 import time
 import uuid
 
-from .action_context import action_scope
+from .action_context import action_scope, fold_context
 from . import retention
 from .adapters import NothingLeft, Uncertain
 from .blobs import Blobs
@@ -186,7 +186,7 @@ class Engine:
         self.store.checkpoint("reserved")
         return {"approval": approval, "state": "reserved"}
 
-    def stage(self, op_id, name, outcome):
+    def stage(self, op_id, name, outcome, context=None):
         op = self.operation(op_id)
         if op["app"] == "mail":
             outcome = self.adapters["mail"].stage_outcome(op, name, outcome)
@@ -196,11 +196,14 @@ class Engine:
             from .warnings import check_result
             check_result(self.store, op, 'op:' + op_id, 'sent_copies', [])
         self.store.observations.stage(op_id, name, outcome)
+        changes = {"op:" + op_id: op}
+        if context is not None:
+            changes = fold_context(self.store, context, changes)
         if op["app"] == "mail":
-            self.store.write({"op:" + op_id: op}, op["action"], "Mail operation stage recorded", op_id,
+            self.store.write(changes, op["action"], "Mail operation stage recorded", op_id,
                              untrusted_content={"stage": name, "outcome": outcome})
         else:
-            self.store.write({"op:" + op_id: op}, op["action"], "stage " + visible(name) + ": " + outcome, op_id)
+            self.store.write(changes, op["action"], "stage " + visible(name) + ": " + outcome, op_id)
         self.store.checkpoint("stage:" + name)
 
     def submit(self, action, args):
@@ -238,11 +241,15 @@ class Engine:
         op["state"], op["reason"] = "submitting", "Durably submitting; do not cancel or retry."
         if action.app == 'mail' and op.get('payload', {}).get('composition'):
             op['sent_copy_check'] = {'state': 'open'}
+        with action_scope(self.store, action.name, args, "op:" + op["id"]):
+            value = adapter.submission_context(op)
+        if value is not None:
+            op.update(context=value, context_version=1)
         self.store.write({"op:" + op["id"]: op}, action.name, "submitting", op["id"])
         self.store.checkpoint("submitting")
         try:
             with action_scope(self.store, action.name, args, "op:" + op["id"]):
-                state, reason = adapter.execute(op, lambda name, outcome: self.stage(op["id"], name, outcome))
+                state, reason = adapter.execute(op, lambda name, outcome, **kw: self.stage(op["id"], name, outcome, **kw))
         except NothingLeft as exc:
             self.store.observations.storage(exc.__cause__ or exc)
             state, reason = "failed", "Submission stopped before delivery; no mail submitted." if action.app == "mail" else str(exc)
@@ -380,6 +387,10 @@ class Engine:
                   "repair_of": old["id"], "context_version": 1, "roles_before": old.get("roles_before", {})}
         self.store.write({"op:" + op_id: repair}, repair["action"], "reserved local repair of " + old["id"], op_id)
         repair.update(state="submitting", reason="Repairing local stage only.")
+        with action_scope(self.store, repair["action"], args, "op:" + op_id):
+            value = self.adapters[app].submission_context(repair)
+        if value is not None:
+            repair.update(context=value, context_version=1)
         self.store.write({"op:" + op_id: repair}, repair["action"], "local repair of " + old["id"], op_id)
         try:
             with action_scope(self.store, repair["action"], args, "op:" + op_id):

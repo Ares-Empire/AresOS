@@ -179,6 +179,20 @@ class TestApp:
         # The fake holds only immutable data; expiry never contacts the receiver.
         pass
 
+    def local_context(self, operation_id, which):
+        return action_context(self.store, 'LOCAL_STAGE', 'fixture', source='fixture', destination='receiver/' + which,
+            identities=[{'operation_id': operation_id}], stage=which)
+
+    def submission_context(self, operation):
+        payload = operation['payload']
+        if operation['action'] == 'testapp_operation_repair':
+            return self.local_context(operation['repair_of'], payload['stage'])
+        if operation['action'] == 'testapp_delete':
+            return action_context(self.store, 'LOCAL_DELETE', 'fixture', identities=[item['reference'] for item in payload['items']],
+                source='fixture/items', destination=None)
+        return action_context(self.store, 'RECEIVE', 'fixture', source='fixture', destination='receiver',
+            identities=[{'operation_id': operation['id']}], recipients=payload['to'] + payload['cc'] + payload['bcc'])
+
     def execute(self, operation, stage):
         payload = operation["payload"]
         if operation["action"] == "testapp_delete":
@@ -195,23 +209,24 @@ class TestApp:
         # Only hashes and stored bytes cross to the receiver, never caller paths.
         outgoing = {**payload, "attachment_bytes": [self.blobs.read(b["sha256"]).hex() for b in payload["attachments"]]}
         accepted, refused = 0, 0
-        for recipient in payload["to"] + payload["cc"] + payload["bcc"]:
+        recipients = payload['to'] + payload['cc'] + payload['bcc']
+        for index, recipient in enumerate(recipients):
             value = action_context(self.store, 'RECEIVE', 'fixture', source='fixture', destination='receiver',
                 identities=[{'operation_id': operation['id']}], recipients=payload['to'] + payload['cc'] + payload['bcc'])
             with mutation(self.store, value):
                 result = self.receiver.accept(operation["id"], recipient, outgoing)
-            stage("recipient:" + recipient, result)
             accepted += result == "accepted"
             refused += result == "refused"
+            next_context = self.local_context(operation['id'], 'sent_copy') if index == len(recipients) - 1 and accepted else None
+            stage("recipient:" + recipient, result, context=next_context)
         if not accepted:
             return "failed", "No recipient accepted; nothing left the fixture sender."
         for name in ("sent_copy", "answered_flag"):
             try:
-                value = action_context(self.store, 'LOCAL_STAGE', 'fixture', source='fixture', destination='receiver/' + name,
-                    identities=[{'operation_id': operation['id']}], stage=name)
+                value = self.local_context(operation['id'], name)
                 with mutation(self.store, value):
                     self.receiver.local_stage(operation["id"], name)
-                stage(name, "done")
+                stage(name, 'done', context=self.local_context(operation['id'], 'answered_flag') if name == 'sent_copy' else None)
             except RuntimeError as exc:
                 stage(name, "failed")
                 return "partial", str(exc)
@@ -221,8 +236,7 @@ class TestApp:
         # The independent fixture evidence qualifies local repair, never recipient submission.
         if operation["action"] != "testapp_send" or not self.evidence(operation["id"])["arrivals"]:
             raise Refused("refused", "No accepted-send evidence for this local repair; inspect operation_status.")
-        value = action_context(self.store, 'LOCAL_STAGE', 'fixture', source='fixture', destination='receiver/' + which,
-            identities=[{'operation_id': operation['id']}], stage=which)
+        value = self.local_context(operation['id'], which)
         with mutation(self.store, value):
             self.receiver.local_stage(operation["id"], which)
         return "done"

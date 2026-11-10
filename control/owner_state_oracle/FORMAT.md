@@ -172,8 +172,12 @@ completion-proof error was introduced by the oracle itself.
 New operation rows carry `context_version: 1` and Mail preparation
 `roles_before`; generic intent rows carry that version, their own identity and
 full `arguments`. Immediately before each effect, the shared
-`action_context.mutation` helper commits `context` on its submitting operation,
-its started filing/rename row, or its own started free intent. A finished or
+`action_context.mutation` helper requires an identical committed `context` on
+its submitting operation, its started filing/rename row, or its own started
+free intent. Submitting, stage, attempt and filing writes can carry that context
+before dispatch. If live revalidation changes it, the helper commits the new
+context separately. It also rechecks write admission when reusing a context;
+memory never authorizes the command. A finished or
 missing source cannot cover another effect. A failed commit never enters the
 effect. The existing completion markers resolve the action; nothing replays it.
 
@@ -193,6 +197,14 @@ identified before submission, and their execution context is committed before
 the command. Every previous context version remains in immutable event history.
 The independent journal's compact format is unchanged; the SQLite-independent
 owner-state projection is stage 3 and is not built in this stage.
+
+`context_worker.py` injects ENOSPC before each logical write and at all four
+durability fences, and separately kills the process at each fence. Each command
+is compared with the independently decoded commits captured before its server
+entry, using the sweep's context checker. A refused new context blocks commands
+on that identity; a failed result write in onboarding may still be followed by
+an independently committed probe on another identity. Recovery after real
+process death must not change the receiver's deliveries, stages or settings.
 
 The layout keeps twelve ownership buckets for ordinary flows, with 24 for
 onboarding (declared by format 3's `suite_buckets`). Two ordinary flow groups

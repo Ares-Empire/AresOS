@@ -379,9 +379,9 @@ class Scenario:
     def observed(self):
         f = self.fixture
         stage, observation = f.engine.stage, f.mail.sent_observation
-        def seen_stage(operation_id, name, outcome):
+        def seen_stage(operation_id, name, outcome, **kwargs):
             self.stages.setdefault(operation_id, {})[name] = outcome
-            return stage(operation_id, name, outcome)
+            return stage(operation_id, name, outcome, **kwargs)
         def seen_copies(op, matches):
             copies = self.copies.setdefault(op['id'], [])
             copies.extend(copy.deepcopy(item) for item in matches if item not in copies)

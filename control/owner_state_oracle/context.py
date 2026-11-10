@@ -33,6 +33,30 @@ def call_for(event, script):
     return next((call for call in script if call['call'] == event['call']), {})
 
 
+def internal_command(row, event, rows):
+    """Several interrupted onboarding probes can be open in the same call.
+
+    Bind from the actual command identity and approved payload, never from the
+    context whose correctness this comparison is meant to check.
+    """
+    original = rows.get('op:' + row['repair_of'], {}) if row.get('repair_of') else row
+    payload = original.get('payload', {})
+    command = event['command']
+    if command in {'DATA', 'APPEND'}:
+        mid = '<' + original.get('id', '').replace(':', '.') + '@mail.aresos.invalid>'
+        return any(ref.get('message_id') == mid for ref in event.get('identities', []))
+    if command == 'DELETE':
+        return payload.get('folder') == (event.get('arguments') or [''])[0].strip('"')
+    if command in UID_COMMANDS:
+        refs = [item['reference'] for item in payload.get('items', [])]
+        reference = payload.get('composition', {}).get('mail', {}).get('answered_reference')
+        refs += [reference] if reference else []
+        number = int(event['arguments'][0])
+        return any(ref.get('account') == event.get('account') and ref.get('folder') == event.get('folder') and
+                   ref.get('uid') == number for ref in refs)
+    return False
+
+
 def bind(event, script):
     """A prior attempt, another account or a completed row cannot stand in."""
     rows = event.get('committed_before', {})
@@ -49,7 +73,7 @@ def bind(event, script):
         if key.startswith('op:'):
             own = row.get('id') == operation_id
             repair = action.endswith('_operation_repair') and row.get('repair_of') == operation_id
-            internal = operation_id is None and created.get(key, -1) > start
+            internal = operation_id is None and created.get(key, -1) > start and internal_command(row, event, rows)
             if own or repair or internal:
                 candidates.append((key, row))
         elif key.startswith(('mail:filing:', 'mail:rename:')):

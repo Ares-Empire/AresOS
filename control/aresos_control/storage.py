@@ -537,7 +537,7 @@ class Store:
         intent_key = self.active_intents.get(action)
         explicit = operation_id or any(k.startswith(('op:', 'intent:', 'mail:filing:', 'mail:rename:',
                                                      'export:', 'mail:account:')) for k in changes)
-        tracked_intent = not explicit and (outcome == 'started' or intent_key is not None)
+        tracked_intent = (not explicit or intent_context is not None) and (outcome == 'started' or intent_key is not None)
         if tracked_intent:
             changes = dict(changes)
             if outcome == 'started':

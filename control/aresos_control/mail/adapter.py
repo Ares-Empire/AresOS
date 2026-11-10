@@ -1,4 +1,4 @@
-from ..action_context import action_scope, context as action_context, mutation
+from ..action_context import action_scope, context as action_context, mutation, fold_context
 from collections import Counter
 from datetime import date
 from email.message import EmailMessage
@@ -70,10 +70,13 @@ class Mail:
                 delimiters[kind] = [entry['delimiter'] for entry in entries]
         return action_context(self.store, command, account['id'], roles=roles, delimiters=delimiters, **values)
 
-    def append_with_context(self, account, folder, raw, flags=None, recipients=()):
-        value = self.mutation_context(account, 'APPEND', source='local', destination=folder,
+    def append_context(self, account, folder, raw, flags=None, recipients=()):
+        return self.mutation_context(account, 'APPEND', source='local', destination=folder,
             identities=[{'message_id': str(codec.parse(raw, {}).get('Message-ID', ''))}],
             sha256=sha256(raw), append_flags=flags, recipients=recipients)
+
+    def append_with_context(self, account, folder, raw, flags=None, recipients=()):
+        value = self.append_context(account, folder, raw, flags, recipients)
         with mutation(self.store, value):
             return self.append(account, folder, raw, flags)
 
@@ -907,10 +910,10 @@ class Mail:
                 self.check_mime(comp, raw)
                 from .guard import check_headers
                 check_headers(raw, mail, recipients)
-                stage("smtp_data", "attempting")
-                started_data = True
                 value = self.mutation_context(account, 'DATA', source=codec.mailbox(mail['from']), destination='smtp',
                     identities=[{'message_id': self.message_id(operation['id'])}], recipients=recipients, sha256=sha256(raw))
+                stage("smtp_data", "attempting", context=value)
+                started_data = True
                 with mutation(self.store, value):
                     code, _ = smtp.data(raw)
                 self.store.checkpoint("smtp_answer")
@@ -969,10 +972,14 @@ class Mail:
             operation['sent_append_started_at'] = time.time()
             operation.pop('sent_append_ended_at', None)
             operation['sent_copy_check'] = {'state': 'open'}
-            self.store.write({'op:' + operation['id']: operation}, 'mail_sent_copy_attempt', 'Sent APPEND attempt started', operation['id'])
+            raw = self.wires.read(operation['stages'].get('sent_wire_sha256', key))
+            recipients = [codec.mailbox(v) for v in comp['mail']['to'] + comp['mail']['cc'] + comp['mail']['bcc']]
+            value = self.append_context(account, account['special']['sent'], raw, '(\\Seen)', recipients)
+            changes = fold_context(self.store, value, {'op:' + operation['id']: operation})
+            self.store.write(changes, 'mail_sent_copy_attempt', 'Sent APPEND attempt started', operation['id'])
+            operation = changes['op:' + operation['id']]
             try:
-                self.append_with_context(account, account["special"]["sent"], self.wires.read(operation["stages"].get("sent_wire_sha256", key)), "(\\Seen)",
-                    [codec.mailbox(v) for v in comp["mail"]["to"] + comp["mail"]["cc"] + comp["mail"]["bcc"]])
+                self.append_with_context(account, account['special']['sent'], raw, '(\\Seen)', recipients)
                 self.store.observations.stage(operation['id'], 'sent_copy', 'done')
             finally:
                 operation['sent_append_ended_at'] = time.time()
@@ -993,12 +1000,36 @@ class Mail:
         with self.transport.imap(account) as client:
             self.fresh_roles(account, client, names=[reference['folder']])
             self.message(reference, writable=True, client=client)
-            value = self.mutation_context(account, 'STORE', identities=[reference], source=reference['folder'],
-                flags=['+FLAGS.SILENT', '(\\Answered)'])
+            value = self.answered_context(operation)
             with mutation(self.store, value):
                 ok(client.uid("STORE", str(reference["uid"]), "+FLAGS.SILENT", "(\\Answered)"), "Answered flag")
             self.store.checkpoint("mail_answered_flag")
         return "done"
+
+    def answered_context(self, operation):
+        mail = operation['payload']['composition']['mail']
+        reference = mail['answered_reference']
+        if reference is not None:
+            return self.mutation_context(self.account(mail['account'], ready=False), 'STORE', identities=[reference],
+                source=reference['folder'], flags=['+FLAGS.SILENT', '(\\Answered)'])
+        return None
+
+    def delete_context(self, account, payload, reference):
+        refs = [item['reference'] for item in payload['items']]
+        if payload['mode'] == 'trash':
+            return self.mutation_context(account, 'MOVE', identities=refs, source=reference['folder'], destination=account['special']['trash'])
+        return self.mutation_context(account, 'STORE', identities=refs, source=reference['folder'], flags=['+FLAGS.SILENT', '(\\Deleted)'])
+
+    def submission_context(self, operation):
+        payload = operation['payload']
+        if operation['action'] == 'mail_delete':
+            reference = payload['items'][0]['reference']
+            return self.delete_context(self.account(reference['account']), payload, reference)
+        if operation['action'] in {'mail_folder_delete', 'mail_onboarding_folder_probe'}:
+            return self.mutation_context(self.account(payload['account']), 'DELETE', source=payload['folder'], destination=payload['folder'])
+        if operation['action'] == 'mail_operation_repair' and payload['stage'] == 'answered_flag':
+            return self.answered_context(self.store.get('op:' + operation['repair_of']))
+        return None
 
     def execute(self, operation, stage):
         action, payload = operation["action"], operation["payload"]
@@ -1032,26 +1063,25 @@ class Mail:
                         if payload["mode"] == "trash":
                             if "MOVE" not in client.capabilities:
                                 raise Uncertain("MOVE no longer available; inspect deletion status.")
-                            value = self.mutation_context(account, 'MOVE', identities=[item['reference'] for item in payload['items']],
-                                source=ref['folder'], destination=account['special']['trash'])
+                            value = self.delete_context(account, payload, ref)
                             with mutation(self.store, value):
                                 ok(client.uid("MOVE", str(ref["uid"]), quote(account["special"]["trash"])), "UID MOVE to Trash")
                             self.store.checkpoint("mail_moved:" + str(ref["uid"]))
                         else:
                             if "UIDPLUS" not in client.capabilities:
                                 raise Uncertain("UIDPLUS no longer available; no broad expunge allowed.")
-                            value = self.mutation_context(account, 'STORE', identities=[item['reference'] for item in payload['items']],
-                                source=ref['folder'], flags=['+FLAGS.SILENT', '(\\Deleted)'])
+                            value = self.delete_context(account, payload, ref)
                             with mutation(self.store, value):
                                 ok(client.uid("STORE", str(ref["uid"]), "+FLAGS.SILENT", "(\\Deleted)"), "Mark exact UID deleted")
                             self.store.checkpoint("mail_marked:" + str(ref["uid"]))
-                            stage("marked:" + digest(ref), "deleted flag set")
-                            marked = True
                             value = self.mutation_context(account, 'EXPUNGE', identities=[item['reference'] for item in payload['items']], source=ref['folder'])
+                            stage("marked:" + digest(ref), "deleted flag set", context=value)
+                            marked = True
                             with mutation(self.store, value):
                                 ok(client.uid("EXPUNGE", str(ref["uid"])), "UID EXPUNGE exact message")
                             self.store.checkpoint("mail_expunged:" + str(ref["uid"]))
-                    stage("target:" + digest(ref), "trashed" if payload["mode"] == "trash" else "expunged")
+                    next_context = self.delete_context(account, payload, payload['items'][index + 1]['reference']) if index + 1 < len(payload['items']) else None
+                    stage("target:" + digest(ref), "trashed" if payload["mode"] == "trash" else "expunged", context=next_context)
                     completed += 1
                 except Refused as exc:
                     if storage_refusal(exc):
@@ -1089,9 +1119,9 @@ class Mail:
             account = self.account(payload["reference"]["account"])
             connection = http.client.HTTPSConnection(url.hostname, url.port or 443, context=context(account), timeout=20)
             try:
-                stage("https_post", "attempting")
                 value = self.mutation_context(account, 'POST', identities=[payload['reference']], source=payload['reference'],
                     destination=payload['target'], body=payload['body'])
+                stage("https_post", "attempting", context=value)
                 with mutation(self.store, value):
                     connection.request("POST", url.path + ("?" + url.query if url.query else ""), payload["body"].encode(),
                                        {"Content-Type": "application/x-www-form-urlencoded"})
@@ -1120,11 +1150,12 @@ class Mail:
         failed_stage = False
         for which in ("sent_copy", "answered_flag"):
             try:
-                stage(which, self.local_stage(self.store.get("op:" + operation["id"]), which))
+                outcome = self.local_stage(self.store.get('op:' + operation['id']), which)
+                stage(which, outcome, context=self.answered_context(operation) if which == 'sent_copy' else None)
             except (Refused, OSError, imaplib.IMAP4.error, Uncertain) as exc:
                 if storage_refusal(exc):
                     raise
-                stage(which, "failed")
+                stage(which, 'failed', context=self.answered_context(operation) if which == 'sent_copy' else None)
                 failed_stage = True
         return ("partial", reason + " Missing local stages; repair without SMTP.") if failed_stage else (state, reason)
 
@@ -1201,6 +1232,14 @@ class Mail:
             account_id = args.get('account') or args.get('id') or next((r.get('account') for r in args.get('references', [])), None)
             account = self.store.get('mail:account:' + str(account_id))
             initial = self.mutation_context(account, 'CHANGE', arguments=args) if account else action_context(self.store, 'CHANGE', account_id, arguments=args)
+            if account and verb == 'folder_create':
+                initial = self.mutation_context(account, 'CREATE', destination=args['name'], arguments=args)
+            elif account and verb == 'flag' and args.get('references'):
+                flags = next(([sign + 'FLAGS.SILENT', '(' + ' '.join(args[field]) + ')']
+                              for field, sign in (('add', '+'), ('remove', '-')) if args.get(field)), None)
+                if flags is not None:
+                    initial = self.mutation_context(account, 'STORE', identities=args['references'],
+                        source=args['references'][0]['folder'], flags=flags, arguments=args)
             self.store.write({}, "mail_" + verb, "starting Mail change", outcome="started", untrusted_content=summary,
                 intent_context=initial, intent_arguments=args)
         try:

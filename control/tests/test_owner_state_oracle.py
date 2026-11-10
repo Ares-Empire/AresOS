@@ -1750,3 +1750,25 @@ class StageTwoPartA(unittest.TestCase):
         self.assertEqual(folder_name(b'"Junk&AOQ-"'), 'Junkä')
         self.assertEqual(folder_name(b'"Junk\\\\Root"'), 'Junk\\Root')
         self.assertEqual(folder_name(b'"Junk\\"two"'), 'Junk"two')
+
+    def test_internal_probe_binding_uses_command_identity_with_multiple_open_probes(self):
+        from owner_state_oracle.context import bind, differences
+        script = [{'call': 1, 'action': 'mail_account_add', 'arguments': {}}]
+        rows = {'op:first': {'id': 'first', 'state': 'submitting', 'payload': {'folder': 'Probe'}},
+                'op:second': {'id': 'second', 'state': 'submitting', 'payload': {'composition': {'mail': {}}},
+                              'context': {'command': 'DATA', 'account': 'box', 'source': 'sender@mail.invalid',
+                                          'destination': 'wrong', 'recipients': [], 'identities': [{'message_id': '<second@mail.aresos.invalid>'}],
+                                          'sha256': 'wire', 'roles': {}}}}
+        event = {'call': 1, 'command': 'DATA', 'account': 'box', 'sender': 'sender@mail.invalid',
+                 'roles': {}, 'recipients': [], 'raw_sha256': 'wire', 'call_start_seq': 0,
+                 'created_before': {'op:first': 1, 'op:second': 2}, 'committed_before': rows,
+                 'identities': [{'message_id': '<second@mail.aresos.invalid>'}]}
+        self.assertEqual(bind(event, script)[0], 'op:second')
+        self.assertIn('destination', differences(event, script)[1])
+        # A coherently false context cannot change which approved operation
+        # matches the command, nor stand in for an absent committed source.
+        rows['op:second']['context']['identities'] = [{'message_id': '<first@mail.aresos.invalid>'}]
+        self.assertEqual(bind(event, script)[0], 'op:second')
+        self.assertIn('identities', differences(event, script)[1])
+        del rows['op:second']
+        self.assertIsNone(bind(event, script)[0])

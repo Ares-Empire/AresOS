@@ -87,11 +87,10 @@ def _onboard(engine, args, password):
         raise Refused("unsupported_server", "Server lacks identified SPECIAL-USE Sent or UIDPLUS; onboarding stops without sending. Owner must configure special-use folders on server.")
     mail.onboarding_id = account_id  # In-memory only; a crash leaves persisted readiness false.
     account["sent_policy"] = "server"
-    engine.store.write({"mail:account:" + account_id: account}, "mail_account_add", "record probe configuration", outcome="started")
     probe_folder = "AresOS-probe-" + uuid.uuid4().hex
-    with mail.transport.imap(account) as client:
-        value = mail.mutation_context(account, 'CREATE', destination=probe_folder)
-        with mutation(engine.store, value):
+    value = mail.mutation_context(account, 'CREATE', destination=probe_folder)
+    with mutation(engine.store, value, changes={'mail:account:' + account_id: account}):
+        with mail.transport.imap(account) as client:
             ok(client.create(quote(probe_folder)), "Create disposable onboarding folder")
     message = EmailMessage()
     message["From"] = account["addresses"][0]

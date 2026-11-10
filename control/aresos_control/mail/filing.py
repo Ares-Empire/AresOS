@@ -70,8 +70,6 @@ def rename_folder(mail, account, client, source, target, roles_before):
     intent = {'id': filing_id, 'source': source['folder'], 'target': target,
               'account': account['id'], 'message_count': len(source['uids']), 'roles_before': roles_before, 'state': 'started'}
     key = 'mail:rename:' + filing_id
-    mail.store.write({key: intent}, 'mail_folder_rename', 'folder rename intent',
-                     outcome='started', untrusted_content={'rename': intent})
     validity = select(client, source['folder'])
     if validity != source['uidvalidity']:
         raise Refused('stale_reference', 'Folder identity changed before rename; inspect it again.')
@@ -81,6 +79,9 @@ def rename_folder(mail, account, client, source, target, roles_before):
         reference = {'account': account['id'], 'folder': source['folder'], 'uidvalidity': validity, 'uid': uid}
         identities.append({**reference, 'message_id': str(parse(raw, reference).get('Message-ID', ''))})
     value = mail.mutation_context(account, 'RENAME', source=source['folder'], destination=target, identities=identities)
+    intent.update(context=value, context_version=1)
+    mail.store.write({key: intent}, 'mail_folder_rename', 'folder rename intent',
+                     outcome='started', untrusted_content={'rename': intent})
     with mutation(mail.store, value, source_key=key):
         ok(client.rename(quote(source['folder']), quote(target)), 'Rename folder')
     try:
@@ -376,9 +377,10 @@ def file_messages(mail, account, client, verb, refs, target, names, needed):
                 changed = True
                 break
             mail.message(source, writable=True, client=client)
+            value = mail.mutation_context(account, verb.upper(), identities=refs, source=source['folder'], destination=target)
+            intent.update(context=value, context_version=1)
             record('started')
             client.response('COPYUID')  # Discard an old response before this one-UID command.
-            value = mail.mutation_context(account, verb.upper(), identities=refs, source=source['folder'], destination=target)
             with mutation(mail.store, value, source_key=key):
                 ok(client.uid(verb.upper(), str(source['uid']), quote(target)), 'UID ' + verb.upper())
             try:
