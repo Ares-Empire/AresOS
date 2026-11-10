@@ -91,6 +91,12 @@
       if(!enabled)return invoke(method,this,arguments);
       let target;try{target=this==null||this===globalThis?ownDocument:windowDocument?invoke(windowDocument,this,[]):this.document;}catch{return invoke(method,this,arguments);}
       if(!target||!connected(target))return invoke(method,this,arguments);
+      // DOMString conversion may run page code and open another realm's
+      // native dialog. It must finish before this call has a private token.
+      for(let index=0;index<arguments.length&&index<(name==='prompt'?2:1);index++){
+        if(typeof arguments[index]==='symbol')return invoke(method,this,arguments);
+        if(arguments[index]!==undefined)arguments[index]=`${arguments[index]}`;
+      }
       const token='d'+(++dialogSequence);report(target,{kind:'dialog_begin',token,dialog_kind:name});
       try{return invoke(method,this,arguments);}finally{report(target,{kind:'dialog_end',token,dialog_kind:name});}
     });

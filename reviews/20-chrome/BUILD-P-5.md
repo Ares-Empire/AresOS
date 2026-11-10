@@ -165,3 +165,34 @@ bfd84256f4e36c1a61f66e815b87e48b39fa4d4b4f6bebd3e446a7c7078705f3.
 Local Node: 221 pass; 93 mutations rejected, all baselines passing. Local Python
 remains 189 OK. Shared workflows already passed twice on de337c55. The closing
 head will repeat the full set. Ledger: 160 before this batch, expected 162 after.
+
+
+### Borrowed dialog inside native argument conversion: feature-preserving fix
+
+A message/default object's string conversion can open a borrowed native dialog.
+The old wrapper issued its private token before invoking the native method,
+whose WebIDL conversion then ran this page callback. That inner dialog could
+inherit the outer same-kind token. The new regression was first run against the
+old code and failed: it observed one private begin at conversion, expected zero
+(.work/p-borrowed-conversion-before.txt).
+
+Only the message and prompt-default arguments are now converted before issuing
+the private token, with the native string hint. Undefined defaults and unused
+extra arguments retain native behavior; primitive Symbols reach native validation
+before any token, and page conversion exceptions retain identity. Return values
+and wrapper shapes remain covered. No argument value enters the private relay.
+A removal mutation restores the early-authority bug and fails the regression.
+
+The borrowed matrix expands from three to seven variants: all three direct
+natives, all three message conversions, and prompt-default conversion. Each inner
+borrowed dialog must ask unguarded; approving/repeating it leaves receiver zero
+while the outer guarded dialog waits. Answering the outer dialog must then hold
+the distinct submission for its own 0/1/1 approval. This exercises the approved
+rule's requirement to ask more without losing the ordinary hold.
+
+Local Node: 223 pass; all 94 mutations rejected with passing baselines; generated
+and diff checks pass. Runtime hash becomes
+289b0d3304f3347506730b319be295ad196d93af11c4c4d1d94f31111ca44203.
+The new variants need Linux proof. The already-running 3f1af5b2 pair is being
+allowed to complete so its late-case feedback can be batched before this push.
+No extra workflow was started and no local browser/profile was accessed.

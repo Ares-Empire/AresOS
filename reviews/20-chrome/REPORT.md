@@ -40,16 +40,20 @@ inherited origins; selected native files are freshly SHA-256 hashed for each bin
 outer native host plus a primitive path resolved in the isolated world. Runtime.enable remains absent.
 
 Only plain Python/Node ran on this Mac. No local Chrome/Chromium or browser profile was accessed. Browser tests
-run only in GitHub Linux containers through control-chrome. Current local Node: **221 passed**, zero failed,
+run only in GitHub Linux containers through control-chrome. Current local Node: **223 passed**, zero failed,
 cancelled or skipped. Focused Python: **49 OK**. The current full sweep is **189 OK, 232.606 s**
 (`PYTHONPATH=control:control/chrome_tests python3 -m unittest discover -s control/chrome_tests -v`).
-An initial invocation without PYTHONPATH failed to import test_bridge; the corrected complete run passed. The expanded mutation audit rejects **93 mutations**, every baseline passing.
+An initial invocation without PYTHONPATH failed to import test_bridge; the corrected complete run passed. The expanded mutation audit rejects **94 mutations**, every baseline passing.
 [Exact mutation commands/assertions](records/review-fixes-mutations.json) include bounded handoff, detachment,
 retained state/recovery, no false timeout after Page enabling, mandatory borrowed questions, exact answer binding,
 no automatic confirmation/trusted exemption, exact-once dispatch and prior-hold completion. Generated artifacts
 match; diff checks are clean. A further P23 regression observes the actual page after an outside-native answer.
 Native dialogs from inherited editor frames now join CDP and webNavigation identities through the authenticated
-private document, with inherited read-only checks. Six additional blank/srcdoc native cases are mandatory;
+private document, with inherited read-only checks.
+The latest borrowed-native regression also covers message/default object conversion: conversion finishes before
+a private dialog token exists, so a nested borrowed dialog cannot inherit the outer call’s authority. Native
+string hints, defaults, ignored extra arguments, return values and thrown identities have regressions. Seven
+borrowed browser variants are required in the next trial; that extension is not yet browser-verified. Six additional blank/srcdoc native cases are mandatory;
 their Linux proof is pending.
 
 **Partial Linux evidence; whole runs failed:**

@@ -66,7 +66,7 @@ function fixture({relay=false,activate=true,link=true,browserDOM=false,nativeSha
   const rangeNodes=new WeakMap();class StaticRange extends AbstractRange {constructor(options){super();rangeNodes.set(this,options.startContainer);}get startContainer(){if(!rangeNodes.has(this))throw TypeError('Invalid StaticRange');return rangeNodes.get(this);}}
   class InputEvent extends Event {constructor(type,options={}){super(type,options);this.ranges=options.targetRanges?Array.from(options.targetRanges):[];}getTargetRanges(){return retarget?this.ranges.filter(range=>!range.startContainer.getRootNode().host):this.ranges;}}
   const globals={window,document,performance:{now:()=>now},setTimeout,MessageChannel,Symbol,Event,CustomEvent,EventTarget,Node,Element,HTMLElement,HTMLInputElement,HTMLFormElement,DOMException,URL,TextDecoder,Uint8Array,...(relay?{AbstractRange,StaticRange,InputEvent}:{}),...(nativeShadows?{Document:class Document{},ShadowRoot:Node,chrome:{dom:{openOrClosedShadowRoot:host=>hostShadows.get(host)}}}:browserDOM?{Document:class Document{}}:{})};
-  const dialogCalls=[],dialogReports=[];if(dialogs)Object.assign(globals,{alert:({alert(value){dialogCalls.push('alert');}}).alert,confirm:({confirm(value){dialogCalls.push('confirm');return true;}}).confirm,prompt:({prompt(value,initial){dialogCalls.push('prompt');return 'native response';}}).prompt});
+  const dialogCalls=[],dialogReports=[],dialogValues=[],dialogValue=value=>value===undefined?'':`${value}`;if(dialogs)Object.assign(globals,{alert:({alert(value){dialogValues.push([dialogValue(value)]);dialogCalls.push('alert');}}).alert,confirm:({confirm(value){dialogValues.push([dialogValue(value)]);dialogCalls.push('confirm');return true;}}).confirm,prompt:({prompt(value,initial){dialogValues.push([dialogValue(value),dialogValue(initial)]);dialogCalls.push('prompt');return 'native response';}}).prompt});const nativeDialogs=dialogs?{alert:globals.alert,confirm:globals.confirm,prompt:globals.prompt}:{};
   let guard;const isolated=vm.createContext({...globals,fixtureDialogPause:()=>onDialogBoundary(guard)});
   vm.runInContext(fs.readFileSync('control/chrome/extension/guard.js','utf8').replace('debugger;','fixtureDialogPause();'),isolated);
   guard=vm.runInContext("globalThis[Symbol.for('aresos.chrome.guard.v2')]",isolated);
@@ -85,7 +85,7 @@ function fixture({relay=false,activate=true,link=true,browserDOM=false,nativeSha
   assert.equal(vm.runInContext("globalThis[Symbol.for('aresos.chrome.guard.v2')]",main),undefined);
   function arm(target,form,operation=null,conservative=false){guard.arm({generation:'epoch',config:{...policy,conservative},target:id(target),form:form ? id(form):null,operation,primary_submission:false});}
   const api={...guard,resume:(id,operation)=>{const step=reports.find(item=>item.id===id);return guard.resume(id,operation,step?.submitter||step?.element,step?.element);}};
-  return {api,guard,arrivals,dialogCalls,dialogReports,bridgeDetails,cleanup,nativeStrings,nativeFunctions,factory:relay?installed:null,Node,EventTarget,get reports(){reports.push(...guard.steps());return reports;},document,HTMLFormElement,HTMLElement,HTMLInputElement,Event,CustomEvent,originalDispatch,originalRequestSubmit,arm,main,id,advance:milliseconds=>{now+=milliseconds;}};
+  return {api,guard,arrivals,dialogCalls,dialogReports,dialogValues,nativeDialogs,bridgeDetails,cleanup,nativeStrings,nativeFunctions,factory:relay?installed:null,Node,EventTarget,get reports(){reports.push(...guard.steps());return reports;},document,HTMLFormElement,HTMLElement,HTMLInputElement,Event,CustomEvent,originalDispatch,originalRequestSubmit,arm,main,id,advance:milliseconds=>{now+=milliseconds;}};
 }
 
 test('private factory creation changes no prototype before its cleanup handle can be retained',()=>{
@@ -578,4 +578,29 @@ test('P1 native dialog return values survive and the private boundary precedes t
 test('P1 a native owner answer keeps native form behavior when no tool answer armed a hold',()=>{
   const f=fixture({relay:true,dialogs:true}),form=new f.HTMLFormElement();f.guard.control('epoch');f.main.continueAfterDialog=()=>form.submit();
   assert.equal(vm.runInContext("confirm('Continue?')",f.main),true);f.main.continueAfterDialog();assert.equal(f.arrivals.length,1);assert.equal(f.reports.length,0);
+});
+
+
+test('P1 borrowed dialogs during native string conversion cannot borrow the outer return token',()=>{
+  for(const kind of ['alert','confirm','prompt'])for(const argument of kind==='prompt'?[0,1]:[0]){
+    const f=fixture({relay:true,dialogs:true});f.guard.control('epoch');let calls=0;
+    f.main.convert=hint=>{assert.equal(hint,'string');assert.equal(f.dialogReports.length,0,'argument conversion precedes private dialog authority');calls++;f.nativeDialogs[kind]('Borrowed native');return 'Converted native argument';};
+    const value=vm.runInContext(`(()=>{const value={[Symbol.toPrimitive](hint){return convert(hint);}};return ${kind}(${argument===0?'value':"'Outer native',value"});})()`,f.main);
+    assert.equal(calls,1);assert.deepEqual(f.dialogCalls,[kind,kind]);assert.equal(value,kind==='alert'?undefined:kind==='confirm'?true:'native response');assert.deepEqual(f.dialogReports.map(row=>row[0]),['begin','end']);
+  }
+});
+
+
+test('P1 dialog conversion keeps native defaults ignored extras and thrown identities',()=>{
+  for(const kind of ['alert','confirm','prompt'])for(const value of [undefined,null,42]){
+    const f=fixture({relay:true,dialogs:true});f.guard.control('epoch');f.main.value=value;const extra={toString(){throw Error('An ignored argument was converted');}};f.main.extra=extra;
+    const args=kind==='prompt'?[value,undefined,extra]:[value,extra];f.nativeDialogs[kind](...args);
+    vm.runInContext(`${kind}(value,${kind==='prompt'?'undefined,extra':'extra'})`,f.main);assert.deepEqual(f.dialogValues[0],f.dialogValues[1]);
+  }
+  for(const kind of ['alert','confirm','prompt']){
+    const f=fixture({relay:true,dialogs:true});f.guard.control('epoch');
+    assert.throws(()=>vm.runInContext(`${kind}(Symbol('not a DOMString'))`,f.main),error=>error.name==='TypeError');assert.equal(f.dialogReports.length,0);
+    const failure={fixture:'conversion failure'};f.main.fail=()=>{throw failure;};
+    assert.throws(()=>vm.runInContext(`${kind}({toString(){return fail();}})`,f.main),error=>error===failure);assert.equal(f.dialogReports.length,0);
+  }
 });

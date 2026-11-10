@@ -78,7 +78,7 @@ export function reviewPage(url){
     script=`const key=${JSON.stringify('preexisting-'+id)};if(!sessionStorage.getItem(key)){sessionStorage.setItem(key,'opened');setTimeout(()=>{const reply=globalThis.firstScriptDialogs[${JSON.stringify(kind)}].call(window,'Already open','Original prompt');fetch(${JSON.stringify(receive)},{method:'POST',body:String(reply)});},300);}`;
   }else if(mode==='borrowed-dialog'){
     const kind=url.searchParams.get('dialog')||'confirm';body=form('<input type="hidden" name="reply">')+sink;
-    script=`globalThis.reviewChange=()=>setTimeout(()=>{const reply=opener.firstScriptDialogs[${JSON.stringify(kind)}].call(window,'Borrowed native','Original prompt');document.querySelector('[name=reply]').value=String(reply);document.querySelector('form').submit();},20);`;
+    script=`globalThis.reviewChange=()=>setTimeout(()=>{const borrowed=()=>opener.firstScriptDialogs[${JSON.stringify(kind)}].call(window,'Borrowed native','Original prompt');const converted={[Symbol.toPrimitive](hint){if(hint!=='string')throw Error('Native string hint changed');borrowed();return 'Converted native argument';}};const reply=${variant==='conversion-message'?`globalThis[${JSON.stringify(kind)}](converted,'Original prompt')`:variant==='conversion-default'?`globalThis[${JSON.stringify(kind)}]('Outer native',converted)`:'borrowed()'};document.querySelector('[name=reply]').value=String(reply);document.querySelector('form').submit();},20);`;
   }else if(mode==='inline-dialog'){
     const kind=url.searchParams.get('dialog');body='<button type="button">Continue</button><iframe id="child"></iframe>'+sink;
     const markup=form('<input type="hidden" name="reply">');

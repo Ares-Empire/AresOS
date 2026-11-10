@@ -22,6 +22,7 @@ def node(file,pattern):return [file,pattern]
 case('P1',B,'const armed=await armDialog(tab,command.conservative);','const armed={owner:controlled.get(tab),nonce:"unarmed",frames:[]};armed.owner.hold={};',node('background','P1|answering a dialog collects'))
 case('P1-boundary',B,'source.state.dialogBarrier={nonce,token:entry.token,documents,source,resolve,reject,ready};','',node('background','answering a dialog collects'))
 case('P1-window-return',M,"finally{report(target,{kind:'dialog_end',token,dialog_kind:name});}",'finally{}',node('page','P1 native dialog return values'))
+case('P1-dialog-conversion',M,'if(arguments[index]!==undefined)arguments[index]=`${arguments[index]}`;','',node('page','P1 borrowed dialogs during'))
 case('P1-auth',B,"if(boundary.result.value.token!==barrier.token)",'if(false)',node('background','P1 only the authenticated'))
 case('P1-conservative',A,"'operation':operation,'conservative':payload.get('conservative',False)","'operation':operation",'test_questions.Questions.test_p1_native_answer_keeps_the_service_conservative_policy',True)
 case('P1-cross-site-target',B,"const source=documents.find(value=>value.doc.document===entry?.document);","const source=documents.find(value=>value.doc.document===entry?.document&&!value.state.source?.sessionId);",node('background','P1 a cross-site dialog'))

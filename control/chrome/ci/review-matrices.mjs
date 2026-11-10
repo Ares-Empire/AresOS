@@ -44,12 +44,18 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
     }
   });
   await check('GROUP 4 REVIEW borrowed native dialogs always ask bind the answer and never replay',async()=>{
-    for(const kind of ['alert','confirm','prompt']){
-      setTab(await nativeDonor(getTab()));const tab=getTab(),id='review-borrowed-'+kind;await nav('review-page&mode=borrowed-dialog&dialog='+kind+'&id='+id);await delay(600);await fixture.mutate(id,'review-change');
+    for(const kind of ['alert','confirm','prompt'])for(const variant of kind==='prompt'?['direct','conversion-message','conversion-default']:['direct','conversion-message']){
+      setTab(await nativeDonor(getTab()));const tab=getTab(),id='review-borrowed-'+kind+'-'+variant;await nav('review-page&mode=borrowed-dialog&dialog='+kind+'&variant='+variant+'&id='+id);await delay(600);await fixture.mutate(id,'review-change');
       const dialog=await eventually(async()=>(await call('read',{tab})).dialog,'borrowed '+kind);assert.equal(dialog.unguarded,true);
       const prepared=await call('dialog',{tab,expected:dialog,accept:true,...(kind==='prompt'?{text:'Chosen prompt'}:{})});assert.ok(prepared.approval);assert.match(prepared.approval.question,/outside the page guard/);assert.match(prepared.approval.question,/continuation isn't held/);assert.equal(receiverEvidence(id,'borrowed question').count,0);
       const changed=structuredClone(prepared.approval);changed.description.untrusted_content.input.accept=false;assert.equal((await rpc('submit',changed)).ok,false);assert.equal((await rpc('submit_trusted',prepared.approval)).ok,false);assert.equal(receiverEvidence(id,'borrowed unapproved answers refused').count,0);
-      await approval(prepared,id);await closeNativeDonor();
+      if(variant==='direct')await approval(prepared,id);
+      else{
+        await call('submit',prepared.approval);assert.equal(receiverEvidence(id,'borrowed approved before outer dialog').count,0);await call('submit',prepared.approval);assert.equal(receiverEvidence(id,'borrowed approval repeated before outer dialog').count,0);
+        const outer=await eventually(async()=>(await call('read',{tab})).dialog,'outer native after string conversion');assert.equal(outer.unguarded,undefined);assert.notEqual(outer.id,dialog.id);
+        const answered=await call('dialog',{tab,expected:outer,accept:true,...(kind==='prompt'?{text:'Outer answer'}:{})});assert.ok(!answered.approval);assert.equal(receiverEvidence(id,'outer native answered with hold').count,0);await approval(answered,id);
+      }
+      await closeNativeDonor();
     }
   });
   await check('GROUP 3 REVIEW ordinary blank and srcdoc editors bind drafts and send normally',async()=>{
