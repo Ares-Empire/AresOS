@@ -95,6 +95,13 @@ test('popup reads revoke control when its opener no longer belongs to the group'
   await assert.rejects(f.run('requireTab(8)'),/opener is outside/);assert.equal(f.run('controlled.size'),0);
 });
 
+test('a popup moved to another native window loses control and a form-target GET cannot reload',async()=>{
+  const f=lifecycleFixture();f.run("controlled.set(7,{epoch:'parent'});controlled.set(8,{epoch:'child',virtualGroup:true,window:2,parentTab:7,parentEpoch:'parent'});");
+  await assert.rejects(f.run('requireTab(8)'),/outside the Claude group/);assert.equal(f.run('controlled.has(8)'),false);
+  f.run("controlled.set(8,{epoch:'child',parentTab:7});documentMethods.set('[8,0]',{document:'form-get',method:'GET'});formLoadedDocuments.set('[8,0]','form-get');chrome.webNavigation.getAllFrames=async()=>[{frameId:0,documentId:'form-get',url:'http://fixture.test/form'}];cdp=async()=>({frameTree:{frame:{url:'http://fixture.test/form',loaderId:'loader'}}});");
+  await assert.rejects(f.run('reloadIdentity(8)'),/form submission/);
+});
+
 test('Stop during blocked native cleanup returns pending and preserves handles until restoration',async()=>{
   const f=lifecycleFixture();f.run("globalThis.clockTimers=[];setTimeout=(callback,delay)=>{clockTimers.push({callback,delay});return 0};controlled.set(7,{epoch:'epoch'});preloadTargets.set('[7,null]',{source:{tabId:7},tab:7,contexts:new Map(),documents:new Map([['main',{cleanup:'restore'}]]),installing:new Set()});chrome.debugger.sendCommand=(source,method)=>{lifecycleCalls.push(method);return method==='Runtime.callFunctionOn'?new Promise(resolve=>{globalThis.unblockCleanup=resolve}):Promise.resolve({})};");
   const stopped=f.run('stop()');await spin(f,"typeof unblockCleanup==='function'");assert.equal(f.run('controlled.size'),0);assert.equal(f.run("lifecycleCalls.includes('detach')"),false);assert.equal(f.run("lifecycleCalls.includes('ungroup')"),false);

@@ -15,7 +15,7 @@ export function popupPage(url){
   };
 }
 
-export async function popupMatrices({check,call,rpc,nav,counts,eventually,tab,fixture,ownerOpenPopup,approval}){
+export async function popupMatrices({check,call,rpc,nav,counts,eventually,tab,fixture,ownerOpenPopup,popupEvidence,approval}){
   const rows=async targetTab=>{
     const page=await call('read',{tab:targetTab});
     return page.untrusted_content.tree.split('\n').filter(line=>line.startsWith('{')).map(JSON.parse);
@@ -33,6 +33,7 @@ export async function popupMatrices({check,call,rpc,nav,counts,eventually,tab,fi
       await eventually(()=>counts('loaded-'+id)===2,'one guarded reload');const fresh=await target(popup.tab);assert.notEqual(fresh.reference.document,before.reference.document);assert.equal((await rpc('click',before)).ok,false);
       const loads=fixture.arrivals.filter(row=>new URL(row.url,'http://fixture.test').searchParams.get('case')==='loaded-'+id).map(row=>JSON.parse(row.body));
       assert.equal(loads.length,2);assert.ok(loads.every(load=>load.opener));assert.deepEqual(loads[1],loads[0],'popup window, name and opener remain intact');
+      popupEvidence(mode);
       await approval(await call('click',fresh),id);await eventually(()=>counts('flow-'+id)===1,'opener receives postMessage after reload');evidence(id,'guarded 0/1/1 and opener complete');
       await call('close_tab',{tab:popup.tab});
     }

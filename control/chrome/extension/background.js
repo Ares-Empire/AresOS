@@ -13,7 +13,7 @@ const dialogInputs=new WeakMap();
 const preloadTargets=new Map();
 const releasing=new Map(),admissions=new Map();
 let stopGeneration=0;
-const documentMethods=new Map(),currentDocuments=new Map();
+const documentMethods=new Map(),currentDocuments=new Map(),formLoadedDocuments=new Map();
 function navigationRecord(map,key,value){map.delete(key);map.set(key,value);if(map.size>20000)map.delete(map.keys().next().value);}
 const targetKey=source=>JSON.stringify([source.tabId,source.sessionId||null]);
 let preloadBundle;
@@ -213,7 +213,7 @@ async function restoreTab(tab,original){
 async function admitTab(tab,generation,opener=null) {
   const check=()=>{if(stopGeneration!==generation||releasing.has(tab)||opener&&controlled.get(opener.tab)?.epoch!==opener.epoch)throw Error('stale_reference: control stopped during tab admission');};
   if(opener){await requireTab(opener.tab);check();}
-  check();const current = await chrome.tabs.get(tab);check();safeURL(current.url);
+  check();const current = await chrome.tabs.get(tab);check();safeURL(current.url||(opener?current.pendingUrl||'about:blank':current.url));
   if (controlled.has(tab)) return {tab, session, group:groupId};
   const window=await chrome.windows.get(current.windowId);check();
   const original = {window:current.windowId,index:current.index,group:current.groupId,epoch:crypto.randomUUID(),debuggee:{tabId:tab},virtualGroup:window.type!=='normal',...(opener?{parentTab:opener.tab,parentEpoch:opener.epoch,popupNeedsReload:true}:{})};
@@ -315,7 +315,7 @@ async function collectSteps(tab,epoch=controlled.get(tab)?.epoch){
 async function requireTab(tab) {
   const current = await chrome.tabs.get(tab);
   const owner=controlled.get(tab);
-  if (!owner || !owner.virtualGroup&&current.groupId !== groupId) { await release(tab); throw Error('stale_reference: tab is outside the Claude group'); }
+  if (!owner || (owner.virtualGroup?current.windowId!==owner.window:current.groupId !== groupId)) { await release(tab); throw Error('stale_reference: tab is outside the Claude group'); }
   if(owner.parentTab!==undefined){
     try{if(controlled.get(owner.parentTab)?.epoch!==owner.parentEpoch)throw Error('opener control ended');await requireTab(owner.parentTab);}
     catch{await release(tab);throw Error('stale_reference: popup opener is outside the Claude group');}
@@ -327,7 +327,7 @@ async function reloadIdentity(tab){
   const tree=await cdp(tab,'Page.getFrameTree'),frames=await chrome.webNavigation.getAllFrames({tabId:tab})||[];
   const top=frames.find(frame=>frame.frameId===0);
   if(!top||!tree.frameTree?.frame.loaderId||tree.frameTree.frame.url!==top.url)throw Error('stale_reference: navigation changed; read again');
-  for(const frame of frames){if(frame.url==='about:blank')continue;const method=documentMethods.get(JSON.stringify([tab,frame.frameId]));if(method?.document===frame.documentId&&method.method!=='GET')throw Error('refused: this document was loaded by a form submission; open its address fresh in a Claude tab');if(frame.frameId===0&&controlled.get(tab)?.getLoaders?.has(tree.frameTree.frame.loaderId))continue;if(method?.document!==frame.documentId||method.method!=='GET')throw Error('refused: this document was loaded by a form submission or its request method is unknown; open its address fresh in a Claude tab');}
+  for(const frame of frames){if(frame.url==='about:blank')continue;const key=JSON.stringify([tab,frame.frameId]),method=documentMethods.get(key);if(method?.document===frame.documentId&&method.method!=='GET'||controlled.get(tab)?.parentTab!==undefined&&formLoadedDocuments.get(key)===frame.documentId)throw Error('refused: this document was loaded by a form submission; open its address fresh in a Claude tab');if(frame.frameId===0&&controlled.get(tab)?.getLoaders?.has(tree.frameTree.frame.loaderId))continue;if(method?.document!==frame.documentId||method.method!=='GET')throw Error('refused: this document was loaded by a form submission or its request method is unknown; open its address fresh in a Claude tab');}
   rememberGet(tab,tree.frameTree.frame.loaderId);
   return {loaderId:tree.frameTree.frame.loaderId,frameId:tree.frameTree.frame.id||null,frames:frames.map(frame=>[frame.frameId,frame.documentId,frame.url])};
 }
@@ -652,10 +652,10 @@ chrome.tabs.onUpdated.addListener(async(tab,change)=>{
   const previous=controlled.get(tab);if(!previous)return;
   let current;try{current=await chrome.tabs.get(tab);}catch{return;}
   if(controlled.get(tab)!==previous)return;
-  if(!previous.virtualGroup&&current.groupId!==groupId){release(tab);return;}
+  if(previous.virtualGroup?current.windowId!==previous.window:current.groupId!==groupId){release(tab);return;}
   if(change.url)try{safeURL(current.url);}catch{release(tab);}
 });
-function removedTab(tab){if(controlled.has(tab))release(tab);for(const state of preloadTargets.values())if(state.tab===tab)destroyedTarget(state);for(const map of [documentMethods,currentDocuments])for(const key of map.keys())if(key.startsWith('['+tab+','))map.delete(key);}
+function removedTab(tab){if(controlled.has(tab))release(tab);for(const state of preloadTargets.values())if(state.tab===tab)destroyedTarget(state);for(const map of [documentMethods,currentDocuments,formLoadedDocuments])for(const key of map.keys())if(key.startsWith('['+tab+','))map.delete(key);}
 chrome.tabs.onRemoved.addListener(removedTab);
 chrome.webNavigation.onCreatedNavigationTarget.addListener(createdTarget);
 // Passive, exact-document method metadata only: no headers, bodies or interception.
@@ -667,6 +667,8 @@ chrome.webNavigation.onCommitted.addListener(({tabId,frameId,documentId,transiti
   const key=JSON.stringify([tabId,frameId]);
   const previous=currentDocuments.get(key),owner=controlled.get(tabId),reload=frameId===0?owner?.getReload:null;
   navigationRecord(currentDocuments,key,documentId);
+  formLoadedDocuments.delete(key);
+  if(transitionType==='form_submit')navigationRecord(formLoadedDocuments,key,documentId);
   if(documentMethods.get(key)?.document!==documentId){
     documentMethods.delete(key);
     // Chrome omits the new navigation document ID from some webRequest events.

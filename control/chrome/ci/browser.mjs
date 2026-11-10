@@ -136,6 +136,7 @@ try {
     await eventually(async()=>!(await call('tabs')).items.some(item=>item.tab===donorTab),'owner closed the native donor');donorTab=null;
   };
   for(const failure of await matrices({call,read,nav,target,counts,eventually,tab,fixture,admin,rpc,caller,ownerNavigate,ownerOpenPopup,nativeDonor,closeNativeDonor,baseline,
+    popupEvidence:mode=>execFileSync('import',['-window','root','/out/popup-'+mode+'.png']),
     ownerDismiss:()=>execFileSync('xdotool',['key','--clearmodifiers','Escape']),
     isolationAfter:()=>{const finalListeners=execFileSync('ss',['-lntp'],{encoding:'utf8'}).split('\n').filter(line=>line.includes('\"chrome\"'));assert.equal(finalListeners.length,0,'Chrome must still have no listening port after all tools');fs.writeFileSync('/out/isolation-after.json',JSON.stringify({listeners:finalListeners}));},
     ownerHistory:async(direction)=>{execFileSync('xdotool',['key','--clearmodifiers',direction==='back'?'alt+Left':'alt+Right']);await delay(400);},

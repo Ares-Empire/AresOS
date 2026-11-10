@@ -6,7 +6,7 @@ import {setTimeout as delay} from 'node:timers/promises';
 import {measureCompatibility,compareCompatibility} from './compatibility.mjs';
 import {popupMatrices} from './popups.mjs';
 
-export async function matrices({call,read,nav,target,counts,eventually,tab,fixture,admin,rpc,caller,ownerNavigate,ownerOpenPopup,nativeDonor,closeNativeDonor,ownerKey,ownerDismiss,ownerHistory,ownerBookmark,lifecycle,restoreControl,stopClick,baseline,isolationAfter}) {
+export async function matrices({call,read,nav,target,counts,eventually,tab,fixture,admin,rpc,caller,ownerNavigate,ownerOpenPopup,popupEvidence,nativeDonor,closeNativeDonor,ownerKey,ownerDismiss,ownerHistory,ownerBookmark,lifecycle,restoreControl,stopClick,baseline,isolationAfter}) {
   const results=[];let trustOperation;
   async function check(name,fn) {
     try {await fn();results.push({name,passed:true});console.log(name,'PASS');}
@@ -43,7 +43,7 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
       await approval(await call('click',await target('Continue')),id);
     }
   });
-  await popupMatrices({check,call,rpc,nav,counts,eventually,tab,fixture,ownerOpenPopup,approval});
+  await popupMatrices({check,call,rpc,nav,counts,eventually,tab,fixture,ownerOpenPopup,popupEvidence,approval});
   await check('GROUP 7 native compatibility inside and outside Claude tabs',async()=>{
     await nav('native-compat&id=controlled');
     const controlled=await measureCompatibility({id:'controlled',fixture,eventually,start:async()=>call('click',await target('Continue'))});
@@ -375,9 +375,11 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
   await check('QUALIFICATION conservative activations ask and core failures gate before reads',async()=>{
     admin('chrome_sites',{command:'allow',operation_id:trustOperation});
     await lifecycle({fixture:'qualification',mode:'conservative'});
+    const notice=reply=>assert.match(reply.pending?.chrome_version_notice,/not qualified/,'every conservative result carries its notice');
+    notice(await rpc('read',{tab}));notice(await rpc('read',{tab:-1}));
     for(const [index,[verb,label,args]]of [['click','Continue',{}],['select','Choice',{value:'b'}],['check','Tick',{checked:true}],['click','Read more',{}],['press','Continue',{key:'Enter'}],['press','Continue',{key:'Space'}],['click','Search now',{}]].entries()){
       const id='conservative-'+index;await nav('action-matrix&mode=conservative&id='+id);const view=await call('read',{tab});assert.match(view.version_notice,/not qualified/);
-      const prepared=await call(verb,{...await target(label),...args});await approval(prepared,id);
+      const reply=await rpc(verb,{...await target(label),...args});notice(reply);assert.equal(reply.ok,true);await approval(reply.data,id);console.log('CONSERVATIVE RECEIVER',id,'0 before, 1 after, 1 after repeat');
     }
     const typing=await call('fill',{...await target('Text'),text:'Plain text\nwith line breaks'});assert.ok(!typing.approval);assert.equal(counts('unexpected-enter'),0);
     assert.ok(!(await call('scroll',{...await target('Text'),x:0,y:40})).approval,'scroll stays free');
@@ -389,7 +391,7 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
     await nav('action-matrix&mode=submit&id=conservative-form&tag=submit');await approval(await call('click',await target('Continue')),'conservative-form');
     await setup({id:'conservative-script',mode:'conservative-script',route:'fill'});const scripted=await call('fill',{...await target('Trigger text'),text:'Free typing'});assert.equal(counts('conservative-script'),0);assert.equal(counts('handler-conservative-script'),0);assert.ok(scripted.followups.some(item=>item.stopped));await approval(await call('click',await target('Read more')),'conservative-script');assert.equal(counts('handler-conservative-script'),1);
     await nav('site&id=conservative-bank','bank');
-    for(const [verb,label,args]of [['fill','Amount',{text:'1'}],['click','Continue',{}],['upload','File',{path:'/fixture.txt'}]])assert.equal((await rpc(verb,{...await target(label),...args})).error.code,'readonly_site');
+    for(const [verb,label,args]of [['fill','Amount',{text:'1'}],['click','Continue',{}],['upload','File',{path:'/fixture.txt'}]]){const reply=await rpc(verb,{...await target(label),...args});notice(reply);assert.equal(reply.error.code,'readonly_site');}
     await nav('site&id=conservative-gmail','gmail');const generic=await call('click',await target('Send'));assert.equal(generic.approval.description.untrusted_content.page_state.adapter,null);assert.equal((await rpc('submit_trusted',generic.approval)).ok,false);assert.equal(counts('conservative-gmail-Send'),0);
     await approval(generic,'conservative-gmail-Send');
     await nav('password-matrix');assert.doesNotMatch(JSON.stringify(await read()),/SENTINEL_PRIVATE_PASSWORD_20/);
