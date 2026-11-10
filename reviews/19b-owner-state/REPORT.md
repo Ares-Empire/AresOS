@@ -897,3 +897,25 @@ check both topologies, every flow and all shared clean cases. No full list is
 committed. The final Linux strict proof and run count follow below.
 
 **Run — final local alteration matrix:** 68 scenarios, **362059 alterations, zero slipped**, across four disjoint passing shards. Kinds: boolean=6714, effect=148321, restore=1412, row=1877, sequence=1412, state=202323. All 13 planted field kinds reached the comparison and all 13 broken-oracle controls failed as intended in each shard. Elapsed times were 180.760s / 267.601s / 292.477s / 116.567s. The final five Mail storage measurements were also repeated byte-for-byte after the optional-role fix; the updated storage manifest pins the final output.
+
+**Run — first Linux diagnostic wave (`8e455241`):** base runs `42754922711`
+and `42754965833` exposed 21 failures in two tests that still targeted the old
+write sequence. R2 adds pre-effect context commits. The crash matrix now
+explicitly covers all twelve send, eight delete and four repair writes, retaining
+the original no-replay/restore assertions at every durability fence. The
+incomplete-result test injects at the recipient result commit after the new
+context commit. With a worktree-only policy substitute inherited by child
+processes, the expanded local crash/journal suite printed `Ran 16 tests in
+19.053s`, `OK`; no host policy was installed. The 119 oracle/selection self-tests
+also pass.
+
+The first Mail diagnostic run `42754922775` revealed two infrastructure issues:
+whole-flow inherited fault tests were spread over more workers than their 22
+flows, and Linux SQLite/export syscall traces differ from the local capture.
+The inherited suite now uses the first twelve workers only, covering every flow
+once with nonempty buckets; the independent owner sweep keeps all 48 jobs and
+all shared cases. Selection tests assert that union and nonemptiness. The
+Linux full actual lists are retained for the exact Linux pin; no R2 difference
+is admitted. The redundant second Mail diagnostic `42754968875` was cancelled
+once these failures were known; it is counted, never passing evidence. Neither
+failed base run is acceptance evidence. Final strict repetitions follow below.

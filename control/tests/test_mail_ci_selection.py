@@ -3,7 +3,7 @@ from pathlib import Path
 import unittest
 import ast
 
-from ci.mail.tests import select_names, flow_partition
+from ci.mail.tests import select_names, flow_partition, inherited_names
 from owner_state_oracle.gaps import owned, BUCKETS, SUITE_BUCKETS
 
 
@@ -44,8 +44,11 @@ class MailSelections(unittest.TestCase):
                 self.assertEqual(sum(flow in groups[group] and owned({'owner': str(bucket), 'suite': flow}, shard, count, 0, 1)
                     for group in range(3) for count in [24 if group == 2 else 12] for shard in range(count)), 1)
         for index, flow in enumerate(assignments['FLOWS']):
-            self.assertEqual(sum(index % (3 * count) == group * count + shard for group in range(3)
-                for count in [24 if group == 2 else 12] for shard in range(count)), 1)
+            self.assertEqual(sum(index % count == shard and 'test_review23_sweep' in inherited_names(
+                ['test_review23_sweep', 'test_review24_io'], 'sweep', group)
+                for group in range(3) for count in [24 if group == 2 else 12] for shard in range(count)), 1)
+        self.assertTrue(all(any(index % 12 == shard for index in range(len(assignments['FLOWS'])))
+                            for shard in range(12)))
         for group, count in ((-1, 2), (2, 2), (0, 0)):
             with self.assertRaises(ValueError):
                 flow_partition(flows, group, count)

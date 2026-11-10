@@ -58,7 +58,9 @@ class JournalClosed(EngineCase):
             nonlocal writes
             if name == 'journal_appended':
                 writes += 1
-                if writes == 2:
+                # Submission and exact context precede the first arrival;
+                # fail its result commit before any second recipient.
+                if writes == 3:
                     raise OSError('injected stage write failure')
         self.engine.store.checkpoint = fail
         self.assertFalse(self.call('testapp_send', approval)['ok'])

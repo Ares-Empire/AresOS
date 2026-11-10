@@ -7,7 +7,6 @@ import sys
 import tempfile
 import time
 import unittest
-from unittest.mock import patch
 
 
 def run_workers(command, environment, task, count=2):
@@ -68,6 +67,13 @@ def select_names(selection, modules, shard=0, shards=1):
     return [name for index, name in enumerate(names) if index % shards == shard] if selection == 'suite' else names
 
 
+def inherited_names(names, selection, group):
+    # The inherited sweep assigns whole flows, so its 22 cases use only the
+    # first group's 12 workers. Other groups own the independent oracle sweep.
+    return [name for name in names if selection != 'sweep' or group == 0 or
+            name not in {'test_review23_sweep', 'test_review24_io'}]
+
+
 def main(selection):
     root = Path(__file__).resolve().parents[2] / 'mail_tests'
     sys.path.insert(0, str(root))
@@ -76,17 +82,10 @@ def main(selection):
     parallel = 'test_owner_state_sweep' in names
     if parallel:
         names.remove('test_owner_state_sweep')
+    names = inherited_names(names, selection, int(os.environ.get('MAIL_FLOW_GROUP', '0')))
     started = time.monotonic()
     def run():
-        # The owner worker keeps its suite ledger buckets. The inherited
-        # whole-flow sweep partitions across every group/job exactly once.
-        group = int(os.environ.get('MAIL_FLOW_GROUP', '0'))
-        groups = int(os.environ.get('MAIL_FLOW_GROUPS', '1'))
-        inherited = {} if selection != 'sweep' else {
-            'MAIL_SWEEP_SHARD': str(group * int(os.environ.get('MAIL_SWEEP_SHARDS', '1')) + int(os.environ.get('MAIL_SWEEP_SHARD', '0'))),
-            'MAIL_SWEEP_SHARDS': str(groups * int(os.environ.get('MAIL_SWEEP_SHARDS', '1')))}
-        with patch.dict(os.environ, inherited):
-            return unittest.TextTestRunner(verbosity=2).run(unittest.defaultTestLoader.loadTestsFromNames(names))
+        return unittest.TextTestRunner(verbosity=2).run(unittest.defaultTestLoader.loadTestsFromNames(names))
     if parallel:
         environment = {**os.environ, 'PYTHONPATH': str(root) + os.pathsep + os.environ.get('PYTHONPATH', '')}
         result, good = run_workers([sys.executable, '-m', 'unittest', '-v', 'test_owner_state_sweep'], environment, run, count=int(os.environ.get('OWNER_SWEEP_WORKERS', '3')))
