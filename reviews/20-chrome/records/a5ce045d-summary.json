@@ -1,0 +1,24 @@
+[
+  {
+    "run": "42728623630",
+    "attempt": "1",
+    "mode": "external",
+    "prefix": "42728623630-external",
+    "owner-input": null,
+    "view-measurements": null,
+    "qualification-result": null,
+    "recorded": 0,
+    "passed": 0
+  },
+  {
+    "run": "42728630023",
+    "attempt": "1",
+    "mode": "external",
+    "prefix": "42728630023-external",
+    "owner-input": null,
+    "view-measurements": null,
+    "qualification-result": null,
+    "recorded": 0,
+    "passed": 0
+  }
+]

@@ -1,0 +1,78 @@
+[
+  {
+    "run": 42728905415,
+    "head": "a5ce045d67906d45a61634fd1527229c9c8e58e0",
+    "mode": "external",
+    "kind": "diagnostic only, not acceptance",
+    "version": "Google Chrome 157.0.8103.50",
+    "evidence": [
+      {
+        "line": 5,
+        "text": "{\"phase\":\"browser-capability\",\"method\":\"Target.attachToBrowserTarget\",\"error\":\"Error: {\\\"code\\\":-32000,\\\"message\\\":\\\"Not allowed\\\"}\"}"
+      },
+      {
+        "line": 6,
+        "text": "{\"phase\":\"browser-capability\",\"method\":\"Target.autoAttachRelated\",\"error\":\"Error: {\\\"code\\\":-32000,\\\"message\\\":\\\"Target.autoAttachRelated is only supported on the Browser target\\\"}\"}"
+      },
+      {
+        "line": 7,
+        "text": "{\"phase\":\"browser-attach\",\"error\":\"Error: No target with given id browser.\"}"
+      },
+      {
+        "line": 14,
+        "text": "{\"phase\":\"first-page-script\",\"preloadMarker\":\"boolean\",\"result\":false,\"handlers\":0,\"same\":false,\"relaySame\":true,\"relayDetail\":{\"fixture\":9},\"relayReturn\":false,\"relayPrevented\":true,\"originalPrevented\":false,\"privateVisible\":\"undefined\"}"
+      },
+      {
+        "line": 15,
+        "text": "{\"phase\":\"popup-first-script\",\"preloadMarker\":\"undefined\",\"privateVisible\":\"undefined\"}"
+      },
+      {
+        "line": 16,
+        "text": "{\"phase\":\"popup-observation\",\"root\":1815774103,\"popups\":[{\"tab\":1815774104,\"url\":\"http://popup.test:8765/popup\",\"opener\":1815774103,\"controlled\":false}]}"
+      },
+      {
+        "line": 17,
+        "text": "DIAGNOSTIC ONLY: no acceptance result is produced."
+      }
+    ],
+    "page_autoattach_events": 0
+  },
+  {
+    "run": 42728905415,
+    "head": "a5ce045d67906d45a61634fd1527229c9c8e58e0",
+    "mode": "policy",
+    "kind": "diagnostic only, not acceptance",
+    "version": "Google Chrome 157.0.8103.50",
+    "evidence": [
+      {
+        "line": 5,
+        "text": "{\"phase\":\"browser-capability\",\"method\":\"Target.attachToBrowserTarget\",\"error\":\"Error: {\\\"code\\\":-32000,\\\"message\\\":\\\"Not allowed\\\"}\"}"
+      },
+      {
+        "line": 6,
+        "text": "{\"phase\":\"browser-capability\",\"method\":\"Target.autoAttachRelated\",\"error\":\"Error: {\\\"code\\\":-32000,\\\"message\\\":\\\"Target.autoAttachRelated is only supported on the Browser target\\\"}\"}"
+      },
+      {
+        "line": 7,
+        "text": "{\"phase\":\"browser-attach\",\"error\":\"Error: No target with given id browser.\"}"
+      },
+      {
+        "line": 14,
+        "text": "{\"phase\":\"first-page-script\",\"preloadMarker\":\"boolean\",\"result\":false,\"handlers\":0,\"same\":false,\"relaySame\":true,\"relayDetail\":{\"fixture\":9},\"relayReturn\":false,\"relayPrevented\":true,\"originalPrevented\":false,\"privateVisible\":\"undefined\"}"
+      },
+      {
+        "line": 15,
+        "text": "{\"phase\":\"popup-first-script\",\"preloadMarker\":\"undefined\",\"privateVisible\":\"undefined\"}"
+      },
+      {
+        "line": 16,
+        "text": "{\"phase\":\"popup-observation\",\"root\":269498854,\"popups\":[{\"tab\":269498855,\"url\":\"http://popup.test:8765/popup\",\"opener\":269498854,\"controlled\":false}]}"
+      },
+      {
+        "line": 17,
+        "text": "DIAGNOSTIC ONLY: no acceptance result is produced."
+      }
+    ],
+    "page_autoattach_events": 0
+  }
+]

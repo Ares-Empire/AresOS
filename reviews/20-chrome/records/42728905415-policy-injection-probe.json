@@ -1,0 +1,115 @@
+[
+  {
+    "phase": "ready"
+  },
+  {
+    "phase": "context",
+    "context": {
+      "auxData": {
+        "frameId": "8DA2C743C90A755F11D382B93D784387",
+        "isDefault": true,
+        "type": "default"
+      },
+      "id": 1,
+      "name": "",
+      "origin": "://",
+      "uniqueId": "1076993049458847343.-8412460329213290802"
+    }
+  },
+  {
+    "phase": "browser-capability",
+    "method": "Target.attachToBrowserTarget",
+    "error": "Error: {\"code\":-32000,\"message\":\"Not allowed\"}"
+  },
+  {
+    "phase": "browser-capability",
+    "method": "Target.autoAttachRelated",
+    "error": "Error: {\"code\":-32000,\"message\":\"Target.autoAttachRelated is only supported on the Browser target\"}"
+  },
+  {
+    "phase": "browser-attach",
+    "error": "Error: No target with given id browser."
+  },
+  {
+    "phase": "context",
+    "context": {
+      "auxData": {
+        "frameId": "8DA2C743C90A755F11D382B93D784387",
+        "isDefault": true,
+        "type": "default"
+      },
+      "id": 2,
+      "name": "",
+      "origin": "http://fixture.test:8765",
+      "uniqueId": "6880167625146531120.1913625185812800184"
+    }
+  },
+  {
+    "phase": "context",
+    "context": {
+      "auxData": {
+        "frameId": "8DA2C743C90A755F11D382B93D784387",
+        "isDefault": false,
+        "type": "isolated"
+      },
+      "id": 3,
+      "name": "Controlled injection experiment",
+      "origin": "chrome-extension://khgdpjbcndjfdlahhnecokdhibfhfhkg",
+      "uniqueId": "-1496504072410855754.412537656437217690"
+    }
+  },
+  {
+    "phase": "private-extension-evaluation-before-resume",
+    "evaluated": {
+      "result": {
+        "type": "string",
+        "value": "{\"runtime\":\"khgdpjbcndjfdlahhnecokdhibfhfhkg\",\"closedShadowAPI\":\"function\"}"
+      }
+    }
+  },
+  {
+    "phase": "isolated-before-resume",
+    "elapsed": 14,
+    "result": "Extension world installed before page scripts"
+  },
+  {
+    "phase": "original-event-native-delivery",
+    "error": "TypeError: Cannot read properties of null (reading 'event')"
+  },
+  {
+    "phase": "native-relay-delivery",
+    "result": false
+  },
+  {
+    "phase": "first-page-script",
+    "preloadMarker": "boolean",
+    "result": false,
+    "handlers": 0,
+    "same": false,
+    "relaySame": true,
+    "relayDetail": {
+      "fixture": 9
+    },
+    "relayReturn": false,
+    "relayPrevented": true,
+    "originalPrevented": false,
+    "privateVisible": "undefined"
+  },
+  {
+    "phase": "popup-first-script",
+    "preloadMarker": "undefined",
+    "privateVisible": "undefined"
+  },
+  {
+    "phase": "popup-observation",
+    "root": 269498854,
+    "popups": [
+      {
+        "tab": 269498855,
+        "url": "http://popup.test:8765/popup",
+        "opener": 269498854,
+        "controlled": false
+      }
+    ]
+  }
+]

@@ -1,0 +1,29 @@
+{
+  "root": ".work/",
+  "total_bytes": 643051385,
+  "files_over_500_MiB": [],
+  "large_downloads_or_extracted_images": [],
+  "removed_old_payload_bytes": 354025623,
+  "largest_files": [
+    {
+      "path": ".work/20-chrome/continue3/ac75-push/control-chrome-42720646939-1-policy/service.txt",
+      "bytes": 26871113
+    },
+    {
+      "path": ".work/20-chrome/continue3/ac75-push/control-chrome-42720646939-1-external/service.txt",
+      "bytes": 26868610
+    },
+    {
+      "path": ".work/20-chrome/continue3/ac75-pr/control-chrome-42720658130-1-external/service.txt",
+      "bytes": 26863782
+    },
+    {
+      "path": ".work/20-chrome/continue3/ac75-pr/control-chrome-42720658130-1-policy/service.txt",
+      "bytes": 26862482
+    },
+    {
+      "path": ".work/20-chrome/continue3/ac75-push/control-chrome-42720646939-1-external/tool.jsonl",
+      "bytes": 26732921
+    }
+  ]
+}

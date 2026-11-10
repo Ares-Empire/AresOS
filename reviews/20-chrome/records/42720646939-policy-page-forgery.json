@@ -1,0 +1,104 @@
+{
+  "attack": "page-forgery",
+  "arrivalsBefore": 0,
+  "result": {
+    "operation_id": "e5e3d1f3dc094d1d803f30cce4873d21:a4823d3b6a6349fea4c45948290b402b",
+    "untrusted_content": {
+      "checked": true,
+      "dispatched": true,
+      "steps": [
+        {
+          "id": "h1",
+          "kind": "native_submit",
+          "document": "398558d95a76240ab67e531e6e0bfcf7",
+          "label": "",
+          "element": "e7",
+          "submitter": null,
+          "cancellable": true,
+          "frame": 0
+        }
+      ],
+      "dialog": null,
+      "uncertain_finish": false,
+      "confirmations": [],
+      "page": "Input dispatched once; inspect a fresh read for what the page shows."
+    },
+    "followups": [
+      {
+        "approval": {
+          "question": "On http://fixture.test:8765/?case=page-forgery, as the page shows it, activate 'resume native_submit' to http://fixture.test:8765/receive?case=page-forgery (post, 1 fields, 1 hidden)?",
+          "operation_id": "e5e3d1f3dc094d1d803f30cce4873d21:37288b1ecf2a457d89272e1d10ccbe6c",
+          "description": {
+            "action": "chrome_submit",
+            "untrusted_content": {
+              "page_state": {
+                "session": "b2507745-f625-4fc3-8e0d-317fd2003ce6",
+                "tab": 1092509297,
+                "control": "7caa2c87-4fa4-46aa-a4a3-c77cfeba1dc5",
+                "url": "http://fixture.test:8765/?case=page-forgery",
+                "document": "398558d95a76240ab67e531e6e0bfcf7",
+                "frame": 0,
+                "frame_url": "http://fixture.test:8765/?case=page-forgery",
+                "target": {
+                  "element": "e7",
+                  "role": "form",
+                  "name": "",
+                  "label": "",
+                  "title": "",
+                  "href": null,
+                  "states": {
+                    "checked": false,
+                    "selected": false,
+                    "disabled": false,
+                    "required": false,
+                    "invalid": false,
+                    "expanded": null
+                  },
+                  "editable": false,
+                  "search": false,
+                  "submit": false,
+                  "page_dialog": null
+                },
+                "form": {
+                  "element": "e7",
+                  "action": "http://fixture.test:8765/receive?case=page-forgery",
+                  "method": "post",
+                  "encoding": "application/x-www-form-urlencoded",
+                  "target": "sink",
+                  "search": false,
+                  "fields": [
+                    {
+                      "element": "e8",
+                      "name": "source",
+                      "label": "",
+                      "type": "hidden",
+                      "hidden": true,
+                      "checked": false,
+                      "disabled": false,
+                      "multiple": false,
+                      "readOnly": false,
+                      "value": "page-forged-mark"
+                    }
+                  ]
+                },
+                "editable": null,
+                "item": null,
+                "adapter": null,
+                "dialog": null
+              },
+              "input": {
+                "verb": "resume_submission",
+                "kind": "native_submit"
+              },
+              "resume_kind": "native_submit",
+              "file": null,
+              "confirmation": null
+            },
+            "expires_at": 1794268637.5451188
+          }
+        },
+        "state": "reserved"
+      }
+    ]
+  }
+}

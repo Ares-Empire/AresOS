@@ -1,0 +1,158 @@
+{
+  "base": [
+    {
+      "run": 42728630006,
+      "head": "a5ce045d67906d45a61634fd1527229c9c8e58e0",
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "name": "containers",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ],
+      "summaries": [
+        {
+          "line": 416,
+          "text": "containers\tTest inside Fedora 45 container (no model or real account)\t2026-11-10T00:33:06.0271097Z Ran 142 tests in 204.370s"
+        }
+      ]
+    },
+    {
+      "run": 42729233505,
+      "head": "a5ce045d67906d45a61634fd1527229c9c8e58e0",
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "name": "containers",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ],
+      "summaries": [
+        {
+          "line": 399,
+          "text": "containers\tTest inside Fedora 45 container (no model or real account)\t2026-11-10T00:37:56.1972491Z Ran 142 tests in 215.365s"
+        }
+      ]
+    }
+  ],
+  "mail": [
+    {
+      "run": 42728630887,
+      "head": "a5ce045d67906d45a61634fd1527229c9c8e58e0",
+      "status": "in_progress",
+      "conclusion": "",
+      "jobs": [
+        {
+          "name": "sweep (3)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "sweep (1)",
+          "status": "in_progress",
+          "conclusion": ""
+        },
+        {
+          "name": "containers",
+          "status": "in_progress",
+          "conclusion": ""
+        },
+        {
+          "name": "sweep (0)",
+          "status": "in_progress",
+          "conclusion": ""
+        },
+        {
+          "name": "sweep (2)",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "run": 42729236411,
+      "head": "a5ce045d67906d45a61634fd1527229c9c8e58e0",
+      "status": "in_progress",
+      "conclusion": "",
+      "jobs": [
+        {
+          "name": "containers",
+          "status": "in_progress",
+          "conclusion": ""
+        },
+        {
+          "name": "sweep (1)",
+          "status": "in_progress",
+          "conclusion": ""
+        },
+        {
+          "name": "sweep (3)",
+          "status": "in_progress",
+          "conclusion": ""
+        },
+        {
+          "name": "sweep (0)",
+          "status": "in_progress",
+          "conclusion": ""
+        },
+        {
+          "name": "sweep (2)",
+          "status": "in_progress",
+          "conclusion": ""
+        }
+      ]
+    }
+  ],
+  "boundary": [
+    {
+      "run": 42728630135,
+      "head": "a5ce045d67906d45a61634fd1527229c9c8e58e0",
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "name": "hostile",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ],
+      "summaries": [
+        {
+          "line": 893,
+          "text": "hostile\tBuild pinned disposable Linux environment\t2026-11-10T00:29:37.4543620Z #14 0.228 Ran 16 tests in 0.015s"
+        },
+        {
+          "line": 896,
+          "text": "hostile\tBuild pinned disposable Linux environment\t2026-11-10T00:29:37.5216188Z #14 0.450 Installed boundary precondition PASS"
+        }
+      ]
+    },
+    {
+      "run": 42729238340,
+      "head": "a5ce045d67906d45a61634fd1527229c9c8e58e0",
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "name": "hostile",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ],
+      "summaries": [
+        {
+          "line": 874,
+          "text": "hostile\tBuild pinned disposable Linux environment\t2026-11-10T00:34:24.3463889Z #14 0.215 Ran 16 tests in 0.014s"
+        },
+        {
+          "line": 877,
+          "text": "hostile\tBuild pinned disposable Linux environment\t2026-11-10T00:34:24.4196330Z #14 0.441 Installed boundary precondition PASS"
+        }
+      ]
+    }
+  ]
+}
