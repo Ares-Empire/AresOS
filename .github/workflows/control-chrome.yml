@@ -55,7 +55,7 @@ jobs:
         env:
           PACKAGE_URL: ${{ steps.package.outputs.package_url }}
           PACKAGE_SHA256: ${{ steps.package.outputs.package_sha256 }}
-        run: git archive HEAD control docs/control/TOOLS.md .github/workflows/control-chrome-qualification.yml | docker build --build-arg PACKAGE_URL="$PACKAGE_URL" --build-arg PACKAGE_SHA256="$PACKAGE_SHA256" -t aresos-chrome-fixture -f control/chrome/ci/Dockerfile -
+        run: git archive HEAD control docs/control/TOOLS.md .github/workflows/control-chrome-qualification.yml .github/workflows/control-chrome.yml | docker build --build-arg PACKAGE_URL="$PACKAGE_URL" --build-arg PACKAGE_SHA256="$PACKAGE_SHA256" -t aresos-chrome-fixture -f control/chrome/ci/Dockerfile -
       - name: Browser fixtures only inside Linux container, sandbox on
         env:
           INSTALL_MODE: ${{ matrix.install }}
