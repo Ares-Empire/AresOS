@@ -252,6 +252,8 @@
       const carrier=node.firstElementChild,stack=[];
       const listen=(kind,listener)=>{carrier.addEventListener(kind,listener);relayListeners.push([kind,listener]);};
       const ranges=InputEvent.prototype.getTargetRanges;
+      const walkerRoot=globalThis.TreeWalker&&Object.getOwnPropertyDescriptor(TreeWalker.prototype,'root')?.get;
+      const createWalker=globalThis.Document?.prototype.createTreeWalker;
       legacyBridge=false;relayControl=carrier;
       for(const [root,listeners]of roots)for(const [kind,listener,capture]of listeners)if(kind==='aresos-page-call-v2')root.removeEventListener(kind,listener,capture);
       const drop=request=>{if(stack.at(-1)?.detail.request===request)stack.pop();};
@@ -259,7 +261,12 @@
         const detail=event.detail;
         if(stack.length>=32||!['native_submit','request_submit','click','dispatch','watch_root','dialog_begin','dialog_end'].includes(detail?.kind))return;
         if(!Number.isSafeInteger(detail.request))return;
-        const stage={detail};stack.push(stage);
+        const stage={detail};
+        // InputEvent drops ranges whose shadow endpoint would be retargeted.
+        // Native TreeWalker getters carry the exact node without page getters,
+        // public DOM mutations or exposing the private control to the page.
+        if(walkerRoot&&createWalker&&detail.target_walker){const node=walkerRoot.call(detail.target_walker);stage.target=walkerRoot.call(createWalker.call(document,node));}
+        stack.push(stage);
       });
       // The container getter's owning interface differs across Chrome versions.
       // Read the real range in our isolated world, returned by the saved native

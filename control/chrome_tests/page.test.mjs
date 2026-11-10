@@ -6,7 +6,7 @@ import {execFileSync} from 'node:child_process';
 
 const policy=JSON.parse(fs.readFileSync('control/chrome/extension/policy.js','utf8').match(/\{[\s\S]*\}/)[0]);
 
-function fixture({relay=false,activate=true,link=true,browserDOM=false,dialogs=false,onDialogBoundary=()=>{}}={}) {
+function fixture({relay=false,activate=true,link=true,browserDOM=false,walkers=false,retarget=false,dialogs=false,onDialogBoundary=()=>{}}={}) {
   const windowListeners=new Map(),reports=[],arrivals=[],nodes=[],bridgeDetails=[];let now=0;
   class Event {
     constructor(type,options={}) {Object.assign(this,{type,cancelable:true,defaultPrevented:false,stopped:false,eventPhase:0,isTrusted:false,...options});}
@@ -58,8 +58,10 @@ function fixture({relay=false,activate=true,link=true,browserDOM=false,dialogs=f
   class MessageChannel {port1={close(){}};port2={postMessage:token=>setImmediate(()=>this.port1.onmessage?.({data:token})),close(){}};}
   class AbstractRange {}
   class StaticRange extends AbstractRange {constructor(options){super();Object.defineProperty(this,'startContainer',{value:options.startContainer});}}
-  class InputEvent extends Event {constructor(type,options={}){super(type,options);this.ranges=options.targetRanges?Array.from(options.targetRanges):[];}getTargetRanges(){return this.ranges;}}
-  const globals={window,document,performance:{now:()=>now},setTimeout,MessageChannel,Symbol,Event,CustomEvent,EventTarget,Node,Element,HTMLElement,HTMLInputElement,HTMLFormElement,DOMException,URL,TextDecoder,Uint8Array,...(relay?{AbstractRange,StaticRange,InputEvent}:{}),...(browserDOM?{Document:class Document{}}:{})};
+  class InputEvent extends Event {constructor(type,options={}){super(type,options);this.ranges=options.targetRanges?Array.from(options.targetRanges):[];}getTargetRanges(){return retarget?this.ranges.filter(range=>!range.startContainer.getRootNode().host):this.ranges;}}
+  const walkerRoots=new WeakMap();class TreeWalker {constructor(root){walkerRoots.set(this,root);}get root(){if(!walkerRoots.has(this))throw TypeError('Invalid TreeWalker');return walkerRoots.get(this);}}
+  class Document {createTreeWalker(root){return new TreeWalker(root);}}
+  const globals={window,document,performance:{now:()=>now},setTimeout,MessageChannel,Symbol,Event,CustomEvent,EventTarget,Node,Element,HTMLElement,HTMLInputElement,HTMLFormElement,DOMException,URL,TextDecoder,Uint8Array,...(relay?{AbstractRange,StaticRange,InputEvent}:{}),...(walkers?{Document,TreeWalker}:browserDOM?{Document:class Document{}}:{})};
   const dialogCalls=[],dialogReports=[];if(dialogs)Object.assign(globals,{alert:({alert(value){dialogCalls.push('alert');}}).alert,confirm:({confirm(value){dialogCalls.push('confirm');return true;}}).confirm,prompt:({prompt(value,initial){dialogCalls.push('prompt');return 'native response';}}).prompt});
   let guard;const isolated=vm.createContext({...globals,fixtureDialogPause:()=>onDialogBoundary(guard)});
   vm.runInContext(fs.readFileSync('control/chrome/extension/guard.js','utf8').replace('debugger;','fixtureDialogPause();'),isolated);
@@ -124,9 +126,11 @@ test('held and failed private requests never disclose a relay or accept a forged
 });
 
 test('private options never run inherited getters, patched enumeration or array iterators',()=>{
-  const f=fixture({relay:true}),button=new f.HTMLElement();button.textContent='Ordinary control';button.tagName='BUTTON';f.arm(button,null);let received=0;button.addEventListener('click',()=>received++);
-  vm.runInContext("globalThis.callbacks=0;Object.keys=()=>{callbacks++;throw 'page keys'};for(const key of ['bubbles','composed','get','set','request']){const description=Object.create(null);description.configurable=true;description.get=function(){callbacks++;throw 'page getter'};Object.defineProperty(Object.prototype,key,description);}Array.prototype[Symbol.iterator]=function(){callbacks++;throw 'page iterator'}",f.main);
+  for(const walkers of [false,true]){
+  const f=fixture({relay:true,walkers}),button=new f.HTMLElement();button.textContent='Ordinary control';button.tagName='BUTTON';f.arm(button,null);let received=0;button.addEventListener('click',()=>received++);
+  vm.runInContext("globalThis.callbacks=0;Object.keys=()=>{callbacks++;throw 'page keys'};for(const key of ['bubbles','composed','get','set','request','target_walker']){const description=Object.create(null);description.configurable=true;description.get=function(){callbacks++;throw 'page getter'};Object.defineProperty(Object.prototype,key,description);}Array.prototype[Symbol.iterator]=function(){callbacks++;throw 'page iterator'}",f.main);
   assert.equal(button.dispatchEvent(new f.Event('click')),true);assert.equal(received,1);assert.equal(vm.runInContext('callbacks',f.main),0);
+  }
 });
 
 test('cleanup preserves a site seal and reports a frozen wrapper without abandoning the other natives',()=>{
@@ -536,6 +540,16 @@ test('P5 new roots install capture before a borrowed native dispatch can activat
     const root=host.attachShadow({mode:'closed'});button.root=root;let handlers=0;button.addEventListener('click',()=>handlers++);
     f.originalDispatch.call(button,new f.Event('click',{composed,cancelable}));
     assert.equal(handlers,0);assert.equal(f.reports.length,1);assert.equal(f.reports[0].kind,cancelable?'activation':'activation_unknown');
+  }
+});
+test('P5 native shadow identity survives InputEvent range retargeting without touching page getters',()=>{
+  for(const kind of ['native','request','dispatch']){
+    const f=fixture({relay:true,walkers:true,retarget:true}),host=new f.HTMLElement();f.arm(host,null);
+    const root=host.attachShadow({mode:'closed'}),form=new f.HTMLFormElement();form.root=root;
+    Object.defineProperty(form,'target_walker',{get(){assert.fail('page getter read');}});
+    if(kind==='native')form.submit();else if(kind==='request')form.requestSubmit();else form.dispatchEvent(new f.Event('submit'));
+    assert.equal(f.arrivals.length,0);assert.equal(f.reports.length,1,kind);
+    assert.equal(f.reports[0].kind,kind==='native'?'native_submit':kind==='request'?'submit_event':'activation');
   }
 });
 

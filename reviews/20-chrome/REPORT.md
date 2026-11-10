@@ -10,7 +10,7 @@ records the private native-return debugger barrier, successful ordinary native a
 owner-chosen files and successful sends from ordinary blank/srcdoc editors. Missing-coverage native-dialog cases remain explicitly tracked for the
 lead and owner; no fallback refusal is approved or silently treated as feature-complete.
 
-The latest local checkpoint is 204 passing Node tests, 45 focused Python tests, 185 full Python tests and 69
+The latest local checkpoint is 205 passing Node tests, 45 focused Python tests, 185 full Python tests and 70
 rejected mutations covering every P item. Final-head browser/base/Mail/boundary runs twice and the closing
 per-item receiver/log index remain required.
 The first container batch found a fake-timer fixture race; the next found a real paused-startup finish deadlock.

@@ -98,3 +98,25 @@ it now waits until cleanup is either complete or waiting on native destruction.
 The original safety assertion is unchanged. Full Node: **204 passed**. Mutation
 audit: **69 rejected; every baseline passed**. The next Linux trial is pending.
 Ledger: 140 before the next push, expected 142 after.
+
+**Linux feedback, source `ace83b8e`:** **42833507627 / 42833520319** failed
+at the synchronous new-shadow-root matrix. The cleanup fix, both cross-tab legs,
+and explicit pay/delete adapter overrides passed. The shadow continuation was
+stopped, but its target handoff threw before producing a resumable hold. Chrome
+returned no InputEvent target range for the shadow endpoint. Chromium's
+[native implementation](https://raw.githubusercontent.com/chromium/chromium/main/third_party/blink/renderer/core/events/input_event.cc)
+filters ranges when their endpoints would be retargeted. This was absent from
+our double. The new double reproduces filtering; a native TreeWalker carries
+the precise endpoint privately instead. The isolated guard calls saved native
+getters and creates an isolated walker before using the node. It reads no MAIN
+node properties, mutates no public DOM, and exposes no private carrier. Native
+brand conversion rejects forged handles. The inherited-getter/iterator probe
+also exercises this path. Its removal mutation fails. Exact partial receiver,
+native missing-context proof and shadow exception lines are retained in
+[review-fixes-ace8-shadow.json](records/review-fixes-ace8-shadow.json).
+
+**Run:** Node **205 passed**, zero failed/cancelled/skipped. Mutation audit **70
+rejected**, every baseline passed. The full plain-Python sweep on `ace83b8e`
+passed **185 tests, OK, 236.250 s**. Generated artifacts match and diff checks
+are clean. The new native shadow-identity transport needs the next Linux trial.
+Ledger: 142 before the next push, expected 144 after.
