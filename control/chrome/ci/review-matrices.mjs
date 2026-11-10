@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {setTimeout as delay} from 'node:timers/promises';
 
-export async function reviewMatrices({check,nav,call,rpc,target,read,counts,eventually,approval,fixture,getTab,ownerKey,admin,ownerNavigate,ownerDismiss}){
+export async function reviewMatrices({check,nav,call,rpc,target,read,counts,eventually,approval,fixture,getTab,ownerKey,admin,ownerNavigate,ownerDismiss,nativeDonor,closeNativeDonor,setTab,lifecycle}){
   await check('GROUP 2 REVIEW inherited and newly created frames hold submissions',async()=>{
     for(const variant of ['blank','srcdoc','borrowed','new']){
       const id='review-frame-'+variant;await nav('review-page&mode='+(variant==='new'?'new-frame':'inline-hold')+'&variant='+variant+'&id='+id);
@@ -42,6 +42,16 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
         await approval(await call('click',await target('Submit')),id);
       }else await approval(result,id);
       console.log('REVIEW P5 RECEIVER0/1/1',id);
+    }
+  });
+  await check('GROUP 2 REVIEW new shadow roots capture borrowed native events including noncomposed ones',async()=>{
+    for(const mode of ['open','closed'])for(const composed of [false,true])for(const cancel of [false,true]){
+      setTab(await nativeDonor(getTab()));
+      const id='review-fallback-'+mode+'-'+composed+'-'+cancel;await nav('review-page&mode=shadow-fallback&variant='+mode+'&composed='+composed+'&cancel='+cancel+'&id='+id);
+      const result=await call('click',await target('Continue'));assert.equal(counts('handler-'+id),0,'borrowed native event never reaches the asking handler');
+      if(cancel){assert.equal(counts(id),0);assert.ok(result.followups.some(row=>row.stopped));await approval(await call('click',await target('Delete')),id);}
+      else{assert.ok(counts(id)<=1);assert.ok(result.untrusted_content.steps.some(step=>step.kind==='activation_unknown'));assert.ok(!result.followups.some(row=>row.approval),'unknown activation never resumes');assert.equal((await call('operation_status',{operation_id:result.operation_id})).operation.state,'unknown');}
+      await closeNativeDonor();console.log('REVIEW P5 borrowed native',id,'receiver',counts(id),'handler',counts('handler-'+id));
     }
   });
   await check('GROUP 1 REVIEW modified deletion keys normalized words malformed URLs and visible names',async()=>{
@@ -98,6 +108,13 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
       if(!answer.ok){assert.equal(answer.error.code,'refused');assert.match(answer.error.message,/leave it to the owner/);assert.deepEqual((await call('read',{tab:getTab()})).dialog,dialog);console.log('REVIEW P1 private modal arming unavailable: owner handoff, receiver 0',id);ownerDismiss();await delay(600);}
       else{await approval(answer.data,id);console.log('REVIEW P1 RECEIVER0/1/1',id);}
     }
+  });
+  await check('GROUP 8 REVIEW Stop removes navigation blocks while a frozen wrapper awaits cleanup',async()=>{
+    const tab=getTab();await nav('review-page&mode=frozen-stop&id=review-stop-blocks');await call('click',await target('Continue'));await lifecycle({fixture:'stop'});
+    const stopped=(await call('tabs',{limit:100})).items.find(row=>row.tab===tab);assert.equal(stopped.controlled,false);assert.equal(stopped.cleanup_pending,true);
+    await ownerNavigate('http://approval.test:8765/receive?case=review-stop-blocks');await eventually(()=>counts('review-stop-blocks')===1,'owner navigation is no longer DNR-blocked');
+    await eventually(async()=>!(await call('tabs',{limit:100})).items.find(row=>row.tab===tab).cleanup_pending,'native document replacement finishes cleanup');
+    await ownerNavigate('http://fixture.test:8765/?case=compose');await call('take_tab',{tab});
   });
   await check('GROUP 5 REVIEW page outcome records the actual post-input notice',async()=>{
     await nav('review-page&mode=notice&id=review-notice');const result=await call('click',await target('Continue'));

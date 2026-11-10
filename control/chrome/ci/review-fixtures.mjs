@@ -35,6 +35,10 @@ export function reviewPage(url){
     body='<button type="button" id="continue">Continue</button><div id="host"></div>'+sink;
     const markup=form('<button type="submit">Submit</button>');
     script=`document.querySelector('#continue').onclick=()=>{const root=document.querySelector('#host').attachShadow({mode:${JSON.stringify(variant.startsWith('closed')?'closed':'open')}});root.innerHTML=${JSON.stringify(markup)};const form=root.querySelector('form');${variant.endsWith('click')?"form.querySelector('button').click()":variant.endsWith('event')?'form.requestSubmit()':'form.submit()'};};`;
+  }else if(mode==='shadow-fallback'){
+    const composed=url.searchParams.get('composed')==='true',cancel=url.searchParams.get('cancel')==='true';
+    body='<button type="button" id="continue">Continue</button><div id="host"></div>'+sink;
+    script=`document.querySelector('#continue').onclick=()=>{const root=document.querySelector('#host').attachShadow({mode:${JSON.stringify(variant)}}),link=document.createElement('a');link.textContent='Delete';link.href=${JSON.stringify(receive)};link.target='sink';link.onclick=()=>fetch('/receive?case=handler-'+${JSON.stringify(id)},{method:'POST'});root.append(link);opener.EventTarget.prototype.dispatchEvent.call(link,new MouseEvent('click',{bubbles:true,composed:${composed},cancelable:${cancel}}));};`;
   }else if(mode==='label'){
     const word=variant==='nfc-delete'?'lo\u0308schen':variant==='nfc-send'?'vero\u0308ffentlichen':variant==='title'?'Delete':'Continue';
     body='<textarea aria-label="Draft">Saved</textarea><form action="https://fixture.test/%73end?bad='+variant+'"><button type="button"'+(variant==='title'?' title="More information"':'')+'>'+word+'</button></form>';
@@ -55,6 +59,9 @@ export function reviewPage(url){
   }else if(mode==='title'){
     body='<textarea aria-label="Draft">Approved draft</textarea><button type="button">Send</button>';
     script=`document.querySelector('button').onclick=()=>${send};globalThis.reviewChange=()=>document.title='Different title';`;
+  }else if(mode==='frozen-stop'){
+    body='<button type="button">Continue</button>';
+    script="document.querySelector('button').onclick=()=>Object.freeze(HTMLElement.prototype);";
   }else if(mode==='notice'){
     body='<button type="button">Continue</button><p role="status">Waiting</p>';
     script="document.querySelector('button').onclick=()=>document.querySelector('[role=status]').textContent='ERROR: the change failed';";

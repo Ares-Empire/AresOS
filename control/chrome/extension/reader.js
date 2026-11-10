@@ -266,8 +266,8 @@
         if(!staged?.ready || !element?.isConnected || element.type !== 'file')throw Error('stale_reference: upload field or staged bytes changed');
         guard.direct(message.element);
         files.delete(message.token);
-        fileIdentities.set(staged.ready,{identity:crypto.randomUUID(),sha256:staged.file.sha256});
-        const transfer=new DataTransfer();transfer.items.add(staged.ready);element.files=transfer.files;
+        const identity={identity:crypto.randomUUID(),sha256:staged.file.sha256};
+        const transfer=new DataTransfer();transfer.items.add(staged.ready);element.files=transfer.files;fileIdentities.set(element.files[0],identity);
         element.dispatchEvent(new Event('input',{bubbles:true}));element.dispatchEvent(new Event('change',{bubbles:true}));
         value={installed:true,sha256:staged.file.sha256,size:staged.file.size};
       }
@@ -289,7 +289,8 @@
       else if (message.command === 'hit') value={hit:hit(elements.get(message.element),message.x,message.y)};
       else if(message.command==='observe'){
         const node=elements.get(message.element);
-        value={url:location.href,title:document.title,notices:all().filter(element=>element.matches('[role=status],[role=alert],dialog[open],[role=dialog],[role=alertdialog]')).slice(0,5).map(element=>text(element).slice(0,2048)),change:node?.isConnected?{element:id(node),name:name(node),checked:!!node.checked,selected:!!node.selected}: {element_present:false}};
+        const actual=node?.isConnected?safeValue(node):{},observed=typeof actual.value==='string'?{value:actual.value.slice(0,2048),value_more:Math.max(0,actual.value.length-2048)}:Array.isArray(actual.value)?{value:actual.value.slice(0,3),value_more:Math.max(0,actual.value.length-3)}:actual;
+        value={url:location.href,title:document.title,notices:all().filter(element=>element.matches('[role=status],[role=alert],dialog[open],[role=dialog],[role=alertdialog]')).slice(0,5).map(element=>text(element).slice(0,2048)),change:node?.isConnected?{element:id(node),name:name(node),checked:!!node.checked,selected:!!node.selected,...observed}: {element_present:false}};
       }
       else if (message.command === 'reload_state') value=reloadState();
       else if (message.command === 'ready') value = {preload:true,document:documentId,...(message.element?{element_present:!!elements.get(message.element)?.isConnected}:{})};

@@ -30,7 +30,7 @@ def view_identity(facts):
 def binding(facts, reference, kind, adapter):
     frame = next(frame for frame in facts['frames'] if frame['frame'] == reference['frame'])
     target = frame['target']
-    if kind in {'send', 'confirmation'} and not frame.get('form') and not adapter and facts.get('uncovered'):
+    if kind in {'send', 'confirmation'} and not frame.get('form') and not adapter and any(item.get('eligible',True) for item in facts.get('uncovered', [])):
         raise Refused('refused', 'A complete draft binding needs every frame; a frame could not be inspected.')
     keys = ['element','role','name','label','title','href','value','rich','password','states','editable','search','submit','page_dialog','options','implicit_submitter']
     return {'session':facts['session'],'tab':facts['tab'],'control':facts.get('control'),'url':facts['url'],'title':facts.get('title', ''),'document':frame['document'],
@@ -284,7 +284,9 @@ class Chrome:
             return value if len(visible(value))<=120 else f'{kind} {position}, a {len(value)}-character name'
         def recipient_summary(value):
             values=recipients(value, ordered=True)
-            if values is None:return bounded(value, 'recipient list')
+            if values is None:
+                if len(visible(value))>180:raise Refused('asking_input_too_large', 'This recipient list cannot be counted exactly; prepare a smaller list or use the owner click.')
+                return value
             shown=[]
             for index,value in enumerate(values):
                 part=bounded(value, 'recipient', index+1)
@@ -300,7 +302,7 @@ class Chrome:
         label = ('resume '+data['resume_kind'] if data.get('resume_kind') else target.get('name') or data['input'].get('key') or data['input']['verb'])
         action = description.get('adapter_action')
         kind=data.get('kind')
-        generic={'delete':'delete', 'pay':'pay for', 'item':'unsubscribe from'}.get(kind, 'activate')
+        generic={'delete':'delete', 'pay':'pay for', 'item':'unsubscribe from', 'send':'send', 'confirmation':'confirm sending', 'form':'submit', 'upload':'upload to'}.get(kind, 'activate')
         summary = f"On {site}, page '{bounded(state.get('title',''))}', as the page shows it, " + (f"{action} (control '{bounded(label)}')" if action else f"{generic} '{bounded(state.get('item') or label)}'")
         if data['input'].get('key'):summary += f" using {data['input']['key']}"
         if target.get('page_dialog'):
@@ -308,13 +310,13 @@ class Chrome:
         adapter = state.get('adapter')
         if adapter:
             if payload_kind := adapter.get('target'):
-                summary += f" ('{payload_kind}')"
+                summary += f" ('{bounded(payload_kind)}')"
             if adapter.get('context'):
-                summary += f" for '{adapter['context']}'"
+                summary += f" for '{bounded(adapter['context'], 'context')}'"
             if adapter.get('account'):
-                summary += f" as '{adapter['account']}'"
+                summary += f" as '{bounded(adapter['account'], 'account')}'"
             if adapter.get('chat'):
-                summary += f" in chat '{adapter['chat']}'"
+                summary += f" in chat '{bounded(adapter['chat'], 'chat')}'"
             if adapter.get('to') is not None:
                 summary += f" to '{recipient_summary(adapter['to'])}', Cc '{recipient_summary(adapter.get('cc',''))}', hidden Bcc '{recipient_summary(adapter.get('bcc',''))}', subject '{bounded(adapter.get('subject',''))}'"
             if adapter.get('text') is not None:

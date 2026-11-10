@@ -47,7 +47,7 @@ test('P31 first script captures natives inside head and excluded GET carries the
   const fixture=await fixtures({port:0,secondPort:0}),base='http://127.0.0.1:'+fixture.port;
   try{
     const first=await(await fetch(base+'/?case=preload-origin&id=early')).text();
-    assert.ok(first.indexOf('firstScriptSubmit=')<first.indexOf('</head>'));assert.ok(first.indexOf('firstScriptSubmit=')<first.indexOf('<body>'));
+    assert.ok(first.indexOf('firstScriptSubmit=')>=0,'capture must exist');assert.ok(first.indexOf('firstScriptSubmit=')<first.indexOf('</head>'));assert.ok(first.indexOf('firstScriptSubmit=')<first.indexOf('<body>'));
     const excluded=await(await fetch(base+'/?case=excluded-form&id=excluded-get&method=get')).text();assert.match(excluded,/<input type="hidden" name="case" value="excluded-get">/);
   }finally{fixture.close();}
 });
