@@ -752,3 +752,12 @@ test('P1 Stop rejects a pending native answer barrier and clears its private beg
   const ready=assert.rejects(f.run('answerReady'),/interrupted by Stop/);await f.run('release(7)');await ready;
   assert.equal(f.run('nativeDialogStarts.size'),0);assert.equal(f.run('controlled.has(7)'),false);
 });
+test('P27 native missing-context proof retires stale cleanup handles without a Runtime subscription',async()=>{
+  for(const missing of [true,false]){
+    const f=lifecycleFixture();f.run("controlled.set(7,{epoch:'epoch'});const context={id:4,uniqueId:'old',origin:'chrome-extension://fixture'};preloadTargets.set('[7,null]',{tab:7,source:{tabId:7},contexts:new Map([[4,context]]),documents:new Map([['old',{main:'old',isolated:'old',document:'private',cleanup:'old-object'}]]),scripts:new Map()});globalThis.cleanupAttempted=false;globalThis.finished=false;chrome.debugger.sendCommand=async(source,method)=>{if(method==='Runtime.callFunctionOn')return {exceptionDetails:{text:'old object unavailable'}};if(method==='Runtime.evaluate'){cleanupAttempted=true;throw Error(globalThis.lookupError)}return {};};");
+    f.run(`globalThis.lookupError=${JSON.stringify(missing?'Cannot find context with specified id':'Cannot find object with given id')}`);
+    const pending=f.run('release(7).then(value=>{finished=true;return value})');await spin(f,'cleanupAttempted');
+    if(!missing){await spin(f,"finished||[...preloadTargets.values()].some(state=>state.cleanupWaiters?.size)");assert.equal(f.run('finished'),false,'an arbitrary object/protocol error is not realm destruction');f.run("preloadTargets.get('[7,null]').contexts.clear();contextChanged(preloadTargets.get('[7,null]'))");}
+    const result=await pending;assert.equal(result.cleanup_pending,false);assert.equal(f.run('releasing.size'),0);
+  }
+});

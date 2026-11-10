@@ -488,7 +488,15 @@ async function release(tab) {
       for(const value of state.documents.values())try{const result=await preloadCommand(state.source,'Runtime.callFunctionOn',{objectId:value.cleanup,functionDeclaration:'function(){return this.cleanup();}',returnByValue:true});if(result.exceptionDetails||result.result?.value!==true)blocked.set(value.main,value.document);}catch{blocked.set(value.main,value.document);}
       for(const context of state.contexts.values())if(context.origin===chrome.runtime.getURL('').replace(/\/$/,'')){
         const document=[...state.documents.values()].find(value=>value.isolated===context.uniqueId)?.document;
-        try{const result=await preloadCommand(state.source,'Runtime.evaluate',{contextId:context.id,expression:'globalThis[Symbol.for("aresos.chrome.guard.v2")]?.dispose() ?? true',disableBreaks:true,returnByValue:true});if(result.exceptionDetails||result.result?.value!==true)blocked.set(context.uniqueId,document);}catch{blocked.set(context.uniqueId,document);}
+        try{const result=await preloadCommand(state.source,'Runtime.evaluate',{contextId:context.id,expression:'globalThis[Symbol.for("aresos.chrome.guard.v2")]?.dispose() ?? true',disableBreaks:true,returnByValue:true});if(result.exceptionDetails||result.result?.value!==true)blocked.set(context.uniqueId,document);}
+        catch(error){
+          // Runtime subscriptions are deliberately disabled. A rejected native
+          // lookup proves a destroyed realm even without its destruction event.
+          const gone=String(error).includes('Cannot find context with specified id');
+          if(recording)audit({cleanup_context:{tab,context:context.id,outcome:gone?'native_context_missing':'protocol_error'}});
+          if(gone&&state.contexts.get(context.id)===context){state.contexts.delete(context.id);for(const [key,doc]of state.documents)if(doc.isolated===context.uniqueId)state.documents.delete(key);blocked.delete(context.uniqueId);contextChanged(state);}
+          else blocked.set(context.uniqueId,document);
+        }
       }
       if(blocked.size)try{for(const frame of await chrome.webNavigation.getAllFrames({tabId:tab})||[])try{const result=await content(tab,frame.frameId,'clear');if(result.restored===true)for(const [identity,document]of blocked)if(document===result.document)blocked.delete(identity);}catch{}}catch{}
       await Promise.all([...blocked.keys()].map(identity=>contextGone(state,identity)));

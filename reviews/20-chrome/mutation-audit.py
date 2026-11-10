@@ -78,6 +78,8 @@ case('P25',B,"if(needsNative){","if(command.name==='input'){",node('background',
 case('P25-report',B,'dispatched:!noChange,no_change:noChange','dispatched:true,no_change:false',node('background','P25'))
 case('P26',M,'const value=({method(...args){return invoke(implementation,this,args);}}).method;','const value=implementation;',node('page','P26'))
 case('P27',B,'const tabIds = [...controlled.keys()];','const tabIds = [...controlled.keys(),...releasing.keys()];',node('background','P27'))
+case('P27-missing-context',B,"const gone=String(error).includes('Cannot find context with specified id');",'const gone=false;',node('background','P27 native missing-context'))
+case('P27-unknown-context',B,"const gone=String(error).includes('Cannot find context with specified id');",'const gone=true;',node('background','P27 native missing-context'))
 case('P28',B,'owner.uncertainFinish=await finishFrames(tab,armed,dispatchEpoch,inputNonce);','owner.uncertainFinish=false;',node('background','P28'))
 V='control/chrome/ci/verdicts.mjs'
 case('P29',V,'export function assertComplete(results,qualified){','export function assertComplete(results,qualified){return;',node('verdicts','P29'))

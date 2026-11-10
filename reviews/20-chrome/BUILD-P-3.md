@@ -63,7 +63,7 @@ same-metadata replacement refusal and inherited/new-frame matrices, then failed
 the cross-tab fixture's unsupported `control_pending(limit=20)`. The fixture now
 uses the public ten-row bound; the zero-arrival assertion remains unchanged.
 [Retained chooser events and receiver snapshots](records/review-fixes-76f9-chooser.json)
-include the actual owner-selected filename, byte digest question, refusal at
+include the actual owner-selected filename, refusal at
 zero, and fresh send/repeat 0/1/1. These are partial results, not acceptance green.
 
 **P12 refinement:** each snapshot now hashes the native bytes again, including
@@ -80,3 +80,21 @@ for successful approval. This expanded browser case still needs its next run.
 rejected, every baseline passed**. The unchanged Python checkpoint remains 185
 tests OK. Only this build's superseded push/PR runs were cancelled; no owner or
 lead run was cancelled. Ledger: 138 IDs before the next push, expected 140 after.
+
+**Linux feedback, source `651096b2`:** **42832298611 / 42832312713** failed at
+retaking the cross-tab fixture after release. Before that failure, both modes
+passed the native disk-byte mutation with the same File object and timestamp,
+as well as all ordinary native dialogs, editors and inherited/new frames.
+[Retained receiver rows and exact digest questions](records/review-fixes-6510-native-file.json)
+show both GOOD and EVIL SHA-256 questions, disk-change refusal at zero, fresh
+approval/repeat 0/1/1, and the controlled cross-tab send/repeat 0/1/1. The outside
+document also took its native path once; its immediate retake found pending
+cleanup. With Runtime subscriptions disabled, dead contexts can survive in our
+bookkeeping. Cleanup now retires a stale context only when the native protocol
+rejects that context ID as missing. It does not treat an unavailable object,
+arbitrary error or a failed restoration as realm destruction. The negative
+regression initially checked too early and let the broad-error mutation survive;
+it now waits until cleanup is either complete or waiting on native destruction.
+The original safety assertion is unchanged. Full Node: **204 passed**. Mutation
+audit: **69 rejected; every baseline passed**. The next Linux trial is pending.
+Ledger: 140 before the next push, expected 142 after.
