@@ -346,10 +346,13 @@ pass "greetd's profile wrapper keeps the system PATH ($wrapper_path); his login 
 # Every absolute command the greeter, session, terminals, shortcuts and their
 # helpers run must exist in this image, or an absolute path would only trade
 # one way to fail for another.
-startup_commands=$(grep -ohE '/usr/(local/)?(s?bin|libexec)/[A-Za-z0-9/._-]+' /etc/greetd/config.toml \
+# The app helper itself is listed by name: package 23's supervisor, not yet
+# built, will start it, so no session file names it yet.
+startup_commands=$( (grep -ohE '/usr/(local/)?(s?bin|libexec)/[A-Za-z0-9/._-]+' /etc/greetd/config.toml \
     /usr/bin/aresos-session /usr/bin/aresos-terminal /usr/share/aresos/bashrc /etc/profile.d/aresos.sh \
     /usr/share/aresos/labwc/autostart /usr/share/aresos/labwc/rc.xml /usr/libexec/aresos-keyboard \
-    /usr/libexec/aresos-subids /usr/bin/brew /usr/libexec/aresos-shell /usr/share/aresos/apps/*.json | sort -u)
+    /usr/libexec/aresos-subids /usr/bin/brew /usr/libexec/aresos-shell /usr/share/aresos/apps/*.json
+    echo /usr/libexec/aresos-shell) | sort -u)
 for command in /usr/bin/dbus-run-session /usr/bin/dbus-daemon /usr/bin/labwc /usr/bin/busctl /usr/bin/foot \
     /usr/libexec/aresos-shell /usr/bin/systemd-run /usr/bin/systemctl /usr/bin/kwrite /usr/bin/google-chrome; do
     grep -qx "$command" <<< "$startup_commands"
