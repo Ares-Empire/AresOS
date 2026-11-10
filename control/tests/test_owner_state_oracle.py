@@ -338,6 +338,7 @@ class OwnerOracle(unittest.TestCase):
     def test_public_notice_must_expose_exact_context_not_only_opaque_id_and_role(self):
         from owner_state_oracle.compare import notice_facts
         oracle = Oracle()
+        oracle.seed_sequence = 1
         source = 'mail:rename:r'
         context = {'id': 'r', 'account': 'box', 'source': 'Source', 'target': 'Target', 'message_count': 3}
         evidence = {'target': 'Target', 'role': 'Trash'}

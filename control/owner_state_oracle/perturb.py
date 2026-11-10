@@ -2,7 +2,7 @@
 import copy
 from .model import Fact
 from .compare import compare_proofs
-from .records import canonical, fingerprint
+from .records import canonical, fingerprint, restore_intervals
 
 STATES = ('reserved', 'submitting', 'unknown', 'partial', 'done', 'failed', 'refused',
           'started', 'checked', 'open', 'clean', 'warning', 'cancelled', 'expired', 'settled')
@@ -252,7 +252,21 @@ def snapshot_mutations(oracle, record, states):
 
 def coherent_change(oracle, record, key, path=(), kind='row', replacement=None, since=0):
     """Write one production lie into every later encoding of that row claim."""
-    changed, replay = copy.deepcopy(record), clone(oracle)
+    changed, replay = copy.copy(record), clone(oracle)
+    changed.rows = dict(record.rows)
+    # Copy the affected row and writable envelopes, sharing other immutable
+    # decoded inputs. This keeps the complete historical corpus practical.
+    def versions(events):
+        result = []
+        for event in events:
+            rows = dict(event['set'])
+            if key in rows:
+                rows[key] = copy.deepcopy(rows[key])
+            result.append({**event, 'set': rows})
+        return result
+    changed.events = versions(record.events)
+    changed.prepared = versions(record.prepared)
+    changed.fences = copy.deepcopy(record.fences)
     replay.servers = [dict(event) for event in oracle.servers]
     replay.commit_observations = dict(oracle.commit_observations)
     replay.response_observer = None
@@ -352,6 +366,15 @@ def coherent_change(oracle, record, key, path=(), kind='row', replacement=None, 
                 versions[fence['seq']]['record'] = copy.deepcopy(fence)
             if changed.head and changed.head[0] == fence['seq']:
                 changed.head = (changed.head[0], fence['hash'])
+    changed.generation = changed.rows.get('generation')
+    changed.restore_intervals = restore_intervals(changed.events)
+    if changed.head is not None:
+        sequence, head_hash = changed.head
+        fence = next((value for value in changed.fences if value['seq'] == sequence), {})
+        expected_hash = fence.get('hash', '' if sequence == 0 else None)
+        changed.locked = bool(changed.rows.get('restore_pending')) or bool(changed.fences and (
+            sequence != max(changed.committed, default=0) or head_hash != expected_hash)) or any(
+            seq <= changed.startup_sequence for seq in changed.unprepared_fences)
     replay.validated_input = replay.validated_record = None
     return replay, changed
 
@@ -430,10 +453,10 @@ def evaluate(oracle, record):
 
 VALIDATOR_KINDS = {
     'script_differences': {'R2.DATA', 'R2.APPEND', 'R2.STORE', 'R2.MOVE', 'R2.COPY', 'R2.RENAME', 'R2.POST', 'R2.RECEIVE'},
-    'stage_claims': {'unjustified-stage'},
+    'stage_claims': {'unjustified-stage', 'missing-operation-result'},
     'completion_errors': {'false-completion', 'duplicate-effect'},
     'payload_claims': {'unapproved-payload', 'unapproved-recorded-approval', 'unapproved-input-hash', 'unapproved-expiry', 'unapproved-composition'},
-    'filing_claims': {'unapproved-filing-context', 'unapproved-filing-records', 'unverified-source-hash'},
+    'filing_claims': {'unapproved-filing-context', 'unapproved-filing-records', 'unverified-source-hash', 'missing-check-result'},
     'transition': {'unsupported-resolution', 'unjustified-resolution', 'unjustified-resolution-reason'},
     'local.errors': {'R2.LOCAL_FLAG', 'R2.LOCAL_CHANGE', 'R2.LOCAL_DELETE'},
 }

@@ -1290,11 +1290,11 @@ approval/input/question/binding change, or self-review was performed.
 | 3 / SOL 3 / ASTRA 1 | RENAME reuses the existing safe_folder UID/UIDVALIDITY enumeration. No extra SELECT, FETCH, full-body parse or wire-size admission is added | Oversized, depth-45 and 1,100-part folders rename successfully with zero FETCHes; existing all-write failure/crash fences remain enabled |
 | 4 | Normal APPEND adds one Sent copy; separate send_duplicate flow retains delayed-copy warnings. EXPUNGE honors Deleted and STORE honors both add/remove branches | Quiet send and deliberate race assertions; existing quiet move/copy/rename/Trash/permanent-delete contracts all pass |
 
-**Run — local source checks:** 135 independent oracle/CI-selection tests printed
-`Ran 135 tests`, `OK` (`self-input-immutability.txt`; earlier source iterations are retained
+**Run — local source checks:** 137 independent oracle/CI-selection tests printed
+`Ran 137 tests`, `OK` (`self-latest137.txt`; earlier source iterations are retained
 under `.work/19b-s2-fixes/`). Focused contracts, six named regressions, all action-context
 write/failure/crash fences, new fixture/effect tests and production plants printed
-`Ran 24 tests in 271.927s`, `OK` (`focused-final-source.txt`). The diagnostic traversal
+`Ran 26 tests in 266.265s`, `OK` (`focused-current.txt`). The final semantic-source subset repeated all 14 contract/regression/plant/effect tests (`focused-current-semantic.txt`, `OK`). The diagnostic traversal
 ran all **34 flows** clean and at point 1 in single/persistent/live/crash modes,
 ending `R2 gaps {}` (`diagnostic-final.txt`). These Mac runs use the existing
 worktree-local managed-policy fixture and child-process shim; installed Linux
@@ -1304,7 +1304,7 @@ printed `Generated artifacts match definitions`; diff check was silent.
 **Read — alteration performance:** identical completion questions in a single
 replay are memoized using the operation inputs, record-event identity, current
 server/script lengths and local item state. Each replay starts with an empty
-cache; payload claims still run on each invocation. Every alteration still
+cache; payload claims still run on each invocation. Script intervals are indexed by commit sequence within each replay. Coherent mutations copy the affected row and writable envelopes while sharing other immutable inputs; the input-immutability test checks this. Every alteration still
 reaches the shared comparison. Mail alterations are split over 12 disjoint
 scenario shards; the timeout remains 45 minutes and all scenarios/fields remain
 selected. Early diagnostic alteration runs were stopped and replaced while
@@ -1383,3 +1383,14 @@ wire, and a relative RENAME resolves its parent using the independently listed
 delimiter. All six effect/fixture tests print `OK` in `effects-final.txt`; the
 final oversized-message case advertises one byte above the normal wire limit,
 without allocating a large body or changing that limit (`rename-final.txt`).
+
+**Run / read — complete enrollment and result claims:** dropping an operation's
+terminal row is a real Store.write plant through Driver.compare; dropped filing
+results also report their own semantic difference. A first filing result cannot
+start in a resolved state. Deleting Sent-check enrollment cannot consume an
+earlier successful search: resolution requires an explicit checked state and
+its correlated result proof. The direct deletion regression preserves the
+unchecked obligation. Missing onboarding-completion errors identify the actual
+account completion commit, so an unrelated context/result write cannot mask the
+missing row. These cases were found by the stronger per-version corpus; failed
+development logs are retained and are not acceptance evidence.

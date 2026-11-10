@@ -53,6 +53,32 @@ def filing_followups(oracle, record, key):
 
 
 class StageTwoFixes(unittest.TestCase):
+    def test_first_filing_row_cannot_claim_a_result_before_its_check(self):
+        oracle = Oracle()
+        oracle.call('mail_move', {'references': [REF], 'target': 'Target'}, 1)
+        oracle.script[-1].update(start_seq=0, end_seq=1)
+        row = {'id': 'f', 'account': 'box', 'verb': 'move', 'sources': [REF], 'target': 'Target', 'state': 'done'}
+        expected, errors = evaluate(oracle, Record(events=[{'seq': 1, 'time': 1, 'action': 'mail_move', 'set': {'mail:filing:f': row}}]))
+        self.assertTrue(any(f.kind == 'unsupported-resolution' for _, f in errors))
+        self.assertIn(Fact('mail:filing:f', 'recovery'), expected)
+
+    def test_an_earlier_sent_search_cannot_authorize_deleting_check_enrollment(self):
+        oracle = Oracle()
+        key = 'op:g:p'
+        row = {'id': 'g:p', 'app': 'mail', 'action': 'mail_send', 'state': 'submitting',
+               'reason': 'Durably submitting; do not cancel or retry.', 'sent_copy_check': {'state': 'open'}}
+        oracle.seed_sequence = 1
+        oracle.call('mail_operation_status', {'operation_id': 'g:p'}, 2)
+        oracle.script[-1].update(start_seq=1, end_seq=2)
+        oracle.server('SENT', 'box', source=key, before_seq=1)
+        changed = {k: v for k, v in row.items() if k != 'sent_copy_check'}
+        record = Record(rows={key: changed}, events=[
+            {'seq': 1, 'time': 1, 'action': 'fixture', 'set': {key: row}},
+            {'seq': 2, 'time': 2, 'action': 'mail_send', 'set': {key: changed}}])
+        expected, errors = evaluate(oracle, record)
+        self.assertIn(Fact(key, 'unchecked'), expected)
+        self.assertTrue(any(f.kind == 'unjustified-check-close' for _, f in errors))
+
     def test_coherent_version_updates_copies_and_preserves_later_outcomes(self):
         oracle = Oracle()
         key = 'op:g:p'
@@ -81,7 +107,7 @@ class StageTwoFixes(unittest.TestCase):
         oracle.call('mail_account_add', {'id': 'new'}, 1)
         oracle.script[-1].update(start_seq=0, end_seq=3)
         oracle.server('CREATE', 'new', arguments=['AresOS-probe-x'], before_seq=1)
-        record = Record(events=[{'seq': 3, 'time': 1, 'action': 'mail_account_add', 'outcome': 'done', 'set': {}}])
+        record = Record(events=[{'seq': 3, 'time': 1, 'action': 'mail_account_add', 'summary': 'onboarding complete; Sent policy observed', 'outcome': 'done', 'set': {}}])
         expected, errors = evaluate(oracle, record)
         self.assertIn(Fact('mail:account:new', 'recovery'), expected)
         self.assertTrue(any(f.kind == 'qualification' for f in expected))

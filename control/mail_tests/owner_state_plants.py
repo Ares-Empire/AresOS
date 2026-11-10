@@ -259,6 +259,12 @@ def wrong_recipient(self, operation, stage):
     return _testapp_execute(self, changed, stage)
 
 
+def missing_terminal_row(changes, action, kwargs):
+    for key, row in list(changes.items()):
+        if action == 'mail_send' and key.startswith('op:') and row and row.get('state') == 'done':
+            del changes[key]
+
+
 PLANTS.update({
     'narrow-payload': ('delete_permanent', (write_lie(narrow_payload),)),
     'false-transition': ('send', (write_lie(false_transition),)),
@@ -272,12 +278,13 @@ PLANTS.update({
     'removed-intent': ('draft_append', (lambda: patch.object(Mail, 'append_with_context', removed_intent),)),
     'dropped-context-commit': ('send', (dropped_context_commit,)),
     'wrong-recipient': ('testapp_send', (lambda: patch.object(TestApp, 'execute', wrong_recipient),)),
+    'missing-terminal-row': ('send', (write_lie(missing_terminal_row),)),
 })
 
 
 FIELD_PLANTS = {
     'flag': 'false-local-flag', 'state': 'false-transition',
-    'removed row': 'removed-intent', 'dropped sequence': 'dropped-context-commit',
+    'removed row': 'missing-terminal-row', 'dropped sequence': 'dropped-context-commit',
     'target': 'narrow-payload', 'recipient': 'wrong-recipient',
     'flag list entry': 'wrong-answered-flags', 'append_flags': 'wrong-append-flags',
     'hash': 'wrong-sent-bytes', 'destination': 'wrong-sent-destination',

@@ -1,6 +1,7 @@
 """Expectations from calls, server evidence and committed local transitions only."""
 from dataclasses import dataclass
 from email.utils import getaddresses
+from bisect import bisect_right
 import copy
 import hashlib
 import json
@@ -88,6 +89,16 @@ class Oracle:
             cache[marker] = bind_context(event, self.script)
         return cache[marker]
 
+    def calls_at(self, sequence):
+        # One replay may ask about the same commit in several validators.
+        # The cache is discarded before each lifecycle reconstruction.
+        cache = getattr(self, '_calls_cache', None)
+        if cache is None:
+            return [c for c in self.script if c.get('start_seq', -1) < sequence <= c.get('end_seq', -1)]
+        if sequence not in cache:
+            cache[sequence] = [c for c in self.script if c.get('start_seq', -1) < sequence <= c.get('end_seq', -1)]
+        return cache[sequence]
+
     def payload_claims(self, key, row):
         cache = getattr(self, '_payload_cache', {})
         signature = key, canonical({field: row.get(field) for field in ('id', 'payload', 'approval', 'input_hash', 'expires')})
@@ -124,6 +135,9 @@ class Oracle:
         cache[signature] = self.lifecycle_errors - before
 
     def filing_claims(self, key, row, event):
+        if row is None:
+            self.lifecycle_errors.add(Fact(key, 'missing-check-result'))
+            return None
         calls = [c for c in self.script if c.get('start_seq', -1) < event['seq'] <= c.get('end_seq', -1)
                  and c['action'] in {'mail_move', 'mail_copy', 'mail_folder_rename'}]
         if calls:
@@ -596,7 +610,7 @@ class Oracle:
         seed = getattr(self, 'seed_sequence', min((c['start_seq'] for c in self.script if 'start_seq' in c), default=0))
         if event['seq'] <= seed or not old and not self.script:
             return row
-        calls = [c for c in self.script if c.get('start_seq', -1) < event['seq'] <= c.get('end_seq', -1)]
+        calls = self.calls_at(event['seq'])
         own = [c for c in calls if c.get('arguments', {}).get('operation_id') == row.get('id') or
                c['action'] == 'mail_account_add' or c.get('call') == self.repair_authority.get(key, {}).get('call')]
         ordered = bool(calls)
@@ -655,6 +669,13 @@ class Oracle:
         self._completion_cache = {}
         self._approved_cache = {}
         self._binding_cache = {}
+        sequences = sorted({event['seq'] for event in record.events})
+        self._calls_cache = {sequence: [] for sequence in sequences}
+        for call in self.script:
+            start = bisect_right(sequences, call.get('start_seq', -1))
+            end = bisect_right(sequences, call.get('end_seq', -1))
+            for sequence in sequences[start:end]:
+                self._calls_cache[sequence].append(call)
         self._payload_cache = {}
         self._evidence_index = {}
         for index, server in enumerate(self.servers):
@@ -693,13 +714,13 @@ class Oracle:
         seed_events = {e['seq']: e for e in getattr(self, 'seed_events', [])}
         for event in record.events:
             seed = event['seq'] <= getattr(self, 'seed_sequence', 0)
-            fixture = any(c['action'] == 'fixture_input' and c.get('start_seq', -1) < event['seq'] <= c.get('end_seq', -1) for c in self.script)
+            fixture = any(c['action'] == 'fixture_input' for c in self.calls_at(event['seq']))
             if event['action'] == 'fixture' and not (seed or fixture):
                 self.lifecycle_errors.add(Fact('sequence:' + str(event['seq']), 'unscripted-fixture-event'))
             if event['seq'] in seed_events and event != seed_events[event['seq']]:
                 self.lifecycle_errors.add(Fact('sequence:' + str(event['seq']), 'changed-fixture-input'))
-            for call in self.script:
-                if call['action'] == 'fixture_input' and call.get('start_seq', -1) < event['seq'] <= call.get('end_seq', -1):
+            for call in self.calls_at(event['seq']):
+                if call['action'] == 'fixture_input':
                     if event['action'] != 'fixture' or event['set'] != call['arguments']['changes']:
                         self.lifecycle_errors.add(Fact('sequence:' + str(event['seq']), 'changed-fixture-input'))
         for first, last, seq in restore_intervals(record.events):
@@ -711,8 +732,7 @@ class Oracle:
         rows = {key: value for key, value in record.rows.items() if key not in changed}
         resolved = set()
         for event in record.events:
-            fixture_calls = [c for c in self.script if c['action'] == 'fixture_input' and
-                             c.get('start_seq', -1) < event['seq'] <= c.get('end_seq', -1)]
+            fixture_calls = [c for c in self.calls_at(event['seq']) if c['action'] == 'fixture_input']
             fixture = event['seq'] <= getattr(self, 'seed_sequence', 0) or bool(fixture_calls)
             # Explicit fixture data is an independent input. A changed copy in
             # a commit must not become a new source of owner obligations, even
@@ -721,12 +741,25 @@ class Oracle:
                       seed_events.get(event['seq'], {}).get('set', {}))
             changes = {**event['set'], **inputs}
             self.resolution_sequence = event['seq']
-            if event['action'] == 'mail_account_add' and event.get('outcome') == 'done':
-                for call in self.script:
+            operation_id = event.get('operation_id')
+            summary = event.get('summary', '')
+            operation_claim = summary in {'submitting', 'done', 'partial', 'unknown', 'failed', 'refused'} or summary.startswith(
+                ('reserved ', 'local repair of ', 'stage ')) or event['action'].startswith('mail_sent_copy_')
+            if operation_id and operation_claim and 'op:' + operation_id not in event['set']:
+                self.stage_claims(event, 'op:' + operation_id, rows.get('op:' + operation_id, {}), None)
+            content = event.get('untrusted_content', {})
+            for name, prefix in (('filing', 'mail:filing:'), ('rename', 'mail:rename:')):
+                claim = content.get(name)
+                if isinstance(claim, dict):
+                    filing_id = claim.get('filing_id', claim.get('id'))
+                    if filing_id and prefix + filing_id not in event['set']:
+                        self.filing_claims(prefix + filing_id, None, event)
+            if event['action'] == 'mail_account_add' and event.get('outcome') == 'done' and summary.startswith('onboarding complete;'):
+                for call in self.calls_at(event['seq']):
                     if call['action'] == 'mail_account_add' and call.get('start_seq', -1) < event['seq'] <= call.get('end_seq', -1):
                         account_key = 'mail:account:' + str(call['arguments'].get('id'))
                         if not isinstance(event['set'].get(account_key), dict):
-                            self.lifecycle_errors.add(Fact(account_key, 'missing-account-result'))
+                            self.lifecycle_errors.add(Fact(account_key, 'missing-account-result', detail=str(event['seq'])))
             if event['action'] == 'mail_sent_copy_check' and event.get('operation_id') and 'op:' + event['operation_id'] not in event['set']:
                 self.lifecycle_errors.add(Fact('op:' + event['operation_id'], 'missing-check-result'))
             stage = event.get('untrusted_content', {})
@@ -762,7 +795,7 @@ class Oracle:
                         self.lifecycle_errors.add(Fact(key, 'changed-source-scope'))
                         value = {**value, 'app': old.get('app')}
                     if not old:
-                        calls = [c for c in self.script if c.get('start_seq', -1) < event['seq'] <= c.get('end_seq', -1)]
+                        calls = self.calls_at(event['seq'])
                         apps = {c['action'].split('_', 1)[0] for c in calls if c['action'].startswith(('mail_', 'testapp_'))}
                         apps.update(c['arguments']['app'] for c in calls if c['arguments'].get('app') in {'mail', 'testapp'})
                         if len(apps) == 1:
@@ -789,13 +822,13 @@ class Oracle:
                     for field in ('id', 'source_key', 'check_kind', 'evidence_fingerprint', 'created_at'):
                         if field in old and value.get(field) != old[field]:
                             self.lifecycle_errors.add(Fact(key, 'changed-notice-context', detail=field))
-                    calls = [c for c in self.script if c.get('start_seq', -1) < event['seq'] <= c.get('end_seq', -1)]
+                    calls = self.calls_at(event['seq'])
                     if not old and 'created_at' in value and 'time' in event and calls:
                         if not min(c['clock'] for c in calls) * 1_000_000_000 - 1 <= value['created_at'] <= event['time'] * 1_000_000_000 + 1:
                             self.lifecycle_errors.add(Fact(key, 'notice-creation-time'))
                 if key.startswith('op:') and value:
                     if not fixture and value.get('state') == 'reserved':
-                        calls = [c for c in self.script if c.get('start_seq', -1) < event['seq'] <= c.get('end_seq', -1)]
+                        calls = self.calls_at(event['seq'])
                         deadlines = [clock + c.get('operation_ttl', 900) for c in calls for clock in c.get('clock_samples', [])]
                         valid = type(value.get('expires')) in (int, float) and (old or not deadlines or value['expires'] in deadlines)
                         if not valid:
@@ -841,7 +874,7 @@ class Oracle:
                     prior_check = old.get('sent_copy_check', {})
                     opening = event['action'] == 'mail_sent_copy_check_open'
                     if opening or old and checked != prior_check and checked.get('state') == 'open':
-                        calls = [c for c in self.script if c.get('start_seq', -1) < event['seq'] <= c.get('end_seq', -1)]
+                        calls = self.calls_at(event['seq'])
                         planned = any(c['action'] in {'control_pending', 'control_log', 'mail_filing_notices',
                             'mail_operation_status', 'mail_operation_repair', 'mail_notice_ack'} for c in calls)
                         observed = any(e['command'] == 'SENT' and e.get('source') == key and
@@ -857,7 +890,7 @@ class Oracle:
                     if checked.get('state') == 'open' and event['action'] == 'mail_sent_copy_check' and self.result_proof(key, 'sent_copies', event['seq']):
                         self.lifecycle_errors.add(Fact(key, 'uncommitted-check-result', detail=str(event['seq'])))
                     if not old and not input_source and event['seq'] > getattr(self, 'seed_sequence', 0):
-                        calls = [c for c in self.script if c.get('start_seq', -1) < event['seq'] <= c.get('end_seq', -1)]
+                        calls = self.calls_at(event['seq'])
                         allowed = set()
                         for call in calls:
                             action = call['action']
@@ -893,6 +926,9 @@ class Oracle:
                         value = self.transition(record, event, key, old, value)
                 if key.startswith(('mail:filing:', 'mail:rename:')) and value:
                     value = self.filing_claims(key, value, event)
+                    if not old and not fixture and value.get('state') != 'started':
+                        self.lifecycle_errors.add(Fact(key, 'unsupported-resolution', detail='initial filing result without an open check'))
+                        value = {**value, 'state': 'started', 'check_open': True}
                     if value.get('state') not in {'started', 'done', 'partial', 'unknown', 'failed'}:
                         self.lifecycle_errors.add(Fact(key, 'invalid-filing-state', detail=str(event['seq'])))
                     if value.get('state') == 'started' and event.get('outcome') not in {None, 'started', 'unknown'}:
@@ -923,7 +959,8 @@ class Oracle:
                         self.lifecycle_errors.add(Fact(key, 'unjustified-check-close'))
                         value = {**value, 'check_open': True}
                 if key.startswith('op:') and old.get('sent_copy_check', {}).get('state') == 'open' and value and value.get('sent_copy_check', {}).get('state') != 'open':
-                    if not self.resolve('check_result', key, server_result=not event['action'].endswith('_notice_ack') and self.result_proof(key, 'sent_copies', event['seq']), commit_order=True):
+                    if not self.resolve('check_result', key, server_result=value.get('sent_copy_check', {}).get('state') == 'checked' and
+                                        not event['action'].endswith('_notice_ack') and self.result_proof(key, 'sent_copies', event['seq']), commit_order=True):
                         self.lifecycle_errors.add(Fact(key, 'unjustified-check-close'))
                         value = {**value, 'sent_copy_check': old['sent_copy_check']}
                 if (key.startswith('mail:account:') and not old.get('onboarded', old.get('ready', False)) and value and
@@ -1019,6 +1056,9 @@ class Oracle:
                     any(not e['accepted'] or e['reply'] != 'delivered' for e in commands))
 
     def stage_claims(self, commit, key, old, row):
+        if row is None:
+            self.lifecycle_errors.add(Fact(key, 'missing-operation-result'))
+            return
         if old.get('stages') == row.get('stages') and (row.get('state') != 'done' or old.get('state') == 'done'):
             return  # No new stage claim or completion claim in a repeated read.
         marker = commit['seq'], key, canonical(row.get('stages', {}))
