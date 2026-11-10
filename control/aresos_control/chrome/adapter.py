@@ -36,6 +36,7 @@ def binding(facts, reference, kind, adapter):
     return {'session':facts['session'],'tab':facts['tab'],'control':facts.get('control'),'url':facts['url'],'title':facts.get('title', ''),'document':frame['document'],
             'frame':frame['frame'],'frame_url':frame['url'],'frame_title':frame.get('title',''),'effective_url':frame.get('effective_url',frame['url']),'target':{key:target[key] for key in keys if key in target},
             'form':frame.get('form'),
+            'selected_files':[{'frame':item['frame'],'document':item['document'],'fields':item.get('selected_files',[])} for item in facts['frames']],
             'editable':[{'frame':item['frame'],'document':item['document'],'url':item['url'],'fields':item['editable']} for item in facts['frames']]
                 if kind in {'send', 'confirmation'} and not frame.get('form') and not adapter else None,
             'item':frame['item'] if kind in {'delete','pay','item','activation','confirmation'} else None,
@@ -336,6 +337,10 @@ class Chrome:
             summary += "; where the page sends this isn't visible to the tool"
         if data.get('file'):
             summary += f" with file '{data['file']['real_path']}' ({data['file']['size']} bytes, sha256 {data['file']['sha256']})"
+        selected=[file for frame in state.get('selected_files',[]) for field in frame['fields'] if not field.get('password') for file in field.get('value',[])]
+        if selected:
+            summary += '; selected files: '+ '; '.join(f"'{bounded(file['name'], 'file', index+1)}' ({file['size']} bytes, sha256 {file['sha256']})" for index,file in enumerate(selected[:3]))
+            if len(selected)>3:summary += f' and {len(selected)-3} more (full digests below)'
         if data.get('confirmation'):
             summary += f" and confirm '{data['confirmation']['text']}'"
         return summary + '?'
@@ -460,7 +465,7 @@ class Chrome:
         submitting = target.get('submit') and (verb in {'click','check','select'} or verb == 'press' and key in {'Enter','Space',' '}) or verb == 'press' and key == 'Enter' and target.get('editable')
         if state['form'] and (hold or kind or submitting):
             self.allowed_url(state['form']['action'])
-        if kind in {'send', 'confirmation'} and not state['form'] and not adapter:
+        if kind == 'send' and not state['form'] and not adapter:
             fields = [field for document in state['editable'] for field in document['fields']]
             if not any(isinstance(field.get('value'),str) and field['value'] and field.get('type') not in {'checkbox','radio','select-one','select-multiple'} for field in fields):
                 raise Refused('refused', "Can't tell what this sends: no editable text. Use an adapter or the owner's own click.")

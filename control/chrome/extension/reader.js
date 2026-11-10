@@ -9,7 +9,8 @@
   const {protectedFields,fileIdentities}=privacy;
   const guard=globalThis[Symbol.for('aresos.chrome.guard.v2')];
   if(guard.ready)return;
-  const documentId = privacy.documentId??=[...crypto.getRandomValues(new Uint8Array(16))].map(value=>value.toString(16).padStart(2,'0')).join('');
+  const randomToken=()=>[...crypto.getRandomValues(new Uint8Array(16))].map(value=>value.toString(16).padStart(2,'0')).join('');
+  const documentId = privacy.documentId??=randomToken();
   let sequence = 0, revision = 0, controlGeneration = null;
   const traces = [], files = new Map(), watchedRoots = new WeakSet();
   const formGetters=globalThis.HTMLFormElement?Object.fromEntries(['elements','action','method','enctype','target'].map(key=>[key,Object.getOwnPropertyDescriptor(HTMLFormElement.prototype,key)?.get])):{};
@@ -116,11 +117,47 @@
     return {tag:node.tagName,display:style.display,whiteSpace:style.whiteSpace||'',children:[...node.childNodes].map(richIdentity)};
   }
   const blobSize=globalThis.Blob&&Object.getOwnPropertyDescriptor(Blob.prototype,'size')?.get;
-  function selectedFile(file){
+  const blobBytes=globalThis.Blob?.prototype.arrayBuffer;
+  function fileIdentity(file){
     if(!blobSize)throw Error('refused: selected file content identity cannot be verified');
-    const size=blobSize.call(file); // Native Blob identity denotes immutable bytes.
-    if(!fileIdentities.has(file))fileIdentities.set(file,{identity:crypto.randomUUID()});
-    return {name:file.name,size,lastModified:file.lastModified,...fileIdentities.get(file)};
+    blobSize.call(file);
+    if(!fileIdentities.has(file))fileIdentities.set(file,{identity:randomToken()});
+    return fileIdentities.get(file);
+  }
+  function prepareSelectedFiles(){
+    const pending=[];
+    for(const element of all())if(element instanceof HTMLInputElement&&element.type==='file'&&!password(element)){
+      for(const file of element.files){
+        const identity=fileIdentity(file);
+        if(identity.sha256)continue;
+        identity.hashing??=(async()=>{
+          const bytes=await blobBytes.call(file);
+          identity.sha256=crypto.subtle?Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)),byte=>byte.toString(16).padStart(2,'0')).join(''):sha256(new Uint8Array(bytes));
+        })();
+        pending.push(identity.hashing);
+      }
+    }
+    return pending;
+  }
+  // HTTP documents do not expose SubtleCrypto, including their isolated world.
+  // SHA-256 here keeps owner-picked files usable there without exporting bytes.
+  function sha256(bytes){
+    const constants=[0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];
+    const hash=[0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19],words=new Uint32Array(64),rotate=(value,count)=>(value>>>count)|(value<<(32-count));
+    const size=Math.ceil((bytes.length+9)/64)*64;
+    for(let offset=0;offset<size;offset+=64){
+      for(let index=0;index<16;index++){let word=0;for(let part=0;part<4;part++){const position=offset+index*4+part;let byte=position<bytes.length?bytes[position]:position===bytes.length?128:0;if(position>=size-8)byte=Number((BigInt(bytes.length)*8n>>BigInt((size-1-position)*8))&255n);word=(word<<8)|byte;}words[index]=word;}
+      for(let index=16;index<64;index++){const x=words[index-15],y=words[index-2];words[index]=(words[index-16]+(rotate(x,7)^rotate(x,18)^(x>>>3))+words[index-7]+(rotate(y,17)^rotate(y,19)^(y>>>10)))>>>0;}
+      let[a,b,c,d,e,f,g,h]=hash;
+      for(let index=0;index<64;index++){const first=(h+(rotate(e,6)^rotate(e,11)^rotate(e,25))+((e&f)^(~e&g))+constants[index]+words[index])>>>0,second=((rotate(a,2)^rotate(a,13)^rotate(a,22))+((a&b)^(a&c)^(b&c)))>>>0;[a,b,c,d,e,f,g,h]=[(first+second)>>>0,a,b,c,(d+first)>>>0,e,f,g];}
+      for(const[index,value]of[a,b,c,d,e,f,g,h].entries())hash[index]=(hash[index]+value)>>>0;
+    }
+    return hash.map(value=>value.toString(16).padStart(8,'0')).join('');
+  }
+  function selectedFile(file){
+    const identity=fileIdentity(file);
+    if(!identity.sha256)throw Error('refused: selected file digest is not ready; read the page again');
+    return {name:file.name,size:blobSize.call(file),lastModified:file.lastModified,identity:identity.identity,sha256:identity.sha256};
   }
   function safeValue(element) {
     // The exclusion is repeated immediately before EACH value/text read.
@@ -213,7 +250,7 @@
     const editable = nodes.filter(node => node.matches('input,textarea,select,[contenteditable]') && !['hidden','button','submit','reset','image','file'].includes(node.type)).map(field);
     return {document: documentId, revision, url: location.href, origin:globalThis.origin, title: document.title, scroll: {x:scrollX,y:scrollY}, rows,
       target: element ? targetFacts(element) : null, form: element ? formFacts(element.form || (element.tagName === 'FORM' ? element : null), implicitSubmitter(element) || element) : null,
-      editable, embeds:nodes.filter(node=>node.tagName==='IFRAME').map(embedding), item: element ? itemText(element) : '', adapter: adapterRead(nodes, element), trace: traces.splice(0)};
+      editable, selected_files:nodes.filter(node=>node instanceof HTMLInputElement&&node.type==='file').map(field), embeds:nodes.filter(node=>node.tagName==='IFRAME').map(embedding), item: element ? itemText(element) : '', adapter: adapterRead(nodes, element), trace: traces.splice(0)};
   }
   function adapterRead(nodes, target) {
     const scope=target?.closest('form,[role=dialog],[role=region][aria-label],main,[role=main]');
@@ -238,7 +275,7 @@
   }
   guard.reader({document:documentId,id,element:key=>elements.get(key),target:targetFacts,form:(element,submitter)=>formFacts(element.form || (element.tagName==='FORM' ? element:null),submitter || element),report:(step,generation)=>{chrome.runtime.sendMessage({event:'held_step',step,generation}).catch(()=>{});},dispose:()=>{revisionObserver.disconnect();files.clear();elements.clear();traces.length=0;chrome.runtime.onMessage.removeListener(onMessage);}});
   function reloadState(){
-    let unsaved=false;
+    let unsaved=document.designMode?.toLowerCase()==='on';
     for(const element of all()){
       if(element.matches('input,textarea,select,[contenteditable]')){
         if(password(element)){unsaved=true;continue;}
@@ -257,6 +294,10 @@
     try {
       if(message.expected_document&&message.expected_document!==documentId)throw Error('refused: private password history was lost for this surviving document; ask the owner to reload');
       if(message.expected_origin&&message.expected_origin!==globalThis.origin)throw Error('refused: inherited frame origin cannot be authenticated');
+      if(['read','facts','observe'].includes(message.command)){
+        const pending=prepareSelectedFiles();
+        if(pending.length){Promise.all(pending).then(()=>onMessage(message,sender,reply),error=>reply({ok:false,error:'refused: selected file could not be hashed: '+String(error.message)}));return true;}
+      }
       let value;
       if (message.command === 'arm') { guard.arm(message); value={armed:true}; }
       else if (message.command === 'finish_input') { guard.finish(message.generation,message.dispatch_nonce).then(()=>reply({ok:true,data:{finished:true}})); return true; }
@@ -268,7 +309,7 @@
         if(!staged?.ready || !element?.isConnected || element.type !== 'file')throw Error('stale_reference: upload field or staged bytes changed');
         guard.direct(message.element);
         files.delete(message.token);
-        const identity={identity:crypto.randomUUID(),sha256:staged.file.sha256};
+        const identity={identity:randomToken(),sha256:staged.file.sha256};
         const transfer=new DataTransfer();transfer.items.add(staged.ready);element.files=transfer.files;fileIdentities.set(element.files[0],identity);
         element.dispatchEvent(new Event('input',{bubbles:true}));element.dispatchEvent(new Event('change',{bubbles:true}));
         value={installed:true,sha256:staged.file.sha256,size:staged.file.size};

@@ -3,8 +3,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import {webcrypto,createHash} from 'node:crypto';
 
-function fixture(fields) {
+function fixture(fields,{subtle=true}={}) {
   let calls=0,fileSequence=0;const timers=[];
   class Element {
     isConnected=true;nodeType=1;tagName='INPUT';textContent='';childNodes=[];hidden=false;type='text';isContentEditable=false;labels=[];files=[];name='';
@@ -28,7 +29,7 @@ function fixture(fields) {
   let listener,observer,readerAPI;const observationOptions=[];
   const chrome={dom:{openOrClosedShadowRoot:()=>null},runtime:{id:'fixture',onMessage:{addListener(fn){listener=fn;},removeListener(){}}}};
   class MutationObserver {constructor(fn){this.fn=fn;this.records=[];observer=this;}observe(root,options){observationOptions.push(options);}takeRecords(){return this.records.splice(0);}disconnect(){}}
-  const context=vm.createContext({document,chrome,Blob,crypto:{getRandomValues:array=>array.fill(1),randomUUID:()=>String(++fileSequence)},MutationObserver,
+  const context=vm.createContext({document,chrome,Blob,crypto:{subtle:subtle?webcrypto.subtle:undefined,getRandomValues:array=>array.fill(++fileSequence)},MutationObserver,
     Element,HTMLElement:Element,HTMLInputElement,HTMLTextAreaElement,HTMLSelectElement,HTMLButtonElement,Node:{TEXT_NODE:3},CustomEvent:class{},
     atob:value=>Buffer.from(value,'base64').toString('binary'),setTimeout:fn=>timers.push(fn),
     getComputedStyle:element=>({display:['DIV','P'].includes(element.tagName)?'block':'inline',visibility:'visible',webkitTextSecurity:element.mask || 'none'}),
@@ -37,7 +38,8 @@ function fixture(fields) {
   vm.runInContext(fs.readFileSync('control/chrome/extension/reader.js','utf8'),context);
   function read(){let result;listener({command:'read'},{id:'fixture'},value=>result=value);assert.equal(result.ok,true,JSON.stringify(result));return result;}
   function command(message){let result;listener(message,{id:'fixture'},value=>result=value);return result;}
-  return {nodes,Element,generic:node=>Object.setPrototypeOf(node,Element.prototype),reinject:()=>{readerAPI.dispose();vm.runInContext(fs.readFileSync('control/chrome/extension/reader.js','utf8'),context);},read,command,form:(element,submitter)=>readerAPI.form(element,submitter),observationOptions,expire:()=>{for(const fn of timers.splice(0))fn();},mutations:()=>observer.records,calls:()=>calls};
+  const readAsync=()=>new Promise(resolve=>listener({command:'read'},{id:'fixture'},resolve));
+  return {nodes,Element,designMode:value=>{document.designMode=value},generic:node=>Object.setPrototypeOf(node,Element.prototype),reinject:()=>{readerAPI.dispose();vm.runInContext(fs.readFileSync('control/chrome/extension/reader.js','utf8'),context);},read,readAsync,command,form:(element,submitter)=>readerAPI.form(element,submitter),observationOptions,expire:()=>{for(const fn of timers.splice(0))fn();},mutations:()=>observer.records,calls:()=>calls};
 }
 
 test('group7 protected values never reach a getter, source attribute, trace or binding',()=>{
@@ -142,13 +144,26 @@ test('P13 rich text keeps block boundaries and explicit breaks distinct from spa
   editor.childNodes=[text('Line one Line two')];assert.notEqual(f.read().data.editable[0].value,multiline);
   editor.childNodes=[text('Line one'),new f.Element({tagName:'BR'}),text('Line two')];assert.equal(f.read().data.editable[0].value,multiline);
 });
-test('P12 identical file metadata cannot substitute different immutable bytes',()=>{
+test('P12 owner selected bytes are hashed privately and identical metadata cannot substitute content',async()=>{
   const f=fixture([{type:'file'}]),node=f.nodes[0];
   const form={tagName:'FORM',elements:[node],action:'https://fixture.test/',method:'post',enctype:'multipart/form-data',target:'',querySelector(){return null;}};
-  node.files=[new File(['GOOD'],'proof.txt',{lastModified:0})];const first=f.form(form).fields[0].value;
+  node.files=[new File(['GOOD'],'proof.txt',{lastModified:0})];assert.equal((await f.readAsync()).ok,true);const first=f.form(form).fields[0].value;
+  assert.equal(first[0].sha256,createHash('sha256').update('GOOD').digest('hex'));
+  assert.equal(JSON.stringify(first).includes('GOOD'),false,'only the digest and metadata leave the isolated reader');
   assert.deepEqual(JSON.parse(JSON.stringify(f.form(form).fields[0].value)),JSON.parse(JSON.stringify(first)));
-  node.files=[new File(['EVIL'],'proof.txt',{lastModified:0})];assert.notEqual(f.form(form).fields[0].value[0].identity,first[0].identity);
+  node.files=[new File(['EVIL'],'proof.txt',{lastModified:0})];assert.equal((await f.readAsync()).ok,true);const changed=f.form(form).fields[0].value[0];assert.notEqual(changed.identity,first[0].identity);assert.notEqual(changed.sha256,first[0].sha256);
   node.files=[{name:'proof.txt',size:4,lastModified:0}];assert.throws(()=>f.form(form),/Blob|instance|receiver/i);
+});
+test('P12 HTTP selected-file hashing matches SHA-256 across padding and multi-block boundaries',async()=>{
+  const f=fixture([{type:'file'}],{subtle:false});
+  for(const size of [0,1,55,56,63,64,65,128,1000000]){
+    const bytes=Buffer.alloc(size,0xa5);f.nodes[0].files=[new File([bytes],'fixture.bin',{lastModified:0})];
+    const reply=await f.readAsync();assert.equal(reply.ok,true,JSON.stringify(reply));
+    assert.equal(reply.data.selected_files[0].value[0].sha256,createHash('sha256').update(bytes).digest('hex'),String(size));
+  }
+});
+test('P24 document designMode counts as an unsaved editor without a contenteditable attribute',()=>{
+  const f=fixture([]);assert.equal(f.command({command:'reload_state'}).data.unsaved,false);f.designMode('on');assert.equal(f.command({command:'reload_state'}).data.unsaved,true);
 });
 test('P10 affected item includes every ARIA item and named section',()=>{
   for(const selector of ['[role=listitem]','[role=row]','[role=article]','section[aria-label]','section[aria-labelledby]']){

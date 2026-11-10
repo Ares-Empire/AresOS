@@ -79,6 +79,23 @@ class Questions(unittest.TestCase):
         frame['editable'][0]['value']='Changed draft'
         self.assertNotEqual(before,binding(self.browser.facts,{'frame':0},'confirmation',None))
 
+    def test_p11_confirmation_without_a_draft_keeps_the_feature_and_binds_absence(self):
+        frame=self.browser.facts['frames'][0]
+        frame['target'].update(name='OK',page_dialog={'kind':'dialog','text':'Send this message?'})
+        frame['form']=None;frame['editable']=[]
+        state=self.prepare()['description']['untrusted_content']['page_state']
+        self.assertEqual(state['editable'][0]['fields'],[])
+
+    def test_p12_owner_selected_file_question_shows_name_size_and_bound_digest(self):
+        from aresos_control.chrome.adapter import binding
+        frame=self.browser.facts['frames'][0]
+        frame['selected_files']=[{'element':'file1','value':[{'name':'owner-picked.txt','size':4,'lastModified':0,'identity':'private-file','sha256':'a'*64}]}]
+        approval=self.prepare()
+        for value in ['owner-picked.txt','4 bytes','sha256 '+('a'*64)]:self.assertIn(value,approval['question'])
+        before=copy.deepcopy(binding(self.browser.facts,{'frame':0},'form',None))
+        frame['selected_files'][0]['value'][0]['sha256']='b'*64
+        self.assertNotEqual(before,binding(self.browser.facts,{'frame':0},'form',None))
+
     def test_p9_trusted_predicate_independently_forbids_explicit_deletion_payment_and_whatsapp(self):
         from aresos_control.common import digest
         from aresos_control.chrome.sites import KINDS
