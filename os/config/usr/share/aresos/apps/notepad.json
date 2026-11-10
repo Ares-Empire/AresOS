@@ -1,0 +1,8 @@
+{
+  "schema": 1,
+  "id": "notepad",
+  "name": "Notepad",
+  "argv": ["/usr/bin/kwrite"],
+  "working_directory": "~",
+  "window": {"app_ids": ["org.kde.kwrite"], "instance": "multi"}
+}

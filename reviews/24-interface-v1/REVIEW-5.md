@@ -1,0 +1,7 @@
+- **P2 — [aresos-shell:487](/C:/Users/pab/AresOS-24-interface-v1/os/config/usr/libexec/aresos-shell:487): malformed states still mean “gone.”** The parser accepts any four-column scope row; an unrecognized active-state value then permanently closes, fails or settles its launch. **Fix:** classify only explicit terminal states and valid-list absence as gone; return unknown for unrecognized states. Add malformed-state coverage.
+
+- **P2 — [aresos-shell:1231](/C:/Users/pab/AresOS-24-interface-v1/os/config/usr/libexec/aresos-shell:1231): confirmed activity never clears launch uncertainty.** A persisted `launching` entry becomes `uncertain` after a startup query failure. Later ACTIVE results are ignored, so its eventual normal exit incorrectly reports `launch_uncertain`. **Fix:** clear and persist uncertainty after positive scope or window confirmation, including during reconciliation. Test UNKNOWN → ACTIVE → GONE.
+
+- **P3 — [test_aresos_shell.py:1311](/C:/Users/pab/AresOS-24-interface-v1/os/tests/test_aresos_shell.py:1311): the wake-up test does not prove wake-up handling.** Repeated `server.step(0.05)` calls invoke `tick()`, which independently drains watcher results. The test passes even without socket notification. **Fix:** assert that the selector returns a `scopes` event before its timeout and that this event applies the result without timer polling.
+
+CHANGES-NEEDED
