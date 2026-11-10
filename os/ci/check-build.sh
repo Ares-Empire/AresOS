@@ -25,6 +25,7 @@ case $mode in
         revision=$(git rev-parse HEAD)
         sudo podman build --format=oci --build-arg "ARESOS_SOURCE_REVISION=$revision" \
             --tag localhost/aresos:check --file os/Containerfile os 2>&1 | tee evidence/build.log
+        grep -E "^MOD_SOURCE $revision [0-9a-f]{64}\$" evidence/build.log
         grep -E "^MOD_JAR_BUILT [0-9a-f]{64} from $revision\$" evidence/build.log
         grep -Ex 'MOD_JAR_PINNED [0-9a-f]{64}' evidence/build.log
         date +%s > evidence/build-end-time.txt

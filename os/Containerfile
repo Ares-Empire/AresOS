@@ -4,12 +4,20 @@ COPY . /tmp/aresos/
 RUN test ! -e /tmp/aresos/ci && bash /tmp/aresos/build.sh packages
 
 # Package 23: every image build builds the AresOS mod jar from this exact source
-# revision in a digest-pinned JDK (minecraft/desktop.lock.json, "builder"), and
-# the configure step below accepts it only with its pinned SHA-256.
+# revision. The source stage fetches that commit in the pinned base (which has
+# curl) and keeps only mod/; the mod stage runs only Gradle on it, in the
+# digest-pinned JDK (minecraft/desktop.lock.json, "builder"; it has no curl or
+# wget). The configure step below accepts the jar only with its pinned SHA-256.
+FROM ghcr.io/ublue-os/bazzite-nvidia-open@sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151 AS source
+ARG ARESOS_SOURCE_REVISION=unrecorded
+COPY build.sh /tmp/aresos-mod/build.sh
+RUN bash /tmp/aresos-mod/build.sh source "$ARESOS_SOURCE_REVISION" /source
+
 FROM docker.io/library/eclipse-temurin:25.0.5_8-jdk-noble@sha256:95e350ad1eb738f943e141640f7e3d797e483359a3b33c3864255bfd1ad71f8a AS mod
 ARG ARESOS_SOURCE_REVISION=unrecorded
 COPY build.sh /tmp/aresos-mod/build.sh
-RUN bash /tmp/aresos-mod/build.sh mod "$ARESOS_SOURCE_REVISION" /out
+COPY --from=source /source/mod /tmp/aresos-mod/mod
+RUN bash /tmp/aresos-mod/build.sh mod /tmp/aresos-mod/mod /out "$ARESOS_SOURCE_REVISION"
 
 FROM packages AS aresos
 ARG ARESOS_SOURCE_REVISION=unrecorded

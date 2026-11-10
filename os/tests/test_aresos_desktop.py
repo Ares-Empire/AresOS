@@ -1666,73 +1666,138 @@ class MessagesTest(Base):
 
 
 class ImageBuildTest(unittest.TestCase):
-    """Review 1, finding 3: every image build builds the mod jar from its own commit and requires its pin."""
+    """Review 1, finding 3: every image build builds the mod jar from its own commit and requires its pin. Run
+    42854477440 found the JDK stage calling curl, which the pinned JDK image does not have: now the source stage
+    (pinned base, with curl) fetches the commit and the JDK stage runs only Gradle, with only the image's tools."""
 
-    def test_the_containerfile_builds_the_jar_in_the_pinned_jdk_and_configure_checks_it(self):
+    BUILDER = next(mod['builder'] for mod in LOCK['mods'] if mod['file'] == 'aresos.jar')
+
+    def test_the_containerfile_fetches_in_the_base_builds_in_the_pinned_jdk_and_configure_checks_it(self):
         containerfile = (ROOT / 'os/Containerfile').read_text()
         stages = [line.split() for line in containerfile.splitlines() if line.startswith('FROM ')]
         base = json.loads((ROOT / 'os/manifest/base.json').read_text())['reference']
         # The workflow checks the first FROM against the pinned base; it stays first.
-        self.assertEqual(stages[0], ['FROM', base, 'AS', 'packages'])
-        builder = next(mod['builder'] for mod in LOCK['mods'] if mod['file'] == 'aresos.jar')
-        self.assertEqual(stages[1], ['FROM', builder, 'AS', 'mod'])
-        self.assertEqual(stages[2], ['FROM', 'packages', 'AS', 'aresos'])
-        mod_stage = containerfile.split('AS mod', 1)[1].split('FROM packages', 1)[0]
-        self.assertIn('ARG ARESOS_SOURCE_REVISION', mod_stage)
-        self.assertIn('RUN bash /tmp/aresos-mod/build.sh mod "$ARESOS_SOURCE_REVISION" /out', mod_stage)
+        self.assertEqual(stages, [['FROM', base, 'AS', 'packages'], ['FROM', base, 'AS', 'source'],
+                                  ['FROM', self.BUILDER, 'AS', 'mod'], ['FROM', 'packages', 'AS', 'aresos']])
+        source_stage = containerfile.split(' AS source\n', 1)[1].split('\nFROM ', 1)[0]
+        self.assertIn('RUN bash /tmp/aresos-mod/build.sh source "$ARESOS_SOURCE_REVISION" /source', source_stage)
+        mod_stage = containerfile.split(' AS mod\n', 1)[1].split('\nFROM ', 1)[0]
+        # Only mod/ crosses into the JDK stage, which runs only Gradle.
+        self.assertEqual([line for line in mod_stage.splitlines() if line.startswith(('COPY', 'RUN'))],
+                         ['COPY build.sh /tmp/aresos-mod/build.sh',
+                          'COPY --from=source /source/mod /tmp/aresos-mod/mod',
+                          'RUN bash /tmp/aresos-mod/build.sh mod /tmp/aresos-mod/mod /out "$ARESOS_SOURCE_REVISION"'])
         final = containerfile.split('FROM packages AS aresos', 1)[1]
         copy = final.index('COPY --from=mod /out/aresos.jar /tmp/aresos/minecraft/aresos.jar')
         self.assertLess(copy, final.index('build.sh configure'))
         build = (ROOT / 'os/build.sh').read_text()
-        configure = build.split('\nfi\n\n', 2)[-1]
+        configure = build.split('if [[ $1 == packages ]]', 1)[1]
         self.assertIn("assert digest == mod['sha256']", configure)
         self.assertIn("MOD_JAR_PINNED", configure)
-        self.assertNotIn('aresos.jar', build.split('if [[ $1 == packages ]]', 1)[1].split('\nfi\n', 1)[0])
+        self.assertNotIn('aresos.jar', configure.split('\nfi\n', 1)[0])
 
-    def test_check_build_uses_the_same_path_as_every_other_image_build(self):
+    def test_check_build_and_the_pin_renewal_use_the_same_stages_as_every_image_build(self):
         script = (ROOT / 'os/ci/check-build.sh').read_text()
         build = script.split('build)', 1)[1].split(';;', 1)[0]
         self.assertNotIn('build-mod.sh', build)
         self.assertIn('test ! -e os/minecraft/aresos.jar', build)
         self.assertIn('--build-arg "ARESOS_SOURCE_REVISION=$revision"', build)
+        self.assertIn('^MOD_SOURCE $revision [0-9a-f]{64}', build)
         self.assertIn('MOD_JAR_BUILT [0-9a-f]{64} from $revision', build)
         renew = (ROOT / 'os/ci/build-mod.sh').read_text()
-        self.assertIn('/tmp/build.sh mod "$revision" /out', renew)
+        self.assertIn('sudo podman build --no-cache --target mod --format=oci --build-arg '
+                      '"ARESOS_SOURCE_REVISION=$revision"', renew)
+        self.assertIn('--file os/Containerfile os', renew)
+        self.assertIn('python3 os/ci/builder-tools.py --check', renew)
+        self.assertNotIn('podman run', renew, 'no second way to build the jar')
 
-    @unittest.skipUnless(LINUX, 'runs build.sh with stand-in curl and Gradle')
-    def test_build_sh_mod_builds_from_the_named_commit_only(self):
+    def test_the_builder_tool_list_is_the_pinned_image(self):
+        lines = (ROOT / 'os/minecraft/builder-tools.txt').read_text().splitlines()
+        self.assertEqual(lines[0], f'# builder {self.BUILDER}', 'a new builder pin needs os/ci/builder-tools.py')
+        tools = set(lines[3:])
+        self.assertIn('java', tools)
+        self.assertTrue({'curl', 'wget'}.isdisjoint(tools), 'the JDK image fetches nothing by itself')
+
+    @unittest.skipUnless(LINUX, 'runs build.sh with the builder image\'s tools')
+    def test_the_jdk_stage_needs_only_what_the_builder_image_has(self):
+        # The mod stage's real script and the real gradlew, with a PATH of exactly the image's executables (from
+        # minecraft/builder-tools.txt, linked to this system's copies). Java itself is a stand-in in JAVA_HOME.
+        lines = (ROOT / 'os/minecraft/builder-tools.txt').read_text().splitlines()
+        with tempfile.TemporaryDirectory() as folder:
+            root = pathlib.Path(folder)
+            tools = root / 'bin'
+            tools.mkdir()
+            for name in lines[3:]:
+                host = shutil.which(name, path='/usr/bin:/bin:/usr/sbin:/sbin')
+                if host and name != 'java':
+                    (tools / name).symlink_to(host)
+            jdk = root / 'jdk/bin'
+            jdk.mkdir(parents=True)
+            (jdk / 'java').write_text('#!/bin/sh\nprintf "%s\\n" "$@" > ../java-args\n'
+                                      'mkdir -p build/libs\nprintf jar-bytes > build/libs/aresos-0.1.0.jar\n')
+            (jdk / 'java').chmod(0o755)
+            src = root / 'mod'
+            (src / 'gradle/wrapper').mkdir(parents=True)
+            shutil.copy(ROOT / 'mod/gradlew', src / 'gradlew')
+            for name in ('gradle-wrapper.jar', 'gradle-wrapper.properties'):
+                shutil.copy(ROOT / 'mod/gradle/wrapper' / name, src / 'gradle/wrapper' / name)
+            (src / 'gradle.properties').write_text('version=0.1.0\n')
+            env = {'PATH': str(tools), 'JAVA_HOME': str(root / 'jdk'), 'HOME': str(root)}
+            bash = str(tools / 'bash')
+            revision = 'cd' * 20
+            result = subprocess.run([bash, str(ROOT / 'os/build.sh'), 'mod', str(src), str(root / 'out'), revision],
+                                    env=env, capture_output=True, text=True, timeout=60)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn(f'MOD_JAR_BUILT {hashlib.sha256(b"jar-bytes").hexdigest()} from {revision}', result.stdout)
+            args = (root / 'java-args').read_text().splitlines()
+            # The real gradlew ran to Java: it starts the wrapper jar with the task.
+            self.assertEqual(args[args.index('-jar') + 1], str(src / 'gradle/wrapper/gradle-wrapper.jar'))
+            self.assertEqual(args[-3:], ['--no-daemon', '--console=plain', 'jar'])
+            # The same sandbox refuses what the image cannot do: fetching (run 42854477440's failure).
+            fetch = subprocess.run([bash, str(ROOT / 'os/build.sh'), 'source', revision, str(root / 'source')],
+                                   env=env, capture_output=True, text=True, timeout=60)
+            self.assertEqual(fetch.returncode, 127, fetch.stderr)
+            self.assertIn('curl: command not found', fetch.stderr)
+
+    @unittest.skipUnless(LINUX, 'runs build.sh with a stand-in for the network')
+    def test_the_source_stage_fetches_the_named_commit_and_keeps_only_mod(self):
         with tempfile.TemporaryDirectory() as folder:
             root = pathlib.Path(folder)
             revision = 'ab' * 20
-            source = root / f'AresOS-{revision}/mod'
-            (source / 'build/libs').mkdir(parents=True)
-            (source / 'gradle.properties').write_text('version=0.1.0\n')
-            (source / 'gradlew').write_text('#!/bin/sh\nprintf "%s\\n" "$*" > ../../gradle-args\n'
-                                            'printf jar-bytes > build/libs/aresos-0.1.0.jar\n')
-            (source / 'gradlew').chmod(0o755)
-            (root / f'AresOS-{revision}/os').mkdir()
-            (root / f'AresOS-{revision}/os/unrelated').write_text('not extracted')
+            tree = root / f'AresOS-{revision}'
+            (tree / 'mod/gradle/wrapper').mkdir(parents=True)
+            (tree / 'mod/gradlew').write_text('#!/bin/sh\n')
+            (tree / 'mod/gradlew').chmod(0o755)
+            (tree / 'os').mkdir()
+            (tree / 'os/unrelated').write_text('not extracted')
             archive = root / 'source.tar.gz'
-            subprocess.run(['tar', '-czf', str(archive), '-C', str(root), f'AresOS-{revision}'], check=True)
+            subprocess.run(['tar', '-czf', str(archive), '-C', str(root), tree.name], check=True)
             stubs = root / 'bin'
             stubs.mkdir()
+            # A stand-in for the network only: the pinned base has the real curl (build.sh packages uses it too).
             (stubs / 'curl').write_text('#!/bin/sh\nfor a; do case $prev in -o) out=$a;; esac; prev=$a; '
-                                        f'url=$a; done\necho "$url" > {root}/url\ncp {archive} "$out"\n')
+                                        f'url=$a; done\necho "$@" > {root}/curl-args\ncp {archive} "$out"\n')
             (stubs / 'curl').chmod(0o755)
             env = dict(os.environ, PATH=f'{stubs}:/usr/bin:/bin')
-            result = subprocess.run(['bash', str(ROOT / 'os/build.sh'), 'mod', revision, str(root / 'out')],
+            result = subprocess.run(['bash', str(ROOT / 'os/build.sh'), 'source', revision, str(root / 'out')],
                                     env=env, capture_output=True, text=True, timeout=60)
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertEqual((root / 'url').read_text().strip(),
-                             f'https://codeload.github.com/Ares-Empire/AresOS/tar.gz/{revision}')
-            self.assertEqual((root / 'out/aresos.jar').read_bytes(), b'jar-bytes')
-            digest = hashlib.sha256(b'jar-bytes').hexdigest()
-            self.assertIn(f'MOD_JAR_BUILT {digest} from {revision}', result.stdout)
-            for bad in ('unrecorded', 'main', 'ab' * 19, 'AB' * 20):
-                refused = subprocess.run(['bash', str(ROOT / 'os/build.sh'), 'mod', bad, str(root / 'out2')],
-                                         env=env, capture_output=True, text=True, timeout=60)
-                self.assertNotEqual(refused.returncode, 0, bad)
-                self.assertIn('exact commit', refused.stderr)
+            self.assertEqual((root / 'curl-args').read_text().split(),
+                             ['-fsSL', '--proto', '=https', '--tlsv1.2', '--retry', '3', '-o',
+                              (root / 'curl-args').read_text().split()[7],
+                              f'https://codeload.github.com/Ares-Empire/AresOS/tar.gz/{revision}'])
+            self.assertEqual(sorted(p.name for p in (root / 'out').iterdir()), ['mod'])
+            self.assertTrue(os.access(root / 'out/mod/gradlew', os.X_OK))
+            digest = hashlib.sha256(archive.read_bytes()).hexdigest()
+            self.assertIn(f'MOD_SOURCE {revision} {digest}', result.stdout)
+            for mode in ('source', 'mod'):
+                for bad in ('unrecorded', 'main', 'ab' * 19, 'AB' * 20):
+                    args = [bad, str(root / 'out2')] if mode == 'source' else [str(root / 'out/mod'), str(root / 'o'),
+                                                                                bad]
+                    refused = subprocess.run(['bash', str(ROOT / 'os/build.sh'), mode, *args], env=env,
+                                             capture_output=True, text=True, timeout=60)
+                    self.assertNotEqual(refused.returncode, 0, (mode, bad))
+                    self.assertIn('exact commit', refused.stderr)
 
 
 class MemoryProtectionFilesTest(unittest.TestCase):

@@ -1,25 +1,42 @@
 #!/usr/bin/bash
 set -euo pipefail
 
-# Package 23: build the AresOS mod jar from the repository at one exact commit.
-# The Containerfile's `mod` stage runs this in the digest-pinned JDK image for
-# every image build; os/ci/build-mod.sh runs it to set or renew the pin. The
-# image's configure step accepts the jar only with its pinned SHA-256.
-if [[ $1 == mod ]]; then
-    revision=${2-} out=${3-}
-    if [[ ! $revision =~ ^[0-9a-f]{40}$ ]]; then
-        echo "The AresOS mod is built from an exact commit: pass --build-arg ARESOS_SOURCE_REVISION=<full commit> (got '$revision')" >&2
+# Package 23: build the AresOS mod jar from the repository at one exact commit,
+# in two of the Containerfile's stages that every image build runs (and
+# os/ci/build-mod.sh, which sets or renews the pin, builds the same two):
+#   source  in the pinned base (it has curl): fetch that commit, keep only mod/
+#   mod     in the digest-pinned JDK, which has no curl or wget: Gradle only
+# minecraft/builder-tools.txt lists what the JDK image has; the tests run the
+# mod mode with exactly those tools. The image's configure step accepts the
+# jar only with its pinned SHA-256.
+exact_revision() {
+    if [[ ! ${1-} =~ ^[0-9a-f]{40}$ ]]; then
+        echo "The AresOS mod is built from an exact commit: pass --build-arg ARESOS_SOURCE_REVISION=<full commit> (got '${1-}')" >&2
         exit 1
     fi
+}
+if [[ $1 == source ]]; then
+    revision=${2-} out=${3-}
+    exact_revision "$revision"
     [[ $out == /* ]]
     work=$(mktemp -d)
     curl -fsSL --proto '=https' --tlsv1.2 --retry 3 -o "$work/source.tar.gz" \
         "https://codeload.github.com/Ares-Empire/AresOS/tar.gz/$revision"
-    mkdir "$work/source"
-    tar -xzf "$work/source.tar.gz" -C "$work/source" --strip-components=1 --wildcards '*/mod/*'
-    cd "$work/source/mod"
+    mkdir -p "$out"
+    tar -xzf "$work/source.tar.gz" -C "$out" --strip-components=1 --wildcards '*/mod/*'
+    test -x "$out/mod/gradlew"
+    echo "MOD_SOURCE $revision $(sha256sum "$work/source.tar.gz" | cut -d' ' -f1)"
+    rm -rf "$work"
+    exit 0
+fi
+if [[ $1 == mod ]]; then
+    src=${2-} out=${3-} revision=${4-}
+    exact_revision "$revision"
+    [[ $src == /* && $out == /* ]]
+    cd "$src"
     version=$(sed -n 's/^version=//p' gradle.properties)
     [[ $version =~ ^[0-9A-Za-z.+-]+$ ]]
+    work=$(mktemp -d)
     GRADLE_USER_HOME="$work/gradle" ./gradlew --no-daemon --console=plain jar
     mkdir -p "$out"
     cp "build/libs/aresos-$version.jar" "$out/aresos.jar"
