@@ -10,9 +10,10 @@ from storage_faults import OSWrites
 import test_engine
 from aresos_control.engine import Engine
 from aresos_control.common import canonical
+from state_views import StateViews
 
 
-class Storage(test_engine.Operations):
+class Storage(StateViews,test_engine.Operations):
     # Inherited operation tests also run with the SQLite VFS wrapper installed.
     def restart(self):
         self.engine.close()
@@ -24,6 +25,7 @@ class Storage(test_engine.Operations):
             self.assertTrue(reply['ok'],reply)
 
     def scenario(self,flow,fail_at=None,mode='single',cleanup_at=None):
+        self.begin_views(flow)
         if flow=='submit':
             arguments=self.prepare();verb='submit'
         else:
@@ -31,9 +33,14 @@ class Storage(test_engine.Operations):
             self.browser.facts['frames'][0]['rows']=[target]
             arguments=self.target();verb='click'
         before=[copy.deepcopy(record) for record in self.engine.store.events]
+        self.watch_receiver(True)
         injector=OSWrites(fail_at,mode,cleanup_at)
         with injector.wrap(self.engine.store):
             result=self.call(verb,arguments)
+            original_points=list(injector.points);cleanup_points=list(injector.cleanup_points)
+            self.compare_views('persistent')
+        self.compare_views('space_restored')
+        injector.points=original_points;injector.cleanup_points=cleanup_points
         self.assertLessEqual(len(self.browser.dispatched),1)
         if result['ok'] and flow=='submit':
             self.assertEqual(result['data']['operation']['state'],'done')
@@ -43,6 +50,8 @@ class Storage(test_engine.Operations):
         except Exception:
             # A real transaction can require owner recovery; this is never delivery authority.
             raise
+        self.script.append({'kind':'restore'})
+        self.compare_views('restart')
         self.assertEqual(list(self.engine.store.events)[:len(before)],before)
         count=len(self.browser.dispatched)
         self.engine.request({'v':1,'method':'call','action':'control_pending','arguments':{}})

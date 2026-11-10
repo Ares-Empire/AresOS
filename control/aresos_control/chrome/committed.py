@@ -164,8 +164,11 @@ class Projection:
         Tombstones retire working data, not an occurrence's identity or ack.
         This slow path is used only when a retired identity is seen again.
         """
-        value=default;ack=False
+        value=default;ack=False;sequence=0;previous=''
         for _,_,record in self.committed_records():
+            if record['seq']!=sequence+1 or record['previous']!=previous or digest({k:v for k,v in record.items() if k!='hash'})!=record['hash']:
+                raise Refused('evidence_corrupt','Chrome historical receipt failed its hash chain.')
+            sequence=record['seq'];previous=record['hash']
             update=record.get('chrome',{}).get(key)
             if update is not None:
                 value=copy.deepcopy(update)

@@ -102,12 +102,26 @@ def recover_intents(store, persist=True):
     # full disk nor 10,000 restored operations need an unbounded RAM queue.
     from itertools import islice
     store._open_filings = None
+    for identifier,(changes,action,_) in list(store.deferred_notices.items()):
+        notice=changes.get('notice:'+identifier,{})
+        key=notice.get('untrusted_content',{}).get('intent_key','')
+        if action=='control_intent_recovery' and notice.get('app')=='chrome' and key.startswith('op:'):
+            current=store.chrome_state.historical(key,{})
+            if current.get('state') in {'done','failed'}:
+                # Only an uncommitted proposal is discarded. A committed
+                # occurrence remains visible until its own acknowledgement.
+                del store.deferred_notices[identifier]
     # Capture identities in their actual unfinished state, before and after
     # prepared replay. A reservation that starts later was never interrupted.
     store.startup_intents = getattr(store, 'startup_intents', set()) | {
         (key, notice_id) for key, notice_id, _, _ in unfinished(store)}
     for notice in islice(recovery_notices(store), 3):
         if notice.get('check_only'):
+            continue
+        if not persist and notice.get('app')=='chrome':
+            # Startup has not replayed prepared local completions yet. The
+            # committed projection discloses uncertainty in the meantime;
+            # materializing it now would outlive an immediately recovered result.
             continue
         store.defer_notice(notice['id'], {'notice:' + notice['id']: notice},
                            'control_intent_recovery', 'Unfinished durable intent needs owner inspection')

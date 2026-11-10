@@ -66,6 +66,17 @@ class StateFixes(unittest.TestCase):
         self.assertEqual(self.call('click',self.target())['error']['code'],'qualification_failed')
         self.reopen();self.assertEqual(self.chrome.qualification.record(),record)
 
+    def test_s1_readable_policy_rollback_cannot_hide_committed_qualification(self):
+        old=self.chrome.qualification.record();record=copy.deepcopy(old)
+        failure=entry(build=self.chrome.qualification.build,version='157.0.1.1')
+        failure['core']['password_exclusion']=False;record['entries'].append(failure)
+        self.engine.store.write({'chrome:qualification':record},'chrome_qualification','Synthetic later failure')
+        self.engine.store.db.execute('UPDATE kv SET v=? WHERE k=?',(json.dumps(old),'chrome:qualification'))
+        self.engine.store.db.commit()
+        self.assertEqual(self.chrome.qualification.record(),record)
+        self.browser.version='157.0.1.2'
+        self.assertEqual(self.call('read',{'tab':1})['error']['code'],'qualification_failed')
+
     def test_s2_readable_rollback_pending_uses_committed_reservation(self):
         snapshot=self.snapshot();approval=self.prepare()
         self.reopen(snapshot)
@@ -149,6 +160,17 @@ class StateFixes(unittest.TestCase):
         self.assertEqual(self.chrome.notice_page()['total'],0)
         self.assertEqual(self.chrome.committed.historical(key)['id'],source['id'])
         self.assertTrue(self.chrome.committed.historical('notice:'+identifier)['ack'])
+        retention.expire(self.engine)
+        self.assertIsNone(self.engine.store.get(key),'Repeated evidence must not recreate an unacknowledged working notice')
+        # A committed clean interval must end the old condition, even if its
+        # working row is retired again before the same evidence returns.
+        from aresos_control.warnings import check_result
+        source=self.chrome.committed.historical(key)
+        changes,_=check_result(self.engine.store,source,key,'page_activation',[],None)
+        self.engine.store.write({key:source,**changes},'chrome_page_step','Synthetic clean interval')
+        retention.expire(self.engine);self.chrome.steps([step],1)
+        current=self.chrome.notice_page();self.assertEqual(current['total'],1)
+        self.assertNotEqual(current['items'][0]['operation_id'],identifier)
 
     def test_s5_clean_stopped_submission_has_no_interruption_warning(self):
         result=self.chrome.steps([{**self.step(),'kind':'native_submit'}],1)
@@ -251,6 +273,14 @@ class StateFixes(unittest.TestCase):
         self.engine.store.write({'op:'+op_id:operation},'chrome_submit',sentinel,op_id)
         assert_marked(self.engine.dispatch('control_log',{}))
         assert_marked(self.engine.public_operation(operation))
+        # Stage details observed before a failed write also appear in error
+        # envelopes. They have not passed through public_operation().
+        from aresos_control.results import Observations
+        self.engine.store.observations=Observations()
+        with patch.object(self.engine.store,'write',side_effect=OSError(errno.ENOSPC,'Synthetic stage failure')):
+            with self.assertRaises(OSError):self.engine.stage(op_id,'page',sentinel)
+        result=self.engine.store.observations.finish({'ok':False,'error':{'code':'storage_limit','message':'Synthetic failure'}},self.engine.store)
+        assert_marked(result)
 
 
 if __name__=='__main__':unittest.main()

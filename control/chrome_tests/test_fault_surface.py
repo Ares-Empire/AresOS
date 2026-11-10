@@ -13,9 +13,10 @@ from storage_faults import OSWrites
 import test_engine as fixture
 from test_policy import entry
 from aresos_control.common import Refused
+from state_views import StateViews
 
 
-class Writers(fixture.Operations):
+class Writers(StateViews,fixture.Operations):
     def prepare_flow(self, flow):
         # Preparation is outside the injected interval: each writer is reached from a healthy committed input.
         if flow in {'allow','revoke','trusted'}:
@@ -37,15 +38,19 @@ class Writers(fixture.Operations):
                     return self.chrome.qualification.refresh(now=1000000000,verifier=lambda _:None)
         elif flow=='observation':
             step={'id':'h1','kind':'activation_unknown','element':'e1','submitter':None,'frame':0,'document':'document-1','cancellable':False}
+            self.scenario_step(step)
             run=lambda:self.chrome.event({'event':'held_step','session':self.browser.session,'tab':1,'step':step})
         elif flow in {'activation','stopped'}:
             step={'id':'h1','kind':'activation' if flow=='activation' else 'native_submit','element':'e1','submitter':None,'frame':0,'document':'document-1','cancellable':True}
+            self.scenario_step(step)
             run=lambda:self.chrome.steps([step],1)
         elif flow=='acknowledgement':
-            self.chrome.steps([{'id':'h1','kind':'activation','element':'e1','submitter':None,'frame':0,'document':'document-1','cancellable':True}],1)
+            step={'id':'h1','kind':'activation','element':'e1','submitter':None,'frame':0,'document':'document-1','cancellable':True}
+            self.scenario_step(step);self.chrome.steps([step],1)
             notice=next(value for _,value in self.engine.store.iter_items('notice:') if value['app']=='chrome')
             run=lambda:self.call('notice_ack',{'operation_id':notice['id']})
         elif flow=='release':
+            self.script.append({'kind':'release'})
             self.prepare();run=lambda:self.chrome.event({'event':'released','session':self.browser.session,'tab':1})
         elif flow=='upload_copy':
             from aresos_control.chrome.uploads import copy_for_browser,release
@@ -59,11 +64,20 @@ class Writers(fixture.Operations):
         return run
 
     def sweep_case(self,flow,fail_at=None,mode='single',cleanup_at=None):
+        self.begin_views(flow)
         run=self.prepare_flow(flow);injector=OSWrites(fail_at,mode,cleanup_at)
+        self.watch_receiver(flow=='trusted')
         with injector.wrap(self.engine.store):
             try:run()
             except Exception:
                 if not injector.failed:raise
+            # Injection stays active for these reads: persistent exhaustion is
+            # different evidence from recovered space without a restart.
+            original_points=list(injector.points);cleanup_points=list(injector.cleanup_points)
+            self.compare_views('persistent')
+        self.compare_views('space_restored')
+        # Read probes do not redefine the writer boundary inventory.
+        injector.points=original_points;injector.cleanup_points=cleanup_points
         # The only scenario with permission to send is trusted. Configuration and checks cannot dispatch.
         sends=[item for item in self.browser.dispatched if item[0] in {'input','resume','dialog'}]
         self.assertLessEqual(len(sends),1 if flow=='trusted' else 0)
@@ -77,16 +91,8 @@ class Writers(fixture.Operations):
         before=len(self.browser.dispatched)
         self.engine.pending(resolve_checks=False)
         self.assertEqual(len(self.browser.dispatched),before,'restart or disclosure replayed an effect')
-        from chrome_oracle import committed,warnings
-        expected=warnings(committed(self.root/'state',self.root/'evidence'))
-        observed=set();cursor=None
-        while True:
-            result=self.call('notices',{'cursor':cursor} if cursor else {})
-            self.assertTrue(result['ok'],result)
-            observed.update(item['operation_id'] for item in result['data']['items'])
-            cursor=result['data']['cursor']
-            if not cursor:break
-        self.assertEqual(observed,expected,('independent committed-record oracle',flow,fail_at,mode))
+        self.script.append({'kind':'restore'})
+        self.compare_views('restart')
         return injector
 
     def test_every_chrome_durable_writer_single_persistent_cleanup_pairs_restart_space_restored(self):
