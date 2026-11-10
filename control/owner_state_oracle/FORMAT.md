@@ -273,8 +273,8 @@ detected; they do not prove an indispensable validator:
 | filing_claims | wrong rename count | redundant with the independent server-derived notice-context/count comparisons on this corpus |
 
 Coherent removal of an operation's terminal row is caught only by stage_claims;
-coherent removal of a move/copy/rename result row is caught only by filing_claims
-on this corpus. Dedicated controls require the alteration check to fail when
+coherent removal or a coherent state change of a move/copy/rename result row is
+caught only by filing_claims on this corpus. Dedicated controls require the alteration check to fail when
 that one validator is removed. An oracle ignoring a field can leave the expected
 set unchanged, so the alteration test cannot see it; only production plants can.
 An alteration test also cannot require script_differences when it never changes

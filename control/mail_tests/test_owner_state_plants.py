@@ -77,10 +77,11 @@ class ProductionPlants(unittest.TestCase):
         run_plants_and_controls(self)
 
     def test_baseline_alone_cannot_satisfy_a_plant_assertion(self):
-        for flow in ('testapp_send', 'repair', 'filing_rename'):
+        for flow in sorted({flow for flow, _ in PLANTS.values()}):
             oracle, decoded, deltas = record(flow)
-            self.assertFalse(new_views(deltas, deltas))
-            self.assertFalse(semantic(oracle, decoded) - semantic(oracle, decoded))
+            second, second_record, second_deltas = record(flow)
+            self.assertFalse(new_views(deltas, second_deltas), flow)
+            self.assertFalse(semantic(second, second_record) - semantic(oracle, decoded), flow)
 
     def test_terminal_and_filing_result_removal_are_caught_only_by_the_named_validator(self):
         for flow, validator, prefix in (('send', 'stage_claims', 'op:'), ('filing_move', 'filing_claims', 'mail:filing:'),
@@ -89,10 +90,16 @@ class ProductionPlants(unittest.TestCase):
                 oracle, decoded, _ = record(flow)
                 event = next(e for e in reversed(decoded.events) if any(k.startswith(prefix) for k in e['set']))
                 key = next(k for k in event['set'] if k.startswith(prefix))
-                replay, changed = coherent_change(oracle, decoded, key, kind='row', since=event['seq'])
-                candidate = [(f'coherent/{event["seq"]}/{key}/', 'row', (replay, changed))]
-                check(flow, oracle, decoded, candidates=candidate)
-                with VALIDATORS[validator][2]():
-                    with self.assertRaisesRegex(AssertionError, 'Silent owner-state perturbation'):
+                changes = [('row', (), None)]
+                if validator == 'filing_claims':
+                    changes.append(('state', ('state',), 'started'))
+                for kind, path, replacement in changes:
+                    with self.subTest(kind=kind):
+                        replay, changed = coherent_change(oracle, decoded, key, path=path, replacement=replacement,
+                                                          kind=kind, since=event['seq'])
+                        candidate = [(f'coherent/{event["seq"]}/{key}/{"/".join(path)}', kind, (replay, changed))]
                         check(flow, oracle, decoded, candidates=candidate)
-                print(f'Owner alteration control={flow} terminal-row-removal caught_only_by={validator}', flush=True)
+                        with VALIDATORS[validator][2]():
+                            with self.assertRaisesRegex(AssertionError, 'Silent owner-state perturbation'):
+                                check(flow, oracle, decoded, candidates=candidate)
+                        print(f'Owner alteration control={flow} terminal-{kind} caught_only_by={validator}', flush=True)
