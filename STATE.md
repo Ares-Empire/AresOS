@@ -105,7 +105,7 @@ Updated 2026-11-10. The live truth is `git log`, `gh pr list` and `git worktree 
     - Check build with VM: run 42865819198 passed. The image's own jar equals the pin `8b04c511`.
     - VM evidence: the real JVM ran in its 5 GiB scope; a whole-scope SIGKILL latched recovery; under real memory pressure the kernel OOM killer hit only the hog's scope while the supervisor kept answering.
     - Still unproven: an oomd kill and focus hand-back with a real game; both wait for the laptop trial.
-    - REVIEW-3 (Astra) is running.
+    - REVIEW-3 (Astra): CHANGES-NEEDED. All 9 REVIEW-2 findings are fixed. Left: 1 blocking (a SIGKILL after PID acceptance with a lost answer still restarts) and 2 should-fix (hand-off deadline vs the wrapper's stop window; pressure-sampling gaps). Review fixes 3 is in progress (brief `23-review-fixes-3.md`).
     - Updated JUDGMENT-CALL 10 (a memory kill or unexplained whole-scope death latches recovery, no automatic restart) was accepted by the owner (board #170, 2026-11-10: "Yes").
   - Merges after 27.
 - **Package 27, the first update release, started 2026-11-10** (brief `27-first-update-release.md`, empire brief 266; Claude agent, Opus; branch `pkg/27-first-update-release`):
