@@ -83,7 +83,9 @@ jobs:
         run: |
           cp -R driver/control/chrome/ci/. runtime/control/chrome/ci/
           cp -R driver/control/chrome_tests/. runtime/control/chrome_tests/
-          tar -C runtime -cf - control docs/control/TOOLS.md | docker build --build-arg CHANNEL="$CHANNEL" --build-arg PACKAGE_URL="$PACKAGE_URL" --build-arg PACKAGE_SHA256="$PACKAGE_SHA256" -t qualification -f runtime/control/chrome/ci/Dockerfile -
+          mkdir -p runtime/.github/workflows
+          cp driver/.github/workflows/control-chrome-qualification.yml runtime/.github/workflows/
+          tar -C runtime -cf - control docs/control/TOOLS.md .github/workflows/control-chrome-qualification.yml | docker build --build-arg CHANNEL="$CHANNEL" --build-arg PACKAGE_URL="$PACKAGE_URL" --build-arg PACKAGE_SHA256="$PACKAGE_SHA256" -t qualification -f runtime/control/chrome/ci/Dockerfile -
       - name: Run full receiver suite; repeat is a separate matrix job
         id: suite
         env:

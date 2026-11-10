@@ -11,6 +11,7 @@ RUN apt-get update -qq && apt-get install -y --no-install-recommends python3 git
 WORKDIR /workspace
 COPY control/ control/
 COPY docs/control/TOOLS.md docs/control/TOOLS.md
+COPY .github/workflows/control-chrome-qualification.yml .github/workflows/control-chrome-qualification.yml
 RUN mkdir -p /etc/claude-code /etc/aresos-control /var/lib/aresos-tools /var/lib/aresos-operation-evidence /run/aresos-tools /usr/libexec/aresos-control/chrome \
  && cp control/settings/managed-settings.draft.json /etc/claude-code/managed-settings.json \
  && cp control/settings/managed-mcp.json /etc/claude-code/managed-mcp.json \
