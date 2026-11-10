@@ -136,7 +136,26 @@ No fix's tests passed with that fix reverted. Full output: `runs/wsl-review-fixe
   available) for the focused runs and the revert proof; the full suite waited for 5.0 GB.
 - CI: 42854477440 (`check_build=build` on `e159a29e`, dispatched once the mirror answered 200 at 0.3 to 2.2 MB/s)
   failed in the image build: the mod stage's `curl` does not exist in the pinned JDK image. See "Run 42854477440
-  and its fix" below. The approved rerun builds the fixed head (`7017044f` and this report).
+  and its fix" below.
+- **CI: 42865819198 (`check_build=build` on `953bf892`, with the VM boot): success.** Dispatched after the mirror
+  answered 200 at 2.1 to 2.8 MB/s twice in a row. Evidence: `runs/build-42865819198/`.
+  - The jar from the image's own stages: `MOD_SOURCE 953bf892… dc88704b…` (the fetched archive),
+    `MOD_JAR_BUILT 8b04c511…65386743 from 953bf892…` and `MOD_JAR_PINNED 8b04c511…`: the same bytes as the pin, so
+    no `check_build=resolve` was needed. `IMAGE_CHECKS_PASSED`, `POLKIT_CHECK_PASSED`, `CHECK_BUILD_PASSED`, the
+    UEFI VM pass and `CHECK_BUILD_VM_PASSED`.
+  - `memory_protection` (review 1, finding 9): `memory.low` 1073741824 on `user.slice`, `user-1001.slice` and
+    `session-1.scope` (the drop-ins apply to logind's session scope); `user.oomd_avoid=1` on the session scope;
+    systemd-oomd active. labwc, the keeper, the supervisor and the recovery terminal all run in `session-1.scope`.
+  - `desktop_jvm` (review 1, findings 1 and 4): the image's real Java 25, started through the real wrapper from
+    outside any desktop scope, ran in `user@1001.service/aresos.slice/aresos-game-<launch>.scope` with
+    `memory.high` 5368709120. After `systemctl --user kill --signal=SIGKILL` of that scope: wrapper exit 137, the
+    supervisor in RECOVERY `killed`, latched, consecutive 0, no JVM 12 s later.
+  - `memory_pressure` (review 2, finding 9): the source ran in `aresos.slice/aresos-ci-pressure.scope` (PID
+    2947), reached 5376 MiB and exited 137. The kernel's global OOM killer logged `oom-kill:...task_memcg=/user.
+    slice/user-1001.slice/user@1001.service/aresos.slice/aresos-ci-pressure.scope,task=python3,pid=2947` and
+    `Out of memory: Killed process 2947 (python3)`, and the scope ended with `Result=oom-kill`. The supervisor
+    answered all 24 status requests during the pressure (slowest 2.2 s). labwc, the keeper, the supervisor and the
+    recovery terminal kept their PIDs.
 
 ### Run 42854477440 and its fix
 
@@ -170,9 +189,8 @@ The first real image build through review fixes 1's `mod` stage stopped there:
 
 ### Not proven yet
 
-- The VM checks: `desktop_jvm`, `memory_protection` and finding 9's `memory_pressure` run in the next
-  `check_build=build`, with the jar the image builds itself.
-- The pre-hand-off kill with a real Minecraft and systemd-oomd (the tests kill Java and the wrapper by hand).
+- The pre-hand-off kill with a real Minecraft and systemd-oomd (the tests kill Java and the wrapper by hand; the
+  VM's memory kill came from the kernel, not from systemd-oomd).
 - The hand-back under labwc with a real game window (finding 8; the VM has no game).
 
 ## Review fixes 1 (REVIEW-1, 2026-11-10)
@@ -182,7 +200,8 @@ tests that fail on round 0's code (proof under "Before the fixes"). The owner ac
 #168 and #169); finding 1 changes call 10, updated below. The mod itself did not change, so no Gradle run was
 needed and the jar pin (`8b04c511…65386743`) stays.
 
-**Not yet run: the VM checks of this round.** Both `check_build=build` runs (the budget) stopped before building,
+**Update (review fixes 2): these VM checks ran and passed in run 42865819198; see "Review fixes 2".** At the time:
+both `check_build=build` runs (the budget) stopped before building,
 in the runner's tool install, because Ubuntu's snapshot mirror (`snapshot.ubuntu.com`) answered 502 and 503. So
 the jar built inside the image build, `desktop_jvm`, `memory_protection` and `memory_pressure` are written and
 unit-tested but have not run in an image yet. One more `check_build=build` needs the integrator's OK.
@@ -611,9 +630,6 @@ Other:
 
 ## Not verified (needs the laptop, the owner or a later package)
 
-- **Review fixes 1 in an image** (needs one more `check_build=build`, see "Review fixes 1"): the jar built by the
-  image's own `mod` stage and its pin, the drop-ins' effective `memory.low` and oomd flag, the real JVM in its game
-  scope, the whole-scope kill and the memory-pressure survival.
 - **The real boot into the hub on the laptop** (the P3 trial, after a release with the owner's OK). Everything
   below is part of it.
 - Prism's real hand-off to the wrapper with a real Minecraft. The wrapper is tested with Prism's exact argument
@@ -727,8 +743,5 @@ Owner-facing ones first (1 to 6); 7 to 14 are technical.
 
 ## Open questions
 
-- **For the integrator (review fixes 1):** both budgeted `check_build=build` runs stopped on Ubuntu's mirror
-  outage before building. One more is needed to run this round's VM checks; I did not dispatch it (the brief:
-  report before dispatching more).
 - None blocking. The owner-facing judgment calls (1 to 6) go to the owner before merge; the main one is whether the
   first start should create the hub by itself with seed 49 instead of waiting for his click on AresOS (1).
