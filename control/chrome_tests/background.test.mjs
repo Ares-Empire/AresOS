@@ -31,6 +31,15 @@ function lifecycleFixture(){
 }
 async function spin(f,expression){for(let count=0;count<200&&!f.run(expression);count++)await Promise.resolve();assert.equal(!!f.run(expression),true,expression);}
 
+test('tab catalogue reports native position and distinguishes active tabs from focused windows',async()=>{
+  const f=fixture();f.run("chrome.windows={getAll:async()=>[{id:5,focused:true},{id:6,focused:false}]};chrome.tabs.query=async()=>[{id:7,windowId:5,index:1,active:true,groupId:-1,title:'Owner fixture',url:'http://fixture.test/'},{id:8,windowId:6,index:0,active:true,groupId:-1,title:'Popup fixture',url:'http://popup.test/'}];controlled.set(8,{epoch:'popup',virtualGroup:true,window:6});");
+  const result=await f.run("collection({name:'tabs',limit:10})");const rows=JSON.parse(JSON.stringify(result.items));
+  assert.deepEqual(rows.map(({tab,window,index,active,focused,controlled})=>({tab,window,index,active,focused,controlled})),[
+    {tab:7,window:5,index:1,active:true,focused:true,controlled:false},
+    {tab:8,window:6,index:0,active:true,focused:false,controlled:true},
+  ]);
+});
+
 function startupFixture(){
   const f=fixture();f.run("globalThis.startup=[];excludedHosts=[];groupId=1;chrome.tabs.get=async()=>({url:'http://fixture.test/',groupId:1});chrome.webNavigation={getAllFrames:async()=>[]};chrome.runtime={getURL:path=>'chrome-extension://fixture/'+path};chrome.debugger={sendCommand:async(source,method,parameters)=>{startup.push({source,method,parameters});if(method==='Debugger.setBreakpointByUrl')return {breakpointId:'inert-breakpoint'};if(method==='Runtime.evaluate')return parameters.returnByValue?{result:{value:'private-document'}}:{result:{objectId:'private-cleanup'}};if(method==='Runtime.callFunctionOn')return parameters.returnByValue?{result:{value:'private-document'}}:{result:{objectId:'relay'}};if(method==='DOM.describeNode')return {node:{backendNodeId:1}};if(method==='DOM.resolveNode')return {object:{objectId:'isolated-relay'}};return {};}};preloadBundle=Promise.resolve(['// guard fixture','// reader fixture','// wrapper fixture']);controlled.set(7,{epoch:'epoch'});");return f;
 }

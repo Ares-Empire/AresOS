@@ -443,7 +443,10 @@ async function collection(command) {
     if(command.name==='downloads')items=await chrome.downloads.search({limit:10001,query:command.text?[command.text]:[]});
     else if(command.name==='history')items=await chrome.history.search({text:command.text||'',startTime:0,maxResults:10001});
     else if(command.name==='bookmarks')items=await chrome.bookmarks.search(command.text||{});
-    else items=(await chrome.tabs.query({})).map(tab=>({tab:tab.id,title:tab.title,url:tab.url,controlled:controlled.has(tab.id)&&(controlled.get(tab.id).virtualGroup||tab.groupId===groupId),cleanup_pending:releasing.has(tab.id)}));
+    else {
+      const focused=new Set((await chrome.windows.getAll()).filter(window=>window.focused).map(window=>window.id));
+      items=(await chrome.tabs.query({})).map(tab=>({tab:tab.id,window:tab.windowId,index:tab.index,active:tab.active,focused:focused.has(tab.windowId),title:tab.title,url:tab.url,controlled:controlled.has(tab.id)&&(controlled.get(tab.id).virtualGroup||tab.groupId===groupId),cleanup_pending:releasing.has(tab.id)}));
+    }
     if(items.length>10000 || JSON.stringify(items).length>8*1024*1024)throw Error('refused: this complete list exceeds the 10000-item or 8 MiB snapshot bound; narrow the search');
     record={id:crypto.randomUUID(),key,items,time:Date.now()};
     for(const [id,value]of listSnapshots)if(Date.now()-value.time>300000)listSnapshots.delete(id);

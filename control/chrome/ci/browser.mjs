@@ -6,6 +6,7 @@ import {setTimeout as delay} from 'node:timers/promises';
 import {fixtures} from './fixture.mjs';
 import {matrices} from './matrices.mjs';
 import {measureCompatibility,nativeNavigate,nativeCompatibilityClick,compareCompatibility} from './compatibility.mjs';
+import {ownerUI} from './owner-ui.mjs';
 if(process.platform !== 'linux' || process.env.GITHUB_ACTIONS !== 'true' || !fs.existsSync('/.dockerenv'))throw Error('Browser runs only in GitHub Linux containers');
 const fixture=await fixtures();
 const profile=fs.mkdtempSync('/tmp/aresos-chrome-fixture-');
@@ -105,7 +106,8 @@ try {
   const admin=(action,arguments_)=>{const result=JSON.parse(execFileSync('sudo',['-n','/usr/bin/python3','/workspace/control/chrome/ci/admin.py',JSON.stringify({action,arguments:arguments_})],{encoding:'utf8'}));assert.ok(result.ok,JSON.stringify(result));return result.data;};
   const caller=(verb,args)=>JSON.parse(execFileSync('python3',['control/chrome/ci/call.py',verb,JSON.stringify(args)],{encoding:'utf8',env:{...process.env,GITHUB_ACTIONS:'true'}}));
   let browserWindow=execFileSync('xdotool',['getactivewindow'],{encoding:'utf8'}).trim();
-  const ownerNavigate=async(url)=>{execFileSync('xdotool',['windowactivate','--sync',browserWindow]);execFileSync('xdotool',['key','--clearmodifiers','ctrl+1']);execFileSync('xdotool',['key','--clearmodifiers','ctrl+l']);execFileSync('xdotool',['type','--clearmodifiers','--delay','1',url]);execFileSync('xdotool',['key','Return']);await delay(400);};
+  const owner=ownerUI({call,currentTab:()=>tab,window:()=>browserWindow,eventually});
+  const ownerNavigate=owner.navigate;
   let ordinaryPopup;
   const ownerOpenPopup=async currentTab=>{
     if(currentTab===null){
@@ -130,13 +132,13 @@ try {
   };
   const closeNativeDonor=async()=>{
     const parent=(await call('tabs')).items.find(item=>item.tab===donorTab);assert.equal(parent?.controlled,false);
-    execFileSync('xdotool',['windowactivate','--sync',browserWindow]);execFileSync('xdotool',['key','--clearmodifiers','ctrl+1']);
+    await owner.select(donorTab);
     await eventually(()=>execFileSync('xdotool',['getwindowname',browserWindow],{encoding:'utf8'}).includes('Native donor '+donorMarker),'owner selected the exact donor tab');
     execFileSync('xdotool',['key','--clearmodifiers','ctrl+w']);
     await eventually(async()=>!(await call('tabs')).items.some(item=>item.tab===donorTab),'owner closed the native donor');donorTab=null;
   };
   for(const failure of await matrices({call,read,nav,target,counts,eventually,tab,fixture,admin,rpc,caller,ownerNavigate,ownerOpenPopup,nativeDonor,closeNativeDonor,baseline,
-    popupEvidence:mode=>execFileSync('import',['-window','root','/out/popup-'+mode+'.png']),
+    popupEvidence:async(id,phase)=>{const state=await owner.popupWindow(id);fs.appendFileSync('/out/popup-windows.jsonl',JSON.stringify({id,phase,...state})+'\n');if(phase==='after')execFileSync('import',['-window','root','/out/'+id+'.png']);return state;},
     ownerDismiss:()=>execFileSync('xdotool',['key','--clearmodifiers','Escape']),
     isolationAfter:()=>{const finalListeners=execFileSync('ss',['-lntp'],{encoding:'utf8'}).split('\n').filter(line=>line.includes('\"chrome\"'));assert.equal(finalListeners.length,0,'Chrome must still have no listening port after all tools');fs.writeFileSync('/out/isolation-after.json',JSON.stringify({listeners:finalListeners}));},
     ownerHistory:async(direction)=>{execFileSync('xdotool',['key','--clearmodifiers',direction==='back'?'alt+Left':'alt+Right']);await delay(400);},
@@ -145,7 +147,7 @@ try {
     if(command==='start_chrome'){chrome=spawn('qualification-chrome',args,{stdio:['ignore',descriptor,descriptor]});await delay(1500);browserWindow=execFileSync('xdotool',['getactivewindow'],{encoding:'utf8'}).trim();return;}
     if(command==='kill_host'){const lines=execFileSync('ps',['-u','1000','-o','pid=,args='],{encoding:'utf8'}).split('\n');for(const line of lines)if(line.includes('/usr/libexec/aresos-control/chrome/native_host.py'))process.kill(Number(line.trim().split(/\s+/)[0]),'SIGKILL');return;}
     return JSON.parse(execFileSync('sudo',['-n','/usr/bin/python3','/workspace/control/chrome/ci/admin.py',JSON.stringify(command)],{encoding:'utf8'}));
-  },restoreControl:async()=>{await eventually(async()=>{const result=await rpc('tabs');return result.ok&&result.data.items.length;},'native reconnect',45000);const marker='restored-'+Date.now();await ownerNavigate('http://fixture.test:8765/?case=compose&id='+marker);tab=(await call('tabs')).items.find(item=>item.url?.includes(marker))?.tab;assert.ok(tab!==undefined);await call('take_tab',{tab});return tab;},stopClick:()=>{execFileSync('import',['-window','root','/out/stop.png']);execFileSync('xdotool',['key','--clearmodifiers','Return']);},ownerKey:()=>execFileSync('xdotool',['key','--clearmodifiers','Tab','Return'])}))failures.push(Error(failure.name+': '+failure.error));
+  },restoreControl:async()=>{const active=await eventually(async()=>{const result=await rpc('tabs',{limit:10});return result.ok&&result.data.items.find(item=>item.active&&item.focused&&!item.cleanup_pending);},'native reconnect',45000);tab=active.tab;browserWindow=execFileSync('xdotool',['getactivewindow'],{encoding:'utf8'}).trim();const marker='restored-'+Date.now();await ownerNavigate('http://fixture.test:8765/?case=compose&id='+marker);assert.ok((await call('tabs',{limit:10})).items.some(item=>item.tab===tab&&item.url?.includes(marker)));await call('take_tab',{tab});return tab;},stopClick:()=>{execFileSync('import',['-window','root','/out/stop.png']);execFileSync('xdotool',['key','--clearmodifiers','Return']);},ownerKey:()=>execFileSync('xdotool',['key','--clearmodifiers','Tab','Return'])}))failures.push(Error(failure.name+': '+failure.error));
   if(failures.length)throw new AggregateError(failures,'Strict owner-input and page-forgery regressions failed');
 } catch(error) {
   try{execFileSync('import',['-window','root','/out/failure.png']);}catch{}

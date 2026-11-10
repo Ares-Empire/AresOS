@@ -15,30 +15,34 @@ export function popupPage(url){
   };
 }
 
-export async function popupMatrices({check,call,rpc,nav,counts,eventually,tab,fixture,ownerOpenPopup,popupEvidence,approval}){
+export async function popupMatrices({check,call,rpc,nav,counts,eventually,getTab,fixture,ownerOpenPopup,popupEvidence,approval}){
   const rows=async targetTab=>{
     const page=await call('read',{tab:targetTab});
     return page.untrusted_content.tree.split('\n').filter(line=>line.startsWith('{')).map(JSON.parse);
   };
   const target=async targetTab=>{const row=await eventually(async()=>(await rows(targetTab)).find(row=>row.expected.name==='Continue'),'popup target');return {reference:row.reference,expected:row.expected};};
-  const find=async id=>eventually(async()=>(await call('tabs',{limit:10})).items.find(item=>item.tab!==tab&&(item.url?.includes('case=popup-child&id='+id)||item.url?.includes('/post-document?case='+id))),'popup admitted '+id);
+  const find=async id=>eventually(async()=>(await call('tabs',{limit:10})).items.find(item=>item.tab!==getTab()&&(item.url?.includes('case=popup-child&id='+id)||item.url?.includes('/post-document?case='+id))),'popup admitted '+id);
   const evidence=(id,phase)=>console.log('POPUP RECEIVER',id,phase,JSON.stringify(fixture.arrivals.filter(row=>new URL(row.url,'http://fixture.test').searchParams.get('case')?.includes(id))));
   await check('GROUP 8 popups preserve opener flow and guard first input without moving windows',async()=>{
+    const tab=getTab();
     for(const mode of ['clean','dirty']){
-      const id='popup-'+mode;await nav('popup-opener&id='+id+'&mode='+mode);const open=(await call('read',{tab})).untrusted_content.tree.split('\n').filter(line=>line.startsWith('{')).map(JSON.parse).find(row=>row.expected.name==='Open window');
+      const id='popup-'+mode;await nav('popup-opener&id='+id+'&mode='+mode);const parent=(await call('tabs',{limit:10})).items.find(item=>item.tab===tab);const open=(await call('read',{tab})).untrusted_content.tree.split('\n').filter(line=>line.startsWith('{')).map(JSON.parse).find(row=>row.expected.name==='Open window');
       await call('click',{reference:open.reference,expected:open.expected});const popup=await find(id);await eventually(async()=>(await find(id)).controlled,'private popup group');
+      assert.notEqual(popup.window,parent.window,'the popup must remain separate from its opener window');
       await eventually(()=>counts('loaded-'+id)===1,'initial popup load');const before=await target(popup.tab);await rows(popup.tab);assert.equal(counts('loaded-'+id),1,'read preserves popup');
+      const nativeBefore=await popupEvidence(id,'before');
       const first=await rpc('click',before);assert.equal(first.ok,false);assert.equal(first.error.code,mode==='dirty'?'reload_required':'stale_reference');
       if(mode==='dirty'){assert.equal(counts('loaded-'+id),1);const repeated=await rpc('click',{...before,reload_taken_tab:true});assert.equal(repeated.error.code,'stale_reference');}
       await eventually(()=>counts('loaded-'+id)===2,'one guarded reload');const fresh=await target(popup.tab);assert.notEqual(fresh.reference.document,before.reference.document);assert.equal((await rpc('click',before)).ok,false);
       const loads=fixture.arrivals.filter(row=>new URL(row.url,'http://fixture.test').searchParams.get('case')==='loaded-'+id).map(row=>JSON.parse(row.body));
-      assert.equal(loads.length,2);assert.ok(loads.every(load=>load.opener));assert.deepEqual(loads[1],loads[0],'popup window, name and opener remain intact');
-      popupEvidence(mode);
+      assert.equal(loads.length,2);assert.ok(loads.every(load=>load.opener));assert.equal(loads[1].name,loads[0].name);
+      assert.deepEqual(await popupEvidence(id,'after'),nativeBefore,'native popup window, position and size remain intact');
       await approval(await call('click',fresh),id);await eventually(()=>counts('flow-'+id)===1,'opener receives postMessage after reload');evidence(id,'guarded 0/1/1 and opener complete');
       await call('close_tab',{tab:popup.tab});
     }
   });
   await check('GROUP 8 POST popups never resubmit and ordinary openers stay untouched',async()=>{
+    const tab=getTab();
     const id='popup-post';await nav('popup-opener&id='+id+'&mode=post');
     const open=(await call('read',{tab})).untrusted_content.tree.split('\n').filter(line=>line.startsWith('{')).map(JSON.parse).find(row=>row.expected.name==='Open window');
     await approval(await call('click',{reference:open.reference,expected:open.expected}),id);

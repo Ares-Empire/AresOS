@@ -44,7 +44,7 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
       await approval(await call('click',await target('Continue')),id);
     }
   });
-  await popupMatrices({check,call,rpc,nav,counts,eventually,tab,fixture,ownerOpenPopup,popupEvidence,approval});
+  await popupMatrices({check,call,rpc,nav,counts,eventually,getTab:()=>tab,fixture,ownerOpenPopup,popupEvidence,approval});
   await check('GROUP 7 native compatibility inside and outside Claude tabs',async()=>{
     await nav('native-compat&id=controlled');
     const controlled=await measureCompatibility({id:'controlled',fixture,eventually,start:async()=>call('click',await target('Continue'))});

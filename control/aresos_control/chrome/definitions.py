@@ -26,7 +26,7 @@ def actions(Action):
     def add(verb, effect, schema, purpose, owner=False, output=None):
         result.append(Action('chrome', verb, effect, schema, purpose + ' ' + SHARED, owner, output or {'type': 'object'}, verb != 'submit_trusted'))
     for verb, purpose in {
-        'tabs': 'List all tab titles, addresses and Claude-group membership; no page content is read.',
+        'tabs': 'List all tab titles, addresses, native window/position, active/focused state and Claude-group membership; no page content is read.',
         'downloads': 'List Chrome downloads and the paths Chrome chose. Changes nothing; Chrome saves normally.',
         'bookmarks': 'Find bookmark addresses and titles, read-only.',
         'history': 'Find visited addresses and titles, read-only.'}.items():
