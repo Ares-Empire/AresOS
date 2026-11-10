@@ -49,9 +49,11 @@ Nothing was pushed, signed or published to a registry. The release pin is unchan
   entry. The image itself gets `ares:524288:65536`.
 - **Polkit agent**: the base image's KDE agent, `/usr/libexec/kf6/polkit-kde-authentication-agent-1`, starts from the
   labwc autostart before the terminal.
-- **PATH** (`/etc/profile.d/aresos.sh`, read by login shells and by `aresos-session`): `~/.local/bin`, then
-  `/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin`, then Homebrew's `bin`/`sbin` and the user and system Flatpak
-  export bins when they exist. System commands stay ahead of Homebrew's.
+- **PATH** (`/etc/profile.d/aresos.sh`, for his login and interactive shells, AresOS terminals included):
+  `~/.local/bin`, then `/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin`, then Homebrew's `bin`/`sbin` and the
+  user and system Flatpak export bins when they exist. System commands stay ahead of Homebrew's. Since review 5 the
+  session itself (greetd's wrapper, `aresos-session`, labwc and what it starts) keeps the system PATH and runs only
+  absolute paths, so nothing in `~/.local/bin` can take away the desktop or its recovery terminal.
 - **Terminal** (`aresos-terminal`, `/usr/share/aresos/bashrc`): after the banner and the AresOS prompt, his own
   `~/.bashrc` is sourced, so his settings win. A syntax error in it ends only that `source`. The recovery terminal
   (Super+Ctrl+Escape, now `aresos-terminal --recovery`) never reads it (JUDGMENT-CALL 5).
@@ -108,8 +110,8 @@ Nothing was pushed, signed or published to a registry. The release pin is unchan
   - `os/tests/guest.sh` (VM policy): `ares` in wheel with `(ALL) ALL` and `timestamp_timeout=0`, no passwordless
     rule, `sudo -n` failing; `flatpak` and `brew` executable; the other updaters still not.
   - `os/tests/inherited-homebrew.sh` (switch and rehearsal VMs): `ares` reads and runs the inherited brew, can't
-    write the prefix, finds `/usr/bin/brew` and Homebrew on the login and session PATH, and an install without a
-    password fails before brew runs.
+    write the prefix, finds `/usr/bin/brew` and Homebrew on the login PATH, sees the system PATH in the labwc
+    session (review 5), and an install without a password fails before brew runs.
   - `test_shell_assertions`: the guest-policy and Homebrew-login cases follow those scripts.
   - The updater audit (`audit.py`) is unchanged; only its policy lists changed, as in A.
 - Bound sources: `.github/workflows/os-image.yml` is bound by the package 16 walk. Its new checkout bytes are in
@@ -246,6 +248,16 @@ read-only commands ran directly, `install` went to `sudo -u '#1000'`, a missing 
      the app; `systemctl restart x` asks each time; `ares-recovery` loses caching too. `flatpak --user` installs need
      no password.
    - Reversal: drop the rewrite in `build.sh`; `polkit-check.js` then reports every cached default.
+
+9. **His PATH is for his shells; the session keeps the system PATH** (review fixes 5).
+   - Chosen: `~/.local/bin`, Homebrew and the Flatpak export bins are on the PATH of his login and interactive shells,
+     AresOS terminals included. greetd's non-interactive profile wrapper, `aresos-session`, labwc and everything labwc
+     starts get `/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin`, and the startup scripts run only absolute paths.
+   - Rejected: giving labwc his PATH and pinning only our own commands. labwc's `sh` autostart, dbus-run-session's
+     `dbus-daemon` lookup and the base image's profile scripts would still look things up in `~/.local/bin`.
+   - Cost: a program labwc itself starts (today only the terminals and the polkit agent; later keybinds or a launcher)
+     doesn't see `~/.local/bin` or Homebrew unless started from a terminal.
+   - Reversal: set the daily PATH in `aresos-session` again; the CI shadow check then shows what it exposes.
 
 ## PLAN-GAP
 
@@ -458,3 +470,62 @@ Verification of the fixes:
   (`test_greeter` 3 errors, `test_inherited_homebrew` 1 failure + 7 errors, `test_sysusers` 2 errors). Focused on the
   same head: `test_journal_ready` 5 OK, `test_everyday_account` 27 OK, `test_shell_assertions` 8 OK,
   `test_checkout_sources` 4 OK (with the regenerated `vm.py` binding).
+
+## Review fixes 5 (review 5: CHANGES-NEEDED at `6cc07158`; brief `21-review-fixes-5.md`)
+
+Review 5 confirmed the Flatpak guard and `vm.py`'s pending hash and found no further passwordless root, image, boot,
+kernel-argument or firmware bypass. Board #156 is still open, so its behaviours stay (Homebrew through UID 1000,
+system-wide Wi-Fi and Flatpak installs ask for the password).
+
+1. **`journal_ready.py` spans line breaks (Medium): fixed.** The record pattern is now
+   `^\[[ \t]*\d+\.\d+\] [^\s]+ aresos-ci\[\d+\]: ([^\r\n]*)\r?\n`: only spaces and tabs pad the timestamp, and no
+   part before the terminating newline can match `\r` or `\n`. New regression
+   `test_no_line_break_may_sit_anywhere_before_the_message` puts `\n`, `\r` and `\r\n` at every position from the
+   timestamp to the message start of a good record, plus the review's `[\n 1.0] ...` case; all are rejected.
+   `journal_ready.py` isn't bound and `vm.py` didn't change, so `pending-rebind.json` stays as it is
+   (`test_checkout_sources` passes).
+2. **Session start resolved commands through his PATH (Medium): fixed, and widened to everything session start
+   runs.**
+   - `aresos-session` no longer sources the daily profile. It exports `/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin`
+     and execs `/usr/libexec/aresos-keyboard /usr/bin/dbus-run-session --dbus-daemon=/usr/bin/dbus-daemon --
+     /usr/bin/labwc ...`. labwc and what it starts (its `sh` autostart, the polkit agent, both terminals, keybinds)
+     inherit that system PATH, and dbus-run-session no longer looks up `dbus-daemon`.
+   - `aresos-keyboard` calls `/usr/bin/busctl`, requires an absolute compositor path and uses `os.execve` (no PATH
+     search). The `brew` shim (`stat`, `id`, `getent`, `cut`, `sudo`, `env`), `aresos-subids` (`/usr/sbin/usermod`)
+     and `/etc/profile.d/aresos.sh` (`/usr/bin/id`) run absolute commands too. `aresos-terminal`, the autostart
+     lines and the `rc.xml` commands already did.
+   - greetd's session wrapper is a non-interactive `/bin/sh` that sources `/etc/profile` before
+     `/usr/bin/aresos-session`, so the base image's profile scripts ran with his PATH. `aresos.sh` now sets the daily
+     PATH only in his interactive and login shells, so that wrapper keeps the system PATH.
+   - His AresOS terminal applies `/etc/profile.d/aresos.sh` before his `~/.bashrc` (`/usr/share/aresos/bashrc`); the
+     recovery terminal keeps the system PATH and still never reads his file. JUDGMENT-CALL 9 records the trade-off.
+   - New tests: `StartupPathTest` (the session's exact exec line, the terminal's exec line, every autostart and
+     `rc.xml` command absolute, `busctl`/`execve` in the keyboard helper, the shim's and subids' commands, the VM
+     layer's shadow list); `DailyPathTest` now covers login, interactive (`bash -i`, a `-sh` login) and the wrapper
+     shapes (`sh -c`, `bash -c`), with `/usr/bin/id` swapped for a stub only in a temporary copy;
+     `test_session_keeps_the_system_path_and_terminals_add_his_own`.
+   - In-image checks (`image-checks.sh`): the normal terminal's PATH starts with `~/.local/bin` and the recovery
+     terminal's is the system PATH; the real `/etc/profile` run as greetd runs it keeps the system PATH while a login
+     shell adds his; and every absolute command the greeter, session, terminals, keybinds and helpers name exists
+     in the image (21 of them). `inherited-homebrew.sh` (switch and rehearsal VMs) now expects the system PATH in
+     labwc's environment.
+   - VM shadow test: the disposable CI layer (`os/ci/overlay/shadow-path.*`, `shadow-names.txt`) writes a broken
+     program for each of `sh`, `bash`, `dash`, `dbus-run-session`, `dbus-daemon`, `dbus-broker-launch`, `labwc`,
+     `busctl`, `foot`, `id`, `python3`, `env`, `xdg-open`, `Xwayland`, `polkit-kde-authentication-agent-1`,
+     `aresos-terminal` and `aresos-session` into `/var/home/ares/.local/bin` before greetd starts; each records that
+     it ran and exits 97. After Super+Ctrl+Escape, the `shortcut` check requires both terminals to run `/usr/bin/foot`
+     with a live `/usr/bin/bash`, all 17 shadows in place and none of them run. A probe last in `/etc/profile.d`
+     records the PATH every profile run sees for `ares`; the wrapper's must be the system PATH.
+3. **Reruns.**
+
+| Run | What | Result |
+|---|---|---|
+| 42743387255 | `check_build=build` on `631c7f5d` | Failed before the build: `snapshot.ubuntu.com` answered 503 while installing the pinned runner tools (infrastructure; the next run passed that step unchanged). |
+| **42743949300** | **`check_build=build` on `f8777b8c`, with the VM boot** | **Success.** 31 in-image PASS lines, including `normal AresOS terminal PATH: /var/home/ares/.local/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/home/linuxbrew/.linuxbrew/bin:...`, `recovery AresOS terminal PATH: /usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin`, `greetd's profile wrapper keeps the system PATH (/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin); his login shell adds his own (...)` and `all 21 absolute startup commands exist`; `POLKIT_CHECK_PASSED` with the same counts as round 4. VM pass: guest policy with `ARESOS_ACTIVE_SESSION_POLKIT_PASSED`; the shortcut check with all 17 shadows in place and none run, both terminals `/usr/bin/foot --title=AresOS /usr/bin/bash --rcfile /usr/share/aresos/bashrc -i` with a `/usr/bin/bash` child, and greetd's wrapper seen once as `/bin/sh` (flags `hBc`, not a login shell) with PATH `/usr/local/bin:/usr/bin:/usr/local/sbin`; the recovery TTY and PAM check; `PASS: offline logind power-key path`; `UEFI VM checks passed`; `CHECK_BUILD_VM_PASSED`. Evidence: `runs/build-42743949300/` (`vm-pass-1/shortcut-result.json` holds the terminals, shadows and profile PATHs). |
+| **42748566373** | **`checks_only=true` on `f8777b8c`** | **Success.** `Ran 725 tests` `OK` natively, including the six `test_journal_ready` tests, `StartupPathTest` and the new `DailyPathTest` shell shapes. |
+
+- Full WSL suite on `631c7f5d` (`pkg21-wsl-suite.sh`, started once no other suite ran and 4.7 GB were free): plain
+  and `-B` both `Ran 724 tests`, `FAILED (failures=1, errors=12)`, only the known WSL-only suites (`test_greeter`
+  3 errors, `test_inherited_homebrew` 1 failure + 7 errors, `test_sysusers` 2 errors). Focused on `f8777b8c`, which
+  adds the profile guard: `test_journal_ready` 6 OK, `test_everyday_account` 31 OK, `test_shell_assertions` 8 OK,
+  `test_checkout_sources` 4 OK.
