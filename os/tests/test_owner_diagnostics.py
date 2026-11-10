@@ -27,6 +27,7 @@ class DiagnosticsTest(unittest.TestCase):
     def setUp(self):
         self.stack = contextlib.ExitStack()
         self.addCleanup(self.stack.close)
+        self.stack.enter_context(common.kept_umask())
         self.root = pathlib.Path(self.stack.enter_context(tempfile.TemporaryDirectory(dir=ROOT/'os/tests')))
         self.usb = self.root/'usb'; self.usb.mkdir()
         self.payload = self.usb/'ares-tools'; common.fixture_bundle(self.payload)

@@ -131,6 +131,7 @@ class ClassifierTest(unittest.TestCase):
                 os.symlink(value[1], path)
             else:
                 path.write_bytes(value)
+                path.chmod(0o644)  # explicit: an earlier test may have left another umask
 
     def classifier(self, old, new, base):
         roots = []
@@ -171,6 +172,15 @@ class ClassifierTest(unittest.TestCase):
         (o / 'etc/profile.d/brew-bash-completion.sh').write_bytes(b'#!/bin/sh\necho other\necho brew\n')
         rel = 'etc/profile.d/brew-bash-completion.sh'
         self.assertIsNone(classifier.classify(rel, rd.entry(o, rel), rd.entry(n, rel)))
+
+    @unittest.skipIf(os.name == 'nt', 'symlinks and modes need Linux')
+    def test_exact_rules_do_not_depend_on_the_process_umask(self):
+        # An in-process owner.main() once left umask 077 behind (test_owner_entry).
+        mask = os.umask(0o077)
+        try:
+            self.test_run_two_exact_rules_explain_only_their_exact_paths()
+        finally:
+            os.umask(mask)
 
     @unittest.skipIf(os.name == 'nt', 'symlinks and modes need Linux')
     def test_run_two_exact_rules_explain_only_their_exact_paths(self):
@@ -218,6 +228,7 @@ class ClassifierTest(unittest.TestCase):
         (n / choice).write_bytes(transformed.encode())
         (n / link).unlink(); os.symlink('org.fedoraproject.FirewallD1.server.policy.choice', n / link)
         self.assertIsNone(explain(choice))
+        self.assertEqual(stat.S_IMODE((o / rd.RPM_DATABASE).stat().st_mode), 0o644)
         (n / rd.RPM_DATABASE).chmod(0o600)
         self.assertIsNone(explain(rd.RPM_DATABASE))
         self.assertIsNone(explain('usr/share/rpm/rpmdb.sqlite-shm'))

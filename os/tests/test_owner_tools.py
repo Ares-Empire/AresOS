@@ -274,3 +274,14 @@ def release13_bundle(destination):
     (destination / 'SHA256SUMS').write_bytes(sums.encode())
     assert owner.checked_bundle(destination) == hashlib.sha256(sums.encode()).hexdigest()
     return destination
+
+
+@contextlib.contextmanager
+def kept_umask():
+    """Run owner.main() in-process without leaking its umask 077 to later tests."""
+    mask = os.umask(0o022)
+    os.umask(mask)
+    try:
+        yield
+    finally:
+        os.umask(mask)

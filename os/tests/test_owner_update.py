@@ -760,7 +760,7 @@ class LockTest(unittest.TestCase):
 
             def run(*argv):
                 out = io.StringIO()
-                with patch.object(owner.sys, 'argv', ['at', *argv]), contextlib.redirect_stdout(out):
+                with patch.object(owner.sys, 'argv', ['at', *argv]), contextlib.redirect_stdout(out), common.kept_umask():
                     owner.main()
                 return out.getvalue()
             yield tools, host, store, run
