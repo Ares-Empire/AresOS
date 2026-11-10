@@ -4,6 +4,8 @@ import fs from 'node:fs';
 import {verdicts,assertComplete} from './verdicts.mjs';
 import {setTimeout as delay} from 'node:timers/promises';
 import {measureCompatibility,compareCompatibility} from './compatibility.mjs';
+import {completeIngress} from './ingress-scan.mjs';
+import {reviewMatrices} from './review-matrices.mjs';
 import {popupMatrices} from './popups.mjs';
 import {collectSiteResults} from './site-results.mjs';
 
@@ -44,6 +46,7 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
       await approval(await call('click',await target('Continue')),id);
     }
   });
+  await reviewMatrices({check,nav,call,rpc,target,read,counts,eventually,approval,fixture,getTab:()=>tab,ownerKey,admin,ownerNavigate,ownerDismiss});
   await popupMatrices({check,call,rpc,nav,counts,eventually,getTab:()=>tab,setTab:value=>{tab=value},fixture,ownerOpenPopup,popupEvidence,popupControl,approval});
   await check('GROUP 7 native compatibility inside and outside Claude tabs',async()=>{
     await nav('native-compat&id=controlled');
@@ -187,7 +190,7 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
       if(id==='owner-after-limit')assert.equal(counts(id),2,'owner work after the limit is ordinary browser work');
     }
   });
-  await check('GROUP 2 owner defaults never exempt timer forms submitters or validation repairs',async()=>{
+  await check('GROUP 2 after his mark timers never exempt forms submitters or validation repairs',async()=>{
     for(const variant of ['same-submitter','other-form','other-submitter']){
       const id='owner-timer-'+variant;await nav('owner-timer&id='+id+'&variant='+variant);
       const continued=call('click',await target('Continue'));
@@ -287,8 +290,19 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
   });
   await check('GROUP 7 all password kinds across open closed and cross-site roots',async()=>{
     await nav('password-matrix');assert.doesNotMatch(JSON.stringify(await read()),/SENTINEL_PRIVATE_PASSWORD_20/);
-    await call('click',await target('Show'));assert.doesNotMatch(JSON.stringify(await read()),/SENTINEL_PRIVATE_PASSWORD_20/);
-    for(const file of ['browser-boundary.jsonl','tool.jsonl','service.txt'])assert.doesNotMatch(fs.readFileSync('/out/'+file,'utf8'),/SENTINEL_PRIVATE_PASSWORD_20/,file);
+    for(const prefix of ['top','cross'])for(let index=0;index<3;index++){
+      const selected=await target('Submit '+prefix+' '+index),id='password-'+prefix+'-'+index;
+      const form=await call('read_form',{tab,reference:selected.reference});assert.doesNotMatch(JSON.stringify(form),/SENTINEL_PRIVATE_PASSWORD_20/);
+      const prepared=await call('click',selected);assert.doesNotMatch(JSON.stringify(prepared),/SENTINEL_PRIVATE_PASSWORD_20/);
+      await approval(prepared,id);
+    }
+    await call('click',await target('Show'));await call('click',await target('Show cross'));assert.doesNotMatch(JSON.stringify(await read()),/SENTINEL_PRIVATE_PASSWORD_20/);
+    await call('release_tab',{tab});await call('take_tab',{tab});assert.doesNotMatch(JSON.stringify(await read()),/SENTINEL_PRIVATE_PASSWORD_20/);
+    const ingress=completeIngress(fs.readFileSync('/out/browser-boundary.jsonl','utf8'));
+    assert.ok(ingress.some(row=>row.reader_ingress),'test build must record sensitive native getter ingress');
+    assert.ok(ingress.some(row=>row.protocol_event),'test build must audit incoming protocol events');
+    assert.equal(ingress.some(row=>['Runtime.consoleAPICalled','Runtime.exceptionThrown'].includes(row.protocol_event?.method)),false,'Runtime values must never reach the extension');
+    for(const file of ['browser-boundary.jsonl','tool.jsonl','service.txt'])assert.doesNotMatch(file==='browser-boundary.jsonl'?JSON.stringify(completeIngress(fs.readFileSync('/out/'+file,'utf8'))):fs.readFileSync('/out/'+file,'utf8'),/SENTINEL_PRIVATE_PASSWORD_20/,file);
   });
   await check('GROUP 6 schemes links and forward routes',async()=>{
     await nav('features&id=repeat-reload');let previous=(await target('First')).reference.document;
@@ -397,7 +411,7 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
     await approval(generic,'conservative-gmail-Send');
     await nav('password-matrix');assert.doesNotMatch(JSON.stringify(await read()),/SENTINEL_PRIVATE_PASSWORD_20/);
     const show=await call('click',await target('Show'));assert.ok(show.approval);await call('submit',show.approval);assert.doesNotMatch(JSON.stringify(await read()),/SENTINEL_PRIVATE_PASSWORD_20/);
-    for(const file of ['browser-boundary.jsonl','tool.jsonl','service.txt'])assert.doesNotMatch(fs.readFileSync('/out/'+file,'utf8'),/SENTINEL_PRIVATE_PASSWORD_20/,file);
+    for(const file of ['browser-boundary.jsonl','tool.jsonl','service.txt'])assert.doesNotMatch(file==='browser-boundary.jsonl'?JSON.stringify(completeIngress(fs.readFileSync('/out/'+file,'utf8'))):fs.readFileSync('/out/'+file,'utf8'),/SENTINEL_PRIVATE_PASSWORD_20/,file);
     await lifecycle({fixture:'qualification',mode:'password_exclusion'});
     assert.equal((await rpc('read',{tab})).ok,false);
     await lifecycle({fixture:'qualification',mode:'qualified'});

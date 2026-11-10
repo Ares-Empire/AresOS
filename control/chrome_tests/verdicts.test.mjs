@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {REQUIRED,ADAPTER_REQUIRED,SUPPORT,verdicts} from '../chrome/ci/verdicts.mjs';
+import {REQUIRED,ADAPTER_REQUIRED,SUPPORT,verdicts,assertComplete} from '../chrome/ci/verdicts.mjs';
 
 const support=['FEATURE tools forms options find wait fill_form scroll and full catalogues','VIEW representative long article/form complete paging','QUALIFICATION conservative activations ask and core failures gate before reads'];
 const complete=()=>[...Object.values(REQUIRED).flat(),...support].map(name=>({name,passed:true}));
@@ -56,7 +56,7 @@ test('unmapped additional checks fail closed until explicitly assigned to record
 });
 
 test('every named core popup and adapter case is in the exact required inventory',()=>{
-  const names=['control/chrome/ci/matrices.mjs','control/chrome/ci/popups.mjs','control/chrome/ci/sites/matrices.mjs'].flatMap(file=>
+  const names=['control/chrome/ci/matrices.mjs','control/chrome/ci/review-matrices.mjs','control/chrome/ci/popups.mjs','control/chrome/ci/sites/matrices.mjs'].flatMap(file=>
     [...fs.readFileSync(file,'utf8').matchAll(/await check\('([^']+)'/g)].flatMap(match=>match[1]==='GROUP 10 adapter '?['gmail','whatsapp','github','gemini','deezer'].map(site=>match[1]+site):[match[1]]));
   assert.deepEqual([...names].sort(),[...Object.values(REQUIRED).flat(),...SUPPORT].sort());
   assert.equal(verdicts(complete(),baseline,adapters).groups[12],false);
@@ -88,4 +88,12 @@ test('shared binding classification isolation and owner prerequisites disable de
     const result=verdicts(complete().filter(row=>row.name!==name),baseline,adapters);
     assert.ok(Object.values(result.adapters).every(value=>value===false),name);
   }
+});
+
+
+test('P29 runtime acceptance rejects missing duplicate failed or unknown named rows and false verdicts',()=>{
+  const rows=complete(),qualified=verdicts(rows,baseline,adapters);assert.doesNotThrow(()=>assertComplete(rows,qualified));
+  for(const changed of [rows.slice(1),[...rows,rows[0]],rows.map((row,index)=>index===0?{...row,passed:false}:row),[...rows,{name:'Unknown case',passed:true}]])assert.throws(()=>assertComplete(changed,verdicts(changed,baseline,adapters)));
+  for(const section of ['core','adapters','groups']){const changed=structuredClone(qualified);changed[section][Object.keys(changed[section])[0]]=false;assert.throws(()=>assertComplete(rows,changed));}
+  const changed=structuredClone(qualified);changed.groups[12]=true;assert.throws(()=>assertComplete(rows,changed));
 });

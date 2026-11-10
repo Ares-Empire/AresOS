@@ -2,7 +2,9 @@ import http from 'node:http';
 import fs from 'node:fs';
 import {compatibilityScript} from './compatibility.mjs';
 import {popupPage} from './popups.mjs';
-const page=(body,script='',head='')=>`<!doctype html><meta charset="utf-8"><title>Synthetic fixture</title><script>globalThis.firstScriptSubmit=HTMLFormElement.prototype.submit;</script><style>body{font:16px sans-serif;margin:20px}button,input,textarea{margin:8px}</style>${body}<script>${script}</script>`;
+import {passwordPage} from './password-fixtures.mjs';
+import {reviewPage} from './review-fixtures.mjs';
+const page=(body,script='',head='')=>`<!doctype html><html><head><meta charset="utf-8"><title>Synthetic fixture</title><script>globalThis.firstScriptSubmit=HTMLFormElement.prototype.submit;</script><style>body{font:16px sans-serif;margin:20px}button,input,textarea{margin:8px}</style></head><body>${body}<script>${script}</script>`;
 export async function fixtures(options={}) {
   const arrivals=[],streams=new Map(),mutations=new Map();let mutationSequence=0;
   const compatibility=[],compatibilityDownloads=[];
@@ -17,7 +19,7 @@ export async function fixtures(options={}) {
     if(url.pathname === '/download'){compatibilityDownloads.push(url.searchParams.get('id'));res.setHeader('Content-Disposition','attachment; filename="synthetic-'+url.searchParams.get('id')+'.txt"');res.setHeader('Content-Type','text/plain');res.end('Synthetic downloadable bytes');return;}
     if(url.pathname==='/compat-report'){let body='';for await(const part of req)body+=part;const value=JSON.parse(body);compatibility.push(value);fs.appendFileSync('/out/native-compatibility.jsonl',JSON.stringify(value)+'\n');res.end('ok');return;}
     if(url.pathname==='/tone.wav'){
-      const wav=Buffer.alloc(44+16000);wav.write('RIFF',0);wav.writeUInt32LE(wav.length-8,4);wav.write('WAVEfmt ',8);wav.writeUInt32LE(16,16);wav.writeUInt16LE(1,20);wav.writeUInt16LE(1,22);wav.writeUInt32LE(8000,24);wav.writeUInt32LE(16000,28);wav.writeUInt16LE(2,32);wav.writeUInt16LE(16,34);wav.write('data',36);wav.writeUInt32LE(16000,40);res.setHeader('Content-Type','audio/wav');res.end(wav);return;
+      const wav=Buffer.alloc(44+16000);wav.write('RIFF',0);wav.writeUInt32LE(wav.length-8,4);wav.write('WAVEfmt ',8);wav.writeUInt32LE(16,16);wav.writeUInt16LE(1,20);wav.writeUInt16LE(1,22);wav.writeUInt32LE(8000,24);wav.writeUInt32LE(16000,28);wav.writeUInt16LE(2,32);wav.writeUInt16LE(16,34);wav.write('data',36);wav.writeUInt32LE(16000,40);for(let index=0;index<8000;index++)wav.writeInt16LE(Math.round(6000*Math.sin(2*Math.PI*220*index/8000)),44+index*2);res.setHeader('Content-Type','audio/wav');res.end(wav);return;
     }
     if(url.pathname==='/post-document'){
       let body='';for await(const part of req)body+=part;const record={time:Date.now(),url:req.url,method:req.method,body,host:req.headers.host};arrivals.push(record);fs.appendFileSync('/out/receiver.jsonl',JSON.stringify(record)+'\n');res.end(page('<button type="button">Continue</button>'));return;
@@ -36,9 +38,10 @@ export async function fixtures(options={}) {
     // not exhaust Chrome's six HTTP/1.1 connections and hide later receivers.
     if(!['draft-inner','password-inner'].includes(kind))for(const [id,stream]of streams){stream.end();streams.delete(id);}
     let body,script='';
-    if(['popup-opener','popup-child'].includes(kind)){const popup=popupPage(url);res.end(page(popup.body,popup.script));return;}
+    if(kind==='review-page'){const review=reviewPage(url);if(!review)throw Error('Unknown review fixture');({body,script}=review);}
+    else if(['popup-opener','popup-child'].includes(kind)){const popup=popupPage(url);res.end(page(popup.body,popup.script));return;}
     if(kind==='adapter-sites'){const site=(await import('./sites/fixture.mjs')).sitePage(url,req.headers.host);res.end(page(site.body,site.script));return;}
-    if(kind==='native-donor'){
+    else if(kind==='native-donor'){
       const id=url.searchParams.get('id');body='<p id="native-donor">Ordinary native donor</p><button type="button" style="position:fixed;inset:0;width:100vw;height:100vh">Open controlled page</button>';
       script="document.title='Native donor '+"+JSON.stringify(id)+";document.querySelector('button').onclick=()=>window.open('/?case=compose&id='+"+JSON.stringify(id)+",'native-root-'+"+JSON.stringify(id)+");fetch('/compat-report',{method:'POST',body:JSON.stringify({id:"+JSON.stringify(id)+",phase:'donor-ready'})});";
     }else if(kind==='stop-modal'){
@@ -58,7 +61,7 @@ export async function fixtures(options={}) {
     }else if(kind==='take-state'){
       const id=url.searchParams.get('id'),mode=url.searchParams.get('mode');
       body='<button type="button" id="play">Play media</button><input aria-label="Draft" value="Saved"><button type="button" id="continue">Continue</button><audio loop src="/tone.wav"></audio><form method="post" action="/post-document?case='+id+'"><button type="submit">Load POST</button></form>';
-      script=`fetch('/receive?case=loaded-${id}',{method:'POST'});${mode==='dirty'?"document.querySelector('input').value='Unsaved';":''}document.querySelector('#play').onclick=()=>document.querySelector('audio').play().then(()=>fetch('/receive?case=playing-${id}',{method:'POST'}));`;
+      script=`fetch('/receive?case=loaded-${id}',{method:'POST'});${mode==='dirty'?"document.querySelector('input').value='Unsaved';":''}${mode==='blank-editor'?"const child=document.createElement('iframe');document.body.append(child);child.contentDocument.designMode='on';child.contentDocument.body.textContent='Unsaved iframe draft';":''}document.querySelector('#play').onclick=()=>{${mode==='detached-media'?"const media=new Audio('/tone.wav');media.loop=true;globalThis.fixtureMedia=media;return media.play().then(()=>fetch('/receive?case=playing-"+id+"',{method:'POST'}));":mode==='web-audio'?"const audio=new AudioContext(),oscillator=audio.createOscillator();oscillator.connect(audio.destination);oscillator.start();globalThis.fixtureMedia=audio;return audio.resume().then(()=>fetch('/receive?case=playing-"+id+"',{method:'POST'}));":"return document.querySelector('audio').play().then(()=>fetch('/receive?case=playing-"+id+"',{method:'POST'}));"}};`;
     } else if(kind==='features') {
       body='<form><input aria-label="First" name="first" value="Original first"><input aria-label="Second" name="second" value="Original second"><select name="choice" aria-label="Choice"><option value="a">First option</option><option value="b">Second option</option><option value="c" disabled>Disabled option</option></select><input type="hidden" name="hidden" value="Hidden field"><input type="checkbox" name="tick" aria-label="Tick"></form><a href="/download?id='+url.searchParams.get('id')+'">Download fixture</a><p>Findable synthetic paragraph</p>';
     } else if(kind==='compose') {
@@ -157,14 +160,8 @@ export async function fixtures(options={}) {
     } else if(kind==='upload') {
       const id=url.searchParams.get('id')||'upload';body='<input type="file" aria-label="Upload"><textarea aria-label="Message">Existing draft independent of upload</textarea><button type="button">Send</button>';
       script=`document.querySelector('[type=file]').onchange=async event=>fetch('/receive?case='+${JSON.stringify(id)},{method:'POST',body:await event.target.files[0].text()});document.querySelector('button').onclick=()=>fetch('/receive?case=after-upload',{method:'POST',body:document.querySelector('textarea').value});`;
-    } else if(kind==='password-matrix') {
-      body='<button type="button">Show</button><div id="open"></div><div id="closed"></div><iframe src="http://second.test:8766/?case=password-inner"></iframe>';
-      script=`const markup='<input type="password" aria-label="Type password" value="SENTINEL_PRIVATE_PASSWORD_20"><input autocomplete="current-password" aria-label="Current password" value="SENTINEL_PRIVATE_PASSWORD_20"><input autocomplete="new-password" aria-label="New password" value="SENTINEL_PRIVATE_PASSWORD_20"><input autocomplete="one-time-code" aria-label="Code" value="SENTINEL_PRIVATE_PASSWORD_20"><input style="-webkit-text-security:disc" aria-label="Masked password" value="SENTINEL_PRIVATE_PASSWORD_20"><input aria-label="Late password" value="SENTINEL_PRIVATE_PASSWORD_20">';
-        const roots=[document.body,document.querySelector('#open').attachShadow({mode:'open'}),document.querySelector('#closed').attachShadow({mode:'closed'})];
-        for(const root of roots){const container=document.createElement('section');container.innerHTML=markup;root.append(container);container.querySelector('[aria-label="Late password"]').type='password';}
-        document.querySelector('button').onclick=()=>{for(const root of roots)for(const field of root.querySelectorAll('input'))if(field.type==='password')field.type='text';};`;
-    } else if(kind==='password-inner') {
-      body='<input type="password" aria-label="Cross-site password" value="SENTINEL_PRIVATE_PASSWORD_20"><input autocomplete="current-password" value="SENTINEL_PRIVATE_PASSWORD_20"><input style="-webkit-text-security:disc" value="SENTINEL_PRIVATE_PASSWORD_20">';
+    } else if(kind==='password-matrix'||kind==='password-inner') {
+      ({body,script}=passwordPage(kind==='password-inner'));
     } else if(kind==='excluded') {
       body='<p>EXCLUDED_PAGE_SENTINEL_20</p><input aria-label="Excluded" value="EXCLUDED_PAGE_SENTINEL_20">';
     } else if(kind==='frame-excluded') {
@@ -248,9 +245,10 @@ export async function fixtures(options={}) {
       body='<button aria-label="">●</button><textarea aria-label="Autosave"></textarea>';
       script="document.querySelector('button').onclick=()=>fetch('/receive?case=residual-click',{method:'POST',body:'ordinary click'});document.querySelector('textarea').oninput=e=>fetch('/receive?case=residual-autosave',{method:'POST',body:e.target.value});";
     } else {res.statusCode=404;res.end('Unknown synthetic fixture');return;}
-    const mutationId=['binding','page-dialog','upload','draft-inner','stop-modal'].includes(kind)||kind==='site'&&url.searchParams.get('id')?.startsWith('adapter-bind-')?url.searchParams.get('id'):null;
+    const mutationId=['review-page','binding','page-dialog','upload','draft-inner','stop-modal'].includes(kind)||kind==='site'&&url.searchParams.get('id')?.startsWith('adapter-bind-')?url.searchParams.get('id'):null;
     if(mutationId)script+=`;new EventSource('/events?id='+${JSON.stringify(mutationId)}).onmessage=event=>{
       const mutation=JSON.parse(event.data),change=mutation.change,form=document.querySelector('form'),button=document.querySelector('button');
+      if(change==='review-change')globalThis.reviewChange();
       if(change==='label')button.textContent='Changed label';
       if(change==='element')button.replaceWith(button.cloneNode(true));
       if(change==='visible')document.querySelector('[name=visible]').value='Changed visible';

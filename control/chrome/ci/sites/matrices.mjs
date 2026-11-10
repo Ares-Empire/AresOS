@@ -63,9 +63,9 @@ export async function siteMatrices({call,read,nav,target,counts,eventually,tab,f
     await approved(second,receiver(id,'Send','second'));assert.equal(counts(receiver(id,'Send','first')),1);
     id=await fresh('gmail');const inbox=await call('press',{...await target('Selected message'),key:'#'});assert.equal(evidence(receiver(id,'Delete shortcut'),'inbox before approval').count,0);assert.ok(inbox.approval);
     await denyTrust(inbox.approval,receiver(id,'Delete shortcut'));await approved(inbox,receiver(id,'Delete shortcut'));
-    for(const key of ['Ctrl+Enter','Cmd+Enter','#']){
+    for(const key of ['Ctrl+Enter','Cmd+Enter','#','Shift+#']){
       id=await fresh('gmail');const prepared=await call('press',{...await target('Message Body'),key});
-      await approved(prepared,receiver(id,key==='#'?'Delete shortcut':'Enter','first'));
+      await approved(prepared,receiver(id,key.endsWith('#')?'Delete shortcut':'Enter','first'));
     }
   });
   await check('GROUP 11 ADAPTER Gmail exact To Cc Bcc roles account revocation and widening',async()=>{

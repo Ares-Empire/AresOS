@@ -42,3 +42,21 @@ test('popup state probe uses the receiver mutation protocol and preserves docume
   assert.equal(states.length,2);assert.deepEqual(states[0],states[1]);assert.equal(states[0].document,'123-0.5');assert.equal(states[0].draft,'Draft kept');assert.equal(states[0].opener,true);
   assert.ok(sent.some(([url])=>url==='/mutation-ack?nonce=1'));assert.ok(sent.some(([url])=>url==='/mutation-ack?nonce=2'));
 });
+
+test('P31 first script captures natives inside head and excluded GET carries the receiver identity',async()=>{
+  const fixture=await fixtures({port:0,secondPort:0}),base='http://127.0.0.1:'+fixture.port;
+  try{
+    const first=await(await fetch(base+'/?case=preload-origin&id=early')).text();
+    assert.ok(first.indexOf('firstScriptSubmit=')<first.indexOf('</head>'));assert.ok(first.indexOf('firstScriptSubmit=')<first.indexOf('<body>'));
+    const excluded=await(await fetch(base+'/?case=excluded-form&id=excluded-get&method=get')).text();assert.match(excluded,/<input type="hidden" name="case" value="excluded-get">/);
+  }finally{fixture.close();}
+});
+
+test('review fixtures compile without starting a browser',async()=>{
+  const {reviewPage}=await import('../chrome/ci/review-fixtures.mjs');
+  const {passwordPage}=await import('../chrome/ci/password-fixtures.mjs');
+  for(const mode of ['inline-hold','new-frame','new-frame-inner','shadow','label','binding','confirmation','file','rich','title','notice','owner-mark','independent-dialog'])for(const variant of ['blank','srcdoc','borrowed','other-form','other-submitter','closed-event']){
+    const page=reviewPage(new URL('http://fixture.test/?mode='+mode+'&variant='+variant+'&id=fixture'));new vm.Script(page.script);assert.ok(page.body);
+  }
+  for(const cross of [false,true])new vm.Script(passwordPage(cross).script);
+});

@@ -11,6 +11,12 @@ if(process.env.INJECTION_PROBE==='true'){
   fs.writeFileSync(extension+'/context.js','// Inert isolated-world bootstrap. No page access or listeners.\n(() => {})();\n');
   fs.writeFileSync(extension+'/isolated.js',"globalThis.probePrivate=true;window.addEventListener('probe-event',event=>{event.preventDefault();event.stopImmediatePropagation();},true);");
 }
+if(process.env.INJECTION_PROBE!=='true'){
+  const instrumented='/workspace/.work/20-instrumented-extension';fs.cpSync(extension,instrumented,{recursive:true});extension=instrumented;
+  fs.writeFileSync(extension+'/guard.js',fs.readFileSync('/workspace/control/chrome/ci/password-ingress.js','utf8')+'\n'+fs.readFileSync(extension+'/guard.js','utf8'));
+  const background=fs.readFileSync(extension+'/background.js','utf8').replace("chrome.runtime.onMessage.addListener((message,sender,reply)=>{", "chrome.runtime.onMessage.addListener((message,sender,reply)=>{if(sender.id===chrome.runtime.id&&message?.event==='reader_ingress'){audit({reader_ingress:message});reply({received:true});return;}");
+  fs.writeFileSync(extension+'/background.js',background);
+}
 const result=packageExtension(extension,'/workspace/.work/20-package',pair.privateKey.export({type:'pkcs8',format:'pem'}));
 fs.writeFileSync('/out/extension.json',JSON.stringify({id:result.id,version:result.version}));
 fs.mkdirSync('/etc/aresos/control',{recursive:true});
