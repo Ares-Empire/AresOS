@@ -621,11 +621,11 @@ async function dispatch(command) {
     if(!dialog || dialog.frame === undefined || stable(expected)!==stable(command.binding))throw Error('stale_approval: dialog or its opener changed');
     safeURL(dialog.frame_url);
     if(command.operation && used.has(command.operation))throw Error('refused: dialog operation already attempted');
-    const armed=await armDialog(tab);dialogInputs.set(dialog,{epoch:dispatchEpoch,nonce:armed.nonce});
+    const armed=await armDialog(tab);dialogInputs.set(dialog,{epoch:dispatchEpoch,nonce:armed.nonce,managed:true});
     let uncertain_finish;
     if(command.operation)used.add(command.operation);
     try{await cdp(tab,'Page.handleJavaScriptDialog',{accept:command.input.accept,...(command.input.text === undefined ? {}:{promptText:command.input.text})});await armed.ready;
-    }finally{armed.owner.hold.inFlight=false;armed.owner.hold.until=Date.now()+POLICY.holdMs;uncertain_finish=await finishFrames(tab,armed.frames,dispatchEpoch,armed.nonce);}
+    }finally{uncertain_finish=await finishFrames(tab,armed.frames,dispatchEpoch,armed.nonce);if(armed.owner.hold?.nonce===armed.nonce){armed.owner.hold.inFlight=uncertain_finish;armed.owner.hold.until=Date.now()+POLICY.holdMs;}}
     const steps=await collectSteps(tab,dispatchEpoch);
     return {checked:true,dispatched:true,page:await observation(tab),steps,dialog:dialogs.get(tab)||null,uncertain_finish};
   }
@@ -876,14 +876,14 @@ chrome.debugger.onEvent.addListener(async(source,method,params)=>{
     if(matched){
       // Consume before entering the page again; a nested second dialog is a new question.
       plan.expected=null;plan.matched.push({...expected});
-      try{const armed=await armDialog(tab);dialogInputs.set(dialog,{epoch:input.epoch,nonce:armed.nonce});await cdp(tab,'Page.handleJavaScriptDialog',{accept:true});await armed.ready;}catch(error){port?.postMessage({event:'reader_error',tab,error:String(error)});}
+      try{const armed=await armDialog(tab);dialogInputs.set(dialog,{epoch:input.epoch,nonce:armed.nonce,managed:true});await cdp(tab,'Page.handleJavaScriptDialog',{accept:true});await armed.ready;const uncertain=await finishFrames(tab,armed.frames,input.epoch,armed.nonce);if(armed.owner.hold?.nonce===armed.nonce){armed.owner.hold.inFlight=uncertain;armed.owner.hold.until=Date.now()+POLICY.holdMs;}}catch(error){port?.postMessage({event:'reader_error',tab,error:String(error)});}
     }
   }
   if (method === 'Page.javascriptDialogClosed') {
     const tab=source.tabId,input=dialogInputs.get(dialogs.get(tab));dialogs.delete(tab);
     // Closing a covered dialog has no separate tool call to finish its input.
     // Use the nonce captured at opening; an old close can never clear a new arm.
-    if(input)try{const uncertain=await finishFrames(tab,await chrome.webNavigation.getAllFrames({tabId:tab})||[],input.epoch,input.nonce);const hold=controlled.get(tab)?.hold;if(hold?.nonce===input.nonce){hold.inFlight=uncertain;hold.until=Date.now()+POLICY.holdMs;}}catch{}
+    if(input&&!input.managed)try{const uncertain=await finishFrames(tab,await chrome.webNavigation.getAllFrames({tabId:tab})||[],input.epoch,input.nonce);const hold=controlled.get(tab)?.hold;if(hold?.nonce===input.nonce){hold.inFlight=uncertain;hold.until=Date.now()+POLICY.holdMs;}}catch{}
   }
 });
 chrome.debugger.onDetach.addListener(async source=>{
