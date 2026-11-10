@@ -1,5 +1,6 @@
 """Publisher tests are hermetic: local repository and stubbed GitHub notifications."""
 import copy
+import hashlib
 import importlib.util
 import json
 from pathlib import Path
@@ -24,7 +25,7 @@ class Publisher(unittest.TestCase):
         self.assertTrue(versions['stable']['package_url'].endswith('157.0.1.0-1_amd64.deb'))
         self.assertEqual(versions['stable']['package_sha256'],'1'*64)
         with self.assertRaises(ValueError):qualify.packages(metadata.replace('SHA256:', 'Missing:'))
-        registry={'format':1,'builds':[{'commit':str(i)*40,'build':str(i)*64,'shipped_at':str(i)} for i in range(1,5)]}
+        registry={'format':1,'builds':[{'commit':str(i)*40,'build':str(i)*64,'shipped_at':f'2026-11-0{i}T00:00:00Z'} for i in range(1,5)]}
         matrix=qualify.plan(registry,versions,{'format':1,'entries':[]},'a'*40,'a'*64)['include']
         self.assertEqual(len(matrix),16)
         self.assertEqual({item['build'] for item in matrix},{'a'*64,'4'*64,'3'*64,'2'*64})
@@ -76,3 +77,143 @@ class Publisher(unittest.TestCase):
             (root/'pair.json').write_text(json.dumps(pair))
             result=qualify.aggregate(root,'fixture-run')[0]
             self.assertFalse(any(result['core'].values()));self.assertFalse(any(result['adapters'].values()))
+
+    def test_plan_suppresses_only_exact_recorded_pairs_and_rejects_bad_registry(self):
+        versions = {channel:{'version':version} for channel,version in [('stable','157.0.1.0'), ('beta','158.0.1.0')]}
+        held = {'format':1, 'entries':[entry()]}
+        planned = qualify.plan({'format':1,'builds':[]}, versions, held, 'a'*40, 'a'*64)['include']
+        self.assertEqual([(row['channel'],row['repeat']) for row in planned], [('beta',1), ('beta',2)])
+        shipped = {'commit':'a'*40, 'build':'a'*64, 'shipped_at':'2026-11-09T00:00:00Z'}
+        bad = [{'format':1,'builds':[shipped,shipped]}, {'format':1,'builds':[{**shipped,'commit':'short'}]},
+               {'format':1,'builds':[{**shipped,'shipped_at':'2026-11-09'}]}, {'format':1,'builds':[{}]}]
+        for registry in bad:
+            with self.subTest(registry=registry), self.assertRaises(ValueError):
+                qualify.plan(registry,versions,held,'a'*40,'a'*64)
+
+    def test_metadata_rejects_missing_duplicate_channels_and_unpinned_packages(self):
+        paragraphs = ['Package: google-chrome-'+channel+'\nVersion: '+version+'-1\nFilename: pool/main/g/google-chrome-'+channel+'/google-chrome-'+channel+'_'+version+'-1_amd64.deb\nSHA256: '+'1'*64
+                      for channel,version in [('stable','157.0.1.0'), ('beta','158.0.2.0')]]
+        good = '\n\n'.join(paragraphs)
+        for metadata in [paragraphs[0],good+'\n\n'+paragraphs[0],good.replace('Version: 157.0.1.0-1','Version: 157'),
+                         good.replace('pool/main/', '../'),good.replace('SHA256: '+'1'*64,'SHA256: no')]:
+            with self.subTest(metadata=metadata), self.assertRaises(ValueError): qualify.packages(metadata)
+
+    def test_aggregation_accounts_for_wholly_missing_jobs_and_requires_two_strict_results(self):
+        with tempfile.TemporaryDirectory(dir=ROOT/'.work/20-chrome') as temporary:
+            root=Path(temporary)
+            expected={'include':[{**entry(version=version),'repeat':repeat} for version in ['157.0.1.0','158.0.1.0'] for repeat in [1,2]]}
+            for repeat in [1,2]:
+                directory=root/str(repeat);directory.mkdir()
+                pair={**entry(),'repeat':repeat}
+                if repeat==2:pair['core']['binding']=False;pair['adapters']['gmail']=False
+                (directory/'pair.json').write_text(json.dumps(pair))
+            actual=qualify.aggregate(root,'fixture-run',expected)
+            self.assertEqual(len(actual),2)
+            self.assertFalse(actual[0]['core']['binding']);self.assertFalse(actual[0]['adapters']['gmail'])
+            self.assertTrue(actual[0]['core']['classification']);self.assertTrue(actual[0]['adapters']['gemini'])
+            self.assertFalse(any(actual[1]['core'].values()));self.assertFalse(any(actual[1]['adapters'].values()))
+            pair['version']='159.0.1.0';(root/'2/pair.json').write_text(json.dumps(pair))
+            with self.assertRaises(ValueError):qualify.aggregate(root,'fixture-run',expected)
+
+    def test_pair_result_requires_measured_build_and_exact_browser_version(self):
+        with tempfile.TemporaryDirectory(dir=ROOT/'.work/20-chrome') as temporary:
+            root=Path(temporary)
+            result_fixture = {**entry(), 'groups':{'12':True}}
+            (root/'qualification-result.json').write_text(json.dumps(result_fixture))
+            (root/'chrome-version.txt').write_text('Google Chrome 157.0.1.0\n')
+            identity={**entry(),'repeat':1}
+            (root/'matrices.json').write_text('[]')
+            def completion(outcome):
+                (root/'qualification-complete.json').write_text(json.dumps({'format':1, 'identity':identity, 'outcome':outcome,
+                    'digests':{name:hashlib.sha256((root/name).read_bytes()).hexdigest() for name in ['qualification-result.json','matrices.json']}}))
+            completion('success')
+            from unittest.mock import patch
+            for actual_build,actual_version,passes in [('a'*64,'157.0.1.0',True),('b'*64,'157.0.1.0',False),('a'*64,'157.0.1.1',False)]:
+                (root/'chrome-version.txt').write_text('Google Chrome '+actual_version+'\n')
+                with self.subTest(build=actual_build,version=actual_version), patch.object(sys,'argv',['qualify.py','pair','--artifacts',str(root),'--runtime-root',str(ROOT)]), patch.dict(qualify.os.environ,QUALIFICATION_PAIR=json.dumps(identity),QUALIFICATION_OUTCOME='success'), patch.object(qualify,'runtime_identity',return_value=actual_build):
+                    qualify.main()
+                result=json.loads((root/'pair.json').read_text())
+                self.assertEqual(all(result['core'].values()),passes);self.assertEqual(all(result['adapters'].values()),passes)
+            for outcome in ['failure', 'cancelled', 'skipped', '']:
+                with self.subTest(outcome=outcome), patch.object(sys,'argv',['qualify.py','pair','--artifacts',str(root),'--runtime-root',str(ROOT)]), patch.dict(qualify.os.environ,QUALIFICATION_PAIR=json.dumps(identity),QUALIFICATION_OUTCOME=outcome), patch.object(qualify,'runtime_identity',return_value='a'*64):
+                    (root/'chrome-version.txt').write_text('Google Chrome 157.0.1.0\n')
+                    qualify.main()
+                result=json.loads((root/'pair.json').read_text())
+                self.assertFalse(any(result['core'].values()));self.assertFalse(any(result['adapters'].values()))
+            # A full suite's final aggregate assertion is evidence for each
+            # completed group, unlike an interruption or a stale all-pass file.
+            result_fixture['adapters']['gmail']=False
+            (root/'qualification-result.json').write_text(json.dumps(result_fixture));completion('failure')
+            with patch.object(sys,'argv',['qualify.py','pair','--artifacts',str(root),'--runtime-root',str(ROOT)]), patch.dict(qualify.os.environ,QUALIFICATION_PAIR=json.dumps(identity),QUALIFICATION_OUTCOME='failure'), patch.object(qualify,'runtime_identity',return_value='a'*64):
+                qualify.main()
+            completed=json.loads((root/'pair.json').read_text())
+            self.assertTrue(all(completed['core'].values()));self.assertFalse(completed['adapters']['gmail']);self.assertTrue(completed['adapters']['gemini'])
+            # Replacing either file after completion invalidates that evidence.
+            (root/'matrices.json').write_text('["changed"]')
+            self.assertFalse(qualify.completed(root,identity,'failure'))
+            completion('failure')
+            result_fixture.pop('groups');(root/'qualification-result.json').write_text(json.dumps(result_fixture))
+            completion('success')
+            with patch.object(sys,'argv',['qualify.py','pair','--artifacts',str(root),'--runtime-root',str(ROOT)]), patch.dict(qualify.os.environ,QUALIFICATION_PAIR=json.dumps(identity),QUALIFICATION_OUTCOME='success'), patch.object(qualify,'runtime_identity',return_value='a'*64):
+                qualify.main()
+            self.assertFalse(any(json.loads((root/'pair.json').read_text())['core'].values()))
+
+    def test_archived_build_uses_its_own_identity_algorithm(self):
+        with tempfile.TemporaryDirectory(dir=ROOT/'.work/20-chrome') as temporary:
+            root=Path(temporary);script=root/'control/chrome/build.py';script.parent.mkdir(parents=True)
+            script.write_text("print('"+'d'*64+"')\n")
+            from unittest.mock import patch
+            with patch.object(qualify,'build_hash',side_effect=AssertionError('Must not substitute current driver identity')):
+                self.assertEqual(qualify.runtime_identity(root),'d'*64)
+            script.write_text("print('not a build hash')\n")
+            with self.assertRaises(ValueError):qualify.runtime_identity(root)
+
+    def test_all_non_main_mutation_commands_refuse_before_git_or_github(self):
+        from unittest.mock import patch
+        for ref in ['refs/heads/pkg/20-chrome-qual','refs/heads/pkg/20-chrome','refs/pull/1/merge','']:
+            for command in ['prepare','publish','notify']:
+                with self.subTest(ref=ref,command=command), patch.object(sys,'argv',['qualify.py',command]), patch.dict(qualify.os.environ,{'GITHUB_REF':ref,'GITHUB_REPOSITORY':qualify.REPOSITORY}), patch.object(qualify,'git',side_effect=AssertionError('No remote reads before branch guard')), patch.object(qualify,'notify',side_effect=AssertionError('No GitHub writes')):
+                    with self.assertRaises(SystemExit):qualify.main()
+        with patch.object(sys,'argv',['qualify.py','publish']), patch.dict(qualify.os.environ,{'GITHUB_REF':'refs/heads/main','GITHUB_REPOSITORY':'fixture/repository'}):
+            with self.assertRaises(SystemExit):qualify.main()
+
+    def test_local_repository_publish_only_changes_data_branch_and_verifies_both_subjects(self):
+        with tempfile.TemporaryDirectory(dir=ROOT/'.work/20-chrome') as temporary:
+            root=Path(temporary);(root/'.work').mkdir()
+            remote=root/'remote.git';remote.mkdir();qualify.git(remote,'init','--bare')
+            seed=root/'seed';seed.mkdir();qualify.git(seed,'init','-b','main')
+            path=seed/qualify.RECORD;path.parent.mkdir(parents=True)
+            baseline={'format':1,'entries':[entry()]};path.write_text(json.dumps(baseline))
+            qualify.git(seed,'add','.')
+            qualify.git(seed,'-c','user.name=Fixture','-c','user.email=fixture@fixture.test','commit','-m','Fixture baseline')
+            qualify.git(seed,'remote','add','origin',str(remote));qualify.git(remote,'fetch',str(seed),'main:main')
+            main=qualify.git(remote,'rev-parse','refs/heads/main')
+            candidate=root/'candidate.json';newer={'format':1,'entries':[entry(),entry(version='158.0.1.0')]};candidate.write_text(json.dumps(newer))
+            verifier=Mock()
+            qualify.publish(root,candidate,baseline,remote=str(remote),verifier=verifier)
+            self.assertEqual(verifier.call_count,1)
+            self.assertEqual(qualify.git(remote,'rev-parse','refs/heads/main'),main)
+            self.assertEqual(json.loads(qualify.git(remote,'show','chrome-qualification:'+qualify.RECORD)),newer)
+            verifier.reset_mock();qualify.publish(root,candidate,baseline,remote=str(remote),verifier=verifier)
+            self.assertEqual(verifier.call_count,2)
+            before=qualify.git(remote,'rev-parse','chrome-qualification')
+            # Simulate an unsigned inserted branch entry, then the main workflow's
+            # prepare failure -> refusal notification. Neither ref may move.
+            qualify.git(seed,'fetch','origin','chrome-qualification');qualify.git(seed,'checkout','-b','chrome-qualification','FETCH_HEAD')
+            inserted=copy.deepcopy(newer);inserted['entries'].append(entry(version='159.0.1.0'));path.write_text(json.dumps(inserted))
+            qualify.git(seed,'add','.');qualify.git(seed,'-c','user.name=Fixture','-c','user.email=fixture@fixture.test','commit','-m','Unsigned fixture insertion');qualify.git(remote,'fetch',str(seed),'chrome-qualification:chrome-qualification')
+            before=qualify.git(remote,'rev-parse','chrome-qualification')
+            runner=Mock(return_value=Mock(stdout='[]'))
+            try:qualify.prepare(seed,[],baseline,Mock(side_effect=Refused('qualification_invalid','Unsigned fixture')))
+            except Refused:qualify.notify(None,False,runner)
+            else:self.fail('Unsigned publication accepted')
+            self.assertEqual(runner.call_count,1);self.assertIn('issue',runner.call_args.args[0])
+            self.assertEqual(qualify.git(remote,'rev-parse','chrome-qualification'),before)
+            # A valid signature cannot waive the shipped append-only baseline.
+            path.write_text(json.dumps({'format':1,'entries':[]}));runner.reset_mock()
+            try:qualify.prepare(seed,[],baseline,Mock())
+            except Refused:qualify.notify(None,False,runner)
+            else:self.fail('Rollback publication accepted')
+            self.assertEqual(runner.call_count,1)
+            self.assertEqual(qualify.git(remote,'rev-parse','chrome-qualification'),before)
+            self.assertEqual(qualify.git(remote,'rev-parse','main'),main)

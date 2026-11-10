@@ -7,8 +7,11 @@ ROOT = Path(__file__).resolve().parents[2]
 
 def inputs(root=ROOT):
     control = root / 'control'
-    for directory in ['aresos_control', 'generated', 'settings', 'chrome/extension', 'chrome/packaging']:
-        for path in sorted((control / directory).rglob('*')):
+    for directory in ['aresos_control', 'generated', 'settings', 'packaging', 'chrome/extension', 'chrome/packaging']:
+        base = control / directory
+        if not base.is_dir():
+            raise ValueError('Missing installed runtime directory: ' + directory)
+        for path in sorted(base.rglob('*')):
             if path.is_file() and '__pycache__' not in path.parts:
                 yield path
     for name in ['launch.py', 'requirements.lock', 'chrome/native_host.py', 'chrome/build.py']:

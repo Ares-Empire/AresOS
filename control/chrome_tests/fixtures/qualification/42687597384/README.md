@@ -1,0 +1,3 @@
+Real artifact-attestation fixture from Control Chrome qualification run 42687597384, attempt 1, source 374974bc67b12c3bc52af9af07778af36f14d537, on pkg/20-chrome-qual. Subject and Sigstore bundle are copied byte-for-byte from that run's qualification-attestation artifact. The record is synthetic and was never published to the qualification data branch.
+
+The CI verifier replays this bundle with the accepted branch set to pkg/20-chrome-qual, then tests missing/altered bundles, altered subject bytes, wrong workflow/branch, and held-history rollback. The shipped default remains main. Changes to signatures are made only to temporary copies. Verification uses gh attestation verify, never a local crypto implementation.
