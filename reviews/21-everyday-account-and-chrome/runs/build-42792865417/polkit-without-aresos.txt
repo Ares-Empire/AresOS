@@ -1,0 +1,480 @@
+polkit: 20 rule files, 401 actions, 17 change with wheel, 0 denied to ares, 174 reviewed passwordless, 0 cached defaults in the image
+  wheel changes org.fedoraproject.FirewallD1.config: auth_admin -> yes
+  wheel changes org.fedoraproject.FirewallD1.direct: auth_admin -> yes
+  wheel changes org.freedesktop.Flatpak.app-install: auth_admin -> yes
+  wheel changes org.freedesktop.Flatpak.app-uninstall: auth_admin -> yes
+  wheel changes org.freedesktop.Flatpak.runtime-install: auth_admin -> yes
+  wheel changes org.freedesktop.Flatpak.runtime-uninstall: auth_admin -> yes
+  wheel changes org.freedesktop.NetworkManager.settings.modify.system: auth_admin -> yes
+  wheel changes org.freedesktop.bolt.authorize: auth_admin -> yes
+  wheel changes org.freedesktop.bolt.enroll: auth_admin -> yes
+  wheel changes org.freedesktop.bolt.manage: auth_admin -> yes
+  wheel changes org.freedesktop.fwupd.update-internal: auth_admin -> yes
+  wheel changes org.gtk.vfs.file-operations-helper: auth_admin -> yes
+  wheel changes org.projectatomic.rpmostree1.cancel: auth_admin -> yes
+  wheel changes org.projectatomic.rpmostree1.cleanup: auth_admin -> yes
+  wheel changes org.projectatomic.rpmostree1.install-uninstall-packages: auth_admin -> yes
+  wheel changes org.projectatomic.rpmostree1.reload-daemon: auth_admin -> yes
+  wheel changes org.projectatomic.rpmostree1.rollback: auth_admin -> yes
+FAIL com.redhat.tuned.auto_profile (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL com.redhat.tuned.auto_profile (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL com.redhat.tuned.auto_profile (inactive/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL com.redhat.tuned.auto_profile (inactive/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL com.redhat.tuned.auto_profile (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL com.redhat.tuned.auto_profile (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL com.redhat.tuned.auto_profile: passwordless for ares (yes by default) but not reviewed in passwordless
+FAIL com.redhat.tuned.disable (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL com.redhat.tuned.disable (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL com.redhat.tuned.disable (inactive/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL com.redhat.tuned.disable (inactive/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL com.redhat.tuned.disable (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL com.redhat.tuned.disable (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL com.redhat.tuned.instance_acquire_devices (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL com.redhat.tuned.instance_acquire_devices (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL com.redhat.tuned.instance_acquire_devices (inactive/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL com.redhat.tuned.instance_acquire_devices (inactive/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL com.redhat.tuned.instance_acquire_devices (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL com.redhat.tuned.instance_acquire_devices (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL com.redhat.tuned.instance_create (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL com.redhat.tuned.instance_create (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL com.redhat.tuned.instance_create (inactive/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL com.redhat.tuned.instance_create (inactive/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL com.redhat.tuned.instance_create (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL com.redhat.tuned.instance_create (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL com.redhat.tuned.instance_destroy (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL com.redhat.tuned.instance_destroy (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL com.redhat.tuned.instance_destroy (inactive/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL com.redhat.tuned.instance_destroy (inactive/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL com.redhat.tuned.instance_destroy (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL com.redhat.tuned.instance_destroy (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL com.redhat.tuned.log_capture_finish (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL com.redhat.tuned.log_capture_finish (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL com.redhat.tuned.log_capture_finish (inactive/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL com.redhat.tuned.log_capture_finish (inactive/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL com.redhat.tuned.log_capture_finish (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL com.redhat.tuned.log_capture_finish (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL com.redhat.tuned.log_capture_finish: passwordless for ares (yes by default) but not reviewed in passwordless
+FAIL com.redhat.tuned.log_capture_start (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL com.redhat.tuned.log_capture_start (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL com.redhat.tuned.log_capture_start (inactive/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL com.redhat.tuned.log_capture_start (inactive/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL com.redhat.tuned.log_capture_start (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL com.redhat.tuned.log_capture_start (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL com.redhat.tuned.log_capture_start: passwordless for ares (yes by default) but not reviewed in passwordless
+FAIL com.redhat.tuned.reload (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL com.redhat.tuned.reload (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL com.redhat.tuned.reload (inactive/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL com.redhat.tuned.reload (inactive/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL com.redhat.tuned.reload (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL com.redhat.tuned.reload (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL com.redhat.tuned.start (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL com.redhat.tuned.start (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL com.redhat.tuned.start (inactive/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL com.redhat.tuned.start (inactive/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL com.redhat.tuned.start (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL com.redhat.tuned.start (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL com.redhat.tuned.stop (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL com.redhat.tuned.stop (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL com.redhat.tuned.stop (inactive/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL com.redhat.tuned.stop (inactive/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL com.redhat.tuned.stop (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL com.redhat.tuned.stop (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL com.redhat.tuned.switch_profile (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL com.redhat.tuned.switch_profile (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL com.redhat.tuned.switch_profile (inactive/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL com.redhat.tuned.switch_profile (inactive/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL com.redhat.tuned.switch_profile (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL com.redhat.tuned.switch_profile (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL com.redhat.tuned.switch_profile: passwordless for ares (yes by default) but not reviewed in passwordless
+FAIL org.bazzite.policykit.privileged.user.setup (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL org.bazzite.policykit.privileged.user.setup (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL org.bazzite.policykit.privileged.user.setup (inactive/wheel): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL org.bazzite.policykit.privileged.user.setup (inactive/plain): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL org.bazzite.policykit.privileged.user.setup (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL org.bazzite.policykit.privileged.user.setup (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL org.bazzite.policykit.privileged.user.setup: passwordless for ares (yes by default) but not reviewed in passwordless
+FAIL org.bazzite.policykit.waydroid.container.restart (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL org.bazzite.policykit.waydroid.container.restart (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL org.bazzite.policykit.waydroid.container.restart (inactive/wheel): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL org.bazzite.policykit.waydroid.container.restart (inactive/plain): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL org.bazzite.policykit.waydroid.container.restart (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL org.bazzite.policykit.waydroid.container.restart (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL org.bazzite.policykit.waydroid.container.restart: passwordless for ares (yes by default) but not reviewed in passwordless
+FAIL org.bazzite.policykit.waydroid.container.start (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL org.bazzite.policykit.waydroid.container.start (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL org.bazzite.policykit.waydroid.container.start (inactive/wheel): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL org.bazzite.policykit.waydroid.container.start (inactive/plain): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL org.bazzite.policykit.waydroid.container.start (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL org.bazzite.policykit.waydroid.container.start (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL org.bazzite.policykit.waydroid.container.start: passwordless for ares (yes by default) but not reviewed in passwordless
+FAIL org.bazzite.policykit.waydroid.container.stop (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL org.bazzite.policykit.waydroid.container.stop (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL org.bazzite.policykit.waydroid.container.stop (inactive/wheel): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL org.bazzite.policykit.waydroid.container.stop (inactive/plain): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL org.bazzite.policykit.waydroid.container.stop (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL org.bazzite.policykit.waydroid.container.stop (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL org.bazzite.policykit.waydroid.container.stop: passwordless for ares (yes by default) but not reviewed in passwordless
+FAIL org.bazzite.policykit.waydroid.fix.controllers (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL org.bazzite.policykit.waydroid.fix.controllers (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL org.bazzite.policykit.waydroid.fix.controllers (inactive/wheel): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL org.bazzite.policykit.waydroid.fix.controllers (inactive/plain): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL org.bazzite.policykit.waydroid.fix.controllers (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL org.bazzite.policykit.waydroid.fix.controllers (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL org.bazzite.policykit.waydroid.fix.controllers: passwordless for ares (yes by default) but not reviewed in passwordless
+FAIL org.fedoraproject.FirewallD1.config (active/wheel): ares gets yes, weaker than the default auth_admin (/tmp/tmp.b005eUKch9/usr/share/polkit-1/rules.d/org.fedoraproject.FirewallD1.rules)
+FAIL org.fedoraproject.FirewallD1.config: passwordless for ares (auth_admin by default) but not reviewed in passwordless
+FAIL org.fedoraproject.FirewallD1.direct (active/wheel): ares gets yes, weaker than the default auth_admin (/tmp/tmp.b005eUKch9/usr/share/polkit-1/rules.d/org.fedoraproject.FirewallD1.rules)
+FAIL org.fedoraproject.FirewallD1.direct: passwordless for ares (auth_admin by default) but not reviewed in passwordless
+FAIL org.freedesktop.Flatpak.app-install (active/wheel): ares gets yes, weaker than the default auth_admin (/tmp/tmp.b005eUKch9/usr/share/polkit-1/rules.d/org.freedesktop.Flatpak.rules)
+FAIL org.freedesktop.Flatpak.app-install: passwordless for ares (auth_admin by default) but not reviewed in passwordless
+FAIL org.freedesktop.Flatpak.app-uninstall (active/wheel): ares gets yes, weaker than the default auth_admin (/tmp/tmp.b005eUKch9/usr/share/polkit-1/rules.d/org.freedesktop.Flatpak.rules)
+FAIL org.freedesktop.Flatpak.app-uninstall: passwordless for ares (auth_admin by default) but not reviewed in passwordless
+FAIL org.freedesktop.Flatpak.runtime-install (active/wheel): ares gets yes, weaker than the default auth_admin (/tmp/tmp.b005eUKch9/usr/share/polkit-1/rules.d/org.freedesktop.Flatpak.rules)
+FAIL org.freedesktop.Flatpak.runtime-install: passwordless for ares (implied by org.freedesktop.Flatpak.app-install) but not reviewed in passwordless
+FAIL org.freedesktop.Flatpak.runtime-uninstall (active/wheel): ares gets yes, weaker than the default auth_admin (/tmp/tmp.b005eUKch9/usr/share/polkit-1/rules.d/org.freedesktop.Flatpak.rules)
+FAIL org.freedesktop.Flatpak.runtime-uninstall: passwordless for ares (implied by org.freedesktop.Flatpak.app-uninstall) but not reviewed in passwordless
+FAIL org.freedesktop.ModemManager1.Firmware (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.ModemManager1.Firmware (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.NetworkManager.settings.modify.system (inactive/wheel): ares gets yes, weaker than the default auth_admin (/tmp/tmp.b005eUKch9/usr/share/polkit-1/rules.d/org.freedesktop.NetworkManager.rules)
+FAIL org.freedesktop.NetworkManager.settings.modify.system (active/wheel): ares gets yes, weaker than the default auth_admin (/tmp/tmp.b005eUKch9/usr/share/polkit-1/rules.d/org.freedesktop.NetworkManager.rules)
+FAIL org.freedesktop.NetworkManager.settings.modify.system: passwordless for ares (auth_admin by default) but not reviewed in passwordless
+FAIL org.freedesktop.bolt.authorize (active/wheel): ares gets yes, weaker than the default auth_admin (/tmp/tmp.b005eUKch9/usr/share/polkit-1/rules.d/org.freedesktop.bolt.rules)
+FAIL org.freedesktop.bolt.authorize: passwordless for ares (auth_admin by default) but not reviewed in passwordless
+FAIL org.freedesktop.bolt.enroll (active/wheel): ares gets yes, weaker than the default auth_admin (/tmp/tmp.b005eUKch9/usr/share/polkit-1/rules.d/org.freedesktop.bolt.rules)
+FAIL org.freedesktop.bolt.enroll: passwordless for ares (auth_admin by default) but not reviewed in passwordless
+FAIL org.freedesktop.bolt.manage (active/wheel): ares gets yes, weaker than the default auth_admin (/tmp/tmp.b005eUKch9/usr/share/polkit-1/rules.d/org.freedesktop.bolt.rules)
+FAIL org.freedesktop.bolt.manage: passwordless for ares (auth_admin by default) but not reviewed in passwordless
+FAIL org.freedesktop.fwupd.clean-remote (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.clean-remote (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.clean-remote (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.clean-remote (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.clear-results (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.clear-results (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.clear-results (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL org.freedesktop.fwupd.clear-results (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL org.freedesktop.fwupd.clear-results: passwordless for ares (yes by default) but not reviewed in passwordless
+FAIL org.freedesktop.fwupd.device-activate (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.device-activate (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.device-activate (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.device-activate (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.device-emulate (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.device-emulate (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.device-emulate (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.device-emulate (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.device-unlock (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.device-unlock (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.device-unlock (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.device-unlock (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.downgrade-hotplug (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.downgrade-hotplug (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.downgrade-hotplug (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.downgrade-hotplug (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.downgrade-hotplug-trusted (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.downgrade-hotplug-trusted (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.downgrade-hotplug-trusted (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.downgrade-hotplug-trusted (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.downgrade-internal (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.downgrade-internal (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.downgrade-internal (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.downgrade-internal (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.downgrade-internal-trusted (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.downgrade-internal-trusted (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.downgrade-internal-trusted (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.downgrade-internal-trusted (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.emulation-load (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.emulation-load (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.emulation-load (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.emulation-load (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.emulation-save (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.emulation-save (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.emulation-save (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.emulation-save (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.emulation-tag (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.emulation-tag (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.emulation-tag (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.emulation-tag (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.enable-remote (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.enable-remote (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.enable-remote (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.enable-remote (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.fix-host-security-attr (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.fix-host-security-attr (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.fix-host-security-attr (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.fix-host-security-attr (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.get-bios-settings (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.get-bios-settings (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.get-bios-settings (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.get-bios-settings (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.get-remotes (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.get-remotes (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.get-remotes (inactive/wheel): OS, boot, firmware or TuneD change must be denied to ares, got yes (implied by org.freedesktop.fwupd.refresh-remote)
+FAIL org.freedesktop.fwupd.get-remotes (inactive/plain): OS, boot, firmware or TuneD change must be denied to ares, got yes (implied by org.freedesktop.fwupd.refresh-remote)
+FAIL org.freedesktop.fwupd.get-remotes (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got yes (implied by org.freedesktop.fwupd.refresh-remote)
+FAIL org.freedesktop.fwupd.get-remotes (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got yes (implied by org.freedesktop.fwupd.refresh-remote)
+FAIL org.freedesktop.fwupd.get-remotes: passwordless for ares (implied by org.freedesktop.fwupd.refresh-remote) but not reviewed in passwordless
+FAIL org.freedesktop.fwupd.modify-config (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.modify-config (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.modify-config (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.modify-config (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.modify-device (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.modify-device (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.modify-device (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL org.freedesktop.fwupd.modify-device (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL org.freedesktop.fwupd.modify-device: passwordless for ares (yes by default) but not reviewed in passwordless
+FAIL org.freedesktop.fwupd.modify-remote (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.modify-remote (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.modify-remote (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.modify-remote (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.quit (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.quit (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.quit (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.quit (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.refresh-remote (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.refresh-remote (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.refresh-remote (inactive/wheel): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL org.freedesktop.fwupd.refresh-remote (inactive/plain): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL org.freedesktop.fwupd.refresh-remote (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL org.freedesktop.fwupd.refresh-remote (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL org.freedesktop.fwupd.refresh-remote: passwordless for ares (yes by default) but not reviewed in passwordless
+FAIL org.freedesktop.fwupd.reset-config (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.reset-config (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.reset-config (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.reset-config (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.self-sign (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.self-sign (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.self-sign (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.self-sign (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.set-approved-firmware (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.set-approved-firmware (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.set-approved-firmware (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.set-approved-firmware (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.set-bios-settings (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.set-bios-settings (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.set-bios-settings (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.set-bios-settings (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.undo-host-security-attr (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.undo-host-security-attr (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.undo-host-security-attr (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.undo-host-security-attr (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.update-hotplug (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.update-hotplug (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.update-hotplug (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.update-hotplug (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.update-hotplug-trusted (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.update-hotplug-trusted (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.update-hotplug-trusted (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL org.freedesktop.fwupd.update-hotplug-trusted (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL org.freedesktop.fwupd.update-hotplug-trusted: passwordless for ares (yes by default) but not reviewed in passwordless
+FAIL org.freedesktop.fwupd.update-internal (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.update-internal (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.update-internal (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL org.freedesktop.fwupd.update-internal (active/wheel): ares gets yes, weaker than the default auth_admin (/tmp/tmp.b005eUKch9/usr/share/polkit-1/rules.d/org.freedesktop.fwupd.rules)
+FAIL org.freedesktop.fwupd.update-internal (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.update-internal: passwordless for ares (auth_admin by default) but not reviewed in passwordless
+FAIL org.freedesktop.fwupd.update-internal-trusted (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.update-internal-trusted (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.update-internal-trusted (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got yes (implied by org.freedesktop.fwupd.update-internal)
+FAIL org.freedesktop.fwupd.update-internal-trusted (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL org.freedesktop.fwupd.update-internal-trusted: passwordless for ares (implied by org.freedesktop.fwupd.update-internal) but not reviewed in passwordless
+FAIL org.freedesktop.fwupd.verify (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.verify (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.verify (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL org.freedesktop.fwupd.verify (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL org.freedesktop.fwupd.verify: passwordless for ares (yes by default) but not reviewed in passwordless
+FAIL org.freedesktop.fwupd.verify-update (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.verify-update (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.verify-update (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.fwupd.verify-update (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.login1.set-reboot-parameter (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.login1.set-reboot-parameter (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.login1.set-reboot-parameter (inactive/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.login1.set-reboot-parameter (inactive/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.login1.set-reboot-parameter (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL org.freedesktop.login1.set-reboot-parameter (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL org.freedesktop.login1.set-reboot-parameter: passwordless for ares (yes by default) but not reviewed in passwordless
+FAIL org.freedesktop.login1.set-reboot-to-boot-loader-entry (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.login1.set-reboot-to-boot-loader-entry (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.login1.set-reboot-to-boot-loader-entry (inactive/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.login1.set-reboot-to-boot-loader-entry (inactive/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.login1.set-reboot-to-boot-loader-entry (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL org.freedesktop.login1.set-reboot-to-boot-loader-entry (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL org.freedesktop.login1.set-reboot-to-boot-loader-entry: passwordless for ares (yes by default) but not reviewed in passwordless
+FAIL org.freedesktop.login1.set-reboot-to-boot-loader-menu (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.login1.set-reboot-to-boot-loader-menu (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.login1.set-reboot-to-boot-loader-menu (inactive/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.login1.set-reboot-to-boot-loader-menu (inactive/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.login1.set-reboot-to-boot-loader-menu (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL org.freedesktop.login1.set-reboot-to-boot-loader-menu (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL org.freedesktop.login1.set-reboot-to-boot-loader-menu: passwordless for ares (yes by default) but not reviewed in passwordless
+FAIL org.freedesktop.login1.set-reboot-to-firmware-setup (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.login1.set-reboot-to-firmware-setup (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.login1.set-reboot-to-firmware-setup (inactive/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.login1.set-reboot-to-firmware-setup (inactive/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.login1.set-reboot-to-firmware-setup (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL org.freedesktop.login1.set-reboot-to-firmware-setup (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL org.freedesktop.login1.set-reboot-to-firmware-setup: passwordless for ares (yes by default) but not reviewed in passwordless
+FAIL org.freedesktop.sysupdate1.check (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.sysupdate1.check (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.sysupdate1.check (inactive/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.sysupdate1.check (inactive/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.sysupdate1.check (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL org.freedesktop.sysupdate1.check (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL org.freedesktop.sysupdate1.check: passwordless for ares (yes by default) but not reviewed in passwordless
+FAIL org.freedesktop.sysupdate1.manage-features (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.sysupdate1.manage-features (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.sysupdate1.manage-features (inactive/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.sysupdate1.manage-features (inactive/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.sysupdate1.manage-features (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.sysupdate1.manage-features (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.sysupdate1.update (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.sysupdate1.update (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.sysupdate1.update (inactive/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.sysupdate1.update (inactive/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.sysupdate1.update (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL org.freedesktop.sysupdate1.update (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL org.freedesktop.sysupdate1.update: passwordless for ares (yes by default) but not reviewed in passwordless
+FAIL org.freedesktop.sysupdate1.update-to-version (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.sysupdate1.update-to-version (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.sysupdate1.update-to-version (inactive/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.sysupdate1.update-to-version (inactive/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.sysupdate1.update-to-version (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.sysupdate1.update-to-version (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.sysupdate1.vacuum (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.sysupdate1.vacuum (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.sysupdate1.vacuum (inactive/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.sysupdate1.vacuum (inactive/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.sysupdate1.vacuum (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.freedesktop.sysupdate1.vacuum (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.gtk.vfs.file-operations-helper (active/wheel): ares gets yes, weaker than the default auth_admin (/tmp/tmp.b005eUKch9/usr/share/polkit-1/rules.d/org.gtk.vfs.file-operations.rules)
+FAIL org.gtk.vfs.file-operations-helper: passwordless for ares (auth_admin by default) but not reviewed in passwordless
+FAIL org.projectatomic.rpmostree1.bootconfig (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.bootconfig (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.bootconfig (inactive/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.bootconfig (inactive/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.bootconfig (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.bootconfig (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.cancel (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.cancel (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.cancel (inactive/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.cancel (inactive/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.cancel (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL org.projectatomic.rpmostree1.cancel (active/wheel): ares gets yes, weaker than the default auth_admin (/tmp/tmp.b005eUKch9/usr/share/polkit-1/rules.d/org.projectatomic.rpmostree1.rules)
+FAIL org.projectatomic.rpmostree1.cancel (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.cancel: passwordless for ares (auth_admin by default) but not reviewed in passwordless
+FAIL org.projectatomic.rpmostree1.cleanup (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.cleanup (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.cleanup (inactive/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.cleanup (inactive/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.cleanup (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL org.projectatomic.rpmostree1.cleanup (active/wheel): ares gets yes, weaker than the default auth_admin (/tmp/tmp.b005eUKch9/usr/share/polkit-1/rules.d/org.projectatomic.rpmostree1.rules)
+FAIL org.projectatomic.rpmostree1.cleanup (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.cleanup: passwordless for ares (auth_admin by default) but not reviewed in passwordless
+FAIL org.projectatomic.rpmostree1.client-management (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.client-management (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.client-management (inactive/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.client-management (inactive/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.client-management (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL org.projectatomic.rpmostree1.client-management (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL org.projectatomic.rpmostree1.client-management: passwordless for ares (yes by default) but not reviewed in passwordless
+FAIL org.projectatomic.rpmostree1.deploy (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.deploy (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.deploy (inactive/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.deploy (inactive/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.deploy (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.deploy (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.finalize-deployment (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.finalize-deployment (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.finalize-deployment (inactive/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.finalize-deployment (inactive/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.finalize-deployment (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.finalize-deployment (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.install-local-packages (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.install-local-packages (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.install-local-packages (inactive/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.install-local-packages (inactive/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.install-local-packages (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.install-local-packages (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.install-uninstall-packages (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.install-uninstall-packages (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.install-uninstall-packages (inactive/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.install-uninstall-packages (inactive/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.install-uninstall-packages (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL org.projectatomic.rpmostree1.install-uninstall-packages (active/wheel): ares gets yes, weaker than the default auth_admin (/tmp/tmp.b005eUKch9/usr/share/polkit-1/rules.d/org.projectatomic.rpmostree1.rules)
+FAIL org.projectatomic.rpmostree1.install-uninstall-packages (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.install-uninstall-packages: passwordless for ares (auth_admin by default) but not reviewed in passwordless
+FAIL org.projectatomic.rpmostree1.override (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.override (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.override (inactive/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.override (inactive/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.override (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.override (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.rebase (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.rebase (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.rebase (inactive/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.rebase (inactive/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.rebase (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.rebase (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.reload-daemon (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.reload-daemon (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.reload-daemon (inactive/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.reload-daemon (inactive/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.reload-daemon (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL org.projectatomic.rpmostree1.reload-daemon (active/wheel): ares gets yes, weaker than the default auth_admin (/tmp/tmp.b005eUKch9/usr/share/polkit-1/rules.d/org.projectatomic.rpmostree1.rules)
+FAIL org.projectatomic.rpmostree1.reload-daemon (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.reload-daemon: passwordless for ares (auth_admin by default) but not reviewed in passwordless
+FAIL org.projectatomic.rpmostree1.repo-modify (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.repo-modify (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.repo-modify (inactive/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.repo-modify (inactive/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.repo-modify (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.repo-modify (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.repo-refresh (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.repo-refresh (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.repo-refresh (inactive/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.repo-refresh (inactive/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.repo-refresh (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL org.projectatomic.rpmostree1.repo-refresh (active/wheel): ares gets yes, weaker than the default auth_admin (/tmp/tmp.b005eUKch9/usr/share/polkit-1/rules.d/org.projectatomic.rpmostree1.rules)
+FAIL org.projectatomic.rpmostree1.repo-refresh (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL org.projectatomic.rpmostree1.repo-refresh (active/plain): ares gets yes, weaker than the default auth_admin (/tmp/tmp.b005eUKch9/usr/share/polkit-1/rules.d/org.projectatomic.rpmostree1.rules)
+FAIL org.projectatomic.rpmostree1.repo-refresh: passwordless for ares (auth_admin by default) but not reviewed in passwordless
+FAIL org.projectatomic.rpmostree1.rollback (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.rollback (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.rollback (inactive/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.rollback (inactive/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.rollback (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL org.projectatomic.rpmostree1.rollback (active/wheel): ares gets yes, weaker than the default auth_admin (/tmp/tmp.b005eUKch9/usr/share/polkit-1/rules.d/org.projectatomic.rpmostree1.rules)
+FAIL org.projectatomic.rpmostree1.rollback (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.rollback: passwordless for ares (auth_admin by default) but not reviewed in passwordless
+FAIL org.projectatomic.rpmostree1.upgrade (remote/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.upgrade (remote/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.upgrade (inactive/wheel): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.upgrade (inactive/plain): OS, boot, firmware or TuneD change must be denied to ares, got auth_admin
+FAIL org.projectatomic.rpmostree1.upgrade (active/wheel): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL org.projectatomic.rpmostree1.upgrade (active/wheel): ares gets yes, weaker than the default auth_admin (/tmp/tmp.b005eUKch9/usr/share/polkit-1/rules.d/org.projectatomic.rpmostree1.rules)
+FAIL org.projectatomic.rpmostree1.upgrade (active/plain): OS, boot, firmware or TuneD change must be denied to ares, got yes
+FAIL org.projectatomic.rpmostree1.upgrade (active/plain): ares gets yes, weaker than the default auth_admin (/tmp/tmp.b005eUKch9/usr/share/polkit-1/rules.d/org.projectatomic.rpmostree1.rules)
+FAIL org.projectatomic.rpmostree1.upgrade: passwordless for ares (auth_admin by default) but not reviewed in passwordless
+FAIL the AresOS rule defines no aresosWheelGrantDefaults
+FAIL org.freedesktop.Flatpak.app-install: rule is yes, expected auth_admin
+FAIL org.freedesktop.Flatpak.app-install: without_wheel is null, expected auth_admin
+FAIL org.freedesktop.Flatpak.runtime-install: rule is yes, expected auth_admin
+FAIL org.freedesktop.Flatpak.runtime-install: effective is yes, expected auth_admin
+FAIL org.freedesktop.Flatpak.app-uninstall: rule is yes, expected auth_admin
+FAIL org.gtk.vfs.file-operations-helper: rule is yes, expected auth_admin
+FAIL org.gtk.vfs.file-operations-helper: without_wheel is null, expected auth_admin
+FAIL org.freedesktop.NetworkManager.settings.modify.system: rule is yes, expected auth_admin
+FAIL org.freedesktop.NetworkManager.settings.modify.system: without_wheel is null, expected auth_admin
+FAIL org.projectatomic.rpmostree1.upgrade: rule is yes, expected no
+FAIL org.projectatomic.rpmostree1.upgrade: without_wheel is yes, expected no
+FAIL org.projectatomic.rpmostree1.rebase: rule is null, expected no
+FAIL org.freedesktop.fwupd.update-internal: rule is yes, expected no
+FAIL org.freedesktop.login1.set-reboot-to-firmware-setup: rule is null, expected no
+FAIL org.freedesktop.login1.set-reboot-to-firmware-setup: without_wheel is null, expected no
+FAIL org.freedesktop.login1.set-reboot-to-boot-loader-entry: rule is null, expected no
+FAIL org.freedesktop.login1.set-reboot-to-boot-loader-entry: without_wheel is null, expected no
+FAIL org.freedesktop.login1.set-reboot-to-boot-loader-menu: rule is null, expected no
+FAIL org.freedesktop.login1.set-reboot-to-boot-loader-menu: without_wheel is null, expected no
+FAIL com.redhat.tuned.switch_profile: rule is null, expected no
+FAIL com.redhat.tuned.switch_profile: without_wheel is null, expected no
+FAIL com.redhat.tuned.auto_profile: rule is null, expected no
+FAIL com.redhat.tuned.auto_profile: without_wheel is null, expected no
