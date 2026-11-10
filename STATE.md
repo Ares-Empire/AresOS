@@ -101,7 +101,7 @@ Updated 2026-11-10. The live truth is `git log`, `gh pr list` and `git worktree 
     - Hosted `checks_only`: 958 tests OK (run 42830860249).
     - The VM build failed twice on Ubuntu mirror 502/503s; one more `check_build=build` is approved.
     - REVIEW-2 (Astra) is running.
-    - Updated JUDGMENT-CALL 10 (a memory kill or unexplained whole-scope death latches recovery, no automatic restart) is with the owner: board #170.
+    - Updated JUDGMENT-CALL 10 (a memory kill or unexplained whole-scope death latches recovery, no automatic restart) was accepted by the owner (board #170, 2026-11-10: "Yes").
   - Merges after 27.
 - **Package 27, the first update release, started 2026-11-10** (brief `27-first-update-release.md`, empire brief 266; Claude agent, Opus; branch `pkg/27-first-update-release`):
   - build, image diff, publish, then a VM rehearsal of the owner's update from release 13 (update, admin password, previous, forward again);
