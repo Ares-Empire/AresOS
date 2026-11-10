@@ -26,6 +26,7 @@ class Engine:
         self.store = Store(state_dir, evidence_dir, checkpoint)
         self.receiver = None
         self._last_pending = {}
+        self._last_notice_counts = {}
         try:
             self._initialize_adapters(ttl, checkpoint, file_limit)
         except BaseException as exc:
@@ -60,6 +61,8 @@ class Engine:
         except (OSError,sqlite3.Error):
             op=self.adapters['chrome'].committed.get('op:'+op_id)
             if op is None:raise
+        if app == 'chrome' or op is None or op.get('app') == 'chrome':
+            op=self.adapters['chrome'].committed.get('op:'+op_id)
         if op is None or (app and op["app"] != app):
             raise Refused("stale_reference", "Operation not found for this app; list pending or ask the owner to check the independent record.")
         return op
@@ -93,7 +96,17 @@ class Engine:
         try:
             result = self._pending(app, args, resolve_checks)
             self._last_pending[app] = copy.deepcopy(result)
+            chrome_total=sum(1 for _ in self.adapters['chrome'].notice_rows())
+            total=len(result.get('notices',[]))+result.get('notices_more',{}).get('count',0)
+            self._last_notice_counts[app]=max(0,total-chrome_total)
             return result
+        except Refused as exc:
+            if exc.code!='owner_state_unavailable':raise
+            # Disclosure failure is not admission failure. In particular, the
+            # owner must still be able to archive the finished index entries.
+            return {'items':[], 'total':0, 'cursor':None, 'restore_required':self.store.locked,
+                    'unavailable':str(exc), 'notices':[{'operation_id':'chrome-owner-state-unavailable',
+                        'app':'chrome','state':'unknown','untrusted_content':{'warning':str(exc)}}]}
         except (OSError, sqlite3.Error) as exc:
             if storage_refusal(exc) is None:
                 raise
@@ -105,24 +118,24 @@ class Engine:
                 'items': [], 'total': 0, 'cursor': None, 'restore_required': self.store.locked})))
             result['unavailable'] = 'Live pending read failed on storage; snapshot only. Restart recovery and inspect status before any further change.'
             from .mail.filing import public_notice
-            notices = {n['operation_id']: n for n in result.get('notices', [])}
-            new_notices = []
-            for changes, _, _ in self.store.deferred_notices.values():
-                for key, value in changes.items():
-                    if key.startswith('notice:') and not value.get('ack'):
-                        notices[value['id']] = public_notice(self.store, value)
+            snapshot_app=app if app in self._last_pending else None
+            notices={n['operation_id']:n for n in result.get('notices',[]) if n.get('app')!='chrome'}
+            more=result.get('notices_more',{})
+            other_total=self._last_notice_counts.get(snapshot_app,
+                len(notices)+(more.get('count',0) if more.get('action')!='chrome_notices' else 0))
+            new_notices=[]
+            for changes,_,_ in self.store.deferred_notices.values():
+                for key,value in changes.items():
+                    if key.startswith('notice:') and value.get('app')!='chrome' and not value.get('ack'):
+                        if value['id'] not in notices:other_total+=1
+                        notices[value['id']]=public_notice(self.store,value)
                         new_notices.append(value['id'])
-                        self.store.observations.observe(value['id'], {'filing_warning': value['untrusted_content']})
-            if notices:
-                order = list(dict.fromkeys([*reversed(new_notices), *notices]))
-                result['notices'] = [notices[key] for key in order[:3]]
-                total = len(notices) + result.get('notices_more', {}).get('count', 0)
-                if total > 3:
-                    result['notices_more'] = {'count': total - 3, 'action': 'mail_filing_notices'}
-            result.pop('notices_more', None)
+                        self.store.observations.observe(value['id'],{'filing_warning':value['untrusted_content']})
+            order=list(dict.fromkeys([*reversed(new_notices),*notices]))
+            other_notices=[notices[key] for key in order]
             chrome=self.adapters['chrome']
             result['items']=[item for item in result.get('items',[]) if item.get('app')!='chrome']
-            result['notices']=[item for item in result.get('notices',[]) if item.get('app')!='chrome']
+            result.pop('notices_more',None)
             try:
                 if app in {None,'chrome'}:
                     current=chrome.pending_projection(args)
@@ -130,32 +143,32 @@ class Engine:
                     result['total']=current['total'] if app=='chrome' else max(len(result['items']),current['total'])
                     result['cursor']=current['cursor']
                 current_notices=chrome.notice_page()
-                other_notices=result['notices']
-                result['notices']=current_notices['items']
-                if current_notices['cursor']:result['notices_more']={'count':current_notices['total']-len(current_notices['items']),'action':'chrome_notices'}
-                # Other-app snapshots are explicitly unavailable; do not count them
-                # as current warnings or mix their cached cursor with this source.
-                result['notices']=(result['notices']+other_notices)[:3]
+                current_items=current_notices['items'];chrome_total=current_notices['total']
                 result['unavailable']='Other app state is a storage snapshot. Chrome warnings below are current; recover storage and inspect other app state before proceeding.'
             except (Refused,OSError,sqlite3.Error,ValueError):
-                result['notices']=[{'operation_id':'chrome-owner-state-unavailable','app':'chrome','state':'unknown',
-                    'untrusted_content':{'warning':'Current Chrome owner state cannot be read. Do not assume there is no pending work; recover storage and inspect the independent record before proceeding.'}},*result['notices']][:3]
-                result['cursor']=None
+                current_items=[{'operation_id':'chrome-owner-state-unavailable','app':'chrome','state':'unknown',
+                    'untrusted_content':{'warning':'Current Chrome owner state cannot be read. Do not assume there is no pending work; recover storage and inspect the independent record before proceeding.'}}]
+                chrome_total=1;result['cursor']=None
+            result['notices']=(current_items+other_notices)[:3]
+            total=chrome_total+other_total
+            if total>len(result['notices']):
+                route='control_notices' if chrome_total and other_total else 'chrome_notices' if chrome_total else 'mail_filing_notices'
+                result['notices_more']={'count':total-len(result['notices']),'action':route}
             return result
 
     def _pending(self, app=None, args=None, resolve_checks=True):
         notices = self.notices(resolve_checks=resolve_checks)
         def rows():
             for key, op in self.store.iter_items('op:'):
-                if ((app is not None and op['app'] != app) or
+                if (op['app']=='chrome' or (app is not None and op['app'] != app) or
                         not (op['state'] in {'reserved', 'submitting', 'partial', 'unknown'} or
                              (op.get('notice') and not op.get('ack')))):
                     continue
                 created = self.store.db.execute('SELECT created FROM retained WHERE k=?', (key,)).fetchone()
                 row = {'operation_id': op['id'], 'app': op['app'], 'state': op['state'], 'reason': op['reason']}
-                if op['app'] == 'chrome' and op['state'] == 'reserved':
-                    row.update(self.adapters['chrome'].pending_state(op))
                 yield ((created[0] if created else 0, op['id']), row)
+            if app in {None,'chrome'}:
+                yield from self.adapters['chrome'].pending_rows()
         return ordered_page(rows, args, ['pending', app]) | {'restore_required': self.store.locked} | notices
 
     def page(self, values, args, scope):
@@ -232,14 +245,16 @@ class Engine:
         op = self.operation(op_id)
         if op["app"] == "mail":
             outcome = self.adapters["mail"].stage_outcome(op, name, outcome)
+        elif op['app']=='chrome':
+            outcome={'untrusted_content':visible(outcome)}
         op["stages"][name] = outcome
         if name == 'sent_copy' and outcome == 'done' and op.get('sent_copy_check', {}).get('state') == 'open':
             op['sent_copy_check'] = {'state': 'checked', 'clean': True}
             from .warnings import check_result
             check_result(self.store, op, 'op:' + op_id, 'sent_copies', [])
         self.store.observations.stage(op_id, name, outcome)
-        if op["app"] == "mail":
-            self.store.write({"op:" + op_id: op}, op["action"], "Mail operation stage recorded", op_id,
+        if op["app"] in {"mail","chrome"}:
+            self.store.write({"op:" + op_id: op}, op["action"], op['app'].capitalize()+" operation stage recorded", op_id,
                              untrusted_content={"stage": name, "outcome": outcome})
         else:
             self.store.write({"op:" + op_id: op}, op["action"], "stage " + visible(name) + ": " + outcome, op_id)
@@ -304,6 +319,9 @@ class Engine:
         result = {k: v for k, v in op.items() if k not in
                   {'payload', 'input_hash', 'attempt_ended_at', 'repair_identity_missing',
                    'sent_append_started_at', 'sent_append_ended_at', 'sent_copy_check', 'warning_checks'} and v is not None}
+        if op.get('app')=='chrome':
+            result['stages']={name:value if isinstance(value,dict) and set(value)=={'untrusted_content'}
+                else {'untrusted_content':visible(value)} for name,value in op.get('stages',{}).items()}
         if op.get('repair_identity_missing'):
             result['reason'] += ' Permanent repair stage identity is missing; another repair is refused.'
         elif (op['state'] == 'unknown' and op.get('repair_of')
@@ -468,6 +486,7 @@ class Engine:
             return self.store.confirm_restore() | {'warning': RESTORE_WARNING}
         if name == 'control_archive':
             from .archive import archive
+            retention.retire_chrome(self.store)
             return archive(self.store, args['before'], self.adapters['mail'])
         if name == "control_notices":
             try:
@@ -493,9 +512,9 @@ class Engine:
             entries = []
             for event in page['items']:
                 entry = {k: event[k] for k in ("seq", "time", "action", "summary", "outcome", "operation_id")}
-                if event["action"].startswith("mail_"):
+                if event["action"].startswith(("mail_","chrome_")):
                     # Historical Mail summaries may predate structured marking.
-                    entry["summary"] = "Mail audit event"
+                    entry["summary"] = "Chrome audit event" if event['action'].startswith('chrome_') else "Mail audit event"
                     content = event.get("untrusted_content", {})
                     if event["action"] in {"mail_move", "mail_copy"}:
                         from .mail.filing import audit_content
@@ -667,6 +686,7 @@ class Engine:
                 # Archive first exports durably, then makes room; it must also
                 # work on a store already over quota from an older installation.
                 if (request.get('action') not in {'control_archive', 'control_restore_confirm', 'mail_prepare_send', 'mail_operation_repair'}
+                        and request.get('action')!='chrome_drop'
                         and not request.get('action', '').endswith('_operation_cancel')
                         and not (request['method'] == 'saved' and request.get('export_id'))):
                     self.store.admit_history(retention.RECOVERY_REQUEST if self.store.recovering else retention.REQUEST_RESERVE)

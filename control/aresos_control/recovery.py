@@ -59,16 +59,18 @@ def unfinished(store, cutoff=None, keys=None):
 def recovery_notices(store, include_checks=True):
     candidates = getattr(store, 'startup_intents', set())
     keys = {key for key, _ in candidates if not key.startswith('legacy-intent:')}
-    chrome_checks = {key for key,value in store.iter_items('intent:chrome:') if value.get('state') in {'started','unknown'}}
-    keys.update(chrome_checks)
     if include_checks:
         keys.update(open_filings(store))
         keys.update(key for key, value in store.iter_items('mail:account:')
                     if not value.get('onboarded', value.get('ready', False)))
     for key, notice_id, app, reason in unfinished(store, keys=keys):
+        # Chrome's committed open check is disclosed directly. Only its result
+        # can establish a durable activation occurrence; a live check is not
+        # evidence of a service interruption.
+        if key.startswith('intent:chrome:'):continue
         filing = key.startswith(('mail:filing:', 'mail:rename:'))
         account = key.startswith('mail:account:')
-        if (key, notice_id) not in candidates and key not in chrome_checks and not (include_checks and (filing or account)):
+        if (key, notice_id) not in candidates and not (include_checks and (filing or account)):
             continue
         if filing:
             reason = ('Filing roles and locations are not yet checked. The interrupted check has no committed result. '

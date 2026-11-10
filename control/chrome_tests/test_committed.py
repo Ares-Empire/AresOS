@@ -119,7 +119,7 @@ class Reads(unittest.TestCase):
             pending=self.engine.pending(resolve_checks=False)
             self.assertEqual(len(pending['notices']),3)
             self.assertTrue(all(item['app']=='chrome' for item in pending['notices']))
-            self.assertEqual(pending['notices_more'],{'count':1,'action':'chrome_notices'})
+            self.assertEqual(pending['notices_more'],{'count':4,'action':'control_notices'})
 
     def test_historical_index_peak_recovers_after_later_archive_tombstones(self):
         from unittest.mock import patch
