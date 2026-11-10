@@ -42,3 +42,15 @@ are retained. This is partial evidence, not a complete green run.
 No local browser/profile was accessed. The Part S worktree and branch remain
 untouched. No owner/lead workflow run was cancelled. Ledger: **150 Chrome IDs
 before the next push**, expected **152 after**, allowance approximately 175.
+
+**Closing checkpoint:** Node 212/212; focused Python 48 OK; full Python **188 OK,
+292.209 s**; **78 mutations rejected**, every baseline passed. The two completed
+`0894243b` runs **42840910762 / 42841180213** fail the mandatory preexisting
+case during admission, with Page.enable waiting and no native opening event.
+The exact Chrome 157.0.8103.50 browser-side source does not adopt a dialog that
+predates Page enabling. The decided service/extension behavior is therefore not
+implemented end to end. The [closing REPORT](REPORT.md) records the exact native
+API blocker, receiver zero, screenshot and feature-keeping interface choices.
+This is not a fallback-refusal decision or an acceptance claim. The branch stays
+draft and must not be merged as complete. The report-only push brings the ledger
+from 152 to approximately 154, below the revised allowance.
