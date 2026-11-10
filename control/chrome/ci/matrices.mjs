@@ -448,9 +448,9 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
       const download=await call('click',await target('Download fixture'));assert.ok(!download.approval);
     }
     for(const verb of ['downloads','history','bookmarks']){
-      let cursor,items=[];
-      do{const page=await call(verb,{text:verb==='downloads'?'synthetic-':'fixture.test',limit:2,...(cursor?{cursor}:{})});assert.ok(page.items.length<=2);items.push(...page.items);cursor=page.cursor;}while(cursor);
-      assert.ok(items.length>=12,verb+' complete catalogue: '+items.length);
+      let cursor,items=[],total;
+      do{const page=await call(verb,{text:verb==='downloads'?'synthetic-':'fixture.test',limit:2,...(cursor?{cursor}:{})});assert.ok(page.items.length<=2);total??=page.total;assert.equal(page.total,total,'one immutable catalogue snapshot');items.push(...page.items);cursor=page.cursor;}while(cursor);
+      assert.equal(items.length,total,verb+' every snapshot item');assert.equal(new Set(items.map(item=>item.id)).size,total,verb+' no repeated catalogue items');assert.ok(items.length>=12,verb+' complete catalogue: '+items.length);
       if(verb==='downloads')assert.ok(items.every(item=>item.filename?.includes('synthetic-')));
     }
   });

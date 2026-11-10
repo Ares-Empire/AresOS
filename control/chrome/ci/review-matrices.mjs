@@ -44,12 +44,17 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
     }
   });
   await check('GROUP 4 REVIEW borrowed native dialogs always ask bind the answer and never replay',async()=>{
-    for(const kind of ['alert','confirm','prompt'])for(const variant of kind==='prompt'?['direct','conversion-message','conversion-default']:['direct','conversion-message']){
+    for(const kind of ['alert','confirm','prompt'])for(const variant of kind==='prompt'?['direct','conversion-message','conversion-default','changed-dialog']:['direct','conversion-message','changed-dialog']){
       setTab(await nativeDonor(getTab()));const tab=getTab(),id='review-borrowed-'+kind+'-'+variant;await nav('review-page&mode=borrowed-dialog&dialog='+kind+'&variant='+variant+'&id='+id);await delay(600);await fixture.mutate(id,'review-change');
       const dialog=await eventually(async()=>(await call('read',{tab})).dialog,'borrowed '+kind);assert.equal(dialog.unguarded,true);
       const prepared=await call('dialog',{tab,expected:dialog,accept:true,...(kind==='prompt'?{text:'Chosen prompt'}:{})});assert.ok(prepared.approval);assert.match(prepared.approval.question,/outside the page guard/);assert.match(prepared.approval.question,/continuation isn't held/);assert.equal(receiverEvidence(id,'borrowed question').count,0);
       const changed=structuredClone(prepared.approval);changed.description.untrusted_content.input.accept=false;assert.equal((await rpc('submit',changed)).ok,false);assert.equal((await rpc('submit_trusted',prepared.approval)).ok,false);assert.equal(receiverEvidence(id,'borrowed unapproved answers refused').count,0);
-      if(variant==='direct')await approval(prepared,id);
+      if(variant==='changed-dialog'){
+        ownerDismiss();await eventually(async()=>!(await call('read',{tab})).dialog,'owner closed first borrowed dialog');await fixture.mutate(id,'review-change');
+        const replacement=await eventually(async()=>(await call('read',{tab})).dialog,'replacement borrowed dialog');assert.notEqual(replacement.id,dialog.id);assert.equal(replacement.unguarded,true);
+        const stale=await rpc('submit',prepared.approval);assert.ok(!stale.ok||stale.data.operation.state==='failed');assert.equal(receiverEvidence(id,'changed dialog approval refused').count,0);
+        await approval(await call('dialog',{tab,expected:replacement,accept:true,...(kind==='prompt'?{text:'Replacement answer'}:{})}),id);
+      }else if(variant==='direct')await approval(prepared,id);
       else{
         await call('submit',prepared.approval);assert.equal(receiverEvidence(id,'borrowed approved before outer dialog').count,0);await call('submit',prepared.approval);assert.equal(receiverEvidence(id,'borrowed approval repeated before outer dialog').count,0);
         const outer=await eventually(async()=>(await call('read',{tab})).dialog,'outer native after string conversion');assert.equal(outer.unguarded,undefined);assert.notEqual(outer.id,dialog.id);

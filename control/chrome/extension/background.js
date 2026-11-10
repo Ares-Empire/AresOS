@@ -10,7 +10,7 @@ let excludedHosts = null;
 const listSnapshots = new Map(), fixtureBarriers = new Map();
 const ownerRequests = new Map(), stagedUploads = new Map(), confirmationPlans = new Map(), dialogWake = new Map();
 const dialogInputs=new WeakMap();
-const nativeDialogStarts=new Map();
+const nativeDialogStarts=new Map(),nativeDialogEnds=new Map();
 const preloadTargets=new Map();
 const releasing=new Map(),admissions=new Map();
 let stopGeneration=0;
@@ -87,10 +87,14 @@ async function preloadEvent(source,method,params){
       const context={id:params.executionContextId,uniqueId:'isolated-'+params.executionContextId+(state.contextGeneration?'-navigation-'+state.contextGeneration:''),origin:chrome.runtime.getURL('').replace(/\/$/,''),auxData:params.executionContextAuxData};
       state.contexts.set(context.id,context);state.scripts.set(params.scriptId,context.id);
     }
+    const privateContext=state.contexts.get(params.executionContextId);
+    if(privateContext?.auxData?.isDefault===false&&privateContext.origin===chrome.runtime.getURL('').replace(/\/$/,''))state.scripts.set(params.scriptId,privateContext.id);
     return;
   }
   if(method!=='Debugger.paused')return;
   if(!controlled.has(state.tab)&&releasing.get(state.tab)?.original.epoch===state.epoch){await preloadCommand(state.source,'Debugger.resume');return;}
+  const pause=Symbol(),pauseGeneration=state.contextGeneration;state.pause=pause;
+  const pauseCurrent=()=>state.pause===pause&&state.contextGeneration===pauseGeneration;
   if(state.dialogBarrier&&!params.hitBreakpoints?.includes(state.breakpoint)){
     const barrier=state.dialogBarrier;
     try{
@@ -100,23 +104,37 @@ async function preloadEvent(source,method,params){
       const sourceContext=[...state.contexts.values()].find(context=>context.uniqueId===barrier.source.doc.isolated);
       if(!sourceContext)throw Error('refused: native dialog source context disappeared');
       const boundary=await targetCommand(state,'Runtime.evaluate',{contextId:sourceContext.id,expression:'globalThis[Symbol.for("aresos.chrome.guard.v2")].dialogBoundary()',disableBreaks:true,returnByValue:true});
+      if(!pauseCurrent()||state.contexts.get(sourceContext.id)?.uniqueId!==sourceContext.uniqueId)throw Error('stale_reference: dialog source changed during return');
       if(boundary.exceptionDetails||boundary.result?.value?.document!==barrier.source.doc.document)throw Error('unknown: native dialog private document identity changed; inspect and never replay');
-      if(boundary.result.value.token===null){await targetCommand(state,'Debugger.resume');return;}
+      if(boundary.result.value.token===null){if(pauseCurrent())await targetCommand(state,'Debugger.resume');return;}
       if(boundary.result.value.token!==barrier.token)throw Error('unknown: native dialog return boundary changed; inspect and never replay');
-      state.dialogBarrier=null;
+      state.dialogBarrier=null;retireNativeDialog(state.tab,barrier.source.doc.document,barrier.token);
       for(const {state:target,doc} of barrier.documents){
         const context=[...target.contexts.values()].find(context=>context.uniqueId===doc.isolated);
         if(!context)throw Error('refused: dialog document context disappeared');
         const value={generation:state.epoch,dispatch_nonce:barrier.nonce,config:hold.config};
         const armed=await targetCommand(target,'Runtime.evaluate',{contextId:context.id,expression:'globalThis[Symbol.for("aresos.chrome.guard.v2")].arm('+JSON.stringify(value)+');globalThis[Symbol.for("aresos.chrome.guard.v2")].identity()',disableBreaks:true,returnByValue:true});
+        if(!pauseCurrent())throw Error('stale_reference: dialog source changed during arming');
         if(armed.exceptionDetails||armed.result?.value!==doc.document)throw Error('refused: dialog guard identity changed');
         doc.activeNonce=barrier.nonce;
       }
-      await targetCommand(state,'Debugger.resume');barrier.resolve();
-    }catch(error){state.dialogBarrier=null;const owner=controlled.get(state.tab);if(owner)owner.dialogPauseFailed=true;barrier.reject(error);} // Keep execution paused if its private hold could not be installed.
+      if(!pauseCurrent())throw Error('stale_reference: dialog source changed before resume');await targetCommand(state,'Debugger.resume');barrier.resolve();
+    }catch(error){if(state.dialogBarrier===barrier)state.dialogBarrier=null;const owner=controlled.get(state.tab);if(owner&&pauseCurrent())owner.dialogPauseFailed=true;barrier.reject(error);} // Keep execution paused if its private hold could not be installed.
     return;
   }
-  const pause=Symbol();state.pause=pause;let startup;
+  if(!params.hitBreakpoints?.includes(state.breakpoint)){
+    const context=state.contexts.get(state.scripts.get(params.callFrames?.[0]?.location?.scriptId));
+    const document=context&&[...state.documents.values()].find(doc=>doc.ready&&doc.isolated===context.uniqueId);
+    const current=()=>pauseCurrent()&&(!document||state.contexts.get(context.id)?.uniqueId===context.uniqueId);
+    if(document)try{
+      const boundary=await targetCommand(state,'Runtime.evaluate',{contextId:context.id,expression:'globalThis[Symbol.for("aresos.chrome.guard.v2")]?.dialogBoundary()',disableBreaks:true,returnByValue:true});
+      if(current()&&!boundary.exceptionDetails&&boundary.result?.value?.document===document.document&&typeof boundary.result.value.token==='string')retireNativeDialog(state.tab,document.document,boundary.result.value.token);
+    }catch{}
+    // End private authority before the caller can run, including a suppressed
+    // native dialog whose asynchronous begin/end messages arrive late.
+    if(current())await targetCommand(state,'Debugger.resume');return;
+  }
+  let startup;
   const sameDocument=()=>!startup||state.contexts.get(startup.main.id)?.uniqueId===startup.main.uniqueId&&state.contexts.get(startup.isolated.id)?.uniqueId===startup.isolated.uniqueId;
   const documentCommand=async(method,parameters)=>{if(!sameDocument())throw Error('stale_reference: document changed during startup');const value=await targetCommand(state,method,parameters);if(!sameDocument())throw Error('stale_reference: document changed during startup');return value;};
   let complete;const installing=new Promise(resolve=>{complete=resolve;});state.installing??=new Set();state.installing.add(installing);
@@ -164,6 +182,14 @@ async function preloadEvent(source,method,params){
 }
 function isPreloaded(tab,document){return [...preloadTargets.values()].some(state=>state.tab===tab&&[...state.documents.values()].some(value=>value.ready&&value.document===document));}
 function armedDocument(tab,document,nonce){for(const state of preloadTargets.values())if(state.tab===tab)for(const doc of state.documents.values())if(doc.document===document)doc.activeNonce=nonce;}
+function retireNativeDialog(tab,document,token){
+  const ended=JSON.stringify([tab,document,token]);nativeDialogEnds.delete(ended);nativeDialogEnds.set(ended,true);
+  if(nativeDialogEnds.size>20000)nativeDialogEnds.delete(nativeDialogEnds.keys().next().value);
+  for(const [key,entries]of nativeDialogStarts)if(key.startsWith('['+tab+',')){
+    const current=entries.filter(entry=>entry.document!==document||entry.token!==token);
+    if(current.length)nativeDialogStarts.set(key,current);else nativeDialogStarts.delete(key);
+  }
+}
 function inlineFrame(address){try{const url=new URL(address);return url.protocol==='about:'&&['blank','srcdoc'].includes(url.pathname);}catch{return false;}}
 function frameAddress(frame,frames,seen=new Set()){
   if(!frame||seen.has(frame.frameId))throw Error('refused: frame origin is unavailable');
@@ -384,9 +410,10 @@ async function content(tab, frame, command, parameters={}) {
   if (!reply?.ok) throw Error(reply?.error || 'stale_reference: page changed; read again');
   return reply.data;
 }
-async function armDialog(tab,conservative=controlled.get(tab)?.hold?.config?.conservative||false,approvedConfirmation=false){
+async function armDialog(tab,conservative=controlled.get(tab)?.hold?.config?.conservative||false,approvedConfirmation=false,expectedDialog=dialogs.get(tab)){
   const owner=controlled.get(tab),nonce=crypto.randomUUID();assertControl(tab,owner?.epoch);
   const frames=await chrome.webNavigation.getAllFrames({tabId:tab})||[];
+  if(dialogs.get(tab)!==expectedDialog)throw Error('stale_approval: dialog changed while checking its guard coverage');
   const candidates=[...preloadTargets.values()].filter(state=>state.tab===tab&&!state.detached).flatMap(state=>[...state.documents.values()].filter(doc=>doc.ready).map(doc=>({state,doc})));
   const documents=frames.map(frame=>candidates.find(value=>value.doc.document===privacyDocuments.get(frame.documentId)));
   if(recording)audit({dialog_coverage:{frames:frames.map(frame=>({frame:frame.frameId,native_document:frame.documentId,private_document:privacyDocuments.get(frame.documentId)})),guards:candidates.map(value=>({document:value.doc.document,frame:value.doc.frameId}))}});
@@ -395,7 +422,7 @@ async function armDialog(tab,conservative=controlled.get(tab)?.hold?.config?.con
   if(existing?.inFlight&&existing.hasAllowance!==undefined&&(!existing.hasAllowance||approvedConfirmation)&&(!conservative||existing.config.conservative)&&documents.every(value=>value.doc.activeNonce===existing.nonce))return {owner,nonce:existing.nonce,frames,ready:Promise.resolve()};
   const dialog=dialogs.get(tab),entry=nativeDialogStarts.get(JSON.stringify([tab,dialog.browser_document]))?.at(-1);
   const source=documents.find(value=>value.doc.document===entry?.document);
-  if(!entry||entry.kind!==dialog.kind||!source)throw Error('refused: native dialog has no authenticated return boundary; leave it to the owner');
+  if(!entry||!entry.dialog||entry.dialog!==dialog.id||entry.kind!==dialog.kind||!source)throw Error('refused: native dialog has no authenticated return boundary; leave it to the owner');
   const config={...POLICY,blockedHosts:excludedHosts,conservative};
   owner.hold={nonce,config,inFlight:true,until:Date.now()+POLICY.holdMs,dialogToken:entry.token,hasAllowance:false};owner.inputNonce=nonce;
   let resolve,reject;const ready=new Promise((done,fail)=>{resolve=done;reject=fail;});ready.catch(()=>{});
@@ -512,6 +539,7 @@ async function release(tab) {
   if(original){const key=JSON.stringify([tab,original.epoch]);retiredControls.set(key,original);while(retiredControls.size>32)retiredControls.delete(retiredControls.keys().next().value);setTimeout(()=>{if(retiredControls.get(key)===original)retiredControls.delete(key);},900000);}
   controlled.delete(tab); dialogs.delete(tab);confirmationPlans.delete(tab);
   for(const key of nativeDialogStarts.keys())if(key.startsWith('['+tab+','))nativeDialogStarts.delete(key);
+  for(const key of nativeDialogEnds.keys())if(key.startsWith('['+tab+','))nativeDialogEnds.delete(key);
   for(const state of preloadTargets.values())if(state.tab===tab&&state.dialogBarrier){state.dialogBarrier.reject(Error('unknown: native-dialog answer interrupted by Stop; inspect and never replay'));state.dialogBarrier=null;}
   wakeDialog(tab,{interrupted:true});
   for(const [id,barrier]of fixtureBarriers)if(barrier.tab===tab){fixtureBarriers.delete(id);barrier.reject(Error('unknown: interrupted after input'));}
@@ -625,6 +653,9 @@ async function collection(command) {
   if(command.cursor){
     const [token,position]=command.cursor.split(':');record=listSnapshots.get(token);offset=Number(position);
     if(!record || record.key!==key || Date.now()-record.time>300000 || !Number.isInteger(offset) || offset<0 || offset>=record.items.length)throw Error('stale_reference: list snapshot changed; read without the cursor');
+    // Large catalogues can take longer than five minutes to page. Keep the
+    // immutable snapshot while it is used; idle expiry and the size bound stay.
+    record.time=Date.now();listSnapshots.delete(record.id);listSnapshots.set(record.id,record);
   } else {
     let items;
     if(command.name==='downloads')items=await chrome.downloads.search({limit:10001,query:command.text?[command.text]:[]});
@@ -874,9 +905,9 @@ chrome.runtime.onMessage.addListener((message,sender,reply)=>{
     const owner=controlled.get(sender.tab?.id);
     if(!owner||message.generation!==owner.epoch||privacyDocuments.get(sender.documentId)!==message.document||typeof message.token!=='string'){reply({received:false});return;}
     const key=JSON.stringify([sender.tab.id,sender.documentId]),entries=nativeDialogStarts.get(key)||[];
-    if(message.phase==='begin'&&['alert','confirm','prompt'].includes(message.kind)){entries.push({token:message.token,document:message.document,kind:message.kind});nativeDialogStarts.set(key,entries);}
+    if(message.phase==='begin'&&!nativeDialogEnds.has(JSON.stringify([sender.tab.id,message.document,message.token]))&&['alert','confirm','prompt'].includes(message.kind)){entries.push({token:message.token,document:message.document,kind:message.kind});nativeDialogStarts.set(key,entries);}
     else if(message.phase==='end'){
-      if(entries.at(-1)?.token===message.token)entries.pop();if(!entries.length)nativeDialogStarts.delete(key);
+      retireNativeDialog(sender.tab.id,message.document,message.token);
     }
     reply({received:true});return;
   }
@@ -981,7 +1012,8 @@ chrome.debugger.onEvent.addListener(async(source,method,params)=>{
     }
 
     const native=nativeDialogStarts.get(JSON.stringify([tab,dialog.browser_document]))?.at(-1);
-    if(!native||native.kind!==dialog.kind||native.document!==privacyDocuments.get(dialog.browser_document))dialog.unguarded=true;
+    if(!native||native.dialog||native.kind!==dialog.kind||native.document!==privacyDocuments.get(dialog.browser_document))dialog.unguarded=true;
+    else native.dialog=dialog.id;
     const expected=plan?.expected;
     const matched=!dialog.unguarded&&confirmationPlans.get(tab)===plan && expected && origins.length===1 && plan.browser_document===dialog.browser_document &&
       ['kind','text','frame_url','button','frame'].every(key=>expected[key]===dialog[key]);

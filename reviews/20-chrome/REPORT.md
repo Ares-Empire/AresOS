@@ -40,10 +40,10 @@ inherited origins; selected native files are freshly SHA-256 hashed for each bin
 outer native host plus a primitive path resolved in the isolated world. Runtime.enable remains absent.
 
 Only plain Python/Node ran on this Mac. No local Chrome/Chromium or browser profile was accessed. Browser tests
-run only in GitHub Linux containers through control-chrome. Current local Node: **223 passed**, zero failed,
+run only in GitHub Linux containers through control-chrome. Current local Node: **229 passed**, zero failed,
 cancelled or skipped. Focused Python: **49 OK**. The current full sweep is **189 OK, 232.606 s**
 (`PYTHONPATH=control:control/chrome_tests python3 -m unittest discover -s control/chrome_tests -v`).
-An initial invocation without PYTHONPATH failed to import test_bridge; the corrected complete run passed. The expanded mutation audit rejects **94 mutations**, every baseline passing.
+An initial invocation without PYTHONPATH failed to import test_bridge; the corrected complete run passed. The expanded mutation audit rejects **102 mutations**, every baseline passing.
 [Exact mutation commands/assertions](records/review-fixes-mutations.json) include bounded handoff, detachment,
 retained state/recovery, no false timeout after Page enabling, mandatory borrowed questions, exact answer binding,
 no automatic confirmation/trusted exemption, exact-once dispatch and prior-hold completion. Generated artifacts
@@ -52,7 +52,7 @@ Native dialogs from inherited editor frames now join CDP and webNavigation ident
 private document, with inherited read-only checks.
 The latest borrowed-native regression also covers message/default object conversion: conversion finishes before
 a private dialog token exists, so a nested borrowed dialog cannot inherit the outer call’s authority. Native
-string hints, defaults, ignored extra arguments, return values and thrown identities have regressions. Seven
+string hints, defaults, ignored extra arguments, return values and thrown identities have regressions. Ten
 borrowed browser variants are required in the next trial; that extension is not yet browser-verified. Six additional blank/srcdoc native cases are mandatory;
 their Linux proof is pending.
 
@@ -65,6 +65,7 @@ their Linux proof is pending.
 | `651096b2`, 42832298611 external / 42832312713 policy | [Actual backing-file mutation with restored timestamp, exact digest questions, refusal at zero and fresh 0/1/1](records/review-fixes-6510-native-file.json); retake found stale cleanup contexts. |
 | `ace83b8e`, 42833507627 / 42833520319 | Native missing-context proof fixed cleanup; cross-tab and pay/delete override cases passed; [shadow handoff failed](records/review-fixes-ace8-shadow.json). |
 | `02f523d3`, 42839228786 / 42839244624 | [Both new shadow matrices passed, with raw receiver rows](records/review-fixes-02f5-shadow.json). Review key/word/URL, binding, exact owner mark, reload/media, script POST and focus matrices passed. Frozen cleanup owner-driver wait failed. |
+| `3f1af5b2`, 42889458048 / 42889469858 | [All 77 names executed; 76 pass, including P30 and the late safety cases](records/review-fixes-3f1-late-catalogue.json). Full catalogue history paging reaches 732 of 877 items before its absolute five-minute snapshot expires. Active cursors now renew the immutable snapshot; five idle minutes still expire it. The strengthened case requires every item exactly once. |
 | `de337c55`, 42870158864 / 42870172304 | [The retained policy job passes 60 of 61 executed names](records/review-fixes-de3-p30.json), including all native and context-sensitive adapter cases. P30 completes its browser operations, then its scanner dereferences a legitimate null audit result; the corrected offline scan finds no sentinel or forbidden Runtime events. Push-external reaches the 105-minute container cap while still progressing through P30. The scanner is fixed and the whole-suite allowance is now 155 minutes; all individual assertions/deadlines stay strict. |
 | `25263559`, 42864982361 / 42865000405 | [Six inline-native cases and the complete cross-site mismatch matrix pass](records/review-fixes-252-context-reuse.json). Whole runs fail when reused numeric renderer contexts retain old private records, leaving some new documents without readers. The root-navigation retirement and startup identity checks now have overlap/reuse regressions and three removal mutations. |
 | `2d2c728e`, 42849298252 / 42849536082 | [Both modes pass the 15 ordinary dialogs, bounded owner handoff/recovery, borrowed-native questions, every review matrix and frozen-wrapper cleanup](records/review-fixes-2d2-dialog-decisions.json). Whole runs fail at cross-site native confirmation guard lookup; Gemini also failed; the next trial independently diagnosed a reused context number. The lookup now uses the authenticated opener document rather than the root event target. |
@@ -85,11 +86,11 @@ was read before completion. The Chrome pair on this source completed red at P30 
 
 ## Not verified yet
 
-The whole Chrome set twice in both modes, full expanded P30 ingress/getter coverage and the remaining later
-core cases. Base/Mail/boundary and qualification passed twice on de337c55; closing-head revalidation follows
+The whole Chrome set twice in both modes with the current native hardening and active-catalogue lifetime.
+P30 and the other late safety cases passed on 3f1af5b2; the full catalogue case remained red. Base/Mail/boundary and qualification passed twice on de337c55; closing-head revalidation follows
 the final report/assertion commit. The bounded handoff/recovery, outside-native cases and frozen-wrapper correction passed the completed trial
-in both modes. The inline-native and cross-site corrections passed their trial. Root-navigation retirement and startup identity checks passed their next trial. The null-safe P30 audit
-scan and the remaining later inventory need the next complete Linux trial. Owner Enter has an interim
+in both modes. The inline-native and cross-site corrections passed their trial. Root-navigation retirement and startup identity checks passed their next trial. The null-safe P30 audit scan and all other late safety cases passed. The current native hardening and
+active catalogue paging need their next complete Linux trial. Owner Enter has an interim
 named matrix pass; final CI and the lead's panel confirmation remain required. Group 12 stays false until 18d.
 No real accounts, live signed-in sites or production qualification were used.
 
@@ -101,8 +102,8 @@ frame's authenticated effective URL and must survive integration. No branch was 
 privacy hook ran normally. Only this build's superseded runs were cancelled; no owner/lead run was cancelled.
 
 The earlier closing runs 42843419421 / 42843914061 are both completed failures on the superseded asking path.
-They were awaited by one blocking shell watch loop. The branch ledger is **160 Chrome IDs before the next push**,
-expected **162 after**, below the revised approximate 175 limit. Future runs are awaited with blocking watches;
+They were awaited by one blocking shell watch loop. The branch ledger is **162 Chrome IDs before the next push**,
+expected **164 after**, below the revised approximate 175 limit. Future runs are awaited with blocking watches;
 failed logs are read after completion. The previous .work inventory found no regular file over 500 MiB.
 
 Both open native-dialog policy choices are now decided. Genuinely unreachable guard/frame coverage still fails

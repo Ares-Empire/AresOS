@@ -196,3 +196,47 @@ and diff checks pass. Runtime hash becomes
 The new variants need Linux proof. The already-running 3f1af5b2 pair is being
 allowed to complete so its late-case feedback can be batched before this push.
 No extra workflow was started and no local browser/profile was accessed.
+
+
+### Completed 3f1af5b2 trial and closing native/catalogue batch
+
+Runs 42889458048 / 42889469858 completed red at the sole remaining named failure:
+full catalogue history paging. The retained policy matrix executes all 77 names,
+76 passing, including P30, native/core/adapter matrices, Stop/recovery, wrapper
+compatibility and qualification/residual cases. Full Python after the browser
+was not run. records/review-fixes-3f1-late-catalogue.json retains every PASS line,
+failed row, raw-artifact hashes and the independent privacy scan: 135,669 audit
+rows, eight nulls, 24,181 protocol events, 3,483 sensitive getter records, zero
+forbidden Runtime value events and no sentinel ingress.
+
+History reaches 732 of 877 items in 367 consecutive two-row snapshot requests;
+no other catalogue request intervenes. The absolute five-minute lifetime expires
+while the list is actively read. Valid cursor reads now refresh inactivity time
+and LRU position; five idle minutes still expire the cursor. The two-record,
+10,000-item and 8 MiB bounds remain. A virtual-clock regression demonstrates
+active reading beyond five minutes without a second native query, then refusal
+after idle expiry. Removing the refresh fails it. The browser case now also
+requires the exact total and unique item IDs, with its two-row pages unchanged.
+
+Native authority is now single-opening authority: claiming a private token for
+one dialog prevents a later borrowed opening from reusing it while an end message
+is delayed. Arming binds that claim to the exact dialog and rechecks the dialog
+after the final native frame query. A private end pause retires even an unclaimed
+(suppressed) call before resume; late asynchronous begin messages cannot revive
+it. Private script IDs are mapped only in authenticated extension contexts, and
+the fixed boundary query carries no page argument value. Old end/return queries
+cannot resume a replacement startup or poison its control. These lifetime and
+query-race regressions have individual removal mutations.
+
+The borrowed browser matrix now has ten variants: three direct, four message /
+prompt-default conversions and three changed-dialog variants. Owner dismissal
+leaves the initial receiver at zero; a replacement makes the old approval fail,
+then fresh approval sends once. Conversion variants still require a separate
+held form after the outer guarded answer. These additions need their Linux run.
+
+Local Node: **229 pass**, zero failed/cancelled/skipped; **102 removal mutations**
+rejected, every baseline passing. Generated and diff checks pass. Runtime hash:
+117dc34ebc93455ce47ca79d187fc5c7e5107ad130e6e5eb1e615a0c885e91c7.
+Python remains the recovered 189 OK; no Python implementation changed. The old
+shared twice-green source is retained explicitly as de337c55, not this new head.
+The next push is expected to bring the Chrome ledger from 162 to 164.
