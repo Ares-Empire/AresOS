@@ -59,7 +59,7 @@ def main(root='/'):
     if not arguments:
         print(f'{USER} already has subordinate ID ranges')
         return 0
-    command = ['usermod', *arguments, USER]
+    command = ['/usr/sbin/usermod', *arguments, USER]
     if root != '/':
         command[1:1] = ['--prefix', str(root)]
     subprocess.run(command, check=True)

@@ -133,9 +133,15 @@ class TerminalShellTest(unittest.TestCase):
 
 class DailyPathTest(unittest.TestCase):
     def profile_path(self, home, uid):
-        script = f'id() {{ echo {uid}; }}\nPATH=/somewhere/else\n. {CONFIG / "etc/profile.d/aresos.sh"}\nprintf "%s|%s" "$PATH" "${{HOMEBREW_NO_AUTO_UPDATE-}}"\n'
-        result = subprocess.run(['bash', '--noprofile', '--norc', '-c', script], capture_output=True, text=True,
-                                env={'HOME': str(home)}, timeout=30)
+        # The real file calls /usr/bin/id; this copy lets the test choose the UID.
+        source = (CONFIG / 'etc/profile.d/aresos.sh').read_text()
+        self.assertEqual(source.count('"$(/usr/bin/id -u)"'), 1)
+        with tempfile.TemporaryDirectory() as directory:
+            copy = pathlib.Path(directory, 'aresos.sh')
+            copy.write_text(source.replace('"$(/usr/bin/id -u)"', '"$(id -u)"'))
+            script = f'id() {{ echo {uid}; }}\nPATH=/somewhere/else\n. {copy}\nprintf "%s|%s" "$PATH" "${{HOMEBREW_NO_AUTO_UPDATE-}}"\n'
+            result = subprocess.run(['bash', '--noprofile', '--norc', '-c', script], capture_output=True, text=True,
+                                    env={'HOME': str(home)}, timeout=30)
         self.assertEqual(result.stderr, '')
         return result.stdout.split('|')
 
@@ -158,9 +164,54 @@ class DailyPathTest(unittest.TestCase):
             path, update = self.profile_path(home, 1000)
             self.assertEqual((path, update), ('/somewhere/else', '1'))
 
-    def test_session_uses_the_same_profile_and_homebrew_api_install_is_not_disabled(self):
-        self.assertIn('. /etc/profile.d/aresos.sh', (CONFIG / 'usr/bin/aresos-session').read_text())
+    def test_session_keeps_the_system_path_and_terminals_add_his_own(self):
+        # Review 5: ~/.local/bin heads his PATH, so the session must not
+        # depend on it; a normal terminal adds it, the recovery one never does.
+        session = (CONFIG / 'usr/bin/aresos-session').read_text()
+        self.assertIn('\nexport PATH=/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin\n', session)
+        self.assertNotIn('profile.d', session.split('export PATH=', 1)[1])
+        bashrc = (CONFIG / 'usr/share/aresos/bashrc').read_text()
+        normal = bashrc.split('if [ "$_aresos_terminal" != recovery ]; then', 1)[1].split('\nfi\n', 1)[0]
+        self.assertIn('. /etc/profile.d/aresos.sh', normal)
+        self.assertIn('. "$HOME/.bashrc"', normal)
+        self.assertEqual(bashrc.count('/etc/profile.d/aresos.sh'), 2)
         self.assertNotIn('HOMEBREW_NO_INSTALL_FROM_API', (CONFIG / 'etc/profile.d/aresos.sh').read_text())
+        self.assertIn('export HOMEBREW_NO_AUTO_UPDATE=1', session)
+
+
+class StartupPathTest(unittest.TestCase):
+    """Review 5: every command that starts the session or a terminal is absolute."""
+
+    def test_session_terminal_and_keyboard_helper_run_absolute_commands_only(self):
+        session = (CONFIG / 'usr/bin/aresos-session').read_text()
+        command = session.split('\nexec ', 1)[1].replace('\\\n', ' ').split()
+        self.assertEqual(command, ['/usr/libexec/aresos-keyboard', '/usr/bin/dbus-run-session',
+                                   '--dbus-daemon=/usr/bin/dbus-daemon', '--', '/usr/bin/labwc', '--config-dir',
+                                   '/usr/share/aresos/labwc'])
+        terminal = (CONFIG / 'usr/bin/aresos-terminal').read_text()
+        self.assertIn('\nexec /usr/bin/foot --title=AresOS /usr/bin/bash --rcfile /usr/share/aresos/bashrc -i\n',
+                      terminal)
+        keyboard = (CONFIG / 'usr/libexec/aresos-keyboard').read_text()
+        self.assertIn("'/usr/bin/busctl', '--system'", keyboard)
+        self.assertIn("assert sys.argv[1].startswith('/'), 'The compositor command must be an absolute path'",
+                      keyboard)
+        self.assertIn('os.execve(sys.argv[1], sys.argv[1:],', keyboard)
+        self.assertNotIn('execvp', keyboard)
+        for line in (CONFIG / 'usr/share/aresos/labwc/autostart').read_text().splitlines():
+            if line and not line.startswith('#'):
+                self.assertTrue(line.startswith('/'), line)
+        rc = ET.parse(CONFIG / 'usr/share/aresos/labwc/rc.xml').getroot()
+        for action in rc.iter('action'):
+            if action.get('name') == 'Execute':
+                self.assertTrue(action.get('command').startswith('/'), action.get('command'))
+
+    def test_brew_and_subids_helpers_run_absolute_commands(self):
+        brew = (CONFIG / 'usr/bin/brew').read_text()
+        for command in ('/usr/bin/stat -L', '/usr/bin/id -u', '/usr/bin/getent passwd', '/usr/bin/cut -d:',
+                        'exec /usr/bin/sudo -u', '/usr/bin/env HOMEBREW_NO_AUTO_UPDATE=1'):
+            self.assertIn(command, brew)
+        self.assertIn("command = ['/usr/sbin/usermod', *arguments, USER]",
+                      (CONFIG / 'usr/libexec/aresos-subids').read_text())
 
 
 class PolicyFilesTest(unittest.TestCase):

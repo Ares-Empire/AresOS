@@ -303,6 +303,36 @@ done
 runuser -u ares -- env HOME=/var/home/ares /usr/lib/systemd/user-environment-generators/60-flatpak > /tmp/generator 2> /tmp/generator-errors
 test ! -s /tmp/generator-errors
 pass 'the 60-flatpak user environment generator runs for ares without errors'
+# Review 5: the session keeps the system PATH; a normal AresOS terminal gets
+# his daily PATH and the recovery terminal keeps the system one.
+for mode in normal recovery; do
+    runuser -u ares -- env -i HOME=/var/home/ares PATH=/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin \
+        ARESOS_TERMINAL="$mode" TERM=dumb /usr/bin/bash --rcfile /usr/share/aresos/bashrc -i \
+        -c 'printf "TERMINAL_PATH=%s\n" "$PATH"' < /dev/null > /tmp/terminal-path 2> /dev/null
+    terminal_path=$(sed -n 's/^TERMINAL_PATH=//p' /tmp/terminal-path)
+    if [[ $mode == normal ]]; then
+        case $terminal_path in /var/home/ares/.local/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/home/linuxbrew/.linuxbrew/bin*) ;; *) exit 1 ;; esac
+    else
+        test "$terminal_path" = /usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin
+    fi
+    pass "$mode AresOS terminal PATH: $terminal_path"
+done
+grep -qx 'export PATH=/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin' /usr/bin/aresos-session
+pass 'the session itself starts with the system PATH and absolute commands'
+# Every absolute command the greeter, session, terminals, shortcuts and their
+# helpers run must exist in this image, or an absolute path would only trade
+# one way to fail for another.
+startup_commands=$(grep -ohE '/usr/(local/)?(s?bin|libexec)/[A-Za-z0-9/._-]+' /etc/greetd/config.toml \
+    /usr/bin/aresos-session /usr/bin/aresos-terminal /usr/share/aresos/bashrc /etc/profile.d/aresos.sh \
+    /usr/share/aresos/labwc/autostart /usr/share/aresos/labwc/rc.xml /usr/libexec/aresos-keyboard \
+    /usr/libexec/aresos-subids /usr/bin/brew | sort -u)
+for command in /usr/bin/dbus-run-session /usr/bin/dbus-daemon /usr/bin/labwc /usr/bin/busctl /usr/bin/foot; do
+    grep -qx "$command" <<< "$startup_commands"
+done
+for command in $startup_commands; do
+    test -x "$command"
+done
+pass "all $(wc -l <<< "$startup_commands") absolute startup commands exist: $(tr '\n' ' ' <<< "$startup_commands")"
 test "$(runuser -l ares -c 'command -v brew')" = /usr/bin/brew
 test "$(runuser -l ares -c 'brew --version')" = FIXTURE_BREW
 grep -qx -- '--version' /tmp/brew-calls

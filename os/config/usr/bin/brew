@@ -3,7 +3,8 @@
 # stock administrator (UID 1000), so a rollback to stock keeps a working
 # Homebrew. The owner runs it directly. Anyone else runs read-only commands
 # directly and everything else as the owner, after sudo asks for their own
-# password, so Homebrew keeps a single owner.
+# password, so Homebrew keeps a single owner. Every command is absolute: his
+# PATH starts with ~/.local/bin.
 set -euo pipefail
 prefix=/home/linuxbrew/.linuxbrew
 real=$prefix/bin/brew
@@ -11,8 +12,8 @@ if [[ ! -x $real ]]; then
     printf 'brew: Homebrew is not installed in %s\n' "$prefix" >&2
     exit 127
 fi
-owner=$(stat -L -c %u "$prefix")
-if [[ $(id -u) == "$owner" ]]; then
+owner=$(/usr/bin/stat -L -c %u "$prefix")
+if [[ $(/usr/bin/id -u) == "$owner" ]]; then
     exec "$real" "$@"
 fi
 case ${1-} in
@@ -27,8 +28,8 @@ if [[ $owner == 0 ]]; then
     exit 1
 fi
 printf 'brew: Homebrew belongs to %s; sudo asks for your own password.\n' \
-    "$(getent passwd "$owner" | cut -d: -f1 || echo "UID $owner")" >&2
+    "$(/usr/bin/getent passwd "$owner" | /usr/bin/cut -d: -f1 || echo "UID $owner")" >&2
 # The owner cannot enter a private home directory; relative paths in the
 # arguments therefore refer to the prefix, not to the caller's directory.
 cd "$prefix"
-exec sudo -u "#$owner" -H -- /usr/bin/env HOMEBREW_NO_AUTO_UPDATE=1 "$real" "$@"
+exec /usr/bin/sudo -u "#$owner" -H -- /usr/bin/env HOMEBREW_NO_AUTO_UPDATE=1 "$real" "$@"

@@ -39,9 +39,9 @@ assert pids, 'No daily session to inspect'
 for pid in pids:
     environ = dict(entry.split(b'=', 1) for entry in pathlib.Path(f'/proc/{pid}/environ').read_bytes().split(b'\0') if b'=' in entry)
     path = environ[b'PATH'].decode().split(':')
-    assert path[0] == '/var/home/ares/.local/bin', path
-    assert '/home/linuxbrew/.linuxbrew/bin' in path, path
-    assert path.index('/usr/bin') < path.index('/home/linuxbrew/.linuxbrew/bin'), path
+    # The compositor keeps the system PATH (package 21 review 5); his login
+    # shell and AresOS terminals add ~/.local/bin, Homebrew and Flatpak.
+    assert path == ['/usr/local/bin', '/usr/local/sbin', '/usr/bin', '/usr/sbin'], path
     print('DAILY_SESSION_PATH=' + ':'.join(path))
 PY
     echo INHERITED_HOMEBREW_DAILY_USES_OWNER_WORKING

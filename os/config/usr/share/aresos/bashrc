@@ -1,12 +1,18 @@
 printf '\nAresOS\n\nSuper+Ctrl+Escape: recovery terminal\nCtrl+Alt+F3: separate TTY (provision a recovery password first)\n\n'
 PS1='aresos \w \$ '
-# His own ~/.bashrc applies after the banner, so his settings win. An error in
-# it ends only its own `source`, not this shell, and the recovery terminal
-# never reads it.
+# A normal AresOS terminal gets his daily PATH (~/.local/bin first, then the
+# system, then Homebrew and Flatpak) and then his own ~/.bashrc, so his
+# settings win; an error in that file ends only its own `source`. The recovery
+# terminal keeps the session's system PATH and never reads his file.
 _aresos_terminal=${ARESOS_TERMINAL:-}
 unset ARESOS_TERMINAL
-if [ "$_aresos_terminal" != recovery ] && [ -f "$HOME/.bashrc" ] && [ -r "$HOME/.bashrc" ]; then
+if [ "$_aresos_terminal" != recovery ]; then
     unset _aresos_terminal
-    . "$HOME/.bashrc"
+    if [ -r /etc/profile.d/aresos.sh ]; then
+        . /etc/profile.d/aresos.sh
+    fi
+    if [ -f "$HOME/.bashrc" ] && [ -r "$HOME/.bashrc" ]; then
+        . "$HOME/.bashrc"
+    fi
 fi
 unset _aresos_terminal

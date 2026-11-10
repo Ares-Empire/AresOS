@@ -1,9 +1,10 @@
 export HOMEBREW_NO_AUTO_UPDATE=1
-# The daily account's PATH is set here, in one place, for login shells and the
-# labwc session alike: his own tools first, then the system, then Homebrew's
-# and Flatpak's command directories when they exist. System commands stay
-# ahead of Homebrew's, so a brew formula cannot replace one the OS relies on.
-if [ "$(id -u)" = 1001 ]; then
+# The daily account's PATH is set here, in one place, for his login shells and
+# his AresOS terminals (/usr/share/aresos/bashrc): his own tools first, then the
+# system, then Homebrew's and Flatpak's command directories when they exist.
+# System commands stay ahead of Homebrew's, so a brew formula cannot replace one
+# the OS relies on. The session itself keeps the system PATH (aresos-session).
+if [ "$(/usr/bin/id -u)" = 1001 ]; then
     PATH=/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin
     if [ -n "${HOME:-}" ]; then
         PATH="$HOME/.local/bin:$PATH"
