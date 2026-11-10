@@ -302,6 +302,14 @@ Outputs: `Ran 90 tests in 0.240s`, `OK`; `Ran 9 tests in 4.491s`, `OK`; `Generat
 
 ## Stage 1, fixes round 3
 
+**Done:** `model.py` and `resolutions.py` retain independently established
+obligations behind one corroborated resolution allowlist; `records.py` bounds
+restore/history authority; `driver.py` freezes script, fixture and pre-command
+inputs. `compare.py` checks every public surface against those obligations.
+`perturb.py`, the recorded-corpus test, focused contracts and direct self-tests
+cover structure S and all five findings. The compact ledger, coverage contract,
+field audit and capture/strict manifests are updated below.
+
 **Read — scope:** this round implements structure S and all five findings of
 `REVIEW-S1-3.md` in the oracle, comparison, tests and compact ledger. Production
 code and the stage-2/3 work remain outside this round. The resolution contract
@@ -560,3 +568,95 @@ local counts. Generator printed `Generated artifacts match definitions`, and
 All four shard logs contain 96 flow-completion lines: every one of 32 flows in each of three workers. Each child ran six tests and failed only its final comparison with the superseded pin; each inherited four-test sweep printed `OK`. Worker exit lines are shard 0 `:431/:563/:691`, shard 1 `:386/:502/:626`, shard 2 `:136/:264/:400`, shard 3 `:176/:330/:434`. Mail job durations were suite **2093s**, shards 0/1/2/3 **2251/2149/2176/1820s**, all below 45 minutes. This complete diagnostic capture is not strict green verification.
 
 **Run — updated compact pin:** `LEDGER-CAPTURE-R3.json` records all 17 actual-list hashes. Merge validation requires all twelve owners, correct nonshared ownership, exact agreement on shared keys and every dedicated suite. The pin contains **1,810,440 exact keys**, **44,857 stage 2 / 1,765,583 stage 3**, **2,115 groups / 976,806 bytes**, SHA-256 `a5cd7a55288aeb958e4f8420c1ca68e62f62c7c883197fb0fc239ec045809759`. Compared with round 2: **194,530 additions, 13,979 removals, 108,328 changed retained deltas**. One-space JSON indentation saves whitespace while retaining all samples/digests and format-3 strictness; no full list is committed. KNOWN-GAPS.md records the exact regeneration command and per-suite closing-stage counts. Missing work/account/hold/history and full-effect checks add coverage; corrected clean epochs and notice grouping remove incorrect differences. Production remains unchanged.
+
+
+**Run — final strict repetitions:** Control base, Control Mail and Control
+boundary each passed twice with code, tests and ledger from
+`e8d269ad1aa848b0de74392edfb14d817dd0c0ca`. Base and Mail use two distinct run
+IDs, each attempt 1: the manual dispatch and the automatic PR update. Boundary
+uses attempts 1 and 2 of one run. No final-source strict test failed.
+
+| Workflow | Passing runs / attempts | Exact output evidence |
+| --- | --- | --- |
+| Control base | [42733231891](https://github.com/Ares-Empire/AresOS/actions/runs/42733231891), [42733232348](https://github.com/Ares-Empire/AresOS/actions/runs/42733232348), both attempt 1 | Both `results.txt:380`: 251 tests, 227.581s / 228.550s; `:382` OK; `:389` PASS |
+| Control Mail | [42733235634](https://github.com/Ares-Empire/AresOS/actions/runs/42733235634), [42733232393](https://github.com/Ares-Empire/AresOS/actions/runs/42733232393), both attempt 1 | Both suite `mail.txt:141`: 67 scenarios, 236,560 perturbations, slipped=0; `:430`: 317 tests, 2333.948s / 1444.010s; `:434` PASS. Embedded `base.txt:372`: 251 tests, 231.042s / 164.742s; `:381` PASS |
+| Control boundary | [42733240406 attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42733240406/attempts/1), [attempt 2](https://github.com/Ares-Empire/AresOS/actions/runs/42733240406/attempts/2) | Attempt 1 downloaded workflow log `boundary-actions.txt:1701/:2416`: SETTINGS_OK in both modes; `:2436`: exact tested HEAD and attempt. Attempt 2 artifacts `present-console.txt:808`, `absent-console.txt:715`: SETTINGS_OK; `identity.txt:1`: exact HEAD and attempt. Separate-user/policy steps passed in both |
+
+Boundary attempt 1's artifact was unavailable after its rerun; its complete
+official workflow log was downloaded instead and is the explicitly identified
+evidence above. Attempt 2's artifact was downloaded. `LEDGER-STRICT-R3.json`
+records hashes for these boundary evidence files as well as the gap lists.
+
+Every strict shard has all 96 flow-completion records (32 flows × three workers),
+three six-test `OK` results, zero worker exits, and the inherited four-test `OK`.
+The following line positions are identical in the two repetitions; all are in
+the corresponding shard's `mail.txt`.
+
+| Shard | Inherited test result | Six-test results | Worker exits (all 0) | Final PASS |
+| --- | --- | --- | --- | --- |
+| 0 | `:257` | `:417/:538/:655` | `:420/:541/:658` | `:660` |
+| 1 | `:248` | `:372/:477/:590` | `:375/:480/:593` | `:595` |
+| 2 | `:18` | `:122/:239/:364` | `:125/:242/:367` | `:369` |
+| 3 | `:18` | `:162/:305/:398` | `:165/:308/:401` | `:403` |
+
+| Mail job | Manual run seconds | Automatic run seconds |
+| --- | ---: | ---: |
+| Suite | 2,614 | 1,650 |
+| Shard 0 | 1,645 | 1,792 |
+| Shard 1 | 1,334 | 1,593 |
+| Shard 2 | 2,026 | 2,195 |
+| Shard 3 | 2,041 | 1,309 |
+
+Every Mail job was below 45 minutes; the maximum was **43m34s**. Base jobs took
+260s / 264s; boundary jobs took 210s / 201s.
+
+**Read — exact automatic-checkout identity:** GitHub's automatic PR checkout is
+merge commit `1fa89d5a308ba1af1892528a8870f8fa25dc2906`. Its Git tree and the
+branch head's tree are both `88384027eb242f7b4dcee45a3edf8b7e751b78d0`,
+verified through the commit API. The automatic base workflow log identifies it
+at `:157`; the five automatic Mail job checkout lines are
+`:156/:911/:1955/:2743/:3722`. Thus both repetitions test identical repository
+contents. The strict manifest records these identities and lines.
+
+**Run — complete strict pin proof:** each repetition's 17 complete actual lists
+was independently merged, ownership-checked and repacked after download.
+Both reproduce **1,810,440 keys / 2,115 groups / 976,806 bytes** and SHA-256
+`a5cd7a55288aeb958e4f8420c1ca68e62f62c7c883197fb0fc239ec045809759`
+byte-for-byte. `LEDGER-STRICT-R3.json` records all 34 actual-list hashes, both
+run/attempt sets and the tested source. No diagnostic old-pin mismatch counts
+as acceptance.
+
+**Run — pinned local check:** the final pin also passed 108 self-tests
+(`Ran 108 tests in 0.233s`, `OK`) and nine focused/regression/real-driver tests
+(`Ran 9 tests in 4.724s`, `OK`). Generator printed
+`Generated artifacts match definitions`; diff check was silent.
+
+**Run — workflow count:** this round added **11 distinct workflow IDs / 12
+attempts**: six diagnostic IDs, four strict base/Mail IDs and one boundary ID
+with two attempts. Stage 1 now totals **74 IDs / 87 attempts**, versus 63 / 75
+before this round. This includes cancelled, superseded and diagnostic runs;
+only the strict passes above are acceptance.
+
+**Not verified:** stage-2/3 production gap closure and real-account behavior
+remain outside this run. No production source changed. The package lead owns
+the fresh fix check; no stage review was run by this implementation run.
+
+**JUDGMENT-CALL:** no product behavior decision. The oracle keeps the explicit
+legacy/current intent handle forms and binds either once; requiring only the
+current prefix would incorrectly reject old fixtures. Changing this later is
+local test-oracle work. Ledger indentation is a reversible representation choice
+with no assertion or digest-input change.
+
+**PLAN-GAP:** D3 still needs evidence-record capacity reservation and a committed
+specific or generic observed-evidence warning in stage 3. This round retains
+that exact requirement and closing-stage assignment; no ordinary unchecked
+notice is accepted as its substitute. No additional plan gap was assumed.
+
+**Open questions:** none for this round. Stage 2 has not started; nothing was
+merged.
+
+**Run — closing workspace:** the regular-file inventory over 500 MiB in `.work/`
+printed `[]`. No large image/download or Gradle daemon was started. The closing
+commit changes only REPORT.md, KNOWN-GAPS.md and the strict evidence manifest;
+code, tests and compact-ledger bytes are identical to the twice-tested source.
+The closing push uses `[skip ci]` and the normal privacy pre-push check.
