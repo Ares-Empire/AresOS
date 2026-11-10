@@ -571,11 +571,13 @@ test('a stale popup Stop cannot end a replacement epoch or an ordinary tab',asyn
 });
 
 test('popup Stop revokes input and clears opener badge before blocked document cleanup completes',async()=>{
-  const f=lifecycleFixture();f.run("globalThis.badges=new Map();chrome.action.setBadgeText=async({tabId,text})=>badges.set(tabId,text);controlled.set(7,{epoch:'parent'});controlled.set(8,{epoch:'child',virtualGroup:true,parentTab:7,parentEpoch:'parent'});preloadTargets.set('[8,null]',{source:{tabId:8},tab:8,contexts:new Map(),documents:new Map([['main',{cleanup:'restore'}]]),installing:new Set()});chrome.debugger.sendCommand=(source,method)=>method==='Runtime.callFunctionOn'?new Promise(resolve=>{globalThis.finishPopupCleanup=resolve}):Promise.resolve({});");
+  const f=lifecycleFixture();f.run("globalThis.clockTimers=[];setTimeout=(callback,delay)=>{clockTimers.push({callback,delay});return 0};globalThis.badges=new Map();chrome.action.setBadgeText=async({tabId,text})=>badges.set(tabId,text);controlled.set(7,{epoch:'parent'});controlled.set(8,{epoch:'child',virtualGroup:true,parentTab:7,parentEpoch:'parent'});preloadTargets.set('[8,null]',{source:{tabId:8},tab:8,contexts:new Map(),documents:new Map([['main',{cleanup:'restore'}]]),installing:new Set()});chrome.debugger.sendCommand=(source,method)=>method==='Runtime.callFunctionOn'?new Promise(resolve=>{globalThis.finishPopupCleanup=resolve}):Promise.resolve({});");
   await f.run('badge()');const pending=f.run("stopPopup(8,'child')");await spin(f,"typeof finishPopupCleanup==='function'&&badges.get(7)==='ON'");
   assert.equal(f.run('controlled.has(8)'),false);assert.equal(f.run('controlled.has(7)'),true);assert.equal(f.run('releasing.has(8)'),true);
-  await assert.rejects(f.run('requireTab(8)'),/outside the Claude group/);
-  f.run('finishPopupCleanup({result:{value:true}})');await pending;
+  const denied=assert.rejects(f.run('requireTab(8)'),/outside the Claude group/);
+  await spin(f,"clockTimers.filter(timer=>timer.delay===1000).length===2");f.run('clockTimers.filter(timer=>timer.delay===1000).forEach(timer=>timer.callback())');
+  await denied;assert.equal((await pending).cleanup_pending,true);assert.equal(f.run('releasing.has(8)'),true);
+  f.run('finishPopupCleanup({result:{value:true}})');await spin(f,'!releasing.has(8)');
 });
 
 test('queued slow badge writes cannot resurrect a stopped popup badge',async()=>{
