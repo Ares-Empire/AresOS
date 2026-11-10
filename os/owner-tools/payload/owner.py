@@ -1587,7 +1587,7 @@ def seal_copy(stage):
     sync_directory(HOME)
 
 
-UPDATE_NAMES = ('diagnostics', 'install-intent.json', 'tools', 'records', 'at', '.at-held',
+UPDATE_NAMES = ('diagnostics', 'install-intent.json', 'tools', 'records', 'at', '.tools-held',
                 'tools-update-intent.json', '.update-tools', 'retired-tools')
 
 
@@ -1599,8 +1599,8 @@ def installed_commands(home):
     tools take no lock, so both stages are matched by their exact paths.
     """
     real = pathlib.Path(os.path.realpath(home))
-    wrappers = {str(home / 'at'), str(home / 'tools/at'), str(real / 'at'), str(real / 'tools/at')}
-    entries = {str(home / 'tools/owner.py'), str(real / 'tools/owner.py')}
+    wrappers = {str(base / name) for base in (home, real) for name in ('at', 'tools/at', '.tools-held/at')}
+    entries = {str(base / name) for base in (home, real) for name in ('tools/owner.py', '.tools-held/owner.py')}
     found = []
     for process in pathlib.Path('/proc').iterdir():
         if not process.name.isdigit() or int(process.name) == os.getpid():
@@ -1658,34 +1658,14 @@ def update_tools(payload, fingerprint, host):
     installed = home.load('install-intent')
     require(installed.get('schema') == 'install1' and installed.get('phase') == 'complete', 'Installation is unfinished; get help')
     disk_record(host, records.load('disks'))
-    # While the tools are replaced the documented entry is renamed aside, so
-    # no command of the old tools can start; it returns before completion.
-    entry, held_entry = HOME / 'at', HOME / '.at-held'
-    links = [p for p in (entry, held_entry) if p.exists() or p.is_symlink()]
-    require(len(links) == 1 and links[0].is_symlink() and os.readlink(links[0]) == 'tools/at', 'Unexpected installed entry point')
+    entry = HOME / 'at'
+    require(entry.is_symlink() and os.readlink(entry) == 'tools/at', 'Unexpected installed entry point')
     new = lineage(payload)
-
-    def hold_entry():
-        if entry.is_symlink():
-            entry.replace(held_entry)
-            sync_directory(HOME)
-
-    def release_entry():
-        if held_entry.is_symlink():
-            require(not entry.exists() and not entry.is_symlink(), 'Unexpected installed entry point')
-            held_entry.replace(entry)
-            sync_directory(HOME)
-
-    def exclusive():
-        running = installed_commands(HOME)
-        if running:
-            release_entry()
-            raise Stop('An owner command of the installed tools is running (pid ' + ', '.join(str(r['pid']) for r in running)
-                + '); let it finish, then repeat this bootstrap')
+    current, staged, retired = HOME / 'tools', HOME / '.update-tools', HOME / 'retired-tools'
+    blocked = HOME / '.tools-held'
 
     def system_ready():
-        # The new tools must accept today's system before, and whenever an
-        # interrupted update resumes, the copy or swap that replaces the old.
+        # The new tools must accept today's system before they replace the old ones.
         checker = Tools(payload, host, HOME / 'records')
         require(not (checker.store / 'layout-pending.json').exists(), 'Layout trial is unfinished; prove it or revert first')
         if (checker.store / 'prepare-intent.json').exists():
@@ -1694,25 +1674,58 @@ def update_tools(payload, fingerprint, host):
         idle(state, checker.processes())
         checker.qualified(state)
 
-    current, staged, retired = HOME / 'tools', HOME / '.update-tools', HOME / 'retired-tools'
+    def exclusive():
+        running = installed_commands(HOME)
+        require(not running, 'An owner command of the installed tools is running (pid '
+            + ', '.join(str(r['pid']) for r in running) + '); let it finish, then repeat this bootstrap')
+
+    def block(old):
+        # Every way into the old tools (/var/lib/ares/at, tools/at, tools/owner.py)
+        # lies under tools/, and their entry runs only from there: moving that
+        # directory aside makes all of them unusable at once.
+        if current.exists() or current.is_symlink():
+            require(not current.is_symlink() and not blocked.exists() and not blocked.is_symlink(), 'Unexpected held tools; get help')
+            if checked_bundle(current) == old:
+                current.replace(blocked)
+                sync_directory(HOME)
+
+    def unblock(old):
+        if blocked.is_dir() and not blocked.is_symlink() and not current.exists() and not current.is_symlink() \
+                and checked_bundle(blocked) == old:
+            blocked.replace(current)
+            sync_directory(HOME)
+
+    def ready(old):
+        """Block, then check: no old command runs and the system passes now."""
+        block(old)
+        try:
+            exclusive()
+            system_ready()
+        except BaseException:
+            # A refusal gives the old tools back until the update resumes.
+            unblock(old)
+            raise
+
     journal = HOME / 'tools-update-intent.json'
     intent = home.load('tools-update-intent') if journal.exists() or journal.is_symlink() else None
     if intent is None or intent.get('phase') == 'complete':
-        require(not staged.exists() and not staged.is_symlink(), 'Unjournalled partial tools copy; preserve it and get help')
+        require(not staged.exists() and not staged.is_symlink() and not blocked.exists() and not blocked.is_symlink(),
+            'Unjournalled partial tools copy or held tools; preserve them and get help')
         require(not current.is_symlink() and current.is_dir(), 'Installed tools are missing; get help')
         private_tree(current)
         old = checked_bundle(current)
         require(intent is None or intent.get('manifest') == old, 'Tools update journal differs from the installed tools; get help')
         if old == fingerprint:
-            require(entry.is_symlink(), 'Unexpected installed entry point')
             return ['Tools already installed; nothing changed', 'manifest SHA256 ' + fingerprint]
         old_version, old_history = installed_lineage(current, old)
         require(new['tools_version'] > old_version, 'Installed tools are version ' + str(old_version)
             + '; refusing version ' + str(new['tools_version']) + ' (downgrade or same version)')
         require(extends(old_history, new['releases']), 'Bundle release history does not extend the installed one; get help')
         require(not (retired / old).exists() and not (retired / old).is_symlink(), 'Retired tools already exist; get help')
-        system_ready()
+        # An early refusal writes nothing; the deciding checks run again below,
+        # after the old tools are blocked.
         exclusive()
+        system_ready()
         intent = dict(schema='tools-update1', previous=old, manifest=fingerprint, previous_version=old_version,
             tools_version=new['tools_version'], tools_volume_uuid=device['volume']['uuid'], phase='copy')
         home.save('tools-update-intent', intent)
@@ -1721,41 +1734,38 @@ def update_tools(payload, fingerprint, host):
             and intent.get('tools_volume_uuid') == device['volume']['uuid']
             and intent.get('phase') in ('copy', 'swap', 'records'),
             'Interrupted tools update does not exactly match this bundle/stick; get help')
-        system_ready()
-        exclusive()
-    # Hold the entry, then look again: a command started in between is found.
-    hold_entry()
-    exclusive()
     def advance(phase):
         intent['phase'] = phase
         home.save('tools-update-intent', intent)
     old, held = intent['previous'], retired / intent['previous']
+    ready(old)
     if intent['phase'] == 'copy':
-        require(checked_bundle(current) == old and not held.exists(), 'Installed tools changed during the update')
+        require(checked_bundle(blocked) == old and not current.exists() and not held.exists(), 'Installed tools changed during the update')
         discard_partial_copy(staged, payload)
         shutil.copytree(payload, staged, symlinks=False, copy_function=shutil.copy2)
         seal_copy(staged)
         require(checked_bundle(staged) == fingerprint, 'Staged tools differ; preserve diagnostics')
         advance('swap')
+        # Still blocked: check once more right before the swap.
+        ready(old)
     if intent['phase'] == 'swap':
         if staged.exists() or staged.is_symlink():
             require(not staged.is_symlink() and checked_bundle(staged) == fingerprint, 'Staged tools differ; get help')
-            if current.exists() or current.is_symlink():
-                require(not current.is_symlink() and checked_bundle(current) == old and not held.exists(),
+            if blocked.exists() or blocked.is_symlink():
+                require(not blocked.is_symlink() and checked_bundle(blocked) == old and not held.exists() and not current.exists(),
                     'Unexpected installed tools during the swap; get help')
-                exclusive()
                 if not retired.exists():
                     retired.mkdir(mode=0o700)
                     sync_directory(HOME)
                 owned_directory(retired)
-                current.replace(held)
+                blocked.replace(held)
                 sync_directory(retired)
                 sync_directory(HOME)
             require(not current.exists() and checked_bundle(held) == old, 'Retired tools differ; get help')
             staged.replace(current)
             sync_directory(HOME)
-        require(not staged.exists() and checked_bundle(current) == fingerprint and checked_bundle(held) == old,
-            'Tools swap is ambiguous; get help')
+        require(not staged.exists() and not blocked.exists() and checked_bundle(current) == fingerprint
+            and checked_bundle(held) == old, 'Tools swap is ambiguous; get help')
         # The receipt name is journalled, so a resumed update writes it once.
         intent['receipt'] = datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%S.%fZ') + '-tools-update'
         advance('records')
@@ -1766,7 +1776,6 @@ def update_tools(payload, fingerprint, host):
             records.save(intent['receipt'], dict(status='passed', command=['install'], manifest=fingerprint, previous_manifest=old,
                 tools_version=intent['tools_version'], previous_version=intent['previous_version'],
                 releases=new['releases'], tools_volume_uuid=device['volume']['uuid'], trace=host.trace))
-        release_entry()
         advance('complete')
     return ['Tools updated from version ' + str(intent['previous_version']) + ' to ' + str(intent['tools_version']),
             'manifest SHA256 ' + fingerprint, 'Previous tools kept in /var/lib/ares/retired-tools (private)',

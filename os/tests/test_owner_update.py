@@ -864,6 +864,12 @@ class ToolsUpdateTest(unittest.TestCase):
             run = lambda: owner.install(usb / 'ares-tools', host)
             yield home, run, fingerprint, old, host
 
+    @staticmethod
+    def unblocked(snapshot):
+        """The same files with blocked old tools back in place."""
+        return {('tools' + name[len('.tools-held'):] if name.startswith('.tools-held') else name): value
+                for name, value in snapshot.items()}
+
     def snapshot(self, home):
         return {p.relative_to(home).as_posix(): (p.read_bytes() if p.is_file() and not p.is_symlink() else os.readlink(p) if p.is_symlink() else None)
                 for p in home.rglob('*')}
@@ -872,7 +878,7 @@ class ToolsUpdateTest(unittest.TestCase):
         self.assertEqual(owner.checked_bundle(home / 'tools'), fingerprint)
         self.assertEqual(owner.checked_bundle(home / 'retired-tools' / old), old)
         self.assertEqual(os.readlink(home / 'at'), 'tools/at')
-        self.assertFalse((home / '.at-held').exists() or (home / '.at-held').is_symlink())
+        self.assertFalse((home / '.tools-held').exists() or (home / '.tools-held').is_symlink())
         self.assertFalse((home / '.update-tools').exists())
         intent = json.loads((home / 'tools-update-intent.json').read_text())
         self.assertEqual((intent['phase'], intent['previous'], intent['manifest']), ('complete', old, fingerprint))
@@ -944,10 +950,10 @@ class ToolsUpdateTest(unittest.TestCase):
             with patch.object(owner.Tools, 'save', new=lambda obj, name, value: (steps.append(name), original(obj, name, value))[1]):
                 run()
         self.assertEqual(steps, ['tools-update-intent'] * 3 + [steps[3], 'tools-update-intent'])
-        # Every file copy, every rename (five record writes, the entry held and
-        # released, and the two swaps) and every record write.
+        # Every file copy, every rename (five record writes, the old tools
+        # blocked, and the two swaps) and every record write.
         injections = [('copy', n) for n in range(1, len(common.bundle.PAYLOAD) + 3)] + \
-                     [('replace', n) for n in range(1, 10)] + [('save', n) for n in range(1, 6)]
+                     [('replace', n) for n in range(1, 9)] + [('save', n) for n in range(1, 6)]
         for kind, stop in injections:
             with self.subTest(kind=kind, stop=stop), self.installation() as (home, run, fingerprint, old, host):
                 seen = 0
@@ -980,9 +986,10 @@ class ToolsUpdateTest(unittest.TestCase):
                                          release_row(R13, booted=True), stock_row()])),
                                      lambda home, host: setattr(host, 'state', pair())),
         }
-        # Interrupted in the copy phase, between the two swap renames (rename 4:
-        # journal, held entry, journal, then the first swap rename), and after
-        # the swap (the third journal write).
+        # Interrupted in the copy phase (old tools blocked), between the two
+        # swap renames (rename 4: journal, block, journal, first swap rename),
+        # and after the swap (the third journal write). A refused resume gives
+        # the blocked old tools back, and changes nothing else.
         for (kind, stop) in (('copy', 2), ('replace', 4), ('save', 3)):
             for name, (change, undo) in changes.items():
                 with self.subTest(kind=kind, stop=stop, change=name), self.installation() as (home, run, fingerprint, old, host):
@@ -1005,10 +1012,11 @@ class ToolsUpdateTest(unittest.TestCase):
                     with hook, self.assertRaises(OSError):
                         run()
                     change(home, host)
-                    before = self.snapshot(home)
+                    before = self.unblocked(self.snapshot(home))
                     with self.assertRaises(owner.Stop):
                         run()
                     self.assertEqual(before, self.snapshot(home))
+                    self.assertFalse((home / '.tools-held').exists())
                     undo(home, host)
                     run()
                     self.updated(home, fingerprint, old)
@@ -1043,38 +1051,101 @@ class ToolsUpdateTest(unittest.TestCase):
             run()
             self.updated(home, fingerprint, old)
 
-    def test_the_documented_entry_is_held_during_the_replacement(self):
+    def legacy_attempts(self, home):
+        """Try every way into the installed tools; return each exit status."""
+        attempts = {
+            'at': ['bash', str(home / 'at'), 'check'],
+            'tools/at': ['bash', str(home / 'tools/at'), 'check'],
+            'tools/owner.py': ['/usr/bin/python3', '-I', '-B', str(home / 'tools/owner.py'), 'check'],
+        }
+        return {name: subprocess.run(argv, capture_output=True, timeout=10).returncode for name, argv in attempts.items()}
+
+    def test_every_legacy_path_is_unusable_at_the_final_scan_and_the_swap(self):
+        """Blocked before scanning: at the last scan and the swap nothing old can start."""
         with self.installation() as (home, run, fingerprint, old, host):
-            observed = []
-            real = shutil.copy2
-            def copy_file(*args, **kwargs):
-                if not observed:
-                    attempt = subprocess.run(['bash', str(home / 'at'), 'check'], capture_output=True, timeout=10)
-                    observed.append(((home / 'at').exists() or (home / 'at').is_symlink(),
-                                     (home / '.at-held').is_symlink(), attempt.returncode))
-                return real(*args, **kwargs)
-            with patch('shutil.copy2', side_effect=copy_file):
+            seen = []
+            scan = owner.installed_commands
+            def scanned(where):
+                if (home / '.tools-held').is_dir():
+                    seen.append(('scan', self.legacy_attempts(home)))
+                return scan(where)
+            real = pathlib.Path.replace
+            def rename(path, target):
+                if path == home / '.tools-held':
+                    seen.append(('swap', self.legacy_attempts(home)))
+                return real(path, target)
+            with patch.object(owner, 'installed_commands', side_effect=scanned), \
+                    patch.object(pathlib.Path, 'replace', new=rename):
                 run()
-            self.assertEqual(observed, [(False, True, 127)])
+            self.assertEqual([where for where, _ in seen], ['scan', 'scan', 'swap'])
+            for where, codes in seen:
+                # 127: bash cannot open the script; 2: python3 cannot open the file.
+                self.assertEqual(codes, {'at': 127, 'tools/at': 127, 'tools/owner.py': 2}, where)
             self.updated(home, fingerprint, old)
 
-    def test_a_command_started_another_way_during_the_copy_is_refused_before_the_swap(self):
+    def test_the_held_old_tools_cannot_run_outside_their_home(self):
+        """The 15f main (git e062f4a2, the 3ef85c4a bundle) has this same requirement."""
+        source = (ROOT / 'os/owner-tools/owner.py').read_text()
+        self.assertIn("require(payload == HOME / 'tools' and HOME.stat().st_uid == 0", source)
+        with tempfile.TemporaryDirectory(dir=ROOT / 'os/tests') as temporary:
+            home = pathlib.Path(temporary)
+            held = home / '.tools-held'
+            common.fixture_bundle(held)
+            with patch.object(owner, 'HOME', home), patch.object(owner, 'STOP_RECORDS', home / 'diagnostics'), \
+                    patch.object(owner, '__file__', str(held / 'owner.py')), patch.object(owner, 'LOCK', home / 'ares-owner.lock'), \
+                    patch.object(owner.os, 'geteuid', return_value=0), patch.object(owner.os, 'umask'), \
+                    patch.object(owner.sys, 'argv', ['at', 'check']), contextlib.redirect_stdout(io.StringIO()), \
+                    self.assertRaisesRegex(owner.Stop, 'Run the installed root-only tools'):
+                owner.main()
+
+    def test_a_legacy_command_that_ran_after_the_early_checks_leaves_no_stale_result(self):
+        """It started and finished before the block; the checks after the block see it."""
+        trial = b'import pathlib\n(pathlib.Path(__file__).resolve().parent.parent / "records/layout-pending.json").write_text("{}")\n'
+        with self.installation(legacy_owner=trial) as (home, run, fingerprint, old, host):
+            real = owner.Tools.save
+            ran = []
+            def save(obj, name, value):
+                result = real(obj, name, value)
+                if name == 'tools-update-intent' and not ran:
+                    ran.append(subprocess.run(['bash', str(home / 'at'), 'layout', 'begin', 'us'], timeout=10).returncode)
+                return result
+            with patch.object(owner.Tools, 'save', new=save), self.assertRaisesRegex(owner.Stop, 'Layout trial is unfinished'):
+                run()
+            self.assertEqual(ran, [0])
+            self.assertEqual(owner.checked_bundle(home / 'tools'), old)
+            self.assertFalse((home / '.tools-held').exists() or (home / '.update-tools').exists())
+            self.assertEqual(json.loads((home / 'tools-update-intent.json').read_text())['phase'], 'copy')
+            (home / 'records/layout-pending.json').unlink()
+            run()
+            self.updated(home, fingerprint, old)
+
+    def test_a_legacy_command_still_running_at_the_block_is_refused_and_the_old_tools_return(self):
         sleeper = b'import time\ntime.sleep(60)\n'
         with self.installation(legacy_owner=sleeper) as (home, run, fingerprint, old, host):
+            real = owner.Tools.save
             started = []
-            real = shutil.copy2
-            def copy_file(*args, **kwargs):
-                if not started:
-                    started.append(self.legacy_command(home / 'tools/at', home))
-                return real(*args, **kwargs)
-            with patch('shutil.copy2', side_effect=copy_file), \
+            def save(obj, name, value):
+                result = real(obj, name, value)
+                if name == 'tools-update-intent' and not started:
+                    started.append(self.legacy_command(home / 'at', home))
+                return result
+            with patch.object(owner.Tools, 'save', new=save), \
                     self.assertRaisesRegex(owner.Stop, 'An owner command of the installed tools is running'):
                 run()
             self.assertEqual(owner.checked_bundle(home / 'tools'), old)
-            self.assertEqual(os.readlink(home / 'at'), 'tools/at')
-            self.assertEqual(json.loads((home / 'tools-update-intent.json').read_text())['phase'], 'swap')
+            self.assertFalse((home / '.tools-held').exists())
             started[0].kill()
             started[0].wait()
+            run()
+            self.updated(home, fingerprint, old)
+
+    def test_an_interruption_while_the_old_tools_are_blocked_recovers(self):
+        with self.installation() as (home, run, fingerprint, old, host):
+            with patch('shutil.copy2', side_effect=OSError('injected during the copy')), self.assertRaises(OSError):
+                run()
+            self.assertFalse((home / 'tools').exists())
+            self.assertEqual(owner.checked_bundle(home / '.tools-held'), old)
+            self.assertEqual(self.legacy_attempts(home), {'at': 127, 'tools/at': 127, 'tools/owner.py': 2})
             run()
             self.updated(home, fingerprint, old)
 
