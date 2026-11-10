@@ -75,9 +75,13 @@ class StageTwoFixes(unittest.TestCase):
         record = Record(rows={key: changed}, events=[
             {'seq': 1, 'time': 1, 'action': 'fixture', 'set': {key: row}},
             {'seq': 2, 'time': 2, 'action': 'mail_send', 'set': {key: changed}}])
-        expected, errors = evaluate(oracle, record)
-        self.assertIn(Fact(key, 'unchecked'), expected)
-        self.assertTrue(any(f.kind == 'unjustified-check-close' for _, f in errors))
+        for claim in ({}, {'sent_copy_check': {'state': 'checked'}}):
+            with self.subTest(claim=claim):
+                record.events[-1]['set'][key] = {**changed, **claim}
+                record.rows[key] = record.events[-1]['set'][key]
+                expected, errors = evaluate(oracle, record)
+                self.assertIn(Fact(key, 'unchecked'), expected)
+                self.assertTrue(any(f.kind == 'unjustified-check-close' for _, f in errors))
 
     def test_coherent_version_updates_copies_and_preserves_later_outcomes(self):
         oracle = Oracle()

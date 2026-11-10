@@ -959,8 +959,9 @@ class Oracle:
                         self.lifecycle_errors.add(Fact(key, 'unjustified-check-close', detail=str(event['seq'])))
                         value = {**value, 'check_open': True}
                 if key.startswith('op:') and old.get('sent_copy_check', {}).get('state') == 'open' and value and value.get('sent_copy_check', {}).get('state') != 'open':
-                    if not self.resolve('check_result', key, server_result=value.get('sent_copy_check', {}).get('state') == 'checked' and
-                                        not event['action'].endswith('_notice_ack') and self.result_proof(key, 'sent_copies', event['seq']), commit_order=True):
+                    if not self.resolve('check_result', key, server_result=(event['action'] == 'mail_sent_copy_check' or
+                                        event.get('untrusted_content', {}).get('stage') == 'sent_copy') and
+                                        value.get('sent_copy_check', {}).get('state') == 'checked' and self.result_proof(key, 'sent_copies', event['seq']), commit_order=True):
                         self.lifecycle_errors.add(Fact(key, 'unjustified-check-close', detail=str(event['seq'])))
                         value = {**value, 'sent_copy_check': old['sent_copy_check']}
                 if (key.startswith('mail:account:') and not old.get('onboarded', old.get('ready', False)) and value and
