@@ -411,7 +411,8 @@ class Chrome:
             from .uploads import release
             release(self, path)
         stage('checked', 'Page matched the bound approval immediately before input.')
-        stage('dispatched', 'Input or same-kind submission dispatched once; delivery is not proven.')
+        if reply.get('no_change'):stage('unchanged', 'The requested state was already present; no input was dispatched.')
+        else:stage('dispatched', 'Input or same-kind submission dispatched once; delivery is not proven.')
         if reply.get('confirmations'):
             stage('confirmation', canonical(visible(reply['confirmations'])))
         stage('page', canonical(visible(reply)))
@@ -422,6 +423,7 @@ class Chrome:
             return 'unknown','The page is still handling input behind a dialog. Inspect and answer it separately; never replay the input.'
         if reply.get('uncertain_finish'):
             return 'unknown','Input dispatched, but a page handler completion could not be confirmed. Inspect the page and never replay.'
+        if reply.get('no_change'):return 'done', 'The requested state was already present; no input was dispatched.'
         return 'done', 'Dispatched once, as the page shows it; this does not prove what the site did.'
 
     def command(self, payload, operation=None, approved=False):
@@ -499,8 +501,8 @@ class Chrome:
             op.update(state='failed' if certain else 'unknown',reason=('Nothing dispatched: ' if certain else 'Input may have run: ')+str(exc))
             self.store.write({'op:'+op_id:op},op['action'],'Chrome input refused before effect' if certain else 'Chrome input outcome unknown',op_id)
             raise
-        op['stages'] = {'dispatched':'Input dispatched once; delivery not proven.','page':visible(reply)}
-        op.update(state='done',reason='Free input dispatched once, as the page shows it.')
+        op['stages'] = {('unchanged' if reply.get('no_change') else 'dispatched'):('The requested state was already present; no input was dispatched.' if reply.get('no_change') else 'Input dispatched once; delivery not proven.'),'page':visible(reply)}
+        op.update(state='done',reason='The requested state was already present; no input was dispatched.' if reply.get('no_change') else 'Free input dispatched once, as the page shows it.')
         if reply.get('cleanup_pending'):
             op.update(state='unknown',notice=True,reason='Input authority ended; native cleanup is still pending. Close the page dialog and inspect tabs before taking it again; never replay this operation.')
         followups=self.steps(reply.get('steps', []),payload['reference']['tab']) if payload else []

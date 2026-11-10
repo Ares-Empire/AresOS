@@ -94,3 +94,21 @@ class Questions(unittest.TestCase):
             self.assertFalse(self.chrome.trusted(changed))
         changed=copy.deepcopy(operation);changed['payload']['adapter']['site']='whatsapp'
         self.assertFalse(self.chrome.trusted(changed))
+
+
+    def test_p25_satisfied_check_reports_no_dispatch_in_free_and_approved_stages(self):
+        frame=self.browser.facts['frames'][0]
+        frame['target'].update(name='Tick',label='Tick',role='checkbox',states={'checked':True})
+        original=self.browser.call
+        def request(name, **args):
+            if name=='input':return {'checked':True,'dispatched':False,'no_change':True,'steps':[]}
+            return original(name,**args)
+        self.browser.call=request
+        free=self.call('check',{**self.target(),'checked':True});self.assertTrue(free['ok'],free)
+        status=self.engine.operation(free['data']['operation_id'],'chrome')
+        self.assertIn('unchanged',status['stages']);self.assertNotIn('dispatched',status['stages'])
+        self.browser.version='159.0.1.0'
+        prepared=self.call('check',{**self.target(),'checked':True});self.assertTrue(prepared['ok'],prepared)
+        result=self.call('submit',prepared['data']['approval']);self.assertTrue(result['ok'],result)
+        stages=result['data']['operation']['stages']
+        self.assertIn('unchanged',stages);self.assertNotIn('dispatched',stages)

@@ -31,6 +31,15 @@ def semantic(site, label='Send', *, key='', verb=None, editable=False, data=None
 
 
 class SiteSemantics(unittest.TestCase):
+    def test_p6_gmail_hash_shortcut_canonicalizes_modifiers_before_classification(self):
+        from aresos_control.chrome.policy import canonical_key
+        control={'name':'Selected message','editable':False}
+        for key in ['#','Shift+#','Ctrl+#','Alt+#','Cmd+#','Cmd+Alt+#']:
+            adapter=recognize('https://gmail.test/',reading('gmail'),control,'press',{'key':key},FIXTURE_HOSTS)
+            self.assertIsNotNone(adapter,key)
+            self.assertEqual(adapter['shortcut'],canonical_key(key))
+            self.assertEqual(classify('press',{'key':key},{'target':control},adapter=adapter),'delete')
+
     def test_shipped_host_lists_and_fixed_list_exactly(self):
         self.assertEqual(HOSTS, {'gmail': ['mail.google.com'], 'whatsapp': ['web.whatsapp.com'],
                                 'github': ['github.com'], 'bank': [], 'gemini': ['gemini.google.com'],

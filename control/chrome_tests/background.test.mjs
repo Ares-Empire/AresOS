@@ -649,7 +649,7 @@ test('P24 final identity query finishes before the last dirty and audible check'
 test('P25 satisfied checks and isolated selections do not activate an inactive tab',async()=>{
   for(const input of [{verb:'check',checked:true},{verb:'select',value:'second'}]){
     const f=fixture();f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({});facts=async()=>({frames:[{frame:0,target:{element:'e1',states:{checked:true}}}]});globalThis.activated=0;content=async()=>({});chrome.webNavigation={getAllFrames:async()=>[{frameId:0}]};chrome.tabs.get=async()=>({active:false});chrome.tabs.update=async()=>activated++;collectSteps=async()=>[];");
-    await f.run('dispatch('+JSON.stringify({name:'input',tab:7,reference:{frame:0,element:'e1'},input})+')');assert.equal(f.run('activated'),0);
+    const result=await f.run('dispatch('+JSON.stringify({name:'input',tab:7,reference:{frame:0,element:'e1'},input})+')');assert.equal(f.run('activated'),0);assert.equal(result.dispatched,input.verb!=='check');assert.equal(result.no_change,input.verb==='check');
   }
 });
 test('P27 Stop lifts navigation blocks before deferred native restoration',async()=>{
@@ -696,4 +696,12 @@ test('P3 a remaining hold never awaits a browser task while startup is paused',{
 test('P17 expected privacy identity is enforced inside the reader before a lost-history snapshot',async()=>{
   const f=fixture();f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({url:'http://fixture.test/'});chrome.webNavigation={getAllFrames:async()=>[{frameId:0,documentId:'same-browser-document',url:'http://fixture.test/'}]};globalThis.privateDocument='original';globalThis.valueReads=0;content=async(tab,frame,command,args)=>{if(args.expected_document&&args.expected_document!==privateDocument)throw Error('refused: private password history was lost');valueReads++;return {document:privateDocument,url:'http://fixture.test/'};};");
   await f.run('facts(7)');f.run("privateDocument='lost'");await assert.rejects(f.run('facts(7)'),/password history was lost/);assert.equal(f.run('valueReads'),1,'the second snapshot must never collect values');
+});
+
+
+test('P2 inherited frame URLs with fragments retain the same authenticated origin path',()=>{
+  const f=fixture();f.run("excludedHosts=[];globalThis.parent={frameId:0,parentFrameId:-1,url:'http://fixture.test/'};");
+  for(const url of ['about:blank','about:srcdoc','about:blank#editor','about:srcdoc#editor','about:blank?draft=1#editor']){
+    assert.equal(f.run('frameAddress({frameId:1,parentFrameId:0,url:'+JSON.stringify(url)+'},[parent])'),'http://fixture.test/');
+  }
 });

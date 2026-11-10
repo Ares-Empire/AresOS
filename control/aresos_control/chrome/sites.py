@@ -3,7 +3,7 @@ import re
 from urllib.parse import urlsplit
 
 from ..common import digest
-from .policy import canonical_key, HOSTS, listed, DELETE, PAY
+from .policy import canonical_key, key_input, HOSTS, listed, DELETE, PAY
 
 VERSIONS = {name: 2 for name in HOSTS}
 KINDS = {
@@ -85,6 +85,7 @@ def recognize(url, reading, target, verb, args, hosts=None, enabled=None):
     label = target.get('name', '').casefold().strip()
     label_words = set(re.findall(r'\w+', label))
     key = canonical_key(args['key']) if verb == 'press' else ''
+    base_key=key_input(key)['key'] if key else ''
     activation = verb == 'click' or verb == 'press' and key in {'Enter', 'Space', ' '}
     editing = target.get('editable', False)
     # The reader's scope selector includes <main>, whose implicit role is currently
@@ -97,8 +98,8 @@ def recognize(url, reading, target, verb, args, hosts=None, enabled=None):
     eligible = True
     if site == 'gmail':
         # Gmail's delete shortcut is also active on selected messages outside compose.
-        if key == '#' and scoped and account and (not editing or reading.get('scope_role') in {'dialog', 'form'}):
-            result = {'kind': 'gmail_delete', 'effect': 'delete', 'shortcut': '#', 'parameters': {}}
+        if base_key == '#' and scoped and account and (not editing or reading.get('scope_role') in {'dialog', 'form'}):
+            result = {'kind': 'gmail_delete', 'effect': 'delete', 'shortcut': key, 'parameters': {}}
         elif scoped and reading.get('scope_role') in {'dialog', 'form'} and account and text and all(
                 isinstance(reading.get(field), str) for field in ['to', 'cc', 'bcc', 'subject']):
             if activation and not editing and label in {'send', 'senden'} or editing and key in {'Ctrl+Enter', 'Cmd+Enter'}:

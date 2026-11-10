@@ -129,10 +129,11 @@ async function preloadEvent(source,method,params){
   finally{try{if(state.pause===pause&&sameDocument()&&controlled.get(state.tab)?.epoch===state.epoch)await targetCommand(state,'Debugger.resume');}catch{}state.installing.delete(installing);complete();}
 }
 function isPreloaded(tab,document){return [...preloadTargets.values()].some(state=>state.tab===tab&&[...state.documents.values()].some(value=>value.ready&&value.document===document));}
+function inlineFrame(address){try{const url=new URL(address);return url.protocol==='about:'&&['blank','srcdoc'].includes(url.pathname);}catch{return false;}}
 function frameAddress(frame,frames,seen=new Set()){
   if(!frame||seen.has(frame.frameId))throw Error('refused: frame origin is unavailable');
   seen.add(frame.frameId);
-  if(['about:blank','about:srcdoc'].includes(frame.url)&&frame.parentFrameId>=0)return frameAddress(frames.find(value=>value.frameId===frame.parentFrameId),frames,seen);
+  if(inlineFrame(frame.url)&&frame.parentFrameId>=0)return frameAddress(frames.find(value=>value.frameId===frame.parentFrameId),frames,seen);
   safeURL(frame.url);return frame.url;
 }
 async function lateReader(tab){
@@ -395,7 +396,7 @@ async function collectSteps(tab,epoch=controlled.get(tab)?.epoch){
     if(dialogs.has(tab))return [];
     const wake=waitDialog(tab);
     try{
-      const effective=frameAddress(frame,frames),inherited=['about:blank','about:srcdoc'].includes(frame.url)&&frame.parentFrameId>=0;
+      const effective=frameAddress(frame,frames),inherited=inlineFrame(frame.url)&&frame.parentFrameId>=0;
       const values=await Promise.race([content(tab,frame.frameId,'steps',inherited?{expected_origin:new URL(effective).origin}:{}),wake.promise]);
       if(Array.isArray(values))for(const step of values){const value={...step,frame:frame.frameId};include(value);const current=stepControl(tab,epoch);if(current){rememberStep(current,stepKey(value));current.steps??=new Map();if(current.steps.size<512)current.steps.set(stepKey(value),value);}}
     }catch{}finally{wake.dispose();}
@@ -421,7 +422,7 @@ async function reloadIdentity(tab){
   const tree=await cdp(tab,'Page.getFrameTree'),frames=await chrome.webNavigation.getAllFrames({tabId:tab})||[];
   const top=frames.find(frame=>frame.frameId===0);
   if(!top||!tree.frameTree?.frame.loaderId||tree.frameTree.frame.url!==top.url)throw Error('stale_reference: navigation changed; read again');
-  for(const frame of frames){if(['about:blank','about:srcdoc'].includes(frame.url))continue;const key=JSON.stringify([tab,frame.frameId]),method=documentMethods.get(key);if(method?.document===frame.documentId&&method.method!=='GET'||controlled.get(tab)?.parentTab!==undefined&&formLoadedDocuments.get(key)===frame.documentId)throw Error('refused: this document was loaded by a form submission; open its address fresh in a Claude tab');if(frame.frameId===0&&controlled.get(tab)?.getLoaders?.has(tree.frameTree.frame.loaderId))continue;if(method?.document!==frame.documentId||method.method!=='GET')throw Error('refused: this document was loaded by a form submission or its request method is unknown; open its address fresh in a Claude tab');}
+  for(const frame of frames){if(inlineFrame(frame.url))continue;const key=JSON.stringify([tab,frame.frameId]),method=documentMethods.get(key);if(method?.document===frame.documentId&&method.method!=='GET'||controlled.get(tab)?.parentTab!==undefined&&formLoadedDocuments.get(key)===frame.documentId)throw Error('refused: this document was loaded by a form submission; open its address fresh in a Claude tab');if(frame.frameId===0&&controlled.get(tab)?.getLoaders?.has(tree.frameTree.frame.loaderId))continue;if(method?.document!==frame.documentId||method.method!=='GET')throw Error('refused: this document was loaded by a form submission or its request method is unknown; open its address fresh in a Claude tab');}
   rememberGet(tab,tree.frameTree.frame.loaderId);
   return {loaderId:tree.frameTree.frame.loaderId,frameId:tree.frameTree.frame.id||null,frames:frames.map(frame=>[frame.frameId,frame.documentId,frame.url])};
 }
@@ -493,8 +494,8 @@ async function facts(tab, reference) {
   const result=[],uncovered=[];
   for (const frame of frames) {
     let effective;try { effective=frameAddress(frame,frames); } catch { if (reference?.frame === frame.frameId) throw Error('refused: excluded frame');uncovered.push({frame:frame.frameId,eligible:false,reason:'excluded origin or scheme'});continue; }
-    let snapshot;try{snapshot = await content(tab,frame.frameId,reference?.frame === frame.frameId ? 'facts':'read',{...(reference?.frame===frame.frameId?{element:reference.element}:{}),...(privacyDocuments.has(frame.documentId)?{expected_document:privacyDocuments.get(frame.documentId)}:{}),...(['about:blank','about:srcdoc'].includes(frame.url)&&frame.parentFrameId>=0?{expected_origin:new URL(effective).origin}:{})});
-    if(['about:blank','about:srcdoc'].includes(frame.url)&&frame.parentFrameId>=0&&(!frame.documentId||snapshot.origin!==new URL(effective).origin))throw Error('refused: inherited frame origin cannot be authenticated');
+    let snapshot;try{snapshot = await content(tab,frame.frameId,reference?.frame === frame.frameId ? 'facts':'read',{...(reference?.frame===frame.frameId?{element:reference.element}:{}),...(privacyDocuments.has(frame.documentId)?{expected_document:privacyDocuments.get(frame.documentId)}:{}),...(inlineFrame(frame.url)&&frame.parentFrameId>=0?{expected_origin:new URL(effective).origin}:{})});
+    if(inlineFrame(frame.url)&&frame.parentFrameId>=0&&(!frame.documentId||snapshot.origin!==new URL(effective).origin))throw Error('refused: inherited frame origin cannot be authenticated');
     }catch(error){if(reference?.frame===frame.frameId||String(error.message).includes('password history was lost'))throw error;uncovered.push({frame:frame.frameId,eligible:true,reason:'reader or inherited origin unavailable'});continue;}
     if(frame.documentId){const known=privacyDocuments.get(frame.documentId);if(known&&known!==snapshot.document)throw Error('refused: private password history was lost for this surviving document; ask the owner to reload');privacyDocuments.set(frame.documentId,snapshot.document);}
     if (reference?.frame === frame.frameId && snapshot.document !== reference.document) throw Error('stale_reference: document changed');
@@ -617,7 +618,7 @@ async function dispatch(command) {
   if(command.name==='tab_context'){const current=await chrome.tabs.get(tab);safeURL(current.url);return {session,tab,url:current.url,title:current.title,control:controlled.get(tab)?.epoch||null,frames:(await chrome.webNavigation.getAllFrames({tabId:tab})||[]).map(frame=>({frame:frame.frameId,url:frame.url,document:frame.documentId}))};}
   if (command.name === 'validity') {
     await requireTab(tab);const frame={...await chrome.webNavigation.getFrame({tabId:tab,frameId:reference.frame}),frameId:reference.frame};
-    const inherited=['about:blank','about:srcdoc'].includes(frame.url)&&frame.parentFrameId>=0;
+    const inherited=inlineFrame(frame.url)&&frame.parentFrameId>=0;
     const effective=inherited?frameAddress(frame,await chrome.webNavigation.getAllFrames({tabId:tab})||[]):safeURL(frame.url);
     return {session,control:controlled.get(tab).epoch,...await content(tab,reference.frame,'ready',{element:reference.element,expected_document:reference.document,...(inherited?{expected_origin:new URL(effective).origin}:{})})};
   }
@@ -688,7 +689,7 @@ async function dispatch(command) {
   if(command.input?.key_input && stable(keyInput)!==stable(command.input.key_input))throw Error('refused: classified key differs from dispatched key');
   const inputNonce=crypto.randomUUID();controlled.get(tab).inputNonce=inputNonce;
   const owner=controlled.get(tab);owner.hold={nonce:inputNonce,until:Date.now()+POLICY.holdMs,inFlight:true,config:{...POLICY,blockedHosts:excludedHosts,conservative:command.conservative}};
-  const armed=[];
+  const armed=[];let noChange=false;
   try{
   for(const other of snapshot.frames){
     assertControl(tab);
@@ -740,7 +741,7 @@ async function dispatch(command) {
         await cdp(tab,'Input.dispatchKeyEvent',{type:'keyUp',...key});
       }
     } else if (input.verb === 'upload') await content(tab,reference.frame,'install_file',{element:reference.element,token:command.upload.token});
-    else if (input.verb === 'check') {}
+    else if (input.verb === 'check') {noChange=true;}
     else if (input.verb === 'select') await content(tab,reference.frame,input.verb,{element:reference.element,...input});
     else if (input.verb === 'scroll') {const point=await pointer(tab,snapshot,reference,target);await cdp(tab,'Input.dispatchMouseEvent',{type:'mouseWheel',...point,deltaX:input.x,deltaY:input.y});}
     else throw Error('permission_denied: unsupported input');
@@ -757,7 +758,7 @@ async function dispatch(command) {
     await new Promise((resolve,reject)=>{fixtureBarriers.set(command.operation,{tab,resolve,reject});port?.postMessage({event:'fixture_after_input',operation:command.operation});});
   }
   const confirmation=confirmationPlans.get(tab);confirmationPlans.delete(tab);
-  return {checked:!!command.binding,dispatched:true,steps,dialog:dialogs.get(tab)||null,uncertain_finish,confirmations:confirmation?.matched || [],page:await observation(tab,reference)};
+  return {checked:!!command.binding,dispatched:!noChange,no_change:noChange,steps,dialog:dialogs.get(tab)||null,uncertain_finish,confirmations:confirmation?.matched || [],page:await observation(tab,reference)};
 }
 async function connect() {
   port=chrome.runtime.connectNative('org.aresos.chrome');

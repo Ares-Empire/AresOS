@@ -94,6 +94,6 @@ test('shared binding classification isolation and owner prerequisites disable de
 test('P29 runtime acceptance rejects missing duplicate failed or unknown named rows and false verdicts',()=>{
   const rows=complete(),qualified=verdicts(rows,baseline,adapters);assert.doesNotThrow(()=>assertComplete(rows,qualified));
   for(const changed of [rows.slice(1),[...rows,rows[0]],rows.map((row,index)=>index===0?{...row,passed:false}:row),[...rows,{name:'Unknown case',passed:true}]])assert.throws(()=>assertComplete(changed,verdicts(changed,baseline,adapters)));
-  for(const section of ['core','adapters','groups']){const changed=structuredClone(qualified);changed[section][Object.keys(changed[section])[0]]=false;assert.throws(()=>assertComplete(rows,changed));}
+  for(const section of ['core','adapters','groups']){const changed=structuredClone(qualified);changed[section][Object.keys(changed[section])[0]]=false;assert.throws(()=>assertComplete(rows,changed));const missing=structuredClone(qualified);delete missing[section][Object.keys(missing[section])[0]];assert.throws(()=>assertComplete(rows,missing));}
   const changed=structuredClone(qualified);changed.groups[12]=true;assert.throws(()=>assertComplete(rows,changed));
 });

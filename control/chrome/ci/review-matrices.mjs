@@ -109,6 +109,15 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
       else{await approval(answer.data,id);console.log('REVIEW P1 RECEIVER0/1/1',id);}
     }
   });
+  await check('GROUP 8 REVIEW no-op checks and isolated choices leave the owner tab selected',async()=>{
+    const tab=getTab();await nav('features&id=review-noop');await call('check',{...await target('Tick'),checked:true});
+    const owner=(await call('open',{url:'about:blank'})).untrusted_content.tab;assert.ok(Number.isInteger(owner));await call('release_tab',{tab:owner});
+    const active=async()=>(await call('tabs',{limit:100})).items.find(row=>row.active&&row.focused)?.tab;assert.equal(await active(),owner);
+    const result=await call('check',{...await target('Tick'),checked:true});assert.equal(result.untrusted_content.no_change,true);assert.equal(result.untrusted_content.dispatched,false);assert.equal(await active(),owner);
+    await call('select',{...await target('Choice'),value:'b'});assert.equal(await active(),owner,'isolated selection cannot take focus');
+    assert.equal((await call('tabs',{limit:100})).items.find(row=>row.tab===tab).active,false);
+    await call('take_tab',{tab:owner});await call('close_tab',{tab:owner});
+  });
   await check('GROUP 8 REVIEW Stop removes navigation blocks while a frozen wrapper awaits cleanup',async()=>{
     const tab=getTab();await nav('review-page&mode=frozen-stop&id=review-stop-blocks');await call('click',await target('Continue'));await lifecycle({fixture:'stop'});
     const stopped=(await call('tabs',{limit:100})).items.find(row=>row.tab===tab);assert.equal(stopped.controlled,false);assert.equal(stopped.cleanup_pending,true);
