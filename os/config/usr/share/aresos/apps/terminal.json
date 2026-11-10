@@ -2,7 +2,7 @@
   "schema": 1,
   "id": "terminal",
   "name": "Terminal",
-  "argv": ["/usr/bin/foot", "--app-id=aresos.terminal"],
+  "argv": ["/usr/bin/foot", "--app-id=aresos.terminal", "/usr/bin/bash", "--rcfile", "/usr/share/aresos/bashrc", "-i"],
   "working_directory": "~",
   "window": {"app_ids": ["aresos.terminal"], "instance": "multi"}
 }

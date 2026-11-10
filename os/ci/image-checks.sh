@@ -304,19 +304,34 @@ runuser -u ares -- env HOME=/var/home/ares /usr/lib/systemd/user-environment-gen
 test ! -s /tmp/generator-errors
 pass 'the 60-flatpak user environment generator runs for ares without errors'
 # Review 5: the session keeps the system PATH; a normal AresOS terminal gets
-# his daily PATH and the recovery terminal keeps the system one.
-for mode in normal recovery; do
+# his daily PATH and the recovery terminal keeps the system one. The hub's
+# Terminal app (package 24) runs the same rcfile without the banner and gets
+# his daily PATH too.
+for mode in normal recovery hub; do
+    terminal=()
+    if [[ $mode != hub ]]; then
+        terminal=(ARESOS_TERMINAL="$mode")
+    fi
     runuser -u ares -- env -i HOME=/var/home/ares PATH=/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin \
-        ARESOS_TERMINAL="$mode" TERM=dumb /usr/bin/bash --rcfile /usr/share/aresos/bashrc -i \
+        "${terminal[@]}" TERM=dumb /usr/bin/bash --rcfile /usr/share/aresos/bashrc -i \
         -c 'printf "TERMINAL_PATH=%s\n" "$PATH"' < /dev/null > /tmp/terminal-path 2> /dev/null
     terminal_path=$(sed -n 's/^TERMINAL_PATH=//p' /tmp/terminal-path)
-    if [[ $mode == normal ]]; then
-        case $terminal_path in /var/home/ares/.local/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/home/linuxbrew/.linuxbrew/bin*) ;; *) exit 1 ;; esac
-    else
+    if [[ $mode == recovery ]]; then
         test "$terminal_path" = /usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin
+    else
+        case $terminal_path in /var/home/ares/.local/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/home/linuxbrew/.linuxbrew/bin*) ;; *) exit 1 ;; esac
+    fi
+    if [[ $mode == hub ]]; then
+        if grep -q 'Super+Ctrl+Escape' /tmp/terminal-path; then
+            exit 1
+        fi
+    else
+        grep -q 'Super+Ctrl+Escape: recovery terminal' /tmp/terminal-path
     fi
     pass "$mode AresOS terminal PATH: $terminal_path"
 done
+grep -qF '"argv": ["/usr/bin/foot", "--app-id=aresos.terminal", "/usr/bin/bash", "--rcfile", "/usr/share/aresos/bashrc", "-i"]' \
+    /usr/share/aresos/apps/terminal.json
 grep -qx 'export PATH=/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin' /usr/bin/aresos-session
 pass 'the session itself starts with the system PATH and absolute commands'
 # greetd's session wrapper, a non-interactive /bin/sh, sources /etc/profile
@@ -334,14 +349,52 @@ pass "greetd's profile wrapper keeps the system PATH ($wrapper_path); his login 
 startup_commands=$(grep -ohE '/usr/(local/)?(s?bin|libexec)/[A-Za-z0-9/._-]+' /etc/greetd/config.toml \
     /usr/bin/aresos-session /usr/bin/aresos-terminal /usr/share/aresos/bashrc /etc/profile.d/aresos.sh \
     /usr/share/aresos/labwc/autostart /usr/share/aresos/labwc/rc.xml /usr/libexec/aresos-keyboard \
-    /usr/libexec/aresos-subids /usr/bin/brew | sort -u)
-for command in /usr/bin/dbus-run-session /usr/bin/dbus-daemon /usr/bin/labwc /usr/bin/busctl /usr/bin/foot; do
+    /usr/libexec/aresos-subids /usr/bin/brew /usr/libexec/aresos-shell /usr/share/aresos/apps/*.json | sort -u)
+for command in /usr/bin/dbus-run-session /usr/bin/dbus-daemon /usr/bin/labwc /usr/bin/busctl /usr/bin/foot \
+    /usr/libexec/aresos-shell /usr/bin/systemd-run /usr/bin/systemctl /usr/bin/kwrite /usr/bin/google-chrome; do
     grep -qx "$command" <<< "$startup_commands"
 done
 for command in $startup_commands; do
     test -x "$command"
 done
 pass "all $(wc -l <<< "$startup_commands") absolute startup commands exist: $(tr '\n' ' ' <<< "$startup_commands")"
+# Package 24's app helper under the session's system PATH, with broken
+# programs of every name it or its apps could look up first on that PATH:
+# every app resolves, and every launch runs absolute commands only.
+shadow=$(mktemp -d /tmp/pkg21-helper-shadow.XXXXXX)
+for name in python3 systemd-run systemctl foot bash kwrite google-chrome google-chrome-stable sh env; do
+    printf '#!/bin/sh\nprintf "%%s\\n" "$0" >> %s/ran\nexit 97\n' "$shadow" > "$shadow/$name"
+    chmod 0755 "$shadow/$name"
+done
+chmod 0755 "$shadow"
+install -m 0666 /dev/null "$shadow/ran"
+runuser -u ares -- env -i HOME=/var/home/ares PATH="$shadow:/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin" \
+    /usr/libexec/aresos-shell --list > /tmp/helper-list.json
+runuser -u ares -- env -i HOME=/var/home/ares PATH="$shadow:/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin" \
+    /usr/bin/python3 - /tmp/helper-list.json <<'PY'
+import importlib.machinery, importlib.util, json, os, sys
+listed = json.load(open(sys.argv[1]))
+assert {row['id']: row['available'] for row in listed['apps']} == {'browser': True, 'notepad': True, 'terminal': True}, listed
+loader = importlib.machinery.SourceFileLoader('aresos_shell', '/usr/libexec/aresos-shell')
+spec = importlib.util.spec_from_loader('aresos_shell', loader)
+shell = importlib.util.module_from_spec(spec)
+loader.exec_module(shell)
+apps, _ = shell.load_registry(shell.REGISTRY)
+for app in apps.values():
+    argv, _, reason = shell.resolve(app)
+    assert reason is None, (app.id, reason)
+    command = shell.ScopeLauncher(environ={'HOME': '/var/home/ares'}).command(app, argv, 'pkg21')
+    assert command[0] == '/usr/bin/systemd-run' and os.access(command[0], os.X_OK), command
+    assert os.path.isabs(argv[0]) and os.access(argv[0], os.X_OK), argv
+    for part in argv[1:]:
+        if part.startswith('/'):
+            assert os.path.exists(part), (app.id, part)
+    print('HELPER_LAUNCH', app.id, ' '.join(command))
+assert shell.LIST_SCOPES[0] == '/usr/bin/systemctl' and os.access(shell.LIST_SCOPES[0], os.X_OK)
+PY
+test ! -s "$shadow/ran"
+rm -rf "$shadow"
+pass 'the app helper resolves browser, notepad and terminal and launches by absolute paths under the system PATH with shadows first'
 test "$(runuser -l ares -c 'command -v brew')" = /usr/bin/brew
 test "$(runuser -l ares -c 'brew --version')" = FIXTURE_BREW
 grep -qx -- '--version' /tmp/brew-calls

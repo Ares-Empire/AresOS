@@ -90,6 +90,16 @@ class TerminalShellTest(unittest.TestCase):
             self.assertIn('USER_RC=unset TERMINAL=unset', result.stdout)
             self.assertIn('aresos ', result.stderr)
 
+    def test_hub_terminal_is_plain_but_reads_his_bashrc(self):
+        # Package 24's Terminal app runs this rcfile without ARESOS_TERMINAL:
+        # no banner or AresOS prompt, but his daily PATH and his ~/.bashrc.
+        with tempfile.TemporaryDirectory() as home:
+            pathlib.Path(home, '.bashrc').write_text('USER_RC=applied\n')
+            result = self.run_terminal(home, None)
+            self.assertIn('USER_RC=applied TERMINAL=unset', result.stdout)
+            self.assertNotIn('Super+Ctrl+Escape', result.stdout)
+            self.assertNotIn('aresos ', result.stderr)
+
     def test_a_broken_user_bashrc_does_not_break_the_shell(self):
         with tempfile.TemporaryDirectory() as home:
             pathlib.Path(home, '.bashrc').write_text('USER_RC=before\nif then fi (\n')
@@ -228,6 +238,21 @@ class StartupPathTest(unittest.TestCase):
             self.assertIn(command, brew)
         self.assertIn("command = ['/usr/sbin/usermod', *arguments, USER]",
                       (CONFIG / 'usr/libexec/aresos-subids').read_text())
+
+    def test_app_helper_and_its_apps_run_absolute_commands(self):
+        # Package 24's helper runs under the session's system PATH: its own
+        # commands and every app it starts are absolute, and the hub's
+        # Terminal gets the AresOS rcfile, so his daily PATH, as a plain terminal.
+        helper = (CONFIG / 'usr/libexec/aresos-shell').read_text()
+        self.assertTrue(helper.startswith('#!/usr/bin/python3\n'))
+        self.assertIn("SYSTEMD_RUN = '/usr/bin/systemd-run'", helper)
+        self.assertIn("SYSTEMCTL = '/usr/bin/systemctl'", helper)
+        apps = {path.stem: json.loads(path.read_text()) for path in (CONFIG / 'usr/share/aresos/apps').glob('*.json')}
+        self.assertEqual(set(apps), {'browser', 'notepad', 'terminal'})
+        for app in apps.values():
+            self.assertTrue(app['argv'][0].startswith('/usr/bin/'), app)
+        self.assertEqual(apps['terminal']['argv'], ['/usr/bin/foot', '--app-id=aresos.terminal', '/usr/bin/bash',
+                                                    '--rcfile', '/usr/share/aresos/bashrc', '-i'])
 
     def test_ci_vm_layer_shadows_every_startup_command(self):
         # The VM boot plants broken copies of these first on his PATH before
