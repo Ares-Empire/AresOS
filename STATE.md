@@ -112,6 +112,13 @@ Updated 2026-11-10. The live truth is `git log`, `gh pr list` and `git worktree 
   - Release runs 3 (42831158090) and 4 (42835704653) failed in "Install pinned tools" on Ubuntu's snapshot mirror (500/504, or the 20-minute timeout). Nothing was built or published.
     - `b216f28f` adds apt retries and a 40-minute limit for the release job only, and raises the release cap to 5.
     - The next dispatch waits until the mirror is healthy.
+  - **Release 27 is published (2026-11-10, run 42842793096 at `b216f28f`):**
+    - image `ghcr.io/ares-empire/aresos@sha256:5fad242fceac7244563913eed96cd72dfcd300fec5e458cdb2ba81bce00d944c`;
+    - private: an anonymous pull gets 401;
+    - keyless-signed by `os-image.yml@refs/heads/pkg/27-first-update-release`;
+    - image diff: 0 unexplained of 915 changed paths, and `/etc/sudoers.d` equals release 13 again.
+    - Not pinned yet. Next: records with this digest, then the update rehearsal (up to 3 runs).
+    - Also found: the owner tools' `main()` sets umask 077 and three test modules never restored it, which made a later test flaky. Fixed in 27 (`common.kept_umask`).
   - Its JUDGMENT-CALL 2: package 22's tools can't go forward again after `at previous`, so the rehearsal ends on 13 with 27 beside it; going forward after a rollback belongs in 22c.
   - Also for 22c (PR #37 REVIEW-1 should-fix, older than that fix): the refusal invariant in `test_owner_update` tries a persistent refusal twice but never asserts that it refused. Assert the refusal on both attempts wherever the check applies.
   - Packages 23 and 21b go into the next release, which needs 22c first.
