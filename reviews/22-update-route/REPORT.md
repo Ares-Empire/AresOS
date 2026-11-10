@@ -150,4 +150,8 @@ Brief `briefs/22-review-fixes-3.md`; review `REVIEW-3.md` (gpt-6-astra, high). T
 
 New tools fingerprint `1e7cbdb65b67894c34dc5d09fcf3a3d33caf0d874b075eff3f687cd5f4022309`, pinned as before; the fingerprint lines in the older sections of this report show it too (earlier values: `2a9965ea…`, `712a5710…`, `9c749647…`). `pending-rebind.json` keeps exact hashes for the 17 changed bound files.
 
-FIXES3-VERIFIED
+Verified for review fixes 3:
+- WSL full suites on a fresh clone of the pushed head `1d906903` (code identical to the final head; only this report changed after), each started with at least 4 GB free (4.6 and 4.9 GB) and no other suite running: plain `Ran 735 tests`, `FAILED (failures=1, errors=9)`; `-B` `Ran 735 tests`, `FAILED (failures=1, errors=9)`. Both are exactly the known WSL-only set: `test_greeter` (3 errors), `test_inherited_homebrew` (1 failure + 5 errors), `test_sysusers` (1 error).
+- Focused WSL suites before the push: `test_owner_update` 46 OK (run twice; the real-process boundary tests passed both times), `test_owner_path` 39, `test_owner_equality` 9, `test_checkout_sources` 4, `test_owner_step_limits` 4, `test_owner_entry` 3, `test_owner_diagnostics` 10, `test_owner_export` 3, `test_owner_devices` 6, `test_owner_hidden` 10, `test_owner_setup_resume` 9, `test_owner_tools` 13, `test_owner_finalize` 9, `test_owner_retained` 5, `test_owner_commands` 6, `test_owner_walk` 9, all OK.
+- The 15f refusal outside `/var/lib/ares/tools` was read from git: `git show e062f4a2:os/owner-tools/payload/owner.py` (sha256 `47fa6123…`, the bundle whose SHA256SUMS hashes to `3ef85c4a…`) has `require(payload == HOME / 'tools' and HOME.stat().st_uid == 0` in `main()` for every command except `install`.
+- Windows: `owner-pass.Tests.ps1` (fixtures only) printed `PASS 6 documented Windows PASS results equal captured entry stdout; no hardware queries.` with the new fingerprint; its scratch folder was removed.
