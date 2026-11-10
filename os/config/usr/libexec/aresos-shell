@@ -898,6 +898,10 @@ class Helper:
         self.status = status
         self.keep_foreground = keep_foreground
         self.desktop_appeared = None
+        # The window that last lost focus to another one (not the desktop): where a restored desktop gives focus back.
+        # Kept apart from active_handle, because a new window may be identified as the desktop only later (review 2,
+        # finding 8).
+        self.keep_target = None
         self.nonce = nonce
         self.apps, self.revision = registry or load_registry(registry_dir)
         self.launcher = launcher or ScopeLauncher()
@@ -1399,14 +1403,19 @@ class Helper:
             return
         previous_handle, previous_owner = self.active_handle, self.active_owner
         self.active_handle, self.active_owner = active.handle, active.owner
+        if (active.handle != previous_handle and previous_handle in self.windows.toplevels
+                and self.windows.toplevels[previous_handle].owner != Windows.SHELL):
+            self.keep_target = previous_handle
         if active.owner == Windows.SHELL and self.keep_foreground and self.desktop_appeared is not None:
-            # The restored desktop window took focus on appearing; the window in front keeps it (once).
+            # The restored desktop window took focus on appearing; the window in front keeps it (once). The target
+            # is the window that lost focus to it, also when the desktop window was identified only after it took
+            # focus (then active_handle already names the desktop window itself).
             self.keep_foreground = False
-            if (previous_handle is not None and previous_owner != Windows.SHELL
-                    and previous_handle in self.windows.toplevels and self.activate_window is not None
-                    and self.activate_window(previous_handle)):
+            target = self.windows.toplevels.get(self.keep_target)
+            if (target is not None and target.handle != active.handle and target.owner != Windows.SHELL
+                    and self.activate_window is not None and self.activate_window(target.handle)):
                 LOG.info('the restored desktop stays below the window in front')
-                self.active_handle, self.active_owner = previous_handle, previous_owner
+                self.active_handle, self.active_owner = target.handle, target.owner
                 return
         if active.owner == Windows.SHELL:
             self.returning_until = None

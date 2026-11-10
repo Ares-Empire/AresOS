@@ -1172,6 +1172,49 @@ class KeepForegroundTest(Base):
     def test_the_flag_never_reaches_launched_apps(self):
         self.assertIn('ARESOS_SHELL_KEEP_FOREGROUND', shell.PRIVATE_ENVIRONMENT)
 
+    def test_a_desktop_identified_after_it_took_focus_still_gives_focus_back(self):
+        # Review 2, finding 8: the new window takes focus before it names its app ID; the ID comes later. The
+        # window that was in front still gets focus back, not the new window itself.
+        self.start(keep_foreground=True)
+        self.now[0] += 0.5
+        self.window(1, '', activated=True)
+        self.assertEqual(self.activations, [])
+        self.windows.app_id(1, 'aresos-desktop')
+        self.windows.done(1)
+        self.helper_.windows_changed()
+        self.assertEqual(self.activations, [2])
+        self.assertEqual(self.helper_.active_handle, 2)
+
+    def test_late_identification_gives_the_same_result_at_every_split(self):
+        # The same through the Wayland parser, with the compositor's events split across reads at every byte.
+        editor, desktop = 0xff000003, 0xff000001
+        string = shell.ForeignToplevels.string
+        stream = (wire_toplevel(desktop, '', True) + wire_state(editor, False)
+                  + FakeCompositor.message(desktop, 1, string('aresos-desktop')) + FakeCompositor.message(desktop, 5))
+        for split in range(len(stream) + 1):
+            with self.subTest(split=split):
+                windows = shell.Windows(clock=self.clock)
+                client_end, server_end = socket.socketpair()
+                self.addCleanup(client_end.close)
+                self.addCleanup(server_end.close)
+                wayland = shell.ForeignToplevels(client_end, windows)
+                wayland.kinds.update({50: 'manager', 60: 'seat'})
+                wayland.seat = 60
+                activations = []
+                helper = shell.Helper(str(REGISTRY), INSTANCE, NONCE, os.path.join(self.folder.name, f'k{split}.json'),
+                                      launcher=self.launcher(), windows=windows,
+                                      activate=lambda handle: activations.append(handle) or True,
+                                      clock=self.clock, executable=lambda path: True, keep_foreground=True)
+                self.connect(helper)
+                wayland.feed(wire_toplevel(editor, 'org.kde.kwrite', True))
+                helper.windows_changed()
+                self.now[0] += 0.5
+                wayland.feed(stream[:split])
+                helper.windows_changed()
+                wayland.feed(stream[split:])
+                helper.windows_changed()
+                self.assertEqual(activations, [editor])
+
 
 class FakeCompositor:
     """Speaks just enough Wayland to drive ForeignToplevels."""
