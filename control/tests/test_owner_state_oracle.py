@@ -16,7 +16,7 @@ from owner_state_oracle.compare import pages
 class OwnerOracle(unittest.TestCase):
     def test_expectation_imports_are_standard_library_only(self):
         root = Path(__file__).resolve().parents[1] / 'owner_state_oracle'
-        allowed = {'contextlib', 'email', 'context', 'copy', 'dataclasses', 'hashlib', 'json', 'pathlib', 'sqlite3', 'shutil', 'tempfile', 'time', 're', 'gzip', 'os', 'argparse', 'unicodedata', 'random', 'uuid', 'unittest', 'fcntl', 'identity', 'gaps', 'model', 'records', 'local', 'resolutions', 'perturb'}
+        allowed = {'contextlib', 'email', 'context', 'copy', 'dataclasses', 'hashlib', 'json', 'pathlib', 'sqlite3', 'shutil', 'tempfile', 'time', 're', 'gzip', 'os', 'argparse', 'unicodedata', 'random', 'uuid', 'unittest', 'fcntl', 'identity', 'gaps', 'model', 'records', 'local', 'resolutions', 'perturb', 'compare'}
         for name in ('__init__.py', 'records.py', 'model.py', 'compare.py', 'context.py', 'gaps.py', 'local.py', 'identity.py', 'caller_capture.py', 'resolutions.py', 'perturb.py'):
             tree = ast.parse((root / name).read_text())
             for node in ast.walk(tree):
@@ -202,7 +202,7 @@ class OwnerOracle(unittest.TestCase):
                 {'seq': 2, 'action': 'mail_filing_check', 'set': {source: {'warning_checks': {kind: {'warning': False}}}}}]
             oracle.call('filing check', {}, 2)
             oracle.script[-1]['end_seq'] = 2
-            oracle.server('LIST', before_seq=1, roles={'Target': [], 'Sent': ['\\Sent'], 'Drafts': ['\\Drafts'], 'Trash': ['\\Trash']})
+            oracle.server('LIST', before_seq=1, check_sources=[source], roles={'Target': [], 'Sent': ['\\Sent'], 'Drafts': ['\\Drafts'], 'Trash': ['\\Trash']})
             oracle.expected(record)
             record.rows['notice:new'] = {**first, 'id': 'new'}
             two = oracle.warning(source, kind, evidence, record)
@@ -1648,3 +1648,84 @@ class StageOneRoundThree(unittest.TestCase):
         record.events[-1]['action'] = 'mail_send'
         oracle.expected(record)
         self.assertIn(Fact('op:g:s', 'unjustified-check-reopen', detail='2'), oracle.lifecycle_errors)
+
+
+class StageTwoPartA(unittest.TestCase):
+    def test_pre_move_list_and_undelivered_results_never_close_filing(self):
+        source = dict(account='box', folder='Source', uidvalidity=1, uid=1, message_id='<synthetic@mail.invalid>')
+        roles = {'Sent': ['\\Sent'], 'Drafts': ['\\Drafts'], 'Trash': ['\\Trash'], 'Target': []}
+        for post in ('absent', 'lost', 'negative', 'delivered'):
+            oracle = Oracle()
+            oracle.call('mail_move', {'references': [source], 'target': 'Target'}, 1)
+            oracle.script[-1].update(start_seq=0, end_seq=2)
+            row = {'id': 'f', 'account': 'box', 'verb': 'move', 'sources': [source], 'target': 'Target', 'state': 'started'}
+            oracle.server('LIST', 'box', roles=roles, before_seq=0)
+            oracle.server('MOVE', 'box', 'Source', [source], roles, arguments=['1', 'Target'], before_seq=1,
+                          call_start_seq=0, created_before={'mail:filing:f': 1}, committed_before={'mail:filing:f': row}, copyuid_delivered=False)
+            if post != 'absent':
+                oracle.server('LIST', 'box', roles=roles, before_seq=1, accepted=post != 'negative', reply='lost' if post == 'lost' else 'delivered')
+            record = Record(events=[{'seq': 1, 'time': 1, 'action': 'mail_move', 'set': {'mail:filing:f': row}},
+                {'seq': 2, 'time': 1, 'action': 'mail_move', 'set': {'mail:filing:f': {**row, 'state': 'done', 'check_open': False}}}])
+            from owner_state_oracle.compare import compare_proofs
+            failures = []
+            compare_proofs(oracle, record, lambda view, expected, actual: failures.extend(actual - expected))
+            if post == 'delivered':
+                self.assertNotIn(Fact('mail:filing:f', 'unjustified-check-close'), failures)
+            else:
+                self.assertIn(Fact('mail:filing:f', 'unjustified-check-close'), failures)
+                self.assertTrue(any(f.kind == 'recovery' for f in oracle.expected(record)))
+
+    def test_another_unsubscribe_post_cannot_resolve_this_operation(self):
+        from owner_state_oracle.compare import compare_proofs
+        oracle = Oracle()
+        ref = {'account': 'box', 'folder': 'Source', 'uidvalidity': 1, 'uid': 1, 'message_id': '<synthetic@mail.invalid>'}
+        rows, events = {}, []
+        for n, status in ((1, 200), (2, 500)):
+            opid = 'g:post' + str(n)
+            args = {'operation_id': opid, 'description': {'reference': ref, 'target': 'https://unsubscribe.invalid/' + str(n), 'method': 'POST', 'body': 'List-Unsubscribe=One-Click'}}
+            oracle.call('mail_unsubscribe', args, n)
+            start = (n - 1) * 2
+            oracle.script[-1].update(start_seq=start, end_seq=start + 2)
+            row = dict(id=opid, app='mail', action='mail_unsubscribe', state='submitting', payload=args['description'])
+            key = 'op:' + opid
+            oracle.server('POST', 'box', arguments=[], status=status, url=args['description']['target'], body='List-Unsubscribe=One-Click',
+                before_seq=start + 1, call_start_seq=start, created_before={key: start + 1}, committed_before={key: row})
+            done = {**row, 'state': 'done'}
+            events.extend([{'seq': start + 1, 'time': n, 'action': 'mail_unsubscribe', 'set': {key: row}},
+                           {'seq': start + 2, 'time': n, 'action': 'mail_unsubscribe', 'set': {key: done}}])
+            rows[key] = done
+        failures = []
+        compare_proofs(oracle, Record(rows=rows, events=events), lambda view, expected, actual: failures.extend(actual - expected))
+        self.assertTrue(any(f.source == 'op:g:post2' and f.kind == 'false-completion' for f in failures))
+        self.assertFalse(any(f.source == 'op:g:post1' and f.kind == 'false-completion' for f in failures))
+        self.assertTrue(any(f.source == 'op:g:post2' and f.kind == 'recovery' for f in oracle.expected(Record(rows=rows, events=events))))
+
+    def test_field_audit_includes_each_list_scalar_and_append_flags(self):
+        from owner_state_oracle.perturb import audited_leaves, scalar_fields
+        fields = {'recipients': ['one@mail.invalid', 'two@mail.invalid'], 'flags': ['\\Seen', '\\Flagged'],
+                  'append_flags': ['\\Draft', '\\Seen'], 'targets': [1, 2], 'locations': ['Source', 'Target'], 'new_field': 4}
+        changed = {path for path, _, _ in audited_leaves(fields, ())}
+        self.assertLessEqual(set(scalar_fields(fields)), changed)
+        self.assertIn(('append_flags', 0), changed)
+        from unittest.mock import patch
+        with patch('owner_state_oracle.perturb.leaves', return_value=iter([])):
+            with self.assertRaisesRegex(AssertionError, 'Unaudited decoded fields'):
+                list(audited_leaves(fields, ()))
+
+    def test_helper_error_counts_only_when_forwarded_by_the_shared_comparison(self):
+        from owner_state_oracle.perturb import evaluate
+        from unittest.mock import patch
+        oracle, record = Oracle(), Record()
+        with patch.object(Oracle, 'expected', side_effect=ValueError('bad record')):
+            self.assertTrue(evaluate(oracle, record)[1])
+            with patch('owner_state_oracle.perturb.compare_proofs'):
+                self.assertEqual(evaluate(oracle, record)[1], set())
+
+    def test_record_audit_fails_if_a_new_field_is_not_perturbed(self):
+        from owner_state_oracle.perturb import check, mutations
+        from unittest.mock import patch
+        record = Record(rows={'fixture': {'new_material_field': 'value'}}, head=(0, ''))
+        selected = [item for item in mutations(record) if 'new_material_field' not in item[0]]
+        with patch('owner_state_oracle.perturb.mutations', return_value=iter(selected)):
+            with self.assertRaisesRegex(AssertionError, 'Unaudited decoded fields'):
+                check('new-field', Oracle(), record)

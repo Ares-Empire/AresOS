@@ -660,3 +660,81 @@ printed `[]`. No large image/download or Gradle daemon was started. The closing
 commit changes only REPORT.md, KNOWN-GAPS.md and the strict evidence manifest;
 code, tests and compact-ledger bytes are identical to the twice-tested source.
 The closing push uses `[skip ci]` and the normal privacy pre-push check.
+
+## Stage 2, part A
+
+**Read — scope:** fixes REVIEW-S1-4 before any stage-2 production change.
+Only test/oracle code, the compact ledger and this report change in this part.
+The existing draft PR remains #26 against `pkg/19-mail`.
+
+**Read — evidence gates:** filing check resolution and clean epochs now share
+`read_evidence`. A successful, delivered LIST must belong to the enrolled check,
+match its account and follow its mutation in the transcript. Admission LIST
+cannot close a later check. Recovery LIST records the enrolled source keys.
+The negative test covers absent, lost and negative post-command results, and
+retains recovery for the review's MOVE-without-COPYUID case; the delivered
+post-command result is a positive control. Unsubscribe completion now requires
+one exact approved request, its operation/call identity, delivered HTTP success,
+and the read/command/commit interval. An earlier operation's HTTP 200 cannot
+justify this operation's HTTP 500. The HTTPS recorder now records positional
+request bodies as well as keyword bodies; it compares the actual wire request.
+
+**Read — field audit update (supplements the complete round-3 table):**
+
+| Production-written field / structure | Independent check and alteration coverage |
+| --- | --- |
+| Filing result `state`, `check_open`, clean/warning flags | Successful delivered account-qualified evidence, correlated enrollment and strict post-mutation ordering; negative and positive result tests |
+| Unsubscribe payload/reference/target/method/body, result/state | Full scripted approval, this call's exact POST and successful response before this operation's completion; two-operation 200/500 regression |
+| Every scalar of `rows`, event `set`, metadata, `fences`, `prepared` | Required field paths are enumerated from each decoded scenario and compared with the actual mutation paths; no row-field allowlist or scalar exclusions |
+| Every recipient, flag, target, location list entry; scalar and list `append_flags` | Each scalar position is changed independently, and every list also has its own removal/insertion perturbation; coverage self-test rejects an omitted new field |
+| Reservation/submission `reason`, unchanged-state operation `reason` | Scripted phase selects fixed reservation/submission explanation; unchanged-state updates retain the prior explanation. The complete field test exposed and closed this additional silent narrowing |
+| `events[*].record` | Explicit duplicate-field exclusion: its independently decoded fence is perturbed separately and byte equality is checked by `consistency_errors` on every comparison |
+| Decoder bookkeeping | Explicit justified exclusions in `RECORD_EXCLUSIONS`: independently validated commit-marker set, physical SQLite membership, derived fence difference/generation/restore intervals, validated head and recorder startup boundary. Their decoder/archive integrity tests remain in place; `locked` is perturbed directly |
+
+**Read — comparison proof:** `compare_proofs` is used by the real sweep driver
+and the alteration test. Completion, clean-result, lifecycle and malformed-record
+differences must reach its checker. Baseline errors are subtracted. A helper
+exception that is not forwarded is not detection. The field audit itself fails
+if a present decoded field is not perturbed. Thirteen planted committed faults
+cover boolean flag, state, removed row, dropped sequence, target, recipient,
+flag-list entry, append_flags, hash, destination, restore marker, account and
+role. Each is checked through `Gaps.checker`; for each, a deliberately broken
+oracle trusts the corrupted field to erase recovery and is rejected by the
+alteration test. This also checks the future free-context representation in an
+explicitly scripted recorded fixture, before production writes those fields.
+The scenario corpus can be divided by index into disjoint shards; every shard
+records the same inputs and runs the planted negative controls.
+
+**Run — initial focused checks:** 113 oracle self-tests passed. The focused
+contracts and all six named review regressions passed both diagnostic and strict
+seven-test runs; the strict run printed `Ran 7 tests in 23.000s`, `OK`.
+The worktree-only policy fixture exercises the real descriptor walk against
+this repo's managed settings, without writing installed system policy.
+
+**Run — ledger refresh:** `LEDGER-S2-A.json` records the 16 local full-list
+artifacts replacing the four affected sweep flows (all twelve ownership
+buckets), focused contracts and named regressions. Unaffected prefixes retain
+their twice-verified Linux entries from `LEDGER-STRICT-R3.json`, repetition 1.
+The format-3 pin is **976,806 bytes / 2,115 groups / 1,810,601 exact keys**:
+**44,857 stage 2 / 1,765,744 stage 3**, SHA-256
+`341e4b3c31d1deb30deff1394514b003f4bdd88bf24fb3b5155c06bd54ca0a42`.
+There are 161 added keys, no removed keys and 1,253 changed retained deltas.
+The additions expose unsupported filing closure; the changed deltas also
+reflect exact HTTPS body capture. These are oracle corrections, not production
+gap closure. The full lists remain under `.work/` only.
+
+**Not verified:** part A does not claim new complete Linux workflow acceptance
+or close production R2/R1/R3 gaps. Its local strict affected-flow and full
+perturbation results follow below. Stage 3 remains outside this run. The lead
+owns all three stage reviews; no implementation-run review is performed.
+
+**JUDGMENT-CALL:** none affecting product behavior. Test process sharding and
+explicit decoder-field exclusions are test infrastructure choices; changing
+them does not change public actions or approval binding.
+
+**PLAN-GAP:** none added. D3's evidence reservation and durable generic warning
+remain assigned to stage 3. **Open questions:** none.
+
+**Run — part A completion:** the four disjoint local perturbation passes printed `OK`: **68 recorded scenarios / 307869 alterations / zero slipped**. Counts: boolean=6607, effect=103562, restore=1329, row=1794, sequence=1329, state=193248. Every pass also caught all 13 planted faults through the comparison and rejected all 13 broken-oracle controls. All twelve strict affected-flow workers exited 0; each ran every single, persistent, cleanup-pair and crash case it owns across filing MOVE/COPY/RENAME and HTTPS unsubscribe. The final oracle self-tests, strict contracts/regressions, generator and diff checks passed. Logs are `.work/19b-s2/part-a-{self-final,strict-focused-final,perturb-0,perturb-1,perturb-2,perturb-3}.txt` and `capture-a/{shard}-{worker}.txt`.
+
+**Run count:** part A adds **zero workflow IDs / attempts**; its checkpoint push uses `[skip ci]`. Linux acceptance is reserved for stage 2’s finished source and second pass. The checkpoint contains no production or workflow change.

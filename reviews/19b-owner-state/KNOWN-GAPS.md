@@ -190,3 +190,17 @@ Compared with round 2: **194,530 added keys, 13,979 removed keys, 108,328 change
 
 
 **Run — strict proof:** Control base [42733231891](https://github.com/Ares-Empire/AresOS/actions/runs/42733231891) / [42733232348](https://github.com/Ares-Empire/AresOS/actions/runs/42733232348), Mail [42733235634](https://github.com/Ares-Empire/AresOS/actions/runs/42733235634) / [42733232393](https://github.com/Ares-Empire/AresOS/actions/runs/42733232393), all attempt 1, and boundary [42733240406](https://github.com/Ares-Empire/AresOS/actions/runs/42733240406), attempts 1 and 2, passed on source `e8d269ad1aa848b0de74392edfb14d817dd0c0ca`. Every Mail job finished below 45 minutes (maximum 43m34s). Each repetition's full 17-list merge reproduces the committed pin byte-for-byte, including all 1,810,440 keys and exact row/stage/delta digests. `LEDGER-STRICT-R3.json` pins all 34 actual-list hashes, run attempts and identical source trees. REPORT.md records exact output lines and job durations. The closing documentation-only commit leaves this code, test and ledger source unchanged.
+
+## Stage 2, part A pin
+
+**Run:** `LEDGER-S2-A.json` records the local refresh of filing move/copy/rename,
+HTTPS unsubscribe, focused contracts and named regressions. Unaffected full
+entries retain the twice-verified round-3 Linux source. The pin has **1,810,601
+exact keys**, **44,857 stage 2 / 1,765,744 stage 3**, **2,115 groups / 976,806
+bytes**. Its SHA-256 is
+`341e4b3c31d1deb30deff1394514b003f4bdd88bf24fb3b5155c06bd54ca0a42`.
+Relative to round 3: 161 added keys, none removed, 1,253 changed deltas. These
+expose unsupported filing closure and correct exact HTTPS body evidence; no
+production gap is closed in part A. Every digest still covers the complete
+key/row/stage/calls/missing/extra/pages data. The final stage-2 Linux repetitions
+will replace this intermediate local evidence; see REPORT.md for its scope.

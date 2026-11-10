@@ -9,7 +9,7 @@ from unittest.mock import patch
 from .records import decode, canonical
 from .model import Fact, Oracle
 from .context import MUTATIONS
-from .compare import compare_views, pages, compare_envelope, compare_status
+from .compare import compare_views, pages, compare_envelope, compare_status, compare_proofs
 from .responses import read_response
 
 
@@ -129,7 +129,7 @@ class Driver:
                 if match:
                     name = match[2].strip(b'"').decode()
                     oracle.delimiters[name] = None if match[1] == b'NIL' else json.loads(match[1])
-            oracle.server('LIST', getattr(self, 'account_id', 'box'), before_seq=max(self.snapshot().committed, default=0), roles=f.imap.roles, mailboxes={name: self.identities(name) for name in f.imap.boxes})
+            oracle.server('LIST', getattr(self, 'account_id', 'box'), before_seq=max(self.snapshot().committed, default=0), check_sources=sorted(self.snapshot().rows), roles=f.imap.roles, mailboxes={name: self.identities(name) for name in f.imap.boxes})
             return answer
         def selected(*args, **kwargs):
             answer = select(*args, **kwargs)
@@ -244,8 +244,11 @@ class Driver:
                 connection.host = args[0]
                 connection.port = args[1] if len(args) > 1 else kwargs.get('port', 443)
             def request(connection, method, *args, **kwargs):
+                body = kwargs.get('body', args[1] if len(args) > 1 else None)
+                if isinstance(body, bytes):
+                    body = body.decode()
                 connection.event = oracle.server(method, 'box', roles=f.imap.roles, accepted=False, reply='lost',
-                    url='https://' + connection.host + (':' + str(connection.port) if connection.port != 443 else '') + (args[0] if args else '/'), body=kwargs.get('body'),
+                    url='https://' + connection.host + (':' + str(connection.port) if connection.port != 443 else '') + (args[0] if args else '/'), body=body,
                     arguments=list(args), **self.precommit())
                 value = connection.inner.request(method, *args, **kwargs)
                 connection.event['accepted'] = True
@@ -424,9 +427,7 @@ class Driver:
                 {Fact(source, 'locations', occurrence, canonical(sorted(actual, key=canonical)))} if available else set())
         # Status/location reads can commit a result too. Their proof failures
         # belong to this comparison, including the very last response.
-        checker('completion', set(), self.oracle.completion_errors(self.snapshot()))
-        checker('clean-result-proof', set(), self.oracle.invalid_clean_results)
-        checker('lifecycle-proof', set(), self.oracle.lifecycle_errors)
+        compare_proofs(self.oracle, self.snapshot(), checker, context=False)
         if hasattr(checker, 'finish'):
             checker.finish()
 

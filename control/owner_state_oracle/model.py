@@ -527,21 +527,14 @@ class Oracle:
                    c.get('start_seq', -1) < event['seq'] <= c.get('end_seq', -1) for c in self.script)
 
     def result_proof(self, source, kind, sequence):
-        calls = {call['call']: call for call in self.script}
-        for evidence in self.servers:
-            call = calls.get(evidence['call'], {})
-            if not evidence.get('before_seq', float('inf')) < sequence <= call.get('end_seq', -1):
-                continue
-            if kind == 'sent_copies' and evidence['command'] == 'SENT' and evidence.get('source') == source:
-                return True
-            if kind in {'filing', 'rename'} and evidence['command'] == 'LIST':
-                context = self.warning_contexts.get(source, self.lifecycle_known.get(source, {}))
-                if evidence.get('account') not in {None, context.get('account')}:
-                    continue
-                roles = special_roles(evidence.get('roles') or {}) or {}
-                if all(len(roles.get(role, [])) == 1 for role in ('sent', 'drafts', 'trash')) and not any(e['call'] == evidence['call'] and e['command'] == 'FETCH' and not e['accepted'] for e in self.servers):
-                    return True
-        return False
+        _, evidence = self.read_evidence(source, kind, sequence)
+        if evidence is None:
+            return False
+        if kind == 'sent_copies':
+            return True
+        roles = special_roles(evidence.get('roles') or {}) or {}
+        return all(len(roles.get(role, [])) == 1 for role in ('sent', 'drafts', 'trash')) and not any(
+            e['call'] == evidence['call'] and e['command'] == 'FETCH' and not e['accepted'] for e in self.servers)
 
     def transition(self, record, event, key, old, row):
         """Total state machine: every edge that changes work has a proof gate."""
@@ -717,6 +710,36 @@ class Oracle:
                                 self.lifecycle_errors.add(Fact(key, 'unapproved-repair-context'))
                                 value = {**value, 'repair_of': args.get('operation_id'), 'payload': copy.deepcopy(args)}
                     self.payload_claims(key, value)
+                    if value.get('reason') and value.get('state') in {'reserved', 'submitting'} and event['seq'] > getattr(self, 'seed_sequence', 0) and event['action'] != 'fixture':
+                        repair = value.get('action', '').endswith('_operation_repair')
+                        reason = ('Reserved local repair only.' if repair else 'Awaiting exact approval; nothing submitted.') if value['state'] == 'reserved' else (
+                            'Repairing local stage only.' if repair else 'Durably submitting; do not cancel or retry.')
+                        if value['reason'] != reason:
+                            self.lifecycle_errors.add(Fact(key, 'unjustified-operation-reason'))
+                            value = {**value, 'reason': reason}
+                    if value.get('reason') and value.get('state') in {'unknown', 'partial'} and event['seq'] > getattr(self, 'seed_sequence', 0) and event['action'] != 'fixture':
+                        reasons = {
+                            'Submission outcome uncertain; inspect evidence, never retry.',
+                            'Service restarted during submission; inspect evidence, never resubmit.',
+                            'Restored log: independent record has newer or missing evidence. Owner must check.',
+                            'Far-side submission evidence already exists; inspect evidence, never submit again.',
+                            'Local repair storage failed; inspect evidence, never submit.',
+                            'Local repair uncertain; inspect far-side stage evidence. Never submit.',
+                        } if value['state'] == 'unknown' else {
+                            'Server refused an exact target; inspect per-item stages and prepare a new named set only after owner review.',
+                            'Endpoint refused/redirected; no redirect followed, inspect with owner.',
+                            'Some recipients refused; never resubmit this operation.',
+                            'Fixture failed sent_copy; repair this local stage only.',
+                            'Fixture failed answered_flag; repair this local stage only.',
+                            'Some recipients refused; accepted recipients must never be sent again.',
+                            'Some recipients refused; accepted recipients must never be sent again. Missing local stages; repair without SMTP.',
+                            'SMTP accepted delivery to every recipient. Missing local stages; repair without SMTP.',
+                        }
+                        if value['reason'] not in reasons:
+                            self.lifecycle_errors.add(Fact(key, 'unjustified-operation-reason'))
+                    if old.get('reason') is not None and old.get('state') == value.get('state') and value.get('reason') != old['reason'] and event['action'] != 'control_restore_confirm':
+                        self.lifecycle_errors.add(Fact(key, 'changed-operation-reason'))
+                        value = {**value, 'reason': old['reason']}
                     checked = value.get('sent_copy_check', {})
                     prior_check = old.get('sent_copy_check', {})
                     opening = event['action'] == 'mail_sent_copy_check_open'
@@ -1211,15 +1234,20 @@ class Oracle:
             evidence = self.servers[index]
             call = calls.get(evidence['call'], {})
             before = evidence.get('before_seq')
-            if not isinstance(before, int) or not before < sequence <= call.get('end_seq', -1):
+            if (not isinstance(before, int) or not before < sequence <= call.get('end_seq', -1) or
+                    not evidence.get('accepted') or evidence.get('reply') != 'delivered'):
                 continue
             if kind == 'sent_copies' and evidence['command'] == 'SENT' and evidence.get('source') == source:
                 return index, evidence
-            if kind in {'filing', 'rename'} and evidence['command'] == 'LIST' and evidence.get('account') in {None, context.get('account')}:
+            if kind in {'filing', 'rename'} and evidence['command'] == 'LIST' and evidence.get('account') == context.get('account'):
                 # A pre-command LIST is admission evidence, never the result
                 # of the later filing. Commit outcome labels cannot choose
                 # whether the post-command check was clean.
-                if last_mutations.get((evidence['call'], source), -1) > index:
+                mutations = [i for (call_id, key), i in last_mutations.items() if key == source]
+                enrolled = source in evidence.get('check_sources', evidence.get('committed_before', {}))
+                if mutations and index <= max(mutations) or not mutations and not enrolled:
+                    continue
+                if mutations and evidence['call'] != self.servers[max(mutations)]['call'] and not enrolled:
                     continue
                 return index, evidence
         return None, None
@@ -1332,8 +1360,25 @@ class Oracle:
                     if target['reference']['id'] in current:
                         errors.add(Fact(key, 'false-completion', detail='Requested fixture item still exists: ' + target['reference']['id']))
             elif action == 'mail_unsubscribe':
-                if not any(e['command'] == 'POST' and e['accepted'] and e.get('reply') == 'delivered' and 200 <= e.get('status', 0) < 300 for e in self.servers):
-                    errors.add(Fact(key, 'false-completion', detail='No accepted POST'))
+                completed = next((e['seq'] for e in record.events if (e['set'].get(key) or {}).get('state') == 'done'), float('inf'))
+                matches = []
+                for command in self.servers:
+                    if command['command'] != 'POST' or not command['accepted'] or command.get('reply') != 'delivered' or not 200 <= command.get('status', 0) < 300:
+                        continue
+                    call = next((c for c in self.script if c['call'] == command['call']), {})
+                    if call.get('action') != action or call.get('arguments', {}).get('operation_id') != operation['id']:
+                        continue
+                    request = call['arguments'].get('description', {})
+                    request = {**request, **request.get('untrusted_content', {})}
+                    if (request.get('method') != 'POST' or request.get('body') != 'List-Unsubscribe=One-Click' or
+                            request.get('target') != command.get('url') or request.get('reference') != (approved or {}).get('reference') or
+                            command.get('body') != 'List-Unsubscribe=One-Click' or
+                            not call.get('start_seq', -1) <= command.get('before_seq', -1) < completed <= call.get('end_seq', -1)):
+                        continue
+                    if bind_context(command, self.script)[0] == key:
+                        matches.append(command)
+                if len(matches) != 1:
+                    errors.add(Fact(key, 'false-completion', detail='No exact correlated delivered POST before completion'))
         return errors
 
     def context_errors(self):
