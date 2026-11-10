@@ -15,6 +15,7 @@ const releasing=new Map(),admissions=new Map();
 let stopGeneration=0;
 let badgeUpdates=Promise.resolve();
 const badgedTabs=new Set();
+const privacyDocuments=new Map();
 const documentMethods=new Map(),currentDocuments=new Map(),formLoadedDocuments=new Map();
 function navigationRecord(map,key,value){map.delete(key);map.set(key,value);if(map.size>20000)map.delete(map.keys().next().value);}
 const targetKey=source=>JSON.stringify([source.tabId,source.sessionId||null]);
@@ -40,7 +41,6 @@ async function prepareTarget(source,tab=source.tabId,targetId=null){
   const state={source,tab,targetId,epoch:controlled.get(tab)?.epoch,contexts:new Map(),scripts:new Map(),documents:new Map(),failures:new Map(),installing:new Set()};preloadTargets.set(targetKey(source),state);
   await targetCommand(state,'Page.enable');
   const tree=await targetCommand(state,'Page.getFrameTree');state.frameId=tree.frameTree?.frame.id||targetId;
-  await targetCommand(state,'Runtime.enable');
   await targetCommand(state,'Debugger.enable');
   const breakpoint=await targetCommand(state,'Debugger.setBreakpointByUrl',{url:chrome.runtime.getURL('context.js'),lineNumber:1});
   state.breakpoint=breakpoint.breakpointId;
@@ -76,7 +76,13 @@ async function preloadEvent(source,method,params){
   if(method==='Runtime.executionContextCreated'){state.contexts.set(params.context.id,params.context);return;}
   if(method==='Runtime.executionContextDestroyed'){const old=state.contexts.get(params.executionContextId);state.contexts.delete(params.executionContextId);for(const [script,context]of state.scripts)if(context===params.executionContextId)state.scripts.delete(script);for(const [key,document]of state.documents)if(document.main===old?.uniqueId)state.documents.delete(key);else if(document.isolated===old?.uniqueId)document.ready=false;for(const [key,failure]of state.failures||[])if(old?.uniqueId&&(failure.main===old.uniqueId||failure.isolated===old.uniqueId))state.failures.delete(key);contextChanged(state);return;}
   if(method==='Runtime.executionContextsCleared'){state.contexts.clear();state.scripts.clear();state.documents.clear();state.failures?.clear();contextChanged(state);return;}
-  if(method==='Debugger.scriptParsed'){if(params.url===chrome.runtime.getURL('context.js'))state.scripts.set(params.scriptId,params.executionContextId);return;}
+  if(method==='Debugger.scriptParsed'){
+    if(params.url===chrome.runtime.getURL('context.js')&&params.executionContextAuxData?.isDefault===false){
+      const context={id:params.executionContextId,uniqueId:'isolated-'+params.executionContextId,origin:chrome.runtime.getURL('').replace(/\/$/,''),auxData:params.executionContextAuxData};
+      state.contexts.set(context.id,context);state.scripts.set(params.scriptId,context.id);
+    }
+    return;
+  }
   if(method!=='Debugger.paused')return;
   const pause=Symbol();state.pause=pause;let startup;
   const sameDocument=()=>!startup||state.contexts.get(startup.main.id)?.uniqueId===startup.main.uniqueId&&state.contexts.get(startup.isolated.id)?.uniqueId===startup.isolated.uniqueId;
@@ -86,23 +92,35 @@ async function preloadEvent(source,method,params){
     if(!params.hitBreakpoints?.includes(state.breakpoint))return;
     const context=state.contexts.get(state.scripts.get(params.callFrames[0].location.scriptId));
     if(context?.origin!==chrome.runtime.getURL('').replace(/\/$/,'')||context.auxData?.isDefault!==false)throw Error('refused: startup context identity is unavailable');
-    const main=[...state.contexts.values()].find(value=>value.auxData?.isDefault&&value.auxData.frameId===context.auxData.frameId);
-    if(!main?.uniqueId||!context.uniqueId)throw Error('refused: startup document identity is unavailable');
+    const main={id:context.id,uniqueId:context.uniqueId};
+    if(!context.uniqueId)throw Error('refused: startup document identity is unavailable');
     startup={main,isolated:context};
     if(state.documents.has(main.uniqueId))return;
     const [guard,reader,page]=await bundle();
     assertTarget(state);
-    const isolated=await targetCommand(state,'Runtime.evaluate',{uniqueContextId:context.uniqueId,expression:guard+'\n'+reader+'\n;globalThis[Symbol.for("aresos.chrome.guard.v2")].identity()',returnByValue:true,disableBreaks:true});
+    const isolated=await targetCommand(state,'Runtime.evaluate',{contextId:context.id,expression:guard+'\n'+reader+'\n;globalThis[Symbol.for("aresos.chrome.guard.v2")].identity()',returnByValue:true,disableBreaks:true});
     if(isolated.exceptionDetails||typeof isolated.result?.value!=='string')throw Error('refused: isolated guard did not initialize before page scripts');
-    const wrapped=await preloadCommand(source,'Runtime.evaluate',{uniqueContextId:main.uniqueId,expression:page,disableBreaks:true});
+    // DOM.resolveNode without an executionContextId resolves in this node's MAIN
+    // world. No Runtime subscription, page global or console payload is needed.
+    const carrier=await targetCommand(state,'Runtime.evaluate',{contextId:context.id,expression:'document.createElement("div")',disableBreaks:true});
+    const description=await targetCommand(state,'DOM.describeNode',{objectId:carrier.result.objectId,depth:0});
+    const mainNode=await targetCommand(state,'DOM.resolveNode',{backendNodeId:description.node.backendNodeId});
+    const wrapped=await targetCommand(state,'Runtime.callFunctionOn',{objectId:mainNode.object.objectId,functionDeclaration:'function(){return (\n'+page.trim().replace(/;$/, '')+'\n);}',silent:true});
     if(wrapped.exceptionDetails||!wrapped.result?.objectId)throw Error('refused: page wrappers did not initialize before page scripts');
-    const installed={document:isolated.result.value,main:main.uniqueId,isolated:context.uniqueId,cleanup:wrapped.result.objectId,ready:false};state.documents.set(main.uniqueId,installed);
+    const installed={document:isolated.result.value,frameId:context.auxData.frameId,main:main.uniqueId,isolated:context.uniqueId,cleanup:wrapped.result.objectId,ready:false};state.documents.set(main.uniqueId,installed);
     assertTarget(state);
     const relay=await targetCommand(state,'Runtime.callFunctionOn',{objectId:installed.cleanup,functionDeclaration:'function(){return this.relay;}'});
     const described=await targetCommand(state,'DOM.describeNode',{objectId:relay.result.objectId,depth:0});
     const resolved=await targetCommand(state,'DOM.resolveNode',{backendNodeId:described.node.backendNodeId,executionContextId:context.id});
     const linked=await targetCommand(state,'Runtime.callFunctionOn',{objectId:resolved.object.objectId,functionDeclaration:'function(){return globalThis[Symbol.for("aresos.chrome.guard.v2")].relay(this);}',returnByValue:true});
     if(linked.exceptionDetails||linked.result?.value!==installed.document)throw Error('refused: private native relay did not initialize');
+    const owner=controlled.get(state.tab),hold=owner?.hold;
+    if(hold&&(hold.inFlight||Date.now()<hold.until)){
+      const inherited={generation:state.epoch,dispatch_nonce:hold.nonce,config:hold.config};
+      const armed=await targetCommand(state,'Runtime.evaluate',{contextId:context.id,expression:'globalThis[Symbol.for("aresos.chrome.guard.v2")].arm('+JSON.stringify(inherited)+')',disableBreaks:true,returnByValue:true});
+      if(armed.exceptionDetails)throw Error('refused: new frame could not inherit the active hold');
+      if(!hold.inFlight)await targetCommand(state,'Runtime.evaluate',{contextId:context.id,expression:'globalThis[Symbol.for("aresos.chrome.guard.v2")].finish('+JSON.stringify(state.epoch)+','+JSON.stringify(hold.nonce)+')',awaitPromise:true,disableBreaks:true,returnByValue:true});
+    }
     const activated=await targetCommand(state,'Runtime.callFunctionOn',{objectId:installed.cleanup,functionDeclaration:'function(){return this.activate();}',returnByValue:true});
     if(activated.exceptionDetails)throw Error('refused: document guard activation failed');
     installed.ready=true;
@@ -110,12 +128,18 @@ async function preloadEvent(source,method,params){
   finally{try{if(state.pause===pause&&sameDocument()&&controlled.get(state.tab)?.epoch===state.epoch)await targetCommand(state,'Debugger.resume');}catch{}state.installing.delete(installing);complete();}
 }
 function isPreloaded(tab,document){return [...preloadTargets.values()].some(state=>state.tab===tab&&[...state.documents.values()].some(value=>value.ready&&value.document===document));}
+function frameAddress(frame,frames,seen=new Set()){
+  if(!frame||seen.has(frame.frameId))throw Error('refused: frame origin is unavailable');
+  seen.add(frame.frameId);
+  if(['about:blank','about:srcdoc'].includes(frame.url)&&frame.parentFrameId>=0)return frameAddress(frames.find(value=>value.frameId===frame.parentFrameId),frames,seen);
+  safeURL(frame.url);return frame.url;
+}
 async function lateReader(tab){
   const owner=controlled.get(tab);if(!owner)throw Error('stale_reference: control ended');
   let complete;const settingUp=new Promise(resolve=>{complete=resolve;});owner.settingUp??=new Set();owner.settingUp.add(settingUp);
-  try{for(const frame of await chrome.webNavigation.getAllFrames({tabId:tab})||[]){
-    assertControl(tab,owner.epoch);if(frame.url==='about:blank')continue;
-    try{safeURL(frame.url);}catch{continue;}
+  try{const frames=await chrome.webNavigation.getAllFrames({tabId:tab})||[];for(const frame of frames){
+    assertControl(tab,owner.epoch);
+    try{frameAddress(frame,frames);}catch{continue;}
     await chrome.scripting.executeScript({target:{tabId:tab,frameIds:[frame.frameId]},files:['guard.js','reader.js'],world:'ISOLATED',injectImmediately:true});assertControl(tab,owner.epoch);
   }}finally{owner.settingUp.delete(settingUp);complete();}
 }
@@ -164,6 +188,7 @@ async function cdp(tab, method, parameters = {}) {
 }
 function keyboard(value) {
   const parts=value.split('+'),name=parts.pop();
+  if(parts.some(part=>!['Ctrl','Cmd','Alt','Shift'].includes(part)))throw Error('refused: unsupported key modifier');
   let modifiers=(parts.includes('Ctrl')?2:0)|(parts.includes('Cmd')?4:0)|(parts.includes('Alt')?1:0)|(parts.includes('Shift')?8:0);
   const special={Enter:['Enter',13,'Enter'],Space:['Space',32,' '],' ':['Space',32,' '],Delete:['Delete',46,'Delete'],Backspace:['Backspace',8,'Backspace'],Tab:['Tab',9,'Tab'],Escape:['Escape',27,'Escape'],ArrowLeft:['ArrowLeft',37,'ArrowLeft'],ArrowUp:['ArrowUp',38,'ArrowUp'],ArrowRight:['ArrowRight',39,'ArrowRight'],ArrowDown:['ArrowDown',40,'ArrowDown'],Home:['Home',36,'Home'],End:['End',35,'End'],PageUp:['PageUp',33,'PageUp'],PageDown:['PageDown',34,'PageDown'],'#':['Digit3',51,'#']};
   let tuple=special[name];
@@ -217,7 +242,7 @@ function badge(){
 }
 async function rules() {
   const previous = await chrome.declarativeNetRequest.getSessionRules();
-  const tabIds = [...new Set([...controlled.keys(),...releasing.keys()])];
+  const tabIds = [...controlled.keys()];
   await chrome.declarativeNetRequest.updateSessionRules({removeRuleIds:previous.map(rule=>rule.id),addRules:tabIds.length ? [{id:1,priority:1,action:{type:'block'},condition:{tabIds,requestDomains:(excludedHosts || POLICY.fixedHosts).flatMap(host=>[host,host+'.']),resourceTypes:['main_frame','sub_frame']}}] : []});
 }
 async function configure(hosts) {
@@ -292,6 +317,29 @@ async function content(tab, frame, command, parameters={}) {
   if(reply?.interrupted)throw Error(effectful?'unknown: control ended during input handling; inspect status and never retry the input':'stale_reference: control ended during the frame query');
   if (!reply?.ok) throw Error(reply?.error || 'stale_reference: page changed; read again');
   return reply.data;
+}
+async function armDialog(tab){
+  const owner=controlled.get(tab),nonce=crypto.randomUUID();assertControl(tab,owner?.epoch);
+  const frames=await chrome.webNavigation.getAllFrames({tabId:tab})||[];
+  const documents=[...preloadTargets.values()].filter(state=>state.tab===tab).flatMap(state=>[...state.documents.values()].filter(doc=>doc.ready).map(doc=>({state,doc})));
+  if(!frames.length||documents.length!==frames.length)throw Error('refused: the dialog cannot be answered with complete private guard coverage; leave it to the owner');
+  const config={...POLICY,blockedHosts:excludedHosts};
+  owner.hold={nonce,config,inFlight:true,until:Date.now()+POLICY.holdMs};owner.inputNonce=nonce;
+  try{
+    for(const {state,doc}of documents){
+      const context=[...state.contexts.values()].find(context=>context.uniqueId===doc.isolated);
+      if(!context)throw Error('private document context is unavailable');
+      let timer;try{
+        const armed=await Promise.race([targetCommand(state,'Runtime.evaluate',{contextId:context.id,expression:'globalThis[Symbol.for("aresos.chrome.guard.v2")].arm('+JSON.stringify({generation:owner.epoch,dispatch_nonce:nonce,config})+')',disableBreaks:true,returnByValue:true}),new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('modal prevented private arming')),500);})]);
+        if(armed.exceptionDetails)throw Error('private arming failed');
+      }finally{clearTimeout(timer);}
+    }
+    return {owner,nonce,frames};
+  }catch{
+    owner.hold.inFlight=false;owner.hold.until=Date.now()+POLICY.holdMs;
+    // Pending evaluation can only add protection once the owner closes the modal.
+    throw Error('refused: private guards could not be armed while this dialog is open; leave it to the owner');
+  }
 }
 async function finishFrames(tab,frames,epoch,nonce){
   let uncertain=false;
@@ -369,9 +417,14 @@ async function reloadIdentity(tab){
   rememberGet(tab,tree.frameTree.frame.loaderId);
   return {loaderId:tree.frameTree.frame.loaderId,frameId:tree.frameTree.frame.id||null,frames:frames.map(frame=>[frame.frameId,frame.documentId,frame.url])};
 }
-async function reloadChecked(tab,initial){
+async function reloadChecked(tab,initial,requireClean=false){
   const current=await reloadIdentity(tab);
   if(initial&&stable(current)!==stable(initial))throw Error('stale_reference: the document changed before its guarded reload; read again');
+  if(requireClean){
+    const nativeTab=await chrome.tabs.get(tab);let unsaved=false,playing=!!nativeTab.audible;
+    for(const [frameId]of current.frames){try{const value=await content(tab,frameId,'reload_state');unsaved ||= value.unsaved;playing ||= value.playing;}catch{unsaved=true;}}
+    if(unsaved||playing)throw Error('reload_required: this taken tab '+[unsaved?'may have unsaved text or editable content':null,playing?'is playing media':null].filter(Boolean).join(' and ')+'; tell the owner, then repeat with reload_taken_tab=true only when the reload is wanted');
+  }
   const owner=controlled.get(tab),pending={frameId:current.frameId,document:current.frames.find(frame=>frame[0]===0)?.[1]};owner.getReload=pending;
   try{await cdp(tab,'Page.reload',{loaderId:current.loaderId});owner.popupNeedsReload=false;}catch(error){if(owner.getReload===pending)delete owner.getReload;throw error;}
 }
@@ -387,6 +440,7 @@ async function release(tab) {
   for(const [token,stage] of stagedUploads)if(stage.tab===tab)stagedUploads.delete(token);
   port?.postMessage({event:'released',tab,session});
   const record={original,promise:null};releasing.set(tab,record);
+  await rules();
   record.promise=(async()=>{
     await Promise.all(children.map(async child=>{await release(child);if(releasing.has(child))await releasing.get(child).promise;}));
     await Promise.allSettled([...original.settingUp||[],...[...preloadTargets.values()].filter(state=>state.tab===tab).flatMap(state=>[...state.installing||[]])]);
@@ -396,7 +450,7 @@ async function release(tab) {
       for(const value of state.documents.values())try{const result=await preloadCommand(state.source,'Runtime.callFunctionOn',{objectId:value.cleanup,functionDeclaration:'function(){return this.cleanup();}',returnByValue:true});if(result.exceptionDetails||result.result?.value!==true)blocked.set(value.main,value.document);}catch{blocked.set(value.main,value.document);}
       for(const context of state.contexts.values())if(context.origin===chrome.runtime.getURL('').replace(/\/$/,'')){
         const document=[...state.documents.values()].find(value=>value.isolated===context.uniqueId)?.document;
-        try{const result=await preloadCommand(state.source,'Runtime.evaluate',{uniqueContextId:context.uniqueId,expression:'globalThis[Symbol.for("aresos.chrome.guard.v2")]?.dispose() ?? true',disableBreaks:true,returnByValue:true});if(result.exceptionDetails||result.result?.value!==true)blocked.set(context.uniqueId,document);}catch{blocked.set(context.uniqueId,document);}
+        try{const result=await preloadCommand(state.source,'Runtime.evaluate',{contextId:context.id,expression:'globalThis[Symbol.for("aresos.chrome.guard.v2")]?.dispose() ?? true',disableBreaks:true,returnByValue:true});if(result.exceptionDetails||result.result?.value!==true)blocked.set(context.uniqueId,document);}catch{blocked.set(context.uniqueId,document);}
       }
       if(blocked.size)try{for(const frame of await chrome.webNavigation.getAllFrames({tabId:tab})||[])try{const result=await content(tab,frame.frameId,'clear');if(result.restored===true)for(const [identity,document]of blocked)if(document===result.document)blocked.delete(identity);}catch{}}catch{}
       await Promise.all([...blocked.keys()].map(identity=>contextGone(state,identity)));
@@ -428,26 +482,29 @@ async function facts(tab, reference) {
     return {session,tab,group:groupId,control:controlled.get(tab).epoch,url:current.url,title:current.title,frames:[],frame_tree:[],dialog};
   }
   const frames = await chrome.webNavigation.getAllFrames({tabId:tab}) || [];
-  const result=[];
+  const result=[],uncovered=[];
   for (const frame of frames) {
-    if(frame.url==='about:blank')continue;
-    try { safeURL(frame.url); } catch { if (reference?.frame === frame.frameId) throw Error('refused: excluded frame'); continue; }
-    const snapshot = await content(tab,frame.frameId,reference?.frame === frame.frameId ? 'facts':'read',reference?.frame === frame.frameId ? {element:reference.element}:{});
+    let effective;try { effective=frameAddress(frame,frames); } catch { if (reference?.frame === frame.frameId) throw Error('refused: excluded frame');uncovered.push({frame:frame.frameId,reason:'excluded or unauthenticated origin'});continue; }
+    let snapshot;try{snapshot = await content(tab,frame.frameId,reference?.frame === frame.frameId ? 'facts':'read',reference?.frame === frame.frameId ? {element:reference.element}:{});
+    if(['about:blank','about:srcdoc'].includes(frame.url)&&frame.parentFrameId>=0&&(!frame.documentId||snapshot.origin!==new URL(effective).origin))throw Error('refused: inherited frame origin cannot be authenticated');
+    }catch(error){if(reference?.frame===frame.frameId)throw error;uncovered.push({frame:frame.frameId,reason:'reader or inherited origin unavailable'});continue;}
+    if(frame.documentId){const known=privacyDocuments.get(frame.documentId);if(known&&known!==snapshot.document)throw Error('refused: private password history was lost for this surviving document; ask the owner to reload');privacyDocuments.set(frame.documentId,snapshot.document);}
     if (reference?.frame === frame.frameId && snapshot.document !== reference.document) throw Error('stale_reference: document changed');
-    result.push({frame:frame.frameId,parent:frame.parentFrameId,browser_document:frame.documentId,...snapshot});
+    result.push({frame:frame.frameId,parent:frame.parentFrameId,browser_document:frame.documentId,...snapshot,effective_url:effective});
   }
   if (reference && !result.some(frame=>frame.frame === reference.frame)) throw Error('stale_reference: frame is gone');
-  return {session,tab,group:groupId,control:controlled.get(tab).epoch,url:current.url,title:current.title,needs_reload:controlled.get(tab).popupNeedsReload||result.some(frame=>!isPreloaded(tab,frame.document)),frames:result,frame_tree:frames.map(frame=>({frame:frame.frameId,parent:frame.parentFrameId,url:frame.url})),dialog:dialogs.get(tab) || null};
+  return {session,tab,group:groupId,control:controlled.get(tab).epoch,url:current.url,title:current.title,needs_reload:controlled.get(tab).popupNeedsReload||result.some(frame=>!isPreloaded(tab,frame.document)),frames:result,uncovered,frame_tree:frames.map(frame=>({frame:frame.frameId,parent:frame.parentFrameId,url:frame.url})),dialog:dialogs.get(tab) || null};
 }
 function binding(facts, reference, kind, adapter) {
   const frame = facts.frames.find(frame=>frame.frame === reference.frame);
   if (!frame?.target) throw Error('stale_reference: target not found');
   const target = frame.target;
-  return {session,tab:facts.tab,control:facts.control,url:facts.url,document:frame.document,frame:frame.frame,frame_url:frame.url,
+  if(['send','confirmation'].includes(kind)&&!frame.form&&!adapter&&facts.uncovered?.length)throw Error('refused: a complete draft binding needs every frame; a frame could not be inspected');
+  return {session,tab:facts.tab,control:facts.control,url:facts.url,title:facts.title||'',document:frame.document,frame:frame.frame,frame_url:frame.url,effective_url:frame.effective_url||frame.url,
     target:Object.fromEntries(['element','role','name','label','title','href','value','password','states','editable','search','submit','page_dialog','options','implicit_submitter'].filter(key=>key in target).map(key=>[key,target[key]])),
     form:frame.form,
-    editable:kind === 'send' && !frame.form && !adapter ? facts.frames.map(frame=>({frame:frame.frame,document:frame.document,url:frame.url,fields:frame.editable})) : null,
-    item:['delete','pay','activation','confirmation'].includes(kind) ? frame.item : null,
+    editable:['send','confirmation'].includes(kind) && !frame.form && !adapter ? facts.frames.map(frame=>({frame:frame.frame,document:frame.document,url:frame.url,fields:frame.editable})) : null,
+    item:['delete','pay','item','activation','confirmation'].includes(kind) ? frame.item : null,
     adapter:adapter ? frame.adapter:null,dialog:facts.dialog};
 }
 const stable = value => JSON.stringify(value, function(key,value) { return value && !Array.isArray(value) && typeof value === 'object' ? Object.fromEntries(Object.entries(value).sort(([a],[b])=>a.localeCompare(b))) : value; });
@@ -469,6 +526,11 @@ async function pointer(tab,snapshot,reference,target){
     child=parent;
   }
   return {x,y};
+}
+async function observation(tab,reference){
+  if(dialogs.has(tab))return {available:true,dialog:dialogs.get(tab)};
+  try{return {available:true,...await content(tab,reference?.frame??0,'observe',{element:reference?.element})};}
+  catch{try{const current=await chrome.tabs.get(tab);return {available:false,url:current.url,title:current.title,reason:'Post-input page details are unavailable; read the current page.'};}catch{return {available:false,reason:'Post-input observation is unavailable; inspect the tab with the owner.'};}}
 }
 async function collection(command) {
   const key=stable([command.name,command.text||'']);
@@ -536,11 +598,13 @@ async function dispatch(command) {
     if(!dialog || dialog.frame === undefined || stable(expected)!==stable(command.binding))throw Error('stale_approval: dialog or its opener changed');
     safeURL(dialog.frame_url);
     if(command.operation && used.has(command.operation))throw Error('refused: dialog operation already attempted');
+    const armed=await armDialog(tab);
     if(command.operation)used.add(command.operation);
-    await cdp(tab,'Page.handleJavaScriptDialog',{accept:command.input.accept,...(command.input.text === undefined ? {}:{promptText:command.input.text})});
-    const uncertain_finish=await finishFrames(tab,await chrome.webNavigation.getAllFrames({tabId:tab})||[],dispatchEpoch,controlled.get(tab)?.inputNonce);
+    try{await cdp(tab,'Page.handleJavaScriptDialog',{accept:command.input.accept,...(command.input.text === undefined ? {}:{promptText:command.input.text})});
+    }finally{armed.owner.hold.inFlight=false;armed.owner.hold.until=Date.now()+POLICY.holdMs;}
+    const uncertain_finish=await finishFrames(tab,armed.frames,dispatchEpoch,armed.nonce);
     const steps=await collectSteps(tab,dispatchEpoch);
-    return {checked:true,dispatched:true,page:'Dialog answered once, as the page shows it.',steps,dialog:dialogs.get(tab)||null,uncertain_finish};
+    return {checked:true,dispatched:true,page:await observation(tab),steps,dialog:dialogs.get(tab)||null,uncertain_finish};
   }
   if(command.name==='tab_context'){const current=await chrome.tabs.get(tab);safeURL(current.url);return {session,tab,url:current.url,title:current.title,control:controlled.get(tab)?.epoch||null,frames:(await chrome.webNavigation.getAllFrames({tabId:tab})||[]).map(frame=>({frame:frame.frameId,url:frame.url,document:frame.documentId}))};}
   if (command.name === 'validity') {
@@ -581,10 +645,10 @@ async function dispatch(command) {
     const current=await facts(tab);
     if(!current.needs_reload)return {ready:true};
     const initial=await reloadIdentity(tab);
-    let unsaved=false,playing=false;
+    let unsaved=!!current.uncovered?.length,playing=!!(await chrome.tabs.get(tab)).audible;
     for(const frame of current.frames){const state=await content(tab,frame.frame,'reload_state');unsaved ||= state.unsaved;playing ||= state.playing;}
     if((unsaved||playing)&&command.reload_taken_tab!==true)throw Error('reload_required: this taken tab '+[unsaved?'may have unsaved text or editable content':null,playing?'is playing media':null].filter(Boolean).join(' and ')+'; tell the owner, then repeat with reload_taken_tab=true only when the reload is wanted');
-    await reloadChecked(tab,initial);
+    await reloadChecked(tab,initial,command.reload_taken_tab!==true);
     return {reloaded:true,message:'The taken tab reloaded to install its page guard before page scripts. Every old reference is stale; read again.'};
   }
   if (command.name === 'close_tab') { await release(tab); await chrome.tabs.remove(tab); return {closed:tab}; }
@@ -611,15 +675,21 @@ async function dispatch(command) {
   if (command.operation) used.add(command.operation); // consume before any event can enter the page
   if(command.confirmation && command.operation)confirmationPlans.set(tab,{operation:command.operation,expected:command.confirmation,browser_document:frame.browser_document,matched:[]});
   const keyInput=command.input?.verb==='press'?keyboard(command.input.key):null;
+  if(command.input?.key_input && stable(keyInput)!==stable(command.input.key_input))throw Error('refused: classified key differs from dispatched key');
   const inputNonce=crypto.randomUUID();controlled.get(tab).inputNonce=inputNonce;
+  const owner=controlled.get(tab);owner.hold={nonce:inputNonce,until:Date.now()+POLICY.holdMs,inFlight:true,config:{...POLICY,blockedHosts:excludedHosts,conservative:command.conservative}};
+  const armed=[];
+  try{
   for(const other of snapshot.frames){
     assertControl(tab);
     await content(tab,other.frame,'set_control',{generation:dispatchEpoch});
+    armed.push(other);
     await content(tab,other.frame,'arm',{config:{...POLICY,blockedHosts:excludedHosts,conservative:command.conservative},target:other.frame===reference.frame ? target.element:null,form:other.frame===reference.frame ? frame.form?.element:null,operation:command.approved && other.frame===reference.frame ? command.operation:null,generation:dispatchEpoch,dispatch_nonce:inputNonce,key_input:other.frame===reference.frame?keyInput:null,primary_submission:!!command.primary_submission && other.frame===reference.frame,implicit:other.frame===reference.frame&&command.input?.verb==='press'&&command.input.key.split('+').at(-1)==='Enter'?target.implicit_submitter:null,approved_form:command.approved&&other.frame===reference.frame?frame.form:null});
   }
   // Native pointer input must address the selected tab in headed Chrome.
   // Arm first because activation can itself run focus/visibility handlers.
-  if(command.name==='input'){
+  const needsNative=command.name==='input'&&(['click','fill','press','scroll'].includes(command.input.verb)||command.input.verb==='check'&&target.states.checked!==command.input.checked);
+  if(needsNative){
     assertControl(tab);const selected=await chrome.tabs.get(tab);assertControl(tab);
     if(!selected.active){effectStarted=true;await chrome.tabs.update(tab,{active:true});}
   }
@@ -627,6 +697,15 @@ async function dispatch(command) {
   // Arming other frames may take time. Compare again at the actual input boundary.
   snapshot=await facts(tab,reference);
   if(command.binding&&stable(binding(snapshot,reference,command.kind,command.adapter))!==stable(command.binding))throw Error('stale_approval: page changed during frame setup; prepare again');
+  for(const added of snapshot.frames){
+    if(armed.some(frame=>frame.frame===added.frame&&frame.document===added.document))continue;
+    if(!isPreloaded(tab,added.document))throw Error('refused: a new frame has no document-start guard');
+    armed.push(added);await content(tab,added.frame,'set_control',{generation:dispatchEpoch});
+    await content(tab,added.frame,'arm',{generation:dispatchEpoch,dispatch_nonce:inputNonce,config:owner.hold.config});
+  }
+  const coverage=await chrome.webNavigation.getAllFrames({tabId:tab})||[];
+  if(snapshot.frames.some(frame=>!coverage.some(current=>current.frameId===frame.frame&&current.documentId===frame.browser_document))||coverage.some(current=>!snapshot.frames.some(frame=>frame.frame===current.frameId)))throw Error('refused: frame coverage changed before input');
+  if(snapshot.uncovered?.length)throw Error('refused: a relevant frame cannot be guarded');
   frame=snapshot.frames.find(frame=>frame.frame===reference.frame);target=frame.target;
   safeDestination(frame,command);
   assertControl(tab);
@@ -646,7 +725,7 @@ async function dispatch(command) {
         await cdp(tab,'Input.dispatchKeyEvent',{type:'keyUp',key:'a',code:'KeyA',modifiers:2,windowsVirtualKeyCode:65});
         await cdp(tab,'Input.insertText',{text:input.text});
       } else {
-        const {text,...key}=keyboard(input.key);
+        const {text,...key}=keyInput;
         await cdp(tab,'Input.dispatchKeyEvent',{type:'keyDown',...key,...(text===undefined?{}:{text})});
         await cdp(tab,'Input.dispatchKeyEvent',{type:'keyUp',...key});
       }
@@ -657,13 +736,17 @@ async function dispatch(command) {
     else throw Error('permission_denied: unsupported input');
   }
   assertControl(tab);
-  const uncertain_finish=await finishFrames(tab,snapshot.frames,dispatchEpoch,inputNonce);
+  }finally{
+    if(owner.hold?.nonce===inputNonce){owner.hold.inFlight=false;owner.hold.until=Date.now()+POLICY.holdMs;}
+    owner.uncertainFinish=await finishFrames(tab,armed,dispatchEpoch,inputNonce);
+  }
+  const uncertain_finish=owner.uncertainFinish;
   const steps=await collectSteps(tab,dispatchEpoch);
   if(recording && command.fixture_cut==='after-input'){
     await new Promise((resolve,reject)=>{fixtureBarriers.set(command.operation,{tab,resolve,reject});port?.postMessage({event:'fixture_after_input',operation:command.operation});});
   }
   const confirmation=confirmationPlans.get(tab);confirmationPlans.delete(tab);
-  return {checked:!!command.binding,dispatched:true,steps,dialog:dialogs.get(tab)||null,uncertain_finish,confirmations:confirmation?.matched || [],page:'Input dispatched once; inspect a fresh read for what the page shows.'};
+  return {checked:!!command.binding,dispatched:true,steps,dialog:dialogs.get(tab)||null,uncertain_finish,confirmations:confirmation?.matched || [],page:await observation(tab,reference)};
 }
 async function connect() {
   port=chrome.runtime.connectNative('org.aresos.chrome');
@@ -729,6 +812,10 @@ chrome.webNavigation.onCommitted.addListener(({tabId,frameId,documentId,transiti
   if(recording)audit({navigation_method:{tab:tabId,frame:frameId,document:documentId,transition:transitionType,method:documentMethods.get(key)?.method||'unknown'}});
 });
 chrome.debugger.onEvent.addListener(async(source,method,params)=>{
+  if(recording)audit({protocol_event:{source,method,params}});
+  if(method==='Page.frameNavigated'){
+    const state=preloadTargets.get(targetKey(source));if(state){for(const [id,context]of state.contexts)if(context.auxData?.frameId===params.frame.id){state.contexts.delete(id);for(const [key,doc]of state.documents)if(doc.isolated===context.uniqueId)state.documents.delete(key);}contextChanged(state);}
+  }
   if(method.startsWith('Runtime.')||method.startsWith('Debugger.')||method.startsWith('Target.')){await preloadEvent(source,method,params);return;}
   if(method==='Page.frameDetached'&&params.reason==='remove'){
     for(const state of preloadTargets.values())if(state.source.tabId===source.tabId&&state.source.sessionId&&state.frameId===params.frameId)destroyedTarget(state);

@@ -45,7 +45,7 @@ function startupFixture(){
 }
 async function startupContexts(f,prefix,start=1,source={tabId:7}){
   for(const context of [{id:start,uniqueId:prefix+'-main',origin:'http://fixture.test',auxData:{isDefault:true,frameId:'frame'}},{id:start+1,uniqueId:prefix+'-isolated',origin:'chrome-extension://fixture',auxData:{isDefault:false,frameId:'frame'}}])await f.run(`preloadEvent(${JSON.stringify(source)},'Runtime.executionContextCreated',{context:${JSON.stringify(context)}})`);
-  await f.run(`preloadEvent(${JSON.stringify(source)},'Debugger.scriptParsed',{scriptId:${JSON.stringify(prefix)},executionContextId:${start+1},url:'chrome-extension://fixture/context.js'})`);
+  await f.run(`preloadEvent(${JSON.stringify(source)},'Debugger.scriptParsed',{scriptId:${JSON.stringify(prefix)},executionContextId:${start+1},url:'chrome-extension://fixture/context.js',executionContextAuxData:{isDefault:false,frameId:'frame'}})`);
 }
 const paused=(f,script,source={tabId:7})=>f.run(`preloadEvent(${JSON.stringify(source)},'Debugger.paused',{hitBreakpoints:['inert-breakpoint'],callFrames:[{location:{scriptId:${JSON.stringify(script)}}}]})`);
 
@@ -58,11 +58,11 @@ test('removing a frame during bootstrap does not poison the still-controlled par
 
 test('a cancelled old bootstrap cannot poison or resume the replacement document pause',async()=>{
   const f=startupFixture();await f.run('prepareTarget({tabId:7})');await startupContexts(f,'old');
-  f.run("const send=chrome.debugger.sendCommand;chrome.debugger.sendCommand=(source,method,parameters)=>{if(method==='Runtime.evaluate'&&parameters.uniqueContextId.startsWith('old'))throw Error('Native old context destroyed');return send(source,method,parameters)};preloadBundle=new Promise(resolve=>{globalThis.finishBundle=resolve});");
+  f.run("const send=chrome.debugger.sendCommand;chrome.debugger.sendCommand=(source,method,parameters)=>{if(method==='Runtime.evaluate'&&parameters.contextId===2)throw Error('Native old context destroyed');return send(source,method,parameters)};preloadBundle=new Promise(resolve=>{globalThis.finishBundle=resolve});");
   const old=paused(f,'old');await spin(f,"preloadTargets.get('[7,null]').installing.size===1");
   for(const id of [1,2])await f.run(`preloadEvent({tabId:7},'Runtime.executionContextDestroyed',{executionContextId:${id}})`);
   await startupContexts(f,'new',3);const current=paused(f,'new');f.run("finishBundle(['//guard','//reader','//page'])");await Promise.all([old,current]);
-  assert.equal(f.run('controlled.get(7).preloadError'),undefined);assert.equal(f.run("preloadTargets.get('[7,null]').failures.size"),0);assert.equal(f.run("preloadTargets.get('[7,null]').documents.get('new-main').ready"),true);
+  assert.equal(f.run('controlled.get(7).preloadError'),undefined);assert.equal(f.run("preloadTargets.get('[7,null]').failures.size"),0);assert.equal(f.run("preloadTargets.get('[7,null]').documents.get('isolated-4').ready"),true);
   assert.equal(f.run("startup.filter(item=>item.method==='Debugger.resume').length"),1,'only the replacement bootstrap resumes its own pause');
 });
 
@@ -208,11 +208,14 @@ test('startup evaluates only fixed bundles in authenticated private contexts bef
   const f=fixture();f.run("globalThis.startup=[];chrome.runtime={getURL:path=>'chrome-extension://fixture/'+path};chrome.debugger={sendCommand:async(source,method,parameters)=>{startup.push({source,method,parameters});if(method==='Debugger.setBreakpointByUrl')return {breakpointId:'inert-breakpoint'};if(method==='Runtime.evaluate')return parameters.returnByValue?{result:{value:'private-document'}}:{result:{objectId:'private-cleanup'}};if(method==='Runtime.callFunctionOn')return parameters.returnByValue?{result:{value:'private-document'}}:{result:{objectId:'relay'}};if(method==='DOM.describeNode')return {node:{backendNodeId:1}};if(method==='DOM.resolveNode')return {object:{objectId:'isolated-relay'}};return {};}};preloadBundle=Promise.resolve(['// guard fixture','// reader fixture','// wrapper fixture']);controlled.set(7,{epoch:'epoch'});");
   await f.run('prepareTarget({tabId:7})');
   for(const context of [{id:1,uniqueId:'main',origin:'http://fixture.test',auxData:{isDefault:true,frameId:'frame'}},{id:2,uniqueId:'isolated',origin:'chrome-extension://fixture',auxData:{isDefault:false,frameId:'frame'}}])await f.run(`preloadEvent({tabId:7},'Runtime.executionContextCreated',{context:${JSON.stringify(context)}})`);
-  await f.run("preloadEvent({tabId:7},'Debugger.scriptParsed',{scriptId:'bootstrap',executionContextId:2,url:'chrome-extension://fixture/context.js'})");
+  await f.run("preloadEvent({tabId:7},'Debugger.scriptParsed',{scriptId:'bootstrap',executionContextId:2,url:'chrome-extension://fixture/context.js',executionContextAuxData:{isDefault:false,frameId:'frame'}})");
   await f.run("preloadEvent({tabId:7},'Debugger.paused',{hitBreakpoints:['inert-breakpoint'],callFrames:[{location:{scriptId:'bootstrap'}}]})");
   const commands=Array.from(f.run('startup'));
   const evaluated=commands.filter(value=>value.method==='Runtime.evaluate');
-  assert.deepEqual(evaluated.map(value=>value.parameters.uniqueContextId),['isolated','main']);
+  assert.deepEqual(evaluated.map(value=>value.parameters.contextId),[2,2]);
+  assert.equal(commands.some(value=>value.method==='Runtime.enable'),false);
+  assert.ok(commands.some(value=>value.method==='Runtime.callFunctionOn'&&value.parameters.functionDeclaration.includes('wrapper fixture')));
+  assert.ok(commands.some(value=>value.method==='DOM.resolveNode'&&!('executionContextId' in value.parameters)));
   assert.ok(evaluated.every(value=>value.parameters.disableBreaks===true));
   assert.match(evaluated[0].parameters.expression,/guard fixture/);assert.match(evaluated[0].parameters.expression,/reader fixture/);
   assert.equal(commands.at(-1).method,'Debugger.resume');assert.equal(f.run("isPreloaded(7,'private-document')"),true);
@@ -309,7 +312,7 @@ test('a stale approved dialog opening never accepts the different dialog that re
 
 test('a keydown modal stops the remaining CDP input instead of waiting for a lost opening wake',{timeout:1000},async()=>{
   const f=fixture();
-  f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({url:'http://fixture.test/'});facts=async()=>({tab:7,frames:[{frame:0,target:{element:'e1',role:'button',name:'Continue'},form:null}]});content=async()=>({});chrome.tabs={get:async()=>({active:false}),update:async()=>({})};globalThis.inputCalls=[];chrome.debugger={sendCommand:(source,method,parameters)=>{inputCalls.push(parameters.type);if(parameters.type==='keyDown')Promise.resolve().then(()=>{dialogs.set(7,{kind:'confirm'});wakeDialog(7)});return new Promise(()=>{});}};");
+  f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({url:'http://fixture.test/'});facts=async()=>({tab:7,frames:[{frame:0,target:{element:'e1',role:'button',name:'Continue'},form:null}]});content=async()=>({});chrome.webNavigation={getAllFrames:async()=>[{frameId:0}]};chrome.tabs={get:async()=>({active:false}),update:async()=>({})};globalThis.inputCalls=[];chrome.debugger={sendCommand:(source,method,parameters)=>{inputCalls.push(parameters.type);if(parameters.type==='keyDown')Promise.resolve().then(()=>{dialogs.set(7,{kind:'confirm'});wakeDialog(7)});return new Promise(()=>{});}};");
   await assert.rejects(f.run("dispatch({name:'input',tab:7,reference:{frame:0,element:'e1'},input:{verb:'press',key:'Enter'}})"),/page dialog interrupted the input sequence/);
   assert.deepEqual(Array.from(f.run('inputCalls')),['keyDown'],'no keyUp or later text may enter the pending dialog');
   assert.equal(f.run('dialogWake.size'),0);
@@ -320,14 +323,15 @@ test('answering a dialog collects a resumed handler submission without sending i
   const policy=JSON.parse(fs.readFileSync('control/chrome/extension/policy.js','utf8').match(/\{[\s\S]*\}/)[0]);
   const createPage=Function('fs','vm','assert','policy',source.slice(source.indexOf('function fixture('),source.indexOf("\ntest('"))+'\nreturn fixture;')(fs,vm,assert,policy);
   const page=createPage(),form=new page.HTMLFormElement();page.arm(form,form);
-  page.guard.arm({generation:'epoch',dispatch_nonce:'nonce',config:policy,target:page.id(form),form:page.id(form)});
+  await page.guard.finish('epoch');page.advance(600);
   const f=fixture();
   f.run('globalThis').onAnswer=()=>form.submit();
+  f.run('globalThis').privateArm=parameters=>{page.guard.arm({generation:'epoch',dispatch_nonce:'fixture-session',config:policy});return {result:{value:true}};};
   f.run('globalThis').pageReply=async message=>{
     if(message.command==='finish_input')await page.guard.finish(message.generation,message.dispatch_nonce);
     return {ok:true,data:message.command==='steps'?page.guard.steps():{finished:true}};
   };
-  f.run("excludedHosts=[];groupId=1;controlled.set(7,{epoch:'epoch',inputNonce:'nonce'});globalThis.commands=[];chrome.tabs={get:async()=>({url:'http://fixture.test/',groupId:1}),sendMessage:(tab,message)=>{commands.push(message.command);return pageReply(message)}};chrome.webNavigation={getAllFrames:async()=>[{frameId:0,url:'http://fixture.test/'}]};chrome.debugger={sendCommand:async(source,method)=>{if(method==='Page.handleJavaScriptDialog'){onAnswer();dialogs.delete(7)}return {};}};dialogs.set(7,{id:'dialog',frame:0,frame_url:'http://fixture.test/',kind:'confirm',text:'Continue?',button:'OK'});globalThis.expected={session,tab:7,control:'epoch',url:'http://fixture.test/',dialog:dialogs.get(7)};");
+  f.run("excludedHosts=[];groupId=1;controlled.set(7,{epoch:'epoch',inputNonce:'nonce'});globalThis.commands=[];chrome.tabs={get:async()=>({url:'http://fixture.test/',groupId:1}),sendMessage:(tab,message)=>{commands.push(message.command);return pageReply(message)}};chrome.webNavigation={getAllFrames:async()=>[{frameId:0,url:'http://fixture.test/'}]};chrome.debugger={sendCommand:async(source,method,parameters)=>{if(method==='Runtime.evaluate')return privateArm(parameters);if(method==='Page.handleJavaScriptDialog'){onAnswer();dialogs.delete(7)}return {};}};dialogs.set(7,{id:'dialog',frame:0,frame_url:'http://fixture.test/',kind:'confirm',text:'Continue?',button:'OK'});globalThis.expected={session,tab:7,control:'epoch',url:'http://fixture.test/',dialog:dialogs.get(7)};preloadTargets.set('[7,null]',{source:{tabId:7},tab:7,epoch:'epoch',contexts:new Map([[1,{id:1,uniqueId:'isolated'}]]),documents:new Map([['isolated',{ready:true,isolated:'isolated'}]])});");
   const result=await f.run("dispatch({name:'dialog',tab:7,binding:expected,input:{accept:true},operation:'approved-dialog'})");
   assert.equal(page.arrivals.length,0,'the resumed handler submission stays held until its own approval');
   assert.equal(result.steps.length,1);assert.equal(result.steps[0].kind,'native_submit');
@@ -418,7 +422,7 @@ test('a retired control accepts late observations without authorizing input and 
 
 test('headed input arms all frames before activation and rechecks binding before dispatch',async()=>{
   const f=fixture();
-  f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});globalThis.calls=[];globalThis.reads=0;globalThis.snapshot={tab:7,url:'http://fixture.test/',control:'epoch',frames:[{frame:0,document:'doc',url:'http://fixture.test/',target:{element:'e1',role:'button',name:'Continue'},form:null},{frame:2,document:'child',url:'http://second.test/',target:null,form:null}]};requireTab=async()=>({url:snapshot.url});facts=async()=>{calls.push('facts-'+(++reads));return snapshot};content=async(tab,frame,command)=>{calls.push(command+'-'+frame);return {}};chrome.tabs={get:async()=>({active:false}),update:async(tab,args)=>{calls.push('activate-'+tab);return {active:args.active}}};chrome.webNavigation={getAllFrames:async()=>[]};chrome.debugger={sendCommand:async(source,method,parameters)=>{calls.push(parameters.type);return {}}};");
+  f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});globalThis.calls=[];globalThis.reads=0;globalThis.snapshot={tab:7,url:'http://fixture.test/',control:'epoch',frames:[{frame:0,browser_document:'native-top',document:'doc',url:'http://fixture.test/',target:{element:'e1',role:'button',name:'Continue'},form:null},{frame:2,browser_document:'native-child',document:'child',url:'http://second.test/',target:null,form:null}]};requireTab=async()=>({url:snapshot.url});facts=async()=>{calls.push('facts-'+(++reads));return snapshot};content=async(tab,frame,command)=>{calls.push(command+'-'+frame);return {}};chrome.tabs={get:async()=>({active:false}),update:async(tab,args)=>{calls.push('activate-'+tab);return {active:args.active}}};chrome.webNavigation={getAllFrames:async()=>snapshot.frames.map(frame=>({frameId:frame.frame,documentId:frame.browser_document}))};chrome.debugger={sendCommand:async(source,method,parameters)=>{calls.push(parameters.type);return {}}};");
   await f.run("dispatch({name:'input',tab:7,reference:{frame:0,element:'e1'},input:{verb:'press',key:'x'}})");
   const calls=Array.from(f.run('calls'));
   assert.ok(calls.indexOf('arm-0')<calls.indexOf('activate-7'));
@@ -484,7 +488,7 @@ test('navigated iframe cleanup preserves queued holds and distinguishes an uncer
 
 test('input replies propagate uncertain completion while retaining observed steps',async()=>{
   const f=stepFixture(),step=heldStep();f.run(`notify(${JSON.stringify(step)})`);
-  f.run("requireTab=async()=>({url:'http://fixture.test/'});facts=async()=>({tab:7,url:'http://fixture.test/',frames:[{frame:0,browser_document:'native-document',target:{element:'e1',role:'button',name:'Continue'},form:null}]});chrome.tabs.get=async()=>({active:false});chrome.tabs.update=async()=>({active:true});chrome.tabs.sendMessage=async(tab,message)=>{if(message.command==='finish_input')throw Error('completion unavailable');return {ok:true,data:message.command==='steps'?[]:{}}};chrome.webNavigation.getFrame=async()=>({documentId:'native-document'});chrome.debugger={sendCommand:async()=>({})};");
+  f.run("requireTab=async()=>({url:'http://fixture.test/'});facts=async()=>({tab:7,url:'http://fixture.test/',frames:[{frame:0,browser_document:'native-document',target:{element:'e1',role:'button',name:'Continue'},form:null}]});chrome.tabs.get=async()=>({active:false});chrome.tabs.update=async()=>({active:true});chrome.tabs.sendMessage=async(tab,message)=>{if(message.command==='finish_input')throw Error('completion unavailable');return {ok:true,data:message.command==='steps'?[]:{}}};chrome.webNavigation.getAllFrames=async()=>[{frameId:0,documentId:'native-document'}];chrome.webNavigation.getFrame=async()=>({documentId:'native-document'});chrome.debugger={sendCommand:async()=>({})};");
   const reply=await f.run("dispatch({name:'input',tab:7,reference:{frame:0,element:'e1'},input:{verb:'press',key:'x'}})");
   assert.equal(reply.uncertain_finish,true);assert.equal(reply.steps.length,1);
   assert.equal(reply.steps[0].document,'old-document');assert.equal(reply.steps[0].kind,'activation_unknown');
@@ -493,7 +497,7 @@ test('input replies propagate uncertain completion while retaining observed step
 
 test('Stop during the selected-tab read cannot activate the released owner tab',async()=>{
   const f=fixture();
-  f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({url:'http://fixture.test/'});facts=async()=>({tab:7,frames:[{frame:0,target:{element:'e1',role:'button',name:'Continue'},form:null}]});content=async()=>({});globalThis.effects=[];chrome.tabs={get:async()=>{controlled.delete(7);return {active:false}},update:async()=>effects.push('activate')};chrome.debugger={sendCommand:async()=>effects.push('input')};");
+  f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({url:'http://fixture.test/'});facts=async()=>({tab:7,frames:[{frame:0,target:{element:'e1',role:'button',name:'Continue'},form:null}]});content=async()=>({});globalThis.effects=[];chrome.tabs={get:async()=>{controlled.delete(7);return {active:false}},update:async()=>effects.push('activate')};chrome.webNavigation={getAllFrames:async()=>[{frameId:0}]};chrome.debugger={sendCommand:async()=>effects.push('input')};");
   await assert.rejects(f.run("dispatch({name:'input',tab:7,reference:{frame:0,element:'e1'},input:{verb:'press',key:'x'}})"),/control ended/);
   assert.deepEqual(Array.from(f.run('effects')),[]);
 });
@@ -501,7 +505,7 @@ test('Stop during the selected-tab read cannot activate the released owner tab',
 test('form destinations changed to an excluded host during arming refuse input and resume without a binding',async()=>{
   for(const method of ['get','post'])for(const name of ['input','resume']){
     const f=fixture();
-    f.run(`excludedHosts=['approval.test'];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({url:'http://fixture.test/'});globalThis.reads=0;globalThis.commands=[];globalThis.effects=[];facts=async()=>({tab:7,frames:[{frame:0,target:{element:'e1',role:'textbox',name:'Query',editable:true},form:{element:'form1',method:'${method}',search:${method==='get'},action:++reads===1?'http://fixture.test/receive':'http://approval.test/receive'}}]});content=async(tab,frame,command)=>{commands.push(command);return {}};chrome.tabs={get:async()=>({active:true}),update:async()=>effects.push('activate')};chrome.debugger={sendCommand:async()=>effects.push('input')};`);
+    f.run(`excludedHosts=['approval.test'];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({url:'http://fixture.test/'});globalThis.reads=0;globalThis.commands=[];globalThis.effects=[];facts=async()=>({tab:7,frames:[{frame:0,target:{element:'e1',role:'textbox',name:'Query',editable:true},form:{element:'form1',method:'${method}',search:${method==='get'},action:++reads===1?'http://fixture.test/receive':'http://approval.test/receive'}}]});content=async(tab,frame,command)=>{commands.push(command);return {}};chrome.tabs={get:async()=>({active:true}),update:async()=>effects.push('activate')};chrome.webNavigation={getAllFrames:async()=>[{frameId:0}]};chrome.debugger={sendCommand:async()=>effects.push('input')};`);
     await assert.rejects(f.run(`dispatch({name:'${name}',tab:7,reference:{frame:0,element:'e1'},input:{verb:'press',key:'Enter'}})`),/approval\/settings/,method+' '+name);
     assert.equal(f.run('reads'),2,'the first destination was allowed and the decisive reread followed arming');
     assert.ok(f.run("commands.includes('arm')"));
@@ -512,7 +516,7 @@ test('form destinations changed to an excluded host during arming refuse input a
 
 test('an allowed GET search destination reaches native input without a binding',async()=>{
   const f=fixture();
-  f.run("excludedHosts=['approval.test'];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({url:'http://fixture.test/'});globalThis.effects=[];facts=async()=>({tab:7,frames:[{frame:0,target:{element:'e1',role:'textbox',name:'Search',editable:true},form:{element:'form1',method:'get',search:true,action:'http://fixture.test/search'}}]});content=async()=>({});chrome.tabs={get:async()=>({active:true})};chrome.webNavigation={getAllFrames:async()=>[]};chrome.debugger={sendCommand:async(source,method,parameters)=>{effects.push(parameters.type);return {}}};");
+  f.run("excludedHosts=['approval.test'];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({url:'http://fixture.test/'});globalThis.effects=[];facts=async()=>({tab:7,frames:[{frame:0,target:{element:'e1',role:'textbox',name:'Search',editable:true},form:{element:'form1',method:'get',search:true,action:'http://fixture.test/search'}}]});content=async()=>({});chrome.tabs={get:async()=>({active:true})};chrome.webNavigation={getAllFrames:async()=>[{frameId:0}]};chrome.debugger={sendCommand:async(source,method,parameters)=>{effects.push(parameters.type);return {}}};");
   const reply=await f.run("dispatch({name:'input',tab:7,reference:{frame:0,element:'e1'},input:{verb:'press',key:'Enter'}})");
   assert.equal(reply.dispatched,true);assert.deepEqual(Array.from(f.run('effects')),['keyDown','keyUp']);
 });
@@ -619,4 +623,44 @@ test('manual popup taking requires and binds a currently controlled native opene
   await assert.rejects(f.run('take(8)'),/popup control requires its opener/);assert.equal(f.run('controlled.size'),0);assert.equal(f.run('lifecycleCalls.length'),0,'uncontrolled opener never gets a debugger attach or page injection');
   f.run("controlled.set(7,{epoch:'parent'})");await f.run('take(8)');assert.equal(f.run('controlled.get(8).parentTab'),7);assert.equal(f.run('controlled.get(8).parentEpoch'),'parent');
   await f.run('release(7)');assert.equal(f.run('controlled.has(8)'),false);
+});
+
+
+test('P1 independently opened native dialogs refuse if private arming cannot be established',async()=>{
+  const f=fixture();f.run("excludedHosts=[];groupId=1;controlled.set(7,{epoch:'epoch'});chrome.tabs.get=async()=>({url:'http://fixture.test/',groupId:1});chrome.webNavigation={getAllFrames:async()=>[{frameId:0}]};globalThis.effects=[];chrome.debugger={sendCommand:async()=>effects.push('answered')};dialogs.set(7,{frame:0,frame_url:'http://fixture.test/',kind:'confirm',text:'Continue?'});globalThis.expected={session,tab:7,control:'epoch',url:'http://fixture.test/',dialog:dialogs.get(7)};");
+  await assert.rejects(f.run("dispatch({name:'dialog',tab:7,binding:expected,input:{accept:true}})"),/leave it to the owner/);assert.equal(f.run('effects.length'),0);assert.equal(f.run('dialogs.has(7)'),true);
+});
+test('P2 inherited blank and srcdoc frames need authenticated origin and enter binding',async()=>{
+  const f=fixture();f.run("excludedHosts=[];requireTab=async()=>({url:'http://fixture.test/'});controlled.set(7,{epoch:'epoch'});chrome.webNavigation={getAllFrames:async()=>[{frameId:0,parentFrameId:-1,documentId:'top',url:'http://fixture.test/'},{frameId:1,parentFrameId:0,documentId:'blank',url:'about:blank'},{frameId:2,parentFrameId:0,documentId:'inline',url:'about:srcdoc'}]};globalThis.queried=[];content=async(tab,frame)=>{queried.push(frame);return {document:'private-'+frame,origin:'http://fixture.test',url:frame===0?'http://fixture.test/':frame===1?'about:blank':'about:srcdoc',editable:[{value:'Draft '+frame}],target:{element:'e1',name:'Send'}};};");
+  const result=await f.run('facts(7)');assert.deepEqual(Array.from(f.run('queried')),[0,1,2]);assert.equal(result.frames.length,3);
+  f.run('globalThis.current='+JSON.stringify(result));assert.equal(f.run("binding(current,{frame:0},'send',false).editable.length"),3);
+  f.run("const previous=content;content=async(tab,frame)=>({...await previous(tab,frame),origin:frame===2?'null':'http://fixture.test'})");
+  const unsafe=await f.run('facts(7)');assert.equal(unsafe.uncovered.length,1);f.run('globalThis.current='+JSON.stringify(unsafe));assert.throws(()=>f.run("binding(current,{frame:0},'send',false)"),/complete draft/);
+});
+test('P17 losing password history in a surviving browser document refuses reads',async()=>{
+  const f=fixture();f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({url:'http://fixture.test/'});chrome.webNavigation={getAllFrames:async()=>[{frameId:0,documentId:'same-native-document',url:'http://fixture.test/'}]};globalThis.privateDocument='first';content=async()=>({document:privateDocument,url:'http://fixture.test/'});");
+  await f.run('facts(7)');f.run("privateDocument='replacement'");await assert.rejects(f.run('facts(7)'),/password history was lost/);
+});
+test('P24 final identity query finishes before the last dirty and audible check',async()=>{
+  const f=fixture();f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({});facts=async()=>({needs_reload:true,frames:[{frame:0}]});globalThis.identityCalls=0;globalThis.dirty=false;globalThis.reloads=0;chrome.webNavigation={getAllFrames:async()=>[{frameId:0,documentId:'doc',url:'http://fixture.test/'}]};documentMethods.set('[7,0]',{document:'doc',method:'GET'});cdp=async(tab,method)=>{if(method==='Page.getFrameTree'){if(++identityCalls===2)dirty=true;return {frameTree:{frame:{url:'http://fixture.test/',loaderId:'loader'}}};}reloads++;};content=async()=>({unsaved:dirty,playing:false});");
+  await assert.rejects(f.run("dispatch({name:'prepare_control',tab:7})"),/reload_required/);assert.equal(f.run('reloads'),0);
+  f.run('dirty=false;identityCalls=0;chrome.tabs.get=async()=>({audible:true})');await assert.rejects(f.run("dispatch({name:'prepare_control',tab:7})"),/playing media/);assert.equal(f.run('reloads'),0);
+});
+test('P25 satisfied checks and isolated selections do not activate an inactive tab',async()=>{
+  for(const input of [{verb:'check',checked:true},{verb:'select',value:'second'}]){
+    const f=fixture();f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({});facts=async()=>({frames:[{frame:0,target:{element:'e1',states:{checked:true}}}]});globalThis.activated=0;content=async()=>({});chrome.webNavigation={getAllFrames:async()=>[{frameId:0}]};chrome.tabs.get=async()=>({active:false});chrome.tabs.update=async()=>activated++;collectSteps=async()=>[];");
+    await f.run('dispatch('+JSON.stringify({name:'input',tab:7,reference:{frame:0,element:'e1'},input})+')');assert.equal(f.run('activated'),0);
+  }
+});
+test('P27 Stop lifts navigation blocks before deferred native restoration',async()=>{
+  const f=lifecycleFixture();f.run("controlled.set(7,{epoch:'epoch'});preloadTargets.set('[7,null]',{tab:7,source:{tabId:7},contexts:new Map(),documents:new Map([['main',{cleanup:'handle'}]]),installing:new Set()});chrome.debugger.sendCommand=()=>new Promise(()=>{});globalThis.ruleChanges=[];chrome.declarativeNetRequest.updateSessionRules=async value=>ruleChanges.push(value);globalThis.timerCallbacks=[];setTimeout=(callback,delay)=>{timerCallbacks.push({callback,delay})};");
+  const pending=f.run('release(7)');await spin(f,'ruleChanges.length>0');const last=f.run('ruleChanges.at(-1)');assert.equal(last.addRules.length,0);f.run('timerCallbacks.find(timer=>timer.delay===1000).callback()');assert.equal((await pending).cleanup_pending,true);
+});
+test('P28 final binding refusal finishes every armed frame',async()=>{
+  const f=fixture();f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});globalThis.reads=0;globalThis.finished=[];requireTab=async()=>({});facts=async()=>({tab:7,frames:[{frame:0,document:'doc',target:{element:'e1',name:++reads===1?'Before':'After'}}]});content=async(tab,frame,command)=>{if(command==='finish_input')finished.push(frame);return {}};globalThis.approved=binding({tab:7,frames:[{frame:0,document:'doc',target:{element:'e1',name:'Before'}}]},{frame:0},null,false);");
+  await assert.rejects(f.run("dispatch({name:'input',tab:7,reference:{frame:0,element:'e1'},input:{verb:'select'},binding:approved})"),/page changed/);assert.deepEqual(Array.from(f.run('finished')),[0]);
+});
+test('P23 input page evidence contains the bounded post-input notice',async()=>{
+  const f=fixture();f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({});facts=async()=>({frames:[{frame:0,target:{element:'e1'}}]});content=async(tab,frame,command)=>command==='observe'?{url:'http://fixture.test/',notices:['ERROR: the change failed']} : {};chrome.webNavigation={getAllFrames:async()=>[{frameId:0}]};collectSteps=async()=>[];");
+  const result=await f.run("dispatch({name:'input',tab:7,reference:{frame:0,element:'e1'},input:{verb:'select'}})");assert.equal(result.page.notices[0],'ERROR: the change failed');
 });

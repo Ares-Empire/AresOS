@@ -30,10 +30,10 @@ function fixture({relay=false,activate=true,link=true,browserDOM=false}={}) {
     }
   }
   const originalDispatch=EventTarget.prototype.dispatchEvent;
-  class Node extends EventTarget {getRootNode(){return this.root??document;}}
+  class Node extends EventTarget {getRootNode(options={}){const root=this.root??this.ownerDocument??document;return options.composed&&root.host?root.host.getRootNode(options):root;}}
   class Element extends Node {
     isConnected=true;tagName='DIV';type='';textContent='';form=null;role='';
-    constructor(){super();nodes.push(this);}
+    constructor(){super();this.ownerDocument=document;nodes.push(this);}
     get childNodes(){return [{nodeType:3,textContent:this.textContent}];}
     closest(){return this;}
     getAttribute(name){return this[name]||null;}
@@ -56,10 +56,11 @@ function fixture({relay=false,activate=true,link=true,browserDOM=false}={}) {
   class AbstractRange {}
   class StaticRange extends AbstractRange {constructor(options){super();Object.defineProperty(this,'startContainer',{value:options.startContainer});}}
   class InputEvent extends Event {constructor(type,options={}){super(type,options);this.ranges=options.targetRanges?Array.from(options.targetRanges):[];}getTargetRanges(){return this.ranges;}}
-  const globals={window,document,performance:{now:()=>now},setTimeout,MessageChannel,Symbol,Event,CustomEvent,EventTarget,Node,Element,HTMLElement,HTMLInputElement,HTMLFormElement,DOMException,URL,...(relay?{AbstractRange,StaticRange,InputEvent}:{}),...(browserDOM?{Document:class Document{}}:{})};
+  const globals={window,document,performance:{now:()=>now},setTimeout,MessageChannel,Symbol,Event,CustomEvent,EventTarget,Node,Element,HTMLElement,HTMLInputElement,HTMLFormElement,DOMException,URL,TextDecoder,Uint8Array,...(relay?{AbstractRange,StaticRange,InputEvent}:{}),...(browserDOM?{Document:class Document{}}:{})};
   const isolated=vm.createContext({...globals});
   vm.runInContext(fs.readFileSync('control/chrome/extension/guard.js','utf8'),isolated);
   const guard=vm.runInContext("globalThis[Symbol.for('aresos.chrome.guard.v2')]",isolated);
+  document.defaultView={[Symbol.for('aresos.chrome.guard.v2')]:guard};
   const ids=new Map(), elements=new Map();let sequence=0;
   function id(node){if(!ids.has(node)){const key='e'+(++sequence);ids.set(node,key);elements.set(key,node);}return ids.get(node);}
   function name(node){const labels=(node['aria-labelledby']||'').split(/\s+/).map(key=>document.getElementById(key)).filter(Boolean);return labels.length ? labels.map(label=>label.textContent).join(' ') : node['aria-label'] || node.labels?.map(label=>label.textContent).join(' ') || node.textContent;}
@@ -468,4 +469,58 @@ test('GET search cannot bypass private excluded destinations or unsafe URLs',()=
     f.guard.arm({generation:'epoch',config:{...policy,blockedHosts:['approval.test']},target:f.id(form),form:f.id(form)});
     form.submit();form.requestSubmit();assert.equal(f.arrivals.length,0,action);assert.equal(f.reports.length,2,action);
   }
+});
+
+
+test('P7 malformed escapes and invalid UTF-8 keep script activation asking',()=>{
+  for(const suffix of ['%ZZ','%FF','%E2%82']){
+    const f=fixture(),form=new f.HTMLFormElement(),button=new f.HTMLElement();
+    button.tagName='BUTTON';button.textContent='Continue';button.form=form;form.action='https://fixture.test/%73end?bad='+suffix;
+    let handlers=0;button.addEventListener('click',()=>handlers++);f.arm(button,form);button.click();
+    assert.equal(handlers,0);assert.equal(f.reports.length,1);
+  }
+});
+test('P8 decomposed canonical list words ask before delivery',()=>{
+  for(const word of ['lo\u0308schen','vero\u0308ffentlichen']){
+    const f=fixture(),button=new f.HTMLElement();button.tagName='BUTTON';button.textContent=word;
+    let handlers=0;button.addEventListener('click',()=>handlers++);f.arm(button,null);button.click();
+    assert.equal(handlers,0);assert.equal(f.reports.length,1);
+  }
+});
+
+
+test('P20 synchronous owner Enter pins the exact form and exact submitter independently',async()=>{
+  for(const mode of ['other-form','other-submitter']){
+    const f=fixture(),form=new f.HTMLFormElement(),other=new f.HTMLFormElement(),field=new f.HTMLInputElement(),button=new f.HTMLElement();field.form=form;button.form=form;button.type='submit';
+    f.arm(field,null);await f.api.finish('epoch');
+    field.addEventListener('keydown',()=>mode==='other-form'?other.submit():form.requestSubmit(button));
+    f.originalDispatch.call(field,new f.Event('keydown',{key:'Enter',isTrusted:true}));
+    assert.equal(f.arrivals.length,0,mode+' must stay held during owner dispatch');assert.equal(f.reports.length,1);
+  }
+});
+test('P20 an untrusted Enter on the exact field never establishes owner authority',async()=>{
+  const f=fixture(),form=new f.HTMLFormElement(),field=new f.HTMLInputElement();field.form=form;f.arm(field,null);await f.api.finish('epoch');
+  field.addEventListener('keydown',()=>form.submit());f.originalDispatch.call(field,new f.Event('keydown',{key:'Enter',isTrusted:false}));
+  assert.equal(f.arrivals.length,0);assert.equal(f.reports.length,1);
+});
+test('P20 an unconsumed owner mark expires before a delayed trusted native default',async()=>{
+  const f=fixture(),form=new f.HTMLFormElement(),field=new f.HTMLInputElement();field.form=form;f.arm(field,null);await f.api.finish('epoch');
+  f.originalDispatch.call(field,new f.Event('keydown',{key:'Enter',isTrusted:true}));
+  await new Promise(resolve=>setImmediate(resolve));f.originalRequestSubmit.call(form);
+  assert.equal(f.arrivals.length,0,'clearing is required even without consumption or cancellation');assert.equal(f.reports.length,1);
+});
+test('P26 wrappers have native nonconstructible method shapes',()=>{
+  const f=fixture();for(const fn of [f.HTMLFormElement.prototype.submit,f.HTMLFormElement.prototype.requestSubmit,f.HTMLElement.prototype.click,f.EventTarget.prototype.dispatchEvent]){
+    assert.equal(Object.hasOwn(fn,'prototype'),false);assert.deepEqual(Object.getOwnPropertyNames(fn),['length','name']);assert.throws(()=>Reflect.construct(fn,[]),TypeError);
+  }
+});
+test('P4 borrowed wrappers route to another controlled document guard',()=>{
+  const source=fixture({relay:true}),target=fixture({relay:true}),form=new target.HTMLFormElement();target.arm(form,form);
+  source.HTMLFormElement.prototype.submit.call(form);assert.equal(source.arrivals.length,0);assert.equal(target.arrivals.length,0);assert.equal(target.reports.length,1);
+  const outside=fixture({relay:true}),ordinary=new outside.HTMLFormElement();outside.cleanup();delete outside.document.defaultView[Symbol.for('aresos.chrome.guard.v2')];
+  source.HTMLFormElement.prototype.submit.call(ordinary);assert.equal(source.arrivals.length,1,'the saved source native is used for an uncontrolled document');
+});
+test('P5 composed root keeps asking controls inside shadow DOM held',()=>{
+  const f=fixture(),host=new f.HTMLElement(),root=new f.Node(),form=new f.HTMLFormElement();root.host=host;form.root=root;f.arm(host,null);
+  form.submit();assert.equal(f.arrivals.length,0);assert.equal(f.reports.length,1,'composed:false would bypass the guard');
 });

@@ -10,10 +10,11 @@
   const property=(object,key,value,enumerable=false)=>{const description=create(null);description.value=value;description.enumerable=enumerable;define(object,key,description);};
   const descriptor=Object.getOwnPropertyDescriptor;
   const ownDocument=document,root=globalThis.Node?.prototype.getRootNode;
+  const defaultView=globalThis.Document&&descriptor(Document.prototype,'defaultView')?.get;
   const nodeType=globalThis.Node?descriptor(Node.prototype,'nodeType')?.get:null;
-  const saved={submit:HTMLFormElement.prototype.submit,requestSubmit:HTMLFormElement.prototype.requestSubmit,click:HTMLElement.prototype.click,dispatchEvent:dispatch};
+  const saved={submit:HTMLFormElement.prototype.submit,requestSubmit:HTMLFormElement.prototype.requestSubmit,click:HTMLElement.prototype.click,dispatchEvent:dispatch,attachShadow:globalThis.Element?.prototype.attachShadow};
   const nativeString=Function.prototype.toString,nativeStrings=new WeakMap(),getString=WeakMap.prototype.get,setString=WeakMap.prototype.set;
-  const connected=target=>{try{return root?invoke(root,target,[options({composed:true})])===ownDocument:target.getRootNode({composed:true})===ownDocument;}catch{return false;}};
+  const connected=target=>{try{const owner=root?invoke(root,target,[options({composed:true})]):target.getRootNode({composed:true});return owner===ownDocument||!!(defaultView?invoke(defaultView,owner,[]):owner.defaultView);}catch{return false;}};
   const installed=[];
   const privateRelay=globalThis.StaticRange&&globalThis.InputEvent&&document.createElement?document.createElement('div'):null;
   const privateControl=privateRelay?document.createElement('span'):null;
@@ -66,9 +67,10 @@
   }
   // Replacement cannot recover a saved native. A borrowed fresh-frame native is
   // the separately reported fallback; sites may still patch their own methods.
-  function install(prototype,name,value) { const previous=options(descriptor(prototype,name));invoke(setString,nativeStrings,[value,invoke(nativeString,previous.value,[])]);define(value,'name',options({value:previous.value.name,configurable:true}));define(value,'length',options({value:previous.value.length,configurable:true}));define(prototype,name,options({...previous,value}));installed.push({prototype,name,value,previous}); }
+  function install(prototype,name,implementation) { const value=({method(...args){return invoke(implementation,this,args);}}).method;const previous=options(descriptor(prototype,name));invoke(setString,nativeStrings,[value,invoke(nativeString,previous.value,[])]);define(value,'name',options({value:previous.value.name,configurable:true}));define(value,'length',options({value:previous.value.length,configurable:true}));define(prototype,name,options({...previous,value}));installed.push({prototype,name,value,previous}); }
   function activate(){
   if(closed)throw Error('The document guard was disposed');if(enabled)return;enabled=true;
+  if(saved.attachShadow)install(Element.prototype,'attachShadow',function(){const result=invoke(saved.attachShadow,this,arguments);report(result,{kind:'watch_root'});return result;});
   install(Function.prototype,'toString',function(){return invoke(getString,nativeStrings,[this])??invoke(nativeString,this,[]);});
   install(HTMLFormElement.prototype,'submit',function() { if(!enabled||!connected(this))return invoke(saved.submit,this,[]);report(this,{kind:'native_submit'}); });
   install(HTMLFormElement.prototype,'requestSubmit',function(submitter) {

@@ -9,7 +9,7 @@
   const {protectedFields,fileIdentities}=privacy;
   const guard=globalThis[Symbol.for('aresos.chrome.guard.v2')];
   if(guard.ready)return;
-  const documentId = [...crypto.getRandomValues(new Uint8Array(16))].map(value=>value.toString(16).padStart(2,'0')).join('');
+  const documentId = privacy.documentId??=[...crypto.getRandomValues(new Uint8Array(16))].map(value=>value.toString(16).padStart(2,'0')).join('');
   let sequence = 0, revision = 0, controlGeneration = null;
   const traces = [], files = new Map(), watchedRoots = new WeakSet();
   const formGetters=globalThis.HTMLFormElement?Object.fromEntries(['elements','action','method','enctype','target'].map(key=>[key,Object.getOwnPropertyDescriptor(HTMLFormElement.prototype,key)?.get])):{};
