@@ -45,7 +45,7 @@ class Policy(unittest.TestCase):
         for url in ['http://localhost/','https://fixture.test/','about:blank']:
             self.assertEqual(allowed_url(url),url)
         self.assertEqual({method for method in CDP_METHODS if method.startswith('Runtime.')},
-                         {'Runtime.enable','Runtime.evaluate','Runtime.callFunctionOn','Runtime.runIfWaitingForDebugger'})
+                         {'Runtime.evaluate','Runtime.callFunctionOn','Runtime.runIfWaitingForDebugger'})
         self.assertNotIn('Debugger.evaluateOnCallFrame', CDP_METHODS)
         self.assertNotIn('Runtime.getProperties', CDP_METHODS)
         self.assertFalse(any(name.startswith(('Network.','Fetch.','Accessibility.','DOMSnapshot.')) for name in CDP_METHODS))
@@ -91,3 +91,38 @@ class Conservative(Policy):
         self.assertEqual(classify('click',{}, {'target':{'name':'Send'}},conservative=True),'send')
         self.assertEqual(classify('click',{}, {'target':{'submit':True},'form':{'search':True,'method':'get'}},conservative=True),'form')
         self.assertEqual(classify('dialog',{'accept':True},{'dialog':{'text':'Proceed?'}},conservative=True),'activation')
+
+class ReviewClassification(unittest.TestCase):
+    def test_p6_equivalent_keys_classify_the_dispatched_tuple(self):
+        from aresos_control.chrome.policy import canonical_key, key_input
+        for base in ['Delete', 'Backspace']:
+            for modifier in ['', 'Shift+', 'Ctrl+', 'Cmd+Alt+']:
+                self.assertEqual(classify('press', {'key':modifier+base}, {'target':{}}), 'delete')
+                self.assertIsNone(classify('press', {'key':modifier+base}, {'target':{'editable':True}}))
+        self.assertEqual(canonical_key('#'), canonical_key('Shift+#'))
+        self.assertEqual(key_input('#'), key_input('Shift+#'))
+
+    def test_p7_tolerant_url_decoding_and_p8_canonical_unicode(self):
+        for action in ['https://fixture.test/%73end?bad=%ZZ', 'https://fixture.test/%73end?bad=%FF', 'https://fixture.test/%73end?bad=%E2%82']:
+            self.assertEqual(classify('click', {}, {'target':{}, 'form':{'action':action}}), 'send')
+        for word, expected in [('lo\u0308schen','delete'), ('vero\u0308ffentlichen','send')]:
+            self.assertEqual(classify('click', {}, {'target':{'name':word}}), expected)
+
+    def test_p9_explicit_payment_and_deletion_override_adapter(self):
+        adapter = {'kind':'gemini_question', 'effect':'send'}
+        for channel in ['name','label','title','value','role']:
+            for cue in ['Pay', 'Delete']:
+                self.assertEqual(classify('click', {}, {'target':{channel:cue}}, adapter=adapter), cue.lower())
+        for cue in ['pay', 'delete']:
+            self.assertEqual(classify('click', {}, {'target':{},'form':{'action':'https://fixture.test/'+cue}}, adapter=adapter), cue)
+
+    def test_p14_unsubscribe_binds_item_without_a_draft(self):
+        for label in ['Unsubscribe', 'Abbestellen']:
+            self.assertEqual(classify('click', {}, {'target':{'name':label}}), 'item')
+
+    def test_p21_get_search_form_enter_in_ordinary_input(self):
+        facts = {'target':{'editable':True}, 'form':{'method':'get', 'search':True}}
+        self.assertIsNone(classify('press', {'key':'Enter'}, facts))
+        self.assertEqual(classify('press', {'key':'Enter'}, facts, conservative=True), 'form')
+        facts['form']['method']='post'
+        self.assertEqual(classify('press', {'key':'Enter'}, facts), 'send')

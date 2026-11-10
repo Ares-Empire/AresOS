@@ -38,7 +38,7 @@ export const POLICY = {
     "leeren",
     "papierkorb"
   ],
-  "wordListVersion": 2,
+  "wordListVersion": 3,
   "fixedHosts": [
     "claude.ai",
     "console.anthropic.com",
@@ -54,7 +54,6 @@ export const POLICY = {
     "Page.reload",
     "Page.enable",
     "Page.handleJavaScriptDialog",
-    "Runtime.enable",
     "Runtime.evaluate",
     "Runtime.callFunctionOn",
     "Runtime.runIfWaitingForDebugger",
@@ -4715,6 +4714,7 @@ export const POLICY = {
         201552,
         205743
       ]
-    ]
+    ],
+    "normalization": "NFC"
   }
 };

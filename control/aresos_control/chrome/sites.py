@@ -3,7 +3,7 @@ import re
 from urllib.parse import urlsplit
 
 from ..common import digest
-from .policy import HOSTS, listed, DELETE, PAY
+from .policy import canonical_key, HOSTS, listed, DELETE, PAY
 
 VERSIONS = {name: 2 for name in HOSTS}
 KINDS = {
@@ -84,7 +84,7 @@ def recognize(url, reading, target, verb, args, hosts=None, enabled=None):
         return None
     label = target.get('name', '').casefold().strip()
     label_words = set(re.findall(r'\w+', label))
-    key = args.get('key', '') if verb == 'press' else ''
+    key = canonical_key(args['key']) if verb == 'press' else ''
     activation = verb == 'click' or verb == 'press' and key in {'Enter', 'Space', ' '}
     editing = target.get('editable', False)
     # The reader's scope selector includes <main>, whose implicit role is currently
