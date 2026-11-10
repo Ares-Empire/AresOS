@@ -1260,6 +1260,41 @@ def release_rules(guest, stage):
     return value
 
 
+# Package 21: no polkit grant lets `ares` act without his password beyond the
+# reviewed list (os/ci/polkit-review.json, which polkit-check.js enforces on the
+# image's rules). Here polkitd itself answers every installed action for his
+# active desktop session on the updated system, so /etc kept from release 13
+# counts too. pkcheck: 0 authorized, 1 not authorized, 2 needs authentication.
+POLKIT = r'''import json,subprocess
+env={'LC_ALL':'C','PATH':'/usr/sbin:/usr/bin'}
+rows=[r.split() for r in subprocess.check_output(['loginctl','list-sessions','--no-legend'],text=True,env=env).splitlines()]
+session,=[r[0] for r in rows if r[2:4]==['ares','seat0']]
+state=dict(l.split('=',1) for l in subprocess.check_output(['loginctl','show-session',session,'-p','Active','-p','Remote'],
+    text=True,env=env).splitlines())
+labwc,=subprocess.check_output(['pgrep','-u','ares','-x','labwc'],text=True,env=env).split()
+scope=open('/proc/'+labwc+'/cgroup').read()
+actions=subprocess.check_output(['pkaction'],text=True,env=env).split()
+codes={a:subprocess.run(['pkcheck','--action-id',a,'--process',labwc],capture_output=True,env=env).returncode for a in actions}
+print(json.dumps(dict(session_active=state.get('Active'),session_remote=state.get('Remote'),
+    session_scope=('/session-'+session+'.scope') in scope,actions=len(actions),
+    answers={str(c):sum(1 for v in codes.values() if v==c) for c in sorted(set(codes.values()))},
+    passwordless=sorted(a for a,c in codes.items() if c==0))))
+'''
+
+
+def polkit_sweep(guest, stage):
+    """Every installed polkit action, asked for his active desktop session on the booted release."""
+    reviewed = set(json.loads(pathlib.Path('os/ci/polkit-review.json').read_text())['passwordless'])
+    value = guest.capture_json(stage + '-polkit', sw.framed('python3 -c ' + shlex.quote(POLKIT)))
+    td.save(stage + '-polkit-sweep', value)
+    assert value['session_active'] == 'yes' and value['session_remote'] == 'no' and value['session_scope'] is True, \
+        'STOP: the polkit sweep needs his active local desktop session'
+    assert value['actions'] > 0 and set(value['answers']) <= {'0', '1', '2'}, 'STOP: polkit did not answer every action'
+    extra = sorted(set(value['passwordless']) - reviewed)
+    assert not extra, 'STOP: polkit lets ares act without his password beyond the reviewed list: ' + ', '.join(extra)
+    return value
+
+
 def owner_scripts(guest, stage, commit=None, homebrew_stage='aresos'):
     """Policy and inherited-Homebrew checks of the release that is booted."""
     read = (lambda path: git_blob(commit, path).decode()) if commit else (lambda path: pathlib.Path(path).read_text())
@@ -1332,8 +1367,10 @@ def update_rehearsal(audit, media, password, hashed, ares_password):
         console.run('records', 'release-27-records')
         public_typing(guest, 'release-27', 'de', console, foot=True)
         terminal = terminal_path(guest, 'release-27')
+        # terminal_path left his desktop in front, so polkit sees his active session.
         policy, observed = owner_scripts(guest, 'release-27')
         assert observed == brew and 'ARESOS_ACTIVE_SESSION_POLKIT_PASSED' in policy and 'ARESOS_GUEST_CHECKS_PASSED' in policy
+        polkit = polkit_sweep(guest, 'release-27')
         # The one-time administrator password, as the guide says, then his sudo.
         console.passwd(ares_password, 'release-27-ares-password')
         Console(guest, 'tty4').ares_sudo(ares_password, 'release-27-ares-sudo')
@@ -1381,6 +1418,7 @@ def update_rehearsal(audit, media, password, hashed, ares_password):
         update_staged=True, update_confirmed=True, previous_confirmed=True, forward_after_previous='refused (no route)',
         ares_password_set_by_typing=True, ares_sudo_password_accepted=True, ares_sudo_no_ticket=True,
         package21_rules=rules, terminal_path=terminal['path'], stock_pinned_throughout=True,
+        polkit_sweep=dict(actions=polkit['actions'], answers=polkit['answers'], passwordless=len(polkit['passwordless'])),
         deployments=dict(release_13=list(first[old_digest]), release_27=list(updated), stock=list(ke.key(stock))),
         owner_commands_physically_typed=True, protected_disk_audits=True, nvram_rule_unchanged=True, bootnext_audits=True))
 

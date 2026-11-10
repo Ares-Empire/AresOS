@@ -22,7 +22,7 @@ def main():
     previous = json.loads((ROOT / 'os/manifest/ci/16/host-walk.json').read_text())
     paths = {row['path'] for row in previous['sources']}
     # Read by the update walk and its harness in addition to package 16's set.
-    paths.update({'os/manifest/release.json', 'os/manifest/releases/13.json', 'os/owner-tools/history.json',
+    paths.update({'os/ci/polkit-review.json', 'os/manifest/release.json', 'os/manifest/releases/13.json', 'os/owner-tools/history.json',
                   'os/owner-tools/payload/history.json', 'os/tests/owner_console_shim.py',
                   'reviews/27-first-update-release/walk-host.py'})
     sources = [dict(sha256=hashlib.sha256((ROOT / path).read_bytes()).hexdigest(), path=path) for path in sorted(paths)]

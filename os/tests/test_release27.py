@@ -9,7 +9,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'os/ci'))
@@ -411,6 +411,50 @@ class VerifyRelease27Test(unittest.TestCase):
                     identity='https://github.com/Ares-Empire/AresOS/.github/workflows/os-image.yml@refs/heads/main'),
                 image_diff=dict(status='passed', unexplained=[]), job_token_read=dict(status='passed', owner_token_used=False),
                 source_trees=[dict(tree=tree, path=path) for path, tree in self.TREES.items()]))
+
+
+class PolkitSweepTest(unittest.TestCase):
+    """The update rehearsal asks polkitd about every action for his desktop session."""
+
+    def setUp(self):
+        import owner_vm
+        self.vm = owner_vm
+        self.reviewed = sorted(json.loads((ROOT / 'os/ci/polkit-review.json').read_text())['passwordless'])
+
+    def sweep(self, **changes):
+        value = dict(session_active='yes', session_remote='no', session_scope=True, actions=700,
+                     answers={'0': 100, '1': 300, '2': 300}, passwordless=self.reviewed[:100])
+        value.update(changes)
+        guest = Mock()
+        guest.capture_json.return_value = value
+        with patch.object(self.vm.td, 'save') as save:
+            result = self.vm.polkit_sweep(guest, 'release-27')
+        name, script = guest.capture_json.call_args.args
+        self.assertEqual(name, 'release-27-polkit')
+        self.assertIn('pkcheck', script)
+        save.assert_called_once_with('release-27-polkit-sweep', value)
+        return result
+
+    def test_the_guest_program_parses(self):
+        import ast
+        ast.parse(self.vm.POLKIT)
+
+    def test_reviewed_passwordless_actions_pass(self):
+        self.assertEqual(self.sweep()['actions'], 700)
+
+    def test_a_passwordless_action_beyond_the_review_stops(self):
+        with self.assertRaisesRegex(AssertionError, 'beyond the reviewed list: org.freedesktop.Flatpak.app-install'):
+            self.sweep(passwordless=self.reviewed[:3] + ['org.freedesktop.Flatpak.app-install'])
+
+    def test_an_inactive_or_remote_session_or_other_scope_stops(self):
+        for changes in (dict(session_active='no'), dict(session_remote='yes'), dict(session_scope=False)):
+            with self.subTest(**changes), self.assertRaisesRegex(AssertionError, 'active local desktop session'):
+                self.sweep(**changes)
+
+    def test_an_unanswered_action_stops(self):
+        for changes in (dict(answers={'0': 1, '127': 1}), dict(answers={'3': 1}), dict(actions=0)):
+            with self.subTest(**changes), self.assertRaisesRegex(AssertionError, 'did not answer every action'):
+                self.sweep(**changes)
 
 
 class DispatchMatrixTest(unittest.TestCase):

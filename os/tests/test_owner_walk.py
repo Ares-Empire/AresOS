@@ -245,6 +245,10 @@ def walk(ps2=False, route='qualification'):
                     error='Private release read failed; check read:packages permission/expiry and network; no credential was written')
             if name.endswith('-path-result'):
                 return dict(uid=1001, owner_uid=1001, path=vm.DAILY_PATH + ':/home/linuxbrew/.linuxbrew/bin')
+            if name.endswith('-polkit'):
+                reviewed = sorted(json.loads((ROOT / 'os/ci/polkit-review.json').read_text())['passwordless'])
+                return dict(session_active='yes', session_remote='no', session_scope=True, actions=len(reviewed) + 2,
+                            answers={'0': len(reviewed) - 1, '1': 1, '2': 2}, passwordless=reviewed[1:])
             if name.endswith('-rules'):
                 return dict(ares_in_wheel=True, sudo_all_with_password=True, sudo_keeps_no_ticket=True, sudo_n_refused=True,
                     ares_password_set=True, chrome_started=True, chrome_stderr_tail='', chrome_version='Google Chrome 157.0.8103.50',
@@ -473,6 +477,13 @@ class OwnerWalkTest(unittest.TestCase):
                 self.assertIn('ares\n', typed)
                 self.assertIn('sudo -n true\n', typed)
                 self.assertIn('sudo-passwd-reader', {s['shape'] for s in result['hidden_shapes']})
+                # polkit is asked while his desktop is in front: after the terminal PATH
+                # probe (which leaves tty1 active) and guest.sh, before the console returns.
+                names = [name for name, source in result['commands']]
+                self.assertEqual(names.count('release-27-polkit'), 1)
+                self.assertLess(names.index('release-27-path-result'), names.index('release-27-policy'))
+                self.assertLess(names.index('release-27-policy'), names.index('release-27-polkit'))
+                self.assertLess(names.index('release-27-polkit'), names.index('release-27-rules'))
                 checks = result['checks']
                 self.assertLess(checks.index('update-windows-copy-windows-copy'), checks.index('update-tools-hotplug'))
                 self.assertLess(checks.index('update-tools-hotplug'), checks.index('update-tools-detach'))
