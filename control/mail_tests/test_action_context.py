@@ -18,6 +18,49 @@ FLOWS = ('send', 'repair', 'delete_trash', 'delete_permanent', 'unsubscribe_mail
 
 
 class ActionContexts(unittest.TestCase):
+    def test_healthy_rename_uses_uid_namespace_without_fetching_any_message_body(self):
+        nested = b'Message-ID: <nested@mail.invalid>\r\n\r\nbody\r\n'
+        for _ in range(45):
+            nested = b'Content-Type: message/rfc822\r\n\r\n' + nested
+        excessive = (b'Message-ID: <parts@mail.invalid>\r\nContent-Type: multipart/mixed; boundary=p\r\n\r\n' +
+                     (b'--p\r\nContent-Type: text/plain\r\n\r\nx\r\n' * 1100) + b'--p--\r\n')
+        oversized = b'Message-ID: <large@mail.invalid>\r\n\r\nsmall fixture body'
+        for label, raw in (('oversized', oversized), ('nested', nested), ('excessive-parts', excessive)):
+            with self.subTest(message=label):
+                scenario = OwnerScenario('filing_rename')
+                try:
+                    fixture = scenario.fixture
+                    fixture.imap.boxes['Source'] = {1: raw}
+                    roles = copy.deepcopy(fixture.imap.roles)
+                    rename = fixture.imap.rename
+                    def ordinary(source, target):
+                        answer = rename(source, target)
+                        fixture.imap.roles = {**roles, 'Renamed': roles['Source']}
+                        fixture.imap.roles.pop('Source')
+                        return answer
+                    uid = fixture.imap.uid
+                    def no_fetch(command, *args):
+                        self.assertNotEqual(command, 'FETCH', 'RENAME must never request message metadata or bodies')
+                        return uid(command, *args)
+                    # The advertised body exceeds the exact pre-existing wire
+                    # limit without allocating a large test message.
+                    fixture.mail.wires.limit = len(raw) - 1 if label == 'oversized' else fixture.mail.wires.limit
+                    driver = Driver(scenario)
+                    with patch.object(fixture.imap, 'rename', side_effect=ordinary), patch.object(fixture.imap, 'uid', side_effect=no_fetch), driver.observe():
+                        result = scenario.call()
+                    driver.reply(result)
+                    self.assertTrue(result['ok'], result)
+                    self.assertEqual(result['data']['state'], 'done', result)
+                    self.assertFalse(result['pending'].get('notices'))
+                    command = next(e for e in driver.oracle.servers if e['command'] == 'RENAME')
+                    _, row = bind(command, driver.oracle.script)
+                    self.assertEqual(row['context']['identities'], [{'account': 'box', 'folder': 'Source',
+                        'uidvalidity': fixture.imap.validities['Renamed'], 'uid': 1}])
+                    self.assertFalse(driver.oracle.context_errors())
+                    self.assertFalse(any(e['command'] == 'FETCH' for e in driver.oracle.servers))
+                finally:
+                    scenario.close()
+
     def capture(self, flow, fail=None):
         scenario = OwnerScenario(flow)
         self.addCleanup(scenario.close)

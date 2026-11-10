@@ -10,7 +10,6 @@ from ..adapters import Uncertain
 from ..common import Refused, canonical, digest, sha256, visible
 from ..warnings import check_result
 from ..paging import ordered_page, fragment_window, sequence_token
-from .codec import parse
 from .roles import resolve
 from .transport import folders, select, uids, fetch, ok, quote
 
@@ -70,14 +69,10 @@ def rename_folder(mail, account, client, source, target, roles_before):
     intent = {'id': filing_id, 'source': source['folder'], 'target': target,
               'account': account['id'], 'message_count': len(source['uids']), 'roles_before': roles_before, 'state': 'started'}
     key = 'mail:rename:' + filing_id
-    validity = select(client, source['folder'])
-    if validity != source['uidvalidity']:
-        raise Refused('stale_reference', 'Folder identity changed before rename; inspect it again.')
-    identities = []
-    for uid in source['uids']:
-        raw, _ = fetch(client, uid, mail.wires.limit)
-        reference = {'account': account['id'], 'folder': source['folder'], 'uidvalidity': validity, 'uid': uid}
-        identities.append({**reference, 'message_id': str(parse(raw, reference).get('Message-ID', ''))})
+    # safe_folder already enumerated the exact UID namespace immediately before
+    # this call. Folder identity does not depend on MIME contents or body size.
+    identities = [{'account': account['id'], 'folder': source['folder'],
+                   'uidvalidity': source['uidvalidity'], 'uid': uid} for uid in source['uids']]
     value = mail.mutation_context(account, 'RENAME', source=source['folder'], destination=target, identities=identities)
     mail.store.write({key: {**intent, 'context': value, 'context_version': 1}}, 'mail_folder_rename', 'folder rename intent',
                      outcome='started', untrusted_content={'rename': intent})

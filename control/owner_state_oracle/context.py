@@ -166,7 +166,7 @@ def required(event, script):
         if command == 'STORE':
             result['flags'] = list(args[1:])
     elif command == 'RENAME':
-        result.update(source=args[0].strip('"'), destination=args[1].strip('"'), identities=[identity(ref) for ref in event['identities']])
+        result.update(source=args[0].strip('"'), destination=args[1].strip('"'), identities=[{k: v for k, v in identity(ref).items() if k != 'message_id'} for ref in event['identities']])
     elif command in {'CREATE', 'DELETE'}:
         result.update(source=args[0].strip('"') if command == 'DELETE' else None, destination=args[0].strip('"'), identities=[])
     elif command in {'DATA', 'APPEND'}:
