@@ -10,6 +10,7 @@ import {popupMatrices} from './popups.mjs';
 import {collectSiteResults} from './site-results.mjs';
 import {receiverSnapshot} from './receiver-evidence.mjs';
 import {allTabs} from './tabs.mjs';
+import {failBrowserCase} from './failure.mjs';
 
 export async function matrices({call,read,nav,target,counts,eventually,tab,fixture,admin,rpc,caller,ownerNavigate,ownerOpenPopup,popupEvidence,popupControl,nativeDonor,closeNativeDonor,ownerKey,ownerChooseFile,ownerDismiss,ownerHistory,ownerBookmark,lifecycle,restoreControl,stopClick,baseline,isolationAfter}) {
   const results=[];let trustOperation;
@@ -17,10 +18,9 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
   async function check(name,fn) {
     try {await fn();results.push({name,passed:true});console.log(name,'PASS');}
     catch(error){results.push({name,passed:false,error:String(error.stack)});console.error(name,'FAIL',error.stack);
-      // Preserve the failed assertion, then start a fresh browser for the next independent group.
-      // Never retry this case or turn its result into a pass.
-      if(name.startsWith('QUALIFICATION')||name.startsWith('GROUP 11'))try{await lifecycle({fixture:'kind',mode:'restore'});await lifecycle({fixture:'qualification',mode:'qualified'});}catch(recovery){console.error('FIXTURE POLICY CLEANUP FAILED',String(recovery));}
-      if(!name.startsWith('GROUP 9'))try{await lifecycle('kill_chrome');await lifecycle('start_chrome');tab=await restoreControl();}catch(recovery){console.error('FIXTURE RECOVERY FAILED',String(recovery));}
+      // A failed/incomplete inventory cannot qualify. Retain the first failure
+      // and return its evidence promptly; successful runs still require every case.
+      failBrowserCase(results,baseline,error);
     }
   }
   async function approval(result,id) {

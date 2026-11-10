@@ -35,10 +35,9 @@ worktree and branch remain untouched. PR 27 remains a draft; no merge was perfor
 
 ## Evidence and pending work
 
-**Run:** full Node: **192 passed, zero failed/cancelled/skipped**. Focused Python: **44 tests, OK**. The expanded
+**Run:** full Node: **193 passed, zero failed/cancelled/skipped**. Focused Python: **44 tests, OK**. The expanded
 mutation audit rejects **58 mutations**, with every baseline passing. It includes the pre-answer debugger barrier,
-HTTP file hash, selected-file binding, designMode and actual review HTTP route. The current full Python sweep is
-still running. Generated artifacts match and `git diff --check` is clean.
+HTTP file hash, selected-file binding, designMode and actual review HTTP route. The full Python sweep passed **184 tests, OK, 250.882 s**. Generated artifacts match and `git diff --check` is clean.
 
 **Run:** source `cbe641a8`, Chrome runs **42803248244** and **42803256661**, failed. The external artifact completed
 all **74** named cases, **48 passed / 26 failed**; this is not acceptance evidence. Exact failed names and browser
@@ -60,8 +59,13 @@ owner in the closing report; it is not approved by this checkpoint or by a passi
 
 **Run ownership:** only runs created by this build's pushes were cancelled. The two pending `40996d6b` runs,
 **42809354155 / 42809362333**, were superseded by known fixes and the new direction; no run started by the owner or
-lead was cancelled. The branch ledger is **126 Chrome IDs before the next push**, **128 after it** (allowance about
+lead was cancelled. The branch ledger is **126 Chrome IDs before the next push**, **128 after it** (the following harness-only push brings it to 130) (allowance about
 155). No force push or hook bypass was used.
 
 **Not verified:** the new native barrier, native chooser and editor browser cases; final-source complete Chrome,
 base, Mail and boundary twice; live signed-in sites; panel confirmation of owner Enter. Group 12 remains false.
+
+**CI feedback:** a failed named case now retains its original failing row, raw receiver artifacts and incomplete
+verdicts, then exits red immediately. A successful run still executes every case and the full Python sweep;
+`assertComplete` still rejects missing cases. A browser-free test verifies the retained failure cannot qualify.
+This avoids spending another full matrix on failures already known in the same run.

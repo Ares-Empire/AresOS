@@ -10,7 +10,7 @@ records the debugger barrier for native dialogs, isolated byte hashing for owner
 fixtures for ordinary blank/srcdoc editors. Missing-coverage native-dialog cases remain explicitly tracked for the
 lead and owner; no fallback refusal is approved or silently treated as feature-complete.
 
-The latest local checkpoint is 192 passing Node tests, 44 focused Python tests, the earlier 182 full Python tests and 58
+The latest local checkpoint is 193 passing Node tests, 44 focused Python tests, 184 full Python tests and 58
 rejected mutations covering every P item. Final-head browser/base/Mail/boundary runs twice and the closing
 per-item receiver/log index remain required.
 The first container batch found a fake-timer fixture race; the next found a real paused-startup finish deadlock.
