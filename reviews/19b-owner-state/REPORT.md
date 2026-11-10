@@ -1,12 +1,10 @@
 # 19b — owner state
 
-**Current status — stage 2 fold verified, ready for lead reviews (2026-11-10):**
-all five storage samples return to their pre-stage-2 journal bytes and record
-counts. Send and permanent delete each add **zero journal bytes**. The complete
-Linux pin has zero R2 gaps, and Control base, all 56 Control Mail jobs and
-Control boundary passed twice on `be8ea4ca`. Both full actual-list merges
-reproduce the pin byte-for-byte. Stage 3 was not started. Earlier sections keep
-their historical evidence; the final fold verification below controls status.
+**Current status — stage 2 fixes round 1 in verification (2026-11-10):**
+The three stage-2 reviews required oracle, alteration-test, RENAME and fixture
+fixes. Their implementation and local verification are recorded in the final
+section below. Final Linux capture, strict pin and workflow evidence supersede
+the earlier fold evidence when recorded there. Stage 3 has not been started.
 
 ## Done
 
@@ -1264,3 +1262,124 @@ final scan output is `.work/19b-fold/privacy-final.txt`. The closing `.work/`
 inventory (`large-files-final.json`, regular files over 500,000,000 bytes) is
 empty: **no file exceeds 500 MB**. No Gradle daemon was started. Full gap lists,
 raw logs and generated fixture material remain uncommitted under `.work/`.
+
+## Stage 2, fixes round 1
+
+**Read — scope:** `19b-s2-fixes.md` and all three reviews control this round.
+Commits first strengthened the alteration harness (`bfbe580c`), then fixed the
+oracle (`60d47295`), then restored body-independent RENAME (`78162dcf`), then
+corrected the sweep fixtures (`81f39107`). Subsequent verification fixes remain
+within those items. No stage-3 implementation, immutable-history rewrite,
+approval/input/question/binding change, or self-review was performed.
+
+| Brief item | Change (read) | Regression / plant (run locally unless marked below) |
+| --- | --- | --- |
+| 1 / B5 / S5 | Nested key deletion; independent server-snapshot field audit; coherent event/projection/fence/later-snapshot alterations; integrity-only differences excluded for coherent lies; production plants through unmodified Driver.compare; seven individual validator controls | P1 escaped the reviewed oracle (`teeth-before.txt`, `FAILED`); the new controls reject that oracle. Every one of the 13 field kinds maps to a real production plant. Final alteration totals follow the Linux evidence below. |
+| 2a / B1 | Send completion requires the independently selected Sent and answered stages, even when production omits the stage row entirely | `missing-sent-copy` (P1); `stage_claims` also requires each planned stage |
+| 2b / B2 | Script plus independent roles select Sent/Drafts; answered STORE must be exact Answered on the approved original; Sent bytes equal DATA or its approved Bcc-header variant | P2, P6, P7; `wrong-append-flags`, `wrong-sent-bytes` |
+| 2c / B3 | Per-target Deleted STORE must precede EXPUNGE; marked stages require that exact STORE | P4; fixture test preserves UID 1 before marking and preserves unnamed UID 7 after exact EXPUNGE |
+| 2d / B4 / ASTRA 3 | Every reference × flag branch and exact folder effect is required before intent completion. Accepted effects are counted per intent and per scripted attempt regardless of terminal state | Both omitted-branch variants; real failed-result APPEND retry under persistent exhaustion, reached cleanup pair, restart and restored space; two independently scripted draft saves have different intent identities |
+| 2e / SOL 1 / ASTRA 2 | Actual check correlation replaces all-row LIST enrollment; rename destination must exist; filing recovery needs a complete independently recorded scan | Unrelated LIST and absent-destination cases, plus acknowledgement, repeated reads, post-expiry read, archive attempt and restart; added to the alteration corpus |
+| 2f / SOL 2 | Each receiver recipient is independently checked against approval and prior context before completion | Wrong and extra-recipient command-boundary cases |
+| 2g / S2 / SOL 4 | Rename count comes from source-folder identities in the RENAME server event; committed/public counts are compared to it | P5; coherent `message_count` variants |
+| 2h / S1 | Outcome state/reason derives from replies, required local effects and fault/commit order; a false reason is replaced in the retained projection | P3; runtime fixture-label reason test; subsequent same-state rows preserve the validated reason |
+| 2i / S3 | Versioned missing context cannot use legacy synthesis; unversioned context synthesis requires an explicitly legacy source | `missing-context`, `dropped-context-commit`; version-one STORE test; frozen pre-stage-two store compatibility remains enabled |
+| 2j / S4 | Only seed and scripted fixture_input intervals receive fixture authority | Runtime `fixture` event reports a lifecycle error and cannot supply a reason |
+| 2k / ASTRA 4 | LOCAL_FLAG validates exact reference, revision, requested value and prior context, then corroborates atomic item/intent completion; full owner sweep includes local_flag | Missing-context case fails; valid atomic completion passes; real wrong-value plant; all fault modes are selected by the normal sweep |
+| 2l | AST import checks resolve relative imports to the audited package; absolute imports must be standard-library modules; direct, attribute and getattr-style dynamic imports are rejected | Bare same-name modules, parent production import, driver import, builtins.__import__, getattr and imported aliases are negative controls |
+| 3 / SOL 3 / ASTRA 1 | RENAME reuses the existing safe_folder UID/UIDVALIDITY enumeration. No extra SELECT, FETCH, full-body parse or wire-size admission is added | Oversized, depth-45 and 1,100-part folders rename successfully with zero FETCHes; existing all-write failure/crash fences remain enabled |
+| 4 | Normal APPEND adds one Sent copy; separate send_duplicate flow retains delayed-copy warnings. EXPUNGE honors Deleted and STORE honors both add/remove branches | Quiet send and deliberate race assertions; existing quiet move/copy/rename/Trash/permanent-delete contracts all pass |
+
+**Run — local source checks:** 135 independent oracle/CI-selection tests printed
+`Ran 135 tests`, `OK` (`self-input-immutability.txt`; earlier source iterations are retained
+under `.work/19b-s2-fixes/`). Focused contracts, six named regressions, all action-context
+write/failure/crash fences, new fixture/effect tests and production plants printed
+`Ran 24 tests in 271.927s`, `OK` (`focused-final-source.txt`). The diagnostic traversal
+ran all **34 flows** clean and at point 1 in single/persistent/live/crash modes,
+ending `R2 gaps {}` (`diagnostic-final.txt`). These Mac runs use the existing
+worktree-local managed-policy fixture and child-process shim; installed Linux
+policy and server verification is supplied by the workflows below. Generator
+printed `Generated artifacts match definitions`; diff check was silent.
+
+**Read — alteration performance:** identical completion questions in a single
+replay are memoized using the operation inputs, record-event identity, current
+server/script lengths and local item state. Each replay starts with an empty
+cache; payload claims still run on each invocation. Every alteration still
+reaches the shared comparison. Mail alterations are split over 12 disjoint
+scenario shards; the timeout remains 45 minutes and all scenarios/fields remain
+selected. Early diagnostic alteration runs were stopped and replaced while
+fixing newly exposed malformed-field/result-row cases; they are not green
+acceptance evidence.
+
+The updated resolution requirements below refine the existing executable
+allowlist; all other resolution kinds in FORMAT.md remain unchanged.
+
+| Resolution | Independent corroboration (read) | What remains visible without it |
+| --- | --- | --- |
+| completion / send | Approved full envelope, delivered accepted DATA, unique-role Sent APPEND or correlated Sent match, approved Answered STORE, all before completion | Pending work and recovery |
+| completion / permanent delete | Every approved reference's accepted/delivered Deleted STORE followed by exact UID EXPUNGE | Pending work and recovery |
+| intent_completion / remote free change | Every scripted effect in the plan accepted and delivered once before the result commit | Intent recovery, including interrupted batches |
+| intent_completion / LOCAL_FLAG | Prior exact context, scripted reference/revision/value, matching committed item change and atomic intent removal | Intent recovery / local-effect proof difference |
+| check_result / filing | Post-mutation LIST for this check; independent roles and exact target; complete source-specific recovery scan | Open check and recovery |
+| check_result / rename | Post-mutation LIST for this check, exact destination present and resolved roles | Open check and recovery |
+| acknowledgement | Exact scripted occurrence and its own committed acknowledgement | Unacknowledged occurrence; acknowledgement never settles unfinished work |
+
+| Production-written input added/refined in the field audit | Where read | Independent validation | Tests / alterations |
+| --- | --- | --- | --- |
+| Every committed_before row field, including state/id/action/account/repair_of, context.operation_id/command, roles, recipients, hashes and identities | context.bind/decode/differences; model.stage_claims, filing_claims, warning | Decoded commit prefix and sequence; script/approval, raw commands and independent role/byte evidence; bindings cannot justify command authority | Every snapshot scalar/key; coherent propagation into all later copies; P1–P7 and versioned missing-context plant |
+| created_before row keys and sequences | context.bind; model.lifecycle | First independently decoded non-null commit, strictly within this attempt where a new intent is required, never after command before_seq | Snapshot field audit; `unverified-source-creation`; frozen/current source binding tests |
+| LIST check_sources | read_evidence/result_proof | Recorder scope for the actual source-specific check; matching account and post-mutation order; destination existence and scan completion | Ordinary mail_accounts LIST cannot enroll a check; every list entry altered |
+| commit_observations row contents and sequence membership | model.lifecycle | Independent decoded commit prefix; observations cannot replace the script or raw server facts | Every scalar/key altered; coherent later-copy propagation |
+| states/reasons, absent stage keys, missing result rows, context_version/context | lifecycle, outcome, stage_claims, completion_errors | Script/approved effect plan, RCPT/DATA/local-stage replies, faults, commit order and explicit legacy interval | P1/P3/P4; nested-key deletion; runtime fixture label; missing result/context commits |
+| message_count and rename identity list | filing_claims and notice-context | Number of independent source-folder identities at RENAME; UID/UIDVALIDITY identify the namespace without MIME reads | P5 and coherent count changes; zero-FETCH rename tests |
+| testapp item flagged/revision, missing intent and atomic removal | local.errors and intent_result_proof | Scripted exact reference and requested value; prior committed context; exact item revision change | Valid/missing/wrong-value local flag cases and full local_flag sweep |
+| APPEND destination/flags/bytes and mutation multiplicity | script_differences, effects, context_errors, completion_errors | Script role/flag/effect plan and raw DATA/Bcc bytes; count per scripted attempt and intent, independent of terminal state | P2/P6/P7, wrong flags/bytes and duplicate-result-write retry |
+
+**Run — storage (same STORAGE-S2 harness):** `storage.txt` and
+`STORAGE-S2.json.after_fixes_round_1` reproduce after_fold byte-for-byte for all
+five operations, including SQLite event/file figures. No permanent-journal
+record was added. The projection remains unbuilt (zero bytes, stage 3).
+
+| Sample | Before stage 2 bytes / records | Part B bytes / records | Fold bytes / records | Fixes round 1 bytes / records | Journal growth over before |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Send | 9,506 / 14 | 10,918 / 16 | 9,506 / 14 | 9,506 / 14 | 0 |
+| Move | 2,064 / 6 | 2,410 / 7 | 2,064 / 6 | 2,064 / 6 | 0 |
+| Permanent delete | 3,942 / 5 | 5,524 / 7 | 3,942 / 5 | 3,942 / 5 | 0 |
+| Free CREATE | 688 / 2 | 1,032 / 3 | 688 / 2 | 688 / 2 | 0 |
+| 25 MiB send | 9,508 / 14 | 10,920 / 16 | 9,508 / 14 | 9,508 / 14 | 0 |
+
+**Read — warnings.py / paging.py:** no changes to either file in this fix round.
+**Not verified:** human mail accounts and provider behavior are outside the
+synthetic-account scope. Stage-3 gaps remain explicitly deferred. The package
+lead runs the fresh reviews; this run does not review itself.
+**JUDGMENT-CALL:** none changing owner-facing behavior; RENAME restores the
+pre-stage-two behavior. **PLAN-GAP:** none requiring a new owner decision.
+**Open questions:** none for this round.
+
+
+**Run / read — additional cases exposed by the strengthened test:** missing
+submission reasons now compare against the canonical reason even when the key
+is absent. An existing fixture-consistency difference cannot authorize a newly
+changed copy: initial fixture values come from the explicit script/seed input,
+while later production resolutions still need their normal proof. A malformed
+probe reference or deadline reports a semantic difference instead of aborting
+all expectations. Removed onboarding result rows retain the independently
+observed account-setup obligation and qualification disclosure. Direct tests
+cover each case. Script clock samples and the independently selected test TTL
+validate new reservation deadlines, including a coherent numeric deadline lie.
+Expectation modules do not import the clock recorder.
+
+**Read — coherent versions:** every historical row version is exercised, without
+coalescing equal field names across versions. A lie propagates through matching
+later copies of that value; a subsequent different legitimate result remains
+intact. Removed versions rebuild the affected projection/snapshots and creation
+sequence from the altered commit prefix. Matching compact fences, their hash
+chain and working head are re-encoded in memory. The real immutable history is
+untouched. A direct positive transformation test checks these copy/version
+relationships and proves comparison leaves its inputs unchanged.
+
+**Run — healthy-path additions:** the Bcc Sent variant matches the exact DATA
+wire, and a relative RENAME resolves its parent using the independently listed
+delimiter. All six effect/fixture tests print `OK` in `effects-final.txt`; the
+final oversized-message case advertises one byte above the normal wire limit,
+without allocating a large body or changing that limit (`rename-final.txt`).

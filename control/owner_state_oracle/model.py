@@ -7,7 +7,7 @@ import json
 import re
 from .records import canonical, fingerprint, visible, restore_intervals, consistency_errors
 from .resolutions import RESOLUTIONS, permitted
-from .context import bind as bind_context, differences as context_differences, special_roles, special_delimiters, missing_flag_commands, MUTATIONS
+from .context import bind as bind_context, differences as context_differences, special_roles, special_delimiters, missing_flag_commands, rename_destination, MUTATIONS
 from .local import errors as local_errors
 from .effects import delivered, send_stages, free_plan, complete_plan, matches, exact_uid, sent_bytes_match
 
@@ -67,15 +67,34 @@ class Oracle:
         An onboarding probe is derived separately from CREATE/APPEND evidence.
         The row supplies only the opaque operation binding.
         """
-        calls = [c for c in self.script if c.get('arguments', {}).get('operation_id') == operation.get('id')
+        cache = getattr(self, '_approved_cache', {})
+        identity = operation.get('id')
+        if identity in cache:
+            return cache[identity]
+        calls = [c for c in self.script if c.get('arguments', {}).get('operation_id') == identity
                  and isinstance(c.get('arguments', {}).get('description'), dict)]
         if not calls:
             return None
         args = calls[0]['arguments']
         description = args['description']
-        return {**description, **description.get('untrusted_content', {})}
+        result = {**description, **description.get('untrusted_content', {})}
+        cache[identity] = result
+        return result
+
+    def bound(self, event):
+        cache = getattr(self, '_binding_cache', {})
+        marker = id(event), len(self.script), len(self.servers)
+        if marker not in cache:
+            cache[marker] = bind_context(event, self.script)
+        return cache[marker]
 
     def payload_claims(self, key, row):
+        cache = getattr(self, '_payload_cache', {})
+        signature = key, canonical({field: row.get(field) for field in ('id', 'payload', 'approval', 'input_hash', 'expires')})
+        if signature in cache:
+            self.lifecycle_errors.update(cache[signature])
+            return
+        before = set(self.lifecycle_errors)
         approved = self.approved(row)
         if approved is None:
             return
@@ -92,7 +111,7 @@ class Oracle:
                 self.lifecycle_errors.add(Fact(key, 'unapproved-payload', detail=field))
         calls = [c for c in self.script if c.get('arguments', {}).get('operation_id') == row.get('id') and
                  isinstance(c['arguments'].get('description'), dict)]
-        if calls and row.get('approval') is not None and row['approval'] != calls[0]['arguments']:
+        if calls and row.get('approval') != calls[0]['arguments']:
             self.lifecycle_errors.add(Fact(key, 'unapproved-recorded-approval'))
         if row.get('input_hash') and calls and row['input_hash'] != fingerprint(calls[0]['arguments']):
             self.lifecycle_errors.add(Fact(key, 'unapproved-input-hash'))
@@ -102,6 +121,7 @@ class Oracle:
         for field, name in (('id', 'composition_id'), ('hash', 'composition_hash')):
             if name in approved and composition.get(field) != approved[name]:
                 self.lifecycle_errors.add(Fact(key, 'unapproved-composition', detail=field))
+        cache[signature] = self.lifecycle_errors - before
 
     def filing_claims(self, key, row, event):
         calls = [c for c in self.script if c.get('start_seq', -1) < event['seq'] <= c.get('end_seq', -1)
@@ -116,6 +136,9 @@ class Oracle:
                   'target': args.get('name') if call['action'] == 'mail_folder_rename' else args.get('target')}
         if call['action'] == 'mail_folder_rename':
             wanted['source'] = args.get('folder')
+            evidence = next((e for e in self.servers if e['call'] == call['call'] and e['command'] in {'LIST', 'RENAME'} and
+                             e.get('account') == wanted['account']), {})
+            wanted['target'] = rename_destination(args, evidence)
             mutations = [e for e in self.servers if e['call'] == call['call'] and e['command'] == 'RENAME'
                          and e.get('account') == wanted['account'] and e.get('folder') == wanted['source']]
             if mutations:
@@ -218,6 +241,7 @@ class Oracle:
                  'identities': copy.deepcopy(list(identities)), 'roles': copy.deepcopy(roles),
                  'accepted': accepted, 'reply': reply, 'delimiters': copy.deepcopy(getattr(self, 'delimiters', None)), **copy.deepcopy(extra)}
         self.servers.append(event)
+        self._evidence_index = None
         if isinstance(event.get('committed_before'), dict) and isinstance(event.get('before_seq'), int):
             self.commit_observations.setdefault(event['before_seq'], event['committed_before'])
         return event
@@ -429,7 +453,7 @@ class Oracle:
                     continue
                 # Committed context binds this command to its intent identity;
                 # its claimed completion cannot suppress observed drift.
-                source, context = bind_context(mutation, self.script)
+                source, context = self.bound(mutation)
                 if source and source.startswith(('mail:filing:', 'mail:rename:')):
                     kind = 'rename' if source.startswith('mail:rename:') else 'filing'
                     unresolved = [kind for kind in ('sent', 'drafts', 'trash') if sum('\\' + kind in [v.lower() for v in flags] for flags in roles.values()) != 1]
@@ -458,7 +482,7 @@ class Oracle:
             else:
                 meta.update(filing_identity=True)
                 if fact.kind == 'rename' and 'message_count' in context:
-                    mutations = [e for e in self.servers if e['command'] == 'RENAME' and bind_context(e, self.script)[0] == fact.source]
+                    mutations = [e for e in self.servers if e['command'] == 'RENAME' and self.bound(e)[0] == fact.source]
                     meta['message_count'] = len(mutations[0]['identities']) if mutations else context['message_count']
                     names = [context.get('source', ''), context.get('target', '')]
                     meta.update(folders=[name[:64] + ('…' if len(name) > 64 else '') for name in names], folders_more=0, folders_more_text='')
@@ -542,14 +566,27 @@ class Oracle:
         context = self.warning_contexts.get(source, self.lifecycle_known.get(source, {}))
         if context.get('target') not in (evidence.get('roles') or {}):
             return False
-        if kind == 'filing' and source in evidence.get('check_sources', []):
-            if not any(e['command'] == 'SCAN_RESULT' and source in e.get('check_sources', []) and
-                       e['call'] == evidence['call'] and delivered(e) and
-                       evidence.get('before_seq', -1) <= e.get('before_seq', -1) < sequence for e in self.servers):
+        mutations = [e for e in self.servers if e['command'] in {'MOVE', 'COPY'} and self.bound(e)[0] == source]
+        if kind == 'filing' and (source in evidence.get('check_sources', []) or any(not e.get('copyuid_delivered') for e in mutations)):
+            scan = self.scan_result(source, evidence)
+            if scan is None or not delivered(scan) or not scan.get('before_seq', float('inf')) < sequence:
                 return False
         roles = special_roles(evidence.get('roles') or {}) or {}
         return all(len(roles.get(role, [])) == 1 for role in ('sent', 'drafts', 'trash')) and not any(
             e['call'] == evidence['call'] and e['command'] == 'FETCH' and not e['accepted'] for e in self.servers)
+
+    def scan_result(self, source, listing):
+        start = next((index for index, event in enumerate(self.servers) if event is listing), -1)
+        for index in range(len(self.servers) - 1, start, -1):
+            event = self.servers[index]
+            if event['command'] != 'SCAN_RESULT' or event['call'] != listing['call'] or event.get('account') != listing.get('account'):
+                continue
+            if source in event.get('check_sources', []):
+                return event
+            if not event.get('check_sources') and any(self.bound(m)[0] == source and m['call'] == event['call'] and
+                    m['command'] in {'MOVE', 'COPY'} for m in self.servers[:event.get('scan_start', index)]):
+                return event
+        return None
 
     def transition(self, record, event, key, old, row):
         """Total state machine: every edge that changes work has a proof gate."""
@@ -564,7 +601,7 @@ class Oracle:
                c['action'] == 'mail_account_add' or c.get('call') == self.repair_authority.get(key, {}).get('call')]
         ordered = bool(calls)
         commands = [e for e in self.servers if e.get('before_seq', float('inf')) < event['seq'] and
-                    bind_context(e, self.script)[0] == key and e['command'] in MUTATIONS]
+                    self.bound(e)[0] == key and e['command'] in MUTATIONS]
         fault = any(c.get('faults', {}).get('trace') for c in calls)
         negative = any(not e['accepted'] or e['reply'] != 'delivered' for e in commands)
         identity = row.get('id')
@@ -615,6 +652,16 @@ class Oracle:
         return row
 
     def lifecycle(self, record):
+        self._completion_cache = {}
+        self._approved_cache = {}
+        self._binding_cache = {}
+        self._payload_cache = {}
+        self._evidence_index = {}
+        for index, server in enumerate(self.servers):
+            if server['command'] in {'SENT', 'LIST'}:
+                group = server.get('source') if server['command'] == 'SENT' else server.get('account')
+                self._evidence_index.setdefault((server['command'], group), []).append((index, server))
+        self._effect_record = record
         self.lifecycle_errors.update(Fact(*error[:2], detail=error[2]) for error in consistency_errors(record))
         prefix = {}
         observed = sorted(self.commit_observations.items())
@@ -631,6 +678,18 @@ class Oracle:
                 if prefix.get(key) != snapshot.get(key):
                     self.lifecycle_errors.add(Fact(key, 'changed-observed-commit', detail=canonical({
                         'sequence': sequence, 'expected': snapshot.get(key), 'actual': prefix.get(key)})))
+        first = {}
+        for event in sorted([*getattr(self, 'seed_events', []), *record.events], key=lambda e: e['seq']):
+            for key, value in event['set'].items():
+                if value is not None:
+                    first.setdefault(key, event['seq'])
+        rollback = [(start, end) for start, end, seq in restore_intervals(record.events)
+                    if self.restore_proof(next(e for e in record.events if e['seq'] == seq))]
+        for server in self.servers:
+            for key, sequence in server.get('created_before', {}).items():
+                rolled_back = any(start <= sequence <= end for start, end in rollback)
+                if (first.get(key) != sequence and not rolled_back) or sequence > server.get('before_seq', -1):
+                    self.lifecycle_errors.add(Fact(key, 'unverified-source-creation'))
         seed_events = {e['seq']: e for e in getattr(self, 'seed_events', [])}
         for event in record.events:
             seed = event['seq'] <= getattr(self, 'seed_sequence', 0)
@@ -652,9 +711,22 @@ class Oracle:
         rows = {key: value for key, value in record.rows.items() if key not in changed}
         resolved = set()
         for event in record.events:
-            fixture = event['seq'] <= getattr(self, 'seed_sequence', 0) or any(c['action'] == 'fixture_input' and
-                c.get('start_seq', -1) < event['seq'] <= c.get('end_seq', -1) for c in self.script)
+            fixture_calls = [c for c in self.script if c['action'] == 'fixture_input' and
+                             c.get('start_seq', -1) < event['seq'] <= c.get('end_seq', -1)]
+            fixture = event['seq'] <= getattr(self, 'seed_sequence', 0) or bool(fixture_calls)
+            # Explicit fixture data is an independent input. A changed copy in
+            # a commit must not become a new source of owner obligations, even
+            # when another fixture-consistency defect already exists there.
+            inputs = (fixture_calls[0]['arguments']['changes'] if fixture_calls else
+                      seed_events.get(event['seq'], {}).get('set', {}))
+            changes = {**event['set'], **inputs}
             self.resolution_sequence = event['seq']
+            if event['action'] == 'mail_account_add' and event.get('outcome') == 'done':
+                for call in self.script:
+                    if call['action'] == 'mail_account_add' and call.get('start_seq', -1) < event['seq'] <= call.get('end_seq', -1):
+                        account_key = 'mail:account:' + str(call['arguments'].get('id'))
+                        if not isinstance(event['set'].get(account_key), dict):
+                            self.lifecycle_errors.add(Fact(account_key, 'missing-account-result'))
             if event['action'] == 'mail_sent_copy_check' and event.get('operation_id') and 'op:' + event['operation_id'] not in event['set']:
                 self.lifecycle_errors.add(Fact('op:' + event['operation_id'], 'missing-check-result'))
             stage = event.get('untrusted_content', {})
@@ -663,8 +735,9 @@ class Oracle:
                 row = event['set'].get(source) or {}
                 if row.get('stages', {}).get(stage['stage']) != stage['outcome']:
                     self.lifecycle_errors.add(Fact(source, 'changed-stage-event', detail=str(event['seq'])))
-            for key, value in event['set'].items():
+            for key, value in changes.items():
                 old = rows.get(key, {})
+                input_source = key in inputs and not old
                 if key.startswith(('intent:', 'mail:filing:', 'mail:rename:')) and value:
                     identity = key.split(':', 2)[-1] if key.startswith('mail:') else key[7:]
                     allowed = {identity, 'recovery-' + identity} if key.startswith('intent:') else {identity}
@@ -721,6 +794,19 @@ class Oracle:
                         if not min(c['clock'] for c in calls) * 1_000_000_000 - 1 <= value['created_at'] <= event['time'] * 1_000_000_000 + 1:
                             self.lifecycle_errors.add(Fact(key, 'notice-creation-time'))
                 if key.startswith('op:') and value:
+                    if not fixture and value.get('state') == 'reserved':
+                        calls = [c for c in self.script if c.get('start_seq', -1) < event['seq'] <= c.get('end_seq', -1)]
+                        deadlines = [clock + c.get('operation_ttl', 900) for c in calls for clock in c.get('clock_samples', [])]
+                        valid = type(value.get('expires')) in (int, float) and (old or not deadlines or value['expires'] in deadlines)
+                        if not valid:
+                            self.lifecycle_errors.add(Fact(key, 'unapproved-expiry'))
+                            value = {**value, 'expires': old.get('expires') if type(old.get('expires')) in (int, float) else
+                                     deadlines[0] if deadlines else max((c['clock'] for c in calls), default=0) + 900}
+                    payload = value.get('payload', {})
+                    if any(not isinstance(item, dict) or not isinstance(item.get('reference'), dict) for item in payload.get('items', [])):
+                        self.lifecycle_errors.add(Fact(key, 'unapproved-payload', detail='items/reference'))
+                        value = {**value, 'payload': old.get('payload', {**payload, 'items': []}),
+                                 'state': old.get('state', 'unknown'), 'reason': old.get('reason', 'Submission outcome uncertain; inspect evidence, never retry.')}
                     if not old and not value.get('context_version') and fixture:
                         self.legacy_sources.add(key)
                     if value.get('action', '').endswith('_operation_repair'):
@@ -735,15 +821,16 @@ class Oracle:
                                 self.lifecycle_errors.add(Fact(key, 'unapproved-repair-context'))
                                 value = {**value, 'repair_of': args.get('operation_id'), 'payload': copy.deepcopy(args)}
                     self.payload_claims(key, value)
-                    if value.get('reason') and value.get('state') in {'reserved', 'submitting'} and not fixture:
+                    if value.get('state') in {'reserved', 'submitting'} and not fixture:
                         repair = value.get('action', '').endswith('_operation_repair')
                         reason = ('Reserved local repair only.' if repair else 'Awaiting exact approval; nothing submitted.') if value['state'] == 'reserved' else (
                             'Repairing local stage only.' if repair else 'Durably submitting; do not cancel or retry.')
-                        if value['reason'] != reason:
+                        if value.get('reason') != reason:
                             self.lifecycle_errors.add(Fact(key, 'unjustified-operation-reason'))
                             value = {**value, 'reason': reason}
                     if value.get('state') in {'unknown', 'partial'} and not fixture:
-                        state, reason = self.outcome(value, event)
+                        state, reason = ((old['state'], old['reason']) if old.get('state') == value['state'] and old.get('reason') else
+                                         self.outcome(value, event))
                         if (value.get('state'), value.get('reason')) != (state, reason):
                             self.lifecycle_errors.add(Fact(key, 'unjustified-operation-reason'))
                             value = {**value, 'state': state, 'reason': reason}
@@ -769,7 +856,7 @@ class Oracle:
                         self.lifecycle_errors.add(Fact(key, 'invalid-check-state', detail=str(event['seq'])))
                     if checked.get('state') == 'open' and event['action'] == 'mail_sent_copy_check' and self.result_proof(key, 'sent_copies', event['seq']):
                         self.lifecycle_errors.add(Fact(key, 'uncommitted-check-result', detail=str(event['seq'])))
-                    if not old and event['seq'] > getattr(self, 'seed_sequence', 0):
+                    if not old and not input_source and event['seq'] > getattr(self, 'seed_sequence', 0):
                         calls = [c for c in self.script if c.get('start_seq', -1) < event['seq'] <= c.get('end_seq', -1)]
                         allowed = set()
                         for call in calls:
@@ -794,7 +881,7 @@ class Oracle:
                         if field in old and value.get(field) != old[field]:
                             self.lifecycle_errors.add(Fact(key, 'changed-operation-context', detail=field))
                             value = {**value, field: old[field]}
-                    if event['seq'] > getattr(self, 'seed_sequence', 0):
+                    if not input_source and event['seq'] > getattr(self, 'seed_sequence', 0):
                         self.stage_claims(event, key, old, value)
                         if value.get('state') not in {'reserved', 'submitting', 'unknown', 'partial', 'done', 'failed', 'refused'}:
                             self.lifecycle_errors.add(Fact(key, 'invalid-operation-state'))
@@ -802,7 +889,8 @@ class Oracle:
                         if not old and value.get('state') in {'done', 'failed', 'refused'} and not self.resolution_proof(record, event, key, value):
                             self.lifecycle_errors.add(Fact(key, 'unjustified-resolution'))
                             value = {**value, 'state': 'unknown'}
-                    value = self.transition(record, event, key, old, value)
+                    if not input_source:
+                        value = self.transition(record, event, key, old, value)
                 if key.startswith(('mail:filing:', 'mail:rename:')) and value:
                     value = self.filing_claims(key, value, event)
                     if value.get('state') not in {'started', 'done', 'partial', 'unknown', 'failed'}:
@@ -843,7 +931,7 @@ class Oracle:
                     calls = [c for c in self.script if c['action'] == 'mail_account_add' and c['arguments'].get('id') == key.removeprefix('mail:account:')
                              and c.get('start_seq', -1) < event['seq'] <= c.get('end_seq', float('inf'))]
                     if not self.resolve('onboarding_completion', key, scripted_account=event['action'] == 'mail_account_add' and event.get('outcome') == 'done' and bool(calls), commit_order=bool(calls), delivered_probe=any(
-                            e['command'] == 'DATA' and e['accepted'] and e['reply'] == 'delivered' and e.get('account') == key.removeprefix('mail:account:') and e['call'] in {c['call'] for c in calls} for e in self.servers)):
+                            e['command'] == 'DATA' and e['accepted'] and e['reply'] == 'delivered' and e.get('before_seq', float('inf')) < event['seq'] and e.get('account') == key.removeprefix('mail:account:') and e['call'] in {c['call'] for c in calls} for e in self.servers)):
                         self.lifecycle_errors.add(Fact(key, 'unjustified-onboarding-close'))
                         value = {**value, 'onboarded': False, 'ready': False}
                 if key.startswith('op:') and key in self.operation_notices and value and value.get('state') == 'failed':
@@ -861,7 +949,7 @@ class Oracle:
                     if acknowledged_intent:
                         acknowledged_intent = self.resolve('acknowledgement', key, scripted_identity=True, commit_order=True)
                     if completed_intent:
-                        completed_intent = self.resolve('intent_completion', key, scripted_action=True, effect_or_reply=True, commit_order=True)
+                        completed_intent = self.resolve('intent_completion', key, scripted_action=True, required_effects=True, commit_order=True)
                     if completed_export:
                         completed_export = self.resolve('export_publication', key, scripted_export=True, publication_or_fault=True, commit_order=True)
                     if not unresolved and event['action'] == 'control_archive':
@@ -887,6 +975,16 @@ class Oracle:
             if key not in rows and key not in resolved and (required_notice or unresolved):
                 rows[key] = old
                 self.lifecycle_errors.add(Fact(key, 'missing-obligation-source'))
+        for call in self.script:
+            if call['action'] != 'mail_account_add':
+                continue
+            account = call['arguments'].get('id')
+            key = 'mail:account:' + str(account)
+            effects = [e for e in self.servers if e['call'] == call['call'] and e.get('account') == account and
+                       e['command'] in MUTATIONS and (e['accepted'] or e['reply'] != 'delivered')]
+            if effects and key not in rows:
+                self.lifecycle_errors.add(Fact(key, 'missing-obligation-source'))
+                rows[key] = {'id': account, 'onboarded': False, 'ready': False}
         self.retain_obligations(record, rows)
         self.lifecycle_known = rows.copy()
         result = copy.copy(record)
@@ -905,7 +1003,7 @@ class Oracle:
         calls = [c for c in self.script if c.get('start_seq', -1) < event['seq'] <= c.get('end_seq', -1)
                  and (c.get('arguments', {}).get('operation_id') == row.get('id') or c['action'] == 'mail_account_add' or c.get('call') == self.repair_authority.get(key, {}).get('call'))]
         commands = [e for e in self.servers if e['command'] in MUTATIONS and e.get('before_seq', -1) < event['seq']
-                    and bind_context(e, self.script)[0] == key]
+                    and self.bound(e)[0] == key]
         if row.get('state') == 'done':
             candidate = copy.copy(record)
             candidate.rows = {**record.rows, key: row}
@@ -921,6 +1019,8 @@ class Oracle:
                     any(not e['accepted'] or e['reply'] != 'delivered' for e in commands))
 
     def stage_claims(self, commit, key, old, row):
+        if old.get('stages') == row.get('stages') and (row.get('state') != 'done' or old.get('state') == 'done'):
+            return  # No new stage claim or completion claim in a repeated read.
         marker = commit['seq'], key, canonical(row.get('stages', {}))
         if marker in self.stages_examined:
             return
@@ -931,7 +1031,7 @@ class Oracle:
         mail = self.approved(row) or payload.get('composition', {}).get('mail', {})
         refs = [item['reference'] for item in (self.approved(row) or payload).get('items', [])]
         events = [e for e in self.servers if e.get('before_seq', -1) < commit['seq'] and (
-            bind_context(e, self.script)[0] == key or e.get('source') == 'op:' + str(parent) or
+            self.bound(e)[0] == key or e.get('source') == 'op:' + str(parent) or
             any(ref.get('message_id') == mid or ref.get('operation_id') == parent for ref in e.get('identities', [])))]
         accepted = lambda command: [e for e in events if e['command'] == command and e['accepted'] and e['reply'] == 'delivered']
         for name, outcome in row.get('stages', {}).items():
@@ -985,7 +1085,7 @@ class Oracle:
             return False
         if event['seq'] <= getattr(self, 'seed_sequence', 0):
             return True
-        commands = [e for e in self.servers if bind_context(e, self.script)[0] == key and e.get('before_seq', -1) < event['seq']]
+        commands = [e for e in self.servers if self.bound(e)[0] == key and e.get('before_seq', -1) < event['seq']]
         calls = [c for c in self.script if c['action'] == old['action'] and c.get('start_seq', -1) < event['seq'] <= c.get('end_seq', -1)]
         planned = [(c, free_plan(c)) for c in calls if free_plan(c) is not None]
         if planned:
@@ -1023,16 +1123,27 @@ class Oracle:
             account = event.get('set', {}).get('mail:account:' + str(account_id))
             if account:
                 value = account.get('sent_policy', value)
-        for call in self.script:
-            if call['action'] == 'mail_account_settings' and call['arguments'].get('id') == account_id and 'sent_policy' in call['arguments']:
-                value = call['arguments']['sent_policy']
+        settings = [call for call in self.script if call['action'] == 'mail_account_settings' and
+                    call['arguments'].get('id') == account_id and 'sent_policy' in call['arguments']]
+        record = getattr(self, '_effect_record', None)
+        if record and settings:
+            key = 'mail:account:' + str(account_id)
+            invalid = local_errors(record, self.script, getattr(self, 'seed_sequence', 0), self.servers)
+            starts = [call.get('start_seq', float('inf')) for call in self.script if
+                      call.get('arguments', {}).get('operation_id') == operation.get('id') and call['action'] in {'mail_send', 'mail_unsubscribe'}]
+            boundary = min(starts, default=float('inf'))
+            for call in settings:
+                if call.get('end_seq', float('inf')) <= boundary and not any(kind == 'R2.LOCAL_CHANGE' for _, kind, _ in invalid) and any(e['action'] == 'mail_account_settings' and
+                        call.get('start_seq', -1) < e['seq'] <= call.get('end_seq', -1) and
+                        (e['set'].get(key) or {}).get('sent_policy') == call['arguments']['sent_policy'] for e in record.events):
+                    value = call['arguments']['sent_policy']
         return value
 
     def outcome(self, row, commit):
         """Choose the reason from replies, effects and fault order, not a whitelist."""
         key = 'op:' + row['id']
         calls = [c for c in self.script if c.get('start_seq', -1) < commit['seq'] <= c.get('end_seq', -1)]
-        events = [e for e in self.servers if e.get('before_seq', float('inf')) < commit['seq'] and bind_context(e, self.script)[0] == key]
+        events = [e for e in self.servers if e.get('before_seq', float('inf')) < commit['seq'] and self.bound(e)[0] == key]
         fault = any(c.get('faults', {}).get('trace') for c in calls)
         if commit['action'] == 'control_restore_confirm' and self.restore_proof(commit):
             return 'unknown', 'Restored log: independent record has newer or missing evidence. Owner must check.'
@@ -1042,6 +1153,9 @@ class Oracle:
                                    'Local repair uncertain; inspect far-side stage evidence. Never submit.')
             if not calls and row.get('state') == 'unknown':
                 return 'unknown', 'Service restarted during submission; inspect evidence, never resubmit.'
+            if any(e['command'] == 'SENT' and e.get('source') == key and e.get('identities') and delivered(e) and
+                   e.get('before_seq', float('inf')) < commit['seq'] for e in self.servers):
+                return 'unknown', 'Far-side submission evidence already exists; inspect evidence, never submit again.'
             return 'unknown', 'Submission outcome uncertain; inspect evidence, never retry.'
         approved = self.approved(row) or row.get('payload', {}).get('composition', {}).get('mail', {})
         if row.get('app') == 'mail' and row.get('payload', {}).get('composition'):
@@ -1054,6 +1168,13 @@ class Oracle:
                       'SMTP accepted delivery to every recipient.')
             return ('partial' if refused or missing else 'done', reason + (' Missing local stages; repair without SMTP.' if missing else ''))
         if row.get('action') == 'mail_delete':
+            payload = self.approved(row) or row.get('payload', {})
+            refs = [item['reference'] for item in payload.get('items', [])]
+            command = 'MOVE' if payload.get('mode') == 'trash' else 'EXPUNGE'
+            done = all(any(delivered(e) and e['command'] == command and e.get('folder') == ref['folder'] and
+                           str(e.get('arguments', [''])[0]) == str(ref['uid']) for e in events) for ref in refs)
+            if refs and done:
+                return 'done', 'Exactly named messages deleted; no unnamed UID expunged.'
             return 'partial', 'Server refused an exact target; inspect per-item stages and prepare a new named set only after owner review.'
         if row.get('action') == 'mail_unsubscribe':
             return 'partial', 'Endpoint refused/redirected; no redirect followed, inspect with owner.'
@@ -1129,7 +1250,7 @@ class Oracle:
             if account_id in self.qualification_observed:
                 continue
             completed = [e['seq'] for e in record.events if e['action'] == 'mail_account_add' and e.get('outcome') == 'done' and
-                'mail:account:' + str(account_id) in e['set']]
+                         call.get('start_seq', -1) < e['seq'] <= call.get('end_seq', -1)]
             if not completed:
                 continue
             events = [e for e in self.servers if e.get('account') == account_id and e['call'] == call['call']]
@@ -1269,7 +1390,7 @@ class Oracle:
             # The exact source's bytes were captured before the command. A
             # later LIST (after MOVE) cannot prove the source hash retroactively.
             origin = mutation or next((event for event in self.servers if event['command'] in {'MOVE', 'COPY'} and
-                bind_context(event, self.script)[0] == key and event.get('folder') == source['folder'] and
+                self.bound(event)[0] == key and event.get('folder') == source['folder'] and
                 str(event.get('arguments', [''])[0]) == str(source['uid'])), None)
             candidates = list(origin.get('identities', [])) if origin else []
             for event in self.servers:
@@ -1285,7 +1406,8 @@ class Oracle:
             found = [{k: v for k, v in ref.items() if k != 'sha256'}
                      for refs in listing.get('mailboxes', {}).values() for ref in refs
                      if wanted_hash is not None and ref.get('sha256') == wanted_hash]
-            scan_complete = wanted_hash is not None and not any(e['call'] == listing['call'] and e['command'] == 'FETCH' and not e['accepted'] for e in self.servers)
+            scan = self.scan_result(key, listing)
+            scan_complete = wanted_hash is not None and scan is not None and bool(delivered(scan))
             if not scan_complete:
                 start = next((i for i, e in enumerate(self.servers) if e is listing), 0)
                 observed = {(e['folder'], int(e['arguments'][0])) for e in self.servers[start + 1:]
@@ -1302,16 +1424,17 @@ class Oracle:
         result = {}
         for index, event in enumerate(self.servers):
             if event['command'] in {'MOVE', 'COPY', 'RENAME'}:
-                source, _ = bind_context(event, self.script)
+                source, _ = self.bound(event)
                 result[event['call'], source] = index
         return result
 
     def read_evidence(self, source, kind, sequence, calls=None, last_mutations=None):
         calls = calls if calls is not None else {c['call']: c for c in self.script}
-        last_mutations = last_mutations if last_mutations is not None else self.last_filing_mutations()
+        last_mutations = last_mutations if last_mutations is not None else self.last_filing_mutations() if kind != 'sent_copies' else {}
         context = self.warning_contexts.get(source, self.lifecycle_known.get(source, {}))
-        for index in range(len(self.servers) - 1, -1, -1):
-            evidence = self.servers[index]
+        indexed = getattr(self, '_evidence_index', None)
+        candidates = indexed.get(('SENT', source) if kind == 'sent_copies' else ('LIST', context.get('account')), []) if indexed is not None else list(enumerate(self.servers))
+        for index, evidence in reversed(candidates):
             call = calls.get(evidence['call'], {})
             before = evidence.get('before_seq')
             if (not isinstance(before, int) or not before < sequence <= call.get('end_seq', -1) or
@@ -1349,6 +1472,9 @@ class Oracle:
         if kind == 'rename' and any(flag.lower() in {'\\all', '\\flagged', '\\important'} for flag in roles.get(target, [])):
             protected = True
         failed_scan = any(e['call'] == evidence['call'] and e['command'] == 'FETCH' and not e['accepted'] for e in self.servers)
+        if kind == 'filing':
+            scan = self.scan_result(source, evidence)
+            failed_scan |= scan is None or not delivered(scan)
         return target in roles and complete and not protected and not failed_scan
 
     def request_state(self, record, call):
@@ -1378,12 +1504,25 @@ class Oracle:
         return {Fact(key, 'held') for key in keys}
 
     def completion_errors(self, record):
+        # Replaying later read-only check commits repeatedly asks the same
+        # effect question. Cache within this replay only; every altered record
+        # and new server event gets a fresh calculation. All field alterations
+        # still reach the full shared comparison.
+        operations = [(key, {field: row.get(field) for field in ('id', 'app', 'action', 'state', 'payload', 'repair_of')})
+                      for key, row in record.rows.items() if key.startswith('op:')]
+        for key, operation in record.rows.items():
+            if key.startswith('op:') and operation.get('state') == 'done':
+                self.payload_claims(key, operation)
+        signature = (id(record.events), len(self.servers), len(self.script), canonical(operations), canonical(record.rows.get('testapp')))
+        cache = getattr(self, '_completion_cache', {})
+        if signature in cache:
+            return set(cache[signature])
         errors = set()
         attempts = {}
         for event in self.servers:
             if event['command'] not in MUTATIONS or not event['accepted']:
                 continue
-            key, _ = bind_context(event, self.script)
+            key, _ = self.bound(event)
             arguments = [event.get('url'), event.get('body')] if event['command'] == 'POST' else event.get('arguments')
             call = next((c for c in self.script if c['call'] == event['call']), {})
             signatures = [('intent', key)] if key else []
@@ -1395,7 +1534,7 @@ class Oracle:
                 attempts.setdefault(signature, []).append(event)
         for signature, events in attempts.items():
             if len(events) > 1:
-                source = bind_context(events[0], self.script)[0] or 'call:' + str(events[0]['call'])
+                source = self.bound(events[0])[0] or 'call:' + str(events[0]['call'])
                 errors.add(Fact(source, 'duplicate-effect', detail=signature[0] + ':' + signature[2]))
         for key, operation in record.rows.items():
             if not key.startswith('op:') or operation.get('state') != 'done':
@@ -1406,7 +1545,7 @@ class Oracle:
             if action == 'mail_send' or action == 'mail_unsubscribe' and operation.get('payload', {}).get('composition'):
                 mid = '<' + operation['id'].replace(':', '.') + '@mail.aresos.invalid>'
                 completed = next((e['seq'] for e in record.events if (e['set'].get(key) or {}).get('state') == 'done'), float('inf'))
-                events = [e for e in self.servers if e.get('before_seq', -1) < completed and (bind_context(e, self.script)[0] == key or
+                events = [e for e in self.servers if e.get('before_seq', -1) < completed and (self.bound(e)[0] == key or
                           e.get('source') == key)]
                 deliveries = [e for e in events if e['command'] == 'DATA' and delivered(e) and any(i.get('message_id') == mid for i in e['identities'])]
                 mail = approved if approved is not None else operation.get('payload', {}).get('composition', {}).get('mail', {})
@@ -1454,7 +1593,7 @@ class Oracle:
                 stage = authority['arguments'].get('stage') if authority else None
                 command = {'sent_copy': 'APPEND', 'answered_flag': 'STORE'}.get(stage)
                 matches = [e for e in self.servers if e['command'] == command and e['accepted'] and
-                           e['reply'] == 'delivered' and bind_context(e, self.script)[0] == key]
+                           e['reply'] == 'delivered' and self.bound(e)[0] == key]
                 settled = any(e['command'] == 'SENT' and e.get('source') == 'op:' + str(operation.get('repair_of')) and e['identities'] for e in self.servers)
                 if not matches and not (stage == 'sent_copy' and settled):
                     errors.add(Fact(key, 'false-completion', detail='Approved repair stage lacks delivered effect or read-only settlement evidence'))
@@ -1488,10 +1627,11 @@ class Oracle:
                             command.get('body') != 'List-Unsubscribe=One-Click' or
                             not call.get('start_seq', -1) <= command.get('before_seq', -1) < completed <= call.get('end_seq', -1)):
                         continue
-                    if bind_context(command, self.script)[0] == key:
+                    if self.bound(command)[0] == key:
                         matches.append(command)
                 if len(matches) != 1:
                     errors.add(Fact(key, 'false-completion', detail='No exact correlated delivered POST before completion'))
+        cache[signature] = set(errors)
         return errors
 
     def context_errors(self):
@@ -1501,14 +1641,14 @@ class Oracle:
         for index, event in enumerate(self.servers):
             if event['command'] not in MUTATIONS or event.get('fixture_seed'):
                 continue
-            _, missing = context_differences(event, self.script, self.servers)
+            _, missing = context_differences(event, self.script, self.servers, self.legacy_sources)
             if missing:
                 errors.add(Fact('command:' + str(index), 'R2.' + event['command'], detail=canonical(missing)))
             if event['command'] == 'APPEND' and event.get('append_flags') == '(\\Seen)':
                 mids = {ref.get('message_id') for ref in event.get('identities', [])}
                 data = [e for e in self.servers[:index] if e['command'] == 'DATA' and
                         any(ref.get('message_id') in mids for ref in e.get('identities', []))]
-                key, row = bind_context(event, self.script)
+                key, row = self.bound(event)
                 original = (event.get('committed_before', {}).get('op:' + row['repair_of'], {}) if row and row.get('repair_of') else row) or {}
                 if data and not sent_bytes_match(event, data[-1], self.approved(original) or {}):
                     errors.add(Fact('command:' + str(index), 'R2.APPEND', detail='script.command.sent-bytes'))

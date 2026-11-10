@@ -26,7 +26,7 @@ RESOLUTIONS = {
     'restore': Resolution(('scripted_confirmation', 'rollback_interval', 'commit_order'), ()),
     'archive': Resolution(('scripted_archive', 'no_obligation', 'qualified_manifest', 'commit_order'), ()),
     'onboarding_completion': Resolution(('scripted_account', 'delivered_probe', 'commit_order'), ('account',)),
-    'intent_completion': Resolution(('scripted_action', 'effect_or_reply', 'commit_order'), ('intent',)),
+    'intent_completion': Resolution(('scripted_action', 'required_effects', 'commit_order'), ('intent',)),
     'export_publication': Resolution(('scripted_export', 'publication_or_fault', 'commit_order'), ('export', 'export_hold')),
 }
 

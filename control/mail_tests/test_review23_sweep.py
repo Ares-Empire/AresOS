@@ -186,7 +186,7 @@ class Scenario:
             self.operation_id = self.approval['operation_id']
             self.action, self.args = 'mail_unsubscribe', self.approval
         self.remote.clear()
-        if self.approval and self.flow in {'send', 'delete_trash', 'delete_permanent', 'unsubscribe_mailto', 'unsubscribe_https'}:
+        if self.approval and self.flow in {'send', 'send_duplicate', 'delete_trash', 'delete_permanent', 'unsubscribe_mailto', 'unsubscribe_https'}:
             self.replay_requests[self.operation_id] = (self.action, copy.deepcopy(self.approval))
         # The torn-tail flow deliberately appends invalid, uncommitted bytes.
         self.committed_before = list(islice(f.engine.store.events, f.engine.store.committed))
@@ -547,7 +547,7 @@ class Scenario:
                 f.assertEqual(commands[command + ':' + str(uid)], 1, ('false done', uid, commands))
                 if self.flow == 'delete_trash':
                     f.assertEqual(f.imap.boxes['Trash'].get(uid), f.imap.raw)
-        elif self.flow in {'send', 'repair', 'status', 'settlement', 'unsubscribe_mailto'}:
+        elif self.flow in {'send', 'send_duplicate', 'repair', 'status', 'settlement', 'unsubscribe_mailto'}:
             f.assertEqual(commands['DATA'], 1, ('false done', self.flow, commands))
             from aresos_control.mail.codec import parse
             # The receiver and Sent must identify THIS delivery, independently

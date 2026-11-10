@@ -2,7 +2,7 @@
 import copy
 from .model import Fact
 from .compare import compare_proofs
-from .records import canonical
+from .records import canonical, fingerprint
 
 STATES = ('reserved', 'submitting', 'unknown', 'partial', 'done', 'failed', 'refused',
           'started', 'checked', 'open', 'clean', 'warning', 'cancelled', 'expired', 'settled')
@@ -40,7 +40,7 @@ def alter(value):
         return value[:-1] if value else ['perturbed']
     if isinstance(value, str):
         return value + ':perturbed'
-    if isinstance(value, int):
+    if isinstance(value, (int, float)):
         return value + 1000000
     return 'perturbed'
 
@@ -252,34 +252,76 @@ def snapshot_mutations(oracle, record, states):
 
 def coherent_change(oracle, record, key, path=(), kind='row', replacement=None, since=0):
     """Write one production lie into every later encoding of that row claim."""
-    changed, replay = copy.deepcopy(record), freeze(oracle)
+    changed, replay = copy.deepcopy(record), clone(oracle)
+    replay.servers = [dict(event) for event in oracle.servers]
+    replay.commit_observations = dict(oracle.commit_observations)
+    replay.response_observer = None
+    origin = next((event['set'][key] for event in record.events if event['seq'] >= since and key in event['set']), record.rows.get(key))
+    original = origin
+    for part in path:
+        original = original[part]
     def update(rows):
         if key not in rows:
             return
         if kind == 'row':
-            rows.pop(key, None)
+            if rows[key] == original:
+                rows.pop(key, None)
             return
         if not path:
-            rows[key] = copy.deepcopy(replacement)
+            if rows[key] == original:
+                rows[key] = copy.deepcopy(replacement)
             return
         target = rows[key]
         try:
-            put(target, path, kind, replacement)
+            previous = target
+            for part in path:
+                previous = previous[part]
+            if previous == original:
+                put(target, path, kind, replacement)
         except (KeyError, IndexError, TypeError, AttributeError):
             pass  # A later version may no longer contain this nested field.
     for event in changed.events + changed.prepared:
         if event['seq'] >= since:
             update(event['set'])
-    update(changed.rows)
-    for event in replay.servers:
-        if event.get('before_seq', -1) >= since:
-            update(event.get('committed_before', {}))
-            if kind == 'row':
-                event.get('created_before', {}).pop(key, None)
-                event['check_sources'] = [v for v in event.get('check_sources', []) if v != key]
-    for sequence, rows in replay.commit_observations.items():
-        if sequence >= since:
-            update(rows)
+    prefix, created, cursor = {}, {}, 0
+    snapshots = sorted({event.get('before_seq') for event in replay.servers if isinstance(event.get('before_seq'), int)} |
+                       set(replay.commit_observations) | {max(record.committed, default=max((e['seq'] for e in changed.events), default=0))})
+    for sequence in snapshots:
+        while cursor < len(changed.events) and changed.events[cursor]['seq'] <= sequence:
+            event = changed.events[cursor]
+            for name, row in event['set'].items():
+                if row is None:
+                    prefix.pop(name, None)
+                else:
+                    prefix[name] = row
+                    created.setdefault(name, event['seq'])
+            cursor += 1
+        if sequence >= since and sequence in replay.commit_observations:
+            rows = dict(replay.commit_observations[sequence])
+            if key in prefix:
+                rows[key] = prefix[key]
+            else:
+                rows.pop(key, None)
+            replay.commit_observations[sequence] = rows
+        for server in replay.servers:
+            if sequence >= since and server.get('before_seq') == sequence and 'committed_before' in server:
+                rows = dict(server['committed_before'])
+                if key in prefix:
+                    rows[key] = prefix[key]
+                else:
+                    rows.pop(key, None)
+                server['committed_before'] = rows
+                creation = dict(server.get('created_before', {}))
+                if key in created:
+                    creation[key] = created[key]
+                else:
+                    creation.pop(key, None)
+                server['created_before'] = creation
+        if sequence == max(record.committed, default=max((e['seq'] for e in changed.events), default=0)):
+            if key in prefix:
+                changed.rows[key] = prefix[key]
+            else:
+                changed.rows.pop(key, None)
     # Compact fences contain a subset of operation fields. Re-encode the same
     # claim there and in the event's copy, just as Store.write would do.
     versions = {e['seq']: e for e in changed.events + changed.prepared}
@@ -292,7 +334,7 @@ def coherent_change(oracle, record, key, path=(), kind='row', replacement=None, 
                 if 'op:' + op['id'] != key:
                     continue
                 row = event['set'].get(key)
-                if kind == 'row':
+                if row is None:
                     fence['operations'].remove(op)
                 elif path and path[0] in op and path[0] != 'description':
                     if path[0] in row:
@@ -300,12 +342,21 @@ def coherent_change(oracle, record, key, path=(), kind='row', replacement=None, 
                     else:
                         op.pop(path[0], None)
         event['record'] = copy.deepcopy(fence)
+    previous = ''
+    for fence in changed.fences:
+        if 'hash' in fence:
+            fence['previous'] = previous
+            fence['hash'] = fingerprint({name: value for name, value in fence.items() if name != 'hash'})
+            previous = fence['hash']
+            if fence['seq'] in versions:
+                versions[fence['seq']]['record'] = copy.deepcopy(fence)
+            if changed.head and changed.head[0] == fence['seq']:
+                changed.head = (changed.head[0], fence['hash'])
     replay.validated_input = replay.validated_record = None
     return replay, changed
 
 
 def coherent_mutations(oracle, record, states):
-    seen = set()
     seed = getattr(oracle, 'seed_sequence', 0)
     for event in record.events:
         if event['seq'] <= seed or any(c['action'] == 'fixture_input' and
@@ -316,10 +367,6 @@ def coherent_mutations(oracle, record, states):
                 continue
             candidates = [((), 'row', None), *audited_leaves(row, states)]
             for path, kind, replacement in candidates:
-                signature = key, path, kind, canonical(replacement)
-                if signature in seen:
-                    continue
-                seen.add(signature)
                 yield ('coherent/' + str(event['seq']) + '/' + key + '/' + '/'.join(map(str, path)),
                        kind, coherent_change(oracle, record, key, path, kind, replacement, event['seq']))
 
@@ -338,6 +385,15 @@ def freeze(oracle):
     """A live recorder must not acquire later calls while its corpus is built."""
     result = copy.copy(oracle)
     for key, value in oracle.__dict__.items():
+        if key in {'_completion_cache', '_binding_cache', '_approved_cache', '_payload_cache'}:
+            setattr(result, key, {})
+            continue
+        if key == '_effect_record':
+            result._effect_record = None
+            continue
+        if key == '_evidence_index':
+            result._evidence_index = None
+            continue
         if key not in {'response_observer', 'validated_input', 'validated_record'}:
             setattr(result, key, copy.deepcopy(value))
     # The callback retains its live Driver, engine and queued envelopes. It is
@@ -399,12 +455,18 @@ def check(label, oracle, record, states=None, candidates=None, statistics=None):
         if field.startswith('coherent/'):
             new = {(view, fact) for view, fact in new if fact.kind not in STRUCTURAL}
         counts[kind] = counts.get(kind, 0) + 1
-        if statistics is not None and actual != expected:
-            statistics['changed'] = statistics.get('changed', 0) + 1
+        if statistics is not None:
+            statistics['alterations'] = statistics.get('alterations', 0) + 1
+            if actual != expected:
+                statistics['changed'] = statistics.get('changed', 0) + 1
+            if field.startswith('coherent/'):
+                statistics['coherent'] = statistics.get('coherent', 0) + 1
             for validator, kinds in VALIDATOR_KINDS.items():
                 own = any(f.kind in kinds and (validator != 'script_differences' or 'script.' in f.detail) for _, f in new)
                 if own:
-                    statistics[validator] = statistics.get(validator, 0) + 1
+                    statistics[validator + '.own_catches'] = statistics.get(validator + '.own_catches', 0) + 1
+                    if actual != expected:
+                        statistics[validator + '.changed'] = statistics.get(validator + '.changed', 0) + 1
         if actual != expected and not new:
             raise AssertionError(('Silent owner-state perturbation', label, field,
                                   'missing', sorted(expected - actual), 'extra', sorted(actual - expected)))

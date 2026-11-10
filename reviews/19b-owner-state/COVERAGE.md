@@ -163,3 +163,19 @@ merges reproduce the stage-2 fold pin exactly, with zero R2 gaps. Every Mail job
 is below 35 minutes. `LEDGER-STRICT-S2-FOLD.json` records exact hashes, output
 lines and timings. The lead's stage reviews are still separate from these runs;
 R1/R3/projection/lifecycle work remains stage 3.
+
+### Stage 2 fixes round 1 refinements
+
+The full owner sweep now has 34 flows: the original 22, the ten stage-2
+additions, LOCAL_FLAG and a separate send_duplicate race. Every existing fault
+mode/site/cleanup pair/crash/restart remains selected. Clean send creates one
+Sent copy and no warning; the explicit duplicate race retains warning coverage.
+M02/M04/M05 require full scripted effect plans, exact role/flag/byte authority
+and mutation multiplicity independently of terminal state. M03/C03 check
+resolution requires the actual correlated check result, target existence and
+complete source-specific scans. RENAME's exact identities are its enumerated
+UID namespace, without message-body admission. M10/M13 retain interrupted free
+changes, including local flags. The field audit now includes the production
+rows copied into server logs; coherent alterations propagate through all copies
+and require semantic detection. REPORT.md and FORMAT.md contain the updated
+field-audit/resolution tables and validator-specific controls.

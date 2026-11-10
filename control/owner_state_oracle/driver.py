@@ -12,6 +12,7 @@ from .context import MUTATIONS
 from .compare import compare_views, pages, compare_envelope, compare_status, compare_proofs
 from .responses import read_response
 from .transcript import folder_name
+from .clock import recorded_samples
 
 
 @contextmanager
@@ -130,11 +131,11 @@ class Driver:
                 if match:
                     name = folder_name(match[2])
                     oracle.delimiters[name] = None if match[1] == b'NIL' else json.loads(match[1])
-            oracle.server('LIST', getattr(self, 'account_id', 'box'), before_seq=max(self.snapshot().committed, default=0), check_sources=[self.checking_source] if getattr(self, 'checking_source', None) else [], roles=f.imap.roles, mailboxes={name: self.identities(name) for name in f.imap.boxes})
+            oracle.server('LIST', getattr(self, 'account_id', 'box'), accepted=answer[0] == 'OK', before_seq=max(self.snapshot().committed, default=0), check_sources=[self.checking_source] if getattr(self, 'checking_source', None) else [], roles=f.imap.roles, mailboxes={name: self.identities(name) for name in f.imap.boxes})
             return answer
         def selected(*args, **kwargs):
             answer = select(*args, **kwargs)
-            oracle.server('SELECT', getattr(self, 'account_id', 'box'), f.imap.selected, self.identities(f.imap.selected), f.imap.roles)
+            oracle.server('SELECT', getattr(self, 'account_id', 'box'), f.imap.selected, self.identities(f.imap.selected), f.imap.roles, accepted=answer[0] == 'OK')
             return answer
         def command(name, *args, **kwargs):
             folder = f.imap.selected
@@ -184,6 +185,7 @@ class Driver:
             event.update(accepted=True, reply='delivered', arrived=self.identities(folder, account['id']))
             return value
         extra = ExitStack()
+        extra.enter_context(recorded_samples(oracle, self.call_index, getattr(s, 'operation_ttl', 900)))
         imap = f.mail.transport.imap
         @contextmanager
         def imap_session(account):
@@ -320,7 +322,7 @@ class Driver:
             result = scan(mail, account, records)
             events = oracle.servers[start:]
             complete = all(any(e['command'] == 'SELECT' and e.get('folder') == name and e['accepted'] and e['reply'] == 'delivered' for e in events)
-                and all(any(e['command'] == 'FETCH' and e.get('folder') == name and e.get('arguments', [None])[0] == str(ref['uid']) and e['accepted'] and e['reply'] == 'delivered' for e in events)
+                and all(any(e['command'] == 'FETCH' and e.get('folder') == name and e.get('arguments', [None])[0] == str(ref['uid']) and 'BODY.PEEK[]' in str(e.get('arguments', ['', ''])[1]) and e['accepted'] and e['reply'] == 'delivered' for e in events)
                         for ref in refs) for name, refs in expected.items())
             oracle.server('SCAN_RESULT', account['id'], accepted=complete, before_seq=max(self.snapshot().committed, default=0),
                           check_sources=[self.checking_source] if self.checking_source else [], scan_start=start)

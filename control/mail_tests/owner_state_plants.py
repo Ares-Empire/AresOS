@@ -8,6 +8,7 @@ import copy
 from unittest.mock import patch
 from aresos_control.mail import adapter as A, filing as F
 from aresos_control.storage import Store
+from aresos_control.testapp import TestApp
 from owner_state_oracle.driver import Driver
 from owner_state_oracle.gaps import Gaps
 from owner_state_oracle.perturb import freeze
@@ -251,6 +252,13 @@ def dropped_context_commit():
     return patch.object(Store, 'write', persist)
 
 
+_testapp_execute = TestApp.execute
+def wrong_recipient(self, operation, stage):
+    changed = copy.deepcopy(operation)
+    changed['payload']['to'] = ['unapproved']
+    return _testapp_execute(self, changed, stage)
+
+
 PLANTS.update({
     'narrow-payload': ('delete_permanent', (write_lie(narrow_payload),)),
     'false-transition': ('send', (write_lie(false_transition),)),
@@ -263,13 +271,14 @@ PLANTS.update({
     'wrong-sent-bytes': ('send', (lambda: patch.object(Mail, 'append_with_context', wrong_append_bytes),)),
     'removed-intent': ('draft_append', (lambda: patch.object(Mail, 'append_with_context', removed_intent),)),
     'dropped-context-commit': ('send', (dropped_context_commit,)),
+    'wrong-recipient': ('testapp_send', (lambda: patch.object(TestApp, 'execute', wrong_recipient),)),
 })
 
 
 FIELD_PLANTS = {
     'flag': 'false-local-flag', 'state': 'false-transition',
     'removed row': 'removed-intent', 'dropped sequence': 'dropped-context-commit',
-    'target': 'narrow-payload', 'recipient': 'false-recipient-refusal',
+    'target': 'narrow-payload', 'recipient': 'wrong-recipient',
     'flag list entry': 'wrong-answered-flags', 'append_flags': 'wrong-append-flags',
     'hash': 'wrong-sent-bytes', 'destination': 'wrong-sent-destination',
     'restore marker': 'false-restore', 'account': 'wrong-context-account', 'role': 'wrong-context-role',

@@ -120,8 +120,11 @@ class SystematicPerturbations(unittest.TestCase):
         spec.loader.exec_module(module)
         for kind in ('filing', 'rename'):
             for related, target, scan in ((False, True, True), (True, False, True), (True, True, True)):
-                oracle, record, _ = module.filing_case(kind, related, target, scan)
+                oracle, record, key = module.filing_case(kind, related, target, scan)
                 recordings.append((f'check-regression/{kind}/{related}/{target}', freeze(oracle), record))
+                if not related or not target:
+                    for index, (action, replay, snapshot) in enumerate(module.filing_followups(copy.deepcopy(oracle), copy.deepcopy(record), key)):
+                        recordings.append((f'check-regression/{kind}/{related}/{target}/{index}-{action}', freeze(replay), snapshot))
         counts = Counter()
         statistics = Counter()
         states = state_vocabulary([record for _, _, record in recordings])

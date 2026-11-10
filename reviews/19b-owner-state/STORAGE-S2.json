@@ -46,6 +46,53 @@
       "sqlite_file_bytes": 81920
     }
   },
+  "after_fixes_round_1": {
+    "delete": {
+      "index_bytes": 0,
+      "journal_bytes": 3942,
+      "journal_records": 5,
+      "outcome": "done",
+      "projection_bytes": 0,
+      "sqlite_event_bytes": 16454,
+      "sqlite_file_bytes": 24576
+    },
+    "free_change": {
+      "index_bytes": 0,
+      "journal_bytes": 688,
+      "journal_records": 2,
+      "outcome": "done",
+      "projection_bytes": 0,
+      "sqlite_event_bytes": 1592,
+      "sqlite_file_bytes": 0
+    },
+    "move": {
+      "index_bytes": 0,
+      "journal_bytes": 2064,
+      "journal_records": 6,
+      "outcome": "done",
+      "projection_bytes": 0,
+      "sqlite_event_bytes": 9377,
+      "sqlite_file_bytes": 16384
+    },
+    "send": {
+      "index_bytes": 0,
+      "journal_bytes": 9506,
+      "journal_records": 14,
+      "outcome": "done",
+      "projection_bytes": 0,
+      "sqlite_event_bytes": 50361,
+      "sqlite_file_bytes": 65536
+    },
+    "send_25mib": {
+      "index_bytes": 0,
+      "journal_bytes": 9508,
+      "journal_records": 14,
+      "outcome": "done",
+      "projection_bytes": 0,
+      "sqlite_event_bytes": 58595,
+      "sqlite_file_bytes": 73728
+    }
+  },
   "after_fold": {
     "delete": {
       "index_bytes": 0,
@@ -143,6 +190,14 @@
   },
   "before_source": "fda0d164 (production before stage 2)",
   "encoding_equivalence": "The final optional-role/independent folder-name fix repeats all five ordinary-role measurements byte-for-byte.",
+  "fixes_round_1_journal_growth": {
+    "delete": 0,
+    "free_change": 0,
+    "move": 0,
+    "send": 0,
+    "send_25mib": 0
+  },
+  "fixes_round_1_log_sha256": "d115662b1a98024c1da0c9699221f4960e03f3dfeff83106bf6d5b271c232230",
   "fold_extra_records_in_five_samples": {
     "delete": 0,
     "free_change": 0,

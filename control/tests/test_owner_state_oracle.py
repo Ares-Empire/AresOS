@@ -222,6 +222,8 @@ class OwnerOracle(unittest.TestCase):
             oracle.call('filing check', {}, 2)
             oracle.script[-1]['end_seq'] = 2
             oracle.server('LIST', before_seq=1, check_sources=[source], roles={'Target': [], 'Sent': ['\\Sent'], 'Drafts': ['\\Drafts'], 'Trash': ['\\Trash']})
+            if kind == 'filing':
+                oracle.server('SCAN_RESULT', before_seq=1, check_sources=[source])
             oracle.expected(record)
             record.rows['notice:new'] = {**first, 'id': 'new'}
             two = oracle.warning(source, kind, evidence, record)
@@ -951,6 +953,7 @@ class StageOneFixMutations(unittest.TestCase):
     def test_completed_qualification_comes_from_probe_evidence(self):
         oracle = Oracle()
         oracle.call('mail_account_add', {'id': 'new'}, 1)
+        oracle.script[-1].update(start_seq=0, end_seq=1)
         oracle.server('DATA', 'new', accepted=True)
         oracle.server('SENT', 'new', identities=[])
         oracle.server('DELETE', 'new', accepted=False, response_code='NO', response_text=['[CANNOT] Generic refusal'])
@@ -1049,6 +1052,7 @@ class StageOneFixMutations(unittest.TestCase):
         def scenario():
             oracle = Oracle()
             oracle.call('mail_account_add', {'id': 'new'}, 1)
+            oracle.script[-1].update(start_seq=0, end_seq=1)
             oracle.server('APPEND', 'new', 'Probe', arrived=[ref])
             oracle.server('DELETE', 'new', arguments=['Probe'], accepted=False, response_code='NO', response_text=['[CANNOT] Nonempty DELETE forbidden'])
             oracle.server('FETCH', 'new', 'Probe', identities=[ref])
@@ -1168,7 +1172,8 @@ class StageOneRoundTwo(unittest.TestCase):
         oracle = Oracle()
         oracle.call('control_pending', {}, 11)
         oracle.script[-1].update(start_seq=1, end_seq=2)
-        row = {'id': 'g:r', 'app': 'mail', 'state': 'reserved', 'expires': 10}
+        row = {'id': 'g:r', 'app': 'mail', 'state': 'reserved', 'expires': 10,
+               'reason': 'Awaiting exact approval; nothing submitted.'}
         expired = {**row, 'state': 'failed', 'reason': 'expired: nothing submitted', 'notice': notice}
         record = Record(events=[{'seq': 1, 'action': 'mail_send', 'set': {'op:g:r': row}},
             {'seq': 2, 'action': 'mail_send', 'set': {'op:g:r': expired}}])
@@ -1507,6 +1512,7 @@ class StageOneRoundThree(unittest.TestCase):
         oracle.server('FIXTURE_STATE', 'box', mailboxes={'Source': [{**source, 'sha256': 'real-bytes'}]})
         mutation = oracle.server('MOVE', 'box', 'Source', [{**source, 'sha256': 'real-bytes'}], arguments=['1', 'Target'])
         listing = oracle.server('LIST', 'box', mailboxes={'Target': [{**source, 'folder': 'Target', 'sha256': 'real-bytes'}]})
+        oracle.server('SCAN_RESULT', 'box', check_sources=['mail:filing:f'])
         context = {'id': 'f', 'records': [{'source': source, 'sha256': 'false-bytes'}]}
         locations = oracle.locations(context, listing, mutation)
         self.assertEqual(locations[0]['observed_locations'][0]['folder'], 'Target')
@@ -1688,6 +1694,8 @@ class StageTwoPartA(unittest.TestCase):
                           call_start_seq=0, created_before={'mail:filing:f': 1}, committed_before={'mail:filing:f': row}, copyuid_delivered=False)
             if post != 'absent':
                 oracle.server('LIST', 'box', roles=roles, before_seq=1, accepted=post != 'negative', reply='lost' if post == 'lost' else 'delivered')
+            if post == 'delivered':
+                oracle.server('SCAN_RESULT', 'box', before_seq=1, check_sources=['mail:filing:f'])
             record = Record(events=[{'seq': 1, 'time': 1, 'action': 'mail_move', 'set': {'mail:filing:f': row}},
                 {'seq': 2, 'time': 1, 'action': 'mail_move', 'set': {'mail:filing:f': {**row, 'state': 'done', 'check_open': False}}}])
             from owner_state_oracle.compare import compare_proofs

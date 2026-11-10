@@ -29,6 +29,16 @@ def identity(value):
     return {key: value[key] for key in ('account', 'folder', 'uidvalidity', 'uid', 'message_id', 'operation_id') if key in value}
 
 
+def rename_destination(arguments, evidence):
+    source, target = arguments.get('folder', ''), arguments.get('name')
+    delimiter = (evidence.get('delimiters') or {}).get(source)
+    if delimiter and isinstance(target, str) and delimiter not in target:
+        parent = source.rpartition(delimiter)[0]
+        if parent:
+            return parent + delimiter + target
+    return target
+
+
 def call_for(event, script):
     return next((call for call in script if call['call'] == event['call']), {})
 
@@ -48,7 +58,7 @@ def internal_command(row, event, rows):
     if command == 'DELETE':
         return payload.get('folder') == (event.get('arguments') or [''])[0].strip('"')
     if command in UID_COMMANDS:
-        refs = [item['reference'] for item in payload.get('items', [])]
+        refs = [item.get('reference', {}) for item in payload.get('items', []) if isinstance(item, dict)]
         reference = payload.get('composition', {}).get('mail', {}).get('answered_reference')
         refs += [reference] if reference else []
         number = int(event['arguments'][0])
@@ -71,7 +81,7 @@ def bind(event, script):
         if not isinstance(row, dict) or row.get('state') not in {'started', 'submitting'}:
             continue
         if key.startswith('op:'):
-            own = row.get('id') == operation_id
+            own = operation_id is not None and row.get('id') == operation_id
             repair = action.endswith('_operation_repair') and row.get('repair_of') == operation_id
             internal = operation_id is None and created.get(key, -1) > start and internal_command(row, event, rows)
             if own or repair or internal:
@@ -97,12 +107,12 @@ def bind(event, script):
     return candidates[0]
 
 
-def decode(row, key, rows, command):
+def decode(row, key, rows, command, legacy=False):
     if row is None:
         return {}
     if isinstance(row.get('context'), dict):
         return row['context']
-    if 'context_version' in row:
+    if 'context_version' in row or not legacy:
         return {}  # A versioned row cannot silently opt into the legacy format.
     original = row
     if row.get('repair_of'):
@@ -217,12 +227,13 @@ def permitted(row, call):
             'testapp_send': {'RECEIVE', 'LOCAL_STAGE'}, 'testapp_fixture_configure': {'CONFIGURE'}}.get(action)
 
 
-def differences(event, script, servers=()):
+def differences(event, script, servers=(), legacy_keys=()):
     key, row = bind(event, script)
     if row is None:
         return key, ['current intent identity']
     wanted = required(event, script)
-    actual = decode(row, key, event.get('committed_before', {}), event['command'])
+    legacy = key in legacy_keys or event.get('legacy_source')
+    actual = decode(row, key, event.get('committed_before', {}), event['command'], legacy=legacy)
     allowed = permitted(row, call_for(event, script))
     missing = ['approved command'] if allowed is not None and event['command'] not in allowed else []
     if event['command'] == 'CONFIGURE' and event.get('arguments') != call_for(event, script).get('arguments'):
@@ -238,7 +249,7 @@ def differences(event, script, servers=()):
         elif found != value or value is None and field not in {'source'}:
             missing.append(field)
     missing.extend(script_differences(event, script, row, actual, servers))
-    if 'context_version' not in row and not isinstance(row.get('context'), dict) and not event.get('legacy_source'):
+    if 'context_version' not in row and not isinstance(row.get('context'), dict) and not legacy:
         missing.append('unversioned runtime context')
     return key, sorted(set(missing))
 
@@ -320,7 +331,7 @@ def script_differences(event, script, row, context, servers=()):
         elif mode == 'permanent' and command == 'STORE':
             expected['flags'] = ['+FLAGS.SILENT', '(\\Deleted)']
     elif action == 'mail_folder_rename':
-        expected.update(source=args.get('folder'), destination=args.get('name'))
+        expected.update(source=args.get('folder'), destination=rename_destination(args, event))
     elif action == 'mail_folder_create':
         expected.update(source=None, destination=args.get('name'))
     elif action == 'mail_folder_delete':

@@ -14,7 +14,7 @@ from aresos_control.engine import Engine
 from owner_state_oracle.driver import Driver
 from owner_state_oracle.model import Oracle
 from owner_state_oracle.gaps import Gaps, owner, BUCKETS, SUITE_BUCKETS
-from owner_state_oracle.clock import scripted_calendar
+from owner_state_oracle.clock import scripted_calendar, recorded_samples
 from owner_state_oracle.identity import scripted_ids, caller_name, caller_directory
 from test_review23_sweep import Scenario
 from storage_faults import OSWrites
@@ -87,7 +87,8 @@ class OwnerScenario(Scenario):
                 self.owner_oracle.script[index]['start_seq'] = max(before.committed, default=0)
                 self.owner_oracle.script[index]['restore_precondition'] = before.locked
             try:
-                reply = request(engine, envelope, *args, **kwargs)
+                with recorded_samples(self.owner_oracle, index):
+                    reply = request(engine, envelope, *args, **kwargs)
             except BaseException:
                 self.owner_oracle.script[index]['reply'] = 'lost'
                 raise

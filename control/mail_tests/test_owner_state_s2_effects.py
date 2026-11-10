@@ -14,6 +14,53 @@ from storage_faults import OSWrites
 
 
 class EffectRegressions(unittest.TestCase):
+    def test_relative_rename_uses_the_independently_listed_parent_delimiter(self):
+        scenario = OwnerScenario('fixture')
+        try:
+            fixture = scenario.fixture
+            for values in (fixture.imap.boxes, fixture.imap.roles, fixture.imap.validities):
+                values['Parent/Source'] = values.pop('Source')
+            scenario.action, scenario.args = 'mail_folder_rename', {'account': 'box', 'folder': 'Parent/Source', 'name': 'Changed'}
+            def rename(source, target):
+                source, target = source.strip('"'), target.strip('"')
+                for values in (fixture.imap.boxes, fixture.imap.roles, fixture.imap.validities):
+                    values[target] = values.pop(source)
+                return 'OK', [b'Renamed']
+            driver = Driver(scenario)
+            with patch.object(fixture.imap, 'rename', side_effect=rename, create=True), driver.observe():
+                result = scenario.call()
+            driver.reply(result)
+            self.assertTrue(result['ok'], result)
+            self.assertEqual(result['data']['folder'], 'Parent/Changed')
+            self.assertEqual(result['data']['state'], 'done')
+            registry = Gaps(recording=True)
+            driver.compare(registry.checker('relative-rename'))
+            self.assertFalse(registry.entries)
+            self.assertFalse(driver.oracle.lifecycle_errors)
+        finally:
+            scenario.close()
+
+    def test_sent_copy_with_approved_bcc_header_matches_the_data_wire(self):
+        scenario = OwnerScenario('fixture')
+        try:
+            fixture = scenario.fixture
+            scenario.flow, scenario.action = 'send', 'mail_send'
+            scenario.args = fixture.approval('send', fixture.compose(to=['recipient@mail.invalid'], bcc=['hidden@mail.invalid']))
+            scenario.operation_id = scenario.args['operation_id']
+            driver = Driver(scenario)
+            with driver.observe():
+                result = scenario.call()
+            driver.reply(result)
+            self.assertTrue(result['ok'], result)
+            self.assertEqual(result['data']['operation']['state'], 'done')
+            data = next(e for e in driver.oracle.servers if e['command'] == 'DATA')
+            append = next(e for e in driver.oracle.servers if e['command'] == 'APPEND')
+            self.assertNotEqual(data['raw_hex'], append['raw_hex'])
+            self.assertFalse(driver.oracle.context_errors())
+            self.assertFalse(driver.oracle.completion_errors(driver.snapshot()))
+        finally:
+            scenario.close()
+
     def test_clean_send_is_quiet_and_a_separate_delayed_copy_race_warns(self):
         for flow, copies in (('send', 1), ('send_duplicate', 2)):
             scenario = OwnerScenario(flow)

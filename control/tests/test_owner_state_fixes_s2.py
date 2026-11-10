@@ -31,7 +31,132 @@ def filing_case(kind='rename', related=False, target=False, scan=False):
     return oracle, record, key
 
 
+def filing_followups(oracle, record, key):
+    for seq, action, changes in ((3, 'mail_notice_ack', {key: {**record.rows[key], 'ack': True}}),
+                                 (4, 'control_pending', {}), (5, 'mail_filing_notices', {}),
+                                 (6, 'control_pending', {}), (7, 'control_archive', {key: None})):
+        # The last pending read is beyond approval expiry; an open check has no
+        # expiry resolution. Archive is explicitly scripted as an owner attempt.
+        clock = seq if seq < 6 else 100000 + seq
+        args = {'operation_id': 'r'} if action.endswith('_notice_ack') else (
+            {'before': clock - 1, 'confirm': 'archive finished history'} if action == 'control_archive' else {})
+        oracle.call(action, args, clock)
+        oracle.script[-1].update(start_seq=seq-1, end_seq=seq)
+        record.events.append({'seq': seq, 'time': clock, 'action': action, 'set': changes})
+        record.committed.add(seq)
+        for name, value in changes.items():
+            if value is None:
+                record.rows.pop(name, None)
+            else:
+                record.rows[name] = value
+        yield action, copy.deepcopy(oracle), copy.deepcopy(record)
+
+
 class StageTwoFixes(unittest.TestCase):
+    def test_coherent_version_updates_copies_and_preserves_later_outcomes(self):
+        oracle = Oracle()
+        key = 'op:g:p'
+        started = {'id': 'g:p', 'state': 'submitting'}
+        done = {**started, 'state': 'done'}
+        record = Record(rows={key: done}, committed={1, 2}, events=[
+            {'seq': 1, 'time': 1, 'action': 'mail_send', 'set': {key: started}},
+            {'seq': 2, 'time': 2, 'action': 'mail_send', 'set': {key: done}}])
+        for seq, row in ((1, started), (2, done)):
+            oracle.server('DATA', before_seq=seq, committed_before={key: row}, created_before={key: 1})
+        replay, changed = coherent_change(oracle, record, key, ('state',), 'state', 'unknown', 1)
+        self.assertEqual(changed.events[0]['set'][key]['state'], 'unknown')
+        self.assertEqual(changed.rows[key]['state'], 'done')
+        self.assertEqual(replay.servers[0]['committed_before'][key]['state'], 'unknown')
+        self.assertEqual(replay.servers[1]['committed_before'][key]['state'], 'done')
+        replay, changed = coherent_change(oracle, record, key, kind='row', since=1)
+        self.assertNotIn(key, changed.events[0]['set'])
+        self.assertIn(key, changed.events[1]['set'])
+        self.assertNotIn(key, replay.servers[0]['committed_before'])
+        self.assertEqual(replay.servers[1]['created_before'][key], 2)
+        before = copy.deepcopy((replay.script, replay.servers, replay.commit_observations, changed))
+        evaluate(replay, changed)
+        self.assertEqual((replay.script, replay.servers, replay.commit_observations, changed), before)
+    def test_missing_account_result_keeps_independent_setup_obligation(self):
+        oracle = Oracle()
+        oracle.call('mail_account_add', {'id': 'new'}, 1)
+        oracle.script[-1].update(start_seq=0, end_seq=3)
+        oracle.server('CREATE', 'new', arguments=['AresOS-probe-x'], before_seq=1)
+        record = Record(events=[{'seq': 3, 'time': 1, 'action': 'mail_account_add', 'outcome': 'done', 'set': {}}])
+        expected, errors = evaluate(oracle, record)
+        self.assertIn(Fact('mail:account:new', 'recovery'), expected)
+        self.assertTrue(any(f.kind == 'qualification' for f in expected))
+        self.assertTrue(any(f.kind == 'missing-account-result' for _, f in errors))
+
+    def test_malformed_deadline_and_probe_reference_reach_semantic_comparison(self):
+        oracle = Oracle()
+        oracle.call('mail_prepare_send', {}, 1)
+        oracle.script[-1].update(start_seq=0, end_seq=1)
+        row = {'id': 'g:p', 'app': 'mail', 'action': 'mail_send', 'state': 'reserved', 'expires': 'wrong',
+               'reason': 'Awaiting exact approval; nothing submitted.'}
+        expected, errors = evaluate(oracle, Record(events=[{'seq': 1, 'time': 1, 'action': 'mail_send', 'set': {'op:g:p': row}}]))
+        self.assertTrue(expected)
+        self.assertTrue(any(f.kind == 'unapproved-expiry' for _, f in errors))
+        self.assertFalse(any(f.kind == 'invalid-record' for _, f in errors))
+        oracle.script[-1]['clock_samples'] = [1.0]
+        oracle.script[-1]['operation_ttl'] = 900
+        row['expires'] = 1000901.0
+        _, errors = evaluate(oracle, Record(events=[{'seq': 1, 'time': 1, 'action': 'mail_send', 'set': {'op:g:p': row}}]))
+        self.assertTrue(any(f.kind == 'unapproved-expiry' for _, f in errors))
+        oracle = Oracle()
+        oracle.call('mail_account_add', {'id': 'new'}, 1)
+        oracle.script[-1].update(start_seq=0, end_seq=1)
+        row = {'id': 'g:p', 'app': 'mail', 'action': 'mail_delete', 'state': 'submitting', 'payload': {'items': [{}], 'mode': 'permanent'}}
+        oracle.server('EXPUNGE', 'new', 'Probe', [REF], ROLES, arguments=['1'], before_seq=1, call_start_seq=0,
+                      created_before={'op:g:p': 1}, committed_before={'op:g:p': row})
+        _, errors = evaluate(oracle, Record(events=[{'seq': 1, 'time': 1, 'action': 'mail_delete', 'set': {'op:g:p': row}}]))
+        self.assertTrue(any(f.kind == 'unapproved-payload' for _, f in errors))
+        self.assertTrue(any(f.kind == 'R2.EXPUNGE' for _, f in errors))
+        self.assertFalse(any(f.kind == 'invalid-record' for _, f in errors))
+
+    def test_deadline_authority_records_consumed_test_clock_samples(self):
+        import time
+        from owner_state_oracle.clock import recorded_samples
+        oracle = Oracle()
+        oracle.call('mail_prepare_send', {}, 0)
+        with patch.object(time, 'time', side_effect=[1.0, 1.0, 2.0]):
+            with recorded_samples(oracle, 0):
+                self.assertEqual([time.time() for _ in range(3)], [1.0, 1.0, 2.0])
+        self.assertEqual(oracle.script[0]['clock_samples'], [1.0, 2.0])
+        self.assertEqual(oracle.script[0]['operation_ttl'], 900)
+
+    def test_existing_fixture_error_cannot_make_a_changed_copy_authoritative(self):
+        oracle = Oracle()
+        oracle.seed_sequence = 1
+        row = {'id': 'g:r', 'app': 'mail', 'action': 'mail_send', 'state': 'reserved',
+               'reason': 'Awaiting exact approval; nothing submitted.'}
+        oracle.call('fixture_input', {'changes': {'op:g:r': row}}, 2)
+        oracle.script[-1].update(start_seq=1, end_seq=2)
+        record = Record(rows={'op:g:r': row}, events=[{'seq': 2, 'time': 2, 'action': 'fixture',
+                        'set': {'op:g:r': row, 'extra': 'preexisting consistency difference'}}])
+        expected, errors = evaluate(oracle, record)
+        self.assertTrue(any(f.kind == 'changed-fixture-input' for _, f in errors))
+        changed = copy.deepcopy(record)
+        changed.events[0]['set']['op:g:r'].pop('reason')
+        changed.rows['op:g:r'].pop('reason', None)
+        actual, _ = evaluate(oracle, changed)
+        self.assertEqual(actual, expected)
+        self.assertTrue(any(f.kind == 'pending' and 'Awaiting exact approval' in f.detail for f in actual))
+
+    def test_deleted_reason_cannot_replace_the_canonical_submitting_reason(self):
+        oracle = Oracle()
+        oracle.seed_sequence = 1
+        oracle.call('mail_send', {'operation_id': 'g:s', 'description': {}}, 2)
+        oracle.script[-1].update(start_seq=1, end_seq=2)
+        row = {'id': 'g:s', 'app': 'mail', 'action': 'mail_send', 'state': 'reserved',
+               'reason': 'Awaiting exact approval; nothing submitted.'}
+        submitted = {k: v for k, v in {**row, 'state': 'submitting'}.items() if k != 'reason'}
+        record = Record(rows={'op:g:s': submitted}, events=[
+            {'seq': 1, 'time': 1, 'action': 'fixture', 'set': {'op:g:s': row}},
+            {'seq': 2, 'time': 2, 'action': 'mail_send', 'set': {'op:g:s': submitted}}])
+        expected, errors = evaluate(oracle, record)
+        self.assertTrue(any(f.kind == 'unjustified-operation-reason' for _, f in errors))
+        self.assertTrue(any(f.kind == 'pending' and 'Durably submitting' in f.detail for f in expected))
+
     def test_local_flag_requires_prior_context_and_accepts_atomic_completion(self):
         reference = {'scope': 'testapp/fixture/items', 'epoch': 'e', 'id': '1', 'revision': 4}
         item = {'id': '1', 'revision': 4, 'flagged': False}
@@ -96,17 +221,8 @@ class StageTwoFixes(unittest.TestCase):
     def test_wrong_close_survives_ack_reads_expiry_archive_and_restart(self):
         for kind in ('rename', 'filing'):
             oracle, record, key = filing_case(kind, False, False, False)
-            for seq, action, changes in ((3, 'mail_notice_ack', {key: {**record.rows[key], 'ack': True}}),
-                                         (4, 'control_pending', {}), (5, 'mail_filing_notices', {}),
-                                         (6, 'control_pending', {}), (7, 'control_archive', {key: None})):
-                oracle.call(action, {'operation_id': 'r'} if action.endswith('_notice_ack') else {}, seq)
-                oracle.script[-1].update(start_seq=seq-1, end_seq=seq)
-                record.events.append({'seq': seq, 'time': seq, 'action': action, 'set': changes})
-                record.committed.add(seq)
-                for name, value in changes.items():
-                    if value is None: record.rows.pop(name, None)
-                    else: record.rows[name] = value
-                expected, failures = evaluate(oracle, record)
+            for action, replay, snapshot in filing_followups(oracle, record, key):
+                expected, failures = evaluate(replay, snapshot)
                 self.assertTrue(any(f.source == key and f.kind == 'recovery' for f in expected), action)
             restarted = copy.deepcopy(oracle)
             self.assertTrue(any(f.source == key and f.kind == 'recovery' for f in evaluate(restarted, record)[0]))
@@ -151,6 +267,11 @@ class StageTwoFixes(unittest.TestCase):
         row = {'id': 'g:d', 'state': 'submitting', 'payload': {'items': [{'reference': REF}], 'mode': 'permanent'}, 'context_version': 1}
         event = oracle.server('STORE', 'box', 'Source', [REF], ROLES, arguments=['1', '+FLAGS.SILENT', '(\\Deleted)'], committed_before={'op:g:d': row})
         self.assertTrue(differences(event, oracle.script)[1])
+        row.pop('context_version')
+        row['roles_before'] = ROLES
+        event['committed_before']['op:g:d'] = row
+        self.assertTrue(differences(event, oracle.script)[1])
+        self.assertEqual(differences(event, oracle.script, legacy_keys={'op:g:d'})[1], [])
 
     def test_runtime_fixture_label_does_not_authorize_a_reason_or_transition(self):
         oracle = Oracle()

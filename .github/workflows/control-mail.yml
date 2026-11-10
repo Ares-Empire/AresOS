@@ -40,7 +40,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [0, 1, 2, 3]
+        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
@@ -48,7 +48,7 @@ jobs:
       - name: Complete recorded-field alterations and planted controls
         env:
           OWNER_PERTURB_SHARD: ${{ matrix.shard }}
-          OWNER_PERTURB_SHARDS: 4
+          OWNER_PERTURB_SHARDS: 12
         run: bash control/ci/mail/run.sh perturb
       - name: Upload alteration output and fixture isolation
         if: always()

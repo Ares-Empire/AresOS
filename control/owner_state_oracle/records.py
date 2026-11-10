@@ -90,9 +90,10 @@ def consistency_errors(record):
         if fence and event.get('record') != fence:
             errors.append(('sequence:' + str(seq), 'changed-independent-fence', ''))
         for op in (fence or {}).get('operations', []):
-            row = event['set'].get('op:' + op['id'])
+            source = 'op:' + str(op.get('id'))
+            row = event['set'].get(source)
             if row is None or any(row.get(field) != op.get(field) for field in ('id', 'generation', 'input_hash', 'state')):
-                errors.append(('op:' + op['id'], 'changed-fenced-operation', str(seq)))
+                errors.append((source, 'changed-fenced-operation', str(seq)))
         for key, value in event['set'].items():
             if value is None:
                 rows.pop(key, None)

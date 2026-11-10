@@ -99,7 +99,7 @@ resolve an obligation.
 | restore | Scripted confirmation after an independently decoded restore precondition; bounded rollback interval; independent commit order | None |
 | archive | Scripted archive; no remaining obligation; qualified archive manifest; commit order | None (already resolved history only) |
 | onboarding_completion | Scripted account identity; delivered probe evidence; onboarding completion commit order | Incomplete-account recovery |
-| intent_completion | Scripted action; correlated effect/reply; result commit order | Generic intent recovery |
+| intent_completion | Scripted action; every required effect accepted and delivered, or exact local effect; result commit order | Generic intent recovery |
 | export_publication | Scripted saved export identity; publication evidence or correlated refusal; commit order | Export recovery and publication hold |
 
 A restore interval ends strictly before its restore commit, and begins after the
@@ -215,3 +215,64 @@ Four other jobs partition Mail suite modules, and four partition the complete
 recorded alteration corpus. Selection tests prove module, flow, bucket and case
 unions, including shared clean cases. No case or assertion is dropped, and the
 45-minute job limit is unchanged.
+
+## Stage 2 fixes round 1: semantic authority and coherent alterations
+
+`effects.py` derives full effect plans from the scripted approval and independent
+server roles. Send completion requires DATA for the complete approved envelope,
+a Sent copy (client APPEND to the unique Sent role with Seen, or a correlated
+read-only Sent match), and exactly Answered on the approved original when
+requested. Sent APPEND bytes equal DATA or its approved Bcc-header variant.
+Permanent deletion requires a delivered Deleted STORE before each UID EXPUNGE;
+`marked:*` stages require that STORE. These obligations apply independently of
+the claimed stages and final state. Multiplicity is checked per intent and per
+scripted attempt, even without a completion commit or after a result-write fault.
+A newly scripted attempt has a new intent identity.
+
+Generic intent completion requires every scripted reference times every flag
+branch, or the exact create/rename/delete/APPEND effect, accepted and delivered
+before the result commit. An interrupted batch keeps recovery. Local flag
+completion requires its exact prior context, reference/revision and requested
+flag value, with the matching item revision and atomic intent removal.
+
+LIST `check_sources` contains only the check actually executing, instrumented in
+the recorder's check scope; ordinary account LISTs have no enrolled source.
+Cross-call filing completion additionally requires an independently complete
+scan (every selectable folder and message was read). RENAME requires its exact
+destination in the result LIST. The expected rename count is the source-folder
+identities in the RENAME server event. New-format rows cannot invoke legacy
+context decoding when context is absent. Only independently seeded records and
+scripted `fixture_input` intervals are legacy inputs; runtime `fixture` labels
+have no authority. Outcome reasons come from RCPT/DATA, local-stage results and
+fault/commit order and replace false reasons in the retained projection.
+
+The field audit includes every scalar and nested-key deletion in decoded rows,
+versions, compact fences, and the production snapshots copied into server logs:
+`committed_before`, `created_before`, `check_sources`, and `commit_observations`.
+Creation sequences must match independently decoded first commits. Coherent
+variants write the same lie into the event, projection, matching compact fence,
+and every later server snapshot/observation. Integrity-only differences do not
+count as catching a coherent lie. Independent fixture inputs are not production
+claims; their single-site integrity alterations remain covered separately.
+
+Production plants run the unmodified Driver and Driver.compare. Every field
+kind has a real production regression. Seven separate broken-oracle controls
+disable script authority, stage validation, completion, payload validation,
+filing validation, the transition gate, or the local-effect validator. Each must
+make its own plant assertion fail, even if another validator also rejects the
+regression. Each shard prints owner-set-changing alterations and each validator's
+own catches, as well as production plants and broken controls. Structural errors
+and malformed fields cannot prevent already discovered semantic errors reaching
+the shared comparison.
+
+New reservation deadlines are validated against independently recorded consumed
+test-clock samples plus the test's configured operation TTL. The clock recorder
+is production-facing fixture plumbing and is never imported by expectations.
+Numeric alterations keep numeric types. Coherent variants cover every historical
+version; they change matching later copies while retaining subsequent different
+legitimate results, rebuild affected prefix snapshots/creation sequences, and
+re-encode the compact fence chain and working head in memory. They never edit
+real immutable history. Explicit seed/fixture inputs remain independent authority
+for their initial values even if a changed commit copy already has a consistency
+error. Later resolutions remain gated. Missing account results and malformed
+probe references/deadlines reach semantic comparison and cannot erase warnings.

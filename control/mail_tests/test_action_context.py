@@ -39,12 +39,17 @@ class ActionContexts(unittest.TestCase):
                         fixture.imap.roles.pop('Source')
                         return answer
                     uid = fixture.imap.uid
+                    fetches = []
                     def no_fetch(command, *args):
+                        if command == 'FETCH':
+                            fetches.append(args)
+                            if label == 'oversized' and 'RFC822.SIZE' in args[1]:
+                                size = fixture.mail.wires.limit + 1
+                                return 'OK', [f'1 (UID 1 FLAGS () RFC822.SIZE {size})'.encode()]
                         self.assertNotEqual(command, 'FETCH', 'RENAME must never request message metadata or bodies')
                         return uid(command, *args)
                     # The advertised body exceeds the exact pre-existing wire
                     # limit without allocating a large test message.
-                    fixture.mail.wires.limit = len(raw) - 1 if label == 'oversized' else fixture.mail.wires.limit
                     driver = Driver(scenario)
                     with patch.object(fixture.imap, 'rename', side_effect=ordinary), patch.object(fixture.imap, 'uid', side_effect=no_fetch), driver.observe():
                         result = scenario.call()
@@ -58,6 +63,7 @@ class ActionContexts(unittest.TestCase):
                         'uidvalidity': fixture.imap.validities['Renamed'], 'uid': 1}])
                     self.assertFalse(driver.oracle.context_errors())
                     self.assertFalse(any(e['command'] == 'FETCH' for e in driver.oracle.servers))
+                    self.assertEqual(fetches, [])
                 finally:
                     scenario.close()
 

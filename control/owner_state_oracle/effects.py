@@ -2,7 +2,7 @@
 from email.parser import BytesParser
 from email.utils import getaddresses
 import re
-from .context import identity, special_roles, flag_operations
+from .context import identity, special_roles, flag_operations, rename_destination
 
 
 def description(call):
@@ -45,7 +45,7 @@ def free_plan(call):
     if action == 'mail_folder_create':
         return [{'command': 'CREATE', 'account': args.get('account'), 'arguments': [args.get('name')]}]
     if action == 'mail_folder_rename':
-        return [{'command': 'RENAME', 'account': args.get('account'), 'arguments': [args.get('folder'), args.get('name')]}]
+        return [{'command': 'RENAME', 'account': args.get('account'), 'rename': args}]
     if action == 'mail_folder_delete':
         approved = description(call)
         return [{'command': 'DELETE', 'account': approved.get('account'), 'arguments': [approved.get('folder')]}]
@@ -61,6 +61,8 @@ def matches(effect, event):
         return False
     if 'role' in effect:
         return role_append(event, effect['role'], effect['flags'])
+    if 'rename' in effect:
+        return [arg.strip('"') for arg in event.get('arguments', [])] == [effect['rename'].get('folder'), rename_destination(effect['rename'], event)]
     return [arg.strip('"') for arg in event.get('arguments', [])] == effect.get('arguments')
 
 
