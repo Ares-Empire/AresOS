@@ -244,7 +244,7 @@ class GuardLedgerTest(unittest.TestCase):
         self.addCleanup(guard.configure, '11c')
 
     def test_package27_allows_one_release_one_checks_run_and_three_rehearsals(self):
-        self.assertEqual(guard.SETTINGS['dispatch_caps'], {'release-27': 3, 'checks': 1, 'update': 3})
+        self.assertEqual(guard.SETTINGS['dispatch_caps'], {'release-27': 4, 'checks': 1, 'update': 3})
         self.assertEqual(guard.SETTINGS['publish_cap'], 1)
         self.assertEqual(guard.BRANCH, 'pkg/27-first-update-release')
         workflow = (ROOT / '.github/workflows/os-image.yml').read_text()
@@ -270,9 +270,11 @@ class GuardLedgerTest(unittest.TestCase):
             runs.append(dict(base, id=3, display_title='Package 27 image release'))
             self.assertEqual(guard.budget(0)['dispatch_counts']['release-27'], 3)
             runs.append(dict(base, id=4, display_title='Package 27 image release'))
+            self.assertEqual(guard.budget(0)['dispatch_counts']['release-27'], 4)
+            runs.append(dict(base, id=5, display_title='Package 27 image release'))
             with self.assertRaisesRegex(AssertionError, 'release-27 dispatch allowance exhausted|exceeds 1200'):
                 guard.budget(0)
-            runs.pop(); runs.pop(); runs.pop()
+            for _ in range(4): runs.pop()
             for number in range(3):
                 runs.append(dict(base, id=10 + number, display_title='Two-disk rehearsal (update)'))
             self.assertEqual(guard.budget(0)['dispatch_counts']['update'], 3)

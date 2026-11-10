@@ -94,7 +94,7 @@
     "full_cap": 0,
     "part_b_cap": 0,
     "dispatch_caps": {
-      "release-27": 3,
+      "release-27": 4,
       "checks": 1,
       "update": 3
     },
@@ -114,6 +114,6 @@
       "checks": "OS regressions only (no VM)",
       "update": "Two-disk rehearsal (update)"
     },
-    "release_retry": "Run 42807087845 stopped before publishing: its added second VM pass could not re-read the reused /dev/nbd0 (host-side offline journal). One more release dispatch, with the reviewed check build's single VM pass. Run 42817411051 stopped in the image diff (13 unexplained paths: /etc/sudoers.d 0750 to 0755 from cp -a of os/config, fixed in build.sh, and 12 exact classifier gaps); integrator OK 2026-11-10 for a third and last release dispatch."
+    "release_retry": "Run 42807087845 stopped before publishing: its added second VM pass could not re-read the reused /dev/nbd0 (host-side offline journal). One more release dispatch, with the reviewed check build's single VM pass. Run 42817411051 stopped in the image diff (13 unexplained paths: /etc/sudoers.d 0750 to 0755 from cp -a of os/config, fixed in build.sh, and 12 exact classifier gaps); integrator OK 2026-11-10 for a third and last release dispatch. Run 42831158090 failed before building: snapshot.ubuntu.com answered 500 while the runner installed its pinned tools; integrator OK 2026-11-10 for a fourth dispatch of the same image source."
   }
 }
