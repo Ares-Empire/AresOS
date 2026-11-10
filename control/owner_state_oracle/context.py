@@ -10,7 +10,11 @@ def special_roles(value):
     if not isinstance(value, dict):
         return None
     if 'special' in value:
-        return {role: [value['special'][role]] for role in ROLES if value['special'].get(role)}
+        result = {role: [value['special'][role]] for role in ROLES if value['special'].get(role)}
+        for role, entries in value.get('optional', {}).items():
+            if role in ROLES and entries:
+                result[role] = sorted(entry['folder'] for entry in entries)
+        return result
     if any(role in value for role in ROLES):
         return {role: sorted(v if isinstance(v, list) else [v]) for role, v in value.items() if role in ROLES and v}
     return {role: sorted(name for name, flags in value.items() if isinstance(flags, list) and '\\' + role in [flag.lower() for flag in flags])

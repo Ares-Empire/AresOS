@@ -1,9 +1,24 @@
 """Thread-visible fixture transcript, separate from injected service storage."""
 from email.parser import BytesParser
 import hashlib
+import base64
+import json
+import re
 import copy
 import threading
 import time
+
+
+def folder_name(raw):
+    """Decode IMAP quoting and modified UTF-7 independently of the adapter."""
+    value = raw.decode('ascii')
+    value = json.loads(value) if value.startswith('"') else value
+    def shifted(match):
+        if not match[1]:
+            return '&'
+        encoded = match[1].replace(',', '/')
+        return base64.b64decode(encoded + '=' * (-len(encoded) % 4), validate=True).decode('utf-16-be')
+    return re.sub(r'&([^-]*)-', shifted, value)
 
 
 class Transcript:

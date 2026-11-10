@@ -37,6 +37,7 @@ class Mail:
 
     def __init__(self, store, blobs):
         self.store, self.blobs = store, blobs
+        self._context_roles = {}
         self.transport = Transport(store.state_dir / "mail-passwords", store.ledger)
         self.wires = Blobs(store.state_dir / "mail-wire", 64 * 1024 * 1024, store.ensure_writable, store.ledger)
 
@@ -51,12 +52,22 @@ class Mail:
         refs = [item['reference'] for item in payload.get('items', [])]
         account_id = payload.get('account') or mail.get('account') or payload.get('reference', {}).get('account') or (refs[0]['account'] if refs else None)
         account = self.account(account_id, ready=False)
-        return {key: copy.deepcopy(account.get(key, {})) for key in ('special', 'roots')}
+        observed = self._context_roles.get(account_id, account)
+        result = {key: copy.deepcopy(observed.get(key, {})) for key in ('special', 'roots')}
+        if any(recorded_optional(observed).values()):
+            result['optional'] = copy.deepcopy(recorded_optional(observed))
+        return result
 
     def mutation_context(self, account, command, **values):
+        observed = account if command == 'CHANGE' else self._context_roles.get(account['id'], account)
         kinds = ('sent', 'drafts', 'trash', 'junk', 'archive')
-        roles = {kind: [account['special'][kind]] for kind in kinds if account.get('special', {}).get(kind)}
-        delimiters = {kind: [root(account, kind)['delimiter']] for kind in roles}
+        roles = {kind: [observed['special'][kind]] for kind in kinds if observed.get('special', {}).get(kind)}
+        delimiters = {kind: [root(observed, kind)['delimiter']] for kind in roles}
+        for kind, entries in recorded_optional(observed).items():
+            if entries:
+                entries = sorted(entries, key=lambda entry: entry['folder'])
+                roles[kind] = [entry['folder'] for entry in entries]
+                delimiters[kind] = [entry['delimiter'] for entry in entries]
         return action_context(self.store, command, account['id'], roles=roles, delimiters=delimiters, **values)
 
     def append_with_context(self, account, folder, raw, flags=None, recipients=()):
@@ -83,6 +94,8 @@ class Mail:
                 or any(root(current, k) != root(account, k) for k in REQUIRED)):
             raise Refused("special_folders_changed", "SPECIAL-USE roles differ from owner setup. " + SETUP)
         check_optional(account, current['optional'], names, needed)
+        # This is only preparation input; mutation() commits it before effects.
+        self._context_roles[account['id']] = copy.deepcopy(current)
         return current
 
     def read_roles(self, account, listed):

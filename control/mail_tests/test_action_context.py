@@ -196,3 +196,30 @@ class ActionContexts(unittest.TestCase):
                 self.assertEqual(sent['data']['operation']['state'], 'done')
             finally:
                 engine.close()
+
+    def test_unrelated_ambiguous_optional_roles_use_observed_context_without_changing_the_action(self):
+        scenario = OwnerScenario('folder_create')
+        self.addCleanup(scenario.close)
+        fixture = scenario.fixture
+        names = ('Junkä', 'Junk\"two')
+        for number, name in enumerate(names, 20):
+            fixture.imap.boxes[name] = {}
+            fixture.imap.roles[name] = ['\\Junk']
+            fixture.imap.validities[name] = number
+        # The owner setup predates these unrelated optional roots. Ordinary
+        # folder creation is allowed; its context must retain both observations.
+        from aresos_control.mail.transport import quote
+        def listed():
+            return 'OK', [('(' + ' '.join(flags) + ') ' + ('"."' if name == 'Junkä' else '"/"') + ' ' + quote(name)).encode()
+                for name, flags in fixture.imap.roles.items()]
+        driver = Driver(scenario)
+        with patch.object(fixture.imap, 'list', side_effect=listed), driver.observe():
+            reply = scenario.call()
+        driver.reply(reply)
+        self.assertTrue(reply['ok'], reply)
+        event = next(e for e in driver.oracle.servers if e['command'] == 'CREATE')
+        key, row = bind(event, driver.oracle.script)
+        self.assertEqual(row['context']['roles']['junk'], sorted(names))
+        self.assertEqual(row['context']['delimiters']['junk'], ['/', '.'])
+        self.assertEqual(driver.oracle.context_errors(), set())
+        self.assertEqual(row['context']['destination'], 'Created')

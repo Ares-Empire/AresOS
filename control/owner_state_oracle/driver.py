@@ -11,6 +11,7 @@ from .model import Fact, Oracle
 from .context import MUTATIONS
 from .compare import compare_views, pages, compare_envelope, compare_status, compare_proofs
 from .responses import read_response
+from .transcript import folder_name
 
 
 @contextmanager
@@ -127,7 +128,7 @@ class Driver:
             for raw in answer[1]:
                 match = re.match(rb'\([^)]*\) (NIL|"[^"]*") (.*)', raw)
                 if match:
-                    name = match[2].strip(b'"').decode()
+                    name = folder_name(match[2])
                     oracle.delimiters[name] = None if match[1] == b'NIL' else json.loads(match[1])
             oracle.server('LIST', getattr(self, 'account_id', 'box'), before_seq=max(self.snapshot().committed, default=0), check_sources=sorted(self.snapshot().rows), roles=f.imap.roles, mailboxes={name: self.identities(name) for name in f.imap.boxes})
             return answer

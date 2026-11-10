@@ -1743,3 +1743,10 @@ class StageTwoPartA(unittest.TestCase):
         oracle.script[0]['arguments']['later'] = True
         self.assertIsNone(frozen.response_observer)
         self.assertEqual(frozen.script[0]['arguments'], {})
+
+    def test_server_folder_decoder_preserves_quoting_ampersands_and_modified_utf7(self):
+        from owner_state_oracle.transcript import folder_name
+        self.assertEqual(folder_name(b'"Junk&-Other"'), 'Junk&Other')
+        self.assertEqual(folder_name(b'"Junk&AOQ-"'), 'Junkä')
+        self.assertEqual(folder_name(b'"Junk\\\\Root"'), 'Junk\\Root')
+        self.assertEqual(folder_name(b'"Junk\\"two"'), 'Junk"two')
