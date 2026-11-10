@@ -170,6 +170,12 @@ class StageTwoFixes(unittest.TestCase):
         absent.events.pop(1)
         _, changed = coherent_change(Oracle(), absent, key, ('approval', 'description', 'to', 0), 'effect', 'wrong@mail.invalid', 1)
         self.assertEqual(changed.fences[1]['operations'][0]['description']['untrusted_content']['to'], ['wrong@mail.invalid'])
+        oracle = Oracle()
+        oracle.server('LIST', before_seq=1, committed_before={key: reserved}, check_sources=[key])
+        replay, changed = coherent_change(oracle, record, key, kind='row', since=1)
+        self.assertNotIn(key, replay.servers[0]['committed_before'])
+        self.assertEqual(replay.servers[0]['check_sources'], [])
+        self.assertEqual(oracle.servers[0]['check_sources'], [key])
         self.assertEqual(record, before)
 
     def test_coherent_version_updates_copies_and_preserves_later_outcomes(self):

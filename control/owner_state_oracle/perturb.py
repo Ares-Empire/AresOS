@@ -359,6 +359,8 @@ def coherent_change(oracle, record, key, path=(), kind='row', replacement=None, 
         for server in server_sequences.get(sequence, ()):
             if sequence >= since and 'committed_before' in server:
                 rows = dict(server['committed_before'])
+                if key in rows and key not in prefix and key in server.get('check_sources', []):
+                    server['check_sources'] = [source for source in server['check_sources'] if source != key]
                 if key in prefix:
                     rows[key] = prefix[key]
                 else:
