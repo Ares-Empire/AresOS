@@ -877,7 +877,7 @@ class StageOneFixMutations(unittest.TestCase):
             {'seq': 2, 'action': 'mail_notice_ack', 'set': {source: {**old, 'state': 'done', 'check_open': False}}}])
         expected = oracle.expected(record)
         self.assertTrue(any(f.kind == 'recovery' for f in expected))
-        self.assertIn(Fact(source, 'unjustified-check-close'), oracle.lifecycle_errors)
+        self.assertIn(Fact(source, 'unjustified-check-close', detail='2'), oracle.lifecycle_errors)
         with self.assertRaises(AssertionError):
             oracle.compare('ack closes check', expected, set())
 
@@ -1703,9 +1703,9 @@ class StageTwoPartA(unittest.TestCase):
             failures = []
             compare_proofs(oracle, record, lambda view, expected, actual: failures.extend(actual - expected))
             if post == 'delivered':
-                self.assertNotIn(Fact('mail:filing:f', 'unjustified-check-close'), failures)
+                self.assertNotIn(Fact('mail:filing:f', 'unjustified-check-close', detail='2'), failures)
             else:
-                self.assertIn(Fact('mail:filing:f', 'unjustified-check-close'), failures)
+                self.assertIn(Fact('mail:filing:f', 'unjustified-check-close', detail='2'), failures)
                 self.assertTrue(any(f.kind == 'recovery' for f in oracle.expected(record)))
 
     def test_another_unsubscribe_post_cannot_resolve_this_operation(self):

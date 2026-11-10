@@ -956,12 +956,12 @@ class Oracle:
                     kind = 'rename' if key.startswith('mail:rename:') else 'filing'
                     self.warning_contexts.setdefault(key, copy.deepcopy(old))
                     if not self.resolve('check_result', key, server_result=not event['action'].endswith('_notice_ack') and self.result_proof(key, kind, event['seq']), commit_order=True):
-                        self.lifecycle_errors.add(Fact(key, 'unjustified-check-close'))
+                        self.lifecycle_errors.add(Fact(key, 'unjustified-check-close', detail=str(event['seq'])))
                         value = {**value, 'check_open': True}
                 if key.startswith('op:') and old.get('sent_copy_check', {}).get('state') == 'open' and value and value.get('sent_copy_check', {}).get('state') != 'open':
                     if not self.resolve('check_result', key, server_result=value.get('sent_copy_check', {}).get('state') == 'checked' and
                                         not event['action'].endswith('_notice_ack') and self.result_proof(key, 'sent_copies', event['seq']), commit_order=True):
-                        self.lifecycle_errors.add(Fact(key, 'unjustified-check-close'))
+                        self.lifecycle_errors.add(Fact(key, 'unjustified-check-close', detail=str(event['seq'])))
                         value = {**value, 'sent_copy_check': old['sent_copy_check']}
                 if (key.startswith('mail:account:') and not old.get('onboarded', old.get('ready', False)) and value and
                         value.get('onboarded', value.get('ready', False)) and event['seq'] > getattr(self, 'seed_sequence', 0)):
