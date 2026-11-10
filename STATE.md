@@ -100,7 +100,12 @@ Updated 2026-11-10. The live truth is `git log`, `gh pr list` and `git worktree 
     - Every image build now builds and checks the mod jar: a `mod` stage in the Containerfile plus a pin check in `build.sh`. That replaces its PLAN-GAP 1.
     - Hosted `checks_only`: 958 tests OK (run 42830860249).
     - The VM build failed twice on Ubuntu mirror 502/503s; one more `check_build=build` is approved.
-    - REVIEW-2 (Astra): CHANGES-NEEDED. Of REVIEW-1's 11 findings, 6 are fixed and 5 partial; 1 blocking (kills before the PID handoff still restart) and 8 should-fix remain. Review fixes 2 is in progress (brief `23-review-fixes-2.md`).
+    - REVIEW-2 (Astra): CHANGES-NEEDED. Of REVIEW-1's 11 findings, 6 are fixed and 5 partial; 1 blocking (kills before the PID handoff still restart) and 8 should-fix remain. Review fixes 2 is pushed (`e69b16a0`).
+    - The first build hit a real defect: the pinned JDK image has no curl. Fix: a Bazzite `source` stage fetches the commit, and the JDK stage only runs Gradle.
+    - Check build with VM: run 42865819198 passed. The image's own jar equals the pin `8b04c511`.
+    - VM evidence: the real JVM ran in its 5 GiB scope; a whole-scope SIGKILL latched recovery; under real memory pressure the kernel OOM killer hit only the hog's scope while the supervisor kept answering.
+    - Still unproven: an oomd kill and focus hand-back with a real game; both wait for the laptop trial.
+    - REVIEW-3 (Astra) is running.
     - Updated JUDGMENT-CALL 10 (a memory kill or unexplained whole-scope death latches recovery, no automatic restart) was accepted by the owner (board #170, 2026-11-10: "Yes").
   - Merges after 27.
 - **Package 27, the first update release, started 2026-11-10** (brief `27-first-update-release.md`, empire brief 266; Claude agent, Opus; branch `pkg/27-first-update-release`):
