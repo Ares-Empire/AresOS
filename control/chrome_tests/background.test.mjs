@@ -646,6 +646,14 @@ test('P24 final identity query finishes before the last dirty and audible check'
   await assert.rejects(f.run("dispatch({name:'prepare_control',tab:7})"),/reload_required/);assert.equal(f.run('reloads'),0);
   f.run('dirty=false;identityCalls=0;chrome.tabs.get=async()=>({audible:true})');await assert.rejects(f.run("dispatch({name:'prepare_control',tab:7})"),/playing media/);assert.equal(f.run('reloads'),0);
 });
+test('P24 uncovered and unreadable frames count as possibly unsaved before both reload boundaries',async()=>{
+  const f=fixture();f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({});facts=async()=>({needs_reload:true,frames:[{frame:0}],uncovered:[{frame:1}]});reloadIdentity=async()=>({loaderId:'loader',frameId:'top',frames:[[0,'top'],[1,'unreadable']]});globalThis.reloads=0;globalThis.unreadable=false;cdp=async()=>reloads++;content=async(tab,frame)=>{if(unreadable&&frame===1)throw Error('reader unavailable');return {unsaved:false,playing:false}};");
+  await assert.rejects(f.run("dispatch({name:'prepare_control',tab:7})"),/possibly|unsaved/);assert.equal(f.run('reloads'),0);
+  f.run('unreadable=true');
+  await assert.rejects(f.run('reloadChecked(7,undefined,true)'),/possibly|unsaved/);assert.equal(f.run('reloads'),0);
+  f.run("facts=async()=>({needs_reload:true,frames:[{frame:0},{frame:1}]})");
+  await assert.rejects(f.run("dispatch({name:'prepare_control',tab:7})"),/possibly|unsaved/);assert.equal(f.run('reloads'),0);
+});
 test('P25 satisfied checks and isolated selections do not activate an inactive tab',async()=>{
   for(const input of [{verb:'check',checked:true},{verb:'select',value:'second'}]){
     const f=fixture();f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({});facts=async()=>({frames:[{frame:0,target:{element:'e1',states:{checked:true}}}]});globalThis.activated=0;content=async()=>({});chrome.webNavigation={getAllFrames:async()=>[{frameId:0}]};chrome.tabs.get=async()=>({active:false});chrome.tabs.update=async()=>activated++;collectSteps=async()=>[];");
