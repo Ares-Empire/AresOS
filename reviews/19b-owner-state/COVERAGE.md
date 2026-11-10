@@ -131,9 +131,9 @@ finished old work stays quiet, and new operations complete. The actual fault
 sweep uses the same independent script/server/commit comparison on every call,
 mode and fault boundary; stage-2 known gaps must be empty at this stage's head.
 
-**Read — scope:** this closes the R2 portion of these rows. Their owner-state
+**Read — scope:** the implementation and local comparison cover the R2 portion of these rows; stage-2 acceptance is held at the storage stop. Their owner-state
 read/fallback, occurrence/acknowledgement, restore and current-refusal portions
 remain assigned to stage 3. D3 and all three G22 cases remain open; the durable
 projection and common owner-state read path are not built in stage 2.
 
-**Run — stage 2 pin:** `LEDGER-S2.json` records 2,200,009 exact stage-3 failures and **zero stage-2 failures** (1,952 groups / 898,329 bytes). Local complete 32-flow captures and all 68 final-source alteration scenarios passed; final Linux proof is recorded in REPORT.md.
+**Run — stage 2 pin:** `LEDGER-S2.json` records 2,200,009 exact stage-3 failures and **zero stage-2 failures** (1,952 groups / 898,329 bytes). Local complete 32-flow captures and all 68 final-source alteration scenarios passed; Linux diagnostics and the required storage stop are recorded in REPORT.md. No final Linux strict pair is claimed.

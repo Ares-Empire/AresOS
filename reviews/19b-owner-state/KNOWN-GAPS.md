@@ -237,6 +237,8 @@ PY
 diff -u reviews/19b-owner-state/KNOWN-GAPS.json .work/19b-s2/compact.json
 ```
 
-Final Linux strict evidence, its exact source, artifact hashes, ownership
-multiplicities and run count will be appended after both repetitions. The local
-pin is not a claim that stage 3 is complete.
+This is a local pin, not final Linux acceptance. The first Linux diagnostic
+wave found different export syscall boundary counts; a complete Linux capture
+and repin are required before strict final repetitions. The storage stop in
+REPORT.md holds stage 2 pending the lead/owner decision, so no final Linux proof
+is claimed. The local pin does not claim stage 3 is complete.

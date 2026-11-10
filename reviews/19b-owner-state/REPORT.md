@@ -1,4 +1,12 @@
-# 19b — stage 1 only
+# 19b — owner state
+
+**Current status — stage 2 STOPPED, not accepted (2026-11-10):** part A was
+committed and pushed separately as `fda0d164`. R2 implementation and its local
+proof are present, but permanent-journal growth exceeds the brief's stop
+threshold. The lead must take the figures to the owner. No final Linux green
+pair or complete Mail timing acceptance is claimed. Stage 3 was not started.
+The earlier stage sections below retain their historical evidence; the closing
+stage-2 stop section controls the current status.
 
 ## Done
 
@@ -815,8 +823,10 @@ suite modules, four partition every recorded alteration scenario, and two
 ordinary flow groups each have twelve isolated sweep jobs. Onboarding has 24
 dedicated jobs/buckets. Format 3 explicitly records this per-suite exception;
 ordinary flows retain their twelve buckets. Every bucket stays whole. The
-inherited whole-flow fault cases have exactly one owner in the ordinary groups;
-its unchanged clean/control checks still run in onboarding jobs.
+inherited whole-flow fault cases have exactly one owner in the first ordinary
+group's twelve workers (corrected in `253191a3`); its clean/control tests run
+there too. The independent owner clean/control cases still run in every
+assigned worker, including onboarding.
 Selection tests prove the complete module/flow/bucket unions and uniqueness;
 shared clean oracle cases still run identically in twelve workers. Artifacts
 are uploaded by every job and the cap remains 45 minutes. Actual durations and
@@ -918,4 +928,68 @@ all shared cases. Selection tests assert that union and nonemptiness. The
 Linux full actual lists are retained for the exact Linux pin; no R2 difference
 is admitted. The redundant second Mail diagnostic `42754968875` was cancelled
 once these failures were known; it is counted, never passing evidence. Neither
-failed base run is acceptance evidence. Final strict repetitions follow below.
+failed base run is acceptance evidence. The storage stop below prevents final strict repetitions.
+
+
+## Stage 2 closing stop: storage decision required
+
+**Read — governing rule:** `briefs/19b-owner-state.md:229–230` says: “Stop and
+report the figures if storage per operation in the permanent journal or
+projection grows by more than about 1 KB; the lead takes that to the owner.”
+The stage-2 start brief does not waive this limit. The stop was applied late:
+the figures were already recorded when the first Linux wave began. Those
+runs and the subsequent local test corrections do not authorize crossing the
+storage threshold.
+
+**Run — measured blocker:** `STORAGE-S2.json` contains the repeatable before/after
+figures on the actual R2 source. The permanent-journal increments are:
+
+| Operation | Additional permanent-journal bytes |
+| --- | ---: |
+| Mail send | **1,412** |
+| MOVE | 346 |
+| Permanent delete | **1,582** |
+| Free folder CREATE | 344 |
+| Mail send with 25 MiB attachment | **1,412** |
+
+The projection is not built (zero bytes, stage 3). Full SQLite event/DB growth
+is listed above separately. The send and delete journal increments trigger
+the required stop. No history was rewritten and no storage assertion was
+weakened. **JUDGMENT-CALL / open question:** the lead must take this measured
+cost to the owner before implementation/acceptance continues; this run grants
+no exception and introduces no substitute journal format.
+
+**Verified locally:** 119 oracle/selection self-tests; 16 expanded crash/journal
+tests with worktree-only inherited policy fixtures; eight direct R2 tests and
+seven focused/regression tests; all 68 recorded scenarios / 362,059 alterations
+with zero slipped; all twelve complete local fault-capture workers followed by
+strict offline comparison to the local compact pin. The five storage figures
+repeat byte-for-byte on the final production source. Generator and diff checks
+pass. Exact earlier output and source caveats are retained above.
+
+**Not verified:** stage 2 is not Linux-green. The local compact pin is provisional
+for Linux because export syscall boundary numbering differs. A complete Linux
+capture, exact repin and two strict final-source repetitions are still needed.
+The first-wave base failures were corrected in `253191a3` and verified locally,
+but that correction has not passed Linux. The CI selection correction is also
+awaiting Linux. All Mail jobs still need two complete passing timing sets;
+completed diagnostic jobs alone do not satisfy that requirement. No final
+`LEDGER-STRICT-S2.json` is fabricated.
+
+**Run — workflow accounting:** stage 2 used **six distinct workflow IDs / six
+attempts**, all at `8e455241`, with no part-A CI:
+
+| Workflow | Runs (all attempt 1) | Result |
+| --- | --- | --- |
+| Control base | `42754922711`, `42754965833` | Failed: 262 tests, 21 failures in old write-sequence expectations |
+| Control Mail | `42754922775`, `42754968875` | Diagnostic failures; both cancelled, first at the storage stop, second when duplicate failures were known |
+| Control boundary | `42754972134`, `42754976711` | Both passed; superseded diagnostic source, not final acceptance |
+
+Whole branch accounting is **80 workflow IDs / 93 attempts**, adding these six
+to stage 1's 74 IDs / 87 attempts. Raw downloaded output and partial full actual
+lists stay under `.work/19b-s2/ci/`; no full list enters Git. The closing push
+uses `[skip ci]` to publish the stopped state without starting another wave.
+PR #26 remains a draft against `pkg/19-mail`; never merged. No Gradle daemon
+was started. The closing large-file inventory is recorded below.
+
+**Run — closing `.work/` inventory:** no regular file exceeds 500 MiB.
