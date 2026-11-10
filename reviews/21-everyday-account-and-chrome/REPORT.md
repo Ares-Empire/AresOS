@@ -425,3 +425,36 @@ Verification of the fixes:
 - Tests added: the live active-session polkit block in `guest.sh` (VM policy step); implication handling and the
   wheel-grant "no implied extra" check in `polkit-check.js`; `test_build_drops_only_the_runtime_install_implication_of_flatpak_app_update`
   (runs the build's edit on a sample and checks it refuses a changed upstream).
+
+## Review fixes 4 (review 4: CHANGES-NEEDED at `7e900863`; brief `21-review-fixes-4.md`)
+
+Review 4 found no remaining passwordless root, image, boot, kernel-argument or firmware bypass. Board #156 is still
+open, so its behaviours stay.
+
+1. **`build.sh` Flatpak guard (Medium): fixed.** Before the edit, `app-update`'s implication must be exactly
+   `org.freedesktop.Flatpak.runtime-install org.freedesktop.Flatpak.runtime-update` (Flatpak 1.18.4); after it,
+   exactly `org.freedesktop.Flatpak.runtime-update`, with the rest of the file unchanged. Anything else stops the build
+   for review. `test_build_drops_only_the_runtime_install_implication_of_flatpak_app_update` runs the build's own
+   block on samples: the reviewed pair is edited exactly; an added target (`app-install`, `systemd1.manage-units`),
+   either target alone, the reversed order, a repeated target and an empty list all stop it.
+2. **`vm.py` readiness (Medium): fixed.** The gate is now `os/ci/journal_ready.follower_ready`: only a complete,
+   newline-terminated `aresos-ci[<pid>]` record whose message, without journalctl's colour codes, is exactly
+   `ARESOS_JOURNAL_READY` counts. `vm.py` uses only that gate and no longer imports `serial_search`. New
+   `os/tests/test_journal_ready.py`: the real coloured record (with `\r\n` and `\n`); chunked input in 1, 3, 7 and
+   64-character pieces, which counts only once the record's newline has arrived; false markers (`FAILED
+   ARESOS_JOURNAL_READY`, `ARESOS_JOURNAL_READY_NOT`, extra spaces, other words, other tags, a line without the
+   timestamp, a record not at the line start); and unterminated records. `vm.py`'s checkout bytes in
+   `pending-rebind.json` are regenerated with `checkout_sources.records`.
+
+Verification of the fixes:
+
+| Run | What | Result |
+|---|---|---|
+| **42737640035** | **`check_build=build` on `6cc07158`, with the VM boot** | **Success.** `polkit: Flatpak app-update now implies only: org.freedesktop.Flatpak.runtime-update`; 26 in-image PASS lines; `polkit: 21 rule files, 401 actions, 0 change with wheel, 73 denied to ares, 132 reviewed passwordless, 0 cached defaults in the image`, `POLKIT_CHECK_PASSED`. VM pass through the new readiness gate: guest policy with `ARESOS_ACTIVE_SESSION_POLKIT_PASSED`, `PASS: offline logind power-key path`, `UEFI VM checks passed`, `CHECK_BUILD_VM_PASSED`. Evidence: `runs/build-42737640035/`. |
+| **42740827813** | **`checks_only=true` on `6cc07158`** | **Success.** `Ran 720 tests` `OK` natively, including the five `test_journal_ready` tests and the extended implication test. |
+
+- Full WSL suite on `6cc07158` (`pkg21-wsl-suite.sh` in a `mktemp` folder, started once no other suite ran and 4 GB
+  were free): plain and `-B` both `Ran 720 tests`, `FAILED (failures=1, errors=12)`, only the known WSL-only suites
+  (`test_greeter` 3 errors, `test_inherited_homebrew` 1 failure + 7 errors, `test_sysusers` 2 errors). Focused on the
+  same head: `test_journal_ready` 5 OK, `test_everyday_account` 27 OK, `test_shell_assertions` 8 OK,
+  `test_checkout_sources` 4 OK (with the regenerated `vm.py` binding).
