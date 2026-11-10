@@ -15,7 +15,9 @@ import os
 import pathlib
 import re
 import shutil
+import subprocess
 import sys
+import time
 import tempfile
 import unittest
 from types import SimpleNamespace
@@ -165,6 +167,7 @@ class Machine(owner.Host):
         self.state, self.wheel, self.signed = copy.deepcopy(state), wheel, signed or {}
         self.changes = []
         self.during_verify = None
+        self.interrupt = None  # (script name, 'before' | 'after' | 'observe')
 
     def read(self, *command, **unused):
         self.trace.append(dict(command=list(command), mutation=False))
@@ -182,6 +185,9 @@ class Machine(owner.Host):
 
     def json(self, *command):
         self.trace.append(dict(command=list(command), mutation=False))
+        if self.interrupt == 'reading':
+            self.interrupt = None
+            raise OSError('injected status read failure after the change')
         if command == ('rpm-ostree', 'status', '--json'):
             return copy.deepcopy(self.state['rpm'])
         if command == ('bootc', 'status', '--json'):
@@ -213,6 +219,9 @@ class Machine(owner.Host):
                 exec(compile(body, name, 'exec'), {'__name__': 'owner_shared_step'})
             except AssertionError:
                 raise owner.Stop('Shared step failed: ' + name + '; preserve diagnostics and do not reboot') from None
+        if self.interrupt == (name, 'before'):
+            self.interrupt = None
+            raise owner.Stop('Shared step failed: ' + name + '; injected before the change')
         rows = self.state['rpm']['deployments']
         if tail.startswith('bootc switch --retain '):
             reference = tail.split()[-1]
@@ -224,6 +233,11 @@ class Machine(owner.Host):
         else:
             raise AssertionError('Unmodelled shared step: ' + tail)
         self.changes.append(tail)
+        if self.interrupt == (name, 'after'):
+            self.interrupt = None
+            raise owner.Stop('Shared step failed: ' + name + '; injected after the change')
+        if self.interrupt == (name, 'observe'):
+            self.interrupt = 'reading'
         return ''
 
 
@@ -618,6 +632,102 @@ class OutcomeTest(unittest.TestCase):
             self.assertIn('Return to ' + R13 + ' confirmed after the restart', tools.check())
 
 
+class IntentTest(unittest.TestCase):
+    """update and previous journal their intent before any change (review 2)."""
+
+    POINTS = ('before', 'after', 'observe', 'record')
+
+    @contextlib.contextmanager
+    def interrupted(self, kind, point):
+        start = pair() if kind == 'update' else updated()
+        with route(start, wheel=kind != 'update') as (tools, host, store):
+            command = tools.update if kind == 'update' else tools.previous
+            real_save = owner.Tools.save
+            def save(obj, name, value):
+                if point == 'record' and name == owner.OUTCOME and value.get('status') == 'recorded':
+                    raise OSError('injected failure writing the record')
+                return real_save(obj, name, value)
+            if point != 'record':
+                host.interrupt = (kind, point)
+            with patch.object(owner.Tools, 'save', new=save), self.assertRaises((owner.Stop, OSError)):
+                command()
+            intent = tools.load(owner.OUTCOME)
+            self.assertEqual((intent['status'], intent['kind'], intent['boot']), ('intent', kind, 'boot-1'))
+            self.assertEqual(intent['before'], [list(owner.key(d)) for d in start['rpm']['deployments']])
+            yield tools, host, store, command, start
+
+    def test_the_intent_is_written_before_the_change(self):
+        for kind in ('update', 'previous'):
+            with self.subTest(kind=kind), route(pair() if kind == 'update' else updated()) as (tools, host, store):
+                seen = []
+                original = host.script
+                def script(text, name, mutation=True):
+                    if name == kind:
+                        seen.append(tools.load(owner.OUTCOME)['status'])
+                    return original(text, name, mutation)
+                host.script = script
+                (tools.update if kind == 'update' else tools.previous)()
+                self.assertEqual(seen, ['intent'])
+                self.assertEqual(tools.load(owner.OUTCOME)['status'], 'recorded')
+
+    def test_every_interruption_leaves_an_unresolved_intent_that_check_title_records_refuse(self):
+        for kind in ('update', 'previous'):
+            for point in self.POINTS:
+                with self.subTest(kind=kind, point=point), self.interrupted(kind, point) as (tools, host, store, command, start):
+                    for method in (tools.check, tools.title, tools.reboot):
+                        UpdateCommandTest.unchanged(self, tools, host, store, method, 'interrupted before its result was recorded')
+                    # Stock rollback refuses too (on a staged/queued list with its own message).
+                    UpdateCommandTest.unchanged(self, tools, host, store, tools.recover, '')
+                    with self.assertRaisesRegex(owner.Stop, 'interrupted before its result was recorded'):
+                        tools.records()
+                    # Nothing passes on the old release after a restart either.
+                    tools.boot[0] = 'boot-2'
+                    host.state = copy.deepcopy(start)
+                    UpdateCommandTest.unchanged(self, tools, host, store, tools.check, 'interrupted before its result was recorded')
+
+    def test_the_same_command_redoes_an_unmade_change_or_records_a_made_one(self):
+        for kind in ('update', 'previous'):
+            for point in self.POINTS:
+                with self.subTest(kind=kind, point=point), self.interrupted(kind, point) as (tools, host, store, command, start):
+                    made = bool(host.changes)
+                    self.assertEqual(made, point != 'before')
+                    lines = command()
+                    if made:
+                        self.assertEqual(len(host.changes), 1)
+                        self.assertTrue(lines[0].startswith('Interrupted '))
+                    else:
+                        self.assertEqual(len(host.changes), 1)
+                        self.assertEqual(len(list(store.glob('*-outcome-retried.json'))), 1)
+                    self.assertEqual(tools.load(owner.OUTCOME)['status'], 'recorded')
+                    self.assertTrue(any('not finished until the restart' in line for line in tools.check()))
+                    host.state = updated() if kind == 'update' else returned()
+                    host.wheel, tools.boot[0] = kind == 'update', 'boot-2'
+                    self.assertTrue(any(line.endswith('confirmed after the restart') for line in tools.check()))
+
+    def test_after_a_restart_the_same_command_records_a_finished_change_or_redoes_a_lost_one(self):
+        for kind in ('update', 'previous'):
+            with self.subTest(kind=kind, restart='finished'), self.interrupted(kind, 'after') as (tools, host, store, command, start):
+                host.state = updated() if kind == 'update' else returned()
+                host.wheel, tools.boot[0] = kind == 'update', 'boot-2'
+                UpdateCommandTest.unchanged(self, tools, host, store, tools.check, 'interrupted before its result was recorded')
+                lines = command()
+                self.assertTrue(lines[0].startswith('Interrupted '))
+                self.assertTrue(any(line.endswith('confirmed after the restart') for line in lines))
+                self.assertEqual(len(host.changes), 1)
+            with self.subTest(kind=kind, restart='lost'), self.interrupted(kind, 'after') as (tools, host, store, command, start):
+                host.state, tools.boot[0] = copy.deepcopy(start), 'boot-2'
+                command()
+                self.assertEqual(len(host.changes), 2)
+                self.assertEqual(tools.load(owner.OUTCOME)['status'], 'recorded')
+
+    def test_other_commands_never_continue_an_intent_and_a_wrong_change_is_not_recorded(self):
+        with self.interrupted('update', 'after') as (tools, host, store, command, start):
+            UpdateCommandTest.unchanged(self, tools, host, store, tools.previous, 'interrupted before its result was recorded')
+            # The target staged over a different running deployment is not the intended change.
+            host.state = machine([release_row(R21, staged=True), release_row(R13, booted=True, checksum='d5' * 32), stock_row()])
+            UpdateCommandTest.unchanged(self, tools, host, store, command, 'interrupted before its result was recorded')
+
+
 class LockTest(unittest.TestCase):
     """One owner command at a time, and everything rechecked just before staging."""
 
@@ -717,7 +827,7 @@ class ToolsUpdateTest(unittest.TestCase):
         self.addCleanup(bytecode.stop)
 
     @contextlib.contextmanager
-    def installation(self, installed=None, stick=None, state=None):
+    def installation(self, installed=None, stick=None, state=None, legacy_owner=b'# package 15f stand-in\n'):
         """installed/stick: (history or None for a history-less bundle, target, extra files)."""
         with tempfile.TemporaryDirectory(dir=ROOT / 'os/tests') as temporary, contextlib.ExitStack() as stack:
             root = pathlib.Path(temporary)
@@ -732,7 +842,7 @@ class ToolsUpdateTest(unittest.TestCase):
                 fingerprint = write_bundle(usb / 'ares-tools', *stick)
             if installed is None:
                 old = write_bundle(home / 'tools', drop=('history.json', 'release/update.sh', 'release/previous.sh'),
-                                   extra={'owner.py': b'# package 15f stand-in\n'})
+                                   extra={'owner.py': legacy_owner})
                 stack.enter_context(patch.object(owner, 'LEGACY_TOOLS', (old,)))
             else:
                 old = write_bundle(home / 'tools', *installed)
@@ -762,6 +872,7 @@ class ToolsUpdateTest(unittest.TestCase):
         self.assertEqual(owner.checked_bundle(home / 'tools'), fingerprint)
         self.assertEqual(owner.checked_bundle(home / 'retired-tools' / old), old)
         self.assertEqual(os.readlink(home / 'at'), 'tools/at')
+        self.assertFalse((home / '.at-held').exists() or (home / '.at-held').is_symlink())
         self.assertFalse((home / '.update-tools').exists())
         intent = json.loads((home / 'tools-update-intent.json').read_text())
         self.assertEqual((intent['phase'], intent['previous'], intent['manifest']), ('complete', old, fingerprint))
@@ -833,10 +944,10 @@ class ToolsUpdateTest(unittest.TestCase):
             with patch.object(owner.Tools, 'save', new=lambda obj, name, value: (steps.append(name), original(obj, name, value))[1]):
                 run()
         self.assertEqual(steps, ['tools-update-intent'] * 3 + [steps[3], 'tools-update-intent'])
-        # Every file copy, every rename (five record writes and the two swaps)
-        # and every record write.
+        # Every file copy, every rename (five record writes, the entry held and
+        # released, and the two swaps) and every record write.
         injections = [('copy', n) for n in range(1, len(common.bundle.PAYLOAD) + 3)] + \
-                     [('replace', n) for n in range(1, 8)] + [('save', n) for n in range(1, 6)]
+                     [('replace', n) for n in range(1, 10)] + [('save', n) for n in range(1, 6)]
         for kind, stop in injections:
             with self.subTest(kind=kind, stop=stop), self.installation() as (home, run, fingerprint, old, host):
                 seen = 0
@@ -869,9 +980,10 @@ class ToolsUpdateTest(unittest.TestCase):
                                          release_row(R13, booted=True), stock_row()])),
                                      lambda home, host: setattr(host, 'state', pair())),
         }
-        # Interrupted in the copy phase, between the two swap renames, and
-        # after the swap (the third journal write).
-        for (kind, stop) in (('copy', 2), ('replace', 3), ('save', 3)):
+        # Interrupted in the copy phase, between the two swap renames (rename 4:
+        # journal, held entry, journal, then the first swap rename), and after
+        # the swap (the third journal write).
+        for (kind, stop) in (('copy', 2), ('replace', 4), ('save', 3)):
             for name, (change, undo) in changes.items():
                 with self.subTest(kind=kind, stop=stop, change=name), self.installation() as (home, run, fingerprint, old, host):
                     seen = 0
@@ -900,6 +1012,96 @@ class ToolsUpdateTest(unittest.TestCase):
                     undo(home, host)
                     run()
                     self.updated(home, fingerprint, old)
+
+    def legacy_command(self, path, home):
+        """Start a command of the installed tools through a real entry path."""
+        process = subprocess.Popen(['bash', str(path), 'layout', 'begin', 'us'], stdin=subprocess.DEVNULL,
+                                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        self.addCleanup(lambda: (process.kill(), process.wait()))
+        # Wait until the real at wrapper has exec'd the python entry (same pid).
+        deadline = time.monotonic() + 10
+        while not any(r['pid'] == process.pid and r['argv'][1:3] == ['-I', '-B'] for r in owner.installed_commands(home)):
+            self.assertLess(time.monotonic(), deadline, 'legacy command not found')
+            self.assertIsNone(process.poll(), 'legacy command ended early')
+            time.sleep(.05)
+        return process
+
+    def test_a_running_15f_command_through_the_real_entry_blocks_the_update(self):
+        sleeper = b'import time\ntime.sleep(60)\n'
+        with self.installation(legacy_owner=sleeper) as (home, run, fingerprint, old, host):
+            self.assertEqual((home / 'tools/at').read_bytes(), (ROOT / 'os/owner-tools/at').read_bytes())
+            process = self.legacy_command(home / 'at', home)
+            found, = owner.installed_commands(home)
+            # The real at wrapper has exec'd the 15f entry: python3 -I -B <tools>/owner.py.
+            self.assertEqual(found['argv'][1:4], ['-I', '-B', str(home / 'tools/owner.py')])
+            before = self.snapshot(home)
+            with self.assertRaisesRegex(owner.Stop, 'An owner command of the installed tools is running'):
+                run()
+            self.assertEqual(before, self.snapshot(home))
+            process.kill()
+            process.wait()
+            run()
+            self.updated(home, fingerprint, old)
+
+    def test_the_documented_entry_is_held_during_the_replacement(self):
+        with self.installation() as (home, run, fingerprint, old, host):
+            observed = []
+            real = shutil.copy2
+            def copy_file(*args, **kwargs):
+                if not observed:
+                    attempt = subprocess.run(['bash', str(home / 'at'), 'check'], capture_output=True, timeout=10)
+                    observed.append(((home / 'at').exists() or (home / 'at').is_symlink(),
+                                     (home / '.at-held').is_symlink(), attempt.returncode))
+                return real(*args, **kwargs)
+            with patch('shutil.copy2', side_effect=copy_file):
+                run()
+            self.assertEqual(observed, [(False, True, 127)])
+            self.updated(home, fingerprint, old)
+
+    def test_a_command_started_another_way_during_the_copy_is_refused_before_the_swap(self):
+        sleeper = b'import time\ntime.sleep(60)\n'
+        with self.installation(legacy_owner=sleeper) as (home, run, fingerprint, old, host):
+            started = []
+            real = shutil.copy2
+            def copy_file(*args, **kwargs):
+                if not started:
+                    started.append(self.legacy_command(home / 'tools/at', home))
+                return real(*args, **kwargs)
+            with patch('shutil.copy2', side_effect=copy_file), \
+                    self.assertRaisesRegex(owner.Stop, 'An owner command of the installed tools is running'):
+                run()
+            self.assertEqual(owner.checked_bundle(home / 'tools'), old)
+            self.assertEqual(os.readlink(home / 'at'), 'tools/at')
+            self.assertEqual(json.loads((home / 'tools-update-intent.json').read_text())['phase'], 'swap')
+            started[0].kill()
+            started[0].wait()
+            run()
+            self.updated(home, fingerprint, old)
+
+    def test_the_wrapper_stage_is_found_by_its_exact_path(self):
+        with tempfile.TemporaryDirectory(dir=ROOT / 'os/tests') as temporary:
+            home = pathlib.Path(temporary)
+            (home / 'tools').mkdir()
+            (home / 'tools/at').write_text('sleep 60\n')
+            os.symlink('tools/at', home / 'at')
+            for path in (home / 'at', home / 'tools/at'):
+                with self.subTest(path=path.name):
+                    process = subprocess.Popen(['bash', str(path)])
+                    try:
+                        deadline = time.monotonic() + 10
+                        while not any(r['pid'] == process.pid for r in owner.installed_commands(home)):
+                            self.assertLess(time.monotonic(), deadline)
+                            time.sleep(.05)
+                    finally:
+                        process.kill()
+                        process.wait()
+            other = subprocess.Popen(['bash', '-c', 'sleep 60', 'at'])
+            try:
+                time.sleep(.2)
+                self.assertFalse(any(r['pid'] == other.pid for r in owner.installed_commands(home)))
+            finally:
+                other.kill()
+                other.wait()
 
     def test_interrupted_update_resumes_only_with_the_same_bundle_and_stick(self):
         with self.installation() as (home, run, fingerprint, old, host):

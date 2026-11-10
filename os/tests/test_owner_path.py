@@ -939,12 +939,14 @@ class OwnerPathTest(unittest.TestCase):
                       '**previous** box', '**F12 → Windows → Help**', 'provisional', 'INVALID',
                       '[Failed or bad update](EMERGENCY.md#failed-or-bad-update)', 'never a guessed GRUB title',
                       '**Update to … confirmed after the restart**', '**Return to … confirmed after the restart**',
-                      '**did not finish at the restart**', 'only Help decides on a repeat',
+                      '**did not finish at the restart**', '**interrupted before its result was recorded**',
+                      'Help decides each repeat', 'STOPs while a command of the installed tools runs',
                       '**Another owner command is running**'):
             self.assertIn(value, route)
         # The quoted tool messages are the ones the tools print.
         source = (ROOT/'os/owner-tools/owner.py').read_text()
         for value in ("' did not finish at the restart (", "'Another owner command is running;",
+                      "' was interrupted before its result was recorded; ", "'An owner command of the installed tools is running (pid '",
                       "' confirmed after the restart'", "'Previous AresOS queued for the next start '",
                       "'Signed exact release staged '", "'Running release stays as rollback '", "'Tools updated from version '"):
             self.assertIn(value, source)
@@ -956,7 +958,7 @@ class OwnerPathTest(unittest.TestCase):
         card = section(texts['EMERGENCY.md'], 'failed-or-bad-update')
         for value in ('Windows Boot Manager', commands['previous'], pass_line('previous'), commands['reboot'],
                       pass_line('reboot'), '**Bazzite**', 'Never choose a guessed GRUB title', 'repeat the update without Help',
-                      '**did not finish at the restart**',
+                      '**did not finish at the restart**', '**interrupted before its result was recorded**', 'Help decides each repeat',
                       'stock rollback or keep-stock', '10-minute wait', '(INSTALL.md#8-everyday-boot-and-recovery)',
                       '(INSTALL.md#update-aresos-to-a-new-release)'):
             self.assertIn(value, card)

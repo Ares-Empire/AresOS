@@ -12,11 +12,11 @@
   "rule": "The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
     {
-      "sha256": "1790cbddcafaaee3593282a141913ce4f62f42b71bb49febb5b5b0aec25d99cf",
+      "sha256": "30adf4f3e0624095782608c529812969e051bd51e53e0a88afef419cc50a1d41",
       "path": "docs/EMERGENCY.md"
     },
     {
-      "sha256": "06ecc530c42ca0e819ae030dd4e73cf63fc3c699ca478184df8aaf2374d5df51",
+      "sha256": "32d53ded27c95509c717bd55456056e52bef68e3613d68dc595ab71aca1551e6",
       "path": "docs/INSTALL.md"
     },
     {
@@ -24,7 +24,7 @@
       "path": "os/owner-tools/bundle.py"
     },
     {
-      "sha256": "196f328eb3e73e2a23fa2035665adb1b1198703947ca23bbd909ec2d8422c782",
+      "sha256": "e9a61f59c3afe5b4a17d30241bbc31f2072cb2bb68eaa23c24bb20b158ecfcb4",
       "path": "os/owner-tools/commands.json"
     },
     {
@@ -32,15 +32,15 @@
       "path": "os/owner-tools/media.py"
     },
     {
-      "sha256": "7b193c8ad9144836554480f3b3c83673c45784b36a67a826f0ae25efbf9a3860",
+      "sha256": "34cb06d02c179cc96421bf2eba4ed1b619bea04cc02659658b35ab5163a83185",
       "path": "os/owner-tools/owner.py"
     },
     {
-      "sha256": "33cb1fa9018022be8ae6bde3dc36517eff585a1b1384f6efc15b92666d32aa44",
+      "sha256": "f2e3b7f8cdb3d64a17e9b95e83662d24f9fe1ab173111ea1f2617612cd847d17",
       "path": "os/owner-tools/payload/SHA256.json"
     },
     {
-      "sha256": "712a571005f1c2a9d743fba77a1b1bb8ecffbec499078d42015820b223a23cf4",
+      "sha256": "9c749647e3ccbf306f98e3aeeec7332afcfe1fbca80cb3a40be8c78ed2d761d5",
       "path": "os/owner-tools/payload/SHA256SUMS"
     },
     {
@@ -48,7 +48,7 @@
       "path": "os/owner-tools/payload/media.py"
     },
     {
-      "sha256": "7b193c8ad9144836554480f3b3c83673c45784b36a67a826f0ae25efbf9a3860",
+      "sha256": "34cb06d02c179cc96421bf2eba4ed1b619bea04cc02659658b35ab5163a83185",
       "path": "os/owner-tools/payload/owner.py"
     },
     {
@@ -72,7 +72,7 @@
       "path": "os/tests/test_owner_firmware.py"
     },
     {
-      "sha256": "5a51f79b18fe89644ac90b05573e4100bde7a05075defcff654de431499feb90",
+      "sha256": "9e5c179c72bb1cf177b355fc41e99efe5cd62da005592a6bb9db4932c640fb31",
       "path": "os/tests/test_owner_path.py"
     },
     {

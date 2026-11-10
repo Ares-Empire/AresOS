@@ -81,7 +81,7 @@ Import-Module ./docs/install-tools/OwnerTools.psm1 -Force
 Copy-AresOwnerTools -Source ./os/owner-tools/payload -DriveLetter T
 ```
 
-Require `PASS tools manifest SHA256 712a571005f1c2a9d743fba77a1b1bb8ecffbec499078d42015820b223a23cf4` and `PASS ARESTOOLS ready; safely eject and unplug before shutdown/restart or record B.` The Windows helper checks both SHA256.json and SHA256SUMS. Safely eject/unplug. Do not use WINDOWS RECOVERY. Run record B **after-bazzite**, both sticks absent; **Return to step 4** here with PASS.
+Require `PASS tools manifest SHA256 9c749647e3ccbf306f98e3aeeec7332afcfe1fbca80cb3a40be8c78ed2d761d5` and `PASS ARESTOOLS ready; safely eject and unplug before shutdown/restart or record B.` The Windows helper checks both SHA256.json and SHA256SUMS. Safely eject/unplug. Do not use WINDOWS RECOVERY. Run record B **after-bazzite**, both sticks absent; **Return to step 4** here with PASS.
 - [ ] **F12** (or **Fn+F12**) → **Bazzite** (the installer's recorded Linux entry; [step 8 explains Fedora](#8-everyday-boot-and-recovery)) → **ares-recovery** sign-in. [Enter tty3 and become administrator](INSTALL-REFERENCE.md#console); **Return to step 4** here, keeping that session open. Only now insert ARESTOOLS. If text covers the prompt, press Enter. Type this entire 13-line block exactly; the continuation prompt is expected until the final quote:
 
 ```bash
@@ -92,7 +92,7 @@ p=$(mktemp -d /run/ares-bootstrap.XXXXXX); mkdir "$p/m"
 mount -o ro,nodev,nosuid,noexec LABEL=ARESTOOLS "$p/m"; trap "umount $p/m" EXIT
 cd "$p"; cp -R --no-preserve=mode,ownership m/ares-tools .; test ! -L ares-tools; cd ares-tools
 test -z "$(find . ! -type d ! -type f -print -quit)"
-echo "712a571005f1c2a9d743fba77a1b1bb8ecffbec499078d42015820b223a23cf4  SHA256SUMS" | sha256sum -c --strict
+echo "9c749647e3ccbf306f98e3aeeec7332afcfe1fbca80cb3a40be8c78ed2d761d5  SHA256SUMS" | sha256sum -c --strict
 cmp -s \
   <(find . -type f -printf "%P\n" | sort) \
   <({ cut -c67- SHA256SUMS; echo SHA256SUMS; } | sort)
@@ -233,7 +233,7 @@ Import-Module ./docs/install-tools/OwnerTools.psm1 -Force
 Copy-AresOwnerTools -Source ./os/owner-tools/payload -DriveLetter T
 ```
 
-Require `PASS tools manifest SHA256 712a571005f1c2a9d743fba77a1b1bb8ecffbec499078d42015820b223a23cf4` and `PASS ARESTOOLS ready; safely eject and unplug before shutdown/restart or record B.` Safely eject and unplug. Another fingerprint or any STOP → **STOP → [Help](INSTALL-REFERENCE.md#help)**; Return to this update route after resolution.
+Require `PASS tools manifest SHA256 9c749647e3ccbf306f98e3aeeec7332afcfe1fbca80cb3a40be8c78ed2d761d5` and `PASS ARESTOOLS ready; safely eject and unplug before shutdown/restart or record B.` Safely eject and unplug. Another fingerprint or any STOP → **STOP → [Help](INSTALL-REFERENCE.md#help)**; Return to this update route after resolution.
 
 - [ ] **AresOS, tools first:** all sticks absent, **F12** (or **Fn+F12**) → **Bazzite** → AresOS desktop. [Enter tty3 and become administrator](INSTALL-REFERENCE.md#console), then Return to this update route, keeping that session open. Only now insert ARESTOOLS. Type this entire 13-line block exactly, as in step 4; compare **line 8** with this guide before Enter:
 
@@ -245,7 +245,7 @@ p=$(mktemp -d /run/ares-bootstrap.XXXXXX); mkdir "$p/m"
 mount -o ro,nodev,nosuid,noexec LABEL=ARESTOOLS "$p/m"; trap "umount $p/m" EXIT
 cd "$p"; cp -R --no-preserve=mode,ownership m/ares-tools .; test ! -L ares-tools; cd ares-tools
 test -z "$(find . ! -type d ! -type f -print -quit)"
-echo "712a571005f1c2a9d743fba77a1b1bb8ecffbec499078d42015820b223a23cf4  SHA256SUMS" | sha256sum -c --strict
+echo "9c749647e3ccbf306f98e3aeeec7332afcfe1fbca80cb3a40be8c78ed2d761d5  SHA256SUMS" | sha256sum -c --strict
 cmp -s \
   <(find . -type f -printf "%P\n" | sort) \
   <({ cut -c67- SHA256SUMS; echo SHA256SUMS; } | sort)
@@ -253,7 +253,7 @@ sha256sum -c --strict SHA256SUMS
 bash ./at install'
 ```
 
-Require `SHA256SUMS: OK`, every listed file's OK and `PASS install` with **Tools updated from version** and the same fingerprint (a repeat says **Tools already installed; nothing changed**). It asks no serials, keeps every record, keeps the replaced tools privately and refuses older tools (a downgrade) with nothing changed. Any STOP → [A tools command stopped](EMERGENCY.md#a-tools-command-stopped); Return to this update route only after Help.
+Require `SHA256SUMS: OK`, every listed file's OK and `PASS install` with **Tools updated from version** and the same fingerprint (a repeat says **Tools already installed; nothing changed**). It asks no serials, keeps every record, keeps the replaced tools privately and refuses older tools (a downgrade) with nothing changed. Keep every other console idle: it STOPs while a command of the installed tools runs, and the owner commands are unavailable until it prints its PASS. Any STOP → [A tools command stopped](EMERGENCY.md#a-tools-command-stopped); Return to this update route only after Help.
 
 - [ ] **Stage the new release:**
 
@@ -295,7 +295,7 @@ sudo /var/lib/ares/at title
 sudo /var/lib/ares/at records
 ```
 
-Require `PASS check` with **Update to … confirmed after the restart**, then `PASS title` and `PASS records`: the new release booted, the previous AresOS as rollback, the corrected stock still pinned, labwc and foot running and the daily account exactly as this release's record says. Save the refreshed title; the provisional one is INVALID. Prove console and foot typing of `yz-/!ü` and fresh password sudo as in step 7. A STOP saying the update **did not finish at the restart** (old release running, or still pending) → [Failed or bad update](EMERGENCY.md#failed-or-bad-update); the tools refuse to confirm it, and only Help decides on a repeat.
+Require `PASS check` with **Update to … confirmed after the restart**, then `PASS title` and `PASS records`: the new release booted, the previous AresOS as rollback, the corrected stock still pinned, labwc and foot running and the daily account exactly as this release's record says. Save the refreshed title; the provisional one is INVALID. Prove console and foot typing of `yz-/!ü` and fresh password sudo as in step 7. A STOP saying the update **did not finish at the restart** (old release running, or still pending) or was **interrupted before its result was recorded** → [Failed or bad update](EMERGENCY.md#failed-or-bad-update); the tools refuse to confirm it, and Help decides each repeat.
 
 - [ ] **Administrator password, once:** on the first update to a release whose announcement says `ares` is an administrator, set its password in this root session with `sudo passwd ares`. Type a long, unique passphrase twice yourself, by the every-install rule: only **lowercase a–x and top-row digits 0–9**, so it types the same in German, US International and US. Require the line ending **updated successfully**. Never photograph, record or send it; keep it private. Then in foot as `ares`, run `sudo -v` and require that password to be accepted.
 

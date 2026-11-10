@@ -19,7 +19,7 @@ Stock KDE returning instead of AresOS also fails: `PASS check` can describe vali
 
 **Action:** new AresOS does not start, or the old one or stock appears instead: normal restart → **F12** (or **Fn+F12**) → **Windows Boot Manager** → get help. A hung restart uses the [10-minute wait](INSTALL-REFERENCE.md#hung-shutdown-or-restart).
 It starts but misbehaves: tty3 `ares-recovery` → `sudo -i` → `sudo /var/lib/ares/at previous`, require `PASS previous`, save the refreshed title, then `sudo /var/lib/ares/at reboot` (`PASS reboot` / `Reboot requested; Windows stays default; F12 then Linux for one Linux start`) → **F12** → **Bazzite** → [check](INSTALL.md#update-aresos-to-a-new-release).
-A check that STOPs with **did not finish at the restart** means the change did not happen; the tools refuse to confirm it. Never choose a guessed GRUB title, repeat the update without Help, or use the stock rollback or keep-stock after an update; they refuse with three deployments.
+A check that STOPs with **did not finish at the restart** or **interrupted before its result was recorded** means the change is not confirmed; the tools refuse to confirm it, and Help decides each repeat. Never choose a guessed GRUB title, repeat the update without Help, or use the stock rollback or keep-stock after an update; they refuse with three deployments.
 **STOP → go to [Help](INSTALL-REFERENCE.md#help)**; return to [step 8](INSTALL.md#8-everyday-boot-and-recovery) only after help or a passing check of the previous release.
 
 ## Blue MOK menu on first stock boot
