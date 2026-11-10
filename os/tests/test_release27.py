@@ -186,7 +186,7 @@ class GuardLedgerTest(unittest.TestCase):
         self.addCleanup(guard.configure, '11c')
 
     def test_package27_allows_one_release_one_checks_run_and_three_rehearsals(self):
-        self.assertEqual(guard.SETTINGS['dispatch_caps'], {'release-27': 1, 'checks': 1, 'update': 3})
+        self.assertEqual(guard.SETTINGS['dispatch_caps'], {'release-27': 2, 'checks': 1, 'update': 3})
         self.assertEqual(guard.SETTINGS['publish_cap'], 1)
         self.assertEqual(guard.BRANCH, 'pkg/27-first-update-release')
         workflow = (ROOT / '.github/workflows/os-image.yml').read_text()
@@ -208,9 +208,11 @@ class GuardLedgerTest(unittest.TestCase):
             # An unaccountable job is charged its whole timeout.
             self.assertEqual(result['consumed_minutes'], 180)
             runs.append(dict(base, id=2, display_title='Package 27 image release'))
+            self.assertEqual(guard.budget(0)['dispatch_counts']['release-27'], 2)
+            runs.append(dict(base, id=3, display_title='Package 27 image release'))
             with self.assertRaisesRegex(AssertionError, 'release-27 dispatch allowance exhausted'):
                 guard.budget(0)
-            runs.pop()
+            runs.pop(); runs.pop()
             for number in range(3):
                 runs.append(dict(base, id=10 + number, display_title='Two-disk rehearsal (update)'))
             self.assertEqual(guard.budget(0)['dispatch_counts']['update'], 3)

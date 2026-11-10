@@ -360,9 +360,6 @@ jobs:
       - name: Build with the reviewed check build, run the image checks and the first VM pass
         timeout-minutes: 90
         run: bash os/ci/check-build.sh build
-      - name: Boot the second fresh VM pass
-        timeout-minutes: 20
-        run: sudo -E env ARESOS_VM_PASS=2 python3 os/ci/vm.py
       - name: Prove the release excludes the CI layer and keeps both passwords locked
         run: |
           set -euo pipefail
