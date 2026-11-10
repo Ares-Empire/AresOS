@@ -7,9 +7,10 @@ from support import MailCase, CERT
 from smtp_fixture import SMTPFixture
 from aresos_control.mail import codec
 from dkim_fixture import signed
-from owner_state_oracle.transcript import TRACE
+from owner_state_oracle.transcript import TRACE, Transcript
 from owner_state_oracle.model import Oracle
 from owner_state_oracle.records import decode
+from aresos_control.mail.transport import folders
 
 
 class Unsubscribe(MailCase):
@@ -20,7 +21,25 @@ class Unsubscribe(MailCase):
         self.assertEqual(read['untrusted_content']['unsubscribe'],[target])
         self.assertFalse(self.call('prepare_unsubscribe',{'reference':ref,'target':'mailto:other@mail.invalid'})['ok'])
         trace_start = len(TRACE.events)
-        with SMTPFixture(self.root) as smtp:
+        command, append = TRACE.command, self.mail.append
+        def recorded_command(*args, **kwargs):
+            # The standalone real-server test has no Driver to attach the
+            # independent commit prefix at each remote command boundary.
+            record = decode(self.root / 'state', self.root / 'independent')
+            return command(*args, **kwargs, before_seq=max(record.committed, default=0),
+                           committed_before=record.rows)
+        def recorded_append(account, folder, raw, flags=None):
+            with self.mail.transport.imap(account) as connection:
+                roles = {row['name']: row['flags'] for row in folders(connection)}
+            event = recorded_command('APPEND', account['id'], folder, roles,
+                append_flags=flags, raw_hex=raw.hex())
+            event['identities'] = [Transcript.message(raw)]
+            result = append(account, folder, raw, flags)
+            event.update(accepted=True, reply='delivered')
+            return result
+        with SMTPFixture(self.root) as smtp, \
+             patch.object(TRACE, 'command', side_effect=recorded_command), \
+             patch.object(self.mail, 'append', side_effect=recorded_append):
             account = {**self.account,'smtp_host':'localhost','smtp_port':smtp.port}
             self.engine.store.write({'mail:account:box':account},'fixture','SMTP')
             approval = self.data('prepare_unsubscribe',{'reference':ref,'target':target})['approval']
@@ -37,6 +56,7 @@ class Unsubscribe(MailCase):
             oracle.script, oracle.servers = TRACE.script, TRACE.events[trace_start:]
             self.assertFalse(oracle.completion_errors(decode(self.root / 'state', self.root / 'independent')))
             self.assertTrue(any(e['command'] == 'DATA' and e['account'] == 'box' and e['identities'] for e in oracle.servers))
+            self.assertTrue(any(e['command'] == 'APPEND' and e['accepted'] and e['before_seq'] for e in oracle.servers))
 
     def test_https_one_click_post_exact_no_cookies_no_redirect_no_get(self):
         trace_start = len(TRACE.events)

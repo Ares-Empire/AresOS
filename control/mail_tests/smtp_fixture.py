@@ -79,7 +79,7 @@ class SMTPFixture:
                                 break
                             chunks.append(data[1:] if data.startswith(b'..') else data)
                         raw = b''.join(chunks)
-                        event.update(identities=[Transcript.message(raw)], recipients=list(recipients), accepted=True, reply='lost')
+                        event.update(identities=[Transcript.message(raw)], raw_hex=raw.hex(), recipients=list(recipients), accepted=True, reply='lost')
                         with closing(sqlite3.connect(fixture.database)) as db:
                             db.execute('INSERT INTO arrivals(recipients,raw) VALUES (?,?)', (json.dumps(recipients),raw))
                             db.commit()
