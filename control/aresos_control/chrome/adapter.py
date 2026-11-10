@@ -519,6 +519,20 @@ class Chrome:
                 changes,_=check_result(self.store,source,key,'page_activation',source['step'],{'reason':text,'warning':text})
             self.store.write({key:source,**changes},'chrome_page_step','Lost page step resolved without dispatch',recovery=True)
 
+    def reconcile_open_checks(self):
+        if not self.bridge.session:return
+        queues={}
+        for _,source,_ in self.committed.rows('intent:chrome:',{'started','unknown'}):
+            tab=source['tab']
+            if source.get('session')!=self.bridge.session:
+                self.reconcile_checks({'tab':None},[])
+                continue
+            if tab not in queues:
+                queues[tab]=self.bridge.call('queued_steps',tab=tab)
+                # Queue identity is enough to prove that a stopped step cannot
+                # resume, even after its tab was released or reading is gated.
+                self.reconcile_checks({'tab':tab},queues[tab])
+
     def steps(self, steps, tab):
         followups=[]
         for step in steps:
@@ -621,6 +635,7 @@ class Chrome:
             finally:
                 self.trusted_context=False
         if verb == 'notices':
+            self.reconcile_open_checks()
             return self.notice_page(args)
         if verb in {'read','read_form','find','wait'}: return self.read(verb,args)
         if verb in {'tabs','downloads','bookmarks','history'}:

@@ -71,6 +71,7 @@ class Engine:
         from .mail.filing import notice_page
         mail = self.adapters['mail']
         chrome = self.adapters['chrome']
+        if resolve_checks and app in {None,'chrome'}:chrome.reconcile_open_checks()
         return notice_page(self.store, args, app=app,
             checks=mail.resolve_sent_checks() if resolve_checks else mail.unresolved_sent_checks(),
             extras=chrome.notice_rows if app in {None, 'chrome'} else None, exclude_apps={'chrome'})

@@ -215,6 +215,26 @@ class StateFixes(unittest.TestCase):
         self.assertEqual(self.engine.store.get(key)['state'],'done')
         self.assertEqual(self.browser.dispatched,[])
 
+    def test_s6_notices_and_pending_resolve_lost_queues_without_page_reads(self):
+        for action in ['notices','control_pending']:
+            step={**self.step(),'id':action,'kind':'native_submit'}
+            self.chrome.observe_step(step,1)
+            record=self.chrome.qualification.record()
+            failure=entry(build=self.chrome.qualification.build,version='157.0.1.1')
+            failure['core']['password_exclusion']=False
+            if failure not in record['entries']:record['entries'].append(failure)
+            self.engine.store.write({'chrome:qualification':record},'chrome_qualification','Synthetic read gate')
+            self.browser.version='157.0.1.2'
+            def queue_only(name,**args):
+                self.assertEqual(name,'queued_steps','Reconciliation must not inspect a page or dispatch input')
+                return []
+            with patch.object(self.browser,'call',side_effect=queue_only):
+                if action=='notices':result=self.call('notices')
+                else:result=self.engine.request({'v':1,'method':'call','action':action,'arguments':{}})
+            self.assertTrue(result['ok'],result)
+            source=next(value for _,value in self.engine.store.iter_items('intent:chrome:') if value['step']['id']==action)
+            self.assertEqual(source['state'],'done');self.assertFalse(source['resumable'])
+
     def test_s7_drop_spends_cancel_reservation_at_history_and_physical_boundaries(self):
         from aresos_control.space import SAFETY_FLOOR
         from collections import namedtuple
