@@ -18,6 +18,31 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
       assert.equal(new URLSearchParams(received.body).get('reply'),kind==='alert'?'undefined':kind==='prompt'?(accept?'Synthetic answer':'null'):String(accept),'the cached native dialog must keep its return value');
     }
   });
+  await check('GROUP 4 REVIEW preexisting dialogs ask bind the chosen answer and allow owner handoff',async()=>{
+    for(const variant of ['alert','confirm','prompt','drop','stale']){
+      const id='review-preexisting-'+variant,kind=['drop','stale'].includes(variant)?'confirm':variant,tab=getTab();
+      await call('release_tab',{tab});await eventually(async()=>(await allTabs(call)).items.some(row=>row.tab===tab&&!row.controlled&&!row.cleanup_pending),'owner tab fully released');
+      await ownerNavigate('http://fixture.test:8765/?case=review-page&mode=preexisting-dialog&dialog='+kind+'&variant='+variant+'&id='+id);await delay(600);
+      await call('take_tab',{tab});const dialog=await eventually(async()=>(await call('read',{tab})).dialog,'preexisting '+kind);assert.equal(dialog.unguarded,true);
+      const prepared=await call('dialog',{tab,expected:dialog,accept:true,...(kind==='prompt'?{text:'Chosen prompt'}:{})});assert.ok(prepared.approval);
+      assert.match(prepared.approval.question,/wasn't guarded/);assert.match(prepared.approval.question,/what it does next isn't held/);assert.equal(receiverEvidence(id,'before unguarded approval').count,0);
+      if(variant==='drop'){
+        await call('drop',{operation_id:prepared.approval.operation_id});assert.equal((await call('read',{tab})).dialog.id,dialog.id);assert.equal(receiverEvidence(id,'dropped question leaves dialog').count,0);
+        ownerDismiss();await eventually(()=>counts(id)===1,'owner may answer after drop');assert.equal(receiverEvidence(id,'owner after drop').count,1);
+      }else if(variant==='stale'){
+        ownerDismiss();await eventually(async()=>(await call('read',{tab})).dialog?.text==='Different dialog','owner answer changed the native dialog');
+        const stale=await rpc('submit',prepared.approval);assert.ok(!stale.ok||stale.data.operation.state==='failed');assert.equal(receiverEvidence(id,'changed native dialog refused').count,0);assert.equal((await call('read',{tab})).dialog.text,'Different dialog');
+        ownerDismiss();await eventually(()=>counts(id)===1,'owner may answer replacement dialog');assert.equal(receiverEvidence(id,'owner replacement answer').count,1);
+      }else{
+        const changed=structuredClone(prepared.approval);changed.description.untrusted_content.input.accept=false;
+        assert.equal((await rpc('submit',changed)).ok,false);assert.equal(receiverEvidence(id,'changed answer refused').count,0);
+        assert.equal((await rpc('submit_trusted',prepared.approval)).ok,false);await approval(prepared,id);
+      }
+      await eventually(async()=>(await read()).some(row=>row.expected.name==='Ready'),'read after unguarded continuation');
+      const first=await rpc('click',{...await target('Ready'),reload_taken_tab:true});assert.equal(first.ok,false);assert.equal(first.error.code,'stale_reference');
+      await call('click',await target('Ready'));assert.equal(counts(id),1,'the next guarded act cannot replay the unguarded answer');
+    }
+  });
   await check('GROUP 3 REVIEW ordinary blank and srcdoc editors bind drafts and send normally',async()=>{
     for(const variant of ['blank','srcdoc'])for(const changed of [false,true]){
       const id='review-editor-'+variant+'-'+changed;await nav('review-page&mode=inline-editor&variant='+variant+'&id='+id);
@@ -148,7 +173,7 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
   await check('GROUP 8 REVIEW Stop removes navigation blocks while a frozen wrapper awaits cleanup',async()=>{
     const tab=getTab();await nav('review-page&mode=frozen-stop&id=review-stop-blocks');await call('click',await target('Continue'));await lifecycle({fixture:'stop'});
     const stopped=(await allTabs(call)).items.find(row=>row.tab===tab);assert.equal(stopped.controlled,false);assert.equal(stopped.cleanup_pending,true);
-    await ownerNavigate('http://approval.test:8765/receive?case=review-stop-blocks');await eventually(()=>counts('review-stop-blocks')===1,'owner navigation is no longer DNR-blocked');
+    await ownerNavigate('http://approval.test:8765/receive?case=review-stop-blocks',{allowPendingCleanup:true});await eventually(()=>counts('review-stop-blocks')===1,'owner navigation is no longer DNR-blocked');
     await eventually(async()=>!(await allTabs(call)).items.find(row=>row.tab===tab).cleanup_pending,'native document replacement finishes cleanup');
     await ownerNavigate('http://fixture.test:8765/?case=compose');await call('take_tab',{tab});
   });

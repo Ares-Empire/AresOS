@@ -297,6 +297,10 @@ class Chrome:
             return ','.join(shown)+(f' and {remaining} more' if remaining else '')
         if state.get('dialog') and data['input']['verb']=='dialog':
             dialog=state['dialog']
+            if dialog.get('unguarded'):
+                answer=state['answer']
+                chosen=('accept' if answer['accept'] else 'dismiss')+(f" with prompt text '{answer['text']}'" if 'text' in answer else '')
+                return f"On {state['url']}, page '{bounded(state.get('title',''))}', as the page shows it, {chosen} {dialog['kind']} '{dialog['text']}' from frame {dialog['frame']}? The page wasn't guarded when this dialog opened, so what it does next isn't held. Claude's next act requires the normal guarded reload."
             return f"On {state['url']}, page '{bounded(state.get('title',''))}', as the page shows it, {'accept' if data['input'].get('accept') else 'dismiss'} {dialog['kind']} '{dialog['text']}' from frame {dialog['frame']}?"
         target = state.get('target', {})
         site = state.get('frame_url', state.get('url', ''))
@@ -433,7 +437,7 @@ class Chrome:
 
     def command(self, payload, operation=None, approved=False):
         if payload.get('native_dialog'):
-            return {'name':'dialog','tab':payload['reference']['tab'],'binding':payload['binding'],'input':payload['input'],'operation':operation,'conservative':payload.get('conservative',False)}
+            return {'name':'dialog','tab':payload['reference']['tab'],'binding':payload['binding'],'input':payload['input'],'operation':operation,'conservative':payload.get('conservative',False),'approved':approved}
         return {'name':'resume' if payload.get('resume_kind') else 'input',
                 'reference':payload['reference'],'tab':payload['reference']['tab'],'input':payload['input'],
                 'kind':payload['kind'],'conservative':payload.get('conservative',False),'adapter':bool(payload.get('adapter')),'binding':payload['binding'],
@@ -575,6 +579,8 @@ class Chrome:
         adapter = operation['payload'].get('adapter')
         payload = operation['payload']
         state = payload['binding']
+        if payload.get('unguarded_dialog'):
+            return False
         forbidden = payload.get('kind') in {'delete', 'pay'} or explicit_effect({'target':state.get('target', {}), 'form':state.get('form')}) in {'delete', 'pay'} or adapter and (adapter.get('site') == 'whatsapp' or adapter.get('effect') in {'delete', 'pay'})
         if forbidden or mode['conservative'] or not adapter or not adapter.get('trusted') or not mode['adapters'].get(adapter['site']):
             return False
@@ -665,7 +671,12 @@ class Chrome:
             if readonly:
                 raise Refused('readonly_site','This site is read-only; the owner must answer its dialogs.')
             kind=classify('dialog',args,{'dialog':facts['dialog']},conservative=mode['conservative'])
+            unguarded=bool(facts['dialog'].get('unguarded'))
+            if unguarded:
+                kind='confirmation'
+                facts={**facts,'answer':{'accept':args['accept'],**({'text':args['text']} if 'text' in args else {})}}
             payload={'process_session':self.process_session,'reference':{'tab':args['tab']},'input':{'verb':'dialog',**args},'binding':facts,'kind':kind,'adapter':None,'native_dialog':True,'conservative':mode['conservative']}
+            if unguarded:payload['unguarded_dialog']=True
         else:
             payload, _ = self.payload(verb,args)
         if payload['kind']:

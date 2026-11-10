@@ -5,10 +5,17 @@
 accounts for P1–P31, including the browser-free mutation evidence. All browser tests run only through the
 `control-chrome.yml` Linux containers. No local browser executable or profile has been accessed.
 
-The lead's 2026-11-10 13:15 feature-preserving direction is being applied. The [current continuation checkpoint](BUILD-P-3.md)
+The lead's 2026-11-10 feature-preserving directions are being applied. The [current continuation checkpoint](BUILD-P-4.md)
 records the private native-return debugger barrier, successful ordinary native answers, isolated byte hashing for
-owner-chosen files and successful sends from ordinary blank/srcdoc editors. Missing-coverage native-dialog cases remain explicitly tracked for the
-lead and owner; no fallback refusal is approved or silently treated as feature-complete.
+owner-chosen files, successful sends from ordinary blank/srcdoc editors, and successful synchronous shadow holds.
+
+**Decided rule — lead, 2026-11-10, owner's board #138 precedent (“Yes, ask in that rare case”):** a native dialog
+already open when Claude takes the tab asks. Its service-written question binds the tab, native type/text and chosen
+answer/prompt text, and says plainly that the page was not guarded when the dialog opened, so what it does next is
+not held. Approval answers exactly once, with no replay; the next act follows the normal guarded reload-on-take rule.
+Dropping the preparation leaves the modal open, and the owner can answer it at any time. “Don't ask again” never
+covers this case. This decided rule supersedes the earlier refusal tracking for that specific case. Other genuinely
+unguardable native-answer cases remain tracked for the lead and owner; no fallback is silently accepted.
 
 The latest local checkpoint is 205 passing Node tests, 45 focused Python tests, 185 full Python tests and 71
 rejected mutations covering every P item. Final-head browser/base/Mail/boundary runs twice and the closing

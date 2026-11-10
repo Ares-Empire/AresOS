@@ -72,6 +72,10 @@ export function reviewPage(url){
   }else if(mode==='independent-dialog'){
     body=form()+sink;
     script=`globalThis.reviewChange=()=>setTimeout(()=>{confirm('Continue?');document.querySelector('form').submit();},20);`;
+  }else if(mode==='preexisting-dialog'){
+    const kind=url.searchParams.get('dialog')||'confirm';
+    body='<button type="button">Ready</button>'+form('<input type="hidden" name="reply">')+sink;
+    script=`const key=${JSON.stringify('preexisting-'+id)};if(!sessionStorage.getItem(key)){sessionStorage.setItem(key,'opened');setTimeout(()=>{const reply=globalThis.firstScriptDialogs[${JSON.stringify(kind)}].call(window,'Already open','Original prompt');${variant==='stale'?"confirm('Different dialog');":''}document.querySelector('[name=reply]').value=String(reply);document.querySelector('form').submit();},300);}`;
   }else if(mode==='native-dialog'){
     const kind=url.searchParams.get('dialog');
     body='<button type="button">Continue</button>'+form('<input type="hidden" name="reply" value="Unanswered">')+sink;

@@ -29,6 +29,11 @@ test('missing native position refuses before typing into any tab',async()=>{
   const {state,ui}=fixture();delete state.rows[1].index;
   await assert.rejects(ui.navigate('http://fixture.test/changed'),/native tab index/);assert.equal(state.commands.length,0);
 });
+test('owner navigation can explicitly end a frozen document while cleanup still waits',async()=>{
+  const {state,ui}=fixture();state.restoring=100;
+  await ui.navigate('http://fixture.test/replacement',{allowPendingCleanup:true});
+  assert.equal(state.rows[1].url,'http://fixture.test/replacement');assert.equal(state.rows[0].url,'http://other.test/');assert.ok(state.restoring>0);
+});
 test('popup comparison waits for positive mapped geometry and retains native window identity',async()=>{
   const {state,ui}=fixture();const before=await ui.popupWindow('popup-clean');
   assert.deepEqual(before,{window:'77',X:-8,Y:20,WIDTH:620,HEIGHT:514});assert.equal(state.geometry,3);

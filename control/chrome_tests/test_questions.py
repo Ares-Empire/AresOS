@@ -105,6 +105,38 @@ class Questions(unittest.TestCase):
         operation=self.engine.operation(prepared['data']['approval']['operation_id'],'chrome')
         self.assertTrue(operation['payload'].get('conservative'));self.assertTrue(self.chrome.command(operation['payload']).get('conservative'))
 
+    def test_p1_decided_preexisting_dialog_always_asks_binds_answer_and_never_trusts(self):
+        native={'session':self.browser.session,'tab':1,'url':'https://fixture.test/','title':'Fixture','dialog':{'kind':'prompt','text':'Choose answer','frame':0,'frame_url':'https://fixture.test/','button':'OK','unguarded':True}}
+        original=self.browser.call
+        self.browser.call=lambda name,**args:copy.deepcopy(native) if name=='dialog_facts' else original(name,**args)
+        result=self.call('dialog',{'tab':1,'expected':native['dialog'],'accept':True,'text':'Chosen text'})
+        self.assertTrue(result['ok'],result);self.assertIn('approval',result['data']);approval=result['data']['approval'];self.assertEqual(self.browser.dispatched,[])
+        for text in ['Choose answer','Chosen text',"wasn't guarded", "what it does next isn't held",'guarded reload']:
+            self.assertIn(text,approval['question'])
+        operation=self.engine.operation(approval['operation_id'],'chrome');payload=operation['payload']
+        self.assertEqual(payload['binding']['answer'],{'accept':True,'text':'Chosen text'});self.assertTrue(payload['unguarded_dialog'])
+        self.assertFalse(self.chrome.trusted(operation));self.assertFalse(self.call('submit_trusted',approval)['ok'])
+        changed=copy.deepcopy(approval);changed['description']['untrusted_content']['input']['text']='Changed text'
+        self.assertFalse(self.call('submit',changed)['ok']);self.assertEqual(self.browser.dispatched,[])
+        self.assertTrue(self.call('submit',approval)['ok']);self.assertTrue(self.call('submit',approval)['ok']);self.assertEqual(len(self.browser.dispatched),1)
+        self.assertTrue(self.browser.dispatched[0][1]['approved'])
+        self.assertFalse(self.call('sites',{'command':'allow','operation_id':approval['operation_id']},admin=True)['ok'])
+
+    def test_p1_dropping_a_preexisting_dialog_question_leaves_it_to_the_owner(self):
+        native={'session':self.browser.session,'tab':1,'url':'https://fixture.test/','dialog':{'kind':'confirm','text':'Continue?','frame':0,'frame_url':'https://fixture.test/','unguarded':True}}
+        original=self.browser.call
+        self.browser.call=lambda name,**args:copy.deepcopy(native) if name=='dialog_facts' else original(name,**args)
+        prepared=self.call('dialog',{'tab':1,'expected':native['dialog'],'accept':False})['data']['approval']
+        dropped=self.call('drop',{'operation_id':prepared['operation_id']});self.assertTrue(dropped['ok'],dropped)
+        self.assertEqual(self.browser.dispatched,[]);self.assertTrue(native['dialog']['unguarded'])
+
+    def test_p1_preexisting_dialog_never_inherits_an_otherwise_valid_owner_entry(self):
+        from aresos_control.common import digest
+        from aresos_control.chrome.sites import KINDS
+        self.page('gemini');approval=self.prepare();operation=self.engine.operation(approval['operation_id'],'chrome')
+        self.engine.store.write({'chrome:allow:'+self.chrome.allow_id(operation):{'kind_hash':digest(KINDS['gemini_question'])}},'chrome_test_setup','Synthetic owner entry')
+        self.assertTrue(self.chrome.trusted(operation));operation['payload']['unguarded_dialog']=True;self.assertFalse(self.chrome.trusted(operation))
+
     def test_p9_trusted_predicate_independently_forbids_explicit_deletion_payment_and_whatsapp(self):
         from aresos_control.common import digest
         from aresos_control.chrome.sites import KINDS

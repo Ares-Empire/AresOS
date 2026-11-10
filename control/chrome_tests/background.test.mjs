@@ -761,3 +761,37 @@ test('P27 native missing-context proof retires stale cleanup handles without a R
     const result=await pending;assert.equal(result.cleanup_pending,false);assert.equal(f.run('releasing.size'),0);
   }
 });
+function unguardedDialogFixture(){
+  const f=fixture();f.run("excludedHosts=[];groupId=1;controlled.set(7,{epoch:'epoch'});globalThis.answers=[];chrome.tabs.get=async()=>({url:'http://fixture.test/',title:'Fixture',groupId:1});chrome.debugger={sendCommand:async(source,method,args)=>{if(method==='Page.handleJavaScriptDialog'){answers.push(args);dialogs.delete(7)}return {};}};dialogs.set(7,{id:'preexisting',kind:'prompt',text:'Choose answer',frame:0,frame_url:'http://fixture.test/',unguarded:true});globalThis.expected=JSON.parse(JSON.stringify({session,tab:7,control:'epoch',url:'http://fixture.test/',title:'Fixture',dialog:dialogs.get(7),answer:{accept:true,text:'Chosen text'}}));globalThis.command={name:'dialog',tab:7,operation:'exact-answer',approved:true,input:{accept:true,text:'Chosen text'},binding:expected};");return f;
+}
+test('P1 decided preexisting dialog approval answers exactly once and requires the next guarded reload',async()=>{
+  const f=unguardedDialogFixture();const result=await f.run('dispatch(command)');assert.equal(result.unguarded_continuation,true);assert.equal(result.needs_reload,true);assert.equal(f.run('controlled.get(7).popupNeedsReload'),true);
+  assert.deepEqual(JSON.parse(f.run('JSON.stringify(answers)')),[{accept:true,promptText:'Chosen text'}]);
+  await assert.rejects(f.run('dispatch(command)'),/stale_approval/);assert.equal(f.run('answers.length'),1);
+});
+test('P1 decided preexisting dialog refuses changed dialog or chosen answer before dispatch',async()=>{
+  for(const change of ["command.input.accept=false","command.input.text='Changed text'","dialogs.get(7).text='Changed dialog'","dialogs.get(7).kind='confirm'","command.approved=false","command.operation=null"]){
+    const f=unguardedDialogFixture();f.run(change);await assert.rejects(f.run('dispatch(command)'),/stale_approval|requires its exact approval/);assert.equal(f.run('answers.length'),0,change);assert.equal(f.run('dialogs.has(7)'),true);
+  }
+});
+test('P1 an uncertain preexisting native answer is consumed before dispatch and never replayed',async()=>{
+  const f=unguardedDialogFixture();f.run("chrome.debugger.sendCommand=async(source,method,args)=>{if(method==='Page.handleJavaScriptDialog'){answers.push(args);throw Error('native answer response was lost')}return {}};");
+  await assert.rejects(f.run('dispatch(command)'),/response was lost/);assert.equal(f.run('answers.length'),1);
+  await assert.rejects(f.run('dispatch(command)'),/already attempted/);assert.equal(f.run('answers.length'),1);
+});
+test('P1 native opening metadata identifies the unguarded admission without downgrading ordinary dialogs',async()=>{
+  const f=unguardedDialogFixture();f.run("chrome.debugger.onEvent={addListener:callback=>{globalThis.nativeEvent=callback}};chrome.webNavigation={getAllFrames:async()=>[{frameId:0,documentId:'native',url:'http://fixture.test/'}]};controlled.get(7).admitting=true;");
+  const source=fs.readFileSync('control/chrome/extension/background.js','utf8');f.run(source.slice(source.indexOf('chrome.debugger.onEvent.addListener('),source.indexOf('chrome.debugger.onDetach.addListener(')));
+  await f.run("nativeEvent({tabId:7},'Page.javascriptDialogOpening',{url:'http://fixture.test/',type:'prompt',message:'Already open'})");assert.equal(f.run('dialogs.get(7).unguarded'),true);
+  f.run('controlled.get(7).admitting=false');await f.run("nativeEvent({tabId:7},'Page.javascriptDialogOpening',{url:'http://fixture.test/',type:'confirm',message:'Guarded dialog'})");assert.equal(f.run('dialogs.get(7).unguarded'),undefined);
+});
+test('P1 the owner may close a preexisting dialog before approval without any tool answer',async()=>{
+  const f=unguardedDialogFixture();f.run("chrome.debugger.onEvent={addListener:callback=>{globalThis.nativeEvent=callback}};");
+  const source=fs.readFileSync('control/chrome/extension/background.js','utf8');f.run(source.slice(source.indexOf('chrome.debugger.onEvent.addListener('),source.indexOf('chrome.debugger.onDetach.addListener(')));
+  await f.run("nativeEvent({tabId:7},'Page.javascriptDialogClosed',{result:false})");assert.equal(f.run('dialogs.has(7)'),false);await assert.rejects(f.run('dispatch(command)'),/stale_approval/);assert.equal(f.run('answers.length'),0);
+});
+test('P1 admission remains available when a preexisting modal blocks debugger and page setup',async()=>{
+  const f=lifecycleFixture();f.run("globalThis.readerSetups=0;prepareTarget=()=>new Promise(resolve=>{globalThis.finishPreload=resolve;dialogs.set(7,{unguarded:true});wakeDialog(7)});lateReader=async()=>{readerSetups++};");
+  const result=await f.run('take(7)');assert.equal(result.tab,7);assert.equal(f.run('readerSetups'),0);assert.equal(f.run('controlled.get(7).popupNeedsReload'),true);
+  f.run('dialogs.delete(7);finishPreload()');await f.run('requireTab(7)');assert.equal(f.run('readerSetups'),1);assert.equal(f.run('controlled.get(7).pendingSetup'),undefined);assert.equal(f.run('controlled.get(7).popupNeedsReload'),true);
+});

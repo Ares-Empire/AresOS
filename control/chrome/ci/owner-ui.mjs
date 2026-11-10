@@ -12,8 +12,8 @@ export function ownerUI({call,currentTab,window,eventually,exec=execFileSync}){
       cursor=page.cursor;
     }while(cursor);
   }
-  async function select(tab){
-    const before=await eventually(async()=>{const item=await tabInfo(tab);return item&&!item.cleanup_pending&&item;},'owner tab restoration settled');
+  async function select(tab,{allowPendingCleanup=false}={}){
+    const before=await eventually(async()=>{const item=await tabInfo(tab);return item&&(allowPendingCleanup||!item.cleanup_pending)&&item;},'owner tab restoration settled');
     assert.ok(Number.isInteger(before.index)&&before.index>=0&&before.index<100,'native tab index is required');
     exec('xdotool',['windowactivate','--sync',window()]);
     exec('xdotool',['key','--clearmodifiers','ctrl+1']);
@@ -22,8 +22,8 @@ export function ownerUI({call,currentTab,window,eventually,exec=execFileSync}){
   }
   return {
     select,
-    async navigate(url){
-      const tab=currentTab();await select(tab);
+    async navigate(url,options){
+      const tab=currentTab();await select(tab,options);
       exec('xdotool',['key','--clearmodifiers','ctrl+l']);
       exec('xdotool',['type','--clearmodifiers','--delay','1',url]);exec('xdotool',['key','Return']);
       await eventually(async()=>(await tabInfo(tab))?.url===url,'owner navigation committed in the exact tab');

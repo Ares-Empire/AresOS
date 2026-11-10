@@ -1,0 +1,563 @@
+{
+  "source": "02f523d3665a991cb0473bcbbb22b90ac082ceb3",
+  "run": 42839244624,
+  "mode": "policy",
+  "verdict": "partial new shadow and review matrix proof; whole job failed frozen-cleanup owner driver",
+  "receiver": [
+    {
+      "line": 127,
+      "id": "review-shadow-open-native",
+      "phase": "before approval",
+      "count": 0,
+      "arrivals": []
+    },
+    {
+      "line": 128,
+      "id": "review-shadow-open-native",
+      "phase": "after approval",
+      "count": 1,
+      "arrivals": [
+        {
+          "time": 1794322763177,
+          "url": "/receive?case=review-shadow-open-native",
+          "method": "POST",
+          "body": "draft=Saved",
+          "host": "fixture.test:8765"
+        }
+      ]
+    },
+    {
+      "line": 129,
+      "id": "review-shadow-open-native",
+      "phase": "after repeat",
+      "count": 1,
+      "arrivals": [
+        {
+          "time": 1794322763177,
+          "url": "/receive?case=review-shadow-open-native",
+          "method": "POST",
+          "body": "draft=Saved",
+          "host": "fixture.test:8765"
+        }
+      ]
+    },
+    {
+      "line": 130,
+      "id": "review-shadow-open-event",
+      "phase": "before approval",
+      "count": 0,
+      "arrivals": []
+    },
+    {
+      "line": 131,
+      "id": "review-shadow-open-event",
+      "phase": "after approval",
+      "count": 1,
+      "arrivals": [
+        {
+          "time": 1794322764960,
+          "url": "/receive?case=review-shadow-open-event",
+          "method": "POST",
+          "body": "draft=Saved",
+          "host": "fixture.test:8765"
+        }
+      ]
+    },
+    {
+      "line": 132,
+      "id": "review-shadow-open-event",
+      "phase": "after repeat",
+      "count": 1,
+      "arrivals": [
+        {
+          "time": 1794322764960,
+          "url": "/receive?case=review-shadow-open-event",
+          "method": "POST",
+          "body": "draft=Saved",
+          "host": "fixture.test:8765"
+        }
+      ]
+    },
+    {
+      "line": 133,
+      "id": "review-shadow-open-click",
+      "phase": "before approval",
+      "count": 0,
+      "arrivals": []
+    },
+    {
+      "line": 134,
+      "id": "review-shadow-open-click",
+      "phase": "after approval",
+      "count": 1,
+      "arrivals": [
+        {
+          "time": 1794322766875,
+          "url": "/receive?case=review-shadow-open-click",
+          "method": "POST",
+          "body": "draft=Saved",
+          "host": "fixture.test:8765"
+        }
+      ]
+    },
+    {
+      "line": 135,
+      "id": "review-shadow-open-click",
+      "phase": "after repeat",
+      "count": 1,
+      "arrivals": [
+        {
+          "time": 1794322766875,
+          "url": "/receive?case=review-shadow-open-click",
+          "method": "POST",
+          "body": "draft=Saved",
+          "host": "fixture.test:8765"
+        }
+      ]
+    },
+    {
+      "line": 136,
+      "id": "review-shadow-closed-native",
+      "phase": "before approval",
+      "count": 0,
+      "arrivals": []
+    },
+    {
+      "line": 137,
+      "id": "review-shadow-closed-native",
+      "phase": "after approval",
+      "count": 1,
+      "arrivals": [
+        {
+          "time": 1794322768732,
+          "url": "/receive?case=review-shadow-closed-native",
+          "method": "POST",
+          "body": "draft=Saved",
+          "host": "fixture.test:8765"
+        }
+      ]
+    },
+    {
+      "line": 138,
+      "id": "review-shadow-closed-native",
+      "phase": "after repeat",
+      "count": 1,
+      "arrivals": [
+        {
+          "time": 1794322768732,
+          "url": "/receive?case=review-shadow-closed-native",
+          "method": "POST",
+          "body": "draft=Saved",
+          "host": "fixture.test:8765"
+        }
+      ]
+    },
+    {
+      "line": 139,
+      "id": "review-shadow-closed-event",
+      "phase": "before approval",
+      "count": 0,
+      "arrivals": []
+    },
+    {
+      "line": 140,
+      "id": "review-shadow-closed-event",
+      "phase": "after approval",
+      "count": 1,
+      "arrivals": [
+        {
+          "time": 1794322770557,
+          "url": "/receive?case=review-shadow-closed-event",
+          "method": "POST",
+          "body": "draft=Saved",
+          "host": "fixture.test:8765"
+        }
+      ]
+    },
+    {
+      "line": 141,
+      "id": "review-shadow-closed-event",
+      "phase": "after repeat",
+      "count": 1,
+      "arrivals": [
+        {
+          "time": 1794322770557,
+          "url": "/receive?case=review-shadow-closed-event",
+          "method": "POST",
+          "body": "draft=Saved",
+          "host": "fixture.test:8765"
+        }
+      ]
+    },
+    {
+      "line": 142,
+      "id": "review-shadow-closed-click",
+      "phase": "before approval",
+      "count": 0,
+      "arrivals": []
+    },
+    {
+      "line": 143,
+      "id": "review-shadow-closed-click",
+      "phase": "after approval",
+      "count": 1,
+      "arrivals": [
+        {
+          "time": 1794322772524,
+          "url": "/receive?case=review-shadow-closed-click",
+          "method": "POST",
+          "body": "draft=Saved",
+          "host": "fixture.test:8765"
+        }
+      ]
+    },
+    {
+      "line": 144,
+      "id": "review-shadow-closed-click",
+      "phase": "after repeat",
+      "count": 1,
+      "arrivals": [
+        {
+          "time": 1794322772524,
+          "url": "/receive?case=review-shadow-closed-click",
+          "method": "POST",
+          "body": "draft=Saved",
+          "host": "fixture.test:8765"
+        }
+      ]
+    },
+    {
+      "line": 146,
+      "id": "review-fallback-open-false-false",
+      "phase": "uncancellable native default is unknown",
+      "count": 1,
+      "arrivals": [
+        {
+          "time": 1794322774662,
+          "url": "/receive?case=review-fallback-open-false-false",
+          "method": "GET",
+          "body": "",
+          "host": "fixture.test:8765"
+        }
+      ]
+    },
+    {
+      "line": 148,
+      "id": "review-fallback-open-false-true",
+      "phase": "before approval",
+      "count": 0,
+      "arrivals": []
+    },
+    {
+      "line": 149,
+      "id": "review-fallback-open-false-true",
+      "phase": "after approval",
+      "count": 1,
+      "arrivals": [
+        {
+          "time": 1794322777782,
+          "url": "/receive?case=review-fallback-open-false-true",
+          "method": "GET",
+          "body": "",
+          "host": "fixture.test:8765"
+        }
+      ]
+    },
+    {
+      "line": 150,
+      "id": "review-fallback-open-false-true",
+      "phase": "after repeat",
+      "count": 1,
+      "arrivals": [
+        {
+          "time": 1794322777782,
+          "url": "/receive?case=review-fallback-open-false-true",
+          "method": "GET",
+          "body": "",
+          "host": "fixture.test:8765"
+        }
+      ]
+    },
+    {
+      "line": 152,
+      "id": "review-fallback-open-true-false",
+      "phase": "uncancellable native default is unknown",
+      "count": 1,
+      "arrivals": [
+        {
+          "time": 1794322780213,
+          "url": "/receive?case=review-fallback-open-true-false",
+          "method": "GET",
+          "body": "",
+          "host": "fixture.test:8765"
+        }
+      ]
+    },
+    {
+      "line": 154,
+      "id": "review-fallback-open-true-true",
+      "phase": "before approval",
+      "count": 0,
+      "arrivals": []
+    },
+    {
+      "line": 155,
+      "id": "review-fallback-open-true-true",
+      "phase": "after approval",
+      "count": 1,
+      "arrivals": [
+        {
+          "time": 1794322783401,
+          "url": "/receive?case=review-fallback-open-true-true",
+          "method": "GET",
+          "body": "",
+          "host": "fixture.test:8765"
+        }
+      ]
+    },
+    {
+      "line": 156,
+      "id": "review-fallback-open-true-true",
+      "phase": "after repeat",
+      "count": 1,
+      "arrivals": [
+        {
+          "time": 1794322783401,
+          "url": "/receive?case=review-fallback-open-true-true",
+          "method": "GET",
+          "body": "",
+          "host": "fixture.test:8765"
+        }
+      ]
+    },
+    {
+      "line": 158,
+      "id": "review-fallback-closed-false-false",
+      "phase": "uncancellable native default is unknown",
+      "count": 1,
+      "arrivals": [
+        {
+          "time": 1794322785998,
+          "url": "/receive?case=review-fallback-closed-false-false",
+          "method": "GET",
+          "body": "",
+          "host": "fixture.test:8765"
+        }
+      ]
+    },
+    {
+      "line": 160,
+      "id": "review-fallback-closed-false-true",
+      "phase": "before approval",
+      "count": 0,
+      "arrivals": []
+    },
+    {
+      "line": 161,
+      "id": "review-fallback-closed-false-true",
+      "phase": "after approval",
+      "count": 1,
+      "arrivals": [
+        {
+          "time": 1794322789272,
+          "url": "/receive?case=review-fallback-closed-false-true",
+          "method": "GET",
+          "body": "",
+          "host": "fixture.test:8765"
+        }
+      ]
+    },
+    {
+      "line": 162,
+      "id": "review-fallback-closed-false-true",
+      "phase": "after repeat",
+      "count": 1,
+      "arrivals": [
+        {
+          "time": 1794322789272,
+          "url": "/receive?case=review-fallback-closed-false-true",
+          "method": "GET",
+          "body": "",
+          "host": "fixture.test:8765"
+        }
+      ]
+    },
+    {
+      "line": 164,
+      "id": "review-fallback-closed-true-false",
+      "phase": "uncancellable native default is unknown",
+      "count": 1,
+      "arrivals": [
+        {
+          "time": 1794322791837,
+          "url": "/receive?case=review-fallback-closed-true-false",
+          "method": "GET",
+          "body": "",
+          "host": "fixture.test:8765"
+        }
+      ]
+    },
+    {
+      "line": 166,
+      "id": "review-fallback-closed-true-true",
+      "phase": "before approval",
+      "count": 0,
+      "arrivals": []
+    },
+    {
+      "line": 167,
+      "id": "review-fallback-closed-true-true",
+      "phase": "after approval",
+      "count": 1,
+      "arrivals": [
+        {
+          "time": 1794322795212,
+          "url": "/receive?case=review-fallback-closed-true-true",
+          "method": "GET",
+          "body": "",
+          "host": "fixture.test:8765"
+        }
+      ]
+    },
+    {
+      "line": 168,
+      "id": "review-fallback-closed-true-true",
+      "phase": "after repeat",
+      "count": 1,
+      "arrivals": [
+        {
+          "time": 1794322795212,
+          "url": "/receive?case=review-fallback-closed-true-true",
+          "method": "GET",
+          "body": "",
+          "host": "fixture.test:8765"
+        }
+      ]
+    }
+  ],
+  "browser_log": [
+    {
+      "line": 43,
+      "text": "REVIEW P5 RECEIVER0/1/1 review-shadow-open-native"
+    },
+    {
+      "line": 44,
+      "text": "REVIEW P5 RECEIVER0/1/1 review-shadow-open-event"
+    },
+    {
+      "line": 45,
+      "text": "REVIEW P5 RECEIVER0/1/1 review-shadow-open-click"
+    },
+    {
+      "line": 46,
+      "text": "REVIEW P5 RECEIVER0/1/1 review-shadow-closed-native"
+    },
+    {
+      "line": 47,
+      "text": "REVIEW P5 RECEIVER0/1/1 review-shadow-closed-event"
+    },
+    {
+      "line": 48,
+      "text": "REVIEW P5 RECEIVER0/1/1 review-shadow-closed-click"
+    },
+    {
+      "line": 50,
+      "text": "REVIEW P5 borrowed native review-fallback-open-false-false receiver 1 handler 0"
+    },
+    {
+      "line": 51,
+      "text": "REVIEW P5 borrowed native review-fallback-open-false-true receiver 1 handler 1"
+    },
+    {
+      "line": 52,
+      "text": "REVIEW P5 borrowed native review-fallback-open-true-false receiver 1 handler 0"
+    },
+    {
+      "line": 53,
+      "text": "REVIEW P5 borrowed native review-fallback-open-true-true receiver 1 handler 1"
+    },
+    {
+      "line": 54,
+      "text": "REVIEW P5 borrowed native review-fallback-closed-false-false receiver 1 handler 0"
+    },
+    {
+      "line": 55,
+      "text": "REVIEW P5 borrowed native review-fallback-closed-false-true receiver 1 handler 1"
+    },
+    {
+      "line": 56,
+      "text": "REVIEW P5 borrowed native review-fallback-closed-true-false receiver 1 handler 0"
+    },
+    {
+      "line": 57,
+      "text": "REVIEW P5 borrowed native review-fallback-closed-true-true receiver 1 handler 1"
+    }
+  ],
+  "matrix": [
+    {
+      "name": "GROUP 2 first-script natives are guarded in pages and frames",
+      "passed": true
+    },
+    {
+      "name": "GROUP 4 REVIEW ordinary native dialogs from Claude owner and page tasks keep working",
+      "passed": true
+    },
+    {
+      "name": "GROUP 3 REVIEW ordinary blank and srcdoc editors bind drafts and send normally",
+      "passed": true
+    },
+    {
+      "name": "GROUP 3 REVIEW owner chosen attachments show byte digests and bind identical metadata replacements",
+      "passed": true
+    },
+    {
+      "name": "GROUP 2 REVIEW inherited and newly created frames hold submissions",
+      "passed": true
+    },
+    {
+      "name": "GROUP 2 REVIEW borrowed wrappers respect another controlled tab and an ordinary document",
+      "passed": true
+    },
+    {
+      "name": "GROUP 11 REVIEW explicit pay and delete evidence overrides an owner allowed adapter",
+      "passed": true
+    },
+    {
+      "name": "GROUP 2 REVIEW synchronous new shadow roots keep all submission kinds held",
+      "passed": true
+    },
+    {
+      "name": "GROUP 2 REVIEW new shadow roots capture borrowed native events including noncomposed ones",
+      "passed": true
+    },
+    {
+      "name": "GROUP 1 REVIEW modified deletion keys normalized words malformed URLs and visible names",
+      "passed": true
+    },
+    {
+      "name": "GROUP 3 REVIEW item confirmation file rich text and title mutations refuse",
+      "passed": true
+    },
+    {
+      "name": "GROUP 2 REVIEW owner mark exact form submitter and unconsumed delayed work",
+      "passed": true
+    },
+    {
+      "name": "GROUP 8 REVIEW iframe drafts and detached or Web Audio report before reload",
+      "passed": true
+    },
+    {
+      "name": "GROUP 8 REVIEW script-started POST documents in tabs and popups never reload",
+      "passed": true
+    },
+    {
+      "name": "GROUP 8 REVIEW no-op checks and isolated choices leave the owner tab selected",
+      "passed": true
+    },
+    {
+      "name": "GROUP 8 REVIEW Stop removes navigation blocks while a frozen wrapper awaits cleanup",
+      "passed": false,
+      "error": "Error: owner tab restoration settled: undefined\n    at eventually (file:///workspace/control/chrome/ci/browser.mjs:29:208)\n    at async select (file:///workspace/control/chrome/ci/owner-ui.mjs:16:18)\n    at async navigate (file:///workspace/control/chrome/ci/owner-ui.mjs:26:30)\n    at async file:///workspace/control/chrome/ci/review-matrices.mjs:151:5\n    at async check (file:///workspace/control/chrome/ci/matrices.mjs:19:10)\n    at async reviewMatrices (file:///workspace/control/chrome/ci/review-matrices.mjs:148:3)\n    at async matrices (file:///workspace/control/chrome/ci/matrices.mjs:53:3)\n    at async file:///workspace/control/chrome/ci/browser.mjs:146:24"
+    }
+  ]
+}
