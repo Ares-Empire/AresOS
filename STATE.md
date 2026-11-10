@@ -70,6 +70,7 @@ Updated 2026-11-09. The live truth is `git log`, `gh pr list` and `git worktree 
 ## In progress
 
 - **Package 21** (brief `21-everyday-account-and-chrome.md`, empire brief 262): the everyday account like Windows, Chrome, PATH, foot font, small tools, key bindings, and a throwaway CI image build. A Claude agent builds it; Codex reviews.
+  - PR #31. Owner answers (board #156, 2026-11-10, "Yes to all"): Homebrew installs ask his password every time (the prefix stays the stock admin's, so the Bazzite backup keeps it); saving a system-wide Wi-Fi network or installing a system-wide Flatpak asks his password; sudo keeps no ticket, so no program can reuse a password he typed. Judgment calls 4 to 9 wait on board #163.
 - **Package 22** (brief `22-update-route.md`, empire brief 263): `at update` to move the laptop to a new signed release, the step 8 guide, the admin password step, INSTALL-STATUS for steps 4–7. A Claude agent builds it; Codex reviews.
   - PR #32 (built by a Claude agent; fingerprint `2a9965ea…`). Owner answers to its judgment calls (board #154, 2026-11-09, "Yes to both"):
     - the laptop keeps the current and previous AresOS plus the pinned Bazzite backup, and older AresOS versions drop off;
