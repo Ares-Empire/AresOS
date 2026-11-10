@@ -58,7 +58,7 @@ class Scenario:
         self.admin = False
         if flow == 'fixture':
             self.action, self.args = 'mail_accounts', {}
-        elif flow in {'send', 'cancel', 'restore'}:
+        elif flow in {'send', 'send_duplicate', 'cancel', 'restore'}:
             if flow == 'restore':
                 with closing(sqlite3.connect(f.root / 'backup.sqlite')) as backup:
                     f.engine.store.db.backup(backup)
@@ -317,10 +317,14 @@ class Scenario:
         def append(account, folder, raw, flags):
             attempted()
             remote['APPEND'] += 1
-            # The new APPEND and a delayed earlier copy become visible together.
-            f.imap.boxes[folder].update({1: raw, 2: raw})
+            uid = max(f.imap.boxes[folder], default=0) + 1
+            f.imap.boxes[folder][uid] = raw
+            if self.flow == 'send_duplicate':
+                # A separate race scenario retains the inherited delayed-copy
+                # warning coverage. Ordinary APPEND has exactly one effect.
+                f.imap.boxes[folder][uid + 1] = raw
             self.stages.setdefault(self.operation_id, {})['sent_copy'] = 'done'
-            return {'uid': 2}
+            return {'uid': uid}
         class HTTPS:
             def __init__(self, *args, **kwargs):
                 pass
@@ -342,9 +346,17 @@ class Scenario:
                 if command == 'MOVE':
                     f.imap.boxes['Trash'][number] = f.imap.boxes[box].pop(number)
                 elif command == 'EXPUNGE':
-                    f.imap.boxes[box].pop(number)
+                    if '\\Deleted' in flags.get((box, number), set()):
+                        f.imap.boxes[box].pop(number, None)
                 else:
-                    flags.setdefault((box, number), set()).add(args[2].strip('()'))
+                    values = set(args[2].strip('()').split())
+                    current = flags.setdefault((box, number), set())
+                    if args[1].startswith('+'):
+                        current.update(values)
+                    elif args[1].startswith('-'):
+                        current.difference_update(values)
+                    else:
+                        flags[box, number] = values
                 return 'OK', [b'Synthetic mutation']
             answer = original_uid(command, *args)
             if command == 'FETCH' and flags.get((box, number)):
@@ -475,7 +487,7 @@ class Scenario:
                         f.assertIn(repair['state'], {'unknown', 'done'}, repair)
             if not failed:
                 expected = {'cancel': 'failed', 'expiry': 'failed', 'restore': 'unknown',
-                            'send': 'done', 'repair': 'done', 'settlement': 'done', 'status': 'done',
+                            'send': 'done', 'send_duplicate': 'done', 'repair': 'done', 'settlement': 'done', 'status': 'done',
                             'delete_trash': 'done', 'delete_permanent': 'done',
                             'unsubscribe_mailto': 'done', 'unsubscribe_https': 'done'}
                 f.assertEqual(state, expected[self.flow], (self.flow, status))
@@ -492,7 +504,8 @@ class Scenario:
         if remote.get('MOVE:1') or remote.get('EXPUNGE:1'):
             f.assertNotIn(1, f.imap.boxes['Source'])
         if remote.get('APPEND'):
-            f.assertEqual(len(f.imap.boxes['Sent']), 2, 'Observed duplicates must survive')
+            f.assertEqual(len(f.imap.boxes['Sent']), 2 if self.flow == 'send_duplicate' else 1,
+                          'Every independently observed Sent copy must survive')
         if self.flow in {'filing_move', 'filing_copy'} and remote:
             f.assertEqual(f.imap.boxes['Target'][1], f.imap.raw)
             f.assertEqual(1 in f.imap.boxes['Source'], self.flow == 'filing_copy')
@@ -655,7 +668,7 @@ class FaultSweep23(unittest.TestCase):
         flows = ('send', 'repair', 'delete_trash', 'delete_permanent', 'unsubscribe_mailto', 'unsubscribe_https',
                  'status', 'settlement', 'cancel', 'restore', 'attachment_export', 'testapp_export',
                  'password', 'filing_move', 'filing_copy', 'filing_rename', 'expiry', 'maintenance',
-                 'restart_index', 'restart_tail', 'export_rollback', 'archive')
+                 'restart_index', 'restart_tail', 'export_rollback', 'archive', 'send_duplicate')
         mechanisms, counts = Counter(), Counter()
         started = time.monotonic()
         shard = int(os.environ.get('MAIL_SWEEP_SHARD', '0'))

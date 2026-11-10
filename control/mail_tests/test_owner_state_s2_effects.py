@@ -14,6 +14,36 @@ from storage_faults import OSWrites
 
 
 class EffectRegressions(unittest.TestCase):
+    def test_clean_send_is_quiet_and_a_separate_delayed_copy_race_warns(self):
+        for flow, copies in (('send', 1), ('send_duplicate', 2)):
+            scenario = OwnerScenario(flow)
+            try:
+                driver = Driver(scenario)
+                with driver.observe():
+                    result = scenario.call()
+                driver.reply(result)
+                self.assertTrue(result['ok'], result)
+                self.assertEqual(len(scenario.fixture.imap.boxes['Sent']), copies)
+                warnings = [fact for fact in driver.oracle.expected(driver.snapshot()) if fact.kind == 'sent_copies']
+                self.assertEqual(bool(warnings), copies == 2)
+                self.assertEqual(bool(result['pending'].get('notices')), copies == 2)
+            finally:
+                scenario.close()
+
+    def test_uid_expunge_requires_the_exact_deleted_flag_and_preserves_unnamed_mail(self):
+        scenario = OwnerScenario('delete_permanent')
+        try:
+            imap = scenario.fixture.imap
+            imap.select('Source')
+            self.assertEqual(imap.uid('EXPUNGE', '1')[0], 'OK')
+            self.assertIn(1, imap.boxes['Source'])
+            imap.uid('STORE', '1', '+FLAGS.SILENT', '(\\Deleted)')
+            imap.uid('EXPUNGE', '1')
+            self.assertNotIn(1, imap.boxes['Source'])
+            self.assertIn(7, imap.boxes['Source'])
+        finally:
+            scenario.close()
+
     def attempt(self, mode='single', cleanup=None, restart=False):
         scenario = OwnerScenario('draft_append')
         try:

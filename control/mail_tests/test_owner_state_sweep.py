@@ -22,7 +22,7 @@ from storage_faults import OSWrites
 FLOWS = ('send', 'repair', 'delete_trash', 'delete_permanent', 'unsubscribe_mailto', 'unsubscribe_https',
          'status', 'settlement', 'cancel', 'restore', 'attachment_export', 'testapp_export',
          'password', 'filing_move', 'filing_copy', 'filing_rename', 'expiry', 'maintenance',
-         'restart_index', 'restart_tail', 'export_rollback', 'archive')
+         'restart_index', 'restart_tail', 'export_rollback', 'archive', 'send_duplicate')
 EXTRA = ('draft_append', 'folder_create', 'folder_delete', 'onboarding', 'flag', 'settings', 'folder_review',
          'testapp_send', 'testapp_delete', 'testapp_config', 'local_flag')
 
