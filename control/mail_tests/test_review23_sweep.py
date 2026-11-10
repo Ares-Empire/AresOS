@@ -26,6 +26,24 @@ from storage_faults import OSWrites as DurableWrites
 
 class Scenario:
     def __init__(self, flow):
+        self.fixture_clock = ExitStack()
+        if type(self) is Scenario and flow == 'archive':
+            from owner_state_oracle.identity import scripted_ids
+            from owner_state_oracle.clock import scripted_calendar
+            self.archive_time = 1794225600.0
+            self.fixture_clock.enter_context(patch('time.time', side_effect=lambda: self.archive_time))
+            self.fixture_clock.enter_context(scripted_calendar())
+            self.fixture_clock.enter_context(scripted_ids('inherited-archive'))
+        try:
+            self._prepare_fixture(flow)
+        except BaseException:
+            self.fixture_clock.close()
+            raise
+
+    def advance_archive_clock(self):
+        self.archive_time += 2
+
+    def _prepare_fixture(self, flow):
         self.fixture = f = results23.Results23()
         f.setUp()
         self.stack = ExitStack()
@@ -547,11 +565,30 @@ class Scenario:
                          for row in exported), ('Missing committed archived operation', operation_id))
 
     def close(self):
-        self.stack.close()
-        self.fixture.doCleanups()
+        try:
+            self.stack.close()
+            self.fixture.doCleanups()
+        finally:
+            self.fixture_clock.close()
 
 
 class FaultSweep23(unittest.TestCase):
+    def test_archive_replays_have_identical_write_traces(self):
+        traces = []
+        for _ in range(3):
+            scenario = Scenario('archive')
+            try:
+                fault = DurableWrites()
+                with scenario.observed(), fault.wrap(scenario.fixture.engine.store):
+                    self.assertTrue(scenario.call()['ok'])
+                scenario.recover()
+                traces.append(fault.points)
+            finally:
+                scenario.close()
+        self.assertTrue(traces[0])
+        self.assertEqual(traces[0], traces[1])
+        self.assertEqual(traces[0], traces[2])
+
     def test_review24_recovery_oracle_rejects_attempted_send_returning_to_reserved(self):
         scenario = Scenario('send')
         try:
