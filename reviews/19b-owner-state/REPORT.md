@@ -1290,16 +1290,15 @@ approval/input/question/binding change, or self-review was performed.
 | 3 / SOL 3 / ASTRA 1 | RENAME reuses the existing safe_folder UID/UIDVALIDITY enumeration. No extra SELECT, FETCH, full-body parse or wire-size admission is added | Oversized, depth-45 and 1,100-part folders rename successfully with zero FETCHes; existing all-write failure/crash fences remain enabled |
 | 4 | Normal APPEND adds one Sent copy; separate send_duplicate flow retains delayed-copy warnings. EXPUNGE honors Deleted and STORE honors both add/remove branches | Quiet send and deliberate race assertions; existing quiet move/copy/rename/Trash/permanent-delete contracts all pass |
 
-**Run — local source checks:** 144 independent oracle/CI-selection tests printed
-`Ran 144 tests`, `OK` (`self-latest144.txt`; earlier source iterations are retained
-under `.work/19b-s2-fixes/`). Focused contracts, six named regressions, all action-context
-write/failure/crash fences, new fixture/effect tests and production plants printed
-`Ran 26 tests in 266.265s`, `OK` (`focused-current.txt`). The final semantic-source subset repeated all 14 contract/regression/plant/effect tests (`focused-latest142.txt`, `OK`). The diagnostic traversal
-ran all **34 flows** clean and at point 1 in single/persistent/live/crash modes,
-ending `R2 gaps {}` (`diagnostic-final.txt`). These Mac runs use the existing
-worktree-local managed-policy fixture and child-process shim; installed Linux
-policy and server verification is supplied by the workflows below. Generator
-printed `Generated artifacts match definitions`; diff check was silent.
+**Run — local source checks:** the completed local pass and exact commands are
+recorded below. Earlier development runs, including failures, remain under
+`.work/19b-s2-fixes/` and are not substituted for that pass. The diagnostic
+traversal ran all **34 flows** clean and at point 1 in
+single/persistent/live/crash modes, ending `R2 gaps {}`
+(`diagnostic-current.txt`). These Mac runs use the existing worktree-local
+managed-policy fixture and child-process shim; installed Linux policy and
+server verification is supplied by the workflows below. Generator printed
+`Generated artifacts match definitions`; diff check was silent.
 
 **Read — alteration performance:** identical completion questions in a single
 replay are memoized using the operation inputs, record-event identity, current
@@ -1335,7 +1334,7 @@ allowlist; all other resolution kinds in FORMAT.md remain unchanged.
 | testapp item flagged/revision, missing intent and atomic removal | local.errors and intent_result_proof | Scripted exact reference and requested value; prior committed context; exact item revision change | Valid/missing/wrong-value local flag cases and full local_flag sweep |
 | APPEND destination/flags/bytes and mutation multiplicity | script_differences, effects, context_errors, completion_errors | Script role/flag/effect plan and raw DATA/Bcc bytes; count per scripted attempt and intent, independent of terminal state | P2/P6/P7, wrong flags/bytes and duplicate-result-write retry |
 
-**Run — storage (same STORAGE-S2 harness):** `storage.txt` and
+**Run — storage (same STORAGE-S2 harness):** `storage-final.txt` and
 `STORAGE-S2.json.after_fixes_round_1` reproduce after_fold byte-for-byte for all
 five operations, including SQLite event/file figures. No permanent-journal
 record was added. The projection remains unbuilt (zero bytes, stage 3).
@@ -1439,3 +1438,106 @@ proof. Successful repair completion requires its matching parent stage update
 in the same commit. A real Store.write plant omits that parent, and must produce
 its own missing-result proof through Driver.compare. A direct negative/positive
 atomic-parent test covers missing rows, missing stages and the matching update.
+
+**Run — completed local pass (same source):** source `ad9d6d59` passed 144
+oracle/CI-selection tests, the 26-test focused suite (461.195s), and all four
+complete alteration shards. The latter cover **94 recordings / 2,003,694
+alterations / 257,524 coherent variants / zero slipped**. Exactly 14,904
+alterations change the expected owner set. The separate coherent-only diagnostic
+also passes all 94 recordings. [LOCAL-S2-FIXES.json](LOCAL-S2-FIXES.json) records
+source identities, exact log hashes, counts and test summaries. Local owner-state
+runs record candidate gaps before re-pinning; they do not pass the superseded
+strict ledger. Installed-policy/server acceptance comes from strict Linux below.
+
+| Validator | Alterations its own proof catches | Of those, owner set changes | Disabling only this validator |
+| --- | ---: | ---: | --- |
+| script_differences | 5,380 | 647 | Plant assertion fails (required) |
+| stage_claims | 50,082 | 1,415 | Plant assertion fails (required) |
+| completion_errors | 2,395 | 1,329 | Plant assertion fails (required) |
+| payload_claims | 59,821 | 24 | Plant assertion fails (required) |
+| filing_claims | 1,054 | 90 | Plant assertion fails (required) |
+| transition | 12,134 | 3,588 | Plant assertion fails (required) |
+| local.errors | 1,544 | 1,170 | Plant assertion fails (required) |
+
+Each alteration shard also passes all 13 production field-kind controls and all
+seven single-validator controls through the shared comparison. These counts
+credit actual emitted proof provenance, exclude integrity-only catches for
+coherent variants, and count alterations rather than duplicate proof facts.
+
+**Run — local commands:**
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/tests .work/venv/bin/python -m unittest test_owner_state_oracle test_owner_state_fixes_s2 test_mail_ci_selection
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/mail_tests:.work/19b-s2/child-policy .work/venv/bin/python .work/19b-s2/local.py test_owner_state_contracts test_owner_state_regressions test_action_context test_owner_state_plants test_owner_state_s2_effects
+# Each shard 0..3, with OWNER_PERTURB_SHARDS=4:
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/mail_tests OWNER_PERTURB_SHARD=0 OWNER_PERTURB_SHARDS=4 .work/venv/bin/python .work/19b-s2/local.py test_owner_state_perturb
+python3 control/generate.py --check
+git diff --check
+```
+
+The unit and focused commands print `OK`; each alteration shard prints `OK`
+and `slipped=0`. Generator prints `Generated artifacts match definitions`;
+diff check prints nothing. The original oracle-review probe scripts were read
+and left untouched; P1–P7 were adapted into the production plants in this tree.
+
+**Run / read — standalone mailto recorder correction:** the Linux capture's
+suite 0 exposed `test_header_mailto_exact_address_body_and_approval`: its direct
+Oracle invocation lacked pre-command commit prefixes and any Sent APPEND event.
+The stricter completion validator correctly rejected those incomplete inputs
+(`No matching accepted SMTP DATA`, `Approved local stage missing: sent_copy`).
+`46f9c123` records those prefixes and the actual APPEND with independently
+listed roles, flags and bytes; the SMTP receiver also records raw DATA bytes.
+All original assertions remain, and an accepted APPEND assertion was added.
+The test passes locally with real TLS SMTP plus memory IMAP (`Ran 1 test in
+0.545s`, `OK`, `mailto-recorder-local.txt`), using the ignored local policy/path
+fixture. Full real-server verification belongs to both strict Linux rounds.
+Only `smtp_fixture.py` and `test_unsubscribe.py` change after capture source
+`ad9d6d59`; production, expectations, Driver and all 53 owner-state gap-list
+inputs remain identical. The capture is diagnostic evidence, not green
+acceptance, and is not rerun to replace that recorded failure.
+
+**Run — one complete Linux capture and strict re-pin:** Mail
+[42811270001 / 1](https://github.com/Ares-Empire/AresOS/actions/runs/42811270001)
+and fresh base
+[42811270027 / 1](https://github.com/Ares-Empire/AresOS/actions/runs/42811270027)
+use source `ad9d6d5903bc7519d271d46dbaffed2091675fb1`. Base prints
+`Ran 287 tests in 215.976s`, `OK`, `Control base suite PASS`. All 64 Mail logs
+were checked: 14 jobs passed, 48 owner workers completed their six tests and
+failed at the superseded strict pin, suite 3 failed its superseded contract pin,
+and suite 0 exposed the standalone recorder issue described above. There are no
+runtime errors or inherited-sweep failures. This is the single diagnostic Linux
+capture; it is not presented as a green workflow.
+
+All **53 fresh actual lists** (48 sweep/onboarding workers, contract, three G22
+cases and fresh base channel) have complete owned suites, correct unique/shared
+ownership and identical shared values. Their union contains **2,057,880 exact
+stage-3 keys / zero stage-2 keys**, **2,024 groups / 928,878 bytes**, format 3,
+SHA-256 `abaf79487708e750813a25f337633f05bf1b20857cc6cc1aa9f9fd3c1c573277`.
+After packing, every input is independently passed through the strict checker
+against the new pin. No partial/local/old list is substituted. The additional
+flows and stronger retained-obligation checks explain why this exact stage-3
+pin differs from the fold; no R2 assertion is reassigned to stage 3.
+[LEDGER-CAPTURE-S2-FIXES.json](LEDGER-CAPTURE-S2-FIXES.json) records every actual
+list's hash, counts, owned suites/buckets, complete job timings and exact log
+evidence. Full actual lists remain under `.work/` and in CI artifacts.
+
+All twelve Linux alteration jobs pass **94 recordings / 2,003,694 alterations /
+257,524 coherent variants / 14,904 owner-set changes / zero slipped**. Every
+per-validator count in the local table above is reproduced exactly, including
+13 production field-kind controls and seven single-validator controls in each
+shard. The capture's maximum Mail duration is **2,192s (36m32s)**, close to the
+35-minute aim and below the unchanged 45-minute cap.
+
+**Run — capture validation commands:**
+
+```sh
+python3 .work/19b-s2-fixes/ci/validate.py 42811270001 1 capture
+PYTHONPATH=control:control/mail_tests .work/venv/bin/python .work/19b-s2-fixes/ci/harvest.py 42811270001 1 repin
+python3 .work/19b-s2-fixes/ci/publish-capture.py
+```
+
+The first prints `Validated all 64 Mail job logs: capture` with the two explicit
+failure categories; the harvest prints the counts, size, digest and zero R2
+above, after all 53 strict checks pass. The ignored helpers do not change test
+selection or expectations. KNOWN-GAPS.md gives a standalone reproduction from
+the recorded artifacts.

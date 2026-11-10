@@ -1,0 +1,5414 @@
+{
+  "alterations": {
+    "logs": [
+      {
+        "evidence": [
+          {
+            "line": 1,
+            "text": "test_recorded_scenarios_have_no_silent_owner_state_change (test_owner_state_perturb.SystematicPerturbations.test_recorded_scenarios_have_no_silent_owner_state_change) ... Owner real production field controls=13 caught through Driver.compare"
+          },
+          {
+            "line": 2,
+            "text": "Owner validator=script_differences production_plants=1 own_catches=1 broken_rejected=1 expected_facts=5"
+          },
+          {
+            "line": 3,
+            "text": "Owner validator=stage_claims production_plants=1 own_catches=2 broken_rejected=1 expected_facts=5"
+          },
+          {
+            "line": 4,
+            "text": "Owner validator=completion_errors production_plants=1 own_catches=1 broken_rejected=1 expected_facts=8"
+          },
+          {
+            "line": 5,
+            "text": "Owner validator=payload_claims production_plants=1 own_catches=1 broken_rejected=1 expected_facts=5"
+          },
+          {
+            "line": 6,
+            "text": "Owner validator=filing_claims production_plants=1 own_catches=1 broken_rejected=1 expected_facts=3"
+          },
+          {
+            "line": 7,
+            "text": "Owner validator=transition production_plants=1 own_catches=1 broken_rejected=1 expected_facts=5"
+          },
+          {
+            "line": 8,
+            "text": "Owner validator=local.errors production_plants=1 own_catches=1 broken_rejected=1 expected_facts=4"
+          },
+          {
+            "line": 17,
+            "text": "Owner perturbations scenarios=8 kinds={'boolean': 5367, 'effect': 75863, 'key-deletion': 94054, 'restore': 173, 'row': 333, 'sequence': 173, 'state': 67551} total=243514 slipped=0"
+          },
+          {
+            "line": 18,
+            "text": "Owner validator alteration statistics={'alterations': 243514, 'changed': 1375, 'coherent': 36917, 'completion_errors.changed': 436, 'completion_errors.own_catches': 492, 'filing_claims.own_catches': 4, 'local.errors.changed': 10, 'local.errors.own_catches': 312, 'payload_claims.own_catches': 12231, 'script_differences.own_catches': 968, 'stage_claims.changed': 242, 'stage_claims.own_catches': 8268, 'transition.changed': 497, 'transition.own_catches': 1596}"
+          },
+          {
+            "line": 22,
+            "text": "Ran 1 test in 853.844s"
+          },
+          {
+            "line": 26,
+            "text": "Control Mail suite PASS"
+          }
+        ],
+        "file": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-alterations-0-42811270001-1/mail.txt",
+        "sha256": "8a47710df3f8e52be3c44a43aa967f59b0fe8c2b323e452f7252e288c4a476f9"
+      },
+      {
+        "evidence": [
+          {
+            "line": 1,
+            "text": "test_recorded_scenarios_have_no_silent_owner_state_change (test_owner_state_perturb.SystematicPerturbations.test_recorded_scenarios_have_no_silent_owner_state_change) ... Owner real production field controls=13 caught through Driver.compare"
+          },
+          {
+            "line": 2,
+            "text": "Owner validator=script_differences production_plants=1 own_catches=1 broken_rejected=1 expected_facts=5"
+          },
+          {
+            "line": 3,
+            "text": "Owner validator=stage_claims production_plants=1 own_catches=2 broken_rejected=1 expected_facts=5"
+          },
+          {
+            "line": 4,
+            "text": "Owner validator=completion_errors production_plants=1 own_catches=1 broken_rejected=1 expected_facts=8"
+          },
+          {
+            "line": 5,
+            "text": "Owner validator=payload_claims production_plants=1 own_catches=1 broken_rejected=1 expected_facts=5"
+          },
+          {
+            "line": 6,
+            "text": "Owner validator=filing_claims production_plants=1 own_catches=1 broken_rejected=1 expected_facts=3"
+          },
+          {
+            "line": 7,
+            "text": "Owner validator=transition production_plants=1 own_catches=1 broken_rejected=1 expected_facts=5"
+          },
+          {
+            "line": 8,
+            "text": "Owner validator=local.errors production_plants=1 own_catches=1 broken_rejected=1 expected_facts=4"
+          },
+          {
+            "line": 19,
+            "text": "Ran 1 test in 1413.321s"
+          },
+          {
+            "line": 23,
+            "text": "Owner perturbations scenarios=8 kinds={'boolean': 6456, 'effect': 90857, 'key-deletion': 112940, 'restore': 187, 'row': 364, 'sequence': 187, 'state': 82632} total=293623 slipped=0"
+          },
+          {
+            "line": 24,
+            "text": "Owner validator alteration statistics={'alterations': 293623, 'changed': 1553, 'coherent': 42668, 'completion_errors.changed': 222, 'completion_errors.own_catches': 301, 'filing_claims.own_catches': 4, 'payload_claims.own_catches': 13622, 'script_differences.own_catches': 595, 'stage_claims.changed': 129, 'stage_claims.own_catches': 10405, 'transition.changed': 392, 'transition.own_catches': 1815}"
+          },
+          {
+            "line": 26,
+            "text": "Control Mail suite PASS"
+          }
+        ],
+        "file": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-alterations-1-42811270001-1/mail.txt",
+        "sha256": "f765e2c29375e32bdc7a2682957d912942d33434cf9e7454e8b8bac56b9acf1d"
+      },
+      {
+        "evidence": [
+          {
+            "line": 1,
+            "text": "test_recorded_scenarios_have_no_silent_owner_state_change (test_owner_state_perturb.SystematicPerturbations.test_recorded_scenarios_have_no_silent_owner_state_change) ... Owner real production field controls=13 caught through Driver.compare"
+          },
+          {
+            "line": 2,
+            "text": "Owner validator=script_differences production_plants=1 own_catches=1 broken_rejected=1 expected_facts=5"
+          },
+          {
+            "line": 3,
+            "text": "Owner validator=stage_claims production_plants=1 own_catches=2 broken_rejected=1 expected_facts=5"
+          },
+          {
+            "line": 4,
+            "text": "Owner validator=completion_errors production_plants=1 own_catches=1 broken_rejected=1 expected_facts=8"
+          },
+          {
+            "line": 5,
+            "text": "Owner validator=payload_claims production_plants=1 own_catches=1 broken_rejected=1 expected_facts=5"
+          },
+          {
+            "line": 6,
+            "text": "Owner validator=filing_claims production_plants=1 own_catches=1 broken_rejected=1 expected_facts=3"
+          },
+          {
+            "line": 7,
+            "text": "Owner validator=transition production_plants=1 own_catches=1 broken_rejected=1 expected_facts=5"
+          },
+          {
+            "line": 8,
+            "text": "Owner validator=local.errors production_plants=1 own_catches=1 broken_rejected=1 expected_facts=4"
+          },
+          {
+            "line": 16,
+            "text": "Owner perturbations scenarios=7 kinds={'boolean': 3210, 'effect': 43241, 'key-deletion': 53777, 'restore': 106, 'row': 200, 'sequence': 106, 'state': 37191} total=137831 slipped=0"
+          },
+          {
+            "line": 17,
+            "text": "Owner validator alteration statistics={'alterations': 137831, 'changed': 382, 'coherent': 17931, 'completion_errors.own_catches': 22, 'filing_claims.own_catches': 6, 'payload_claims.own_catches': 5346, 'script_differences.own_catches': 46, 'stage_claims.own_catches': 4698, 'transition.changed': 25, 'transition.own_catches': 630}"
+          },
+          {
+            "line": 21,
+            "text": "Ran 1 test in 359.643s"
+          },
+          {
+            "line": 25,
+            "text": "Control Mail suite PASS"
+          }
+        ],
+        "file": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-alterations-10-42811270001-1/mail.txt",
+        "sha256": "eb5bb26f70ae8a77c97e2649902f686d5390055a4c6ce1ab164e648c1a21d010"
+      },
+      {
+        "evidence": [
+          {
+            "line": 1,
+            "text": "test_recorded_scenarios_have_no_silent_owner_state_change (test_owner_state_perturb.SystematicPerturbations.test_recorded_scenarios_have_no_silent_owner_state_change) ... Owner real production field controls=13 caught through Driver.compare"
+          },
+          {
+            "line": 2,
+            "text": "Owner validator=script_differences production_plants=1 own_catches=1 broken_rejected=1 expected_facts=5"
+          },
+          {
+            "line": 3,
+            "text": "Owner validator=stage_claims production_plants=1 own_catches=2 broken_rejected=1 expected_facts=5"
+          },
+          {
+            "line": 4,
+            "text": "Owner validator=completion_errors production_plants=1 own_catches=1 broken_rejected=1 expected_facts=8"
+          },
+          {
+            "line": 5,
+            "text": "Owner validator=payload_claims production_plants=1 own_catches=1 broken_rejected=1 expected_facts=5"
+          },
+          {
+            "line": 6,
+            "text": "Owner validator=filing_claims production_plants=1 own_catches=1 broken_rejected=1 expected_facts=3"
+          },
+          {
+            "line": 7,
+            "text": "Owner validator=transition production_plants=1 own_catches=1 broken_rejected=1 expected_facts=5"
+          },
+          {
+            "line": 8,
+            "text": "Owner validator=local.errors production_plants=1 own_catches=1 broken_rejected=1 expected_facts=4"
+          },
+          {
+            "line": 16,
+            "text": "Owner perturbations scenarios=7 kinds={'boolean': 3840, 'effect': 51668, 'key-deletion': 64262, 'restore': 116, 'row': 232, 'sequence': 116, 'state': 43989} total=164223 slipped=0"
+          },
+          {
+            "line": 17,
+            "text": "Owner validator alteration statistics={'alterations': 164223, 'changed': 478, 'coherent': 23559, 'completion_errors.own_catches': 31, 'filing_claims.own_catches': 23, 'payload_claims.own_catches': 6561, 'script_differences.own_catches': 91, 'stage_claims.own_catches': 5866, 'transition.changed': 30, 'transition.own_catches': 798}"
+          },
+          {
+            "line": 21,
+            "text": "Ran 1 test in 479.357s"
+          },
+          {
+            "line": 25,
+            "text": "Control Mail suite PASS"
+          }
+        ],
+        "file": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-alterations-11-42811270001-1/mail.txt",
+        "sha256": "f91c475a232c0bde789186c1ae0218a1c7be8c62eaa3e97d05574b88f008902f"
+      },
+      {
+        "evidence": [
+          {
+            "line": 1,
+            "text": "test_recorded_scenarios_have_no_silent_owner_state_change (test_owner_state_perturb.SystematicPerturbations.test_recorded_scenarios_have_no_silent_owner_state_change) ... Owner real production field controls=13 caught through Driver.compare"
+          },
+          {
+            "line": 2,
+            "text": "Owner validator=script_differences production_plants=1 own_catches=1 broken_rejected=1 expected_facts=5"
+          },
+          {
+            "line": 3,
+            "text": "Owner validator=stage_claims production_plants=1 own_catches=2 broken_rejected=1 expected_facts=5"
+          },
+          {
+            "line": 4,
+            "text": "Owner validator=completion_errors production_plants=1 own_catches=1 broken_rejected=1 expected_facts=8"
+          },
+          {
+            "line": 5,
+            "text": "Owner validator=payload_claims production_plants=1 own_catches=1 broken_rejected=1 expected_facts=5"
+          },
+          {
+            "line": 6,
+            "text": "Owner validator=filing_claims production_plants=1 own_catches=1 broken_rejected=1 expected_facts=3"
+          },
+          {
+            "line": 7,
+            "text": "Owner validator=transition production_plants=1 own_catches=1 broken_rejected=1 expected_facts=5"
+          },
+          {
+            "line": 8,
+            "text": "Owner validator=local.errors production_plants=1 own_catches=1 broken_rejected=1 expected_facts=4"
+          },
+          {
+            "line": 17,
+            "text": "Owner perturbations scenarios=8 kinds={'boolean': 7435, 'effect': 99392, 'key-deletion': 123990, 'restore': 184, 'row': 370, 'sequence': 184, 'state': 79497} total=311052 slipped=0"
+          },
+          {
+            "line": 18,
+            "text": "Owner validator alteration statistics={'alterations': 311052, 'changed': 1107, 'coherent': 42171, 'completion_errors.changed': 3, 'completion_errors.own_catches': 72, 'filing_claims.changed': 10, 'filing_claims.own_catches': 168, 'payload_claims.own_catches': 11309, 'script_differences.changed': 113, 'script_differences.own_catches': 524, 'stage_claims.changed': 8, 'stage_claims.own_catches': 9833, 'transition.changed': 187, 'transition.own_catches': 1665}"
+          },
+          {
+            "line": 22,
+            "text": "Ran 1 test in 1449.833s"
+          },
+          {
+            "line": 26,
+            "text": "Control Mail suite PASS"
+          }
+        ],
+        "file": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-alterations-2-42811270001-1/mail.txt",
+        "sha256": "6ccff8618ad7b4a98cc597f0ec1fc776be4a78fc44a7568c2a714ef21be6d91f"
+      },
+      {
+        "evidence": [
+          {
+            "line": 1,
+            "text": "test_recorded_scenarios_have_no_silent_owner_state_change (test_owner_state_perturb.SystematicPerturbations.test_recorded_scenarios_have_no_silent_owner_state_change) ... Owner real production field controls=13 caught through Driver.compare"
+          },
+          {
+            "line": 2,
+            "text": "Owner validator=script_differences production_plants=1 own_catches=1 broken_rejected=1 expected_facts=5"
+          },
+          {
+            "line": 3,
+            "text": "Owner validator=stage_claims production_plants=1 own_catches=2 broken_rejected=1 expected_facts=5"
+          },
+          {
+            "line": 4,
+            "text": "Owner validator=completion_errors production_plants=1 own_catches=1 broken_rejected=1 expected_facts=8"
+          },
+          {
+            "line": 5,
+            "text": "Owner validator=payload_claims production_plants=1 own_catches=1 broken_rejected=1 expected_facts=5"
+          },
+          {
+            "line": 6,
+            "text": "Owner validator=filing_claims production_plants=1 own_catches=1 broken_rejected=1 expected_facts=3"
+          },
+          {
+            "line": 7,
+            "text": "Owner validator=transition production_plants=1 own_catches=1 broken_rejected=1 expected_facts=5"
+          },
+          {
+            "line": 8,
+            "text": "Owner validator=local.errors production_plants=1 own_catches=1 broken_rejected=1 expected_facts=4"
+          },
+          {
+            "line": 17,
+            "text": "Owner perturbations scenarios=8 kinds={'boolean': 2787, 'effect': 35133, 'key-deletion': 44125, 'restore': 87, 'row': 188, 'sequence': 87, 'state': 18711} total=101118 slipped=0"
+          },
+          {
+            "line": 18,
+            "text": "Owner validator alteration statistics={'alterations': 101118, 'changed': 1407, 'coherent': 9940, 'completion_errors.changed': 81, 'completion_errors.own_catches': 188, 'filing_claims.changed': 10, 'filing_claims.own_catches': 329, 'payload_claims.own_catches': 484, 'script_differences.changed': 113, 'script_differences.own_catches': 567, 'stage_claims.changed': 197, 'stage_claims.own_catches': 651, 'transition.changed': 376, 'transition.own_catches': 753}"
+          },
+          {
+            "line": 22,
+            "text": "Ran 1 test in 250.190s"
+          },
+          {
+            "line": 26,
+            "text": "Control Mail suite PASS"
+          }
+        ],
+        "file": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-alterations-3-42811270001-1/mail.txt",
+        "sha256": "06a83ff6e84dedc9df3204a2d251283217ffa0a3513f31c74ff8641579713f86"
+      },
+      {
+        "evidence": [
+          {
+            "line": 1,
+            "text": "test_recorded_scenarios_have_no_silent_owner_state_change (test_owner_state_perturb.SystematicPerturbations.test_recorded_scenarios_have_no_silent_owner_state_change) ... Owner real production field controls=13 caught through Driver.compare"
+          },
+          {
+            "line": 2,
+            "text": "Owner validator=script_differences production_plants=1 own_catches=1 broken_rejected=1 expected_facts=5"
+          },
+          {
+            "line": 3,
+            "text": "Owner validator=stage_claims production_plants=1 own_catches=2 broken_rejected=1 expected_facts=5"
+          },
+          {
+            "line": 4,
+            "text": "Owner validator=completion_errors production_plants=1 own_catches=1 broken_rejected=1 expected_facts=8"
+          },
+          {
+            "line": 5,
+            "text": "Owner validator=payload_claims production_plants=1 own_catches=1 broken_rejected=1 expected_facts=5"
+          },
+          {
+            "line": 6,
+            "text": "Owner validator=filing_claims production_plants=1 own_catches=1 broken_rejected=1 expected_facts=3"
+          },
+          {
+            "line": 7,
+            "text": "Owner validator=transition production_plants=1 own_catches=1 broken_rejected=1 expected_facts=5"
+          },
+          {
+            "line": 8,
+            "text": "Owner validator=local.errors production_plants=1 own_catches=1 broken_rejected=1 expected_facts=4"
+          },
+          {
+            "line": 17,
+            "text": "Owner perturbations scenarios=8 kinds={'boolean': 4592, 'effect': 66856, 'key-deletion': 83721, 'restore': 131, 'row': 274, 'sequence': 131, 'state': 43395} total=199100 slipped=0"
+          },
+          {
+            "line": 18,
+            "text": "Owner validator alteration statistics={'alterations': 199100, 'changed': 2651, 'coherent': 19822, 'completion_errors.changed': 331, 'completion_errors.own_catches': 639, 'filing_claims.changed': 10, 'filing_claims.own_catches': 28, 'payload_claims.own_catches': 484, 'script_differences.changed': 77, 'script_differences.own_catches': 460, 'stage_claims.changed': 469, 'stage_claims.own_catches': 1620, 'transition.changed': 1032, 'transition.own_catches': 1902}"
+          },
+          {
+            "line": 22,
+            "text": "Ran 1 test in 1029.031s"
+          },
+          {
+            "line": 26,
+            "text": "Control Mail suite PASS"
+          }
+        ],
+        "file": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-alterations-4-42811270001-1/mail.txt",
+        "sha256": "4b585f4f89afbb47e7bc50001d34b936dd287e2b29681fc789246c10330f71ee"
+      },
+      {
+        "evidence": [
+          {
+            "line": 1,
+            "text": "test_recorded_scenarios_have_no_silent_owner_state_change (test_owner_state_perturb.SystematicPerturbations.test_recorded_scenarios_have_no_silent_owner_state_change) ... Owner real production field controls=13 caught through Driver.compare"
+          },
+          {
+            "line": 2,
+            "text": "Owner validator=script_differences production_plants=1 own_catches=1 broken_rejected=1 expected_facts=5"
+          },
+          {
+            "line": 3,
+            "text": "Owner validator=stage_claims production_plants=1 own_catches=2 broken_rejected=1 expected_facts=5"
+          },
+          {
+            "line": 4,
+            "text": "Owner validator=completion_errors production_plants=1 own_catches=1 broken_rejected=1 expected_facts=8"
+          },
+          {
+            "line": 5,
+            "text": "Owner validator=payload_claims production_plants=1 own_catches=1 broken_rejected=1 expected_facts=5"
+          },
+          {
+            "line": 6,
+            "text": "Owner validator=filing_claims production_plants=1 own_catches=1 broken_rejected=1 expected_facts=3"
+          },
+          {
+            "line": 7,
+            "text": "Owner validator=transition production_plants=1 own_catches=1 broken_rejected=1 expected_facts=5"
+          },
+          {
+            "line": 8,
+            "text": "Owner validator=local.errors production_plants=1 own_catches=1 broken_rejected=1 expected_facts=4"
+          },
+          {
+            "line": 18,
+            "text": "Owner perturbations scenarios=8 kinds={'boolean': 5882, 'effect': 84569, 'key-deletion': 105631, 'restore': 149, 'row': 313, 'sequence': 149, 'state': 58245} total=254938 slipped=0"
+          },
+          {
+            "line": 19,
+            "text": "Owner validator alteration statistics={'alterations': 254938, 'changed': 2559, 'coherent': 28110, 'completion_errors.changed': 254, 'completion_errors.own_catches': 594, 'filing_claims.own_catches': 102, 'payload_claims.changed': 10, 'payload_claims.own_catches': 3171, 'script_differences.own_catches': 871, 'stage_claims.changed': 319, 'stage_claims.own_catches': 3548, 'transition.changed': 864, 'transition.own_catches': 1822}"
+          },
+          {
+            "line": 22,
+            "text": "Ran 1 test in 2151.366s"
+          },
+          {
+            "line": 26,
+            "text": "Control Mail suite PASS"
+          }
+        ],
+        "file": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-alterations-5-42811270001-1/mail.txt",
+        "sha256": "8d942f6e42275951e6c698fbc1d729ed1ae47d23f7c5221e169e7f528407c13a"
+      },
+      {
+        "evidence": [
+          {
+            "line": 1,
+            "text": "test_recorded_scenarios_have_no_silent_owner_state_change (test_owner_state_perturb.SystematicPerturbations.test_recorded_scenarios_have_no_silent_owner_state_change) ... Owner real production field controls=13 caught through Driver.compare"
+          },
+          {
+            "line": 2,
+            "text": "Owner validator=script_differences production_plants=1 own_catches=1 broken_rejected=1 expected_facts=5"
+          },
+          {
+            "line": 3,
+            "text": "Owner validator=stage_claims production_plants=1 own_catches=2 broken_rejected=1 expected_facts=5"
+          },
+          {
+            "line": 4,
+            "text": "Owner validator=completion_errors production_plants=1 own_catches=1 broken_rejected=1 expected_facts=8"
+          },
+          {
+            "line": 5,
+            "text": "Owner validator=payload_claims production_plants=1 own_catches=1 broken_rejected=1 expected_facts=5"
+          },
+          {
+            "line": 6,
+            "text": "Owner validator=filing_claims production_plants=1 own_catches=1 broken_rejected=1 expected_facts=3"
+          },
+          {
+            "line": 7,
+            "text": "Owner validator=transition production_plants=1 own_catches=1 broken_rejected=1 expected_facts=5"
+          },
+          {
+            "line": 8,
+            "text": "Owner validator=local.errors production_plants=1 own_catches=1 broken_rejected=1 expected_facts=4"
+          },
+          {
+            "line": 17,
+            "text": "Owner perturbations scenarios=8 kinds={'boolean': 2441, 'effect': 30118, 'key-deletion': 38216, 'restore': 89, 'row': 180, 'sequence': 89, 'state': 17391} total=88524 slipped=0"
+          },
+          {
+            "line": 18,
+            "text": "Owner validator alteration statistics={'alterations': 88524, 'changed': 717, 'coherent': 10195, 'completion_errors.changed': 2, 'completion_errors.own_catches': 29, 'filing_claims.changed': 15, 'filing_claims.own_catches': 55, 'payload_claims.changed': 14, 'payload_claims.own_catches': 1186, 'script_differences.changed': 77, 'script_differences.own_catches': 791, 'stage_claims.changed': 45, 'stage_claims.own_catches': 476, 'transition.changed': 155, 'transition.own_catches': 504}"
+          },
+          {
+            "line": 23,
+            "text": "Ran 1 test in 196.961s"
+          },
+          {
+            "line": 26,
+            "text": "Control Mail suite PASS"
+          }
+        ],
+        "file": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-alterations-6-42811270001-1/mail.txt",
+        "sha256": "45f6be8ac3e12c16647775c1fb233b81e824f1518fd7b11d928ff736a450afa8"
+      },
+      {
+        "evidence": [
+          {
+            "line": 1,
+            "text": "test_recorded_scenarios_have_no_silent_owner_state_change (test_owner_state_perturb.SystematicPerturbations.test_recorded_scenarios_have_no_silent_owner_state_change) ... Owner real production field controls=13 caught through Driver.compare"
+          },
+          {
+            "line": 2,
+            "text": "Owner validator=script_differences production_plants=1 own_catches=1 broken_rejected=1 expected_facts=5"
+          },
+          {
+            "line": 3,
+            "text": "Owner validator=stage_claims production_plants=1 own_catches=2 broken_rejected=1 expected_facts=5"
+          },
+          {
+            "line": 4,
+            "text": "Owner validator=completion_errors production_plants=1 own_catches=1 broken_rejected=1 expected_facts=8"
+          },
+          {
+            "line": 5,
+            "text": "Owner validator=payload_claims production_plants=1 own_catches=1 broken_rejected=1 expected_facts=5"
+          },
+          {
+            "line": 6,
+            "text": "Owner validator=filing_claims production_plants=1 own_catches=1 broken_rejected=1 expected_facts=3"
+          },
+          {
+            "line": 7,
+            "text": "Owner validator=transition production_plants=1 own_catches=1 broken_rejected=1 expected_facts=5"
+          },
+          {
+            "line": 8,
+            "text": "Owner validator=local.errors production_plants=1 own_catches=1 broken_rejected=1 expected_facts=4"
+          },
+          {
+            "line": 18,
+            "text": "Owner perturbations scenarios=8 kinds={'boolean': 735, 'effect': 8839, 'key-deletion': 11121, 'restore': 78, 'row': 166, 'sequence': 78, 'state': 9207} total=30224 slipped=0"
+          },
+          {
+            "line": 19,
+            "text": "Owner validator alteration statistics={'alterations': 30224, 'changed': 320, 'coherent': 4735, 'completion_errors.own_catches': 2, 'filing_claims.changed': 6, 'filing_claims.own_catches': 74, 'payload_claims.own_catches': 405, 'script_differences.own_catches': 46, 'stage_claims.own_catches': 298, 'transition.changed': 3, 'transition.own_catches': 29}"
+          },
+          {
+            "line": 22,
+            "text": "Ran 1 test in 85.946s"
+          },
+          {
+            "line": 26,
+            "text": "Control Mail suite PASS"
+          }
+        ],
+        "file": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-alterations-7-42811270001-1/mail.txt",
+        "sha256": "15de4556b9a94b753281b051087528e8c261faebb98d483c16aba0215e0a1869"
+      },
+      {
+        "evidence": [
+          {
+            "line": 1,
+            "text": "test_recorded_scenarios_have_no_silent_owner_state_change (test_owner_state_perturb.SystematicPerturbations.test_recorded_scenarios_have_no_silent_owner_state_change) ... Owner real production field controls=13 caught through Driver.compare"
+          },
+          {
+            "line": 2,
+            "text": "Owner validator=script_differences production_plants=1 own_catches=1 broken_rejected=1 expected_facts=5"
+          },
+          {
+            "line": 3,
+            "text": "Owner validator=stage_claims production_plants=1 own_catches=2 broken_rejected=1 expected_facts=5"
+          },
+          {
+            "line": 4,
+            "text": "Owner validator=completion_errors production_plants=1 own_catches=1 broken_rejected=1 expected_facts=8"
+          },
+          {
+            "line": 5,
+            "text": "Owner validator=payload_claims production_plants=1 own_catches=1 broken_rejected=1 expected_facts=5"
+          },
+          {
+            "line": 6,
+            "text": "Owner validator=filing_claims production_plants=1 own_catches=1 broken_rejected=1 expected_facts=3"
+          },
+          {
+            "line": 7,
+            "text": "Owner validator=transition production_plants=1 own_catches=1 broken_rejected=1 expected_facts=5"
+          },
+          {
+            "line": 8,
+            "text": "Owner validator=local.errors production_plants=1 own_catches=1 broken_rejected=1 expected_facts=4"
+          },
+          {
+            "line": 17,
+            "text": "Owner perturbations scenarios=8 kinds={'boolean': 1439, 'effect': 18708, 'key-deletion': 23207, 'restore': 62, 'row': 125, 'sequence': 62, 'state': 14553} total=58156 slipped=0"
+          },
+          {
+            "line": 18,
+            "text": "Owner validator alteration statistics={'alterations': 58156, 'changed': 569, 'coherent': 7118, 'completion_errors.own_catches': 9, 'filing_claims.changed': 16, 'filing_claims.own_catches': 58, 'payload_claims.own_catches': 1701, 'script_differences.changed': 77, 'script_differences.own_catches': 182, 'stage_claims.changed': 6, 'stage_claims.own_catches': 1477, 'transition.changed': 10, 'transition.own_catches': 209}"
+          },
+          {
+            "line": 22,
+            "text": "Ran 1 test in 86.673s"
+          },
+          {
+            "line": 26,
+            "text": "Control Mail suite PASS"
+          }
+        ],
+        "file": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-alterations-8-42811270001-1/mail.txt",
+        "sha256": "6a5f947a8f31a9e26aefe065008a1ba83a3b0bafade8841cc9c7b1a5c15f2d44"
+      },
+      {
+        "evidence": [
+          {
+            "line": 1,
+            "text": "test_recorded_scenarios_have_no_silent_owner_state_change (test_owner_state_perturb.SystematicPerturbations.test_recorded_scenarios_have_no_silent_owner_state_change) ... Owner real production field controls=13 caught through Driver.compare"
+          },
+          {
+            "line": 2,
+            "text": "Owner validator=script_differences production_plants=1 own_catches=1 broken_rejected=1 expected_facts=5"
+          },
+          {
+            "line": 3,
+            "text": "Owner validator=stage_claims production_plants=1 own_catches=2 broken_rejected=1 expected_facts=5"
+          },
+          {
+            "line": 4,
+            "text": "Owner validator=completion_errors production_plants=1 own_catches=1 broken_rejected=1 expected_facts=8"
+          },
+          {
+            "line": 5,
+            "text": "Owner validator=payload_claims production_plants=1 own_catches=1 broken_rejected=1 expected_facts=5"
+          },
+          {
+            "line": 6,
+            "text": "Owner validator=filing_claims production_plants=1 own_catches=1 broken_rejected=1 expected_facts=3"
+          },
+          {
+            "line": 7,
+            "text": "Owner validator=transition production_plants=1 own_catches=1 broken_rejected=1 expected_facts=5"
+          },
+          {
+            "line": 8,
+            "text": "Owner validator=local.errors production_plants=1 own_catches=1 broken_rejected=1 expected_facts=4"
+          },
+          {
+            "line": 17,
+            "text": "Owner perturbations scenarios=8 kinds={'boolean': 3228, 'effect': 40264, 'key-deletion': 50033, 'restore': 90, 'row': 197, 'sequence': 90, 'state': 27489} total=121391 slipped=0"
+          },
+          {
+            "line": 18,
+            "text": "Owner validator alteration statistics={'alterations': 121391, 'changed': 1786, 'coherent': 14358, 'completion_errors.own_catches': 16, 'filing_claims.changed': 23, 'filing_claims.own_catches': 203, 'local.errors.changed': 1160, 'local.errors.own_catches': 1232, 'payload_claims.own_catches': 3321, 'script_differences.changed': 190, 'script_differences.own_catches': 239, 'stage_claims.own_catches': 2942, 'transition.changed': 17, 'transition.own_catches': 411}"
+          },
+          {
+            "line": 22,
+            "text": "Ran 1 test in 147.496s"
+          },
+          {
+            "line": 26,
+            "text": "Control Mail suite PASS"
+          }
+        ],
+        "file": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-alterations-9-42811270001-1/mail.txt",
+        "sha256": "74ea606153fa0b36546598582d23509144595ded374082987b72468bb75552ab"
+      }
+    ],
+    "scenarios": 94,
+    "slipped": 0,
+    "statistics": {
+      "alterations": 2003694,
+      "changed": 14904,
+      "coherent": 257524,
+      "completion_errors.changed": 1329,
+      "completion_errors.own_catches": 2395,
+      "filing_claims.changed": 90,
+      "filing_claims.own_catches": 1054,
+      "local.errors.changed": 1170,
+      "local.errors.own_catches": 1544,
+      "payload_claims.changed": 24,
+      "payload_claims.own_catches": 59821,
+      "script_differences.changed": 647,
+      "script_differences.own_catches": 5380,
+      "stage_claims.changed": 1415,
+      "stage_claims.own_catches": 50082,
+      "transition.changed": 3588,
+      "transition.own_catches": 12134
+    },
+    "total": 2003694
+  },
+  "artifacts": [
+    {
+      "assertions": 73260,
+      "bytes": 337245,
+      "file": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-sweep-0-0-42811270001-1/owner-gaps-sweep-0-0.json.gz",
+      "sha256": "d4dc9120e3fa53a4baeda299e1cc8fee8294a16bb2740f8b3d27fc2443eb2f69",
+      "shard": 0,
+      "shards": 12,
+      "suites": [
+        "attachment_export",
+        "cancel",
+        "delete_trash",
+        "expiry",
+        "export_rollback",
+        "filing_copy",
+        "flag",
+        "folder_create",
+        "folder_review",
+        "local_flag",
+        "password",
+        "restart_index",
+        "send",
+        "send_duplicate",
+        "status",
+        "testapp_delete",
+        "unsubscribe_mailto"
+      ]
+    },
+    {
+      "assertions": 70121,
+      "bytes": 321566,
+      "file": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-sweep-0-1-42811270001-1/owner-gaps-sweep-1-0.json.gz",
+      "sha256": "56d36027b2546bbee3e7b92efc5e7be432d64ad8e52098046463c9c639bf1a1a",
+      "shard": 1,
+      "shards": 12,
+      "suites": [
+        "attachment_export",
+        "cancel",
+        "delete_trash",
+        "expiry",
+        "export_rollback",
+        "filing_copy",
+        "flag",
+        "folder_create",
+        "folder_review",
+        "local_flag",
+        "password",
+        "restart_index",
+        "send",
+        "send_duplicate",
+        "status",
+        "testapp_delete",
+        "unsubscribe_mailto"
+      ]
+    },
+    {
+      "assertions": 80174,
+      "bytes": 365490,
+      "file": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-sweep-0-2-42811270001-1/owner-gaps-sweep-2-0.json.gz",
+      "sha256": "8e49998d84faef7782dec7043db677546b876de78f782e30252d18468b0a13ac",
+      "shard": 2,
+      "shards": 12,
+      "suites": [
+        "attachment_export",
+        "cancel",
+        "delete_trash",
+        "expiry",
+        "export_rollback",
+        "filing_copy",
+        "flag",
+        "folder_create",
+        "folder_review",
+        "local_flag",
+        "password",
+        "restart_index",
+        "send",
+        "send_duplicate",
+        "status",
+        "testapp_delete",
+        "unsubscribe_mailto"
+      ]
+    },
+    {
+      "assertions": 88029,
+      "bytes": 394214,
+      "file": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-sweep-0-3-42811270001-1/owner-gaps-sweep-3-0.json.gz",
+      "sha256": "72a8ed60e27d05b87d2a9af4f208423b27adfb5be12f647a5ecdf3613fd6d619",
+      "shard": 3,
+      "shards": 12,
+      "suites": [
+        "attachment_export",
+        "cancel",
+        "delete_trash",
+        "expiry",
+        "export_rollback",
+        "filing_copy",
+        "flag",
+        "folder_create",
+        "folder_review",
+        "local_flag",
+        "password",
+        "restart_index",
+        "send",
+        "send_duplicate",
+        "status",
+        "testapp_delete",
+        "unsubscribe_mailto"
+      ]
+    },
+    {
+      "assertions": 83668,
+      "bytes": 373626,
+      "file": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-sweep-0-4-42811270001-1/owner-gaps-sweep-4-0.json.gz",
+      "sha256": "6285361bd22dd74ed45fa17bd1e5156cdaac26bd9aa995c8619176c4f6768cd0",
+      "shard": 4,
+      "shards": 12,
+      "suites": [
+        "attachment_export",
+        "cancel",
+        "delete_trash",
+        "expiry",
+        "export_rollback",
+        "filing_copy",
+        "flag",
+        "folder_create",
+        "folder_review",
+        "local_flag",
+        "password",
+        "restart_index",
+        "send",
+        "send_duplicate",
+        "status",
+        "testapp_delete",
+        "unsubscribe_mailto"
+      ]
+    },
+    {
+      "assertions": 78906,
+      "bytes": 352597,
+      "file": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-sweep-0-5-42811270001-1/owner-gaps-sweep-5-0.json.gz",
+      "sha256": "36f3ac57bf73ec1fa2db76aca39d9c345785bdb91523e44fb6a597f8d7370870",
+      "shard": 5,
+      "shards": 12,
+      "suites": [
+        "attachment_export",
+        "cancel",
+        "delete_trash",
+        "expiry",
+        "export_rollback",
+        "filing_copy",
+        "flag",
+        "folder_create",
+        "folder_review",
+        "local_flag",
+        "password",
+        "restart_index",
+        "send",
+        "send_duplicate",
+        "status",
+        "testapp_delete",
+        "unsubscribe_mailto"
+      ]
+    },
+    {
+      "assertions": 76508,
+      "bytes": 347950,
+      "file": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-sweep-0-6-42811270001-1/owner-gaps-sweep-6-0.json.gz",
+      "sha256": "501d8688d5e8cb49c73e52bbefa8fec23e1dbf8734a7586177df2d3cd16fa8b3",
+      "shard": 6,
+      "shards": 12,
+      "suites": [
+        "attachment_export",
+        "cancel",
+        "delete_trash",
+        "expiry",
+        "export_rollback",
+        "filing_copy",
+        "flag",
+        "folder_create",
+        "folder_review",
+        "local_flag",
+        "password",
+        "restart_index",
+        "send",
+        "send_duplicate",
+        "status",
+        "testapp_delete",
+        "unsubscribe_mailto"
+      ]
+    },
+    {
+      "assertions": 92357,
+      "bytes": 411647,
+      "file": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-sweep-0-7-42811270001-1/owner-gaps-sweep-7-0.json.gz",
+      "sha256": "7b8752083ccd257036a09e2060ace2f071fac162573ed673ca8039de17d16f78",
+      "shard": 7,
+      "shards": 12,
+      "suites": [
+        "attachment_export",
+        "cancel",
+        "delete_trash",
+        "expiry",
+        "export_rollback",
+        "filing_copy",
+        "flag",
+        "folder_create",
+        "folder_review",
+        "local_flag",
+        "password",
+        "restart_index",
+        "send",
+        "send_duplicate",
+        "status",
+        "testapp_delete",
+        "unsubscribe_mailto"
+      ]
+    },
+    {
+      "assertions": 79400,
+      "bytes": 358930,
+      "file": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-sweep-0-8-42811270001-1/owner-gaps-sweep-8-0.json.gz",
+      "sha256": "544a8d81f22b4a77037a4180434db9ea6ed4c8dbbb28ac4da61ff7426f710a74",
+      "shard": 8,
+      "shards": 12,
+      "suites": [
+        "attachment_export",
+        "cancel",
+        "delete_trash",
+        "expiry",
+        "export_rollback",
+        "filing_copy",
+        "flag",
+        "folder_create",
+        "folder_review",
+        "local_flag",
+        "password",
+        "restart_index",
+        "send",
+        "send_duplicate",
+        "status",
+        "testapp_delete",
+        "unsubscribe_mailto"
+      ]
+    },
+    {
+      "assertions": 85087,
+      "bytes": 382062,
+      "file": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-sweep-0-9-42811270001-1/owner-gaps-sweep-9-0.json.gz",
+      "sha256": "6cdfcfd18965989e0a54d0312c77a2e639107bdf91bcebd7e70fd48c0dc8db8e",
+      "shard": 9,
+      "shards": 12,
+      "suites": [
+        "attachment_export",
+        "cancel",
+        "delete_trash",
+        "expiry",
+        "export_rollback",
+        "filing_copy",
+        "flag",
+        "folder_create",
+        "folder_review",
+        "local_flag",
+        "password",
+        "restart_index",
+        "send",
+        "send_duplicate",
+        "status",
+        "testapp_delete",
+        "unsubscribe_mailto"
+      ]
+    },
+    {
+      "assertions": 77618,
+      "bytes": 348974,
+      "file": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-sweep-0-10-42811270001-1/owner-gaps-sweep-10-0.json.gz",
+      "sha256": "2a78336a6278a3f89a6aa2b097192e7e034fbf75a91b12bb938bc5e59b2aee3f",
+      "shard": 10,
+      "shards": 12,
+      "suites": [
+        "attachment_export",
+        "cancel",
+        "delete_trash",
+        "expiry",
+        "export_rollback",
+        "filing_copy",
+        "flag",
+        "folder_create",
+        "folder_review",
+        "local_flag",
+        "password",
+        "restart_index",
+        "send",
+        "send_duplicate",
+        "status",
+        "testapp_delete",
+        "unsubscribe_mailto"
+      ]
+    },
+    {
+      "assertions": 74608,
+      "bytes": 338667,
+      "file": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-sweep-0-11-42811270001-1/owner-gaps-sweep-11-0.json.gz",
+      "sha256": "4e899fcd764bad4571b8706022c055af04cd65e95b67fdc10892ce7c9ed3fe28",
+      "shard": 11,
+      "shards": 12,
+      "suites": [
+        "attachment_export",
+        "cancel",
+        "delete_trash",
+        "expiry",
+        "export_rollback",
+        "filing_copy",
+        "flag",
+        "folder_create",
+        "folder_review",
+        "local_flag",
+        "password",
+        "restart_index",
+        "send",
+        "send_duplicate",
+        "status",
+        "testapp_delete",
+        "unsubscribe_mailto"
+      ]
+    },
+    {
+      "assertions": 48482,
+      "bytes": 228831,
+      "file": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-sweep-1-0-42811270001-1/owner-gaps-sweep-0-0.json.gz",
+      "sha256": "1e1a5a17c4e3ce6addc9e77619d741604554090fd2517cadae217a7cb39ae0dc",
+      "shard": 0,
+      "shards": 12,
+      "suites": [
+        "archive",
+        "delete_permanent",
+        "draft_append",
+        "filing_move",
+        "filing_rename",
+        "folder_delete",
+        "maintenance",
+        "repair",
+        "restart_tail",
+        "restore",
+        "settings",
+        "settlement",
+        "testapp_config",
+        "testapp_export",
+        "testapp_send",
+        "unsubscribe_https"
+      ]
+    },
+    {
+      "assertions": 47898,
+      "bytes": 226572,
+      "file": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-sweep-1-1-42811270001-1/owner-gaps-sweep-1-0.json.gz",
+      "sha256": "9e499ae37d71785618e76da9381f9999e75882235b0e79301582cf98bf8ec11f",
+      "shard": 1,
+      "shards": 12,
+      "suites": [
+        "archive",
+        "delete_permanent",
+        "draft_append",
+        "filing_move",
+        "filing_rename",
+        "folder_delete",
+        "maintenance",
+        "repair",
+        "restart_tail",
+        "restore",
+        "settings",
+        "settlement",
+        "testapp_config",
+        "testapp_export",
+        "testapp_send",
+        "unsubscribe_https"
+      ]
+    },
+    {
+      "assertions": 59112,
+      "bytes": 271328,
+      "file": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-sweep-1-2-42811270001-1/owner-gaps-sweep-2-0.json.gz",
+      "sha256": "333365c1081f95a5dc70cea388e162acf89458ef3a9ae3209be13e1935a069af",
+      "shard": 2,
+      "shards": 12,
+      "suites": [
+        "archive",
+        "delete_permanent",
+        "draft_append",
+        "filing_move",
+        "filing_rename",
+        "folder_delete",
+        "maintenance",
+        "repair",
+        "restart_tail",
+        "restore",
+        "settings",
+        "settlement",
+        "testapp_config",
+        "testapp_export",
+        "testapp_send",
+        "unsubscribe_https"
+      ]
+    },
+    {
+      "assertions": 46654,
+      "bytes": 215522,
+      "file": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-sweep-1-3-42811270001-1/owner-gaps-sweep-3-0.json.gz",
+      "sha256": "f0da75db1f02bac85e529b0160c7396776c725d24caf3900ae3d727da33222a8",
+      "shard": 3,
+      "shards": 12,
+      "suites": [
+        "archive",
+        "delete_permanent",
+        "draft_append",
+        "filing_move",
+        "filing_rename",
+        "folder_delete",
+        "maintenance",
+        "repair",
+        "restart_tail",
+        "restore",
+        "settings",
+        "settlement",
+        "testapp_config",
+        "testapp_export",
+        "testapp_send",
+        "unsubscribe_https"
+      ]
+    },
+    {
+      "assertions": 50785,
+      "bytes": 236987,
+      "file": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-sweep-1-4-42811270001-1/owner-gaps-sweep-4-0.json.gz",
+      "sha256": "977d1ac2e67553c1df2467e3a7eae6c1833f43890535014a76ddd3579128897f",
+      "shard": 4,
+      "shards": 12,
+      "suites": [
+        "archive",
+        "delete_permanent",
+        "draft_append",
+        "filing_move",
+        "filing_rename",
+        "folder_delete",
+        "maintenance",
+        "repair",
+        "restart_tail",
+        "restore",
+        "settings",
+        "settlement",
+        "testapp_config",
+        "testapp_export",
+        "testapp_send",
+        "unsubscribe_https"
+      ]
+    },
+    {
+      "assertions": 52203,
+      "bytes": 246701,
+      "file": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-sweep-1-5-42811270001-1/owner-gaps-sweep-5-0.json.gz",
+      "sha256": "de54023ad80a187193b2979d89c2eb26115d76298939c5fa4c81583c2960d5f1",
+      "shard": 5,
+      "shards": 12,
+      "suites": [
+        "archive",
+        "delete_permanent",
+        "draft_append",
+        "filing_move",
+        "filing_rename",
+        "folder_delete",
+        "maintenance",
+        "repair",
+        "restart_tail",
+        "restore",
+        "settings",
+        "settlement",
+        "testapp_config",
+        "testapp_export",
+        "testapp_send",
+        "unsubscribe_https"
+      ]
+    },
+    {
+      "assertions": 55423,
+      "bytes": 260492,
+      "file": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-sweep-1-6-42811270001-1/owner-gaps-sweep-6-0.json.gz",
+      "sha256": "fc1dacedbf18408bef9bff3f92cbe41f57f572eed3016ce91dc7ca3eb16caf27",
+      "shard": 6,
+      "shards": 12,
+      "suites": [
+        "archive",
+        "delete_permanent",
+        "draft_append",
+        "filing_move",
+        "filing_rename",
+        "folder_delete",
+        "maintenance",
+        "repair",
+        "restart_tail",
+        "restore",
+        "settings",
+        "settlement",
+        "testapp_config",
+        "testapp_export",
+        "testapp_send",
+        "unsubscribe_https"
+      ]
+    },
+    {
+      "assertions": 45653,
+      "bytes": 216325,
+      "file": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-sweep-1-7-42811270001-1/owner-gaps-sweep-7-0.json.gz",
+      "sha256": "47dce1c159aa1c37771924bc7b3d83ced9c3b3ab3c5e361caa53bf42ee63492f",
+      "shard": 7,
+      "shards": 12,
+      "suites": [
+        "archive",
+        "delete_permanent",
+        "draft_append",
+        "filing_move",
+        "filing_rename",
+        "folder_delete",
+        "maintenance",
+        "repair",
+        "restart_tail",
+        "restore",
+        "settings",
+        "settlement",
+        "testapp_config",
+        "testapp_export",
+        "testapp_send",
+        "unsubscribe_https"
+      ]
+    },
+    {
+      "assertions": 57775,
+      "bytes": 265783,
+      "file": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-sweep-1-8-42811270001-1/owner-gaps-sweep-8-0.json.gz",
+      "sha256": "aae4f25ffa754aa9b69a344531d56e3f0a2108c123c719a2eb8c4ea68ec09474",
+      "shard": 8,
+      "shards": 12,
+      "suites": [
+        "archive",
+        "delete_permanent",
+        "draft_append",
+        "filing_move",
+        "filing_rename",
+        "folder_delete",
+        "maintenance",
+        "repair",
+        "restart_tail",
+        "restore",
+        "settings",
+        "settlement",
+        "testapp_config",
+        "testapp_export",
+        "testapp_send",
+        "unsubscribe_https"
+      ]
+    },
+    {
+      "assertions": 43588,
+      "bytes": 209743,
+      "file": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-sweep-1-9-42811270001-1/owner-gaps-sweep-9-0.json.gz",
+      "sha256": "37dae138c0be5db99dca76255b7eac4a6412050cf6ed79a28d6c4c181ab9b244",
+      "shard": 9,
+      "shards": 12,
+      "suites": [
+        "archive",
+        "delete_permanent",
+        "draft_append",
+        "filing_move",
+        "filing_rename",
+        "folder_delete",
+        "maintenance",
+        "repair",
+        "restart_tail",
+        "restore",
+        "settings",
+        "settlement",
+        "testapp_config",
+        "testapp_export",
+        "testapp_send",
+        "unsubscribe_https"
+      ]
+    },
+    {
+      "assertions": 52588,
+      "bytes": 246242,
+      "file": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-sweep-1-10-42811270001-1/owner-gaps-sweep-10-0.json.gz",
+      "sha256": "760f47f819337283eff7982e2c4479153c9c806d4420664fcc0ec5d3c7fe8247",
+      "shard": 10,
+      "shards": 12,
+      "suites": [
+        "archive",
+        "delete_permanent",
+        "draft_append",
+        "filing_move",
+        "filing_rename",
+        "folder_delete",
+        "maintenance",
+        "repair",
+        "restart_tail",
+        "restore",
+        "settings",
+        "settlement",
+        "testapp_config",
+        "testapp_export",
+        "testapp_send",
+        "unsubscribe_https"
+      ]
+    },
+    {
+      "assertions": 54139,
+      "bytes": 252216,
+      "file": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-sweep-1-11-42811270001-1/owner-gaps-sweep-11-0.json.gz",
+      "sha256": "f79f8298fb0fd4c42005460b4d8082f1b56f2f13dcb3f016b4b44db2e9b836a3",
+      "shard": 11,
+      "shards": 12,
+      "suites": [
+        "archive",
+        "delete_permanent",
+        "draft_append",
+        "filing_move",
+        "filing_rename",
+        "folder_delete",
+        "maintenance",
+        "repair",
+        "restart_tail",
+        "restore",
+        "settings",
+        "settlement",
+        "testapp_config",
+        "testapp_export",
+        "testapp_send",
+        "unsubscribe_https"
+      ]
+    },
+    {
+      "assertions": 22565,
+      "bytes": 127166,
+      "file": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-onboarding-0-42811270001-1/owner-gaps-onboarding-0-0.json.gz",
+      "sha256": "d6e53932b9f4dfd4c0d182daffd7c6967294958b012035d46ee9ab7528ea8baa",
+      "shard": 0,
+      "shards": 24,
+      "suites": [
+        "onboarding"
+      ]
+    },
+    {
+      "assertions": 21128,
+      "bytes": 116898,
+      "file": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-onboarding-1-42811270001-1/owner-gaps-onboarding-1-0.json.gz",
+      "sha256": "cc276205307cf3f97cb3bc64440f9b22422a27c46744a059f3521a14d152dafa",
+      "shard": 1,
+      "shards": 24,
+      "suites": [
+        "onboarding"
+      ]
+    },
+    {
+      "assertions": 21255,
+      "bytes": 117621,
+      "file": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-onboarding-2-42811270001-1/owner-gaps-onboarding-2-0.json.gz",
+      "sha256": "e071c7a49c2dafba80b3486ac1ea52cd0aa2ad9040e2fd035bf4d1279635cf3a",
+      "shard": 2,
+      "shards": 24,
+      "suites": [
+        "onboarding"
+      ]
+    },
+    {
+      "assertions": 19791,
+      "bytes": 110250,
+      "file": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-onboarding-3-42811270001-1/owner-gaps-onboarding-3-0.json.gz",
+      "sha256": "e21fd7b251a6b31c0a11f00846df44ec21758d22108a36baad809d1c7c72ac77",
+      "shard": 3,
+      "shards": 24,
+      "suites": [
+        "onboarding"
+      ]
+    },
+    {
+      "assertions": 17933,
+      "bytes": 103494,
+      "file": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-onboarding-4-42811270001-1/owner-gaps-onboarding-4-0.json.gz",
+      "sha256": "7d9ef199d8d136466a8f634ba852a3d0619e70fde6aedc90c2bdfdab0dcf6311",
+      "shard": 4,
+      "shards": 24,
+      "suites": [
+        "onboarding"
+      ]
+    },
+    {
+      "assertions": 19875,
+      "bytes": 112896,
+      "file": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-onboarding-5-42811270001-1/owner-gaps-onboarding-5-0.json.gz",
+      "sha256": "e489399e5ca777ff2840301d840ba0246f21c70b39acc0ad9cc4f70956d1a310",
+      "shard": 5,
+      "shards": 24,
+      "suites": [
+        "onboarding"
+      ]
+    },
+    {
+      "assertions": 18882,
+      "bytes": 104692,
+      "file": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-onboarding-6-42811270001-1/owner-gaps-onboarding-6-0.json.gz",
+      "sha256": "1c3cb2c875cf43755e0e6793daa03b183e29757d9495ae1c87da27adde3b9f5b",
+      "shard": 6,
+      "shards": 24,
+      "suites": [
+        "onboarding"
+      ]
+    },
+    {
+      "assertions": 23085,
+      "bytes": 132135,
+      "file": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-onboarding-7-42811270001-1/owner-gaps-onboarding-7-0.json.gz",
+      "sha256": "532e4c6abc32b925a364e5e754144acb72091c955a2e07d0682ed211808137f2",
+      "shard": 7,
+      "shards": 24,
+      "suites": [
+        "onboarding"
+      ]
+    },
+    {
+      "assertions": 22026,
+      "bytes": 121794,
+      "file": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-onboarding-8-42811270001-1/owner-gaps-onboarding-8-0.json.gz",
+      "sha256": "c16a6590de56934e21bb270b1a590b28c53ecd524e81e6896cb087919077de68",
+      "shard": 8,
+      "shards": 24,
+      "suites": [
+        "onboarding"
+      ]
+    },
+    {
+      "assertions": 18640,
+      "bytes": 103751,
+      "file": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-onboarding-9-42811270001-1/owner-gaps-onboarding-9-0.json.gz",
+      "sha256": "c4630a7483398621c4ac3e8e665e08b6703572fa720753d3b8bc3bd715a50992",
+      "shard": 9,
+      "shards": 24,
+      "suites": [
+        "onboarding"
+      ]
+    },
+    {
+      "assertions": 20517,
+      "bytes": 116494,
+      "file": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-onboarding-10-42811270001-1/owner-gaps-onboarding-10-0.json.gz",
+      "sha256": "b8c364e7c0ebb965b8ac7340295858953227ab5198ddc9bed708d1d4767d564f",
+      "shard": 10,
+      "shards": 24,
+      "suites": [
+        "onboarding"
+      ]
+    },
+    {
+      "assertions": 19538,
+      "bytes": 106055,
+      "file": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-onboarding-11-42811270001-1/owner-gaps-onboarding-11-0.json.gz",
+      "sha256": "445cd918e0c2b70aa61011e386c2996b3ced841282cdf6873ba14f014ddb6b2a",
+      "shard": 11,
+      "shards": 24,
+      "suites": [
+        "onboarding"
+      ]
+    },
+    {
+      "assertions": 22099,
+      "bytes": 126658,
+      "file": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-onboarding-12-42811270001-1/owner-gaps-onboarding-12-0.json.gz",
+      "sha256": "811befd8714392b08c7d6ab7410bc6d1eb855dced4b904a153b8a3a09e932570",
+      "shard": 12,
+      "shards": 24,
+      "suites": [
+        "onboarding"
+      ]
+    },
+    {
+      "assertions": 18851,
+      "bytes": 109516,
+      "file": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-onboarding-13-42811270001-1/owner-gaps-onboarding-13-0.json.gz",
+      "sha256": "dca07f91195d6f47b1542f6b599314ae2a8781bc4be4bce1ff8871ac8d6596a9",
+      "shard": 13,
+      "shards": 24,
+      "suites": [
+        "onboarding"
+      ]
+    },
+    {
+      "assertions": 20666,
+      "bytes": 115189,
+      "file": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-onboarding-14-42811270001-1/owner-gaps-onboarding-14-0.json.gz",
+      "sha256": "cb2e3da2a9e81cf3cc80435673d22f31adce1f0bc4b7453e61b3ecf36e4d419d",
+      "shard": 14,
+      "shards": 24,
+      "suites": [
+        "onboarding"
+      ]
+    },
+    {
+      "assertions": 19677,
+      "bytes": 115733,
+      "file": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-onboarding-15-42811270001-1/owner-gaps-onboarding-15-0.json.gz",
+      "sha256": "63b2615969ef0c77e715d22f9d9b03ed88f03318535cbac2f8b4210bf8e871b1",
+      "shard": 15,
+      "shards": 24,
+      "suites": [
+        "onboarding"
+      ]
+    },
+    {
+      "assertions": 21127,
+      "bytes": 116417,
+      "file": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-onboarding-16-42811270001-1/owner-gaps-onboarding-16-0.json.gz",
+      "sha256": "800ae70c1efbb2cd62d403797e9d2128fbb2ea04a3389a6108a16d8569ae29cb",
+      "shard": 16,
+      "shards": 24,
+      "suites": [
+        "onboarding"
+      ]
+    },
+    {
+      "assertions": 21540,
+      "bytes": 124593,
+      "file": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-onboarding-17-42811270001-1/owner-gaps-onboarding-17-0.json.gz",
+      "sha256": "5cb1b63bd683a2a4e9371a1bc922706aefc801d2f6f53747a2c865ad3b2fd4ff",
+      "shard": 17,
+      "shards": 24,
+      "suites": [
+        "onboarding"
+      ]
+    },
+    {
+      "assertions": 17829,
+      "bytes": 102871,
+      "file": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-onboarding-18-42811270001-1/owner-gaps-onboarding-18-0.json.gz",
+      "sha256": "01ff8cdd329d5af8e775e2f7c0c8693ebc9c4480b3a211153f3e9da11ea90b32",
+      "shard": 18,
+      "shards": 24,
+      "suites": [
+        "onboarding"
+      ]
+    },
+    {
+      "assertions": 22864,
+      "bytes": 125084,
+      "file": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-onboarding-19-42811270001-1/owner-gaps-onboarding-19-0.json.gz",
+      "sha256": "34f06c37fa6a366ebb60ed65b21fa87b69563d57b605a7a09ab4091627508fb4",
+      "shard": 19,
+      "shards": 24,
+      "suites": [
+        "onboarding"
+      ]
+    },
+    {
+      "assertions": 20257,
+      "bytes": 113570,
+      "file": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-onboarding-20-42811270001-1/owner-gaps-onboarding-20-0.json.gz",
+      "sha256": "c391c9844b6d8aa308659b333817ea1baa71c0713e9a3b21aec9efdde4414253",
+      "shard": 20,
+      "shards": 24,
+      "suites": [
+        "onboarding"
+      ]
+    },
+    {
+      "assertions": 20086,
+      "bytes": 116378,
+      "file": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-onboarding-21-42811270001-1/owner-gaps-onboarding-21-0.json.gz",
+      "sha256": "0947cfaa95b4d5417c1a90c6a8245d7df82ac1178ac0d9a845eacbbe287c4f69",
+      "shard": 21,
+      "shards": 24,
+      "suites": [
+        "onboarding"
+      ]
+    },
+    {
+      "assertions": 18849,
+      "bytes": 107868,
+      "file": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-onboarding-22-42811270001-1/owner-gaps-onboarding-22-0.json.gz",
+      "sha256": "239e10b40b58dc4875172798279941e73318b3b42ee11efe90a5dc4270cc5193",
+      "shard": 22,
+      "shards": 24,
+      "suites": [
+        "onboarding"
+      ]
+    },
+    {
+      "assertions": 17381,
+      "bytes": 105969,
+      "file": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-onboarding-23-42811270001-1/owner-gaps-onboarding-23-0.json.gz",
+      "sha256": "2166fefff3c8a2077f98dc33cc610da22519e7163d6904fe3c3430e7bbe9596a",
+      "shard": 23,
+      "shards": 24,
+      "suites": [
+        "onboarding"
+      ]
+    },
+    {
+      "assertions": 557,
+      "bytes": 9219,
+      "file": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-suite-3-42811270001-1/owner-gaps-contract-0-0.json.gz",
+      "sha256": "5fd22cf5bf5b30dde96ee5150a945f6dd9d2e6ecae30c5d5b83054ea653c7b7d",
+      "shard": 0,
+      "shards": 1,
+      "suites": [
+        "contract"
+      ]
+    },
+    {
+      "assertions": 1,
+      "bytes": 215,
+      "file": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-suite-1-42811270001-1/owner-gaps-G22-rename-0-0.json.gz",
+      "sha256": "a2ac1c83ab05692251f643cd1d6ad39e270938f71951af72ad4b8cf68b2d23fc",
+      "shard": 0,
+      "shards": 1,
+      "suites": [
+        "G22-rename"
+      ]
+    },
+    {
+      "assertions": 1,
+      "bytes": 224,
+      "file": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-suite-1-42811270001-1/owner-gaps-G22-evidence-0-0.json.gz",
+      "sha256": "7dfc359034809d15af9cdcf2219450de8de46c8452cc05bb9fd9802f209f1800",
+      "shard": 0,
+      "shards": 1,
+      "suites": [
+        "G22-evidence"
+      ]
+    },
+    {
+      "assertions": 1,
+      "bytes": 221,
+      "file": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-suite-1-42811270001-1/owner-gaps-G22-latch-0-0.json.gz",
+      "sha256": "f9f0fc9a25e46920862f958535581e36ffd0d0d427a01ca972a3b0837f4dcaca",
+      "shard": 0,
+      "shards": 1,
+      "suites": [
+        "G22-latch"
+      ]
+    },
+    {
+      "assertions": 2,
+      "bytes": 346,
+      "file": ".work/19b-s2-fixes/ci/42811270001-1/fresh-base/owner-gaps-channel-0-0.json.gz",
+      "sha256": "b2e148942dd98388436d10b865eff8ea684f4a59d708f0bd62b450dbaae14688",
+      "shard": 0,
+      "shards": 1,
+      "suites": [
+        "channel"
+      ]
+    }
+  ],
+  "assertions": 2057880,
+  "attempt": 1,
+  "base_log": {
+    "evidence": [
+      {
+        "line": 415,
+        "text": "Ran 287 tests in 215.976s"
+      },
+      {
+        "line": 417,
+        "text": "OK"
+      },
+      {
+        "line": 424,
+        "text": "Control base suite PASS"
+      }
+    ],
+    "file": ".work/19b-s2-fixes/ci/42811270027-1/control-base-42811270027-1/results.txt",
+    "sha256": "dc51be19a66b1cb2ed957d046bf88dc40b9ad0c2a3c6deeee76ef196dafc072f"
+  },
+  "bytes": 928878,
+  "classification": "Diagnostic capture; expected old-pin failures plus the standalone mailto recorder failure. Not strict green acceptance.",
+  "groups": 2024,
+  "jobs": [
+    {
+      "flows": [
+        "attachment_export",
+        "cancel",
+        "delete_trash",
+        "expiry",
+        "export_rollback",
+        "filing_copy",
+        "flag",
+        "folder_create",
+        "folder_review",
+        "local_flag",
+        "password",
+        "restart_index",
+        "send",
+        "send_duplicate",
+        "status",
+        "testapp_delete",
+        "unsubscribe_mailto"
+      ],
+      "group": 0,
+      "shard": 0,
+      "shards": 12
+    },
+    {
+      "flows": [
+        "attachment_export",
+        "cancel",
+        "delete_trash",
+        "expiry",
+        "export_rollback",
+        "filing_copy",
+        "flag",
+        "folder_create",
+        "folder_review",
+        "local_flag",
+        "password",
+        "restart_index",
+        "send",
+        "send_duplicate",
+        "status",
+        "testapp_delete",
+        "unsubscribe_mailto"
+      ],
+      "group": 0,
+      "shard": 1,
+      "shards": 12
+    },
+    {
+      "flows": [
+        "attachment_export",
+        "cancel",
+        "delete_trash",
+        "expiry",
+        "export_rollback",
+        "filing_copy",
+        "flag",
+        "folder_create",
+        "folder_review",
+        "local_flag",
+        "password",
+        "restart_index",
+        "send",
+        "send_duplicate",
+        "status",
+        "testapp_delete",
+        "unsubscribe_mailto"
+      ],
+      "group": 0,
+      "shard": 2,
+      "shards": 12
+    },
+    {
+      "flows": [
+        "attachment_export",
+        "cancel",
+        "delete_trash",
+        "expiry",
+        "export_rollback",
+        "filing_copy",
+        "flag",
+        "folder_create",
+        "folder_review",
+        "local_flag",
+        "password",
+        "restart_index",
+        "send",
+        "send_duplicate",
+        "status",
+        "testapp_delete",
+        "unsubscribe_mailto"
+      ],
+      "group": 0,
+      "shard": 3,
+      "shards": 12
+    },
+    {
+      "flows": [
+        "attachment_export",
+        "cancel",
+        "delete_trash",
+        "expiry",
+        "export_rollback",
+        "filing_copy",
+        "flag",
+        "folder_create",
+        "folder_review",
+        "local_flag",
+        "password",
+        "restart_index",
+        "send",
+        "send_duplicate",
+        "status",
+        "testapp_delete",
+        "unsubscribe_mailto"
+      ],
+      "group": 0,
+      "shard": 4,
+      "shards": 12
+    },
+    {
+      "flows": [
+        "attachment_export",
+        "cancel",
+        "delete_trash",
+        "expiry",
+        "export_rollback",
+        "filing_copy",
+        "flag",
+        "folder_create",
+        "folder_review",
+        "local_flag",
+        "password",
+        "restart_index",
+        "send",
+        "send_duplicate",
+        "status",
+        "testapp_delete",
+        "unsubscribe_mailto"
+      ],
+      "group": 0,
+      "shard": 5,
+      "shards": 12
+    },
+    {
+      "flows": [
+        "attachment_export",
+        "cancel",
+        "delete_trash",
+        "expiry",
+        "export_rollback",
+        "filing_copy",
+        "flag",
+        "folder_create",
+        "folder_review",
+        "local_flag",
+        "password",
+        "restart_index",
+        "send",
+        "send_duplicate",
+        "status",
+        "testapp_delete",
+        "unsubscribe_mailto"
+      ],
+      "group": 0,
+      "shard": 6,
+      "shards": 12
+    },
+    {
+      "flows": [
+        "attachment_export",
+        "cancel",
+        "delete_trash",
+        "expiry",
+        "export_rollback",
+        "filing_copy",
+        "flag",
+        "folder_create",
+        "folder_review",
+        "local_flag",
+        "password",
+        "restart_index",
+        "send",
+        "send_duplicate",
+        "status",
+        "testapp_delete",
+        "unsubscribe_mailto"
+      ],
+      "group": 0,
+      "shard": 7,
+      "shards": 12
+    },
+    {
+      "flows": [
+        "attachment_export",
+        "cancel",
+        "delete_trash",
+        "expiry",
+        "export_rollback",
+        "filing_copy",
+        "flag",
+        "folder_create",
+        "folder_review",
+        "local_flag",
+        "password",
+        "restart_index",
+        "send",
+        "send_duplicate",
+        "status",
+        "testapp_delete",
+        "unsubscribe_mailto"
+      ],
+      "group": 0,
+      "shard": 8,
+      "shards": 12
+    },
+    {
+      "flows": [
+        "attachment_export",
+        "cancel",
+        "delete_trash",
+        "expiry",
+        "export_rollback",
+        "filing_copy",
+        "flag",
+        "folder_create",
+        "folder_review",
+        "local_flag",
+        "password",
+        "restart_index",
+        "send",
+        "send_duplicate",
+        "status",
+        "testapp_delete",
+        "unsubscribe_mailto"
+      ],
+      "group": 0,
+      "shard": 9,
+      "shards": 12
+    },
+    {
+      "flows": [
+        "attachment_export",
+        "cancel",
+        "delete_trash",
+        "expiry",
+        "export_rollback",
+        "filing_copy",
+        "flag",
+        "folder_create",
+        "folder_review",
+        "local_flag",
+        "password",
+        "restart_index",
+        "send",
+        "send_duplicate",
+        "status",
+        "testapp_delete",
+        "unsubscribe_mailto"
+      ],
+      "group": 0,
+      "shard": 10,
+      "shards": 12
+    },
+    {
+      "flows": [
+        "attachment_export",
+        "cancel",
+        "delete_trash",
+        "expiry",
+        "export_rollback",
+        "filing_copy",
+        "flag",
+        "folder_create",
+        "folder_review",
+        "local_flag",
+        "password",
+        "restart_index",
+        "send",
+        "send_duplicate",
+        "status",
+        "testapp_delete",
+        "unsubscribe_mailto"
+      ],
+      "group": 0,
+      "shard": 11,
+      "shards": 12
+    },
+    {
+      "flows": [
+        "archive",
+        "delete_permanent",
+        "draft_append",
+        "filing_move",
+        "filing_rename",
+        "folder_delete",
+        "maintenance",
+        "repair",
+        "restart_tail",
+        "restore",
+        "settings",
+        "settlement",
+        "testapp_config",
+        "testapp_export",
+        "testapp_send",
+        "unsubscribe_https"
+      ],
+      "group": 1,
+      "shard": 0,
+      "shards": 12
+    },
+    {
+      "flows": [
+        "archive",
+        "delete_permanent",
+        "draft_append",
+        "filing_move",
+        "filing_rename",
+        "folder_delete",
+        "maintenance",
+        "repair",
+        "restart_tail",
+        "restore",
+        "settings",
+        "settlement",
+        "testapp_config",
+        "testapp_export",
+        "testapp_send",
+        "unsubscribe_https"
+      ],
+      "group": 1,
+      "shard": 1,
+      "shards": 12
+    },
+    {
+      "flows": [
+        "archive",
+        "delete_permanent",
+        "draft_append",
+        "filing_move",
+        "filing_rename",
+        "folder_delete",
+        "maintenance",
+        "repair",
+        "restart_tail",
+        "restore",
+        "settings",
+        "settlement",
+        "testapp_config",
+        "testapp_export",
+        "testapp_send",
+        "unsubscribe_https"
+      ],
+      "group": 1,
+      "shard": 2,
+      "shards": 12
+    },
+    {
+      "flows": [
+        "archive",
+        "delete_permanent",
+        "draft_append",
+        "filing_move",
+        "filing_rename",
+        "folder_delete",
+        "maintenance",
+        "repair",
+        "restart_tail",
+        "restore",
+        "settings",
+        "settlement",
+        "testapp_config",
+        "testapp_export",
+        "testapp_send",
+        "unsubscribe_https"
+      ],
+      "group": 1,
+      "shard": 3,
+      "shards": 12
+    },
+    {
+      "flows": [
+        "archive",
+        "delete_permanent",
+        "draft_append",
+        "filing_move",
+        "filing_rename",
+        "folder_delete",
+        "maintenance",
+        "repair",
+        "restart_tail",
+        "restore",
+        "settings",
+        "settlement",
+        "testapp_config",
+        "testapp_export",
+        "testapp_send",
+        "unsubscribe_https"
+      ],
+      "group": 1,
+      "shard": 4,
+      "shards": 12
+    },
+    {
+      "flows": [
+        "archive",
+        "delete_permanent",
+        "draft_append",
+        "filing_move",
+        "filing_rename",
+        "folder_delete",
+        "maintenance",
+        "repair",
+        "restart_tail",
+        "restore",
+        "settings",
+        "settlement",
+        "testapp_config",
+        "testapp_export",
+        "testapp_send",
+        "unsubscribe_https"
+      ],
+      "group": 1,
+      "shard": 5,
+      "shards": 12
+    },
+    {
+      "flows": [
+        "archive",
+        "delete_permanent",
+        "draft_append",
+        "filing_move",
+        "filing_rename",
+        "folder_delete",
+        "maintenance",
+        "repair",
+        "restart_tail",
+        "restore",
+        "settings",
+        "settlement",
+        "testapp_config",
+        "testapp_export",
+        "testapp_send",
+        "unsubscribe_https"
+      ],
+      "group": 1,
+      "shard": 6,
+      "shards": 12
+    },
+    {
+      "flows": [
+        "archive",
+        "delete_permanent",
+        "draft_append",
+        "filing_move",
+        "filing_rename",
+        "folder_delete",
+        "maintenance",
+        "repair",
+        "restart_tail",
+        "restore",
+        "settings",
+        "settlement",
+        "testapp_config",
+        "testapp_export",
+        "testapp_send",
+        "unsubscribe_https"
+      ],
+      "group": 1,
+      "shard": 7,
+      "shards": 12
+    },
+    {
+      "flows": [
+        "archive",
+        "delete_permanent",
+        "draft_append",
+        "filing_move",
+        "filing_rename",
+        "folder_delete",
+        "maintenance",
+        "repair",
+        "restart_tail",
+        "restore",
+        "settings",
+        "settlement",
+        "testapp_config",
+        "testapp_export",
+        "testapp_send",
+        "unsubscribe_https"
+      ],
+      "group": 1,
+      "shard": 8,
+      "shards": 12
+    },
+    {
+      "flows": [
+        "archive",
+        "delete_permanent",
+        "draft_append",
+        "filing_move",
+        "filing_rename",
+        "folder_delete",
+        "maintenance",
+        "repair",
+        "restart_tail",
+        "restore",
+        "settings",
+        "settlement",
+        "testapp_config",
+        "testapp_export",
+        "testapp_send",
+        "unsubscribe_https"
+      ],
+      "group": 1,
+      "shard": 9,
+      "shards": 12
+    },
+    {
+      "flows": [
+        "archive",
+        "delete_permanent",
+        "draft_append",
+        "filing_move",
+        "filing_rename",
+        "folder_delete",
+        "maintenance",
+        "repair",
+        "restart_tail",
+        "restore",
+        "settings",
+        "settlement",
+        "testapp_config",
+        "testapp_export",
+        "testapp_send",
+        "unsubscribe_https"
+      ],
+      "group": 1,
+      "shard": 10,
+      "shards": 12
+    },
+    {
+      "flows": [
+        "archive",
+        "delete_permanent",
+        "draft_append",
+        "filing_move",
+        "filing_rename",
+        "folder_delete",
+        "maintenance",
+        "repair",
+        "restart_tail",
+        "restore",
+        "settings",
+        "settlement",
+        "testapp_config",
+        "testapp_export",
+        "testapp_send",
+        "unsubscribe_https"
+      ],
+      "group": 1,
+      "shard": 11,
+      "shards": 12
+    },
+    {
+      "flows": [
+        "onboarding"
+      ],
+      "group": 2,
+      "shard": 0,
+      "shards": 24
+    },
+    {
+      "flows": [
+        "onboarding"
+      ],
+      "group": 2,
+      "shard": 1,
+      "shards": 24
+    },
+    {
+      "flows": [
+        "onboarding"
+      ],
+      "group": 2,
+      "shard": 2,
+      "shards": 24
+    },
+    {
+      "flows": [
+        "onboarding"
+      ],
+      "group": 2,
+      "shard": 3,
+      "shards": 24
+    },
+    {
+      "flows": [
+        "onboarding"
+      ],
+      "group": 2,
+      "shard": 4,
+      "shards": 24
+    },
+    {
+      "flows": [
+        "onboarding"
+      ],
+      "group": 2,
+      "shard": 5,
+      "shards": 24
+    },
+    {
+      "flows": [
+        "onboarding"
+      ],
+      "group": 2,
+      "shard": 6,
+      "shards": 24
+    },
+    {
+      "flows": [
+        "onboarding"
+      ],
+      "group": 2,
+      "shard": 7,
+      "shards": 24
+    },
+    {
+      "flows": [
+        "onboarding"
+      ],
+      "group": 2,
+      "shard": 8,
+      "shards": 24
+    },
+    {
+      "flows": [
+        "onboarding"
+      ],
+      "group": 2,
+      "shard": 9,
+      "shards": 24
+    },
+    {
+      "flows": [
+        "onboarding"
+      ],
+      "group": 2,
+      "shard": 10,
+      "shards": 24
+    },
+    {
+      "flows": [
+        "onboarding"
+      ],
+      "group": 2,
+      "shard": 11,
+      "shards": 24
+    },
+    {
+      "flows": [
+        "onboarding"
+      ],
+      "group": 2,
+      "shard": 12,
+      "shards": 24
+    },
+    {
+      "flows": [
+        "onboarding"
+      ],
+      "group": 2,
+      "shard": 13,
+      "shards": 24
+    },
+    {
+      "flows": [
+        "onboarding"
+      ],
+      "group": 2,
+      "shard": 14,
+      "shards": 24
+    },
+    {
+      "flows": [
+        "onboarding"
+      ],
+      "group": 2,
+      "shard": 15,
+      "shards": 24
+    },
+    {
+      "flows": [
+        "onboarding"
+      ],
+      "group": 2,
+      "shard": 16,
+      "shards": 24
+    },
+    {
+      "flows": [
+        "onboarding"
+      ],
+      "group": 2,
+      "shard": 17,
+      "shards": 24
+    },
+    {
+      "flows": [
+        "onboarding"
+      ],
+      "group": 2,
+      "shard": 18,
+      "shards": 24
+    },
+    {
+      "flows": [
+        "onboarding"
+      ],
+      "group": 2,
+      "shard": 19,
+      "shards": 24
+    },
+    {
+      "flows": [
+        "onboarding"
+      ],
+      "group": 2,
+      "shard": 20,
+      "shards": 24
+    },
+    {
+      "flows": [
+        "onboarding"
+      ],
+      "group": 2,
+      "shard": 21,
+      "shards": 24
+    },
+    {
+      "flows": [
+        "onboarding"
+      ],
+      "group": 2,
+      "shard": 22,
+      "shards": 24
+    },
+    {
+      "flows": [
+        "onboarding"
+      ],
+      "group": 2,
+      "shard": 23,
+      "shards": 24
+    }
+  ],
+  "log_validation": [
+    {
+      "artifact": "control-mail-alterations-0-42811270001-1",
+      "expected_old_pin_failures": [],
+      "flows": [],
+      "log": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-alterations-0-42811270001-1/mail.txt",
+      "sha256": "8a47710df3f8e52be3c44a43aa967f59b0fe8c2b323e452f7252e288c4a476f9",
+      "test_summaries": [
+        [
+          "1",
+          "853.844"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-alterations-1-42811270001-1",
+      "expected_old_pin_failures": [],
+      "flows": [],
+      "log": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-alterations-1-42811270001-1/mail.txt",
+      "sha256": "f765e2c29375e32bdc7a2682957d912942d33434cf9e7454e8b8bac56b9acf1d",
+      "test_summaries": [
+        [
+          "1",
+          "1413.321"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-alterations-10-42811270001-1",
+      "expected_old_pin_failures": [],
+      "flows": [],
+      "log": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-alterations-10-42811270001-1/mail.txt",
+      "sha256": "eb5bb26f70ae8a77c97e2649902f686d5390055a4c6ce1ab164e648c1a21d010",
+      "test_summaries": [
+        [
+          "1",
+          "359.643"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-alterations-11-42811270001-1",
+      "expected_old_pin_failures": [],
+      "flows": [],
+      "log": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-alterations-11-42811270001-1/mail.txt",
+      "sha256": "f91c475a232c0bde789186c1ae0218a1c7be8c62eaa3e97d05574b88f008902f",
+      "test_summaries": [
+        [
+          "1",
+          "479.357"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-alterations-2-42811270001-1",
+      "expected_old_pin_failures": [],
+      "flows": [],
+      "log": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-alterations-2-42811270001-1/mail.txt",
+      "sha256": "6ccff8618ad7b4a98cc597f0ec1fc776be4a78fc44a7568c2a714ef21be6d91f",
+      "test_summaries": [
+        [
+          "1",
+          "1449.833"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-alterations-3-42811270001-1",
+      "expected_old_pin_failures": [],
+      "flows": [],
+      "log": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-alterations-3-42811270001-1/mail.txt",
+      "sha256": "06a83ff6e84dedc9df3204a2d251283217ffa0a3513f31c74ff8641579713f86",
+      "test_summaries": [
+        [
+          "1",
+          "250.190"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-alterations-4-42811270001-1",
+      "expected_old_pin_failures": [],
+      "flows": [],
+      "log": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-alterations-4-42811270001-1/mail.txt",
+      "sha256": "4b585f4f89afbb47e7bc50001d34b936dd287e2b29681fc789246c10330f71ee",
+      "test_summaries": [
+        [
+          "1",
+          "1029.031"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-alterations-5-42811270001-1",
+      "expected_old_pin_failures": [],
+      "flows": [],
+      "log": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-alterations-5-42811270001-1/mail.txt",
+      "sha256": "8d942f6e42275951e6c698fbc1d729ed1ae47d23f7c5221e169e7f528407c13a",
+      "test_summaries": [
+        [
+          "1",
+          "2151.366"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-alterations-6-42811270001-1",
+      "expected_old_pin_failures": [],
+      "flows": [],
+      "log": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-alterations-6-42811270001-1/mail.txt",
+      "sha256": "45f6be8ac3e12c16647775c1fb233b81e824f1518fd7b11d928ff736a450afa8",
+      "test_summaries": [
+        [
+          "1",
+          "196.961"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-alterations-7-42811270001-1",
+      "expected_old_pin_failures": [],
+      "flows": [],
+      "log": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-alterations-7-42811270001-1/mail.txt",
+      "sha256": "15de4556b9a94b753281b051087528e8c261faebb98d483c16aba0215e0a1869",
+      "test_summaries": [
+        [
+          "1",
+          "85.946"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-alterations-8-42811270001-1",
+      "expected_old_pin_failures": [],
+      "flows": [],
+      "log": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-alterations-8-42811270001-1/mail.txt",
+      "sha256": "6a5f947a8f31a9e26aefe065008a1ba83a3b0bafade8841cc9c7b1a5c15f2d44",
+      "test_summaries": [
+        [
+          "1",
+          "86.673"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-alterations-9-42811270001-1",
+      "expected_old_pin_failures": [],
+      "flows": [],
+      "log": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-alterations-9-42811270001-1/mail.txt",
+      "sha256": "74ea606153fa0b36546598582d23509144595ded374082987b72468bb75552ab",
+      "test_summaries": [
+        [
+          "1",
+          "147.496"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-onboarding-0-42811270001-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "onboarding",
+          "2561"
+        ]
+      ],
+      "log": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-onboarding-0-42811270001-1/mail.txt",
+      "sha256": "d0f0783d2f181886db8eb9ba29ed2664d48a982ad09dfdb484b1f2d6671ecac1",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "401.987"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-onboarding-1-42811270001-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "onboarding",
+          "2561"
+        ]
+      ],
+      "log": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-onboarding-1-42811270001-1/mail.txt",
+      "sha256": "6e266b2023162d419862ef71fbbe7c6b584372b8aedae33e380c00fa7888c17e",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "385.443"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-onboarding-10-42811270001-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "onboarding",
+          "2561"
+        ]
+      ],
+      "log": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-onboarding-10-42811270001-1/mail.txt",
+      "sha256": "4efaf12e34b4d90a459b66e7586c9454ab416c97c6855acba88c11d2e7ed269b",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "390.043"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-onboarding-11-42811270001-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "onboarding",
+          "2561"
+        ]
+      ],
+      "log": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-onboarding-11-42811270001-1/mail.txt",
+      "sha256": "de04cfc80183aff6cf902fe4b2accf5b09d936d627df1cb32cf0a34819586899",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "375.845"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-onboarding-12-42811270001-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "onboarding",
+          "2561"
+        ]
+      ],
+      "log": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-onboarding-12-42811270001-1/mail.txt",
+      "sha256": "0c6d6828ef37fd1379e1ad5485a368c3f16af6b7c6db9567c5d585fcdba1574b",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "409.519"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-onboarding-13-42811270001-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "onboarding",
+          "2561"
+        ]
+      ],
+      "log": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-onboarding-13-42811270001-1/mail.txt",
+      "sha256": "318579dc234c9d0ddd5ce19f0d422e7643894fffd0705a87f8667a021a052f4c",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "195.597"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-onboarding-14-42811270001-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "onboarding",
+          "2561"
+        ]
+      ],
+      "log": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-onboarding-14-42811270001-1/mail.txt",
+      "sha256": "4dbf025e1858ad81c2d3edf95467cadc132c6e5c0fd9034253bc7416953aa640",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "371.147"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-onboarding-15-42811270001-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "onboarding",
+          "2561"
+        ]
+      ],
+      "log": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-onboarding-15-42811270001-1/mail.txt",
+      "sha256": "d0fa2b86ae0687adc1b8c24e4996bb78e86494ed1da924e7f5934af5ff7ba1b1",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "225.136"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-onboarding-16-42811270001-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "onboarding",
+          "2561"
+        ]
+      ],
+      "log": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-onboarding-16-42811270001-1/mail.txt",
+      "sha256": "c824059222be575d1442427b4a977cac81a26fbb1b9afb4a3136eb7074586b4f",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "265.818"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-onboarding-17-42811270001-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "onboarding",
+          "2561"
+        ]
+      ],
+      "log": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-onboarding-17-42811270001-1/mail.txt",
+      "sha256": "0fff2d12248f62c6afbdce435c98d8f13e66114938dea5e1d107147f6310f6b4",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "433.933"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-onboarding-18-42811270001-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "onboarding",
+          "2561"
+        ]
+      ],
+      "log": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-onboarding-18-42811270001-1/mail.txt",
+      "sha256": "2e5568c885a5e4754ad5870dbb0f9c10a98a594047c4551679c299bb1ee8a64b",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "357.571"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-onboarding-19-42811270001-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "onboarding",
+          "2561"
+        ]
+      ],
+      "log": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-onboarding-19-42811270001-1/mail.txt",
+      "sha256": "21435413feee1e21082354937a07a2cbf23e8b30c25e1660fc7c51a97d8f492c",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "456.560"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-onboarding-2-42811270001-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "onboarding",
+          "2561"
+        ]
+      ],
+      "log": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-onboarding-2-42811270001-1/mail.txt",
+      "sha256": "58cdbeac3ca48e3d8c29a5a337f115f344255925a2fd64be119b0e88bd988569",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "318.705"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-onboarding-20-42811270001-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "onboarding",
+          "2561"
+        ]
+      ],
+      "log": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-onboarding-20-42811270001-1/mail.txt",
+      "sha256": "e23707c2c156059e2306cb569e4c937915a5b18da042218609c51e04bd4a6e13",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "367.486"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-onboarding-21-42811270001-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "onboarding",
+          "2561"
+        ]
+      ],
+      "log": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-onboarding-21-42811270001-1/mail.txt",
+      "sha256": "3daf25edd94d1463b70ce361f3a59dffb3d6e2eeecd966e8d96c495036c30a7f",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "312.347"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-onboarding-22-42811270001-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "onboarding",
+          "2561"
+        ]
+      ],
+      "log": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-onboarding-22-42811270001-1/mail.txt",
+      "sha256": "9fd95c3151d79a1f909192efac17771f51d47e09a0c0893ae486cb6351a70fdc",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "328.097"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-onboarding-23-42811270001-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "onboarding",
+          "2561"
+        ]
+      ],
+      "log": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-onboarding-23-42811270001-1/mail.txt",
+      "sha256": "b756b8e8b19d544a34cbb503547b31c8532c7941fa8100b775a4fc4e0ab227e5",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "351.733"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-onboarding-3-42811270001-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "onboarding",
+          "2561"
+        ]
+      ],
+      "log": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-onboarding-3-42811270001-1/mail.txt",
+      "sha256": "acd7e81addffdc0f8f3fe06e077f0694af1827d85de9496cdb91492e5c2efa0d",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "241.325"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-onboarding-4-42811270001-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "onboarding",
+          "2561"
+        ]
+      ],
+      "log": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-onboarding-4-42811270001-1/mail.txt",
+      "sha256": "54812373bd6613f42b4911aef897befbed121d5bca235b230ede1a1b480339ba",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "198.153"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-onboarding-5-42811270001-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "onboarding",
+          "2561"
+        ]
+      ],
+      "log": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-onboarding-5-42811270001-1/mail.txt",
+      "sha256": "64dc9c962a66899b70aea30608bbad62e65a0b581fc6a7157960fa8263ce1335",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "352.758"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-onboarding-6-42811270001-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "onboarding",
+          "2561"
+        ]
+      ],
+      "log": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-onboarding-6-42811270001-1/mail.txt",
+      "sha256": "3b02e2cb35f010c427c97094065e8390051874babaebf61d60c7d63430fdea6a",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "317.675"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-onboarding-7-42811270001-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "onboarding",
+          "2561"
+        ]
+      ],
+      "log": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-onboarding-7-42811270001-1/mail.txt",
+      "sha256": "a781bb23b2d3aaceeb90f9c27c4d6448aa14042bede274a5c9970d89707c872d",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "407.797"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-onboarding-8-42811270001-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "onboarding",
+          "2561"
+        ]
+      ],
+      "log": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-onboarding-8-42811270001-1/mail.txt",
+      "sha256": "8ebe5ba836e81ae7626b69b6e6df073044298bbc8fa62514ec80a50ccc360ddd",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "387.329"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-onboarding-9-42811270001-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "onboarding",
+          "2561"
+        ]
+      ],
+      "log": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-onboarding-9-42811270001-1/mail.txt",
+      "sha256": "3044b6065e2becc9c615674b42abdffb8934d8340560c80747b5a18cd43a3100",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "433.964"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-suite-0-42811270001-1",
+      "expected_old_pin_failures": [
+        "test_header_mailto_exact_address_body_and_approval"
+      ],
+      "flows": [],
+      "log": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-suite-0-42811270001-1/mail.txt",
+      "sha256": "8c351e5305cfe0354a0a24db8403b5e70e214a1fe0fbcc179ab593a82bbe07e5",
+      "test_summaries": [
+        [
+          "78",
+          "780.076"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-suite-1-42811270001-1",
+      "expected_old_pin_failures": [],
+      "flows": [],
+      "log": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-suite-1-42811270001-1/mail.txt",
+      "sha256": "ab67f86afe1d34624aaae3e8bf2ae094ff9757c729e2bb00c4fd4cd0a3c577d4",
+      "test_summaries": [
+        [
+          "79",
+          "77.497"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-suite-2-42811270001-1",
+      "expected_old_pin_failures": [],
+      "flows": [],
+      "log": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-suite-2-42811270001-1/mail.txt",
+      "sha256": "1c4e13ebfba014c20fcf806e058e7ac9e6431324642da53b878ca4bce714d1ee",
+      "test_summaries": [
+        [
+          "103",
+          "212.764"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-suite-3-42811270001-1",
+      "expected_old_pin_failures": [
+        "test_matrix_contracts"
+      ],
+      "flows": [],
+      "log": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-suite-3-42811270001-1/mail.txt",
+      "sha256": "74b02f86b9392f1a697bc1c4ff777af2eaf0e0dc025bed1a49912b3f73782db0",
+      "test_summaries": [
+        [
+          "75",
+          "486.092"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-sweep-0-0-42811270001-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "send",
+          "837"
+        ],
+        [
+          "delete_trash",
+          "272"
+        ],
+        [
+          "unsubscribe_mailto",
+          "839"
+        ],
+        [
+          "status",
+          "147"
+        ],
+        [
+          "cancel",
+          "65"
+        ],
+        [
+          "attachment_export",
+          "277"
+        ],
+        [
+          "password",
+          "136"
+        ],
+        [
+          "filing_copy",
+          "351"
+        ],
+        [
+          "expiry",
+          "65"
+        ],
+        [
+          "restart_index",
+          "37"
+        ],
+        [
+          "export_rollback",
+          "277"
+        ],
+        [
+          "send_duplicate",
+          "919"
+        ],
+        [
+          "folder_create",
+          "116"
+        ],
+        [
+          "flag",
+          "118"
+        ],
+        [
+          "folder_review",
+          "172"
+        ],
+        [
+          "testapp_delete",
+          "276"
+        ],
+        [
+          "local_flag",
+          "117"
+        ]
+      ],
+      "log": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-sweep-0-0-42811270001-1/mail.txt",
+      "sha256": "00b97169659644631b2cc99eaa6ff731d324cfb73ed8c7320bef031ca921f41f",
+      "test_summaries": [
+        [
+          "5",
+          "648.561"
+        ],
+        [
+          "6",
+          "901.950"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-sweep-0-1-42811270001-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "send",
+          "837"
+        ],
+        [
+          "delete_trash",
+          "272"
+        ],
+        [
+          "unsubscribe_mailto",
+          "839"
+        ],
+        [
+          "status",
+          "147"
+        ],
+        [
+          "cancel",
+          "65"
+        ],
+        [
+          "attachment_export",
+          "277"
+        ],
+        [
+          "password",
+          "136"
+        ],
+        [
+          "filing_copy",
+          "351"
+        ],
+        [
+          "expiry",
+          "65"
+        ],
+        [
+          "restart_index",
+          "37"
+        ],
+        [
+          "export_rollback",
+          "277"
+        ],
+        [
+          "send_duplicate",
+          "919"
+        ],
+        [
+          "folder_create",
+          "116"
+        ],
+        [
+          "flag",
+          "118"
+        ],
+        [
+          "folder_review",
+          "172"
+        ],
+        [
+          "testapp_delete",
+          "276"
+        ],
+        [
+          "local_flag",
+          "117"
+        ]
+      ],
+      "log": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-sweep-0-1-42811270001-1/mail.txt",
+      "sha256": "38f5501223bd29687825e6f291d1c95c8b22d5fe16bf7d0d8e6e48a795b46d15",
+      "test_summaries": [
+        [
+          "5",
+          "315.003"
+        ],
+        [
+          "6",
+          "624.792"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-sweep-0-10-42811270001-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "send",
+          "837"
+        ],
+        [
+          "delete_trash",
+          "272"
+        ],
+        [
+          "unsubscribe_mailto",
+          "839"
+        ],
+        [
+          "status",
+          "147"
+        ],
+        [
+          "cancel",
+          "65"
+        ],
+        [
+          "attachment_export",
+          "277"
+        ],
+        [
+          "password",
+          "136"
+        ],
+        [
+          "filing_copy",
+          "351"
+        ],
+        [
+          "expiry",
+          "65"
+        ],
+        [
+          "restart_index",
+          "37"
+        ],
+        [
+          "export_rollback",
+          "277"
+        ],
+        [
+          "send_duplicate",
+          "919"
+        ],
+        [
+          "folder_create",
+          "116"
+        ],
+        [
+          "flag",
+          "118"
+        ],
+        [
+          "folder_review",
+          "172"
+        ],
+        [
+          "testapp_delete",
+          "276"
+        ],
+        [
+          "local_flag",
+          "117"
+        ]
+      ],
+      "log": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-sweep-0-10-42811270001-1/mail.txt",
+      "sha256": "ffc438eeff1d3e46ea6a26bbb23ad4f4be4de90a17a1af7085a73132d176dc8b",
+      "test_summaries": [
+        [
+          "5",
+          "687.315"
+        ],
+        [
+          "6",
+          "786.555"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-sweep-0-11-42811270001-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "send",
+          "837"
+        ],
+        [
+          "delete_trash",
+          "272"
+        ],
+        [
+          "unsubscribe_mailto",
+          "839"
+        ],
+        [
+          "status",
+          "147"
+        ],
+        [
+          "cancel",
+          "65"
+        ],
+        [
+          "attachment_export",
+          "277"
+        ],
+        [
+          "password",
+          "136"
+        ],
+        [
+          "filing_copy",
+          "351"
+        ],
+        [
+          "expiry",
+          "65"
+        ],
+        [
+          "restart_index",
+          "37"
+        ],
+        [
+          "export_rollback",
+          "277"
+        ],
+        [
+          "send_duplicate",
+          "919"
+        ],
+        [
+          "folder_create",
+          "116"
+        ],
+        [
+          "flag",
+          "118"
+        ],
+        [
+          "folder_review",
+          "172"
+        ],
+        [
+          "testapp_delete",
+          "276"
+        ],
+        [
+          "local_flag",
+          "117"
+        ]
+      ],
+      "log": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-sweep-0-11-42811270001-1/mail.txt",
+      "sha256": "7f652f22ed416696974f7684bc584e4a14ac869386a72983d1dae812c0657ddc",
+      "test_summaries": [
+        [
+          "5",
+          "61.539"
+        ],
+        [
+          "6",
+          "609.298"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-sweep-0-2-42811270001-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "send",
+          "837"
+        ],
+        [
+          "delete_trash",
+          "272"
+        ],
+        [
+          "unsubscribe_mailto",
+          "839"
+        ],
+        [
+          "status",
+          "147"
+        ],
+        [
+          "cancel",
+          "65"
+        ],
+        [
+          "attachment_export",
+          "277"
+        ],
+        [
+          "password",
+          "136"
+        ],
+        [
+          "filing_copy",
+          "351"
+        ],
+        [
+          "expiry",
+          "65"
+        ],
+        [
+          "restart_index",
+          "37"
+        ],
+        [
+          "export_rollback",
+          "277"
+        ],
+        [
+          "send_duplicate",
+          "919"
+        ],
+        [
+          "folder_create",
+          "116"
+        ],
+        [
+          "flag",
+          "118"
+        ],
+        [
+          "folder_review",
+          "172"
+        ],
+        [
+          "testapp_delete",
+          "276"
+        ],
+        [
+          "local_flag",
+          "117"
+        ]
+      ],
+      "log": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-sweep-0-2-42811270001-1/mail.txt",
+      "sha256": "26a6be890a2df2f92d21862bc772946fe436949369cca3160112cd844018dbc7",
+      "test_summaries": [
+        [
+          "5",
+          "165.537"
+        ],
+        [
+          "6",
+          "547.149"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-sweep-0-3-42811270001-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "send",
+          "837"
+        ],
+        [
+          "delete_trash",
+          "272"
+        ],
+        [
+          "unsubscribe_mailto",
+          "839"
+        ],
+        [
+          "status",
+          "147"
+        ],
+        [
+          "cancel",
+          "65"
+        ],
+        [
+          "attachment_export",
+          "277"
+        ],
+        [
+          "password",
+          "136"
+        ],
+        [
+          "filing_copy",
+          "351"
+        ],
+        [
+          "expiry",
+          "65"
+        ],
+        [
+          "restart_index",
+          "37"
+        ],
+        [
+          "export_rollback",
+          "277"
+        ],
+        [
+          "send_duplicate",
+          "919"
+        ],
+        [
+          "folder_create",
+          "116"
+        ],
+        [
+          "flag",
+          "118"
+        ],
+        [
+          "folder_review",
+          "172"
+        ],
+        [
+          "testapp_delete",
+          "276"
+        ],
+        [
+          "local_flag",
+          "117"
+        ]
+      ],
+      "log": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-sweep-0-3-42811270001-1/mail.txt",
+      "sha256": "3f9f5d9b292bccd4ba086141a4af1cd5df2b2cf035761046e2ac05e9e0f75dbd",
+      "test_summaries": [
+        [
+          "5",
+          "210.756"
+        ],
+        [
+          "6",
+          "798.001"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-sweep-0-4-42811270001-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "send",
+          "837"
+        ],
+        [
+          "delete_trash",
+          "272"
+        ],
+        [
+          "unsubscribe_mailto",
+          "839"
+        ],
+        [
+          "status",
+          "147"
+        ],
+        [
+          "cancel",
+          "65"
+        ],
+        [
+          "attachment_export",
+          "277"
+        ],
+        [
+          "password",
+          "136"
+        ],
+        [
+          "filing_copy",
+          "351"
+        ],
+        [
+          "expiry",
+          "65"
+        ],
+        [
+          "restart_index",
+          "37"
+        ],
+        [
+          "export_rollback",
+          "277"
+        ],
+        [
+          "send_duplicate",
+          "919"
+        ],
+        [
+          "folder_create",
+          "116"
+        ],
+        [
+          "flag",
+          "118"
+        ],
+        [
+          "folder_review",
+          "172"
+        ],
+        [
+          "testapp_delete",
+          "276"
+        ],
+        [
+          "local_flag",
+          "117"
+        ]
+      ],
+      "log": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-sweep-0-4-42811270001-1/mail.txt",
+      "sha256": "01b26729f44a0dc974836c18551442d3e2b68d6808fed837e5154b808d874f10",
+      "test_summaries": [
+        [
+          "5",
+          "361.862"
+        ],
+        [
+          "6",
+          "543.846"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-sweep-0-5-42811270001-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "send",
+          "837"
+        ],
+        [
+          "delete_trash",
+          "272"
+        ],
+        [
+          "unsubscribe_mailto",
+          "839"
+        ],
+        [
+          "status",
+          "147"
+        ],
+        [
+          "cancel",
+          "65"
+        ],
+        [
+          "attachment_export",
+          "277"
+        ],
+        [
+          "password",
+          "136"
+        ],
+        [
+          "filing_copy",
+          "351"
+        ],
+        [
+          "expiry",
+          "65"
+        ],
+        [
+          "restart_index",
+          "37"
+        ],
+        [
+          "export_rollback",
+          "277"
+        ],
+        [
+          "send_duplicate",
+          "919"
+        ],
+        [
+          "folder_create",
+          "116"
+        ],
+        [
+          "flag",
+          "118"
+        ],
+        [
+          "folder_review",
+          "172"
+        ],
+        [
+          "testapp_delete",
+          "276"
+        ],
+        [
+          "local_flag",
+          "117"
+        ]
+      ],
+      "log": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-sweep-0-5-42811270001-1/mail.txt",
+      "sha256": "66c326c347a26a051f730bbc9a113dbac9f00b19a202ed2b7521b46b41416740",
+      "test_summaries": [
+        [
+          "5",
+          "120.858"
+        ],
+        [
+          "6",
+          "646.275"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-sweep-0-6-42811270001-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "send",
+          "837"
+        ],
+        [
+          "delete_trash",
+          "272"
+        ],
+        [
+          "unsubscribe_mailto",
+          "839"
+        ],
+        [
+          "status",
+          "147"
+        ],
+        [
+          "cancel",
+          "65"
+        ],
+        [
+          "attachment_export",
+          "277"
+        ],
+        [
+          "password",
+          "136"
+        ],
+        [
+          "filing_copy",
+          "351"
+        ],
+        [
+          "expiry",
+          "65"
+        ],
+        [
+          "restart_index",
+          "37"
+        ],
+        [
+          "export_rollback",
+          "277"
+        ],
+        [
+          "send_duplicate",
+          "919"
+        ],
+        [
+          "folder_create",
+          "116"
+        ],
+        [
+          "flag",
+          "118"
+        ],
+        [
+          "folder_review",
+          "172"
+        ],
+        [
+          "testapp_delete",
+          "276"
+        ],
+        [
+          "local_flag",
+          "117"
+        ]
+      ],
+      "log": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-sweep-0-6-42811270001-1/mail.txt",
+      "sha256": "f6617b042c23e50fdc09056a36047b298f3ca9ca26aa148e30d991b6dfdbad90",
+      "test_summaries": [
+        [
+          "5",
+          "102.247"
+        ],
+        [
+          "6",
+          "613.939"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-sweep-0-7-42811270001-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "send",
+          "837"
+        ],
+        [
+          "delete_trash",
+          "272"
+        ],
+        [
+          "unsubscribe_mailto",
+          "839"
+        ],
+        [
+          "status",
+          "147"
+        ],
+        [
+          "cancel",
+          "65"
+        ],
+        [
+          "attachment_export",
+          "277"
+        ],
+        [
+          "password",
+          "136"
+        ],
+        [
+          "filing_copy",
+          "351"
+        ],
+        [
+          "expiry",
+          "65"
+        ],
+        [
+          "restart_index",
+          "37"
+        ],
+        [
+          "export_rollback",
+          "277"
+        ],
+        [
+          "send_duplicate",
+          "919"
+        ],
+        [
+          "folder_create",
+          "116"
+        ],
+        [
+          "flag",
+          "118"
+        ],
+        [
+          "folder_review",
+          "172"
+        ],
+        [
+          "testapp_delete",
+          "276"
+        ],
+        [
+          "local_flag",
+          "117"
+        ]
+      ],
+      "log": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-sweep-0-7-42811270001-1/mail.txt",
+      "sha256": "2211871afb545e644beb738ca1db2806fbae5b45bb9bc7c37ae6ad8377765f1b",
+      "test_summaries": [
+        [
+          "5",
+          "141.874"
+        ],
+        [
+          "6",
+          "742.977"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-sweep-0-8-42811270001-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "send",
+          "837"
+        ],
+        [
+          "delete_trash",
+          "272"
+        ],
+        [
+          "unsubscribe_mailto",
+          "839"
+        ],
+        [
+          "status",
+          "147"
+        ],
+        [
+          "cancel",
+          "65"
+        ],
+        [
+          "attachment_export",
+          "277"
+        ],
+        [
+          "password",
+          "136"
+        ],
+        [
+          "filing_copy",
+          "351"
+        ],
+        [
+          "expiry",
+          "65"
+        ],
+        [
+          "restart_index",
+          "37"
+        ],
+        [
+          "export_rollback",
+          "277"
+        ],
+        [
+          "send_duplicate",
+          "919"
+        ],
+        [
+          "folder_create",
+          "116"
+        ],
+        [
+          "flag",
+          "118"
+        ],
+        [
+          "folder_review",
+          "172"
+        ],
+        [
+          "testapp_delete",
+          "276"
+        ],
+        [
+          "local_flag",
+          "117"
+        ]
+      ],
+      "log": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-sweep-0-8-42811270001-1/mail.txt",
+      "sha256": "e60df5c09f0ded32a528ccc808689dbae446b3667ebb20786b2032e9eaf639de",
+      "test_summaries": [
+        [
+          "5",
+          "157.240"
+        ],
+        [
+          "6",
+          "493.775"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-sweep-0-9-42811270001-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "send",
+          "837"
+        ],
+        [
+          "delete_trash",
+          "272"
+        ],
+        [
+          "unsubscribe_mailto",
+          "839"
+        ],
+        [
+          "status",
+          "147"
+        ],
+        [
+          "cancel",
+          "65"
+        ],
+        [
+          "attachment_export",
+          "277"
+        ],
+        [
+          "password",
+          "136"
+        ],
+        [
+          "filing_copy",
+          "351"
+        ],
+        [
+          "expiry",
+          "65"
+        ],
+        [
+          "restart_index",
+          "37"
+        ],
+        [
+          "export_rollback",
+          "277"
+        ],
+        [
+          "send_duplicate",
+          "919"
+        ],
+        [
+          "folder_create",
+          "116"
+        ],
+        [
+          "flag",
+          "118"
+        ],
+        [
+          "folder_review",
+          "172"
+        ],
+        [
+          "testapp_delete",
+          "276"
+        ],
+        [
+          "local_flag",
+          "117"
+        ]
+      ],
+      "log": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-sweep-0-9-42811270001-1/mail.txt",
+      "sha256": "194f8532e03c9637529c1b6747cd61339edef78ec86ed33c4360216a3abb8e40",
+      "test_summaries": [
+        [
+          "5",
+          "318.667"
+        ],
+        [
+          "6",
+          "738.478"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-sweep-1-0-42811270001-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "repair",
+          "345"
+        ],
+        [
+          "delete_permanent",
+          "402"
+        ],
+        [
+          "unsubscribe_https",
+          "336"
+        ],
+        [
+          "settlement",
+          "148"
+        ],
+        [
+          "restore",
+          "68"
+        ],
+        [
+          "testapp_export",
+          "144"
+        ],
+        [
+          "filing_move",
+          "350"
+        ],
+        [
+          "filing_rename",
+          "227"
+        ],
+        [
+          "maintenance",
+          "62"
+        ],
+        [
+          "restart_tail",
+          "39"
+        ],
+        [
+          "archive",
+          "360"
+        ],
+        [
+          "draft_append",
+          "172"
+        ],
+        [
+          "folder_delete",
+          "207"
+        ],
+        [
+          "settings",
+          "172"
+        ],
+        [
+          "testapp_send",
+          "377"
+        ],
+        [
+          "testapp_config",
+          "132"
+        ]
+      ],
+      "log": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-sweep-1-0-42811270001-1/mail.txt",
+      "sha256": "21bcd3b18e0f839dfaa242022225f40808197930375e8443a47670263977200f",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "403.039"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-sweep-1-1-42811270001-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "repair",
+          "345"
+        ],
+        [
+          "delete_permanent",
+          "402"
+        ],
+        [
+          "unsubscribe_https",
+          "336"
+        ],
+        [
+          "settlement",
+          "148"
+        ],
+        [
+          "restore",
+          "68"
+        ],
+        [
+          "testapp_export",
+          "144"
+        ],
+        [
+          "filing_move",
+          "350"
+        ],
+        [
+          "filing_rename",
+          "227"
+        ],
+        [
+          "maintenance",
+          "62"
+        ],
+        [
+          "restart_tail",
+          "39"
+        ],
+        [
+          "archive",
+          "360"
+        ],
+        [
+          "draft_append",
+          "172"
+        ],
+        [
+          "folder_delete",
+          "207"
+        ],
+        [
+          "settings",
+          "172"
+        ],
+        [
+          "testapp_send",
+          "377"
+        ],
+        [
+          "testapp_config",
+          "132"
+        ]
+      ],
+      "log": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-sweep-1-1-42811270001-1/mail.txt",
+      "sha256": "1ea4a508978cb430ed748709ae873a5b092d0dc2731780c7d298c56193ff41ad",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "411.991"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-sweep-1-10-42811270001-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "repair",
+          "345"
+        ],
+        [
+          "delete_permanent",
+          "402"
+        ],
+        [
+          "unsubscribe_https",
+          "336"
+        ],
+        [
+          "settlement",
+          "148"
+        ],
+        [
+          "restore",
+          "68"
+        ],
+        [
+          "testapp_export",
+          "144"
+        ],
+        [
+          "filing_move",
+          "350"
+        ],
+        [
+          "filing_rename",
+          "227"
+        ],
+        [
+          "maintenance",
+          "62"
+        ],
+        [
+          "restart_tail",
+          "39"
+        ],
+        [
+          "archive",
+          "360"
+        ],
+        [
+          "draft_append",
+          "172"
+        ],
+        [
+          "folder_delete",
+          "207"
+        ],
+        [
+          "settings",
+          "172"
+        ],
+        [
+          "testapp_send",
+          "377"
+        ],
+        [
+          "testapp_config",
+          "132"
+        ]
+      ],
+      "log": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-sweep-1-10-42811270001-1/mail.txt",
+      "sha256": "9959bc69289d16b56757de0da900c6a3ec32c16fc38ffcf501df7324bc3a8e13",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "533.439"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-sweep-1-11-42811270001-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "repair",
+          "345"
+        ],
+        [
+          "delete_permanent",
+          "402"
+        ],
+        [
+          "unsubscribe_https",
+          "336"
+        ],
+        [
+          "settlement",
+          "148"
+        ],
+        [
+          "restore",
+          "68"
+        ],
+        [
+          "testapp_export",
+          "144"
+        ],
+        [
+          "filing_move",
+          "350"
+        ],
+        [
+          "filing_rename",
+          "227"
+        ],
+        [
+          "maintenance",
+          "62"
+        ],
+        [
+          "restart_tail",
+          "39"
+        ],
+        [
+          "archive",
+          "360"
+        ],
+        [
+          "draft_append",
+          "172"
+        ],
+        [
+          "folder_delete",
+          "207"
+        ],
+        [
+          "settings",
+          "172"
+        ],
+        [
+          "testapp_send",
+          "377"
+        ],
+        [
+          "testapp_config",
+          "132"
+        ]
+      ],
+      "log": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-sweep-1-11-42811270001-1/mail.txt",
+      "sha256": "7e6643bd4b8f6b2c170713bd4e39eb1e7baafc752d8130c1722316b882fbcf92",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "336.284"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-sweep-1-2-42811270001-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "repair",
+          "345"
+        ],
+        [
+          "delete_permanent",
+          "402"
+        ],
+        [
+          "unsubscribe_https",
+          "336"
+        ],
+        [
+          "settlement",
+          "148"
+        ],
+        [
+          "restore",
+          "68"
+        ],
+        [
+          "testapp_export",
+          "144"
+        ],
+        [
+          "filing_move",
+          "350"
+        ],
+        [
+          "filing_rename",
+          "227"
+        ],
+        [
+          "maintenance",
+          "62"
+        ],
+        [
+          "restart_tail",
+          "39"
+        ],
+        [
+          "archive",
+          "360"
+        ],
+        [
+          "draft_append",
+          "172"
+        ],
+        [
+          "folder_delete",
+          "207"
+        ],
+        [
+          "settings",
+          "172"
+        ],
+        [
+          "testapp_send",
+          "377"
+        ],
+        [
+          "testapp_config",
+          "132"
+        ]
+      ],
+      "log": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-sweep-1-2-42811270001-1/mail.txt",
+      "sha256": "35504ba3a41a72a369e4dc9bf1aa5bb5384ff6ab1d743287071c9698f72a1004",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "495.765"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-sweep-1-3-42811270001-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "repair",
+          "345"
+        ],
+        [
+          "delete_permanent",
+          "402"
+        ],
+        [
+          "unsubscribe_https",
+          "336"
+        ],
+        [
+          "settlement",
+          "148"
+        ],
+        [
+          "restore",
+          "68"
+        ],
+        [
+          "testapp_export",
+          "144"
+        ],
+        [
+          "filing_move",
+          "350"
+        ],
+        [
+          "filing_rename",
+          "227"
+        ],
+        [
+          "maintenance",
+          "62"
+        ],
+        [
+          "restart_tail",
+          "39"
+        ],
+        [
+          "archive",
+          "360"
+        ],
+        [
+          "draft_append",
+          "172"
+        ],
+        [
+          "folder_delete",
+          "207"
+        ],
+        [
+          "settings",
+          "172"
+        ],
+        [
+          "testapp_send",
+          "377"
+        ],
+        [
+          "testapp_config",
+          "132"
+        ]
+      ],
+      "log": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-sweep-1-3-42811270001-1/mail.txt",
+      "sha256": "596d6761382501b36fc35115bd215d1be0beee619b6707574462f7c09cafd569",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "272.920"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-sweep-1-4-42811270001-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "repair",
+          "345"
+        ],
+        [
+          "delete_permanent",
+          "402"
+        ],
+        [
+          "unsubscribe_https",
+          "336"
+        ],
+        [
+          "settlement",
+          "148"
+        ],
+        [
+          "restore",
+          "68"
+        ],
+        [
+          "testapp_export",
+          "144"
+        ],
+        [
+          "filing_move",
+          "350"
+        ],
+        [
+          "filing_rename",
+          "227"
+        ],
+        [
+          "maintenance",
+          "62"
+        ],
+        [
+          "restart_tail",
+          "39"
+        ],
+        [
+          "archive",
+          "360"
+        ],
+        [
+          "draft_append",
+          "172"
+        ],
+        [
+          "folder_delete",
+          "207"
+        ],
+        [
+          "settings",
+          "172"
+        ],
+        [
+          "testapp_send",
+          "377"
+        ],
+        [
+          "testapp_config",
+          "132"
+        ]
+      ],
+      "log": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-sweep-1-4-42811270001-1/mail.txt",
+      "sha256": "212ac0ddd6e89376183e008f301704c4b5ee87fbca0a49ce4c0681d4d52a196e",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "387.345"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-sweep-1-5-42811270001-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "repair",
+          "345"
+        ],
+        [
+          "delete_permanent",
+          "402"
+        ],
+        [
+          "unsubscribe_https",
+          "336"
+        ],
+        [
+          "settlement",
+          "148"
+        ],
+        [
+          "restore",
+          "68"
+        ],
+        [
+          "testapp_export",
+          "144"
+        ],
+        [
+          "filing_move",
+          "350"
+        ],
+        [
+          "filing_rename",
+          "227"
+        ],
+        [
+          "maintenance",
+          "62"
+        ],
+        [
+          "restart_tail",
+          "39"
+        ],
+        [
+          "archive",
+          "360"
+        ],
+        [
+          "draft_append",
+          "172"
+        ],
+        [
+          "folder_delete",
+          "207"
+        ],
+        [
+          "settings",
+          "172"
+        ],
+        [
+          "testapp_send",
+          "377"
+        ],
+        [
+          "testapp_config",
+          "132"
+        ]
+      ],
+      "log": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-sweep-1-5-42811270001-1/mail.txt",
+      "sha256": "798a8ef34543d784a66df4fd56ef756f7a28d375c9601df156d31b9510173612",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "429.614"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-sweep-1-6-42811270001-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "repair",
+          "345"
+        ],
+        [
+          "delete_permanent",
+          "402"
+        ],
+        [
+          "unsubscribe_https",
+          "336"
+        ],
+        [
+          "settlement",
+          "148"
+        ],
+        [
+          "restore",
+          "68"
+        ],
+        [
+          "testapp_export",
+          "144"
+        ],
+        [
+          "filing_move",
+          "350"
+        ],
+        [
+          "filing_rename",
+          "227"
+        ],
+        [
+          "maintenance",
+          "62"
+        ],
+        [
+          "restart_tail",
+          "39"
+        ],
+        [
+          "archive",
+          "360"
+        ],
+        [
+          "draft_append",
+          "172"
+        ],
+        [
+          "folder_delete",
+          "207"
+        ],
+        [
+          "settings",
+          "172"
+        ],
+        [
+          "testapp_send",
+          "377"
+        ],
+        [
+          "testapp_config",
+          "132"
+        ]
+      ],
+      "log": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-sweep-1-6-42811270001-1/mail.txt",
+      "sha256": "6f3dca1a208a3864466388a10d3952c6b85e261f6469f9fe12b4419fe3697869",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "408.682"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-sweep-1-7-42811270001-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "repair",
+          "345"
+        ],
+        [
+          "delete_permanent",
+          "402"
+        ],
+        [
+          "unsubscribe_https",
+          "336"
+        ],
+        [
+          "settlement",
+          "148"
+        ],
+        [
+          "restore",
+          "68"
+        ],
+        [
+          "testapp_export",
+          "144"
+        ],
+        [
+          "filing_move",
+          "350"
+        ],
+        [
+          "filing_rename",
+          "227"
+        ],
+        [
+          "maintenance",
+          "62"
+        ],
+        [
+          "restart_tail",
+          "39"
+        ],
+        [
+          "archive",
+          "360"
+        ],
+        [
+          "draft_append",
+          "172"
+        ],
+        [
+          "folder_delete",
+          "207"
+        ],
+        [
+          "settings",
+          "172"
+        ],
+        [
+          "testapp_send",
+          "377"
+        ],
+        [
+          "testapp_config",
+          "132"
+        ]
+      ],
+      "log": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-sweep-1-7-42811270001-1/mail.txt",
+      "sha256": "04a868bb18765fefd60e1a4486813bc649f0d61afe8aaf97de428c7e5ce107b5",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "352.016"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-sweep-1-8-42811270001-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "repair",
+          "345"
+        ],
+        [
+          "delete_permanent",
+          "402"
+        ],
+        [
+          "unsubscribe_https",
+          "336"
+        ],
+        [
+          "settlement",
+          "148"
+        ],
+        [
+          "restore",
+          "68"
+        ],
+        [
+          "testapp_export",
+          "144"
+        ],
+        [
+          "filing_move",
+          "350"
+        ],
+        [
+          "filing_rename",
+          "227"
+        ],
+        [
+          "maintenance",
+          "62"
+        ],
+        [
+          "restart_tail",
+          "39"
+        ],
+        [
+          "archive",
+          "360"
+        ],
+        [
+          "draft_append",
+          "172"
+        ],
+        [
+          "folder_delete",
+          "207"
+        ],
+        [
+          "settings",
+          "172"
+        ],
+        [
+          "testapp_send",
+          "377"
+        ],
+        [
+          "testapp_config",
+          "132"
+        ]
+      ],
+      "log": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-sweep-1-8-42811270001-1/mail.txt",
+      "sha256": "cf2b8d8cf17b95d790019dc091eb29569641dd022db716bd62ebc97032641069",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "379.509"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-sweep-1-9-42811270001-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "repair",
+          "345"
+        ],
+        [
+          "delete_permanent",
+          "402"
+        ],
+        [
+          "unsubscribe_https",
+          "336"
+        ],
+        [
+          "settlement",
+          "148"
+        ],
+        [
+          "restore",
+          "68"
+        ],
+        [
+          "testapp_export",
+          "144"
+        ],
+        [
+          "filing_move",
+          "350"
+        ],
+        [
+          "filing_rename",
+          "227"
+        ],
+        [
+          "maintenance",
+          "62"
+        ],
+        [
+          "restart_tail",
+          "39"
+        ],
+        [
+          "archive",
+          "360"
+        ],
+        [
+          "draft_append",
+          "172"
+        ],
+        [
+          "folder_delete",
+          "207"
+        ],
+        [
+          "settings",
+          "172"
+        ],
+        [
+          "testapp_send",
+          "377"
+        ],
+        [
+          "testapp_config",
+          "132"
+        ]
+      ],
+      "log": ".work/19b-s2-fixes/ci/42811270001-1/control-mail-sweep-1-9-42811270001-1/mail.txt",
+      "sha256": "9e234a75897e24c63ce8341476122209c216ad8779342533214be7f351a89fb7",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "299.600"
+        ]
+      ]
+    }
+  ],
+  "mode": "repin",
+  "per_suite": {
+    "G22-evidence": 1,
+    "G22-latch": 1,
+    "G22-rename": 1,
+    "archive": 60766,
+    "attachment_export": 66558,
+    "cancel": 9909,
+    "channel": 2,
+    "contract": 557,
+    "delete_permanent": 77337,
+    "delete_trash": 51769,
+    "draft_append": 13928,
+    "expiry": 11998,
+    "export_rollback": 74402,
+    "filing_copy": 70907,
+    "filing_move": 70648,
+    "filing_rename": 32701,
+    "flag": 8137,
+    "folder_create": 7721,
+    "folder_delete": 39041,
+    "folder_review": 34653,
+    "local_flag": 6812,
+    "maintenance": 6303,
+    "onboarding": 485449,
+    "password": 2286,
+    "repair": 83131,
+    "restore": 18684,
+    "send": 173633,
+    "send_duplicate": 192829,
+    "settings": 14281,
+    "settlement": 34071,
+    "status": 24872,
+    "testapp_config": 7844,
+    "testapp_delete": 48279,
+    "testapp_export": 20227,
+    "testapp_send": 69442,
+    "unsubscribe_https": 64378,
+    "unsubscribe_mailto": 174322
+  },
+  "post_capture_test_recorder_fix": {
+    "files": [
+      "control/mail_tests/smtp_fixture.py",
+      "control/mail_tests/test_unsubscribe.py"
+    ],
+    "owner_capture_inputs_changed": false,
+    "reason": "Only the standalone real-server mailto test and its SMTP receiver gain missing commit/APPEND/raw-byte evidence. Owner Driver, expectations, scripts, production and gap inputs are unchanged.",
+    "source": "46f9c1238e6a5415d2ea70519229a226448bf820"
+  },
+  "run": 42811270001,
+  "runs": {
+    "base": {
+      "attempt": 1,
+      "conclusion": "success",
+      "id": 42811270027,
+      "job_conclusions": {
+        "success": 1
+      },
+      "job_seconds": {
+        "containers": 259
+      },
+      "max_seconds": 259
+    },
+    "mail": {
+      "attempt": 1,
+      "conclusion": "failure",
+      "id": 42811270001,
+      "job_conclusions": {
+        "failure": 50,
+        "success": 14
+      },
+      "job_seconds": {
+        "alterations (0)": 898,
+        "alterations (1)": 1449,
+        "alterations (10)": 410,
+        "alterations (11)": 521,
+        "alterations (2)": 1497,
+        "alterations (3)": 299,
+        "alterations (4)": 1095,
+        "alterations (5)": 2192,
+        "alterations (6)": 242,
+        "alterations (7)": 124,
+        "alterations (8)": 130,
+        "alterations (9)": 187,
+        "containers (0)": 1066,
+        "containers (1)": 298,
+        "containers (2)": 510,
+        "containers (3)": 772,
+        "onboarding (0)": 452,
+        "onboarding (1)": 427,
+        "onboarding (10)": 430,
+        "onboarding (11)": 412,
+        "onboarding (12)": 455,
+        "onboarding (13)": 234,
+        "onboarding (14)": 417,
+        "onboarding (15)": 264,
+        "onboarding (16)": 309,
+        "onboarding (17)": 488,
+        "onboarding (18)": 410,
+        "onboarding (19)": 494,
+        "onboarding (2)": 366,
+        "onboarding (20)": 411,
+        "onboarding (21)": 356,
+        "onboarding (22)": 373,
+        "onboarding (23)": 390,
+        "onboarding (3)": 283,
+        "onboarding (4)": 262,
+        "onboarding (5)": 401,
+        "onboarding (6)": 358,
+        "onboarding (7)": 454,
+        "onboarding (8)": 423,
+        "onboarding (9)": 479,
+        "sweep (0, 0)": 957,
+        "sweep (0, 1)": 675,
+        "sweep (0, 10)": 827,
+        "sweep (0, 11)": 654,
+        "sweep (0, 2)": 593,
+        "sweep (0, 3)": 842,
+        "sweep (0, 4)": 591,
+        "sweep (0, 5)": 686,
+        "sweep (0, 6)": 650,
+        "sweep (0, 7)": 790,
+        "sweep (0, 8)": 535,
+        "sweep (0, 9)": 775,
+        "sweep (1, 0)": 448,
+        "sweep (1, 1)": 453,
+        "sweep (1, 10)": 578,
+        "sweep (1, 11)": 383,
+        "sweep (1, 2)": 534,
+        "sweep (1, 3)": 317,
+        "sweep (1, 4)": 432,
+        "sweep (1, 5)": 474,
+        "sweep (1, 6)": 445,
+        "sweep (1, 7)": 394,
+        "sweep (1, 8)": 424,
+        "sweep (1, 9)": 344
+      },
+      "max_seconds": 2192
+    }
+  },
+  "sha256": "abaf79487708e750813a25f337633f05bf1b20857cc6cc1aa9f9fd3c1c573277",
+  "source": "ad9d6d5903bc7519d271d46dbaffed2091675fb1",
+  "stages": {
+    "2": 0,
+    "3": 2057880
+  }
+}

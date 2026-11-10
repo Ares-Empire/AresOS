@@ -179,3 +179,11 @@ changes, including local flags. The field audit now includes the production
 rows copied into server logs; coherent alterations propagate through all copies
 and require semantic detection. REPORT.md and FORMAT.md contain the updated
 field-audit/resolution tables and validator-specific controls.
+
+The finished local pass and all twelve Linux capture alteration shards agree:
+94 recordings, 2,003,694 alterations (257,524 coherent), 14,904 owner-set changes,
+zero slipped; all 13 production field-kind controls and seven separate
+validator-disable controls are exercised in every shard. The complete fresh
+53-list Linux pin has 2,057,880 exact stage-3 keys and zero R2 keys in 928,878
+bytes. REPORT.md and LEDGER-CAPTURE-S2-FIXES.json record the diagnostic capture
+failures separately from the final strict pair.
