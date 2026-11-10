@@ -1,7 +1,16 @@
 // Plain HTTP fixture test. It starts no browser and writes no output/profile.
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import vm from 'node:vm';
 import {fixtures} from '../chrome/ci/fixture.mjs';
+import {popupPage} from '../chrome/ci/popups.mjs';
+
+test('popup fixtures compile for clean dirty and POST opener flows',()=>{
+  for(const kind of ['popup-opener','popup-child'])for(const mode of ['clean','dirty','post']){
+    const page=popupPage(new URL('http://fixture.test/?case='+kind+'&id=fixture&mode='+mode));
+    new vm.Script(page.script);assert.ok(page.body);
+  }
+});
 
 test('favicon and unrelated requests preserve mutation channels; applied mutations require acknowledgement',async()=>{
   const fixture=await fixtures({port:0,secondPort:0});const base='http://127.0.0.1:'+fixture.port;

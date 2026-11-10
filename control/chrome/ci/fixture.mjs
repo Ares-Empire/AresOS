@@ -1,6 +1,7 @@
 import http from 'node:http';
 import fs from 'node:fs';
 import {compatibilityScript} from './compatibility.mjs';
+import {popupPage} from './popups.mjs';
 const page=(body,script='')=>`<!doctype html><meta charset="utf-8"><title>Synthetic fixture</title><style>body{font:16px sans-serif;margin:20px}button,input,textarea{margin:8px}</style>${body}<script>${script}</script>`;
 export async function fixtures(options={}) {
   const arrivals=[],streams=new Map(),mutations=new Map();let mutationSequence=0;
@@ -35,6 +36,7 @@ export async function fixtures(options={}) {
     // not exhaust Chrome's six HTTP/1.1 connections and hide later receivers.
     if(!['draft-inner','password-inner'].includes(kind))for(const [id,stream]of streams){stream.end();streams.delete(id);}
     let body,script='';
+    if(['popup-opener','popup-child'].includes(kind)){const popup=popupPage(url);res.end(page(popup.body,popup.script));return;}
     if(kind==='adapter-sites'){const site=(await import('./sites/fixture.mjs')).sitePage(url,req.headers.host);res.end(page(site.body,site.script));return;}
     if(kind==='native-donor'){
       const id=url.searchParams.get('id');body='<p id="native-donor">Ordinary native donor</p><button type="button" style="position:fixed;inset:0;width:100vw;height:100vh">Open controlled page</button>';

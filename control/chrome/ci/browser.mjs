@@ -106,6 +106,16 @@ try {
   const caller=(verb,args)=>JSON.parse(execFileSync('python3',['control/chrome/ci/call.py',verb,JSON.stringify(args)],{encoding:'utf8',env:{...process.env,GITHUB_ACTIONS:'true'}}));
   let browserWindow=execFileSync('xdotool',['getactivewindow'],{encoding:'utf8'}).trim();
   const ownerNavigate=async(url)=>{execFileSync('xdotool',['windowactivate','--sync',browserWindow]);execFileSync('xdotool',['key','--clearmodifiers','ctrl+1']);execFileSync('xdotool',['key','--clearmodifiers','ctrl+l']);execFileSync('xdotool',['type','--clearmodifiers','--delay','1',url]);execFileSync('xdotool',['key','Return']);await delay(400);};
+  let ordinaryPopup;
+  const ownerOpenPopup=async currentTab=>{
+    if(currentTab===null){
+      const windows=execFileSync('xdotool',['search','--onlyvisible','--name','^Popup popup-outside'],{encoding:'utf8'}).trim().split('\n');assert.equal(windows.length,1);
+      execFileSync('xdotool',['windowactivate','--sync',windows[0]]);execFileSync('xdotool',['key','--clearmodifiers','alt+F4']);
+      await eventually(async()=>!(await call('tabs')).items.some(item=>item.tab===ordinaryPopup),'owner closes ordinary popup');execFileSync('xdotool',['windowactivate','--sync',browserWindow]);return;
+    }
+    await call('release_tab',{tab:currentTab});await ownerNavigate('http://fixture.test:8765/?case=popup-opener&id=popup-outside');nativeCompatibilityClick();
+    const child=await eventually(async()=>(await call('tabs')).items.find(item=>item.url?.includes('case=popup-child&id=popup-outside')),'ordinary opener popup');ordinaryPopup=child.tab;return child;
+  };
   let donorTab,donorMarker;
   const nativeDonor=async(currentTab)=>{
     const released=await call('release_tab',{tab:currentTab});assert.ok(!released.untrusted_content.cleanup_pending,'native donor parent must be fully released');
@@ -125,7 +135,7 @@ try {
     execFileSync('xdotool',['key','--clearmodifiers','ctrl+w']);
     await eventually(async()=>!(await call('tabs')).items.some(item=>item.tab===donorTab),'owner closed the native donor');donorTab=null;
   };
-  for(const failure of await matrices({call,read,nav,target,counts,eventually,tab,fixture,admin,rpc,caller,ownerNavigate,nativeDonor,closeNativeDonor,baseline,
+  for(const failure of await matrices({call,read,nav,target,counts,eventually,tab,fixture,admin,rpc,caller,ownerNavigate,ownerOpenPopup,nativeDonor,closeNativeDonor,baseline,
     ownerDismiss:()=>execFileSync('xdotool',['key','--clearmodifiers','Escape']),
     isolationAfter:()=>{const finalListeners=execFileSync('ss',['-lntp'],{encoding:'utf8'}).split('\n').filter(line=>line.includes('\"chrome\"'));assert.equal(finalListeners.length,0,'Chrome must still have no listening port after all tools');fs.writeFileSync('/out/isolation-after.json',JSON.stringify({listeners:finalListeners}));},
     ownerHistory:async(direction)=>{execFileSync('xdotool',['key','--clearmodifiers',direction==='back'?'alt+Left':'alt+Right']);await delay(400);},

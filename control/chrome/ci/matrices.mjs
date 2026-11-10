@@ -4,8 +4,9 @@ import fs from 'node:fs';
 import {verdicts} from './verdicts.mjs';
 import {setTimeout as delay} from 'node:timers/promises';
 import {measureCompatibility,compareCompatibility} from './compatibility.mjs';
+import {popupMatrices} from './popups.mjs';
 
-export async function matrices({call,read,nav,target,counts,eventually,tab,fixture,admin,rpc,caller,ownerNavigate,nativeDonor,closeNativeDonor,ownerKey,ownerDismiss,ownerHistory,ownerBookmark,lifecycle,restoreControl,stopClick,baseline,isolationAfter}) {
+export async function matrices({call,read,nav,target,counts,eventually,tab,fixture,admin,rpc,caller,ownerNavigate,ownerOpenPopup,nativeDonor,closeNativeDonor,ownerKey,ownerDismiss,ownerHistory,ownerBookmark,lifecycle,restoreControl,stopClick,baseline,isolationAfter}) {
   const results=[];let trustOperation;
   async function check(name,fn) {
     try {await fn();results.push({name,passed:true});console.log(name,'PASS');}
@@ -36,16 +37,13 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
   }
   async function setup(parameters) {await nav('matrix&'+new URLSearchParams(parameters));}
   const words=JSON.parse(fs.readFileSync('control/chrome/extension/policy.js','utf8').match(/\{[\s\S]*\}/)[0]).words;
-  await check('GROUP 2 first-script natives are guarded in pages frames and popups',async()=>{
+  await check('GROUP 2 first-script natives are guarded in pages and frames',async()=>{
     for(const kind of ['top','same','cross']){
       const id='first-'+kind;await nav(kind==='top'?'preload-origin&id='+id:'preload-frame&id='+id+(kind==='cross'?'&cross=1':''));
       await approval(await call('click',await target('Continue')),id);
     }
-    await nav('preload-popup');await call('click',await target('Open window'));
-    const popup=await eventually(async()=>{const tabs=await call('tabs',{limit:10});return tabs.items.find(item=>item.url?.includes('id=first-popup'));},'guarded popup tab');assert.equal(popup.controlled,true);
-    const row=await eventually(async()=>{const page=await call('read',{tab:popup.tab});return page.untrusted_content.tree.split('\n').filter(line=>line.startsWith('{')).map(JSON.parse).find(row=>row.expected.name==='Continue');},'first-script popup target');
-    await approval(await call('click',{reference:row.reference,expected:row.expected}),'first-popup');await call('close_tab',{tab:popup.tab});
   });
+  await popupMatrices({check,call,rpc,nav,counts,eventually,tab,fixture,ownerOpenPopup,approval});
   await check('GROUP 7 native compatibility inside and outside Claude tabs',async()=>{
     await nav('native-compat&id=controlled');
     const controlled=await measureCompatibility({id:'controlled',fixture,eventually,start:async()=>call('click',await target('Continue'))});
@@ -382,10 +380,21 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
       const prepared=await call(verb,{...await target(label),...args});await approval(prepared,id);
     }
     const typing=await call('fill',{...await target('Text'),text:'Plain text\nwith line breaks'});assert.ok(!typing.approval);assert.equal(counts('unexpected-enter'),0);
+    assert.ok(!(await call('scroll',{...await target('Text'),x:0,y:40})).approval,'scroll stays free');
+    for(const submit of ['native','event']){
+      const id='conservative-resume-'+submit;await setup({id,mode:'stopped',submit,route:'fill'});
+      const result=await call('fill',{...await target('Trigger text'),text:'Free typing starts held submission'});
+      await approval(result,id);console.log('CONSERVATIVE RECEIVER',id,'0 before, 1 after, 1 after repeat');
+    }
+    await nav('action-matrix&mode=submit&id=conservative-form&tag=submit');await approval(await call('click',await target('Continue')),'conservative-form');
     await setup({id:'conservative-script',mode:'conservative-script',route:'fill'});const scripted=await call('fill',{...await target('Trigger text'),text:'Free typing'});assert.equal(counts('conservative-script'),0);assert.equal(counts('handler-conservative-script'),0);assert.ok(scripted.followups.some(item=>item.stopped));await approval(await call('click',await target('Read more')),'conservative-script');assert.equal(counts('handler-conservative-script'),1);
     await nav('site&id=conservative-bank','bank');
     for(const [verb,label,args]of [['fill','Amount',{text:'1'}],['click','Continue',{}],['upload','File',{path:'/fixture.txt'}]])assert.equal((await rpc(verb,{...await target(label),...args})).error.code,'readonly_site');
     await nav('site&id=conservative-gmail','gmail');const generic=await call('click',await target('Send'));assert.equal(generic.approval.description.untrusted_content.page_state.adapter,null);assert.equal((await rpc('submit_trusted',generic.approval)).ok,false);assert.equal(counts('conservative-gmail-Send'),0);
+    await approval(generic,'conservative-gmail-Send');
+    await nav('password-matrix');assert.doesNotMatch(JSON.stringify(await read()),/SENTINEL_PRIVATE_PASSWORD_20/);
+    const show=await call('click',await target('Show'));assert.ok(show.approval);await call('submit',show.approval);assert.doesNotMatch(JSON.stringify(await read()),/SENTINEL_PRIVATE_PASSWORD_20/);
+    for(const file of ['browser-boundary.jsonl','tool.jsonl','service.txt'])assert.doesNotMatch(fs.readFileSync('/out/'+file,'utf8'),/SENTINEL_PRIVATE_PASSWORD_20/,file);
     await lifecycle({fixture:'qualification',mode:'password_exclusion'});
     assert.equal((await rpc('read',{tab})).ok,false);
     await lifecycle({fixture:'qualification',mode:'qualified'});

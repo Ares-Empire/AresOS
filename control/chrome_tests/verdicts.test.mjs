@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {REQUIRED,verdicts} from '../chrome/ci/verdicts.mjs';
+import fs from 'node:fs';
+import {REQUIRED,ADAPTER_REQUIRED,SUPPORT,verdicts} from '../chrome/ci/verdicts.mjs';
 
 const support=['FEATURE tools forms options find wait fill_form scroll and full catalogues','VIEW representative long article/form complete paging','QUALIFICATION conservative activations ask and core failures gate before reads'];
 const complete=()=>[...Object.values(REQUIRED).flat(),...support].map(name=>({name,passed:true}));
@@ -51,5 +52,29 @@ test('unmapped additional checks fail closed until explicitly assigned to record
   for(const passed of [true,false]){
     const result=verdicts([...complete(),{name:'GROUP 7 additional isolation regression',passed}],baseline,adapters);
     assert.ok(Object.values(result.core).every(value=>value===false));assert.ok(Object.values(result.adapters).every(value=>value===false));
+  }
+});
+
+test('every named core popup and adapter case is in the exact required inventory',()=>{
+  const names=['control/chrome/ci/matrices.mjs','control/chrome/ci/popups.mjs','control/chrome/ci/sites/matrices.mjs'].flatMap(file=>
+    [...fs.readFileSync(file,'utf8').matchAll(/await check\('([^']+)'/g)].flatMap(match=>match[1]==='GROUP 10 adapter '?['gmail','whatsapp','github','gemini','deezer'].map(site=>match[1]+site):[match[1]]));
+  assert.deepEqual([...names].sort(),[...Object.values(REQUIRED).flat(),...SUPPORT].sort());
+  assert.equal(verdicts(complete(),baseline,adapters).groups[12],false);
+});
+
+test('one adapter failure preserves all independent adapter verdicts',()=>{
+  for(const [site,names]of Object.entries(ADAPTER_REQUIRED))for(const name of names){
+    for(const rows of [complete().filter(row=>row.name!==name),complete().map(row=>row.name===name?{...row,passed:false}:row)]){
+      const result=verdicts(rows,baseline,adapters);
+      for(const other of Object.keys(adapters))assert.equal(result.adapters[other],other!==site,site+': '+name+' -> '+other);
+      assert.ok(Object.values(result.core).every(Boolean),'adapter-only failure cannot disable core');
+    }
+  }
+});
+
+test('shared binding classification isolation and owner prerequisites disable dependent adapters',()=>{
+  for(const name of [REQUIRED[1][0],REQUIRED[3][0],REQUIRED[6][0],REQUIRED[7][0],REQUIRED[11][0],'GROUP 10 ADAPTER unfamiliar pages and qualification fallback on all sites']){
+    const result=verdicts(complete().filter(row=>row.name!==name),baseline,adapters);
+    assert.ok(Object.values(result.adapters).every(value=>value===false),name);
   }
 });

@@ -42,30 +42,18 @@ async function prepareTarget(source,tab=source.tabId,targetId=null){
   await targetCommand(state,'Debugger.enable');
   const breakpoint=await targetCommand(state,'Debugger.setBreakpointByUrl',{url:chrome.runtime.getURL('context.js'),lineNumber:1});
   state.breakpoint=breakpoint.breakpointId;
-  await targetCommand(state,'Target.setAutoAttach',{autoAttach:true,waitForDebuggerOnStart:true,flatten:true,filter:[{type:'iframe',exclude:false},{type:'page',exclude:false}]});
+  await targetCommand(state,'Target.setAutoAttach',{autoAttach:true,waitForDebuggerOnStart:true,flatten:true,filter:[{type:'iframe',exclude:false}]});
   return state;
 }
 async function preloadEvent(source,method,params){
   if(method==='Target.attachedToTarget'){
     const parent=preloadTargets.get(targetKey(source));if(!parent||controlled.get(parent.tab)?.epoch!==parent.epoch)return;
     const child={...source,sessionId:params.sessionId};
-    let tab=parent.tab,original=null,grouped=false;
     try{
-      if(params.targetInfo.type==='page'){
-        let popup;
-        for(let attempt=0;attempt<100;attempt++){assertTarget(parent);popup=(await chrome.debugger.getTargets()).find(target=>target.id===params.targetInfo.targetId&&Number.isInteger(target.tabId));assertTarget(parent);if(popup)break;await new Promise(resolve=>setTimeout(resolve,20));}
-        if(!popup)throw Error('refused: popup tab identity is unavailable');
-        tab=popup.tabId;
-        const current=await chrome.tabs.get(tab);assertTarget(parent);safeURL(current.url||params.targetInfo.url);
-        if(releasing.has(tab)||admissions.has(tab)||controlled.has(tab))throw Error('stale_reference: popup already has a control transition');
-        original={window:current.windowId,index:current.index,group:current.groupId,epoch:crypto.randomUUID(),debuggee:child,parentSource:source,parentTab:parent.tab};
-        const parentTab=await chrome.tabs.get(parent.tab);assertTarget(parent);
-        if(current.windowId!==parentTab.windowId){await chrome.tabs.move(tab,{windowId:parentTab.windowId,index:-1});assertTarget(parent);}
-        await chrome.tabs.group({tabIds:[tab],groupId});grouped=true;assertTarget(parent);controlled.set(tab,original);await rules();assertTarget(parent);await badge();assertTarget(parent);
-      }
-      assertTarget(parent);const prepared=await prepareTarget(child,tab,params.targetInfo.targetId);await targetCommand(prepared,'Runtime.runIfWaitingForDebugger');
+      if(params.targetInfo.type!=='iframe')throw Error('refused: only frame startup is auto-attached');
+      assertTarget(parent);const prepared=await prepareTarget(child,parent.tab,params.targetInfo.targetId);await targetCommand(prepared,'Runtime.runIfWaitingForDebugger');
     }
-    catch(error){if(original&&controlled.get(tab)===original)await release(tab);else if(grouped&&original)await restoreTab(tab,original);port?.postMessage({event:'reader_error',error:String(error),tab});try{await preloadCommand(source,'Target.detachFromTarget',{sessionId:params.sessionId});}catch{}}
+    catch(error){port?.postMessage({event:'reader_error',error:String(error),tab:parent.tab});try{await preloadCommand(source,'Target.detachFromTarget',{sessionId:params.sessionId});}catch{}}
     return;
   }
   const state=preloadTargets.get(targetKey(source));if(!state)return;
@@ -186,7 +174,14 @@ function keyboard(value) {
   const text=name==='Enter'?'\r':name==='Space'?' ':key.length===1&&!(modifiers&6)?key:undefined;
   return {key,code,modifiers,windowsVirtualKeyCode,...(text===undefined?{}:{text})};
 }
-async function badge() { await chrome.action.setBadgeText({text:controlled.size ? 'ON' : ''}); await chrome.action.setBadgeBackgroundColor({color:'#2468ca'}); }
+async function badge() {
+  await chrome.action.setBadgeText({text:controlled.size ? 'ON' : ''});
+  await chrome.action.setBadgeBackgroundColor({color:'#2468ca'});
+  for(const [tab,owner]of controlled)if(owner.virtualGroup){
+    await chrome.action.setBadgeText({tabId:tab,text:'CLAUDE'});
+    await chrome.action.setTitle({tabId:tab,title:'Claude controls this popup: Stop control'});
+  }
+}
 async function rules() {
   const previous = await chrome.declarativeNetRequest.getSessionRules();
   const tabIds = [...new Set([...controlled.keys(),...releasing.keys()])];
@@ -205,33 +200,45 @@ async function configure(hosts) {
   await rules();
   return {configured:true};
 }
-function take(tab){
+function take(tab,opener=null){
   if(releasing.has(tab))return Promise.reject(Error('stale_reference: private cleanup is still pending; leave the tab to the owner until it finishes'));
   if(admissions.has(tab))return admissions.get(tab);
-  const pending=admitTab(tab,stopGeneration);admissions.set(tab,pending);
+  const pending=admitTab(tab,stopGeneration,opener);admissions.set(tab,pending);
   pending.finally(()=>{if(admissions.get(tab)===pending)admissions.delete(tab);}).catch(()=>{});return pending;
 }
 async function restoreTab(tab,original){
+  if(original.virtualGroup)return;
   try{await chrome.tabs.ungroup(tab);await chrome.tabs.move(tab,{windowId:original.window,index:original.index});if(original.group>=0)await chrome.tabs.group({tabIds:[tab],groupId:original.group});}catch{}
 }
-async function admitTab(tab,generation) {
-  const check=()=>{if(stopGeneration!==generation||releasing.has(tab))throw Error('stale_reference: control stopped during tab admission');};
+async function admitTab(tab,generation,opener=null) {
+  const check=()=>{if(stopGeneration!==generation||releasing.has(tab)||opener&&controlled.get(opener.tab)?.epoch!==opener.epoch)throw Error('stale_reference: control stopped during tab admission');};
+  if(opener){await requireTab(opener.tab);check();}
   check();const current = await chrome.tabs.get(tab);check();safeURL(current.url);
   if (controlled.has(tab)) return {tab, session, group:groupId};
-  const original = {window:current.windowId,index:current.index,group:current.groupId,epoch:crypto.randomUUID(),debuggee:{tabId:tab}};
+  const window=await chrome.windows.get(current.windowId);check();
+  const original = {window:current.windowId,index:current.index,group:current.groupId,epoch:crypto.randomUUID(),debuggee:{tabId:tab},virtualGroup:window.type!=='normal',...(opener?{parentTab:opener.tab,parentEpoch:opener.epoch,popupNeedsReload:true}:{})};
   let attached=false,grouped=false;
   try{
     effectStarted=true;await chrome.debugger.attach({tabId:tab}, '1.3');attached=true;check();
-    groupId = await chrome.tabs.group({tabIds:[tab],...(groupId === null ? {} : {groupId})});grouped=true;check();
-    await chrome.tabGroups.update(groupId,{title:'Claude',color:'blue',collapsed:false});check();
+    if(!original.virtualGroup){
+      groupId = await chrome.tabs.group({tabIds:[tab],...(groupId === null ? {} : {groupId})});grouped=true;check();
+      await chrome.tabGroups.update(groupId,{title:'Claude',color:'blue',collapsed:false});check();
+    }
     controlled.set(tab,original);await prepareTarget({tabId:tab});check();
     await rules();check();await badge();check();await lateReader(tab);check();assertControl(tab,original.epoch);
+    if(opener){await requireTab(opener.tab);check();}
+    if(original.virtualGroup)audit({popup_admitted:{tab,window:current.windowId,type:window.type,opener:opener?.tab,badge:'CLAUDE'}});
     return {tab,session,group:groupId};
   }catch(error){
     if(controlled.get(tab)===original)await release(tab);
     else{if(attached)try{await chrome.debugger.detach({tabId:tab});}catch{}if(grouped)await restoreTab(tab,original);}
     throw error;
   }
+}
+async function createdTarget({sourceTabId,tabId}){
+  const parent=controlled.get(sourceTabId);if(!parent)return;
+  try{await take(tabId,{tab:sourceTabId,epoch:parent.epoch});}
+  catch(error){port?.postMessage({event:'reader_error',error:String(error),tab:tabId});}
 }
 async function content(tab, frame, command, parameters={}) {
   const effectful=['focus','select','check','install_file'].includes(command);
@@ -307,7 +314,12 @@ async function collectSteps(tab,epoch=controlled.get(tab)?.epoch){
 }
 async function requireTab(tab) {
   const current = await chrome.tabs.get(tab);
-  if (!controlled.has(tab) || current.groupId !== groupId) { await release(tab); throw Error('stale_reference: tab is outside the Claude group'); }
+  const owner=controlled.get(tab);
+  if (!owner || !owner.virtualGroup&&current.groupId !== groupId) { await release(tab); throw Error('stale_reference: tab is outside the Claude group'); }
+  if(owner.parentTab!==undefined){
+    try{if(controlled.get(owner.parentTab)?.epoch!==owner.parentEpoch)throw Error('opener control ended');await requireTab(owner.parentTab);}
+    catch{await release(tab);throw Error('stale_reference: popup opener is outside the Claude group');}
+  }
   try { safeURL(current.url); } catch(error) { await release(tab); throw error; }
   return current;
 }
@@ -323,7 +335,7 @@ async function reloadChecked(tab,initial){
   const current=await reloadIdentity(tab);
   if(initial&&stable(current)!==stable(initial))throw Error('stale_reference: the document changed before its guarded reload; read again');
   const owner=controlled.get(tab),pending={frameId:current.frameId,document:current.frames.find(frame=>frame[0]===0)?.[1]};owner.getReload=pending;
-  try{await cdp(tab,'Page.reload',{loaderId:current.loaderId});}catch(error){if(owner.getReload===pending)delete owner.getReload;throw error;}
+  try{await cdp(tab,'Page.reload',{loaderId:current.loaderId});owner.popupNeedsReload=false;}catch(error){if(owner.getReload===pending)delete owner.getReload;throw error;}
 }
 async function release(tab) {
   if(releasing.has(tab))return boundedRelease(tab,releasing.get(tab).promise);
@@ -358,6 +370,7 @@ async function release(tab) {
     // may finish cleanup after a modal; the tab stays grouped until they do.
     try{await Promise.all((await chrome.webNavigation.getAllFrames({tabId:tab})||[]).map(frame=>content(tab,frame.frameId,'clear').catch(()=>{})));}catch{}
     await restoreTab(tab,original);releasing.delete(tab);
+    if(original.virtualGroup)try{await chrome.action.setBadgeText({tabId:tab,text:''});await chrome.action.setTitle({tabId:tab,title:'AresOS Chrome: Stop control'});}catch{}
     if(!controlled.size&&!releasing.size)groupId=null;
     await rules();await badge();return {released:tab,cleanup_pending:false};
   })();
@@ -386,7 +399,7 @@ async function facts(tab, reference) {
     result.push({frame:frame.frameId,parent:frame.parentFrameId,browser_document:frame.documentId,...snapshot});
   }
   if (reference && !result.some(frame=>frame.frame === reference.frame)) throw Error('stale_reference: frame is gone');
-  return {session,tab,group:groupId,control:controlled.get(tab).epoch,url:current.url,title:current.title,needs_reload:result.some(frame=>!isPreloaded(tab,frame.document)),frames:result,frame_tree:frames.map(frame=>({frame:frame.frameId,parent:frame.parentFrameId,url:frame.url})),dialog:dialogs.get(tab) || null};
+  return {session,tab,group:groupId,control:controlled.get(tab).epoch,url:current.url,title:current.title,needs_reload:controlled.get(tab).popupNeedsReload||result.some(frame=>!isPreloaded(tab,frame.document)),frames:result,frame_tree:frames.map(frame=>({frame:frame.frameId,parent:frame.parentFrameId,url:frame.url})),dialog:dialogs.get(tab) || null};
 }
 function binding(facts, reference, kind, adapter) {
   const frame = facts.frames.find(frame=>frame.frame === reference.frame);
@@ -430,7 +443,7 @@ async function collection(command) {
     if(command.name==='downloads')items=await chrome.downloads.search({limit:10001,query:command.text?[command.text]:[]});
     else if(command.name==='history')items=await chrome.history.search({text:command.text||'',startTime:0,maxResults:10001});
     else if(command.name==='bookmarks')items=await chrome.bookmarks.search(command.text||{});
-    else items=(await chrome.tabs.query({})).map(tab=>({tab:tab.id,title:tab.title,url:tab.url,controlled:controlled.has(tab.id)&&tab.groupId===groupId,cleanup_pending:releasing.has(tab.id)}));
+    else items=(await chrome.tabs.query({})).map(tab=>({tab:tab.id,title:tab.title,url:tab.url,controlled:controlled.has(tab.id)&&(controlled.get(tab.id).virtualGroup||tab.groupId===groupId),cleanup_pending:releasing.has(tab.id)}));
     if(items.length>10000 || JSON.stringify(items).length>8*1024*1024)throw Error('refused: this complete list exceeds the 10000-item or 8 MiB snapshot bound; narrow the search');
     record={id:crypto.randomUUID(),key,items,time:Date.now()};
     for(const [id,value]of listSnapshots)if(Date.now()-value.time>300000)listSnapshots.delete(id);
@@ -639,11 +652,12 @@ chrome.tabs.onUpdated.addListener(async(tab,change)=>{
   const previous=controlled.get(tab);if(!previous)return;
   let current;try{current=await chrome.tabs.get(tab);}catch{return;}
   if(controlled.get(tab)!==previous)return;
-  if(current.groupId!==groupId){release(tab);return;}
+  if(!previous.virtualGroup&&current.groupId!==groupId){release(tab);return;}
   if(change.url)try{safeURL(current.url);}catch{release(tab);}
 });
 function removedTab(tab){if(controlled.has(tab))release(tab);for(const state of preloadTargets.values())if(state.tab===tab)destroyedTarget(state);for(const map of [documentMethods,currentDocuments])for(const key of map.keys())if(key.startsWith('['+tab+','))map.delete(key);}
 chrome.tabs.onRemoved.addListener(removedTab);
+chrome.webNavigation.onCreatedNavigationTarget.addListener(createdTarget);
 // Passive, exact-document method metadata only: no headers, bodies or interception.
 chrome.webRequest.onCompleted.addListener(({tabId,frameId,type,method,documentId})=>{
   const key=JSON.stringify([tabId,frameId]);

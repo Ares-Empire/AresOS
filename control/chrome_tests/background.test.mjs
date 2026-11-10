@@ -27,7 +27,7 @@ function stepFixture(){
 const heldStep=(id='h1')=>({id,document:'old-document',element:'e1',submitter:null,kind:'activation_unknown',cancellable:false,label:'Delete'});
 
 function lifecycleFixture(){
-  const f=fixture();f.run("const nativeTimer=setTimeout;setTimeout=(callback,delay)=>{const timer=nativeTimer(callback,delay);timer.unref?.();return timer};excludedHosts=[];groupId=1;globalThis.lifecycleCalls=[];chrome.runtime={getURL:path=>'chrome-extension://fixture/'+path};chrome.action={setBadgeText:async()=>{},setBadgeBackgroundColor:async()=>{}};chrome.webNavigation={getAllFrames:async()=>[]};chrome.tabs={get:async()=>({url:'http://fixture.test/',windowId:1,index:0,groupId:1}),group:async()=>{lifecycleCalls.push('group');return 1},ungroup:async()=>{lifecycleCalls.push('ungroup')},move:async()=>{}};chrome.tabGroups={update:async()=>{}};chrome.debugger={attach:async()=>{},detach:async()=>{lifecycleCalls.push('detach')},sendCommand:async(source,method,parameters)=>{lifecycleCalls.push(method);return {};}};");return f;
+  const f=fixture();f.run("const nativeTimer=setTimeout;setTimeout=(callback,delay)=>{const timer=nativeTimer(callback,delay);timer.unref?.();return timer};excludedHosts=[];groupId=1;globalThis.lifecycleCalls=[];chrome.runtime={getURL:path=>'chrome-extension://fixture/'+path};chrome.action={setBadgeText:async()=>{},setBadgeBackgroundColor:async()=>{},setTitle:async()=>{}};chrome.windows={get:async()=>({type:'normal'})};chrome.webNavigation={getAllFrames:async()=>[]};chrome.tabs={get:async()=>({url:'http://fixture.test/',windowId:1,index:0,groupId:1}),group:async()=>{lifecycleCalls.push('group');return 1},ungroup:async()=>{lifecycleCalls.push('ungroup')},move:async()=>{}};chrome.tabGroups={update:async()=>{}};chrome.debugger={attach:async()=>{},detach:async()=>{lifecycleCalls.push('detach')},sendCommand:async(source,method,parameters)=>{lifecycleCalls.push(method);return {};}};");return f;
 }
 async function spin(f,expression){for(let count=0;count<200&&!f.run(expression);count++)await Promise.resolve();assert.equal(!!f.run(expression),true,expression);}
 
@@ -69,11 +69,30 @@ test('Stop cancels a tab admission still awaiting attach without grouping it',as
   await assert.rejects(pending,/control stopped/);assert.equal(f.run('controlled.size'),0);assert.equal(f.run("lifecycleCalls.includes('group')"),false);assert.equal(f.run("lifecycleCalls.includes('detach')"),true);
 });
 
-test('a popup whose identity arrives after Stop cannot resurrect control',async()=>{
-  const f=lifecycleFixture();f.run("controlled.set(7,{epoch:'parent'});preloadTargets.set('[7,null]',{source:{tabId:7},tab:7,epoch:'parent',contexts:new Map(),documents:new Map(),installing:new Set()});chrome.debugger.getTargets=()=>new Promise(resolve=>{globalThis.popupIdentity=resolve})");
-  const pending=f.run("preloadEvent({tabId:7},'Target.attachedToTarget',{sessionId:'popup-session',targetInfo:{type:'page',targetId:'popup'}})");
-  await spin(f,"typeof popupIdentity==='function'");await f.run('stop()');f.run("popupIdentity([{id:'popup',tabId:8}])");await pending;
+test('a popup admission pending after Stop cannot resurrect control',async()=>{
+  const f=lifecycleFixture();f.run("controlled.set(7,{epoch:'parent'});chrome.windows.get=()=>new Promise(resolve=>{globalThis.popupWindow=resolve})");
+  const pending=f.run("createdTarget({sourceTabId:7,tabId:8})");
+  await spin(f,"typeof popupWindow==='function'");await f.run('stop()');f.run("popupWindow({type:'popup'})");await pending;
   assert.equal(f.run('controlled.size'),0);assert.equal(f.run("lifecycleCalls.includes('Runtime.runIfWaitingForDebugger')"),false);assert.equal(f.run("lifecycleCalls.includes('group')"),false);
+});
+
+test('popup admission preserves its window and uses a private group and tab badge',async()=>{
+  const f=lifecycleFixture();f.run("controlled.set(7,{epoch:'parent'});chrome.windows.get=async()=>({type:'popup'});chrome.tabs.move=async()=>{throw Error('must not move a popup')};chrome.action.setBadgeText=async value=>{lifecycleCalls.push(JSON.stringify(value))};chrome.action.setTitle=async value=>{lifecycleCalls.push(JSON.stringify(value))};");
+  await f.run('createdTarget({sourceTabId:7,tabId:8})');
+  assert.equal(f.run('controlled.get(8).virtualGroup'),true);assert.equal(f.run('controlled.get(8).parentEpoch'),'parent');
+  assert.equal(f.run("lifecycleCalls.includes('group')"),false);assert.equal(f.run("lifecycleCalls.some(value=>value.includes('CLAUDE'))"),true);
+  await f.run('release(8)');assert.equal(f.run("lifecycleCalls.includes('ungroup')"),false);
+});
+
+test('ordinary openers and an opener dragged out before notification never admit popups',async()=>{
+  const f=lifecycleFixture();await f.run('createdTarget({sourceTabId:7,tabId:8})');assert.equal(f.run('lifecycleCalls.length'),0);
+  f.run("controlled.set(7,{epoch:'parent'});chrome.tabs.get=async()=>({groupId:-1,url:'http://fixture.test/'})");
+  await f.run('createdTarget({sourceTabId:7,tabId:8})');assert.equal(f.run('controlled.has(8)'),false);assert.equal(f.run("lifecycleCalls.includes('group')"),false);
+});
+
+test('popup reads revoke control when its opener no longer belongs to the group',async()=>{
+  const f=lifecycleFixture();f.run("controlled.set(7,{epoch:'parent'});controlled.set(8,{epoch:'child',virtualGroup:true,parentTab:7,parentEpoch:'parent'});chrome.tabs.get=async tab=>({groupId:tab===7?-1:1,url:'http://fixture.test/'})");
+  await assert.rejects(f.run('requireTab(8)'),/opener is outside/);assert.equal(f.run('controlled.size'),0);
 });
 
 test('Stop during blocked native cleanup returns pending and preserves handles until restoration',async()=>{
@@ -363,7 +382,7 @@ test('a modal retains page steps through collection until an explicit private ac
 
 test('a retired control accepts late observations without authorizing input and expires within its bound',async()=>{
   const f=stepFixture(),step=heldStep();
-  f.run("globalThis.expiry=[];setTimeout=(callback,delay)=>{expiry.push({callback,delay});return 0};chrome.webNavigation.getAllFrames=async()=>[];chrome.debugger={detach:async()=>{}};chrome.tabs.ungroup=async()=>{};chrome.tabs.move=async()=>{};chrome.action={setBadgeText:async()=>{},setBadgeBackgroundColor:async()=>{}}");
+  f.run("globalThis.expiry=[];setTimeout=(callback,delay)=>{expiry.push({callback,delay});return 0};chrome.webNavigation.getAllFrames=async()=>[];chrome.debugger={detach:async()=>{}};chrome.tabs.ungroup=async()=>{};chrome.tabs.move=async()=>{};chrome.action={setBadgeText:async()=>{},setBadgeBackgroundColor:async()=>{},setTitle:async()=>{}};chrome.windows={get:async()=>({type:'normal'})}");
   await f.run('release(7)');assert.equal(f.run('controlled.has(7)'),false);
   assert.equal(f.run(`notify(${JSON.stringify(step)}).received`),true,'an old private observation survives release');
   assert.equal(f.run("forwarded.filter(message=>message.event==='held_step').length"),1);
@@ -398,7 +417,7 @@ test('headed input arms all frames before activation and rechecks binding before
 
 test('release wakes pending input and detaches before a bounded blocked clear',{timeout:1000},async()=>{
   const f=fixture();
-  f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});dispatchEpoch='epoch';globalThis.calls=[];globalThis.timers=[];setTimeout=(callback,delay)=>{timers.push({callback,delay});return 0};chrome.debugger={sendCommand:()=>new Promise(()=>{}),detach:async()=>{calls.push('detach')}};chrome.tabs={sendMessage:(tab,message)=>{calls.push(message.command);return new Promise(()=>{})},ungroup:async()=>{},move:async()=>{}};chrome.webNavigation={getAllFrames:async()=>[{frameId:0,url:'http://fixture.test/'}]};chrome.action={setBadgeText:async()=>{},setBadgeBackgroundColor:async()=>{}};");
+  f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});dispatchEpoch='epoch';globalThis.calls=[];globalThis.timers=[];setTimeout=(callback,delay)=>{timers.push({callback,delay});return 0};chrome.debugger={sendCommand:()=>new Promise(()=>{}),detach:async()=>{calls.push('detach')}};chrome.tabs={sendMessage:(tab,message)=>{calls.push(message.command);return new Promise(()=>{})},ungroup:async()=>{},move:async()=>{}};chrome.webNavigation={getAllFrames:async()=>[{frameId:0,url:'http://fixture.test/'}]};chrome.action={setBadgeText:async()=>{},setBadgeBackgroundColor:async()=>{},setTitle:async()=>{}};chrome.windows={get:async()=>({type:'normal'})};");
   const native=assert.rejects(f.run("cdp(7,'Input.dispatchKeyEvent',{type:'keyDown'})"),/control ended while input was in flight/);
   const content=assert.rejects(f.run("content(7,0,'focus',{element:'e1'})"),/control ended during input handling/);
   let settled=false;const released=f.run('release(7)').then(()=>{settled=true});
