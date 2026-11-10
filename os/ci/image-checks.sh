@@ -539,12 +539,15 @@ fi
 # Every bundled file is the one build.sh recorded from the pinned tarball.
 sha256sum --quiet -c /usr/share/aresos/manifest/prism-files.sha256
 install -d -o ares -g ares /tmp/pkg23-prism
-prism_version=$(runuser -u ares -- env -i HOME=/tmp/pkg23-prism LANG=C.UTF-8 QT_QPA_PLATFORM=offscreen \
-    /usr/bin/prismlauncher --version 2>/dev/null | tail -1)
-test "$prism_version" = "PrismLauncher $(python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))["prism"]["version"])' "$lock")"
+prism_version="PrismLauncher $(python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))["prism"]["version"])' "$lock")"
+# Prism prints its version and then an empty line.
+runuser -u ares -- env -i HOME=/tmp/pkg23-prism LANG=C.UTF-8 QT_QPA_PLATFORM=offscreen \
+    /usr/bin/prismlauncher --version > /tmp/pkg23-prism-version 2>&1
+cat /tmp/pkg23-prism-version
+grep -qx "$prism_version" /tmp/pkg23-prism-version
 status=0
 runuser -u ares -- env -i HOME=/tmp/pkg23-prism LANG=C.UTF-8 QT_QPA_PLATFORM=offscreen XDG_RUNTIME_DIR=/tmp/pkg23-prism \
-    timeout 20 /usr/bin/prismlauncher > /tmp/pkg23-prism-start.txt 2>&1 || status=$?
+    /usr/bin/timeout 20 /usr/bin/prismlauncher > /tmp/pkg23-prism-start.txt 2>&1 || status=$?
 test "$status" = 124
 prism_log=/tmp/pkg23-prism/.local/share/PrismLauncher/logs/PrismLauncher-0.log
 grep -F 'Updates Enabled            : No' "$prism_log"
