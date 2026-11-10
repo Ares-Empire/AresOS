@@ -91,6 +91,28 @@ class StageTwoFixes(unittest.TestCase):
         _, errors = evaluate(oracle, Record(events=[{'seq': 1, 'time': 1, 'action': 'mail_send', 'set': {'op:g:p': row}}]))
         self.assertTrue(any(f.kind == 'operation-identity' for _, f in errors))
 
+    def test_repair_completion_requires_its_parent_in_the_same_commit(self):
+        oracle = Oracle()
+        parent = {'id': 'g:p', 'app': 'mail', 'action': 'mail_send', 'state': 'partial', 'reason': 'old'}
+        child = {'id': 'g:r', 'app': 'mail', 'action': 'mail_operation_repair', 'state': 'submitting',
+                 'reason': 'Repairing local stage only.', 'repair_of': 'g:p', 'payload': {'operation_id': 'g:p', 'stage': 'sent_copy'}}
+        oracle.seed_sequence = 1
+        oracle.call('mail_operation_repair', child['payload'], 2)
+        oracle.script[-1].update(start_seq=1, end_seq=2)
+        done = {**child, 'state': 'done', 'reason': 'Local repair completed; never submitted.'}
+        record = Record(rows={'op:g:p': parent, 'op:g:r': done}, events=[
+            {'seq': 1, 'time': 1, 'action': 'fixture', 'set': {'op:g:p': parent, 'op:g:r': child}},
+            {'seq': 2, 'time': 2, 'action': 'mail_operation_repair', 'operation_id': 'g:r', 'summary': 'done', 'set': {'op:g:r': done}}])
+        _, errors = evaluate(oracle, record)
+        self.assertIn(('lifecycle-proof', Fact('op:g:p', 'missing-operation-result', detail='2')), errors)
+        record.events[-1]['set']['op:g:p'] = parent
+        _, errors = evaluate(oracle, record)
+        self.assertNotIn(('lifecycle-proof', Fact('op:g:p', 'missing-operation-result', detail='2')), errors)
+        self.assertIn(('lifecycle-proof', Fact('op:g:p', 'unjustified-stage', detail='repair-parent:sent_copy')), errors)
+        record.events[-1]['set']['op:g:p'] = {**parent, 'stages': {'sent_copy': 'done'}}
+        _, errors = evaluate(oracle, record)
+        self.assertNotIn(('lifecycle-proof', Fact('op:g:p', 'unjustified-stage', detail='repair-parent:sent_copy')), errors)
+
     def test_cancellation_commit_cannot_omit_its_operation_result(self):
         oracle = Oracle()
         key = 'op:g:p'

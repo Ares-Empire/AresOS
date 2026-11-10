@@ -152,7 +152,12 @@ class Oracle:
         if row is None:
             self.proof('filing_claims', Fact(key, 'missing-check-result', detail=str(event['seq'])))
             return None
-        if event['action'] == 'mail_filing_check' and (row.get('state') == 'started' or row.get('check_open')):
+        calls = self.calls_at(event['seq'])
+        final_write = bool(calls) and all(getattr(self, '_last_source_writes', {}).get((call['call'], key), event['seq']) == event['seq'] for call in calls)
+        result_commit = event['action'] == 'mail_filing_check' or (
+            event['action'] in {'mail_move', 'mail_copy', 'mail_folder_rename'} and final_write and
+            not any(call.get('faults', {}).get('trace') for call in calls))
+        if result_commit and (row.get('state') == 'started' or row.get('check_open')):
             kind = 'rename' if key.startswith('mail:rename:') else 'filing'
             if self.result_proof(key, kind, event['seq']):
                 self.proof('filing_claims', Fact(key, 'uncommitted-check-result', detail=str(event['seq'])))
@@ -274,6 +279,7 @@ class Oracle:
                  'accepted': accepted, 'reply': reply, 'delimiters': copy.deepcopy(getattr(self, 'delimiters', None)), **copy.deepcopy(extra)}
         self.servers.append(event)
         self._evidence_index = None
+        self._filing_mutations_cache = None
         if isinstance(event.get('committed_before'), dict) and isinstance(event.get('before_seq'), int):
             self.commit_observations.setdefault(event['before_seq'], event['committed_before'])
         return event
@@ -695,7 +701,13 @@ class Oracle:
             for sequence in sequences[start:end]:
                 self._calls_cache[sequence].append(call)
         self._payload_cache = {}
+        self._last_source_writes = {}
+        for event in record.events:
+            for call in self.calls_at(event['seq']):
+                for source in event['set']:
+                    self._last_source_writes[call['call'], source] = event['seq']
         self._evidence_index = {}
+        self._filing_mutations_cache = None
         for index, server in enumerate(self.servers):
             if server['command'] in {'SENT', 'LIST'}:
                 group = server.get('source') if server['command'] == 'SENT' else server.get('account')
@@ -1118,6 +1130,14 @@ class Oracle:
         if row is None:
             self.proof('stage_claims', Fact(key, 'missing-operation-result', detail=str(commit['seq'])))
             return
+        if row.get('repair_of') and row.get('state') == 'done' and old.get('state') != 'done':
+            parent = 'op:' + row['repair_of']
+            if not isinstance(commit['set'].get(parent), dict):
+                self.proof('stage_claims', Fact(parent, 'missing-operation-result', detail=str(commit['seq'])))
+            else:
+                stage = row.get('payload', {}).get('stage')
+                if commit['set'][parent].get('stages', {}).get(stage) not in {'done', 'not_needed'}:
+                    self.proof('stage_claims', Fact(parent, 'unjustified-stage', detail='repair-parent:' + str(stage)))
         if old.get('stages') == row.get('stages') and (row.get('state') != 'done' or old.get('state') == 'done'):
             return  # No new stage claim or completion claim in a repeated read.
         marker = commit['seq'], key, canonical(row.get('stages', {}))
@@ -1520,11 +1540,14 @@ class Oracle:
         return sorted(result, key=canonical)
 
     def last_filing_mutations(self):
+        if getattr(self, '_filing_mutations_cache', None) is not None:
+            return self._filing_mutations_cache
         result = {}
         for index, event in enumerate(self.servers):
             if event['command'] in {'MOVE', 'COPY', 'RENAME'}:
                 source, _ = self.bound(event)
                 result[event['call'], source] = index
+        self._filing_mutations_cache = result
         return result
 
     def read_evidence(self, source, kind, sequence, calls=None, last_mutations=None):

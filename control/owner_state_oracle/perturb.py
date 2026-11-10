@@ -435,6 +435,8 @@ def coherent_change(oracle, record, key, path=(), kind='row', replacement=None, 
                 rewritten = op
                 if 'op:' + str(op.get('id')) == key:
                     event = versions.get(fence['seq'])
+                    if event and key not in event['set'] and event.get('operation_id') != key[3:]:
+                        continue
                     row = (event['set'].get(key) or fence_rows.get(fence['seq'])) if event else None
                     if row is not None:
                         rewritten = {name: copy.deepcopy(row[name]) for name in ('id', 'generation', 'input_hash', 'state') if name in row}

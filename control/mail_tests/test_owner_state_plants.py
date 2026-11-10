@@ -38,6 +38,8 @@ def run_plants_and_controls(test):
         test.assertTrue(deltas, ('Production plant escaped Driver.compare', name))
         _, differences = evaluate(oracle, decoded)
         test.assertTrue(any(f.kind not in STRUCTURAL for _, f in differences), name)
+        if name == 'missing-repair-parent-result':
+            test.assertTrue(any(f.kind == 'missing-operation-result' for _, f in differences), name)
         recordings[name] = oracle, decoded
     test.assertEqual(set(FIELD_PLANTS.values()) - recordings.keys(), set())
     print(f'Owner real production field controls={len(FIELD_PLANTS)} caught through Driver.compare', flush=True)

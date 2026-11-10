@@ -1290,8 +1290,8 @@ approval/input/question/binding change, or self-review was performed.
 | 3 / SOL 3 / ASTRA 1 | RENAME reuses the existing safe_folder UID/UIDVALIDITY enumeration. No extra SELECT, FETCH, full-body parse or wire-size admission is added | Oversized, depth-45 and 1,100-part folders rename successfully with zero FETCHes; existing all-write failure/crash fences remain enabled |
 | 4 | Normal APPEND adds one Sent copy; separate send_duplicate flow retains delayed-copy warnings. EXPUNGE honors Deleted and STORE honors both add/remove branches | Quiet send and deliberate race assertions; existing quiet move/copy/rename/Trash/permanent-delete contracts all pass |
 
-**Run — local source checks:** 143 independent oracle/CI-selection tests printed
-`Ran 143 tests`, `OK` (`self-compact143.txt`; earlier source iterations are retained
+**Run — local source checks:** 144 independent oracle/CI-selection tests printed
+`Ran 144 tests`, `OK` (`self-latest144.txt`; earlier source iterations are retained
 under `.work/19b-s2-fixes/`). Focused contracts, six named regressions, all action-context
 write/failure/crash fences, new fixture/effect tests and production plants printed
 `Ran 26 tests in 266.265s`, `OK` (`focused-current.txt`). The final semantic-source subset repeated all 14 contract/regression/plant/effect tests (`focused-latest142.txt`, `OK`). The diagnostic traversal
@@ -1430,3 +1430,12 @@ filing-state/event copy disagreements are explicitly integrity-only; they do not
 count toward catching coherent variants. The transformation test checks these
 copies directly. The final coherent-only diagnostic and full-field passes are
 reported separately; final Linux runs exercise the complete finished source.
+
+**Read / run — final-result and repair proofs:** a filing can persist intermediate
+progress after its LIST; only the last source write in an unfaulted scripted
+attempt, or an explicit recovery-result commit, must reflect the completed
+check. The expected completion still needs the correlated destination/scan/role
+proof. Successful repair completion requires its matching parent stage update
+in the same commit. A real Store.write plant omits that parent, and must produce
+its own missing-result proof through Driver.compare. A direct negative/positive
+atomic-parent test covers missing rows, missing stages and the matching update.

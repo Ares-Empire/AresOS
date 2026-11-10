@@ -259,6 +259,14 @@ def wrong_recipient(self, operation, stage):
     return _testapp_execute(self, changed, stage)
 
 
+def missing_repair_parent(changes, action, kwargs):
+    if action != 'mail_operation_repair':
+        return
+    for row in list(changes.values()):
+        if isinstance(row, dict) and row.get('repair_of') and row.get('state') == 'done':
+            changes.pop('op:' + row['repair_of'], None)
+
+
 def missing_terminal_row(changes, action, kwargs):
     for key, row in list(changes.items()):
         if action == 'mail_send' and key.startswith('op:') and row and row.get('state') == 'done':
@@ -279,6 +287,7 @@ PLANTS.update({
     'dropped-context-commit': ('send', (dropped_context_commit,)),
     'wrong-recipient': ('testapp_send', (lambda: patch.object(TestApp, 'execute', wrong_recipient),)),
     'missing-terminal-row': ('send', (write_lie(missing_terminal_row),)),
+    'missing-repair-parent-result': ('repair', (write_lie(missing_repair_parent),)),
 })
 
 
