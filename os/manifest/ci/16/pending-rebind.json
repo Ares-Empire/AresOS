@@ -31,6 +31,14 @@
       "path": "os/ci/checkout_sources.py"
     },
     {
+      "sha256": "d7bc9cce46bf7f37f6e725ab625a92dd0ec73524d5760ee068dba6b4c51df5d1",
+      "path": "os/ci/owner_capabilities.py"
+    },
+    {
+      "sha256": "a870586216a1d728e332678b2b1c6a3331facbe846bb6a2ebeb8885164cddb47",
+      "path": "os/ci/owner_devices.py"
+    },
+    {
       "sha256": "c8774757b96cb90e3a6d31741dc9379c2fc895b330bf838e9f8b9771e98cdb3c",
       "path": "os/ci/owner_hidden.py"
     },
