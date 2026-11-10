@@ -276,3 +276,11 @@ real immutable history. Explicit seed/fixture inputs remain independent authorit
 for their initial values even if a changed commit copy already has a consistency
 error. Later resolutions remain gated. Missing account results and malformed
 probe references/deadlines reach semantic comparison and cannot erase warnings.
+
+The artificial coherent writer also encodes the documented approval-derived
+compact description, including repairs. Fences that reference an existing row
+use that row's prefix version; a dropped terminal-row write does not invent a
+new fence result. Missing working events retain matching compact field and
+approval-description copies. Only changed fence bodies and their subsequent
+hash chain are rebuilt. Server snapshots are indexed by their before-sequence;
+no mutation or decoded field is dropped by this scheduling optimization.

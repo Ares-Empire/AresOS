@@ -125,6 +125,10 @@ class SystematicPerturbations(unittest.TestCase):
                 if not related or not target:
                     for index, (action, replay, snapshot) in enumerate(module.filing_followups(copy.deepcopy(oracle), copy.deepcopy(record), key)):
                         recordings.append((f'check-regression/{kind}/{related}/{target}/{index}-{action}', freeze(replay), snapshot))
+        from owner_state_plants import record as record_production
+        flag_oracle, flag_record, flag_deltas = record_production('local_flag')
+        self.assertFalse(flag_deltas, 'Healthy LOCAL_FLAG must be quiet before alterations')
+        recordings.append(('local-flag/healthy', flag_oracle, flag_record))
         counts = Counter()
         statistics = Counter()
         states = state_vocabulary([record for _, _, record in recordings])

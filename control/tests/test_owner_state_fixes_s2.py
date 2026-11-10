@@ -4,7 +4,7 @@ import unittest
 from unittest.mock import patch
 
 from owner_state_oracle.model import Oracle, Fact
-from owner_state_oracle.records import Record
+from owner_state_oracle.records import Record, fingerprint
 from owner_state_oracle.compare import compare_proofs
 from owner_state_oracle.perturb import coherent_change, evaluate, snapshot_mutations, snapshot_fields
 from owner_state_oracle.context import differences
@@ -140,6 +140,37 @@ class StageTwoFixes(unittest.TestCase):
                 expected, errors = evaluate(oracle, record)
                 self.assertIn(Fact(key, 'unchecked'), expected)
                 self.assertTrue(any(f.kind == 'unjustified-check-close' for _, f in errors))
+
+    def test_coherent_compact_descriptions_and_referenced_rows_follow_the_same_lie(self):
+        key = 'op:g:p'
+        approval = {'action': 'mail_send', 'account': 'box', 'to': ['peer@mail.invalid']}
+        reserved = {'id': 'g:p', 'generation': 'g', 'input_hash': 'h', 'app': 'mail', 'action': 'mail_send',
+                    'approval': {'description': approval}, 'state': 'reserved'}
+        done = {**reserved, 'state': 'done'}
+        record = Record(rows={key: done}, committed={1, 2, 3})
+        previous = ''
+        for seq, row, changes in ((1, reserved, {key: reserved}), (2, reserved, {}), (3, done, {key: done})):
+            compact = {name: row[name] for name in ('id', 'generation', 'input_hash', 'state')}
+            compact['description'] = {'action': 'mail_send', 'untrusted_content': {'account': 'box', 'to': ['peer@mail.invalid']}}
+            fence = {'seq': seq, 'generation': 'g', 'previous': previous, 'operations': [compact]}
+            fence['hash'] = fingerprint(fence);previous = fence['hash']
+            record.fences.append(fence)
+            record.events.append({'seq': seq, 'action': 'mail_send', 'operation_id': 'g:p', 'set': changes, 'record': fence})
+        record.head = (3, previous)
+        before = copy.deepcopy(record)
+        _, changed = coherent_change(Oracle(), record, key, ('approval', 'description', 'to', 0), 'effect', 'wrong@mail.invalid', 1)
+        for fence in changed.fences:
+            self.assertEqual(fence['operations'][0]['description']['untrusted_content']['to'], ['wrong@mail.invalid'])
+        self.assertEqual(changed.fences[-1]['operations'][0]['state'], 'done')
+        _, changed = coherent_change(Oracle(), record, key, ('state',), 'state', 'unknown', 1)
+        self.assertEqual([f['operations'][0]['state'] for f in changed.fences], ['unknown', 'unknown', 'done'])
+        _, changed = coherent_change(Oracle(), record, key, kind='row', since=3)
+        self.assertEqual(changed.fences[-1]['operations'][0]['state'], 'reserved')
+        absent = copy.deepcopy(record)
+        absent.events.pop(1)
+        _, changed = coherent_change(Oracle(), absent, key, ('approval', 'description', 'to', 0), 'effect', 'wrong@mail.invalid', 1)
+        self.assertEqual(changed.fences[1]['operations'][0]['description']['untrusted_content']['to'], ['wrong@mail.invalid'])
+        self.assertEqual(record, before)
 
     def test_coherent_version_updates_copies_and_preserves_later_outcomes(self):
         oracle = Oracle()

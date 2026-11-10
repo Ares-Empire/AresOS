@@ -2,7 +2,7 @@
 import copy
 from .model import Fact
 from .compare import compare_proofs
-from .records import canonical, fingerprint, restore_intervals
+from .records import canonical, fingerprint, restore_intervals, visible
 
 STATES = ('reserved', 'submitting', 'unknown', 'partial', 'done', 'failed', 'refused',
           'started', 'checked', 'open', 'clean', 'warning', 'cancelled', 'expired', 'settled')
@@ -250,6 +250,37 @@ def snapshot_mutations(oracle, record, states):
             yield 'commit_observations/' + str(sequence) + '/' + '/'.join(map(str, path)), kind, (changed, record)
 
 
+def compact_description(row):
+    """Encode the documented compact copy, never an expectation or authority."""
+    description = row.get('approval', {}).get('description')
+    if not isinstance(description, dict):
+        return None
+    if row.get('app') == 'mail' and 'untrusted_content' in description:
+        result = {name: copy.deepcopy(description[name]) for name in ('action', 'untrusted_content') if name in description}
+    else:
+        result = {name: copy.deepcopy(description[name]) for name in
+                  ('action', 'account', 'to', 'cc', 'bcc', 'subject', 'title') if name in description}
+        result.setdefault('action', row.get('action'))
+        if 'targets' in description:
+            result['targets'] = copy.deepcopy(description['targets'])
+        if 'items' in description:
+            result['targets'] = [{name: copy.deepcopy(item[name]) for name in ('reference', 'subject', 'title') if name in item}
+                                 for item in description['items'] if isinstance(item, dict)]
+        if 'folder' in description:
+            result['targets'] = [{name: copy.deepcopy(description[name]) for name in ('folder', 'uidvalidity') if name in description}]
+        if 'target' in description:
+            result['targets'] = [copy.deepcopy(description['target'])]
+        if 'repair_of' in row:
+            result['targets'] = [row['repair_of']]
+        if row.get('app') == 'mail':
+            action = result.pop('action')
+            result = {'action': action, 'untrusted_content': visible(result)}
+    if row.get('app') == 'mail' and row.get('repair_of'):
+        result['repair'] = {'repair_of': row['repair_of'], 'stage': row.get('payload', {}).get('stage'),
+                            'attempt_ended_at': row.get('attempt_ended_at')}
+    return result
+
+
 def coherent_change(oracle, record, key, path=(), kind='row', replacement=None, since=0):
     """Write one production lie into every later encoding of that row claim."""
     changed, replay = copy.copy(record), clone(oracle)
@@ -263,7 +294,7 @@ def coherent_change(oracle, record, key, path=(), kind='row', replacement=None, 
         return result
     changed.events = versions(record.events)
     changed.prepared = versions(record.prepared)
-    changed.fences = copy.deepcopy(record.fences)
+    changed.fences = list(record.fences)
     replay.servers = [dict(event) for event in oracle.servers]
     replay.commit_observations = dict(oracle.commit_observations)
     replay.response_observer = None
@@ -300,12 +331,17 @@ def coherent_change(oracle, record, key, path=(), kind='row', replacement=None, 
     for event in changed.events + changed.prepared:
         if event['seq'] >= since:
             update(event['set'])
-    prefix, created, cursor = {}, {}, 0
+    prefix, created, cursor, fence_rows = {}, {}, 0, {}
+    server_sequences = {}
+    for server in replay.servers:
+        if isinstance(server.get('before_seq'), int):
+            server_sequences.setdefault(server['before_seq'], []).append(server)
     snapshots = sorted({event.get('before_seq') for event in replay.servers if isinstance(event.get('before_seq'), int)} |
-                       set(replay.commit_observations) | {max(record.committed, default=max((e['seq'] for e in changed.events), default=0))})
+                       set(replay.commit_observations) | {fence['seq'] for fence in record.fences} | {max(record.committed, default=max((e['seq'] for e in changed.events), default=0))})
     for sequence in snapshots:
         while cursor < len(changed.events) and changed.events[cursor]['seq'] <= sequence:
             event = changed.events[cursor]
+            fence_rows[event['seq']] = event['set'].get(key) or prefix.get(key)
             for name, row in event['set'].items():
                 if row is None:
                     prefix.pop(name, None)
@@ -320,8 +356,8 @@ def coherent_change(oracle, record, key, path=(), kind='row', replacement=None, 
             else:
                 rows.pop(key, None)
             replay.commit_observations[sequence] = rows
-        for server in replay.servers:
-            if sequence >= since and server.get('before_seq') == sequence and 'committed_before' in server:
+        for server in server_sequences.get(sequence, ()):
+            if sequence >= since and 'committed_before' in server:
                 rows = dict(server['committed_before'])
                 if key in prefix:
                     rows[key] = prefix[key]
@@ -339,36 +375,62 @@ def coherent_change(oracle, record, key, path=(), kind='row', replacement=None, 
                 changed.rows[key] = prefix[key]
             else:
                 changed.rows.pop(key, None)
-    # Compact fences contain a subset of operation fields. Re-encode the same
-    # claim there and in the event's copy, just as Store.write would do.
+    altered_origin = {key: origin}
+    update(altered_origin)
+    origin_description = compact_description(origin) if isinstance(origin, dict) else None
+    new_origin = altered_origin.get(key)
+    changed_description = compact_description(new_origin) if isinstance(new_origin, dict) else None
+    # Re-encode matching compact copies, including approval-derived descriptions.
+    # A fence can refer to the pre-existing row when this event omits it.
     versions = {e['seq']: e for e in changed.events + changed.prepared}
-    for fence in changed.fences:
-        if fence['seq'] < since or fence['seq'] not in versions:
-            continue
-        event = versions[fence['seq']]
-        if key.startswith('op:'):
-            for op in list(fence.get('operations', [])):
-                if 'op:' + op['id'] != key:
-                    continue
-                row = event['set'].get(key)
-                if row is None:
-                    fence['operations'].remove(op)
-                elif path and path[0] in op and path[0] != 'description':
-                    if path[0] in row:
-                        op[path[0]] = copy.deepcopy(row[path[0]])
+    compact_inputs = {'id', 'generation', 'input_hash', 'state', 'approval', 'action', 'app',
+                      'repair_of', 'payload', 'attempt_ended_at'}
+    previous, dirty = '', False
+    for index, original_fence in enumerate(record.fences):
+        fence = original_fence
+        if fence['seq'] >= since and key.startswith('op:') and (kind == 'row' or not path or path[0] in compact_inputs):
+            operations = []
+            for op in fence.get('operations', []):
+                rewritten = op
+                if 'op:' + str(op.get('id')) == key:
+                    event = versions.get(fence['seq'])
+                    row = (event['set'].get(key) or fence_rows.get(fence['seq'])) if event else None
+                    if row is not None:
+                        rewritten = {name: copy.deepcopy(row[name]) for name in ('id', 'generation', 'input_hash', 'state') if name in row}
+                        description = compact_description(row)
+                        if description is not None:
+                            rewritten['description'] = description
+                    elif event:
+                        continue
                     else:
-                        op.pop(path[0], None)
-        event['record'] = copy.deepcopy(fence)
-    previous = ''
-    for fence in changed.fences:
-        if 'hash' in fence:
-            fence['previous'] = previous
+                        rewritten = dict(op)
+                        if path and len(path) == 1 and path[0] in op and op[path[0]] == original:
+                            put(rewritten, path, kind, replacement)
+                        if kind != 'row' and op.get('description') == origin_description and origin_description != changed_description:
+                            if changed_description is None:
+                                rewritten.pop('description', None)
+                            else:
+                                rewritten['description'] = copy.deepcopy(changed_description)
+                operations.append(rewritten)
+            if operations != fence.get('operations', []):
+                fence = {**fence, 'operations': operations}
+                dirty = True
+        if fence['seq'] >= since and key == 'generation' and fence.get('generation') == original:
+            fence = dict(fence)
+            if kind == 'row':
+                fence.pop('generation', None)
+            else:
+                fence['generation'] = replacement
+            dirty = True
+        if dirty and 'hash' in fence:
+            fence = {**fence, 'previous': previous}
             fence['hash'] = fingerprint({name: value for name, value in fence.items() if name != 'hash'})
-            previous = fence['hash']
-            if fence['seq'] in versions:
-                versions[fence['seq']]['record'] = copy.deepcopy(fence)
-            if changed.head and changed.head[0] == fence['seq']:
-                changed.head = (changed.head[0], fence['hash'])
+        changed.fences[index] = fence
+        previous = fence.get('hash', previous)
+        if fence is not original_fence and fence['seq'] in versions:
+            versions[fence['seq']]['record'] = fence
+        if changed.head and changed.head[0] == fence['seq']:
+            changed.head = (changed.head[0], fence.get('hash', changed.head[1]))
     changed.generation = changed.rows.get('generation')
     changed.restore_intervals = restore_intervals(changed.events)
     if changed.head is not None:

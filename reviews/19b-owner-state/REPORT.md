@@ -1290,8 +1290,8 @@ approval/input/question/binding change, or self-review was performed.
 | 3 / SOL 3 / ASTRA 1 | RENAME reuses the existing safe_folder UID/UIDVALIDITY enumeration. No extra SELECT, FETCH, full-body parse or wire-size admission is added | Oversized, depth-45 and 1,100-part folders rename successfully with zero FETCHes; existing all-write failure/crash fences remain enabled |
 | 4 | Normal APPEND adds one Sent copy; separate send_duplicate flow retains delayed-copy warnings. EXPUNGE honors Deleted and STORE honors both add/remove branches | Quiet send and deliberate race assertions; existing quiet move/copy/rename/Trash/permanent-delete contracts all pass |
 
-**Run — local source checks:** 142 independent oracle/CI-selection tests printed
-`Ran 142 tests`, `OK` (`self-latest142.txt`; earlier source iterations are retained
+**Run — local source checks:** 143 independent oracle/CI-selection tests printed
+`Ran 143 tests`, `OK` (`self-compact143.txt`; earlier source iterations are retained
 under `.work/19b-s2-fixes/`). Focused contracts, six named regressions, all action-context
 write/failure/crash fences, new fixture/effect tests and production plants printed
 `Ran 26 tests in 266.265s`, `OK` (`focused-current.txt`). The final semantic-source subset repeated all 14 contract/regression/plant/effect tests (`focused-latest142.txt`, `OK`). The diagnostic traversal
@@ -1414,3 +1414,12 @@ semantic difference. The existing expiry test's positive fixture now includes
 its original mail_send action; all expiry, acknowledgement and archive
 assertions remain unchanged. Frozen legacy field absences remain distinct from
 new runtime omissions.
+
+**Read / run — complete compact copies:** the coherent writer now includes the
+approval-derived compact description and repair context, references the prior
+committed row when a result write omits it, and propagates matching copies in
+fences whose working event is absent. A direct transformation test covers each
+case and unchanged source inputs. Hash rebuilding starts at the first changed
+fence. This changes only synthetic copies under test. The LOCAL_FLAG healthy
+record is also in the systematic corpus, in addition to its production plant,
+negative controls and complete normal fault sweep.
