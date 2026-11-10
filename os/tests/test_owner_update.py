@@ -908,12 +908,36 @@ class ToolsUpdateTest(unittest.TestCase):
         return SimpleNamespace(returncode=process.returncode, stdout=stdout, stderr=stderr, timed_out=False)
 
     def reached(self, result):
-        """Which toolset the entry ran: the 15f stand-in, the new tools (stopped by their own check), or neither."""
-        if '15f stand-in ran' in result.stdout or result.timed_out:
+        """Which toolset the entry ran, by its explicit marker; a hung or silent entry is neither.
+
+        '15f': the stand-in printed its marker; 'new': the new tools ran check
+        and stopped at the fixture host's missing rpm-ostree. A timeout never
+        counts, whatever was printed before it.
+        """
+        if result.timed_out:
+            return None
+        if '15f stand-in ran' in result.stdout:
             return '15f'
-        if 'Required tool missing' in result.stdout:  # the new tools ran check and met the fixture host
+        if 'STOP: Required tool missing: rpm-ostree' in result.stdout:
             return 'new'
         return None
+
+    def sleeper_entry_starts(self, home, old):
+        """For the sleeping 15f stand-in, which can print no marker: the entry starts it from tools/."""
+        self.assertEqual(os.readlink(home / 'at'), 'tools/at')
+        self.assertEqual(owner.checked_bundle(home / 'tools'), old)
+        process = subprocess.Popen(['bash', str(home / 'at'), 'check'], stdin=subprocess.DEVNULL,
+                                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        try:
+            deadline = time.monotonic() + 10
+            while not any(r['pid'] == process.pid and str(home / 'tools/owner.py') in r.get('argv', [])
+                          for r in owner.installed_commands(home)):
+                self.assertLess(time.monotonic(), deadline, 'the sleeping stand-in did not start through the entry')
+                self.assertIsNone(process.poll(), 'the sleeping stand-in ended early')
+                time.sleep(.05)
+        finally:
+            process.kill()
+            process.wait()
 
     def test_older_installed_tools_are_replaced_and_kept_and_records_survive(self):
         with self.installation() as (home, run, fingerprint, old, host):
@@ -1014,11 +1038,11 @@ class ToolsUpdateTest(unittest.TestCase):
         cut; they settle the state and say to run the command again, and the
         second run reaches the previous tools.
         """
-        result = self.entry_run(home, 'check', timeout=4)
+        result = self.entry_run(home, 'check', timeout=20)
         if 'not the installed entry' in result.stdout:
-            result = self.entry_run(home, 'check', timeout=4)
+            result = self.entry_run(home, 'check', timeout=20)
         which = self.reached(result)
-        self.assertIsNotNone(which, result.stdout + result.stderr)
+        self.assertIsNotNone(which, ('timed out' if result.timed_out else 'no marker') + ': ' + result.stdout + result.stderr)
         toolset = os.readlink(home / 'at').removesuffix('/at')
         self.assertEqual(owner.checked_bundle(home / toolset), old if which == '15f' else fingerprint)
         return which
@@ -1364,7 +1388,7 @@ class ToolsUpdateTest(unittest.TestCase):
                 run()
             self.assertEqual(owner.checked_bundle(home / 'tools'), old)
             self.assertFalse((home / '.tools-held').exists())
-            self.works(home, old, fingerprint)
+            self.sleeper_entry_starts(home, old)
             started[0].kill()
             started[0].wait()
             run()
@@ -1416,12 +1440,12 @@ class ToolsUpdateTest(unittest.TestCase):
                         self.assertRaisesRegex(owner.Stop, 'An owner command of the installed tools is running'):
                     run()
                 self.assertEqual(owner.checked_bundle(home / 'tools'), old)
-                self.works(home, old, fingerprint)
+                self.sleeper_entry_starts(home, old)
                 started[0].kill()
                 started[0].wait()
                 run()
                 self.updated(home, fingerprint, old)
-                self.works(home, old, fingerprint)
+                self.assertEqual(self.works(home, old, fingerprint), 'new')
 
     @contextlib.contextmanager
     def unreadable(self, pid, where, error):
@@ -1503,6 +1527,54 @@ class ToolsUpdateTest(unittest.TestCase):
             worker.wait()
             run()
             self.updated(home, fingerprint, old)
+
+    def test_a_worker_handoff_during_the_task_snapshot_still_counts(self):
+        """Review 7's race: between the task/ enumeration and the per-thread reads, worker A starts B and exits."""
+        program = ('import sys, threading, time, ctypes\n'
+                   'held = open(sys.argv[1])\n'
+                   'def worker_a():\n'
+                   '    sys.stdin.readline()  # the test says when the scan has taken its snapshot\n'
+                   '    threading.Thread(target=lambda: time.sleep(60)).start()  # worker B inherits the open file\n'
+                   '    print("handed off", flush=True)\n'
+                   'threading.Thread(target=worker_a).start()\n'
+                   'ctypes.CDLL(None).pthread_exit(None)\n')
+        with self.installation() as (home, run, fingerprint, old, host):
+            child = subprocess.Popen(['/usr/bin/python3', '-c', program, str(home / 'tools/owner.py')], cwd='/',
+                                     stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
+            self.addCleanup(lambda: (child.kill(), child.wait()))
+            process = pathlib.Path('/proc') / str(child.pid)
+            deadline = time.monotonic() + 10
+            while (process / 'stat').read_text().rsplit(')', 1)[1].split()[0] != 'Z' or len(list((process / 'task').iterdir())) != 2:
+                self.assertLess(time.monotonic(), deadline)
+                time.sleep(.05)
+            snapshots = []
+            real = pathlib.Path.iterdir
+            def iterdir(path):
+                entries = list(real(path))
+                if path == process / 'task':
+                    snapshots.append(sorted(p.name for p in entries))
+                    if len(snapshots) == 1:
+                        # The scan holds a snapshot of {leader, A}; now A starts B and exits.
+                        child.stdin.write('go\n')
+                        child.stdin.flush()
+                        self.assertEqual(child.stdout.readline().strip(), 'handed off')
+                        deadline = time.monotonic() + 10
+                        while any(p.name == snapshots[0][1] for p in real(path)):
+                            self.assertLess(time.monotonic(), deadline, 'worker A did not exit')
+                            time.sleep(.05)
+                return iter(entries)
+            with patch.object(pathlib.Path, 'iterdir', iterdir):
+                self.assertFalse(owner.process_absent(process))
+            # The first snapshot lacked B; the confirming one listed it, so the group counted.
+            self.assertEqual(len(snapshots), 2)
+            self.assertNotEqual(snapshots[0], snapshots[1])
+            self.assertEqual(len(snapshots[1]), 2)
+            found = [r for r in owner.installed_commands(home) if r['pid'] == child.pid]
+            self.assertEqual(len(found), 1, found)
+            before = self.snapshot(home)
+            with self.assertRaisesRegex(owner.Stop, r'is running \(pid .*\b' + str(child.pid) + r'\b'):
+                run()
+            self.assertEqual(before, self.snapshot(home))
 
     def test_confirmed_absence_is_not_doubt(self):
         """What the kernel reports as absent (ENOENT) does not refuse: a zombie, a closed descriptor.

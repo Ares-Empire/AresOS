@@ -1617,26 +1617,39 @@ def entry_toolset():
 def process_absent(process):
     """Nothing of the thread group can act any more; anything less is doubt.
 
-    A kernel thread (PF_KTHREAD), or every thread of the group exited (Z/X) or
-    past its exit: a thread whose own working directory reads as ENOENT has no
-    filesystem context left, which the kernel releases after its files and its
-    memory map. A live thread beside an exited leader keeps its working
-    directory readable, so the group counts.
+    A kernel thread (PF_KTHREAD), or every thread of the group exited (Z/X,
+    or gone from task/) or past its exit: a thread whose own working directory
+    reads as ENOENT has no filesystem context left, which the kernel releases
+    after its files and its memory map. A live thread beside an exited leader
+    keeps its working directory readable, so the group counts.
+
+    A snapshot of task/ can miss a thread started after it was taken, so the
+    group is absent only when a second enumeration, taken after every thread
+    of the first was classified, lists exactly the same threads: a thread
+    that handed its work to a new one and exited in between shows up there. A
+    group that keeps changing is doubt.
     """
     try:
         if int((process / 'stat').read_text().rsplit(')', 1)[1].split()[6]) & PF_KTHREAD:
             return True
-        for task in (process / 'task').iterdir():
-            if (task / 'stat').read_text().rsplit(')', 1)[1].split()[0] in ('Z', 'X'):
-                continue
-            try:
-                os.readlink(str(task / 'cwd'))
-            except FileNotFoundError:
-                continue
-            return False
+        previous = None
+        for attempt in range(8):
+            tasks = sorted(task.name for task in (process / 'task').iterdir())
+            for name in tasks:
+                task = process / 'task' / name
+                try:
+                    if (task / 'stat').read_text().rsplit(')', 1)[1].split()[0] in ('Z', 'X'):
+                        continue
+                    os.readlink(str(task / 'cwd'))
+                except FileNotFoundError:
+                    continue  # Exited: released, or no filesystem context left.
+                return False
+            if tasks == previous:
+                return True
+            previous = tasks
+        return False
     except OSError:
         return not process.exists()
-    return True
 
 
 def own_descendant(process):
