@@ -14,12 +14,13 @@
   const windowDocument=descriptor(globalThis,'document')?.get||(globalThis.Window&&descriptor(Window.prototype,'document')?.get);
   const nodeType=globalThis.Node?descriptor(Node.prototype,'nodeType')?.get:null;
   const shadowHost=globalThis.ShadowRoot&&descriptor(ShadowRoot.prototype,'host')?.get;
+  const parentNode=globalThis.Node&&descriptor(Node.prototype,'parentNode')?.get;
+  const previousSibling=globalThis.Node&&descriptor(Node.prototype,'previousSibling')?.get;
   const saved={submit:HTMLFormElement.prototype.submit,requestSubmit:HTMLFormElement.prototype.requestSubmit,click:HTMLElement.prototype.click,dispatchEvent:dispatch,attachShadow:globalThis.Element?.prototype.attachShadow};
   const nativeString=Function.prototype.toString,nativeStrings=new WeakMap(),getString=WeakMap.prototype.get,setString=WeakMap.prototype.set;
   const connected=target=>{try{const owner=root?invoke(root,target,[options({composed:true})]):target.getRootNode({composed:true});return owner===ownDocument||!!(defaultView?invoke(defaultView,owner,[]):owner.defaultView);}catch{return false;}};
   const installed=[];
-  const createWalker=globalThis.Document?.prototype.createTreeWalker;
-  const privateRelay=(createWalker||globalThis.StaticRange&&globalThis.InputEvent)&&document.createElement?document.createElement('div'):null;
+  const privateRelay=globalThis.StaticRange&&globalThis.InputEvent&&document.createElement?document.createElement('div'):null;
   const privateControl=privateRelay?document.createElement('span'):null;
   if(typeof globalThis.Document==='function'&&!privateRelay)throw Error('The private native relay is unavailable; this document cannot be controlled.');
   if(privateRelay)privateRelay.appendChild(privateControl);
@@ -55,15 +56,19 @@
   function report(target,detail,original=null) {
     if(privateRelay){
       const request=++requestSequence;property(detail,'request',request,true);
-      let shadow=false;try{shadow=!!(shadowHost&&invoke(shadowHost,invoke(root,target,[]),[]));}catch{}
-      if(createWalker&&shadow)property(detail,'target_walker',invoke(createWalker,ownDocument,[target]));
+      let anchor=target,path='';
+      while(shadowHost){
+        const localRoot=invoke(root,anchor,[]);let host;try{host=invoke(shadowHost,localRoot,[]);}catch{break;}if(!host)break;
+        let node=anchor,relative='';
+        while(node!==localRoot){let index=0,sibling=invoke(previousSibling,node,[]);while(sibling){index++;sibling=invoke(previousSibling,sibling,[]);}relative='.'+index+relative;node=invoke(parentNode,node,[]);if(!node)throw Error('native shadow path changed');}
+        path='s'+relative+(path?'.'+path:'');anchor=host;
+      }
+      property(detail,'target_path',path,true);
       invoke(dispatch,privateControl,[new Report('aresos-relay-meta',options({detail}))]);
       try{
-        if(!createWalker||!shadow){
-        const range=new TargetRange(options({startContainer:target,startOffset:0,endContainer:target,endOffset:0}));
+        const range=new TargetRange(options({startContainer:anchor,startOffset:0,endContainer:anchor,endOffset:0}));
         const ranges=create(null);property(ranges,iterator,()=>{let done=false;const result=create(null);result.next=()=>{const step=create(null);step.done=done;if(!done){done=true;step.value=range;}return step;};return result;});
         invoke(dispatch,privateControl,[new TargetEvent('aresos-relay-target',options({data:''+request,targetRanges:ranges}))]);
-        }
         const allowed=!invoke(dispatch,privateControl,[new Report('aresos-relay-deliver',options({cancelable:true,detail:request}))]);
         if(original){if(!allowed||read(original,'type')!==detail.event_type||!connected(target))return false;return invoke(saved.dispatchEvent,target,[original]);}
         if(detail.kind==='click'&&allowed&&connected(target))invoke(saved.click,target,[]);

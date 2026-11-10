@@ -152,3 +152,24 @@ distinguish missing native getter support from a wrong-world node without adding
 Runtime subscriptions. The shadow test double and removal mutations remain
 mandatory; no receiver assertion is relaxed. Ledger: 146 before the next push,
 expected 148 after.
+
+**Direction — lead, 2026-11-10 about 15:00:** the Chrome allowance is now about
+**175 runs total**. A dialog already open when the tab is taken must ask, with a
+service-written warning that its continuation is unguarded, bound answer/prompt
+text, exact-once dispatch, no trusted exemption, and reload on the next act.
+This is a decided rule, based on the owner's board #138 rare-input asking
+precedent. It is being implemented; the earlier refusal-decision tracking for
+that specific case is superseded.
+
+**Linux feedback, `d0e4a738`:** **42837007466 / 42837017855** passed the
+ordinary paths again and failed at the shadow handoff. No diagnostic arrived
+for the private non-enumerable native handle; that transport is discarded.
+The replacement transfers the outer host using the proven native InputEvent
+range, plus an enumerable primitive path through its shadow roots and child
+indices. Saved native MAIN getters compute the path; the isolated guard resolves
+it through its own DOM and `chrome.dom.openOrClosedShadowRoot`. No native endpoint
+range crosses a shadow boundary, no MAIN object crosses the primitive channel,
+and no public DOM is changed. Tests model range filtering, cross-world metadata
+cloning, nested closed roots, non-first child indices and poisoned page getters.
+Removal of either the path or isolated resolution fails. The next Linux trial
+is required. Ledger: 148 before the next push, expected 150 after; allowance 175.

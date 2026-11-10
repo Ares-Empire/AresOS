@@ -6,7 +6,7 @@ import {execFileSync} from 'node:child_process';
 
 const policy=JSON.parse(fs.readFileSync('control/chrome/extension/policy.js','utf8').match(/\{[\s\S]*\}/)[0]);
 
-function fixture({relay=false,activate=true,link=true,browserDOM=false,walkers=false,retarget=false,worldHandles=false,dialogs=false,onDialogBoundary=()=>{}}={}) {
+function fixture({relay=false,activate=true,link=true,browserDOM=false,nativeShadows=false,retarget=false,dialogs=false,onDialogBoundary=()=>{}}={}) {
   const windowListeners=new Map(),reports=[],arrivals=[],nodes=[],bridgeDetails=[];let now=0;
   class Event {
     constructor(type,options={}) {Object.assign(this,{type,cancelable:true,defaultPrevented:false,stopped:false,eventPhase:0,isTrusted:false,...options});}
@@ -14,7 +14,7 @@ function fixture({relay=false,activate=true,link=true,browserDOM=false,walkers=f
     stopImmediatePropagation(){this.stopped=true;}
     composedPath(){return [this.target];}
   }
-  class CustomEvent extends Event {constructor(type,options={}){super(type,options);this.detail=options.detail;if(type==='aresos-page-call-v2')bridgeDetails.push(options.detail);}}
+  class CustomEvent extends Event {constructor(type,options={}){super(type,options);this.detail=nativeShadows&&type==='aresos-relay-meta'?structuredClone(options.detail):options.detail;if(type==='aresos-page-call-v2')bridgeDetails.push(options.detail);}}
   class EventTarget {
     listeners=new Map();
     addEventListener(type,fn){if(!this.listeners.has(type))this.listeners.set(type,[]);this.listeners.get(type).push(fn);}
@@ -32,7 +32,13 @@ function fixture({relay=false,activate=true,link=true,browserDOM=false,walkers=f
     }
   }
   const originalDispatch=EventTarget.prototype.dispatchEvent;
-  const shadowHosts=new WeakMap();class Node extends EventTarget {get host(){return shadowHosts.get(this);}set host(value){shadowHosts.set(this,value);}getRootNode(options={}){const root=this.root??this.ownerDocument??document;return options.composed&&root.host?root.host.getRootNode(options):root;}}
+  const shadowHosts=new WeakMap(),hostShadows=new WeakMap(),parents=new WeakMap(),children=new WeakMap();class Node extends EventTarget {
+    get parentNode(){return parents.get(this)||null;}set parentNode(value){parents.set(this,value);}
+    get previousSibling(){const parent=parents.get(this),list=parent&&children.get(parent)||[];return list[list.indexOf(this)-1]||null;}
+    get childNodes(){return children.get(this)||[];}set childNodes(value){children.set(this,value);}
+    get host(){return shadowHosts.get(this);}set host(value){shadowHosts.set(this,value);hostShadows.set(value,this);}
+    getRootNode(options={}){const root=this.root??this.ownerDocument??document;return options.composed&&root.host?root.host.getRootNode(options):root;}
+  }
   class Element extends Node {
     isConnected=true;tagName='DIV';type='';textContent='';form=null;role='';
     constructor(){super();this.ownerDocument=document;nodes.push(this);}
@@ -57,14 +63,9 @@ function fixture({relay=false,activate=true,link=true,browserDOM=false,walkers=f
   const window={addEventListener(type,fn){if(!windowListeners.has(type))windowListeners.set(type,[]);windowListeners.get(type).push(fn);},removeEventListener(type,fn){windowListeners.set(type,(windowListeners.get(type)||[]).filter(value=>value!==fn));}};
   class MessageChannel {port1={close(){}};port2={postMessage:token=>setImmediate(()=>this.port1.onmessage?.({data:token})),close(){}};}
   class AbstractRange {}
-  const handleNodes=new WeakMap(),nodeHandles=new WeakMap();
-  const nativeNode=value=>handleNodes.get(value)||value;
-  function mainHandle(node){if(!nodeHandles.has(node)){const handle={};Object.defineProperty(handle,'root',{get(){assert.fail('MAIN node property was read');}});handleNodes.set(handle,node);nodeHandles.set(node,handle);}return nodeHandles.get(node);}
-  const rangeNodes=new WeakMap();class StaticRange extends AbstractRange {constructor(options){super();rangeNodes.set(this,nativeNode(options.startContainer));}get startContainer(){if(!rangeNodes.has(this))throw TypeError('Invalid StaticRange');return rangeNodes.get(this);}}
+  const rangeNodes=new WeakMap();class StaticRange extends AbstractRange {constructor(options){super();rangeNodes.set(this,options.startContainer);}get startContainer(){if(!rangeNodes.has(this))throw TypeError('Invalid StaticRange');return rangeNodes.get(this);}}
   class InputEvent extends Event {constructor(type,options={}){super(type,options);this.ranges=options.targetRanges?Array.from(options.targetRanges):[];}getTargetRanges(){return retarget?this.ranges.filter(range=>!range.startContainer.getRootNode().host):this.ranges;}}
-  const walkerRoots=new WeakMap();class TreeWalker {constructor(root){walkerRoots.set(this,nativeNode(root));}get root(){if(!walkerRoots.has(this))throw TypeError('Invalid TreeWalker');const node=walkerRoots.get(this);return worldHandles?mainHandle(node):node;}}
-  class Document {createTreeWalker(root){return new TreeWalker(root);}}
-  const globals={window,document,performance:{now:()=>now},setTimeout,MessageChannel,Symbol,Event,CustomEvent,EventTarget,Node,Element,HTMLElement,HTMLInputElement,HTMLFormElement,DOMException,URL,TextDecoder,Uint8Array,...(relay?{AbstractRange,StaticRange,InputEvent}:{}),...(walkers?{Document,TreeWalker,ShadowRoot:Node}:browserDOM?{Document:class Document{}}:{})};
+  const globals={window,document,performance:{now:()=>now},setTimeout,MessageChannel,Symbol,Event,CustomEvent,EventTarget,Node,Element,HTMLElement,HTMLInputElement,HTMLFormElement,DOMException,URL,TextDecoder,Uint8Array,...(relay?{AbstractRange,StaticRange,InputEvent}:{}),...(nativeShadows?{Document:class Document{},ShadowRoot:Node,chrome:{dom:{openOrClosedShadowRoot:host=>hostShadows.get(host)}}}:browserDOM?{Document:class Document{}}:{})};
   const dialogCalls=[],dialogReports=[];if(dialogs)Object.assign(globals,{alert:({alert(value){dialogCalls.push('alert');}}).alert,confirm:({confirm(value){dialogCalls.push('confirm');return true;}}).confirm,prompt:({prompt(value,initial){dialogCalls.push('prompt');return 'native response';}}).prompt});
   let guard;const isolated=vm.createContext({...globals,fixtureDialogPause:()=>onDialogBoundary(guard)});
   vm.runInContext(fs.readFileSync('control/chrome/extension/guard.js','utf8').replace('debugger;','fixtureDialogPause();'),isolated);
@@ -129,10 +130,10 @@ test('held and failed private requests never disclose a relay or accept a forged
 });
 
 test('private options never run inherited getters, patched enumeration or array iterators',()=>{
-  for(const walkers of [false,true]){
-  const f=fixture({relay:true,walkers}),button=new f.HTMLElement();button.textContent='Ordinary control';button.tagName='BUTTON';f.arm(button,null);let received=0;button.addEventListener('click',()=>received++);
-  if(walkers)button.root=new f.HTMLElement().attachShadow({mode:'closed'});
-  vm.runInContext("globalThis.callbacks=0;Object.keys=()=>{callbacks++;throw 'page keys'};for(const key of ['bubbles','composed','get','set','request','target_walker']){const description=Object.create(null);description.configurable=true;description.get=function(){callbacks++;throw 'page getter'};Object.defineProperty(Object.prototype,key,description);}Array.prototype[Symbol.iterator]=function(){callbacks++;throw 'page iterator'}",f.main);
+  for(const nativeShadows of [false,true]){
+  const f=fixture({relay:true,nativeShadows}),button=new f.HTMLElement();button.textContent='Ordinary control';button.tagName='BUTTON';f.arm(button,null);let received=0;button.addEventListener('click',()=>received++);
+  if(nativeShadows){button.root=new f.HTMLElement().attachShadow({mode:'closed'});button.parentNode=button.root;button.root.childNodes=[button];}
+  vm.runInContext("globalThis.callbacks=0;Object.keys=()=>{callbacks++;throw 'page keys'};for(const key of ['bubbles','composed','get','set','request','target_path']){const description=Object.create(null);description.configurable=true;description.get=function(){callbacks++;throw 'page getter'};Object.defineProperty(Object.prototype,key,description);}Array.prototype[Symbol.iterator]=function(){callbacks++;throw 'page iterator'}",f.main);
   assert.equal(button.dispatchEvent(new f.Event('click')),true);assert.equal(received,1);assert.equal(vm.runInContext('callbacks',f.main),0);
   }
 });
@@ -547,10 +548,11 @@ test('P5 new roots install capture before a borrowed native dispatch can activat
   }
 });
 test('P5 native shadow identity survives InputEvent range retargeting without touching page getters',()=>{
-  for(const kind of ['native','request','dispatch']){
-    const f=fixture({relay:true,walkers:true,retarget:true,worldHandles:true}),host=new f.HTMLElement();f.arm(host,null);
-    const root=host.attachShadow({mode:'closed'}),form=new f.HTMLFormElement();form.root=root;
-    Object.defineProperty(form,'target_walker',{get(){assert.fail('page getter read');}});
+  for(const kind of ['native','request','dispatch'])for(const nested of [false,true]){
+    const f=fixture({relay:true,nativeShadows:true,retarget:true}),host=new f.HTMLElement();f.arm(host,null);
+    let root=host.attachShadow({mode:'closed'});if(nested){const inner=new f.HTMLElement();inner.root=root;inner.parentNode=root;root.childNodes=[new f.HTMLElement(),inner];root=inner.attachShadow({mode:'closed'});}
+    const form=new f.HTMLFormElement();form.root=root;form.parentNode=root;root.childNodes=[new f.HTMLElement(),form];
+    for(const name of ['parentNode','previousSibling'])Object.defineProperty(form,name,{get(){assert.fail('page getter read');}});
     if(kind==='native')form.submit();else if(kind==='request')form.requestSubmit();else form.dispatchEvent(new f.Event('submit'));
     assert.equal(f.arrivals.length,0);assert.equal(f.reports.length,1,kind);
     assert.equal(f.reports[0].kind,kind==='native'?'native_submit':kind==='request'?'submit_event':'activation');

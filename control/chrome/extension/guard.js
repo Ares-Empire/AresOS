@@ -252,7 +252,6 @@
       const carrier=node.firstElementChild,stack=[];
       const listen=(kind,listener)=>{carrier.addEventListener(kind,listener);relayListeners.push([kind,listener]);};
       const ranges=InputEvent.prototype.getTargetRanges;
-      const walkerRoot=globalThis.TreeWalker&&Object.getOwnPropertyDescriptor(TreeWalker.prototype,'root')?.get;
       legacyBridge=false;relayControl=carrier;
       for(const [root,listeners]of roots)for(const [kind,listener,capture]of listeners)if(kind==='aresos-page-call-v2')root.removeEventListener(kind,listener,capture);
       const drop=request=>{if(stack.at(-1)?.detail.request===request)stack.pop();};
@@ -260,23 +259,23 @@
         const detail=event.detail;
         if(stack.length>=32||!['native_submit','request_submit','click','dispatch','watch_root','dialog_begin','dialog_end'].includes(detail?.kind))return;
         if(!Number.isSafeInteger(detail.request))return;
-        const stage={detail};
-        // InputEvent drops ranges whose shadow endpoint would be retargeted.
-        // Native TreeWalker getters carry the exact node without page getters,
-        // public DOM mutations or exposing the private control to the page.
-        if(walkerRoot&&detail.target_walker){
-          const node=walkerRoot.call(detail.target_walker),range=new StaticRange({startContainer:node,startOffset:0,endContainer:node,endOffset:0});
-          let prototype=range,getContainer;
-          while(prototype&&!getContainer){getContainer=Object.getOwnPropertyDescriptor(prototype,'startContainer')?.get;prototype=Object.getPrototypeOf(prototype);}
-          if(!getContainer)throw Error('native isolated range identity unavailable');
-          stage.target=getContainer.call(range);
-        }
-        stack.push(stage);
+        const stage={detail};stack.push(stage);
       });
       // The container getter's owning interface differs across Chrome versions.
       // Read the real range in our isolated world, returned by the saved native
       // method on a private event, without assuming that prototype layout.
-      listen('aresos-relay-target',event=>{const stage=stack.at(-1);if(stage&&''+stage.detail.request===event.data)stage.target=ranges.call(event)[0].startContainer;});
+      listen('aresos-relay-target',event=>{const stage=stack.at(-1);if(stage&&''+stage.detail.request===event.data){
+        // Transfer the outer host through the native event, then resolve its
+        // exact shadow endpoint entirely in this isolated world. No range
+        // endpoint crosses a shadow boundary and no MAIN DOM object is trusted.
+        let target=ranges.call(event)[0].startContainer;
+        for(const part of stage.detail.target_path?.split('.')||[]){
+          if(!part)continue;
+          target=part==='s'?chrome.dom.openOrClosedShadowRoot(target):/^\d+$/.test(part)?target.childNodes[Number(part)]:null;
+          if(!target)throw Error('native shadow path changed');
+        }
+        stage.target=target;
+      }});
       listen('aresos-relay-deliver',event=>{
         const stage=stack.at(-1);if(!stage?.target||stage.detail.request!==event.detail)return;
         // Pop before entering page handlers; nested requests get their own record.
