@@ -93,11 +93,19 @@ Updated 2026-11-10. The live truth is `git log`, `gh pr list` and `git worktree 
 
 - **Owner OK to merge and publish this round (2026-11-09: "Once its safe and done you can merge and publish"):** packages 21–24 merge after a fresh SAFE review, passing checks and his answers to their judgment calls. The next AresOS release built from them may be published and pinned without asking again, once its rehearsal passes. Installing it on the laptop (`at update`) is still his own step. Anything outside this round still needs his OK.
 - **Package 23, started 2026-11-10** (Claude agent, Opus; branch `pkg/23-minecraft-starts`): package 23 (brief `23-minecraft-starts.md`, empire brief 264): Prism and Java 25 in the image, the managed `AresDesktop` instance, the `AresHub` world, and a supervisor that boots into the hub.
+  - Built: PR #36 (head `d08fde0f`). Check build with VM passed (run 42809824712); WSL suites show only the known failures. Not proven: a real JVM start (CI has no Microsoft account).
+  - In review: REVIEW-1 (gpt-6-astra high).
+  - The owner answered all 14 JUDGMENT-CALLs (2026-11-10). #168: "Create it myself": on first start he creates the hub with the mod's AresOS button; nothing is auto-created with seed 49. #169: "Yes to all" for calls 2–6 (no login terminal, no restart after his own quit, a slow start never kills the game, Intel fallback, a managed instance without extra mods) and the 8 technical ones.
+  - Merges after 27. The release that carries it must run `os/ci/build-mod.sh` before `podman build` (its PLAN-GAP 1).
 - **Package 27, the first update release, started 2026-11-10** (brief `27-first-update-release.md`, empire brief 266; Claude agent, Opus; branch `pkg/27-first-update-release`):
   - build, image diff, publish, then a VM rehearsal of the owner's update from release 13 (update, admin password, previous, forward again);
   - after the rehearsal passes, pin the release and empty `pending-rebind.json`;
   - then the owner runs `at update` and `sudo passwd ares` on the laptop.
+  - 2026-11-10: the first release run (42807087845) failed in an extra second VM pass the agent had added (a host-side nbd race in the offline journal reader after all guest checks passed). Nothing was published. The release job now keeps the reviewed single VM pass; the integrator approved one more release dispatch (the last).
+  - Its JUDGMENT-CALL 2: package 22's tools can't go forward again after `at previous`, so the rehearsal ends on 13 with 27 beside it; going forward after a rollback belongs in 22c.
+  - Also for 22c (PR #37 REVIEW-1 should-fix, older than that fix): the refusal invariant in `test_owner_update` tries a persistent refusal twice but never asserts that it refused. Assert the refusal on both attempts wherever the check applies.
   - Packages 23 and 21b go into the next release, which needs 22c first.
+- **Main's hosted test leak fixed** (PR #37, `d5d5c447`, 2026-11-10). `test_owner_update`'s refusal invariant now undoes its injected patch however a subtest ends. Before, a namespace skip on GitHub's runner leaked a patched `disk_record` into later tests (118 errors). Hosted `checks_only` on the fix: 853 tests OK (run 42819274873). The runner still skips the namespace tests; WSL runs them. REVIEW-2 (Sol) SAFE.
 - **Then:**
   - 21b: backlight and power button, after the read-only check on the laptop in AresOS (board #149 tells the next AresOS session).
   - P2's remaining packages: 25 (guardian: clean save and shutdown) and 26 (backups).
