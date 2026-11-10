@@ -1081,3 +1081,53 @@ new write-fence test initially assumed every failed result stopped all later
 onboarding probes; it now correctly requires that a failed *new context* blocks
 its own identity, while every later command independently proves its context.
 No existing assertion was weakened, and no new R2 gap is admitted.
+
+**Run — local fold checks:**
+
+```text
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=.work/19b-s2/child-policy:control:control/mail_tests .work/venv/bin/python .work/19b-s2/local.py test_action_context
+Ran 10 tests in 207.269s
+OK
+```
+
+The twenty mutation flows discover **129 logical writes**; each runs entry
+ENOSPC, ENOSPC at journal-appended / SQLite-prepared / SQLite-committed /
+journal-committed, and SIGKILL at those four fences: **1,161 fault/crash cases**.
+The command-boundary and frozen-old-store assertions also pass. The child-policy
+fixture is confined to this worktree; no host policy is installed.
+
+```text
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=.work/19b-s2/child-policy:control:control/tests .work/venv/bin/python .work/19b-s2/local.py test_crashes test_journal_closed test_record test_owner_state_oracle test_mail_ci_selection
+Ran 139 tests in 25.086s
+OK
+Record growth: tiny send=4078 bytes; maximum body + 25 MiB send=4078 bytes; 6 context/state/stage records
+Record growth: typical three-recipient send=5560 bytes across 8 context/state/stage records
+```
+
+The final-source focused run of `test_action_context.ActionContexts`,
+`test_owner_state_contracts` and `test_owner_state_regressions` printed
+`Ran 16 tests in 9.553s`, `OK`. `control/generate.py --check` printed
+`Generated artifacts match definitions`; `git diff --check` printed nothing.
+Logs are `.work/19b-fold/{write-fences-complete,pre-push-base,pre-push-focused}.txt`.
+The earlier experimental runs with the overly broad onboarding assertion or
+ambiguous binding failed; their output remains in `.work/19b-fold/` and is not
+green evidence. The final checks above resolve those test-infrastructure errors.
+
+**Run — Linux capture source:** `99a9d9711865472b1df57a36aff481e7788665e9`,
+pushed normally without bypass flags. Capture Mail `42758730136`, base
+`42758730461`, boundary `42758810824` were started once. Their results and exact
+pin follow after the jobs complete; an old-ledger comparison failure is capture
+evidence only, never strict acceptance.
+
+**Run — incomplete diagnostic superseded:** the Mail run `42758730136` was
+cancelled before the complete capture finished. Source `99a9d971` would have
+copied RENAME's internal context into its public audit payload. The fix attaches
+context to the stored row while keeping the previous public audit dictionary.
+A new regression inspects every public log page and requires both internal fields
+to be absent; direct R2/contracts/regressions print `Ran 17 tests in 5.950s`, `OK`. The 36 RENAME
+entry/fence failure/crash cases print `Ran 1 test in 4.581s`, `OK`. All five
+storage samples repeat byte-for-byte. No incomplete capture list is used in the
+pin. Base `42758730461` passed 263 tests in 217.510s (`results.txt:392`, `OK`
+`:394`, PASS `:401`); boundary `42758810824` passed. These are superseded
+source diagnostics, not final acceptance. The replacement below is the one
+complete Linux capture on the corrected fold.

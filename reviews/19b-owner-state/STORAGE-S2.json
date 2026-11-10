@@ -157,7 +157,7 @@
     "passed": true,
     "send_growth": 0
   },
-  "fold_source": "fc7b6efa (fold production head; byte-for-byte repeat of all five samples)",
+  "fold_source": "e394516adc08c81a05fe1857a8f4c0eaadccc3bf (fold including public RENAME audit preservation; all five samples repeated)",
   "folded_into": {
     "DELETE, Trash MOVE, permanent STORE": "submitting; next batch member context on preceding target stage",
     "HTTPS POST": "https_post=attempting stage",
@@ -175,6 +175,7 @@
   "harness_sha256": "8a0a0df02cfeba2f2d6e907a3150252f56150880ba75a28b3fc64fbb06642763",
   "journal_record_definition": "journal_records counts format-2 fence records (one per transaction). Each has one separate commit marker in every completed sample; physical JSONL lines are twice this count. Byte counts include both.",
   "logs": {
+    ".work/19b-fold/storage-audit-fix.txt": "d115662b1a98024c1da0c9699221f4960e03f3dfeff83106bf6d5b271c232230",
     ".work/19b-fold/storage-before.txt": "513d149331d60cbb987cff90b2e4ed34356ccd22b26de1606c34af4a18acf336",
     ".work/19b-fold/storage-final.txt": "d115662b1a98024c1da0c9699221f4960e03f3dfeff83106bf6d5b271c232230",
     ".work/19b-fold/storage-part-b.txt": "ea0b1a1d366c5c05466b85fde600c4060c968c4c85c66d679559a45d62cb93f2",
