@@ -1,6 +1,7 @@
 """Effect plans selected by scripted arguments and independent server evidence."""
 from email.parser import BytesParser
 from email.utils import getaddresses
+import hashlib
 import re
 from .context import identity, special_roles, flag_operations, rename_destination
 
@@ -12,6 +13,49 @@ def description(call):
 
 def delivered(event):
     return event.get('accepted') and event.get('reply') == 'delivered'
+
+
+def body_fetched(event, reference):
+    if not (event['command'] == 'FETCH' and delivered(event) and
+            event.get('folder') == reference['folder'] and
+            event.get('arguments') == [str(reference['uid']), '(UID FLAGS BODY.PEEK[])']):
+        return False
+    for row in event.get('fetch_result', []):
+        if not isinstance(row, dict) or 'literal_hex' not in row:
+            continue
+        metadata, literal = bytes.fromhex(row['metadata_hex']), bytes.fromhex(row['literal_hex'])
+        if re.search(rb'\bUID ' + str(reference['uid']).encode() + rb'\b', metadata) and (
+                not reference.get('sha256') or hashlib.sha256(literal).hexdigest() == reference['sha256']):
+            return True
+    return False
+
+
+def scan_complete(servers, result):
+    """A scan is complete only if the wire replies contain every message body."""
+    start = result.get('scan_start')
+    if not isinstance(start, int) or start < 0:
+        return False
+    stop = next((i for i, event in enumerate(servers) if event is result), len(servers))
+    events = [e for e in servers[start:stop] if e['call'] == result['call'] and e.get('account') == result.get('account')]
+    listing = next((e for e in events if e['command'] == 'LIST' and delivered(e)), None)
+    if listing is None or not isinstance(listing.get('mailboxes'), dict):
+        return False
+    for name, flags in (listing.get('roles') or {}).items():
+        if any(flag.lower() == '\\noselect' for flag in flags):
+            continue
+        refs = listing['mailboxes'].get(name)
+        if refs is None or not any(e['command'] == 'SELECT' and e.get('folder') == name and delivered(e) for e in events):
+            return False
+        searches = [e for e in events if e['command'] == 'SEARCH' and e.get('folder') == name and
+                    e.get('arguments') == [None, 'ALL'] and delivered(e)]
+        values = searches[-1].get('response_text', []) if searches else []
+        if len(values) != 1 or not isinstance(values[0], str) or not all(part.isdigit() for part in values[0].split()):
+            return False
+        if sorted(map(int, values[0].split())) != sorted(ref['uid'] for ref in refs):
+            return False
+        if not all(any(body_fetched(e, ref) for e in events) for ref in refs):
+            return False
+    return True
 
 
 def exact_uid(event, reference, command, flags=None):

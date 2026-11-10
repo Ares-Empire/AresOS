@@ -1,6 +1,7 @@
 """Real result-write faults followed by an unauthorized draft APPEND retry."""
 from contextlib import ExitStack
 import copy
+import hashlib
 import unittest
 from unittest.mock import patch
 
@@ -14,6 +15,67 @@ from storage_faults import OSWrites
 
 
 class EffectRegressions(unittest.TestCase):
+    def filing_scan(self, body='valid', absent_target=False, lie=False):
+        scenario = OwnerScenario('fixture')
+        try:
+            fixture = scenario.fixture
+            scenario.action, scenario.args = 'control_pending', {}
+            driver = Driver(scenario)
+            reference = {'account': 'box', 'folder': 'Source', 'uidvalidity': fixture.imap.validities['Source'],
+                         'uid': 1, 'message_id': fixture.imap.mid}
+            row = {'id': 'scan', 'account': 'box', 'verb': 'move', 'sources': [reference],
+                   'target': 'Gone' if absent_target else 'Target', 'state': 'started', 'check_open': True,
+                   'roles_before': fixture.account['special'],
+                   'records': [{'source': reference, 'sha256': hashlib.sha256(fixture.imap.boxes['Source'][1]).hexdigest(),
+                                'destination': None}]}
+            key = 'mail:filing:scan'
+            driver.fixture_input({key: row}, 'Synthetic interrupted filing')
+            uid, write = fixture.imap.uid, fixture.engine.store.write
+            def fetched(command, *args):
+                answer = uid(command, *args)
+                if command == 'FETCH' and 'BODY.PEEK[]' in str(args) and body != 'valid':
+                    if body == 'empty':
+                        return 'OK', []
+                    if body == 'wrong-uid':
+                        return 'OK', [(b'1 (UID 999 FLAGS () BODY[] {1}', b'x'), b')']
+                    return 'OK', [b'1 (UID 1 FLAGS ())']
+                return answer
+            def persisted(changes, action, *args, **kwargs):
+                if lie and action == 'mail_filing_check' and key in changes:
+                    changes[key].update(state='done', check_open=False)
+                return write(changes, action, *args, **kwargs)
+            with patch.object(fixture.imap, 'uid', side_effect=fetched), patch.object(fixture.engine.store, 'write', side_effect=persisted), driver.observe():
+                result = scenario.call()
+            driver.reply(result)
+            scans = [event for event in driver.oracle.servers if event['command'] == 'SCAN_RESULT']
+            self.assertTrue(scans)
+            self.assertEqual(scans[-1]['accepted'], body == 'valid')
+            # Revalidate the actual recorded replies even if the summary lies.
+            for event in scans:
+                event['accepted'] = True
+            registry = Gaps(recording=True)
+            driver.compare(registry.checker('scan'))
+            expected, errors = evaluate(freeze(driver.oracle), copy.deepcopy(driver.snapshot()))
+            return expected, errors, driver.snapshot().rows[key]
+        finally:
+            scenario.close()
+
+    def test_ok_fetch_without_a_matching_body_cannot_close_a_filing_check(self):
+        for body in ('empty', 'wrong-uid', 'no-literal'):
+            with self.subTest(body=body):
+                expected, errors, _ = self.filing_scan(body=body, lie=True)
+                self.assertTrue(any(f.kind == 'unjustified-check-close' for _, f in errors))
+                self.assertTrue(any(f.source == 'mail:filing:scan' and f.kind == 'recovery' for f in expected))
+
+    def test_complete_filing_scan_can_commit_a_warning_when_destination_disappeared(self):
+        expected, errors, row = self.filing_scan(absent_target=True)
+        self.assertEqual(row['state'], 'partial')
+        self.assertFalse(row.get('check_open'))
+        self.assertTrue(row['warning_checks']['filing']['warning'])
+        self.assertTrue(all(item['scan_complete'] for item in row['locations']))
+        self.assertFalse(any(f.kind in {'unjustified-check-close', 'unsupported-resolution'} for _, f in errors), errors)
+        self.assertFalse(any(f.source == 'mail:filing:scan' and f.kind == 'recovery' for f in expected), expected)
+
     def test_relative_rename_uses_the_independently_listed_parent_delimiter(self):
         scenario = OwnerScenario('fixture')
         try:

@@ -13,6 +13,7 @@ from .compare import compare_views, pages, compare_envelope, compare_status, com
 from .responses import read_response
 from .transcript import folder_name
 from .clock import recorded_samples
+from .effects import scan_complete
 
 
 @contextmanager
@@ -143,6 +144,10 @@ class Driver:
             event = oracle.server(name, getattr(self, 'account_id', 'box'), folder, before, f.imap.roles, accepted=False, reply='lost', arguments=list(args), **self.precommit())
             answer = uid(name, *args, **kwargs)
             event.update(accepted=answer[0] == 'OK', reply='delivered', roles_after=copy.deepcopy(f.imap.roles), response_code=answer[0], response_text=[v.decode(errors='replace') if isinstance(v, bytes) else v for v in answer[1] or []])
+            if name == 'FETCH':
+                event['fetch_result'] = [({'metadata_hex': row[0].hex(), 'literal_hex': row[1].hex()}
+                    if isinstance(row, tuple) and len(row) == 2 and all(isinstance(value, bytes) for value in row)
+                    else {'metadata_hex': row.hex()} if isinstance(row, bytes) else {'invalid': True}) for row in answer[1] or []]
             if name == 'SEARCH' and len(args) >= 4 and args[2] == 'Message-ID':
                 mid = args[3].strip('"')
                 identities = [{k: v for k, v in r.items() if k != 'sha256'} for r in self.identities(folder) if r['message_id'] == mid]
@@ -317,15 +322,10 @@ class Driver:
                 checking[0], self.checking_source = previous, previous_source
         def scanned(mail, account, records):
             start = len(oracle.servers)
-            expected = {name: self.identities(name, account['id']) for name in f.imap.boxes
-                        if '\\Noselect' not in f.imap.roles.get(name, [])}
             result = scan(mail, account, records)
-            events = oracle.servers[start:]
-            complete = all(any(e['command'] == 'SELECT' and e.get('folder') == name and e['accepted'] and e['reply'] == 'delivered' for e in events)
-                and all(any(e['command'] == 'FETCH' and e.get('folder') == name and e.get('arguments', [None])[0] == str(ref['uid']) and 'BODY.PEEK[]' in str(e.get('arguments', ['', ''])[1]) and e['accepted'] and e['reply'] == 'delivered' for e in events)
-                        for ref in refs) for name, refs in expected.items())
-            oracle.server('SCAN_RESULT', account['id'], accepted=complete, before_seq=max(self.snapshot().committed, default=0),
+            event = oracle.server('SCAN_RESULT', account['id'], accepted=False, before_seq=max(self.snapshot().committed, default=0),
                           check_sources=[self.checking_source] if self.checking_source else [], scan_start=start)
+            event['accepted'] = scan_complete(oracle.servers, event)
             return result
         extra.enter_context(patch.object(filing, 'resolve_checks', side_effect=checked))
         extra.enter_context(patch.object(f.engine.store, 'get', side_effect=checking_get))

@@ -22,9 +22,13 @@ def filing_case(kind='rename', related=False, target=False, scan=False):
     oracle.call('control_pending' if related else 'mail_accounts', {}, 2)
     oracle.script[-1].update(start_seq=1, end_seq=2)
     roles = {**ROLES, **({'MissingTarget': []} if target else {})}
-    oracle.server('LIST', 'box', roles=roles, before_seq=1, check_sources=[key] if related else [], mailboxes={})
+    start = len(oracle.servers)
+    oracle.server('LIST', 'box', roles=roles, before_seq=1, check_sources=[key] if related else [], mailboxes={name: [] for name in roles})
     if scan:
-        oracle.server('SCAN_RESULT', 'box', before_seq=1, check_sources=[key])
+        for name in roles:
+            oracle.server('SELECT', 'box', name)
+            oracle.server('SEARCH', 'box', name, arguments=[None, 'ALL'], response_text=[''])
+        oracle.server('SCAN_RESULT', 'box', before_seq=1, check_sources=[key], scan_start=start)
     closed = {**row, 'state': 'done', 'check_open': False}
     record = Record(rows={key: closed}, events=[{'seq': 1, 'time': 1, 'action': 'fixture', 'set': {key: row}},
                     {'seq': 2, 'time': 2, 'action': 'mail_filing_check', 'set': {key: closed}}], committed={1, 2})
@@ -370,9 +374,30 @@ class StageTwoFixes(unittest.TestCase):
                 with self.subTest(kind=kind, related=related, target=target, scan=scan):
                     oracle, record, key = filing_case(kind, related, target, scan)
                     expected, failures = evaluate(oracle, record)
-                    valid = related and target and (scan or kind == 'rename')
+                    valid = related and (target if kind == 'rename' else scan)
                     self.assertEqual(any(f.kind == 'unjustified-check-close' for _, f in failures), not valid)
                     self.assertEqual(any(f.source == key and f.kind == 'recovery' for f in expected), not valid)
+
+    def test_scan_result_acceptance_is_not_its_own_proof(self):
+        oracle, record, key = filing_case('filing', True, True, True)
+        oracle.warning_contexts[key] = record.rows[key]
+        self.assertTrue(oracle.result_proof(key, 'filing', 2))
+        oracle.servers = [e for e in oracle.servers if e['command'] != 'SEARCH']
+        self.assertTrue(next(e for e in oracle.servers if e['command'] == 'SCAN_RESULT')['accepted'])
+        expected, failures = evaluate(oracle, record)
+        self.assertTrue(any(f.kind == 'unjustified-check-close' for _, f in failures))
+        self.assertIn(Fact(key, 'recovery'), expected)
+
+    def test_fixture_delivery_requires_matching_script_and_message_identity(self):
+        for bad in (None, 'call', 'message', 'runtime'):
+            oracle = Oracle()
+            oracle.seed_sequence = 1
+            key = 'op:g:s'
+            oracle.seed_events = [{'seq': 1, 'set': {key: {'id': 'g:s'}}}]
+            oracle.call('mail_send', {'operation_id': 'g:s' if bad != 'call' else 'g:other'}, 1)
+            oracle.server('DATA', 'box', identities=[{'message_id': '<wrong@mail.invalid>' if bad == 'message' else '<g.s@mail.aresos.invalid>'}],
+                          fixture_seed=True, before_seq=2 if bad == 'runtime' else 0)
+            self.assertEqual(len(oracle.operation_events(key, 3)), 0 if bad else 1)
 
     def test_wrong_close_survives_ack_reads_expiry_archive_and_restart(self):
         for kind in ('rename', 'filing'):

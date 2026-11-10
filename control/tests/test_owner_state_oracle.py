@@ -3,6 +3,7 @@ from contextlib import closing
 import ast
 import copy
 import json
+import hashlib
 from pathlib import Path
 import sqlite3
 import sys
@@ -12,6 +13,15 @@ import unittest
 from owner_state_oracle.model import Fact, Oracle
 from owner_state_oracle.records import Record, canonical, decode, fingerprint
 from owner_state_oracle.compare import pages
+
+
+def empty_scan(oracle, listing, sources):
+    listing['mailboxes'] = {name: [] for name in listing['roles']}
+    for name in listing['roles']:
+        oracle.server('SELECT', listing.get('account'), name)
+        oracle.server('SEARCH', listing.get('account'), name, arguments=[None, 'ALL'], response_text=[''])
+    oracle.server('SCAN_RESULT', listing.get('account'), before_seq=listing.get('before_seq', 0), check_sources=sources,
+                  scan_start=next(i for i, event in enumerate(oracle.servers) if event is listing))
 
 
 class OwnerOracle(unittest.TestCase):
@@ -221,9 +231,9 @@ class OwnerOracle(unittest.TestCase):
                 {'seq': 2, 'action': 'mail_filing_check', 'set': {source: {'warning_checks': {kind: {'warning': False}}}}}]
             oracle.call('filing check', {}, 2)
             oracle.script[-1]['end_seq'] = 2
-            oracle.server('LIST', before_seq=1, check_sources=[source], roles={'Target': [], 'Sent': ['\\Sent'], 'Drafts': ['\\Drafts'], 'Trash': ['\\Trash']})
+            listing = oracle.server('LIST', before_seq=1, check_sources=[source], roles={'Target': [], 'Sent': ['\\Sent'], 'Drafts': ['\\Drafts'], 'Trash': ['\\Trash']})
             if kind == 'filing':
-                oracle.server('SCAN_RESULT', before_seq=1, check_sources=[source])
+                empty_scan(oracle, listing, [source])
             oracle.expected(record)
             record.rows['notice:new'] = {**first, 'id': 'new'}
             two = oracle.warning(source, kind, evidence, record)
@@ -1508,12 +1518,17 @@ class StageOneRoundThree(unittest.TestCase):
 
     def test_false_filing_hash_cannot_justify_false_locations(self):
         oracle = Oracle()
+        real_hash = hashlib.sha256(b'real-bytes').hexdigest()
         source = dict(account='box', folder='Source', uidvalidity=1, uid=1, message_id='<synthetic@mail.invalid>')
         oracle.call('mail_move', {'references': [source], 'target': 'Target'}, 1)
-        oracle.server('FIXTURE_STATE', 'box', mailboxes={'Source': [{**source, 'sha256': 'real-bytes'}]})
-        mutation = oracle.server('MOVE', 'box', 'Source', [{**source, 'sha256': 'real-bytes'}], arguments=['1', 'Target'])
-        listing = oracle.server('LIST', 'box', mailboxes={'Target': [{**source, 'folder': 'Target', 'sha256': 'real-bytes'}]})
-        oracle.server('SCAN_RESULT', 'box', check_sources=['mail:filing:f'])
+        oracle.server('FIXTURE_STATE', 'box', mailboxes={'Source': [{**source, 'sha256': real_hash}]})
+        mutation = oracle.server('MOVE', 'box', 'Source', [{**source, 'sha256': real_hash}], arguments=['1', 'Target'])
+        listing = oracle.server('LIST', 'box', roles={'Target': []}, mailboxes={'Target': [{**source, 'folder': 'Target', 'sha256': real_hash}]})
+        oracle.server('SELECT', 'box', 'Target')
+        oracle.server('SEARCH', 'box', 'Target', arguments=[None, 'ALL'], response_text=['1'])
+        oracle.server('FETCH', 'box', 'Target', arguments=['1', '(UID FLAGS BODY.PEEK[])'],
+                      fetch_result=[{'metadata_hex': b'1 (UID 1 BODY[] {10}'.hex(), 'literal_hex': b'real-bytes'.hex()}])
+        oracle.server('SCAN_RESULT', 'box', check_sources=['mail:filing:f'], scan_start=2)
         context = {'id': 'f', 'records': [{'source': source, 'sha256': 'false-bytes'}]}
         locations = oracle.locations(context, listing, mutation)
         self.assertEqual(locations[0]['observed_locations'][0]['folder'], 'Target')
@@ -1694,9 +1709,9 @@ class StageTwoPartA(unittest.TestCase):
             oracle.server('MOVE', 'box', 'Source', [source], roles, arguments=['1', 'Target'], before_seq=1,
                           call_start_seq=0, created_before={'mail:filing:f': 1}, committed_before={'mail:filing:f': row}, copyuid_delivered=False)
             if post != 'absent':
-                oracle.server('LIST', 'box', roles=roles, before_seq=1, accepted=post != 'negative', reply='lost' if post == 'lost' else 'delivered')
+                listing = oracle.server('LIST', 'box', roles=roles, before_seq=1, accepted=post != 'negative', reply='lost' if post == 'lost' else 'delivered')
             if post == 'delivered':
-                oracle.server('SCAN_RESULT', 'box', before_seq=1, check_sources=['mail:filing:f'])
+                empty_scan(oracle, listing, ['mail:filing:f'])
             record = Record(events=[{'seq': 1, 'time': 1, 'action': 'mail_move', 'set': {'mail:filing:f': row}},
                 {'seq': 2, 'time': 1, 'action': 'mail_move', 'set': {'mail:filing:f': {**row, 'state': 'done', 'check_open': False}}}])
             from owner_state_oracle.compare import compare_proofs

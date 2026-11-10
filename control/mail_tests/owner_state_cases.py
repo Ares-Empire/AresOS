@@ -24,11 +24,16 @@ def run(gaps):
         driver.compare(gaps.checker('contract/' + name))
 
     # Real clean outcomes: no duplicate-generating APPEND/race in these cases.
-    for flow in ('send', 'filing_move', 'filing_copy', 'filing_rename', 'delete_trash', 'delete_permanent'):
+    for flow in ('send', 'filing_move', 'filing_copy', 'filing_rename', 'delete_trash', 'delete_permanent',
+                 'testapp_send', 'repair', 'settlement', 'status'):
         s = OwnerScenario(flow)
         gaps.aliases = {}
         try:
             f, stack = s.fixture, s.stack
+            if flow in {'status', 'settlement'}:
+                # Their sweep variants deliberately seed duplicate Sent mail.
+                # The ordinary quiet contract has one independently visible copy.
+                f.imap.boxes['Sent'].pop(2)
             if flow == 'send':
                 def append(account, folder, raw, flags=None):
                     s.remote['APPEND'] += 1
@@ -64,6 +69,8 @@ def run(gaps):
             assert (reply['data'].get('operation') or reply['data'])['state'] == 'done', reply
             assert not reply['pending'].get('notices'), reply
             compare(s, d, 'quiet-' + flow)
+            if flow in {'testapp_send', 'repair', 'settlement', 'status'}:
+                assert not any(key.startswith('contract/quiet-' + flow + '/') for key in gaps.entries), (flow, gaps.entries)
             assert not [f for f in d.oracle.expected(d.snapshot()) if f.kind not in {'pending'}], (flow, d.oracle.expected(d.snapshot()), d.oracle.lifecycle_errors)
             assert not d.oracle.lifecycle_errors, (flow, d.oracle.lifecycle_errors)
             assert not d.oracle.invalid_clean_results, (flow, d.oracle.invalid_clean_results)

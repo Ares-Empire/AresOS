@@ -256,14 +256,48 @@ count as catching a coherent lie. Independent fixture inputs are not production
 claims; their single-site integrity alterations remain covered separately.
 
 Production plants run the unmodified Driver and Driver.compare. Every field
-kind has a real production regression. Seven separate broken-oracle controls
-disable script authority, stage validation, completion, payload validation,
-filing validation, the transition gate, or the local-effect validator. Each must
-make its own plant assertion fail, even if another validator also rejects the
-regression. Each shard prints owner-set-changing alterations and each validator's
-own catches, as well as production plants and broken controls. Structural errors
-and malformed fields cannot prevent already discovered semantic errors reaching
-the shared comparison.
+kind has a real production regression. Each plant's flow is also recorded once
+without the plant; both new differing views and new semantic facts are required
+relative to that baseline. A baseline alone cannot satisfy a plant assertion.
+Single-validator controls rerun both baseline and plant through Driver.compare
+with exactly one validator disabled. The transition and local.errors plants add
+differences with the validator and none without it. The other plants remain
+detected; they do not prove an indispensable validator:
+
+| Removed validator | Plant | Redundancy on this corpus |
+| --- | --- | --- |
+| script_differences | wrong Sent destination | redundant with completion_errors, stage_claims and transition on this corpus |
+| stage_claims | missing Deleted STORE | redundant with completion_errors and transition on this corpus |
+| completion_errors | missing Sent copy | redundant with stage_claims on this corpus |
+| payload_claims | narrowed delete payload | redundant with completion_errors, script_differences and transition on this corpus |
+| filing_claims | wrong rename count | redundant with the independent server-derived notice-context/count comparisons on this corpus |
+
+Coherent removal of an operation's terminal row is caught only by stage_claims;
+coherent removal of a move/copy/rename result row is caught only by filing_claims
+on this corpus. Dedicated controls require the alteration check to fail when
+that one validator is removed. An oracle ignoring a field can leave the expected
+set unchanged, so the alteration test cannot see it; only production plants can.
+An alteration test also cannot require script_differences when it never changes
+server commands. Every shard prints owner-set-changing alterations and each
+validator's own catches. Those provenance counts do not claim indispensability.
+Structural errors and malformed fields cannot prevent discovered semantic errors
+reaching the shared comparison.
+
+LOCAL_STAGE multiplicity includes its stage, and APPEND includes its flags.
+Fixture seed DATA/APPEND evidence must match the scripted seed send and its
+Message-ID, precede the runtime seed boundary, and refer to a seed operation.
+Seed APPEND logs its actual bytes, role and flags. Runtime repairs join the
+parent only through their scripted parent and matching message identity. Sent
+result commits from a matching repair still require correlated raw Sent evidence.
+
+SCAN_RESULT acceptance is a summary, never its own proof. The oracle replays
+the scan interval's actual LIST inventory, successful SELECT and exact SEARCH
+UID enumeration, and BODY.PEEK[] FETCH responses. A matching UID and byte literal
+(with the independently recorded byte hash) must exist for every message.
+OK with an empty result, a different UID or no literal leaves the check open,
+even if SCAN_RESULT falsely says accepted. The destination-presence gate applies
+to RENAME. A filing scan can close with a committed warning when its destination
+has disappeared; a clean filing result still requires the destination.
 
 New reservation deadlines are validated against independently recorded consumed
 test-clock samples plus the test's configured operation TTL. The clock recorder

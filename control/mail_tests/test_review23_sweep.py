@@ -204,7 +204,7 @@ class Scenario:
                 mail = composition['mail']
                 recipients = [address for _, address in getaddresses(mail['to'] + mail['cc'] + mail['bcc'])]
                 self.owner_oracle.server('DATA', 'box', identities=[Transcript.message(raw)], recipients=recipients,
-                                         accepted=True, fixture_seed=True)
+                                         raw_hex=raw.hex(), accepted=True, fixture_seed=True)
             self.attempted_ids.add(operation['id'])
             stage('smtp_data', 'accepted:250')
             return 'done', 'Synthetic DATA accepted'
@@ -216,6 +216,10 @@ class Scenario:
         def seed_append(account, folder, raw, flags):
             self.prior_commands['APPEND'] += 1
             f.imap.boxes[folder][1] = raw
+            if hasattr(self, 'owner_oracle'):
+                from owner_state_oracle.transcript import Transcript
+                self.owner_oracle.server('APPEND', account['id'], folder, [Transcript.message(raw)], f.imap.roles,
+                                         append_flags=flags, raw_hex=raw.hex(), accepted=True, fixture_seed=True)
             return {'uid': 1}
         with patch.object(f.mail, 'send_smtp', side_effect=smtp), patch.object(f.mail, 'local_stage', side_effect=local), \
              patch.object(f.mail, 'append', side_effect=seed_append):
