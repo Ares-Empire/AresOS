@@ -76,10 +76,117 @@ expect_failure reuse_probe
 # 1 is sudo -n refusing; 90 would mean the first, real authentication failed.
 test "$LAST_STATUS" = 1
 grep -q 'a password is required' <<< "$LAST_FAILURE"
+pass 'after a successful sudo, a child exec of sudo -n is refused (the old ppid ticket allowed it)'
+
+# polkit keeps no admin authorization either (review 2). A real polkitd on a
+# private system bus; ares authorizes once through a text agent, then the same
+# process asks again. Without logind every subject counts as remote, where the
+# base cached NetworkManager's and firewalld's settings (auth_admin_keep).
+# Control: a check-only action that keeps the cached default.
+if grep -l '_keep[[:space:]]*</allow_' /usr/share/polkit-1/actions/*.policy; then
+    echo 'An installed polkit default is still cached'
+    exit 1
+fi
+cat > /usr/share/polkit-1/actions/org.aresos.ci.cached.policy <<'POLICY'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+ "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
+<policyconfig>
+  <action id="org.aresos.ci.cached">
+    <description>Check-only control with a cached default</description>
+    <message>Check-only control</message>
+    <defaults>
+      <allow_any>auth_admin_keep</allow_any>
+      <allow_inactive>auth_admin_keep</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+  </action>
+</policyconfig>
+POLICY
+systemd-sysusers
+mkdir -p /run/dbus
+dbus-daemon --system --fork --nopidfile
+helper=/usr/lib/polkit-1/polkit-agent-helper-1
+stat -c '%a %U %n' "$helper"
+if [[ ! -u $helper ]]; then
+    # polkit's helper is socket-activated by systemd; start that socket here.
+    cat /usr/lib/systemd/system/polkit-agent-helper.socket /usr/lib/systemd/system/polkit-agent-helper@.service
+    socket=$(sed -n 's/^ListenStream=//p' /usr/lib/systemd/system/polkit-agent-helper.socket)
+    command=$(sed -n 's/^ExecStart=//p' /usr/lib/systemd/system/polkit-agent-helper@.service)
+    mkdir -p "$(dirname "$socket")"
+    # shellcheck disable=SC2086 # the unit's command line, split as systemd would
+    systemd-socket-activate --accept --inetd -l "$socket" $command &
+fi
+runuser -u polkitd -- /usr/lib/polkit-1/polkitd --no-debug &
+for _ in $(seq 100); do
+    if busctl --system status org.freedesktop.PolicyKit1 > /dev/null 2>&1; then
+        break
+    fi
+    sleep 0.2
+done
+busctl --system status org.freedesktop.PolicyKit1 > /dev/null
+runuser -u ares -- python3 - org.aresos.ci.cached org.freedesktop.NetworkManager.settings.modify.system \
+    org.fedoraproject.FirewallD1.config > /tmp/polkit-reuse.json <<'PY'
+import json, os, pty, select, subprocess, sys, time
+password = open('/run/reuse-password').read().strip()
+
+def authorize_twice(action):
+    subject = subprocess.Popen(['sleep', '300'])
+    agent, terminal = pty.fork()
+    if agent == 0:
+        os.execv('/usr/bin/pkttyagent', ['pkttyagent', '--process', str(subject.pid)])
+    try:
+        time.sleep(2)
+        first = subprocess.Popen(['pkcheck', '--action-id', action, '--process', str(subject.pid),
+                                  '--allow-user-interaction'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        transcript, answered, deadline = b'', False, time.monotonic() + 60
+        while first.poll() is None and time.monotonic() < deadline:
+            if select.select([terminal], [], [], 0.2)[0]:
+                try:
+                    transcript += os.read(terminal, 4096)
+                except OSError:
+                    pass
+                if not answered and b'Password:' in transcript:
+                    os.write(terminal, password.encode() + b'\n')
+                    answered = True
+        if first.poll() is None:
+            first.kill()
+        _, first_error = first.communicate()
+        second = subprocess.run(['pkcheck', '--action-id', action, '--process', str(subject.pid)],
+                                capture_output=True, text=True)
+        return dict(action=action, first=first.returncode, password_asked=answered,
+                    first_stderr=first_error.decode(errors='replace').strip(),
+                    second=second.returncode, second_stderr=second.stderr.strip(),
+                    agent=transcript.decode(errors='replace').replace(password, '<password>'))
+    finally:
+        os.kill(agent, 9)
+        os.waitpid(agent, 0)
+        subject.kill()
+        subject.wait()
+
+print(json.dumps([authorize_twice(action) for action in sys.argv[1:]], indent=1))
+PY
+cat /tmp/polkit-reuse.json
+python3 - /tmp/polkit-reuse.json <<'PY'
+import json, sys
+rows = {row['action']: row for row in json.load(open(sys.argv[1]))}
+for row in rows.values():
+    # pkcheck: 0 authorized, 2 needs authentication that was not allowed here.
+    assert row['first'] == 0 and row['password_asked'], row
+control = rows.pop('org.aresos.ci.cached')
+assert control['second'] == 0, ('the probe cannot see a cached authorization', control)
+for row in rows.values():
+    assert row['second'] == 2, ('authorization was reused', row)
+print('polkit asked again for', ', '.join(rows))
+PY
+pkill -x polkitd || true
+pkill -x dbus-daemon || true
+pkill -f systemd-socket-activate || true
+rm /usr/share/polkit-1/actions/org.aresos.ci.cached.policy
+pass 'polkit: after ares authorizes once, the same process is asked again (a cached control action is reused)'
 usermod -p '!*' ares
 rm /run/reuse-password
 test "$(getent shadow ares | cut -d: -f2)" = '!*'
-pass 'after a successful sudo, a child exec of sudo -n is refused (the old ppid ticket allowed it)'
 
 # --- OS updaters stay out of reach; Flatpak and Homebrew are his.
 for command in uupd ujust topgrade bazzite-updater bazzite-portal bazaar plasma-discover gnome-software; do
@@ -229,6 +336,43 @@ normal|--title=AresOS /usr/bin/bash --rcfile /usr/share/aresos/bashrc -i"
 mv /usr/bin/foot.real /usr/bin/foot
 rm /var/home/ares/.local/bin/foot
 pass 'both terminals run /usr/bin/foot even with a broken foot first on PATH'
+# --- TuneD (review 2): ares may switch power profiles without a password, and
+# tuned-ppd maps them to the TuneD profiles in /etc/tuned/ppd.conf. None of
+# those, with everything they include, may touch the bootloader or kernel
+# arguments; direct TuneD profile changes are denied to ares in polkit.
+python3 - <<'PY'
+import configparser, pathlib
+ppd = configparser.ConfigParser(interpolation=None, strict=False)
+assert ppd.read('/etc/tuned/ppd.conf'), 'tuned-ppd configuration missing'
+roots = [pathlib.Path('/etc/tuned/profiles'), pathlib.Path('/usr/lib/tuned/profiles'),
+         pathlib.Path('/etc/tuned'), pathlib.Path('/usr/lib/tuned')]
+targets = {value.strip() for section in ('profiles', 'battery') if ppd.has_section(section)
+           for _, value in ppd.items(section)}
+assert targets, 'no profiles mapped in ppd.conf'
+
+def check(name, seen):
+    if name in seen:
+        return
+    seen.add(name)
+    folder = next((root / name for root in roots if (root / name / 'tuned.conf').is_file()), None)
+    assert folder, f'TuneD profile {name} not found'
+    profile = configparser.ConfigParser(interpolation=None, strict=False)
+    profile.read(folder / 'tuned.conf')
+    for section in profile.sections():
+        plugin = profile.get(section, 'type', fallback=section).strip()
+        assert plugin != 'bootloader' and not profile.has_option(section, 'cmdline'), (name, section)
+    for include in profile.get('main', 'include', fallback='').split(','):
+        include = include.strip()
+        if include:
+            assert '$' not in include, f'{name} includes a computed profile: {include}'
+            check(include, seen)
+
+seen = set()
+for target in sorted(targets):
+    check(target, seen)
+print('tuned-ppd profiles and their includes, none with a bootloader section:', ', '.join(sorted(seen)))
+PY
+pass 'every power profile ares can switch to leaves the bootloader and kernel arguments alone'
 grep -qx 'font=monospace:size=16' /etc/xdg/foot/foot.ini
 pass 'foot default font size 16 (a user foot.ini replaces this file)'
 grep -qx '/usr/libexec/kf6/polkit-kde-authentication-agent-1 &' /usr/share/aresos/labwc/autostart
