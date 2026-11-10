@@ -213,6 +213,20 @@ class StartupPathTest(unittest.TestCase):
         self.assertIn("command = ['/usr/sbin/usermod', *arguments, USER]",
                       (CONFIG / 'usr/libexec/aresos-subids').read_text())
 
+    def test_ci_vm_layer_shadows_every_startup_command(self):
+        # The VM boot plants broken copies of these first on his PATH before
+        # greetd starts; checks.py requires that none of them ran.
+        names = (ROOT / 'ci/overlay/shadow-names.txt').read_text().split()
+        for name in ('sh', 'bash', 'dbus-run-session', 'dbus-daemon', 'labwc', 'busctl', 'foot', 'id',
+                     'aresos-terminal'):
+            self.assertIn(name, names)
+        containerfile = (ROOT / 'ci/overlay/Containerfile').read_text()
+        self.assertIn('/usr/lib/systemd/system/greetd.service.wants/aresos-ci-shadow-path.service', containerfile)
+        unit = (ROOT / 'ci/overlay/shadow-path.service').read_text()
+        self.assertIn('Before=greetd.service', unit)
+        checks = (ROOT / 'ci/overlay/checks.py').read_text()
+        self.assertIn("assert not ran.exists(), ('a shadowing program ran', ran.read_text())", checks)
+
 
 class PolicyFilesTest(unittest.TestCase):
     def test_sysusers_adds_wheel_and_sudo_asks_for_the_password_every_time(self):

@@ -4,7 +4,12 @@ COPY os/ci/channel.py os/ci/overlay/checks.py os/ci/overlay/pam_check.py os/ci/o
 COPY os/tests/guest.sh os/tests/power-events.py /usr/libexec/aresos-ci/
 COPY os/ci/overlay/aresos-ci.service os/ci/overlay/logind-debug.conf os/ci/overlay/journal-debug.conf /tmp/aresos-ci/
 COPY os/ci/overlay/updater-generator os/ci/overlay/static-canary.service /tmp/aresos-ci/
+COPY os/ci/overlay/shadow-path.sh os/ci/overlay/shadow-names.txt /usr/libexec/aresos-ci/
+COPY os/ci/overlay/shadow-path.service /tmp/aresos-ci/
 RUN install -Dm0644 /tmp/aresos-ci/aresos-ci.service /usr/lib/systemd/system/aresos-ci.service && \
+    install -Dm0644 /tmp/aresos-ci/shadow-path.service /usr/lib/systemd/system/aresos-ci-shadow-path.service && \
+    mkdir -p /usr/lib/systemd/system/greetd.service.wants && \
+    ln -s ../aresos-ci-shadow-path.service /usr/lib/systemd/system/greetd.service.wants/aresos-ci-shadow-path.service && \
     install -Dm0644 /tmp/aresos-ci/logind-debug.conf /etc/systemd/system/systemd-logind.service.d/90-aresos-ci.conf && \
     install -Dm0644 /tmp/aresos-ci/journal-debug.conf /etc/systemd/journald.conf.d/99-aresos-ci.conf && \
     install -Dm0755 /tmp/aresos-ci/updater-generator /usr/lib/systemd/system-generators/aresos-ci-updater-regression && \
