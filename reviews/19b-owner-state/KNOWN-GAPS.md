@@ -358,3 +358,54 @@ Both complete fresh 53-list merges reproduce this exact pin byte-for-byte,
 with zero R2 gaps. [LEDGER-STRICT-S2-FIXES.json](LEDGER-STRICT-S2-FIXES.json)
 records all 106 fresh actual-list hashes, ownership, exact output evidence,
 durations and run counts. Stage 3 remains open.
+
+
+## Stage 2 fixes round 2 pin
+
+The new pin supersedes round 1: **2,043,332 exact keys**, all stage 3, **zero R2**,
+**2,018 groups / 926,382 bytes**, SHA-256
+`4d370725e0e9caeb46d1a5b79d60083a82bc1bd8d8baff18d756c97c5227e70e`.
+[LEDGER-CAPTURE-S2-FIXES-2.json](LEDGER-CAPTURE-S2-FIXES-2.json) names all 53
+fresh Linux inputs from Mail 42852031436 / base 42852025144, attempt 1. Every
+input is strictly verified after packing, with complete ownership and exact
+shared-key agreement. This capture had old-pin failures and one alteration
+job timeout; it is not green verification. The timeout's pure join-cost fix
+changes no recorded inputs or expectations. Final strict repetitions must
+reproduce this pin and complete all alterations.
+
+The report lists all seven changed shared point-zero groups: test-app send
+35 to 0, repair 41 to 0, settlement 41 to 1 and status 2 to 0. The remaining
+settlement key is its deliberately seeded duplicate-case stage-warning mismatch.
+New one-copy quiet contracts require no differing views and cannot enter the pin.
+
+From the artifact paths in the manifest, reproduce the pin without committing
+any full list:
+
+```sh
+PYTHONPATH=control python3 - <<'PY'
+from pathlib import Path
+import gzip, hashlib, json
+from owner_state_oracle.gaps import Gaps, pack, unpack
+manifest = json.loads(Path('reviews/19b-owner-state/LEDGER-CAPTURE-S2-FIXES-2.json').read_text())
+assert len(manifest['artifacts']) == 53
+entries = {}
+for item in manifest['artifacts']:
+    path = Path(item['file'])
+    assert hashlib.sha256(path.read_bytes()).hexdigest() == item['sha256']
+    with gzip.open(path, 'rt') as stream:
+        actual = unpack(json.load(stream))
+    assert len(actual) == item['assertions']
+    registry = Gaps()
+    registry.entries = actual
+    registry.verify(set(item['suites']), item['shard'], item['shards'], 0, 1, artifact=False)
+    for key, value in actual.items():
+        assert value['stage'] == 3
+        assert key not in entries or entries[key] == value
+        entries[key] = value
+raw = (json.dumps(pack(entries), sort_keys=True, indent=1) + '\n').encode()
+assert len(entries) == 2043332 and len(raw) == 926382
+assert hashlib.sha256(raw).hexdigest() == manifest['sha256']
+assert raw == Path('reviews/19b-owner-state/KNOWN-GAPS.json').read_bytes()
+print('53 strict inputs; 2,043,332 stage-3 keys; zero R2; byte-identical pin')
+PY
+```

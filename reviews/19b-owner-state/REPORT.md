@@ -1779,3 +1779,63 @@ field audit and coherent alteration coverage; no field exclusion was added.
 | local.errors | 1,552 | 1,170 |
 
 These are proof-provenance counts, not claims that each validator is indispensable. The comparison-level plant/removal controls and redundancy table above provide that separate evidence. Linux capture and final strict acceptance follow below.
+
+**Run — one Linux capture and strict re-pin:** source `67ead6e4`, base
+[42852025144](https://github.com/Ares-Empire/AresOS/actions/runs/42852025144)
+and Mail [42852031436](https://github.com/Ares-Empire/AresOS/actions/runs/42852031436),
+attempt 1. GitHub did not start automatic PR checks after the normal push;
+both workflows were dispatched explicitly on that exact pushed head. One
+blocking shell loop ran `gh run watch ID --exit-status --interval 60` for each
+named run. No per-turn `gh run view` polling was used.
+
+Base printed `Ran 289 tests in 219.746s`, `OK`, `Control base suite PASS`
+(`results.txt:418/:420/:427`). Every one of the 48 owner sweep/onboarding jobs
+completed all assigned flows and six tests. All four suites completed.
+All 53 fresh complete actual lists (including this base run's channel list)
+were ownership/shared-value checked, merged, packed, and individually passed
+through the strict verifier against the new pin. The result is **2,043,332
+exact keys / zero R2 keys / all stage 3**, **2,018 groups / 926,382 bytes**,
+format 3, SHA-256 `4d370725e0e9caeb46d1a5b79d60083a82bc1bd8d8baff18d756c97c5227e70e`.
+LEDGER-CAPTURE-S2-FIXES-2.json pins every input hash, job duration and log result.
+The full list remains uncommitted.
+
+**Run — capture failure classification:** 38 jobs passed, 25 failed only their
+comparison with the superseded pin (24 ordinary sweep workers and the contract
+suite), and alteration shard 9 hit the 45-minute limit (2,716s including shutdown).
+This is diagnostic capture evidence, **not green acceptance**. The other eleven
+alteration jobs completed **90 recordings / 1,827,712 alterations / zero slipped**;
+their exact counters equal the corresponding eleven local shards. The timeout
+job has no completed test summary and is never counted as passing.
+
+**Read / run — timeout correction:** the new `operation_events` join looked up
+the scripted call for every unrelated read event, which made the read-heavy
+review-20 recording slow. It now joins the script only for eligible seed/repair
+candidates; directly bound effects and correlated source events keep the same
+order and membership. No input, expectation, effect, assertion, field, fault
+case, workflow shard or timeout changes. The 53 captured owner-state inputs
+remain applicable; both final strict repetitions must independently reproduce
+the exact pin and run the complete alteration matrix. No second Linux capture
+is used. The optimized local unit/focused checks print **146 tests / OK** and
+**13 tests / OK**. The affected complete alteration shard is rerun locally before
+pushing the finished strict source; its result follows below.
+
+**Run — every fault-free digest group whose count changed:** these are all
+shared point-zero count changes against round 1; no other fault-free group count
+changed. These remove oracle defects, not production warnings.
+
+| Flow / matrix row | Round 1 keys | Round 2 keys | Why |
+| --- | ---: | ---: | --- |
+| repair / M06 | 11 | 0 | Seed delivery and supported repair/check completion |
+| repair / M14 | 30 | 0 | Same; no false pending/recovery/completion differences |
+| settlement / M06 | 11 | 0 | Seed delivery and parent Sent effects bind correctly |
+| settlement / M14 | 30 | 1 | Same; one deliberate duplicate-case public/committed sent_copy_warning mismatch remains for stage 3 |
+| status / M14 | 2 | 0 | Seed DATA/APPEND and seeded check history are valid evidence |
+| testapp_send / M06 | 9 | 0 | sent_copy and answered_flag are distinct effects |
+| testapp_send / M14 | 26 | 0 | No false duplicate-effect completion rejection |
+
+The four one-copy quiet contracts each require zero differing views directly.
+The separate duplicate cases still require their real warning. The ledger
+shrinks by 14,548 keys and six groups overall; retained fault-mode deltas remain
+exact, and all R1/R3/projection work stays assigned to stage 3.
+
+**Run — optimized timeout shard:** `OWNER_PERTURB_SHARD=9 OWNER_PERTURB_SHARDS=12` with the same local policy command completes **8 recordings / 252,353 alterations / zero slipped**, `Ran 1 test in 726.914s`, `OK`. Its complete kinds, coherent/owner-set-change counts and every validator counter equal the preoptimization complete local shard exactly. This is a local runtime recheck; the final two Linux passes below establish the per-job margin. The runtime-fix log hashes are in LEDGER-CAPTURE-S2-FIXES-2.json.

@@ -48,7 +48,7 @@
     "archive/persistent/151/0/crash-locked/control_pending.notice-head",
     "archive/persistent/151/0/crash-locked/envelope.control_log.notice-head"
    ],
-   "sha256": "87e7839e3a2f3dc16f5a64defc2dcfd34f99dec1d9cc3fc97de868c0ed90bf66",
+   "sha256": "17b97d6c9121d54619ce8a40b0d4d072b4c73b6f9a3e982eea4c74d3626f4bcc",
    "stage": 3,
    "suite": "archive"
   },
@@ -62,7 +62,7 @@
     "archive/persistent/156/0/crash-restart/lifecycle-proof",
     "archive/single/151/0/crash-restart/lifecycle-proof"
    ],
-   "sha256": "d7aa9a0efb8141a95500e0716840770bf554a49f162e1a1592eacbcf0f536ee0",
+   "sha256": "df7790cecdee00dcbdf90710eed877bb357eaa31e8215205f29385dfd594a5db",
    "stage": 3,
    "suite": "archive"
   },
@@ -95,16 +95,16 @@
    "suite": "archive"
   },
   {
-   "count": 2598,
+   "count": 2045,
    "id": "[\"archive\",\"0\",\"M14\",3]",
    "owner": "0",
    "row": "M14",
    "samples": [
-    "archive/persistent/102/0/crash-restart/completion",
     "archive/persistent/102/0/crash-restart/envelope.mail_accounts.notice-count",
-    "archive/persistent/102/0/crash-restart/envelope.mail_accounts.notice-head"
+    "archive/persistent/102/0/crash-restart/envelope.mail_accounts.notice-head",
+    "archive/persistent/102/0/crash-restart/lifecycle-proof"
    ],
-   "sha256": "baa52c5aab243b2efc89f6ae715ea314aa85437a164dda154d5eaa1afef8c441",
+   "sha256": "f3433b65ef77c85afe6dc793f8823b9676e6bb899310d09cf7c7a642e6ea6e71",
    "stage": 3,
    "suite": "archive"
   },
@@ -118,7 +118,7 @@
     "archive/persistent/10/0/crash-locked/control_pending.notice-head",
     "archive/persistent/10/0/crash-locked/envelope.control_log.notice-head"
    ],
-   "sha256": "80390557e9adde6fbe0b27c6c842f10a460444776e969f7c641f76fe953c8705",
+   "sha256": "b693566f4385596e2a237ebf0444d26a8d7163cd62a1c3a0aed982d2a3a13c0f",
    "stage": 3,
    "suite": "archive"
   },
@@ -132,7 +132,7 @@
     "archive/persistent/12/0/crash-restart/lifecycle-proof",
     "archive/persistent/14/0/crash-restart/lifecycle-proof"
    ],
-   "sha256": "a73bb91c945e4b6f47de6e992ad9ef6283647d2e18a4992a2bc304ea05be21d0",
+   "sha256": "e0a4fbc31af8b3118fa82ba3ed5fa47b2f91b347834b9e3a8f569dc4844e56d1",
    "stage": 3,
    "suite": "archive"
   },
@@ -165,7 +165,7 @@
    "suite": "archive"
   },
   {
-   "count": 4100,
+   "count": 3007,
    "id": "[\"archive\",\"1\",\"M14\",3]",
    "owner": "1",
    "row": "M14",
@@ -174,7 +174,7 @@
     "archive/persistent/10/0/crash-locked/aresos log.notice-count",
     "archive/persistent/10/0/crash-locked/aresos log.page"
    ],
-   "sha256": "d743ea8ea1c571dc48b64920e42b8cfa8fb7d08f44e89dda5867eb0e3994d936",
+   "sha256": "3630be1f0a6e52ff79fe1e4f6dca5699328cdcc07f01a0f4393441460572acc7",
    "stage": 3,
    "suite": "archive"
   },
@@ -188,7 +188,7 @@
     "archive/persistent/165/0/crash-locked/control_pending.notice-head",
     "archive/persistent/165/0/crash-locked/envelope.control_log.notice-head"
    ],
-   "sha256": "551f51ebb2723a3ddf668b4372a3e32cb91e86be7253f769094097e946ceb31c",
+   "sha256": "22a18a59d30f348a5f2ba79f38ee9290356517c1425ee8e284e97bd8bdae4ee7",
    "stage": 3,
    "suite": "archive"
   },
@@ -202,7 +202,7 @@
     "archive/persistent/3/0/crash-restart/lifecycle-proof",
     "archive/persistent/71/0/crash-restart/lifecycle-proof"
    ],
-   "sha256": "5e9a0cdeb1613126ade86b313d492c241940373b840f5bbfa730e53740c27c5d",
+   "sha256": "35fdb9bf55ef19337f3b99efa59c3af877c19af247c1aa909a09c55ad148dde9",
    "stage": 3,
    "suite": "archive"
   },
@@ -216,21 +216,21 @@
     "archive/persistent/128/0/exhausted/restore-generation",
     "archive/persistent/165/0/exhausted/restore-generation"
    ],
-   "sha256": "b0f9dd7dcf60a1d3014077baa28d511d9c86612e22f58b0b26e9e969f6985c37",
+   "sha256": "9f3e480d3d8392835777d9647ba4d460930701b5d04c9b5581bf159f2cec8a2f",
    "stage": 3,
    "suite": "archive"
   },
   {
-   "count": 4718,
+   "count": 3377,
    "id": "[\"archive\",\"10\",\"M14\",3]",
    "owner": "10",
    "row": "M14",
    "samples": [
-    "archive/persistent/101/0/crash-restart/completion",
     "archive/persistent/101/0/crash-restart/envelope.mail_accounts.notice-count",
-    "archive/persistent/101/0/crash-restart/envelope.mail_accounts.notice-head"
+    "archive/persistent/101/0/crash-restart/envelope.mail_accounts.notice-head",
+    "archive/persistent/101/0/crash-restart/lifecycle-proof"
    ],
-   "sha256": "e5755117ce4bec6b15b95e30f428df1b1bf359c1725d27d927e730f9003390fb",
+   "sha256": "b1614cf623634cec64a96e0cdaa34dfc7b55dd08b3b80cbd0c2d32fce26a844b",
    "stage": 3,
    "suite": "archive"
   },
@@ -244,7 +244,7 @@
     "archive/persistent/13/0/crash-locked/control_pending.notice-head",
     "archive/persistent/13/0/crash-locked/envelope.control_log.notice-head"
    ],
-   "sha256": "1362f9de0a7245a84676d62b74e0d4cd3c8e00e7de0150db7da9ecd8d59acff1",
+   "sha256": "c7c86d8f7355d750bbe8e10f588896c15c6e42d2371b14d13da42a76df5763e2",
    "stage": 3,
    "suite": "archive"
   },
@@ -258,7 +258,7 @@
     "archive/persistent/21/0/crash-restart/lifecycle-proof",
     "archive/persistent/23/0/crash-restart/lifecycle-proof"
    ],
-   "sha256": "e49ad61399ecef437a0064c84e26899164f2373ebfa87a1fe79abca755934f62",
+   "sha256": "e73b3f467cba395e548f7f5a726af67ad09e0ec52210e5de3eff30ddb4b65c65",
    "stage": 3,
    "suite": "archive"
   },
@@ -272,7 +272,7 @@
     "archive/persistent/21/0/exhausted/restore-generation",
     "archive/persistent/212/0/exhausted/restore-generation"
    ],
-   "sha256": "73e0c04f0c3a83fc72a1891aca3c65356c3746180869a470a522d625c8e15134",
+   "sha256": "533f907a5d14346be625ab944448906185c269f6703dca55d06808c57c37c78d",
    "stage": 3,
    "suite": "archive"
   },
@@ -291,16 +291,16 @@
    "suite": "archive"
   },
   {
-   "count": 6963,
+   "count": 5574,
    "id": "[\"archive\",\"11\",\"M14\",3]",
    "owner": "11",
    "row": "M14",
    "samples": [
-    "archive/persistent/100/0/crash-restart/completion",
     "archive/persistent/100/0/crash-restart/envelope.mail_accounts.notice-count",
-    "archive/persistent/100/0/crash-restart/envelope.mail_accounts.notice-head"
+    "archive/persistent/100/0/crash-restart/envelope.mail_accounts.notice-head",
+    "archive/persistent/100/0/crash-restart/lifecycle-proof"
    ],
-   "sha256": "3f6401f5afc32936510e62a49c7be3038767d60e1887ed351ea869c217d514d2",
+   "sha256": "8e24dec7c7dd008910fda6567798b2571b2b8ed3d417aca1504eafb4ab3c8ba9",
    "stage": 3,
    "suite": "archive"
   },
@@ -314,7 +314,7 @@
     "archive/persistent/158/0/crash-locked/control_pending.notice-head",
     "archive/persistent/158/0/crash-locked/envelope.control_log.notice-head"
    ],
-   "sha256": "38633b0cad41ee6e4b10ff00217aadf6af9244e9f79c7a4eda5d5b9a1ee00e04",
+   "sha256": "434724944b79e59f3f4ab5d71fb69d0255a1940ba361cd270089b372b6a06b3e",
    "stage": 3,
    "suite": "archive"
   },
@@ -328,7 +328,7 @@
     "archive/persistent/18/0/crash-restart/lifecycle-proof",
     "archive/persistent/8/0/crash-restart/lifecycle-proof"
    ],
-   "sha256": "b77a4e8e6abab4d3dae0d72e28e50e71624e3863aa32095597c6a2f367db4d89",
+   "sha256": "9eaf92710b305be93354b4ed15052c780f04b2134fb245c9b1bad2cd64ddfb2d",
    "stage": 3,
    "suite": "archive"
   },
@@ -342,21 +342,21 @@
     "archive/persistent/130/0/exhausted/restore-generation",
     "archive/persistent/133/0/exhausted/restore-generation"
    ],
-   "sha256": "00066774d8676d961484b98fa120685d446bd3c9410eae19cba10871757e00b5",
+   "sha256": "d0358018fec59edba60a6c48580fd80807c15698a67dea92d63ffd239bd6ab20",
    "stage": 3,
    "suite": "archive"
   },
   {
-   "count": 5412,
+   "count": 4062,
    "id": "[\"archive\",\"2\",\"M14\",3]",
    "owner": "2",
    "row": "M14",
    "samples": [
-    "archive/persistent/1/0/crash-restart/completion",
-    "archive/persistent/1/0/crash-restart/envelope.control_archive.notice-count",
-    "archive/persistent/1/0/crash-restart/envelope.control_archive.notice-head"
+    "archive/persistent/1/0/exhausted/aresos log.notice-count",
+    "archive/persistent/1/0/exhausted/aresos log.notice-head",
+    "archive/persistent/1/0/exhausted/control_pending.notice-count"
    ],
-   "sha256": "86620fc8782177113c0485e271eeaed9b40fff3f7625fa4d33dcb6a3677b6530",
+   "sha256": "d59d62d571d920731f3bc21cfbb2251d25b0b41f569961071d90aec12d69989d",
    "stage": 3,
    "suite": "archive"
   },
@@ -370,7 +370,7 @@
     "archive/persistent/161/0/crash-locked/control_pending.notice-head",
     "archive/persistent/161/0/crash-locked/envelope.control_log.notice-head"
    ],
-   "sha256": "a5b419edeb5944acd1ecba9c1bc559e0485c202999e5d9f73ceea7da681ddaba",
+   "sha256": "eb0fb3f9cc342a501e244101b32cc15219f86a430685060a26c6f861abee11a3",
    "stage": 3,
    "suite": "archive"
   },
@@ -384,7 +384,7 @@
     "archive/persistent/19/0/crash-restart/lifecycle-proof",
     "archive/persistent/86/0/crash-restart/lifecycle-proof"
    ],
-   "sha256": "75cc2950fc87ed00848ccd656a8333264499e27aa03bf1f82f2cbbcabb81a299",
+   "sha256": "c7cd8c6fa62e1a8b741429e737a12e98c2fc655ff066c60ed05729e0f247d614",
    "stage": 3,
    "suite": "archive"
   },
@@ -398,21 +398,21 @@
     "archive/persistent/209/0/exhausted/restore-generation",
     "archive/persistent/211/0/exhausted/restore-generation"
    ],
-   "sha256": "aee96b4dead85d8285f0f88ebc25d49d29f789ee512c55388cc1879e75824ade",
+   "sha256": "0ff37f9c4c86ca9430c4736778d60505bc4bc17741d27d6a1680d8aa5506f580",
    "stage": 3,
    "suite": "archive"
   },
   {
-   "count": 3700,
+   "count": 2894,
    "id": "[\"archive\",\"3\",\"M14\",3]",
    "owner": "3",
    "row": "M14",
    "samples": [
-    "archive/persistent/113/0/crash-restart/completion",
     "archive/persistent/113/0/crash-restart/envelope.mail_accounts.notice-count",
-    "archive/persistent/113/0/crash-restart/envelope.mail_accounts.notice-head"
+    "archive/persistent/113/0/crash-restart/envelope.mail_accounts.notice-head",
+    "archive/persistent/113/0/crash-restart/lifecycle-proof"
    ],
-   "sha256": "473fca2524056a0692c218f7eb99f9ef0f9581e1b32171fde7fe6b602e32156d",
+   "sha256": "77e0aae889a634214e5869dd6685bb9fea86c1fc673052ce36922681a755b441",
    "stage": 3,
    "suite": "archive"
   },
@@ -426,7 +426,7 @@
     "archive/persistent/11/0/crash-locked/control_pending.notice-head",
     "archive/persistent/11/0/crash-locked/envelope.control_log.notice-head"
    ],
-   "sha256": "351c19f1f3c71e4f47104792c6bef15590451b4aee445ce2f637862409d7d0f2",
+   "sha256": "edb2f925015f831c826cc23ddff0eeeda721fa1b86d216759d025fc220e3d715",
    "stage": 3,
    "suite": "archive"
   },
@@ -440,7 +440,7 @@
     "archive/persistent/157/0/crash-restart/lifecycle-proof",
     "archive/persistent/163/0/crash-restart/lifecycle-proof"
    ],
-   "sha256": "6579282b004e9a58d945bd7c082fc49d5ad1bc3901a69ca6b5eff1f9bd48a7e7",
+   "sha256": "921869a7f22e121f0400eef4fb435d5f5460307ff3e084711be9b301f0b3ce1a",
    "stage": 3,
    "suite": "archive"
   },
@@ -454,21 +454,21 @@
     "archive/persistent/293/0/exhausted/restore-generation",
     "archive/persistent/348/0/exhausted/restore-generation"
    ],
-   "sha256": "d720421d88b3769ac04ba50ef8ba90a6ae329c237afc57e687ec849dd8bed5e0",
+   "sha256": "1d3371cbc7aba8505ee458d62ba37fb3e7d43fdee6ca96feacccaae940c4d8fc",
    "stage": 3,
    "suite": "archive"
   },
   {
-   "count": 6855,
+   "count": 5324,
    "id": "[\"archive\",\"4\",\"M14\",3]",
    "owner": "4",
    "row": "M14",
    "samples": [
-    "archive/persistent/104/0/crash-restart/completion",
     "archive/persistent/104/0/crash-restart/envelope.mail_accounts.notice-count",
-    "archive/persistent/104/0/crash-restart/envelope.mail_accounts.notice-head"
+    "archive/persistent/104/0/crash-restart/envelope.mail_accounts.notice-head",
+    "archive/persistent/104/0/crash-restart/lifecycle-proof"
    ],
-   "sha256": "2a956b4aaee09ef6779bc8b19d1f0cf149fdfbad9fd2f5d712b2d059b96812d7",
+   "sha256": "29677b44485300a7431154294bc2999fd181f909fc6a6fd6e73b160a72e2ac1e",
    "stage": 3,
    "suite": "archive"
   },
@@ -482,7 +482,7 @@
     "archive/persistent/15/0/crash-locked/control_pending.notice-head",
     "archive/persistent/15/0/crash-locked/envelope.control_log.notice-head"
    ],
-   "sha256": "b73c9df425d7d362ce64b5e6566aa53e065c862d2b3eb5a47c1ffd5b3fa48c6f",
+   "sha256": "86dee00985afb12f2657196e7f446e0a2cadb846721a4d54d2cc8625b87855ea",
    "stage": 3,
    "suite": "archive"
   },
@@ -496,7 +496,7 @@
     "archive/persistent/162/0/crash-restart/lifecycle-proof",
     "archive/persistent/83/0/crash-restart/lifecycle-proof"
    ],
-   "sha256": "ed543c8a9d3ba660138d071ac6ed75aaff19f463be5c1e3c01627d7c43ade6e5",
+   "sha256": "25e5cacfe0f90fbe41d754cf8f850b49e2d42be72212530b96b0338d191ca292",
    "stage": 3,
    "suite": "archive"
   },
@@ -510,21 +510,21 @@
     "archive/persistent/344/0/exhausted/restore-generation",
     "archive/persistent/346/0/exhausted/restore-generation"
    ],
-   "sha256": "7d616594e8161b22ebe551062e2043bb850a554b22af0c8a28f9042a8208679c",
+   "sha256": "5aba1aeffa8bd6cb00eaa564dfff9e42bbff6afc392751582a75b6f6b54edf14",
    "stage": 3,
    "suite": "archive"
   },
   {
-   "count": 3331,
+   "count": 2463,
    "id": "[\"archive\",\"5\",\"M14\",3]",
    "owner": "5",
    "row": "M14",
    "samples": [
-    "archive/persistent/116/0/crash-restart/completion",
     "archive/persistent/116/0/crash-restart/envelope.mail_accounts.notice-count",
-    "archive/persistent/116/0/crash-restart/envelope.mail_accounts.notice-head"
+    "archive/persistent/116/0/crash-restart/envelope.mail_accounts.notice-head",
+    "archive/persistent/116/0/crash-restart/lifecycle-proof"
    ],
-   "sha256": "4683cf4591106b3ff732758cceedc2e223517a85de4e3a3d15d22a8c4a7bf7fd",
+   "sha256": "c8d06ecf8a89e4bc51bed4f52ad19ef9f8a706ada2b309633494293c4bbae921",
    "stage": 3,
    "suite": "archive"
   },
@@ -538,7 +538,7 @@
     "archive/persistent/152/0/crash-locked/control_pending.notice-head",
     "archive/persistent/152/0/crash-locked/envelope.control_log.notice-head"
    ],
-   "sha256": "34f54abbea086c1f350bc20ee717706a48ee04dab740e2dfbf207301996335ee",
+   "sha256": "6f8f3dd790128a85a4bda44a79f062ae2eacafcf67ab0076b204e9d7706e8342",
    "stage": 3,
    "suite": "archive"
   },
@@ -552,7 +552,7 @@
     "archive/persistent/159/0/crash-restart/lifecycle-proof",
     "archive/persistent/4/0/crash-restart/lifecycle-proof"
    ],
-   "sha256": "8592bc90254b4062a49fd2217f9667d4fbe94441a3815980143d7dd538703179",
+   "sha256": "574451ba527084356244486314b061de7efc16913ada7e51d26f3f98ebc80faa",
    "stage": 3,
    "suite": "archive"
   },
@@ -571,16 +571,16 @@
    "suite": "archive"
   },
   {
-   "count": 3986,
+   "count": 3219,
    "id": "[\"archive\",\"6\",\"M14\",3]",
    "owner": "6",
    "row": "M14",
    "samples": [
-    "archive/persistent/108/0/crash-restart/completion",
     "archive/persistent/108/0/crash-restart/envelope.mail_accounts.notice-count",
-    "archive/persistent/108/0/crash-restart/envelope.mail_accounts.notice-head"
+    "archive/persistent/108/0/crash-restart/envelope.mail_accounts.notice-head",
+    "archive/persistent/108/0/crash-restart/lifecycle-proof"
    ],
-   "sha256": "2c3a3487f90a2d5872a986b96dc36cbfae8ac4eac341c7bb8d54311f6ed982e9",
+   "sha256": "75389c3b4aa71534d26048346af42fd7fe2d99d2a2e5e01ad0dda28f70501610",
    "stage": 3,
    "suite": "archive"
   },
@@ -594,7 +594,7 @@
     "archive/persistent/154/0/crash-locked/control_pending.notice-head",
     "archive/persistent/154/0/crash-locked/envelope.control_log.notice-head"
    ],
-   "sha256": "8ca63f74570cdbee1898c712d58e8f1ea6127099449431964ef09946c5fd5a6f",
+   "sha256": "480cc1ed9462e956369e8eb28738673f741a2682903d1307af5dfcd261164f72",
    "stage": 3,
    "suite": "archive"
   },
@@ -608,7 +608,7 @@
     "archive/persistent/155/0/crash-restart/lifecycle-proof",
     "archive/persistent/20/0/crash-restart/lifecycle-proof"
    ],
-   "sha256": "92e2ad0260d20cab5b7d399bd2fcc3f52ab0f24a7326836a84cdfa51fd159e3c",
+   "sha256": "36a4ce1ec2aa7c3d365dc492a07fa1fc2c6f9fcddd2377a9253abefdb127d664",
    "stage": 3,
    "suite": "archive"
   },
@@ -622,7 +622,7 @@
     "archive/persistent/280/0/exhausted/restore-generation",
     "archive/persistent/281/0/exhausted/restore-generation"
    ],
-   "sha256": "7e044ae6ef9385258c560134a51b2ed5aaf13767757870cf80aa84c204ec73de",
+   "sha256": "3103caf0afc2bf12dfdcb0bb1d5f3415cebcedc788d8b5c3822df223dcb59f8a",
    "stage": 3,
    "suite": "archive"
   },
@@ -641,7 +641,7 @@
    "suite": "archive"
   },
   {
-   "count": 4450,
+   "count": 3272,
    "id": "[\"archive\",\"7\",\"M14\",3]",
    "owner": "7",
    "row": "M14",
@@ -650,7 +650,7 @@
     "archive/persistent/154/0/crash-locked/aresos log.notice-count",
     "archive/persistent/154/0/crash-locked/aresos log.page"
    ],
-   "sha256": "cecabd210037d9a43a2caa227c869c6bbaefa417ef4dee58a59ea7a7e753882b",
+   "sha256": "d38fbc0760ad6095a1548274c03b933d1214ac1c75a57069e23617ac6dfc9470",
    "stage": 3,
    "suite": "archive"
   },
@@ -664,7 +664,7 @@
     "archive/persistent/164/0/crash-locked/control_pending.notice-head",
     "archive/persistent/164/0/crash-locked/envelope.control_log.notice-head"
    ],
-   "sha256": "3a700d6013f3cbc2fbb94baf126b6cbc683d66978c995d2c1e675e46e8072ba2",
+   "sha256": "86dc10a15a4f7ada68edc92dbe7522db0ce9ce2aea80f11594833ba1ea8746d9",
    "stage": 3,
    "suite": "archive"
   },
@@ -678,7 +678,7 @@
     "archive/persistent/17/0/crash-restart/lifecycle-proof",
     "archive/persistent/170/0/crash-restart/lifecycle-proof"
    ],
-   "sha256": "a22b8e111b32cb4a22c47990cab89816d4f31fbf3c0b0db2edfbab03ae66fff2",
+   "sha256": "3041f937c38d2060411366e83627327dbffee60bfc06ee1424ddc5239b7df78c",
    "stage": 3,
    "suite": "archive"
   },
@@ -692,21 +692,21 @@
     "archive/persistent/17/0/exhausted/restore-generation",
     "archive/persistent/170/0/exhausted/restore-generation"
    ],
-   "sha256": "1e71a0bd0a0d8e4fb9c94f9294945c2d8cac5ec4c0f2ee90ad38ee593a1715e3",
+   "sha256": "e70641fc028656070b393c2ba963eb696c6ad084300ca5c6c51f71045d8747de",
    "stage": 3,
    "suite": "archive"
   },
   {
-   "count": 4418,
+   "count": 3146,
    "id": "[\"archive\",\"8\",\"M14\",3]",
    "owner": "8",
    "row": "M14",
    "samples": [
-    "archive/persistent/103/0/crash-restart/completion",
     "archive/persistent/103/0/crash-restart/envelope.mail_accounts.notice-count",
-    "archive/persistent/103/0/crash-restart/envelope.mail_accounts.notice-head"
+    "archive/persistent/103/0/crash-restart/envelope.mail_accounts.notice-head",
+    "archive/persistent/103/0/crash-restart/lifecycle-proof"
    ],
-   "sha256": "b74a17d38a3fe90da0beec43d555fc37733dee401921a2b16ccc29bebd2790e1",
+   "sha256": "0a26d515bd2a19fba98140faf4b01cca3d4ddf69c1a1ae238b9a867f1836bc91",
    "stage": 3,
    "suite": "archive"
   },
@@ -720,7 +720,7 @@
     "archive/persistent/150/0/crash-locked/control_pending.notice-head",
     "archive/persistent/150/0/crash-locked/envelope.control_log.notice-head"
    ],
-   "sha256": "c94378d6b5ca17a751486d80929c10bb0b5994958fcb88b55dde75269ddb276b",
+   "sha256": "a505621b36d0be1fdcab4061a3474abe5c15e229be3059a7e9b51c84a9678413",
    "stage": 3,
    "suite": "archive"
   },
@@ -734,7 +734,7 @@
     "archive/persistent/16/0/crash-restart/lifecycle-proof",
     "archive/persistent/160/0/crash-restart/lifecycle-proof"
    ],
-   "sha256": "e90cce2f63b6c2e943bbd2e2590c7043662256852f99199fec20de9e3aafcac7",
+   "sha256": "14e22118255a0b6fedfa86d5264d09737b7e7096081cc52398df18c59870b348",
    "stage": 3,
    "suite": "archive"
   },
@@ -748,7 +748,7 @@
     "archive/persistent/284/0/exhausted/restore-generation",
     "archive/persistent/285/0/exhausted/restore-generation"
    ],
-   "sha256": "b3272b8900dc514dca0ef3fc101bbbf3c1b76a042c35dcc84891b0c8b1efb8e2",
+   "sha256": "01b9b37ce245f80e117458dccb986008bf727cfcd7e36448b4e25fd1b42ff125",
    "stage": 3,
    "suite": "archive"
   },
@@ -767,16 +767,16 @@
    "suite": "archive"
   },
   {
-   "count": 4281,
+   "count": 3226,
    "id": "[\"archive\",\"9\",\"M14\",3]",
    "owner": "9",
    "row": "M14",
    "samples": [
-    "archive/persistent/110/0/crash-restart/completion",
     "archive/persistent/110/0/crash-restart/envelope.mail_accounts.notice-count",
-    "archive/persistent/110/0/crash-restart/envelope.mail_accounts.notice-head"
+    "archive/persistent/110/0/crash-restart/envelope.mail_accounts.notice-head",
+    "archive/persistent/110/0/crash-restart/lifecycle-proof"
    ],
-   "sha256": "d0c8ba84608d2c49b14a058e1c433056b781165367d4890d4f7d4669aa5ac0f9",
+   "sha256": "999de578ef1f7b506370d48322f8d2a1b3853582ca56aaab120910466d1ece0f",
    "stage": 3,
    "suite": "archive"
   },
@@ -788,7 +788,7 @@
    "samples": [
     "archive/single/0/0/live-restored/lifecycle-proof"
    ],
-   "sha256": "aeca0b6fda329e3efa1965fe5efef3ceb2b1017a99c556177e4f0377d2426879",
+   "sha256": "b3001dcb923011cd29935ec8899ad4482d50245665876fdd68cae03eb529ca37",
    "stage": 3,
    "suite": "archive"
   },
@@ -2663,7 +2663,7 @@
    "suite": "contract"
   },
   {
-   "count": 114,
+   "count": 97,
    "id": "[\"contract\",\"suite\",\"M06\",3]",
    "owner": "suite",
    "row": "M06",
@@ -2672,7 +2672,7 @@
     "contract/mixed-app-lost-reply/control_pending.notice-head",
     "contract/mixed-app-lost-reply/envelope.control_log.notice-head"
    ],
-   "sha256": "816bff4293ae5550ca5a50021764d35ab618425023313ed1485b02d46b3c3cc0",
+   "sha256": "54d8aee20f062f48590608bd6bd13407ca84d20a258fb3cf121de4c56a684cb0",
    "stage": 3,
    "suite": "contract"
   },
@@ -2686,7 +2686,7 @@
     "contract/legacy-new-cancel/envelope.control_pending.pending-head",
     "contract/legacy-new-cancel/lifecycle-proof"
    ],
-   "sha256": "b210b756fd99dd9c54672878d6e10d2f0b95e2a663666b3bd02b46c9f234b7b6",
+   "sha256": "11ed3c3d49018cd9b37074bc529379fd5ba0d00497f09a6b243acd93a2f3a4f1",
    "stage": 3,
    "suite": "contract"
   },
@@ -2733,7 +2733,7 @@
    "suite": "contract"
   },
   {
-   "count": 353,
+   "count": 288,
    "id": "[\"contract\",\"suite\",\"M14\",3]",
    "owner": "suite",
    "row": "M14",
@@ -2742,7 +2742,7 @@
     "contract/admission-restored-send/envelope.control_log.pending-total",
     "contract/admission-restored-send/envelope.control_pending.pending-head"
    ],
-   "sha256": "1beae973209751a703ddc0c67be12e0c3df24a29bf416e37fd4ba684dda4e59b",
+   "sha256": "489d10f0a1b0b2dfc1979d4ebe07702f2780bef30ed6aae8e2801bb72b136ea5",
    "stage": 3,
    "suite": "contract"
   },
@@ -17110,7 +17110,7 @@
    "suite": "password"
   },
   {
-   "count": 1870,
+   "count": 2030,
    "id": "[\"repair\",\"0\",\"M06\",3]",
    "owner": "0",
    "row": "M06",
@@ -17119,7 +17119,7 @@
     "repair/persistent/100/0/crash-restart/control_pending.notice-head",
     "repair/persistent/100/0/crash-restart/envelope.control_log.notice-head"
    ],
-   "sha256": "d6fe2ae416e880e71061004c4b3a2631bfabcee0d281bebaf20dd6b215b5afce",
+   "sha256": "a5305056303ad170059f59f57a351ebdd0581bf73c7d8fc9bcab0694aa9b959d",
    "stage": 3,
    "suite": "repair"
   },
@@ -17166,7 +17166,7 @@
    "suite": "repair"
   },
   {
-   "count": 4357,
+   "count": 4477,
    "id": "[\"repair\",\"0\",\"M14\",3]",
    "owner": "0",
    "row": "M14",
@@ -17175,12 +17175,12 @@
     "repair/persistent/100/0/crash-restart/control_pending.complete",
     "repair/persistent/100/0/crash-restart/control_pending.notice-count"
    ],
-   "sha256": "71a14ebdeec5ffc4288fc4c91dad3fa4f3a79c8e30aaab2e3330e11f90aa13f7",
+   "sha256": "d94f8b7643e4b4f53dda7ad4182b474389340f9ac7cfb59e0278a19e5008b201",
    "stage": 3,
    "suite": "repair"
   },
   {
-   "count": 2016,
+   "count": 2112,
    "id": "[\"repair\",\"1\",\"M06\",3]",
    "owner": "1",
    "row": "M06",
@@ -17189,7 +17189,7 @@
     "repair/persistent/103/0/crash-restart/control_pending.notice-head",
     "repair/persistent/103/0/crash-restart/envelope.control_log.notice-head"
    ],
-   "sha256": "30a56b7f3a151a96a796fa46ac55b4a02b5c36cd21108c90f1c38f79a9b08c2f",
+   "sha256": "3159500e5e15c32c60cac484dfb76f636abe363288b5efcd2a483bac96616c43",
    "stage": 3,
    "suite": "repair"
   },
@@ -17236,7 +17236,7 @@
    "suite": "repair"
   },
   {
-   "count": 4599,
+   "count": 4671,
    "id": "[\"repair\",\"1\",\"M14\",3]",
    "owner": "1",
    "row": "M14",
@@ -17245,12 +17245,12 @@
     "repair/persistent/103/0/crash-restart/control_pending.complete",
     "repair/persistent/103/0/crash-restart/control_pending.notice-count"
    ],
-   "sha256": "3962c12af577e3c385f9d859bc0e921288ef3158d14ccb792e64b10ecadf348e",
+   "sha256": "879f9ff66bf118ff1b482cb09db13f842048078fd0c2e38e08da56a1b45ffe13",
    "stage": 3,
    "suite": "repair"
   },
   {
-   "count": 2204,
+   "count": 2300,
    "id": "[\"repair\",\"10\",\"M06\",3]",
    "owner": "10",
    "row": "M06",
@@ -17259,7 +17259,7 @@
     "repair/persistent/10/0/crash-locked/control_pending.notice-head",
     "repair/persistent/10/0/crash-locked/envelope.control_log.notice-head"
    ],
-   "sha256": "bd87432795168f12221d9123a939690c509178f379fec62d2ebbab9120de0cd9",
+   "sha256": "d77629ac40d1048f1cb74c65ba4749006b9316a5596f99c2c39e48c409557b84",
    "stage": 3,
    "suite": "repair"
   },
@@ -17306,7 +17306,7 @@
    "suite": "repair"
   },
   {
-   "count": 4816,
+   "count": 4888,
    "id": "[\"repair\",\"10\",\"M14\",3]",
    "owner": "10",
    "row": "M14",
@@ -17315,12 +17315,12 @@
     "repair/persistent/10/0/crash-locked/aresos log.notice-count",
     "repair/persistent/10/0/crash-locked/aresos log.page"
    ],
-   "sha256": "34507e0a575fb11d235a2b7d09834ab258b77333c3318b5d8ebb5972d8434413",
+   "sha256": "6a3aa3d131b9d3608400022c99e672e0c77c41363127063ed75181a51a2e68c0",
    "stage": 3,
    "suite": "repair"
   },
   {
-   "count": 2116,
+   "count": 2308,
    "id": "[\"repair\",\"11\",\"M06\",3]",
    "owner": "11",
    "row": "M06",
@@ -17329,7 +17329,7 @@
     "repair/persistent/109/0/crash-restart/control_pending.notice-head",
     "repair/persistent/109/0/crash-restart/envelope.control_log.notice-head"
    ],
-   "sha256": "0c8fdba94c9ab217544ac04bde135ad773a051c1ad65ca60ba79fb2886100fd9",
+   "sha256": "1a32b3c06d174989a8fd77d6fe816b59cb28fba72b00ecb6508896a1c2aca6bd",
    "stage": 3,
    "suite": "repair"
   },
@@ -17376,7 +17376,7 @@
    "suite": "repair"
   },
   {
-   "count": 5080,
+   "count": 5224,
    "id": "[\"repair\",\"11\",\"M14\",3]",
    "owner": "11",
    "row": "M14",
@@ -17385,12 +17385,12 @@
     "repair/persistent/109/0/crash-restart/control_pending.complete",
     "repair/persistent/109/0/crash-restart/control_pending.notice-count"
    ],
-   "sha256": "59f24045d88ee0d5c1c9bd593166b0d817078cd63714f0fa6895808503a8fb03",
+   "sha256": "129cca4dbf77a7e3c5911e94b72f54a2b3399fd0814726982f1115b8d159fbf6",
    "stage": 3,
    "suite": "repair"
   },
   {
-   "count": 2070,
+   "count": 2342,
    "id": "[\"repair\",\"2\",\"M06\",3]",
    "owner": "2",
    "row": "M06",
@@ -17399,7 +17399,7 @@
     "repair/persistent/118/0/crash-restart/control_pending.notice-head",
     "repair/persistent/118/0/crash-restart/envelope.control_log.notice-head"
    ],
-   "sha256": "a3ac7bc495c8ff12fcc11c270c2c4b5ad41ac777501572a82942e6e98c3fb8e3",
+   "sha256": "3d8f0c3f6d7a999fd31cac7ff580dfcc58a0c37a6e4f482797375cf4c7491eb4",
    "stage": 3,
    "suite": "repair"
   },
@@ -17446,7 +17446,7 @@
    "suite": "repair"
   },
   {
-   "count": 4922,
+   "count": 5126,
    "id": "[\"repair\",\"2\",\"M14\",3]",
    "owner": "2",
    "row": "M14",
@@ -17455,12 +17455,12 @@
     "repair/persistent/118/0/crash-restart/control_pending.complete",
     "repair/persistent/118/0/crash-restart/control_pending.notice-count"
    ],
-   "sha256": "1117074907c34c2ddab8d0b1476f24e0018c9fac883f8219ad2ea2adda868109",
+   "sha256": "3cf0355b0983fedcdf4e24629c49bd5431b808318e464b9d0482438dcdeb21f4",
    "stage": 3,
    "suite": "repair"
   },
   {
-   "count": 1612,
+   "count": 1644,
    "id": "[\"repair\",\"3\",\"M06\",3]",
    "owner": "3",
    "row": "M06",
@@ -17469,7 +17469,7 @@
     "repair/persistent/1/0/exhausted/aresos log.notice-head",
     "repair/persistent/1/0/exhausted/control_pending.notice-head"
    ],
-   "sha256": "876ed62870ab671aeab8506913340c74fb476692a5745a24c144e21d76ca2984",
+   "sha256": "82943ca4d674b740078e18be4c1b141a4c58d4e7f895b3c06660c5860d47afa9",
    "stage": 3,
    "suite": "repair"
   },
@@ -17516,7 +17516,7 @@
    "suite": "repair"
   },
   {
-   "count": 3658,
+   "count": 3682,
    "id": "[\"repair\",\"3\",\"M14\",3]",
    "owner": "3",
    "row": "M14",
@@ -17525,12 +17525,12 @@
     "repair/persistent/1/0/crash-restart/envelope.control_log.pending-total",
     "repair/persistent/1/0/crash-restart/envelope.control_pending.pending-head"
    ],
-   "sha256": "3952ff90690de629b8694fecbe4f44c63d2336d7842e22585370d64904d33450",
+   "sha256": "bf4696ff739489c7d359f8c7d8979c7b267fa51f54c93babf2f4cb8173df8e9e",
    "stage": 3,
    "suite": "repair"
   },
   {
-   "count": 1624,
+   "count": 1656,
    "id": "[\"repair\",\"4\",\"M06\",3]",
    "owner": "4",
    "row": "M06",
@@ -17539,7 +17539,7 @@
     "repair/persistent/108/0/crash-restart/control_pending.notice-head",
     "repair/persistent/108/0/crash-restart/envelope.control_log.notice-head"
    ],
-   "sha256": "4af17f55692351d3abe7b3106483175ead276ac5cc98171eb634dbb31e693645",
+   "sha256": "30575296c42d31046777772c76cd3106e04a467a4cd20a0bb2a87551e22b25ef",
    "stage": 3,
    "suite": "repair"
   },
@@ -17586,7 +17586,7 @@
    "suite": "repair"
   },
   {
-   "count": 3702,
+   "count": 3726,
    "id": "[\"repair\",\"4\",\"M14\",3]",
    "owner": "4",
    "row": "M14",
@@ -17595,12 +17595,12 @@
     "repair/persistent/108/0/crash-restart/control_pending.complete",
     "repair/persistent/108/0/crash-restart/control_pending.notice-count"
    ],
-   "sha256": "5147c28db59c53cc61fe7bb8a90facfdd446077bbce2c3dae9eb39c1bd5a55c5",
+   "sha256": "0ec23793b9d8039f6eabe4c597dcba5ca1ff0594e099845e393255d98291c21f",
    "stage": 3,
    "suite": "repair"
   },
   {
-   "count": 3838,
+   "count": 3942,
    "id": "[\"repair\",\"5\",\"M06\",3]",
    "owner": "5",
    "row": "M06",
@@ -17609,7 +17609,7 @@
     "repair/persistent/105/0/crash-restart/control_pending.notice-head",
     "repair/persistent/105/0/crash-restart/envelope.control_log.notice-head"
    ],
-   "sha256": "80b0a60518beffc6727ca9473b1078480d061c2a6a1fcb70cff7ba4335cfabde",
+   "sha256": "a494fc313b60d65819296827907a6fc33bce8c724edcfd989ce4a4db98dc517a",
    "stage": 3,
    "suite": "repair"
   },
@@ -17656,7 +17656,7 @@
    "suite": "repair"
   },
   {
-   "count": 8959,
+   "count": 9037,
    "id": "[\"repair\",\"5\",\"M14\",3]",
    "owner": "5",
    "row": "M14",
@@ -17665,12 +17665,12 @@
     "repair/persistent/105/0/crash-restart/control_pending.complete",
     "repair/persistent/105/0/crash-restart/control_pending.notice-count"
    ],
-   "sha256": "4cee4bbf83871f295565ec2fc9eaafcb993fc0d1ae7f9ae29061e76173460e30",
+   "sha256": "18cf93dfe6c9917a29e6057f3c138f2d9b99723488b1e6c1e6cb06adf2d35117",
    "stage": 3,
    "suite": "repair"
   },
   {
-   "count": 2586,
+   "count": 2660,
    "id": "[\"repair\",\"6\",\"M06\",3]",
    "owner": "6",
    "row": "M06",
@@ -17679,7 +17679,7 @@
     "repair/persistent/11/0/crash-locked/control_pending.notice-head",
     "repair/persistent/11/0/crash-locked/envelope.control_log.notice-head"
    ],
-   "sha256": "f1ae3e5d07b47316b194cd386895e6a9528797fdca70b33243fce2cc587ac55e",
+   "sha256": "435ee7a3db81b8000729fc6a044eea3855e80ed5b6c9c206c6808758463a3499",
    "stage": 3,
    "suite": "repair"
   },
@@ -17726,7 +17726,7 @@
    "suite": "repair"
   },
   {
-   "count": 5953,
+   "count": 5921,
    "id": "[\"repair\",\"6\",\"M14\",3]",
    "owner": "6",
    "row": "M14",
@@ -17735,12 +17735,12 @@
     "repair/persistent/11/0/crash-locked/aresos log.notice-count",
     "repair/persistent/11/0/crash-locked/aresos log.page"
    ],
-   "sha256": "b59f7f5e73ee39177002556004bfefe4c14e0d48288022d2fdbf975df395598d",
+   "sha256": "3572dbabd8e8e0d5d80dbae894eeb8be346ac066de7c8bfbab7ca16729b0d0f2",
    "stage": 3,
    "suite": "repair"
   },
   {
-   "count": 1884,
+   "count": 1948,
    "id": "[\"repair\",\"7\",\"M06\",3]",
    "owner": "7",
    "row": "M06",
@@ -17749,7 +17749,7 @@
     "repair/persistent/115/0/crash-restart/control_pending.notice-head",
     "repair/persistent/115/0/crash-restart/envelope.control_log.notice-head"
    ],
-   "sha256": "62a02dc8beebe97eaaab8393855d3caf9ca0187fcc248f616ce9f778bf898b8a",
+   "sha256": "2964ed32debed3e70ce2c97f8e89d80c8ca3275f8ecd896c0eef045bac7d91c9",
    "stage": 3,
    "suite": "repair"
   },
@@ -17796,7 +17796,7 @@
    "suite": "repair"
   },
   {
-   "count": 4228,
+   "count": 4276,
    "id": "[\"repair\",\"7\",\"M14\",3]",
    "owner": "7",
    "row": "M14",
@@ -17805,12 +17805,12 @@
     "repair/persistent/115/0/crash-restart/control_pending.complete",
     "repair/persistent/115/0/crash-restart/control_pending.notice-count"
    ],
-   "sha256": "53a48820d0375a07aa1be055199a961456a8ac6578218777ea006100601a1e5e",
+   "sha256": "c974a29648a2768d003c239b63d85f369d7b9143e718a6966579fd29d946d369",
    "stage": 3,
    "suite": "repair"
   },
   {
-   "count": 1480,
+   "count": 1608,
    "id": "[\"repair\",\"8\",\"M06\",3]",
    "owner": "8",
    "row": "M06",
@@ -17819,7 +17819,7 @@
     "repair/persistent/111/0/crash-restart/control_pending.notice-head",
     "repair/persistent/111/0/crash-restart/envelope.control_log.notice-head"
    ],
-   "sha256": "5a9f85a9b952c2e2901ef1b529a0f96da5237c11e25fca6af39401ed3f6dbefc",
+   "sha256": "9a7c3b1e517ccddae7430eb5cfda64a5b41b024df0d8a26e30f1d815095eb9d9",
    "stage": 3,
    "suite": "repair"
   },
@@ -17866,7 +17866,7 @@
    "suite": "repair"
   },
   {
-   "count": 3445,
+   "count": 3541,
    "id": "[\"repair\",\"8\",\"M14\",3]",
    "owner": "8",
    "row": "M14",
@@ -17875,12 +17875,12 @@
     "repair/persistent/111/0/crash-restart/control_pending.complete",
     "repair/persistent/111/0/crash-restart/control_pending.notice-count"
    ],
-   "sha256": "80972bcfd093ed70b8fd9326938f1b136aa27fc29d712ccca9cda41c9c3236f4",
+   "sha256": "25eeb97a3ffb853ecc0f14147dc380a274663f82496d8206ae1cc9d6d4b72362",
    "stage": 3,
    "suite": "repair"
   },
   {
-   "count": 1600,
+   "count": 1664,
    "id": "[\"repair\",\"9\",\"M06\",3]",
    "owner": "9",
    "row": "M06",
@@ -17889,7 +17889,7 @@
     "repair/persistent/113/0/crash-restart/control_pending.notice-head",
     "repair/persistent/113/0/crash-restart/envelope.control_log.notice-head"
    ],
-   "sha256": "2bfda7591302a243bb0f048e80bf739a06268001bd44efc1dc3d55b510780c32",
+   "sha256": "23854db846afda71cd99de288c2e2b6094462b263aea8e56637381e7776e6ac6",
    "stage": 3,
    "suite": "repair"
   },
@@ -17936,7 +17936,7 @@
    "suite": "repair"
   },
   {
-   "count": 3701,
+   "count": 3745,
    "id": "[\"repair\",\"9\",\"M14\",3]",
    "owner": "9",
    "row": "M14",
@@ -17945,35 +17945,7 @@
     "repair/persistent/113/0/crash-restart/control_pending.complete",
     "repair/persistent/113/0/crash-restart/control_pending.notice-count"
    ],
-   "sha256": "088705200505d90eb20bdabe06d1fd3f07c5be234303b9fe93eced6257e200fa",
-   "stage": 3,
-   "suite": "repair"
-  },
-  {
-   "count": 11,
-   "id": "[\"repair\",\"shared\",\"M06\",3]",
-   "owner": "shared",
-   "row": "M06",
-   "samples": [
-    "repair/single/0/0/live-restored/aresos log.notice-head",
-    "repair/single/0/0/live-restored/control_pending.notice-head",
-    "repair/single/0/0/live-restored/envelope.control_log.notice-head"
-   ],
-   "sha256": "6977fc5ee4e483db3875a36f09c023eea75dbafd46bcd327b1f962f3e50844c9",
-   "stage": 3,
-   "suite": "repair"
-  },
-  {
-   "count": 30,
-   "id": "[\"repair\",\"shared\",\"M14\",3]",
-   "owner": "shared",
-   "row": "M14",
-   "samples": [
-    "repair/single/0/0/live-restored/aresos log.notice-count",
-    "repair/single/0/0/live-restored/clean-result-proof",
-    "repair/single/0/0/live-restored/completion"
-   ],
-   "sha256": "3914b9c2835f4e500daa07caefe34ed8c539498791838dde3e320cf573e62f7a",
+   "sha256": "4412c8f90150f562a5ceb48d4eb32bf04d113f564df6f0583ec960c420ca801b",
    "stage": 3,
    "suite": "repair"
   },
@@ -21234,7 +21206,7 @@
    "suite": "settings"
   },
   {
-   "count": 744,
+   "count": 872,
    "id": "[\"settlement\",\"0\",\"M06\",3]",
    "owner": "0",
    "row": "M06",
@@ -21243,7 +21215,7 @@
     "settlement/persistent/11/0/crash-locked/control_pending.notice-head",
     "settlement/persistent/11/0/crash-locked/envelope.mail_operation_repair.notice-head"
    ],
-   "sha256": "d09d0960b980f04a0d09777bf7cf30886056552e45b48c0e92ed4146c462abd2",
+   "sha256": "eda54ddee28b84477ac1d28e8a95505c8f2b4b4e4b30718c0499222568cfe1a3",
    "stage": 3,
    "suite": "settlement"
   },
@@ -21304,7 +21276,7 @@
    "suite": "settlement"
   },
   {
-   "count": 2107,
+   "count": 2203,
    "id": "[\"settlement\",\"0\",\"M14\",3]",
    "owner": "0",
    "row": "M14",
@@ -21313,21 +21285,21 @@
     "settlement/persistent/11/0/crash-locked/aresos log.notice-count",
     "settlement/persistent/11/0/crash-locked/aresos log.page"
    ],
-   "sha256": "f8efd76cd05cdf4516a4205d21425ad9b7a94f8496cc4e2bcc8a3ae9af74d017",
+   "sha256": "4b44ca381da01f242c7a93cc98a266190ca42e4cd192817718cc8c9625a8853e",
    "stage": 3,
    "suite": "settlement"
   },
   {
-   "count": 588,
+   "count": 684,
    "id": "[\"settlement\",\"1\",\"M06\",3]",
    "owner": "1",
    "row": "M06",
    "samples": [
-    "settlement/persistent/111/0/crash-restart/envelope.mail_operation_repair.notice-head",
-    "settlement/persistent/111/0/exhausted/aresos log.notice-head",
-    "settlement/persistent/111/0/exhausted/control_pending.notice-head"
+    "settlement/persistent/111/0/crash-restart/aresos log.notice-head",
+    "settlement/persistent/111/0/crash-restart/control_pending.notice-head",
+    "settlement/persistent/111/0/crash-restart/envelope.control_log.notice-head"
    ],
-   "sha256": "3017abf93eedb40d7b5ea0421951d3572fab85bd90a4e4160dcdc6323a46fa8e",
+   "sha256": "0b6a69516cb70059e90e4131c7ca34ac7c7504dc2a40996e7c41ce44d56fab7b",
    "stage": 3,
    "suite": "settlement"
   },
@@ -21387,30 +21359,30 @@
    "suite": "settlement"
   },
   {
-   "count": 1516,
+   "count": 1588,
    "id": "[\"settlement\",\"1\",\"M14\",3]",
    "owner": "1",
    "row": "M14",
    "samples": [
-    "settlement/persistent/111/0/crash-restart/completion",
+    "settlement/persistent/111/0/crash-restart/aresos log.notice-count",
     "settlement/persistent/111/0/crash-restart/control_pending.complete",
-    "settlement/persistent/111/0/crash-restart/control_pending.page"
+    "settlement/persistent/111/0/crash-restart/control_pending.notice-count"
    ],
-   "sha256": "da2281a411335bd916e32ea3bfa70b7788bc87e84db91e0fb6cf54dbcda02bf7",
+   "sha256": "6da5f8e2eb6b960c4afdc6e0566b762c8df233fc628a1250bc2b11667ea27cf8",
    "stage": 3,
    "suite": "settlement"
   },
   {
-   "count": 1002,
+   "count": 1140,
    "id": "[\"settlement\",\"10\",\"M06\",3]",
    "owner": "10",
    "row": "M06",
    "samples": [
-    "settlement/persistent/106/0/crash-restart/envelope.mail_operation_repair.notice-head",
-    "settlement/persistent/106/0/exhausted/aresos log.notice-head",
-    "settlement/persistent/106/0/exhausted/control_pending.notice-head"
+    "settlement/persistent/106/0/crash-restart/aresos log.notice-head",
+    "settlement/persistent/106/0/crash-restart/control_pending.notice-head",
+    "settlement/persistent/106/0/crash-restart/envelope.control_log.notice-head"
    ],
-   "sha256": "9fa1325300f23454e8a4e8ca07fec010193bfd52fc39d76dacbf697e7dfa4b86",
+   "sha256": "9777ca4b857ca9a557a7dff7f617c23c38a4f7abfcc156504c93b65a7eb5d687",
    "stage": 3,
    "suite": "settlement"
   },
@@ -21471,21 +21443,21 @@
    "suite": "settlement"
   },
   {
-   "count": 2732,
+   "count": 2759,
    "id": "[\"settlement\",\"10\",\"M14\",3]",
    "owner": "10",
    "row": "M14",
    "samples": [
-    "settlement/persistent/106/0/crash-restart/completion",
+    "settlement/persistent/106/0/crash-restart/aresos log.notice-count",
     "settlement/persistent/106/0/crash-restart/control_pending.complete",
-    "settlement/persistent/106/0/crash-restart/control_pending.page"
+    "settlement/persistent/106/0/crash-restart/control_pending.notice-count"
    ],
-   "sha256": "a5a573d3105f265eb2981e8096c76a7aef75800e06336aa6b925ec2eac0f7e76",
+   "sha256": "acc42be2da029691eb9597abc44dde45ac0b2e60e1148b41f30b0c2e83a152c5",
    "stage": 3,
    "suite": "settlement"
   },
   {
-   "count": 734,
+   "count": 830,
    "id": "[\"settlement\",\"11\",\"M06\",3]",
    "owner": "11",
    "row": "M06",
@@ -21494,7 +21466,7 @@
     "settlement/persistent/101/0/crash-locked/control_pending.notice-head",
     "settlement/persistent/101/0/crash-locked/envelope.mail_operation_repair.notice-head"
    ],
-   "sha256": "7d0705f977e60026dd84815302381f4cd0058b67727c7dd1d3a65fdc51b5c71a",
+   "sha256": "9d274858b533b42bcbcf31350df4c1d1d1a7e61223cd1446e2c7ef0dec04f23a",
    "stage": 3,
    "suite": "settlement"
   },
@@ -21555,7 +21527,7 @@
    "suite": "settlement"
   },
   {
-   "count": 2023,
+   "count": 2095,
    "id": "[\"settlement\",\"11\",\"M14\",3]",
    "owner": "11",
    "row": "M14",
@@ -21564,12 +21536,12 @@
     "settlement/persistent/101/0/crash-locked/aresos log.notice-count",
     "settlement/persistent/101/0/crash-locked/aresos log.page"
    ],
-   "sha256": "87934f045b212ff68a6418efe4a9932932573daa6f9057f3ac7133e03d92da99",
+   "sha256": "4d8ee882dce71169fd597ffcf97eb859c40709874f8948cd5c0f148b798c32ea",
    "stage": 3,
    "suite": "settlement"
   },
   {
-   "count": 1032,
+   "count": 1224,
    "id": "[\"settlement\",\"2\",\"M06\",3]",
    "owner": "2",
    "row": "M06",
@@ -21578,7 +21550,7 @@
     "settlement/persistent/10/0/crash-locked/control_pending.notice-head",
     "settlement/persistent/10/0/crash-locked/envelope.mail_operation_repair.notice-head"
    ],
-   "sha256": "4207f73638569a7a08d01af4b87a80b380d96db7190dd20a0fbda841d6927434",
+   "sha256": "5d08f9e4caa419711a178f6c5bdd141fc24966063a760f0fbdabd28a8309f994",
    "stage": 3,
    "suite": "settlement"
   },
@@ -21639,7 +21611,7 @@
    "suite": "settlement"
   },
   {
-   "count": 2885,
+   "count": 3025,
    "id": "[\"settlement\",\"2\",\"M14\",3]",
    "owner": "2",
    "row": "M14",
@@ -21648,21 +21620,21 @@
     "settlement/persistent/10/0/crash-locked/aresos log.notice-count",
     "settlement/persistent/10/0/crash-locked/aresos log.page"
    ],
-   "sha256": "e2605ee6b05fef93a4fef31566d92e244c42bf58f3d977d03af7cf740ab41e7f",
+   "sha256": "36ab4a7e7abda3504cb383e12283aa5cab49e605cc6221dec4c0e966b18eced7",
    "stage": 3,
    "suite": "settlement"
   },
   {
-   "count": 702,
+   "count": 734,
    "id": "[\"settlement\",\"3\",\"M06\",3]",
    "owner": "3",
    "row": "M06",
    "samples": [
-    "settlement/persistent/143/0/crash-restart/envelope.mail_operation_repair.notice-head",
-    "settlement/persistent/143/0/exhausted/aresos log.notice-head",
-    "settlement/persistent/143/0/exhausted/control_pending.notice-head"
+    "settlement/persistent/143/0/crash-restart/aresos log.notice-head",
+    "settlement/persistent/143/0/crash-restart/control_pending.notice-head",
+    "settlement/persistent/143/0/crash-restart/envelope.control_log.notice-head"
    ],
-   "sha256": "18896ac430326c5596702fd2d532e9bd3b256d7f8f2135cdfa0d3830e231bd6e",
+   "sha256": "638edae2bf02ba2ad9421e98e92db1435071cfc00d6cce13a926a469df4360cd",
    "stage": 3,
    "suite": "settlement"
   },
@@ -21723,30 +21695,30 @@
    "suite": "settlement"
   },
   {
-   "count": 1896,
+   "count": 1920,
    "id": "[\"settlement\",\"3\",\"M14\",3]",
    "owner": "3",
    "row": "M14",
    "samples": [
-    "settlement/persistent/143/0/crash-restart/completion",
+    "settlement/persistent/143/0/crash-restart/aresos log.notice-count",
     "settlement/persistent/143/0/crash-restart/control_pending.complete",
-    "settlement/persistent/143/0/crash-restart/control_pending.page"
+    "settlement/persistent/143/0/crash-restart/control_pending.notice-count"
    ],
-   "sha256": "ad3890033559a2f5bf804b5a6fba36acc731a8e04733f9a45541a1413e30d505",
+   "sha256": "002aa87616b00761331dbb687f1fd75c2d8ac1b8ebd1a8a0685d67305d0bd270",
    "stage": 3,
    "suite": "settlement"
   },
   {
-   "count": 390,
+   "count": 454,
    "id": "[\"settlement\",\"4\",\"M06\",3]",
    "owner": "4",
    "row": "M06",
    "samples": [
-    "settlement/persistent/112/0/crash-restart/envelope.mail_operation_repair.notice-head",
-    "settlement/persistent/112/0/exhausted/aresos log.notice-head",
-    "settlement/persistent/112/0/exhausted/control_pending.notice-head"
+    "settlement/persistent/112/0/crash-restart/aresos log.notice-head",
+    "settlement/persistent/112/0/crash-restart/control_pending.notice-head",
+    "settlement/persistent/112/0/crash-restart/envelope.control_log.notice-head"
    ],
-   "sha256": "31537c702d3496d3fcb9993fb2928af46bdadd276764a458d8cb3c09a7607ca8",
+   "sha256": "e1fce548ad41e7fa71e584fe3eb052db04833abea34df74174a20b176941d722",
    "stage": 3,
    "suite": "settlement"
   },
@@ -21792,30 +21764,30 @@
    "suite": "settlement"
   },
   {
-   "count": 1068,
+   "count": 1116,
    "id": "[\"settlement\",\"4\",\"M14\",3]",
    "owner": "4",
    "row": "M14",
    "samples": [
-    "settlement/persistent/112/0/crash-restart/completion",
+    "settlement/persistent/112/0/crash-restart/aresos log.notice-count",
     "settlement/persistent/112/0/crash-restart/control_pending.complete",
-    "settlement/persistent/112/0/crash-restart/control_pending.page"
+    "settlement/persistent/112/0/crash-restart/control_pending.notice-count"
    ],
-   "sha256": "084e99271b935b79a3b084ecaaeacb21a0eb4cbc3be6ba3d35d6b1cdebe4839a",
+   "sha256": "ad41050cd47591df5e676e5046fa9984658ba24bb37cb297b370d4232c259ce3",
    "stage": 3,
    "suite": "settlement"
   },
   {
-   "count": 646,
+   "count": 678,
    "id": "[\"settlement\",\"5\",\"M06\",3]",
    "owner": "5",
    "row": "M06",
    "samples": [
-    "settlement/persistent/105/0/crash-restart/envelope.mail_operation_repair.notice-head",
-    "settlement/persistent/105/0/exhausted/aresos log.notice-head",
-    "settlement/persistent/105/0/exhausted/control_pending.notice-head"
+    "settlement/persistent/105/0/crash-restart/aresos log.notice-head",
+    "settlement/persistent/105/0/crash-restart/control_pending.notice-head",
+    "settlement/persistent/105/0/crash-restart/envelope.control_log.notice-head"
    ],
-   "sha256": "e2d5a8dd4af875081e89ed9463390469b8eeebff869203d624be73bf77f73e31",
+   "sha256": "a26d5b7a8050a084e7dd9aa0d0c4ab60bc8fd5f78b83032b5b3fa042bb9f78c1",
    "stage": 3,
    "suite": "settlement"
   },
@@ -21875,30 +21847,30 @@
    "suite": "settlement"
   },
   {
-   "count": 1582,
+   "count": 1606,
    "id": "[\"settlement\",\"5\",\"M14\",3]",
    "owner": "5",
    "row": "M14",
    "samples": [
-    "settlement/persistent/105/0/crash-restart/completion",
+    "settlement/persistent/105/0/crash-restart/aresos log.notice-count",
     "settlement/persistent/105/0/crash-restart/control_pending.complete",
-    "settlement/persistent/105/0/crash-restart/control_pending.page"
+    "settlement/persistent/105/0/crash-restart/control_pending.notice-count"
    ],
-   "sha256": "3fc3b554081ecce6129d21ccc114c3a2f5d04faa1da3b5ed59f6467f609dcb9f",
+   "sha256": "f955b3898a5858ef333d5abbcae74401309319827a423a8da26b0d4ddba2cbeb",
    "stage": 3,
    "suite": "settlement"
   },
   {
-   "count": 834,
+   "count": 962,
    "id": "[\"settlement\",\"6\",\"M06\",3]",
    "owner": "6",
    "row": "M06",
    "samples": [
-    "settlement/persistent/108/0/crash-restart/envelope.mail_operation_repair.notice-head",
-    "settlement/persistent/108/0/exhausted/aresos log.notice-head",
-    "settlement/persistent/108/0/exhausted/control_pending.notice-head"
+    "settlement/persistent/108/0/crash-restart/aresos log.notice-head",
+    "settlement/persistent/108/0/crash-restart/control_pending.notice-head",
+    "settlement/persistent/108/0/crash-restart/envelope.control_log.notice-head"
    ],
-   "sha256": "d6ff7031bf60713e2fcf7b4730a6016d1b90e1fcea35ae36bfe4095feabd826a",
+   "sha256": "631bf62d953e76c0ae3dfe1f7e5aa2e1da55b39c6b8127d9ef8a1aff341dc1fd",
    "stage": 3,
    "suite": "settlement"
   },
@@ -21959,21 +21931,21 @@
    "suite": "settlement"
   },
   {
-   "count": 2433,
+   "count": 2529,
    "id": "[\"settlement\",\"6\",\"M14\",3]",
    "owner": "6",
    "row": "M14",
    "samples": [
-    "settlement/persistent/108/0/crash-restart/completion",
+    "settlement/persistent/108/0/crash-restart/aresos log.notice-count",
     "settlement/persistent/108/0/crash-restart/control_pending.complete",
-    "settlement/persistent/108/0/crash-restart/control_pending.page"
+    "settlement/persistent/108/0/crash-restart/control_pending.notice-count"
    ],
-   "sha256": "cd95bb8333428488cd009386cb04baf75ac009c06f478e280da0e3dceb022690",
+   "sha256": "da98e3cfd063202cce3b232c81f1397429661e732c0257267484f32c0493cdca",
    "stage": 3,
    "suite": "settlement"
   },
   {
-   "count": 422,
+   "count": 486,
    "id": "[\"settlement\",\"7\",\"M06\",3]",
    "owner": "7",
    "row": "M06",
@@ -21982,7 +21954,7 @@
     "settlement/persistent/1/0/exhausted/aresos log.notice-head",
     "settlement/persistent/1/0/exhausted/control_pending.notice-head"
    ],
-   "sha256": "303ccc8424c568ffe007dec8e1c222a314dd840f399fcc4ddd8a124b8d770ba2",
+   "sha256": "0c0615f7ef464f3963de4ae0fd47fce26b3e8808e38c78772e419ddfbce4b2a8",
    "stage": 3,
    "suite": "settlement"
   },
@@ -22041,7 +22013,7 @@
    "suite": "settlement"
   },
   {
-   "count": 1071,
+   "count": 1119,
    "id": "[\"settlement\",\"7\",\"M14\",3]",
    "owner": "7",
    "row": "M14",
@@ -22050,21 +22022,21 @@
     "settlement/persistent/1/0/crash-restart/envelope.control_log.pending-total",
     "settlement/persistent/1/0/crash-restart/envelope.control_pending.pending-head"
    ],
-   "sha256": "d3bb26d7a2faac7312d875bd95b6b77d9e9a22a7f80d68c65647120b94af1345",
+   "sha256": "92530d4055a05f399476b64d34e284813b021b97475e11047d6a93433709104e",
    "stage": 3,
    "suite": "settlement"
   },
   {
-   "count": 1060,
+   "count": 1252,
    "id": "[\"settlement\",\"8\",\"M06\",3]",
    "owner": "8",
    "row": "M06",
    "samples": [
-    "settlement/persistent/103/0/crash-restart/envelope.mail_operation_repair.notice-head",
-    "settlement/persistent/103/0/exhausted/aresos log.notice-head",
-    "settlement/persistent/103/0/exhausted/control_pending.notice-head"
+    "settlement/persistent/103/0/crash-restart/aresos log.notice-head",
+    "settlement/persistent/103/0/crash-restart/control_pending.notice-head",
+    "settlement/persistent/103/0/crash-restart/envelope.control_log.notice-head"
    ],
-   "sha256": "1c8202c6d8d4df606b01d3cef3276bc2bac95fcfea87fbb72f6e10f132738a64",
+   "sha256": "100773b0cf50ca8d88a6e94b36834319b6d4c285ed523c1304416a0ec6a3df5f",
    "stage": 3,
    "suite": "settlement"
   },
@@ -22125,30 +22097,30 @@
    "suite": "settlement"
   },
   {
-   "count": 2776,
+   "count": 2920,
    "id": "[\"settlement\",\"8\",\"M14\",3]",
    "owner": "8",
    "row": "M14",
    "samples": [
-    "settlement/persistent/103/0/crash-restart/completion",
+    "settlement/persistent/103/0/crash-restart/aresos log.notice-count",
     "settlement/persistent/103/0/crash-restart/control_pending.complete",
-    "settlement/persistent/103/0/crash-restart/control_pending.page"
+    "settlement/persistent/103/0/crash-restart/control_pending.notice-count"
    ],
-   "sha256": "464813f0f57c4fc082c18ddfe8e87de44b8970c49249a497be8ac9786650c7a9",
+   "sha256": "bc3bc719a9fe823ed8c5c16b4a429b27a2cbbf676e71263956153bbfb191b8d2",
    "stage": 3,
    "suite": "settlement"
   },
   {
-   "count": 742,
+   "count": 942,
    "id": "[\"settlement\",\"9\",\"M06\",3]",
    "owner": "9",
    "row": "M06",
    "samples": [
-    "settlement/persistent/104/0/crash-restart/envelope.mail_operation_repair.notice-head",
-    "settlement/persistent/104/0/exhausted/aresos log.notice-head",
-    "settlement/persistent/104/0/exhausted/control_pending.notice-head"
+    "settlement/persistent/104/0/crash-restart/aresos log.notice-head",
+    "settlement/persistent/104/0/crash-restart/control_pending.notice-head",
+    "settlement/persistent/104/0/crash-restart/envelope.control_log.notice-head"
    ],
-   "sha256": "1621fac94325896b34bf0c57e1ef4851c92e2a15adf7a725755490064be5b40e",
+   "sha256": "6c8310f71e6af3e02f2337320e25e48486d18c67072a0a2dd7afd1e86b20bf9d",
    "stage": 3,
    "suite": "settlement"
   },
@@ -22194,44 +22166,28 @@
    "suite": "settlement"
   },
   {
-   "count": 1963,
+   "count": 2113,
    "id": "[\"settlement\",\"9\",\"M14\",3]",
    "owner": "9",
    "row": "M14",
    "samples": [
-    "settlement/persistent/104/0/crash-restart/completion",
+    "settlement/persistent/104/0/crash-restart/aresos log.notice-count",
     "settlement/persistent/104/0/crash-restart/control_pending.complete",
-    "settlement/persistent/104/0/crash-restart/control_pending.page"
+    "settlement/persistent/104/0/crash-restart/control_pending.notice-count"
    ],
-   "sha256": "7fe24de7a2f4b554ff2b26a827a165a4cd85d75a0434a0b86e013c43f5b487b0",
+   "sha256": "0c554ccd4dd34e38b974308515df91c44c856dcccb0bc6c785c7e37e87b56a91",
    "stage": 3,
    "suite": "settlement"
   },
   {
-   "count": 11,
-   "id": "[\"settlement\",\"shared\",\"M06\",3]",
-   "owner": "shared",
-   "row": "M06",
-   "samples": [
-    "settlement/single/0/0/live-restored/aresos log.notice-head",
-    "settlement/single/0/0/live-restored/control_pending.notice-head",
-    "settlement/single/0/0/live-restored/envelope.control_log.notice-head"
-   ],
-   "sha256": "720790665ad87bf0ce7c72f1b8dbcbb0b37e4d8c88b46a6736bb96489a5ee2f1",
-   "stage": 3,
-   "suite": "settlement"
-  },
-  {
-   "count": 30,
+   "count": 1,
    "id": "[\"settlement\",\"shared\",\"M14\",3]",
    "owner": "shared",
    "row": "M14",
    "samples": [
-    "settlement/single/0/0/live-restored/aresos log.notice-count",
-    "settlement/single/0/0/live-restored/completion",
-    "settlement/single/0/0/live-restored/control_pending.complete"
+    "settlement/single/0/0/live-restored/operation-stages"
    ],
-   "sha256": "19087d97886760dc9bbca979a46973a74fba2ee26fae0e3fc3ab457519495261",
+   "sha256": "1b93e3827242c4e39fc7d525b90cdf9028a078fc763d11dffe401f0f8a633c29",
    "stage": 3,
    "suite": "settlement"
   },
@@ -22245,7 +22201,7 @@
     "status/persistent/21/0/crash-locked/control_pending.notice-head",
     "status/persistent/21/0/crash-locked/envelope.control_log.notice-head"
    ],
-   "sha256": "479a169689b57929b65b052bcadaf1e08996111ad12a34b51355227d111533c3",
+   "sha256": "b5afc32fbf040391f9d0f8338b2ac41b5a5deef756236067c553d19773f45453",
    "stage": 3,
    "suite": "status"
   },
@@ -22259,7 +22215,7 @@
     "status/single/21/0/crash-restart/lifecycle-proof",
     "status/single/21/22/crash-restart/lifecycle-proof"
    ],
-   "sha256": "9a9e06cdf96f20895f37e543b9c4b6cbe17ba548ebb2faf6f52a5be25a5b6ad0",
+   "sha256": "e95efefa82eadfbe292b5b5b9db828d6f644be08f5b35c94c73f6c3f23d18c11",
    "stage": 3,
    "suite": "status"
   },
@@ -22273,7 +22229,7 @@
     "status/persistent/109/0/exhausted/aresos log.notice-head",
     "status/persistent/109/0/exhausted/control_pending.notice-head"
    ],
-   "sha256": "3326c31e42837c86ba14c4e10137f23a5efbb0bab9fe5bc5ecc3a7142a0bbfd1",
+   "sha256": "6d6ed5c204602a70538fdcb5ee4a80d769840737177999c23b46278a826ae94a",
    "stage": 3,
    "suite": "status"
   },
@@ -22286,21 +22242,21 @@
     "status/persistent/136/0/exhausted/restore-generation",
     "status/persistent/21/0/exhausted/restore-generation"
    ],
-   "sha256": "f487e60a6fadd23856d7171bbbb014222cc40daea87078c56a7e807f21554f5c",
+   "sha256": "4f2ae07569404c8c66c0986dea2d6401da701fadae75bd00a7320cc2da2de179",
    "stage": 3,
    "suite": "status"
   },
   {
-   "count": 788,
+   "count": 575,
    "id": "[\"status\",\"0\",\"M14\",3]",
    "owner": "0",
    "row": "M14",
    "samples": [
-    "status/persistent/109/0/crash-restart/completion",
     "status/persistent/109/0/crash-restart/envelope.mail_operation_status.notice-count",
-    "status/persistent/109/0/crash-restart/lifecycle-proof"
+    "status/persistent/109/0/crash-restart/lifecycle-proof",
+    "status/persistent/109/0/exhausted/aresos log.notice-count"
    ],
-   "sha256": "38de7538df2ec68bd84259943438c26cf60c3d46ccc0c87f0cb632cd05e5fdea",
+   "sha256": "57d72c8c37fe8f9fce1ef06e0e5b920a3d40c347356d3c9a825bb933f11b37df",
    "stage": 3,
    "suite": "status"
   },
@@ -22314,7 +22270,7 @@
     "status/persistent/16/0/crash-locked/control_pending.notice-head",
     "status/persistent/16/0/crash-locked/envelope.control_log.notice-head"
    ],
-   "sha256": "491b6897cdad7298d922a3ebbe49fc7c490f77c41fc1c8d54ae7077e092245a1",
+   "sha256": "4861551409838485ecf80cc7f6f6dc0442ecf8dd0db20a97e54fc65b7d37e23e",
    "stage": 3,
    "suite": "status"
   },
@@ -22328,7 +22284,7 @@
     "status/persistent/6/0/crash-restart/lifecycle-proof",
     "status/persistent/74/0/crash-restart/lifecycle-proof"
    ],
-   "sha256": "b627c45a10711896dd18e0a7df3c507a2efeffc3bd7125c97e79d8a34ca96d6b",
+   "sha256": "dd96e06af5b56480ec0c55c046ea7f3488f382960de47b3aa4d981d4aea5019f",
    "stage": 3,
    "suite": "status"
   },
@@ -22342,7 +22298,7 @@
     "status/persistent/106/0/exhausted/aresos log.notice-head",
     "status/persistent/106/0/exhausted/control_pending.notice-head"
    ],
-   "sha256": "7bee9d2b071756c17c403aa189e89cacaaf00ba0fb16b6d960d04ed8857d9af2",
+   "sha256": "a400335fb9fee10a94117e7f1a0ed389fb2d1191dad957ee6ce20ac4429a63c8",
    "stage": 3,
    "suite": "status"
   },
@@ -22356,21 +22312,21 @@
     "status/persistent/60/0/exhausted/restore-generation",
     "status/persistent/67/0/exhausted/restore-generation"
    ],
-   "sha256": "5a7f549c5d635ee455ea2a0429638b113823850ff668180228ffa6c96bc322d5",
+   "sha256": "be7476e8110763c467fcfc899f1fa283362dfff00f18b5d3044c8086d18b1604",
    "stage": 3,
    "suite": "status"
   },
   {
-   "count": 2043,
+   "count": 1547,
    "id": "[\"status\",\"1\",\"M14\",3]",
    "owner": "1",
    "row": "M14",
    "samples": [
-    "status/persistent/106/0/crash-restart/completion",
     "status/persistent/106/0/crash-restart/envelope.mail_operation_status.notice-count",
-    "status/persistent/106/0/crash-restart/lifecycle-proof"
+    "status/persistent/106/0/crash-restart/lifecycle-proof",
+    "status/persistent/106/0/exhausted/aresos log.notice-count"
    ],
-   "sha256": "2c42ac495ad490a49b6db78437a1a25e110c87682ddbb6f2faae649d3e07ddfd",
+   "sha256": "512a99c5951c7bd10f48110ce9222182144c929799d0c3c17d006cdb5c8d4c3d",
    "stage": 3,
    "suite": "status"
   },
@@ -22384,7 +22340,7 @@
     "status/single/69/0/live-restored/aresos log.notice-head",
     "status/single/69/0/live-restored/control_pending.notice-head"
    ],
-   "sha256": "a9ef9b2250a68af4c1f345515da72c55bb16952453aefdcb7dc433c6e0ec303a",
+   "sha256": "a74cd664a53e0c205168b43a23854dae4f263fe95632b17d42462e1c27119b55",
    "stage": 3,
    "suite": "status"
   },
@@ -22398,7 +22354,7 @@
     "status/persistent/103/0/exhausted/aresos log.notice-head",
     "status/persistent/103/0/exhausted/control_pending.notice-head"
    ],
-   "sha256": "f633613e4196c5265dfb8cf76639b09833c31a8c3ddc6dd7cffaa3dd5039893b",
+   "sha256": "08f61a26331744eab9127074cadf7803a2ba26104eece50a63aa372d063a1dcf",
    "stage": 3,
    "suite": "status"
   },
@@ -22412,7 +22368,7 @@
     "status/persistent/55/0/exhausted/restore-generation",
     "status/persistent/59/0/exhausted/restore-generation"
    ],
-   "sha256": "da062bfe988a1ce6072158ef747ce21c01808f5409455fa9291c8df0cca32216",
+   "sha256": "8442dc3bc4a36413629400f59b2805fda2654c132610ea60f014a013b15c4667",
    "stage": 3,
    "suite": "status"
   },
@@ -22430,16 +22386,16 @@
    "suite": "status"
   },
   {
-   "count": 986,
+   "count": 650,
    "id": "[\"status\",\"10\",\"M14\",3]",
    "owner": "10",
    "row": "M14",
    "samples": [
-    "status/persistent/103/0/crash-restart/completion",
     "status/persistent/103/0/crash-restart/envelope.mail_operation_status.notice-count",
-    "status/persistent/103/0/crash-restart/lifecycle-proof"
+    "status/persistent/103/0/crash-restart/lifecycle-proof",
+    "status/persistent/103/0/exhausted/aresos log.notice-count"
    ],
-   "sha256": "c54e90d0a07e520cac192b2f3a0b4261f63dcf8fce0ae0f5071159f352abc4e7",
+   "sha256": "685410a1179cb7952a904dc47ba73d40ad19106cd0759b0ce24f27178a4c6e4a",
    "stage": 3,
    "suite": "status"
   },
@@ -22453,7 +22409,7 @@
     "status/persistent/19/0/crash-locked/control_pending.notice-head",
     "status/persistent/19/0/crash-locked/envelope.control_log.notice-head"
    ],
-   "sha256": "4570af766511ca9ee97710714028ca0035bd079f3427f32b74b48fe3d0d777a5",
+   "sha256": "a4830e917b88a9dc79f02598dab0847caee54d62944971967c06c0a939ea0534",
    "stage": 3,
    "suite": "status"
   },
@@ -22467,7 +22423,7 @@
     "status/persistent/81/0/crash-restart/lifecycle-proof",
     "status/persistent/82/0/crash-restart/lifecycle-proof"
    ],
-   "sha256": "d4e85bc7ee4c5de6adc683be60f8fb9d0c44c17fe5c2f21daa2dd95401cc0c10",
+   "sha256": "bb5f55406671327630a4d4e32eaa4e305181c1971c1e28f7c993339e0ff6efbb",
    "stage": 3,
    "suite": "status"
   },
@@ -22481,7 +22437,7 @@
     "status/persistent/19/0/crash-restart/envelope.mail_accounts.notice-head",
     "status/persistent/19/0/crash-restart/passive.notice-head"
    ],
-   "sha256": "3dd5473556fcf51b2d1eb95ac39572efa0275764588fa565cf4084e7bb14b5ad",
+   "sha256": "6822643b04138f69d299fc6e1275d3bb424cd74720f6d93dac88aa44cf7f23c0",
    "stage": 3,
    "suite": "status"
   },
@@ -22495,12 +22451,12 @@
     "status/persistent/63/0/exhausted/restore-generation",
     "status/persistent/88/0/exhausted/restore-generation"
    ],
-   "sha256": "dfb3a830cfb1524d1bf38bc568bceda86e5181720f13f5bf721e2fdca0df0ea5",
+   "sha256": "c4df8395a845ad5a1eac38be9fbcd6a4da6ccd20029712241f381b81fc2ff003",
    "stage": 3,
    "suite": "status"
   },
   {
-   "count": 1332,
+   "count": 1022,
    "id": "[\"status\",\"11\",\"M14\",3]",
    "owner": "11",
    "row": "M14",
@@ -22509,7 +22465,7 @@
     "status/persistent/19/0/crash-locked/aresos log.notice-count",
     "status/persistent/19/0/crash-locked/aresos log.page"
    ],
-   "sha256": "a1bb93e3256d3ffc11331050d2fde845d927c2abdea3575f0a9ca56b40029127",
+   "sha256": "be2cd530003e7bf8a70d494e4b9abdf81b66edd7964b843ad566b931e69c2ba7",
    "stage": 3,
    "suite": "status"
   },
@@ -22523,7 +22479,7 @@
     "status/persistent/12/0/crash-locked/control_pending.notice-head",
     "status/persistent/12/0/crash-locked/envelope.control_log.notice-head"
    ],
-   "sha256": "d4cb977791976fc4b36efdef314452747d7444145d99bf5a3a97b55b9e440bcc",
+   "sha256": "a8ac9010f3ad5d4467ea0cb397304774c249817a9f1cbe8445023141a9b7ba99",
    "stage": 3,
    "suite": "status"
   },
@@ -22537,7 +22493,7 @@
     "status/persistent/15/0/crash-restart/lifecycle-proof",
     "status/persistent/17/0/crash-restart/lifecycle-proof"
    ],
-   "sha256": "024d121fa09fecc3af8002a6ec6a695596154e65174d9904a4f26a1e2516c8ae",
+   "sha256": "ffae2b33a90b2811bc17ff95f47d161ac3d7137a3f5fe2954b280be2c7df11d6",
    "stage": 3,
    "suite": "status"
   },
@@ -22551,7 +22507,7 @@
     "status/persistent/1/0/exhausted/control_pending.notice-head",
     "status/persistent/1/0/exhausted/envelope.control_log.notice-head"
    ],
-   "sha256": "4334468e03c1b788f78005d5a97cfe5594fb11aec28bb7f9b92ccdeea7d92810",
+   "sha256": "520e5c2c20a3457a6dff20a5965a3f7d3c7afeabeb4a627b25e71d83c1c39da1",
    "stage": 3,
    "suite": "status"
   },
@@ -22565,21 +22521,21 @@
     "status/persistent/17/0/exhausted/restore-generation",
     "status/persistent/18/0/exhausted/restore-generation"
    ],
-   "sha256": "1d87156608cf553b2ae4039f95cc987b4674cec1fbb893343fe2d9bb81025351",
+   "sha256": "94bba52e3ae027a0e5973aacce6ef73a9b3e21f9ce9d86d63da13b1c818ffcde",
    "stage": 3,
    "suite": "status"
   },
   {
-   "count": 2344,
+   "count": 1736,
    "id": "[\"status\",\"2\",\"M14\",3]",
    "owner": "2",
    "row": "M14",
    "samples": [
-    "status/persistent/1/0/crash-restart/completion",
-    "status/persistent/1/0/crash-restart/envelope.mail_accounts.notice-count",
-    "status/persistent/1/0/crash-restart/envelope.mail_accounts.notice-head"
+    "status/persistent/1/0/exhausted/aresos log.notice-count",
+    "status/persistent/1/0/exhausted/envelope.control_log.notice-count",
+    "status/persistent/1/0/exhausted/envelope.mail_filing_notices.notice-count"
    ],
-   "sha256": "f1829915522ce1f9fffbeb2d49d77e7157a249c4147c106a5b7c5077d67c4947",
+   "sha256": "f1f479c036daa2b0fab81f6bddb0cd8a99410c2be4192f5659fbf25cdf5bd232",
    "stage": 3,
    "suite": "status"
   },
@@ -22593,7 +22549,7 @@
     "status/persistent/13/0/crash-locked/control_pending.notice-head",
     "status/persistent/13/0/crash-locked/envelope.control_log.notice-head"
    ],
-   "sha256": "0ab6c319040c891963f3e2d7a6472fc997f54df80002a21b37c08c602ef0cd40",
+   "sha256": "88ce1ad3e54d268e51d0f1b11dbacc33f74ee94fe2132349eabb2202d6a9a5ff",
    "stage": 3,
    "suite": "status"
   },
@@ -22607,7 +22563,7 @@
     "status/persistent/72/0/crash-restart/lifecycle-proof",
     "status/persistent/8/0/crash-restart/lifecycle-proof"
    ],
-   "sha256": "f39f2653b47090d12d7227ed782cca2f80d347d2e3265f1a23aaef36c1a4b0f4",
+   "sha256": "7c1c1a5008661095d4ed51d6af44d5c0ddc175cb3c674e1e7f0f746783e4ea2a",
    "stage": 3,
    "suite": "status"
   },
@@ -22621,7 +22577,7 @@
     "status/persistent/101/0/exhausted/aresos log.notice-head",
     "status/persistent/101/0/exhausted/control_pending.notice-head"
    ],
-   "sha256": "39f4a8cbbc688ad41a0fcf5e016dc0249ef132e412bcd614dc03bb95dfb77fb4",
+   "sha256": "16fb53fd592f0420c4218b3b1bfb45d38b0758bea6774f07bd7a5e21e386cfae",
    "stage": 3,
    "suite": "status"
   },
@@ -22635,21 +22591,21 @@
     "status/persistent/57/0/exhausted/restore-generation",
     "status/persistent/87/0/exhausted/restore-generation"
    ],
-   "sha256": "861bd7ce66d8b3d1e88db5d6b7820ac770d99da508dfbd1a60dfa37268df7212",
+   "sha256": "daee3ce593a6e1025afc17ad9eb988dde58be04d14635f79ff88f512639925b5",
    "stage": 3,
    "suite": "status"
   },
   {
-   "count": 2658,
+   "count": 2110,
    "id": "[\"status\",\"3\",\"M14\",3]",
    "owner": "3",
    "row": "M14",
    "samples": [
-    "status/persistent/101/0/crash-restart/completion",
     "status/persistent/101/0/crash-restart/envelope.mail_operation_status.notice-count",
-    "status/persistent/101/0/crash-restart/lifecycle-proof"
+    "status/persistent/101/0/crash-restart/lifecycle-proof",
+    "status/persistent/101/0/exhausted/aresos log.notice-count"
    ],
-   "sha256": "cff530b117ef3423ffd4a2c07eb4b39aae68fac8830d3c6338c2029fdffe90b9",
+   "sha256": "16976e313a3ee2a4ee7ff38338d9c262e3e37cb9114ae27e3a9b7527eac56d38",
    "stage": 3,
    "suite": "status"
   },
@@ -22663,7 +22619,7 @@
     "status/persistent/10/0/crash-locked/control_pending.notice-head",
     "status/persistent/10/0/crash-locked/envelope.control_log.notice-head"
    ],
-   "sha256": "f1e2ebc97591639e9b0dd0aa31b9edd7661aca5625c489e71aeaeed286f52552",
+   "sha256": "99ef716550e6fb0f142655fe7b63dc33502f9fde147f6e077bc8337c20d98bc9",
    "stage": 3,
    "suite": "status"
   },
@@ -22677,7 +22633,7 @@
     "status/persistent/11/0/crash-restart/lifecycle-proof",
     "status/persistent/14/0/crash-restart/lifecycle-proof"
    ],
-   "sha256": "085521417f3e8a553a30cfba349e6aadc22bff15d3eefe8c7d9c19823c87be13",
+   "sha256": "f9072fb51da3010c05f83b06cf195f9776b6dbc420eee2d924cc24765796ca41",
    "stage": 3,
    "suite": "status"
   },
@@ -22691,7 +22647,7 @@
     "status/persistent/10/0/crash-restart/envelope.mail_accounts.notice-head",
     "status/persistent/10/0/crash-restart/passive.notice-head"
    ],
-   "sha256": "6575820b586067410e43781fe632a0e407ccea6ae5f1fdffe87b6fb79400a5f6",
+   "sha256": "412895a0d5c061effb788782df8cf6d5f57a4e795fe4836d30d24bace2317f86",
    "stage": 3,
    "suite": "status"
   },
@@ -22704,12 +22660,12 @@
     "status/persistent/142/0/exhausted/restore-generation",
     "status/persistent/61/0/exhausted/restore-generation"
    ],
-   "sha256": "9fac524e0be47df2a56923db8258de208e375b2a428eaa5d70f0e48569ed6cf2",
+   "sha256": "b8b2b8b051d1b4151bd42fbfa4f11a27cacd12de22170745a642ee4c7762babb",
    "stage": 3,
    "suite": "status"
   },
   {
-   "count": 1377,
+   "count": 1013,
    "id": "[\"status\",\"4\",\"M14\",3]",
    "owner": "4",
    "row": "M14",
@@ -22718,7 +22674,7 @@
     "status/persistent/10/0/crash-locked/aresos log.notice-count",
     "status/persistent/10/0/crash-locked/aresos log.page"
    ],
-   "sha256": "ae7609c461d2208a3a14a93820d0f364a30e9d641cc414f9e780145464c36e40",
+   "sha256": "2b852053f60c05c9a223be85a181f81a5cbcb51435d0a46e7f179438a71e6f0f",
    "stage": 3,
    "suite": "status"
   },
@@ -22732,7 +22688,7 @@
     "status/persistent/120/0/exhausted/aresos log.notice-head",
     "status/persistent/120/0/exhausted/control_pending.notice-head"
    ],
-   "sha256": "f2d598346018899e7b9e20ba62c1f6b00aedbc39318fb679b48dd1daf9c5552a",
+   "sha256": "bbe6aa2c0fd9a1d9c94af418b2bcfa32006835c6b8b04834010d54781785eadd",
    "stage": 3,
    "suite": "status"
   },
@@ -22750,16 +22706,16 @@
    "suite": "status"
   },
   {
-   "count": 392,
+   "count": 252,
    "id": "[\"status\",\"5\",\"M14\",3]",
    "owner": "5",
    "row": "M14",
    "samples": [
-    "status/persistent/120/0/crash-restart/completion",
     "status/persistent/120/0/crash-restart/envelope.mail_operation_status.notice-count",
-    "status/persistent/120/0/crash-restart/lifecycle-proof"
+    "status/persistent/120/0/crash-restart/lifecycle-proof",
+    "status/persistent/120/0/exhausted/aresos log.notice-count"
    ],
-   "sha256": "87a31020027a85f4a297b48d15b662ec88e6bf7f81a71010f3e4688a9356e286",
+   "sha256": "66d57013601db21ae02b8a7d868f6a828ffb116f1b9ba8fd87151cd8df8c2d12",
    "stage": 3,
    "suite": "status"
   },
@@ -22773,7 +22729,7 @@
     "status/persistent/68/0/exhausted/aresos log.notice-head",
     "status/persistent/68/0/exhausted/control_pending.notice-head"
    ],
-   "sha256": "be671737633ad5fa0c058665db9d12c38b201f719036b875de8142352a78667e",
+   "sha256": "207e247de4bb5b3ba94578c699f71caa19539092ef04c211135a88f4384bad4f",
    "stage": 3,
    "suite": "status"
   },
@@ -22787,7 +22743,7 @@
     "status/persistent/73/0/crash-restart/lifecycle-proof",
     "status/persistent/76/0/crash-restart/lifecycle-proof"
    ],
-   "sha256": "a5a28d637a0b96d7f5cb7dec2fc21047f926db12e13578e4190baeaf203ffd55",
+   "sha256": "41041c03bd41c550d19111a90d0f488ecf329879e47875600a3955e91805e0be",
    "stage": 3,
    "suite": "status"
   },
@@ -22801,7 +22757,7 @@
     "status/persistent/108/0/exhausted/aresos log.notice-head",
     "status/persistent/108/0/exhausted/control_pending.notice-head"
    ],
-   "sha256": "a1ff034f3cde0430aca5186513f02976ca6242231421ba798c87d92779d2004d",
+   "sha256": "3af8ee694ceb5b63a867d2a3b96fbf67ad851418d69d3839aac68cc6f721dbe2",
    "stage": 3,
    "suite": "status"
   },
@@ -22815,7 +22771,7 @@
     "status/persistent/132/0/exhausted/restore-generation",
     "status/persistent/141/0/exhausted/restore-generation"
    ],
-   "sha256": "3046dea7030d439778f0f2d0db7aa480d872221bffbcdff069e7abf824325707",
+   "sha256": "1ba9c0f33056d67b02f0d3ddef1eee2ba7b58116621ea6f9d47e90c53ffa1a41",
    "stage": 3,
    "suite": "status"
   },
@@ -22834,16 +22790,16 @@
    "suite": "status"
   },
   {
-   "count": 1296,
+   "count": 1051,
    "id": "[\"status\",\"6\",\"M14\",3]",
    "owner": "6",
    "row": "M14",
    "samples": [
-    "status/persistent/108/0/crash-restart/completion",
     "status/persistent/108/0/crash-restart/envelope.mail_operation_status.notice-count",
-    "status/persistent/108/0/crash-restart/lifecycle-proof"
+    "status/persistent/108/0/crash-restart/lifecycle-proof",
+    "status/persistent/108/0/exhausted/aresos log.notice-count"
    ],
-   "sha256": "eaa42f401bc436ad10df2a192a547ca2533c6eac292644c2c3f7a69474c36335",
+   "sha256": "4a65da60d94d237d7b4eccc36948ed027b4365aba28f4f3d122e3b80a1753d9c",
    "stage": 3,
    "suite": "status"
   },
@@ -22870,7 +22826,7 @@
     "status/persistent/71/0/crash-restart/lifecycle-proof",
     "status/single/71/72/crash-restart/lifecycle-proof"
    ],
-   "sha256": "63726d02d7bb91b0fb2d64fd6b783df66320dbfdd30a764d1266f4a332f5410c",
+   "sha256": "ada5d60fec4ac321a6d6264caef9e7f28d659427cd509a91670546635b4d4370",
    "stage": 3,
    "suite": "status"
   },
@@ -22884,7 +22840,7 @@
     "status/persistent/102/0/exhausted/aresos log.notice-head",
     "status/persistent/102/0/exhausted/control_pending.notice-head"
    ],
-   "sha256": "6be2ea36e12a66a6be4be9b43cb9f8e36819ce8f96e25b4cf1d90af50681e37d",
+   "sha256": "b7c1192933629e53ee7ddd58e492312b598a49f6d9d21c8950cfa807e5c168a5",
    "stage": 3,
    "suite": "status"
   },
@@ -22902,16 +22858,16 @@
    "suite": "status"
   },
   {
-   "count": 795,
+   "count": 523,
    "id": "[\"status\",\"7\",\"M14\",3]",
    "owner": "7",
    "row": "M14",
    "samples": [
-    "status/persistent/102/0/crash-restart/completion",
     "status/persistent/102/0/crash-restart/envelope.mail_operation_status.notice-count",
-    "status/persistent/102/0/crash-restart/lifecycle-proof"
+    "status/persistent/102/0/crash-restart/lifecycle-proof",
+    "status/persistent/102/0/exhausted/aresos log.notice-count"
    ],
-   "sha256": "68d19c1806c51f0e2d76fde08a092c7e577ddb458db37ff2a46b748a7ad34a6b",
+   "sha256": "9c95953bf1f49468abfa6f2317cac6e84da25eb10e050848846f5fe1e395f418",
    "stage": 3,
    "suite": "status"
   },
@@ -22925,7 +22881,7 @@
     "status/persistent/146/0/exhausted/aresos log.notice-head",
     "status/persistent/146/0/exhausted/control_pending.notice-head"
    ],
-   "sha256": "e3516a9a43b89a13d5a95c390d3cba5c9874514e787d88ce6a229086c6bca7a0",
+   "sha256": "41a149c881da92050c3c8eb705c669e50dfc3575a043f48b5578f0c0c1ef21b1",
    "stage": 3,
    "suite": "status"
   },
@@ -22939,7 +22895,7 @@
     "status/persistent/23/0/crash-restart/lifecycle-proof",
     "status/persistent/4/0/crash-restart/lifecycle-proof"
    ],
-   "sha256": "bd06d8f3a4426c9b457a5f1dccd03b6645e1c0ba24af1fff07aa7a8389997440",
+   "sha256": "fd532d15148211cea3d1419de2a23c22bb57619d29a2b05d99439ad9d28ad0c3",
    "stage": 3,
    "suite": "status"
   },
@@ -22953,7 +22909,7 @@
     "status/persistent/140/0/exhausted/aresos log.notice-head",
     "status/persistent/140/0/exhausted/control_pending.notice-head"
    ],
-   "sha256": "91deb5c99bad26035d3d9946e32cfb9cdcb3656c3b57e357bada19c3422c8851",
+   "sha256": "e489aca8627c79b850713e4b09e56ffeb3706fac840dfcf52c46c6c0795d64e5",
    "stage": 3,
    "suite": "status"
   },
@@ -22966,7 +22922,7 @@
     "status/persistent/140/0/exhausted/restore-generation",
     "status/persistent/23/0/exhausted/restore-generation"
    ],
-   "sha256": "776c2221e597c72ac7a368bf48a56b33e1469d6cf0487c5adf035a29767ab953",
+   "sha256": "73f40eb408de1f92662fb93f026a2bc80d8840be608f1c1ac1fb7c007dd92f09",
    "stage": 3,
    "suite": "status"
   },
@@ -22985,16 +22941,16 @@
    "suite": "status"
   },
   {
-   "count": 1289,
+   "count": 973,
    "id": "[\"status\",\"8\",\"M14\",3]",
    "owner": "8",
    "row": "M14",
    "samples": [
-    "status/persistent/140/0/crash-restart/completion",
     "status/persistent/140/0/crash-restart/envelope.mail_operation_status.notice-count",
-    "status/persistent/140/0/crash-restart/lifecycle-proof"
+    "status/persistent/140/0/crash-restart/lifecycle-proof",
+    "status/persistent/140/0/exhausted/aresos log.complete"
    ],
-   "sha256": "a48189348694dbd6257441dcbbd4fa92ea997bccbc54b51b5857f98f807c8354",
+   "sha256": "6823d979d726fb32dc9781d2f34c328fcf9579535f3baf624132b9cf7b363a99",
    "stage": 3,
    "suite": "status"
   },
@@ -23008,7 +22964,7 @@
     "status/persistent/5/0/crash-locked/control_pending.notice-head",
     "status/persistent/5/0/crash-locked/envelope.control_log.notice-head"
    ],
-   "sha256": "645e2d214dcf43a3a7dfec15cf825fbfd04487327e59307c8ff5152c0594b3ae",
+   "sha256": "d241f80d9e4176d645caa8818317133866b10005483fd2943493f89b4b5e010a",
    "stage": 3,
    "suite": "status"
   },
@@ -23022,7 +22978,7 @@
     "status/persistent/80/0/crash-restart/lifecycle-proof",
     "status/persistent/86/0/crash-restart/lifecycle-proof"
    ],
-   "sha256": "bc18371d50fed2ca0fed81b642f11067cbd36c8b073d06fd9f1ceae135275a05",
+   "sha256": "dc46d9b1d8d679e12c5b28234bbcb7659d16bb62bef245a25fffc1b0618f25b5",
    "stage": 3,
    "suite": "status"
   },
@@ -23036,7 +22992,7 @@
     "status/persistent/100/0/exhausted/aresos log.notice-head",
     "status/persistent/100/0/exhausted/control_pending.notice-head"
    ],
-   "sha256": "d914e5d86880d26ffd9965ac40f4467ce2255ebed38d2fc1b8ddb7df901adccd",
+   "sha256": "a776cfe5f911cb2aff932c00a47bda1c6a9e704fd80c5db1995fb65697223c07",
    "stage": 3,
    "suite": "status"
   },
@@ -23050,7 +23006,7 @@
     "status/persistent/62/0/exhausted/restore-generation",
     "status/persistent/64/0/exhausted/restore-generation"
    ],
-   "sha256": "df1b05a143188c290f62fdfefadda6adfda2d933fa285a06721cfe9764883f54",
+   "sha256": "919016213fa786d12d0dc75ef5c3a5aea24f0bcad2f0907751d1f08cc3a62968",
    "stage": 3,
    "suite": "status"
   },
@@ -23068,29 +23024,16 @@
    "suite": "status"
   },
   {
-   "count": 1508,
+   "count": 1118,
    "id": "[\"status\",\"9\",\"M14\",3]",
    "owner": "9",
    "row": "M14",
    "samples": [
-    "status/persistent/100/0/crash-restart/completion",
     "status/persistent/100/0/crash-restart/envelope.mail_operation_status.notice-count",
-    "status/persistent/100/0/crash-restart/lifecycle-proof"
+    "status/persistent/100/0/crash-restart/lifecycle-proof",
+    "status/persistent/100/0/exhausted/aresos log.notice-count"
    ],
-   "sha256": "0338cc81ff7d79a21ef200196d7079eadef44ea74870389c61d62dc14094047d",
-   "stage": 3,
-   "suite": "status"
-  },
-  {
-   "count": 2,
-   "id": "[\"status\",\"shared\",\"M14\",3]",
-   "owner": "shared",
-   "row": "M14",
-   "samples": [
-    "status/single/0/0/live-restored/completion",
-    "status/single/0/0/live-restored/lifecycle-proof"
-   ],
-   "sha256": "c93f7750b3ed89da2b160ef4221e527b8aaa399f4c2aa8c609d66a790e33ad4b",
+   "sha256": "20dab341082741c6c7331b1f750d409d1c1e09b1b562914ed57216573f2fe0a5",
    "stage": 3,
    "suite": "status"
   },
@@ -25645,7 +25588,7 @@
    "suite": "testapp_send"
   },
   {
-   "count": 4087,
+   "count": 3964,
    "id": "[\"testapp_send\",\"0\",\"M14\",3]",
    "owner": "0",
    "row": "M14",
@@ -25654,7 +25597,7 @@
     "testapp_send/persistent/143/0/crash-restart/control_pending.page",
     "testapp_send/persistent/143/0/crash-restart/envelope.control_log.pending-head"
    ],
-   "sha256": "32174732b1453621572bfc68323197da490e3edc54ad7e09b9be333c003bc81e",
+   "sha256": "eb0792a6dc4d996fb58525751302d4930f310fc0f4a1ac06efbfe4f3feed5d2e",
    "stage": 3,
    "suite": "testapp_send"
   },
@@ -25715,7 +25658,7 @@
    "suite": "testapp_send"
   },
   {
-   "count": 3438,
+   "count": 3362,
    "id": "[\"testapp_send\",\"1\",\"M14\",3]",
    "owner": "1",
    "row": "M14",
@@ -25724,12 +25667,12 @@
     "testapp_send/persistent/116/0/crash-restart/control_pending.page",
     "testapp_send/persistent/116/0/crash-restart/envelope.control_log.pending-head"
    ],
-   "sha256": "6d5bba441176a66a4593d82a4055616f20a35eb076ded67ad823eeaa10b5504f",
+   "sha256": "bdf9fcb74bb480b5dae499392e3d7580924b537abf3942763db1eda7b1b83b52",
    "stage": 3,
    "suite": "testapp_send"
   },
   {
-   "count": 1472,
+   "count": 1428,
    "id": "[\"testapp_send\",\"10\",\"M06\",3]",
    "owner": "10",
    "row": "M06",
@@ -25738,7 +25681,7 @@
     "testapp_send/persistent/107/0/exhausted/aresos log.notice-head",
     "testapp_send/persistent/107/0/exhausted/control_pending.notice-head"
    ],
-   "sha256": "943e226cf037bfa9658bc2545f3ae2ee52e64f3a1cb8e52b992e7c6932ed1107",
+   "sha256": "312bf9a76948a2defd72d9bec0cb35e1ffaff6eecf26833b91f4fee55e5bfca9",
    "stage": 3,
    "suite": "testapp_send"
   },
@@ -25785,7 +25728,7 @@
    "suite": "testapp_send"
   },
   {
-   "count": 4048,
+   "count": 3806,
    "id": "[\"testapp_send\",\"10\",\"M14\",3]",
    "owner": "10",
    "row": "M14",
@@ -25794,7 +25737,7 @@
     "testapp_send/persistent/107/0/crash-restart/control_pending.page",
     "testapp_send/persistent/107/0/crash-restart/envelope.control_log.pending-head"
    ],
-   "sha256": "2e80b57bc022d9061b6019255eaa006236e174d58f922616caae919351fedd6c",
+   "sha256": "7ee8de55bc6b6ee8c6d76f3aebfbeda3dc4e30de08e48fe937c09534bae23fed",
    "stage": 3,
    "suite": "testapp_send"
   },
@@ -25855,7 +25798,7 @@
    "suite": "testapp_send"
   },
   {
-   "count": 3789,
+   "count": 3727,
    "id": "[\"testapp_send\",\"11\",\"M14\",3]",
    "owner": "11",
    "row": "M14",
@@ -25864,7 +25807,7 @@
     "testapp_send/persistent/101/0/crash-restart/control_pending.page",
     "testapp_send/persistent/101/0/crash-restart/envelope.control_log.pending-head"
    ],
-   "sha256": "485c2f20f183aa0069c222685be8d893a4290d8cad36a9b520224fe4ab06f335",
+   "sha256": "e73eb9cdbcd37b576d2026cfae7074a0056769e37e69d8240a96ee29bac89117",
    "stage": 3,
    "suite": "testapp_send"
   },
@@ -25925,7 +25868,7 @@
    "suite": "testapp_send"
   },
   {
-   "count": 5076,
+   "count": 4951,
    "id": "[\"testapp_send\",\"2\",\"M14\",3]",
    "owner": "2",
    "row": "M14",
@@ -25934,7 +25877,7 @@
     "testapp_send/persistent/103/0/crash-restart/control_pending.page",
     "testapp_send/persistent/103/0/crash-restart/envelope.control_log.pending-head"
    ],
-   "sha256": "c79fe72ddc14efe5fe7365664bc1a2653fbd745837182b8a1e9aab2c01d732f3",
+   "sha256": "be1c19ab761aee3309105408a52396bab1c3ec30e373a99784751471dcaea200",
    "stage": 3,
    "suite": "testapp_send"
   },
@@ -25995,7 +25938,7 @@
    "suite": "testapp_send"
   },
   {
-   "count": 2946,
+   "count": 2888,
    "id": "[\"testapp_send\",\"3\",\"M14\",3]",
    "owner": "3",
    "row": "M14",
@@ -26004,7 +25947,7 @@
     "testapp_send/persistent/112/0/crash-restart/control_pending.page",
     "testapp_send/persistent/112/0/crash-restart/envelope.control_log.pending-head"
    ],
-   "sha256": "c2e6a4dbc95dd53901d45fc35f9050b87fdd062e5997c814ce8fd22ac5258efa",
+   "sha256": "9c3b8c97d9e9418dd973e467cd2de87c3ee3593f43c0c039c14dd268aab0968c",
    "stage": 3,
    "suite": "testapp_send"
   },
@@ -26065,7 +26008,7 @@
    "suite": "testapp_send"
   },
   {
-   "count": 5468,
+   "count": 5328,
    "id": "[\"testapp_send\",\"4\",\"M14\",3]",
    "owner": "4",
    "row": "M14",
@@ -26074,7 +26017,7 @@
     "testapp_send/persistent/104/0/crash-restart/control_pending.page",
     "testapp_send/persistent/104/0/crash-restart/envelope.control_log.pending-head"
    ],
-   "sha256": "69d9efc2785712cae6d4fcaabc4a8ccbd1429911feadde6fb9dd974b85814c7c",
+   "sha256": "ef0fbd173b3850ef090a248441d5bd683d06d9299f2721e8283da8e40562e8a4",
    "stage": 3,
    "suite": "testapp_send"
   },
@@ -26135,7 +26078,7 @@
    "suite": "testapp_send"
   },
   {
-   "count": 3730,
+   "count": 3635,
    "id": "[\"testapp_send\",\"5\",\"M14\",3]",
    "owner": "5",
    "row": "M14",
@@ -26144,7 +26087,7 @@
     "testapp_send/persistent/100/0/crash-locked/aresos log.notice-count",
     "testapp_send/persistent/100/0/crash-locked/aresos log.page"
    ],
-   "sha256": "77da3121c2bccaf722032d1a62b35a91f5b9888c226af5b9cc8304b03354757c",
+   "sha256": "f04211283920ba361608da77d535152f3a90e1f025890b0a9447d15716866789",
    "stage": 3,
    "suite": "testapp_send"
   },
@@ -26205,7 +26148,7 @@
    "suite": "testapp_send"
   },
   {
-   "count": 5751,
+   "count": 5631,
    "id": "[\"testapp_send\",\"6\",\"M14\",3]",
    "owner": "6",
    "row": "M14",
@@ -26214,7 +26157,7 @@
     "testapp_send/persistent/114/0/crash-restart/control_pending.page",
     "testapp_send/persistent/114/0/crash-restart/envelope.control_log.pending-head"
    ],
-   "sha256": "2003f5f960a0f4d27b7c4590ed4acf19ad9264754cf610d40430e08859e3ee9e",
+   "sha256": "4111335986c4565aaa77a335a0a88ef8aa93fd2ce4db6116a664abf2c06cb5a3",
    "stage": 3,
    "suite": "testapp_send"
   },
@@ -26275,7 +26218,7 @@
    "suite": "testapp_send"
   },
   {
-   "count": 3761,
+   "count": 3640,
    "id": "[\"testapp_send\",\"7\",\"M14\",3]",
    "owner": "7",
    "row": "M14",
@@ -26284,7 +26227,7 @@
     "testapp_send/persistent/102/0/crash-restart/control_pending.page",
     "testapp_send/persistent/102/0/crash-restart/envelope.control_log.pending-head"
    ],
-   "sha256": "3a3f181a7428b896c2ad7b42ce8a7bf4a0195514a37e8e4bb19a5b9e8b7f098b",
+   "sha256": "179871f2f62994211b5dd83653283e06e6707588dea0104c56b71bcb88780f9e",
    "stage": 3,
    "suite": "testapp_send"
   },
@@ -26345,7 +26288,7 @@
    "suite": "testapp_send"
   },
   {
-   "count": 3870,
+   "count": 3756,
    "id": "[\"testapp_send\",\"8\",\"M14\",3]",
    "owner": "8",
    "row": "M14",
@@ -26354,7 +26297,7 @@
     "testapp_send/persistent/124/0/crash-restart/control_pending.page",
     "testapp_send/persistent/124/0/crash-restart/envelope.control_log.pending-head"
    ],
-   "sha256": "58732ca08900c305e82b38e027dd7d0ed27c92fb0dab9c02b451fac902baa0ed",
+   "sha256": "da2ac1f621647826b728c62b91eb09cd57bfc64c133b47a41d3ac8bd9573d075",
    "stage": 3,
    "suite": "testapp_send"
   },
@@ -26415,7 +26358,7 @@
    "suite": "testapp_send"
   },
   {
-   "count": 4136,
+   "count": 4038,
    "id": "[\"testapp_send\",\"9\",\"M14\",3]",
    "owner": "9",
    "row": "M14",
@@ -26424,35 +26367,7 @@
     "testapp_send/persistent/117/0/crash-restart/control_pending.page",
     "testapp_send/persistent/117/0/crash-restart/envelope.control_log.pending-head"
    ],
-   "sha256": "16f48bde17955c4cd90aa2b28f50b652019fe3ff16493404b555113b4fb50f40",
-   "stage": 3,
-   "suite": "testapp_send"
-  },
-  {
-   "count": 9,
-   "id": "[\"testapp_send\",\"shared\",\"M06\",3]",
-   "owner": "shared",
-   "row": "M06",
-   "samples": [
-    "testapp_send/single/0/0/live-restored/aresos log.notice-head",
-    "testapp_send/single/0/0/live-restored/control_pending.notice-head",
-    "testapp_send/single/0/0/live-restored/envelope.control_log.notice-head"
-   ],
-   "sha256": "5f858edbf3b27899867c269a427d0b333d1a5cd89ded59aaf3cfb61ed7695ef8",
-   "stage": 3,
-   "suite": "testapp_send"
-  },
-  {
-   "count": 26,
-   "id": "[\"testapp_send\",\"shared\",\"M14\",3]",
-   "owner": "shared",
-   "row": "M14",
-   "samples": [
-    "testapp_send/single/0/0/live-restored/aresos log.notice-count",
-    "testapp_send/single/0/0/live-restored/completion",
-    "testapp_send/single/0/0/live-restored/control_pending.complete"
-   ],
-   "sha256": "f8e0d60faf4b9c8907e42063cade7b513898bb0cd3f17e9558f0b7fb3c227cc3",
+   "sha256": "bbaed5097e7cb233dec8b3a9474d0c79a1e921275a0c070f0c0b93cfb5fc304f",
    "stage": 3,
    "suite": "testapp_send"
   },
