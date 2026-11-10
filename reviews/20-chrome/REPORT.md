@@ -1,3 +1,20 @@
+# 20 — Part P review-fix round
+
+**In progress; this round is not green.** The current work follows `briefs/20-review-fixes.md`, Part P, on
+`pkg/20-chrome`; Part S remains an independent unmerged build. The [current implementation/test map](BUILD-P-1.md)
+accounts for P1–P31, including the browser-free mutation evidence. All browser tests run only through the
+`control-chrome.yml` Linux containers. No local browser executable or profile has been accessed.
+
+The latest local checkpoint is 182 passing Node tests, 40 focused Python tests, and the earlier 176-test full Python
+pass. Final-head browser/base/Mail/boundary runs twice and the closing per-item receiver/log index remain required.
+The first container batch found a fake-timer fixture race; the next found a real paused-startup finish deadlock.
+Both have dedicated regressions and are fixed for the next batch. Missing cases are never counted as passes.
+Group 12 remains false. Owner Enter remains subject to the lead's panel-confirmation condition.
+
+The report below is retained historical evidence for the prior integration, not acceptance evidence for these fixes.
+
+---
+
 # 20 — integrated Chrome Now
 
 **Run — Now integration is green twice on source `ab7aba92`**, external and policy installations, with all 61 named Now cases covering groups 1–11 and 13 plus support checks. Group12 remains false until 18d supplies its real harness. **Owner Enter: passes in CI, panel to confirm.** Draft [PR #27](https://github.com/Ares-Empire/AresOS/pull/27) remains unmerged on `pkg/20-chrome`. No browser/profile on this Mac was started, read or touched. Local tests were plain Python and Node; every browser observation below comes from the control-chrome Linux containers. The closing commit contains reports, retained evidence and its read-only auditor; the runtime, CI harness and generated files match this verified source.
