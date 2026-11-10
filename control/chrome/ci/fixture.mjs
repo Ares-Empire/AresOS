@@ -35,7 +35,10 @@ export async function fixtures(options={}) {
     // not exhaust Chrome's six HTTP/1.1 connections and hide later receivers.
     if(!['draft-inner','password-inner'].includes(kind))for(const [id,stream]of streams){stream.end();streams.delete(id);}
     let body,script='';
-    if(kind==='stop-modal'){
+    if(kind==='native-donor'){
+      const id=url.searchParams.get('id');body='<p id="native-donor">Ordinary native donor</p><button type="button" style="position:fixed;inset:0;width:100vw;height:100vh">Open controlled page</button>';
+      script="document.title='Native donor '+"+JSON.stringify(id)+";document.querySelector('button').onclick=()=>window.open('/?case=compose&id='+"+JSON.stringify(id)+",'native-root-'+"+JSON.stringify(id)+");fetch('/compat-report',{method:'POST',body:JSON.stringify({id:"+JSON.stringify(id)+",phase:'donor-ready'})});";
+    }else if(kind==='stop-modal'){
       body='<form action="/receive?case=stop-modal" method="post" target="sink"><input name="draft" value="Saved"><button type="button" id="send">Send</button></form><button type="button" id="continue">Continue</button><iframe name="sink" hidden></iframe>';
       script="const cachedClick=HTMLElement.prototype.click;document.querySelector('#send').onclick=()=>fetch('/receive?case=stop-modal',{method:'POST'});document.querySelector('#continue').onclick=()=>confirm('Continue browsing?');globalThis.afterControlProbe=()=>cachedClick.call(document.querySelector('#send'));";
     }else if(kind==='preload-origin'){
@@ -116,7 +119,7 @@ export async function fixtures(options={}) {
     } else if(kind==='fresh-activation') {
       const id=url.searchParams.get('id'),cancel=url.searchParams.get('cancel')==='true';
       body='<button type="button">Continue</button><a target="'+(url.searchParams.get('target')==='self'?'_self':'sink')+'" href="/receive?case='+id+'">Delete</a><iframe name="sink" hidden></iframe>';
-      script=`document.querySelector('button').onclick=()=>{const frame=document.createElement('iframe');frame.sandbox='allow-same-origin';document.body.append(frame);const raw=frame.contentWindow.EventTarget.prototype.dispatchEvent,hasPrototype=Object.prototype.hasOwnProperty.call(raw,'prototype'),ownRealm=frame.contentWindow.EventTarget!==EventTarget,native=Function.prototype.toString.call(raw).includes('[native code]')&&!hasPrototype;frame.remove();fetch('/observe',{method:'POST',body:JSON.stringify({id:${JSON.stringify(id)},phase:'fallback-source',native,hasPrototype,ownRealm})});if(!native)throw Error('Fixture did not obtain a native dispatch function');raw.call(document.querySelector('a'),new MouseEvent('click',{bubbles:true,cancelable:${cancel}}));};document.querySelector('a').onclick=()=>fetch('/receive?case=handler-'+${JSON.stringify(id)},{method:'POST'});`;
+      script=`document.querySelector('button').onclick=()=>{const donor=opener;if(!donor?.document.getElementById('native-donor'))throw Error('Ordinary native donor is missing');const frame=donor.document.createElement('iframe');frame.sandbox='allow-same-origin';donor.document.body.append(frame);const raw=frame.contentWindow.EventTarget.prototype.dispatchEvent,hasPrototype=Object.prototype.hasOwnProperty.call(raw,'prototype'),ownRealm=frame.contentWindow.EventTarget!==EventTarget,native=Function.prototype.toString.call(raw).includes('[native code]')&&!hasPrototype;frame.remove();fetch('/observe',{method:'POST',body:JSON.stringify({id:${JSON.stringify(id)},phase:'fallback-source',native,hasPrototype,ownRealm})});if(!native)throw Error('Fixture did not obtain a native dispatch function');raw.call(document.querySelector('a'),new MouseEvent('click',{bubbles:true,cancelable:${cancel}}));};document.querySelector('a').onclick=()=>fetch('/receive?case=handler-'+${JSON.stringify(id)},{method:'POST'});`;
     } else if(kind==='native-child') {
       const id=url.searchParams.get('id');body='<p>Native confirmation opener frame</p>';
       script=`onmessage=()=>{if(confirm('Delete branch fixture-repository / branch-1?'))fetch('/receive?case='+${JSON.stringify(id+'-Delete branch')},{method:'POST',body:'confirmed from frame'});};`;

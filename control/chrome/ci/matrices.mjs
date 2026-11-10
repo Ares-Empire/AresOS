@@ -5,7 +5,7 @@ import {verdicts} from './verdicts.mjs';
 import {setTimeout as delay} from 'node:timers/promises';
 import {measureCompatibility,compareCompatibility} from './compatibility.mjs';
 
-export async function matrices({call,read,nav,target,counts,eventually,tab,fixture,admin,rpc,caller,ownerNavigate,ownerKey,ownerDismiss,ownerHistory,ownerBookmark,lifecycle,restoreControl,stopClick,baseline,isolationAfter}) {
+export async function matrices({call,read,nav,target,counts,eventually,tab,fixture,admin,rpc,caller,ownerNavigate,nativeDonor,closeNativeDonor,ownerKey,ownerDismiss,ownerHistory,ownerBookmark,lifecycle,restoreControl,stopClick,baseline,isolationAfter}) {
   const results=[];let trustOperation;
   async function check(name,fn) {
     try {await fn();results.push({name,passed:true});console.log(name,'PASS');}
@@ -165,11 +165,13 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
       }
     }
     for(const cancel of [true,false]){
+      tab=await nativeDonor(tab);
       const id='fresh-'+cancel;await nav('fresh-activation&id='+id+'&cancel='+cancel);
       const result=await call('click',await target('Continue'));assert.equal(counts('handler-'+id),0);
       const held=result.followups.find(item=>cancel?item.stopped:item.unknown);assert.ok(held,JSON.stringify(result));
       assert.ok(!held.approval,'fallback activations are never resumable');
       if(cancel)assert.equal(counts(id),0);else assert.equal((await call('operation_status',{operation_id:result.operation_id})).operation.state,'unknown');
+      await closeNativeDonor();
     }
   });
   await check('GROUP 2 owner synchronous task delayed work and in-flight interleavings',async()=>{
@@ -195,12 +197,14 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
     }
   });
   await check('GROUP 2 unknown activation survives navigation of its source document',async()=>{
+    tab=await nativeDonor(tab);
     const id='fresh-self';await nav('fresh-activation&id='+id+'&cancel=false&target=self');
     const result=await call('click',await target('Continue'));
     assert.equal(counts('handler-'+id),0);assert.ok(counts(id)<=1);
     assert.ok(result.untrusted_content.steps.some(step=>step.kind==='activation_unknown'));
     assert.equal((await call('operation_status',{operation_id:result.operation_id})).operation.state,'unknown');
     assert.ok(!result.followups.some(item=>item.stopped||item.approval),'the old activation is never reported stopped or resumable');
+    await closeNativeDonor();
   });
   await check('GROUP 3 binding every form fact and generic sibling draft',async()=>{
     for(const change of ['label','element','visible','hidden','action','method','encoding','target','document']){

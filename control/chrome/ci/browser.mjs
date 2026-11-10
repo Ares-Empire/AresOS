@@ -106,7 +106,26 @@ try {
   const caller=(verb,args)=>JSON.parse(execFileSync('python3',['control/chrome/ci/call.py',verb,JSON.stringify(args)],{encoding:'utf8',env:{...process.env,GITHUB_ACTIONS:'true'}}));
   let browserWindow=execFileSync('xdotool',['getactivewindow'],{encoding:'utf8'}).trim();
   const ownerNavigate=async(url)=>{execFileSync('xdotool',['windowactivate','--sync',browserWindow]);execFileSync('xdotool',['key','--clearmodifiers','ctrl+1']);execFileSync('xdotool',['key','--clearmodifiers','ctrl+l']);execFileSync('xdotool',['type','--clearmodifiers','--delay','1',url]);execFileSync('xdotool',['key','Return']);await delay(400);};
-  for(const failure of await matrices({call,read,nav,target,counts,eventually,tab,fixture,admin,rpc,caller,ownerNavigate,baseline,
+  let donorTab,donorMarker;
+  const nativeDonor=async(currentTab)=>{
+    const released=await call('release_tab',{tab:currentTab});assert.ok(!released.untrusted_content.cleanup_pending,'native donor parent must be fully released');
+    const marker='native-donor-'+Date.now();donorTab=currentTab;donorMarker=marker;await ownerNavigate('http://fixture.test:8765/?case=native-donor&id='+marker);
+    await eventually(async()=>{const tabs=await call('tabs');return tabs.items.some(item=>item.tab===currentTab&&item.url?.includes(marker)&&item.controlled===false);},'ordinary donor parent');
+    await eventually(()=>fixture.compatibility.some(value=>value.id===marker&&value.phase==='donor-ready'),'ordinary native donor handler ready');
+    nativeCompatibilityClick();
+    const child=await eventually(async()=>{const tabs=await call('tabs');return tabs.items.find(item=>item.tab!==currentTab&&item.url?.includes('case=compose&id='+marker));},'owner-created native donor child');
+    assert.equal(child.controlled,false);tab=child.tab;await call('take_tab',{tab});
+    const parent=await eventually(async()=>{const tabs=await call('tabs');return tabs.items.find(item=>item.tab===currentTab);},'native donor remains outside control');assert.equal(parent.controlled,false);
+    return tab;
+  };
+  const closeNativeDonor=async()=>{
+    const parent=(await call('tabs')).items.find(item=>item.tab===donorTab);assert.equal(parent?.controlled,false);
+    execFileSync('xdotool',['windowactivate','--sync',browserWindow]);execFileSync('xdotool',['key','--clearmodifiers','ctrl+1']);
+    await eventually(()=>execFileSync('xdotool',['getwindowname',browserWindow],{encoding:'utf8'}).includes('Native donor '+donorMarker),'owner selected the exact donor tab');
+    execFileSync('xdotool',['key','--clearmodifiers','ctrl+w']);
+    await eventually(async()=>!(await call('tabs')).items.some(item=>item.tab===donorTab),'owner closed the native donor');donorTab=null;
+  };
+  for(const failure of await matrices({call,read,nav,target,counts,eventually,tab,fixture,admin,rpc,caller,ownerNavigate,nativeDonor,closeNativeDonor,baseline,
     ownerDismiss:()=>execFileSync('xdotool',['key','--clearmodifiers','Escape']),
     isolationAfter:()=>{const finalListeners=execFileSync('ss',['-lntp'],{encoding:'utf8'}).split('\n').filter(line=>line.includes('\"chrome\"'));assert.equal(finalListeners.length,0,'Chrome must still have no listening port after all tools');fs.writeFileSync('/out/isolation-after.json',JSON.stringify({listeners:finalListeners}));},
     ownerHistory:async(direction)=>{execFileSync('xdotool',['key','--clearmodifiers',direction==='back'?'alt+Left':'alt+Right']);await delay(400);},
