@@ -4,6 +4,12 @@ Updated 2026-11-10. The live truth is `git log`, `gh pr list` and `git worktree 
 
 ## Done (on main)
 
+- **The update route: `at update`, `at previous`, tools updating themselves** (PR #32, brief 22 to 22-review-fixes-9, empire brief 263, merged 2026-11-10 as `002dcc09`):
+  - `at update` moves a running AresOS to a newer signed release whose reference comes only through the fingerprint-pinned tools bundle. `at previous` goes back to the last AresOS. The tools update themselves through `at install`: recovery-first, with versioned toolsets and an atomic entry switch. The guide has the step 8 route, and INSTALL-STATUS records steps 4–7.
+  - Built by a Claude agent; a Fable 5.2 agent rebuilt the tools self-update from round 5 on. Reviews 1–9 were CHANGES-NEEDED. Review 10 (gpt-6.1-sol) said SAFE, and review 11 checked the merge with main as SAFE. The full WSL suite at the merged head ran 853 tests, failing only in the known WSL-only set.
+  - Owner answers: board #154 (judgment calls 1 and 4) and board #166 (the rest).
+  - `update` and `previous` stay in `unwalked_commands` until package 27's rehearsal walks them. 22c (rollback, keep-stock and layout trials after an update) comes before the second update.
+
 - **Everyday account like Windows, Google Chrome, daily-use fixes** (PR #31, brief 21 to 21-review-fixes-6, empire brief 262, merged 2026-11-10 as `25ef5cd1`):
   - `ares` is in wheel behind his own password: sudo asks every time and keeps no ticket, no polkit authorization is cached, and the upstream passwordless rules ask instead. The control layer relies on these three properties.
   - Homebrew runs as its stock owner through sudo. Chrome is in the image. His PATH is in his shells and terminals (including the hub's Terminal app), while the session keeps the system PATH. The foot font is 16, `script` and qrencode are added, and the brightness keys are bound; they do nothing until 21b adds the backlight driver.
@@ -85,22 +91,32 @@ Updated 2026-11-10. The live truth is `git log`, `gh pr list` and `git worktree 
 
 ## In progress
 
-- **Package 22** (brief `22-update-route.md`, empire brief 263): `at update` to move the laptop to a new signed release, the step 8 guide, the admin password step, INSTALL-STATUS for steps 4–7. A Claude agent builds it; Codex reviews.
-  - PR #32 (built by a Claude agent; fingerprint `2a9965ea…`). Owner answers to its judgment calls (board #154, 2026-11-09, "Yes to both"):
-    - the laptop keeps the current and previous AresOS plus the pinned Bazzite backup, and older AresOS versions drop off;
-    - after the first update, `rollback`/`keep-stock`/the recovery menu and layout trials refuse until follow-up **22c** extends them. That follow-up comes before the second update. Meanwhile the way back is `at previous` or F12 → Windows.
-  - Reviews 1–8: the tools self-update was rebuilt recovery-first by a Fable 5.2 agent from round 5 on. Review 8 (2026-11-10) found one Medium in the test helpers only (a hung bounce could still pass). Round 8 (`22-review-fixes-8.md`) fixed it; the full WSL suites passed apart from the known WSL-only failures. Review 9 found its regression too weak; round 9 strengthened it (a mutation check proves it catches the old bug). **Review 10 (gpt-6.1-sol, high): SAFE** at `9314634a`. Its other judgment calls were accepted by the owner on board #166 (2026-11-10, "Yes"): 3 (`at previous`), 5 and 6 (old tools kept and renamed), 8 (the update gate), and the four technical ones 2, 7, 9 and 10. After 21 merged, main was merged into the branch (`eaa8d670`, a union of `pending-rebind.json`'s two sides, 19 hashes checked). A merge check and the full WSL suites run, then it merges.
 - **Owner OK to merge and publish this round (2026-11-09: "Once its safe and done you can merge and publish"):** packages 21–24 merge after a fresh SAFE review, passing checks and his answers to their judgment calls. The next AresOS release built from them may be published and pinned without asking again, once its rehearsal passes. Installing it on the laptop (`at update`) is still his own step. Anything outside this round still needs his OK.
 - **Package 23, started 2026-11-10** (Claude agent, Opus; branch `pkg/23-minecraft-starts`): package 23 (brief `23-minecraft-starts.md`, empire brief 264): Prism and Java 25 in the image, the managed `AresDesktop` instance, the `AresHub` world, and a supervisor that boots into the hub.
+  - Built: PR #36 (head `d08fde0f`). Check build with VM passed (run 42809824712); WSL suites show only the known failures. Not proven: a real JVM start (CI has no Microsoft account).
+  - In review: REVIEW-1 (gpt-6-astra high).
+  - The owner answered all 14 JUDGMENT-CALLs (2026-11-10). #168: "Create it myself": on first start he creates the hub with the mod's AresOS button; nothing is auto-created with seed 49. #169: "Yes to all" for calls 2–6 (no login terminal, no restart after his own quit, a slow start never kills the game, Intel fallback, a managed instance without extra mods) and the 8 technical ones.
+  - REVIEW-1 (Astra): CHANGES-NEEDED, 3 blocking and 8 should-fix. Review fixes 1 is pushed (`7ec26b84`, brief `23-review-fixes-1.md`).
+    - Every image build now builds and checks the mod jar: a `mod` stage in the Containerfile plus a pin check in `build.sh`. That replaces its PLAN-GAP 1.
+    - Hosted `checks_only`: 958 tests OK (run 42830860249).
+    - The VM build failed twice on Ubuntu mirror 502/503s; one more `check_build=build` is approved.
+    - REVIEW-2 (Astra) is running.
+    - Updated JUDGMENT-CALL 10 (a memory kill or unexplained whole-scope death latches recovery, no automatic restart) was accepted by the owner (board #170, 2026-11-10: "Yes").
+  - Merges after 27.
+- **Package 27, the first update release, started 2026-11-10** (brief `27-first-update-release.md`, empire brief 266; Claude agent, Opus; branch `pkg/27-first-update-release`):
+  - build, image diff, publish, then a VM rehearsal of the owner's update from release 13 (update, admin password, previous, forward again);
+  - after the rehearsal passes, pin the release and empty `pending-rebind.json`;
+  - then the owner runs `at update` and `sudo passwd ares` on the laptop.
+  - 2026-11-10: the first release run (42807087845) failed in an extra second VM pass the agent had added (a host-side nbd race in the offline journal reader after all guest checks passed). Nothing was published. The release job now keeps the reviewed single VM pass; the integrator approved one more release dispatch (the last).
+  - Release run 2 (42817411051) stopped in the classified image diff before publishing: 13 unexplained of 916 changed paths. One is real: package 21's `cp -a` of `os/config` set `/etc/sudoers.d` to 0755 (Fedora and release 13 have 0750; the files stay 0440). Fix: restore 0750 in `os/build.sh` with a check, and confirm no other directory changed mode. The other 12 get exact classifier rules. A third release dispatch is approved (still one publish).
+  - Its JUDGMENT-CALL 2: package 22's tools can't go forward again after `at previous`, so the rehearsal ends on 13 with 27 beside it; going forward after a rollback belongs in 22c.
+  - Also for 22c (PR #37 REVIEW-1 should-fix, older than that fix): the refusal invariant in `test_owner_update` tries a persistent refusal twice but never asserts that it refused. Assert the refusal on both attempts wherever the check applies.
+  - Packages 23 and 21b go into the next release, which needs 22c first.
+- **Main's hosted test leak fixed** (PR #37, `d5d5c447`, 2026-11-10). `test_owner_update`'s refusal invariant now undoes its injected patch however a subtest ends. Before, a namespace skip on GitHub's runner leaked a patched `disk_record` into later tests (118 errors). Hosted `checks_only` on the fix: 853 tests OK (run 42819274873). The runner still skips the namespace tests; WSL runs them. REVIEW-2 (Sol) SAFE.
 - **Then:**
   - 21b: backlight and power button, after the read-only check on the laptop in AresOS (board #149 tells the next AresOS session).
   - P2's remaining packages: 25 (guardian: clean save and shutdown) and 26 (backups).
   - Desktop shortcuts and the app wheel (owner, board #163): they open the apps from the hub and his own programs (`~/.local/bin`, Homebrew, Flatpak exports), each found by its full path.
-  - **Package 27, the first update release** (brief `27-first-update-release.md`, empire brief 266; starts once 21 and 22 are merged):
-    - build, image diff, publish, then a VM rehearsal of the owner's update from release 13 (update, admin password, previous, forward again);
-    - after the rehearsal passes, pin the release and empty `pending-rebind.json`;
-    - then the owner runs `at update` and `sudo passwd ares` on the laptop.
-    - Packages 23 and 21b go into the next release, which needs 22c first.
 
 - **Package 12 (the companion in the hub)**: brief drafted 2026-10-25, waiting for the owner's go. A generic companion system in the mod (look packs as data, an original placeholder look), with the owner's Claude crab as a private pack outside this repo. The desktop companions live in the private repo `Ares-Empire/companions` (browser preview: `python tools/serve.py`, then http://127.0.0.1:8765/preview/).
 
