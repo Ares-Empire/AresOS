@@ -1,0 +1,146 @@
+#!/usr/bin/python3
+"""Prism's wrapper command for the managed AresDesktop instance (package 23).
+
+Prism runs `aresos-desktop-java <java> <java arguments>` instead of Java. This
+wrapper
+  - takes the desktop's lock ($XDG_RUNTIME_DIR/aresos/desktop.lock), so a
+    second desktop never starts while one runs; Java inherits the lock, so it
+    is held from loading until the JVM's final exit (B2),
+  - asks the supervisor (desktop.sock) for this launch: the launch nonce and
+    desktop instance B1 binds the mod to, and the GPU choice (B5),
+  - starts Java as its child, tells the supervisor the JVM's PID, and reports
+    the exact exit status when it ends (also in desktop-exit.json, in case the
+    supervisor was restarted meanwhile),
+  - forwards termination signals to Java, and Java dies with it if the
+    wrapper is killed (Prism's Kill button kills the wrapper).
+Prism's stdin (its launch script), stdout and stderr pass straight through.
+"""
+import ctypes
+import fcntl
+import json
+import os
+import signal
+import socket
+import subprocess
+import sys
+import tempfile
+
+SYSTEM_PATH = '/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin'
+PRISM_ROOT = '/usr/lib/prismlauncher'
+# The supervisor alone decides these for the game.
+GPU_KEYS = ('__NV_PRIME_RENDER_OFFLOAD', '__NV_PRIME_RENDER_OFFLOAD_PROVIDER', '__GLX_VENDOR_LIBRARY_NAME',
+            '__VK_LAYER_NV_optimus', '__EGL_VENDOR_LIBRARY_FILENAMES', 'DRI_PRIME')
+DROPPED = ('LD_PRELOAD', 'LD_LIBRARY_PATH', 'ARESOS_LAUNCH_NONCE', 'ARESOS_DESKTOP_INSTANCE', 'ARESOS_SHELL_SOCKET',
+           'ARESOS_SHELL_STATUS_FD')
+SUPPLIED = frozenset({'ARESOS_LAUNCH_NONCE', 'ARESOS_DESKTOP_INSTANCE', 'PATH', '__NV_PRIME_RENDER_OFFLOAD',
+                      '__GLX_VENDOR_LIBRARY_NAME', '__VK_LAYER_NV_optimus'})
+FORWARDED = (signal.SIGTERM, signal.SIGINT, signal.SIGHUP, signal.SIGQUIT)
+REFUSED, BUSY = 78, 75
+
+
+def game_environment(environ, supplied, prism_root=PRISM_ROOT):
+    """Prism's environment for the game, without what Prism's bundled loader set for Prism itself."""
+    env = {}
+    for key, value in environ.items():
+        if key in DROPPED or key in GPU_KEYS or prism_root in value:
+            continue
+        env[key] = value
+    for key, value in supplied.items():
+        if key not in SUPPLIED or not isinstance(value, str):
+            raise ValueError(f'the supervisor supplied an unexpected variable: {key}')
+        env[key] = value
+    return env
+
+
+def die_with_parent(parent):
+    def prepare():
+        libc = ctypes.CDLL(None, use_errno=True)
+        if libc.prctl(1, signal.SIGKILL, 0, 0, 0) != 0:  # PR_SET_PDEATHSIG
+            os._exit(REFUSED)
+        if os.getppid() != parent:  # the wrapper died before the line above took effect
+            os._exit(REFUSED)
+    return prepare
+
+
+class Supervisor:
+    def __init__(self, path, timeout=10.0):
+        self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM | socket.SOCK_CLOEXEC)
+        self.sock.settimeout(timeout)
+        self.sock.connect(path)
+        self.buffer = b''
+
+    def ask(self, message):
+        self.sock.sendall((json.dumps(message) + '\n').encode('utf-8'))
+        while b'\n' not in self.buffer:
+            data = self.sock.recv(65536)
+            if not data:
+                raise ConnectionError('the supervisor closed the connection')
+            self.buffer += data
+        line, self.buffer = self.buffer.split(b'\n', 1)
+        return json.loads(line.decode('utf-8'))
+
+    def close(self):
+        self.sock.close()
+
+
+def write_exit(path, record):
+    folder = os.path.dirname(path)
+    handle, temporary = tempfile.mkstemp(prefix='.desktop-exit.', dir=folder)
+    with os.fdopen(handle, 'w', encoding='utf-8') as output:
+        json.dump(record, output)
+    os.replace(temporary, path)
+
+
+def main(argv, environ=os.environ):
+    if len(argv) < 2 or not os.path.isabs(argv[1]):
+        print('usage: aresos-desktop-java /path/to/java [arguments]', file=sys.stderr)
+        return 2
+    runtime = environ.get('XDG_RUNTIME_DIR', '')
+    if not os.path.isabs(runtime):
+        print('aresos-desktop-java: XDG_RUNTIME_DIR must be set', file=sys.stderr)
+        return REFUSED
+    folder = os.path.join(runtime, 'aresos')
+    os.makedirs(folder, mode=0o700, exist_ok=True)
+    lock = os.open(os.path.join(folder, 'desktop.lock'), os.O_RDWR | os.O_CREAT, 0o600)
+    try:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        print('aresos-desktop-java: the AresOS desktop is already running', file=sys.stderr)
+        return BUSY
+    try:
+        supervisor = Supervisor(os.path.join(folder, 'desktop.sock'))
+        reply = supervisor.ask({'op': 'jvm_start', 'pid': os.getpid(), 'java': argv[1],
+                                'instance': environ.get('INST_ID')})
+    except (OSError, ValueError) as error:
+        print(f'aresos-desktop-java: the AresOS desktop starts only through its session supervisor ({error})',
+              file=sys.stderr)
+        return REFUSED
+    if not reply.get('ok'):
+        print('aresos-desktop-java: ' + str(reply.get('message', 'refused by the desktop supervisor')),
+              file=sys.stderr)
+        return REFUSED
+    env = game_environment(environ, reply.get('env', {}))
+    child = subprocess.Popen(argv[1:], env=env, pass_fds=(lock,), preexec_fn=die_with_parent(os.getpid()))
+    for signum in FORWARDED:
+        signal.signal(signum, lambda number, frame: child.send_signal(number))
+    try:
+        if not supervisor.ask({'op': 'jvm_started', 'pid': child.pid}).get('ok'):
+            print('aresos-desktop-java: the supervisor could not watch the game', file=sys.stderr)
+    except (OSError, ValueError) as error:
+        print(f'aresos-desktop-java: lost the supervisor ({error})', file=sys.stderr)
+    status = child.wait()
+    record = {'pid': child.pid, 'status': status, 'launch': reply.get('launch')}
+    try:
+        write_exit(os.path.join(folder, 'desktop-exit.json'), record)
+    except OSError as error:
+        print(f'aresos-desktop-java: could not record the exit ({error})', file=sys.stderr)
+    try:
+        supervisor.ask({'op': 'jvm_exited', 'pid': child.pid, 'status': status})
+    except (OSError, ValueError):
+        pass
+    supervisor.close()
+    return status if status >= 0 else 128 - status
+
+
+if __name__ == '__main__':
+    sys.exit(main(sys.argv))

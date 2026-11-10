@@ -29,22 +29,106 @@ def wait_session(extra_terminal=False):
     raise TimeoutError('AresOS terminal did not start')
 
 
+RECOVERY_TERMINAL = ['/usr/bin/foot', '--title=AresOS', '/usr/bin/bash', '--rcfile', '/usr/share/aresos/bashrc', '-i']
+# Package 23: the desktop supervisor's message window (first start, sign-in, recovery).
+DESKTOP_VIEW = ['/usr/bin/foot', '--title=AresOS', '--app-id=aresos.desktop', '--window-size-chars=104x32',
+                '/usr/bin/bash', '--rcfile', '/usr/share/aresos/desktop-view.bashrc', '-i']
+
+
 def terminal_shells(pids):
-    """Each AresOS terminal runs the system bash with the AresOS rcfile."""
+    """Each AresOS terminal (recovery or desktop message) runs the system bash with an AresOS rcfile."""
     for _ in range(30):
         terminals = []
         for pid in pids:
             cmdline = pathlib.Path(f'/proc/{pid}/cmdline').read_bytes().split(b'\0')[:-1]
+            environ = pathlib.Path(f'/proc/{pid}/environ').read_bytes().split(b'\0')
             children = run('pgrep', '-P', pid)['stdout'].split()
             terminals.append(dict(pid=pid, cmdline=[part.decode() for part in cmdline],
+                                  terminal=[v.decode() for v in environ if v.startswith(b'ARESOS_TERMINAL=')],
                                   shells=[os.readlink(f'/proc/{child}/exe') for child in children]))
         if all(terminal['shells'] == ['/usr/bin/bash'] for terminal in terminals):
             break
         time.sleep(1)
     for terminal in terminals:
-        assert terminal['cmdline'][:3] == ['/usr/bin/foot', '--title=AresOS', '/usr/bin/bash'], terminals
+        assert terminal['cmdline'] in (RECOVERY_TERMINAL, DESKTOP_VIEW), terminals
         assert terminal['shells'] == ['/usr/bin/bash'], terminals
+        # Both are set up as recovery terminals: system PATH, never his ~/.bashrc.
+        assert terminal['terminal'] == ['ARESOS_TERMINAL=recovery'], terminals
+    assert [t for t in terminals if t['cmdline'] == RECOVERY_TERMINAL], ('no recovery terminal', terminals)
     return terminals
+
+
+def processes():
+    rows = []
+    for entry in pathlib.Path('/proc').iterdir():
+        if not entry.name.isdigit():
+            continue
+        try:
+            cmdline = [p.decode(errors='replace') for p in (entry / 'cmdline').read_bytes().split(b'\0')[:-1]]
+            uid = int(next(line.split()[1] for line in (entry / 'status').read_text().splitlines()
+                           if line.startswith('Uid:')))
+            exe = os.readlink(entry / 'exe')
+            cgroup = (entry / 'cgroup').read_text().strip()
+            environ = (entry / 'environ').read_bytes().split(b'\0')
+        except (OSError, StopIteration):
+            continue
+        rows.append(dict(pid=int(entry.name), uid=uid, cmdline=cmdline, exe=exe, cgroup=cgroup,
+                         env={k.decode(): v.decode(errors='replace') for k, _, v in
+                              (item.partition(b'=') for item in environ if b'=' in item)}))
+    return rows
+
+
+def desktop_session():
+    """Package 23: the desktop supervisor, the app helper and Prism run as ares in the session, nothing as root."""
+    for _ in range(90):
+        status = run('runuser', '-u', 'ares', '--', 'env', '-i', 'HOME=/var/home/ares', 'XDG_RUNTIME_DIR=/run/user/1001',
+                     '/usr/libexec/aresos-desktop', 'status')
+        rows = processes()
+        prism = [r for r in rows if r['exe'].startswith('/usr/lib/prismlauncher/') or
+                 any('/usr/lib/prismlauncher/' in part for part in r['cmdline'][:1])]
+        if status['returncode'] == 0 and prism:
+            break
+        time.sleep(2)
+    assert status['returncode'] == 0, status
+    state = json.loads(status['stdout'])
+    # A fresh VM has no Microsoft account and no hub world: first start.
+    assert state['state'] == 'SETUP' and not state['latched'], state
+    ours = [r for r in rows if any(name in ' '.join(r['cmdline'][:2]) for name in
+                                   ('aresos-desktop', 'aresos-shell', 'prismlauncher'))
+            or r['exe'].startswith('/usr/lib/prismlauncher/')]
+    assert ours and all(r['uid'] == 1001 for r in ours), [(r['pid'], r['uid'], r['cmdline']) for r in ours]
+    keeper = [r for r in ours if r['cmdline'][1:3] == ['/usr/libexec/aresos-desktop', 'session']]
+    supervisor = [r for r in ours if r['cmdline'][1:3] == ['/usr/libexec/aresos-desktop', 'supervise']]
+    assert len(keeper) == 1 and len(supervisor) == 1, ours
+    assert keeper[0]['cmdline'][0] == '/usr/bin/python3', keeper
+    helper = [r for r in ours if r['cmdline'][1:2] == ['/usr/libexec/aresos-shell']]
+    assert len(helper) == 1, ours
+    runtime = json.loads(pathlib.Path('/run/user/1001/aresos/desktop-runtime.json').read_text())
+    assert helper[0]['env'].get('ARESOS_DESKTOP_INSTANCE') == state['instance'] == runtime['instance'], helper
+    assert helper[0]['env'].get('ARESOS_LAUNCH_NONCE') == runtime['nonce'], 'the helper has the launch nonce'
+    assert prism, ours
+    assert all('ARESOS_LAUNCH_NONCE' not in r['env'] for r in prism), 'Prism must not get the launch nonce'
+    scope = [r for r in prism if f'/aresos.slice/aresos-desktop-{runtime["launch"]}.scope' in r['cgroup']]
+    assert scope, [(r['pid'], r['cgroup']) for r in prism]
+    folder = '/sys/fs/cgroup' + scope[0]['cgroup'].split('::', 1)[1]
+    memory_high = pathlib.Path(folder, 'memory.high').read_text().strip()
+    assert memory_high == str(5 * 1024 ** 3), memory_high
+    instance = pathlib.Path('/var/home/ares/.local/share/PrismLauncher/instances/AresDesktop')
+    links = {link: os.readlink(instance / link) for link in ('patches', 'libraries', 'minecraft/mods',
+                                                              'minecraft/saves')}
+    assert links == {'patches': '/usr/share/aresos/minecraft/patches',
+                     'libraries': '/usr/share/aresos/minecraft/libraries',
+                     'minecraft/mods': '/usr/share/aresos/minecraft/mods',
+                     'minecraft/saves': '/var/home/ares/.local/share/aresos/worlds'}, links
+    prism_log = pathlib.Path('/var/home/ares/.local/share/PrismLauncher/logs/PrismLauncher-0.log').read_text(
+        errors='replace')
+    assert 'Updates Enabled            : No' in prism_log
+    assert 'ID of instance to launch   : "AresDesktop"' in prism_log, prism_log[:3000]
+    supervisor_log = pathlib.Path('/var/home/ares/.local/state/aresos/desktop.log').read_text(errors='replace')
+    return dict(state=state, runtime={k: v for k, v in runtime.items() if k != 'nonce'}, links=links,
+                memory_high=memory_high, prism_scope=scope[0]['cgroup'],
+                processes=[dict(pid=r['pid'], uid=r['uid'], cmdline=r['cmdline'][:4]) for r in ours],
+                supervisor_log=supervisor_log[-4000:], prism_log=prism_log[:6000])
 
 
 def check(action, request):
@@ -83,6 +167,7 @@ def check(action, request):
         missing = [name for name in names if not os.access(f'/var/home/ares/.local/bin/{name}', os.X_OK)]
         assert names and not missing, ('shadowing programs missing', missing)
         result['terminals'] = terminal_shells(result['stdout'].split())
+        result['desktop'] = desktop_session()
         # greetd's wrapper (non-interactive, not a login shell) sources
         # /etc/profile before the session: its profile scripts keep the system PATH.
         # Review 6: a missing probe or no wrapper record fails instead of passing.

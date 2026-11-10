@@ -77,7 +77,7 @@
       "version": "0.1.0",
       "build": "os/ci/build-mod.sh",
       "builder": "docker.io/library/eclipse-temurin:25.0.5_8-jdk-noble@sha256:95e350ad1eb738f943e141640f7e3d797e483359a3b33c3864255bfd1ad71f8a",
-      "sha256": "unpinned"
+      "sha256": "8b04c511d11d0fa4bd4dad509949026e5346435a0f04bfe9d63084dd65386743"
     }
   ]
 }

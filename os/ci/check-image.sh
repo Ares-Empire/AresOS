@@ -1,5 +1,5 @@
 #!/usr/bin/bash
-# Check package 21's decisions on a locally built image (never pushed).
+# Check packages 21 and 23 on a locally built image (never pushed).
 set -euo pipefail
 image=$1
 out=evidence/image
@@ -45,12 +45,16 @@ if node os/ci/polkit-check.js "$control" os/ci/polkit-review.json "$out/polkit-w
 fi
 rm -rf "$control"
 echo 'The same check fails without the AresOS rule, as expected' | tee -a "$out/polkit.txt"
+sudo podman run --rm --network=none --entrypoint /usr/bin/cat "$image" /usr/share/aresos/minecraft/desktop.lock.json \
+    > "$out/manifest/desktop.lock.json"
 # build.sh re-serializes the Fedora lock it verified, so compare content.
 python3 - "$out/manifest" <<'PY'
 import json, pathlib, sys
 manifest = pathlib.Path(sys.argv[1])
-for name in ('packages.lock.json', 'google-chrome.lock.json'):
-    assert json.loads((manifest / name).read_text()) == json.loads(pathlib.Path('os', name).read_text()), name
+for name, reviewed in (('packages.lock.json', 'os/packages.lock.json'),
+                       ('google-chrome.lock.json', 'os/google-chrome.lock.json'),
+                       ('desktop.lock.json', 'os/minecraft/desktop.lock.json')):
+    assert json.loads((manifest / name).read_text()) == json.loads(pathlib.Path(reviewed).read_text()), name
 print('Image manifest locks equal the reviewed locks')
 PY
 echo CHECK_BUILD_PASSED

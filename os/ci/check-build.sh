@@ -18,6 +18,9 @@ case $mode in
     build)
         date +%s > evidence/build-start-time.txt
         df -B1 / > evidence/runner-disk-before.txt
+        # Package 23: the AresOS mod jar from this checkout, required to match
+        # its pin, goes into the build context (os/minecraft/aresos.jar).
+        bash os/ci/build-mod.sh
         sudo podman build --format=oci --build-arg "ARESOS_SOURCE_REVISION=$(git rev-parse HEAD)" \
             --tag localhost/aresos:check --file os/Containerfile os 2>&1 | tee evidence/build.log
         date +%s > evidence/build-end-time.txt

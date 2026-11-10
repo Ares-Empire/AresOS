@@ -76,6 +76,66 @@ PY
         exit 1
     fi
     cp /tmp/aresos/google-chrome.lock.json /usr/share/aresos/manifest/google-chrome.lock.json
+    # Package 23: Prism Launcher's official Linux bundle and the desktop's
+    # Fabric inputs, each from its pinned URL and accepted only with its pinned
+    # SHA-256 and size (os/minecraft/desktop.lock.json). The AresOS mod jar is
+    # built from this repository by os/ci/build-mod.sh, which already required
+    # its pin; it is checked again here. Minecraft itself is never in the image:
+    # Prism downloads it after the owner signs in.
+    python3 - <<'PY'
+import hashlib, json, os, pathlib, shutil, subprocess, tarfile
+lock = json.loads(pathlib.Path('/tmp/aresos/minecraft/desktop.lock.json').read_text())
+share = pathlib.Path('/usr/share/aresos/minecraft')
+downloads = pathlib.Path('/tmp/ares-minecraft')
+downloads.mkdir()
+
+def fetch(entry, target):
+    subprocess.run(['curl', '-fsSL', '--proto', '=https', '--tlsv1.2', '--retry', '3', '-o', str(target), entry['url']],
+                   check=True)
+    check(entry, target)
+
+def check(entry, target):
+    data = target.read_bytes()
+    assert hashlib.sha256(data).hexdigest() == entry['sha256'], f'{target.name} differs from its pin'
+    if 'size' in entry:
+        assert len(data) == entry['size'], f'{target.name} has the wrong size'
+
+prism = downloads / 'prism.tar.gz'
+fetch(lock['prism'], prism)
+root = pathlib.Path('/usr/lib/prismlauncher')
+assert not root.exists()
+with tarfile.open(prism) as archive:
+    archive.extractall(root, filter='data')
+# The bundle's own updater and portable mode stay out: updates come with AresOS
+# releases, and Prism keeps his data in ~/.local/share/PrismLauncher.
+for name in ('portable.txt', 'bin/prismlauncher_updater', 'shared/bin/prismlauncher_updater'):
+    (root / name).unlink()
+assert not list(root.rglob('*updater*')), list(root.rglob('*updater*'))
+assert not (root / 'UserData').exists()
+os.symlink('/usr/lib/prismlauncher/bin/prismlauncher', '/usr/bin/prismlauncher')
+for folder in ('libraries', 'mods'):
+    (share / folder).mkdir(parents=True)
+for library in lock['fabric_loader']['libraries']:
+    _, artifact, version = library['name'].split(':')
+    fetch(library, share / 'libraries' / f'{artifact}-{version}.jar')
+for mod in lock['mods']:
+    target = share / 'mods' / mod['file']
+    if 'url' in mod:
+        fetch(mod, target)
+    else:
+        source = pathlib.Path('/tmp/aresos/minecraft') / mod['file']
+        assert source.is_file(), f'{source} is missing: run os/ci/build-mod.sh before building the image'
+        check(mod, source)
+        shutil.copyfile(source, target)
+shutil.copyfile('/tmp/aresos/minecraft/desktop.lock.json', share / 'desktop.lock.json')
+manifest = []
+for path in sorted(p for p in root.rglob('*') if p.is_file() and not p.is_symlink()):
+    manifest.append(f'{hashlib.sha256(path.read_bytes()).hexdigest()}  {path}')
+pathlib.Path('/usr/share/aresos/manifest/prism-files.sha256').write_text('\n'.join(manifest) + '\n')
+shutil.rmtree(downloads)
+print(f'Prism {lock["prism"]["version"]}, Fabric Loader {lock["fabric_loader"]["version"]} and '
+      f'{len(lock["mods"])} mods installed from their pins')
+PY
     rpm -qa --qf '%{NEVRA}\n' | sort > /usr/share/aresos/manifest/packages.txt
     grep -E '^(kernel|kmod-nvidia|akmod-nvidia|nvidia|libnvidia|xorg-x11-drv-nvidia)' /tmp/base-packages.txt > /tmp/drivers-before
     grep -E '^(kernel|kmod-nvidia|akmod-nvidia|nvidia|libnvidia|xorg-x11-drv-nvidia)' /usr/share/aresos/manifest/packages.txt > /tmp/drivers-after
@@ -92,7 +152,10 @@ systemd-sysusers /usr/lib/sysusers.d/aresos.conf
 passwd --lock ares
 passwd --lock root
 chmod 0755 /usr/bin/aresos-session /usr/bin/aresos-terminal /usr/bin/brew /usr/libexec/aresos-audit \
-    /usr/libexec/aresos-keyboard /usr/libexec/aresos-shell /usr/libexec/aresos-subids
+    /usr/libexec/aresos-keyboard /usr/libexec/aresos-shell /usr/libexec/aresos-subids \
+    /usr/libexec/aresos-desktop /usr/libexec/aresos-desktop-java
+# The owner's command for the desktop (retry, status, reset-instance, forget-hub).
+ln -sfn ../libexec/aresos-desktop /usr/bin/aresos-desktop
 chmod 0440 /etc/sudoers.d/aresos-everyday
 /usr/libexec/aresos-subids
 systemctl enable aresos-subids.service

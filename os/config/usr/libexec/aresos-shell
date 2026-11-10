@@ -32,6 +32,13 @@ game the same ARESOS_DESKTOP_INSTANCE and ARESOS_LAUNCH_NONCE. The mod must
 present both in hello, world_ready and heartbeat. This binds a connection to
 the supervised desktop; it is a local session protocol, not a security
 boundary against other programs of the same user.
+
+Readiness for the supervisor: when ARESOS_SHELL_STATUS_FD names a pipe the
+supervisor passed in, the helper writes one JSON object per line to it for
+every authenticated desktop event, and never reads from it:
+  {"event": "desktop_connected"}
+  {"event": "world_ready", "world": <save folder name>}
+  {"event": "heartbeat", "ready": <bool>, "world": <save folder name or null>}
 """
 import argparse
 import dataclasses
@@ -87,8 +94,8 @@ BASE_CAPABILITIES = frozenset({'list_apps', 'open_app', 'app_state', 'world_read
 WINDOW_CAPABILITIES = frozenset({'shell_focus', 'windows'})
 # The launch secrets stay with the desktop; launched apps never inherit them,
 # nor the helper's own service plumbing.
-PRIVATE_ENVIRONMENT = ('ARESOS_LAUNCH_NONCE', 'ARESOS_DESKTOP_INSTANCE', 'NOTIFY_SOCKET', 'LISTEN_FDS',
-                       'LISTEN_PID', 'LISTEN_FDNAMES', 'WATCHDOG_PID', 'WATCHDOG_USEC')
+PRIVATE_ENVIRONMENT = ('ARESOS_LAUNCH_NONCE', 'ARESOS_DESKTOP_INSTANCE', 'ARESOS_SHELL_STATUS_FD', 'NOTIFY_SOCKET',
+                       'LISTEN_FDS', 'LISTEN_PID', 'LISTEN_FDNAMES', 'WATCHDOG_PID', 'WATCHDOG_USEC')
 
 ENVELOPE = re.compile(r'aresos-shell/(\d{1,3})\.(\d{1,3})\Z')
 REQUEST_ID = re.compile(r'[A-Za-z0-9._:-]{1,128}\Z')
@@ -105,6 +112,32 @@ FINAL = frozenset({'failed', 'closed'})
 
 def protocol(minor=MINOR):
     return f'{NAME}/{MAJOR}.{minor}'
+
+
+class StatusPipe:
+    """One-way readiness lines to the desktop supervisor (package 23).
+
+    Each line is far below PIPE_BUF, so it arrives whole. A full pipe drops the line (the next heartbeat repeats
+    the state); a closed pipe switches reporting off. Neither may ever stop the helper.
+    """
+
+    def __init__(self, fd):
+        self.fd = fd
+        os.set_blocking(fd, False)
+
+    def __call__(self, **fields):
+        if self.fd is None:
+            return
+        try:
+            os.write(self.fd, (json.dumps(fields, sort_keys=True) + '\n').encode('utf-8'))
+        except BlockingIOError:
+            pass
+        except OSError:
+            self.fd = None
+
+
+def no_status(**fields):
+    pass
 
 
 class Failure(Exception):
@@ -852,8 +885,9 @@ class Helper:
 
     def __init__(self, registry_dir, instance, nonce, journal_path, launcher=None, windows=None,
                  activate=None, clock=time.monotonic, executable=None, window_timeout=WINDOW_TIMEOUT, registry=None,
-                 watcher=None):
+                 watcher=None, status=no_status):
         self.instance = instance
+        self.status = status
         self.nonce = nonce
         self.apps, self.revision = registry or load_registry(registry_dir)
         self.launcher = launcher or ScopeLauncher()
@@ -1083,6 +1117,7 @@ class Helper:
             # The newest authenticated desktop wins, e.g. the mod reconnecting.
             previous.finish()
         LOG.info('desktop connected (minor %d)', conn.minor)
+        self.status(event='desktop_connected')
         return {'major': MAJOR, 'minor': conn.minor, 'capabilities': sorted(self.capabilities)}
 
     def availability(self, app):
@@ -1168,6 +1203,7 @@ class Helper:
             LOG.info('desktop world ready')
         self.world = world['id']
         self.last_heartbeat = self.clock()
+        self.status(event='world_ready', world=self.world)
         return {}
 
     def heartbeat(self, conn, request_id, message):
@@ -1180,6 +1216,7 @@ class Helper:
             LOG.info('desktop world no longer ready')
             self.world = None
         self.last_heartbeat = self.clock()
+        self.status(event='heartbeat', ready=ready, world=self.world)
         return {}
 
     # -- launch lifecycle
@@ -1588,7 +1625,7 @@ class Server:
 
 
 def build(registry_dir, instance, nonce, journal_path, environ=None, launcher=None, clock=time.monotonic,
-          connect=None):
+          connect=None, status=no_status):
     """Start-up in the order that matters: owners from the registry first, then the compositor's window list."""
     registry = load_registry(registry_dir)
     windows = Windows(clock=clock)
@@ -1599,7 +1636,7 @@ def build(registry_dir, instance, nonce, journal_path, environ=None, launcher=No
         LOG.warning('window tracking is off, apps report starting only: %s', error)
         wayland, windows = None, None
     helper = Helper(registry_dir, instance, nonce, journal_path, launcher=launcher, windows=windows,
-                    activate=wayland.activate if wayland else None, clock=clock, registry=registry)
+                    activate=wayland.activate if wayland else None, clock=clock, registry=registry, status=status)
     helper.watcher.watch(helper.watched_units())
     helper.watcher.start()
     return helper, wayland
@@ -1627,9 +1664,16 @@ def main(argv=None):
     if not INSTANCE.match(instance) or not NONCE.match(nonce):
         parser.error('ARESOS_DESKTOP_INSTANCE and ARESOS_LAUNCH_NONCE (16+ URL-safe characters) must be set '
                      'by the desktop supervisor')
+    status = no_status
+    status_fd = os.environ.get('ARESOS_SHELL_STATUS_FD', '')
+    if status_fd:
+        if not status_fd.isdigit():
+            parser.error('ARESOS_SHELL_STATUS_FD must be a file descriptor number')
+        status = StatusPipe(int(status_fd))
     path = args.socket or os.environ.get('ARESOS_SHELL_SOCKET') or os.path.join(runtime, 'aresos', 'shell.sock')
     prepare_socket(path)
-    helper, wayland = build(args.registry, instance, nonce, os.path.join(os.path.dirname(path), 'shell-journal.json'))
+    helper, wayland = build(args.registry, instance, nonce, os.path.join(os.path.dirname(path), 'shell-journal.json'),
+                            status=status)
     server = Server(path, helper, wayland)
 
     def stop(signum, frame):

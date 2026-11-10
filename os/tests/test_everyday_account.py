@@ -114,7 +114,10 @@ class TerminalShellTest(unittest.TestCase):
         rc = ET.parse(CONFIG / 'usr/share/aresos/labwc/rc.xml').getroot()
         binds = {b.get('key'): b.find('action').get('command') for b in rc.iter('keybind')}
         self.assertEqual(binds['W-C-Escape'], '/usr/bin/aresos-terminal --recovery')
-        self.assertIn('/usr/bin/aresos-terminal &', (CONFIG / 'usr/share/aresos/labwc/autostart').read_text().splitlines())
+        # Package 23: the session starts the desktop supervisor, which opens a terminal only to say what to do;
+        # Super+Ctrl+Escape still opens the recovery terminal at any time.
+        self.assertIn('/usr/libexec/aresos-desktop session &',
+                      (CONFIG / 'usr/share/aresos/labwc/autostart').read_text().splitlines())
         self.assertIn("if [[ ${1-} == --recovery ]]; then", wrapper)
         self.assertIn('export ARESOS_TERMINAL=$mode', wrapper)
         self.assertIn('--rcfile /usr/share/aresos/bashrc -i', wrapper)
@@ -430,10 +433,11 @@ class DesktopDefaultsTest(unittest.TestCase):
         self.assertEqual(binds['XF86AudioMute'], '/usr/bin/wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle')
         self.assertEqual(binds['XF86AudioMicMute'], '/usr/bin/wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle')
 
-    def test_polkit_agent_starts_before_the_terminal(self):
+    def test_polkit_agent_starts_before_the_desktop(self):
         lines = [l for l in (CONFIG / 'usr/share/aresos/labwc/autostart').read_text().splitlines()
                  if l and not l.startswith('#')]
-        self.assertEqual(lines, ['/usr/libexec/kf6/polkit-kde-authentication-agent-1 &', '/usr/bin/aresos-terminal &'])
+        self.assertEqual(lines, ['/usr/libexec/kf6/polkit-kde-authentication-agent-1 &',
+                                 '/usr/libexec/aresos-desktop session &'])
 
     def test_links_open_in_chrome_unless_the_user_chooses_otherwise(self):
         defaults = configparser.ConfigParser(delimiters=('=',))

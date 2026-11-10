@@ -374,6 +374,41 @@ class ProtocolTest(Base):
         self.assertEqual(reply['error'], 'not_authorized')
         self.assertTrue(conn.closing)
 
+    def test_the_supervisor_hears_readiness_only_from_the_authenticated_desktop(self):
+        # Package 23: the desktop supervisor learns readiness from the helper's status pipe.
+        lines = []
+        helper = self.helper()
+        helper.status = lambda **fields: lines.append(fields)
+        conn = self.connect(helper)
+        world = {'id': 'AresHub', 'desktop': True}
+        self.request(helper, conn, 'world_ready', 'w-1', instance=INSTANCE, nonce=NONCE, world=world)
+        self.request(helper, conn, 'heartbeat', 'b-1', instance=INSTANCE, nonce=NONCE, ready=True)
+        self.request(helper, conn, 'heartbeat', 'b-2', instance=INSTANCE, nonce=NONCE, ready=False)
+        self.request(helper, conn, 'world_ready', 'w-2', instance=INSTANCE, nonce='x' * 20, world=world)
+        self.assertEqual(lines, [{'event': 'desktop_connected'}, {'event': 'world_ready', 'world': 'AresHub'},
+                                 {'event': 'heartbeat', 'ready': True, 'world': 'AresHub'},
+                                 {'event': 'heartbeat', 'ready': False, 'world': None}])
+
+    @unittest.skipUnless(hasattr(os, 'set_blocking') and sys.platform.startswith('linux'), 'Linux pipes')
+    def test_the_status_pipe_never_blocks_or_breaks_the_helper(self):
+        read, write = os.pipe()
+        status = shell.StatusPipe(write)
+        status(event='world_ready', world='AresHub')
+        self.assertEqual(json.loads(os.read(read, 4096)), {'event': 'world_ready', 'world': 'AresHub'})
+        for _ in range(20000):  # far more than a pipe holds: the extra lines are dropped, nothing blocks
+            status(event='heartbeat', ready=True, world='AresHub')
+        os.close(read)
+        status(event='heartbeat', ready=True, world='AresHub')
+        self.assertIsNone(status.fd)
+        status(event='heartbeat', ready=True, world='AresHub')
+        os.close(write)
+
+    def test_launched_apps_never_inherit_the_status_pipe(self):
+        self.assertIn('ARESOS_SHELL_STATUS_FD', shell.PRIVATE_ENVIRONMENT)
+        launcher = shell.ScopeLauncher(popen=self.popen, run=self.systemctl,
+                                       environ={'HOME': '/h', 'ARESOS_SHELL_STATUS_FD': '7', 'PATH': '/usr/bin'})
+        self.assertNotIn('ARESOS_SHELL_STATUS_FD', launcher.environment())
+
     def test_a_newer_authenticated_desktop_replaces_the_old_connection(self):
         helper = self.helper()
         first = self.connect(helper)
