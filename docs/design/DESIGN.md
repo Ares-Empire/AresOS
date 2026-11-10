@@ -13,6 +13,8 @@ First theme: **Minecraft** (real Minecraft Java + our own Fabric mod). Possible 
 - **Apps open on top of the game.** Closing one drops you back into the world where you were standing.
 - **Underneath (phase 2) is Linux.** It has no normal desktop and boots straight into a Minecraft world, the same way SteamOS is Linux with Steam on top. The base is **Bazzite**, a gaming-focused Fedora with NVIDIA built in (owner decision, 2026-10-21). AresOS is a custom image built from this repo, and a bad update can be rolled back at startup.
 - **AresOS is just the operating system.** Only the AresOS world follows desktop rules. Playing normal Minecraft (survival, Hypixel BedWars, maybe Lunar Client) is an app you open from AresOS, and it plays completely normally.
+- **The everyday account works "like Windows"** (owner decision, 2026-11-09, replacing the locked daily account of [OS-BASE](OS-BASE.md)). His account `ares` gets admin rights behind his own password, like Windows' Yes prompt. Flatpak apps and Homebrew work. Claude can't use admin rights unless he types the password. The recovery account `ares-recovery` stays as a spare administrator. The OS image and firmware still change only through the signed release route or an explicit `sudo` by him.
+- **The browser is Google Chrome** (owner decision, 2026-11-09), built into the image: the same browser as on Windows, and the one the control layer's Chrome tool targets. Chrome updates arrive with AresOS releases.
 
 ## Minecraft design
 

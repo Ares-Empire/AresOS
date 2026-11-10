@@ -1,0 +1,5 @@
+- **Medium — [polkit-check.js:94](C:/Users/pab/AresOS-21-everyday-account/os/ci/polkit-check.js:94), [00-aresos-maintenance.rules:54](C:/Users/pab/AresOS-21-everyday-account/os/config/usr/share/polkit-1/rules.d/00-aresos-maintenance.rules:54):** The audit ignores `org.freedesktop.policykit.imply`. [Flatpak 1.18.4’s passwordless `app-update`](https://github.com/flatpak/flatpak/blob/1.18.4/system-helper/org.freedesktop.Flatpak.policy.in#L48-L65) implies `runtime-install`; consequently, active `ares` can install system-wide runtimes without authentication despite the explicit `auth_admin` rule. The “131 reviewed passwordless actions” inventory is incomplete. **Fix:** remove that implication or require uncached authentication for `app-update`, model implications in the audit, and add a live active-session regression.
+
+The original TuneD and cached-authorization blockers otherwise appear fixed. I found no additional root/image/boot/firmware bypass. This was source and CI-evidence review; I did not rerun the image.
+
+CHANGES-NEEDED

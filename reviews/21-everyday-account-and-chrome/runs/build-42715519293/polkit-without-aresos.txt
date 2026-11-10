@@ -1,0 +1,102 @@
+polkit: 20 rule files, 401 actions, 17 change with wheel, 0 denied to ares
+  wheel changes org.fedoraproject.FirewallD1.config: auth_admin_keep -> yes
+  wheel changes org.fedoraproject.FirewallD1.direct: auth_admin_keep -> yes
+  wheel changes org.freedesktop.Flatpak.app-install: auth_admin_keep -> yes
+  wheel changes org.freedesktop.Flatpak.app-uninstall: auth_admin_keep -> yes
+  wheel changes org.freedesktop.Flatpak.runtime-install: auth_admin_keep -> yes
+  wheel changes org.freedesktop.Flatpak.runtime-uninstall: auth_admin_keep -> yes
+  wheel changes org.freedesktop.NetworkManager.settings.modify.system: auth_admin_keep -> yes
+  wheel changes org.freedesktop.bolt.authorize: auth_admin_keep -> yes
+  wheel changes org.freedesktop.bolt.enroll: auth_admin_keep -> yes
+  wheel changes org.freedesktop.bolt.manage: auth_admin_keep -> yes
+  wheel changes org.freedesktop.fwupd.update-internal: auth_admin_keep -> yes
+  wheel changes org.gtk.vfs.file-operations-helper: auth_admin_keep -> yes
+  wheel changes org.projectatomic.rpmostree1.cancel: auth_admin_keep -> yes
+  wheel changes org.projectatomic.rpmostree1.cleanup: auth_admin_keep -> yes
+  wheel changes org.projectatomic.rpmostree1.install-uninstall-packages: auth_admin_keep -> yes
+  wheel changes org.projectatomic.rpmostree1.reload-daemon: auth_admin_keep -> yes
+  wheel changes org.projectatomic.rpmostree1.rollback: auth_admin_keep -> yes
+FAIL org.bazzite.policykit.privileged.user.setup: OS/firmware action must be denied to the daily account, got yes
+FAIL org.bazzite.policykit.waydroid.container.restart: OS/firmware action must be denied to the daily account, got yes
+FAIL org.bazzite.policykit.waydroid.container.start: OS/firmware action must be denied to the daily account, got yes
+FAIL org.bazzite.policykit.waydroid.container.stop: OS/firmware action must be denied to the daily account, got yes
+FAIL org.bazzite.policykit.waydroid.fix.controllers: OS/firmware action must be denied to the daily account, got yes
+FAIL org.fedoraproject.FirewallD1.config: wheel gets it without a password from /tmp/tmp.C0LJn8rsWI/usr/share/polkit-1/rules.d/org.fedoraproject.FirewallD1.rules; not reviewed
+FAIL org.fedoraproject.FirewallD1.direct: wheel gets it without a password from /tmp/tmp.C0LJn8rsWI/usr/share/polkit-1/rules.d/org.fedoraproject.FirewallD1.rules; not reviewed
+FAIL org.freedesktop.Flatpak.app-install: wheel gets it without a password from /tmp/tmp.C0LJn8rsWI/usr/share/polkit-1/rules.d/org.freedesktop.Flatpak.rules; not reviewed
+FAIL org.freedesktop.Flatpak.app-uninstall: wheel gets it without a password from /tmp/tmp.C0LJn8rsWI/usr/share/polkit-1/rules.d/org.freedesktop.Flatpak.rules; not reviewed
+FAIL org.freedesktop.Flatpak.runtime-install: wheel gets it without a password from /tmp/tmp.C0LJn8rsWI/usr/share/polkit-1/rules.d/org.freedesktop.Flatpak.rules; not reviewed
+FAIL org.freedesktop.Flatpak.runtime-uninstall: wheel gets it without a password from /tmp/tmp.C0LJn8rsWI/usr/share/polkit-1/rules.d/org.freedesktop.Flatpak.rules; not reviewed
+FAIL org.freedesktop.NetworkManager.settings.modify.system: wheel gets it without a password from /tmp/tmp.C0LJn8rsWI/usr/share/polkit-1/rules.d/org.freedesktop.NetworkManager.rules; not reviewed
+FAIL org.freedesktop.bolt.authorize: wheel gets it without a password from /tmp/tmp.C0LJn8rsWI/usr/share/polkit-1/rules.d/org.freedesktop.bolt.rules; not reviewed
+FAIL org.freedesktop.bolt.enroll: wheel gets it without a password from /tmp/tmp.C0LJn8rsWI/usr/share/polkit-1/rules.d/org.freedesktop.bolt.rules; not reviewed
+FAIL org.freedesktop.bolt.manage: wheel gets it without a password from /tmp/tmp.C0LJn8rsWI/usr/share/polkit-1/rules.d/org.freedesktop.bolt.rules; not reviewed
+FAIL org.freedesktop.fwupd.clean-remote: OS/firmware action must be denied to the daily account, got null
+FAIL org.freedesktop.fwupd.clear-results: OS/firmware action must be denied to the daily account, got null
+FAIL org.freedesktop.fwupd.device-activate: OS/firmware action must be denied to the daily account, got null
+FAIL org.freedesktop.fwupd.device-emulate: OS/firmware action must be denied to the daily account, got null
+FAIL org.freedesktop.fwupd.device-unlock: OS/firmware action must be denied to the daily account, got null
+FAIL org.freedesktop.fwupd.downgrade-hotplug: OS/firmware action must be denied to the daily account, got null
+FAIL org.freedesktop.fwupd.downgrade-hotplug-trusted: OS/firmware action must be denied to the daily account, got null
+FAIL org.freedesktop.fwupd.downgrade-internal: OS/firmware action must be denied to the daily account, got null
+FAIL org.freedesktop.fwupd.downgrade-internal-trusted: OS/firmware action must be denied to the daily account, got null
+FAIL org.freedesktop.fwupd.emulation-load: OS/firmware action must be denied to the daily account, got null
+FAIL org.freedesktop.fwupd.emulation-save: OS/firmware action must be denied to the daily account, got null
+FAIL org.freedesktop.fwupd.emulation-tag: OS/firmware action must be denied to the daily account, got null
+FAIL org.freedesktop.fwupd.enable-remote: OS/firmware action must be denied to the daily account, got null
+FAIL org.freedesktop.fwupd.fix-host-security-attr: OS/firmware action must be denied to the daily account, got null
+FAIL org.freedesktop.fwupd.get-bios-settings: OS/firmware action must be denied to the daily account, got null
+FAIL org.freedesktop.fwupd.get-remotes: OS/firmware action must be denied to the daily account, got null
+FAIL org.freedesktop.fwupd.modify-config: OS/firmware action must be denied to the daily account, got null
+FAIL org.freedesktop.fwupd.modify-device: OS/firmware action must be denied to the daily account, got null
+FAIL org.freedesktop.fwupd.modify-remote: OS/firmware action must be denied to the daily account, got null
+FAIL org.freedesktop.fwupd.quit: OS/firmware action must be denied to the daily account, got null
+FAIL org.freedesktop.fwupd.refresh-remote: OS/firmware action must be denied to the daily account, got null
+FAIL org.freedesktop.fwupd.reset-config: OS/firmware action must be denied to the daily account, got null
+FAIL org.freedesktop.fwupd.self-sign: OS/firmware action must be denied to the daily account, got null
+FAIL org.freedesktop.fwupd.set-approved-firmware: OS/firmware action must be denied to the daily account, got null
+FAIL org.freedesktop.fwupd.set-bios-settings: OS/firmware action must be denied to the daily account, got null
+FAIL org.freedesktop.fwupd.undo-host-security-attr: OS/firmware action must be denied to the daily account, got null
+FAIL org.freedesktop.fwupd.update-hotplug: OS/firmware action must be denied to the daily account, got null
+FAIL org.freedesktop.fwupd.update-hotplug-trusted: OS/firmware action must be denied to the daily account, got null
+FAIL org.freedesktop.fwupd.update-internal: OS/firmware action must be denied to the daily account, got yes
+FAIL org.freedesktop.fwupd.update-internal: wheel gets it without a password from /tmp/tmp.C0LJn8rsWI/usr/share/polkit-1/rules.d/org.freedesktop.fwupd.rules; not reviewed
+FAIL org.freedesktop.fwupd.update-internal-trusted: OS/firmware action must be denied to the daily account, got null
+FAIL org.freedesktop.fwupd.verify: OS/firmware action must be denied to the daily account, got null
+FAIL org.freedesktop.fwupd.verify-update: OS/firmware action must be denied to the daily account, got null
+FAIL org.freedesktop.sysupdate1.check: OS/firmware action must be denied to the daily account, got null
+FAIL org.freedesktop.sysupdate1.manage-features: OS/firmware action must be denied to the daily account, got null
+FAIL org.freedesktop.sysupdate1.update: OS/firmware action must be denied to the daily account, got null
+FAIL org.freedesktop.sysupdate1.update-to-version: OS/firmware action must be denied to the daily account, got null
+FAIL org.freedesktop.sysupdate1.vacuum: OS/firmware action must be denied to the daily account, got null
+FAIL org.gtk.vfs.file-operations-helper: wheel gets it without a password from /tmp/tmp.C0LJn8rsWI/usr/share/polkit-1/rules.d/org.gtk.vfs.file-operations.rules; not reviewed
+FAIL org.projectatomic.rpmostree1.bootconfig: OS/firmware action must be denied to the daily account, got null
+FAIL org.projectatomic.rpmostree1.cancel: OS/firmware action must be denied to the daily account, got yes
+FAIL org.projectatomic.rpmostree1.cancel: wheel gets it without a password from /tmp/tmp.C0LJn8rsWI/usr/share/polkit-1/rules.d/org.projectatomic.rpmostree1.rules; not reviewed
+FAIL org.projectatomic.rpmostree1.cleanup: OS/firmware action must be denied to the daily account, got yes
+FAIL org.projectatomic.rpmostree1.cleanup: wheel gets it without a password from /tmp/tmp.C0LJn8rsWI/usr/share/polkit-1/rules.d/org.projectatomic.rpmostree1.rules; not reviewed
+FAIL org.projectatomic.rpmostree1.client-management: OS/firmware action must be denied to the daily account, got yes
+FAIL org.projectatomic.rpmostree1.deploy: OS/firmware action must be denied to the daily account, got null
+FAIL org.projectatomic.rpmostree1.finalize-deployment: OS/firmware action must be denied to the daily account, got null
+FAIL org.projectatomic.rpmostree1.install-local-packages: OS/firmware action must be denied to the daily account, got null
+FAIL org.projectatomic.rpmostree1.install-uninstall-packages: OS/firmware action must be denied to the daily account, got yes
+FAIL org.projectatomic.rpmostree1.install-uninstall-packages: wheel gets it without a password from /tmp/tmp.C0LJn8rsWI/usr/share/polkit-1/rules.d/org.projectatomic.rpmostree1.rules; not reviewed
+FAIL org.projectatomic.rpmostree1.override: OS/firmware action must be denied to the daily account, got null
+FAIL org.projectatomic.rpmostree1.rebase: OS/firmware action must be denied to the daily account, got null
+FAIL org.projectatomic.rpmostree1.reload-daemon: OS/firmware action must be denied to the daily account, got yes
+FAIL org.projectatomic.rpmostree1.reload-daemon: wheel gets it without a password from /tmp/tmp.C0LJn8rsWI/usr/share/polkit-1/rules.d/org.projectatomic.rpmostree1.rules; not reviewed
+FAIL org.projectatomic.rpmostree1.repo-modify: OS/firmware action must be denied to the daily account, got null
+FAIL org.projectatomic.rpmostree1.repo-refresh: OS/firmware action must be denied to the daily account, got yes
+FAIL org.projectatomic.rpmostree1.rollback: OS/firmware action must be denied to the daily account, got yes
+FAIL org.projectatomic.rpmostree1.rollback: wheel gets it without a password from /tmp/tmp.C0LJn8rsWI/usr/share/polkit-1/rules.d/org.projectatomic.rpmostree1.rules; not reviewed
+FAIL org.projectatomic.rpmostree1.upgrade: OS/firmware action must be denied to the daily account, got yes
+FAIL org.freedesktop.Flatpak.app-install: rule is yes, expected auth_admin_keep
+FAIL org.freedesktop.Flatpak.app-install: without_wheel is null, expected auth_admin_keep
+FAIL org.freedesktop.Flatpak.runtime-install: rule is yes, expected auth_admin_keep
+FAIL org.freedesktop.Flatpak.app-uninstall: rule is yes, expected auth_admin_keep
+FAIL org.gtk.vfs.file-operations-helper: rule is yes, expected auth_admin_keep
+FAIL org.freedesktop.NetworkManager.settings.modify.system: rule is yes, expected auth_admin_keep
+FAIL org.projectatomic.rpmostree1.upgrade: rule is yes, expected no
+FAIL org.projectatomic.rpmostree1.upgrade: without_wheel is yes, expected no
+FAIL org.projectatomic.rpmostree1.rebase: rule is null, expected no
+FAIL org.freedesktop.fwupd.update-internal: rule is yes, expected no

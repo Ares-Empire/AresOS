@@ -1,0 +1,6 @@
+# vm-pass-1/serial.log of run 42709631386, the lines around the journal readiness record
+# (escape bytes shown as <ESC>). The record is present, but strip_kernel_lines removes
+# every line starting "[   73.458055] ", so vm.py never sees it.
+[   73.451944] bazzite audit[1]: <ESC>[0;34m<ESC>[0;34mSERVICE_START pid=1 uid=0 auid=4294967295 ses=4294967295 subj=system_u:system_r:init_t:s0 msg='unit=aresos-ci-journal comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'<ESC>[0m
+[   73.458055] bazzite aresos-ci[2795]: <ESC>[0;1;39m<ESC>[0;1;31m<ESC>[0;1;39mARESOS_JOURNAL_READY<ESC>[0m
+[   73.460543] bazzite aresos-ci[2796]: <ESC>[0;1;39m<ESC>[0;1;31m<ESC>[0;1;39mARESOS_POWER_KEY_ARMED<ESC>[0m

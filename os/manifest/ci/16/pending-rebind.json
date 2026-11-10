@@ -6,10 +6,16 @@
     "PR #13 (f5bc2d4d): Stage B checked, Stage C released (docs/INSTALL.md, os/tests/test_owner_path.py)",
     "PR #22 (15f): Lenovo's own Fedora firmware entry accepted beside Bazzite; new tools fingerprint",
     "Package 15g: install-night owner-page corrections and route tests; checkout bytes recorded for the next rehearsal (no walk tables rebound)",
-    "Package 15gb: reviewed return routes, idle live-session shutdown exception and layout-proof wording; current checkout bytes retained without rebinding historical tables"
+    "Package 15gb: reviewed return routes, idle live-session shutdown exception and layout-proof wording; current checkout bytes retained without rebinding historical tables",
+    "Package 21 (everyday account and Chrome): os-image.yml gains the throwaway check_build job, which builds and checks a branch image without pushing, signing or publishing it; checkout bytes recorded for the next rehearsal (no walk tables rebound)",
+    "Package 21 review fixes 3 and 4: vm.py's journal readiness wait accepts only a complete follower record whose message is exactly ARESOS_JOURNAL_READY (os/ci/journal_ready.py); serial_search strips those lines as kernel records since package 14. Checkout bytes recorded for the next rehearsal (no walk tables rebound)"
   ],
   "rule": "The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
+    {
+      "sha256": "35bf031a53a7b8e0cffca1ffb75ee3c26a616c03de5036f3395eb74b255dc20f",
+      "path": ".github/workflows/os-image.yml"
+    },
     {
       "sha256": "7e66a9e2c59d136144667c7583b3dad1d1ae86e157020a2ef4034176923cfbf5",
       "path": "docs/EMERGENCY.md"
@@ -17,6 +23,10 @@
     {
       "sha256": "4a4fe5c7680341826c4999c249351e17f6bee321b1f40169dc81cae27e6307c4",
       "path": "docs/INSTALL.md"
+    },
+    {
+      "sha256": "927a93154c46a93b7ffb91328552fa9a591fd1fcc7d2cc54bba0869647fb9f1e",
+      "path": "os/ci/vm.py"
     },
     {
       "sha256": "9cf43b79e596ccf6ebe4b4ba4acb25412380f50798d7835f44c51d3415c1158e",

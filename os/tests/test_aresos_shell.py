@@ -142,7 +142,9 @@ class RegistryTest(Base):
             self.assertEqual(path.stem, app.id)
             self.assertIsNone(app.invalid)
             self.assertTrue(app.argv[0].startswith('/usr/bin/'))
-        self.assertEqual(apps['terminal'].argv, ('/usr/bin/foot', '--app-id=aresos.terminal'))
+        # A plain terminal with his daily PATH and ~/.bashrc: the session keeps the system PATH (package 21).
+        self.assertEqual(apps['terminal'].argv, ('/usr/bin/foot', '--app-id=aresos.terminal', '/usr/bin/bash',
+                                                 '--rcfile', '/usr/share/aresos/bashrc', '-i'))
         self.assertEqual(apps['terminal'].app_ids, {'aresos.terminal'})
         # notepad keeps package 01's ID; on AresOS it is KWrite, already in the base image.
         self.assertEqual(apps['notepad'].argv, ('/usr/bin/kwrite',))
@@ -400,7 +402,8 @@ class LaunchTest(Base):
         argv, options = self.popen.call_args.args[0], self.popen.call_args.kwargs
         self.assertEqual(argv, ['/usr/bin/systemd-run', '--user', '--scope', '--quiet', '--collect', '--slice=app.slice',
                                 f'--unit=app-aresos-terminal-{reply["launch_id"]}.scope',
-                                '--description=AresOS app: Terminal', '--', '/usr/bin/foot', '--app-id=aresos.terminal'])
+                                '--description=AresOS app: Terminal', '--', '/usr/bin/foot', '--app-id=aresos.terminal',
+                                '/usr/bin/bash', '--rcfile', '/usr/share/aresos/bashrc', '-i'])
         self.assertEqual(options['cwd'], '/var/home/ares')
         self.assertTrue(options['start_new_session'])
         self.assertNotIn('ARESOS_LAUNCH_NONCE', options['env'])
