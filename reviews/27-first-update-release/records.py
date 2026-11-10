@@ -32,9 +32,12 @@ def main():
     assert release['image_diff']['status'] == 'passed' and release['job_token_read']['status'] == 'passed'
     paths = ['os/Containerfile', 'os/.containerignore', 'os/build.sh', 'os/packages.lock.json', 'os/google-chrome.lock.json',
              'os/config', 'os/policy', 'os/manifest/base.json', 'os/keys', 'os/tests/audit.py']
-    trees = {path: subprocess.check_output(['git', '-C', str(ROOT), 'rev-parse', release['source_commit'] + ':' + path],
-                                           text=True).strip() for path in paths}
-    record = dict(release, source_trees=trees, daily_wheel=True, rehearsal='pending',
+    # Object ID before path: the repository's convention for Git IDs in records.
+    trees = [dict(tree=subprocess.check_output(['git', '-C', str(ROOT), 'rev-parse', release['source_commit'] + ':' + path],
+                                               text=True).strip(), path=path) for path in paths]
+    # release.json travels in the fingerprinted tools bundle, so it must stay as
+    # rehearsed; the rehearsal's result is added to releases/27.json only.
+    record = dict(release, source_trees=trees, daily_wheel=True,
                   owner_review='owner OK 2026-11-09 to publish and pin once the rehearsal passes')
     text = json.dumps(record, indent=2) + '\n'
     write('os/manifest/releases/27.json', text)

@@ -345,7 +345,7 @@ class VerifyRelease27Test(unittest.TestCase):
         'os/packages.lock.json', 'os/google-chrome.lock.json', 'os/config', 'os/policy', 'os/manifest/base.json',
         'os/keys', 'os/tests/audit.py']), 1)}
 
-    def verify(self, release=None, job='Package 27 release build, image diff, VM and publish', head=None):
+    def verify(self, release=None, job='Package 27 release build, image diff, VM and publish', head=None, trees=None):
         import ast, contextlib, io
         source = 'b' * 40
         release = release or dict(reference='ghcr.io/ares-empire/aresos@sha256:' + '27' * 32, source_commit=source,
@@ -354,7 +354,7 @@ class VerifyRelease27Test(unittest.TestCase):
             signature=dict(method='cosign keyless', issuer='https://token.actions.githubusercontent.com',
                 identity='https://github.com/Ares-Empire/AresOS/.github/workflows/os-image.yml@refs/heads/pkg/27-first-update-release'),
             image_diff=dict(status='passed', unexplained=[]), job_token_read=dict(status='passed', owner_token_used=False),
-            source_trees=dict(self.TREES))
+            source_trees=trees if trees is not None else [dict(tree=tree, path=path) for path, tree in self.TREES.items()])
         head = dict(self.TREES, **(head or {}))
         run = dict(head_sha=source, path='.github/workflows/os-image.yml', head_branch='pkg/27-first-update-release',
                    event='workflow_dispatch', display_title='Package 27 image release', run_attempt=1)
@@ -381,6 +381,12 @@ class VerifyRelease27Test(unittest.TestCase):
     def test_release27_passes_on_its_own_trees_and_job(self):
         self.assertEqual(self.verify(), 0)
 
+    def test_tree_rows_put_the_object_id_before_the_path(self):
+        record = json.loads((ROOT / 'os/manifest/releases/27.json').read_text())
+        self.assertTrue(record['source_trees'] and all(list(row) == ['tree', 'path'] for row in record['source_trees']))
+        with self.assertRaises(AssertionError):
+            self.verify(trees=dict(self.TREES))
+
     def test_a_changed_runtime_tree_another_job_or_identity_refuses(self):
         with self.assertRaisesRegex(AssertionError, 'payload changed: os/config'):
             self.verify(head={'os/config': 'f' * 40})
@@ -393,7 +399,7 @@ class VerifyRelease27Test(unittest.TestCase):
                 signature=dict(method='cosign keyless', issuer='https://token.actions.githubusercontent.com',
                     identity='https://github.com/Ares-Empire/AresOS/.github/workflows/os-image.yml@refs/heads/main'),
                 image_diff=dict(status='passed', unexplained=[]), job_token_read=dict(status='passed', owner_token_used=False),
-                source_trees=dict(self.TREES)))
+                source_trees=[dict(tree=tree, path=path) for path, tree in self.TREES.items()]))
 
 
 class DispatchMatrixTest(unittest.TestCase):

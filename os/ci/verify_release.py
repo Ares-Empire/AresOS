@@ -53,13 +53,16 @@ if org and run['head_branch'] == 'pkg/27-first-update-release':
     assert release['image_diff']['status'] == 'passed' and not release['image_diff']['unexplained']
     assert release['job_token_read']['status'] == 'passed' and not release['job_token_read']['owner_token_used']
     # The image source is bound by Git tree identity, so a squash merge keeps it.
+    # Rows put the Git object ID before the path (repository convention).
     trees = release['source_trees']
-    assert sorted(trees) == sorted(['os/Containerfile', 'os/.containerignore', 'os/build.sh', 'os/packages.lock.json',
-        'os/google-chrome.lock.json', 'os/config', 'os/policy', 'os/manifest/base.json', 'os/keys', 'os/tests/audit.py'])
-    for path, expected in sorted(trees.items()):
-        assert re.fullmatch(r'[0-9a-f]{40}', expected)
-        actual = subprocess.check_output(['git', 'rev-parse', 'HEAD:' + path]).decode().strip()
-        assert actual == expected, 'Release 27 runtime payload changed: ' + path
+    assert isinstance(trees, list) and all(isinstance(row, dict) and list(row) == ['tree', 'path'] for row in trees)
+    assert sorted(row['path'] for row in trees) == sorted(['os/Containerfile', 'os/.containerignore', 'os/build.sh',
+        'os/packages.lock.json', 'os/google-chrome.lock.json', 'os/config', 'os/policy', 'os/manifest/base.json', 'os/keys',
+        'os/tests/audit.py'])
+    for row in trees:
+        assert re.fullmatch(r'[0-9a-f]{40}', row['tree'])
+        actual = subprocess.check_output(['git', 'rev-parse', 'HEAD:' + row['path']]).decode().strip()
+        assert actual == row['tree'], 'Release 27 runtime payload changed: ' + row['path']
     print(f'Qualified private org release {source}; runtime payload unchanged; testing {release["reference"]}')
     sys.exit(0)
 if org:
