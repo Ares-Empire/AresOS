@@ -541,7 +541,7 @@ def main():
         assert cleanup['status'] == 'passed' and cleanup['removed'] and cleanup['outside_workspace']
         result['probe_run'] = probe_id
         result['probe'] = proof
-    if PACKAGE in ('13', '14', '16', '27') and not ci:
+    if PACKAGE in ('13', '14', '16') and not ci:
         result['organization_budget'] = organization_budget(reserve)
         if PACKAGE == '14':
             previous = os.environ.get('REHEARSAL_PREVIOUS_DISPATCH')
