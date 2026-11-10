@@ -211,6 +211,9 @@ class Driver:
                 continue
             def folder_command(*args, _name=name, _original=original, **kwargs):
                 event = oracle.server(_name.upper(), getattr(self, 'account_id', 'box'), roles=f.imap.roles, accepted=False, reply='lost', arguments=list(args), **self.precommit())
+                if _name == 'delete':
+                    folder = args[0].strip('"')
+                    event['mailbox_inventory'] = {'uidvalidity': f.imap.validities.get(folder), 'messages': self.identities(folder)}
                 answer = _original(*args, **kwargs)
                 event.update(accepted=answer[0] == 'OK', reply='delivered', roles_after=copy.deepcopy(f.imap.roles), response_code=answer[0], response_text=[v.decode(errors='replace') if isinstance(v, bytes) else v for v in answer[1] or []])
                 return answer

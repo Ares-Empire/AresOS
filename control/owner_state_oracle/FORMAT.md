@@ -348,3 +348,7 @@ the unchanged comparison. Only the discovered fault offset in a sweep label is
 normalised for cross-platform scheduling; each replay still injects its actual
 discovered fault. New/reordered recordings fail manifest validation. Per-part
 measured durations are printed for the next rebalance.
+Onboarding folder DELETE records its pre-command mailbox inventory independently
+of the service's payload/context. Probe account/folder/empty/empty-state claims
+are validated against this inventory and the scripted account-add account before
+qualification can use them; a coherent flag lie is a payload proof difference.

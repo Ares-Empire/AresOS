@@ -189,15 +189,39 @@ class Oracle:
         parts = reference.get('scope', '').split('/')
         return parts[1] if len(parts) == 3 and parts[0] == 'testapp' and parts[2] == 'items' else None
 
+    def probe_payload_claims(self, key, row):
+        if row.get('action') != 'mail_onboarding_folder_probe':
+            return
+        for command in self.servers:
+            if command['command'] != 'DELETE' or self.bound(command)[0] != key or 'mailbox_inventory' not in command:
+                continue
+            call = next((c for c in self.script if c['call'] == command['call']), {})
+            if call.get('action') != 'mail_account_add':
+                continue
+            payload, inventory = row.get('payload', {}), command['mailbox_inventory']
+            expected = {'account': call['arguments'].get('id'), 'folder': command['arguments'][0].strip('"'),
+                        'empty': not inventory['messages']}
+            for field, wanted in expected.items():
+                actual = bool(payload.get(field)) if field == 'empty' else payload.get(field)
+                if actual != wanted:
+                    self.proof('payload_claims', Fact(key, 'unapproved-probe-payload', detail=field))
+            if payload.get('empty_state') is not None:
+                wanted = {'account': expected['account'], 'folder': expected['folder'],
+                          'uidvalidity': inventory['uidvalidity'], 'uids': [ref['uid'] for ref in inventory['messages']]}
+                if payload['empty_state'] != wanted:
+                    self.proof('payload_claims', Fact(key, 'unapproved-probe-payload', detail='empty_state'))
+
     def payload_claims(self, key, row):
         cache = getattr(self, '_payload_cache', {})
-        signature = key, canonical({field: row.get(field) for field in ('id', 'payload', 'approval', 'input_hash', 'expires')})
+        signature = key, canonical({field: row.get(field) for field in ('id', 'action', 'payload', 'approval', 'input_hash', 'expires')})
         if signature in cache:
             self.proofs('payload_claims', cache[signature])
             return
         before = set(self.lifecycle_errors)
+        self.probe_payload_claims(key, row)
         approved = self.approved(row)
         if approved is None:
+            cache[signature] = self.lifecycle_errors - before
             return
         payload = row.get('payload', {})
         mail = payload.get('composition', {}).get('mail', {})

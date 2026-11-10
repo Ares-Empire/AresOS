@@ -79,6 +79,19 @@ class EffectRegressions(unittest.TestCase):
         finally:
             scenario.close()
 
+    def test_probe_empty_claim_is_checked_against_the_delete_time_inventory(self):
+        from owner_state_plants import record
+        from owner_state_oracle.perturb import coherent_change, check
+        oracle, decoded, deltas = record('onboarding')
+        self.assertFalse(deltas)
+        event = next(e for e in decoded.events if any((v or {}).get('action') == 'mail_onboarding_folder_probe'
+                     and (v or {}).get('payload', {}).get('empty') for v in e['set'].values() if isinstance(v, dict)))
+        key = next(k for k, v in event['set'].items() if v.get('payload', {}).get('empty'))
+        replay, changed = coherent_change(oracle, decoded, key, ('payload', 'empty'), 'boolean', False, event['seq'])
+        _, errors = evaluate(replay, changed)
+        self.assertTrue(any(f.kind == 'unapproved-probe-payload' and f.detail == 'empty' for _, f in errors))
+        check('onboarding-empty', oracle, decoded, candidates=[('coherent/empty', 'boolean', (replay, changed))])
+
     def test_onboarding_effect_join_requires_its_call_identity_and_smtp_transaction(self):
         from owner_state_plants import record
         from owner_state_oracle.perturb import clone

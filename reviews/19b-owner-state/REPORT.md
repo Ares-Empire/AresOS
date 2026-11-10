@@ -2014,3 +2014,7 @@ was merged, and stage 3 was not started.
 | move | 2064 | 2064 | 6 | 0 |
 | send | 9506 | 9506 | 14 | 0 |
 | send_25mib | 9508 | 9508 | 14 | 0 |
+
+**Run — onboarding alteration correction within item 1:** once onboarding's baseline was quiet, the complete alteration test exposed a coherent `payload.empty` flip that changed qualification without a semantic error (`contracts/32`, empty-folder probe creation at sequence 18). DELETE now records independent mailbox inventory before the command. The payload validator compares the probe's account, folder, empty flag and empty-state snapshot against that evidence and the scripted account-add call. The dedicated coherent-flip regression requires `unapproved-probe-payload`; the full alteration matrix is rerun below. This fixes the expectation validator, without changing production, approvals or journal bytes. The stopped first local matrix is diagnostic evidence, not a pass.
+
+**Read — field audit addition:** `DELETE.mailbox_inventory` is independent fixture evidence. The production-written probe `payload.empty` and `payload.empty_state` are compared against it by `payload_claims`; they cannot select qualification silently. The named coherent-flip test and complete field perturbation exercise this boundary. The existing allowlisted resolution kinds are unchanged.
