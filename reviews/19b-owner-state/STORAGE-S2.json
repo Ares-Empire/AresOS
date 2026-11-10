@@ -93,6 +93,53 @@
       "sqlite_file_bytes": 73728
     }
   },
+  "after_fixes_round_2": {
+    "delete": {
+      "index_bytes": 0,
+      "journal_bytes": 3942,
+      "journal_records": 5,
+      "outcome": "done",
+      "projection_bytes": 0,
+      "sqlite_event_bytes": 16454,
+      "sqlite_file_bytes": 24576
+    },
+    "free_change": {
+      "index_bytes": 0,
+      "journal_bytes": 688,
+      "journal_records": 2,
+      "outcome": "done",
+      "projection_bytes": 0,
+      "sqlite_event_bytes": 1592,
+      "sqlite_file_bytes": 0
+    },
+    "move": {
+      "index_bytes": 0,
+      "journal_bytes": 2064,
+      "journal_records": 6,
+      "outcome": "done",
+      "projection_bytes": 0,
+      "sqlite_event_bytes": 9377,
+      "sqlite_file_bytes": 16384
+    },
+    "send": {
+      "index_bytes": 0,
+      "journal_bytes": 9506,
+      "journal_records": 14,
+      "outcome": "done",
+      "projection_bytes": 0,
+      "sqlite_event_bytes": 50361,
+      "sqlite_file_bytes": 65536
+    },
+    "send_25mib": {
+      "index_bytes": 0,
+      "journal_bytes": 9508,
+      "journal_records": 14,
+      "outcome": "done",
+      "projection_bytes": 0,
+      "sqlite_event_bytes": 58595,
+      "sqlite_file_bytes": 73728
+    }
+  },
   "after_fold": {
     "delete": {
       "index_bytes": 0,
@@ -198,6 +245,13 @@
     "send_25mib": 0
   },
   "fixes_round_1_log_sha256": "d115662b1a98024c1da0c9699221f4960e03f3dfeff83106bf6d5b271c232230",
+  "fixes_round_2_journal_growth": {
+    "delete": 0,
+    "free_change": 0,
+    "move": 0,
+    "send": 0,
+    "send_25mib": 0
+  },
   "fold_extra_records_in_five_samples": {
     "delete": 0,
     "free_change": 0,
@@ -235,6 +289,7 @@
     ".work/19b-fold/storage-final.txt": "d115662b1a98024c1da0c9699221f4960e03f3dfeff83106bf6d5b271c232230",
     ".work/19b-fold/storage-part-b.txt": "ea0b1a1d366c5c05466b85fde600c4060c968c4c85c66d679559a45d62cb93f2",
     ".work/19b-fold/storage-records.txt": "10e1d9270d90aeeba25a2c6f91414ae15d76bf3055cedfe00cf87337760eb0c5",
+    ".work/19b-s2-fixes-2/storage-final.txt": "d115662b1a98024c1da0c9699221f4960e03f3dfeff83106bf6d5b271c232230",
     ".work/19b-s2/storage-after-final.txt": "ea0b1a1d366c5c05466b85fde600c4060c968c4c85c66d679559a45d62cb93f2",
     ".work/19b-s2/storage-after.txt": "ea0b1a1d366c5c05466b85fde600c4060c968c4c85c66d679559a45d62cb93f2",
     ".work/19b-s2/storage-before.txt": "513d149331d60cbb987cff90b2e4ed34356ccd22b26de1606c34af4a18acf336"

@@ -1,10 +1,10 @@
 # 19b — owner state
 
-**Current status — stage 2 fixes round 1 complete (2026-11-10):**
-The oracle, alteration-test, RENAME and fixture fixes are complete. Control base,
-Mail (all 64 jobs) and boundary each passed twice on `08644540`; both complete
-53-list strict merges reproduce the compact pin with zero R2 gaps. The final
-section below supersedes the earlier fold evidence. Stage 3 has not been started.
+**Current status — stage 2 fixes round 2 verification in progress (2026-11-10):**
+The scoped oracle and RENAME fixes are implemented. Local verification precedes
+one Linux capture, strict re-pinning and two finished-source Control workflow
+passes. The round-2 section below supersedes round 1’s validator-control claims.
+Stage 3 has not been started.
 
 ## Done
 
@@ -1630,3 +1630,152 @@ PR #26 remains a draft against `pkg/19-mail`; it is not merged. Stage 3 was not
 started. Real accounts/provider behavior remain not verified as scoped above;
 the lead owns the fresh stage reviews. No additional judgment call, plan gap or
 open question is introduced by this closing verification.
+
+## Stage 2, fixes round 2
+
+**Read — scope:** `briefs/19b-s2-fixes-2.md` and all three scoped re-checks
+are the authority for this round. Oracle changes were committed first in
+`670e1bd6`. This section supersedes round 1's validator-indispensability claims
+and its incorrect attribution of fault-free gaps to production. Stage 3 remains
+outside this work. The reviewer probes were read and not modified.
+
+**Read — N1:** multiplicity distinguishes LOCAL_STAGE's stage and APPEND's
+flags. Delivery/local effects join the operation through the scripted call,
+Message-ID and parent repair identity. Explicit fixture seed DATA/APPEND is
+recorded with actual identities/bytes; seed evidence must match the scripted
+seed operation. Seed check history is independent fixture input, and a repair's
+Sent result commit needs a matching scripted parent/stage and raw Sent evidence.
+`test_fixture_delivery_requires_matching_script_and_message_identity` rejects
+wrong-call, wrong-Message-ID and post-seed variants. Quiet contracts now cover
+test-app send, repair, settlement and status with one Sent copy, require no
+differing views and reject lifecycle, clean-result or completion proof errors.
+The sweep's deliberate duplicate status/settlement inputs remain distinct.
+
+**Run — S-N2/S-N3:** `test_owner_state_plants` records every plant's flow once
+without the plant. All 21 production plants must introduce both new comparison
+views and new semantic facts against that baseline. Baseline alone is a negative
+control on test-app send, repair and rename. Each single-validator control runs
+both baseline and plant through unmodified `Driver.compare` with only that
+validator disabled; emitted-proof provenance alone no longer counts.
+
+| Validator | Plant | New differing views intact / disabled | Meaning on this corpus |
+| --- | --- | ---: | --- |
+| script_differences | wrong Sent destination | 41 / 40 | redundant with completion_errors, stage_claims and transition |
+| stage_claims | missing Deleted STORE | 40 / 40 | redundant with completion_errors and transition |
+| completion_errors | missing Sent copy | 40 / 1 | redundant with stage_claims |
+| payload_claims | narrowed delete payload | 41 / 41 | redundant with completion_errors, script_differences and transition |
+| filing_claims | wrong rename count | 11 / 10 | redundant with independent server-derived public notice-context/count comparisons |
+| transition | false transition | 34 / 0 | plant is missed with only this validator removed |
+| local.errors | wrong local flag | 18 / 0 | plant is missed with only this validator removed |
+
+**Run / read — alteration-control limit:** coherent removal of a terminal
+operation row is caught only by `stage_claims`; coherent removal of a move,
+copy or rename result row is caught only by `filing_claims` on this corpus.
+Dedicated controls run the real alteration checker on each of these four
+changes and require `Silent owner-state perturbation` with that validator
+removed. Other validators overlap on the listed plants; disabling them does
+not make those plants escape comparison. An oracle ignoring a field can leave
+its expected set unchanged, so the alteration test cannot see it; only plants
+can. `FORMAT.md` records this limitation and the measured redundancy explicitly.
+
+**Read — sol scan finding:** the recorder preserves each actual FETCH tuple's
+metadata and literal as exact hex. Scan completeness is independently recomputed
+from the correlated interval's LIST inventory, successful SELECTs, exact SEARCH
+UID set and matching UID/body literal/hash for every message. SCAN_RESULT's
+accepted bit is never its own proof. The real-driver false-completion regression
+covers OK/empty FETCH, a wrong UID and no literal, then lies about both closure
+and SCAN_RESULT acceptance; all retain recovery and report unjustified closure.
+The synthetic positive scan fixtures now supply actual enumeration/read evidence
+instead of an unsupported accepted bit; their original assertions remain.
+
+**Read — astra findings:** the destination-presence gate applies to RENAME.
+A complete filing scan can commit a warning when its destination has disappeared;
+the real-driver positive case asserts a partial, closed result, a committed
+warning, complete locations and no retained recovery/proof rejection. The
+absent-destination RENAME case remains negative. RENAME now SELECTs the source
+on the mutation connection and checks UIDVALIDITY before its context commit.
+Recreation with unchanged roles refuses `stale_reference`, with no RENAME or
+rename-context record, under both healthy and failing-result storage. The
+existing oversized, deep-MIME and excessive-part tests still prohibit every
+FETCH. Its only additional server read is this named SELECT/UIDVALIDITY R2
+namespace check; enumeration plus recheck yields exactly two source SELECTs.
+
+**Run — STORAGE-S2 reproduction:** the unchanged harness measured all five
+operations again, each `done`, with byte-for-byte equality to the fold and
+round-1 figures. `STORAGE-S2.json` adds the round-2 measurements and log hash.
+Projection remains zero bytes because stage 3 has not started.
+
+| Operation | Before stage 2 bytes / records | Part B bytes / records | Round 2 bytes / records | Growth over before |
+| --- | ---: | ---: | ---: | ---: |
+| Mail send | 9,506 / 14 | 10,918 / 16 | 9,506 / 14 | 0 |
+| MOVE | 2,064 / 6 | 2,410 / 7 | 2,064 / 6 | 0 |
+| Permanent delete | 3,942 / 5 | 5,524 / 7 | 3,942 / 5 | 0 |
+| Free CREATE | 688 / 2 | 1,032 / 3 | 688 / 2 | 0 |
+| Mail send, 25 MiB | 9,508 / 14 | 10,920 / 16 | 9,508 / 14 | 0 |
+
+**Read — scope:** no change to `warnings.py`, `paging.py`, approval inputs,
+questions, public tool behavior or immutable history. The complete local
+alteration matrix, Linux capture, strict re-pin and two final strict workflow
+repetitions are still pending; no old pin failure is passing evidence.
+
+**Run — local commands before Linux:**
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/tests .work/venv/bin/python -m unittest test_owner_state_oracle test_owner_state_fixes_s2 test_mail_ci_selection
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/mail_tests .work/venv/bin/python .work/19b-s2/local.py test_owner_state_contracts test_owner_state_plants test_owner_state_s2_effects
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/mail_tests .work/venv/bin/python .work/19b-s2/local.py test_owner_state_regressions
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/tests:.work/19b-s2/child-policy .work/venv/bin/python .work/19b-s2/local.py test_crashes test_journal_closed test_record
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/mail_tests:.work/19b-s2/child-policy .work/venv/bin/python .work/19b-s2/local.py test_action_context
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/mail_tests .work/venv/bin/python .work/19b-s2/storage-figures.py .work/19b-s2-fixes-2/storage-final.json
+python3 control/generate.py --check
+git diff --check
+```
+
+They print respectively **146 tests / OK**, **13 tests / OK**, **6 tests / OK**,
+**19 tests / OK**, **13 tests / OK** (303.824s; all twenty mutation flows and
+their write/failure/SIGKILL fences), the five `done` storage measurements,
+`Generated artifacts match definitions`, and no diff errors. Logs are under
+`.work/19b-s2-fixes-2/`; their SHA-256 values are recorded in the local evidence
+manifest. The worktree-only Linux-policy substitute is local diagnostic plumbing;
+Linux workflows provide installed-policy acceptance. An initial combined base
+and Mail test command failed import because both suites have `support.py`;
+separate PYTHONPATH invocations above resolve that harness mistake and pass.
+No test or assertion was removed.
+
+**Run — alteration diagnostic and correction:** the first four-shard matrix
+reported a silent change in the synthetic absent-destination filing follow-up
+(`events/3/mail:filing:r/state`). That fixture claimed a clean result without a
+committed warning. The destination-specific warning gate now retains recovery
+instead; a production plant dropping the actual occurrence is also rejected.
+All 26 filing/rename evidence and lifecycle snapshots pass a focused complete
+field-alteration replay (`check-scans.txt`). The incomplete first matrix is
+retained in `superseded-alteration-*.txt`, never counted as passing evidence.
+The complete matrix restarts on `9b1966f7` with twelve disjoint shards, matching
+Linux's split. No assertion or field is removed.
+
+**Read — field-audit additions for this round:**
+
+| Field/input read | Authority and validation | Regression |
+| --- | --- | --- |
+| FETCH metadata/literal bytes | Actual returned tuple, independently matched to UID, requested body and LIST byte hash; OK alone is insufficient | empty, wrong-UID and no-literal production scans |
+| SCAN_RESULT accepted/start | Summary is revalidated against its correlated SELECT/SEARCH/FETCH interval | false accepted bit with false closure |
+| Seed DATA/APPEND identities and calls | Exact enrolled pre-runtime seed call, scripted operation and Message-ID; runtime labels have no seed authority | wrong-call, wrong-message, post-seed and runtime-call negatives |
+| Filing result state, warning_checks and notice source/kind/fingerprint | Raw destination absence independently requires a warning; both its source result and matching occurrence must be in the committed prefix | complete absent-destination positive and omitted-warning plant |
+| LOCAL_STAGE stage / APPEND flags | Part of effect identity, with repeated identical effects still rejected | quiet test-app send and duplicate-APPEND retry tests |
+
+The other production-row and server-snapshot fields retain the previous complete
+field audit and coherent alteration coverage; no field exclusion was added.
+
+**Run — complete local alteration matrix:** all twelve disjoint shards pass on `9b1966f7`: **98 recordings / 2,080,065 alterations / 267,100 coherent variants / 15,899 owner-set changes / zero slipped**. LOCAL-S2-FIXES-2.json pins every final local log hash and summary. The initial four-shard diagnostic is superseded.
+
+| Validator | Alterations its own proof catches | Of those, owner set changes |
+| --- | ---: | ---: |
+| script_differences | 5,669 | 681 |
+| stage_claims | 54,941 | 2,361 |
+| completion_errors | 2,601 | 1,284 |
+| payload_claims | 61,520 | 24 |
+| filing_claims | 1,054 | 90 |
+| transition | 12,155 | 3,914 |
+| local.errors | 1,552 | 1,170 |
+
+These are proof-provenance counts, not claims that each validator is indispensable. The comparison-level plant/removal controls and redundancy table above provide that separate evidence. Linux capture and final strict acceptance follow below.

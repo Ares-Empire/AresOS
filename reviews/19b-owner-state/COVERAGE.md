@@ -197,3 +197,26 @@ passes reproduce all counts and individual-validator controls above.
 LEDGER-STRICT-S2-FIXES.json pins the 106 actual-list hashes, source, exact output
 evidence and timings. The closing commit is documentary only. Fresh reviews
 belong to the package lead; stage 3 remains unbuilt.
+
+### Stage 2 fixes round 2 refinements
+
+This supersedes round 1's blanket validator-control and target-presence claims.
+The four quiet contracts now include testapp_send, repair, settlement and status;
+they directly require zero oracle/public-view differences with one Sent copy.
+Distinct local stages are distinct effects, and fixture seed delivery is bound
+to its enrolled script call and exact Message-ID. Sent repair result commits
+still need correlated raw evidence. The separate duplicate race remains covered.
+
+M03/C03 scan closure requires the actual matching UID/body literal replies for
+every message, with complete SELECT/SEARCH coverage. An accepted SCAN_RESULT
+summary cannot substitute for those replies. Complete filing recovery may close
+with a warning when the destination is absent; the target-presence requirement
+is RENAME-specific. RENAME rechecks UIDVALIDITY on its mutation connection before
+context is committed, without fetching message bodies.
+
+Every production plant now adds differences relative to its own plant-free flow.
+Controls show indispensable transition/local-effect plants and overlapping
+validators explicitly. Terminal operation-row removal is caught only by
+stage_claims; move/copy/rename result-row removal only by filing_claims on this
+corpus. FORMAT.md and the round-2 report explain why ignoring a field can be
+invisible to expected-set alterations and require production plants instead.
