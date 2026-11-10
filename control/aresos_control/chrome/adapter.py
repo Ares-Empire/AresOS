@@ -264,6 +264,13 @@ class Chrome:
         description = {'action':'chrome_submit','untrusted_content':{'page_state':state,'input':payload['input'],
                        'resume_kind':payload.get('resume_kind'),'file':payload.get('file'),
                        'confirmation':payload.get('confirmation')}}
+        # Only service recognition chooses the action; reader text cannot name a kind.
+        semantic = payload.get('adapter') or {}
+        description['adapter_action'] = {
+            'gemini_question': 'Gemini: ask a question', 'gmail_send': 'Gmail: send a mail',
+            'gmail_delete': 'Gmail: delete the selected message',
+            'whatsapp_message': 'WhatsApp: send a message',
+        }.get(semantic.get('kind'))
         question = self.question(verb, description)
         return question, description, copy.deepcopy(payload)
 
@@ -276,7 +283,8 @@ class Chrome:
         target = state.get('target', {})
         site = state.get('frame_url', state.get('url', ''))
         label = ('resume '+data['resume_kind'] if data.get('resume_kind') else target.get('name') or data['input'].get('key') or data['input']['verb'])
-        summary = f"On {site}, as the page shows it, activate '{label}'"
+        action = description.get('adapter_action')
+        summary = f"On {site}, as the page shows it, " + (f"{action} (control '{label}')" if action else f"activate '{label}'")
         if target.get('page_dialog'):
             summary += f" in {target['page_dialog']['kind']} '{target['page_dialog']['text']}'"
         adapter = state.get('adapter')
@@ -293,6 +301,13 @@ class Chrome:
                 summary += f" to '{adapter['to']}', Cc '{adapter.get('cc','')}', hidden Bcc '{adapter.get('bcc','')}', subject '{adapter.get('subject','')}'"
             if adapter.get('text') is not None:
                 summary += f" with {len(adapter['text'])} characters"
+                if action == 'Gemini: ask a question':
+                    summary += f": '{adapter['text']}'"
+            if isinstance(adapter.get('attachments'), list):
+                attachments = adapter['attachments']
+                summary += f", {len(attachments)} attachment{'s' if len(attachments) != 1 else ''}"
+                if attachments:
+                    summary += ': ' + '; '.join(f"'{item.get('label', '')}' ({item.get('text', '')})" for item in attachments)
         form = state.get('form')
         if form:
             fields = form['fields']
