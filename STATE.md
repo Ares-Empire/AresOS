@@ -96,7 +96,13 @@ Updated 2026-11-10. The live truth is `git log`, `gh pr list` and `git worktree 
   - Built: PR #36 (head `d08fde0f`). Check build with VM passed (run 42809824712); WSL suites show only the known failures. Not proven: a real JVM start (CI has no Microsoft account).
   - In review: REVIEW-1 (gpt-6-astra high).
   - The owner answered all 14 JUDGMENT-CALLs (2026-11-10). #168: "Create it myself": on first start he creates the hub with the mod's AresOS button; nothing is auto-created with seed 49. #169: "Yes to all" for calls 2–6 (no login terminal, no restart after his own quit, a slow start never kills the game, Intel fallback, a managed instance without extra mods) and the 8 technical ones.
-  - Merges after 27. The release that carries it must run `os/ci/build-mod.sh` before `podman build` (its PLAN-GAP 1).
+  - REVIEW-1 (Astra): CHANGES-NEEDED, 3 blocking and 8 should-fix. Review fixes 1 is pushed (`7ec26b84`, brief `23-review-fixes-1.md`).
+    - Every image build now builds and checks the mod jar: a `mod` stage in the Containerfile plus a pin check in `build.sh`. That replaces its PLAN-GAP 1.
+    - Hosted `checks_only`: 958 tests OK (run 42830860249).
+    - The VM build failed twice on Ubuntu mirror 502/503s; one more `check_build=build` is approved.
+    - REVIEW-2 (Astra) is running.
+    - Updated JUDGMENT-CALL 10 (a memory kill or unexplained whole-scope death latches recovery, no automatic restart) is with the owner: board #170.
+  - Merges after 27.
 - **Package 27, the first update release, started 2026-11-10** (brief `27-first-update-release.md`, empire brief 266; Claude agent, Opus; branch `pkg/27-first-update-release`):
   - build, image diff, publish, then a VM rehearsal of the owner's update from release 13 (update, admin password, previous, forward again);
   - after the rehearsal passes, pin the release and empty `pending-rebind.json`;
