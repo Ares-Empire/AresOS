@@ -15,9 +15,9 @@ from ..warnings import check_result
 from .bridge import Bridge
 from .committed import Projection
 from .exclusions import owner_hosts
-from .policy import allowed_url, classify, HOSTS, hostname
+from .policy import allowed_url, classify, HOSTS, hostname, canonical_key, key_input, explicit_effect
 from .qualification import Qualification, switches
-from .sites import recognize, KINDS
+from .sites import recognize, KINDS, recipients
 
 RUNTIME = Path(__file__).resolve().parents[2]
 
@@ -30,13 +30,15 @@ def view_identity(facts):
 def binding(facts, reference, kind, adapter):
     frame = next(frame for frame in facts['frames'] if frame['frame'] == reference['frame'])
     target = frame['target']
+    if kind in {'send', 'confirmation'} and not frame.get('form') and not adapter and facts.get('uncovered'):
+        raise Refused('refused', 'A complete draft binding needs every frame; a frame could not be inspected.')
     keys = ['element','role','name','label','title','href','value','password','states','editable','search','submit','page_dialog','options','implicit_submitter']
-    return {'session':facts['session'],'tab':facts['tab'],'control':facts.get('control'),'url':facts['url'],'document':frame['document'],
-            'frame':frame['frame'],'frame_url':frame['url'],'target':{key:target[key] for key in keys if key in target},
+    return {'session':facts['session'],'tab':facts['tab'],'control':facts.get('control'),'url':facts['url'],'title':facts.get('title', ''),'document':frame['document'],
+            'frame':frame['frame'],'frame_url':frame['url'],'effective_url':frame.get('effective_url',frame['url']),'target':{key:target[key] for key in keys if key in target},
             'form':frame.get('form'),
             'editable':[{'frame':item['frame'],'document':item['document'],'url':item['url'],'fields':item['editable']} for item in facts['frames']]
-                if kind == 'send' and not frame.get('form') and not adapter else None,
-            'item':frame['item'] if kind in {'delete','pay','activation','confirmation'} else None,
+                if kind in {'send', 'confirmation'} and not frame.get('form') and not adapter else None,
+            'item':frame['item'] if kind in {'delete','pay','item','activation','confirmation'} else None,
             'adapter':frame['adapter'] if adapter else None,'dialog':facts.get('dialog')}
 
 
@@ -195,7 +197,7 @@ class Chrome:
         facts = self.bridge.call('facts', reference=reference)
         self.allowed_url(facts['url'])
         for frame in facts['frames']:
-            self.allowed_url(frame['url'])
+            self.allowed_url(frame.get('effective_url',frame['url']))
         if reference.get('view') and view_identity(facts) != reference['view']:
             raise Refused('stale_reference', 'Page changed; read again before acting.')
         frame = next((frame for frame in facts['frames'] if frame['frame'] == reference['frame']), None)
@@ -226,7 +228,7 @@ class Chrome:
                 facts=self.bridge.call('read',tab=args['tab']);token=view_identity(facts)
         rows = []
         for frame in facts['frames']:
-            self.allowed_url(frame['url'])
+            self.allowed_url(frame.get('effective_url',frame['url']))
             if verb == 'read_form':
                 reference = args['reference']
                 if reference['view'] != token:
@@ -262,7 +264,7 @@ class Chrome:
             payload = copy.deepcopy(payload)
             payload['confirmation'] = {**payload['adapter']['confirmation'], 'frame':state['frame']}
         description = {'action':'chrome_submit','untrusted_content':{'page_state':state,'input':payload['input'],
-                       'resume_kind':payload.get('resume_kind'),'file':payload.get('file'),
+                       'kind':payload.get('kind'),'resume_kind':payload.get('resume_kind'),'file':payload.get('file'),
                        'confirmation':payload.get('confirmation')}}
         # Only service recognition chooses the action; reader text cannot name a kind.
         semantic = payload.get('adapter') or {}
@@ -277,6 +279,19 @@ class Chrome:
     def question(self, verb, description):
         data = description['untrusted_content']
         state = data['page_state']
+        def bounded(value, kind='name', position=1):
+            value=str(value)
+            return value if len(value)<=120 else f'{kind} {position}, a {len(value)}-character name'
+        def recipient_summary(value):
+            values=recipients(value)
+            if values is None:return bounded(value, 'recipient list')
+            shown=[]
+            for index,value in enumerate(values):
+                part=bounded(value, 'recipient', index+1)
+                if len(','.join(shown+[part]))>180:break
+                shown.append(part)
+            remaining=len(values)-len(shown)
+            return ','.join(shown)+(f' and {remaining} more' if remaining else '')
         if state.get('dialog') and data['input']['verb']=='dialog':
             dialog=state['dialog']
             return f"On {state['url']}, as the page shows it, {'accept' if data['input'].get('accept') else 'dismiss'} {dialog['kind']} '{dialog['text']}' from frame {dialog['frame']}?"
@@ -284,7 +299,10 @@ class Chrome:
         site = state.get('frame_url', state.get('url', ''))
         label = ('resume '+data['resume_kind'] if data.get('resume_kind') else target.get('name') or data['input'].get('key') or data['input']['verb'])
         action = description.get('adapter_action')
-        summary = f"On {site}, as the page shows it, " + (f"{action} (control '{label}')" if action else f"activate '{label}'")
+        kind=data.get('kind')
+        generic={'delete':'delete', 'pay':'pay for', 'item':'unsubscribe from'}.get(kind, 'activate')
+        summary = f"On {site}, page '{bounded(state.get('title',''))}', as the page shows it, " + (f"{action} (control '{bounded(label)}')" if action else f"{generic} '{bounded(state.get('item') or label)}'")
+        if data['input'].get('key'):summary += f" using {data['input']['key']}"
         if target.get('page_dialog'):
             summary += f" in {target['page_dialog']['kind']} '{target['page_dialog']['text']}'"
         adapter = state.get('adapter')
@@ -298,7 +316,7 @@ class Chrome:
             if adapter.get('chat'):
                 summary += f" in chat '{adapter['chat']}'"
             if adapter.get('to') is not None:
-                summary += f" to '{adapter['to']}', Cc '{adapter.get('cc','')}', hidden Bcc '{adapter.get('bcc','')}', subject '{adapter.get('subject','')}'"
+                summary += f" to '{recipient_summary(adapter['to'])}', Cc '{recipient_summary(adapter.get('cc',''))}', hidden Bcc '{recipient_summary(adapter.get('bcc',''))}', subject '{bounded(adapter.get('subject',''))}'"
             if adapter.get('text') is not None:
                 summary += f" with {len(adapter['text'])} characters"
                 if action == 'Gemini: ask a question':
@@ -307,7 +325,7 @@ class Chrome:
                 attachments = adapter['attachments']
                 summary += f", {len(attachments)} attachment{'s' if len(attachments) != 1 else ''}"
                 if attachments:
-                    summary += ': ' + '; '.join(f"'{item.get('label', '')}' ({item.get('text', '')})" for item in attachments)
+                    summary += ': ' + '; '.join(f"'{bounded(item.get('label', ''), 'attachment', index+1)}' ({bounded(item.get('text', ''), 'attachment details', index+1)})" for index,item in enumerate(attachments[:3])) + (f' and {len(attachments)-3} more' if len(attachments)>3 else '')
         form = state.get('form')
         if form:
             fields = form['fields']
@@ -337,7 +355,7 @@ class Chrome:
     def check_readonly(self, payload, get=None):
         get = get or self.store.get
         state = payload['binding']
-        addresses = [state['url'], state.get('frame_url') or state.get('dialog', {}).get('frame_url', state['url'])]
+        addresses = [state['url'], state.get('effective_url') or state.get('frame_url') or state.get('dialog', {}).get('frame_url', state['url'])]
         for address in addresses:
             self.allowed_url(address)
         if state.get('form'):
@@ -414,14 +432,16 @@ class Chrome:
 
     def payload(self, verb, args, *, hold=None):
         mode = self.mode(acting=True)
+        if verb == 'press':
+            args = {**args, 'key':canonical_key(args['key']), 'key_input':key_input(args['key'])}
         facts, frame = self.facts(args['reference'])
         if args.get('expected') is not None and args['expected'] != visible(frame['target']):
             raise Refused('stale_reference', 'Element no longer holds its expected state; read again.')
-        readonly = any(self.store.get('chrome:readonly:' + hostname(url), False) for url in [facts['url'],frame['url']])
+        readonly = any(self.store.get('chrome:readonly:' + hostname(url), False) for url in [facts['url'],frame.get('effective_url',frame['url'])])
         href=frame['target'].get('href')
         if href and not href.startswith('javascript:') and (verb=='click' or verb=='press' and args.get('key','').split('+')[-1] in {'Enter','Space'}):
             self.allowed_url(href)
-        adapter = recognize(frame['url'], frame['adapter'], frame['target'], verb, args, self.hosts, mode['adapters'])
+        adapter = recognize(frame.get('effective_url',frame['url']), frame['adapter'], frame['target'], verb, args, self.hosts, mode['adapters'])
         kind = classify(verb,args,frame,conservative=mode['conservative'],readonly=readonly,adapter=adapter)
         if facts.get('needs_reload'):
             self.free('prepare_control', tab=args['reference']['tab'], reload_taken_tab=args.get('reload_taken_tab', False))
@@ -434,7 +454,7 @@ class Chrome:
         submitting = target.get('submit') and (verb in {'click','check','select'} or verb == 'press' and key in {'Enter','Space',' '}) or verb == 'press' and key == 'Enter' and target.get('editable')
         if state['form'] and (hold or kind or submitting):
             self.allowed_url(state['form']['action'])
-        if kind == 'send' and not state['form'] and not adapter:
+        if kind in {'send', 'confirmation'} and not state['form'] and not adapter:
             fields = [field for document in state['editable'] for field in document['fields']]
             if not any(isinstance(field.get('value'),str) and field['value'] and field.get('type') not in {'checkbox','radio','select-one','select-multiple'} for field in fields):
                 raise Refused('refused', "Can't tell what this sends: no editable text. Use an adapter or the owner's own click.")
@@ -542,7 +562,10 @@ class Chrome:
     def trusted(self, operation):
         mode = self.mode(acting=True)
         adapter = operation['payload'].get('adapter')
-        if mode['conservative'] or not adapter or not adapter.get('trusted') or not mode['adapters'].get(adapter['site']):
+        payload = operation['payload']
+        state = payload['binding']
+        forbidden = payload.get('kind') in {'delete', 'pay'} or explicit_effect({'target':state.get('target', {}), 'form':state.get('form')}) in {'delete', 'pay'} or adapter and (adapter.get('site') == 'whatsapp' or adapter.get('effect') in {'delete', 'pay'})
+        if forbidden or mode['conservative'] or not adapter or not adapter.get('trusted') or not mode['adapters'].get(adapter['site']):
             return False
         entry = self.store.get('chrome:allow:' + self.allow_id(operation), {})
         return bool(entry and entry.get('kind_hash') == digest(KINDS.get(adapter['kind'])) and not entry.get('revoked'))
