@@ -12,7 +12,7 @@ from PIL import Image
 from channel import Frames, frame, import_bytes
 from qmp import QMP, assert_guest_poweroff
 from offline_journal import check_offline_poweroff
-from serial_console import serial_search, IncompleteKernelLine
+from journal_ready import follower_ready
 
 work = pathlib.Path('vm-work').resolve()
 evidence = pathlib.Path('evidence').resolve() / f'vm-pass-{os.environ["ARESOS_VM_PASS"]}'
@@ -126,15 +126,8 @@ try:
     prepared = request('prepare-poweroff')
     deadline = time.monotonic() + 60
     while True:
-        transcript = (evidence / 'serial.log').read_bytes()[journal_start:].decode(errors='replace')
-        try:
-            _, ready = serial_search('ARESOS_JOURNAL_READY', transcript)
-        except IncompleteKernelLine:
-            ready = None
-        # The follower prints short-monotonic lines ("[   73.458055] host ..."),
-        # which serial_search strips as kernel records (package 21 found this).
-        # The token only signals readiness, so a complete follower line counts.
-        if ready or re.search(r'^\[\s*\d+\.\d+\] \S+ aresos-ci\[\d+\]: .*ARESOS_JOURNAL_READY', transcript, re.M):
+        # Only a complete follower record whose message is exactly the token.
+        if follower_ready((evidence / 'serial.log').read_bytes()[journal_start:].decode(errors='replace')):
             break
         if qemu.poll() is not None or time.monotonic() >= deadline:
             raise TimeoutError('Journal follower did not forward its readiness record')

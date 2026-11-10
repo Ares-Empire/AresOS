@@ -8,7 +8,7 @@
     "Package 15g: install-night owner-page corrections and route tests; checkout bytes recorded for the next rehearsal (no walk tables rebound)",
     "Package 15gb: reviewed return routes, idle live-session shutdown exception and layout-proof wording; current checkout bytes retained without rebinding historical tables",
     "Package 21 (everyday account and Chrome): os-image.yml gains the throwaway check_build job, which builds and checks a branch image without pushing, signing or publishing it; checkout bytes recorded for the next rehearsal (no walk tables rebound)",
-    "Package 21 review fixes 3: vm.py also accepts the journal follower's readiness line, which serial_search strips as a kernel record since package 14, so the throwaway check build can boot its VM pass; checkout bytes recorded for the next rehearsal (no walk tables rebound)"
+    "Package 21 review fixes 3 and 4: vm.py's journal readiness wait accepts only a complete follower record whose message is exactly ARESOS_JOURNAL_READY (os/ci/journal_ready.py); serial_search strips those lines as kernel records since package 14. Checkout bytes recorded for the next rehearsal (no walk tables rebound)"
   ],
   "rule": "The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
@@ -25,7 +25,7 @@
       "path": "docs/INSTALL.md"
     },
     {
-      "sha256": "63d4a2c592c7acc81ad66fe5c1c24992b2b6c0e3868f9665b6d177e2a8f4eb1c",
+      "sha256": "927a93154c46a93b7ffb91328552fa9a591fd1fcc7d2cc54bba0869647fb9f1e",
       "path": "os/ci/vm.py"
     },
     {
