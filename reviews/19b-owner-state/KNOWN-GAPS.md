@@ -1,6 +1,6 @@
 # Stage 1 known gaps
 
-The current executable pin is the round-2 pin described below; earlier sections retain their historical conversion and verification evidence.
+The current executable pin is the round-3 pin described below; earlier sections retain their historical conversion and verification evidence.
 
 The list starts with Mail review 22's three blocking cases. They remain failures in production; stage 1 exposes them without changing their assertions.
 
@@ -12,12 +12,18 @@ The list starts with Mail review 22's three blocking cases. They remain failures
 
 `KNOWN-GAPS.json` is the compact format-3 executable ledger. Each group fixes its suite, ownership bucket, matrix row, closing stage, exact assertion count, three sample keys and SHA-256. The digest covers the sorted newline-delimited canonical JSON list of `[key, {row, stage, delta}]`; `delta` includes calls, missing/extra facts and page numbers. No full assertion list is committed. The twelve fixed buckets match four shards × three workers; point-zero cases are shared by every worker. Each suite verifies every owned group, including absent groups. A changed count, digest, row/stage, group or sample fails. Diagnostics distinguish unexpected passes/removals, unlisted additions and changed deltas where the committed summary permits.
 
-Each worker writes its complete actual format-2 list to `.work/mail-ci/owner-gaps-*.json.gz`, including when strict verification fails; installed-channel cases write under `.work/control-ci/`. Existing artifact steps upload those files. After downloading all artifacts into `.work/19b-fixes/capture/`, regenerate the full list on demand with:
+Each worker writes its complete actual format-2 list to `.work/mail-ci/owner-gaps-*.json.gz`, including when strict verification fails; installed-channel cases write under `.work/control-ci/`. Existing artifact steps upload those files. After downloading all artifacts into `.work/19b-round3/capture/`, regenerate the full list on demand with:
 
 ```sh
-PYTHONPATH=control python3 -m owner_state_oracle.gaps .work/19b-fixes/capture/*/owner-gaps-*.json.gz --full --output .work/19b-fixes/actual-full.json
-PYTHONPATH=control python3 -m owner_state_oracle.gaps .work/19b-fixes/actual-full.json --output .work/19b-fixes/actual-compact.json
-diff -u reviews/19b-owner-state/KNOWN-GAPS.json .work/19b-fixes/actual-compact.json
+PYTHONPATH=control python3 -m owner_state_oracle.gaps .work/19b-round3/capture/*/*/owner-gaps-*.json.gz --full --output .work/19b-round3/actual-full.json
+PYTHONPATH=control python3 -m owner_state_oracle.gaps .work/19b-round3/actual-full.json --output .work/19b-round3/actual-compact.json
+python3 - <<'PY'
+import json
+from pathlib import Path
+p = Path('.work/19b-round3/actual-compact.json')
+p.write_text(json.dumps(json.loads(p.read_text()), sort_keys=True, indent=1) + '\n')
+PY
+diff -u reviews/19b-owner-state/KNOWN-GAPS.json .work/19b-round3/actual-compact.json
 ```
 
 The converter rejects conflicting shared keys. Before expectation fixes, the 52 MB format-2 ledger converted to 804,042 bytes / 1,623 ownership groups, preserving all 675,562 exact failures (stage 2: 44,856; stage 3: 630,706). `LEDGER-CONVERSION.json` pins the original and converted file hashes. Independent rehashing of the original full list matched every committed digest and count. Compact-ledger self-tests cover unchanged input, flipped delta, removed/added keys, unexpected passes, regrouping and every group's ownership. The AST import check includes `gaps.py`.
@@ -135,3 +141,49 @@ diff -u reviews/19b-owner-state/KNOWN-GAPS.json .work/19b-round2/actual-compact.
 The compact checker still covers every exact key, row, stage, call, missing/extra fact and page position. Final strict workflow evidence is in REPORT.md; captures and the earlier cancelled snapshots are not green verification.
 
 **Run — final round-2 strict verification:** base [42693447617](https://github.com/Ares-Empire/AresOS/actions/runs/42693447617), Mail [42693447616](https://github.com/Ares-Empire/AresOS/actions/runs/42693447616) and boundary [42693452764](https://github.com/Ares-Empire/AresOS/actions/runs/42693452764) each passed attempts 1 and 2 on `24706dafee41ec8473d71a54aa4c09e434b4e802`. Every Mail job finished below 45 minutes (maximum 36m 11s). Both complete strict artifact sets independently reproduce the committed compact file byte-for-byte; `LEDGER-STRICT-R2.json` pins all 34 artifact hashes. REPORT.md contains exact log lines, per-worker counts and durations. Stage 2 was not started.
+
+## Stage 1, fixes round 3 pin
+
+**Run:** complete Linux capture Mail [42728213029](https://github.com/Ares-Empire/AresOS/actions/runs/42728213029), base [42728213032](https://github.com/Ares-Empire/AresOS/actions/runs/42728213032), both attempt 1, source `745e9d11f97f591d37e8ffb98253ba9ccc8117b1`. All twelve workers completed all 32 flows, with no runtime errors and only final superseded-pin failures. The suite's 317 tests had only the final old contract-pin failure; the 251-test base passed. Every Mail job finished in 30m20s–37m31s. Capture is diagnostic evidence, not strict acceptance.
+
+`LEDGER-CAPTURE-R3.json` pins all 17 artifact hashes, ownership-checked merge, exact counts and compact hash. The current pin contains **1,810,440 exact keys**, **44,857 stage 2 / 1,765,583 stage 3**, in **2,115 groups / 976,806 bytes**, SHA-256 `a5cd7a55288aeb958e4f8420c1ca68e62f62c7c883197fb0fc239ec045809759`. One-space JSON indentation keeps format 3 under 1 MB without removing samples or digest inputs. Strict verification still compares every key, row, closing stage and delta.
+
+Compared with round 2: **194,530 added keys, 13,979 removed keys, 108,328 changed retained deltas**. Retained obligations add missing work/recovery/hold/account comparisons; bounded history and full-effect validation add lifecycle/completion differences. Correct clean-result epochs and notice grouping remove earlier incorrect differences. Row assignments now identify M06/M09/M14 history/retention and M12/C05/M14 account defects explicitly. These are oracle changes; no production gap was closed. D3 remains assigned to stage 3.
+
+| Flow / suite | Stage 2 | Stage 3 |
+| --- | ---: | ---: |
+| `G22-evidence` | 0 | 1 |
+| `G22-latch` | 0 | 1 |
+| `G22-rename` | 0 | 1 |
+| `archive` | 0 | 56,152 |
+| `attachment_export` | 0 | 67,394 |
+| `cancel` | 0 | 9,909 |
+| `channel` | 0 | 2 |
+| `contract` | 16 | 485 |
+| `delete_permanent` | 3,131 | 77,001 |
+| `delete_trash` | 1,879 | 51,433 |
+| `draft_append` | 629 | 8,137 |
+| `expiry` | 0 | 11,998 |
+| `export_rollback` | 0 | 75,238 |
+| `filing_copy` | 0 | 66,495 |
+| `filing_move` | 0 | 66,495 |
+| `filing_rename` | 1,134 | 32,508 |
+| `flag` | 594 | 7,721 |
+| `folder_create` | 594 | 7,721 |
+| `folder_delete` | 1,234 | 38,645 |
+| `folder_review` | 889 | 34,653 |
+| `maintenance` | 0 | 6,303 |
+| `onboarding` | 19,883 | 394,589 |
+| `password` | 1 | 1,961 |
+| `repair` | 1,908 | 95,567 |
+| `restore` | 0 | 18,822 |
+| `send` | 4,865 | 175,195 |
+| `settings` | 924 | 14,281 |
+| `settlement` | 0 | 34,216 |
+| `status` | 0 | 22,587 |
+| `testapp_config` | 721 | 7,844 |
+| `testapp_delete` | 0 | 48,279 |
+| `testapp_export` | 0 | 20,227 |
+| `testapp_send` | 0 | 67,287 |
+| `unsubscribe_https` | 1,253 | 64,217 |
+| `unsubscribe_mailto` | 5,202 | 182,218 |
