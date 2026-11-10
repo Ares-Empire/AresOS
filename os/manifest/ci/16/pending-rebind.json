@@ -9,12 +9,13 @@
     "Package 15gb: reviewed return routes, idle live-session shutdown exception and layout-proof wording; current checkout bytes retained without rebinding historical tables",
     "Package 21 (everyday account and Chrome): os-image.yml gains the throwaway check_build job, which builds and checks a branch image without pushing, signing or publishing it; checkout bytes recorded for the next rehearsal (no walk tables rebound)",
     "Package 21 review fixes 3 and 4: vm.py's journal readiness wait accepts only a complete follower record whose message is exactly ARESOS_JOURNAL_READY (os/ci/journal_ready.py); serial_search strips those lines as kernel records since package 14. Checkout bytes recorded for the next rehearsal (no walk tables rebound)",
-    "Package 22: update route (at update, at previous, tools updating themselves), step 8 guide route, steps 4-7 in INSTALL-STATUS; new tools fingerprint"
+    "Package 22: update route (at update, at previous, tools updating themselves), step 8 guide route, steps 4-7 in INSTALL-STATUS; new tools fingerprint",
+    "Package 27 (first update release): release 27 pinned in release.json and the tools bundle, the update rehearsal harness (laptop tools, step 8 route, passwd and sudo proofs), package 27 dispatch wiring"
   ],
   "rule": "The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
     {
-      "sha256": "35bf031a53a7b8e0cffca1ffb75ee3c26a616c03de5036f3395eb74b255dc20f",
+      "sha256": "1a71a5b16bd27a610d218d932c4a829838d3743c883eb4d3d73a0aecf53c9c33",
       "path": ".github/workflows/os-image.yml"
     },
     {
@@ -22,8 +23,48 @@
       "path": "docs/EMERGENCY.md"
     },
     {
-      "sha256": "f961d2de66b051df98eeecf8ebf741ea7c9e20c0e168421d57bd380ff78e57c9",
+      "sha256": "a62ebc8821b9349e883baf299ecf6dd17aa98ea6e4c801ba7bf65c9f0751941d",
       "path": "docs/INSTALL.md"
+    },
+    {
+      "sha256": "6566f2efc06e79d3190ded48cdb119c4fc79f4ed5fc6ef784babc52438fb8223",
+      "path": "os/ci/checkout_sources.py"
+    },
+    {
+      "sha256": "c8774757b96cb90e3a6d31741dc9379c2fc895b330bf838e9f8b9771e98cdb3c",
+      "path": "os/ci/owner_hidden.py"
+    },
+    {
+      "sha256": "1d5841d55a09fa746fd19411ec8b5044186771f15749e2d46c5d49465e595629",
+      "path": "os/ci/owner_login.py"
+    },
+    {
+      "sha256": "e77c4ec1e7a1932dc5fc28fed557e71cd3b95fc2f0ae76a8d8e9737b2243aa83",
+      "path": "os/ci/owner_media.py"
+    },
+    {
+      "sha256": "7f745e11dcedd414cb6084fe5a9b79268daab9a49735a7dddb1ccae5be941c61",
+      "path": "os/ci/owner_vm.py"
+    },
+    {
+      "sha256": "5b880beffabf08af431091251ce433197d7115dc0c2de6de19339929744ebd02",
+      "path": "os/ci/registry_auth.py"
+    },
+    {
+      "sha256": "74657992a26c3d2a4c7aa3912072938adddf7633c8f222733e89ed5407369352",
+      "path": "os/ci/rehearsal-packages.json"
+    },
+    {
+      "sha256": "68181f57eaffea2e72e3099fb4e87d5b64ca6f880c4da46a9d9029eb5d97b0af",
+      "path": "os/ci/rehearsal_guard.py"
+    },
+    {
+      "sha256": "8a5105eb862546c83ae0baa4c0c037e9c7f289d376ed39e739c0055f73af1ae0",
+      "path": "os/ci/two_disk_vm.py"
+    },
+    {
+      "sha256": "a314a8268404ba7df1ca63adaab535ce743f79ffa2e9e6627cb16c8c215d6b35",
+      "path": "os/ci/verify_release.py"
     },
     {
       "sha256": "927a93154c46a93b7ffb91328552fa9a591fd1fcc7d2cc54bba0869647fb9f1e",
@@ -34,7 +75,7 @@
       "path": "os/owner-tools/bundle.py"
     },
     {
-      "sha256": "7cc620aa2e71a65b9f55cb31f27f86c069c61e8533d83f62b6c409d111c71d16",
+      "sha256": "c1c798b4f79b081f821540d85e5d658a69b27ac7c67b688978cabb5e60159ec0",
       "path": "os/owner-tools/commands.json"
     },
     {
@@ -46,11 +87,11 @@
       "path": "os/owner-tools/owner.py"
     },
     {
-      "sha256": "6474184b07d5787417e26657fcb66bcdf4cfe1d89e057b3279c8f6d9d1bba56e",
+      "sha256": "607affcf88108dbe6db2809adf56348aeab2fa8b356197698e2dc97087afe31a",
       "path": "os/owner-tools/payload/SHA256.json"
     },
     {
-      "sha256": "e765ae29bc087f6c87b250b0d546847e31ebc13908e709bf1377615bf9d56f0c",
+      "sha256": "167f587ccd72f3d13226bf9d60f684cde56c1cb7ee674da0a0b1008b2013db94",
       "path": "os/owner-tools/payload/SHA256SUMS"
     },
     {
@@ -62,37 +103,86 @@
       "path": "os/owner-tools/payload/owner.py"
     },
     {
-      "sha256": "69bc252b5299212c9faddad284019c82f24b9e8f53867fa6299581b6f3fd78c0",
+      "sha256": "975da14646648fb39f219f52f232d4b674180a2a892bf3a91069035bdf1ea45e",
+      "path": "os/owner-tools/payload/release.json"
+    },
+    {
+      "sha256": "46e75d800ea4f52d3a4138cf06fca830ff14582b5fc72ae3ace113a31dc17978",
+      "path": "os/tests/owner_console_shim.py"
+    },
+    {
+      "sha256": "be5d87d38bc0d9dac8373523bdc80a19653e2639bea8aa12678d4ead6cbdb683",
+      "path": "os/tests/owner_login_shim.py"
+    },
+    {
+      "sha256": "6fe77295fedc66f78510c0531bd52b7f10e128f0af301521a57a7bb661602bd5",
       "path": "os/tests/test_checkout_sources.py"
     },
     {
-      "sha256": "4589ba5f2b859ef97a449b032530a158a6277ce5962940550ca2e20ef961d386",
+      "sha256": "72ffb82ad583fe91558340e18926e1c2e5e83e9636b7601657b5f7621d442cc3",
+      "path": "os/tests/test_owner_capabilities.py"
+    },
+    {
+      "sha256": "04069fb0bdbcbab2fef366977ffeba29c8cb5048a8c61951c700c5b20ccf496f",
+      "path": "os/tests/test_owner_devices_native.py"
+    },
+    {
+      "sha256": "e3ffbd52aa32822f26b858915e9036395ae1db878f0213c65bb2793979ec686b",
       "path": "os/tests/test_owner_diagnostics.py"
     },
     {
-      "sha256": "6da8ca27bf1b2d6c471ea209a29336dd749b5bf30708faccd0c40bb5f09db95c",
+      "sha256": "4504189cb631115881d025dc051545e1338b91cedb3249bd258d600994016f11",
       "path": "os/tests/test_owner_entry.py"
     },
     {
-      "sha256": "1e14d1475eaec1a5bc7e3f096628b950dd9e8ca8e8fca3173115de3a56ddcebe",
+      "sha256": "318c4c39801caea591940e756341a0709452f57d03d1d4e554d464dffbbf0f66",
       "path": "os/tests/test_owner_equality.py"
+    },
+    {
+      "sha256": "83af0961f15ce5bf0ebdfa6153df2775d7448d26a04a9f1619afe582ca251735",
+      "path": "os/tests/test_owner_finalize.py"
     },
     {
       "sha256": "6d30c2a12160aa3e8dd206e8d711854539661ef77eabf8e7ee5207fd31c8a1cd",
       "path": "os/tests/test_owner_firmware.py"
     },
     {
-      "sha256": "f9ab48e007484ec544fdf933fa47f108cc46152ca577c8b19a679617dc479075",
+      "sha256": "743d851911d57c84afe19afbee55f28f94be87300929c16bb7f3b834f55a6220",
+      "path": "os/tests/test_owner_guard.py"
+    },
+    {
+      "sha256": "7c10597fe5a2836951504b6f2514f9c51bc77402435d4ab33b3a420d777a05bd",
       "path": "os/tests/test_owner_path.py"
     },
     {
-      "sha256": "6a88e2cb8547f2fba11588047654d196fc8705321d1d7c0a9b678649f0751536",
+      "sha256": "9117293c2a4db4d92326c9660cf5cf9455a71b83ea20f5e3f2669387c7cd77ba",
+      "path": "os/tests/test_owner_retained.py"
+    },
+    {
+      "sha256": "974351787c3a3f408d38dbce6c0f1395ef82434b6b79345ed0a5075ca23faabc",
+      "path": "os/tests/test_owner_staged_release.py"
+    },
+    {
+      "sha256": "58e8aa43c5f3014a2db8a1d3c664d71dfafb92419af110b6f6c12f45046c8b70",
       "path": "os/tests/test_owner_step_limits.py"
+    },
+    {
+      "sha256": "e9fe8e0841e583e5a1ca960da0ec6d6be7fa5448efd86ae323ecd46b5f27d103",
+      "path": "os/tests/test_owner_tools.py"
+    },
+    {
+      "sha256": "670896be25ffbe5ba4f8523dc3489c8bcd2c70a07d9f1156f92b78b74b76f690",
+      "path": "os/tests/test_owner_walk.py"
+    },
+    {
+      "sha256": "91eb40f23d4c076019c0c8e30e0bfa13af4541168d358dc1b0f8a2d8583c3a5a",
+      "path": "os/tests/test_rehearsal_budget.py"
+    },
+    {
+      "sha256": "cddfb200bc20187784db2fc311305a0ea383c8eb3ac7e4af53817c696a786404",
+      "path": "os/tests/test_release_squash_binding.py"
     }
   ],
-  "unwalked_commands": [
-    "update",
-    "previous"
-  ],
-  "unwalked_rule": "Commands added by package 22 need a newer signed release, so no rehearsal has typed them yet. The release package's rehearsal walks them and removes them here; test_owner_equality refuses a listed command once it is typed."
+  "unwalked_commands": [],
+  "unwalked_rule": "Commands added by package 22 are typed by the local walk of package 27's update rehearsal (os/tests/test_owner_walk.py, route update); none is waiting."
 }
