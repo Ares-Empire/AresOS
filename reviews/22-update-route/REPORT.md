@@ -107,4 +107,8 @@ Brief `briefs/22-review-fixes.md`; review `REVIEW.md` (gpt-6-astra, high). JUDGM
 
 New tools fingerprint `712a571005f1c2a9d743fba77a1b1bb8ecffbec499078d42015820b223a23cf4` (step 4 and the update route in `docs/INSTALL.md`, `commands.json`, INSTALL-STATUS, this report). `pending-rebind.json` now lists 17 files (new: `media.py`, `payload/media.py`, `test_owner_diagnostics.py`), with exact hashes from `checkout_sources.records`.
 
-FIXES-VERIFIED
+Verified for the fixes:
+- WSL full suites on a fresh clone of the pushed head `384abe37` (code identical to the final head; only this report changed after), each started only with at least 4 GB free and no other suite running: plain `Ran 723 tests`, `FAILED (failures=1, errors=9)`; `-B` `Ran 723 tests`, `FAILED (failures=1, errors=9)`. Both are exactly the known WSL-only set: `test_greeter` (3 errors), `test_inherited_homebrew` (1 failure + 5 errors), `test_sysusers` (1 error).
+- Focused WSL suites before the push: `test_owner_update` 34 OK, `test_owner_path` 39 OK, `test_owner_equality` 9 OK, `test_checkout_sources` 4 OK, `test_owner_step_limits` 4 OK, `test_owner_entry` 3 OK, `test_owner_diagnostics` 10 OK, `test_owner_export` 3 OK, `test_owner_devices` 6 OK, `test_owner_hidden` 10 OK, `test_owner_setup_resume` 9 OK, `test_owner_walk` 9 OK, `test_owner_tools` 13 OK, `test_owner_finalize` 9 OK, `test_owner_retained` 5 OK, `test_owner_commands` 6 OK.
+- Windows: `owner-pass.Tests.ps1` (fixtures only) printed `PASS 6 documented Windows PASS results equal captured entry stdout; no hardware queries.` with the new fingerprint; its scratch folder was removed.
+- The earlier full-suite results in "Verified" above belong to `7e15d8ab`, before these fixes.
