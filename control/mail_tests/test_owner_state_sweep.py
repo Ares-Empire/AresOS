@@ -1,5 +1,6 @@
 """Stage 1 independent owner-state comparisons at every inherited fault site."""
 from collections import Counter
+from ci.mail.tests import flow_partition
 from contextlib import contextmanager, ExitStack
 import hashlib
 import os
@@ -339,7 +340,8 @@ class OwnerStateSweep(unittest.TestCase):
         self.assertIn(shard, range(shards))
         self.assertGreater(workers, 0)
         self.assertIn(worker, range(workers))
-        for flow in FLOWS + EXTRA:
+        flows = flow_partition(FLOWS + EXTRA, int(os.environ.get('MAIL_FLOW_GROUP', '0')), int(os.environ.get('MAIL_FLOW_GROUPS', '1')), isolated=('onboarding',))
+        for flow in flows:
             started = time.monotonic()
             points, _ = exercise(flow, gaps=gaps)
             counts['clean'] += 1
@@ -360,5 +362,5 @@ class OwnerStateSweep(unittest.TestCase):
                                     exercise(flow, number, cleanup_at=cleanup_at, gaps=gaps, phase='crash')
                                     counts['pairs'] += 1
             print(f'Owner oracle flow={flow} points={len(points)} elapsed={time.monotonic()-started:.3f}s', flush=True)
-        gaps.verify(set(FLOWS + EXTRA), shard, shards, worker, workers)
+        gaps.verify(set(flows), shard, shards, worker, workers)
         print(f'Owner oracle shard={shard}/{shards} worker={worker}/{workers} modes={dict(counts)} strict expected failures={len(gaps.seen)}', flush=True)

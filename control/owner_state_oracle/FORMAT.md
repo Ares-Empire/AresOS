@@ -166,3 +166,38 @@ or its raw Sent observation. That event establishes an unchecked obligation even
 if its recorded state flag falsely says checked. Ordinary clean send, move,
 copy, rename and delete contracts assert that no lifecycle, clean-result or
 completion-proof error was introduced by the oracle itself.
+
+## Stage 2 action context (additive format 1)
+
+New operation rows carry `context_version: 1` and Mail preparation
+`roles_before`; generic intent rows carry that version, their own identity and
+full `arguments`. Immediately before each effect, the shared
+`action_context.mutation` helper commits `context` on its submitting operation,
+its started filing/rename row, or its own started free intent. A finished or
+missing source cannot cover another effect. A failed commit never enters the
+effect. The existing completion markers resolve the action; nothing replays it.
+
+The context has `format`, `command`, `account`, `identities`, `source`,
+`destination`, preparation `roles`, `recipients`, and exact internal caller
+`arguments`. Mail also records per-role `delimiters`, exact STORE `flags`, APPEND
+`append_flags`, wire `sha256`, or HTTPS `body` as applicable. Repair contexts
+name the original operation and approved stage but are committed on the repair's
+own operation identity. Probe folders and probe Message-IDs are committed before
+CREATE/APPEND; later cleanup is bound to those exact committed references.
+
+These fields are internal: they enter neither approval inputs/questions nor
+public operation responses. Old rows remain readable. An old unfinished
+operation lacking the version gets a conservative “not yet checked” notice;
+finished old operations get none. Reservations produced by the new format are
+identified before submission, and their execution context is committed before
+the command. Every previous context version remains in immutable event history.
+The independent journal's compact format is unchanged; the SQLite-independent
+owner-state projection is stage 3 and is not built in this stage.
+
+The new layout keeps the twelve ownership buckets and assigns each flow wholly
+to one of three CI flow groups (onboarding has its own group). Each group has twelve jobs with one owner process.
+The inherited whole-flow sweep partitions across the resulting 36 jobs.
+Four other jobs partition Mail suite modules, and four partition the complete
+recorded alteration corpus. Selection tests prove module, flow and ownership
+unions, including shared clean cases. No case or assertion is dropped, and the
+45-minute job limit is unchanged.
