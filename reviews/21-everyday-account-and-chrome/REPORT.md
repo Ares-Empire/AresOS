@@ -259,6 +259,15 @@ read-only commands ran directly, `install` went to `sudo -u '#1000'`, a missing 
      doesn't see `~/.local/bin` or Homebrew unless started from a terminal.
    - Reversal: set the daily PATH in `aresos-session` again; the CI shadow check then shows what it exposes.
 
+10. **Renew a vanished Fedora pin: `xdg-desktop-portal-wlr` 0.8.4 to 0.8.5** (review fixes 6).
+    - Fedora 44's updates repository replaced 0.8.4 with 0.8.5 on 2026-11-10, so no build could use the old pin.
+      The lock moves only this package, a patch release of the wlroots screen-sharing portal; the build still checks
+      the resolved set, the bytes and Fedora's signature.
+    - Rejected: Fedora's Koji archive for the exact 0.8.4 build (as in JUDGMENT-CALL 4, a source outside the lock
+      discipline) and leaving the throwaway build broken.
+    - Cost: a portal version that real use hasn't seen yet; the release rehearsal exercises it.
+    - Reversal: none while Fedora serves only 0.8.5; a later pin renewal moves it again.
+
 ## PLAN-GAP
 
 - **`vm.py` couldn't pass its power-key step since package 14** (fixed in review fixes 3). It now searches the serial log through
@@ -529,3 +538,59 @@ system-wide Wi-Fi and Flatpak installs ask for the password).
   3 errors, `test_inherited_homebrew` 1 failure + 7 errors, `test_sysusers` 2 errors). Focused on `f8777b8c`, which
   adds the profile guard: `test_journal_ready` 6 OK, `test_everyday_account` 31 OK, `test_shell_assertions` 8 OK,
   `test_checkout_sources` 4 OK.
+
+## Review fixes 6 and main merge (review 6: SAFE at `023bf077`, one Low; brief `21-review-fixes-6.md`)
+
+Review 6 found both review-5 findings fixed and JUDGMENT-CALL 9 sound, with no privilege, boot, firmware or session
+blocker left. Owner answers: board #156 "Yes to all" covers JUDGMENT-CALLs 1 to 3; calls 4 to 9 wait on board #163
+and are unchanged here. JUDGMENT-CALL 10 is new (item 4).
+
+1. **Main merged (package 24, `7cf0541b`).** Merge commit `cf0576b1`, no rebase or force-push. The one conflict, the
+   `os/build.sh` chmod line, keeps both sides: 21's `/usr/bin/brew` and `/usr/libexec/aresos-subids` with its
+   `sudoers.d` and subids lines, and 24's `/usr/libexec/aresos-shell`. No bound file changed, so
+   `pending-rebind.json` stays exact (`test_checkout_sources` 4 OK at every head of this round).
+2. **21 and 24 together.**
+   - The helper doesn't depend on PATH: `#!/usr/bin/python3`, `/usr/bin/systemd-run` for launches,
+     `/usr/bin/systemctl` for scope checks, a fixed `/usr/local/bin:/usr/bin` for desktop-entry lookups, and app files
+     whose `argv[0]` is absolute (`/usr/bin/google-chrome`, `/usr/bin/kwrite`, `/usr/bin/foot`). It ships no unit, no
+     polkit action and no updater: the polkit check and the static updater audit pass unchanged on the merged image.
+     Package 23's supervisor will start it, so the VM boot doesn't start it yet; the VM shadow check is unchanged.
+   - **Fixed, the one misfit:** the hub's Terminal app ran plain `foot`, whose bash inherited the session's
+     environment. Since review 5 that is the system PATH, so `~/.local/bin` (where tools like Claude Code's native
+     installer go) and Homebrew's commands were missing in the hub terminal. `terminal.json` now runs
+     `/usr/bin/foot --app-id=aresos.terminal /usr/bin/bash --rcfile /usr/share/aresos/bashrc -i`, which applies his
+     daily PATH and then his `~/.bashrc`. The banner and the AresOS prompt now print only in terminals that
+     `aresos-terminal` starts (`ARESOS_TERMINAL` set), so the hub terminal stays plain, as package 24's call 4 chose
+     (owner: board #155). Its app_id stays `aresos.terminal`.
+   - Tests: `test_hub_terminal_is_plain_but_reads_his_bashrc`, `test_app_helper_and_its_apps_run_absolute_commands`,
+     and `test_aresos_shell`'s registry and launch-argv assertions moved to the new terminal command.
+   - In-image checks: a `hub` row in the terminal PATH check (daily PATH, no banner) next to `normal` and `recovery`
+     (both now also require the banner); the exact `terminal.json` command; `aresos-shell` (listed by name, since no
+     session file names it yet), its commands and the app files' commands join the absolute startup commands that
+     must exist (26 now); and the helper, run as `ares` under the system PATH with broken `python3`, `systemd-run`,
+     `systemctl`, `foot`, `bash`, `kwrite`, `google-chrome`, `google-chrome-stable`, `sh` and `env` first on it, lists
+     all three apps as available and builds each launch from absolute paths, without running a shadow.
+3. **Review 6's Low: fixed.** The `shortcut` check now fails when the profile probe is missing or holds no
+   non-interactive, non-login (greetd wrapper) record, then checks that record's PATH. Run 42743949300 had that
+   record, so its evidence stands.
+4. **Forced pin renewal (JUDGMENT-CALL 10).** Fedora 44 pushed `xdg-desktop-portal-wlr-0.8.5-1.fc44` to stable on
+   2026-11-10, and its updates repository dropped 0.8.4, so the first build at the merged head (42788867155) stopped
+   in the package step: `No package "xdg-desktop-portal-wlr-0.8.4-1.fc44.x86_64" available`. Main's lock has the same
+   pin, so main's image builds stop there too. The lock now pins 0.8.5 (`bcc5a77d…`, the RPM from
+   dl.fedoraproject.org); `build.sh` still requires the resolved set, the bytes and Fedora's signature to match, and
+   they did. No other package changed.
+
+| Run | What | Result |
+|---|---|---|
+| 42788867155 | `check_build=build` on `7477615c` | Failed in the package step: the Fedora pin above had vanished. |
+| 42791257661 | `check_build=build` on `04cf5888` (pin renewed) | Package step and the new hub-terminal and wrapper checks passed; then the startup-command check failed, because it looked for `/usr/libexec/aresos-shell` among paths that session files name, and none names it yet. Fixed in `5846f803` by listing it by name. |
+| **42792865417** | **`check_build=build` on `5846f803`, with the VM boot** | **Success.** 33 in-image PASS lines, including `hub AresOS terminal PATH: /var/home/ares/.local/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/home/linuxbrew/.linuxbrew/bin:...`, `all 26 absolute startup commands exist` and `the app helper resolves browser, notepad and terminal and launches by absolute paths under the system PATH with shadows first` (the three `HELPER_LAUNCH` lines show the `systemd-run` commands); `static updater audit passes`; `POLKIT_CHECK_PASSED` with round 4's counts; the image's lock shows `xdg-desktop-portal-wlr-0.8.5-1.fc44`. VM pass: `ARESOS_ACTIVE_SESSION_POLKIT_PASSED`; the shortcut check with all 17 shadows in place and none run, both terminals with a `/usr/bin/bash` child, and the greetd wrapper record (`/bin/sh`, flags `hBc`, PATH `/usr/local/bin:/usr/bin:/usr/local/sbin`) now required; `PASS: offline logind power-key path`; `UEFI VM checks passed`; `CHECK_BUILD_VM_PASSED`. Evidence: `runs/build-42792865417/`. |
+| **42798151752** | **`checks_only=true` on `5846f803`** | **Success.** `Ran 791 tests` `OK` natively, with package 24's suites and the new tests above. |
+
+- Focused WSL suites on `7477615c` (fresh clone): `test_journal_ready` 6 OK, `test_everyday_account` 33 OK,
+  `test_aresos_shell` 64 OK, `test_shell_assertions` 8 OK, `test_checkout_sources` 4 OK; `test_sysusers` 2 errors
+  (WSL-only, as before). After the pin renewal, from the worktree: `test_everyday_account` 33 OK, `test_owner_path`
+  36 OK, `test_release_squash_binding` 7 OK, `test_checkout_sources` 4 OK.
+- Full WSL suite on `5846f803` (`pkg21-wsl-suite.sh`, started once package 22's suites had finished and 5.1 GB were
+  free): plain and `-B` both `Ran 791 tests`, `FAILED (failures=1, errors=12)`, only the known WSL-only suites
+  (`test_greeter` 3 errors, `test_inherited_homebrew` 1 failure + 7 errors, `test_sysusers` 2 errors).
