@@ -1,11 +1,12 @@
 # 19b — owner state
 
-**Current status — stage 2 fold in verification (2026-11-10):** the authorized
-fold removes all additional permanent-journal bytes in the five storage samples.
-Both gated operations grow by zero bytes; continuation is authorized by the
-fold brief. Linux capture, strict pin and two final workflow passes are pending.
-Stage 3 was not started. Earlier sections retain their historical evidence;
-the stage-2 fold section at the end controls the current status.
+**Current status — stage 2 fold verified, ready for lead reviews (2026-11-10):**
+all five storage samples return to their pre-stage-2 journal bytes and record
+counts. Send and permanent delete each add **zero journal bytes**. The complete
+Linux pin has zero R2 gaps, and Control base, all 56 Control Mail jobs and
+Control boundary passed twice on `be8ea4ca`. Both full actual-list merges
+reproduce the pin byte-for-byte. Stage 3 was not started. Earlier sections keep
+their historical evidence; the final fold verification below controls status.
 
 ## Done
 
@@ -1191,3 +1192,75 @@ keys and 16 fewer groups than part B's local pin; Linux export/SQLite syscall
 numbering and exact changed deltas remain explicit. The digest includes every
 remaining exact failure; nothing is normalized away or accepted as an R2 gap.
 D3, G22 and all R1/R3/lifecycle work remain assigned to stage 3.
+
+
+## Stage 2 fold: final strict verification
+
+**Run — tested source:** `be8ea4ca20064d403702e81e323a9a2bd731f6dd`, with the corrected
+standalone HTTPS recorder, deterministic inherited archive fixture and complete
+Linux pin. No production or ledger changes occur between the two repetitions.
+`LEDGER-STRICT-S2-FOLD.json` pins the source, all **106 actual-list hashes**,
+all 112 Mail job durations, exact output lines and both independent full merges.
+The closing documentation-only commit leaves this code, tests and pin unchanged.
+
+| Workflow | First strict run | Second strict run | Evidence |
+| --- | --- | --- | --- |
+| Control base | [42764959121 / attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42764959121/attempts/1) | [same run / attempt 2](https://github.com/Ares-Empire/AresOS/actions/runs/42764959121/attempts/2) | attempt 1: results.txt:393/395/402 — Ran 263 tests in 174.962s, OK, PASS; attempt 2: results.txt:392/394/401 — Ran 263 tests in 244.012s, OK, PASS |
+| Control Mail | [42764959165 / attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42764959165/attempts/1) | [same run / attempt 2](https://github.com/Ares-Empire/AresOS/actions/runs/42764959165/attempts/2) | All 56 jobs green in each attempt; every owner worker runs six tests and every job log ends in Control Mail suite PASS. Suite counts and exact log lines are pinned in the strict manifest. |
+| Control boundary | [42764999307 / attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42764999307/attempts/1) | [same run / attempt 2](https://github.com/Ares-Empire/AresOS/actions/runs/42764999307/attempts/2) | attempt 1: present-console.txt:808/absent-console.txt:715 SETTINGS_OK; identity.txt:1 names the exact tested HEAD; attempt 2: present-console.txt:808/absent-console.txt:715 SETTINGS_OK; identity.txt:1 names the exact tested HEAD |
+
+**Run — Mail timing and complete selection:** each attempt contains four suite
+jobs, four alteration jobs, 24 ordinary sweep jobs and 24 onboarding jobs. No
+case, fault mode or assertion is dropped, and the timeout remains 45 minutes.
+The four disjoint suite jobs run **327 tests** in each repetition; the separate
+sweep/alteration jobs retain all their additional tests and cases.
+
+| Attempt | Suite maximum | Alteration maximum | Ordinary sweep maximum | Onboarding maximum | All-job maximum |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 1 | 17m41s | 12m20s | 16m18s | 8m11s | 17m41s |
+| 2 | 13m45s | 15m20s | 13m43s | 8m48s | 15m20s |
+
+Every Mail job is below the 35-minute aim as well as the 45-minute hard cap.
+Both alteration passes run **68 recorded scenarios / 348,416 perturbations /
+zero slipped**, with all 13 planted field faults caught through the comparison
+and all 13 broken-oracle controls rejected in every shard. The private RENAME
+audit duplication was removed rather than excluded from the field audit.
+
+**Run — independent complete-pin proof:** each repetition independently merges
+all 53 fresh actual lists (all 48 owners, four focused/named lists and the fresh
+base-channel list). Both produce exactly **1,849,228 stage-3 keys, zero stage-2
+keys, 1,936 groups, 890,087 bytes**, SHA-256
+`ff3de0ad2c95e7892ad09f46878ee9ba77e5aad7d6490ac369c3bc66297ad988`.
+Correct ownership, multiplicity and shared-key equality are required; every
+packed group also passes its original strict checker. All 44,857 part-A R2
+assertions remain closed; no R2 failure is accepted or moved to stage 3.
+
+**Run — workflow accounting:** this fold uses **8 distinct workflow IDs /
+11 attempts**: the three superseded initial diagnostics (one incomplete Mail
+capture cancelled), the corrected complete Mail/base capture, and the three
+strict workflows with two attempts each. Stage 2 totals **14 IDs / 17
+attempts**; the whole branch totals **88 IDs / 104 attempts**, from the Actions
+API. The Mail rerun request returned HTTP 502, but the API confirmed attempt 2
+had been created; it was not requested again. No duplicate attempt is hidden.
+D1's relaxed run target applies. Captures and diagnostic failures are never
+counted as strict green acceptance.
+
+**Read — closing scope / not verified:** the R2 fold and stage-2 verification are
+complete. Real accounts, real providers and owner use are not exercised; the
+CI uses synthetic isolated servers. R1/R3, the durable projection/fallback,
+warning lifecycle redesign, restore's free-change projection and D3 remain
+stage 3. No own stage review was run; the package lead owns the three fresh
+reviews. PR #26 remains a draft against `pkg/19-mail`; it was not merged.
+
+**JUDGMENT-CALL:** no product or approval decision. Exact committed context is
+reused only while the live command agrees; otherwise a separate pre-command
+commit remains. The existing immutable journal format and history are retained.
+**PLAN-GAP:** none added by this fold; D3 remains deferred as briefed.
+**Open questions:** none for the requested run. Stage 3 was not started.
+
+**Run — closing housekeeping:** normal pushes retained the privacy gate and no
+bypass flag was used. Gitleaks scans of this run's commits found no leaks; the
+final scan output is `.work/19b-fold/privacy-final.txt`. The closing `.work/`
+inventory (`large-files-final.json`, regular files over 500,000,000 bytes) is
+empty: **no file exceeds 500 MB**. No Gradle daemon was started. Full gap lists,
+raw logs and generated fixture material remain uncommitted under `.work/`.

@@ -154,3 +154,12 @@ All owned/shared groups strictly verify. The inherited direct archive and real
 HTTPS test fixtures were corrected without changing these independent inputs;
 REPORT.md records their diagnostic failures and fixes. Final Linux strict-pair
 evidence follows there. Stage 3 is not built or claimed complete.
+
+
+**Run — final R2 acceptance evidence:** Control base `42764959121`, Control Mail
+`42764959165` (all 56 jobs), and Control boundary `42764999307` each pass attempts
+1 and 2 on `be8ea4ca20064d403702e81e323a9a2bd731f6dd`. Both complete actual-list
+merges reproduce the stage-2 fold pin exactly, with zero R2 gaps. Every Mail job
+is below 35 minutes. `LEDGER-STRICT-S2-FOLD.json` records exact hashes, output
+lines and timings. The lead's stage reviews are still separate from these runs;
+R1/R3/projection/lifecycle work remains stage 3.

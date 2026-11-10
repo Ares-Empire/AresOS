@@ -285,3 +285,11 @@ p.write_text(json.dumps(json.loads(p.read_text()), sort_keys=True, indent=1) + '
 assert p.read_bytes() == Path('reviews/19b-owner-state/KNOWN-GAPS.json').read_bytes()
 PY
 ```
+
+
+**Run — final strict pair:** base **42764959121**, Mail **42764959165** and
+boundary **42764999307**, attempts **1 and 2**, all passed on
+`be8ea4ca20064d403702e81e323a9a2bd731f6dd`. Every Mail job is below 35 minutes
+and the unchanged 45-minute cap. Both 53-list full merges reproduce this exact
+pin byte-for-byte; `LEDGER-STRICT-S2-FOLD.json` pins all 106 actual-list hashes,
+source, output evidence and timings. Zero R2 gaps remain. Stage 3 remains open.
