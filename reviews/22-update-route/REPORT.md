@@ -132,4 +132,7 @@ Brief `briefs/22-review-fixes-2.md`; review `REVIEW-2.md` (gpt-6-astra, high). T
 
 New tools fingerprint `9c749647e3ccbf306f98e3aeeec7332afcfe1fbca80cb3a40be8c78ed2d761d5`. The fingerprint pins (step 4 and the update route in `docs/INSTALL.md`, `commands.json`, INSTALL-STATUS) and every fingerprint line in this report now show this value; the earlier values were `2a9965ea…` (first build) and `712a5710…` (review fixes 1). `pending-rebind.json` keeps exact hashes for the 17 changed bound files.
 
-FIXES2-VERIFIED
+Verified for review fixes 2:
+- WSL full suites on a fresh clone of the pushed head `5b7da45a` (code identical to the final head; only this report changed after), each started with at least 4 GB free (5.9 GB) and no other suite running: plain `Ran 732 tests`, `FAILED (failures=1, errors=9)`; `-B` `Ran 732 tests`, `FAILED (failures=1, errors=9)`. Both are exactly the known WSL-only set: `test_greeter` (3 errors), `test_inherited_homebrew` (1 failure + 5 errors), `test_sysusers` (1 error).
+- Focused WSL suites before the push: `test_owner_update` 43 OK (run twice: the real-process tests passed both times), `test_owner_path` 39 OK, `test_owner_equality` 9 OK, `test_checkout_sources` 4 OK, `test_owner_step_limits` 4 OK, `test_owner_entry` 3 OK, `test_owner_diagnostics` 10 OK, `test_owner_export` 3 OK, `test_owner_devices` 6 OK, `test_owner_hidden` 10 OK, `test_owner_setup_resume` 9 OK, `test_owner_tools` 13 OK, `test_owner_finalize` 9 OK, `test_owner_retained` 5 OK, `test_owner_commands` 6 OK, `test_owner_walk` 9 OK.
+- Windows: `owner-pass.Tests.ps1` (fixtures only) printed `PASS 6 documented Windows PASS results equal captured entry stdout; no hardware queries.` with the new fingerprint; its scratch folder was removed.
