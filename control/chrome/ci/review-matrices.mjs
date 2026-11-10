@@ -13,6 +13,8 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
       const answer=await call('dialog',{tab:getTab(),expected:dialog,accept,...(kind==='prompt'?{text:'Synthetic answer'}:{})});
       assert.equal(receiverEvidence(id,'after native answer').count,0,'answering cannot approve the resumed form');
       await approval(answer,id);console.log('REVIEW P1 ANSWERED RECEIVER0/1/1',id);
+      const received=fixture.arrivals.find(row=>new URL(row.url,'http://fixture.test').searchParams.get('case')===id);
+      assert.equal(new URLSearchParams(received.body).get('reply'),kind==='alert'?'undefined':kind==='prompt'?(accept?'Synthetic answer':'null'):String(accept),'the cached native dialog must keep its return value');
     }
   });
   await check('GROUP 3 REVIEW ordinary blank and srcdoc editors bind drafts and send normally',async()=>{

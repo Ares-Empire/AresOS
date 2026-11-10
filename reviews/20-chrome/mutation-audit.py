@@ -19,10 +19,15 @@ G='control/chrome/extension/guard.js'
 R='control/chrome/extension/reader.js'
 M='control/chrome/extension/page.js'
 def node(file,pattern):return [file,pattern]
-case('P1',B,'const armed=await armDialog(tab);','const armed={owner:controlled.get(tab),nonce:"unarmed",frames:[]};armed.owner.hold={};',node('background','P1|answering a dialog collects'))
-case('P1-pause',B,"await targetCommand(state,'Debugger.pause');",'',node('background','answering a dialog collects'))
+case('P1',B,'const armed=await armDialog(tab,command.conservative);','const armed={owner:controlled.get(tab),nonce:"unarmed",frames:[]};armed.owner.hold={};',node('background','P1|answering a dialog collects'))
+case('P1-boundary',B,'source.state.dialogBarrier={nonce,token:entry.token,documents,source,resolve,reject,ready};','',node('background','answering a dialog collects'))
+case('P1-window-return',M,"finally{report(target,{kind:'dialog_end',token,dialog_kind:name});}",'finally{}',node('page','P1 native dialog return values'))
+case('P1-auth',B,"if(boundary.result.value.token!==barrier.token)",'if(false)',node('background','P1 only the authenticated'))
+case('P1-conservative',A,"'operation':operation,'conservative':payload.get('conservative',False)","'operation':operation",'test_questions.Questions.test_p1_native_answer_keeps_the_service_conservative_policy',True)
 case('P1-coverage',B,'const documents=frames.map(frame=>candidates.find(value=>value.doc.document===privacyDocuments.get(frame.documentId)));','const documents=candidates;',node('background','answering a dialog collects'))
 case('P1-ready',B,'privacyDocuments.set(sender.documentId,message.document);','',node('background','P1 native document registration'))
+case('P1-existing-allowance',B,'(!existing.hasAllowance||approvedConfirmation)','true',node('background','P1 an existing modal hold'))
+case('P1-existing-proof',B,'documents.every(value=>value.doc.activeNonce===existing.nonce)','true',node('background','P1 an existing modal hold'))
 case('P2',B,'let effective;try { effective=frameAddress(frame,frames);','if(frame.url.startsWith("about:"))continue;let effective;try { effective=frameAddress(frame,frames);',node('background','P2'))
 case('P3-inherit',B,'if(hold&&(hold.inFlight||Date.now()<hold.until)){','if(false){',node('background','P3 startup'))
 case('P3-paused-task',B,"if(armed.exceptionDetails)throw Error('refused: new frame could not inherit the active hold');", "if(!hold.inFlight)await targetCommand(state,'Runtime.evaluate',{contextId:context.id,expression:'globalThis[Symbol.for(\"aresos.chrome.guard.v2\")].finish('+JSON.stringify(state.epoch)+','+JSON.stringify(hold.nonce)+')',awaitPromise:true});if(armed.exceptionDetails)throw Error('refused: new frame could not inherit the active hold');",node('background','P3 a remaining hold'))

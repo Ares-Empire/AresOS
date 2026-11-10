@@ -1,0 +1,105 @@
+{
+  "source": "a9ee2d76fa2e893be89e0fc00da8a2e2cdebec7f",
+  "run": 42820302232,
+  "mode": "external",
+  "verdict": "failed; not acceptance",
+  "native_dialog_matrix": {
+    "name": "GROUP 4 REVIEW ordinary native dialogs from Claude owner and page tasks keep working",
+    "passed": false,
+    "error": "AssertionError [ERR_ASSERTION]: {\"ok\":false,\"error\":{\"code\":\"transport_error\",\"message\":\"Chrome connection was cut off; the input may have run. Inspect operation status and never replay.\"},\"pending\":{\"items\":[{\"operation_id\":\"73c0b7aaa0f048ed8a766e5b3c74ed52:6384174bf27b4dadbda258c001427b30\",\"app\":\"chrome\",\"state\":\"reserved\",\"reason\":\"Browser or service session changed; drop this preparation and prepare again.\",\"validity\":\"refused\",\"refusal_code\":\"stale_approval\"},{\"operation_id\":\"73c0b7aaa0f048ed8a766e5b3c74ed52:cad075e7eef4464ca8199ae086f4ac47\",\"app\":\"chrome\",\"state\":\"unknown\",\"reason\":\"Input dispatched, but a page handler completion could not be confirmed. Inspect the page and never replay.\"},{\"operation_id\":\"73c0b7aaa0f048ed8a766e5b3c74ed52:2d6e18a021ef4c8289ff74f355dff22c\",\"app\":\"chrome\",\"state\":\"unknown\",\"reason\":\"Input may have run: Chrome connection was cut off; the input may have run. Inspect operation status and never replay.\"}],\"total\":3,\"cursor\":null,\"restore_required\":false,\"notices\":[{\"operation_id\":\"recovery-73c0b7aaa0f048ed8a766e5b3c74ed52:2d6e18a021ef4c8289ff74f355dff22c\",\"app\":\"chrome\",\"state\":\"unknown\",\"untrusted_content\":{\"reason\":\"Chrome input has an unfinished committed outcome; it may have run. Never replay it.\",\"operation_id\":\"73c0b7aaa0f048ed8a766e5b3c74ed52:2d6e18a021ef4c8289ff74f355dff22c\"}},{\"operation_id\":\"recovery-73c0b7aaa0f048ed8a766e5b3c74ed52:cad075e7eef4464ca8199ae086f4ac47\",\"app\":\"chrome\",\"state\":\"unknown\",\"untrusted_content\":{\"reason\":\"Chrome input has an unfinished committed outcome; it may have run. Never replay it.\",\"operation_id\":\"73c0b7aaa0f048ed8a766e5b3c74ed52:cad075e7eef4464ca8199ae086f4ac47\"}},{\"operation_id\":\"8fcf2d499e6b84232a1a2a89f4405baae1c76e527b418792acd285a05d014a98\",\"app\":\"chrome\",\"state\":\"unknown\",\"untrusted_content\":{\"intent_key\":\"intent:chrome:8fcf2d499e6b84232a1a2a89f4405baae1c76e527b418792acd285a05d014a98\",\"reason\":\"A change was interrupted before its completion was recorded. It may already have changed the server. Inspect the audit and your app before repeating.\",\"recovery_warning\":true}}],\"notices_more\":{\"count\":11,\"action\":\"control_notices\"}}}\n    at call (file:///workspace/control/chrome/ci/browser.mjs:28:80)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async file:///workspace/control/chrome/ci/review-matrices.mjs:13:20\n    at async check (file:///workspace/control/chrome/ci/matrices.mjs:19:10)\n    at async reviewMatrices (file:///workspace/control/chrome/ci/review-matrices.mjs:7:3)\n    at async matrices (file:///workspace/control/chrome/ci/matrices.mjs:53:3)\n    at async file:///workspace/control/chrome/ci/browser.mjs:146:24"
+  },
+  "pause_commands": [
+    [
+      3174,
+      {
+        "id": 442,
+        "source": {
+          "tabId": 927622510
+        },
+        "method": "Debugger.pause",
+        "phase": "dispatched"
+      }
+    ]
+  ],
+  "following_command_records": [
+    [
+      3174,
+      {
+        "id": 442,
+        "source": {
+          "tabId": 927622510
+        },
+        "method": "Debugger.pause",
+        "phase": "dispatched"
+      }
+    ]
+  ],
+  "receiver_rows": [],
+  "coverage": [
+    [
+      3173,
+      {
+        "dialog_coverage": {
+          "frames": [
+            {
+              "frame": 0,
+              "native_document": "AA76C6E6D573CEE09CA2B84456387A32",
+              "private_document": "70f3196eb93abe3239ab94ccd6fd0e04"
+            },
+            {
+              "frame": 25,
+              "native_document": "EAD55674702BDBB6ABC3C54809641007",
+              "private_document": "b4ad16fb8b66ce2462bd06a246c90eea"
+            }
+          ],
+          "guards": [
+            {
+              "document": "85bd18ea3a44a9b05f4d617bd6e19b80",
+              "frame": "07779BFEB3621E30428479D56168B110"
+            },
+            {
+              "document": "a1561a1e35999a8d8e9e78485dd3f92f",
+              "frame": "ABCA4C4D00A1266CD72906B5EF834C72"
+            },
+            {
+              "document": "918293d1dbdd2897d8b82a421c1775be",
+              "frame": "E18E52156C987241B099BC0E0EF6AA24"
+            },
+            {
+              "document": "d7a5b01837392bbc9c837e9b43a70273",
+              "frame": "EF43D13FB19EBEC697C8ECF679728A33"
+            },
+            {
+              "document": "9ad4d80b9492e393b6367b47fd716a04",
+              "frame": "B9B1517412FB286A36B2CF46926C7072"
+            },
+            {
+              "document": "0dfdb19d6563ccd86c986fc9d34016d8",
+              "frame": "C0D820D50E351156467F4955E1AC861F"
+            },
+            {
+              "document": "8cd465b8628b29a8e8fec6e7411e18d6",
+              "frame": "B173E3AD291510FAA11785D8C15D2741"
+            },
+            {
+              "document": "4528e8a4537af0e325b6baa96dd841f3",
+              "frame": "A52B552459958C49A4772BA4EE372F39"
+            },
+            {
+              "document": "bb979245aa3749816d2f3879fd316044",
+              "frame": "F69F46FA8A5ACBC3367CF4D85FC0A218"
+            },
+            {
+              "document": "70f3196eb93abe3239ab94ccd6fd0e04",
+              "frame": "C12B53B9DD32BE3E7766770489CEBCFF"
+            },
+            {
+              "document": "b4ad16fb8b66ce2462bd06a246c90eea",
+              "frame": "309573EF672FFAB93D2C1E556F856373"
+            }
+          ]
+        }
+      }
+    ]
+  ]
+}

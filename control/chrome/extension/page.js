@@ -11,6 +11,7 @@
   const descriptor=Object.getOwnPropertyDescriptor;
   const ownDocument=document,root=globalThis.Node?.prototype.getRootNode;
   const defaultView=globalThis.Document&&descriptor(Document.prototype,'defaultView')?.get;
+  const windowDocument=descriptor(globalThis,'document')?.get||(globalThis.Window&&descriptor(Window.prototype,'document')?.get);
   const nodeType=globalThis.Node?descriptor(Node.prototype,'nodeType')?.get:null;
   const saved={submit:HTMLFormElement.prototype.submit,requestSubmit:HTMLFormElement.prototype.requestSubmit,click:HTMLElement.prototype.click,dispatchEvent:dispatch,attachShadow:globalThis.Element?.prototype.attachShadow};
   const nativeString=Function.prototype.toString,nativeStrings=new WeakMap(),getString=WeakMap.prototype.get,setString=WeakMap.prototype.set;
@@ -48,6 +49,7 @@
   const dispatching=new WeakSet();
   const has=WeakSet.prototype.has,add=WeakSet.prototype.add,remove=WeakSet.prototype.delete;
   let requestSequence=0;
+  let dialogSequence=0;
   function report(target,detail,original=null) {
     if(privateRelay){
       const request=++requestSequence;property(detail,'request',request,true);
@@ -71,6 +73,17 @@
   function activate(){
   if(closed)throw Error('The document guard was disposed');if(enabled)return;enabled=true;
   if(saved.attachShadow)install(Element.prototype,'attachShadow',function(){const result=invoke(saved.attachShadow,this,arguments);report(result,{kind:'watch_root'});return result;});
+  for(const name of ['alert','confirm','prompt']){
+    let prototype=globalThis;while(prototype&&!descriptor(prototype,name))prototype=Object.getPrototypeOf(prototype);
+    const method=prototype&&descriptor(prototype,name)?.value;if(typeof method!=='function')continue;
+    install(prototype,name,function(){
+      if(!enabled)return invoke(method,this,arguments);
+      let target;try{target=this==null||this===globalThis?ownDocument:windowDocument?invoke(windowDocument,this,[]):this.document;}catch{return invoke(method,this,arguments);}
+      if(!target||!connected(target))return invoke(method,this,arguments);
+      const token='d'+(++dialogSequence);report(target,{kind:'dialog_begin',token,dialog_kind:name});
+      try{return invoke(method,this,arguments);}finally{report(target,{kind:'dialog_end',token,dialog_kind:name});}
+    });
+  }
   install(Function.prototype,'toString',function(){return invoke(getString,nativeStrings,[this])??invoke(nativeString,this,[]);});
   install(HTMLFormElement.prototype,'submit',function() { if(!enabled||!connected(this))return invoke(saved.submit,this,[]);report(this,{kind:'native_submit'}); });
   install(HTMLFormElement.prototype,'requestSubmit',function(submitter) {

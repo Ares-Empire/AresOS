@@ -4,7 +4,7 @@ import {compatibilityScript} from './compatibility.mjs';
 import {popupPage} from './popups.mjs';
 import {passwordPage} from './password-fixtures.mjs';
 import {reviewPage} from './review-fixtures.mjs';
-const page=(body,script='',head='')=>`<!doctype html><html><head><meta charset="utf-8"><title>Synthetic fixture</title><script>globalThis.firstScriptSubmit=HTMLFormElement.prototype.submit;</script><style>body{font:16px sans-serif;margin:20px}button,input,textarea{margin:8px}</style></head><body>${body}<script>${script}</script>`;
+const page=(body,script='',head='')=>`<!doctype html><html><head><meta charset="utf-8"><title>Synthetic fixture</title><script>globalThis.firstScriptSubmit=HTMLFormElement.prototype.submit;globalThis.firstScriptDialogs={alert,confirm,prompt};</script><style>body{font:16px sans-serif;margin:20px}button,input,textarea{margin:8px}</style></head><body>${body}<script>${script}</script>`;
 export async function fixtures(options={}) {
   const arrivals=[],streams=new Map(),mutations=new Map();let mutationSequence=0;
   const compatibility=[],compatibilityDownloads=[];

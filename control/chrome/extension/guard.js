@@ -13,6 +13,15 @@
   const defaultView=globalThis.Document&&Object.getOwnPropertyDescriptor(Document.prototype,'defaultView')?.get;
   const held = new Map(), roots = new Map(), consumed = new Set();
   let reader, generation = null, dispatchNonce = null, config, until = 0, inFlight = false, mark = null, owner = null, sequence = 0;
+  let endingDialog=null;
+  function nativeDialogReturned(token){
+    endingDialog=token;
+    // Installed before page scripts. The native modal has returned, but its
+    // caller cannot continue until the extension has processed this pause.
+    debugger;
+    reader?.dialog?.('end',token,generation,dispatchNonce);
+    endingDialog=null;
+  }
   // Real documents never accept page-forgeable reports, even before private linking.
   let relayControl=null,legacyBridge=typeof globalThis.Document!=='function',requestDepth=0;const relayListeners=[];
   function requestNative(form,submitter){requestDepth++;try{return submitter?native.requestSubmit.call(form,submitter):native.requestSubmit.call(form);}finally{requestDepth--;}}
@@ -163,6 +172,8 @@
     let delivery=false;
     try {
       const detail=request?request.detail:event.detail;
+      if(detail?.kind==='dialog_begin'){reader.dialog?.('begin',detail.token,generation,null,detail.dialog_kind);event.preventDefault();return;}
+      if(detail?.kind==='dialog_end'){nativeDialogReturned(detail.token);event.preventDefault();return;}
       if(element instanceof Element)watch(element.getRootNode());
       if (detail?.kind === 'native_submit') {delivery=true;submit(element,null,'native_submit');}
       else if (detail?.kind === 'request_submit') {
@@ -235,6 +246,7 @@
     control(epoch){generation=epoch;},
     route(event,stage,hold){if(hold){config=hold.config;until=Math.max(until,performance.now()+config.holdMs);owner=null;mark=null;}if(stage.detail.kind==='click'||stage.detail.kind==='dispatch'){const node=eventElement(stage.target),name=stage.detail.kind==='click'?'click':stage.detail.event_type;if(node)watch(node.getRootNode());if(active()&&node&&(name==='click'&&asks(node)||name==='submit'&&!search(reader.form(node)))){report('activation',control(node));return;}event.preventDefault();}else onCall(event,stage);},
     identity(){return reader?.document;},
+    dialogBoundary(){return {document:reader?.document,token:endingDialog};},
     relay(node){
       if(!reader||!(node instanceof HTMLElement)||node.ownerDocument!==document||node.isConnected||node.parentNode||!node.firstElementChild)throw Error('invalid private relay');
       const carrier=node.firstElementChild,stack=[];
@@ -245,7 +257,7 @@
       const drop=request=>{if(stack.at(-1)?.detail.request===request)stack.pop();};
       listen('aresos-relay-meta',event=>{
         const detail=event.detail;
-        if(stack.length>=32||!['native_submit','request_submit','click','dispatch','watch_root'].includes(detail?.kind))return;
+        if(stack.length>=32||!['native_submit','request_submit','click','dispatch','watch_root','dialog_begin','dialog_end'].includes(detail?.kind))return;
         if(!Number.isSafeInteger(detail.request))return;
         const stage={detail};stack.push(stage);
       });

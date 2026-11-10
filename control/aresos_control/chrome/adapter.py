@@ -433,7 +433,7 @@ class Chrome:
 
     def command(self, payload, operation=None, approved=False):
         if payload.get('native_dialog'):
-            return {'name':'dialog','tab':payload['reference']['tab'],'binding':payload['binding'],'input':payload['input'],'operation':operation}
+            return {'name':'dialog','tab':payload['reference']['tab'],'binding':payload['binding'],'input':payload['input'],'operation':operation,'conservative':payload.get('conservative',False)}
         return {'name':'resume' if payload.get('resume_kind') else 'input',
                 'reference':payload['reference'],'tab':payload['reference']['tab'],'input':payload['input'],
                 'kind':payload['kind'],'conservative':payload.get('conservative',False),'adapter':bool(payload.get('adapter')),'binding':payload['binding'],
@@ -665,7 +665,7 @@ class Chrome:
             if readonly:
                 raise Refused('readonly_site','This site is read-only; the owner must answer its dialogs.')
             kind=classify('dialog',args,{'dialog':facts['dialog']},conservative=mode['conservative'])
-            payload={'process_session':self.process_session,'reference':{'tab':args['tab']},'input':{'verb':'dialog',**args},'binding':facts,'kind':kind,'adapter':None,'native_dialog':True}
+            payload={'process_session':self.process_session,'reference':{'tab':args['tab']},'input':{'verb':'dialog',**args},'binding':facts,'kind':kind,'adapter':None,'native_dialog':True,'conservative':mode['conservative']}
         else:
             payload, _ = self.payload(verb,args)
         if payload['kind']:

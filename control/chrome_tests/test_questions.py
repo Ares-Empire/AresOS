@@ -96,6 +96,15 @@ class Questions(unittest.TestCase):
         frame['selected_files'][0]['value'][0]['sha256']='b'*64
         self.assertNotEqual(before,binding(self.browser.facts,{'frame':0},'form',None))
 
+    def test_p1_native_answer_keeps_the_service_conservative_policy(self):
+        self.browser.version='159.0.1.0'
+        native={'session':self.browser.session,'tab':1,'url':'https://fixture.test/','dialog':{'kind':'confirm','text':'Continue?','frame':0,'frame_url':'https://fixture.test/','button':'OK'}}
+        original=self.browser.call
+        self.browser.call=lambda name,**args:copy.deepcopy(native) if name=='dialog_facts' else original(name,**args)
+        prepared=self.call('dialog',{'tab':1,'expected':native['dialog'],'accept':True});self.assertTrue(prepared['ok'],prepared)
+        operation=self.engine.operation(prepared['data']['approval']['operation_id'],'chrome')
+        self.assertTrue(operation['payload'].get('conservative'));self.assertTrue(self.chrome.command(operation['payload']).get('conservative'))
+
     def test_p9_trusted_predicate_independently_forbids_explicit_deletion_payment_and_whatsapp(self):
         from aresos_control.common import digest
         from aresos_control.chrome.sites import KINDS

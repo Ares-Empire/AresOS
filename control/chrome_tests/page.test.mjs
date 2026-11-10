@@ -6,7 +6,7 @@ import {execFileSync} from 'node:child_process';
 
 const policy=JSON.parse(fs.readFileSync('control/chrome/extension/policy.js','utf8').match(/\{[\s\S]*\}/)[0]);
 
-function fixture({relay=false,activate=true,link=true,browserDOM=false}={}) {
+function fixture({relay=false,activate=true,link=true,browserDOM=false,dialogs=false,onDialogBoundary=()=>{}}={}) {
   const windowListeners=new Map(),reports=[],arrivals=[],nodes=[],bridgeDetails=[];let now=0;
   class Event {
     constructor(type,options={}) {Object.assign(this,{type,cancelable:true,defaultPrevented:false,stopped:false,eventPhase:0,isTrusted:false,...options});}
@@ -60,14 +60,15 @@ function fixture({relay=false,activate=true,link=true,browserDOM=false}={}) {
   class StaticRange extends AbstractRange {constructor(options){super();Object.defineProperty(this,'startContainer',{value:options.startContainer});}}
   class InputEvent extends Event {constructor(type,options={}){super(type,options);this.ranges=options.targetRanges?Array.from(options.targetRanges):[];}getTargetRanges(){return this.ranges;}}
   const globals={window,document,performance:{now:()=>now},setTimeout,MessageChannel,Symbol,Event,CustomEvent,EventTarget,Node,Element,HTMLElement,HTMLInputElement,HTMLFormElement,DOMException,URL,TextDecoder,Uint8Array,...(relay?{AbstractRange,StaticRange,InputEvent}:{}),...(browserDOM?{Document:class Document{}}:{})};
-  const isolated=vm.createContext({...globals});
-  vm.runInContext(fs.readFileSync('control/chrome/extension/guard.js','utf8'),isolated);
-  const guard=vm.runInContext("globalThis[Symbol.for('aresos.chrome.guard.v2')]",isolated);
+  const dialogCalls=[],dialogReports=[];if(dialogs)Object.assign(globals,{alert:({alert(value){dialogCalls.push('alert');}}).alert,confirm:({confirm(value){dialogCalls.push('confirm');return true;}}).confirm,prompt:({prompt(value,initial){dialogCalls.push('prompt');return 'native response';}}).prompt});
+  let guard;const isolated=vm.createContext({...globals,fixtureDialogPause:()=>onDialogBoundary(guard)});
+  vm.runInContext(fs.readFileSync('control/chrome/extension/guard.js','utf8').replace('debugger;','fixtureDialogPause();'),isolated);
+  guard=vm.runInContext("globalThis[Symbol.for('aresos.chrome.guard.v2')]",isolated);
   document.defaultView={[Symbol.for('aresos.chrome.guard.v2')]:guard};
   const ids=new Map(), elements=new Map();let sequence=0;
   function id(node){if(!ids.has(node)){const key='e'+(++sequence);ids.set(node,key);elements.set(key,node);}return ids.get(node);}
   function name(node){const labels=(node['aria-labelledby']||'').split(/\s+/).map(key=>document.getElementById(key)).filter(Boolean);return labels.length ? labels.map(label=>label.textContent).join(' ') : node['aria-label'] || node.labels?.map(label=>label.textContent).join(' ') || node.textContent;}
-  guard.reader({document:'document-1',id,element:key=>elements.get(key),target:node=>({name:name(node),title:node.title,role:node.role,password:!!node.password,submit:!!node.form && node.type==='submit',editable:node instanceof HTMLInputElement}),form:(node,button)=>{const form=node.form || (node.tagName==='FORM' ? node:null);return form ? {method:button?.formmethod || form.method,search:form.role==='search',action:button?.formAction || form.action,encoding:form.encoding||'application/x-www-form-urlencoded',target:form.target||''}:null;}});
+  guard.reader({dialog:(...value)=>dialogReports.push(value),document:'document-1',id,element:key=>elements.get(key),target:node=>({name:name(node),title:node.title,role:node.role,password:!!node.password,submit:!!node.form && node.type==='submit',editable:node instanceof HTMLInputElement}),form:(node,button)=>{const form=node.form || (node.tagName==='FORM' ? node:null);return form ? {method:button?.formmethod || form.method,search:form.role==='search',action:button?.formAction || form.action,encoding:form.encoding||'application/x-www-form-urlencoded',target:form.target||''}:null;}});
   const main=vm.createContext({...globals});
   const nativeFunctions=[HTMLFormElement.prototype.submit,HTMLFormElement.prototype.requestSubmit,HTMLElement.prototype.click,EventTarget.prototype.dispatchEvent];
   const nativeStrings=nativeFunctions.map(fn=>Function.prototype.toString.call(fn));
@@ -78,7 +79,7 @@ function fixture({relay=false,activate=true,link=true,browserDOM=false}={}) {
   assert.equal(vm.runInContext("globalThis[Symbol.for('aresos.chrome.guard.v2')]",main),undefined);
   function arm(target,form,operation=null,conservative=false){guard.arm({generation:'epoch',config:{...policy,conservative},target:id(target),form:form ? id(form):null,operation,primary_submission:false});}
   const api={...guard,resume:(id,operation)=>{const step=reports.find(item=>item.id===id);return guard.resume(id,operation,step?.submitter||step?.element,step?.element);}};
-  return {api,guard,arrivals,bridgeDetails,cleanup,nativeStrings,nativeFunctions,factory:relay?installed:null,Node,EventTarget,get reports(){reports.push(...guard.steps());return reports;},document,HTMLFormElement,HTMLElement,HTMLInputElement,Event,CustomEvent,originalDispatch,originalRequestSubmit,arm,main,id,advance:milliseconds=>{now+=milliseconds;}};
+  return {api,guard,arrivals,dialogCalls,dialogReports,bridgeDetails,cleanup,nativeStrings,nativeFunctions,factory:relay?installed:null,Node,EventTarget,get reports(){reports.push(...guard.steps());return reports;},document,HTMLFormElement,HTMLElement,HTMLInputElement,Event,CustomEvent,originalDispatch,originalRequestSubmit,arm,main,id,advance:milliseconds=>{now+=milliseconds;}};
 }
 
 test('private factory creation changes no prototype before its cleanup handle can be retained',()=>{
@@ -543,4 +544,18 @@ test('P3 inheriting only the remaining window grants no allowance or permanent i
   const f=fixture(),form=new f.HTMLFormElement();f.guard.inherit({generation:'epoch',dispatch_nonce:'source',config:policy,in_flight:false});
   form.submit();assert.equal(f.arrivals.length,0);assert.equal(f.reports.length,1);
   f.advance(policy.holdMs+1);form.submit();assert.equal(f.arrivals.length,1,'the inherited mark ends with the window without an async finish during startup');
+});
+test('P1 native dialog return values survive and the private boundary precedes the caller continuation',()=>{
+  for(const [kind,expected]of [['alert',undefined],['confirm',true],['prompt','native response']]){
+    const f=fixture({relay:true,dialogs:true,onDialogBoundary:guard=>{assert.equal(guard.dialogBoundary().token,'d1');guard.arm({generation:'epoch',dispatch_nonce:'dialog',config:policy});}}),form=new f.HTMLFormElement();
+    f.guard.control('epoch');f.main.continueAfterDialog=()=>form.submit();
+    const result=vm.runInContext(`(()=>{const value=${kind}('DIALOG_ARGUMENT_MUST_STAY_IN_PAGE');continueAfterDialog();return value;})()`,f.main);
+    assert.equal(result,expected);assert.deepEqual(f.dialogCalls,[kind]);assert.equal(f.arrivals.length,0);assert.equal(f.reports.length,1);
+    assert.equal(vm.runInContext(`Object.hasOwn(${kind},'prototype')`,f.main),false);
+    assert.doesNotMatch(JSON.stringify(f.dialogReports),/DIALOG_ARGUMENT_MUST_STAY_IN_PAGE|native response/);
+  }
+});
+test('P1 a native owner answer keeps native form behavior when no tool answer armed a hold',()=>{
+  const f=fixture({relay:true,dialogs:true}),form=new f.HTMLFormElement();f.guard.control('epoch');f.main.continueAfterDialog=()=>form.submit();
+  assert.equal(vm.runInContext("confirm('Continue?')",f.main),true);f.main.continueAfterDialog();assert.equal(f.arrivals.length,1);assert.equal(f.reports.length,0);
 });

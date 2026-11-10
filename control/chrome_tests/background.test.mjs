@@ -325,14 +325,14 @@ test('answering a dialog collects a resumed handler submission without sending i
   const page=createPage(),form=new page.HTMLFormElement();page.arm(form,form);
   await page.guard.finish('epoch');page.advance(600);
   const f=fixture();
-  f.run('globalThis').assertBarrier=value=>assert.equal(value,true,'debugger pause must be armed before answering');
+  f.run('globalThis').assertBarrier=value=>assert.equal(value,true,'native return boundary must be armed before answering');
   f.run('globalThis').onAnswer=()=>form.submit();
-  f.run('globalThis').privateArm=parameters=>{page.guard.arm({generation:'epoch',dispatch_nonce:'fixture-session',config:policy});return {result:{value:'document-1'}};};
+  f.run('globalThis').privateArm=parameters=>{if(parameters.expression.includes('dialogBoundary'))return {result:{value:{document:'document-1',token:'d1'}}};page.guard.arm({generation:'epoch',dispatch_nonce:'fixture-session',config:policy});return {result:{value:'document-1'}};};
   f.run('globalThis').pageReply=async message=>{
     if(message.command==='finish_input')await page.guard.finish(message.generation,message.dispatch_nonce);
     return {ok:true,data:message.command==='steps'?page.guard.steps():{finished:true}};
   };
-  f.run("excludedHosts=[];groupId=1;controlled.set(7,{epoch:'epoch',inputNonce:'nonce'});globalThis.commands=[];globalThis.modal=true;globalThis.pauseArmed=false;chrome.tabs={get:async()=>({url:'http://fixture.test/',groupId:1}),sendMessage:(tab,message)=>{commands.push(message.command);return pageReply(message)}};chrome.webNavigation={getAllFrames:async()=>[{frameId:0,documentId:'native-document',url:'http://fixture.test/'}]};privacyDocuments.set('native-document','document-1');chrome.debugger={sendCommand:async(source,method,parameters)=>{if(method==='Debugger.pause'){pauseArmed=true;return {}}if(method==='Runtime.evaluate'){if(modal)throw Error('page runtime blocked by native modal');return privateArm(parameters)}if(method==='Page.handleJavaScriptDialog'){assertBarrier(pauseArmed);modal=false;await preloadEvent(source,'Debugger.paused',{hitBreakpoints:[]});onAnswer();dialogs.delete(7)}return {};}};dialogs.set(7,{id:'dialog',frame:0,frame_url:'http://fixture.test/',kind:'confirm',text:'Continue?',button:'OK'});globalThis.expected={session,tab:7,control:'epoch',url:'http://fixture.test/',dialog:dialogs.get(7)};preloadTargets.set('[7,null]',{source:{tabId:7},tab:7,epoch:'epoch',contexts:new Map([[1,{id:1,uniqueId:'isolated'}]]),documents:new Map([['isolated',{document:'document-1',ready:true,isolated:'isolated'}],['stale',{document:'stale-private-document',ready:true,isolated:'gone'}]])});");
+  f.run("excludedHosts=[];groupId=1;controlled.set(7,{epoch:'epoch',inputNonce:'nonce'});globalThis.commands=[];globalThis.modal=true;globalThis.pauseArmed=false;chrome.tabs={get:async()=>({url:'http://fixture.test/',groupId:1}),sendMessage:(tab,message)=>{commands.push(message.command);return pageReply(message)}};chrome.webNavigation={getAllFrames:async()=>[{frameId:0,documentId:'native-document',url:'http://fixture.test/'}]};privacyDocuments.set('native-document','document-1');chrome.debugger={sendCommand:async(source,method,parameters)=>{if(method==='Debugger.pause'){pauseArmed=true;return {}}if(method==='Runtime.evaluate'){if(modal)throw Error('page runtime blocked by native modal');return privateArm(parameters)}if(method==='Page.handleJavaScriptDialog'){assertBarrier(!!preloadTargets.get('[7,null]').dialogBarrier);modal=false;await preloadEvent(source,'Debugger.paused',{hitBreakpoints:[]});onAnswer();dialogs.delete(7)}return {};}};dialogs.set(7,{id:'dialog',frame:0,frame_url:'http://fixture.test/',kind:'confirm',text:'Continue?',button:'OK',browser_document:'native-document'});globalThis.expected={session,tab:7,control:'epoch',url:'http://fixture.test/',dialog:dialogs.get(7)};preloadTargets.set('[7,null]',{source:{tabId:7},tab:7,epoch:'epoch',contexts:new Map([[1,{id:1,uniqueId:'isolated'}]]),documents:new Map([['isolated',{document:'document-1',ready:true,isolated:'isolated'}],['stale',{document:'stale-private-document',ready:true,isolated:'gone'}]])});dialogTargets.set(dialogs.get(7),preloadTargets.get('[7,null]'));nativeDialogStarts.set('[7,\"native-document\"]',[{token:'d1',kind:'confirm',document:'document-1'}]);");
   const result=await f.run("dispatch({name:'dialog',tab:7,binding:expected,input:{accept:true},operation:'approved-dialog'})");
   assert.equal(page.arrivals.length,0,'the resumed handler submission stays held until its own approval');
   assert.equal(result.steps.length,1);assert.equal(result.steps[0].kind,'native_submit');
@@ -722,7 +722,33 @@ test('P1 native document registration authenticates readiness and never overwrit
 });
 test('P1 pending debugger commands log their order without script arguments or page values',async()=>{
   const f=fixture();f.run("recording=true;globalThis.events=[];port={postMessage:value=>events.push(value.data)};chrome.debugger={sendCommand:()=>new Promise(resolve=>{globalThis.finishProtocol=resolve})};");
-  const pending=f.run("preloadCommand({tabId:7},'Debugger.pause',{secret:'PAGE_VALUE_MUST_NOT_APPEAR'})");
-  assert.equal(f.run('events[0].protocol_command.method'),'Debugger.pause');assert.equal(f.run('events[0].protocol_command.phase'),'dispatched');assert.equal(f.run('JSON.stringify(events).includes("PAGE_VALUE_MUST_NOT_APPEAR")'),false);
+  const pending=f.run("preloadCommand({tabId:7},'Debugger.resume',{secret:'PAGE_VALUE_MUST_NOT_APPEAR'})");
+  assert.equal(f.run('events[0].protocol_command.method'),'Debugger.resume');assert.equal(f.run('events[0].protocol_command.phase'),'dispatched');assert.equal(f.run('JSON.stringify(events).includes("PAGE_VALUE_MUST_NOT_APPEAR")'),false);
   f.run('finishProtocol({})');await pending;assert.equal(f.run('events[1].protocol_command.id===events[0].protocol_command.id'),true);assert.equal(f.run('events[1].protocol_command.phase'),'completed');
+});
+test('P1 only the authenticated native return boundary can arm the continuation',async()=>{
+  const f=startupFixture();await f.run('prepareTarget({tabId:7})');await startupContexts(f,'boundary');await paused(f,'boundary');
+  f.run("globalThis.boundaryToken=null;globalThis.armCount=0;globalThis.resumeCount=0;globalThis.readyCount=0;globalThis.failure=null;const state=preloadTargets.get('[7,null]'),doc=[...state.documents.values()][0];controlled.get(7).hold={nonce:'n',config:POLICY};state.dialogBarrier={nonce:'n',token:'expected',source:{state,doc},documents:[{state,doc}],resolve:()=>readyCount++,reject:error=>{failure=String(error)}};chrome.debugger.sendCommand=async(source,method,args)=>{if(method==='Debugger.resume'){resumeCount++;return {}}if(args.expression?.includes('dialogBoundary'))return {result:{value:{document:doc.document,token:boundaryToken}}};if(args.expression?.includes('.arm(')){armCount++;return {result:{value:doc.document}}}return {};};");
+  await f.run("preloadEvent({tabId:7},'Debugger.paused',{hitBreakpoints:[]})");assert.equal(f.run('armCount'),0);assert.equal(f.run('resumeCount'),1);assert.equal(f.run('readyCount'),0);
+  f.run("boundaryToken='wrong'");await f.run("preloadEvent({tabId:7},'Debugger.paused',{hitBreakpoints:[]})");assert.equal(f.run('armCount'),0);assert.equal(f.run('resumeCount'),1);assert.match(f.run('failure'),/return boundary changed/);assert.equal(f.run('controlled.get(7).dialogPauseFailed'),true);
+});
+test('P1 a native boundary after revocation resumes the owner during pending cleanup',async()=>{
+  const f=lifecycleFixture();f.run("preloadTargets.set('[7,null]',{source:{tabId:7},tab:7,epoch:'old'});releasing.set(7,{original:{epoch:'old'}})");
+  await f.run("preloadEvent({tabId:7},'Debugger.paused',{hitBreakpoints:[]})");assert.equal(f.run("lifecycleCalls.includes('Debugger.resume')"),true);
+});
+test('P1 an existing modal hold is reusable only while every current guard proves its nonce',async()=>{
+  for(const variant of ['free','approved-confirmation','unmatched-approval','finished','conservative-upgrade','unknown-allowance']){
+    const f=fixture();f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch',hold:{nonce:'existing',inFlight:true,hasAllowance:false,config:{conservative:false}}});chrome.webNavigation={getAllFrames:async()=>[{frameId:0,documentId:'native',url:'http://fixture.test/'}]};privacyDocuments.set('native','private');preloadTargets.set('[7,null]',{tab:7,documents:new Map([['isolated',{document:'private',ready:true,activeNonce:'existing'}]])});dialogs.set(7,{browser_document:'native',kind:'confirm'});");
+    if(['approved-confirmation','unmatched-approval'].includes(variant))f.run('controlled.get(7).hold.hasAllowance=true');
+    if(variant==='finished')f.run("armedDocument(7,'private',null)");
+    if(variant==='unknown-allowance')f.run('delete controlled.get(7).hold.hasAllowance');
+    const pending=f.run(`armDialog(7,${variant==='conservative-upgrade'},${variant==='approved-confirmation'})`);
+    if(['free','approved-confirmation'].includes(variant)){const armed=await pending;assert.equal(armed.nonce,'existing');await armed.ready;}
+    else await assert.rejects(pending,/no authenticated return boundary/,variant);
+  }
+});
+test('P1 Stop rejects a pending native answer barrier and clears its private begin records',async()=>{
+  const f=lifecycleFixture();f.run("controlled.set(7,{epoch:'epoch'});globalThis.answerReady=new Promise((resolve,reject)=>{preloadTargets.set('[7,null]',{tab:7,source:{tabId:7},epoch:'epoch',documents:new Map(),contexts:new Map(),scripts:new Map(),dialogBarrier:{reject}})});answerReady.catch(()=>{});nativeDialogStarts.set('[7,\"native\"]',[{token:'d1'}]);");
+  const ready=assert.rejects(f.run('answerReady'),/interrupted by Stop/);await f.run('release(7)');await ready;
+  assert.equal(f.run('nativeDialogStarts.size'),0);assert.equal(f.run('controlled.has(7)'),false);
 });

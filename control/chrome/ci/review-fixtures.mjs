@@ -74,8 +74,8 @@ export function reviewPage(url){
     script=`globalThis.reviewChange=()=>setTimeout(()=>{confirm('Continue?');document.querySelector('form').submit();},20);`;
   }else if(mode==='native-dialog'){
     const kind=url.searchParams.get('dialog');
-    body='<button type="button">Continue</button>'+form()+sink;
-    script=`const openDialog=()=>{${kind==='alert'?"alert('Continue?')":kind==='prompt'?"prompt('Continue?','Synthetic default')":"confirm('Continue?')"};document.querySelector('form').submit();};document.querySelector('button').onclick=openDialog;globalThis.reviewChange=()=>setTimeout(openDialog,20);`;
+    body='<button type="button">Continue</button>'+form('<input type="hidden" name="reply" value="Unanswered">')+sink;
+    script=`const openDialog=()=>{const reply=globalThis.firstScriptDialogs[${JSON.stringify(kind)}].call(window,'Continue?','Synthetic default');document.querySelector('[name=reply]').value=String(reply);document.querySelector('form').submit();};document.querySelector('button').onclick=openDialog;globalThis.reviewChange=()=>setTimeout(openDialog,20);`;
   }else return null;
   return {body,script};
 }

@@ -11,6 +11,7 @@ const listSnapshots = new Map(), fixtureBarriers = new Map();
 const ownerRequests = new Map(), stagedUploads = new Map(), confirmationPlans = new Map(), dialogWake = new Map();
 const dialogInputs=new WeakMap();
 const dialogTargets=new WeakMap();
+const nativeDialogStarts=new Map();
 const preloadTargets=new Map();
 const releasing=new Map(),admissions=new Map();
 let stopGeneration=0;
@@ -89,21 +90,30 @@ async function preloadEvent(source,method,params){
     return;
   }
   if(method!=='Debugger.paused')return;
+  if(!controlled.has(state.tab)&&releasing.get(state.tab)?.original.epoch===state.epoch){await preloadCommand(state.source,'Debugger.resume');return;}
   if(state.dialogBarrier&&!params.hitBreakpoints?.includes(state.breakpoint)){
-    const barrier=state.dialogBarrier;state.dialogBarrier=null;
+    const barrier=state.dialogBarrier;
     try{
       assertTarget(state);
       const owner=controlled.get(state.tab),hold=owner?.hold;
       if(hold?.nonce!==barrier.nonce)throw Error('stale_reference: dialog hold changed');
-      for(const doc of barrier.documents){
-        const context=[...state.contexts.values()].find(context=>context.uniqueId===doc.isolated);
+      const sourceContext=[...state.contexts.values()].find(context=>context.uniqueId===barrier.source.doc.isolated);
+      if(!sourceContext)throw Error('refused: native dialog source context disappeared');
+      const boundary=await targetCommand(state,'Runtime.evaluate',{contextId:sourceContext.id,expression:'globalThis[Symbol.for("aresos.chrome.guard.v2")].dialogBoundary()',disableBreaks:true,returnByValue:true});
+      if(boundary.exceptionDetails||boundary.result?.value?.document!==barrier.source.doc.document)throw Error('unknown: native dialog private document identity changed; inspect and never replay');
+      if(boundary.result.value.token===null){await targetCommand(state,'Debugger.resume');return;}
+      if(boundary.result.value.token!==barrier.token)throw Error('unknown: native dialog return boundary changed; inspect and never replay');
+      state.dialogBarrier=null;
+      for(const {state:target,doc} of barrier.documents){
+        const context=[...target.contexts.values()].find(context=>context.uniqueId===doc.isolated);
         if(!context)throw Error('refused: dialog document context disappeared');
         const value={generation:state.epoch,dispatch_nonce:barrier.nonce,config:hold.config};
-        const armed=await targetCommand(state,'Runtime.evaluate',{contextId:context.id,expression:'globalThis[Symbol.for("aresos.chrome.guard.v2")].arm('+JSON.stringify(value)+');globalThis[Symbol.for("aresos.chrome.guard.v2")].identity()',disableBreaks:true,returnByValue:true});
+        const armed=await targetCommand(target,'Runtime.evaluate',{contextId:context.id,expression:'globalThis[Symbol.for("aresos.chrome.guard.v2")].arm('+JSON.stringify(value)+');globalThis[Symbol.for("aresos.chrome.guard.v2")].identity()',disableBreaks:true,returnByValue:true});
         if(armed.exceptionDetails||armed.result?.value!==doc.document)throw Error('refused: dialog guard identity changed');
+        doc.activeNonce=barrier.nonce;
       }
       await targetCommand(state,'Debugger.resume');barrier.resolve();
-    }catch(error){barrier.reject(error);} // Keep execution paused if its private hold could not be installed.
+    }catch(error){state.dialogBarrier=null;const owner=controlled.get(state.tab);if(owner)owner.dialogPauseFailed=true;barrier.reject(error);} // Keep execution paused if its private hold could not be installed.
     return;
   }
   const pause=Symbol();state.pause=pause;let startup;
@@ -143,6 +153,7 @@ async function preloadEvent(source,method,params){
       const inherited={generation:state.epoch,dispatch_nonce:hold.nonce,config:hold.config,in_flight:hold.inFlight};
       const armed=await targetCommand(state,'Runtime.evaluate',{contextId:context.id,expression:'globalThis[Symbol.for("aresos.chrome.guard.v2")].inherit('+JSON.stringify(inherited)+')',disableBreaks:true,returnByValue:true});
       if(armed.exceptionDetails)throw Error('refused: new frame could not inherit the active hold');
+      installed.activeNonce=hold.inFlight?hold.nonce:null;
     }
     const activated=await targetCommand(state,'Runtime.callFunctionOn',{objectId:installed.cleanup,functionDeclaration:'function(){return this.activate();}',returnByValue:true});
     if(activated.exceptionDetails)throw Error('refused: document guard activation failed');
@@ -151,6 +162,7 @@ async function preloadEvent(source,method,params){
   finally{try{if(state.pause===pause&&sameDocument()&&controlled.get(state.tab)?.epoch===state.epoch)await targetCommand(state,'Debugger.resume');}catch{}state.installing.delete(installing);complete();}
 }
 function isPreloaded(tab,document){return [...preloadTargets.values()].some(state=>state.tab===tab&&[...state.documents.values()].some(value=>value.ready&&value.document===document));}
+function armedDocument(tab,document,nonce){for(const state of preloadTargets.values())if(state.tab===tab)for(const doc of state.documents.values())if(doc.document===document)doc.activeNonce=nonce;}
 function inlineFrame(address){try{const url=new URL(address);return url.protocol==='about:'&&['blank','srcdoc'].includes(url.pathname);}catch{return false;}}
 function frameAddress(frame,frames,seen=new Set()){
   if(!frame||seen.has(frame.frameId))throw Error('refused: frame origin is unavailable');
@@ -344,34 +356,30 @@ async function content(tab, frame, command, parameters={}) {
   if (!reply?.ok) throw Error(reply?.error || 'stale_reference: page changed; read again');
   return reply.data;
 }
-async function armDialog(tab){
+async function armDialog(tab,conservative=controlled.get(tab)?.hold?.config?.conservative||false,approvedConfirmation=false){
   const owner=controlled.get(tab),nonce=crypto.randomUUID();assertControl(tab,owner?.epoch);
   const frames=await chrome.webNavigation.getAllFrames({tabId:tab})||[];
   const candidates=[...preloadTargets.values()].filter(state=>state.tab===tab&&!state.detached).flatMap(state=>[...state.documents.values()].filter(doc=>doc.ready).map(doc=>({state,doc})));
   const documents=frames.map(frame=>candidates.find(value=>value.doc.document===privacyDocuments.get(frame.documentId)));
   if(recording)audit({dialog_coverage:{frames:frames.map(frame=>({frame:frame.frameId,native_document:frame.documentId,private_document:privacyDocuments.get(frame.documentId)})),guards:candidates.map(value=>({document:value.doc.document,frame:value.doc.frameId}))}});
   if(!frames.length||documents.some(value=>!value))throw Error('refused: the dialog cannot be answered with complete private guard coverage; leave it to the owner');
-  const config={...POLICY,blockedHosts:excludedHosts};
-  owner.hold={nonce,config,inFlight:true,until:Date.now()+POLICY.holdMs};owner.inputNonce=nonce;
-  const barriers=[];
-  for(const state of new Set(documents.map(value=>value.state))){
-    let resolve,reject;const ready=new Promise((done,fail)=>{resolve=done;reject=fail;});ready.catch(()=>{});
-    const barrier={nonce,documents:documents.filter(value=>value.state===state).map(value=>value.doc),resolve,reject,ready};
-    state.dialogBarrier=barrier;barriers.push({state,...barrier});
-    // This protocol pause runs on the debugger's interrupt path. No page task
-    // must run while the native modal is open. Its continuation cannot run
-    // until the private hold is armed in the debugger pause and then resumed.
-    await targetCommand(state,'Debugger.pause');
-  }
-  const source=dialogTargets.get(dialogs.get(tab))||barriers[0]?.state;
-  const primary=barriers.find(value=>value.state===source);
-  if(!primary)throw Error('refused: native dialog target could not be authenticated; leave it to the owner');
-  return {owner,nonce,frames,ready:primary.ready};
+  const existing=owner.hold;
+  if(existing?.inFlight&&existing.hasAllowance!==undefined&&(!existing.hasAllowance||approvedConfirmation)&&(!conservative||existing.config.conservative)&&documents.every(value=>value.doc.activeNonce===existing.nonce))return {owner,nonce:existing.nonce,frames,ready:Promise.resolve()};
+  const dialog=dialogs.get(tab),entry=nativeDialogStarts.get(JSON.stringify([tab,dialog.browser_document]))?.at(-1);
+  const source=documents.find(value=>value.doc.document===entry?.document&&value.state===dialogTargets.get(dialog));
+  if(!entry||entry.kind!==dialog.kind||!source)throw Error('refused: native dialog has no authenticated return boundary; leave it to the owner');
+  const config={...POLICY,blockedHosts:excludedHosts,conservative};
+  owner.hold={nonce,config,inFlight:true,until:Date.now()+POLICY.holdMs,dialogToken:entry.token,hasAllowance:false};owner.inputNonce=nonce;
+  let resolve,reject;const ready=new Promise((done,fail)=>{resolve=done;reject=fail;});ready.catch(()=>{});
+  source.state.dialogBarrier={nonce,token:entry.token,documents,source,resolve,reject,ready};
+  return {owner,nonce,frames,ready};
 }
 async function finishFrames(tab,frames,epoch,nonce){
+  if(controlled.get(tab)?.dialogPauseFailed)return true;
   let uncertain=false;
   for(const frame of frames){
     if(dialogs.has(tab))return true;
+    armedDocument(tab,frame.document??privacyDocuments.get(frame.documentId),null);
     const wake=waitDialog(tab);
     try{const result=await Promise.race([content(tab,frame.frameId??frame.frame,'finish_input',{generation:epoch,dispatch_nonce:nonce}),wake.promise]);if(result?.interrupted)return true;}
     catch{
@@ -463,6 +471,8 @@ async function release(tab) {
   const children=[...controlled].filter(([child,value])=>child!==tab&&(value.debuggee?.tabId===tab||value.parentTab===tab)).map(([child])=>child);
   if(original){const key=JSON.stringify([tab,original.epoch]);retiredControls.set(key,original);while(retiredControls.size>32)retiredControls.delete(retiredControls.keys().next().value);setTimeout(()=>{if(retiredControls.get(key)===original)retiredControls.delete(key);},900000);}
   controlled.delete(tab); dialogs.delete(tab);confirmationPlans.delete(tab);
+  for(const key of nativeDialogStarts.keys())if(key.startsWith('['+tab+','))nativeDialogStarts.delete(key);
+  for(const state of preloadTargets.values())if(state.tab===tab&&state.dialogBarrier){state.dialogBarrier.reject(Error('unknown: native-dialog answer interrupted by Stop; inspect and never replay'));state.dialogBarrier=null;}
   wakeDialog(tab,{interrupted:true});
   for(const [id,barrier]of fixtureBarriers)if(barrier.tab===tab){fixtureBarriers.delete(id);barrier.reject(Error('unknown: interrupted after input'));}
   for(const [token,stage] of stagedUploads)if(stage.tab===tab)stagedUploads.delete(token);
@@ -627,7 +637,7 @@ async function dispatch(command) {
     if(!dialog || dialog.frame === undefined || stable(expected)!==stable(command.binding))throw Error('stale_approval: dialog or its opener changed');
     safeURL(dialog.frame_url);
     if(command.operation && used.has(command.operation))throw Error('refused: dialog operation already attempted');
-    const armed=await armDialog(tab);dialogInputs.set(dialog,{epoch:dispatchEpoch,nonce:armed.nonce,managed:true});
+    const armed=await armDialog(tab,command.conservative);dialogInputs.set(dialog,{epoch:dispatchEpoch,nonce:armed.nonce,managed:true});
     let uncertain_finish;
     if(command.operation)used.add(command.operation);
     try{await cdp(tab,'Page.handleJavaScriptDialog',{accept:command.input.accept,...(command.input.text === undefined ? {}:{promptText:command.input.text})});await armed.ready;
@@ -708,7 +718,7 @@ async function dispatch(command) {
   const keyInput=command.input?.verb==='press'?keyboard(command.input.key):null;
   if(command.input?.key_input && stable(keyInput)!==stable(command.input.key_input))throw Error('refused: classified key differs from dispatched key');
   const inputNonce=crypto.randomUUID();controlled.get(tab).inputNonce=inputNonce;
-  const owner=controlled.get(tab);owner.hold={nonce:inputNonce,until:Date.now()+POLICY.holdMs,inFlight:true,config:{...POLICY,blockedHosts:excludedHosts,conservative:command.conservative}};
+  const owner=controlled.get(tab);owner.hold={nonce:inputNonce,until:Date.now()+POLICY.holdMs,inFlight:true,hasAllowance:command.approved===true,config:{...POLICY,blockedHosts:excludedHosts,conservative:command.conservative}};
   const armed=[];let noChange=false;
   try{
   for(const other of snapshot.frames){
@@ -716,6 +726,7 @@ async function dispatch(command) {
     await content(tab,other.frame,'set_control',{generation:dispatchEpoch});
     armed.push(other);
     await content(tab,other.frame,'arm',{config:{...POLICY,blockedHosts:excludedHosts,conservative:command.conservative},target:other.frame===reference.frame ? target.element:null,form:other.frame===reference.frame ? frame.form?.element:null,operation:command.approved && other.frame===reference.frame ? command.operation:null,generation:dispatchEpoch,dispatch_nonce:inputNonce,key_input:other.frame===reference.frame?keyInput:null,primary_submission:!!command.primary_submission && other.frame===reference.frame,implicit:other.frame===reference.frame&&command.input?.verb==='press'&&command.input.key.split('+').at(-1)==='Enter'?target.implicit_submitter:null,approved_form:command.approved&&other.frame===reference.frame?frame.form:null});
+    armedDocument(tab,other.document,inputNonce);
   }
   // Native pointer input must address the selected tab in headed Chrome.
   // Arm first because activation can itself run focus/visibility handlers.
@@ -733,6 +744,7 @@ async function dispatch(command) {
     if(!isPreloaded(tab,added.document))throw Error('refused: a new frame has no document-start guard');
     armed.push(added);await content(tab,added.frame,'set_control',{generation:dispatchEpoch});
     await content(tab,added.frame,'arm',{generation:dispatchEpoch,dispatch_nonce:inputNonce,config:owner.hold.config});
+    armedDocument(tab,added.document,inputNonce);
   }
   const coverage=await chrome.webNavigation.getAllFrames({tabId:tab})||[];
   if(snapshot.frames.some(frame=>!coverage.some(current=>current.frameId===frame.frame&&current.documentId===frame.browser_document))||coverage.some(current=>{try{frameAddress(current,coverage);}catch{return false;}return !snapshot.frames.some(frame=>frame.frame===current.frameId);}))throw Error('refused: frame coverage changed before input');
@@ -796,6 +808,16 @@ async function connect() {
   port.onDisconnect.addListener(()=>{ for(const barrier of fixtureBarriers.values())barrier.reject(Error('unknown: native connection ended after input'));fixtureBarriers.clear();port=null; stop().finally(()=>setTimeout(connect,1000)); });
 }
 chrome.runtime.onMessage.addListener((message,sender,reply)=>{
+  if(sender.id===chrome.runtime.id&&message?.event==='native_dialog_boundary'){
+    const owner=controlled.get(sender.tab?.id);
+    if(!owner||message.generation!==owner.epoch||privacyDocuments.get(sender.documentId)!==message.document||typeof message.token!=='string'){reply({received:false});return;}
+    const key=JSON.stringify([sender.tab.id,sender.documentId]),entries=nativeDialogStarts.get(key)||[];
+    if(message.phase==='begin'&&['alert','confirm','prompt'].includes(message.kind)){entries.push({token:message.token,document:message.document,kind:message.kind});nativeDialogStarts.set(key,entries);}
+    else if(message.phase==='end'){
+      if(entries.at(-1)?.token===message.token)entries.pop();if(!entries.length)nativeDialogStarts.delete(key);
+    }
+    reply({received:true});return;
+  }
   if(sender.id===chrome.runtime.id&&message?.event==='reader_ready'){
     if(!sender.tab||!controlled.has(sender.tab.id)||!sender.documentId||typeof message.document!=='string'){reply({received:false});return;}
     try{safeURL(sender.origin||sender.url);}catch{reply({received:false});return;}
@@ -889,7 +911,7 @@ chrome.debugger.onEvent.addListener(async(source,method,params)=>{
     if(matched){
       // Consume before entering the page again; a nested second dialog is a new question.
       plan.expected=null;plan.matched.push({...expected});
-      try{const armed=await armDialog(tab);dialogInputs.set(dialog,{epoch:input.epoch,nonce:armed.nonce,managed:true});await cdp(tab,'Page.handleJavaScriptDialog',{accept:true});await armed.ready;const uncertain=await finishFrames(tab,armed.frames,input.epoch,armed.nonce);if(armed.owner.hold?.nonce===armed.nonce){armed.owner.hold.inFlight=uncertain;armed.owner.hold.until=Date.now()+POLICY.holdMs;}}catch(error){port?.postMessage({event:'reader_error',tab,error:String(error)});}
+      try{const armed=await armDialog(tab,undefined,true);dialogInputs.set(dialog,{epoch:input.epoch,nonce:armed.nonce,managed:true});await cdp(tab,'Page.handleJavaScriptDialog',{accept:true});await armed.ready;const uncertain=await finishFrames(tab,armed.frames,input.epoch,armed.nonce);if(armed.owner.hold?.nonce===armed.nonce){armed.owner.hold.inFlight=uncertain;armed.owner.hold.until=Date.now()+POLICY.holdMs;}}catch(error){port?.postMessage({event:'reader_error',tab,error:String(error)});}
     }
   }
   if (method === 'Page.javascriptDialogClosed') {
