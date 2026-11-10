@@ -69,3 +69,29 @@ The current complete Python sweep passed: **189 OK, 232.606 s**, with
 `PYTHONPATH=control:control/chrome_tests`. The initial command omitted that import
 path and failed loading test_bridge; no test assertion or implementation changed
 to correct the invocation.
+
+
+### Completed 2d2c728e trial and batched correction
+
+Runs 42849298252 / 42849536082 completed red. The PR's external/policy jobs each
+record 53 passes in 56 executed named cases. Every review matrix passed,
+including all 15 ordinary dialogs, the decided bounded owner handoff/recovery,
+all three borrowed-native questions and frozen-wrapper Stop. Exact raw native
+receiver rows and PASS lines are retained in records/review-fixes-2d2-dialog-decisions.json.
+Full P30 and later inventory still did not run; this is not acceptance evidence.
+
+Both native mismatch failures have one cause: Chrome reports a cross-site child
+modal through the root Page domain, so its transport target is not the private
+guard's target. The opener was authenticated correctly, but arming additionally
+required the wrong target. Arming now selects the private document already
+joined to the native opener; it still requires every current frame's guard and
+the exact private return token. The unused transport-target map is retired.
+A regression gives parent and child different targets and verifies that the
+barrier belongs to the authenticated child and covers both. Its root-only
+mutation fails. The Gemini failure followed the modal this bug left open.
+
+The Linux harness also retries native-profile directory removal briefly while
+killed container Chrome children finish exiting; no profile is accessed locally.
+Current local Node: 218 pass; all 89 mutations rejected with passing baselines;
+Python remains 189 OK (only JavaScript changed since that complete run).
+Ledger: 156 Chrome IDs before this batch; expected 158 after its push.

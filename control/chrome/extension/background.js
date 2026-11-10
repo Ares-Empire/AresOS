@@ -10,7 +10,6 @@ let excludedHosts = null;
 const listSnapshots = new Map(), fixtureBarriers = new Map();
 const ownerRequests = new Map(), stagedUploads = new Map(), confirmationPlans = new Map(), dialogWake = new Map();
 const dialogInputs=new WeakMap();
-const dialogTargets=new WeakMap();
 const nativeDialogStarts=new Map();
 const preloadTargets=new Map();
 const releasing=new Map(),admissions=new Map();
@@ -394,7 +393,7 @@ async function armDialog(tab,conservative=controlled.get(tab)?.hold?.config?.con
   const existing=owner.hold;
   if(existing?.inFlight&&existing.hasAllowance!==undefined&&(!existing.hasAllowance||approvedConfirmation)&&(!conservative||existing.config.conservative)&&documents.every(value=>value.doc.activeNonce===existing.nonce))return {owner,nonce:existing.nonce,frames,ready:Promise.resolve()};
   const dialog=dialogs.get(tab),entry=nativeDialogStarts.get(JSON.stringify([tab,dialog.browser_document]))?.at(-1);
-  const source=documents.find(value=>value.doc.document===entry?.document&&value.state===dialogTargets.get(dialog));
+  const source=documents.find(value=>value.doc.document===entry?.document);
   if(!entry||entry.kind!==dialog.kind||!source)throw Error('refused: native dialog has no authenticated return boundary; leave it to the owner');
   const config={...POLICY,blockedHosts:excludedHosts,conservative};
   owner.hold={nonce,config,inFlight:true,until:Date.now()+POLICY.holdMs,dialogToken:entry.token,hasAllowance:false};owner.inputNonce=nonce;
@@ -935,7 +934,6 @@ chrome.webNavigation.onCommitted.addListener(({tabId,frameId,documentId,transiti
   if(recording)audit({navigation_method:{tab:tabId,frame:frameId,document:documentId,transition:transitionType,method:documentMethods.get(key)?.method||'unknown'}});
 });
 chrome.debugger.onEvent.addListener(async(source,method,params)=>{
-  const nativeSource=source;
   if(recording)audit({protocol_event:{source,method,params}});
   if(method==='Page.frameNavigated'){
     const state=preloadTargets.get(targetKey(source));if(state){for(const [id,context]of state.contexts)if(context.auxData?.frameId===params.frame.id){state.contexts.delete(id);for(const [key,doc]of state.documents)if(doc.isolated===context.uniqueId)state.documents.delete(key);}contextChanged(state);}
@@ -959,7 +957,6 @@ chrome.debugger.onEvent.addListener(async(source,method,params)=>{
       dialogs.set(tab,{frame_url:params.url,blocked:true});wakeDialog(tab);return;
     }
     const dialog={id:crypto.randomUUID(),...(!inherited?{kind:params.type,text:params.message}:{}),frame_url:params.url,button:'OK'};
-    dialogTargets.set(dialog,preloadTargets.get(targetKey(nativeSource)));
     const input=controlled.get(tab),nonce=input?.inputNonce,plan=confirmationPlans.get(tab);
     if(nonce)dialogInputs.set(dialog,{epoch:input.epoch,nonce});
     dialogs.set(tab,dialog);

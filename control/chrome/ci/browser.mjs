@@ -179,5 +179,5 @@ try {
   try{execFileSync('import',['-window','root','/out/failure.png']);}catch{}
   throw error;
 } finally {
-  chrome?.kill('SIGTERM');await delay(500);if(chrome&&chrome.exitCode===null)chrome.kill('SIGKILL');fixture.close();fs.rmSync(profile,{recursive:true,force:true});
+  chrome?.kill('SIGTERM');await delay(500);if(chrome&&chrome.exitCode===null)chrome.kill('SIGKILL');fixture.close();fs.rmSync(profile,{recursive:true,force:true,maxRetries:10,retryDelay:100});
 }
