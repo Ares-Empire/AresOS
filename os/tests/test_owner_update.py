@@ -1031,21 +1031,66 @@ class ToolsUpdateTest(unittest.TestCase):
                 run()
                 self.updated(home, fingerprint, old)
 
-    def works(self, home, old, fingerprint):
+    # The complete STOP lines the tools print; a helper accepts nothing less than a whole line.
+    BOUNCE = ('STOP: These tools are not the installed entry (the tools update was undone or superseded); '
+              'run sudo /var/lib/ares/at check again')
+    NOT_INSTALLED = 'STOP: Run the installed root-only tools'
+
+    def refused(self, result, line):
+        """The entry terminated by itself with exit status 1 and printed exactly this STOP line."""
+        self.assertFalse(result.timed_out, 'the entry hung: ' + result.stdout + result.stderr)
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn(line, result.stdout.splitlines(), result.stdout + result.stderr)
+
+    def works(self, home, old, fingerprint, timeout=20):
         """Invariant 1: the real entry reaches a complete, verified toolset, or the route to one.
 
         Before publication the entry may still point at the new tools after a
         cut; they settle the state and say to run the command again, and the
-        second run reaches the previous tools.
+        second run reaches the previous tools. The rerun happens only after a
+        run that terminated by itself with the complete bounce line; a hang
+        fails, whatever it printed first.
         """
-        result = self.entry_run(home, 'check', timeout=20)
-        if 'not the installed entry' in result.stdout:
-            result = self.entry_run(home, 'check', timeout=20)
+        result = self.entry_run(home, 'check', timeout=timeout)
+        if not result.timed_out and result.returncode == 1 and self.BOUNCE in result.stdout.splitlines():
+            result = self.entry_run(home, 'check', timeout=timeout)
         which = self.reached(result)
         self.assertIsNotNone(which, ('timed out' if result.timed_out else 'no marker') + ': ' + result.stdout + result.stderr)
         toolset = os.readlink(home / 'at').removesuffix('/at')
         self.assertEqual(owner.checked_bundle(home / toolset), old if which == '15f' else fingerprint)
         return which
+
+    def test_a_hung_or_truncated_bounce_fails_every_helper(self):
+        """An entry that prints the bounce or refusal text and then hangs, or prints part of it, is no pass."""
+        with tempfile.TemporaryDirectory(dir=ROOT / 'os/tests') as temporary:
+            home = pathlib.Path(temporary) / 'home'
+            (home / 'tools').mkdir(parents=True, mode=0o700)
+            os.symlink('tools/at', home / 'at')
+            cases = {
+                'bounce then hang': 'echo "' + self.BOUNCE + '"; sleep 60\n',
+                'refusal then hang': 'echo "' + self.NOT_INSTALLED + '"; sleep 60\n',
+                'marker then hang': 'echo "15f stand-in ran"; sleep 60\n',
+                'truncated bounce': 'echo "STOP: These tools are not the installed entry"; exit 1\n',
+                'truncated refusal': 'echo "STOP: Run the installed"; exit 1\n',
+            }
+            for name, script in cases.items():
+                with self.subTest(case=name):
+                    (home / 'tools/at').write_text(script)
+                    (home / 'tools/at').chmod(0o700)
+                    result = self.entry_run(home, 'check', timeout=2)
+                    self.assertEqual(result.timed_out, 'hang' in name)
+                    self.assertIsNone(self.reached(result))
+                    with self.assertRaises(AssertionError):
+                        self.refused(result, self.BOUNCE)
+                    with self.assertRaises(AssertionError):
+                        self.refused(result, self.NOT_INSTALLED)
+                    with self.assertRaises(AssertionError):
+                        self.works(home, 'x' * 64, 'y' * 64, timeout=2)
+            # The complete lines, terminated, do pass refused(): the helper is strict, not broken.
+            for name, line in (('bounce', self.BOUNCE), ('refusal', self.NOT_INSTALLED)):
+                with self.subTest(case=name + ' complete'):
+                    (home / 'tools/at').write_text('echo "' + line + '"; exit 1\n')
+                    self.refused(self.entry_run(home, 'check', timeout=2), line)
 
     @contextlib.contextmanager
     def power_cut_after(self, renames):
@@ -1182,7 +1227,7 @@ class ToolsUpdateTest(unittest.TestCase):
                 result = self.entry_run(home, 'check')
                 if expected == '15f':
                     # The new tools settled the state (entry back, tools back) and bounced the command.
-                    self.assertIn('not the installed entry', result.stdout)
+                    self.refused(result, self.BOUNCE)
                     self.assertEqual(os.readlink(home / 'at'), 'tools/at')
                     self.assertEqual(owner.checked_bundle(home / 'tools'), old)
                     self.assertFalse((home / '.tools-held').exists())
@@ -1216,7 +1261,7 @@ class ToolsUpdateTest(unittest.TestCase):
             self.assertEqual(json.loads((home / 'tools-update-intent.json').read_text())['phase'], 'retire')
             # Now the old tools refuse through their own directory: the entry moved on for good.
             result = self.entry_run(home, 'check', path='tools-' + old + '/at')
-            self.assertIn('not the installed entry', result.stdout)
+            self.refused(result, self.BOUNCE)
             self.assertEqual(os.readlink(home / 'at'), 'tools-' + fingerprint + '/at')
             self.assertEqual(self.reached(self.entry_run(home, 'check')), 'new')
             with patch.object(pathlib.Path, 'replace', new=record):
@@ -1225,7 +1270,7 @@ class ToolsUpdateTest(unittest.TestCase):
             self.updated(home, fingerprint, old)
             self.assertEqual(self.reached(self.entry_run(home, 'check')), 'new')
             result = self.entry_run(home, 'check', path='retired-tools/' + old + '/at')
-            self.assertIn('Run the installed root-only tools', result.stdout)
+            self.refused(result, self.NOT_INSTALLED)
 
     def test_unexpected_states_stop_without_moving_anything(self):
         """Outside the journal's model the decision refuses; it never guesses."""
