@@ -187,3 +187,13 @@ validator-disable controls are exercised in every shard. The complete fresh
 53-list Linux pin has 2,057,880 exact stage-3 keys and zero R2 keys in 928,878
 bytes. REPORT.md and LEDGER-CAPTURE-S2-FIXES.json record the diagnostic capture
 failures separately from the final strict pair.
+
+The final strict pair is complete on
+`08644540c415d5f4bbbcb7efe8b1cb105dc161df`: base 42818236541, Mail 42818236590
+(all 64 jobs) and boundary 42818278484 each pass attempts 1 and 2. Every Mail job
+is below 35 minutes; maxima are 28m30s / 27m59s. Both 53-list fresh merges
+reproduce the compact pin byte-for-byte with zero R2 gaps; both alteration
+passes reproduce all counts and individual-validator controls above.
+LEDGER-STRICT-S2-FIXES.json pins the 106 actual-list hashes, source, exact output
+evidence and timings. The closing commit is documentary only. Fresh reviews
+belong to the package lead; stage 3 remains unbuilt.

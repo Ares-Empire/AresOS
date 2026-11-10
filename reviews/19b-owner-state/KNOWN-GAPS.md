@@ -349,3 +349,12 @@ assert raw == Path('reviews/19b-owner-state/KNOWN-GAPS.json').read_bytes()
 print('53 strict inputs; 2,057,880 stage-3 keys; zero R2; byte-identical pin')
 PY
 ```
+
+**Run — final strict pair:** base **42818236541**, Mail **42818236590** and
+boundary **42818278484** each passed attempts **1 and 2** on
+`08644540c415d5f4bbbcb7efe8b1cb105dc161df`. Every one of the 128 Mail jobs is
+below 35 minutes (maximum **28m30s / 27m59s**) and the unchanged 45-minute cap.
+Both complete fresh 53-list merges reproduce this exact pin byte-for-byte,
+with zero R2 gaps. [LEDGER-STRICT-S2-FIXES.json](LEDGER-STRICT-S2-FIXES.json)
+records all 106 fresh actual-list hashes, ownership, exact output evidence,
+durations and run counts. Stage 3 remains open.

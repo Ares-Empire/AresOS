@@ -1,10 +1,10 @@
 # 19b — owner state
 
-**Current status — stage 2 fixes round 1 in verification (2026-11-10):**
-The three stage-2 reviews required oracle, alteration-test, RENAME and fixture
-fixes. Their implementation and local verification are recorded in the final
-section below. Final Linux capture, strict pin and workflow evidence supersede
-the earlier fold evidence when recorded there. Stage 3 has not been started.
+**Current status — stage 2 fixes round 1 complete (2026-11-10):**
+The oracle, alteration-test, RENAME and fixture fixes are complete. Control base,
+Mail (all 64 jobs) and boundary each passed twice on `08644540`; both complete
+53-list strict merges reproduce the compact pin with zero R2 gaps. The final
+section below supersedes the earlier fold evidence. Stage 3 has not been started.
 
 ## Done
 
@@ -1490,7 +1490,7 @@ listed roles, flags and bytes; the SMTP receiver also records raw DATA bytes.
 All original assertions remain, and an accepted APPEND assertion was added.
 The test passes locally with real TLS SMTP plus memory IMAP (`Ran 1 test in
 0.545s`, `OK`, `mailto-recorder-local.txt`), using the ignored local policy/path
-fixture. Full real-server verification belongs to both strict Linux rounds.
+fixture. Both strict Linux rounds pass the full real-server test setup.
 Only `smtp_fixture.py` and `test_unsubscribe.py` change after capture source
 `ad9d6d59`; production, expectations, Driver and all 53 owner-state gap-list
 inputs remain identical. The capture is diagnostic evidence, not green
@@ -1541,3 +1541,92 @@ failure categories; the harvest prints the counts, size, digest and zero R2
 above, after all 53 strict checks pass. The ignored helpers do not change test
 selection or expectations. KNOWN-GAPS.md gives a standalone reproduction from
 the recorded artifacts.
+
+**Run — finished-source strict pair:** the pin and all code/tests are fixed at
+`08644540c415d5f4bbbcb7efe8b1cb105dc161df`. Every workflow below passed attempts
+**1 and 2** on that source. The first proof was saved before requesting the
+second repetition; no code, test, selection or pin changed between them.
+
+| Workflow | Run | Attempt 1 | Attempt 2 |
+| --- | --- | --- | --- |
+| Control base | [42818236541](https://github.com/Ares-Empire/AresOS/actions/runs/42818236541) | 287 tests in 200.436s; `OK`; `Control base suite PASS` | 287 tests in 211.440s; `OK`; `Control base suite PASS` |
+| Control Mail | [42818236590](https://github.com/Ares-Empire/AresOS/actions/runs/42818236590) | All 64 jobs PASS; maximum **1,710s / 28m30s** | All 64 jobs PASS; maximum **1,679s / 27m59s** |
+| Control boundary | [42818278484](https://github.com/Ares-Empire/AresOS/actions/runs/42818278484) | PASS; exact HEAD; `SETTINGS_OK` with and without seccomp | PASS; exact HEAD; `SETTINGS_OK` with and without seccomp |
+
+All **128 Mail jobs** are below both the 35-minute aim and unchanged 45-minute
+cap. Each repetition runs the four 78/79/103/75-test suites, all 48 complete
+six-test owner workers, and all twelve alteration shards. Each alteration pass
+prints **94 recordings / 2,003,694 alterations / 257,524 coherent / 14,904 owner-set
+changes / zero slipped**. Every own-validator catch count exactly matches the
+table above. All thirteen real production field-kind controls and all seven
+single-validator controls pass in every shard. The corrected standalone mailto
+test prints `ok` in both real-server runs.
+
+Both complete fresh **53-list** merges strictly validate ownership and shared
+values, then reproduce all **2,057,880** exact stage-3 entries and the
+**928,878-byte** compact pin byte-for-byte. Both have **zero R2 gaps**. No full
+list is borrowed from the capture or the other repetition.
+[LEDGER-STRICT-S2-FIXES.json](LEDGER-STRICT-S2-FIXES.json) records all **106** fresh
+actual-list hashes, exact output lines/log hashes, every job duration, source,
+pin hash and run accounting. This is acceptance evidence; the earlier failed
+capture remains separately classified.
+
+**Run — workflow commands:** the pin push automatically started base and Mail;
+boundary was dispatched explicitly. GitHub ran the existing Fedora base,
+isolated-server Mail `suite`/`perturb`/`sweep`, and boundary workflows without
+relaxing their checks or timeouts. The second repetition reran each entire
+workflow:
+
+```sh
+gh workflow run control-boundary.yml --ref pkg/19b-owner-state
+gh run rerun 42818236541
+gh run rerun 42818278484
+gh run rerun 42818236590
+# Each attempt 1 and 2, after downloading its complete artifacts:
+python3 .work/19b-s2-fixes/ci/validate.py 42818236590 2 strict
+PYTHONPATH=control:control/mail_tests .work/venv/bin/python .work/19b-s2-fixes/ci/harvest.py 42818236590 2 strict
+python3 .work/19b-s2-fixes/ci/proof.py 42818236590 42818236541 42818278484 2
+```
+
+Validation prints `Validated all 64 Mail job logs: strict ; all strict green`.
+Harvest prints the identical pin counts/digest and zero R2; proof prints source,
+attempt, maximum duration, pin keys and alteration total. All exit zero. The
+Mail rerun request returned HTTP 502, but the immediate API read showed attempt
+2 already queued on the correct source; the request was not repeated and no
+extra attempt was created.
+
+**Run / read — storage reproduction:** the unchanged measurement harness is
+`.work/19b-s2/storage-figures.py`, using the worktree-local managed-policy fixture
+and synthetic remote commands. It measures preparation plus execution, excluding
+the caller import. Reproduce the recorded measurement with:
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/mail_tests .work/venv/bin/python .work/19b-s2/storage-figures.py .work/19b-s2-fixes/storage-final.json
+```
+
+The recorded output prints `measuring send`, `move`, `delete`, `free_change`,
+`send_25mib`, then the JSON figures in the storage table above: all five outcomes
+`done`, all journal growth zero. `STORAGE-S2.json` retains the exact measurements.
+
+**Run — workflow count:** API snapshots before and after this fix round show
+**5 new workflow IDs / 8 attempts / 197 jobs**: one complete Mail capture plus
+fresh base (2 attempts), followed by the three finished-source workflows twice
+(6 attempts). The Mail capture's 50 failed jobs are the explicitly reported
+old-pin/recorder diagnostics; every one of the 132 finished-source strict jobs
+passes. Branch totals increase from **88 IDs / 104 attempts** to **93 IDs / 112
+attempts**. The strict manifest includes the five new IDs and their final
+attempt counts. No own stage review was run.
+
+**Run / read — closing scope and housekeeping:** the closing commit changes
+only REPORT.md, COVERAGE.md, KNOWN-GAPS.md and the new strict proof manifest.
+Code, tests, workflow definitions and KNOWN-GAPS.json remain identical to tested
+source `08644540`. Normal pushes use no `--no-verify` bypass. The manual Gitleaks
+commit-range scan prints `no leaks found`; its final log is
+`.work/19b-s2-fixes/privacy-final.txt`. The final `.work/` inventory of regular
+files over 500,000,000 bytes is **empty** (`large-files-final.json`). No Gradle
+daemon was started; both local CI watchers exited after completion. Full actual
+lists, raw logs and synthetic fixture files stay uncommitted under `.work/`.
+PR #26 remains a draft against `pkg/19-mail`; it is not merged. Stage 3 was not
+started. Real accounts/provider behavior remain not verified as scoped above;
+the lead owns the fresh stage reviews. No additional judgment call, plan gap or
+open question is introduced by this closing verification.
