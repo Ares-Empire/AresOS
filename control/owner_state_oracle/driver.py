@@ -34,6 +34,7 @@ class Driver:
             # history is input; subsequent transitions need recorded evidence.
             self.oracle.seed_sequence = max(self.record.committed, default=0)
             self.oracle.seed_events = copy.deepcopy(self.record.events)
+            self.oracle.seed_calls = {call['call'] for call in self.oracle.script}
         self.context_start_sequence = max(self.record.committed, default=0)
         self.startup_sequence = max((fence['seq'] for fence in self.record.fences), default=0)
         self.record.startup_sequence = self.startup_sequence

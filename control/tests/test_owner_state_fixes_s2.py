@@ -389,12 +389,15 @@ class StageTwoFixes(unittest.TestCase):
         self.assertIn(Fact(key, 'recovery'), expected)
 
     def test_fixture_delivery_requires_matching_script_and_message_identity(self):
-        for bad in (None, 'call', 'message', 'runtime'):
+        for bad in (None, 'call', 'message', 'runtime', 'runtime-call'):
             oracle = Oracle()
             oracle.seed_sequence = 1
             key = 'op:g:s'
             oracle.seed_events = [{'seq': 1, 'set': {key: {'id': 'g:s'}}}]
             oracle.call('mail_send', {'operation_id': 'g:s' if bad != 'call' else 'g:other'}, 1)
+            oracle.seed_calls = {oracle.call_id}
+            if bad == 'runtime-call':
+                oracle.call('mail_send', {'operation_id': 'g:s'}, 2)
             oracle.server('DATA', 'box', identities=[{'message_id': '<wrong@mail.invalid>' if bad == 'message' else '<g.s@mail.aresos.invalid>'}],
                           fixture_seed=True, before_seq=2 if bad == 'runtime' else 0)
             self.assertEqual(len(oracle.operation_events(key, 3)), 0 if bad else 1)

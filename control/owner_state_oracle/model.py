@@ -106,6 +106,7 @@ class Oracle:
             matching_message = any(ref.get('message_id') == mid for ref in event.get('identities', []))
             seed = (event.get('fixture_seed') and matching_message and
                     event.get('before_seq', -1) <= getattr(self, 'seed_sequence', -2) and
+                    event['call'] in getattr(self, 'seed_calls', set()) and
                     call.get('action') in {'mail_send', 'mail_unsubscribe'} and
                     call.get('arguments', {}).get('operation_id') == operation_id and
                     any(key in e['set'] for e in getattr(self, 'seed_events', [])))
