@@ -253,7 +253,6 @@
       const listen=(kind,listener)=>{carrier.addEventListener(kind,listener);relayListeners.push([kind,listener]);};
       const ranges=InputEvent.prototype.getTargetRanges;
       const walkerRoot=globalThis.TreeWalker&&Object.getOwnPropertyDescriptor(TreeWalker.prototype,'root')?.get;
-      const createWalker=globalThis.Document?.prototype.createTreeWalker;
       legacyBridge=false;relayControl=carrier;
       for(const [root,listeners]of roots)for(const [kind,listener,capture]of listeners)if(kind==='aresos-page-call-v2')root.removeEventListener(kind,listener,capture);
       const drop=request=>{if(stack.at(-1)?.detail.request===request)stack.pop();};
@@ -265,7 +264,13 @@
         // InputEvent drops ranges whose shadow endpoint would be retargeted.
         // Native TreeWalker getters carry the exact node without page getters,
         // public DOM mutations or exposing the private control to the page.
-        if(walkerRoot&&createWalker&&detail.target_walker){const node=walkerRoot.call(detail.target_walker);stage.target=walkerRoot.call(createWalker.call(document,node));}
+        if(walkerRoot&&detail.target_walker){
+          const node=walkerRoot.call(detail.target_walker),range=new StaticRange({startContainer:node,startOffset:0,endContainer:node,endOffset:0});
+          let prototype=range,getContainer;
+          while(prototype&&!getContainer){getContainer=Object.getOwnPropertyDescriptor(prototype,'startContainer')?.get;prototype=Object.getPrototypeOf(prototype);}
+          if(!getContainer)throw Error('native isolated range identity unavailable');
+          stage.target=getContainer.call(range);
+        }
         stack.push(stage);
       });
       // The container getter's owning interface differs across Chrome versions.

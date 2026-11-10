@@ -120,3 +120,23 @@ rejected**, every baseline passed. The full plain-Python sweep on `ace83b8e`
 passed **185 tests, OK, 236.250 s**. Generated artifacts match and diff checks
 are clean. The new native shadow-identity transport needs the next Linux trial.
 Ledger: 142 before the next push, expected 144 after.
+
+**Linux feedback, source `920ec23f`:** **42835200413 / 42835217594** failed
+before the complete matrix, at the original native stopped-submission smoke
+case. No pending submission appeared. This source is not verified and its
+TreeWalker-only transport is superseded. [Exact failure](records/review-fixes-920e-world-identity.json)
+is retained. The native TreeWalker root uses its node's own context; cloning
+another TreeWalker did not give us an isolated node. The corrected transport
+constructs an isolated StaticRange from the native endpoint, then uses that
+range's saved native container getter. It never dispatches InputEvent, so no
+shadow retargeting filter runs. The getter is found on the private native
+prototype chain, accommodating both AbstractRange and NodeRange layouts.
+Primary sources: [TreeWalker IDL](https://raw.githubusercontent.com/chromium/chromium/main/third_party/blink/renderer/core/dom/tree_walker.idl),
+[AbstractRange IDL](https://raw.githubusercontent.com/chromium/chromium/main/third_party/blink/renderer/core/dom/abstract_range.idl),
+[NodeRange IDL](https://raw.githubusercontent.com/chromium/chromium/main/third_party/blink/renderer/core/dom/node_range.idl).
+
+The double now represents MAIN native handles separately from isolated nodes;
+reading the MAIN handle's properties fails. A mutation bypassing the isolated
+conversion is rejected. Node: **205 passed**; mutation audit: **71 rejected,
+every baseline passed**. The next Linux trial remains required. Ledger: 144
+before the next push, expected 146 after.

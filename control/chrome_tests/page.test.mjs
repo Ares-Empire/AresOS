@@ -6,7 +6,7 @@ import {execFileSync} from 'node:child_process';
 
 const policy=JSON.parse(fs.readFileSync('control/chrome/extension/policy.js','utf8').match(/\{[\s\S]*\}/)[0]);
 
-function fixture({relay=false,activate=true,link=true,browserDOM=false,walkers=false,retarget=false,dialogs=false,onDialogBoundary=()=>{}}={}) {
+function fixture({relay=false,activate=true,link=true,browserDOM=false,walkers=false,retarget=false,worldHandles=false,dialogs=false,onDialogBoundary=()=>{}}={}) {
   const windowListeners=new Map(),reports=[],arrivals=[],nodes=[],bridgeDetails=[];let now=0;
   class Event {
     constructor(type,options={}) {Object.assign(this,{type,cancelable:true,defaultPrevented:false,stopped:false,eventPhase:0,isTrusted:false,...options});}
@@ -57,9 +57,12 @@ function fixture({relay=false,activate=true,link=true,browserDOM=false,walkers=f
   const window={addEventListener(type,fn){if(!windowListeners.has(type))windowListeners.set(type,[]);windowListeners.get(type).push(fn);},removeEventListener(type,fn){windowListeners.set(type,(windowListeners.get(type)||[]).filter(value=>value!==fn));}};
   class MessageChannel {port1={close(){}};port2={postMessage:token=>setImmediate(()=>this.port1.onmessage?.({data:token})),close(){}};}
   class AbstractRange {}
-  class StaticRange extends AbstractRange {constructor(options){super();Object.defineProperty(this,'startContainer',{value:options.startContainer});}}
+  const handleNodes=new WeakMap(),nodeHandles=new WeakMap();
+  const nativeNode=value=>handleNodes.get(value)||value;
+  function mainHandle(node){if(!nodeHandles.has(node)){const handle={};Object.defineProperty(handle,'root',{get(){assert.fail('MAIN node property was read');}});handleNodes.set(handle,node);nodeHandles.set(node,handle);}return nodeHandles.get(node);}
+  const rangeNodes=new WeakMap();class StaticRange extends AbstractRange {constructor(options){super();rangeNodes.set(this,nativeNode(options.startContainer));}get startContainer(){if(!rangeNodes.has(this))throw TypeError('Invalid StaticRange');return rangeNodes.get(this);}}
   class InputEvent extends Event {constructor(type,options={}){super(type,options);this.ranges=options.targetRanges?Array.from(options.targetRanges):[];}getTargetRanges(){return retarget?this.ranges.filter(range=>!range.startContainer.getRootNode().host):this.ranges;}}
-  const walkerRoots=new WeakMap();class TreeWalker {constructor(root){walkerRoots.set(this,root);}get root(){if(!walkerRoots.has(this))throw TypeError('Invalid TreeWalker');return walkerRoots.get(this);}}
+  const walkerRoots=new WeakMap();class TreeWalker {constructor(root){walkerRoots.set(this,nativeNode(root));}get root(){if(!walkerRoots.has(this))throw TypeError('Invalid TreeWalker');const node=walkerRoots.get(this);return worldHandles?mainHandle(node):node;}}
   class Document {createTreeWalker(root){return new TreeWalker(root);}}
   const globals={window,document,performance:{now:()=>now},setTimeout,MessageChannel,Symbol,Event,CustomEvent,EventTarget,Node,Element,HTMLElement,HTMLInputElement,HTMLFormElement,DOMException,URL,TextDecoder,Uint8Array,...(relay?{AbstractRange,StaticRange,InputEvent}:{}),...(walkers?{Document,TreeWalker}:browserDOM?{Document:class Document{}}:{})};
   const dialogCalls=[],dialogReports=[];if(dialogs)Object.assign(globals,{alert:({alert(value){dialogCalls.push('alert');}}).alert,confirm:({confirm(value){dialogCalls.push('confirm');return true;}}).confirm,prompt:({prompt(value,initial){dialogCalls.push('prompt');return 'native response';}}).prompt});
@@ -544,7 +547,7 @@ test('P5 new roots install capture before a borrowed native dispatch can activat
 });
 test('P5 native shadow identity survives InputEvent range retargeting without touching page getters',()=>{
   for(const kind of ['native','request','dispatch']){
-    const f=fixture({relay:true,walkers:true,retarget:true}),host=new f.HTMLElement();f.arm(host,null);
+    const f=fixture({relay:true,walkers:true,retarget:true,worldHandles:true}),host=new f.HTMLElement();f.arm(host,null);
     const root=host.attachShadow({mode:'closed'}),form=new f.HTMLFormElement();form.root=root;
     Object.defineProperty(form,'target_walker',{get(){assert.fail('page getter read');}});
     if(kind==='native')form.submit();else if(kind==='request')form.requestSubmit();else form.dispatchEvent(new f.Event('submit'));
