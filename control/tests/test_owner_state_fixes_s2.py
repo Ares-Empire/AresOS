@@ -28,6 +28,7 @@ def filing_case(kind='rename', related=False, target=False, scan=False):
     closed = {**row, 'state': 'done', 'check_open': False}
     record = Record(rows={key: closed}, events=[{'seq': 1, 'time': 1, 'action': 'fixture', 'set': {key: row}},
                     {'seq': 2, 'time': 2, 'action': 'mail_filing_check', 'set': {key: closed}}], committed={1, 2})
+    oracle.seed_events = copy.deepcopy(record.events[:1])
     return oracle, record, key
 
 
@@ -53,6 +54,59 @@ def filing_followups(oracle, record, key):
 
 
 class StageTwoFixes(unittest.TestCase):
+    def test_validator_figures_record_the_method_that_emitted_the_proof(self):
+        oracle, record, _ = filing_case('rename', False, True, False)
+        proofs = {}
+        _, errors = evaluate(oracle, record, proofs)
+        self.assertTrue(any(f.kind == 'unsupported-resolution' for _, f in errors))
+        self.assertFalse(proofs.get('transition'))
+        self.assertFalse(proofs.get('completion_errors'))
+
+    def test_runtime_warning_cannot_use_missing_fingerprint_as_legacy_authority(self):
+        oracle = Oracle()
+        row = {'id': 'n', 'source_key': 'mail:rename:r', 'check_kind': 'rename', 'created_at': 1}
+        _, errors = evaluate(oracle, Record(events=[{'seq': 1, 'time': 1, 'action': 'mail_folder_rename', 'set': {'notice:n': row}}]))
+        self.assertTrue(any(f.kind == 'missing-warning-context' for _, f in errors))
+        self.assertTrue(any(f.kind == 'missing-check-result' for _, f in errors))
+
+    def test_recovery_result_keeps_the_enrolled_target_and_requires_a_result_row(self):
+        oracle, record, key = filing_case('filing', True, True, True)
+        record.events[-1]['set'][key] = {**record.rows[key], 'target': 'Changed'}
+        record.rows[key] = record.events[-1]['set'][key]
+        _, errors = evaluate(oracle, record)
+        self.assertTrue(any(f.kind == 'changed-filing-context' for _, f in errors))
+        record.events[-1]['set'] = {}
+        record.rows[key] = record.events[0]['set'][key]
+        _, errors = evaluate(oracle, record)
+        self.assertIn(('lifecycle-proof', Fact('filing-check', 'missing-check-result', detail='2')), errors)
+
+    def test_missing_operation_identity_is_reported_before_interpreting_its_payload(self):
+        oracle = Oracle()
+        row = {'app': 'mail', 'action': 'mail_send', 'state': 'unknown',
+               'payload': {'composition': {'mail': {'account': 'box'}}}}
+        _, errors = evaluate(oracle, Record(events=[{'seq': 1, 'time': 1, 'action': 'mail_send', 'set': {'op:g:p': row}}]))
+        self.assertTrue(any(f.kind == 'operation-identity' for _, f in errors))
+
+    def test_cancellation_commit_cannot_omit_its_operation_result(self):
+        oracle = Oracle()
+        key = 'op:g:p'
+        reserved = {'id': 'g:p', 'app': 'testapp', 'action': 'testapp_send', 'state': 'reserved',
+                    'expires': 10, 'reason': 'Awaiting exact approval; nothing submitted.'}
+        oracle.seed_sequence = 1
+        oracle.call('testapp_operation_cancel', {'operation_id': 'g:p'}, 2)
+        oracle.script[-1].update(start_seq=1, end_seq=2)
+        record = Record(rows={key: reserved}, events=[
+            {'seq': 1, 'time': 1, 'action': 'fixture', 'set': {key: reserved}},
+            {'seq': 2, 'time': 2, 'action': 'testapp_operation_cancel', 'operation_id': 'g:p',
+             'summary': 'cancelled before submission', 'set': {}}])
+        _, errors = evaluate(oracle, record)
+        self.assertIn(('lifecycle-proof', Fact(key, 'missing-operation-result', detail='2')), errors)
+        cancelled = {**reserved, 'state': 'failed', 'reason': 'cancelled: nothing submitted', 'notice': True}
+        record.events[-1]['set'][key] = cancelled
+        record.rows[key] = cancelled
+        _, errors = evaluate(oracle, record)
+        self.assertNotIn(('lifecycle-proof', Fact(key, 'missing-operation-result', detail='2')), errors)
+
     def test_first_filing_row_cannot_claim_a_result_before_its_check(self):
         oracle = Oracle()
         oracle.call('mail_move', {'references': [REF], 'target': 'Target'}, 1)
@@ -86,13 +140,14 @@ class StageTwoFixes(unittest.TestCase):
     def test_coherent_version_updates_copies_and_preserves_later_outcomes(self):
         oracle = Oracle()
         key = 'op:g:p'
-        started = {'id': 'g:p', 'state': 'submitting'}
+        started = {'id': 'g:p', 'state': 'submitting', 'context': {'command': 'DATA'}}
         done = {**started, 'state': 'done'}
         record = Record(rows={key: done}, committed={1, 2}, events=[
             {'seq': 1, 'time': 1, 'action': 'mail_send', 'set': {key: started}},
             {'seq': 2, 'time': 2, 'action': 'mail_send', 'set': {key: done}}])
         for seq, row in ((1, started), (2, done)):
             oracle.server('DATA', before_seq=seq, committed_before={key: row}, created_before={key: 1})
+        original_inputs = copy.deepcopy((oracle.script, oracle.servers, oracle.commit_observations, record))
         replay, changed = coherent_change(oracle, record, key, ('state',), 'state', 'unknown', 1)
         self.assertEqual(changed.events[0]['set'][key]['state'], 'unknown')
         self.assertEqual(changed.rows[key]['state'], 'done')
@@ -103,6 +158,10 @@ class StageTwoFixes(unittest.TestCase):
         self.assertIn(key, changed.events[1]['set'])
         self.assertNotIn(key, replay.servers[0]['committed_before'])
         self.assertEqual(replay.servers[1]['created_before'][key], 2)
+        replay, changed = coherent_change(oracle, record, key, ('context', 'command'), 'effect', 'APPEND', 1)
+        self.assertEqual(changed.events[0]['set'][key]['context']['command'], 'APPEND')
+        self.assertEqual(changed.events[1]['set'][key]['context']['command'], 'APPEND')
+        self.assertEqual((oracle.script, oracle.servers, oracle.commit_observations, record), original_inputs)
         before = copy.deepcopy((replay.script, replay.servers, replay.commit_observations, changed))
         evaluate(replay, changed)
         self.assertEqual((replay.script, replay.servers, replay.commit_observations, changed), before)

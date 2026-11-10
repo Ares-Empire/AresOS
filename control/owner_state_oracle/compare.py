@@ -16,6 +16,8 @@ def compare_proofs(oracle, record, check, after_sequence=0, context=True):
             if view == 'expectations':
                 expected = value
             else:
+                if view == 'completion' and getattr(oracle, '_trace_validators', False):
+                    oracle._validator_proofs.setdefault('completion_errors', set()).update(value)
                 check(view, set(), value)
         except (KeyError, TypeError, ValueError, IndexError, AttributeError) as error:
             check('record-format.' + view, set(), {Fact('record', 'invalid-record', detail=type(error).__name__)})

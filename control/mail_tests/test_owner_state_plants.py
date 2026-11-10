@@ -21,9 +21,10 @@ VALIDATORS = {
 }
 
 
-def require_plant(name, oracle, decoded, kind):
-    expected, differences = evaluate(oracle, decoded)
-    own = {(view, fact) for view, fact in differences if fact.kind == kind}
+def require_plant(name, oracle, decoded, kind, validator):
+    proofs = {}
+    expected, differences = evaluate(oracle, decoded, proofs)
+    own = {(view, fact) for view, fact in differences if fact.kind == kind and fact in proofs.get(validator, set())}
     assert own, ('Validator missed production plant', name, kind, sorted(differences))
     return expected, own
 
@@ -42,10 +43,10 @@ def run_plants_and_controls(test):
     print(f'Owner real production field controls={len(FIELD_PLANTS)} caught through Driver.compare', flush=True)
     for validator, (name, kind, broken) in VALIDATORS.items():
         oracle, decoded = recordings[name]
-        expected, own = require_plant(name, oracle, decoded, kind)
+        expected, own = require_plant(name, oracle, decoded, kind, validator)
         with broken():
             with test.assertRaisesRegex(AssertionError, 'Validator missed production plant'):
-                require_plant(name, oracle, decoded, kind)
+                require_plant(name, oracle, decoded, kind, validator)
         print(f'Owner validator={validator} production_plants=1 own_catches={len(own)} broken_rejected=1 expected_facts={len(expected)}', flush=True)
 
 

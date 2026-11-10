@@ -254,15 +254,12 @@ def coherent_change(oracle, record, key, path=(), kind='row', replacement=None, 
     """Write one production lie into every later encoding of that row claim."""
     changed, replay = copy.copy(record), clone(oracle)
     changed.rows = dict(record.rows)
-    # Copy the affected row and writable envelopes, sharing other immutable
+    # Copy the affected path and writable envelopes, sharing other immutable
     # decoded inputs. This keeps the complete historical corpus practical.
     def versions(events):
         result = []
         for event in events:
-            rows = dict(event['set'])
-            if key in rows:
-                rows[key] = copy.deepcopy(rows[key])
-            result.append({**event, 'set': rows})
+            result.append({**event, 'set': dict(event['set'])})
         return result
     changed.events = versions(record.events)
     changed.prepared = versions(record.prepared)
@@ -291,7 +288,13 @@ def coherent_change(oracle, record, key, path=(), kind='row', replacement=None, 
             for part in path:
                 previous = previous[part]
             if previous == original:
-                put(target, path, kind, replacement)
+                changed_row = copy.copy(rows[key])
+                parent = changed_row
+                for part in path[:-1]:
+                    parent[part] = copy.copy(parent[part])
+                    parent = parent[part]
+                put(changed_row, path, kind, replacement)
+                rows[key] = changed_row
         except (KeyError, IndexError, TypeError, AttributeError):
             pass  # A later version may no longer contain this nested field.
     for event in changed.events + changed.prepared:
@@ -427,9 +430,11 @@ def freeze(oracle):
     return result
 
 
-def evaluate(oracle, record):
+def evaluate(oracle, record, proofs=None):
     current = clone(oracle)
     current.lifecycle_errors = set()
+    current._trace_validators = proofs is not None
+    current._validator_proofs = {}
     current.stages_examined = set()
     current.validated_input = current.validated_record = None
     differences = set()
@@ -448,18 +453,13 @@ def evaluate(oracle, record):
         # A malformed record counts only if compare_proofs delivered its
         # difference. A helper exception alone is never a detection.
         expected = set()
+    if proofs is not None:
+        proofs.update(current._validator_proofs)
     return expected, differences
 
 
-VALIDATOR_KINDS = {
-    'script_differences': {'R2.DATA', 'R2.APPEND', 'R2.STORE', 'R2.MOVE', 'R2.COPY', 'R2.RENAME', 'R2.POST', 'R2.RECEIVE'},
-    'stage_claims': {'unjustified-stage', 'missing-operation-result'},
-    'completion_errors': {'false-completion', 'duplicate-effect'},
-    'payload_claims': {'unapproved-payload', 'unapproved-recorded-approval', 'unapproved-input-hash', 'unapproved-expiry', 'unapproved-composition'},
-    'filing_claims': {'unapproved-filing-context', 'unapproved-filing-records', 'unverified-source-hash', 'missing-check-result'},
-    'transition': {'unsupported-resolution', 'unjustified-resolution', 'unjustified-resolution-reason'},
-    'local.errors': {'R2.LOCAL_FLAG', 'R2.LOCAL_CHANGE', 'R2.LOCAL_DELETE'},
-}
+VALIDATORS = ('script_differences', 'stage_claims', 'completion_errors', 'payload_claims',
+              'filing_claims', 'transition', 'local.errors')
 
 
 def check(label, oracle, record, states=None, candidates=None, statistics=None):
@@ -473,7 +473,8 @@ def check(label, oracle, record, states=None, candidates=None, statistics=None):
     for field, kind, changed in all_candidates() if candidates is None else candidates:
         covered.add(field)
         replay, value = changed if isinstance(changed, tuple) else (oracle, changed)
-        actual, differences = evaluate(replay, value)
+        own_proofs = {} if statistics is not None else None
+        actual, differences = evaluate(replay, value, own_proofs)
         new = differences - errors
         if field.startswith('coherent/'):
             new = {(view, fact) for view, fact in new if fact.kind not in STRUCTURAL}
@@ -484,8 +485,8 @@ def check(label, oracle, record, states=None, candidates=None, statistics=None):
                 statistics['changed'] = statistics.get('changed', 0) + 1
             if field.startswith('coherent/'):
                 statistics['coherent'] = statistics.get('coherent', 0) + 1
-            for validator, kinds in VALIDATOR_KINDS.items():
-                own = any(f.kind in kinds and (validator != 'script_differences' or 'script.' in f.detail) for _, f in new)
+            for validator in VALIDATORS:
+                own = any(f in own_proofs.get(validator, set()) for _, f in new)
                 if own:
                     statistics[validator + '.own_catches'] = statistics.get(validator + '.own_catches', 0) + 1
                     if actual != expected:

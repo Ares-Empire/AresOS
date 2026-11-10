@@ -55,11 +55,15 @@ class Oracle:
         self.source_ids = {}
         self.legacy_sources = set()
 
-    def resolve(self, kind, source, sequence=None, **proofs):
+    def resolve(self, kind, source, sequence=None, validator=None, **proofs):
         if permitted(kind, proofs):
             self.resolutions.add((source, kind, sequence if sequence is not None else getattr(self, 'resolution_sequence', 0)))
             return True
-        self.lifecycle_errors.add(Fact(source, 'unsupported-resolution', detail=kind))
+        failure = Fact(source, 'unsupported-resolution', detail=kind)
+        if validator:
+            self.proof(validator, failure)
+        else:
+            self.lifecycle_errors.add(failure)
         return False
 
     def approved(self, operation):
@@ -89,6 +93,16 @@ class Oracle:
             cache[marker] = bind_context(event, self.script)
         return cache[marker]
 
+    def proof(self, validator, fact):
+        self.lifecycle_errors.add(fact)
+        if getattr(self, '_trace_validators', False):
+            self._validator_proofs.setdefault(validator, set()).add(fact)
+
+    def proofs(self, validator, facts):
+        self.lifecycle_errors.update(facts)
+        if getattr(self, '_trace_validators', False):
+            self._validator_proofs.setdefault(validator, set()).update(facts)
+
     def calls_at(self, sequence):
         # One replay may ask about the same commit in several validators.
         # The cache is discarded before each lifecycle reconstruction.
@@ -103,7 +117,7 @@ class Oracle:
         cache = getattr(self, '_payload_cache', {})
         signature = key, canonical({field: row.get(field) for field in ('id', 'payload', 'approval', 'input_hash', 'expires')})
         if signature in cache:
-            self.lifecycle_errors.update(cache[signature])
+            self.proofs('payload_claims', cache[signature])
             return
         before = set(self.lifecycle_errors)
         approved = self.approved(row)
@@ -119,24 +133,24 @@ class Oracle:
                   next((i.get('reference', {}).get('account') for i in source.get('items', [])), None)}
         for field in fields:
             if field in approved and visible(source.get(field)) != approved[field]:
-                self.lifecycle_errors.add(Fact(key, 'unapproved-payload', detail=field))
+                self.proof('payload_claims', Fact(key, 'unapproved-payload', detail=field))
         calls = [c for c in self.script if c.get('arguments', {}).get('operation_id') == row.get('id') and
                  isinstance(c['arguments'].get('description'), dict)]
         if calls and row.get('approval') != calls[0]['arguments']:
-            self.lifecycle_errors.add(Fact(key, 'unapproved-recorded-approval'))
+            self.proof('payload_claims', Fact(key, 'unapproved-recorded-approval'))
         if row.get('input_hash') and calls and row['input_hash'] != fingerprint(calls[0]['arguments']):
-            self.lifecycle_errors.add(Fact(key, 'unapproved-input-hash'))
+            self.proof('payload_claims', Fact(key, 'unapproved-input-hash'))
         if 'expires_at' in approved and row.get('expires') != approved['expires_at']:
-            self.lifecycle_errors.add(Fact(key, 'unapproved-expiry'))
+            self.proof('payload_claims', Fact(key, 'unapproved-expiry'))
         composition = payload.get('composition', {})
         for field, name in (('id', 'composition_id'), ('hash', 'composition_hash')):
             if name in approved and composition.get(field) != approved[name]:
-                self.lifecycle_errors.add(Fact(key, 'unapproved-composition', detail=field))
+                self.proof('payload_claims', Fact(key, 'unapproved-composition', detail=field))
         cache[signature] = self.lifecycle_errors - before
 
     def filing_claims(self, key, row, event):
         if row is None:
-            self.lifecycle_errors.add(Fact(key, 'missing-check-result'))
+            self.proof('filing_claims', Fact(key, 'missing-check-result', detail=str(event['seq'])))
             return None
         calls = [c for c in self.script if c.get('start_seq', -1) < event['seq'] <= c.get('end_seq', -1)
                  and c['action'] in {'mail_move', 'mail_copy', 'mail_folder_rename'}]
@@ -161,17 +175,17 @@ class Oracle:
             wanted.update(sources=args.get('references', []), verb=call['action'].removeprefix('mail_'))
         for field, expected in wanted.items():
             if row.get(field) != expected:
-                self.lifecycle_errors.add(Fact(key, 'unapproved-filing-context', detail=canonical({'field': field, 'expected': expected, 'actual': row.get(field)})))
+                self.proof('filing_claims', Fact(key, 'unapproved-filing-context', detail=canonical({'field': field, 'expected': expected, 'actual': row.get(field)})))
         if call['action'] != 'mail_folder_rename' and row.get('records') is not None:
             sources = [item.get('source') for item in row['records']]
             if sources != args.get('references', []):
-                self.lifecycle_errors.add(Fact(key, 'unapproved-filing-records', detail=canonical(sources)))
+                self.proof('filing_claims', Fact(key, 'unapproved-filing-records', detail=canonical(sources)))
         for item in row.get('records', []):
             source = item.get('source')
             evidence = [ref for e in self.servers if e['call'] == call['call'] and e.get('before_seq', -1) <= event['seq']
                         for ref in e.get('identities', []) if {k: v for k, v in ref.items() if k != 'sha256'} == source and ref.get('sha256')]
             if evidence and item.get('sha256') != evidence[0]['sha256']:
-                self.lifecycle_errors.add(Fact(key, 'unverified-source-hash', detail=canonical(source)))
+                self.proof('filing_claims', Fact(key, 'unverified-source-hash', detail=canonical(source)))
         return {**row, **wanted}
 
     @staticmethod
@@ -654,13 +668,13 @@ class Oracle:
             kind, proofs = 'uncertainty', dict(attempt_or_fault=bool(commands or fault or negative or self.scripted_transition(event, '_notice_ack', identity)), commit_order=ordered)
         else:
             kind, proofs = 'state:' + str(before) + '->' + str(after), {}
-        if not self.resolve(kind, key, **proofs):
-            self.lifecycle_errors.add(Fact(key, 'unjustified-resolution'))
+        if not self.resolve(kind, key, validator='transition', **proofs):
+            self.proof('transition', Fact(key, 'unjustified-resolution'))
             return {**row, 'state': before or 'unknown', 'reason': old.get('reason', '')}
         if kind in {'expiry', 'cancellation'}:
             expected_reason = 'expired: nothing submitted' if kind == 'expiry' else 'cancelled: nothing submitted'
             if row.get('reason') != expected_reason:
-                self.lifecycle_errors.add(Fact(key, 'unjustified-resolution-reason', detail=kind))
+                self.proof('transition', Fact(key, 'unjustified-resolution-reason', detail=kind))
                 row = {**row, 'reason': expected_reason}
             self.operation_notices.setdefault(key, copy.deepcopy(row))
         return row
@@ -744,7 +758,7 @@ class Oracle:
             operation_id = event.get('operation_id')
             summary = event.get('summary', '')
             operation_claim = summary in {'submitting', 'done', 'partial', 'unknown', 'failed', 'refused'} or summary.startswith(
-                ('reserved ', 'local repair of ', 'stage ')) or event['action'].startswith('mail_sent_copy_')
+                ('reserved ', 'local repair of ', 'stage ', 'approval expired', 'cancelled before submission', 'notice acknowledged')) or event['action'].startswith('mail_sent_copy_')
             if operation_id and operation_claim and 'op:' + operation_id not in event['set']:
                 self.stage_claims(event, 'op:' + operation_id, rows.get('op:' + operation_id, {}), None)
             content = event.get('untrusted_content', {})
@@ -754,6 +768,11 @@ class Oracle:
                     filing_id = claim.get('filing_id', claim.get('id'))
                     if filing_id and prefix + filing_id not in event['set']:
                         self.filing_claims(prefix + filing_id, None, event)
+            if event['action'] in {'mail_move', 'mail_copy', 'mail_folder_rename', 'mail_filing_check'}:
+                for notice_key, notice in event['set'].items():
+                    source = notice.get('source_key', '') if notice_key.startswith('notice:') and isinstance(notice, dict) else ''
+                    if source.startswith(('mail:filing:', 'mail:rename:')) and source not in event['set']:
+                        self.filing_claims(source, None, event)
             if event['action'] == 'mail_account_add' and event.get('outcome') == 'done' and summary.startswith('onboarding complete;'):
                 for call in self.calls_at(event['seq']):
                     if call['action'] == 'mail_account_add' and call.get('start_seq', -1) < event['seq'] <= call.get('end_seq', -1):
@@ -762,6 +781,10 @@ class Oracle:
                             self.lifecycle_errors.add(Fact(account_key, 'missing-account-result', detail=str(event['seq'])))
             if event['action'] == 'mail_sent_copy_check' and event.get('operation_id') and 'op:' + event['operation_id'] not in event['set']:
                 self.lifecycle_errors.add(Fact('op:' + event['operation_id'], 'missing-check-result'))
+            if event['action'] == 'mail_filing_check' and not any(
+                    key.startswith(('mail:filing:', 'mail:rename:')) and isinstance(value, dict)
+                    for key, value in event['set'].items()):
+                self.filing_claims('filing-check', None, event)
             stage = event.get('untrusted_content', {})
             if 'stage' in stage and 'outcome' in stage:
                 source = 'op:' + str(event.get('operation_id'))
@@ -817,6 +840,11 @@ class Oracle:
                         self.lifecycle_errors.add(Fact(key, 'unjustified-archive-marker'))
                         continue
                 if key.startswith('notice:') and value:
+                    warning_notice = value.get('check_kind') in {'filing', 'rename', 'sent_copies'} or str(value.get('source_key', '')).startswith(('op:', 'mail:filing:', 'mail:rename:'))
+                    if not fixture and warning_notice:
+                        for field in ('source_key', 'check_kind', 'evidence_fingerprint'):
+                            if not value.get(field):
+                                self.lifecycle_errors.add(Fact(key, 'missing-warning-context', detail=canonical({'sequence': event['seq'], 'field': field})))
                     if value.get('id') != key[7:]:
                         self.lifecycle_errors.add(Fact(key, 'notice-identity'))
                     for field in ('id', 'source_key', 'check_kind', 'evidence_fingerprint', 'created_at'):
@@ -827,6 +855,9 @@ class Oracle:
                         if not min(c['clock'] for c in calls) * 1_000_000_000 - 1 <= value['created_at'] <= event['time'] * 1_000_000_000 + 1:
                             self.lifecycle_errors.add(Fact(key, 'notice-creation-time'))
                 if key.startswith('op:') and value:
+                    if value.get('id') != key[3:]:
+                        self.lifecycle_errors.add(Fact(key, 'operation-identity', detail=str(event['seq'])))
+                        value = {**value, 'id': old.get('id', key[3:])}
                     if not fixture and value.get('state') == 'reserved':
                         calls = self.calls_at(event['seq'])
                         deadlines = [clock + c.get('operation_ttl', 900) for c in calls for clock in c.get('clock_samples', [])]
@@ -903,13 +934,13 @@ class Oracle:
                             elif action == 'control_restore_confirm':
                                 allowed.update(op.get('description', {}).get('action') for fence in record.fences
                                                for op in fence.get('operations', []) if op['id'] == value.get('id'))
-                        if calls and value.get('action') and value['action'] not in allowed:
+                        if calls and value.get('action') not in allowed:
                             self.lifecycle_errors.add(Fact(key, 'unjustified-operation-action'))
+                            if len(allowed) == 1:
+                                value = {**value, 'action': next(iter(allowed))}
                             apps = {action.split('_', 1)[0] for action in allowed if action}
                             if len(apps) == 1:
                                 value = {**value, 'app': apps.pop()}
-                    if value.get('id') != key[3:]:
-                        self.lifecycle_errors.add(Fact(key, 'operation-identity'))
                     for field in ('id', 'app', 'action', 'payload', 'approval', 'expires', 'repair_of', 'context_version', 'roles_before'):
                         if field in old and value.get(field) != old[field]:
                             self.lifecycle_errors.add(Fact(key, 'changed-operation-context', detail=field))
@@ -925,6 +956,11 @@ class Oracle:
                     if not input_source:
                         value = self.transition(record, event, key, old, value)
                 if key.startswith(('mail:filing:', 'mail:rename:')) and value:
+                    if not fixture:
+                        for field in ('account', 'source', 'sources', 'target', 'verb', 'message_count'):
+                            if field in old and value.get(field) != old[field]:
+                                self.lifecycle_errors.add(Fact(key, 'changed-filing-context', detail=canonical({'sequence': event['seq'], 'field': field})))
+                                value = {**value, field: old[field]}
                     value = self.filing_claims(key, value, event)
                     if not old and not fixture and value.get('state') != 'started':
                         self.lifecycle_errors.add(Fact(key, 'unsupported-resolution', detail='initial filing result without an open check'))
@@ -1058,7 +1094,7 @@ class Oracle:
 
     def stage_claims(self, commit, key, old, row):
         if row is None:
-            self.lifecycle_errors.add(Fact(key, 'missing-operation-result'))
+            self.proof('stage_claims', Fact(key, 'missing-operation-result', detail=str(commit['seq'])))
             return
         if old.get('stages') == row.get('stages') and (row.get('state') != 'done' or old.get('state') == 'done'):
             return  # No new stage claim or completion claim in a repeated read.
@@ -1114,12 +1150,12 @@ class Oracle:
             elif name == 'https_post' and outcome.isdigit():
                 proof = any(str(e.get('status')) == outcome for e in accepted('POST'))
             if not proof:
-                self.lifecycle_errors.add(Fact(key, 'unjustified-stage', detail=name))
+                self.proof('stage_claims', Fact(key, 'unjustified-stage', detail=name))
         if row.get('state') == 'done' and row.get('app') == 'mail' and row.get('action') in {'mail_send', 'mail_unsubscribe'} and payload.get('composition'):
             for name in send_stages(mail, events, self.sent_policy(row)):
                 wanted = 'not_needed' if name == 'answered_flag' and not mail.get('answered_reference') else 'done'
                 if row.get('stages', {}).get(name) != wanted:
-                    self.lifecycle_errors.add(Fact(key, 'unjustified-stage', detail='missing:' + name))
+                    self.proof('stage_claims', Fact(key, 'unjustified-stage', detail='missing:' + name))
 
     def intent_result_proof(self, record, event, key, old):
         if event['action'] != old.get('action') or not self.scripted_transition(event, old.get('action', 'impossible')):
@@ -1693,10 +1729,15 @@ class Oracle:
                 original = (event.get('committed_before', {}).get('op:' + row['repair_of'], {}) if row and row.get('repair_of') else row) or {}
                 if data and not sent_bytes_match(event, data[-1], self.approved(original) or {}):
                     errors.add(Fact('command:' + str(index), 'R2.APPEND', detail='script.command.sent-bytes'))
+        if getattr(self, '_trace_validators', False):
+            self._validator_proofs.setdefault('script_differences', set()).update(f for f in errors if 'script.' in f.detail)
         return errors
 
     def local_context_errors(self, record, after_sequence=0):
-        return {Fact(source, kind, detail=detail) for source, kind, detail in local_errors(record, self.script, after_sequence, self.servers)}
+        errors = {Fact(source, kind, detail=detail) for source, kind, detail in local_errors(record, self.script, after_sequence, self.servers)}
+        if getattr(self, '_trace_validators', False):
+            self._validator_proofs.setdefault('local.errors', set()).update(errors)
+        return errors
 
     def require_context(self, command, committed_before):
         """R2 order assertion uses the exact command's context, never latest kv."""

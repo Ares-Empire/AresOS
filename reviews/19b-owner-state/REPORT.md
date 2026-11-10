@@ -1290,11 +1290,11 @@ approval/input/question/binding change, or self-review was performed.
 | 3 / SOL 3 / ASTRA 1 | RENAME reuses the existing safe_folder UID/UIDVALIDITY enumeration. No extra SELECT, FETCH, full-body parse or wire-size admission is added | Oversized, depth-45 and 1,100-part folders rename successfully with zero FETCHes; existing all-write failure/crash fences remain enabled |
 | 4 | Normal APPEND adds one Sent copy; separate send_duplicate flow retains delayed-copy warnings. EXPUNGE honors Deleted and STORE honors both add/remove branches | Quiet send and deliberate race assertions; existing quiet move/copy/rename/Trash/permanent-delete contracts all pass |
 
-**Run — local source checks:** 137 independent oracle/CI-selection tests printed
-`Ran 137 tests`, `OK` (`self-latest137.txt`; earlier source iterations are retained
+**Run — local source checks:** 142 independent oracle/CI-selection tests printed
+`Ran 142 tests`, `OK` (`self-latest142.txt`; earlier source iterations are retained
 under `.work/19b-s2-fixes/`). Focused contracts, six named regressions, all action-context
 write/failure/crash fences, new fixture/effect tests and production plants printed
-`Ran 26 tests in 266.265s`, `OK` (`focused-current.txt`). The final semantic-source subset repeated all 14 contract/regression/plant/effect tests (`focused-current-semantic.txt`, `OK`). The diagnostic traversal
+`Ran 26 tests in 266.265s`, `OK` (`focused-current.txt`). The final semantic-source subset repeated all 14 contract/regression/plant/effect tests (`focused-latest142.txt`, `OK`). The diagnostic traversal
 ran all **34 flows** clean and at point 1 in single/persistent/live/crash modes,
 ending `R2 gaps {}` (`diagnostic-final.txt`). These Mac runs use the existing
 worktree-local managed-policy fixture and child-process shim; installed Linux
@@ -1394,3 +1394,15 @@ unchecked obligation. Missing onboarding-completion errors identify the actual
 account completion commit, so an unrelated context/result write cannot mask the
 missing row. These cases were found by the stronger per-version corpus; failed
 development logs are retained and are not acceptance evidence.
+
+**Read / run — validator attribution and retained identity:** alteration figures
+record the exact validator that emitted each semantic proof; they do not infer
+ownership from a shared fact-kind name. The plant controls now require that
+actual provenance as well. A negative attribution test prevents a filing check's
+unsupported resolution from being credited to the operation transition gate.
+The strengthened corpus also checks missing cancellation/expiry/acknowledgement
+results, early operation identity/action validation, immutable enrolled filing
+context, atomic source/result rows, and required current warning context.
+Synthetic check regressions freeze their seed separately. Coherent mutations
+copy only the affected path; the nested copy/version test proves both the source
+record and independent server inputs remain unchanged.
