@@ -20,6 +20,7 @@ R='control/chrome/extension/reader.js'
 M='control/chrome/extension/page.js'
 def node(file,pattern):return [file,pattern]
 case('P1',B,'const armed=await armDialog(tab);','const armed={owner:controlled.get(tab),nonce:"unarmed",frames:[]};armed.owner.hold={};',node('background','P1|answering a dialog collects'))
+case('P1-pause',B,"await targetCommand(state,'Debugger.pause');",'',node('background','answering a dialog collects'))
 case('P2',B,'let effective;try { effective=frameAddress(frame,frames);','if(frame.url.startsWith("about:"))continue;let effective;try { effective=frameAddress(frame,frames);',node('background','P2'))
 case('P3-inherit',B,'if(hold&&(hold.inFlight||Date.now()<hold.until)){','if(false){',node('background','P3 startup'))
 case('P3-paused-task',B,"if(armed.exceptionDetails)throw Error('refused: new frame could not inherit the active hold');", "if(!hold.inFlight)await targetCommand(state,'Runtime.evaluate',{contextId:context.id,expression:'globalThis[Symbol.for(\"aresos.chrome.guard.v2\")].finish('+JSON.stringify(state.epoch)+','+JSON.stringify(hold.nonce)+')',awaitPromise:true});if(armed.exceptionDetails)throw Error('refused: new frame could not inherit the active hold');",node('background','P3 a remaining hold'))
@@ -36,7 +37,9 @@ case('P9-classification',P,"if evidence in {'delete', 'pay', 'item'}:","if False
 case('P9-trusted',A,"if forbidden or mode['conservative']","if mode['conservative']",'test_questions.Questions.test_p9_trusted_predicate_independently_forbids_explicit_deletion_payment_and_whatsapp',True)
 case('P10',R,'[role=listitem],[role=row],[role=article],section[aria-label],section[aria-labelledby],','',node('reader','P10'))
 case('P11',A,"if kind in {'send', 'confirmation'} and not frame.get('form') and not adapter else None","if kind == 'send' and not frame.get('form') and not adapter else None",'test_questions.Questions.test_p11_confirmation_binds_a_sibling_draft',True)
-case('P12',R,"fileIdentities.set(file,{identity:crypto.randomUUID()})","fileIdentities.set(file,{identity:file.name})",node('reader','P12'))
+case('P12',R,"fileIdentities.set(file,{identity:randomToken()})","fileIdentities.set(file,{identity:file.name})",node('reader','P12'))
+case('P12-hash',R,"return hash.map(value=>value.toString(16).padStart(8,'0')).join('');","return '0'.repeat(64);",node('reader','P12 HTTP'))
+case('P12-binding',A,"'fields':item.get('selected_files',[])","'fields':[]",'test_questions.Questions.test_p12_owner_selected_file_question_shows_name_size_and_bound_digest',True)
 case('P13',R,"value = editableText(element).replace(/\\n$/, '');","value = text(element);",node('reader','P13'))
 case('P14',P,"ITEM = {'unsubscribe', 'abbestellen'}","ITEM = set()",'test_policy.ReviewClassification.test_p14_unsubscribe_binds_item_without_a_draft',True)
 case('P15',R,"element.getAttribute('alt') || buttonValue ||","element.getAttribute('alt') || element.getAttribute('title') || buttonValue ||",node('reader','P15'))
@@ -61,6 +64,7 @@ case('P24-last-check',B,'if(requireClean){','if(false){',node('background','P24'
 case('P24-audible',B,'playing=!!nativeTab.audible','playing=false',node('background','P24'),extra=[(B,"playing=!!(await chrome.tabs.get(tab)).audible","playing=false")])
 case('P24-uncovered',B,'unsaved=!!current.uncovered?.length','unsaved=false',node('background','P24 uncovered'))
 case('P24-unreadable',B,'catch{unsaved=true;}','catch{}',node('background','P24 uncovered'))
+case('P24-designmode',R,"document.designMode?.toLowerCase()==='on'",'false',node('reader','P24 document'))
 case('P25',B,"if(needsNative){","if(command.name==='input'){",node('background','P25'))
 case('P25-report',B,'dispatched:!noChange,no_change:noChange','dispatched:true,no_change:false',node('background','P25'))
 case('P26',M,'const value=({method(...args){return invoke(implementation,this,args);}}).method;','const value=implementation;',node('page','P26'))
@@ -72,6 +76,7 @@ case('P30', 'control/chrome/ci/ingress-scan.mjs',"const result=[];let pending=nu
 case('P30-getters','control/chrome/ci/password-ingress.js','get(){return emit(key,get.call(this));}','get(){return get.call(this);}',node('password-ingress','P30'))
 case('P31-popup',B,'popupNeedsReload:true','popupNeedsReload:false',node('background','P31'))
 F='control/chrome/ci/fixture.mjs'
+case('P31-http',F,"else if(kind==='adapter-sites')","if(kind==='adapter-sites')",node('fixture','review pages reach'))
 case('P31-head',F,'globalThis.firstScriptSubmit=HTMLFormElement.prototype.submit;','',node('fixture','P31 first script'))
 case('P31-get-case',F,'target="_blank"><input type="hidden" name="case" value="\'+id+\'"><input type="search"','target="_blank"><input type="search"',node('fixture','P31 first script'))
 
