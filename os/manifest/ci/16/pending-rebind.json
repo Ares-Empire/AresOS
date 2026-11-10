@@ -16,7 +16,7 @@
       "path": "docs/EMERGENCY.md"
     },
     {
-      "sha256": "8152e00c2f30e15c3aa5b063b3f5a7b96f99da1ad73a916b9e134cef88089d8c",
+      "sha256": "5d3678e063d45657d0520404fbe1cb32f45d6effb98ece614451f516c65c6f9c",
       "path": "docs/INSTALL.md"
     },
     {
@@ -24,7 +24,7 @@
       "path": "os/owner-tools/bundle.py"
     },
     {
-      "sha256": "166e6a4f4f1345fe7212b17f1695d89efe04af486fd7f4aace7f2e49f88c75b7",
+      "sha256": "ad6499154325f14f003190a66338f9fb3a8da618b91d18cec8c94d0a5f3613ce",
       "path": "os/owner-tools/commands.json"
     },
     {
@@ -32,15 +32,15 @@
       "path": "os/owner-tools/media.py"
     },
     {
-      "sha256": "184e9bbb08c31ab06c52ebfcaf1824f155ab582bac058618a3e1eef0af58a2a6",
+      "sha256": "1e68ba1b27a32e0e5643c367012cee3df7553dc83c5fee8dae376e84ced63b5a",
       "path": "os/owner-tools/owner.py"
     },
     {
-      "sha256": "9ecac71ff6750bc073707212a599d0d2ee7942dbd3ffe81547d85a7e785ea8bb",
+      "sha256": "c976c0d19526fc9d1d3ff8dec1d744eee88b36bff924f8c0aae46490deae195b",
       "path": "os/owner-tools/payload/SHA256.json"
     },
     {
-      "sha256": "1e7cbdb65b67894c34dc5d09fcf3a3d33caf0d874b075eff3f687cd5f4022309",
+      "sha256": "53be5568a11ad09132b86413eda8ca751c36cf398032b8cb2d0a8a228b745208",
       "path": "os/owner-tools/payload/SHA256SUMS"
     },
     {
@@ -48,7 +48,7 @@
       "path": "os/owner-tools/payload/media.py"
     },
     {
-      "sha256": "184e9bbb08c31ab06c52ebfcaf1824f155ab582bac058618a3e1eef0af58a2a6",
+      "sha256": "1e68ba1b27a32e0e5643c367012cee3df7553dc83c5fee8dae376e84ced63b5a",
       "path": "os/owner-tools/payload/owner.py"
     },
     {
@@ -72,7 +72,7 @@
       "path": "os/tests/test_owner_firmware.py"
     },
     {
-      "sha256": "9e5c179c72bb1cf177b355fc41e99efe5cd62da005592a6bb9db4932c640fb31",
+      "sha256": "f9ab48e007484ec544fdf933fa47f108cc46152ca577c8b19a679617dc479075",
       "path": "os/tests/test_owner_path.py"
     },
     {

@@ -864,12 +864,6 @@ class ToolsUpdateTest(unittest.TestCase):
             run = lambda: owner.install(usb / 'ares-tools', host)
             yield home, run, fingerprint, old, host
 
-    @staticmethod
-    def unblocked(snapshot):
-        """The same files with blocked old tools back in place."""
-        return {('tools' + name[len('.tools-held'):] if name.startswith('.tools-held') else name): value
-                for name, value in snapshot.items()}
-
     def snapshot(self, home):
         return {p.relative_to(home).as_posix(): (p.read_bytes() if p.is_file() and not p.is_symlink() else os.readlink(p) if p.is_symlink() else None)
                 for p in home.rglob('*')}
@@ -949,11 +943,11 @@ class ToolsUpdateTest(unittest.TestCase):
             original = owner.Tools.save
             with patch.object(owner.Tools, 'save', new=lambda obj, name, value: (steps.append(name), original(obj, name, value))[1]):
                 run()
-        self.assertEqual(steps, ['tools-update-intent'] * 3 + [steps[3], 'tools-update-intent'])
-        # Every file copy, every rename (five record writes, the old tools
-        # blocked, and the two swaps) and every record write.
+        self.assertEqual(steps, ['tools-update-intent'] * 4 + [steps[4], 'tools-update-intent'])
+        # Every file copy, every rename (six journal and record writes, the
+        # block, the publication and the retirement) and every record write.
         injections = [('copy', n) for n in range(1, len(common.bundle.PAYLOAD) + 3)] + \
-                     [('replace', n) for n in range(1, 9)] + [('save', n) for n in range(1, 6)]
+                     [('replace', n) for n in range(1, 10)] + [('save', n) for n in range(1, 7)]
         for kind, stop in injections:
             with self.subTest(kind=kind, stop=stop), self.installation() as (home, run, fingerprint, old, host):
                 seen = 0
@@ -976,50 +970,80 @@ class ToolsUpdateTest(unittest.TestCase):
                 run()
                 self.updated(home, fingerprint, old)
 
-    def test_resumed_update_reruns_the_system_preflight_before_copy_or_swap(self):
-        changes = {
-            'transaction': (lambda home, host: host.state['rpm'].update(transaction=['upgrade', 'uupd', 'socket']),
-                            lambda home, host: host.state['rpm'].update(transaction=None)),
+    def works(self, home, old, fingerprint):
+        """Invariant 1: /var/lib/ares/at runs one complete, verified toolset."""
+        self.assertIn(owner.checked_bundle(home / 'tools'), (old, fingerprint))
+        process = subprocess.Popen(['bash', str(home / 'at'), 'check'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        try:
+            stdout, _ = process.communicate(timeout=5)
+            # The 15f stand-in exits 0; the new tools run and stop at their root check.
+            self.assertTrue(process.returncode == 0 or 'Use sudo from the authenticated ares-recovery session' in stdout, stdout)
+        except subprocess.TimeoutExpired:
+            # A sleeping 15f stand-in: it is running tools/owner.py, so the entry works.
+            running = [r for r in owner.installed_commands(home) if r['pid'] == process.pid]
+            self.assertTrue(running and str(home / 'tools/owner.py') in running[0]['argv'], running)
+        finally:
+            process.kill()
+            process.communicate()
+
+    @contextlib.contextmanager
+    def power_cut_after(self, renames):
+        """The machine stops right after the given rename: nothing later runs, no handler either."""
+        real, count, dead = pathlib.Path.replace, [0], [False]
+        def replace(path, target):
+            if dead[0]:
+                raise OSError('power is off')
+            result = real(path, target)
+            count[0] += 1
+            if count[0] == renames:
+                dead[0] = True
+                raise OSError('power cut')
+            return result
+        with patch.object(pathlib.Path, 'replace', new=replace):
+            yield
+
+    def test_invariant_one_working_toolset_after_any_interruption_and_any_refusal(self):
+        """After a cut at every rename, and persistent refusals, at always works."""
+        refusals = {
             'layout trial': (lambda home, host: (home / 'records/layout-pending.json').write_text('{}'),
                              lambda home, host: (home / 'records/layout-pending.json').unlink()),
-            'unknown staged image': (lambda home, host: setattr(host, 'state', machine([release_row(R99, staged=True),
-                                         release_row(R13, booted=True), stock_row()])),
-                                     lambda home, host: setattr(host, 'state', pair())),
+            'transaction': (lambda home, host: host.state['rpm'].update(transaction=['upgrade', 'uupd', 'socket']),
+                            lambda home, host: host.state['rpm'].update(transaction=None)),
         }
-        # Interrupted in the copy phase (old tools blocked), between the two
-        # swap renames (rename 4: journal, block, journal, first swap rename),
-        # and after the swap (the third journal write). A refused resume gives
-        # the blocked old tools back, and changes nothing else.
-        for (kind, stop) in (('copy', 2), ('replace', 4), ('save', 3)):
-            for name, (change, undo) in changes.items():
-                with self.subTest(kind=kind, stop=stop, change=name), self.installation() as (home, run, fingerprint, old, host):
-                    seen = 0
-
-                    def hit():
-                        nonlocal seen
-                        seen += 1
-                        if seen == stop:
-                            raise OSError('injected after ' + kind)
-                    if kind == 'copy':
-                        real = shutil.copy2
-                        hook = patch('shutil.copy2', side_effect=lambda *a, **kw: (real(*a, **kw), hit())[0])
-                    elif kind == 'replace':
-                        real = pathlib.Path.replace
-                        hook = patch.object(pathlib.Path, 'replace', new=lambda p, t: (real(p, t), hit())[0])
-                    else:
-                        real = owner.Tools.save
-                        hook = patch.object(owner.Tools, 'save', new=lambda obj, n, v: (real(obj, n, v), hit())[0])
-                    with hook, self.assertRaises(OSError):
+        # A full run renames nine times: four journal writes, the block, the
+        # publication, the retirement, the receipt and the last journal write.
+        for cut in range(1, 10):
+            for name, (change, undo) in refusals.items():
+                with self.subTest(cut=cut, refusal=name), self.installation() as (home, run, fingerprint, old, host):
+                    with self.power_cut_after(cut), self.assertRaises(OSError):
                         run()
                     change(home, host)
-                    before = self.unblocked(self.snapshot(home))
-                    with self.assertRaises(owner.Stop):
-                        run()
-                    self.assertEqual(before, self.snapshot(home))
-                    self.assertFalse((home / '.tools-held').exists())
+                    for attempt in range(2):  # a persistent failure refuses every time
+                        try:
+                            run()
+                        except owner.Stop:
+                            pass
+                        self.works(home, old, fingerprint)
+                        self.assertFalse((home / '.tools-held').exists() and not (home / 'tools').exists())
                     undo(home, host)
                     run()
                     self.updated(home, fingerprint, old)
+                    self.works(home, old, fingerprint)
+
+    def test_invariant_old_tools_retire_only_after_the_new_ones_are_published(self):
+        with self.installation() as (home, run, fingerprint, old, host):
+            order = []
+            real = pathlib.Path.replace
+            def rename(path, target):
+                if path in (home / 'tools', home / '.update-tools', home / '.tools-held'):
+                    order.append((path.name, pathlib.Path(target).relative_to(home).as_posix()))
+                    if path == home / '.tools-held':
+                        self.assertEqual(owner.checked_bundle(home / 'tools'), fingerprint)
+                return real(path, target)
+            with patch.object(pathlib.Path, 'replace', new=rename):
+                run()
+            self.assertEqual(order, [('tools', '.tools-held'), ('.update-tools', 'tools'), ('.tools-held', 'retired-tools/' + old)])
+            self.updated(home, fingerprint, old)
 
     def legacy_command(self, path, home):
         """Start a command of the installed tools through a real entry path."""
@@ -1060,8 +1084,8 @@ class ToolsUpdateTest(unittest.TestCase):
         }
         return {name: subprocess.run(argv, capture_output=True, timeout=10).returncode for name, argv in attempts.items()}
 
-    def test_every_legacy_path_is_unusable_at_the_final_scan_and_the_swap(self):
-        """Blocked before scanning: at the last scan and the swap nothing old can start."""
+    def test_every_legacy_path_is_unusable_at_the_final_scan_and_the_publication(self):
+        """Blocked before scanning: at the deciding scan and the publication nothing old can start."""
         with self.installation() as (home, run, fingerprint, old, host):
             seen = []
             scan = owner.installed_commands
@@ -1071,13 +1095,13 @@ class ToolsUpdateTest(unittest.TestCase):
                 return scan(where)
             real = pathlib.Path.replace
             def rename(path, target):
-                if path == home / '.tools-held':
-                    seen.append(('swap', self.legacy_attempts(home)))
+                if path == home / '.update-tools':
+                    seen.append(('publish', self.legacy_attempts(home)))
                 return real(path, target)
             with patch.object(owner, 'installed_commands', side_effect=scanned), \
                     patch.object(pathlib.Path, 'replace', new=rename):
                 run()
-            self.assertEqual([where for where, _ in seen], ['scan', 'scan', 'swap'])
+            self.assertEqual([where for where, _ in seen], ['scan', 'publish'])
             for where, codes in seen:
                 # 127: bash cannot open the script; 2: python3 cannot open the file.
                 self.assertEqual(codes, {'at': 127, 'tools/at': 127, 'tools/owner.py': 2}, where)
@@ -1102,19 +1126,19 @@ class ToolsUpdateTest(unittest.TestCase):
         """It started and finished before the block; the checks after the block see it."""
         trial = b'import pathlib\n(pathlib.Path(__file__).resolve().parent.parent / "records/layout-pending.json").write_text("{}")\n'
         with self.installation(legacy_owner=trial) as (home, run, fingerprint, old, host):
-            real = owner.Tools.save
+            real = shutil.copy2
             ran = []
-            def save(obj, name, value):
-                result = real(obj, name, value)
-                if name == 'tools-update-intent' and not ran:
+            def copy_file(*args, **kwargs):
+                if not ran:
                     ran.append(subprocess.run(['bash', str(home / 'at'), 'layout', 'begin', 'us'], timeout=10).returncode)
-                return result
-            with patch.object(owner.Tools, 'save', new=save), self.assertRaisesRegex(owner.Stop, 'Layout trial is unfinished'):
+                return real(*args, **kwargs)
+            with patch('shutil.copy2', side_effect=copy_file), self.assertRaisesRegex(owner.Stop, 'Layout trial is unfinished'):
                 run()
             self.assertEqual(ran, [0])
             self.assertEqual(owner.checked_bundle(home / 'tools'), old)
-            self.assertFalse((home / '.tools-held').exists() or (home / '.update-tools').exists())
-            self.assertEqual(json.loads((home / 'tools-update-intent.json').read_text())['phase'], 'copy')
+            self.assertFalse((home / '.tools-held').exists())
+            self.assertEqual(json.loads((home / 'tools-update-intent.json').read_text())['phase'], 'publish')
+            self.works(home, old, fingerprint)
             (home / 'records/layout-pending.json').unlink()
             run()
             self.updated(home, fingerprint, old)
@@ -1122,18 +1146,18 @@ class ToolsUpdateTest(unittest.TestCase):
     def test_a_legacy_command_still_running_at_the_block_is_refused_and_the_old_tools_return(self):
         sleeper = b'import time\ntime.sleep(60)\n'
         with self.installation(legacy_owner=sleeper) as (home, run, fingerprint, old, host):
-            real = owner.Tools.save
+            real = shutil.copy2
             started = []
-            def save(obj, name, value):
-                result = real(obj, name, value)
-                if name == 'tools-update-intent' and not started:
+            def copy_file(*args, **kwargs):
+                if not started:
                     started.append(self.legacy_command(home / 'at', home))
-                return result
-            with patch.object(owner.Tools, 'save', new=save), \
+                return real(*args, **kwargs)
+            with patch('shutil.copy2', side_effect=copy_file), \
                     self.assertRaisesRegex(owner.Stop, 'An owner command of the installed tools is running'):
                 run()
             self.assertEqual(owner.checked_bundle(home / 'tools'), old)
             self.assertFalse((home / '.tools-held').exists())
+            self.works(home, old, fingerprint)
             started[0].kill()
             started[0].wait()
             run()
@@ -1141,13 +1165,66 @@ class ToolsUpdateTest(unittest.TestCase):
 
     def test_an_interruption_while_the_old_tools_are_blocked_recovers(self):
         with self.installation() as (home, run, fingerprint, old, host):
-            with patch('shutil.copy2', side_effect=OSError('injected during the copy')), self.assertRaises(OSError):
+            # Rename 3 is the block (after the journal writes for copy and publish).
+            with self.power_cut_after(3), self.assertRaises(OSError):
                 run()
             self.assertFalse((home / 'tools').exists())
             self.assertEqual(owner.checked_bundle(home / '.tools-held'), old)
             self.assertEqual(self.legacy_attempts(home), {'at': 127, 'tools/at': 127, 'tools/owner.py': 2})
             run()
             self.updated(home, fingerprint, old)
+
+    def test_invariant_broad_detection_refuses_every_kind_of_legacy_process(self):
+        """Started during the copy, found by the deciding scan after the block."""
+        sleeper = b'import time\ntime.sleep(60)\n'
+        kinds = {
+            'python3 -B, no -I': lambda home: (['/usr/bin/python3', '-B', str(home / 'tools/owner.py'), 'layout'], None, None),
+            'relative script in tools': lambda home: (['/usr/bin/python3', '-B', 'owner.py', 'layout'], home / 'tools', None),
+            'relative path from home': lambda home: (['/usr/bin/python3', 'tools/owner.py', 'layout'], home, None),
+            'entry at': lambda home: (['bash', str(home / 'at'), 'layout', 'begin', 'us'], None, None),
+            'entry tools/at': lambda home: (['bash', str(home / 'tools/at'), 'layout', 'begin', 'us'], None, None),
+            'open file only': lambda home: (['/usr/bin/python3', '-c', 'import os,time\nf=open(os.environ["P"])\ntime.sleep(60)'],
+                                            pathlib.Path('/'), dict(os.environ, P=str(home / 'tools/owner.py'))),
+            'working directory only': lambda home: (['sleep', '60'], home / 'tools', None),
+        }
+        for name, kind in kinds.items():
+            with self.subTest(kind=name), self.installation(legacy_owner=sleeper) as (home, run, fingerprint, old, host):
+                started = []
+                real = shutil.copy2
+                def copy_file(*args, **kwargs):
+                    if not started:
+                        argv, cwd, env = kind(home)
+                        process = subprocess.Popen(argv, cwd=cwd, env=env, stdin=subprocess.DEVNULL,
+                                                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                        self.addCleanup(lambda: (process.kill(), process.wait()))
+                        deadline = time.monotonic() + 10
+                        while not any(r['pid'] == process.pid for r in owner.installed_commands(home)):
+                            self.assertLess(time.monotonic(), deadline, name + ' not detected')
+                            time.sleep(.05)
+                        started.append(process)
+                    return real(*args, **kwargs)
+                with patch('shutil.copy2', side_effect=copy_file), \
+                        self.assertRaisesRegex(owner.Stop, 'An owner command of the installed tools is running'):
+                    run()
+                self.assertEqual(owner.checked_bundle(home / 'tools'), old)
+                self.works(home, old, fingerprint)
+                started[0].kill()
+                started[0].wait()
+                run()
+                self.updated(home, fingerprint, old)
+                self.works(home, old, fingerprint)
+
+    def test_invariant_broad_detection_ignores_unrelated_processes(self):
+        with tempfile.TemporaryDirectory(dir=ROOT / 'os/tests') as temporary:
+            home = pathlib.Path(temporary) / 'home'
+            (home / 'tools').mkdir(parents=True)
+            other = subprocess.Popen(['sleep', '60'], cwd='/')
+            try:
+                time.sleep(.2)
+                self.assertFalse(any(r['pid'] == other.pid for r in owner.installed_commands(home)))
+            finally:
+                other.kill()
+                other.wait()
 
     def test_the_wrapper_stage_is_found_by_its_exact_path(self):
         with tempfile.TemporaryDirectory(dir=ROOT / 'os/tests') as temporary:

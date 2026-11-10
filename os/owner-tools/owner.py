@@ -1592,30 +1592,48 @@ UPDATE_NAMES = ('diagnostics', 'install-intent.json', 'tools', 'records', 'at', 
 
 
 def installed_commands(home):
-    """Running commands of the installed tools, found by their real entry chain.
+    """Processes that may run, read or stand in any copy of the installed tools.
 
-    sudo starts /var/lib/ares/at through its #!/usr/bin/bash line, and that
-    script execs /usr/bin/python3 -I -B <resolved tools>/owner.py. The 15f
-    tools take no lock, so both stages are matched by their exact paths.
+    A process counts if its working directory, an open file, or any argument
+    (resolved against its working directory, links followed too) lies in
+    tools/, .tools-held/, .update-tools/ or retired-tools/, or is the entry
+    link at. That covers every interpreter option and relative path. False
+    positives only refuse; as root an unreadable process is doubt and counts.
     """
-    real = pathlib.Path(os.path.realpath(home))
-    wrappers = {str(base / name) for base in (home, real) for name in ('at', 'tools/at', '.tools-held/at')}
-    entries = {str(base / name) for base in (home, real) for name in ('tools/owner.py', '.tools-held/owner.py')}
+    bases = {str(home), os.path.realpath(home)}
+    roots = {os.path.join(base, name) for base in bases for name in ('tools', '.tools-held', '.update-tools', 'retired-tools')}
+    links = {os.path.join(base, 'at') for base in bases}
+
+    def inside(path):
+        path = os.path.normpath(path.removesuffix(' (deleted)'))
+        return path in links or any(path == root or path.startswith(root + '/') for root in roots)
+
     found = []
     for process in pathlib.Path('/proc').iterdir():
         if not process.name.isdigit() or int(process.name) == os.getpid():
             continue
         try:
-            raw = (process / 'cmdline').read_bytes().split(b'\0')
-            exe = os.readlink(str(process / 'exe'))
-        except OSError:
-            # A process that ended or a kernel thread cannot run owner code.
+            cwd = os.readlink(str(process / 'cwd'))
+            raw = (process / 'cmdline').read_bytes()
+            descriptors = list((process / 'fd').iterdir())
+        except (FileNotFoundError, ProcessLookupError):
+            continue  # The process ended.
+        except PermissionError:
+            # Root reads every process; only an unprivileged caller (a test)
+            # cannot, and it cannot see the root-run owner tools either.
+            if os.geteuid() == 0:
+                found.append(dict(pid=int(process.name), reason='unreadable'))
             continue
-        argv = [part.decode(errors='replace') for part in (raw[:-1] if raw and raw[-1] == b'' else raw)]
-        name = os.path.basename(exe.removesuffix(' (deleted)'))
-        if (name.startswith('python3') and argv[1:3] == ['-I', '-B'] and len(argv) > 3 and argv[3] in entries
-                or name == 'bash' and len(argv) > 1 and argv[1] in wrappers):
-            found.append(dict(pid=int(process.name), exe=exe, argv=argv[:4]))
+        paths = [cwd]
+        for descriptor in descriptors:
+            try:
+                paths.append(os.readlink(str(descriptor)))
+            except OSError:
+                continue  # Closed while being read.
+        for argument in (part.decode(errors='replace') for part in raw.split(b'\0') if part):
+            paths.append(argument if os.path.isabs(argument) else os.path.join(cwd, argument))
+        if any(inside(path) or path.startswith('/') and inside(os.path.realpath(path)) for path in paths):
+            found.append(dict(pid=int(process.name), cwd=cwd, argv=[a.decode(errors='replace') for a in raw.split(b'\0')[:4]]))
     return found
 
 
@@ -1661,8 +1679,12 @@ def update_tools(payload, fingerprint, host):
     entry = HOME / 'at'
     require(entry.is_symlink() and os.readlink(entry) == 'tools/at', 'Unexpected installed entry point')
     new = lineage(payload)
-    current, staged, retired = HOME / 'tools', HOME / '.update-tools', HOME / 'retired-tools'
-    blocked = HOME / '.tools-held'
+    current, staged, held, retired = HOME / 'tools', HOME / '.update-tools', HOME / '.tools-held', HOME / 'retired-tools'
+
+    # Invariant: exactly one complete, verified toolset works through
+    # /var/lib/ares/at. Only inside the publish step is the old one held
+    # aside, and any refusal there, now or on a resumed run, puts it back.
+    # The old tools are retired only after the new ones are published.
 
     def system_ready():
         # The new tools must accept today's system before they replace the old ones.
@@ -1679,37 +1701,25 @@ def update_tools(payload, fingerprint, host):
         require(not running, 'An owner command of the installed tools is running (pid '
             + ', '.join(str(r['pid']) for r in running) + '); let it finish, then repeat this bootstrap')
 
-    def block(old):
-        # Every way into the old tools (/var/lib/ares/at, tools/at, tools/owner.py)
-        # lies under tools/, and their entry runs only from there: moving that
-        # directory aside makes all of them unusable at once.
-        if current.exists() or current.is_symlink():
-            require(not current.is_symlink() and not blocked.exists() and not blocked.is_symlink(), 'Unexpected held tools; get help')
-            if checked_bundle(current) == old:
-                current.replace(blocked)
-                sync_directory(HOME)
-
-    def unblock(old):
-        if blocked.is_dir() and not blocked.is_symlink() and not current.exists() and not current.is_symlink() \
-                and checked_bundle(blocked) == old:
-            blocked.replace(current)
+    def restore(old):
+        # Only when no tools are in place: before publication the held old
+        # copy comes back; once the new ones are published nothing is needed.
+        if (held.exists() or held.is_symlink()) and not current.exists() and not current.is_symlink():
+            require(held.is_dir() and not held.is_symlink() and checked_bundle(held) == old, 'Held tools differ; get help')
+            held.replace(current)
             sync_directory(HOME)
 
-    def ready(old):
-        """Block, then check: no old command runs and the system passes now."""
-        block(old)
+    def guarded(old, step):
         try:
-            exclusive()
-            system_ready()
+            step()
         except BaseException:
-            # A refusal gives the old tools back until the update resumes.
-            unblock(old)
+            restore(old)
             raise
 
     journal = HOME / 'tools-update-intent.json'
     intent = home.load('tools-update-intent') if journal.exists() or journal.is_symlink() else None
     if intent is None or intent.get('phase') == 'complete':
-        require(not staged.exists() and not staged.is_symlink() and not blocked.exists() and not blocked.is_symlink(),
+        require(not staged.exists() and not staged.is_symlink() and not held.exists() and not held.is_symlink(),
             'Unjournalled partial tools copy or held tools; preserve them and get help')
         require(not current.is_symlink() and current.is_dir(), 'Installed tools are missing; get help')
         private_tree(current)
@@ -1722,8 +1732,6 @@ def update_tools(payload, fingerprint, host):
             + '; refusing version ' + str(new['tools_version']) + ' (downgrade or same version)')
         require(extends(old_history, new['releases']), 'Bundle release history does not extend the installed one; get help')
         require(not (retired / old).exists() and not (retired / old).is_symlink(), 'Retired tools already exist; get help')
-        # An early refusal writes nothing; the deciding checks run again below,
-        # after the old tools are blocked.
         exclusive()
         system_ready()
         intent = dict(schema='tools-update1', previous=old, manifest=fingerprint, previous_version=old_version,
@@ -1732,40 +1740,59 @@ def update_tools(payload, fingerprint, host):
     else:
         require(intent.get('schema') == 'tools-update1' and intent.get('manifest') == fingerprint
             and intent.get('tools_volume_uuid') == device['volume']['uuid']
-            and intent.get('phase') in ('copy', 'swap', 'records'),
+            and intent.get('phase') in ('copy', 'publish', 'retire', 'records'),
             'Interrupted tools update does not exactly match this bundle/stick; get help')
     def advance(phase):
         intent['phase'] = phase
         home.save('tools-update-intent', intent)
-    old, held = intent['previous'], retired / intent['previous']
-    ready(old)
+    old = intent['previous']
+    if intent['phase'] in ('copy', 'publish'):
+        # Before publication a resumed run refuses early too, and restores.
+        guarded(old, lambda: (exclusive(), system_ready()))
     if intent['phase'] == 'copy':
-        require(checked_bundle(blocked) == old and not current.exists() and not held.exists(), 'Installed tools changed during the update')
+        # The old tools stay in place and usable while the new ones are copied.
+        require(checked_bundle(current) == old and not held.exists() and not (retired / old).exists(),
+            'Installed tools changed during the update')
         discard_partial_copy(staged, payload)
         shutil.copytree(payload, staged, symlinks=False, copy_function=shutil.copy2)
         seal_copy(staged)
         require(checked_bundle(staged) == fingerprint, 'Staged tools differ; preserve diagnostics')
-        advance('swap')
-        # Still blocked: check once more right before the swap.
-        ready(old)
-    if intent['phase'] == 'swap':
-        if staged.exists() or staged.is_symlink():
-            require(not staged.is_symlink() and checked_bundle(staged) == fingerprint, 'Staged tools differ; get help')
-            if blocked.exists() or blocked.is_symlink():
-                require(not blocked.is_symlink() and checked_bundle(blocked) == old and not held.exists() and not current.exists(),
-                    'Unexpected installed tools during the swap; get help')
-                if not retired.exists():
-                    retired.mkdir(mode=0o700)
+        advance('publish')
+    if intent['phase'] == 'publish':
+        if not (current.is_dir() and not current.is_symlink() and checked_bundle(current) == fingerprint):
+            require(not staged.is_symlink() and staged.is_dir() and checked_bundle(staged) == fingerprint, 'Staged tools differ; get help')
+
+            def publish():
+                # Block: every way into the old tools lies under tools/ (at is a
+                # link to tools/at, which runs tools/owner.py, and the 15f main
+                # refuses outside tools/), so moving it aside blocks them all.
+                if current.exists() or current.is_symlink():
+                    require(not current.is_symlink() and checked_bundle(current) == old and not held.exists(),
+                        'Unexpected installed tools before publication; get help')
+                    current.replace(held)
                     sync_directory(HOME)
-                owned_directory(retired)
-                blocked.replace(held)
-                sync_directory(retired)
+                # Then the deciding checks, under the block, immediately before publication.
+                exclusive()
+                system_ready()
+                staged.replace(current)
                 sync_directory(HOME)
-            require(not current.exists() and checked_bundle(held) == old, 'Retired tools differ; get help')
-            staged.replace(current)
+            guarded(old, publish)
+        require(checked_bundle(current) == fingerprint and not staged.exists(), 'Published tools differ; get help')
+        advance('retire')
+    if intent['phase'] == 'retire':
+        # Only now, with the new tools published and verified, does the old copy retire.
+        require(checked_bundle(current) == fingerprint, 'Published tools differ; get help')
+        if held.exists() or held.is_symlink():
+            require(held.is_dir() and not held.is_symlink() and checked_bundle(held) == old
+                and not (retired / old).exists(), 'Held tools differ; get help')
+            if not retired.exists():
+                retired.mkdir(mode=0o700)
+                sync_directory(HOME)
+            owned_directory(retired)
+            held.replace(retired / old)
+            sync_directory(retired)
             sync_directory(HOME)
-        require(not staged.exists() and not blocked.exists() and checked_bundle(current) == fingerprint
-            and checked_bundle(held) == old, 'Tools swap is ambiguous; get help')
+        require(checked_bundle(retired / old) == old, 'Retired tools differ; get help')
         # The receipt name is journalled, so a resumed update writes it once.
         intent['receipt'] = datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%S.%fZ') + '-tools-update'
         advance('records')

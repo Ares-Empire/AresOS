@@ -940,7 +940,8 @@ class OwnerPathTest(unittest.TestCase):
                       '[Failed or bad update](EMERGENCY.md#failed-or-bad-update)', 'never a guessed GRUB title',
                       '**Update to … confirmed after the restart**', '**Return to … confirmed after the restart**',
                       '**did not finish at the restart**', '**interrupted before its result was recorded**',
-                      'Help decides each repeat', 'STOPs while a command of the installed tools runs',
+                      'Help decides each repeat', 'STOPs while anything uses the installed tools',
+                      'a STOP always leaves working tools in place',
                       '**Another owner command is running**'):
             self.assertIn(value, route)
         # The quoted tool messages are the ones the tools print.
