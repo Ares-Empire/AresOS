@@ -165,8 +165,9 @@ try {
       fs.writeFileSync('/out/owner-picked.txt','GOOD');
       const chooser=await eventually(()=>{const ids=execFileSync('xdotool',['search','--onlyvisible','--name','^(Open File|Open)$'],{encoding:'utf8'}).trim().split('\n').filter(Boolean);assert.equal(ids.length,1);return ids[0];},'one native file chooser');
       execFileSync('xdotool',['windowactivate','--sync',chooser]);await delay(300);execFileSync('import',['-window','root','/out/owner-file-chooser.png']);
-      execFileSync('xdotool',['key','--clearmodifiers','ctrl+l']);execFileSync('xdotool',['type','--clearmodifiers','--delay','10','/out/owner-picked.txt']);await delay(300);execFileSync('import',['-window','root','/out/owner-file-path.png']);execFileSync('xdotool',['key','Return']);await delay(300);
-      if(execFileSync('xdotool',['getactivewindow'],{encoding:'utf8'}).trim()===chooser)execFileSync('xdotool',['key','--clearmodifiers','alt+o']);
+      execFileSync('xdotool',['key','--clearmodifiers','ctrl+l']);execFileSync('xdotool',['type','--clearmodifiers','--delay','10','/out/owner-picked.txt']);await delay(1000);execFileSync('import',['-window','root','/out/owner-file-path.png']);
+      // One explicit accept, after GTK's asynchronous path validation settles.
+      execFileSync('xdotool',['key','--clearmodifiers','alt+o']);await delay(1000);
       execFileSync('import',['-window','root','/out/owner-file-chosen.png']);
     },
     isolationAfter:()=>{const finalListeners=execFileSync('ss',['-lntp'],{encoding:'utf8'}).split('\n').filter(line=>line.includes('\"chrome\"'));assert.equal(finalListeners.length,0,'Chrome must still have no listening port after all tools');fs.writeFileSync('/out/isolation-after.json',JSON.stringify({listeners:finalListeners}));},
