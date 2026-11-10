@@ -79,8 +79,7 @@ def rename_folder(mail, account, client, source, target, roles_before):
         reference = {'account': account['id'], 'folder': source['folder'], 'uidvalidity': validity, 'uid': uid}
         identities.append({**reference, 'message_id': str(parse(raw, reference).get('Message-ID', ''))})
     value = mail.mutation_context(account, 'RENAME', source=source['folder'], destination=target, identities=identities)
-    intent.update(context=value, context_version=1)
-    mail.store.write({key: intent}, 'mail_folder_rename', 'folder rename intent',
+    mail.store.write({key: {**intent, 'context': value, 'context_version': 1}}, 'mail_folder_rename', 'folder rename intent',
                      outcome='started', untrusted_content={'rename': intent})
     with mutation(mail.store, value, source_key=key):
         ok(client.rename(quote(source['folder']), quote(target)), 'Rename folder')

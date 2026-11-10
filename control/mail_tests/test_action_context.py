@@ -99,6 +99,26 @@ class ActionContexts(unittest.TestCase):
         self.assertEqual(row['context']['destination'], 'Created')
         self.assertEqual(row['state'], 'started')
 
+    def test_folded_rename_context_stays_out_of_public_audit_content(self):
+        scenario, driver, reply, _ = self.capture('filing_rename')
+        self.assertTrue(reply['ok'], reply)
+        self.assertTrue(any(row.get('context', {}).get('command') == 'RENAME'
+            for key, row in scenario.fixture.engine.store.items('mail:rename:')))
+        arguments = {'limit': 10}
+        found = False
+        while True:
+            page = scenario.fixture.engine.dispatch('control_log', arguments)
+            for entry in page['items']:
+                content = entry.get('untrusted_content', {}).get('rename')
+                if content is not None:
+                    found = True
+                    self.assertNotIn('context', content)
+                    self.assertNotIn('context_version', content)
+            if page['cursor'] is None:
+                break
+            arguments['cursor'] = page['cursor']
+        self.assertTrue(found)
+
     def test_old_unfinished_context_warns_finished_old_is_quiet_and_new_work_runs(self):
         scenario = OwnerScenario('send')
         self.addCleanup(scenario.close)
