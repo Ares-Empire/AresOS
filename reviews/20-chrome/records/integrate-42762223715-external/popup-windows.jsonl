@@ -1,0 +1,9 @@
+{"id":"popup-clean","phase":"before","window":"4194320","X":2,"Y":40,"WIDTH":620,"HEIGHT":514}
+{"id":"popup-clean","phase":"after","window":"4194320","X":2,"Y":40,"WIDTH":620,"HEIGHT":514}
+{"id":"popup-dirty","phase":"before","window":"4194323","X":2,"Y":40,"WIDTH":620,"HEIGHT":514}
+{"id":"popup-dirty","phase":"after","window":"4194323","X":2,"Y":40,"WIDTH":620,"HEIGHT":514}
+{"id":"popup-stop","phase":"before-stop","window":"4194326","X":2,"Y":40,"WIDTH":620,"HEIGHT":514}
+{"id":"popup-opener-release","phase":"before-release","window":"4194320","X":2,"Y":40,"WIDTH":620,"HEIGHT":514}
+{"id":"popup-opener-release","phase":"after-release","window":"4194320","X":2,"Y":40,"WIDTH":620,"HEIGHT":514}
+{"id":"popup-opener-close","phase":"before-close","window":"4194323","X":2,"Y":40,"WIDTH":620,"HEIGHT":514}
+{"id":"popup-opener-close","phase":"after-close","window":"4194323","X":2,"Y":40,"WIDTH":620,"HEIGHT":514}

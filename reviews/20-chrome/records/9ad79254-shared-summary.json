@@ -1,0 +1,276 @@
+[
+  {
+    "name": "base-final-1",
+    "run": 42737857385,
+    "attempt": 1,
+    "conclusion": "success",
+    "exact_lines": [
+      {
+        "line": 415,
+        "text": "containers\tTest inside Fedora 45 container (no model or real account)\t2026-11-10T01:47:37.7739506Z Ran 142 tests in 168.319s"
+      }
+    ],
+    "source": "9ad79254"
+  },
+  {
+    "name": "base-final-2",
+    "run": 42737857385,
+    "attempt": 2,
+    "conclusion": "success",
+    "exact_lines": [
+      {
+        "line": 416,
+        "text": "containers\tTest inside Fedora 45 container (no model or real account)\t2026-11-10T02:11:54.9701780Z Ran 142 tests in 210.452s"
+      }
+    ],
+    "source": "9ad79254"
+  },
+  {
+    "name": "boundary-final-1",
+    "run": 42737857365,
+    "attempt": 1,
+    "conclusion": "success",
+    "exact_lines": [
+      {
+        "line": 874,
+        "text": "hostile\tBuild pinned disposable Linux environment\t2026-11-10T01:44:58.7951386Z #14 0.148 Ran 16 tests in 0.009s"
+      },
+      {
+        "line": 1154,
+        "text": "hostile\tHostile programs with and without seccomp\t2026-11-10T01:45:12.3218510Z NATIVE_BOUNDARY_OK mode=present attacks=127 isolated_net_mnt filters_above_container AF_UNIX=EPERM AF_VSOCK=EPERM unchanged=44 hostile_connections=0 approval_mount_tree_unchanged mounts=80"
+      },
+      {
+        "line": 1616,
+        "text": "hostile\tHostile programs with and without seccomp\t2026-11-10T01:46:49.6291799Z BOUNDARY_OK mode=present attacks=127 unchanged=42 hostile_connections=0 unqualified=0"
+      },
+      {
+        "line": 1963,
+        "text": "hostile\tHostile programs with and without seccomp\t2026-11-10T01:47:03.5125885Z NATIVE_BOUNDARY_OK mode=absent attacks=127 isolated_net_mnt filters_above_container AF_UNIX=EPERM AF_VSOCK=EPERM unchanged=44 hostile_connections=0 approval_mount_tree_unchanged mounts=80"
+      },
+      {
+        "line": 2373,
+        "text": "hostile\tHostile programs with and without seccomp\t2026-11-10T01:47:25.8604241Z BOUNDARY_OK mode=absent attacks=127 unchanged=42 hostile_connections=0 unqualified=1"
+      }
+    ],
+    "source": "9ad79254"
+  },
+  {
+    "name": "boundary-final-2",
+    "run": 42737857365,
+    "attempt": 2,
+    "conclusion": "success",
+    "exact_lines": [
+      {
+        "line": 872,
+        "text": "hostile\tBuild pinned disposable Linux environment\t2026-11-10T02:08:31.2513175Z #14 0.192 Ran 16 tests in 0.013s"
+      },
+      {
+        "line": 1152,
+        "text": "hostile\tHostile programs with and without seccomp\t2026-11-10T02:08:45.6609296Z NATIVE_BOUNDARY_OK mode=present attacks=127 isolated_net_mnt filters_above_container AF_UNIX=EPERM AF_VSOCK=EPERM unchanged=44 hostile_connections=0 approval_mount_tree_unchanged mounts=80"
+      },
+      {
+        "line": 1614,
+        "text": "hostile\tHostile programs with and without seccomp\t2026-11-10T02:10:26.5253158Z BOUNDARY_OK mode=present attacks=127 unchanged=42 hostile_connections=0 unqualified=0"
+      },
+      {
+        "line": 1961,
+        "text": "hostile\tHostile programs with and without seccomp\t2026-11-10T02:10:41.1128390Z NATIVE_BOUNDARY_OK mode=absent attacks=127 isolated_net_mnt filters_above_container AF_UNIX=EPERM AF_VSOCK=EPERM unchanged=44 hostile_connections=0 approval_mount_tree_unchanged mounts=80"
+      },
+      {
+        "line": 2371,
+        "text": "hostile\tHostile programs with and without seccomp\t2026-11-10T02:11:04.0243838Z BOUNDARY_OK mode=absent attacks=127 unchanged=42 hostile_connections=0 unqualified=1"
+      }
+    ],
+    "source": "9ad79254"
+  },
+  {
+    "name": "mail-2",
+    "run": 42737857406,
+    "attempt": 1,
+    "conclusion": "success",
+    "exact_lines": [
+      {
+        "line": 593,
+        "text": "sweep (1)\tOS and SQLite fault sweep in isolated mail containers\t2026-11-10T01:58:22.2874075Z Ran 4 tests in 803.650s"
+      },
+      {
+        "line": 1025,
+        "text": "sweep (2)\tOS and SQLite fault sweep in isolated mail containers\t2026-11-10T01:52:58.9203763Z Ran 4 tests in 478.564s"
+      },
+      {
+        "line": 1494,
+        "text": "containers\tReal isolated mail servers and shared base (no model or real account)\t2026-11-10T01:48:21.8085963Z Ran 142 tests in 205.528s"
+      },
+      {
+        "line": 1926,
+        "text": "containers\tReal isolated mail servers and shared base (no model or real account)\t2026-11-10T02:02:44.4093322Z Ran 309 tests in 853.553s"
+      },
+      {
+        "line": 2337,
+        "text": "sweep (3)\tOS and SQLite fault sweep in isolated mail containers\t2026-11-10T01:50:47.7008194Z Ran 4 tests in 348.961s"
+      },
+      {
+        "line": 2986,
+        "text": "sweep (0)\tOS and SQLite fault sweep in isolated mail containers\t2026-11-10T02:03:00.5210020Z Ran 4 tests in 1080.196s"
+      }
+    ],
+    "source": "9ad79254"
+  },
+  {
+    "name": "qualification-2",
+    "run": 42736403253,
+    "attempt": 1,
+    "conclusion": "success",
+    "exact_lines": [
+      {
+        "line": 192,
+        "text": "qualification-tests\tBrowser-free build, service, delivery and hermetic publisher tests\t2026-11-10T01:33:25.8002214Z Ran 47 tests in 2.077s"
+      },
+      {
+        "line": 960,
+        "text": "qualification-tests\tBrowser-free build, service, delivery and hermetic publisher tests\t2026-11-10T01:33:32.5937898Z # tests 127"
+      },
+      {
+        "line": 962,
+        "text": "qualification-tests\tBrowser-free build, service, delivery and hermetic publisher tests\t2026-11-10T01:33:32.5938478Z # pass 127"
+      },
+      {
+        "line": 1236,
+        "text": "delivery-attestation\tRetain this workflow's real Sigstore bundle and test altered copies\t2026-11-10T01:35:57.8409790Z QUALIFICATION DELIVERY newer valid attested record used PASS"
+      },
+      {
+        "line": 1237,
+        "text": "delivery-attestation\tRetain this workflow's real Sigstore bundle and test altered copies\t2026-11-10T01:36:01.2644718Z QUALIFICATION DELIVERY anonymous bundle lookup in launch-equivalent environment PASS; cache 61924 bytes"
+      },
+      {
+        "line": 1238,
+        "text": "delivery-attestation\tRetain this workflow's real Sigstore bundle and test altered copies\t2026-11-10T01:36:05.1545188Z QUALIFICATION DELIVERY missing attestation refused; held retained PASS"
+      },
+      {
+        "line": 1239,
+        "text": "delivery-attestation\tRetain this workflow's real Sigstore bundle and test altered copies\t2026-11-10T01:36:08.0627786Z QUALIFICATION DELIVERY altered attestation refused; held retained PASS"
+      },
+      {
+        "line": 1240,
+        "text": "delivery-attestation\tRetain this workflow's real Sigstore bundle and test altered copies\t2026-11-10T01:36:11.2654653Z QUALIFICATION DELIVERY wrong workflow refused; held retained PASS"
+      },
+      {
+        "line": 1241,
+        "text": "delivery-attestation\tRetain this workflow's real Sigstore bundle and test altered copies\t2026-11-10T01:36:14.3302172Z QUALIFICATION DELIVERY wrong branch refused; held retained PASS"
+      },
+      {
+        "line": 1242,
+        "text": "delivery-attestation\tRetain this workflow's real Sigstore bundle and test altered copies\t2026-11-10T01:36:18.7231055Z QUALIFICATION DELIVERY production main rejects branch fixture refused; held retained PASS"
+      },
+      {
+        "line": 1243,
+        "text": "delivery-attestation\tRetain this workflow's real Sigstore bundle and test altered copies\t2026-11-10T01:36:21.4917865Z QUALIFICATION DELIVERY altered subject refused; held retained PASS"
+      },
+      {
+        "line": 1244,
+        "text": "delivery-attestation\tRetain this workflow's real Sigstore bundle and test altered copies\t2026-11-10T01:36:23.9923867Z QUALIFICATION DELIVERY dropped held entry refused after real verification PASS"
+      },
+      {
+        "line": 1245,
+        "text": "delivery-attestation\tRetain this workflow's real Sigstore bundle and test altered copies\t2026-11-10T01:36:27.2363293Z QUALIFICATION DELIVERY changed held entry refused after real verification PASS"
+      },
+      {
+        "line": 1246,
+        "text": "delivery-attestation\tRetain this workflow's real Sigstore bundle and test altered copies\t2026-11-10T01:36:30.9764927Z QUALIFICATION PUBLISHER real held attestation and baseline verified PASS"
+      },
+      {
+        "line": 1247,
+        "text": "delivery-attestation\tRetain this workflow's real Sigstore bundle and test altered copies\t2026-11-10T01:36:34.1570445Z QUALIFICATION PUBLISHER unsigned inserted entry refused; no write, issue stubbed PASS"
+      },
+      {
+        "line": 1248,
+        "text": "delivery-attestation\tRetain this workflow's real Sigstore bundle and test altered copies\t2026-11-10T01:36:37.4528269Z QUALIFICATION PUBLISHER non-append-only shipped baseline refused; no write, issue stubbed PASS"
+      },
+      {
+        "line": 1249,
+        "text": "delivery-attestation\tRetain this workflow's real Sigstore bundle and test altered copies\t2026-11-10T01:36:40.8845914Z QUALIFICATION DELIVERY newer valid attested record used PASS"
+      },
+      {
+        "line": 1250,
+        "text": "delivery-attestation\tRetain this workflow's real Sigstore bundle and test altered copies\t2026-11-10T01:36:44.7928325Z QUALIFICATION DELIVERY anonymous bundle lookup in launch-equivalent environment PASS; cache 61925 bytes"
+      },
+      {
+        "line": 1251,
+        "text": "delivery-attestation\tRetain this workflow's real Sigstore bundle and test altered copies\t2026-11-10T01:36:47.9672201Z QUALIFICATION DELIVERY missing attestation refused; held retained PASS"
+      },
+      {
+        "line": 1252,
+        "text": "delivery-attestation\tRetain this workflow's real Sigstore bundle and test altered copies\t2026-11-10T01:36:50.4131525Z QUALIFICATION DELIVERY altered attestation refused; held retained PASS"
+      },
+      {
+        "line": 1253,
+        "text": "delivery-attestation\tRetain this workflow's real Sigstore bundle and test altered copies\t2026-11-10T01:36:53.4099206Z QUALIFICATION DELIVERY wrong workflow refused; held retained PASS"
+      },
+      {
+        "line": 1254,
+        "text": "delivery-attestation\tRetain this workflow's real Sigstore bundle and test altered copies\t2026-11-10T01:36:56.2063284Z QUALIFICATION DELIVERY wrong branch refused; held retained PASS"
+      },
+      {
+        "line": 1255,
+        "text": "delivery-attestation\tRetain this workflow's real Sigstore bundle and test altered copies\t2026-11-10T01:36:59.9254534Z QUALIFICATION DELIVERY production main rejects branch fixture refused; held retained PASS"
+      },
+      {
+        "line": 1256,
+        "text": "delivery-attestation\tRetain this workflow's real Sigstore bundle and test altered copies\t2026-11-10T01:37:02.9579654Z QUALIFICATION DELIVERY altered subject refused; held retained PASS"
+      },
+      {
+        "line": 1257,
+        "text": "delivery-attestation\tRetain this workflow's real Sigstore bundle and test altered copies\t2026-11-10T01:37:06.3272426Z QUALIFICATION DELIVERY dropped held entry refused after real verification PASS"
+      },
+      {
+        "line": 1258,
+        "text": "delivery-attestation\tRetain this workflow's real Sigstore bundle and test altered copies\t2026-11-10T01:37:08.5151877Z QUALIFICATION DELIVERY changed held entry refused after real verification PASS"
+      },
+      {
+        "line": 1259,
+        "text": "delivery-attestation\tRetain this workflow's real Sigstore bundle and test altered copies\t2026-11-10T01:37:11.9296592Z QUALIFICATION PUBLISHER real held attestation and baseline verified PASS"
+      },
+      {
+        "line": 1260,
+        "text": "delivery-attestation\tRetain this workflow's real Sigstore bundle and test altered copies\t2026-11-10T01:37:14.9729805Z QUALIFICATION PUBLISHER unsigned inserted entry refused; no write, issue stubbed PASS"
+      },
+      {
+        "line": 1261,
+        "text": "delivery-attestation\tRetain this workflow's real Sigstore bundle and test altered copies\t2026-11-10T01:37:19.0205342Z QUALIFICATION PUBLISHER non-append-only shipped baseline refused; no write, issue stubbed PASS"
+      }
+    ]
+  },
+  {
+    "name": "mail-final-2",
+    "run": 42737857406,
+    "attempt": 2,
+    "source": "9ad79254",
+    "conclusion": "success",
+    "exact_lines": [
+      {
+        "line": 382,
+        "text": "sweep (3)\tOS and SQLite fault sweep in isolated mail containers\t2026-11-10T02:17:02.7914425Z Ran 4 tests in 504.184s"
+      },
+      {
+        "line": 792,
+        "text": "sweep (2)\tOS and SQLite fault sweep in isolated mail containers\t2026-11-10T02:16:58.3995455Z Ran 4 tests in 496.672s"
+      },
+      {
+        "line": 1263,
+        "text": "containers\tReal isolated mail servers and shared base (no model or real account)\t2026-11-10T02:12:02.5420141Z Ran 142 tests in 211.150s"
+      },
+      {
+        "line": 1697,
+        "text": "containers\tReal isolated mail servers and shared base (no model or real account)\t2026-11-10T02:26:43.0141893Z Ran 309 tests in 874.260s"
+      },
+      {
+        "line": 2339,
+        "text": "sweep (1)\tOS and SQLite fault sweep in isolated mail containers\t2026-11-10T02:21:48.7715668Z Ran 4 tests in 791.756s"
+      },
+      {
+        "line": 3008,
+        "text": "sweep (0)\tOS and SQLite fault sweep in isolated mail containers\t2026-11-10T02:32:53.3289226Z Ran 4 tests in 1457.177s"
+      }
+    ]
+  }
+]
