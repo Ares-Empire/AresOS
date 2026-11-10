@@ -93,6 +93,27 @@ class Oracle:
             cache[marker] = bind_context(event, self.script)
         return cache[marker]
 
+    def onboarding_call(self, key):
+        """Bind an opaque probe id to its creation inside the account-add call.
+
+        The call authorizes only that account's self-probe. Message identities
+        and SMTP transaction membership are checked separately at each effect.
+        """
+        record = getattr(self, '_effect_record', None)
+        if record is None:
+            return None
+        birth = next((e for e in record.events if isinstance(e['set'].get(key), dict)), None)
+        if birth is None:
+            return None
+        row = birth['set'][key]
+        account = row.get('payload', {}).get('composition', {}).get('mail', {}).get('account')
+        if row.get('repair_of'):
+            return self.onboarding_call('op:' + row['repair_of']) if row.get('action') == 'mail_operation_repair' else None
+        if row.get('action') != 'mail_send':
+            return None
+        return next((c for c in self.calls_at(birth['seq']) if c['action'] == 'mail_account_add'
+                     and c['arguments'].get('id') == account), None)
+
     def operation_events(self, key, sequence):
         """Join delivery, local repair and explicitly recorded fixture effects."""
         operation_id = key.removeprefix('op:')
@@ -102,6 +123,15 @@ class Oracle:
             if event.get('before_seq', -1) >= sequence:
                 continue
             source, row = self.bound(event)
+            if event['command'] == 'RCPT' and event.get('smtp_transaction') is not None:
+                # RCPT precedes DATA and has no Message-ID of its own. Join it
+                # only to DATA in that exact recorded SMTP transaction.
+                data = next((e for e in self.servers if e['command'] == 'DATA' and
+                             e['call'] == event['call'] and e.get('account') == event.get('account') and
+                             e.get('smtp_transaction') == event['smtp_transaction']), None)
+                if data and self.bound(data)[0] == key and any(i.get('message_id') == mid for i in data.get('identities', [])):
+                    events.append(event)
+                    continue
             if source == key or event.get('source') == key:
                 events.append(event)
                 continue
@@ -119,6 +149,10 @@ class Oracle:
                     seed and call.get('action') in {'mail_send', 'mail_unsubscribe'} or
                     repair and call.get('action') == 'mail_operation_repair'):
                 events.append(event)
+            elif repair:
+                onboarding = self.onboarding_call(key)
+                if onboarding and event['call'] == onboarding['call'] and event.get('account') == onboarding['arguments']['id']:
+                    events.append(event)
         return events
 
     def proof(self, validator, fact):
@@ -142,11 +176,18 @@ class Oracle:
         return cache[sequence]
 
     def sent_result_commit(self, event, source):
-        return (event['action'] == 'mail_sent_copy_check' or
+        onboarding = self.onboarding_call(source)
+        internal_repair = onboarding and event['action'] == 'mail_operation_repair' and onboarding in self.calls_at(event['seq'])
+        return (bool(internal_repair) or event['action'] == 'mail_sent_copy_check' or
                 event.get('untrusted_content', {}).get('stage') == 'sent_copy' or
                 event['action'] == 'mail_operation_repair' and any(
                     c['action'] == 'mail_operation_repair' and c['arguments'].get('operation_id') == source.removeprefix('op:') and
                     c['arguments'].get('stage') == 'sent_copy' for c in self.calls_at(event['seq'])))
+
+    @staticmethod
+    def testapp_account(reference):
+        parts = reference.get('scope', '').split('/')
+        return parts[1] if len(parts) == 3 and parts[0] == 'testapp' and parts[2] == 'items' else None
 
     def payload_claims(self, key, row):
         cache = getattr(self, '_payload_cache', {})
@@ -165,7 +206,8 @@ class Oracle:
                   'text', 'html', 'subject', 'format', 'signature', 'in_reply_to', 'references', 'generated_parts')
         source = {**payload, **mail}
         source = {**source, 'account': source.get('account') or source.get('reference', {}).get('account') or
-                  next((i.get('reference', {}).get('account') for i in source.get('items', [])), None)}
+                  next((i.get('reference', {}).get('account') or self.testapp_account(i.get('reference', {}))
+                        for i in source.get('items', [])), None)}
         for field in fields:
             if field in approved and visible(source.get(field)) != approved[field]:
                 self.proof('payload_claims', Fact(key, 'unapproved-payload', detail=field))
@@ -230,6 +272,11 @@ class Oracle:
                         for ref in e.get('identities', []) if {k: v for k, v in ref.items() if k != 'sha256'} == source and ref.get('sha256')]
             if evidence and item.get('sha256') != evidence[0]['sha256']:
                 self.proof('filing_claims', Fact(key, 'unverified-source-hash', detail=canonical(source)))
+            effects = [e for e in self.servers if e['command'] in {'MOVE', 'COPY'} and self.bound(e)[0] == key and
+                       e.get('before_seq', -1) < event['seq'] and e.get('folder') == source['folder'] and
+                       str(e.get('arguments', [''])[0]) == str(source['uid'])]
+            if effects and item.get('destination') != effects[-1].get('destination'):
+                self.proof('filing_claims', Fact(key, 'unverified-destination', detail=canonical(source)))
         return {**row, **wanted}
 
     @staticmethod
@@ -1247,10 +1294,10 @@ class Oracle:
                     self.proof('stage_claims', Fact(key, 'unjustified-stage', detail='missing:' + name))
 
     def intent_result_proof(self, record, event, key, old):
+        if event['seq'] <= getattr(self, 'seed_sequence', 0):
+            return event['action'] == old.get('action')
         if event['action'] != old.get('action') or not self.scripted_transition(event, old.get('action', 'impossible')):
             return False
-        if event['seq'] <= getattr(self, 'seed_sequence', 0):
-            return True
         commands = [e for e in self.servers if self.bound(e)[0] == key and e.get('before_seq', -1) < event['seq']]
         calls = [c for c in self.script if c['action'] == old['action'] and c.get('start_seq', -1) < event['seq'] <= c.get('end_seq', -1)]
         planned = [(c, free_plan(c)) for c in calls if free_plan(c) is not None]
@@ -1416,7 +1463,7 @@ class Oracle:
             if account_id in self.qualification_observed:
                 continue
             completed = [e['seq'] for e in record.events if e['action'] == 'mail_account_add' and e.get('outcome') == 'done' and
-                         call.get('start_seq', -1) < e['seq'] <= call.get('end_seq', -1)]
+                         'mail:account:' + str(account_id) in e['set'] and call.get('start_seq', -1) < e['seq'] <= call.get('end_seq', -1)]
             if not completed:
                 continue
             events = [e for e in self.servers if e.get('account') == account_id and e['call'] == call['call']]
@@ -1580,8 +1627,6 @@ class Oracle:
                             if e['call'] == listing['call'] and e['command'] == 'FETCH' and e['accepted']}
                 found = [ref for ref in found if (ref['folder'], ref['uid']) in observed]
             destination = origin.get('destination') if origin else None
-            if item.get('destination') != destination:
-                self.lifecycle_errors.add(Fact(key, 'unverified-destination', detail=canonical(source)))
             result.append({'source': item['source'], 'last_known_destination': destination,
                            'observed_locations': sorted(found, key=canonical), 'scan_complete': complete})
         return sorted(result, key=canonical)
@@ -1760,9 +1805,14 @@ class Oracle:
                 calls = [c for c in self.script if c['action'] == action and c.get('arguments', {}).get('operation_id') == operation.get('repair_of')]
                 authority = self.repair_authority.get(key) or (calls[-1] if calls else None)
                 stage = authority['arguments'].get('stage') if authority else None
+                if authority is None and self.onboarding_call(key):
+                    # Account setup's only internal repair is the Sent copy of
+                    # its self-probe; require its exact parent Message-ID below.
+                    stage = 'sent_copy'
                 command = {'sent_copy': 'APPEND', 'answered_flag': 'STORE'}.get(stage)
                 matches = [e for e in self.servers if e['command'] == command and e['accepted'] and
-                           e['reply'] == 'delivered' and self.bound(e)[0] == key]
+                           e['reply'] == 'delivered' and self.bound(e)[0] == key and
+                           (not self.onboarding_call(key) or any(i.get('message_id') == '<' + operation['repair_of'].replace(':', '.') + '@mail.aresos.invalid>' for i in e.get('identities', [])))]
                 settled = any(e['command'] == 'SENT' and e.get('source') == 'op:' + str(operation.get('repair_of')) and e['identities'] for e in self.servers)
                 if not matches and not (stage == 'sent_copy' and settled):
                     errors.add(Fact(key, 'false-completion', detail='Approved repair stage lacks delivered effect or read-only settlement evidence'))

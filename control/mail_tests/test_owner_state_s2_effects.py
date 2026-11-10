@@ -64,6 +64,27 @@ class EffectRegressions(unittest.TestCase):
         finally:
             scenario.close()
 
+    def test_onboarding_effect_join_requires_its_call_identity_and_smtp_transaction(self):
+        from owner_state_plants import record
+        from owner_state_oracle.perturb import clone
+        oracle, decoded, deltas = record('onboarding')
+        self.assertFalse(deltas)
+        oracle.lifecycle(decoded)
+        data = next(e for e in oracle.servers if e['command'] == 'DATA')
+        key = oracle.bound(data)[0]
+        rcpt = next(e for e in oracle.servers if e['command'] == 'RCPT')
+        self.assertIn(rcpt, oracle.operation_events(key, float('inf')))
+        for field, replacement in (('call', -1), ('account', 'other'), ('smtp_transaction', -1)):
+            altered = clone(oracle)
+            next(e for e in altered.servers if e['command'] == 'RCPT')[field] = replacement
+            _, errors = evaluate(altered, decoded)
+            self.assertTrue(any(f.kind == 'unjustified-stage' and f.detail.startswith(('rcpt:', 'recipient:')) for _, f in errors), field)
+        for field, replacement in (('call', -1), ('identities', [{'message_id': '<other@mail.invalid>'}])):
+            altered = clone(oracle)
+            next(e for e in altered.servers if e['command'] == 'APPEND' and e.get('append_flags') == '(\\Seen)')[field] = replacement
+            _, errors = evaluate(altered, decoded)
+            self.assertTrue(any(f.kind in {'false-completion', 'unjustified-stage'} for _, f in errors), field)
+
     def test_ok_fetch_without_a_matching_body_cannot_close_a_filing_check(self):
         for body in ('empty', 'wrong-uid', 'no-literal'):
             with self.subTest(body=body):

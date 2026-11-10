@@ -1947,3 +1947,11 @@ files over 500,000,000 bytes is **[]**. No large image/download,
 system installation or Gradle daemon was started. No real account or reviewer
 probe file was modified. PR #26 remains a draft against `pkg/19-mail`; nothing
 was merged, and stage 3 was not started.
+
+## Stage 2, fixes round 3
+
+**Read — scope:** briefs/19b-s2-fixes-3.md and both non-SAFE scoped reviews at `e43ea57c`; fixes are implemented in the brief's order. Stage 3 is not started. The reviewer probes were read, not modified.
+
+**Read / run — item 1:** the oracle joins the account-add self-probe's RCPT to its exact recorded SMTP transaction and DATA Message-ID; its internal Sent repair joins the same account-add creation window and exact parent Message-ID. Qualification completion requires the account record commit, rather than a generic intent's earlier `done` commit. Seed-history intent removal is accepted before runtime script checking. Testapp account identity comes from the exact `testapp/<account>/items` reference scope. Compact fences may repeat an unchanged operation or the pre-archive row; lifecycle validation still checks the deletion. Filing destination claims are compared on the actual post-command result commit, rather than the pre-command warning context. These last two checks classified and removed oracle-side differences in testapp_delete, archive and ordinary filing.
+
+**Run — quiet contracts:** every one of the 34 fault-free point-0 flows runs through `exercise` and the unmodified `Driver.compare`. `owner_state_quiet_gaps.json` lists only nine named production behaviours, each closing in stage 3, with exact views/count/digest. An unlisted difference, changed delta or unexpected pass fails independently of the large ledger. The existing one-copy ordinary contracts remain. Local commands/results and the complete point-0 table are recorded below when verification closes. The onboarding regression also rejects RCPT with another call/account/transaction and Sent APPEND with another call/Message-ID.

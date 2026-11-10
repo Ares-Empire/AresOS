@@ -92,6 +92,8 @@ def consistency_errors(record):
         for op in (fence or {}).get('operations', []):
             source = 'op:' + str(op.get('id'))
             row = event['set'].get(source)
+            if row is None:
+                row = rows.get(source)
             if row is None or any(row.get(field) != op.get(field) for field in ('id', 'generation', 'input_hash', 'state')):
                 errors.append((source, 'changed-fenced-operation', str(seq)))
         for key, value in event['set'].items():

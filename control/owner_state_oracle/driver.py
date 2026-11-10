@@ -221,6 +221,7 @@ class Driver:
         @contextmanager
         def smtp_session(account):
             with smtp(account) as connection:
+                transaction = len(oracle.servers)
                 accepted_recipients, intended_recipients, sender = [], [], [None]
                 class LoggedSMTP:
                     def __getattr__(self, name):
@@ -228,7 +229,7 @@ class Driver:
                         if name not in {'mail', 'rcpt', 'data'}:
                             return method
                         def send(*args, **kwargs):
-                            event = oracle.server(name.upper(), account['id'], roles=f.imap.roles, sender=sender[0], intended_recipients=list(intended_recipients), accepted=False, reply='lost',
+                            event = oracle.server(name.upper(), account['id'], roles=f.imap.roles, smtp_transaction=transaction, sender=sender[0], intended_recipients=list(intended_recipients), accepted=False, reply='lost',
                                 recipients=[args[0]] if name == 'rcpt' else list(accepted_recipients) if name == 'data' else [], **before_context())
                             if name == 'data':
                                 from .transcript import Transcript
