@@ -90,7 +90,7 @@ def api_requirements(sources):
     billing_calls = [n for n in ast.walk(guard) if isinstance(n, ast.Call)
                      and isinstance(n.func, ast.Name) and n.func.id == 'organization_budget']
     host_only, = [n for n in ast.walk(guard) if isinstance(n, ast.If)
-                  and ast.dump(n.test) == ast.dump(ast.parse("PACKAGE in ('13', '14', '16') and not ci", mode="eval").body)]
+                  and ast.dump(n.test) == ast.dump(ast.parse("PACKAGE in ('13', '14', '16', '27') and not ci", mode="eval").body)]
     assert len(billing_calls) == 1 and billing_calls[0] in list(ast.walk(host_only)), 'Billing must stay outside CI'
     billing, = [n for n in guard.body if isinstance(n, ast.FunctionDef) and n.name == 'organization_budget']
     budget_get, = [n for n in ast.walk(guard) if isinstance(n, ast.Call) and isinstance(n.func, ast.Name)

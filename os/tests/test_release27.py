@@ -1,0 +1,241 @@
+"""Package 27: the release build's diff rules, guard ledger and publish branch."""
+import json
+import os
+import pathlib
+import re
+import shutil
+import stat
+import subprocess
+import sys
+import tempfile
+import unittest
+from unittest.mock import patch
+
+ROOT = pathlib.Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / 'os/ci'))
+import release_diff as rd
+import rehearsal_guard as guard
+
+
+def name_of(nevra):
+    """Split NEVRA the way rpm's %{NAME} does for these Fedora names."""
+    body = nevra.rsplit('.', 1)[0] if rd.arch(nevra) else nevra
+    return re.sub(r'-(?:[0-9]+:)?[^-]+-[^-]+$', '', body)
+
+
+def lock_nevras(raw):
+    return [p['nevra'] for p in json.loads(raw)['packages']]
+
+
+class PackageDiffTest(unittest.TestCase):
+    def setUp(self):
+        old_lock = lock_nevras(rd.git_bytes(rd.PREVIOUS_SOURCE, 'os/packages.lock.json'))
+        new_lock = lock_nevras((ROOT / 'os/packages.lock.json').read_bytes())
+        new_lock.append(json.loads((ROOT / 'os/google-chrome.lock.json').read_text())['nevra'])
+        # Release 6's (and so release 13's) retained package list.
+        old = (ROOT / 'os/manifest/ci/06c/image-full-1/packages.txt').read_text().split()
+        self.old = {n: name_of(n) for n in old}
+        added = sorted(set(new_lock) - set(old_lock))
+        replaced = {(name_of(n), rd.arch(n)) for n in added}
+        new = [n for n in old if (name_of(n), rd.arch(n)) not in replaced] + added
+        self.new = {n: name_of(n) for n in new}
+        self.old_lock, self.new_lock = old_lock, new_lock
+
+    def test_the_real_lock_change_is_exactly_packages_21s_and_the_renewed_pin(self):
+        rows, added, removed = rd.package_diff(self.old, self.new, self.old_lock, self.new_lock)
+        self.assertEqual(len(added), 17)  # 16 new lock entries and Chrome
+        self.assertIn('google-chrome-stable-157.0.8103.50-1.x86_64', added)
+        self.assertIn('xdg-desktop-portal-wlr-0.8.4-1.fc44.x86_64', removed)
+        self.assertIn('util-linux-2.41.5-1.fc44.x86_64', removed)
+        self.assertEqual(len(removed), 12)
+        self.assertTrue(all(row['reason'].startswith('package 21') for row in rows))
+
+    def test_an_unlocked_extra_missing_replacement_or_unknown_name_stops(self):
+        extra = dict(self.new, **{'nano-8.0-1.fc44.x86_64': 'nano'})
+        with self.assertRaisesRegex(AssertionError, 'added packages differ'):
+            rd.package_diff(self.old, extra, self.old_lock, self.new_lock)
+        lost = dict(self.new)
+        dropped = next(n for n in self.old if n.startswith('foot-'))
+        del lost[dropped]
+        with self.assertRaisesRegex(AssertionError, 'unexplained package change|without its locked replacement'):
+            rd.package_diff(self.old, lost, self.old_lock, self.new_lock)
+        with patch.dict(rd.PACKAGE_REASONS, clear=True), self.assertRaisesRegex(AssertionError, 'unexplained package change'):
+            rd.package_diff(self.old, self.new, self.old_lock, self.new_lock)
+
+
+class AccountRulesTest(unittest.TestCase):
+    GROUP = b'root:x:0:\nwheel:x:10:ares-recovery\nares:x:1001:\n'
+    SHADOW = b'root:!*:20384:0:99999:7:::\nares:!*:20384::::::\n'
+
+    def test_wheel_gains_ares_and_shadow_dates_may_be_the_build_date(self):
+        self.assertTrue(rd.accounts_explained('etc/group', self.GROUP, self.GROUP.replace(b'ares-recovery', b'ares,ares-recovery')))
+        self.assertTrue(rd.accounts_explained('etc/gshadow-', b'wheel:!::ares-recovery\n', b'wheel:!::ares-recovery,ares\n'))
+        self.assertTrue(rd.accounts_explained('etc/shadow', self.SHADOW, self.SHADOW.replace(b'20384', b'20402')))
+
+    def test_every_other_account_change_stops(self):
+        for name, old, new in (
+                ('etc/group', self.GROUP, self.GROUP.replace(b'ares-recovery', b'ares,ares-recovery,guest')),
+                ('etc/group', self.GROUP, self.GROUP.replace(b'wheel:x:10', b'wheel:x:11')),
+                ('etc/group', self.GROUP, self.GROUP + b'extra:x:2000:\n'),
+                ('etc/shadow', self.SHADOW, self.SHADOW.replace(b'ares:!*', b'ares:$6$hash')),
+                ('etc/passwd', b'ares:x:1001:1001::/var/home/ares:/bin/bash\n', b'ares:x:1001:1001::/var/home/ares:/bin/sh\n'),
+                ('etc/shadow', self.SHADOW, self.SHADOW.replace(b':99999:', b':1:'))):
+            with self.subTest(name=name, new=new):
+                self.assertFalse(rd.accounts_explained(name, old, new))
+
+    def test_subids_add_exactly_one_range_for_ares(self):
+        self.assertTrue(rd.subids_explained(b'ares-recovery:100000:65536\n', b'ares-recovery:100000:65536\nares:524288:65536\n'))
+        self.assertTrue(rd.subids_explained(None, b'ares:524288:65536\n'))
+        self.assertFalse(rd.subids_explained(b'', b'ares:524288:65536\nother:1:2\n'))
+        self.assertFalse(rd.subids_explained(b'ares:1:2\n', b'ares:1:2\nares:524288:65536\n'))
+
+
+class PolkitTransformTest(unittest.TestCase):
+    SAMPLE = '''<policyconfig>
+ <action id="org.freedesktop.Flatpak.app-update">
+  <defaults><allow_any>auth_admin_keep</allow_any><allow_inactive>auth_admin_keep</allow_inactive><allow_active>yes</allow_active></defaults>
+  <annotate key="org.freedesktop.policykit.imply">org.freedesktop.Flatpak.runtime-install org.freedesktop.Flatpak.runtime-update</annotate>
+ </action>
+ <action id="org.freedesktop.Flatpak.app-install">
+  <defaults><allow_any>auth_admin</allow_any><allow_inactive>auth_self_keep</allow_inactive><allow_active>auth_admin_keep </allow_active></defaults>
+ </action>
+</policyconfig>
+'''
+
+    def test_the_classifier_applies_exactly_build_sh_s_polkit_edits(self):
+        script = (ROOT / 'os/build.sh').read_text()
+        block = script.split("# every installed default uncached, for every account, and refuse leftovers.\npython3 - <<'PY'\n", 1)[1]
+        block = block.split('\nPY\n', 1)[0]
+        with tempfile.TemporaryDirectory(dir=ROOT / 'os/tests') as directory:
+            actions = pathlib.Path(directory)
+            (actions / 'org.freedesktop.Flatpak.policy').write_text(self.SAMPLE, newline='\n')
+            other = self.SAMPLE.replace('org.freedesktop.Flatpak.app-update', 'org.example.cached').replace(
+                '<annotate key="org.freedesktop.policykit.imply">org.freedesktop.Flatpak.runtime-install org.freedesktop.Flatpak.runtime-update</annotate>', '')
+            (actions / 'org.example.policy').write_text(other, newline='\n')
+            code = block.replace("pathlib.Path('/usr/share/polkit-1/actions')", 'pathlib.Path(' + repr(str(actions)) + ')')
+            self.assertNotEqual(code, block)
+            subprocess.run([sys.executable, '-c', code], check=True, capture_output=True)
+            for name, original in (('org.freedesktop.Flatpak.policy', self.SAMPLE), ('org.example.policy', other)):
+                with self.subTest(name=name):
+                    built = (actions / name).read_text()
+                    self.assertEqual(rd.polkit_transform(name, original), built)
+                    self.assertNotIn('_keep', built)
+
+
+class ClassifierTest(unittest.TestCase):
+    def tree(self, root, files):
+        for rel, value in files.items():
+            path = root / rel
+            path.parent.mkdir(parents=True, exist_ok=True)
+            if isinstance(value, tuple):
+                os.symlink(value[1], path)
+            else:
+                path.write_bytes(value)
+
+    def classifier(self, old, new, base):
+        roots = []
+        for files in (old, new, base):
+            root = pathlib.Path(tempfile.mkdtemp(dir=ROOT / 'os/tests'))
+            self.addCleanup(shutil.rmtree, root)
+            self.tree(root, files)
+            roots.append(root)
+        policy = dict(unmasked={'flatpak-system-helper.service'}, executables=rd.CHMOD_0755,
+                      old_has_children=lambda rel: False)
+        return rd.Classifier(roots, dict(old=[], new=[]), dict(old=set(), new={'/opt/google/chrome/chrome'}), policy), roots
+
+    @unittest.skipIf(os.name == 'nt', 'symlinks and xattrs need Linux')
+    def test_build_steps_are_verified_and_anything_else_is_unexplained(self):
+        guard_line = rd.BREW_GUARD.encode()
+        old = {'etc/profile.d/brew-bash-completion.sh': b'#!/bin/sh\n' + guard_line + b'\necho brew\n',
+               'etc/systemd/system/flatpak-system-helper.service': ('link', '/dev/null'),
+               'etc/unexplained.conf': b'old\n'}
+        new = {'etc/profile.d/brew-bash-completion.sh': b'#!/bin/sh\necho brew\n',
+               'usr/bin/google-chrome': ('link', 'google-chrome-stable'),
+               'usr/bin/google-chrome-stable': ('link', '/usr/lib/opt/google/chrome/google-chrome'),
+               'usr/lib/opt/google/chrome/chrome': b'binary',
+               'etc/default/google-chrome': rd.CHROME_DEFAULTS,
+               'etc/unexplained.conf': b'new\n'}
+        base = {'etc/profile.d/brew-bash-completion.sh': b'#!/bin/sh\necho brew\n'}
+        classifier, (o, n, b) = self.classifier(old, new, base)
+        for rel in sorted(set(old) | set(new)):
+            with self.subTest(rel=rel):
+                found = classifier.classify(rel, rd.entry(o, rel), rd.entry(n, rel))
+                if rel == 'etc/unexplained.conf':
+                    self.assertIsNone(found)
+                else:
+                    self.assertIsNotNone(found)
+                    self.assertEqual(found[0], 'build')
+        # A Chrome link to anywhere else, or a profile edit other than the reviewed guard, is unexplained.
+        (n / 'usr/bin/google-chrome').unlink(); os.symlink('/tmp/elsewhere', n / 'usr/bin/google-chrome')
+        self.assertIsNone(classifier.classify('usr/bin/google-chrome', None, rd.entry(n, 'usr/bin/google-chrome')))
+        (o / 'etc/profile.d/brew-bash-completion.sh').write_bytes(b'#!/bin/sh\necho other\necho brew\n')
+        rel = 'etc/profile.d/brew-bash-completion.sh'
+        self.assertIsNone(classifier.classify(rel, rd.entry(o, rel), rd.entry(n, rel)))
+
+    def test_generated_paths_are_listed_and_units_cannot_be_generated(self):
+        classifier = rd.Classifier.__new__(rd.Classifier)
+        self.assertEqual(classifier.generated_rule('usr/lib/sysimage/rpm/rpmdb.sqlite', {}, {})[0], 'generated')
+        self.assertEqual(classifier.generated_rule('etc/ld.so.cache', {}, {})[0], 'generated')
+        self.assertIsNone(classifier.generated_rule('usr/lib/systemd/system/x.service', {}, {}))
+        self.assertIsNone(classifier.generated_rule('etc/sudoers.d/x', {}, {}))
+
+
+class GuardLedgerTest(unittest.TestCase):
+    def setUp(self):
+        guard.configure('27')
+        self.addCleanup(guard.configure, '11c')
+
+    def test_package27_allows_one_release_one_checks_run_and_three_rehearsals(self):
+        self.assertEqual(guard.SETTINGS['dispatch_caps'], {'release-27': 1, 'checks': 1, 'update': 3})
+        self.assertEqual(guard.SETTINGS['publish_cap'], 1)
+        self.assertEqual(guard.BRANCH, 'pkg/27-first-update-release')
+        workflow = (ROOT / '.github/workflows/os-image.yml').read_text()
+        for kind, title in guard.SETTINGS['titles'].items():
+            self.assertIn(title.split(' (')[0], workflow)
+        runs = []
+        job = dict(name='Package 27 release build, image diff, VM and publish', conclusion='failure', steps='not a list')
+
+        def api(path):
+            return dict(workflow_runs=runs) if path.startswith('actions/runs?') else dict(total_count=1, jobs=[job])
+        base = dict(event='workflow_dispatch', head_sha='a' * 40, run_attempt=1, status='completed',
+                    conclusion='failure', created_at='2026-11-10T01:00:00Z')
+        with patch.object(guard, 'api', side_effect=api):
+            runs.append(dict(base, id=1, display_title='Package 27 image release'))
+            with self.assertRaisesRegex(AssertionError, 'malformed job steps'):
+                guard.budget(0)
+            job['steps'] = []
+            result = guard.budget(0)
+            # An unaccountable job is charged its whole timeout.
+            self.assertEqual(result['consumed_minutes'], 180)
+            runs.append(dict(base, id=2, display_title='Package 27 image release'))
+            with self.assertRaisesRegex(AssertionError, 'release-27 dispatch allowance exhausted'):
+                guard.budget(0)
+            runs.pop()
+            for number in range(3):
+                runs.append(dict(base, id=10 + number, display_title='Two-disk rehearsal (update)'))
+            self.assertEqual(guard.budget(0)['dispatch_counts']['update'], 3)
+            runs.append(dict(base, id=20, display_title='Two-disk rehearsal (update)'))
+            with self.assertRaisesRegex(AssertionError, 'update dispatch allowance exhausted|exceeds 1200'):
+                guard.budget(0)
+
+    def test_update_rehearsal_defers_native_proof_only_for_its_own_budget_step(self):
+        self.assertEqual(guard.native_gate('update', 'probe-budget-ci', dict(runs=[]), 'a' * 40)['status'], 'pending')
+        with self.assertRaisesRegex(AssertionError, 'no current probe native preflight'):
+            guard.native_gate('update', 'ci', dict(runs=[]), 'a' * 40)
+
+
+class PublishBranchTest(unittest.TestCase):
+    @unittest.skipIf(os.name == 'nt' or shutil.which('bash') is None, 'needs a Linux bash')
+    def test_only_the_two_release_branches_may_publish(self):
+        env = dict(os.environ, GITHUB_EVENT_NAME='workflow_dispatch', GITHUB_REPOSITORY='Ares-Empire/AresOS',
+                   GITHUB_REF_NAME='pkg/23-minecraft-starts', PATH=os.environ.get('PATH', ''))
+        result = subprocess.run(['bash', 'os/ci/publish.sh'], cwd=ROOT, env=env, capture_output=True, text=True)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('Refusing to publish from pkg/23-minecraft-starts', result.stderr)
+        text = (ROOT / 'os/ci/publish.sh').read_text()
+        self.assertIn('pkg/27-first-update-release) release=27 ;;', text)
+        self.assertLess(text.index('esac'), text.index('rehearsal_guard.py publish-ci'))
+
+
+if __name__ == '__main__':
+    unittest.main()

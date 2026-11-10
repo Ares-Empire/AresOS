@@ -348,7 +348,7 @@ def budget(reserve, current=None):
     for run in runs:
         if start is None or run['created_at'] < start:
             continue
-        if PACKAGE in ('13', '14', '16') and run['event'] == 'workflow_dispatch':
+        if PACKAGE in ('13', '14', '16', '27') and run['event'] == 'workflow_dispatch':
             kind, = [kind for kind, title in SETTINGS['titles'].items() if title == run['display_title']]
             assert run.get('run_attempt') == 1, 'STOP: a rerun is an additional dispatch, not a free retry'
             counts[kind] += 1
@@ -361,7 +361,7 @@ def budget(reserve, current=None):
         assert run['status'] == 'completed', 'Another branch workflow is active; cannot reserve its cost'
         response = api(f'actions/runs/{run["id"]}/jobs?per_page=100')
         jobs = response['jobs']
-        if PACKAGE in ('13', '14', '16'):
+        if PACKAGE in ('13', '14', '16', '27'):
             assert response.get('total_count') == len(jobs) <= 100, 'STOP: incomplete job listing'
             for job in jobs:
                 steps = job.get('steps', [])
@@ -375,6 +375,9 @@ def budget(reserve, current=None):
         bound = None
         if PACKAGE in ('14','16') and run['event']=='workflow_dispatch':
             bound = 72 if run['display_title']==SETTINGS['titles']['probe'] else OWNER_QUALIFICATION_BOUND
+        if PACKAGE == '27' and run['event'] == 'workflow_dispatch':
+            # Each kind's own job timeout bounds a job GitHub cannot account.
+            bound = SETTINGS['job_bounds'][kind]
         accounts = [job_accounting(job, bound) for job in jobs]
         records.append(dict(run=run['id'], title=run['display_title'], sha=run['head_sha'],
                             conclusion=run['conclusion'], minutes=sum(row['minutes'] for row in accounts),
@@ -403,11 +406,11 @@ def require_probe(run, sha):
     assert run['status'] == 'completed' and run['conclusion'] == 'success', 'Probe did not pass'
 
 
-def probe_native(run, sha, current=False):
+def probe_native(run, sha, current=False, kind='probe'):
     """Read GitHub's completed native step, never a guest/self-written success flag."""
     assert run['event']=='workflow_dispatch' and run['path']=='.github/workflows/os-image.yml'
     assert run['head_branch']==BRANCH and run['head_sha']==sha and run['run_attempt']==1
-    assert run['display_title']==SETTINGS['titles']['probe']
+    assert run['display_title']==SETTINGS['titles'][kind]
     if not current:
         require_probe(run,sha)
     response=api(f'actions/runs/{run["id"]}/jobs?per_page=100')
@@ -420,7 +423,7 @@ def probe_native(run, sha, current=False):
 
 
 def native_gate(kind, mode, result, sha, current_run=None):
-    if kind=='probe' and mode in ('probe','probe-budget-ci'):
+    if kind in ('probe','update') and mode in ('probe','probe-budget-ci'):
         # Scheduling/budget receipt only. keyboard_vm refuses this pending state.
         return dict(status='pending',sha=sha,required='completed native step before any VM')
     native=[r for r in result['runs'] if r['title']==SETTINGS['titles'].get('checks')
@@ -428,9 +431,11 @@ def native_gate(kind, mode, result, sha, current_run=None):
     assert len(native)<=1, 'STOP: duplicate native checks on this head'
     if native:
         return dict(status='passed',sha=sha,run=native[0]['run'],source='checks-only dispatch')
-    if kind=='probe':
+    if kind in ('probe','update'):
+        # Package 27's update rehearsal has no separate probe: its own native
+        # step must have completed in this run before any VM starts.
         assert mode=='ci' and current_run is not None, 'STOP: no current probe native preflight'
-        return probe_native(current_run,sha,current=True)
+        return probe_native(current_run,sha,current=True,kind=kind)
     probes=[r for r in result['runs'] if r['title']==SETTINGS['titles']['probe']
             and r['sha']==sha and r['conclusion']=='success']
     assert len(probes)==1, 'STOP: native preflight requires one passing probe on this head'
@@ -455,16 +460,17 @@ def main():
         plan=owner_reservations()
         assert mode in ('probe','owner-tools'), 'STOP: invalid owner dispatch mode'
         assert reserve==plan['before_probe' if mode=='probe' else 'before_qualification'], 'STOP: incomplete owner dispatch reservation'
-    if PACKAGE in ('13', '14', '16'):
+    if PACKAGE in ('13', '14', '16', '27'):
         assert os.environ.get('GITHUB_REF_NAME', BRANCH) == BRANCH, 'STOP: wrong package branch'
     result = budget(reserve, current)
     if plan is not None:
         result['reservation_plan']=plan
     if mode=='probe-budget-ci':
-        assert PACKAGE in ('13', '14', '16') and os.environ.get('REHEARSAL_MODE')=='probe', 'STOP: native deferral is only for probe budget reservation'
+        assert (PACKAGE in ('13', '14', '16') and os.environ.get('REHEARSAL_MODE')=='probe'
+                or PACKAGE == '27' and os.environ.get('REHEARSAL_MODE')=='update'), 'STOP: native deferral is only for probe budget reservation'
     history = result.get('history')
     assert history and history['complete'] and history['ids_count'] == history['total_count'], 'STOP: no complete run-history proof'
-    if PACKAGE in ('13', '14', '16'):
+    if PACKAGE in ('13', '14', '16', '27'):
         kind = os.environ['REHEARSAL_MODE'] if ci else mode
         assert kind in SETTINGS['dispatch_caps'], 'STOP: mode is not authorized for package'
         if ci:
@@ -474,12 +480,12 @@ def main():
             assert result['dispatch_counts'][kind] >= 1, 'STOP: current dispatch is missing from complete history'
         else:
             assert result['dispatch_counts'][kind] < SETTINGS['dispatch_caps'][kind], 'STOP: no dispatch remains'
-        if kind == 'release-13':
+        if kind in ('release-13', 'release-27'):
             assert not result['publish_attempts'], 'STOP: a prior attempt reached publishing; no further image/publish attempt'
         if mode == 'publish-ci':
-            assert kind == 'release-13' and os.environ.get('GITHUB_EVENT_NAME') == 'workflow_dispatch'
+            assert kind in ('release-13', 'release-27') and os.environ.get('GITHUB_EVENT_NAME') == 'workflow_dispatch'
             assert os.environ.get('GITHUB_REPOSITORY') == REPOSITORY
-        if kind in ('probe', 'keyboard', 'owner-tools'):
+        if kind in ('probe', 'keyboard', 'owner-tools', 'update'):
             sha=os.environ.get('GITHUB_SHA') or subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
             result['native']=native_gate(kind,mode,result,sha,run if ci else None)
     if mode == 'part-b':
@@ -535,7 +541,7 @@ def main():
         assert cleanup['status'] == 'passed' and cleanup['removed'] and cleanup['outside_workspace']
         result['probe_run'] = probe_id
         result['probe'] = proof
-    if PACKAGE in ('13', '14', '16') and not ci:
+    if PACKAGE in ('13', '14', '16', '27') and not ci:
         result['organization_budget'] = organization_budget(reserve)
         if PACKAGE == '14':
             previous = os.environ.get('REHEARSAL_PREVIOUS_DISPATCH')
@@ -553,7 +559,7 @@ def main():
     (directory / suffix).write_text(json.dumps(result, indent=2) + '\n')
     if PACKAGE == '13' and mode != 'publish-ci':
         (directory / '13-dispatch-authorization.json').write_text(json.dumps(result, indent=2) + '\n')
-    if PACKAGE in ('14','16'):
+    if PACKAGE in ('14','16','27'):
         (directory / (PACKAGE+'-dispatch-authorization.json')).write_text(json.dumps(result, indent=2) + '\n')
     print(json.dumps(result, indent=2))
 

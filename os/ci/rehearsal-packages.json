@@ -12,8 +12,15 @@
     "minute_cap": 2750,
     "full_cap": 0,
     "part_b_cap": 0,
-    "dispatch_caps": {"probe": 34, "owner-tools": 21},
-    "organization_budget": {"organization": "Ares-Empire", "included_minutes": 2000, "other_repos_reserve": 150},
+    "dispatch_caps": {
+      "probe": 34,
+      "owner-tools": 21
+    },
+    "organization_budget": {
+      "organization": "Ares-Empire",
+      "included_minutes": 2000,
+      "other_repos_reserve": 150
+    },
     "push_privacy_reservation": {
       "minutes": 0,
       "decision": "briefs/14zw-local-privacy.md"
@@ -23,7 +30,10 @@
       "decision": "briefs/14zw-local-privacy.md"
     },
     "publish_cap": 0,
-    "titles": {"probe": "Two-disk rehearsal (probe)", "owner-tools": "Two-disk rehearsal (owner-tools)"}
+    "titles": {
+      "probe": "Two-disk rehearsal (probe)",
+      "owner-tools": "Two-disk rehearsal (owner-tools)"
+    }
   },
   "13": {
     "branch": "pkg/13-keyboard-layout",
@@ -31,8 +41,17 @@
     "minute_cap": 460,
     "full_cap": 0,
     "part_b_cap": 0,
-    "dispatch_caps": {"release-13": 3, "checks": 1, "probe": 4, "keyboard": 3},
-    "organization_budget": {"organization": "Ares-Empire", "included_minutes": 2000, "other_repos_reserve": 150},
+    "dispatch_caps": {
+      "release-13": 3,
+      "checks": 1,
+      "probe": 4,
+      "keyboard": 3
+    },
+    "organization_budget": {
+      "organization": "Ares-Empire",
+      "included_minutes": 2000,
+      "other_repos_reserve": 150
+    },
     "publish_cap": 1,
     "titles": {
       "release-13": "Package 13 image release",
@@ -66,6 +85,34 @@
     "publish_cap": 0,
     "titles": {
       "probe": "Two-disk rehearsal (probe)"
+    }
+  },
+  "27": {
+    "branch": "pkg/27-first-update-release",
+    "start": "first-dispatch",
+    "minute_cap": 1200,
+    "full_cap": 0,
+    "part_b_cap": 0,
+    "dispatch_caps": {
+      "release-27": 1,
+      "checks": 1,
+      "update": 3
+    },
+    "organization_budget": {
+      "organization": "Ares-Empire",
+      "included_minutes": 2000,
+      "other_repos_reserve": 150
+    },
+    "publish_cap": 1,
+    "job_bounds": {
+      "release-27": 180,
+      "checks": 15,
+      "update": 300
+    },
+    "titles": {
+      "release-27": "Package 27 image release",
+      "checks": "OS regressions only (no VM)",
+      "update": "Two-disk rehearsal (update)"
     }
   }
 }
