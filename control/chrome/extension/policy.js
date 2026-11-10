@@ -60,6 +60,7 @@ export const POLICY = {
     "Debugger.enable",
     "Debugger.disable",
     "Debugger.setBreakpointByUrl",
+    "Debugger.pause",
     "Debugger.resume",
     "Target.setAutoAttach",
     "Target.detachFromTarget",

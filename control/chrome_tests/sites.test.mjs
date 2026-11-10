@@ -24,7 +24,7 @@ test('actual extension confirmation handler compares each field and consumes a m
     let listener;
     const chrome={debugger:{onEvent:{addListener:fn=>{listener=fn;}}},webNavigation:{getAllFrames:async()=>[{frameId:0,documentId:'document-1',url:'http://github.test/'}]}};
     const context=vm.createContext({recording:false,chrome,crypto:{randomUUID:()=> 'dialog'},safeURL:()=>{},wakeDialog:()=>{},
-      dialogs:new Map(),controlled:new Map([[7,{epoch:'epoch',inputNonce:'nonce'}]]),dialogInputs:new WeakMap(),confirmationPlans:new Map([[7,plan]]),
+      dialogs:new Map(),dialogTargets:new WeakMap(),preloadTargets:new Map(),targetKey:()=>'',armDialog:async()=>({nonce:'barrier',ready:Promise.resolve()}),controlled:new Map([[7,{epoch:'epoch',inputNonce:'nonce'}]]),dialogInputs:new WeakMap(),confirmationPlans:new Map([[7,plan]]),
       cdp:async(tab,method,args)=>accepted.push({tab,method,args})});
     vm.runInContext(handler,context);
     await listener({tabId:7},'Page.javascriptDialogOpening',{type:'confirm',message:'Delete tag fixture-tag?',url:'http://github.test/'});

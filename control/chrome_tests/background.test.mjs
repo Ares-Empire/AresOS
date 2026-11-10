@@ -287,7 +287,7 @@ test('overlapping private dialog waits wake independently and dispose only thems
 test('a stale approved dialog opening never accepts the different dialog that replaced it',async()=>{
   function setup(){
     const f=fixture();
-    f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch',inputNonce:'input-nonce'});dispatchEpoch='epoch';globalThis.frames=[];globalThis.accepted=[];chrome.webNavigation={getAllFrames:()=>new Promise(resolve=>frames.push(resolve))};chrome.debugger={onEvent:{addListener:fn=>{globalThis.onEvent=fn}},sendCommand:async(source,method,params)=>{if(method==='Page.handleJavaScriptDialog')accepted.push(dialogs.get(7)?.text);return {};}};confirmationPlans.set(7,{operation:'approved-operation',browser_document:'doc',expected:{kind:'confirm',text:'Delete approved branch?',frame_url:'http://fixture.test/',button:'OK',frame:0},matched:[]});");
+    f.run("armDialog=async()=>({nonce:'dialog-barrier',ready:Promise.resolve()});excludedHosts=[];controlled.set(7,{epoch:'epoch',inputNonce:'input-nonce'});dispatchEpoch='epoch';globalThis.frames=[];globalThis.accepted=[];chrome.webNavigation={getAllFrames:()=>new Promise(resolve=>frames.push(resolve))};chrome.debugger={onEvent:{addListener:fn=>{globalThis.onEvent=fn}},sendCommand:async(source,method,params)=>{if(method==='Page.handleJavaScriptDialog')accepted.push(dialogs.get(7)?.text);return {};}};confirmationPlans.set(7,{operation:'approved-operation',browser_document:'doc',expected:{kind:'confirm',text:'Delete approved branch?',frame_url:'http://fixture.test/',button:'OK',frame:0},matched:[]});");
     const source=fs.readFileSync('control/chrome/extension/background.js','utf8');
     f.run(source.slice(source.indexOf('chrome.debugger.onEvent.addListener('),source.indexOf('chrome.debugger.onDetach.addListener(')));
     return f;
@@ -318,20 +318,21 @@ test('a keydown modal stops the remaining CDP input instead of waiting for a los
   assert.equal(f.run('dialogWake.size'),0);
 });
 
-test('answering a dialog collects a resumed handler submission without sending it',async()=>{
+test('answering a dialog collects a resumed handler submission without sending it',{timeout:1500},async()=>{
   const source=fs.readFileSync('control/chrome_tests/page.test.mjs','utf8');
   const policy=JSON.parse(fs.readFileSync('control/chrome/extension/policy.js','utf8').match(/\{[\s\S]*\}/)[0]);
   const createPage=Function('fs','vm','assert','policy',source.slice(source.indexOf('function fixture('),source.indexOf("\ntest('"))+'\nreturn fixture;')(fs,vm,assert,policy);
   const page=createPage(),form=new page.HTMLFormElement();page.arm(form,form);
   await page.guard.finish('epoch');page.advance(600);
   const f=fixture();
+  f.run('globalThis').assertBarrier=value=>assert.equal(value,true,'debugger pause must be armed before answering');
   f.run('globalThis').onAnswer=()=>form.submit();
-  f.run('globalThis').privateArm=parameters=>{page.guard.arm({generation:'epoch',dispatch_nonce:'fixture-session',config:policy});return {result:{value:true}};};
+  f.run('globalThis').privateArm=parameters=>{page.guard.arm({generation:'epoch',dispatch_nonce:'fixture-session',config:policy});return {result:{value:'document-1'}};};
   f.run('globalThis').pageReply=async message=>{
     if(message.command==='finish_input')await page.guard.finish(message.generation,message.dispatch_nonce);
     return {ok:true,data:message.command==='steps'?page.guard.steps():{finished:true}};
   };
-  f.run("excludedHosts=[];groupId=1;controlled.set(7,{epoch:'epoch',inputNonce:'nonce'});globalThis.commands=[];chrome.tabs={get:async()=>({url:'http://fixture.test/',groupId:1}),sendMessage:(tab,message)=>{commands.push(message.command);return pageReply(message)}};chrome.webNavigation={getAllFrames:async()=>[{frameId:0,url:'http://fixture.test/'}]};chrome.debugger={sendCommand:async(source,method,parameters)=>{if(method==='Runtime.evaluate')return privateArm(parameters);if(method==='Page.handleJavaScriptDialog'){onAnswer();dialogs.delete(7)}return {};}};dialogs.set(7,{id:'dialog',frame:0,frame_url:'http://fixture.test/',kind:'confirm',text:'Continue?',button:'OK'});globalThis.expected={session,tab:7,control:'epoch',url:'http://fixture.test/',dialog:dialogs.get(7)};preloadTargets.set('[7,null]',{source:{tabId:7},tab:7,epoch:'epoch',contexts:new Map([[1,{id:1,uniqueId:'isolated'}]]),documents:new Map([['isolated',{ready:true,isolated:'isolated'}]])});");
+  f.run("excludedHosts=[];groupId=1;controlled.set(7,{epoch:'epoch',inputNonce:'nonce'});globalThis.commands=[];globalThis.modal=true;globalThis.pauseArmed=false;chrome.tabs={get:async()=>({url:'http://fixture.test/',groupId:1}),sendMessage:(tab,message)=>{commands.push(message.command);return pageReply(message)}};chrome.webNavigation={getAllFrames:async()=>[{frameId:0,url:'http://fixture.test/'}]};chrome.debugger={sendCommand:async(source,method,parameters)=>{if(method==='Debugger.pause'){pauseArmed=true;return {}}if(method==='Runtime.evaluate'){if(modal)throw Error('page runtime blocked by native modal');return privateArm(parameters)}if(method==='Page.handleJavaScriptDialog'){assertBarrier(pauseArmed);modal=false;await preloadEvent(source,'Debugger.paused',{hitBreakpoints:[]});onAnswer();dialogs.delete(7)}return {};}};dialogs.set(7,{id:'dialog',frame:0,frame_url:'http://fixture.test/',kind:'confirm',text:'Continue?',button:'OK'});globalThis.expected={session,tab:7,control:'epoch',url:'http://fixture.test/',dialog:dialogs.get(7)};preloadTargets.set('[7,null]',{source:{tabId:7},tab:7,epoch:'epoch',contexts:new Map([[1,{id:1,uniqueId:'isolated'}]]),documents:new Map([['isolated',{document:'document-1',ready:true,isolated:'isolated'}]])});");
   const result=await f.run("dispatch({name:'dialog',tab:7,binding:expected,input:{accept:true},operation:'approved-dialog'})");
   assert.equal(page.arrivals.length,0,'the resumed handler submission stays held until its own approval');
   assert.equal(result.steps.length,1);assert.equal(result.steps[0].kind,'native_submit');

@@ -10,6 +10,7 @@ let excludedHosts = null;
 const listSnapshots = new Map(), fixtureBarriers = new Map();
 const ownerRequests = new Map(), stagedUploads = new Map(), confirmationPlans = new Map(), dialogWake = new Map();
 const dialogInputs=new WeakMap();
+const dialogTargets=new WeakMap();
 const preloadTargets=new Map();
 const releasing=new Map(),admissions=new Map();
 let stopGeneration=0;
@@ -84,6 +85,23 @@ async function preloadEvent(source,method,params){
     return;
   }
   if(method!=='Debugger.paused')return;
+  if(state.dialogBarrier&&!params.hitBreakpoints?.includes(state.breakpoint)){
+    const barrier=state.dialogBarrier;state.dialogBarrier=null;
+    try{
+      assertTarget(state);
+      const owner=controlled.get(state.tab),hold=owner?.hold;
+      if(hold?.nonce!==barrier.nonce)throw Error('stale_reference: dialog hold changed');
+      for(const doc of barrier.documents){
+        const context=[...state.contexts.values()].find(context=>context.uniqueId===doc.isolated);
+        if(!context)throw Error('refused: dialog document context disappeared');
+        const value={generation:state.epoch,dispatch_nonce:barrier.nonce,config:hold.config};
+        const armed=await targetCommand(state,'Runtime.evaluate',{contextId:context.id,expression:'globalThis[Symbol.for("aresos.chrome.guard.v2")].arm('+JSON.stringify(value)+');globalThis[Symbol.for("aresos.chrome.guard.v2")].identity()',disableBreaks:true,returnByValue:true});
+        if(armed.exceptionDetails||armed.result?.value!==doc.document)throw Error('refused: dialog guard identity changed');
+      }
+      await targetCommand(state,'Debugger.resume');barrier.resolve();
+    }catch(error){barrier.reject(error);} // Keep execution paused if its private hold could not be installed.
+    return;
+  }
   const pause=Symbol();state.pause=pause;let startup;
   const sameDocument=()=>!startup||state.contexts.get(startup.main.id)?.uniqueId===startup.main.uniqueId&&state.contexts.get(startup.isolated.id)?.uniqueId===startup.isolated.uniqueId;
   let complete;const installing=new Promise(resolve=>{complete=resolve;});state.installing??=new Set();state.installing.add(installing);
@@ -142,6 +160,7 @@ async function lateReader(tab){
   try{const frames=await chrome.webNavigation.getAllFrames({tabId:tab})||[];for(const frame of frames){
     assertControl(tab,owner.epoch);
     try{frameAddress(frame,frames);}catch{continue;}
+    if(frame.parentFrameId<0&&inlineFrame(frame.url))continue;
     await chrome.scripting.executeScript({target:{tabId:tab,frameIds:[frame.frameId]},files:['guard.js','reader.js'],world:'ISOLATED',injectImmediately:true});assertControl(tab,owner.epoch);
     await content(tab,frame.frameId,'set_control',{generation:owner.epoch});
   }}finally{owner.settingUp.delete(settingUp);complete();}
@@ -326,28 +345,22 @@ async function armDialog(tab){
   const frames=await chrome.webNavigation.getAllFrames({tabId:tab})||[];
   const documents=[...preloadTargets.values()].filter(state=>state.tab===tab).flatMap(state=>[...state.documents.values()].filter(doc=>doc.ready).map(doc=>({state,doc})));
   if(!frames.length||documents.length!==frames.length)throw Error('refused: the dialog cannot be answered with complete private guard coverage; leave it to the owner');
-  const config={...POLICY,blockedHosts:excludedHosts};let aborted=false;
-  const closeLateArm=(state,context)=>targetCommand(state,'Runtime.evaluate',{contextId:context.id,expression:'globalThis[Symbol.for("aresos.chrome.guard.v2")].finish('+JSON.stringify(owner.epoch)+','+JSON.stringify(nonce)+')',disableBreaks:true,awaitPromise:true,returnByValue:true}).catch(()=>{});
+  const config={...POLICY,blockedHosts:excludedHosts};
   owner.hold={nonce,config,inFlight:true,until:Date.now()+POLICY.holdMs};owner.inputNonce=nonce;
-  try{
-    for(const {state,doc}of documents){
-      const context=[...state.contexts.values()].find(context=>context.uniqueId===doc.isolated);
-      if(!context)throw Error('private document context is unavailable');
-      let timer;try{
-        const pending=targetCommand(state,'Runtime.evaluate',{contextId:context.id,expression:'globalThis[Symbol.for("aresos.chrome.guard.v2")].arm('+JSON.stringify({generation:owner.epoch,dispatch_nonce:nonce,config})+')',disableBreaks:true,returnByValue:true});
-        pending.then(()=>{if(aborted)return closeLateArm(state,context);},()=>{});
-        const armed=await Promise.race([pending,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('modal prevented private arming')),500);})]);
-        if(armed.exceptionDetails)throw Error('private arming failed');
-      }finally{clearTimeout(timer);}
-    }
-    return {owner,nonce,frames};
-  }catch{
-    aborted=true;
-    for(const {state,doc}of documents){const context=[...state.contexts.values()].find(context=>context.uniqueId===doc.isolated);if(context)closeLateArm(state,context);}
-    owner.hold.inFlight=false;owner.hold.until=Date.now()+POLICY.holdMs;
-    // Pending evaluation can only add protection once the owner closes the modal.
-    throw Error('refused: private guards could not be armed while this dialog is open; leave it to the owner');
+  const barriers=[];
+  for(const state of new Set(documents.map(value=>value.state))){
+    let resolve,reject;const ready=new Promise((done,fail)=>{resolve=done;reject=fail;});ready.catch(()=>{});
+    const barrier={nonce,documents:documents.filter(value=>value.state===state).map(value=>value.doc),resolve,reject,ready};
+    state.dialogBarrier=barrier;barriers.push({state,...barrier});
+    // This protocol pause runs on the debugger's interrupt path. No page task
+    // must run while the native modal is open. Its continuation cannot run
+    // until the private hold is armed in the debugger pause and then resumed.
+    await targetCommand(state,'Debugger.pause');
   }
+  const source=dialogTargets.get(dialogs.get(tab))||barriers[0]?.state;
+  const primary=barriers.find(value=>value.state===source);
+  if(!primary)throw Error('refused: native dialog target could not be authenticated; leave it to the owner');
+  return {owner,nonce,frames,ready:primary.ready};
 }
 async function finishFrames(tab,frames,epoch,nonce){
   let uncertain=false;
@@ -512,6 +525,7 @@ function binding(facts, reference, kind, adapter) {
   return {session,tab:facts.tab,control:facts.control,url:facts.url,title:facts.title||'',document:frame.document,frame:frame.frame,frame_url:frame.url,frame_title:frame.title||'',effective_url:frame.effective_url||frame.url,
     target:Object.fromEntries(['element','role','name','label','title','href','value','rich','password','states','editable','search','submit','page_dialog','options','implicit_submitter'].filter(key=>key in target).map(key=>[key,target[key]])),
     form:frame.form,
+    selected_files:facts.frames.map(frame=>({frame:frame.frame,document:frame.document,fields:frame.selected_files||[]})),
     editable:['send','confirmation'].includes(kind) && !frame.form && !adapter ? facts.frames.map(frame=>({frame:frame.frame,document:frame.document,url:frame.url,fields:frame.editable})) : null,
     item:['delete','pay','item','activation','confirmation'].includes(kind) ? frame.item : null,
     adapter:adapter ? frame.adapter:null,dialog:facts.dialog};
@@ -610,7 +624,7 @@ async function dispatch(command) {
     const armed=await armDialog(tab);dialogInputs.set(dialog,{epoch:dispatchEpoch,nonce:armed.nonce});
     let uncertain_finish;
     if(command.operation)used.add(command.operation);
-    try{await cdp(tab,'Page.handleJavaScriptDialog',{accept:command.input.accept,...(command.input.text === undefined ? {}:{promptText:command.input.text})});
+    try{await cdp(tab,'Page.handleJavaScriptDialog',{accept:command.input.accept,...(command.input.text === undefined ? {}:{promptText:command.input.text})});await armed.ready;
     }finally{armed.owner.hold.inFlight=false;armed.owner.hold.until=Date.now()+POLICY.holdMs;uncertain_finish=await finishFrames(tab,armed.frames,dispatchEpoch,armed.nonce);}
     const steps=await collectSteps(tab,dispatchEpoch);
     return {checked:true,dispatched:true,page:await observation(tab),steps,dialog:dialogs.get(tab)||null,uncertain_finish};
@@ -824,6 +838,7 @@ chrome.webNavigation.onCommitted.addListener(({tabId,frameId,documentId,transiti
   if(recording)audit({navigation_method:{tab:tabId,frame:frameId,document:documentId,transition:transitionType,method:documentMethods.get(key)?.method||'unknown'}});
 });
 chrome.debugger.onEvent.addListener(async(source,method,params)=>{
+  const nativeSource=source;
   if(recording)audit({protocol_event:{source,method,params}});
   if(method==='Page.frameNavigated'){
     const state=preloadTargets.get(targetKey(source));if(state){for(const [id,context]of state.contexts)if(context.auxData?.frameId===params.frame.id){state.contexts.delete(id);for(const [key,doc]of state.documents)if(doc.isolated===context.uniqueId)state.documents.delete(key);}contextChanged(state);}
@@ -846,6 +861,7 @@ chrome.debugger.onEvent.addListener(async(source,method,params)=>{
       dialogs.set(tab,{frame_url:params.url,blocked:true});wakeDialog(tab);return;
     }
     const dialog={id:crypto.randomUUID(),kind:params.type,text:params.message,frame_url:params.url,button:'OK'};
+    dialogTargets.set(dialog,preloadTargets.get(targetKey(nativeSource)));
     const input=controlled.get(tab),nonce=input?.inputNonce,plan=confirmationPlans.get(tab);
     if(nonce)dialogInputs.set(dialog,{epoch:input.epoch,nonce});
     dialogs.set(tab,dialog);
@@ -860,7 +876,7 @@ chrome.debugger.onEvent.addListener(async(source,method,params)=>{
     if(matched){
       // Consume before entering the page again; a nested second dialog is a new question.
       plan.expected=null;plan.matched.push({...expected});
-      try{await cdp(tab,'Page.handleJavaScriptDialog',{accept:true});}catch{}
+      try{const armed=await armDialog(tab);dialogInputs.set(dialog,{epoch:input.epoch,nonce:armed.nonce});await cdp(tab,'Page.handleJavaScriptDialog',{accept:true});await armed.ready;}catch(error){port?.postMessage({event:'reader_error',tab,error:String(error)});}
     }
   }
   if (method === 'Page.javascriptDialogClosed') {

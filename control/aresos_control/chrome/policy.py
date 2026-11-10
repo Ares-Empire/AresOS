@@ -26,7 +26,7 @@ CDP_METHODS = ['Input.dispatchMouseEvent', 'Input.dispatchKeyEvent', 'Input.inse
                'Page.navigate', 'Page.getNavigationHistory', 'Page.navigateToHistoryEntry', 'Page.reload',
                'Page.enable', 'Page.handleJavaScriptDialog',
                'Runtime.evaluate', 'Runtime.callFunctionOn', 'Runtime.runIfWaitingForDebugger',
-               'Debugger.enable', 'Debugger.disable', 'Debugger.setBreakpointByUrl', 'Debugger.resume', 'Target.setAutoAttach', 'Target.detachFromTarget',
+               'Debugger.enable', 'Debugger.disable', 'Debugger.setBreakpointByUrl', 'Debugger.pause', 'Debugger.resume', 'Target.setAutoAttach', 'Target.detachFromTarget',
                'DOM.describeNode', 'DOM.resolveNode', 'Page.getFrameTree']
 
 
