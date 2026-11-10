@@ -1002,18 +1002,51 @@ class ToolsUpdateTest(unittest.TestCase):
         with patch.object(pathlib.Path, 'replace', new=replace):
             yield
 
+    @staticmethod
+    def failing(target, attribute, error):
+        """A refusal (change, undo) pair that makes a check raise while active."""
+        patchers = []
+        return (lambda home, host: patchers.append(patch.object(target, attribute, side_effect=error)) or patchers[-1].start(),
+                lambda home, host: patchers.pop().stop())
+
+    @staticmethod
+    def journal_value(home, name, value):
+        journal = home / 'tools-update-intent.json'
+        if journal.exists():
+            writer = object.__new__(owner.Tools)
+            writer.store = home
+            writer.save('tools-update-intent', dict(json.loads(journal.read_text()), **{name: value}))
+
+    @staticmethod
+    def staged_bytes(home, change):
+        staged = home / '.update-tools/owner.py'
+        if staged.exists():
+            staged.write_bytes(change(staged.read_bytes()))
+
     def test_invariant_one_working_toolset_after_any_interruption_and_any_refusal(self):
-        """After a cut at every rename, and persistent refusals, at always works."""
+        """After a cut at every rename, and a persistent refusal from any check, at always works.
+
+        The refusals come from every kind of fallible check, not only the
+        system preflight: the disk record, the resume identity, the staged
+        bundle, an observation that fails, and an unexpected exception.
+        """
         refusals = {
             'layout trial': (lambda home, host: (home / 'records/layout-pending.json').write_text('{}'),
-                             lambda home, host: (home / 'records/layout-pending.json').unlink()),
+                             lambda home, host: (home / 'records/layout-pending.json').unlink(), owner.Stop),
             'transaction': (lambda home, host: host.state['rpm'].update(transaction=['upgrade', 'uupd', 'socket']),
-                            lambda home, host: host.state['rpm'].update(transaction=None)),
+                            lambda home, host: host.state['rpm'].update(transaction=None), owner.Stop),
+            'disk record': (*self.failing(owner, 'disk_record', owner.Stop('Wrong or ambiguous target disk serial')), owner.Stop),
+            'resume identity': (lambda home, host: self.journal_value(home, 'tools_volume_uuid', 'OTHER-STICK'),
+                                lambda home, host: self.journal_value(home, 'tools_volume_uuid', 'CAFE-1234'), owner.Stop),
+            'staged bundle': (lambda home, host: self.staged_bytes(home, lambda raw: raw + b'# changed\n'),
+                              lambda home, host: self.staged_bytes(home, lambda raw: raw.removesuffix(b'# changed\n')), owner.Stop),
+            'preflight error': (*self.failing(owner, 'observations', owner.Stop('Read failed: rpm-ostree status --json')), owner.Stop),
+            'unexpected exception': (*self.failing(owner, 'installed_commands', RuntimeError('unexpected')), RuntimeError),
         }
         # A full run renames nine times: four journal writes, the block, the
         # publication, the retirement, the receipt and the last journal write.
         for cut in range(1, 10):
-            for name, (change, undo) in refusals.items():
+            for name, (change, undo, refusal) in refusals.items():
                 with self.subTest(cut=cut, refusal=name), self.installation() as (home, run, fingerprint, old, host):
                     with self.power_cut_after(cut), self.assertRaises(OSError):
                         run()
@@ -1021,7 +1054,7 @@ class ToolsUpdateTest(unittest.TestCase):
                     for attempt in range(2):  # a persistent failure refuses every time
                         try:
                             run()
-                        except owner.Stop:
+                        except refusal:
                             pass
                         self.works(home, old, fingerprint)
                         self.assertFalse((home / '.tools-held').exists() and not (home / 'tools').exists())
@@ -1029,6 +1062,80 @@ class ToolsUpdateTest(unittest.TestCase):
                     run()
                     self.updated(home, fingerprint, old)
                     self.works(home, old, fingerprint)
+
+    def test_every_entry_settles_the_tools_before_any_check(self):
+        """The bootstrap and every installed command recover first, from the journal alone."""
+        with self.installation() as (home, run, fingerprint, old, host):
+            with self.power_cut_after(3), self.assertRaises(OSError):  # the block: no tools in place
+                run()
+            self.assertFalse((home / 'tools').exists())
+            with patch.object(owner, 'disk_record', side_effect=owner.Stop('Wrong or ambiguous target disk serial')), \
+                    patch.object(owner, 'tools_stick', side_effect=owner.Stop('Tools USB label not found')), \
+                    self.assertRaisesRegex(owner.Stop, 'Tools USB label not found'):
+                run()
+            # Restored before the stick or the disks were looked at, and it stays restored on a repeat.
+            self.assertEqual(owner.checked_bundle(home / 'tools'), old)
+            self.assertFalse((home / '.tools-held').exists())
+            self.works(home, old, fingerprint)
+        for cut, expected_phase, expected in ((3, 'publish', 'old'), (4, 'retire', 'new')):
+            with self.subTest(cut=cut), self.installation() as (home, run, fingerprint, old, host):
+                with self.power_cut_after(cut), self.assertRaises(OSError):
+                    run()
+                self.assertEqual(json.loads((home / 'tools-update-intent.json').read_text())['phase'], 'publish')
+                # An installed command's main() settles first; by the time its own
+                # command runs, the toolset and the journal are already decided.
+                seen = []
+                def check(tools):
+                    seen.append((owner.checked_bundle(home / 'tools'), json.loads((home / 'tools-update-intent.json').read_text())['phase']))
+                    raise owner.Stop('command checks reached')
+                with self.as_root(home), patch.object(owner, '__file__', str(home / 'tools/owner.py')), \
+                        patch.object(owner, 'LOCK', home.parent / 'ares-owner.lock'), patch.object(owner, 'STOP_RECORDS', home / 'diagnostics'), \
+                        patch.object(owner.Tools, 'check', check), patch.object(owner.sys, 'argv', ['at', 'check']), \
+                        contextlib.redirect_stdout(io.StringIO()), self.assertRaisesRegex(owner.Stop, 'command checks reached'):
+                    owner.main()
+                self.assertEqual(seen, [(old if expected == 'old' else fingerprint, expected_phase)])
+                self.assertEqual((home / '.tools-held').exists(), expected == 'new')
+                self.works(home, old, fingerprint)
+                run()
+                self.updated(home, fingerprint, old)
+
+    @contextlib.contextmanager
+    def as_root(self, home):
+        """Run main() as root over this unprivileged fixture: uid 0 for the caller and its home."""
+        real_stat, real_lstat = pathlib.Path.stat, pathlib.Path.lstat
+        def rooted(info):
+            values = {name: getattr(info, name) for name in dir(info) if name.startswith('st_')}
+            return SimpleNamespace(**dict(values, st_uid=0))
+        def metadata(path, *args, **kwargs):
+            info = real_stat(path, *args, **kwargs)
+            return rooted(info) if path.is_absolute() and path.is_relative_to(home) else info
+        def link_metadata(path, *args, **kwargs):
+            info = real_lstat(path, *args, **kwargs)
+            return rooted(info) if path.is_absolute() and path.is_relative_to(home) else info
+        with patch.object(pathlib.Path, 'stat', metadata), patch.object(pathlib.Path, 'lstat', link_metadata), \
+                patch.object(owner.os, 'geteuid', return_value=0), patch.object(owner.os, 'umask'):
+            yield
+
+    def test_unexpected_states_stop_without_moving_anything(self):
+        """Outside the journal's model the decision refuses; it never guesses."""
+        with self.installation() as (home, run, fingerprint, old, host):
+            with self.power_cut_after(3), self.assertRaises(OSError):
+                run()
+            held = home / '.tools-held'
+            (held / 'owner.py').write_bytes(b'# tampered\n')
+            before = self.snapshot(home)
+            with self.assertRaisesRegex(owner.Stop, 'No installed tools and no verified held copy: unverified .*hash mismatch: owner.py'):
+                run()
+            self.assertEqual(before, self.snapshot(home))
+        with self.installation() as (home, run, fingerprint, old, host):
+            with self.power_cut_after(2), self.assertRaises(OSError):
+                run()
+            self.journal_value(home, 'previous', 'a' * 64)
+            before = self.snapshot(home)
+            with self.assertRaisesRegex(owner.Stop, 'match neither side of the tools update: ' + old):
+                run()
+            self.assertEqual(before, self.snapshot(home))
+            self.works(home, old, fingerprint)
 
     def test_invariant_old_tools_retire_only_after_the_new_ones_are_published(self):
         with self.installation() as (home, run, fingerprint, old, host):
@@ -1213,6 +1320,97 @@ class ToolsUpdateTest(unittest.TestCase):
                 run()
                 self.updated(home, fingerprint, old)
                 self.works(home, old, fingerprint)
+
+    @contextlib.contextmanager
+    def unreadable(self, pid, where, error):
+        """Make one /proc read of this process fail: its cwd, cmdline or a descriptor."""
+        prefix = '/proc/' + str(pid) + '/'
+        failing = {'cwd': prefix + 'cwd', 'cmdline': prefix + 'cmdline', 'descriptor': prefix + 'fd/'}[where]
+        real_readlink, real_read = os.readlink, pathlib.Path.read_bytes
+        def readlink(path, *args, **kwargs):
+            if str(path).startswith(failing) and where != 'cmdline':
+                raise error
+            return real_readlink(path, *args, **kwargs)
+        def read_bytes(path):
+            if str(path) == failing:
+                raise error
+            return real_read(path)
+        with patch.object(owner.os, 'readlink', readlink), patch.object(pathlib.Path, 'read_bytes', read_bytes):
+            yield
+
+    def test_unreadable_processes_count_as_in_use_and_refuse(self):
+        """Any read error short of a confirmed disappearance is doubt, and doubt refuses."""
+        errors = {'EACCES': PermissionError(13, 'Permission denied'), 'EIO': OSError(5, 'Input/output error')}
+        for where in ('cwd', 'cmdline', 'descriptor'):
+            for name, error in errors.items():
+                with self.subTest(where=where, error=name), self.installation() as (home, run, fingerprint, old, host):
+                    other = subprocess.Popen(['sleep', '60'], cwd='/')
+                    self.addCleanup(lambda process=other: (process.kill(), process.wait()))
+                    with self.unreadable(other.pid, where, error):
+                        found = [r for r in owner.installed_commands(home) if r['pid'] == other.pid]
+                        self.assertEqual(len(found), 1, found)
+                        self.assertIn('unreadable', found[0]['reason'])
+                        before = self.snapshot(home)
+                        with self.assertRaisesRegex(owner.Stop, r'is running \(pid .*\b' + str(other.pid) + r'\b.*unreadable'):
+                            run()  # the early scan: nothing written
+                        self.assertEqual(before, self.snapshot(home))
+                    self.assertEqual([r for r in owner.installed_commands(home) if r['pid'] == other.pid], [])
+        # Appearing only after the block: the deciding scan refuses and the old tools come back.
+        with self.installation() as (home, run, fingerprint, old, host):
+            other = subprocess.Popen(['sleep', '60'], cwd='/')
+            self.addCleanup(lambda: (other.kill(), other.wait()))
+            doubt = contextlib.ExitStack()
+            real = shutil.copy2
+            def copy_file(*args, **kwargs):
+                if not doubt._exit_callbacks:
+                    doubt.enter_context(self.unreadable(other.pid, 'descriptor', errors['EIO']))
+                return real(*args, **kwargs)
+            with doubt, patch('shutil.copy2', side_effect=copy_file), \
+                    self.assertRaisesRegex(owner.Stop, 'An owner command of the installed tools is running'):
+                run()
+            self.assertEqual(owner.checked_bundle(home / 'tools'), old)
+            self.assertFalse((home / '.tools-held').exists())
+            self.works(home, old, fingerprint)
+            run()
+            self.updated(home, fingerprint, old)
+
+    def test_confirmed_absence_is_not_doubt(self):
+        """What the kernel reports as absent (ENOENT) does not refuse: a zombie, a closed descriptor.
+
+        A running user process always has a working directory, so ENOENT
+        there means no filesystem context: a zombie (shown here), a task past
+        exit, or a kernel thread, which root sees on every laptop; none of
+        them can hold the tools.
+        """
+        with tempfile.TemporaryDirectory(dir=ROOT / 'os/tests') as temporary:
+            home = pathlib.Path(temporary) / 'home'
+            (home / 'tools').mkdir(parents=True)
+            zombie = subprocess.Popen(['sleep', '60'], cwd=home / 'tools')
+            try:
+                time.sleep(.2)
+                self.assertTrue(any(r['pid'] == zombie.pid for r in owner.installed_commands(home)))
+                zombie.kill()
+                time.sleep(.2)  # exited, not yet waited for: /proc still lists it
+                process = pathlib.Path('/proc') / str(zombie.pid)
+                self.assertEqual((process / 'stat').read_text().rsplit(')', 1)[1].split()[0], 'Z')
+                with self.assertRaises(FileNotFoundError):
+                    os.readlink(str(process / 'cwd'))
+                self.assertFalse(any(r['pid'] == zombie.pid for r in owner.installed_commands(home)))
+            finally:
+                zombie.kill()
+                zombie.wait()
+            self.assertFalse(any(r['pid'] == zombie.pid for r in owner.installed_commands(home)))
+            # A closed descriptor reads as ENOENT; a process whose descriptor closes mid-scan is not counted.
+            with self.assertRaises(FileNotFoundError):
+                os.readlink('/proc/self/fd/4095')
+            other = subprocess.Popen(['sleep', '60'], cwd='/')
+            try:
+                time.sleep(.2)
+                with self.unreadable(other.pid, 'descriptor', FileNotFoundError(2, 'No such file or directory')):
+                    self.assertFalse(any(r['pid'] == other.pid for r in owner.installed_commands(home)))
+            finally:
+                other.kill()
+                other.wait()
 
     def test_invariant_broad_detection_ignores_unrelated_processes(self):
         with tempfile.TemporaryDirectory(dir=ROOT / 'os/tests') as temporary:
