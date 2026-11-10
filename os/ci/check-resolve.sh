@@ -1,6 +1,6 @@
 #!/usr/bin/bash
 # Runs inside the pinned base image (never a release layer). It inventories the
-# inherited state package 21 changes and resolves exact RPM inputs for review:
+# inherited state packages 21 and 23 change and resolves exact inputs for review:
 # the Fedora package lock and the Google Chrome pin. It writes only /evidence.
 set -uo pipefail
 out=/evidence/resolve
@@ -177,22 +177,51 @@ PY
         done
 } > "$out/fedora.txt" 2>&1
 
-# Candidate lock: the existing exact inputs plus the new tools and Chrome's
-# missing Fedora providers, resolved exactly as build.sh does.
+# Package 23: Java 25 from Fedora, Prism Launcher (not in Fedora: checked
+# here) and the pinned Prism bundle, smoke-tested inside the base as an
+# unprivileged user without a display.
+{
+    section java-in-base
+    rpm -qa 'java-*' 'jre-*' 'javapackages*' | sort
+    ls -la /usr/lib/jvm 2>&1
+    section java-available
+    dnf5 --disable-repo='*' --enable-repo=fedora --enable-repo=updates repoquery \
+        --qf '%{full_nevra} %{repoid}\n' java-25-openjdk java-25-openjdk-headless java-latest-openjdk-headless
+    section prism-in-fedora
+    dnf5 --disable-repo='*' --enable-repo=fedora --enable-repo=updates repoquery \
+        --qf '%{full_nevra} %{repoid}\n' prismlauncher 'prismlauncher*' 'PrismLauncher*' polymc
+    echo "prism query exit=$?"
+    section prism-bundle
+    prism_url=$(python3 -c 'import json; print(json.load(open("/tmp/aresos/minecraft/desktop.lock.json"))["prism"]["url"])')
+    prism_sha=$(python3 -c 'import json; print(json.load(open("/tmp/aresos/minecraft/desktop.lock.json"))["prism"]["sha256"])')
+    curl -fsSL --proto '=https' --tlsv1.2 --retry 3 -o /tmp/prism.tar.gz "$prism_url"
+    sha256sum /tmp/prism.tar.gz
+    test "$(sha256sum /tmp/prism.tar.gz | cut -d' ' -f1)" = "$prism_sha" && echo 'PRISM_SHA256_OK'
+    mkdir -p /tmp/prism && tar -xzf /tmp/prism.tar.gz -C /tmp/prism
+    ls -la /tmp/prism /tmp/prism/bin /tmp/prism/shared/bin
+    find /tmp/prism -perm /6000 -ls
+    rm -f /tmp/prism/portable.txt /tmp/prism/bin/prismlauncher_updater /tmp/prism/shared/bin/prismlauncher_updater
+    mkdir -p /tmp/prism-home && chown 65534:65534 /tmp/prism-home
+    run_prism() {
+        env -i HOME=/tmp/prism-home PATH=/usr/local/bin:/usr/bin QT_QPA_PLATFORM=offscreen \
+            XDG_RUNTIME_DIR=/tmp/prism-home timeout "$1" setpriv --reuid=65534 --regid=65534 --clear-groups \
+            /tmp/prism/bin/prismlauncher "${@:2}"
+    }
+    run_prism 30 --version
+    echo "version exit=$?"
+    run_prism 25 --help | head -40
+    run_prism 30
+    echo "startup exit=$? (124 = stopped by timeout, expected)"
+    find /tmp/prism-home -maxdepth 4 | head -40
+    head -60 /tmp/prism-home/.local/share/PrismLauncher/logs/PrismLauncher-0.log
+    head -60 /tmp/prism-home/.local/share/PrismLauncher/prismlauncher.cfg
+} > "$out/pkg23.txt" 2>&1
+
+# Candidate lock: the existing exact inputs plus package 23's Java 25,
+# resolved exactly as build.sh does.
 names=()
 while read -r nevra; do names+=("$nevra"); done < <(python3 -c 'import json; [print(p["nevra"]) for p in json.load(open("/tmp/aresos/packages.lock.json"))["packages"]]')
-# The first resolution (run 42700611570) showed util-linux-script exists only
-# as 2.41.6, which moves the whole util-linux family (both arches) with it,
-# and that Chrome needs only liberation-fonts-all from Fedora.
-names+=(util-linux-script qrencode brightnessctl liberation-fonts-all)
-for name in util-linux util-linux-core libblkid libfdisk liblastlog2 libmount libsmartcols libuuid; do
-    for arch in x86_64 i686; do
-        if rpm -q "$name.$arch" >/dev/null 2>&1; then
-            names+=("$(dnf5 --disable-repo='*' --enable-repo=fedora --enable-repo=updates repoquery -q \
-                --latest-limit=1 --arch="$arch" --qf '%{full_nevra}\n' "$name" | head -1)")
-        fi
-    done
-done
+names+=(java-25-openjdk-headless)
 {
     printf 'Requested: %s\n' "${names[*]}"
     rm -rf /tmp/ares-rpms
@@ -212,6 +241,13 @@ for path in sorted(pathlib.Path('/tmp/ares-rpms').glob('*.rpm')):
     print(('UPGRADES-BASE ' + installed.stdout.strip()) if installed.returncode == 0 else 'new', nevra)
 pathlib.Path('/evidence/resolve/candidate-packages.lock.json').write_text(json.dumps({'packages': packages}, indent=2) + '\n')
 PY
+    section java-files
+    for rpm in /tmp/ares-rpms/java-25-openjdk*.rpm; do
+        rpm -qp --qf '%{NEVRA}\n' "$rpm"
+        rpm -qpl "$rpm" | grep -E '/bin/java$|/lib/jvm/[^/]+$'
+        rpm -qp --provides "$rpm" | head -20
+        rpm -qp --scripts "$rpm" | head -80
+    done
     section install-preview
     dnf5 --disable-repo='*' --setopt=install_weak_deps=False install --assumeno /tmp/ares-rpms/*.rpm "$chrome/google-chrome.rpm"
 } > "$out/candidate.txt" 2>&1

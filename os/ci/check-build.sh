@@ -12,6 +12,8 @@ case $mode in
         sudo podman pull "$base"
         sudo podman run --rm --network=host -v "$PWD/os:/tmp/aresos:ro" -v "$PWD/evidence:/evidence" \
             --entrypoint /usr/bin/bash "$base" /tmp/aresos/ci/check-resolve.sh
+        # Package 23: the mod jar must build to the same bytes twice.
+        bash os/ci/build-mod.sh --twice
         ;;
     build)
         date +%s > evidence/build-start-time.txt
