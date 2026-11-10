@@ -18,29 +18,29 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
       assert.equal(new URLSearchParams(received.body).get('reply'),kind==='alert'?'undefined':kind==='prompt'?(accept?'Synthetic answer':'null'):String(accept),'the cached native dialog must keep its return value');
     }
   });
-  await check('GROUP 4 REVIEW preexisting dialogs ask bind the chosen answer and allow owner handoff',async()=>{
-    for(const variant of ['alert','confirm','prompt','drop','stale']){
-      const id='review-preexisting-'+variant,kind=['drop','stale'].includes(variant)?'confirm':variant,tab=getTab();
+  await check('GROUP 8 REVIEW preexisting dialogs hand off within bounds and recover after the owner answers',async()=>{
+    for(const kind of ['alert','confirm','prompt']){
+      const id='review-preexisting-'+kind,tab=getTab(),session=(await call('tabs')).session;
+      assert.equal(typeof session,'string');
       await call('release_tab',{tab});await eventually(async()=>(await allTabs(call)).items.some(row=>row.tab===tab&&!row.controlled&&!row.cleanup_pending),'owner tab fully released');
-      await ownerNavigate('http://fixture.test:8765/?case=review-page&mode=preexisting-dialog&dialog='+kind+'&variant='+variant+'&id='+id);await delay(600);
-      await call('take_tab',{tab});const dialog=await eventually(async()=>(await call('read',{tab})).dialog,'preexisting '+kind);assert.equal(dialog.unguarded,true);
-      const prepared=await call('dialog',{tab,expected:dialog,accept:true,...(kind==='prompt'?{text:'Chosen prompt'}:{})});assert.ok(prepared.approval);
-      assert.match(prepared.approval.question,/wasn't guarded/);assert.match(prepared.approval.question,/what it does next isn't held/);assert.equal(receiverEvidence(id,'before unguarded approval').count,0);
-      if(variant==='drop'){
-        await call('drop',{operation_id:prepared.approval.operation_id});assert.equal((await call('read',{tab})).dialog.id,dialog.id);assert.equal(receiverEvidence(id,'dropped question leaves dialog').count,0);
-        ownerDismiss();await eventually(()=>counts(id)===1,'owner may answer after drop');assert.equal(receiverEvidence(id,'owner after drop').count,1);
-      }else if(variant==='stale'){
-        ownerDismiss();await eventually(async()=>(await call('read',{tab})).dialog?.text==='Different dialog','owner answer changed the native dialog');
-        const stale=await rpc('submit',prepared.approval);assert.ok(!stale.ok||stale.data.operation.state==='failed');assert.equal(receiverEvidence(id,'changed native dialog refused').count,0);assert.equal((await call('read',{tab})).dialog.text,'Different dialog');
-        ownerDismiss();await eventually(()=>counts(id)===1,'owner may answer replacement dialog');assert.equal(receiverEvidence(id,'owner replacement answer').count,1);
-      }else{
-        const changed=structuredClone(prepared.approval);changed.description.untrusted_content.input.accept=false;
-        assert.equal((await rpc('submit',changed)).ok,false);assert.equal(receiverEvidence(id,'changed answer refused').count,0);
-        assert.equal((await rpc('submit_trusted',prepared.approval)).ok,false);await approval(prepared,id);
-      }
-      await eventually(async()=>(await read()).some(row=>row.expected.name==='Ready'),'read after unguarded continuation');
-      const first=await rpc('click',{...await target('Ready'),reload_taken_tab:true});assert.equal(first.ok,false);assert.equal(first.error.code,'stale_reference');
-      await call('click',await target('Ready'));assert.equal(counts(id),1,'the next guarded act cannot replay the unguarded answer');
+      await ownerNavigate('http://fixture.test:8765/?case=review-page&mode=preexisting-dialog&dialog='+kind+'&id='+id);await delay(600);
+      const started=Date.now(),taken=await call('take_tab',{tab});assert.ok(Date.now()-started<15000,'handoff is bounded before the transport deadline');assert.equal(taken.untrusted_content.owner_dialog,true);assert.match(taken.untrusted_content.ask_owner,/answer the dialog yourself/);assert.equal(receiverEvidence(id,'bounded handoff').count,0);
+      try{fs.unlinkSync('/out/control-status.json');}catch(error){if(error.code!=='ENOENT')throw error;}
+      await lifecycle({fixture:'control_status'});const status=await eventually(()=>fs.existsSync('/out/control-status.json')&&JSON.parse(fs.readFileSync('/out/control-status.json')),'native debugger snapshot after handoff');
+      assert.equal(status.debugger_targets.find(row=>row.tab===tab)?.attached,false,'no debugger remains attached behind the native dialog');
+      ownerDismiss();await eventually(()=>counts(id)===1,'owner answers the preexisting dialog');assert.equal(receiverEvidence(id,'owner answer').count,1);
+      await eventually(async()=>(await read()).some(row=>row.expected.name==='Ready'),'read recovers without restarting Chrome');assert.equal((await call('tabs')).session,session);
+      assert.equal((await call('operation_status',{operation_id:taken.operation_id})).operation.state,'done');
+      const first=await rpc('click',{...await target('Ready'),reload_taken_tab:true});assert.equal(first.ok,false);assert.equal(first.error.code,'stale_reference');await call('click',await target('Ready'));assert.equal(receiverEvidence(id,'first guarded act after handoff').count,1);
+    }
+  });
+  await check('GROUP 4 REVIEW borrowed native dialogs always ask bind the answer and never replay',async()=>{
+    for(const kind of ['alert','confirm','prompt']){
+      setTab(await nativeDonor(getTab()));const tab=getTab(),id='review-borrowed-'+kind;await nav('review-page&mode=borrowed-dialog&dialog='+kind+'&id='+id);await delay(600);await fixture.mutate(id,'review-change');
+      const dialog=await eventually(async()=>(await call('read',{tab})).dialog,'borrowed '+kind);assert.equal(dialog.unguarded,true);
+      const prepared=await call('dialog',{tab,expected:dialog,accept:true,...(kind==='prompt'?{text:'Chosen prompt'}:{})});assert.ok(prepared.approval);assert.match(prepared.approval.question,/outside the page guard/);assert.match(prepared.approval.question,/continuation isn't held/);assert.equal(receiverEvidence(id,'borrowed question').count,0);
+      const changed=structuredClone(prepared.approval);changed.description.untrusted_content.input.accept=false;assert.equal((await rpc('submit',changed)).ok,false);assert.equal((await rpc('submit_trusted',prepared.approval)).ok,false);assert.equal(receiverEvidence(id,'borrowed unapproved answers refused').count,0);
+      await approval(prepared,id);await closeNativeDonor();
     }
   });
   await check('GROUP 3 REVIEW ordinary blank and srcdoc editors bind drafts and send normally',async()=>{

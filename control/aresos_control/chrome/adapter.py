@@ -300,7 +300,7 @@ class Chrome:
             if dialog.get('unguarded'):
                 answer=state['answer']
                 chosen=('accept' if answer['accept'] else 'dismiss')+(f" with prompt text '{answer['text']}'" if 'text' in answer else '')
-                return f"On {state['url']}, page '{bounded(state.get('title',''))}', as the page shows it, {chosen} {dialog['kind']} '{dialog['text']}' from frame {dialog['frame']}? The page wasn't guarded when this dialog opened, so what it does next isn't held. Claude's next act requires the normal guarded reload."
+                return f"On {state['url']}, page '{bounded(state.get('title',''))}', as the page shows it, {chosen} {dialog['kind']} '{dialog['text']}' from frame {dialog['frame']}? This dialog used a native function outside the page guard; its continuation isn't held."
             return f"On {state['url']}, page '{bounded(state.get('title',''))}', as the page shows it, {'accept' if data['input'].get('accept') else 'dismiss'} {dialog['kind']} '{dialog['text']}' from frame {dialog['frame']}?"
         target = state.get('target', {})
         site = state.get('frame_url', state.get('url', ''))

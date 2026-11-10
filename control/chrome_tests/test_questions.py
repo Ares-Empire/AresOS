@@ -105,13 +105,13 @@ class Questions(unittest.TestCase):
         operation=self.engine.operation(prepared['data']['approval']['operation_id'],'chrome')
         self.assertTrue(operation['payload'].get('conservative'));self.assertTrue(self.chrome.command(operation['payload']).get('conservative'))
 
-    def test_p1_decided_preexisting_dialog_always_asks_binds_answer_and_never_trusts(self):
+    def test_p1_decided_borrowed_dialog_always_asks_binds_answer_and_never_trusts(self):
         native={'session':self.browser.session,'tab':1,'url':'https://fixture.test/','title':'Fixture','dialog':{'kind':'prompt','text':'Choose answer','frame':0,'frame_url':'https://fixture.test/','button':'OK','unguarded':True}}
         original=self.browser.call
         self.browser.call=lambda name,**args:copy.deepcopy(native) if name=='dialog_facts' else original(name,**args)
         result=self.call('dialog',{'tab':1,'expected':native['dialog'],'accept':True,'text':'Chosen text'})
         self.assertTrue(result['ok'],result);self.assertIn('approval',result['data']);approval=result['data']['approval'];self.assertEqual(self.browser.dispatched,[])
-        for text in ['Choose answer','Chosen text',"wasn't guarded", "what it does next isn't held",'guarded reload']:
+        for text in ['Choose answer','Chosen text','outside the page guard', "its continuation isn't held"]:
             self.assertIn(text,approval['question'])
         operation=self.engine.operation(approval['operation_id'],'chrome');payload=operation['payload']
         self.assertEqual(payload['binding']['answer'],{'accept':True,'text':'Chosen text'});self.assertTrue(payload['unguarded_dialog'])
@@ -122,7 +122,7 @@ class Questions(unittest.TestCase):
         self.assertTrue(self.browser.dispatched[0][1]['approved'])
         self.assertFalse(self.call('sites',{'command':'allow','operation_id':approval['operation_id']},admin=True)['ok'])
 
-    def test_p1_dropping_a_preexisting_dialog_question_leaves_it_to_the_owner(self):
+    def test_p1_dropping_a_borrowed_dialog_question_leaves_it_to_the_owner(self):
         native={'session':self.browser.session,'tab':1,'url':'https://fixture.test/','dialog':{'kind':'confirm','text':'Continue?','frame':0,'frame_url':'https://fixture.test/','unguarded':True}}
         original=self.browser.call
         self.browser.call=lambda name,**args:copy.deepcopy(native) if name=='dialog_facts' else original(name,**args)
@@ -130,7 +130,7 @@ class Questions(unittest.TestCase):
         dropped=self.call('drop',{'operation_id':prepared['operation_id']});self.assertTrue(dropped['ok'],dropped)
         self.assertEqual(self.browser.dispatched,[]);self.assertTrue(native['dialog']['unguarded'])
 
-    def test_p1_preexisting_dialog_never_inherits_an_otherwise_valid_owner_entry(self):
+    def test_p1_borrowed_dialog_never_inherits_an_otherwise_valid_owner_entry(self):
         from aresos_control.common import digest
         from aresos_control.chrome.sites import KINDS
         self.page('gemini');approval=self.prepare();operation=self.engine.operation(approval['operation_id'],'chrome')

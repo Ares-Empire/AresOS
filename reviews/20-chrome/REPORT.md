@@ -1,62 +1,52 @@
-# 20 — Part P review fixes: blocked, do not merge
+# 20 — Part P review fixes: resumed, acceptance pending
 
-**Part P is not complete and is not acceptance green.** Runtime source `0894243b` is pushed on
-`pkg/20-chrome`; [PR 27](https://github.com/Ares-Empire/AresOS/pull/27) remains draft and unmerged.
-The new mandatory preexisting-dialog browser case fails before it can prepare a question. This stops the
-build under the brief's unmet-guarantee rule. No fallback refusal is approved or silently treated as complete.
+**In progress.** The lead's 2026-11-10 decisions, about 17:00, lift the earlier stop and replace both open native-dialog
+items. The preexisting-dialog PLAN-GAP is retired in favor of the decided owner handoff. The outside-native case
+uses the approved asking pattern. [PR 27](https://github.com/Ares-Empire/AresOS/pull/27) stays draft and unmerged.
+The final whole set twice in both install modes, base/Mail/boundary twice, full P30 and later cases remain required.
 
-## Done
+## Decided dialog rules — lead, 2026-11-10
 
-The [P1–P31 implementation/test map](BUILD-P-1.md) and [current decided-rule checkpoint](BUILD-P-4.md)
-map every finding to its code, regression and removal mutation. Earlier BUILD checkpoints retain the failed
-alternatives; their superseded implementations are not current acceptance evidence.
+**Already open before take: owner handoff, rule (a).** The initial Page-enable wait is bounded at five seconds.
+If it cannot complete, the extension discards the pending target, detaches the debugger, and retains the tab's
+control record and session state. Its result tells Claude exactly what to ask: **“Please answer the dialog yourself.”**
+After the owner answers, a read reattaches and completes setup without restarting Chrome or resetting our state;
+Claude's first act still follows the normal take-reload rule. A responsive Page domain may finish slower setup
+without a false handoff. The impossible preexisting-dialog asking case and its red mandatory test are retired.
+Native-UI answering is out of scope; nothing attaches to ordinary tabs outside the Claude group.
 
-- **P1 ordinary dialogs:** alert/confirm/prompt wrappers preserve the native answer and synchronously pause at
-  a private return boundary, before their caller continues. The extension arms every authenticated current
-  document, without an old approval allowance, then resumes. All 15 ordinary Claude/owner/page-task combinations,
-  including confirm/prompt dismissal, passed in interim Linux runs with receiver 0/1/1. An exact already-approved
-  native confirmation can retain its existing proved allowance. Stop and uncertain completion cannot replay it.
-- **P2/P3:** ordinary blank/srcdoc editors are read, bound and guarded by authenticated document/origin. Both
-  successful-send and changed-draft variants passed. New frames inherit the hold without an allowance; final
-  coverage is checked again before input. **P4:** borrowed wrappers route to the target controlled document;
-  completed cross-tab/iframe/outside legs passed.
-- **P5:** the private native event carries the outer shadow host and an enumerable primitive path. Saved native
-  MAIN getters compute the path; only isolated DOM access resolves nested open/closed roots. InputEvent range
-  retargeting cannot erase the endpoint. Both synchronous-root and borrowed-native/noncomposed matrices passed
-  in `02f523d3`. The discarded TreeWalker attempts are recorded as failures, not proof.
-- **P12:** every binding freshly hashes the native File bytes inside the isolated world, using native
-  `arrayBuffer` and SHA-256; only digest/metadata leave it. Questions show name, size and digest. A changed backing
-  file with the same object/name/size/timestamp refuses; changed selection during hashing refuses before collection.
-  Staged hashes are independently checked. The native chooser and subsequent 0/1/1 send passed in both modes.
-- **P6–P11, P13–P31:** canonical classification/keys/decoding/NFC, independent trusted prohibitions, complete
-  draft/item/title bindings, password exclusions/history, no Runtime subscription, exact owner marks, bounded
-  questions/observations, dirty/audible reload checks, focus preservation, native wrapper shapes, immediate DNR
-  removal, dispatch cleanup and exact named CI inventory are implemented and covered by the linked map/mutations.
-  The frozen-wrapper Stop fixture's owner driver now explicitly allows the navigation that ends pending cleanup;
-  its production restoration requirement remains intact. That driver correction still needs browser proof.
+**Borrowed outside-native alert/confirm/prompt: ask, unguarded.** Authenticated native events without the private
+wrapper's return token always produce a service-written question. It binds tab/control, type/text, chosen answer
+and prompt text, and says its continuation is not held. Approval is mandatory and consumed before one answer call;
+changed bindings and replay refuse. “Don't ask again” never covers it, including an otherwise matching adapter
+confirmation. Any existing hold is preserved through the resumed handler and finished before collecting followups,
+so this extension can ask more without clearing prior protection. Dropping leaves the dialog for the owner.
 
-**Decided rule — lead, 2026-11-10, owner's board #138 precedent (“Yes, ask in that rare case”):** a native dialog
-already open when Claude takes the tab asks. Its service-written question binds tab/control, native type/text and
-chosen answer/prompt text, warns that the page was not guarded when the dialog opened and its continuation is not
-held, and states the next-act guarded reload. Approval is consumed before one native answer. A changed dialog or
-answer refuses before dispatch; dropping leaves it open; the owner may answer at any time. “Don't ask again” never
-covers it. This is a decided rule, not a JUDGMENT-CALL. Its service/extension logic and mandatory tests are built,
-but the actual Chrome path is blocked as described below.
+**Why the handoff is necessary:** [run 42840910762](https://github.com/Ares-Empire/AresOS/actions/runs/42840910762),
+Chrome 157.0.8103.50, reached pending Page.enable command 1069 with an already-open modal and no opening metadata.
+[Exact retained evidence](records/review-fixes-0894-preexisting-blocker.json) and the
+[container screenshot](screenshots/review-fixes-preexisting-dialog-blocked.png) remain historical proof of that
+failed asking attempt. In the [exact Chrome source](https://raw.githubusercontent.com/chromium/chromium/157.0.8103.50/content/browser/devtools/protocol/page_handler.cc),
+`DidRunJavaScriptDialog` stores/emits only for an enabled Page domain (624); `Enable` does not replay an old modal
+(680); the answer handler needs the retained callback (1792). These source observations explain the decided
+handoff; they are not a current PLAN-GAP or JUDGMENT-CALL.
 
-## Verified
+## Done and local verification
 
-Only plain Python/Node ran on this Mac. No local browser executable or profile was started, read or touched.
-Every browser observation below is from `control-chrome.yml` on GitHub Linux containers.
+The [P1–P31 implementation/test map](BUILD-P-1.md), [feature-preserving iterations](BUILD-P-3.md), and
+[current continuation](BUILD-P-5.md) name code, regressions, mutations and exact partial receiver evidence.
+Ordinary native answers use the private return-boundary hold; blank/srcdoc reading and drafts use authenticated
+inherited origins; selected native files are freshly SHA-256 hashed for each binding; shadow endpoints use the
+outer native host plus a primitive path resolved in the isolated world. Runtime.enable remains absent.
 
-- `node --test control/chrome_tests/*.test.mjs`: **212 passed**, zero failed/cancelled/skipped.
-- `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/chrome_tests python3 -B -m unittest test_questions test_policy test_sites test_unit -q`:
-  **48 tests, OK**.
-- The same environment with `python3 -B -m unittest discover -s control/chrome_tests -q`:
-  **188 tests, OK, 292.209 s**. The result was recovered after the lead's pause.
-- `python3 -B reviews/20-chrome/mutation-audit.py`: **78 mutations rejected; every baseline passed**.
-  [Exact commands and failing assertions](records/review-fixes-mutations.json) cover every P item, including
-  the new mandatory-question, answer-binding, warning, trusted-exemption and exact-once boundaries.
-- `python3 control/generate.py --check`: generated artifacts match. `git diff --check`: clean.
+Only plain Python/Node ran on this Mac. No local Chrome/Chromium or browser profile was accessed. Browser tests
+run only in GitHub Linux containers through control-chrome. Current local Node: **214 passed**, zero failed,
+cancelled or skipped. Focused Python: **48 OK**. The recovered previous full sweep is **188 OK, 292.209 s**;
+the new full sweep is running. The expanded mutation audit rejects **85 mutations**, every baseline passing.
+[Exact mutation commands/assertions](records/review-fixes-mutations.json) include bounded handoff, detachment,
+retained state/recovery, no false timeout after Page enabling, mandatory borrowed questions, exact answer binding,
+no automatic confirmation/trusted exemption, exact-once dispatch and prior-hold completion. Generated artifacts
+match; diff checks are clean.
 
 **Partial Linux evidence; whole runs failed:**
 
@@ -72,68 +62,31 @@ Every browser observation below is from `control-chrome.yml` on GitHub Linux con
 CI was awaited with one blocking `gh run watch --exit-status --interval 60` command per latest run; failed logs
 were read after completion. No missing or failed named case qualified. Group 12 remains false until 18d.
 
-## PLAN-GAP: decided preexisting-dialog rule cannot yet reach Chrome's native API
+## Not verified yet
 
-**Run:** Chrome **157.0.8103.50**, both install modes in **42840910762**, shows a real already-open native alert.
-Admission dispatches `Page.enable` (policy boundary log **command 1069**) and receives neither completion nor a
-native opening event. The tool eventually loses its transport. Receiver stays zero. The
-[Linux screenshot](screenshots/review-fixes-preexisting-dialog-blocked.png) shows the modal still open.
-The deferred-setup/event-race alternative did not obtain authenticated type/text, so it could not produce the
-bound question. Passing mocks supply that metadata; they do not establish its availability in Chrome.
+Final-head Chrome twice in both modes, base/Mail/boundary twice, full expanded P30 ingress/getter coverage and the
+remaining later core/adapter cases. The new bounded handoff/recovery and outside-native browser cases need their
+next Linux trial. The frozen-wrapper owner-driver correction also awaits that trial. Owner Enter has an interim
+named matrix pass; final CI and the lead's panel confirmation remain required. Group 12 stays false until 18d.
+No real accounts, live signed-in sites or production qualification were used.
 
-**Source reading / inference:** in the [exact tested Chrome source](https://raw.githubusercontent.com/chromium/chromium/157.0.8103.50/content/browser/devtools/protocol/page_handler.cc),
-`DidRunJavaScriptDialog` retains the answer callback and emits metadata only for an already-enabled Page domain
-(line 624). `Enable` sets the enabled flag and forwards to the renderer without replaying the old dialog (680).
-`HandleJavaScriptDialog` rejects a missing retained callback before reaching the native dialog manager (1792).
-This explains why late attachment supplies neither the required binding facts nor the required answer handle.
-It is source inference, not a successful alternative-answer test.
+## Ownership, runs and remaining decisions
 
-**Feature-keeping alternatives for the lead/owner:** a browser API that exposes and adopts the current native
-modal would retain the specified `Page.handleJavaScriptDialog` path. A targeted native-UI/accessibility backend
-could keep the asking feature but would change the required answering interface. Pre-attaching a Page observer
-to ordinary tabs before dialogs open broadens observation/control outside the Claude group and still does not
-adopt a modal already open before that observer. None of those scope/interface changes is authorized here.
-The decided asking behavior stands; this report does not replace it with an owner-only refusal.
+Only Part P files and this worktree changed; Part S's branch/worktree, state implementation/tests and Mail filing
+remain untouched. The previously named minimal shared adapter lines in read()/check_readonly() use the inherited
+frame's authenticated effective URL and must survive integration. No branch was merged or force-pushed. The
+privacy hook ran normally. Only this build's superseded runs were cancelled; no owner/lead run was cancelled.
 
-**Other native-answer limitation requiring the lead/owner's decision:** an unwrapped native recovered from an
-outside realm, with no authenticated return hook and no proved active free hold, still cannot be guarded at answer
-time. Direct modal Runtime evaluation and pre-answer Debugger.pause both blocked in recorded Linux trials.
-Reusing an independently proved free in-flight hold preserves the covered cases. Extending the decided unguarded
-asking pattern to this separate case would retain the feature; that broader rule was not inferred or shipped.
-Missing private coverage of a genuinely unreachable frame also remains a pre-answer refusal.
+The earlier closing runs 42843419421 / 42843914061 are both completed failures on the superseded asking path.
+They were awaited by one blocking shell watch loop. The branch ledger is **154 Chrome IDs before the next push**,
+expected **156 after**, below the revised approximate 175 limit. Future runs are awaited with blocking watches;
+failed logs are read after completion. The previous .work inventory found no regular file over 500 MiB.
 
-## Not verified
+Both open native-dialog policy choices are now decided. Genuinely unreachable guard/frame coverage still fails
+closed under the brief; ordinary editor/dialog cases must pass. No new feature-removing fallback is approved.
+No JUDGMENT-CALL is introduced by these decided rules. Remaining open acceptance items are listed above.
 
-The complete final-source Chrome suite twice in both modes, and final-source base/Mail/boundary twice, are **not
-satisfied**. The preexisting native case has no successful browser answer, changed-dialog/drop/owner-handoff or
-next-reload proof. P30's full expanded ingress/getter matrix and the remaining later core/adapter cases have not
-completed on this source. The frozen-wrapper owner-driver fix has no completed browser proof. Owner Enter has an
-interim named matrix pass; final CI and the lead's panel confirmation remain required. Live signed-in sites and
-real owner accounts were not used. No production qualification was published.
-
-## JUDGMENT-CALL
-
-None newly approved. The preexisting-dialog asking rule is decided, as recorded above. No feature-removing fallback
-is approved. The retained code and red mandatory test are review material; the branch must not be merged as complete.
-
-## Ownership, runs and open questions
-
-Only this worktree and Part P files were changed. No state branch/worktree was read, touched or merged. No
-engine/storage/recovery/retention/committed, stored qualification-read, Mail filing or state test changes were made.
-The previously named minimal shared adapter lines in `read()` and `check_readonly()` use the authenticated inherited
-frame's effective URL; the lead must preserve them when combining Part S. All new dialog logic is in Part P's
-question/classification/dispatch functions and extension. Every commit has the required model trailer; pushes
-used the privacy hook, without bypass or force.
-
-The branch ledger is **152 Chrome workflow IDs before this report push**, expected **154 afterward**, below the
-new approximate 175 allowance. Only this build's superseded runs were cancelled; no owner/lead run was cancelled.
-Stopping is due to the unresolved native API guarantee. `.work` has **no regular file over 500 MiB** (910,643,500
-bytes total at the closing inventory); no ISO/image download or extracted image remains. No Gradle daemon was run.
-
-Open: the lead/owner's feature-keeping native-modal API/interface choice, the separate unwrapped-native case,
-and the uncompleted acceptance checks above. No merge was performed.
-
-The report below is historical integration evidence and is not acceptance evidence for this fix round.
+The report below is historical integration evidence, not acceptance evidence for this fix round.
 
 ---
 

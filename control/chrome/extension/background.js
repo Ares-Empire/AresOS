@@ -46,6 +46,7 @@ async function targetCommand(state,method,parameters={}){assertTarget(state);con
 async function prepareTarget(source,tab=source.tabId,targetId=null){
   const state={source,tab,targetId,epoch:controlled.get(tab)?.epoch,contexts:new Map(),scripts:new Map(),documents:new Map(),failures:new Map(),installing:new Set()};preloadTargets.set(targetKey(source),state);
   await targetCommand(state,'Page.enable');
+  state.pageEnabled=true;
   const tree=await targetCommand(state,'Page.getFrameTree');state.frameId=tree.frameTree?.frame.id||targetId;
   await targetCommand(state,'Debugger.enable');
   const breakpoint=await targetCommand(state,'Debugger.setBreakpointByUrl',{url:chrome.runtime.getURL('context.js'),lineNumber:1});
@@ -306,18 +307,43 @@ async function restoreTab(tab,original){
   if(original.virtualGroup)return;
   try{await chrome.tabs.ungroup(tab);await chrome.tabs.move(tab,{windowId:original.window,index:original.index});if(original.group>=0)await chrome.tabs.group({tabIds:[tab],groupId:original.group});}catch{}
 }
+const ownerDialogMessage="Ask the owner: Please answer the dialog yourself. After he answers, read this tab again. Claude's first act will reload the tab under the normal take rule.";
+function takenTab(tab,owner){return {tab,session,group:groupId,...(owner.modalHandoff?{owner_dialog:true,ask_owner:ownerDialogMessage}:{})};}
+async function initializeTab(tab,owner){
+  const wake=waitDialog(tab),preload=prepareTarget({tabId:tab});let timer;
+  const ready=preload.then(()=>lateReader(tab));ready.catch(()=>{});
+  owner.pendingSetup={preload,ready};
+  let outcome;
+  try{outcome=await Promise.race([ready,wake.promise,new Promise(resolve=>{timer=setTimeout(()=>{if(!preloadTargets.get(targetKey({tabId:tab}))?.pageEnabled)resolve({owner_dialog:true});},5000);})]);}
+  finally{wake.dispose();clearTimeout(timer);}
+  if(outcome?.owner_dialog){
+    owner.modalHandoff=true;owner.popupNeedsReload=true;delete owner.pendingSetup;
+    const target=preloadTargets.get(targetKey({tabId:tab}));if(target)destroyedTarget(target);
+    // Detach is browser-side: a blocked renderer must retain no waiting debugger.
+    await chrome.debugger.detach({tabId:tab});return;
+  }
+  owner.modalHandoff=false;
+  if(dialogs.has(tab))owner.popupNeedsReload=true;else delete owner.pendingSetup;
+}
+async function recoverOwnerDialog(tab,owner){
+  if(!owner.recovering){
+    owner.recovering=(async()=>{try{await chrome.debugger.attach({tabId:tab},'1.3');assertControl(tab,owner.epoch);await initializeTab(tab,owner);}catch(error){if(controlled.get(tab)!==owner)try{await chrome.debugger.detach({tabId:tab});}catch{}throw error;}})();
+    owner.recovering.finally(()=>{delete owner.recovering;}).catch(()=>{});
+  }
+  await owner.recovering;
+}
 async function admitTab(tab,generation,opener=null) {
   const check=()=>{if(stopGeneration!==generation||releasing.has(tab)||opener&&controlled.get(opener.tab)?.epoch!==opener.epoch)throw Error('stale_reference: control stopped during tab admission');};
   if(opener){await requireTab(opener.tab);check();}
   check();const current = await chrome.tabs.get(tab);check();safeURL(current.url||(opener?current.pendingUrl||'about:blank':current.url));
-  if (controlled.has(tab)) return {tab, session, group:groupId};
+  if (controlled.has(tab)){const owner=controlled.get(tab);if(owner.modalHandoff)await recoverOwnerDialog(tab,owner);return takenTab(tab,owner);}
   const window=await chrome.windows.get(current.windowId);check();
   if(window.type!=='normal'&&!opener){
     const parent=controlled.get(current.openerTabId);
     if(!parent)throw Error('refused: popup control requires its opener in the Claude group');
     opener={tab:current.openerTabId,epoch:parent.epoch};await requireTab(opener.tab);check();
   }
-  const original = {window:current.windowId,index:current.index,group:current.groupId,epoch:crypto.randomUUID(),debuggee:{tabId:tab},virtualGroup:window.type!=='normal',admitting:true,...(opener?{parentTab:opener.tab,parentEpoch:opener.epoch,popupNeedsReload:true}:{})};
+  const original = {window:current.windowId,index:current.index,group:current.groupId,epoch:crypto.randomUUID(),debuggee:{tabId:tab},virtualGroup:window.type!=='normal',...(opener?{parentTab:opener.tab,parentEpoch:opener.epoch,popupNeedsReload:true}:{})};
   let attached=false,grouped=false;
   try{
     effectStarted=true;await chrome.debugger.attach({tabId:tab}, '1.3');attached=true;check();
@@ -326,16 +352,12 @@ async function admitTab(tab,generation,opener=null) {
       await chrome.tabGroups.update(groupId,{title:'Claude',color:'blue',collapsed:false});check();
     }
     controlled.set(tab,original);
-    const wake=waitDialog(tab),preload=prepareTarget({tabId:tab});
-    const ready=preload.then(()=>lateReader(tab));ready.catch(()=>{});
-    original.pendingSetup={preload,ready};
-    try{await Promise.race([ready,wake.promise]);}finally{wake.dispose();}
-    if(dialogs.has(tab))original.popupNeedsReload=true;else delete original.pendingSetup;
-    original.admitting=false;check();
+    await initializeTab(tab,original);
+    check();
     await rules();check();await badge();check();assertControl(tab,original.epoch);
     if(opener){await requireTab(opener.tab);check();}
     if(original.virtualGroup)audit({popup_admitted:{tab,window:current.windowId,type:window.type,opener:opener?.tab,badge:'POP on opener'}});
-    return {tab,session,group:groupId};
+    return takenTab(tab,original);
   }catch(error){
     if(controlled.get(tab)===original)await release(tab);
     else{if(attached)try{await chrome.debugger.detach({tabId:tab});}catch{}if(grouped)await restoreTab(tab,original);}
@@ -449,6 +471,7 @@ async function requireTab(tab) {
     catch{await release(tab);throw Error('stale_reference: popup opener is outside the Claude group');}
   }
   try { safeURL(current.url); } catch(error) { await release(tab); throw error; }
+  if(owner.modalHandoff){await recoverOwnerDialog(tab,owner);if(owner.modalHandoff)throw Error('owner_dialog: '+ownerDialogMessage);}
   if(owner.pendingSetup&&!dialogs.has(tab)){
     const pending=owner.pendingSetup,wake=waitDialog(tab);
     try{
@@ -627,6 +650,7 @@ async function dispatch(command) {
     const windows=await chrome.windows.getAll();
     const tabs=await chrome.tabs.query({});
     return {windows:windows.map(({id,type,left,top,width,height,focused})=>({id,type,left,top,width,height,focused})),
+      debugger_targets:(await chrome.debugger.getTargets()).map(({tabId,attached})=>({tab:tabId,attached})),
       tabs:await Promise.all(tabs.map(async({id,windowId,openerTabId})=>({tab:id,window:windowId,opener:openerTabId,badge:await chrome.action.getBadgeText({tabId:id}),title:await chrome.action.getTitle({tabId:id})}))),...await popupStatus()};
   }
   if(command.name==='stop_popup'){await chrome.action.openPopup();return {opened:true};}
@@ -664,9 +688,16 @@ async function dispatch(command) {
     if(command.operation && used.has(command.operation))throw Error('refused: dialog operation already attempted');
     if(dialog.unguarded){
       if(command.approved!==true||!command.operation)throw Error('refused: this unguarded dialog answer requires its exact approval');
-      used.add(command.operation);controlled.get(tab).popupNeedsReload=true;dialogInputs.set(dialog,{epoch:dispatchEpoch,managed:true});
-      await cdp(tab,'Page.handleJavaScriptDialog',{accept:command.input.accept,...(command.input.text===undefined?{}:{promptText:command.input.text})});
-      return {checked:true,dispatched:true,unguarded_continuation:true,needs_reload:true,steps:[],dialog:dialogs.get(tab)||null,page:{available:true,url:current.url,notice:"The page wasn't guarded when the dialog opened; what it does next isn't held. Claude's next act requires the normal guarded reload."}};
+      used.add(command.operation);
+      const owner=controlled.get(tab),prior=owner.hold,wake=waitDialog(tab);let completion;
+      if(prior?.inFlight){completion=new Promise(done=>dialogInputs.set(dialog,{epoch:dispatchEpoch,nonce:prior.nonce,done}));}
+      else dialogInputs.set(dialog,{epoch:dispatchEpoch,managed:true});
+      try{
+        await cdp(tab,'Page.handleJavaScriptDialog',{accept:command.input.accept,...(command.input.text===undefined?{}:{promptText:command.input.text})});
+        if(completion){const result=await Promise.race([completion,wake.promise]);if(result?.interrupted)throw Error('unknown: dialog answer interrupted by Stop; inspect and never replay');}
+      }finally{wake.dispose();}
+      const steps=await collectSteps(tab,dispatchEpoch);
+      return {checked:true,dispatched:true,unguarded_continuation:true,needs_reload:!!owner.popupNeedsReload,steps,dialog:dialogs.get(tab)||null,page:{available:true,url:current.url,notice:"This dialog used a native function outside the page guard; its continuation isn't held. Existing private holds still apply."}};
     }
     const armed=await armDialog(tab,command.conservative);dialogInputs.set(dialog,{epoch:dispatchEpoch,nonce:armed.nonce,managed:true});
     let uncertain_finish;
@@ -926,8 +957,7 @@ chrome.debugger.onEvent.addListener(async(source,method,params)=>{
       // opener before accessing or retaining the message, and leave it to him.
       dialogs.set(tab,{frame_url:params.url,blocked:true});wakeDialog(tab);return;
     }
-    const owner=controlled.get(tab);
-    const dialog={id:crypto.randomUUID(),kind:params.type,text:params.message,frame_url:params.url,button:'OK',...(owner?.admitting||owner?.pendingSetup?{unguarded:true}:{})};
+    const dialog={id:crypto.randomUUID(),kind:params.type,text:params.message,frame_url:params.url,button:'OK'};
     dialogTargets.set(dialog,preloadTargets.get(targetKey(nativeSource)));
     const input=controlled.get(tab),nonce=input?.inputNonce,plan=confirmationPlans.get(tab);
     if(nonce)dialogInputs.set(dialog,{epoch:input.epoch,nonce});
@@ -936,8 +966,10 @@ chrome.debugger.onEvent.addListener(async(source,method,params)=>{
     if(dialogs.get(tab)!==dialog||controlled.get(tab)!==input||input?.inputNonce!==nonce)return;
     const origins=frames.filter(frame=>frame.url===params.url);
     if(origins.length===1){dialog.frame=origins[0].frameId;dialog.browser_document=origins[0].documentId;}
+    const native=nativeDialogStarts.get(JSON.stringify([tab,dialog.browser_document]))?.at(-1);
+    if(!native||native.kind!==dialog.kind||native.document!==privacyDocuments.get(dialog.browser_document))dialog.unguarded=true;
     const expected=plan?.expected;
-    const matched=confirmationPlans.get(tab)===plan && expected && origins.length===1 && plan.browser_document===dialog.browser_document &&
+    const matched=!dialog.unguarded&&confirmationPlans.get(tab)===plan && expected && origins.length===1 && plan.browser_document===dialog.browser_document &&
       ['kind','text','frame_url','button','frame'].every(key=>expected[key]===dialog[key]);
     wakeDialog(tab);
     if(matched){
@@ -950,11 +982,12 @@ chrome.debugger.onEvent.addListener(async(source,method,params)=>{
     const tab=source.tabId,input=dialogInputs.get(dialogs.get(tab));dialogs.delete(tab);
     // Closing a covered dialog has no separate tool call to finish its input.
     // Use the nonce captured at opening; an old close can never clear a new arm.
-    if(input&&!input.managed)try{const uncertain=await finishFrames(tab,await chrome.webNavigation.getAllFrames({tabId:tab})||[],input.epoch,input.nonce);const hold=controlled.get(tab)?.hold;if(hold?.nonce===input.nonce){hold.inFlight=uncertain;hold.until=Date.now()+POLICY.holdMs;}}catch{}
+    if(input&&!input.managed)try{const uncertain=await finishFrames(tab,await chrome.webNavigation.getAllFrames({tabId:tab})||[],input.epoch,input.nonce);const hold=controlled.get(tab)?.hold;if(hold?.nonce===input.nonce){hold.inFlight=uncertain;hold.until=Date.now()+POLICY.holdMs;}}catch{}finally{input.done?.();}
   }
 });
 chrome.debugger.onDetach.addListener(async source=>{
   const tab=source.tabId,previous=controlled.get(tab);if(!previous)return;
+  if(previous.modalHandoff)return;
   // An old detach notification may arrive after a replacement attachment.
   try{await cdp(tab,'Page.enable');}catch{if(controlled.get(tab)===previous)release(tab);}
 });

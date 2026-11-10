@@ -288,6 +288,7 @@ test('a stale approved dialog opening never accepts the different dialog that re
   function setup(){
     const f=fixture();
     f.run("armDialog=async()=>({owner:controlled.get(7),frames:[],nonce:'dialog-barrier',ready:Promise.resolve()});excludedHosts=[];controlled.set(7,{epoch:'epoch',inputNonce:'input-nonce'});dispatchEpoch='epoch';globalThis.frames=[];globalThis.accepted=[];chrome.webNavigation={getAllFrames:()=>new Promise(resolve=>frames.push(resolve))};chrome.debugger={onEvent:{addListener:fn=>{globalThis.onEvent=fn}},sendCommand:async(source,method,params)=>{if(method==='Page.handleJavaScriptDialog')accepted.push(dialogs.get(7)?.text);return {};}};confirmationPlans.set(7,{operation:'approved-operation',browser_document:'doc',expected:{kind:'confirm',text:'Delete approved branch?',frame_url:'http://fixture.test/',button:'OK',frame:0},matched:[]});");
+    f.run("privacyDocuments.set('doc','private');nativeDialogStarts.set('[7,\"doc\"]',[{kind:'confirm',document:'private'}]);");
     const source=fs.readFileSync('control/chrome/extension/background.js','utf8');
     f.run(source.slice(source.indexOf('chrome.debugger.onEvent.addListener('),source.indexOf('chrome.debugger.onDetach.addListener(')));
     return f;
@@ -296,6 +297,11 @@ test('a stale approved dialog opening never accepts the different dialog that re
   const current=valid.run("onEvent({tabId:7},'Page.javascriptDialogOpening',{type:'confirm',message:'Delete approved branch?',url:'http://fixture.test/'})");
   valid.run("frames[0]([{frameId:0,documentId:'doc',url:'http://fixture.test/'}])");await current;
   assert.deepEqual(Array.from(valid.run('accepted')),['Delete approved branch?'],'the unchanged exact dialog remains covered');
+
+  const borrowed=setup();borrowed.run('nativeDialogStarts.clear()');
+  const borrowing=borrowed.run("onEvent({tabId:7},'Page.javascriptDialogOpening',{type:'confirm',message:'Delete approved branch?',url:'http://fixture.test/'})");
+  borrowed.run("frames[0]([{frameId:0,documentId:'doc',url:'http://fixture.test/'}])");await borrowing;
+  assert.equal(borrowed.run('dialogs.get(7).unguarded'),true);assert.equal(borrowed.run('accepted.length'),0,'a borrowed native cannot inherit automatic confirmation');assert.ok(borrowed.run('confirmationPlans.get(7).expected'));
 
   const stale=setup();
   const original=stale.run("onEvent({tabId:7},'Page.javascriptDialogOpening',{type:'confirm',message:'Delete approved branch?',url:'http://fixture.test/'})");
@@ -762,36 +768,52 @@ test('P27 native missing-context proof retires stale cleanup handles without a R
   }
 });
 function unguardedDialogFixture(){
-  const f=fixture();f.run("excludedHosts=[];groupId=1;controlled.set(7,{epoch:'epoch'});globalThis.answers=[];chrome.tabs.get=async()=>({url:'http://fixture.test/',title:'Fixture',groupId:1});chrome.debugger={sendCommand:async(source,method,args)=>{if(method==='Page.handleJavaScriptDialog'){answers.push(args);dialogs.delete(7)}return {};}};dialogs.set(7,{id:'preexisting',kind:'prompt',text:'Choose answer',frame:0,frame_url:'http://fixture.test/',unguarded:true});globalThis.expected=JSON.parse(JSON.stringify({session,tab:7,control:'epoch',url:'http://fixture.test/',title:'Fixture',dialog:dialogs.get(7),answer:{accept:true,text:'Chosen text'}}));globalThis.command={name:'dialog',tab:7,operation:'exact-answer',approved:true,input:{accept:true,text:'Chosen text'},binding:expected};");return f;
+  const f=fixture();f.run("excludedHosts=[];groupId=1;controlled.set(7,{epoch:'epoch'});globalThis.answers=[];chrome.tabs.get=async()=>({url:'http://fixture.test/',title:'Fixture',groupId:1});chrome.webNavigation={getAllFrames:async()=>[]};chrome.debugger={sendCommand:async(source,method,args)=>{if(method==='Page.handleJavaScriptDialog'){answers.push(args);dialogs.delete(7)}return {};}};dialogs.set(7,{id:'borrowed',kind:'prompt',text:'Choose answer',frame:0,frame_url:'http://fixture.test/',unguarded:true});globalThis.expected=JSON.parse(JSON.stringify({session,tab:7,control:'epoch',url:'http://fixture.test/',title:'Fixture',dialog:dialogs.get(7),answer:{accept:true,text:'Chosen text'}}));globalThis.command={name:'dialog',tab:7,operation:'exact-answer',approved:true,input:{accept:true,text:'Chosen text'},binding:expected};");return f;
 }
-test('P1 decided preexisting dialog approval answers exactly once and requires the next guarded reload',async()=>{
-  const f=unguardedDialogFixture();const result=await f.run('dispatch(command)');assert.equal(result.unguarded_continuation,true);assert.equal(result.needs_reload,true);assert.equal(f.run('controlled.get(7).popupNeedsReload'),true);
+test('P1 decided borrowed dialog approval answers exactly once without clearing existing guards',async()=>{
+  const f=unguardedDialogFixture();const result=await f.run('dispatch(command)');assert.equal(result.unguarded_continuation,true);assert.equal(result.needs_reload,false);assert.equal(f.run('controlled.get(7).popupNeedsReload'),undefined);
   assert.deepEqual(JSON.parse(f.run('JSON.stringify(answers)')),[{accept:true,promptText:'Chosen text'}]);
   await assert.rejects(f.run('dispatch(command)'),/stale_approval/);assert.equal(f.run('answers.length'),1);
 });
-test('P1 decided preexisting dialog refuses changed dialog or chosen answer before dispatch',async()=>{
+test('P1 decided borrowed dialog refuses changed dialog or chosen answer before dispatch',async()=>{
   for(const change of ["command.input.accept=false","command.input.text='Changed text'","dialogs.get(7).text='Changed dialog'","dialogs.get(7).kind='confirm'","command.approved=false","command.operation=null"]){
     const f=unguardedDialogFixture();f.run(change);await assert.rejects(f.run('dispatch(command)'),/stale_approval|requires its exact approval/);assert.equal(f.run('answers.length'),0,change);assert.equal(f.run('dialogs.has(7)'),true);
   }
 });
-test('P1 an uncertain preexisting native answer is consumed before dispatch and never replayed',async()=>{
+test('P1 an uncertain borrowed native answer is consumed before dispatch and never replayed',async()=>{
   const f=unguardedDialogFixture();f.run("chrome.debugger.sendCommand=async(source,method,args)=>{if(method==='Page.handleJavaScriptDialog'){answers.push(args);throw Error('native answer response was lost')}return {}};");
   await assert.rejects(f.run('dispatch(command)'),/response was lost/);assert.equal(f.run('answers.length'),1);
   await assert.rejects(f.run('dispatch(command)'),/already attempted/);assert.equal(f.run('answers.length'),1);
 });
-test('P1 native opening metadata identifies the unguarded admission without downgrading ordinary dialogs',async()=>{
+test('P1 native opening metadata makes borrowed functions ask without downgrading guarded dialogs',async()=>{
   const f=unguardedDialogFixture();f.run("chrome.debugger.onEvent={addListener:callback=>{globalThis.nativeEvent=callback}};chrome.webNavigation={getAllFrames:async()=>[{frameId:0,documentId:'native',url:'http://fixture.test/'}]};controlled.get(7).admitting=true;");
   const source=fs.readFileSync('control/chrome/extension/background.js','utf8');f.run(source.slice(source.indexOf('chrome.debugger.onEvent.addListener('),source.indexOf('chrome.debugger.onDetach.addListener(')));
   await f.run("nativeEvent({tabId:7},'Page.javascriptDialogOpening',{url:'http://fixture.test/',type:'prompt',message:'Already open'})");assert.equal(f.run('dialogs.get(7).unguarded'),true);
-  f.run('controlled.get(7).admitting=false');await f.run("nativeEvent({tabId:7},'Page.javascriptDialogOpening',{url:'http://fixture.test/',type:'confirm',message:'Guarded dialog'})");assert.equal(f.run('dialogs.get(7).unguarded'),undefined);
+  f.run("controlled.get(7).admitting=false;privacyDocuments.set('native','private');nativeDialogStarts.set('[7,\"native\"]',[{kind:'confirm',document:'private',token:'d1'}]);");await f.run("nativeEvent({tabId:7},'Page.javascriptDialogOpening',{url:'http://fixture.test/',type:'confirm',message:'Guarded dialog'})");assert.equal(f.run('dialogs.get(7).unguarded'),undefined);
 });
-test('P1 the owner may close a preexisting dialog before approval without any tool answer',async()=>{
+test('P1 the owner may close a borrowed dialog before approval without any tool answer',async()=>{
   const f=unguardedDialogFixture();f.run("chrome.debugger.onEvent={addListener:callback=>{globalThis.nativeEvent=callback}};");
   const source=fs.readFileSync('control/chrome/extension/background.js','utf8');f.run(source.slice(source.indexOf('chrome.debugger.onEvent.addListener('),source.indexOf('chrome.debugger.onDetach.addListener(')));
   await f.run("nativeEvent({tabId:7},'Page.javascriptDialogClosed',{result:false})");assert.equal(f.run('dialogs.has(7)'),false);await assert.rejects(f.run('dispatch(command)'),/stale_approval/);assert.equal(f.run('answers.length'),0);
 });
-test('P1 admission remains available when a preexisting modal blocks debugger and page setup',async()=>{
-  const f=lifecycleFixture();f.run("globalThis.readerSetups=0;prepareTarget=()=>new Promise(resolve=>{globalThis.finishPreload=resolve;dialogs.set(7,{unguarded:true});wakeDialog(7)});lateReader=async()=>{readerSetups++};");
-  const result=await f.run('take(7)');assert.equal(result.tab,7);assert.equal(f.run('readerSetups'),0);assert.equal(f.run('controlled.get(7).popupNeedsReload'),true);
-  f.run('dialogs.delete(7);finishPreload()');await f.run('requireTab(7)');assert.equal(f.run('readerSetups'),1);assert.equal(f.run('controlled.get(7).pendingSetup'),undefined);assert.equal(f.run('controlled.get(7).popupNeedsReload'),true);
+test('P1 preexisting modal handoff is bounded detaches and recovers the same control after owner answer',async()=>{
+  const f=lifecycleFixture();f.run("globalThis.timers=[];setTimeout=(fn,ms)=>{const timer={fn,ms};timers.push(timer);return timer};clearTimeout=()=>{};globalThis.attached=false;globalThis.ownerAnswered=false;globalThis.readerSetups=0;chrome.debugger.attach=async()=>{attached=true};chrome.debugger.detach=async()=>{attached=false;lifecycleCalls.push('detach')};chrome.debugger.sendCommand=async(source,method)=>{if(!attached)throw Error('not attached');if(method==='Page.enable'&&!ownerAnswered)return new Promise(()=>{});return {}};lateReader=async()=>{readerSetups++};chrome.debugger.onDetach={addListener:callback=>{globalThis.nativeDetached=callback}};");
+  const source=fs.readFileSync('control/chrome/extension/background.js','utf8');f.run(source.slice(source.indexOf('chrome.debugger.onDetach.addListener('),source.lastIndexOf('connect();')));
+  const pending=f.run('globalThis.handedOff=false;take(7).then(value=>{handedOff=true;return value})');await spin(f,'timers.some(timer=>timer.ms===5000)');f.run("globalThis.original=controlled.get(7);original.kept='pending state';timers.find(timer=>timer.ms===5000).fn()");await spin(f,'handedOff');
+  const result=await pending;assert.equal(result.owner_dialog,true);assert.match(result.ask_owner,/answer the dialog yourself/);assert.equal(f.run('attached'),false);assert.equal(f.run('preloadTargets.size'),0);assert.equal(f.run('readerSetups'),0);
+  await f.run('nativeDetached({tabId:7})');assert.equal(f.run('controlled.get(7)===original'),true);
+  f.run('ownerAnswered=true');await f.run('requireTab(7)');assert.equal(f.run('attached'),true);assert.equal(f.run('readerSetups'),1);assert.equal(f.run('controlled.get(7)===original'),true);assert.equal(f.run('original.kept'),'pending state');assert.equal(f.run('original.popupNeedsReload'),true);assert.equal(f.run('original.modalHandoff'),false);
+});
+test('P1 a responding Page domain may finish slow setup without a false owner handoff',async()=>{
+  const f=lifecycleFixture();f.run("globalThis.timers=[];setTimeout=(fn,ms)=>{const timer={fn,ms};timers.push(timer);return timer};clearTimeout=()=>{};lateReader=()=>new Promise(resolve=>{globalThis.finishReader=resolve});globalThis.taken=false;");
+  const pending=f.run('take(7).then(value=>{taken=true;return value})');await spin(f,"typeof finishReader==='function'");f.run('timers.find(timer=>timer.ms===5000).fn()');await Promise.resolve();assert.equal(f.run('taken'),false);assert.equal(f.run("lifecycleCalls.includes('detach')"),false);
+  f.run('finishReader()');const result=await pending;assert.equal(result.owner_dialog,undefined);assert.equal(f.run('controlled.get(7).modalHandoff'),false);
+});
+test('P1 a borrowed answer preserves and finishes a previous hold before returning its followups',async()=>{
+  const f=unguardedDialogFixture();f.run("controlled.get(7).hold={nonce:'old',inFlight:true};globalThis.finished=false;finishFrames=()=>new Promise(resolve=>{globalThis.finishOld=resolve});chrome.debugger.onEvent={addListener:callback=>{globalThis.nativeEvent=callback}};");
+  f.run('globalThis').verifyOldFinished=()=>assert.equal(f.run('controlled.get(7).hold.inFlight'),false,'followup collection waits for the old input completion');f.run('collectSteps=async()=>{verifyOldFinished();return []}');
+  const source=fs.readFileSync('control/chrome/extension/background.js','utf8');f.run(source.slice(source.indexOf('chrome.debugger.onEvent.addListener('),source.indexOf('chrome.debugger.onDetach.addListener(')));
+  f.run("chrome.debugger.sendCommand=async(source,method,args)=>{if(method==='Page.handleJavaScriptDialog'){answers.push(args);nativeEvent(source,'Page.javascriptDialogClosed',{});}return {}};");
+  const pending=f.run('dispatch(command).then(value=>{finished=true;return value})');pending.catch(()=>{});await spin(f,"typeof finishOld==='function'");for(let n=0;n<30;n++)await Promise.resolve();assert.equal(f.run('finished'),false);assert.equal(f.run('controlled.get(7).hold.inFlight'),true);
+  f.run('finishOld(false)');await pending;assert.equal(f.run('controlled.get(7).hold.inFlight'),false);assert.equal(f.run('answers.length'),1);
 });
