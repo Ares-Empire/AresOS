@@ -198,6 +198,6 @@ export async function siteMatrices({call,read,nav,target,counts,eventually,tab,f
     assert.match(prepared.approval.question,/delete/i);
     await call('drop',{operation_id:prepared.approval.operation_id});
   });
-  if(results.some(row=>!row.passed))throw new AggregateError(results.filter(row=>!row.passed).map(row=>Error(row.name+': '+row.error)),'Adapter requirements failed; see adapters.json and adapters-receiver.jsonl');
+  if(results.some(row=>!row.passed))throw Object.assign(new AggregateError(results.filter(row=>!row.passed).map(row=>Error(row.name+': '+row.error)),'Adapter requirements failed; see adapters.json and adapters-receiver.jsonl'),{results});
   return results;
 }
