@@ -95,6 +95,7 @@ def event(value):
     return original_event(value)
 bridge.on_event=event
 daemon.engine.adapters['chrome'].hosts={name:[name+'.test'] for name in HOSTS}
+from sites.qualification import install; install(daemon)
 try:
     daemon.serve()
 finally:

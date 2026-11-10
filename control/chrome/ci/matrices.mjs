@@ -77,6 +77,7 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
     await eventually(()=>counts('taken-post')===1,'one native POST loaded the document');await call('take_tab',{tab});const denied=await rpc('click',await target('Continue'));assert.equal(denied.ok,false);assert.match(denied.error.message,/form submission|request method/);await delay(150);assert.equal(counts('taken-post'),1,'refusal must not resubmit POST');
     await call('navigate',{tab,url:'http://fixture.test:8765/?case=features&id=post-history'});await eventually(async()=>String((await call('read',{tab})).untrusted_content.url).includes('id=post-history'),'GET after POST');assert.equal((await rpc('navigate',{tab,direction:'back'})).ok,false);assert.equal(counts('taken-post'),1,'history must not resubmit POST');
   });
+  results.push(...await (await import('./sites/matrices.mjs')).siteMatrices({call,read,nav,target,counts,eventually,tab,fixture,admin,rpc,lifecycle}));
   await check('GROUP 1 submit compose deletion and free-input matrix',async()=>{
     for(const tag of ['default','submit','override','external','empty','invalid','clobbered'])for(const key of ['click','Enter','Space','field']){
       const id='submit-'+tag+'-'+key;await nav('action-matrix&mode=submit&id='+id+'&tag='+tag);

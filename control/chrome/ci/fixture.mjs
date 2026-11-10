@@ -35,6 +35,7 @@ export async function fixtures(options={}) {
     // not exhaust Chrome's six HTTP/1.1 connections and hide later receivers.
     if(!['draft-inner','password-inner'].includes(kind))for(const [id,stream]of streams){stream.end();streams.delete(id);}
     let body,script='';
+    if(kind==='adapter-sites'){const site=(await import('./sites/fixture.mjs')).sitePage(url,req.headers.host);res.end(page(site.body,site.script));return;}
     if(kind==='native-donor'){
       const id=url.searchParams.get('id');body='<p id="native-donor">Ordinary native donor</p><button type="button" style="position:fixed;inset:0;width:100vw;height:100vh">Open controlled page</button>';
       script="document.title='Native donor '+"+JSON.stringify(id)+";document.querySelector('button').onclick=()=>window.open('/?case=compose&id='+"+JSON.stringify(id)+",'native-root-'+"+JSON.stringify(id)+");fetch('/compat-report',{method:'POST',body:JSON.stringify({id:"+JSON.stringify(id)+",phase:'donor-ready'})});";
