@@ -102,6 +102,7 @@ Updated 2026-11-10. The live truth is `git log`, `gh pr list` and `git worktree 
   - after the rehearsal passes, pin the release and empty `pending-rebind.json`;
   - then the owner runs `at update` and `sudo passwd ares` on the laptop.
   - 2026-11-10: the first release run (42807087845) failed in an extra second VM pass the agent had added (a host-side nbd race in the offline journal reader after all guest checks passed). Nothing was published. The release job now keeps the reviewed single VM pass; the integrator approved one more release dispatch (the last).
+  - Release run 2 (42817411051) stopped in the classified image diff before publishing: 13 unexplained of 916 changed paths. One is real: package 21's `cp -a` of `os/config` set `/etc/sudoers.d` to 0755 (Fedora and release 13 have 0750; the files stay 0440). Fix: restore 0750 in `os/build.sh` with a check, and confirm no other directory changed mode. The other 12 get exact classifier rules. A third release dispatch is approved (still one publish).
   - Its JUDGMENT-CALL 2: package 22's tools can't go forward again after `at previous`, so the rehearsal ends on 13 with 27 beside it; going forward after a rollback belongs in 22c.
   - Also for 22c (PR #37 REVIEW-1 should-fix, older than that fix): the refusal invariant in `test_owner_update` tries a persistent refusal twice but never asserts that it refused. Assert the refusal on both attempts wherever the check applies.
   - Packages 23 and 21b go into the next release, which needs 22c first.
