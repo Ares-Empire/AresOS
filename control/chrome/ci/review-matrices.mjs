@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {setTimeout as delay} from 'node:timers/promises';
 
-export async function reviewMatrices({check,nav,call,rpc,target,read,counts,eventually,approval,fixture,getTab,ownerKey,admin,ownerNavigate,ownerDismiss,nativeDonor,closeNativeDonor,setTab,lifecycle}){
+export async function reviewMatrices({check,nav,call,rpc,target,read,counts,eventually,approval,receiverEvidence,fixture,getTab,ownerKey,admin,ownerNavigate,ownerDismiss,nativeDonor,closeNativeDonor,setTab,lifecycle}){
   await check('GROUP 2 REVIEW inherited and newly created frames hold submissions',async()=>{
     for(const variant of ['blank','srcdoc','borrowed','new']){
       const id='review-frame-'+variant;await nav('review-page&mode='+(variant==='new'?'new-frame':'inline-hold')+'&variant='+variant+'&id='+id);
@@ -48,9 +48,9 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
     for(const mode of ['open','closed'])for(const composed of [false,true])for(const cancel of [false,true]){
       setTab(await nativeDonor(getTab()));
       const id='review-fallback-'+mode+'-'+composed+'-'+cancel;await nav('review-page&mode=shadow-fallback&variant='+mode+'&composed='+composed+'&cancel='+cancel+'&id='+id);
-      const result=await call('click',await target('Continue'));assert.equal(counts('handler-'+id),0,'borrowed native event never reaches the asking handler');
+      const result=await call('click',await target('Continue'));assert.equal(receiverEvidence('handler-'+id,'borrowed native handler held').count,0,'borrowed native event never reaches the asking handler');
       if(cancel){assert.equal(counts(id),0);assert.ok(result.followups.some(row=>row.stopped));await approval(await call('click',await target('Delete')),id);}
-      else{assert.ok(counts(id)<=1);assert.ok(result.untrusted_content.steps.some(step=>step.kind==='activation_unknown'));assert.ok(!result.followups.some(row=>row.approval),'unknown activation never resumes');assert.equal((await call('operation_status',{operation_id:result.operation_id})).operation.state,'unknown');}
+      else{assert.ok(receiverEvidence(id,'uncancellable native default is unknown').count<=1);assert.ok(result.untrusted_content.steps.some(step=>step.kind==='activation_unknown'));assert.ok(!result.followups.some(row=>row.approval),'unknown activation never resumes');assert.equal((await call('operation_status',{operation_id:result.operation_id})).operation.state,'unknown');}
       await closeNativeDonor();console.log('REVIEW P5 borrowed native',id,'receiver',counts(id),'handler',counts('handler-'+id));
     }
   });
@@ -70,7 +70,7 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
       const id='review-bind-'+mode+'-'+variant;await nav('review-page&mode='+mode+'&variant='+variant+'&id='+id);
       const prepared=await call('click',await target(label));assert.ok(prepared.approval,JSON.stringify(prepared));
       await fixture.mutate(id,'review-change');const result=await rpc('submit',prepared.approval);
-      assert.ok(!result.ok||result.data.operation.state==='failed',JSON.stringify(result));assert.equal(counts(id),0);
+      assert.ok(!result.ok||result.data.operation.state==='failed',JSON.stringify(result));assert.equal(receiverEvidence(id,'changed approval refused').count,0);
       await approval(await call('click',await target(label)),id);console.log('REVIEW P10 P11 P12 P13 P14 P22 RECEIVER0/1/1',id);
     }
   });
@@ -104,7 +104,7 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
       const id='review-independent-dialog-'+accept;await nav('review-page&mode=independent-dialog&id='+id);await delay(600);await fixture.mutate(id,'review-change');
       const dialog=await eventually(async()=>(await call('read',{tab:getTab()})).dialog,'independent native dialog');assert.equal(counts(id),0);
       const answer=await rpc('dialog',{tab:getTab(),expected:dialog,accept});
-      assert.equal(counts(id),0,'answering must never resume an unapproved form submission');
+      assert.equal(receiverEvidence(id,'after native answer or owner handoff').count,0,'answering must never resume an unapproved form submission');
       if(!answer.ok){assert.equal(answer.error.code,'refused');assert.match(answer.error.message,/leave it to the owner/);assert.deepEqual((await call('read',{tab:getTab()})).dialog,dialog);console.log('REVIEW P1 private modal arming unavailable: owner handoff, receiver 0',id);ownerDismiss();await delay(600);}
       else{await approval(answer.data,id);console.log('REVIEW P1 RECEIVER0/1/1',id);}
     }

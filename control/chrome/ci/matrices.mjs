@@ -8,9 +8,11 @@ import {completeIngress} from './ingress-scan.mjs';
 import {reviewMatrices} from './review-matrices.mjs';
 import {popupMatrices} from './popups.mjs';
 import {collectSiteResults} from './site-results.mjs';
+import {receiverSnapshot} from './receiver-evidence.mjs';
 
 export async function matrices({call,read,nav,target,counts,eventually,tab,fixture,admin,rpc,caller,ownerNavigate,ownerOpenPopup,popupEvidence,popupControl,nativeDonor,closeNativeDonor,ownerKey,ownerDismiss,ownerHistory,ownerBookmark,lifecycle,restoreControl,stopClick,baseline,isolationAfter}) {
   const results=[];let trustOperation;
+  const receiverEvidence=(id,phase)=>{const row=receiverSnapshot(fixture.arrivals,id,phase);fs.appendFileSync('/out/page-receiver.jsonl',JSON.stringify(row)+'\n');return row;};
   async function check(name,fn) {
     try {await fn();results.push({name,passed:true});console.log(name,'PASS');}
     catch(error){results.push({name,passed:false,error:String(error.stack)});console.error(name,'FAIL',error.stack);
@@ -22,9 +24,10 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
   }
   async function approval(result,id) {
     const prepared=result.approval ? result:result.followups?.find(item=>item.approval);
-    assert.ok(prepared?.approval,JSON.stringify(result));assert.equal(counts(id),0,'zero arrivals before approval');
+    assert.ok(prepared?.approval,JSON.stringify(result));assert.equal(receiverEvidence(id,'before approval').count,0,'zero arrivals before approval');
     await call('submit',prepared.approval);await eventually(()=>counts(id)===1,'one receiver arrival '+id);
-    await call('submit',prepared.approval);await delay(30);assert.equal(counts(id),1,'a second attempt sends nothing');
+    assert.equal(receiverEvidence(id,'after approval').count,1);
+    await call('submit',prepared.approval);await delay(30);assert.equal(receiverEvidence(id,'after repeat').count,1,'a second attempt sends nothing');
   }
   async function reservedFor(id,except){
     let cursor;
@@ -46,7 +49,7 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
       await approval(await call('click',await target('Continue')),id);
     }
   });
-  await reviewMatrices({check,nav,call,rpc,target,read,counts,eventually,approval,fixture,getTab:()=>tab,setTab:value=>{tab=value},ownerKey,admin,ownerNavigate,ownerDismiss,nativeDonor,closeNativeDonor,lifecycle});
+  await reviewMatrices({check,nav,call,rpc,target,read,counts,eventually,approval,receiverEvidence,fixture,getTab:()=>tab,setTab:value=>{tab=value},ownerKey,admin,ownerNavigate,ownerDismiss,nativeDonor,closeNativeDonor,lifecycle});
   await popupMatrices({check,call,rpc,nav,counts,eventually,getTab:()=>tab,setTab:value=>{tab=value},fixture,ownerOpenPopup,popupEvidence,popupControl,approval});
   await check('GROUP 7 native compatibility inside and outside Claude tabs',async()=>{
     await nav('native-compat&id=controlled');
