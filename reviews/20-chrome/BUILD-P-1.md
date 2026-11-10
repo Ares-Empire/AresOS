@@ -23,7 +23,7 @@ owner handoff / non-cancellable uncertainty, whose different meaning is stated i
 | P3 | A new document inherits the active hold before MAIN activation, without an approval; final frame coverage is checked and additions are armed or refused. Inherited guards finish with the source dispatch. | Background P3 startup/final-snapshot tests; new HTTP-frame receiver case; two P3 mutations. |
 | P4 | A borrowed wrapper routes through the target document's private guard; a source hold propagates protection without allowance. Inert/detached/non-Nodes and ordinary outside documents keep native behavior. | Page P4 and cross-tab/iframe/outside receiver cases; mutation P4. |
 | P5 | Controlled `attachShadow` synchronously registers private capture before returning. Composed roots stay held; detached roots retain native behavior. | Composed-aware double, immediate borrowed-dispatch unit, open/closed same-handler form receiver cases; mutation P5. |
-| P6 | One canonical key tuple is used for service classification, adapter shortcuts and dispatch; the extension checks the received tuple. | Modified Delete/Backspace units and receivers; Gmail Shift+# variant; mutation P6. |
+| P6 | One canonical key tuple is used for service classification, adapter shortcuts and dispatch; the extension checks the received tuple. | Modified Delete/Backspace units and receivers; Gmail Shift/Ctrl/Alt/Cmd+# variants; mutations P6 and P6-adapter. |
 | P7 | Tolerant percent-byte UTF-8 replacement decoding agrees with Python, including malformed escapes and BOM preservation. | Actual guard and policy counterexamples; malformed action receiver cases; mutation P7. |
 | P8 | NFC normalization precedes the frozen fold/boundary table, in word-list version 3. | Decomposed German policy/guard/receiver cases; mutation P8. |
 | P9 | Explicit payment/deletion evidence wins over adapter recognition; trusted checking independently rejects forbidden effects and WhatsApp. | Policy and trusted-predicate units; mixed-label owner-entry receiver case; two P9 mutations. |
@@ -42,7 +42,7 @@ owner handoff / non-cancellable uncertainty, whose different meaning is stated i
 | P22 | Questions name the service action/key and page title; title is bound. Recipient/name summaries are bounded, count remaining recipients exactly, and preserve full fields below. | Question/title/count/long-name units, title receiver mutation; two P22 mutations. |
 | P23 | Input/dialog/navigation results carry a bounded post-input address/notice/dialog/change observation, or explicitly state unavailable. | Background notice unit and actual notice receiver fixture; mutation P23. |
 | P24 | Final navigation identity precedes the last dirty/media check. Tab.audible supplements attached media; uninspectable frames count as possibly unsaved. | Late-typing/audible unit; blank-editor/detached-audio/Web-Audio receiver cases; two P24 mutations. |
-| P25 | Only native input requiring a selected tab activates it; satisfied checks and isolated actions do not. | Inactive no-op/select units; mutation P25. |
+| P25 | Only native input requiring a selected tab activates it; satisfied checks and isolated actions do not. Satisfied checks report unchanged, without claiming dispatch. | Inactive no-op/select units and owner-tab browser case; mutations P25 and P25-report. |
 | P26 | Replacements use nonconstructible methods with native property shapes. A fresh-realm stringifier must differ in a controlled tab and equal baseline outside. | Shape unit and discriminating compatibility receiver fixture; mutation P26. |
 | P27 | Revocation removes session navigation blocks before waiting for native cleanup. | Pending-cleanup rule unit; mutation P27. |
 | P28 | Every armed dispatch finishes its nonce-bound guards in finally, including refusal paths. | Final-binding refusal cleanup unit; mutation P28. |
@@ -52,15 +52,18 @@ owner handoff / non-cancellable uncertainty, whose different meaning is stated i
 
 ## Local verification checkpoint
 
-**Run:** full Node: **185 tests, 185 pass, 0 fail/cancelled/skipped**. Full Python before the latest extra question
-assertions: **176 tests, OK, 342.094 s**. Focused current policy/sites/questions/unit suite: **40 tests, OK**.
+**Run:** `node --test control/chrome_tests/*.test.mjs`: **186 tests, 186 pass, 0 fail/cancelled/skipped**, 6.230 s.
+Full Python checkpoints: **176 tests, OK, 342.094 s**; **180 tests, OK, 323.556 s**;
+**181 tests, OK, 281.713 s**. A final full run including the modified Gmail-key test is pending.
+`PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/chrome_tests python3 -B -m unittest test_questions test_policy test_sites test_unit -q`:
+**42 tests, OK, 0.496 s**.
 `python3 control/generate.py --check`: `Generated artifacts match definitions`. `git diff --check`: clean.
 
-**Run:** `python3 -B reviews/20-chrome/mutation-audit.py`: **47 mutations rejected; every baseline passed**.
+**Run:** `python3 -B reviews/20-chrome/mutation-audit.py`: **49 mutations rejected; every baseline passed**.
 The auditor copies only into this worktree's `.work/`, mutates the copy and removes it. Exact commands and failing
 assertions are in [review-fixes-mutations.json](records/review-fixes-mutations.json). The first attempt exposed the
 missing nonnegative capture assertion in the new head-script unit; that test was strengthened and the complete
-47-mutation audit rerun successfully.
+complete mutation audit rerun successfully.
 
 ## CI ledger (not acceptance)
 
@@ -72,8 +75,13 @@ registered. The correction was committed in `719d5cd1`. No missing browser case 
 Source `661b650c`: push **42798171530**, PR **42798181820**, both failed after entering browser input. External push log lines 2609–2614 show the native stopped-submission case reached its receiver assertion, followed by a disconnected host. Retained ingress ends at a new-frame startup awaiting guard.finish while the debugger is paused: a real deadlock. Startup now uses synchronous guard.inherit, with no allowance and no wait for a paused browser task; a new regression pins it. The background in-flight flag now over-covers every private completion barrier. This was fixed before the next batch. Qualification
 **42798181770** and boundary **42798181847** succeeded; base **42798181856** and Mail **42798181785** must be checked in the closing ledger.
 
-The starting branch ledger had 114 Chrome workflow IDs, including the owner's two brief/review-only IDs. The
-first implementation batch and second batch add four more: 118 at this checkpoint. Recount from
+Source `6f65b16e`: Chrome **42801585223** and **42801591854** were cancelled as superseded before acceptance;
+they are not passing evidence. Source `cbe641a8`: Chrome **42803248244** and **42803256661** are in progress.
+On that source, base **42803257055**, Mail **42803256710**, boundary **42803256666** and qualification
+**42803256636** succeeded. These are intermediate checks, not final-head acceptance.
+
+The starting branch ledger had 114 Chrome workflow IDs, including the owner's two brief/review-only IDs. Four
+implementation pushes add eight more: 122 at this checkpoint. Recount from
 `gh run list --branch pkg/20-chrome --workflow control-chrome.yml --limit 200` before every closing push; remain
 within about 155. Earlier superseded baseline runs 42786706317/42786714089 were cancelled. No force push or hook
 bypass was used.
