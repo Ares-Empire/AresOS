@@ -366,5 +366,6 @@
     } catch (error) { reply({ok:false, error:String(error.message)}); }
   }
   chrome.runtime.onMessage.addListener(onMessage);
+  chrome.runtime.sendMessage({event:'reader_ready',document:documentId}).catch(()=>{});
   } catch(error) { console.error('AresOS reader preload',error); chrome.runtime.sendMessage({event:'reader_error',error:String(error.stack || error)}); }
 })();

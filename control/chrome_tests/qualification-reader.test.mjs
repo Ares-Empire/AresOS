@@ -23,7 +23,7 @@ function readerFixture(security) {
   const context=vm.createContext({document,Element,HTMLElement:Element,HTMLInputElement:Input,
     HTMLTextAreaElement:class extends Element{},HTMLSelectElement:class extends Element{},HTMLButtonElement:class extends Element{},
     Node:{TEXT_NODE:3},MutationObserver:class {observe(){}takeRecords(){return [];}},
-    chrome:{dom:{openOrClosedShadowRoot:()=>null},runtime:{id:'fixture',onMessage:{addListener(fn){listener=fn;}}}},
+    chrome:{dom:{openOrClosedShadowRoot:()=>null},runtime:{id:'fixture',sendMessage:async()=>({}),onMessage:{addListener(fn){listener=fn;}}}},
     crypto:{getRandomValues:array=>array.fill(1)},getComputedStyle:()=>style,
     [Symbol.for('aresos.chrome.guard.v2')]:{watch(){},reader(value){api=value;},arm(){},clear(){},steps(){return [];}},
     setTimeout(){},location:{href:'https://fixture.test/'},scrollX:0,scrollY:0,innerWidth:100,innerHeight:100});

@@ -21,10 +21,14 @@ const documentMethods=new Map(),currentDocuments=new Map(),formLoadedDocuments=n
 function navigationRecord(map,key,value){map.delete(key);map.set(key,value);if(map.size>20000)map.delete(map.keys().next().value);}
 const targetKey=source=>JSON.stringify([source.tabId,source.sessionId||null]);
 let preloadBundle;
+let protocolCommandSequence=0;
 const bundle=()=>preloadBundle??=Promise.all(['guard.js','reader.js','page.js'].map(async file=>(await fetch(chrome.runtime.getURL(file))).text()));
 async function preloadCommand(source,method,parameters={}){
   if(!POLICY.cdpMethods.includes(method))throw Error('permission_denied: DevTools method not allowed');
-  return audit(await chrome.debugger.sendCommand(source,method,parameters));
+  const id=++protocolCommandSequence;
+  if(recording)audit({protocol_command:{id,source,method,phase:'dispatched'}});
+  try{const result=await chrome.debugger.sendCommand(source,method,parameters);if(recording)audit({protocol_command:{id,phase:'completed'}});return audit(result);}
+  catch(error){if(recording)audit({protocol_command:{id,phase:'failed'}});throw error;}
 }
 function assertTarget(state){if(preloadTargets.get(targetKey(state.source))!==state||controlled.get(state.tab)?.epoch!==state.epoch)throw Error('stale_reference: control ended during document setup');}
 function contextChanged(state){for(const done of state.cleanupWaiters||[])done();state.cleanupWaiters?.clear();}
@@ -343,8 +347,10 @@ async function content(tab, frame, command, parameters={}) {
 async function armDialog(tab){
   const owner=controlled.get(tab),nonce=crypto.randomUUID();assertControl(tab,owner?.epoch);
   const frames=await chrome.webNavigation.getAllFrames({tabId:tab})||[];
-  const documents=[...preloadTargets.values()].filter(state=>state.tab===tab).flatMap(state=>[...state.documents.values()].filter(doc=>doc.ready).map(doc=>({state,doc})));
-  if(!frames.length||documents.length!==frames.length)throw Error('refused: the dialog cannot be answered with complete private guard coverage; leave it to the owner');
+  const candidates=[...preloadTargets.values()].filter(state=>state.tab===tab&&!state.detached).flatMap(state=>[...state.documents.values()].filter(doc=>doc.ready).map(doc=>({state,doc})));
+  const documents=frames.map(frame=>candidates.find(value=>value.doc.document===privacyDocuments.get(frame.documentId)));
+  if(recording)audit({dialog_coverage:{frames:frames.map(frame=>({frame:frame.frameId,native_document:frame.documentId,private_document:privacyDocuments.get(frame.documentId)})),guards:candidates.map(value=>({document:value.doc.document,frame:value.doc.frameId}))}});
+  if(!frames.length||documents.some(value=>!value))throw Error('refused: the dialog cannot be answered with complete private guard coverage; leave it to the owner');
   const config={...POLICY,blockedHosts:excludedHosts};
   owner.hold={nonce,config,inFlight:true,until:Date.now()+POLICY.holdMs};owner.inputNonce=nonce;
   const barriers=[];
@@ -790,6 +796,13 @@ async function connect() {
   port.onDisconnect.addListener(()=>{ for(const barrier of fixtureBarriers.values())barrier.reject(Error('unknown: native connection ended after input'));fixtureBarriers.clear();port=null; stop().finally(()=>setTimeout(connect,1000)); });
 }
 chrome.runtime.onMessage.addListener((message,sender,reply)=>{
+  if(sender.id===chrome.runtime.id&&message?.event==='reader_ready'){
+    if(!sender.tab||!controlled.has(sender.tab.id)||!sender.documentId||typeof message.document!=='string'){reply({received:false});return;}
+    try{safeURL(sender.origin||sender.url);}catch{reply({received:false});return;}
+    const known=privacyDocuments.get(sender.documentId);
+    if(known&&known!==message.document){reply({received:false});return;}
+    privacyDocuments.set(sender.documentId,message.document);reply({received:true});return;
+  }
   if(sender.id===chrome.runtime.id&&message?.event==='held_step'){reply({received:observeStep(message,sender)});return;}
   if(sender.id === chrome.runtime.id && message?.event === 'reader_error') { port?.postMessage({event:'reader_error',error:message.error,tab:sender.tab?.id,frame:sender.frameId});reply({received:true});return; }
   const popup=chrome.runtime.getURL('popup.html'),details=chrome.runtime.getURL('details.html');

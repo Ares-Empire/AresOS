@@ -35,8 +35,8 @@ worktree and branch remain untouched. PR 27 remains a draft; no merge was perfor
 
 ## Evidence and pending work
 
-**Run:** full Node: **193 passed, zero failed/cancelled/skipped**. Focused Python: **44 tests, OK**. The expanded
-mutation audit rejects **58 mutations**, with every baseline passing. It includes the pre-answer debugger barrier,
+**Run:** full Node: **195 passed, zero failed/cancelled/skipped**. Focused Python: **44 tests, OK**. The expanded
+mutation audit rejects **60 mutations**, with every baseline passing. It includes the pre-answer debugger barrier,
 HTTP file hash, selected-file binding, designMode and actual review HTTP route. The full Python sweep passed **184 tests, OK, 250.882 s**. Generated artifacts match and `git diff --check` is clean.
 
 **Run:** source `cbe641a8`, Chrome runs **42803248244** and **42803256661**, failed. The external artifact completed
@@ -78,3 +78,13 @@ including both changed-draft refusals at zero. This is partial evidence, not com
 now activates the exact Open/Open File window, allows the native path field to settle, and captures its opened,
 path-entered and chosen states. Native dialogs run earlier in the next matrix. The receiver assertions remain
 unchanged. The ledger is 130 IDs before this push, 132 after it.
+
+**Run — native coverage feedback:** source `f3a4abc6`, policy job of **42818344133**, failed the ordinary
+native-dialog test before attempting the debugger pause: the old coverage predicate compared the total number of
+ready debugger records with live frames. [Exact partial failure and zero receiver](records/review-fixes-f3-native.json)
+are retained. Coverage now selects the authenticated private reader identity for each current native browser
+`documentId`; stale debugger records cannot add or subtract live coverage. A private reader-ready message supplies
+that association before any first read, preserves an existing password-history identity, and excludes owner-only
+origins. Independent regressions cover stale records and authenticated readiness. Lightweight protocol logging
+records dispatch/completion order without script arguments or page values. Full Node is 195/195; all 60 targeted
+mutation checks pass. The next native trial is still required. Ledger: 132 IDs before the next push, 134 after it.

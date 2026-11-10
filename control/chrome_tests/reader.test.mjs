@@ -27,7 +27,7 @@ function fixture(fields,{subtle=true}={}) {
   const document={title:'Fixture',childNodes:[],getElementById(){return null;},
     querySelectorAll(selector){return nodes;},addEventListener(){},dispatchEvent(){}};
   let listener,observer,readerAPI;const observationOptions=[];
-  const chrome={dom:{openOrClosedShadowRoot:()=>null},runtime:{id:'fixture',onMessage:{addListener(fn){listener=fn;},removeListener(){}}}};
+  const chrome={dom:{openOrClosedShadowRoot:()=>null},runtime:{id:'fixture',sendMessage:async()=>({}),onMessage:{addListener(fn){listener=fn;},removeListener(){}}}};
   class MutationObserver {constructor(fn){this.fn=fn;this.records=[];observer=this;}observe(root,options){observationOptions.push(options);}takeRecords(){return this.records.splice(0);}disconnect(){}}
   const context=vm.createContext({document,chrome,Blob,crypto:{subtle:subtle?webcrypto.subtle:undefined,getRandomValues:array=>array.fill(++fileSequence)},MutationObserver,
     Element,HTMLElement:Element,HTMLInputElement,HTMLTextAreaElement,HTMLSelectElement,HTMLButtonElement,Node:{TEXT_NODE:3},CustomEvent:class{},
