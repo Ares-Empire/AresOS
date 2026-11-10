@@ -1960,3 +1960,57 @@ was merged, and stage 3 was not started.
 
 
 **Read / run — item 3:** LIST establishes the selectable folder catalogue; the scan validator compares each SEARCH reply with that command's independent inventory, then requires a matching UID/body/hash FETCH after that SEARCH for every returned UID. The arrival test records LIST with Source UID 1, inserts unrelated UID 2 immediately before SELECT, records SEARCH with both UIDs, and verifies a closed complete scan with its warning and no false recovery. Empty FETCH, wrong UID, missing literal and uncommitted-warning negatives remain. Focused scan/lifecycle checks also retain the missing-account-result regression; missing result rows never suppress the qualification obligation.
+
+
+**Read / run — item 4 and storage:** the cost manifest records all 98 round-2 recordings, run/attempt/job identity, alterations and timestamp-measured seconds. Four recordings exceeded 900 seconds individually (the longest was 1,962.291 seconds). Each is now four disjoint candidate partitions; the 110 tasks are placed by longest measured cost first. Estimated evaluation load is 800.1–800.2 seconds per job. This estimate excludes container setup and repeated candidate generation, so Linux job durations below are the acceptance evidence. The ownership test checks every prior candidate ordinal exactly once, all corpus entries and all partitions. Corpus additions/reordering fail loudly. No case is skipped and the 45-minute cap is unchanged.
+
+**Read — validator controls:** the round-2 comparison-level redundancy table remains accurate. A wrong Sent destination is redundant with completion_errors/stage_claims/transition; missing Deleted STORE with completion_errors/transition; missing Sent copy with stage_claims; narrowed payload with completion_errors/script_differences/transition; wrong rename count with the independent notice-count comparison. Transition and local.errors still have sole-validator production plants. Operation-row removal requires stage_claims; filing-result row removal **and state change** require filing_claims. Per-validator alteration counters below describe provenance, separately from these indispensability controls.
+
+**Run — complete point-0 table:** no storage fault is injected. Several sweep scripts deliberately seed duplicates, role races, expiry, cancellation, restore or refused publication, so this table also includes their named production disclosure gaps. All nine retained production deltas equal the previous Linux strict run 42868506005 attempt 2 byte-for-byte; the new test independently checks their exact deltas, rather than trusting the large pin.
+
+| Flow | Differing views | Classification / closing stage |
+| --- | ---: | --- |
+| send | 0 | Quiet; no difference. |
+| repair | 0 | Quiet; no difference. |
+| delete_trash | 0 | Quiet; no difference. |
+| delete_permanent | 0 | Quiet; no difference. |
+| unsubscribe_mailto | 0 | Quiet; no difference. |
+| unsubscribe_https | 0 | Quiet; no difference. |
+| status | 0 | Quiet; no difference. |
+| settlement | 1 | Duplicate-case public sent_copy_warning stage differs from the committed parent stage. Stage 3. |
+| cancel | 4 | Cancellation notice and resolved work are absent from passive pending envelopes. Stage 3. |
+| restore | 7 | Restore drops committed sequences outside its declared rollback interval and omits restored pending work from passive envelopes. Stage 3. |
+| attachment_export | 4 | Original export and download envelopes omit the unfinished export publication notice. Stage 3. |
+| testapp_export | 2 | Download envelope omits the unfinished export publication notice. Stage 3. |
+| password | 19 | Failed account setup leaves the committed password-publication intent undisclosed. Stage 3. |
+| filing_move | 0 | Quiet; no difference. |
+| filing_copy | 0 | Quiet; no difference. |
+| filing_rename | 10 | Retained rename warning discloses ordinary although the independently observed destination role is Trash. Stage 3. |
+| expiry | 4 | Expiry notice and resolved work are absent from passive pending envelopes. Stage 3. |
+| maintenance | 0 | Quiet; no difference. |
+| restart_index | 0 | Quiet; no difference. |
+| restart_tail | 0 | Quiet; no difference. |
+| export_rollback | 4 | Refused export publication and download envelopes omit the unfinished export notice. Stage 3. |
+| archive | 0 | Quiet; no difference. |
+| send_duplicate | 0 | Quiet; no difference. |
+| draft_append | 0 | Quiet; no difference. |
+| folder_create | 0 | Quiet; no difference. |
+| folder_delete | 0 | Quiet; no difference. |
+| onboarding | 0 | Quiet; no difference. |
+| flag | 0 | Quiet; no difference. |
+| settings | 0 | Quiet; no difference. |
+| folder_review | 0 | Quiet; no difference. |
+| testapp_send | 0 | Quiet; no difference. |
+| testapp_delete | 0 | Quiet; no difference. |
+| testapp_config | 0 | Quiet; no difference. |
+| local_flag | 0 | Quiet; no difference. |
+
+**Run — STORAGE-S2 remeasurement:** `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/mail_tests .work/venv/bin/python .work/19b-s2/storage-figures.py .work/19b-s2-fixes-3/storage.json` prints the five completed outcomes below. STORAGE-S2.json records the complete measurements and log hash. The harness and production code are unchanged. Index/projection deltas remain zero; no permanent-journal record is added.
+
+| Operation | Before stage 2 bytes | Round 3 bytes | Records | Growth since round 2 |
+| --- | ---: | ---: | ---: | ---: |
+| delete | 3942 | 3942 | 5 | 0 |
+| free_change | 688 | 688 | 2 | 0 |
+| move | 2064 | 2064 | 6 | 0 |
+| send | 9506 | 9506 | 14 | 0 |
+| send_25mib | 9508 | 9508 | 14 | 0 |

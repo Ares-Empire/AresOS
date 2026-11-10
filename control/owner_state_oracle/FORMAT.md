@@ -323,3 +323,28 @@ Coherent stage and state changes also update their duplicated event outcomes and
 stage-result metadata. Copy disagreements between a stage row and its event, or
 a filing state and its event outcome, are integrity checks and cannot count as
 independent detections of a coherent lie.
+
+The fault-free contract runs every FLOWS + EXTRA point-zero scenario through the
+same complete comparison as the sweep. `owner_state_quiet_gaps.json` is a separate
+allowlist of named stage-3 production behaviours with exact view names, counts and
+SHA-256 of canonical deltas. The normal quiet flows require no difference; no
+oracle defect is permitted by this allowlist. SMTP RCPT self-probe stages join
+only DATA in the same recorded SMTP transaction/account/call. Onboarding Sent
+repair joins the account-add creation interval and exact parent Message-ID.
+Generic intent completion is distinct from account qualification completion.
+Compact fences may repeat an unchanged operation, including the pre-removal
+state at archive; the lifecycle allowlist independently validates the removal.
+Filing destination fields are checked at post-command result commits, rather
+than in a warning's earlier preparation context. Scan completeness uses LIST for
+the folder catalogue and SEARCH-time identities plus subsequent body literals
+for its message inventory, so an intervening arrival is valid evidence.
+
+Alteration jobs use `owner_state_alteration_costs.json`, measured from timestamped
+job logs of run 42868506005 attempt 2. Long recordings are split by candidate
+ordinal modulo four; LPT placement uses measured seconds, not recording count.
+All twelve jobs together execute every candidate once. Every part still walks
+and audits the complete discovered field set, and its selected candidates reach
+the unchanged comparison. Only the discovered fault offset in a sweep label is
+normalised for cross-platform scheduling; each replay still injects its actual
+discovered fault. New/reordered recordings fail manifest validation. Per-part
+measured durations are printed for the next rebalance.

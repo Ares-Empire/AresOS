@@ -52,3 +52,24 @@ class MailSelections(unittest.TestCase):
         for group, count in ((-1, 2), (2, 2), (0, 0)):
             with self.assertRaises(ValueError):
                 flow_partition(flows, group, count)
+
+    def test_measured_alteration_partition_owns_every_candidate_once(self):
+        import json
+        from ci.mail.tests import alteration_partition
+        path = Path(__file__).resolve().parents[1] / 'mail_tests/owner_state_alteration_costs.json'
+        costs = json.loads(path.read_text())
+        names = [c['scenario'] for c in costs]
+        assignments = alteration_partition(names, costs, 12)
+        tasks = [task for shard in assignments for task in shard]
+        self.assertEqual(len(tasks), len(set(tasks)))
+        self.assertEqual(set(tasks), {(c['index'], p, c['parts']) for c in costs for p in range(c['parts'])})
+        for c in costs:
+            owned = [set(range(part, c['alterations'], parts))
+                     for index, part, parts in tasks if index == c['index']]
+            self.assertEqual(sum(map(len, owned)), c['alterations'])
+            self.assertEqual(set().union(*owned), set(range(c['alterations'])))
+        loads = [sum(costs[index]['seconds'] / parts for index, _, parts in shard) for shard in assignments]
+        self.assertLess(max(loads), 1000)
+        self.assertLess(max(loads) - min(loads), 10)
+        with self.assertRaises(ValueError):
+            alteration_partition(names[:-1], costs, 12)

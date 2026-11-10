@@ -74,6 +74,37 @@ def inherited_names(names, selection, group):
             name not in {'test_review23_sweep', 'test_review24_io'}]
 
 
+def alteration_label(name):
+    # Fault offsets are discovered on each platform, not hardcoded selections.
+    parts = name.split('/')
+    if parts[0] == 'sweep' and len(parts) > 2 and parts[2].isdigit():
+        parts[2] = '<discovered>'
+    return '/'.join(parts)
+
+
+def alteration_partition(recordings, costs, shards):
+    """Balance measured evaluation time, splitting the four longest recordings.
+
+    A split owns candidate ordinals modulo its part count. Every recording and
+    every candidate still runs once; changed corpus ordering requires new costs.
+    """
+    if shards < 1:
+        raise ValueError('Invalid alteration shard count')
+    if [(c['index'], c['scenario']) for c in costs] != list(enumerate(map(alteration_label, recordings))):
+        raise ValueError(('Alteration corpus changed; update measured cost manifest',
+                          [(c['index'], c['scenario'], recordings[c['index']] if c['index'] < len(recordings) else None)
+                           for c in costs if c['index'] >= len(recordings) or c['scenario'] != recordings[c['index']]],
+                          len(recordings), len(costs)))
+    loads, assignments = [0.0] * shards, [[] for _ in range(shards)]
+    tasks = [(c['seconds'] / c['parts'], c['index'], part, c['parts'])
+             for c in costs for part in range(c['parts'])]
+    for seconds, index, part, parts in sorted(tasks, key=lambda task: (-task[0], task[1], task[2])):
+        shard = min(range(shards), key=lambda s: (loads[s], s))
+        loads[shard] += seconds
+        assignments[shard].append((index, part, parts))
+    return [sorted(tasks) for tasks in assignments]
+
+
 def main(selection):
     root = Path(__file__).resolve().parents[2] / 'mail_tests'
     sys.path.insert(0, str(root))

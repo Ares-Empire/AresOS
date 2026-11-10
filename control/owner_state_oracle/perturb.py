@@ -567,7 +567,7 @@ VALIDATORS = ('script_differences', 'stage_claims', 'completion_errors', 'payloa
               'filing_claims', 'transition', 'local.errors')
 
 
-def check(label, oracle, record, states=None, candidates=None, statistics=None):
+def check(label, oracle, record, states=None, candidates=None, statistics=None, partition=None):
     expected, errors = evaluate(oracle, record)
     counts, covered = {}, set()
     def all_candidates():
@@ -575,8 +575,13 @@ def check(label, oracle, record, states=None, candidates=None, statistics=None):
         yield from snapshot_mutations(oracle, record, states)
         yield from coherent_mutations(oracle, record, states)
     states = states or state_vocabulary([record])
-    for field, kind, changed in all_candidates() if candidates is None else candidates:
+    if partition is not None:
+        part, parts = partition
+        assert parts > 0 and part in range(parts), ('Invalid alteration partition', partition)
+    for ordinal, (field, kind, changed) in enumerate(all_candidates() if candidates is None else candidates):
         covered.add(field)
+        if partition is not None and ordinal % parts != part:
+            continue
         replay, value = changed if isinstance(changed, tuple) else (oracle, changed)
         own_proofs = {} if statistics is not None else None
         actual, differences = evaluate(replay, value, own_proofs)

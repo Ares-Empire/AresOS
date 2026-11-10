@@ -1,6 +1,9 @@
 """Replay recorded contracts/regressions and all sweep modes with single-field lies."""
 from collections import Counter
 import copy
+import json
+from pathlib import Path
+import time
 import os
 from types import SimpleNamespace
 import unittest
@@ -135,11 +138,18 @@ class SystematicPerturbations(unittest.TestCase):
         shard = int(os.environ.get('OWNER_PERTURB_SHARD', '0'))
         shards = int(os.environ.get('OWNER_PERTURB_SHARDS', '1'))
         self.assertIn(shard, range(shards))
-        recordings = [item for index, item in enumerate(recordings) if index % shards == shard]
-        for scenario, oracle, record in recordings:
-            checked = check(scenario, oracle, record, states, statistics=statistics)
+        from ci.mail.tests import alteration_partition
+        costs = json.loads(Path(__file__).with_name('owner_state_alteration_costs.json').read_text())
+        assignments = alteration_partition([item[0] for item in recordings], costs, shards)
+        selected = []
+        for index, part, parts in assignments[shard]:
+            scenario, oracle, record = recordings[index]
+            started = time.monotonic()
+            checked = check(scenario, oracle, record, states, statistics=statistics, partition=(part, parts))
             counts.update(checked)
-            print(f'Owner perturbation scenario={scenario} total={sum(checked.values())} slipped=0', flush=True)
+            selected.append(recordings[index])
+            print(f'Owner perturbation scenario={scenario} part={part}/{parts} total={sum(checked.values())} slipped=0 seconds={time.monotonic() - started:.3f}', flush=True)
+        recordings = selected
         self.assertTrue(all(counts[kind] for kind in ('boolean', 'state', 'row', 'sequence', 'effect', 'restore')))
         self.assertTrue(any(name.startswith('contracts/') for name, *_ in recordings))
         if shards == 1:
