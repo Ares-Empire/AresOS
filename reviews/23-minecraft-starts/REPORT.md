@@ -134,9 +134,39 @@ No fix's tests passed with that fix reverted. Full output: `runs/wsl-review-fixe
   closes it, and `PressureCheckTest` passes with `-W always::ResourceWarning`.
 - Memory: Windows showed 4.6 to 4.9 GB free (WSL's page cache counts as used there; inside WSL 7.1 GB was
   available) for the focused runs and the revert proof; the full suite waited for 5.0 GB.
-- CI: the integrator approved one `check_build=build` on this round's code. It waits until Ubuntu's snapshot
-  mirror serves its indexes again (at 16:10 to 16:16 UTC it answered 502/503 and about 100 to 300 kB/s; see
-  "Checks of this round" in review fixes 1 for why that stops the build).
+- CI: 42854477440 (`check_build=build` on `e159a29e`, dispatched once the mirror answered 200 at 0.3 to 2.2 MB/s)
+  failed in the image build: the mod stage's `curl` does not exist in the pinned JDK image. See "Run 42854477440
+  and its fix" below. The approved rerun builds the fixed head (`7017044f` and this report).
+
+### Run 42854477440 and its fix
+
+The first real image build through review fixes 1's `mod` stage stopped there:
+
+```
+[2/3] STEP 4/4: RUN bash /tmp/aresos-mod/build.sh mod "$ARESOS_SOURCE_REVISION" /out
+/tmp/aresos-mod/build.sh: line 16: curl: command not found
+```
+
+- Cause: `build.sh mod` downloaded the commit with `curl`, but the pinned `eclipse-temurin:25.0.5_8-jdk-noble`
+  image has neither curl nor wget (its Dockerfile installs wget to fetch the JDK, then purges it). The test ran
+  `build.sh mod` with a stand-in curl on PATH, so it could not see that; round 0 built from a mounted checkout, and
+  `check_build=resolve` had not run since.
+- Fix (`os/Containerfile`, `os/build.sh`): a `source` stage on the pinned Bazzite base, which has curl (`build.sh
+  packages` uses it too), fetches exactly the commit with the same curl flags and the exact-commit check, keeps only
+  `mod/`, and prints `MOD_SOURCE <commit> <sha256 of the archive>`. The JDK stage copies only `mod/` and runs only
+  Gradle (`build.sh mod <source> /out <commit>`). The first `FROM` and `os-image.yml` are unchanged.
+  `check-build.sh build` also requires the `MOD_SOURCE` line.
+- `build-mod.sh --twice` (the resolve path) now builds exactly those two stages with `podman build --no-cache
+  --target mod` of the same Containerfile and copies the jar out, so it has no second way to build the jar.
+- Test against the image's real contents: `os/ci/builder-tools.py` reads the pinned JDK image straight from its
+  registry (manifest by digest, every layer, whiteouts applied) and writes `os/minecraft/builder-tools.txt`: its
+  PATH, JAVA_HOME and the 512 executables in its PATH folders (no curl, no wget). A test keeps the list bound to
+  the lock's builder pin, and `build-mod.sh` checks it against the image (`--check`).
+  `ImageBuildTest.test_the_jdk_stage_needs_only_what_the_builder_image_has` runs the real `build.sh mod` and the
+  real `gradlew` with a PATH of exactly those executables (only Java is a stand-in, in JAVA_HOME). With a curl
+  fetch put back into the `mod` mode (interface unchanged) the test fails with exactly the CI error: `127 != 0 :
+  build.sh: line 36: curl: command not found`. The same sandbox refuses `build.sh source` with `curl: command not
+  found`.
 
 ### Not proven yet
 
