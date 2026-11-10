@@ -105,7 +105,7 @@ Updated 2026-11-10. The live truth is `git log`, `gh pr list` and `git worktree 
   - Its JUDGMENT-CALL 2: package 22's tools can't go forward again after `at previous`, so the rehearsal ends on 13 with 27 beside it; going forward after a rollback belongs in 22c.
   - Also for 22c (PR #37 REVIEW-1 should-fix, older than that fix): the refusal invariant in `test_owner_update` tries a persistent refusal twice but never asserts that it refused. Assert the refusal on both attempts wherever the check applies.
   - Packages 23 and 21b go into the next release, which needs 22c first.
-- **Main's hosted checks-only job fails since package 22** (run 42815704308, 118 errors in `test_owner_update`). Cause: a test leak. On GitHub's runner the namespace check skips mid-subtest and leaves a patched `disk_record` active. Fix: PR #37 (`fix/owner-update-test-leak`), in review (Sol). In WSL with a failing `unshare` stub, main gives exactly the hosted run's 7 failures and 111 errors, and the fix gives `OK (skipped=136)`; with real namespaces the fix gives `OK`. The hosted runner still skips these namespace tests; WSL runs them.
+- **Main's hosted test leak fixed** (PR #37, `d5d5c447`, 2026-11-10). `test_owner_update`'s refusal invariant now undoes its injected patch however a subtest ends. Before, a namespace skip on GitHub's runner leaked a patched `disk_record` into later tests (118 errors). Hosted `checks_only` on the fix: 853 tests OK (run 42819274873). The runner still skips the namespace tests; WSL runs them. REVIEW-2 (Sol) SAFE.
 - **Then:**
   - 21b: backlight and power button, after the read-only check on the laptop in AresOS (board #149 tells the next AresOS session).
   - P2's remaining packages: 25 (guardian: clean save and shutdown) and 26 (backups).
