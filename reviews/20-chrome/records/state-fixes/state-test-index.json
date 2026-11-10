@@ -1,9 +1,9 @@
 {
-  "fixture_source": "52bc06fb1828cefb0d04d4bfaecb4f8d760da27f",
+  "fixture_source": "e5f3d8c5a713ff3e93e3ad700565cfa6ef75f130",
   "records": [
     {
-      "file": "reviews/20-chrome/records/state-fixes/local-parallel-python-1.txt",
-      "source": "52bc06fb1828cefb0d04d4bfaecb4f8d760da27f",
+      "file": "reviews/20-chrome/records/state-fixes/local-final-python-1.txt",
+      "source": "e5f3d8c5a713ff3e93e3ad700565cfa6ef75f130",
       "run": null,
       "mode": null,
       "items": {
@@ -163,7 +163,7 @@
         },
         "result": {
           "line": 255,
-          "text": "Ran 202 tests in 546.720s"
+          "text": "Ran 202 tests in 739.349s"
         }
       },
       "removal_mutations": [
@@ -266,8 +266,8 @@
       ]
     },
     {
-      "file": "reviews/20-chrome/records/state-fixes/local-parallel-python-2.txt",
-      "source": "52bc06fb1828cefb0d04d4bfaecb4f8d760da27f",
+      "file": "reviews/20-chrome/records/state-fixes/local-final-python-2.txt",
+      "source": "e5f3d8c5a713ff3e93e3ad700565cfa6ef75f130",
       "run": null,
       "mode": null,
       "items": {
@@ -427,7 +427,7 @@
         },
         "result": {
           "line": 255,
-          "text": "Ran 202 tests in 518.847s"
+          "text": "Ran 202 tests in 782.549s"
         }
       },
       "removal_mutations": [
