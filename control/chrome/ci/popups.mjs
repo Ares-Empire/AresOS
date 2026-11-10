@@ -57,6 +57,7 @@ export async function popupMatrices({check,call,rpc,nav,counts,eventually,getTab
     const pageBefore=await probe(),nativeBefore=await popupEvidence(id,'before-stop');
     const ui=await popupControl('stop',tab);
     assert.deepEqual(ui.after.windows,ui.before.windows,'Stop creates no window and changes no focus, position, size or type');
+    assert.equal(ui.afterFocus,ui.beforeFocus,'Stop keeps the same focused native window');
     assert.equal((await find(id)).controlled,false);assert.equal(ui.after.tabs.find(row=>row.tab===tab)?.badge,'ON');
     assert.deepEqual(ui.after.popups,[]);assert.equal((await call('tabs',{limit:10})).items.find(row=>row.tab===tab).controlled,true,'per-popup Stop keeps opener control');
     assert.deepEqual(await probe(),pageBefore,'same document, draft, window.name and opener after Stop');

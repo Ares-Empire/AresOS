@@ -147,25 +147,16 @@ try {
     popupControl:async(command,value)=>{
       const state=async()=>{await lifecycle({fixture:'control_status'});const value=JSON.parse(fs.readFileSync('/out/control-status.json'));fs.appendFileSync('/out/popup-controls.jsonl',JSON.stringify(value)+'\n');return value;};
       if(command==='state')return state();
-      if(command==='stop'){
-        await owner.select(value);const before=await state();await lifecycle({fixture:'popup'});await delay(200);
-        execFileSync('import',['-window','root','/out/popup-controls.png']);
-        // The action popup focuses global Stop; then the details link and this popup's Stop.
-        execFileSync('xdotool',['key','--clearmodifiers','Tab','Tab','Return']);
-        await eventually(async()=>!(await state()).popups.length,'owner per-popup Stop ends control');
-        const after=await state();execFileSync('import',['-window','root','/out/popup-stopped.png']);
-        execFileSync('xdotool',['key','--clearmodifiers','Escape']);
-        return {before,after};
-      }
+      if(command==='stop')return owner.stopPopup(value,{
+        state,openPopup:async()=>{await lifecycle({fixture:'popup'});await delay(200);},
+        capture:phase=>execFileSync('import',['-window','root','/out/'+(phase==='before'?'popup-controls':'popup-stopped')+'.png']),
+      });
       if(command==='close-popup'){
         const window=await owner.popupWindow(value);execFileSync('xdotool',['windowactivate','--sync',window.window]);execFileSync('xdotool',['key','--clearmodifiers','alt+F4']);
         await eventually(async()=>!(await call('tabs',{limit:10})).items.some(row=>row.url?.includes('case=popup-child&id='+value)),'owner closes stopped popup');
         execFileSync('xdotool',['windowactivate','--sync',browserWindow]);return;
       }
-      if(command==='close-opener'){
-        await owner.select(value);const backup=await call('open',{url:'http://fixture.test:8765/?case=compose'});await owner.select(value);
-        execFileSync('xdotool',['key','--clearmodifiers','ctrl+w']);await eventually(async()=>!(await call('tabs',{limit:10})).items.some(row=>row.tab===value),'owner closes opener');tab=backup.tab;return tab;
-      }
+      if(command==='close-opener'){tab=await owner.closeOpener(value,'http://fixture.test:8765/?case=compose');return tab;}
       throw Error('Unknown popup fixture observation');
     },
     popupEvidence:async(id,phase)=>{const state=await owner.popupWindow(id);fs.appendFileSync('/out/popup-windows.jsonl',JSON.stringify({id,phase,...state})+'\n');if(phase==='after')execFileSync('import',['-window','root','/out/'+id+'.png']);return state;},

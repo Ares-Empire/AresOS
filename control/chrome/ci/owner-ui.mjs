@@ -28,6 +28,23 @@ export function ownerUI({call,currentTab,window,eventually,exec=execFileSync}){
       exec('xdotool',['type','--clearmodifiers','--delay','1',url]);exec('xdotool',['key','Return']);
       await eventually(async()=>(await tabInfo(tab))?.url===url,'owner navigation committed in the exact tab');
     },
+    async stopPopup(tab,{openPopup,state,capture}){
+      await select(tab);await openPopup();
+      // Opening the toolbar popup is the owner's focus change. Measure Stop from here.
+      const before=await state(),beforeFocus=exec('xdotool',['getactivewindow'],{encoding:'utf8'}).trim();
+      capture('before');exec('xdotool',['key','--clearmodifiers','Tab','Tab','Return']);
+      await eventually(async()=>!(await state()).popups.length,'owner per-popup Stop ends control');
+      const after=await state(),afterFocus=exec('xdotool',['getactivewindow'],{encoding:'utf8'}).trim();
+      capture('after');exec('xdotool',['key','--clearmodifiers','Escape']);
+      return {before,after,beforeFocus,afterFocus};
+    },
+    async closeOpener(tab,url){
+      await select(tab);const backup=await call('open',{url});
+      const replacement=backup.untrusted_content?.tab;
+      assert.ok(Number.isInteger(replacement),'open must return the replacement tab in untrusted_content');
+      await select(tab);exec('xdotool',['key','--clearmodifiers','ctrl+w']);
+      await eventually(async()=>!await tabInfo(tab),'owner closes opener');return replacement;
+    },
     async popupWindow(id){
       assert.match(id,/^[a-z0-9-]+$/);let previous;
       return eventually(()=>{
