@@ -122,10 +122,14 @@ set. Display managers, desktop sessions, power agents, XDG autostarts, updater
 entry points and automatic maintenance are disabled by `build.sh` and `policy/`.
 `ares` cannot invoke the retained updater binaries (`uupd`, `ujust`, `topgrade`,
 the Bazzite updater/portal, the stores) or authorize `rpm-ostree`, sysupdate,
-`fwupd` or Bazzite actions through polkit, even with its password. Upstream rules
-that let `wheel` act without a password ask `ares` for it instead
-(`00-aresos-maintenance.rules`; `ci/polkit-check.js` evaluates the built image's
-real rules). Flatpak and Homebrew are his apps. This is a disposable prototype with manual image maintenance;
+`fwupd`, Bazzite, modem-firmware, logind next-boot/firmware-setup or TuneD
+profile actions through polkit, even with its password. Upstream rules that let
+`wheel` act without a password give `ares` the action's own default instead,
+and `build.sh` makes every installed polkit default uncached, so no admin
+authorization is ever reused (`00-aresos-maintenance.rules`;
+`ci/polkit-check.js` evaluates the built image's real rules and requires every
+passwordless action to be reviewed in `ci/polkit-review.json`). Flatpak and
+Homebrew are his apps. This is a disposable prototype with manual image maintenance;
 it does not attempt to restrict a recovery administrator deliberately repairing
 the system or a user downloading their own programs.
 
