@@ -100,7 +100,7 @@ Updated 2026-11-10. The live truth is `git log`, `gh pr list` and `git worktree 
     - Every image build now builds and checks the mod jar: a `mod` stage in the Containerfile plus a pin check in `build.sh`. That replaces its PLAN-GAP 1.
     - Hosted `checks_only`: 958 tests OK (run 42830860249).
     - The VM build failed twice on Ubuntu mirror 502/503s; one more `check_build=build` is approved.
-    - REVIEW-2 (Astra) is running.
+    - REVIEW-2 (Astra): CHANGES-NEEDED. Of REVIEW-1's 11 findings, 6 are fixed and 5 partial; 1 blocking (kills before the PID handoff still restart) and 8 should-fix remain. Review fixes 2 is in progress (brief `23-review-fixes-2.md`).
     - Updated JUDGMENT-CALL 10 (a memory kill or unexplained whole-scope death latches recovery, no automatic restart) was accepted by the owner (board #170, 2026-11-10: "Yes").
   - Merges after 27.
 - **Package 27, the first update release, started 2026-11-10** (brief `27-first-update-release.md`, empire brief 266; Claude agent, Opus; branch `pkg/27-first-update-release`):
@@ -109,6 +109,9 @@ Updated 2026-11-10. The live truth is `git log`, `gh pr list` and `git worktree 
   - then the owner runs `at update` and `sudo passwd ares` on the laptop.
   - 2026-11-10: the first release run (42807087845) failed in an extra second VM pass the agent had added (a host-side nbd race in the offline journal reader after all guest checks passed). Nothing was published. The release job now keeps the reviewed single VM pass; the integrator approved one more release dispatch (the last).
   - Release run 2 (42817411051) stopped in the classified image diff before publishing: 13 unexplained of 916 changed paths. One is real: package 21's `cp -a` of `os/config` set `/etc/sudoers.d` to 0755 (Fedora and release 13 have 0750; the files stay 0440). Fix: restore 0750 in `os/build.sh` with a check, and confirm no other directory changed mode. The other 12 get exact classifier rules. A third release dispatch is approved (still one publish).
+  - Release runs 3 (42831158090) and 4 (42835704653) failed in "Install pinned tools" on Ubuntu's snapshot mirror (500/504, or the 20-minute timeout). Nothing was built or published.
+    - `b216f28f` adds apt retries and a 40-minute limit for the release job only, and raises the release cap to 5.
+    - The next dispatch waits until the mirror is healthy.
   - Its JUDGMENT-CALL 2: package 22's tools can't go forward again after `at previous`, so the rehearsal ends on 13 with 27 beside it; going forward after a rollback belongs in 22c.
   - Also for 22c (PR #37 REVIEW-1 should-fix, older than that fix): the refusal invariant in `test_owner_update` tries a persistent refusal twice but never asserts that it refused. Assert the refusal on both attempts wherever the check applies.
   - Packages 23 and 21b go into the next release, which needs 22c first.
