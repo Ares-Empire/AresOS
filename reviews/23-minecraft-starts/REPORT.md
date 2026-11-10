@@ -5,6 +5,183 @@ Branch `pkg/23-minecraft-starts`, PR #36. Review: Codex gpt-6-astra (high), fres
 
 Nothing was pushed to a registry, signed or published. The release pin is unchanged.
 
+## Review fixes 1 (REVIEW-1, 2026-11-10)
+
+REVIEW-1 (Codex gpt-6-astra, high) found 3 blocking and 8 should-fix problems. Each is fixed at its cause, with
+tests that fail on round 0's code (proof under "Before the fixes"). The owner accepted all 14 JUDGMENT-CALLs (board
+#168 and #169); finding 1 changes call 10, updated below. The mod itself did not change, so no Gradle run was
+needed and the jar pin (`8b04c511…65386743`) stays.
+
+**Not yet run: the VM checks of this round.** Both `check_build=build` runs (the budget) stopped before building,
+in the runner's tool install, because Ubuntu's snapshot mirror (`snapshot.ubuntu.com`) answered 502 and 503. So
+the jar built inside the image build, `desktop_jvm`, `memory_protection` and `memory_pressure` are written and
+unit-tested but have not run in an image yet. One more `check_build=build` needs the integrator's OK.
+
+1. **Memory kills never restart the game (blocking).**
+   - Cause: Java ran in its wrapper's scope. When systemd-oomd or the kernel killed that scope, nobody reported an
+     exit, and "no report" counted as a crash: a restart after 5 s.
+   - Fix: the JVM now runs in its own scope (`aresos-game-<launch>.scope`, finding 4). A SIGKILL and an exit nobody
+     reported are handled alike: the supervisor reads the scope's systemd `Result` (for example `oom-kill`; the
+     scope is not collected, so the result stays readable until the supervisor resets it), latches RECOVERY
+     `killed` with that detail, counts nothing and never restarts by itself. Prism killed by SIGKILL before the game
+     started latches too. After a kill, `retry` waits until the last minute's memory pressure
+     (`/proc/pressure/memory`, `some avg60`) is at most 10 %, and says so otherwise.
+   - Tests: `RestartPolicyTest.test_a_whole_scope_death_without_a_report_latches_like_a_kill`,
+     `test_a_kill_waits_for_cleared_memory_pressure_before_retry`, `test_prism_killed_before_the_game_latches`;
+     `LoopTest.test_a_whole_scope_kill_latches_and_nothing_restarts` (the real loop: wrapper and JVM killed
+     together, recovery latched, still one launch 1.5 s later with a 0.2 s backoff). VM: `desktop_jvm` kills a real
+     JVM's game scope with `systemctl --user kill --signal=SIGKILL` and requires RECOVERY `killed`, latched, and
+     nothing started 12 s later.
+   - Not proven: systemd-oomd itself killing a real Minecraft. The VM sends the same SIGKILL to the scope by hand.
+2. **A damaged hub never passes and is never declared ready (blocking).**
+   - Cause: `check_world()` only checked that `level.dat` was gzip, and the "valid world" fixtures were plain text.
+   - Fix, in the supervisor only (the mod is unchanged): a small bounded NBT reader (gzip, at most 16 MiB, depth
+     64, trailing bytes refused). The hub passes only with `level.dat` or `level.dat_old` readable with its `Data`,
+     `data/aresos/desktop.dat` with `enabled` = 1, `data/aresos/nether_home.dat` with its seed, position and yaw
+     (and, when present, a `home` with a dimension, three numbers, yaw and pitch), `aresos-home.provisioned`
+     exactly `complete`, and the hub manifest. Anything else is RECOVERY `world_damaged`, naming the file and the
+     problem; nothing is rewritten. A `world_ready` from a hub that fails these checks latches recovery instead of
+     IN_WORLD.
+   - Tests: `WorldCheckTest` (the mod's real files pass; every damage case; malformed NBT; the `level.dat_old`
+     fallback; checking leaves every byte), `RestartPolicyTest.test_a_damaged_hub_is_never_declared_ready`.
+     Fixtures: `os/tests/fixtures/desktop-world/` holds the two saved-data files the mod's own client test wrote
+     (`SOURCE.txt` says how); the damaged variants come from a small NBT writer in the test.
+   - Not proven: a hub created by the mod on AresOS itself (the P3 trial).
+3. **Every image build builds and checks the mod jar (blocking).**
+   - Cause: only `check_build` ran `os/ci/build-mod.sh`; every other build needed a jar put in place by hand.
+   - Fix, in the shared build path only (`.github/workflows/os-image.yml` is untouched): `os/Containerfile` has a
+     `mod` stage on the lock's digest-pinned JDK image. It runs `build.sh mod <ARESOS_SOURCE_REVISION> /out`, which
+     downloads exactly that commit from GitHub, builds `mod/` and prints `MOD_JAR_BUILT <sha256> from <commit>`.
+     The image stage copies the jar in, and `build.sh configure` installs it only when its SHA-256 equals the pin
+     (`MOD_JAR_PINNED`); otherwise the build stops. A build without a full commit stops with "pass --build-arg
+     ARESOS_SOURCE_REVISION=<full commit>". The first `FROM` stays the pinned Bazzite base (the workflow checks it).
+     `check-build.sh build` no longer builds the jar on its own; it requires both lines in the build log.
+     `build-mod.sh --twice` (resolve) runs the same `build.sh mod` to set or renew the pin.
+   - Which builds use it: `check-build.sh build`, and the release job package 27 is adding: it runs `bash
+     os/ci/check-build.sh build` (branch `pkg/27-first-update-release` at `8fc6e350`). `build_tools.py` passes
+     `ARESOS_SOURCE_REVISION=$GITHUB_SHA` as well. Main's `release_13` job builds `Containerfile.keyboard` (an
+     overlay on release 13, only from `pkg/13-keyboard-layout`), not this tree's image.
+   - Tests: `ImageBuildTest`: the stage order and pinned builder, the configure step's pin check, `check-build.sh`
+     on the same path, and `build.sh mod` with stand-in curl and Gradle (it fetches exactly
+     `codeload.github.com/Ares-Empire/AresOS/tar.gz/<commit>`, extracts only `mod/`, and refuses `unrecorded`,
+     `main`, short and upper-case revisions).
+   - Not proven yet: a real image build through the new stage (the next `check_build=build`; it must print
+     `MOD_JAR_BUILT 8b04c511… from <commit>` and `MOD_JAR_PINNED`, or a `resolve` run renews the pin), and package
+     27's release job on the merged tree (it runs once both are merged).
+4. **The memory limit holds for the real JVM.**
+   - Cause: `MemoryHigh` sat on Prism's scope. A Prism that was already running (Prism hands `--launch` to it) or
+     Prism's own Launch button gave a JVM outside it.
+   - Fix: the supervisor's answer to the wrapper names the game's scope. The wrapper starts Java through
+     `systemd-run --user --scope --slice=aresos.slice --unit=aresos-game-<launch>.scope --property=MemoryHigh=5G`,
+     waits (at most 10 s) until the JVM is in that cgroup, and only then reports it. The supervisor reads
+     `/proc/<pid>/cgroup` and refuses a JVM outside its scope. Prism's own scope no longer carries the limit.
+   - Tests: `WrapperTest.test_the_real_jvm_runs_in_its_own_scope_with_the_memory_target` (a real user systemd: the
+     reported PID is the JVM, in `aresos.slice/aresos-game-<launch>.scope` with `memory.high` 5368709120; ran in
+     WSL; it skips itself only where no user manager answers), `test_the_game_waits_for_its_scope_and_is_reported_only_inside_it`,
+     `test_a_scope_that_is_not_usable_is_refused_before_java_runs`,
+     `RestartPolicyTest.test_a_jvm_outside_its_memory_scope_is_refused`. VM: `desktop_jvm` starts the image's real
+     Java 25 through the real wrapper from outside any desktop scope, as Prism's own window or an already-running
+     Prism would, and requires the JVM in `…/user@1001.service/aresos.slice/aresos-game-<launch>.scope` with
+     `memory.high` 5 GiB, the pinned Java executable and the launch's nonce.
+   - Not proven: Prism's own window and an already-running Prism with a real Minecraft (no account in CI). Every
+     Prism launch of this instance goes through the wrapper, which applies the scope.
+5. **A game that ended while the supervisor was down is accounted for once.**
+   - Fix: before anything starts, the supervisor finishes the last launch from its runtime record exactly once
+     (`accounted` is saved): exit 0 is a quit, a crash counts and backs off, a SIGKILL or a missing record latches
+     `killed`. Exit records carry the launch ID, the PID and the process's start time; only a record matching all
+     three counts.
+   - Tests: `AdoptionTest.test_a_game_that_ended_while_no_supervisor_ran_is_accounted_for_once`,
+     `test_a_crash_accounted_after_downtime_restarts_after_its_backoff`,
+     `RestartPolicyTest.test_an_exit_record_of_another_launch_or_process_is_ignored`; `WrapperTest` checks the
+     record's fields.
+6. **One gate for every new JVM.**
+   - Fix: every JVM passes the same `validate()`, whether the supervisor started Prism or the owner pressed Launch
+     in Prism: the image pins, the managed instance and the world. A damaged hub, or one missing after it existed,
+     latches recovery instead of falling back to setup. The wrapper also sends Prism's `INST_DIR` and the working
+     directory; only the managed `AresDesktop` folder passes.
+   - Tests: `RestartPolicyTest.test_every_new_jvm_passes_the_same_gate` and the refused-request cases (another
+     instance, Java, folder or working directory).
+7. **No endless STARTING.**
+   - Fix: the wrapper reports `jvm_failed` when Java cannot start or the supervisor refuses it (and then stops that
+     JVM). The supervisor waits at most 30 s from authorizing a JVM to its PID, and a wrapper connection that closes
+     before the PID arrives is a failed start. Each counts like a crash (B2's backoff and latch); during setup it
+     shows the setup message.
+   - Tests: `RestartPolicyTest.test_a_failed_start_is_reported_and_counted_never_left_open` (spawn failure, a
+     refused JVM, a lost connection, the hand-off timeout), `WrapperTest.test_a_start_that_fails_is_reported`.
+8. **The game's full component set is pinned.**
+   - Fix: `desktop.lock.json` has `components`: Prism's metadata for `net.minecraft` 26.2 and `org.lwjgl3` 3.4.1
+     from meta.prismlauncher.org, with SHA-256 and size. They ship in the image as local patches, so Prism never
+     resolves other versions; they list every library and native with the hash Prism checks on download. The
+     instance check requires exactly Minecraft 26.2, LWJGL 3.4.1 and Fabric Loader 0.19.5, nothing else and
+     nothing twice; the image check refuses unpinned files in `patches/`. Mojang's files still come from Mojang
+     through Prism.
+   - Tests: `test_any_other_lwjgl_or_a_missing_or_doubled_component_is_drift`,
+     `VerifyInputsTest.test_the_pinned_component_metas_are_inputs_too`, the component pack test.
+   - Not proven: Prism downloading through these metas (no account in CI).
+9. **Recovery stays usable under memory pressure.**
+   - Fix: drop-ins give `user.slice`, `user-1001.slice` and every login session scope `MemoryLow=1G` (protection
+     needs every ancestor), and session scopes `ManagedOOMPreference=avoid`. labwc, the supervisor and the recovery
+     terminal run in the session scope. The game runs under `user@1001.service/aresos.slice` without protection, so
+     reclaim and kills go there first.
+   - Tests: `MemoryProtectionFilesTest`. VM: `memory_protection` reads the effective `memory.low` of the three
+     cgroups, checks that the supervisor and the recovery terminal share labwc's session scope and that systemd set
+     the oomd avoid flag; `memory_pressure` runs a memory hog in `aresos.slice` (no swap) until it is killed, then
+     requires labwc, the supervisor, its keeper and the recovery terminal alive with the same PIDs and the
+     supervisor answering.
+   - Not proven: the 16 GB laptop with a real Minecraft and zram.
+10. **Lost readiness shows.**
+    - Fix: no heartbeat for 20 s clears "ready" and shows RECOVERY `unready`; the game keeps running and the window
+      closes by itself when heartbeats return. A helper that keeps failing (5 times in a minute) clears "ready" and
+      shows `helper`. An adopted JVM gets the same 120 s readiness window as a new one.
+    - Tests: `RestartPolicyTest.test_lost_heartbeats_show_without_touching_the_game`,
+      `test_an_exhausted_helper_after_the_hub_was_ready_shows`,
+      `AdoptionTest.test_an_adopted_game_that_never_becomes_ready_shows_after_the_timeout`.
+11. **A restarted desktop waits below the app in front.**
+    - Fix: when the supervisor restarts Minecraft by itself, it starts package 24's app helper with
+      `ARESOS_SHELL_KEEP_FOREGROUND=1`. If the new desktop window takes focus within 3 s of appearing while another
+      window was in front, the helper activates that window again, once, through the same labwc window activation it
+      uses to return to the desktop. A later switch to the desktop is the owner's and stays. The flag never reaches
+      launched apps.
+    - Tests: `KeepForegroundTest` (5 tests in `test_aresos_shell.py`); `RestartPolicyTest` checks that only an
+      automatic restart sets the flag.
+    - Not proven: the VM has no game window, so the real hand-back under labwc is for the P3 trial. The desktop may
+      flash in front for a moment before the app is back on top.
+
+Tidy-ups found on the way: the level check names both level files' problems; on shutdown the supervisor closes its
+ends of the game's pipes and waits for its message window; `LoopTest` reaps its Prism stand-ins (the suite no longer
+leaves processes or `ResourceWarning`s behind).
+
+### Before the fixes
+
+The new tests and fixtures (`5c250720`) against round 0's code (`939bc259`: the supervisor, wrapper, helper,
+Containerfile, `build.sh`, `check-build.sh`, `build-mod.sh` and `checks.py` put back, the drop-ins removed), in a
+fresh clone in WSL: 33 of the 35 new tests fail (FAIL or ERROR). The two that pass guard what was already right: a
+valid hub passes, and `level.dat_old` stands in for a damaged `level.dat`. In `test_aresos_shell` every helper test
+errors on round 0's helper, because the shared fixture now passes `keep_foreground`. Per test:
+`runs/wsl-review-fixes-1/summary.txt`.
+
+### Checks of this round
+
+- WSL (Ubuntu 24.04, Python 3.12), fresh `git clone` of `pkg/23-minecraft-starts` at `5c250720`, no other suite
+  running: the full suite plain and `-B`, both `Ran 958 tests`, `FAILED (failures=1, errors=12)`, exactly the
+  known WSL-only set that also fails on main (`test_greeter` 3, `test_inherited_homebrew` 8, `test_sysusers` 2).
+  `test_aresos_desktop` (97, including the real user-systemd scope test) and `test_aresos_shell` (72) pass. The
+  suite runs under `setsid` with stdin from `/dev/null`: with a terminal attached, `test_everyday_account`'s
+  interactive `bash -i` stops on job control and the suite hangs until its timeout.
+- During the work, focused from the worktree: `test_aresos_desktop` 96 OK twice (once with `-X tracemalloc`: no
+  `ResourceWarning` left from its own processes; two leaked stand-ins from round 0's loop tests were found and
+  killed; the reaping now prevents that).
+- CI:
+  - 42827288649 and 42829696745 (`check_build=build` on `5c250720`): both failed in "Install pinned tools on
+    disposable runner" before any build (`snapshot.ubuntu.com` 502 Bad Gateway, then 503 Service Unavailable).
+    Not caused by this branch; no image was built.
+  - **42830860249** (`checks_only=true` on `5c250720`, the full suite natively on the hosted runner): `Ran 958
+    tests`, `OK (skipped=136)`, the same skips as main's leak-fix run (42819274873: `Ran 853 tests`,
+    `OK (skipped=136)`); the 105 package 23 tests all ran and passed. Evidence: `runs/checks-42830860249/`.
+  - Evidence for the two stopped builds: `runs/builds-42827288649-42829696745/summary.txt`.
+- Not rerun: `check_build=resolve`. The jar pin did not change (the mod is unchanged); the next `build` shows
+  whether the image's own `mod` stage gives the same bytes.
+
 ## What the owner will see
 
 - **First start after the update:** a small terminal says "AresOS: first start" with three steps, and Prism
@@ -17,7 +194,9 @@ Nothing was pushed to a registry, signed or published. The release pin is unchan
   still give one.
 - **If Minecraft crashes:** it starts again after 5 s, then after 10 s. A third crash within five minutes, or a
   third in a row without 30 healthy minutes in between, stops the restarts: a terminal says what happened, where
-  the logs are, and to type `retry`. That stop survives a reboot.
+  the logs are, and to type `retry`. That stop survives a reboot. A restarted hub opens below the app he is using.
+- **If the system stops Minecraft to free memory:** it is not restarted. A terminal says Minecraft was stopped
+  from outside and to close apps he doesn't need; `retry` works once memory is free again.
 - **If he quits Minecraft himself:** nothing restarts; a terminal says "Minecraft was closed" and `retry` opens the
   hub again.
 - **If Prism needs him to sign in again** (or the network is down): Prism shows its own dialog. If Prism ends
@@ -60,11 +239,10 @@ Nothing was pushed to a registry, signed or published. The release pin is unchan
     from the lock (`loader_patch`) and a test keeps the shipped file equal to it. Like Fabric's own launcher profile
     for 26.2, it needs no intermediary mappings (26.x is not obfuscated).
 - **The mod jar is reproducible and pinned:** `mod/build.gradle` turns off archive timestamps and fixes the entry
-  order (no other mod change). `os/ci/build-mod.sh` builds the jar from the committed `mod/` in a digest-pinned
-  `eclipse-temurin:25.0.5_8-jdk-noble` container and requires the pinned hash. `check_build=resolve` builds it twice
-  from clean copies and requires equal bytes (run 42803572026: both `8b04c511…`). `check_build=build` builds it
-  before the image and copies it into the build context (`os/minecraft/aresos.jar`, ignored by Git); `build.sh`
-  checks it again.
+  order (no other mod change). Since review fixes 1 every image build builds it: the Containerfile's `mod` stage
+  runs `build.sh mod <commit>` in the digest-pinned `eclipse-temurin:25.0.5_8-jdk-noble` image, and `build.sh
+  configure` installs the jar only with its pinned hash. `check_build=resolve` builds it twice through the same
+  `build.sh mod` and requires equal bytes (run 42803572026: both `8b04c511…`).
 - **Provisioning** (`provision()` in `/usr/libexec/aresos-desktop`, at every start, as `ares`):
   - Creates `~/.local/share/aresos/worlds` and, only if no instance exists yet,
     `~/.local/share/PrismLauncher/instances/AresDesktop`. It is assembled in a hidden staging folder and renamed
@@ -95,8 +273,9 @@ Nothing was pushed to a registry, signed or published. The release pin is unchan
   `minecraft/saves` is the worlds folder, the save lands in `~/.local/share/aresos/worlds/AresHub`. No mod code
   changed for this (JUDGMENT-CALL 1).
 - Later starts: `--world AresHub` (Prism's quick play), checked first by `check_world`: `level.dat` (or
-  `level.dat_old`) and the desktop marker `data/aresos/desktop.dat` must be readable gzip, and an interrupted hub
-  build (`aresos-home.provisioned` not `complete`) counts as damaged.
+  `level.dat_old`), the desktop marker `data/aresos/desktop.dat` (switched on), the saved Nether home and a
+  finished hub build must all read as the mod writes them (NBT, review fixes 1, finding 2); anything else counts
+  as damaged.
 - Missing (after the hub has been seen once, recorded in the state file), damaged or interrupted: RECOVERY,
   latched. Never a replacement: `aresos-desktop forget-hub` (only while `AresHub` is absent) is the explicit way
   back to first-start creation.
@@ -111,9 +290,10 @@ Nothing was pushed to a registry, signed or published. The release pin is unchan
   `retry` command. It is set up like the recovery terminal (system PATH, never his `~/.bashrc`) and closes when the
   hub is reached or a new launch starts.
 - **Launch:** `systemd-run --user --scope --quiet --collect --slice=aresos.slice
-  --unit=aresos-desktop-<launch>.scope --property=MemoryHigh=5G -- /usr/bin/prismlauncher --launch AresDesktop
-  --world AresHub` (no `--world` in SETUP). B5: the game, Prism and its children get their own group with the 5 GiB
-  soft target; apps stay in the helper's `app.slice` scopes; no hard limit yet. Prism gets the session's
+  --unit=aresos-desktop-<launch>.scope -- /usr/bin/prismlauncher --launch AresDesktop --world AresHub` (no
+  `--world` in SETUP). B5: since review fixes 1 the JVM itself runs in `aresos-game-<launch>.scope` with the 5 GiB
+  soft target, started there by the wrapper (finding 4); apps stay in the helper's `app.slice` scopes; no hard
+  limit yet. Prism gets the session's
   environment with the system PATH and no launch secrets.
 - **The real JVM:** Prism runs `aresos-desktop-java <java> <args>` (its wrapper command) instead of Java. The
   wrapper
@@ -205,8 +385,8 @@ without the NVIDIA driver.
   requires a recovery terminal next to it (both recovery-style), and a new `desktop_session` check requires the
   keeper, supervisor, helper and Prism to run as `ares` and nothing of the desktop as root, state SETUP, the helper
   holding the session's instance and the launch's nonce, Prism without the nonce, Prism in
-  `aresos.slice/aresos-desktop-<launch>.scope` with `memory.high` 5 GiB, the instance's four links, and Prism's log
-  (updates off, launching `AresDesktop`). `shadow-names.txt` adds `prismlauncher`, `java`, `systemd-run`,
+  `aresos.slice/aresos-desktop-<launch>.scope`, the instance's four links, and Prism's log (updates off, launching
+  `AresDesktop`). Review fixes 1 adds `memory_protection`, `desktop_jvm` and `memory_pressure` (findings 1, 4, 9). `shadow-names.txt` adds `prismlauncher`, `java`, `systemd-run`,
   `systemctl`, `aresos-desktop`, `aresos-desktop-java`, `aresos-shell` and `cat`.
 - Bound sources: no file bound by the package 16 walk changed (`os-image.yml` and `vm.py` are untouched), so
   `os/manifest/ci/16/pending-rebind.json` is unchanged (`test_checkout_sources` passes).
@@ -257,6 +437,9 @@ Other:
 
 ## Not verified (needs the laptop, the owner or a later package)
 
+- **Review fixes 1 in an image** (needs one more `check_build=build`, see "Review fixes 1"): the jar built by the
+  image's own `mod` stage and its pin, the drop-ins' effective `memory.low` and oomd flag, the real JVM in its game
+  scope, the whole-scope kill and the memory-pressure survival.
 - **The real boot into the hub on the laptop** (the P3 trial, after a release with the owner's OK). Everything
   below is part of it.
 - Prism's real hand-off to the wrapper with a real Minecraft. The wrapper is tested with Prism's exact argument
@@ -321,10 +504,15 @@ Owner-facing ones first (1 to 6); 7 to 14 are technical.
 9. **Fabric Loader stays 0.19.5** although 0.20.1 (2026-10-19) exists: the mod builds and its client tests run on
    0.19.5. Moving the image to 0.20.x belongs with a mod change that also moves `gradle.properties`. Fabric API
    0.161.0+26.2 is already the newest for 26.2.
-10. **Kills and unknown exits.** A JVM killed by SIGKILL (the kernel's OOM killer, or a forced kill) latches
-    recovery without counting as a crash (B5: no automatic restart under pressure). An exit nobody reported (the
-    wrapper was killed too, as with Prism's Kill button or systemd-oomd stopping the whole scope) counts as a crash:
-    the safe side for a crash loop.
+10. **Kills and unknown exits (updated in review fixes 1; the reviewer disagreed with the first version).** A
+    JVM killed by SIGKILL (the kernel's OOM killer, systemd-oomd, or a forced kill) and an exit nobody reported (the
+    wrapper ended too, as when a whole scope is killed or with Prism's Kill button) both latch recovery `killed`.
+    Neither counts as a crash, and neither restarts by itself (B5: no automatic restart under memory pressure). The
+    message names the scope's systemd result when there is one, and `retry` waits until memory pressure has
+    cleared. Rejected: counting an unexplained exit as a crash (round 0's choice), because a memory kill would then
+    come back after 5 s into the same pressure. Cost: a crash that also takes the wrapper down needs his `retry`
+    instead of restarting by itself; that is rare, since the wrapper is a separate process outside the game's
+    scope.
 11. **One nonce per launch, one instance ID per session.** Every game launch gets a fresh `ARESOS_LAUNCH_NONCE`, so
     the helper is restarted with it before each launch (the game is not running then; the helper reconciles its app
     journal on restart, package 24). The instance ID stays for the session so the helper keeps its journal.
@@ -338,11 +526,10 @@ Owner-facing ones first (1 to 6); 7 to 14 are technical.
 
 ## PLAN-GAP
 
-1. **Every later image build must build the mod jar first.** The image now needs `os/minecraft/aresos.jar`;
-   `check_build` runs `os/ci/build-mod.sh`, but the release job in `.github/workflows/os-image.yml` (bound by the
-   package 16 walk, untouched here) and package 27's release path do not. Without the jar, `build.sh` stops with
-   "run os/ci/build-mod.sh before building the image". The release package that includes 23 adds that one step
-   before its `podman build`.
+1. **Every later image build must build the mod jar first.** Resolved in review fixes 1 (finding 3): the
+   Containerfile's `mod` stage builds it from the build's own commit in every image build, and `build.sh configure`
+   requires its pin. A build must pass `--build-arg ARESOS_SOURCE_REVISION=<full commit>` (check-build.sh and
+   `build_tools.py` do); without it the build stops with that message.
 2. **Pins expire.** Fedora `updates` drops superseded builds: `java-25-openjdk-headless` (25.0.5 already waits in
    updates-testing) and especially `tzdata-java` (time-zone updates) will vanish, as `xdg-desktop-portal-wlr` did
    for package 21. Renew with `check_build=resolve` and record it. Prism's, Fabric's and Modrinth's files are
@@ -351,10 +538,10 @@ Owner-facing ones first (1 to 6); 7 to 14 are technical.
    `mmc-pack.json` (Prism's file; provisioning never rewrites it). An image that pins 26.3 stops into recovery
    ("Minecraft is 26.2, this AresOS pins 26.3") until `reset-instance`. The package that moves the mod to 26.3
    should add a reviewed migration, or accept that one reset.
-4. **Readiness depends on the app helper.** If the helper is down for good (five failures in a minute), the hub can
-   still run but the supervisor never hears `world_ready`, so the 120 s window appears. That matches B2 (readiness
-   needs the mod's report), but the message cannot tell the two causes apart.
-5. **Main's hosted regression job fails since package 22 (not caused here).** `checks_only` on main `6978dc3c`
+4. **Readiness depends on the app helper.** Resolved in review fixes 1 (finding 10): a helper that is down for
+   good now shows its own message (`helper`), apart from a slow start or lost heartbeats.
+5. **Main's hosted regression job failed since package 22 (not caused here; fixed on main by PR #37,
+   `d5d5c447`, merged into this branch).** `checks_only` on main `6978dc3c`
    (run 42815704308): `Ran 853 tests`, `FAILED (failures=7, errors=111, skipped=27)`, all in `test_owner_update`
    (for example `owner.Stop: Wrong or ambiguous target disk serial` where a test expects its own refusal). This
    branch gives exactly the same 118 failures and adds 74 passing tests (run 42809903934, `Ran 927 tests`). The
@@ -365,5 +552,8 @@ Owner-facing ones first (1 to 6); 7 to 14 are technical.
 
 ## Open questions
 
+- **For the integrator (review fixes 1):** both budgeted `check_build=build` runs stopped on Ubuntu's mirror
+  outage before building. One more is needed to run this round's VM checks; I did not dispatch it (the brief:
+  report before dispatching more).
 - None blocking. The owner-facing judgment calls (1 to 6) go to the owner before merge; the main one is whether the
   first start should create the hub by itself with seed 49 instead of waiting for his click on AresOS (1).
