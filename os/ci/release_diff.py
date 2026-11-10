@@ -409,7 +409,9 @@ def main(tools, run=None):
             stream.write('\n')
         units = {rel: dict(rule=row['rule'], reason=row.get('reason')) for rel, row in details.items()
                  if re.search(r'(^|/)systemd/', rel)}
-        assert not any(row['rule'] == 'generated' for row in units.values()), 'STOP: a unit changed only as a generated file'
+        problems = []
+        if any(row['rule'] == 'generated' for row in units.values()):
+            problems.append('a unit changed only as a generated file')
         counts = {}
         for row in details.values():
             key = row['rule'] + ': ' + row.get('reason', 'no rule')
@@ -419,24 +421,34 @@ def main(tools, run=None):
         configs = [json.loads(command('skopeo', 'inspect', '--config', 'containers-storage:' + images[n])) for n in ('old', 'new')]
         base_config = json.loads(command('skopeo', 'inspect', '--config', 'containers-storage:' + base_reference))
         base_ids = base_config['rootfs']['diff_ids']
-        assert configs[0]['rootfs']['diff_ids'][:len(base_ids)] == base_ids, 'STOP: release 13 base ancestry differs'
-        assert configs[1]['rootfs']['diff_ids'][:len(base_ids)] == base_ids, 'STOP: release 27 base ancestry differs'
+        if configs[0]['rootfs']['diff_ids'][:len(base_ids)] != base_ids:
+            problems.append('release 13 base ancestry differs')
+        if configs[1]['rootfs']['diff_ids'][:len(base_ids)] != base_ids:
+            problems.append('release 27 base ancestry differs')
         old_config, new_config = (dict(c['config']) for c in configs)
         old_labels, new_labels = old_config.pop('Labels'), new_config.pop('Labels')
-        assert old_config == new_config, 'STOP: unrelated OCI runtime configuration changed'
+        runtime = {k: dict(before=old_config.get(k), after=new_config.get(k)) for k in sorted(old_config.keys() | new_config.keys())
+                   if old_config.get(k) != new_config.get(k)}
+        if runtime:
+            problems.append('unrelated OCI runtime configuration changed: ' + ', '.join(runtime))
         labels = {k: dict(before=old_labels.get(k), after=new_labels.get(k)) for k in sorted(old_labels.keys() | new_labels.keys())
                   if old_labels.get(k) != new_labels.get(k)}
-        assert set(labels) <= {'org.opencontainers.image.revision', 'io.buildah.version'}, 'STOP: unexplained label change: ' + repr(sorted(labels))
-        assert new_labels['org.opencontainers.image.source'] == 'https://github.com/Ares-Empire/AresOS'
-        assert new_labels['org.opencontainers.image.revision'] == os.environ['GITHUB_SHA']
-        result = dict(status='passed' if not unexplained else 'stopped', previous=images['old'], pinned_base=base_reference,
+        if not set(labels) <= {'org.opencontainers.image.revision', 'io.buildah.version'}:
+            problems.append('unexplained label change: ' + ', '.join(sorted(labels)))
+        if new_labels.get('org.opencontainers.image.source') != 'https://github.com/Ares-Empire/AresOS'                 or new_labels.get('org.opencontainers.image.revision') != os.environ['GITHUB_SHA']:
+            problems.append('release 27 source labels differ from this run')
+        passed = not unexplained and not problems
+        result = dict(status='passed' if passed else 'stopped', previous=images['old'], pinned_base=base_reference,
             previous_source=PREVIOUS_SOURCE, method='full rebuild compared with release 13; every difference classified',
             package_count=dict(old=len(packages['old']), new=len(packages['new'])), packages=package_rows,
             compared_files=[len(old), len(new)], changed_paths=len(changed), rules=dict(sorted(counts.items())),
             units=units, generated=generated, unexplained=unexplained[:500], unexplained_count=len(unexplained),
-            labels=labels, base_ancestry_verified=True, runtime_config_equal=True,
+            problems=problems, runtime_config_changes=runtime, labels=labels,
+            base_ancestry_verified='release 13 base ancestry differs' not in problems and 'release 27 base ancestry differs' not in problems,
+            runtime_config_equal=not runtime,
             metadata_note='File mtimes/inodes are storage metadata, excluded as in release 13; full classified inventory in classified-files.json.gz.')
         (evidence / 'result.json').write_text(json.dumps(result, indent=2) + '\n')
+        assert not problems, 'STOP: ' + '; '.join(problems)
         assert not unexplained, f'STOP: {len(unexplained)} unexplained image differences, first: {unexplained[:20]}'
         print(f'IMAGE_DIFF_PASSED: {len(changed)} changed paths, all explained: ' + json.dumps(counts, sort_keys=True))
     finally:
