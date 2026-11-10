@@ -109,71 +109,10 @@ class SystematicPerturbations(unittest.TestCase):
                 scenario.close()
             label[0] = 'sweep/send/cleanup-pair/crash'
             exercise('send', boundaries['send'], 'single', cleanup, Gaps(recording=True), 'crash')
-        # A recorded new-format free intent exercises representations that the
-        # legacy production corpus does not yet write, including APPEND flags.
-        scenario = OwnerScenario('flag')
-        try:
-            driver = Driver(scenario)
-            driver.fixture_input({'intent:field-audit': {
-                'id': 'recovery-field-audit', 'app': 'mail', 'action': 'mail_flag', 'state': 'started',
-                'context': {'account': 'box', 'target': 'Target', 'destination': 'Target',
-                    'recipients': ['one@mail.invalid', 'two@mail.invalid'],
-                    'flags': ['\\Seen', '\\Flagged'], 'append_flags': ['\\Draft', '\\Seen'],
-                    'sha256': '0123456789abcdef', 'roles': {'trash': ['Trash']}, 'check_open': True}}},
-                'Recorded field audit intent')
-            recordings.append(('field-audit', freeze(driver.oracle), copy.deepcopy(driver.snapshot())))
-        finally:
-            scenario.close()
+        from test_owner_state_plants import run_plants_and_controls
+        run_plants_and_controls(self)
         counts = Counter()
         states = state_vocabulary([record for _, _, record in recordings])
-        # Known bad committed fields must reach the same exact-delta checker
-        # as the sweep. Then make an oracle trust each corrupted field and
-        # silently remove recovery; the alteration test must reject it.
-        from owner_state_oracle.compare import compare_proofs
-        audit_label, audit_oracle, audit_record = recordings[-1]
-        patterns = {
-            'flag': lambda field, kind: kind == 'boolean' and '/check_open' in field,
-            'state': lambda field, kind: kind == 'state',
-            'removed row': lambda field, kind: kind == 'row',
-            'dropped sequence': lambda field, kind: kind == 'sequence',
-            'target': lambda field, kind: '/target' in field,
-            'recipient': lambda field, kind: '/recipients/0' in field,
-            'flag list entry': lambda field, kind: '/flags/0' in field,
-            'append_flags': lambda field, kind: '/append_flags/0' in field,
-            'hash': lambda field, kind: '/sha256' in field,
-            'destination': lambda field, kind: '/destination' in field,
-            'restore marker': lambda field, kind: kind == 'restore',
-            'account': lambda field, kind: '/account' in field,
-            'role': lambda field, kind: '/roles/trash/0' in field,
-        }
-        baseline_expected, baseline_errors = evaluate(audit_oracle, audit_record)
-        planted = {}
-        for field, kind, changed in mutations(audit_record, states):
-            kinds = [name for name, matches in patterns.items() if name not in planted and matches(field, kind)]
-            if not kinds:
-                continue
-            _, errors = evaluate(audit_oracle, changed)
-            if not errors - baseline_errors:
-                continue
-            for name in kinds:
-                registry = Gaps(recording=True)
-                checker = registry.checker('planted-' + name)
-                compare_proofs(clone(audit_oracle), changed, checker)
-                checker.finish()
-                self.assertTrue(registry.entries, ('Plant never reached comparison', name, field))
-                core = clone(audit_oracle).expected(audit_record)
-                recovery = next(f for f in core if f.kind == 'recovery')
-                def broken(current, value, checker, *args):
-                    # The deliberately broken oracle uses this field's bad
-                    # value as authority to end recovery and emits no proof.
-                    return core - {recovery} if value is changed else core
-                with patch('owner_state_oracle.perturb.compare_proofs', side_effect=broken):
-                    with self.assertRaisesRegex(AssertionError, 'Silent owner-state perturbation'):
-                        check('broken-' + name, audit_oracle, audit_record, states,
-                              candidates=[(field, kind, changed)])
-                planted[name] = field
-        self.assertEqual(set(planted), set(patterns))
-        print(f'Owner planted field faults={len(planted)} caught by comparison; broken oracles rejected={len(planted)}', flush=True)
         shard = int(os.environ.get('OWNER_PERTURB_SHARD', '0'))
         shards = int(os.environ.get('OWNER_PERTURB_SHARDS', '1'))
         self.assertIn(shard, range(shards))
