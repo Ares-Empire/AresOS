@@ -2,7 +2,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import {compatibilityScript} from './compatibility.mjs';
 import {popupPage} from './popups.mjs';
-const page=(body,script='')=>`<!doctype html><meta charset="utf-8"><title>Synthetic fixture</title><style>body{font:16px sans-serif;margin:20px}button,input,textarea{margin:8px}</style>${body}<script>${script}</script>`;
+const page=(body,script='',head='')=>`<!doctype html><meta charset="utf-8"><title>Synthetic fixture</title><script>globalThis.firstScriptSubmit=HTMLFormElement.prototype.submit;</script><style>body{font:16px sans-serif;margin:20px}button,input,textarea{margin:8px}</style>${body}<script>${script}</script>`;
 export async function fixtures(options={}) {
   const arrivals=[],streams=new Map(),mutations=new Map();let mutationSequence=0;
   const compatibility=[],compatibilityDownloads=[];
@@ -46,7 +46,7 @@ export async function fixtures(options={}) {
       script="const cachedClick=HTMLElement.prototype.click;document.querySelector('#send').onclick=()=>fetch('/receive?case=stop-modal',{method:'POST'});document.querySelector('#continue').onclick=()=>confirm('Continue browsing?');globalThis.afterControlProbe=()=>cachedClick.call(document.querySelector('#send'));";
     }else if(kind==='preload-origin'){
       const id=url.searchParams.get('id');body='<form method="post" action="/receive?case='+id+'" target="sink"><input name="draft" value="Saved"><button type="button">Continue</button></form><iframe name="sink" hidden></iframe>';
-      script="const firstScriptSubmit=HTMLFormElement.prototype.submit;document.querySelector('button').onclick=()=>firstScriptSubmit.call(document.querySelector('form'));";
+      script="document.querySelector('button').onclick=()=>firstScriptSubmit.call(document.querySelector('form'));";
     }else if(kind==='preload-frame'){
       const id=url.searchParams.get('id'),origin=url.searchParams.get('cross')==='1'?'http://cross.test:8766':'';body='<iframe width="800" height="300" src="'+origin+'/?case=preload-origin&id='+id+'"></iframe>';
     }else if(kind==='preload-popup'){
@@ -103,7 +103,7 @@ export async function fixtures(options={}) {
       }
     } else if(kind==='excluded-form') {
       const id=url.searchParams.get('id'),method=url.searchParams.get('method'),override=url.searchParams.get('override')==='true',destination='http://approval.test:8765/receive?case='+encodeURIComponent(id);
-      body='<form role="'+(method==='get'?'search':'form')+'" action="'+(override?'/receive?case=wrong-'+id:destination)+'" method="'+method+'" target="_blank"><input type="search" name="q" value="Synthetic query" aria-label="Search"><button type="submit"'+(override?' formaction="'+destination+'"':'')+'>Continue</button></form>';
+      body='<form role="'+(method==='get'?'search':'form')+'" action="'+(override?'/receive?case=wrong-'+id:destination)+'" method="'+method+'" target="_blank"><input type="hidden" name="case" value="'+id+'"><input type="search" name="q" value="Synthetic query" aria-label="Search"><button type="submit"'+(override?' formaction="'+destination+'"':'')+'>Continue</button></form>';
       script=`document.querySelector('button').onclick=()=>fetch('/receive?case=handler-'+${JSON.stringify(id)},{method:'POST'});`;
     } else if(kind==='submitter-hijack') {
       const id=url.searchParams.get('id'),mode=url.searchParams.get('mode');

@@ -1,7 +1,7 @@
 // Synthetic browser cases, imported only by the Linux-container entry point.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {verdicts} from './verdicts.mjs';
+import {verdicts,assertComplete} from './verdicts.mjs';
 import {setTimeout as delay} from 'node:timers/promises';
 import {measureCompatibility,compareCompatibility} from './compatibility.mjs';
 import {popupMatrices} from './popups.mjs';
@@ -48,7 +48,7 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
   await check('GROUP 7 native compatibility inside and outside Claude tabs',async()=>{
     await nav('native-compat&id=controlled');
     const controlled=await measureCompatibility({id:'controlled',fixture,eventually,start:async()=>call('click',await target('Continue'))});
-    fs.writeFileSync('/out/native-controlled.json',JSON.stringify(controlled,null,2));compareCompatibility(controlled,baseline.native);
+    fs.writeFileSync('/out/native-controlled.json',JSON.stringify(controlled,null,2));compareCompatibility(controlled,baseline.native,true);
   });
   await check('GROUP 8 Stop under a native modal revokes input before deferred cleanup',async()=>{
     await nav('stop-modal&id=stop-modal');const prepared=await call('click',await target('Send'));
@@ -278,7 +278,7 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
   await check('GROUP 6 exclusions through frame, popup, redirect, taking and history',async()=>{
     await nav('frame-excluded');assert.doesNotMatch(JSON.stringify(await read()),/EXCLUDED_PAGE_SENTINEL_20/);
     await nav('popup-excluded');await call('click',await target('Continue'));await delay(250);
-    const tabs=await call('tabs');for(const item of tabs.items.filter(item=>item.url?.includes('approval.test'))){const result=await rpc('take_tab',{tab:item.tab});assert.equal(result.ok,false);}
+    const tabs=await call('tabs',{limit:100});const excludedPopups=tabs.items.filter(item=>item.url?.includes('approval.test'));assert.equal(excludedPopups.length,1,'excluded popup must exist');for(const item of excludedPopups){const result=await rpc('take_tab',{tab:item.tab});assert.equal(result.ok,false);}
     await ownerNavigate('http://fixture.test:8765/?case=compose');await call('take_tab',{tab});
     await call('navigate',{tab,url:'http://fixture.test:8765/?case=redirect'});await delay(400);const redirected=await rpc('read',{tab});assert.equal(redirected.ok,false);
     await ownerNavigate('http://approval.test:8765/?case=excluded');assert.equal((await rpc('take_tab',{tab})).ok,false);
@@ -473,5 +473,6 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
   const qualified=verdicts(results,baseline,adapters);
   fs.writeFileSync('/out/qualification-result.json',JSON.stringify(qualified,null,2));
   fs.writeFileSync('/out/matrices.json',JSON.stringify(results,null,2));
+  assertComplete(results,qualified);
   return results.filter(item=>!item.passed);
 }

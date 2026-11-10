@@ -48,3 +48,10 @@ export function verdicts(results,baseline,adapters){
   for(const [site,names]of Object.entries(ADAPTER_REQUIRED))qualified.adapters[site]=adapters[site]===true&&shared&&names.every(passed);
   return qualified;
 }
+
+
+export function assertComplete(results,qualified){
+  const expected=[...Object.values(REQUIRED).flat(),...SUPPORT].sort(),actual=results.map(row=>row?.name).sort();
+  if(JSON.stringify(expected)!==JSON.stringify(actual)||results.some(row=>row.passed!==true))throw Error('Incomplete or failing named browser inventory');
+  if(qualified.groups[12]!==false||Object.entries(qualified.groups).some(([group,value])=>group!=='12'&&value!==true)||Object.values(qualified.core).some(value=>value!==true)||Object.values(qualified.adapters).some(value=>value!==true))throw Error('A core, adapter or group verdict failed');
+}

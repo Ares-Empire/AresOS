@@ -11,6 +11,8 @@ send({phase:'ready'});
 document.querySelector('#continue').onclick=()=>{
   const result={};
   result.functions=[HTMLFormElement.prototype.submit,HTMLFormElement.prototype.requestSubmit,HTMLElement.prototype.click,EventTarget.prototype.dispatchEvent].map(fn=>Function.prototype.toString.call(fn));
+  result.shapes=[HTMLFormElement.prototype.submit,HTMLFormElement.prototype.requestSubmit,HTMLElement.prototype.click,EventTarget.prototype.dispatchEvent,Function.prototype.toString].map(fn=>({keys:Object.getOwnPropertyNames(fn),prototype:Object.hasOwn(fn,'prototype')}));
+  const pristine=document.createElement('iframe');document.body.append(pristine);result.fingerprint=pristine.contentWindow.Function.prototype.toString.call(HTMLElement.prototype.click);pristine.remove();
   const bus=new EventTarget();let busCount=0;bus.addEventListener('bus',event=>{busCount++;result.preventReturn=typeof event.preventDefault();});
   result.busReturn=bus.dispatchEvent(new Event('bus',{cancelable:true}));result.busCount=busCount;
   let windows=0;window.addEventListener('compat-window',()=>windows++);result.windowReturn=window.dispatchEvent(new Event('compat-window'));result.windows=windows;
@@ -69,4 +71,4 @@ export async function withoutExtension({fixture,eventually,descriptor}){
   }finally{browser.kill('SIGTERM');await delay(500);if(browser.exitCode===null)browser.kill('SIGKILL');fs.rmSync(profile,{recursive:true,force:true});}
 }
 
-export function compareCompatibility(actual,expected){assert.deepEqual(actual,expected,'only held asking controls may differ from Chrome without the extension');}
+export function compareCompatibility(actual,expected,controlled=false){const {fingerprint,...behavior}=actual,{fingerprint:nativeFingerprint,...nativeBehavior}=expected;assert.deepEqual(behavior,nativeBehavior,'native behavior and property shapes must match');if(controlled)assert.notEqual(fingerprint,nativeFingerprint,'the fresh-realm probe must detect our controlled wrapper');else assert.equal(fingerprint,nativeFingerprint,'outside tabs must have no MAIN script');}
