@@ -313,6 +313,7 @@ def memory_pressure():
         hog.wait()
         raise AssertionError(('the pressure source was not stopped within 600 s', lines[-5:]))
     reader.join(10)
+    hog.stdout.close()
     scope = [line.split(' ', 2) for line in lines if line.startswith('SCOPE ')]
     assert scope, ('the pressure source never ran in its scope', hog.returncode, lines[-5:])
     pid, cgroup = int(scope[0][1]), scope[0][2]
