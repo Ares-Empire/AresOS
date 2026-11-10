@@ -30,7 +30,7 @@ def actions(Action):
         'history': 'Find visited addresses and titles, read-only.'}.items():
         add(verb, 'read', obj({'text': string(), **PAGE['properties']}, []), purpose)
     for verb, purpose in {'take_tab': 'Take the chosen owner tab into the visible Claude group.',
-        'release_tab': 'Give a controlled tab back and drop its prepared work; never dispatch it.',
+        'release_tab': 'End control and drop prepared work without dispatch. A cleanup_pending result means native restoration is still waiting; the owner must close its dialog or, if needed, the tab.',
         'close_tab': 'Close only a Claude tab; prepared work is dropped.'}.items():
         add(verb, 'change', obj({'tab': TAB}), purpose)
     add('open', 'change', obj({'url': string()}), 'Open a web address or about:blank in a new Claude tab. Navigation is free.')

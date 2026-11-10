@@ -17,6 +17,7 @@
   const installed=[];
   const privateRelay=globalThis.StaticRange&&globalThis.InputEvent&&document.createElement?document.createElement('div'):null;
   const privateControl=privateRelay?document.createElement('span'):null;
+  if(typeof globalThis.Document==='function'&&!privateRelay)throw Error('The private native relay is unavailable; this document cannot be controlled.');
   if(privateRelay)privateRelay.appendChild(privateControl);
   const TargetEvent=globalThis.InputEvent,TargetRange=globalThis.StaticRange,Signal=Event;
   const removeListener=EventTarget.prototype.removeEventListener;
@@ -81,7 +82,6 @@
     if(form!==this)throw new DOMException('The submitter belongs to another form.','NotFoundError');
     report(submitter,{kind:'request_submit',with_submitter:true});
   });
-  }
   install(HTMLElement.prototype,'click',function() { if(!enabled||!connected(this))return invoke(saved.click,this,[]);report(this,{kind:'click'}); });
   install(EventTarget.prototype,'dispatchEvent',function(event) {
     if(!enabled||!connected(this))return invoke(saved.dispatchEvent,this,[event]);
@@ -103,6 +103,7 @@
     }
     finally{invoke(remove,dispatching,[event]);}
   });
+  }
   // Runtime.evaluate retains this return value as a private remote handle. It is
   // never a global or a DOM capability the page can invoke to end its hold.
   function cleanup(){closed=true;enabled=false;let restored=true;for(let index=0;index<installed.length;index++){const item=installed[index],current=descriptor(item.prototype,item.name);if(current&&descriptor(current,'value')&&current.value===item.value){try{define(item.prototype,item.name,item.previous);}catch{try{define(item.prototype,item.name,options({value:item.previous.value}));}catch{restored=false;}}}}return restored;}

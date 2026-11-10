@@ -6,7 +6,7 @@ import {execFileSync} from 'node:child_process';
 
 const policy=JSON.parse(fs.readFileSync('control/chrome/extension/policy.js','utf8').match(/\{[\s\S]*\}/)[0]);
 
-function fixture({relay=false}={}) {
+function fixture({relay=false,activate=true,link=true,browserDOM=false}={}) {
   const windowListeners=new Map(),reports=[],arrivals=[],nodes=[],bridgeDetails=[];let now=0;
   class Event {
     constructor(type,options={}) {Object.assign(this,{type,cancelable:true,defaultPrevented:false,stopped:false,eventPhase:0,isTrusted:false,...options});}
@@ -56,7 +56,7 @@ function fixture({relay=false}={}) {
   class AbstractRange {}
   class StaticRange extends AbstractRange {constructor(options){super();Object.defineProperty(this,'startContainer',{value:options.startContainer});}}
   class InputEvent extends Event {constructor(type,options={}){super(type,options);this.ranges=options.targetRanges?Array.from(options.targetRanges):[];}getTargetRanges(){return this.ranges;}}
-  const globals={window,document,performance:{now:()=>now},setTimeout,MessageChannel,Symbol,Event,CustomEvent,EventTarget,Node,Element,HTMLElement,HTMLInputElement,HTMLFormElement,DOMException,URL,...(relay?{AbstractRange,StaticRange,InputEvent}:{})};
+  const globals={window,document,performance:{now:()=>now},setTimeout,MessageChannel,Symbol,Event,CustomEvent,EventTarget,Node,Element,HTMLElement,HTMLInputElement,HTMLFormElement,DOMException,URL,...(relay?{AbstractRange,StaticRange,InputEvent}:{}),...(browserDOM?{Document:class Document{}}:{})};
   const isolated=vm.createContext({...globals});
   vm.runInContext(fs.readFileSync('control/chrome/extension/guard.js','utf8'),isolated);
   const guard=vm.runInContext("globalThis[Symbol.for('aresos.chrome.guard.v2')]",isolated);
@@ -65,16 +65,43 @@ function fixture({relay=false}={}) {
   function name(node){const labels=(node['aria-labelledby']||'').split(/\s+/).map(key=>document.getElementById(key)).filter(Boolean);return labels.length ? labels.map(label=>label.textContent).join(' ') : node['aria-label'] || node.labels?.map(label=>label.textContent).join(' ') || node.textContent;}
   guard.reader({document:'document-1',id,element:key=>elements.get(key),target:node=>({name:name(node),title:node.title,role:node.role,password:!!node.password,submit:!!node.form && node.type==='submit',editable:node instanceof HTMLInputElement}),form:(node,button)=>{const form=node.form || (node.tagName==='FORM' ? node:null);return form ? {method:button?.formmethod || form.method,search:form.role==='search',action:button?.formAction || form.action,encoding:form.encoding||'application/x-www-form-urlencoded',target:form.target||''}:null;}});
   const main=vm.createContext({...globals});
-  const nativeStrings=[HTMLFormElement.prototype.submit,HTMLFormElement.prototype.requestSubmit,HTMLElement.prototype.click,EventTarget.prototype.dispatchEvent].map(fn=>Function.prototype.toString.call(fn));
+  const nativeFunctions=[HTMLFormElement.prototype.submit,HTMLFormElement.prototype.requestSubmit,HTMLElement.prototype.click,EventTarget.prototype.dispatchEvent];
+  const nativeStrings=nativeFunctions.map(fn=>Function.prototype.toString.call(fn));
   const installed=vm.runInContext(fs.readFileSync('control/chrome/extension/page.js','utf8'),main);
-  if(relay){guard.relay(installed.relay);installed.activate();}
+  if(relay){if(link)guard.relay(installed.relay);if(activate)installed.activate();}
   const cleanup=relay?installed.cleanup:installed;
   assert.equal(vm.runInContext("globalThis[Symbol.for('aresos.chrome.page.v1')]",main),undefined);
   assert.equal(vm.runInContext("globalThis[Symbol.for('aresos.chrome.guard.v2')]",main),undefined);
   function arm(target,form,operation=null,conservative=false){guard.arm({generation:'epoch',config:{...policy,conservative},target:id(target),form:form ? id(form):null,operation,primary_submission:false});}
   const api={...guard,resume:(id,operation)=>{const step=reports.find(item=>item.id===id);return guard.resume(id,operation,step?.submitter||step?.element,step?.element);}};
-  return {api,guard,arrivals,bridgeDetails,cleanup,nativeStrings,Node,EventTarget,get reports(){reports.push(...guard.steps());return reports;},document,HTMLFormElement,HTMLElement,HTMLInputElement,Event,CustomEvent,originalDispatch,originalRequestSubmit,arm,main,id,advance:milliseconds=>{now+=milliseconds;}};
+  return {api,guard,arrivals,bridgeDetails,cleanup,nativeStrings,nativeFunctions,factory:relay?installed:null,Node,EventTarget,get reports(){reports.push(...guard.steps());return reports;},document,HTMLFormElement,HTMLElement,HTMLInputElement,Event,CustomEvent,originalDispatch,originalRequestSubmit,arm,main,id,advance:milliseconds=>{now+=milliseconds;}};
 }
+
+test('private factory creation changes no prototype before its cleanup handle can be retained',()=>{
+  const f=fixture({relay:true,activate:false});
+  const methods=()=>[f.HTMLFormElement.prototype.submit,f.HTMLFormElement.prototype.requestSubmit,f.HTMLElement.prototype.click,f.EventTarget.prototype.dispatchEvent];
+  assert.deepEqual(methods(),f.nativeFunctions);f.factory.activate();assert.ok(methods().every((value,index)=>value!==f.nativeFunctions[index]));
+  assert.equal(f.cleanup(),true);assert.deepEqual(methods(),f.nativeFunctions);
+});
+
+test('a failed private activation restores every earlier native mutation',()=>{
+  const f=fixture({relay:true,activate:false});
+  Object.defineProperty(f.EventTarget.prototype,'dispatchEvent',{value:f.nativeFunctions[3],writable:false,configurable:false});
+  assert.throws(()=>f.factory.activate(),/redefine|read only/i);assert.equal(f.cleanup(),true);
+  assert.deepEqual([f.HTMLFormElement.prototype.submit,f.HTMLFormElement.prototype.requestSubmit,f.HTMLElement.prototype.click,f.EventTarget.prototype.dispatchEvent],f.nativeFunctions);
+});
+
+test('real browser startup and late readers never accept the public primitive report bridge',()=>{
+  const f=fixture({relay:true,activate:false,link:false,browserDOM:true}),form=new f.HTMLFormElement();
+  f.originalDispatch.call(form,new f.CustomEvent('aresos-page-call-v2',{detail:{kind:'native_submit'}}));
+  assert.equal(f.arrivals.length,0,'page reports have no native-delivery capability even before relay linking');
+});
+
+test('missing native relay support fails before any real-browser prototype mutation',()=>{
+  const f=fixture({relay:true,activate:false,browserDOM:true});vm.runInContext('StaticRange=undefined',f.main);
+  assert.throws(()=>vm.runInContext(fs.readFileSync('control/chrome/extension/page.js','utf8'),f.main),/private native relay is unavailable/);
+  assert.deepEqual([f.HTMLFormElement.prototype.submit,f.HTMLFormElement.prototype.requestSubmit,f.HTMLElement.prototype.click,f.EventTarget.prototype.dispatchEvent],f.nativeFunctions);
+});
 
 test('private permit keeps native Event identity and payload without exposing a carrier',()=>{
   const f=fixture({relay:true}),button=new f.HTMLElement();button.textContent='Ordinary control';button.tagName='BUTTON';f.arm(button,null);

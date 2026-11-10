@@ -11,7 +11,8 @@
   const formElements=Object.getOwnPropertyDescriptor(HTMLFormElement.prototype,'elements')?.get;
   const held = new Map(), roots = new Map(), consumed = new Set();
   let reader, generation = null, dispatchNonce = null, config, until = 0, inFlight = false, mark = null, owner = null, sequence = 0;
-  let relayControl=null,legacyBridge=true,requestDepth=0;const relayListeners=[];
+  // Real documents never accept page-forgeable reports, even before private linking.
+  let relayControl=null,legacyBridge=typeof globalThis.Document!=='function',requestDepth=0;const relayListeners=[];
   function requestNative(form,submitter){requestDepth++;try{return submitter?native.requestSubmit.call(form,submitter):native.requestSubmit.call(form);}finally{requestDepth--;}}
   const currentPhase = event => phase ? phase.call(event) : event.eventPhase;
   const type = event => eventType ? eventType.call(event) : event.type;
