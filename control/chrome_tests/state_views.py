@@ -42,12 +42,16 @@ class StateViews:
                     # recorded separately, never counted as an equality pass.
                     self.assertIn(result['error']['code'],{'storage_limit','storage_error','journal_incomplete','restore_required','owner_state_unavailable'})
                     self.assertTrue(result.get('pending',{}).get('unavailable') or result['error']['code'] in {'restore_required','journal_incomplete','storage_limit','storage_error'})
+                    disclosure=result.get('pending',{})
+                    disclosed={item['operation_id'] for item in disclosure.get('notices',[]) if item['app']=='chrome'}
+                    if 'chrome-owner-state-unavailable' not in disclosed:
+                        compare(expected,warnings=disclosed)
                     self.view_counts['unavailable']+=1;break
                 if action=='chrome_notices':
                     warnings.update(item['operation_id'] for item in data['items'])
                     cursor=data['cursor']
                 elif action=='control_pending':
-                    if data.get('unavailable'):
+                    if any(item['operation_id']=='chrome-owner-state-unavailable' for item in data.get('notices',[])):
                         self.view_counts['unavailable']+=1;break
                     pending.update({item['operation_id']:item['state'] for item in data['items'] if item['app']=='chrome'})
                     record=history(self.root/'evidence')
@@ -61,7 +65,7 @@ class StateViews:
                     cursor=data['cursor']
                 else:
                     view=result['pending'] if action=='passive' else data
-                    if view.get('unavailable'):
+                    if any(item['operation_id']=='chrome-owner-state-unavailable' for item in view.get('notices',[])):
                         self.view_counts['unavailable']+=1;break
                     warnings.update(item['operation_id'] for item in view.get('notices',[]) if item['app']=='chrome')
                     cursor=data.get('cursor') if action=='control_log' else None

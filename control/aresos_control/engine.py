@@ -486,7 +486,9 @@ class Engine:
             return self.store.confirm_restore() | {'warning': RESTORE_WARNING}
         if name == 'control_archive':
             from .archive import archive
-            retention.retire_chrome(self.store)
+            self.store.archiving=True
+            try:retention.retire_chrome(self.store)
+            finally:self.store.archiving=False
             return archive(self.store, args['before'], self.adapters['mail'])
         if name == "control_notices":
             try:

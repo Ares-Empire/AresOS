@@ -172,6 +172,16 @@ class StateFixes(unittest.TestCase):
         current=self.chrome.notice_page();self.assertEqual(current['total'],1)
         self.assertNotEqual(current['items'][0]['operation_id'],identifier)
 
+    def test_s4_archive_retires_checks_even_above_the_shared_history_quota(self):
+        from aresos_control import retention
+        source={'id':'finished','app':'chrome','state':'done','step':self.step(),'tab':1,'session':self.browser.session}
+        store=self.engine.store;store.write({'intent:chrome:finished':source},'chrome_page_step','Synthetic completed check')
+        with patch.object(store.ledger,'history_usage',return_value=retention.HISTORY_BYTES+1):
+            result=self.engine.request({'v':1,'method':'call','action':'control_archive',
+                'arguments':{'before':time.time()-1,'confirm':'archive finished history'}},True)
+        self.assertTrue(result['ok'],result)
+        self.assertIsNone(store.get('intent:chrome:finished'))
+
     def test_s5_clean_stopped_submission_has_no_interruption_warning(self):
         result=self.chrome.steps([{**self.step(),'kind':'native_submit'}],1)
         self.assertEqual(self.chrome.notice_page()['total'],0)
@@ -239,6 +249,18 @@ class StateFixes(unittest.TestCase):
             pending=self.engine.pending(resolve_checks=False)
             self.assertEqual(pending['notices_more'],{'count':2,'action':'control_notices'})
             self.assertEqual(pending['notices'][0]['app'],'chrome')
+
+    def test_s9_replacing_a_cached_chrome_page_does_not_double_count_its_hidden_rows(self):
+        self.mail_notices(4)
+        for number in range(4):self.chrome.steps([{**self.step(),'id':str(number)}],1)
+        page=self.engine.pending();self.assertEqual(page['notices_more']['count'],5)
+        for _,notice,_ in list(self.chrome.committed.rows('notice:')):
+            if not notice.get('ack'):self.assertTrue(self.call('notice_ack',{'operation_id':notice['id']})['ok'])
+        with self.failed_reads():
+            pending=self.engine.pending(resolve_checks=False)
+            self.assertTrue(all(item['app']=='mail' for item in pending['notices']))
+            self.assertEqual(len(pending['notices'])+pending['notices_more']['count'],4)
+            self.assertEqual(pending['notices_more']['action'],'mail_filing_notices')
 
     def test_s10_mixed_notice_pages_use_nanosecond_chronology(self):
         self.mail_notices(3);self.chrome.steps([self.step()],1)

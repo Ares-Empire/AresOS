@@ -32,6 +32,8 @@ class Mutations(unittest.TestCase):
              'test_state_fixes.StateFixes.test_s4_more_than_512_completed_checks_leave_room_for_chrome_and_mail'),
             ('S4 receipts','aresos_control/chrome/adapter.py',[("        if source is None:source=self.committed.historical(key)","        if source is None:pass")],
              'test_state_fixes.StateFixes.test_s4_retirement_keeps_warning_ack_and_dedup_identity_in_history'),
+            ('S4 archive admission','aresos_control/engine.py',[("            self.store.archiving=True\n            try:retention.retire_chrome(self.store)\n            finally:self.store.archiving=False", "            retention.retire_chrome(self.store)")],
+             'test_state_fixes.StateFixes.test_s4_archive_retires_checks_even_above_the_shared_history_quota'),
             ('S5 live check','aresos_control/recovery.py',[("    if include_checks:\n        keys.update(open_filings(store))","    keys.update(key for key,value in store.iter_items('intent:chrome:') if value.get('state')=='started')\n    if include_checks:\n        keys.update(open_filings(store))"),("        if key.startswith('intent:chrome:'):continue","        if False:continue"),("if (key, notice_id) not in candidates and not (include_checks", "if (key, notice_id) not in candidates and not key.startswith('intent:chrome:') and not (include_checks")],
              'test_state_fixes.StateFixes.test_s5_clean_stopped_submission_has_no_interruption_warning'),
             ('S5 startup','aresos_control/recovery.py',[("if not persist and notice.get('app')=='chrome':","if False:"),("if current.get('state') in {'done','failed'}:","if False:")],

@@ -5,7 +5,9 @@ import io
 import json
 from pathlib import Path
 import sqlite3
+import shutil
 import sys
+import time
 from unittest.mock import patch
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'mail_tests'))
@@ -52,6 +54,43 @@ class Writers(StateViews,fixture.Operations):
         elif flow=='release':
             self.script.append({'kind':'release'})
             self.prepare();run=lambda:self.chrome.event({'event':'released','session':self.browser.session,'tab':1})
+        elif flow=='drop':
+            self.script.append({'kind':'cancel'});approval=self.prepare()
+            run=lambda:self.call('drop',{'operation_id':approval['operation_id']})
+        elif flow=='retirement':
+            from aresos_control.retention import expire
+            step={'id':'h1','kind':'activation','element':'e1','submitter':None,'frame':0,'document':'document-1','cancellable':True}
+            self.scenario_step(step);self.chrome.steps([step],1)
+            identifier=self.chrome.notice_page()['items'][0]['operation_id']
+            self.call('notice_ack',{'operation_id':identifier})
+            run=lambda:expire(self.engine)
+        elif flow=='lost_queue':
+            for kind in ['native_submit','activation_unknown']:
+                step={'id':kind,'kind':kind,'element':'e1','submitter':None,'frame':0,'document':'document-1','cancellable':False}
+                self.scenario_step(step);self.chrome.observe_step(step,1)
+            self.browser.session='replacement-session';self.browser.facts['session']=self.browser.session
+            run=lambda:self.call('read',{'tab':1})
+        elif flow=='stopped_submit':
+            step={'id':'h1','kind':'native_submit','element':'e1','submitter':None,'frame':0,'document':'document-1','cancellable':True}
+            self.scenario_step(step);prepared=self.chrome.steps([step],1)
+            run=lambda:self.call('submit',prepared[0]['approval'])
+        elif flow=='restore':
+            from aresos_control.engine import Engine
+            self.script.append({'kind':'cancel'});approval=self.prepare()
+            self.call('drop',{'operation_id':approval['operation_id']})
+            self.engine.store.write({'chrome:allow:fixture':{'revoked':False}},'chrome_sites','Synthetic permission')
+            snapshot=self.root/'rollback.sqlite';database=sqlite3.connect(snapshot)
+            self.engine.store.db.backup(database);database.close()
+            self.call('notice_ack',{'operation_id':approval['operation_id']})
+            record=self.chrome.qualification.record();failure=entry(build=self.chrome.qualification.build,version='157.0.1.1')
+            failure['core']['binding']=False;record['entries'].append(failure)
+            self.engine.store.write({'chrome:allow:fixture':{'revoked':True},'chrome:readonly:fixture.test':True,
+                'chrome:qualification':record},'chrome_sites','Synthetic later policy and qualification')
+            self.engine.close();shutil.copyfile(snapshot,self.root/'state'/'control.sqlite')
+            self.engine=Engine(self.root/'state',self.root/'evidence');self.chrome=self.engine.adapters['chrome'];self.chrome.bridge=self.browser
+            self.chrome.read_owner_hosts=lambda:[];self.script.append({'kind':'restore'})
+            run=lambda:self.engine.request({'v':1,'method':'call','action':'control_restore_confirm',
+                'arguments':{'confirm':'invalidate earlier approvals'}},True)
         elif flow=='upload_copy':
             from aresos_control.chrome.uploads import copy_for_browser,release
             data=b'synthetic upload';key=self.engine.blobs.put(data,'caller_import')
@@ -66,7 +105,7 @@ class Writers(StateViews,fixture.Operations):
     def sweep_case(self,flow,fail_at=None,mode='single',cleanup_at=None):
         self.begin_views(flow)
         run=self.prepare_flow(flow);injector=OSWrites(fail_at,mode,cleanup_at)
-        self.watch_receiver(flow=='trusted')
+        self.watch_receiver(flow in {'trusted','stopped_submit'})
         with injector.wrap(self.engine.store):
             try:run()
             except Exception:
@@ -80,7 +119,7 @@ class Writers(StateViews,fixture.Operations):
         injector.points=original_points;injector.cleanup_points=cleanup_points
         # The only scenario with permission to send is trusted. Configuration and checks cannot dispatch.
         sends=[item for item in self.browser.dispatched if item[0] in {'input','resume','dialog'}]
-        self.assertLessEqual(len(sends),1 if flow=='trusted' else 0)
+        self.assertLessEqual(len(sends),1 if flow in {'trusted','stopped_submit'} else 0)
         self.engine.close()
         from aresos_control.engine import Engine
         self.engine=Engine(self.root/'state',self.root/'evidence');self.chrome=self.engine.adapters['chrome'];self.chrome.bridge=self.browser
@@ -97,7 +136,8 @@ class Writers(StateViews,fixture.Operations):
 
     def test_every_chrome_durable_writer_single_persistent_cleanup_pairs_restart_space_restored(self):
         counts={'single':0,'persistent':0,'pairs':0}
-        flows=['readonly','allow','revoke','trusted','qualification','delivery','observation','activation','stopped','acknowledgement','release','upload_copy']
+        flows=['readonly','allow','revoke','trusted','qualification','delivery','observation','activation','stopped','acknowledgement','release','upload_copy',
+               'drop','retirement','lost_queue','stopped_submit','restore']
         for flow in flows:
             clean=self.sweep_case(flow);self.tearDown();self.setUp()
             for point,label in enumerate(clean.points,1):
