@@ -14,7 +14,8 @@ async function showPopups(){
           stop.disabled=true;
           try{
             const result=await chrome.runtime.sendMessage({command:'stop_popup',tab:popup.tab,control:popup.control});
-            status.textContent=result.cleanup_pending?'Stopped. Close its dialog if returning control remains pending.':'Popup control ended. The popup stays open.';
+            if(result.stale){displayed='';status.textContent='Control changed. The list has been refreshed; use its current Stop.';}
+            else status.textContent=result.cleanup_pending?'Stopped. Close its dialog if returning control remains pending.':'Popup control ended. The popup stays open.';
             await showPopups();
           }catch{stop.disabled=false;status.textContent='Could not confirm Stop. Use Stop above to end all control.';}
         });
