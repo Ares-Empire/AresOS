@@ -103,6 +103,7 @@ Updated 2026-11-10. The live truth is `git log`, `gh pr list` and `git worktree 
   - then the owner runs `at update` and `sudo passwd ares` on the laptop.
   - 2026-11-10: the first release run (42807087845) failed in an extra second VM pass the agent had added (a host-side nbd race in the offline journal reader after all guest checks passed). Nothing was published. The release job now keeps the reviewed single VM pass; the integrator approved one more release dispatch (the last).
   - Its JUDGMENT-CALL 2: package 22's tools can't go forward again after `at previous`, so the rehearsal ends on 13 with 27 beside it; going forward after a rollback belongs in 22c.
+  - Also for 22c (PR #37 REVIEW-1 should-fix, older than that fix): the refusal invariant in `test_owner_update` tries a persistent refusal twice but never asserts that it refused. Assert the refusal on both attempts wherever the check applies.
   - Packages 23 and 21b go into the next release, which needs 22c first.
 - **Main's hosted checks-only job fails since package 22** (run 42815704308, 118 errors in `test_owner_update`). Cause: a test leak. On GitHub's runner the namespace check skips mid-subtest and leaves a patched `disk_record` active. Fix: PR #37 (`fix/owner-update-test-leak`), in review (Sol). In WSL with a failing `unshare` stub, main gives exactly the hosted run's 7 failures and 111 errors, and the fix gives `OK (skipped=136)`; with real namespaces the fix gives `OK`. The hosted runner still skips these namespace tests; WSL runs them.
 - **Then:**
