@@ -531,8 +531,8 @@ if find /usr/lib/prismlauncher /usr/share/aresos/minecraft /usr/libexec/aresos-d
 fi
 # The tarball records its files as UID 1001, which is ares on AresOS: they
 # must belong to root in the image, or ares could change Prism.
-if find /usr/lib/prismlauncher /usr/share/aresos/minecraft \( ! -user root -o ! -group root -o -perm /022 \) \
-    ! -type l | grep .; then
+owned=(-not -type l '(' -not -user root -o -not -group root -o -perm /022 ')')
+if find /usr/lib/prismlauncher /usr/share/aresos/minecraft "${owned[@]}" | grep .; then
     echo 'A desktop file in /usr is not root-owned or is group/world-writable'
     exit 1
 fi
