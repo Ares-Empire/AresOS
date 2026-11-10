@@ -126,11 +126,15 @@ try:
     prepared = request('prepare-poweroff')
     deadline = time.monotonic() + 60
     while True:
+        transcript = (evidence / 'serial.log').read_bytes()[journal_start:].decode(errors='replace')
         try:
-            _, ready = serial_search('ARESOS_JOURNAL_READY', (evidence / 'serial.log').read_bytes()[journal_start:].decode(errors='replace'))
+            _, ready = serial_search('ARESOS_JOURNAL_READY', transcript)
         except IncompleteKernelLine:
             ready = None
-        if ready:
+        # The follower prints short-monotonic lines ("[   73.458055] host ..."),
+        # which serial_search strips as kernel records (package 21 found this).
+        # The token only signals readiness, so a complete follower line counts.
+        if ready or re.search(r'^\[\s*\d+\.\d+\] \S+ aresos-ci\[\d+\]: .*ARESOS_JOURNAL_READY', transcript, re.M):
             break
         if qemu.poll() is not None or time.monotonic() >= deadline:
             raise TimeoutError('Journal follower did not forward its readiness record')

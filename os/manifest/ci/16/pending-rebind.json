@@ -7,7 +7,8 @@
     "PR #22 (15f): Lenovo's own Fedora firmware entry accepted beside Bazzite; new tools fingerprint",
     "Package 15g: install-night owner-page corrections and route tests; checkout bytes recorded for the next rehearsal (no walk tables rebound)",
     "Package 15gb: reviewed return routes, idle live-session shutdown exception and layout-proof wording; current checkout bytes retained without rebinding historical tables",
-    "Package 21 (everyday account and Chrome): os-image.yml gains the throwaway check_build job, which builds and checks a branch image without pushing, signing or publishing it; checkout bytes recorded for the next rehearsal (no walk tables rebound)"
+    "Package 21 (everyday account and Chrome): os-image.yml gains the throwaway check_build job, which builds and checks a branch image without pushing, signing or publishing it; checkout bytes recorded for the next rehearsal (no walk tables rebound)",
+    "Package 21 review fixes 3: vm.py also accepts the journal follower's readiness line, which serial_search strips as a kernel record since package 14, so the throwaway check build can boot its VM pass; checkout bytes recorded for the next rehearsal (no walk tables rebound)"
   ],
   "rule": "The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
@@ -22,6 +23,10 @@
     {
       "sha256": "4a4fe5c7680341826c4999c249351e17f6bee321b1f40169dc81cae27e6307c4",
       "path": "docs/INSTALL.md"
+    },
+    {
+      "sha256": "63d4a2c592c7acc81ad66fe5c1c24992b2b6c0e3868f9665b6d177e2a8f4eb1c",
+      "path": "os/ci/vm.py"
     },
     {
       "sha256": "9cf43b79e596ccf6ebe4b4ba4acb25412380f50798d7835f44c51d3415c1158e",
