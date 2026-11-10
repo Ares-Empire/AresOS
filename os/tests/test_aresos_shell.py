@@ -89,12 +89,12 @@ class Base(unittest.TestCase):
             'HOME': '/var/home/ares', 'PATH': '/usr/bin', 'WAYLAND_DISPLAY': 'wayland-0',
             'ARESOS_LAUNCH_NONCE': NONCE, 'ARESOS_DESKTOP_INSTANCE': INSTANCE, 'NOTIFY_SOCKET': '/run/notify'})
 
-    def helper(self, registry=REGISTRY, missing=('/usr/bin/google-chrome',), tracked=False):
+    def helper(self, registry=REGISTRY, missing=('/usr/bin/google-chrome',), tracked=False, keep_foreground=False):
         if tracked:
             self.windows = shell.Windows(clock=self.clock)
         helper = shell.Helper(str(registry), INSTANCE, NONCE, self.journal, launcher=self.launcher(),
                               windows=self.windows, activate=self.activate if tracked else None, clock=self.clock,
-                              executable=lambda path: path not in missing)
+                              executable=lambda path: path not in missing, keep_foreground=keep_foreground)
         self.addCleanup(helper.watcher.stop)
         return helper
 
@@ -1117,6 +1117,60 @@ class WindowTest(Base):
         restarted.windows_changed()
         self.assertEqual(restarted.journal.entries['o-1']['state'], 'focused')
         self.assertEqual(self.popen.call_count, 1)
+
+
+class KeepForegroundTest(Base):
+    """Review 1, finding 11: a desktop the supervisor restarted waits below the window in front, once."""
+
+    window = WindowTest.window
+    focus = WindowTest.focus
+    focus_events = WindowTest.focus_events
+
+    def start(self, keep_foreground, in_front=True):
+        self.helper_ = self.helper(missing=(), tracked=True, keep_foreground=keep_foreground)
+        self.conn = self.connect(self.helper_)
+        if in_front:
+            self.window(2, 'org.kde.kwrite', activated=True)  # the owner is writing when the desktop comes back
+
+    def test_the_restored_desktop_gives_focus_back_to_the_window_in_front(self):
+        self.start(keep_foreground=True)
+        self.now[0] += 0.5
+        self.window(1, 'aresos-desktop', activated=True)
+        self.assertEqual(self.activations, [2])
+        self.assertEqual(self.helper_.active_handle, 2)
+        self.focus(2)  # the compositor applies the activation
+        self.assertEqual(self.focus_events(), [('background', 'app_activated', 'notepad')])
+        # Later the owner switches to the desktop on purpose: it stays in front, no second bounce.
+        self.now[0] += 1
+        self.focus(1)
+        self.assertEqual(self.activations, [2])
+        self.assertEqual(self.focus_events()[-1], ('foreground', 'desktop_activated', None))
+
+    def test_an_ordinary_start_lets_the_desktop_take_focus(self):
+        self.start(keep_foreground=False)
+        self.window(1, 'aresos-desktop', activated=True)
+        self.assertEqual(self.activations, [])
+        self.assertEqual(self.focus_events()[-1], ('foreground', 'desktop_activated', None))
+
+    def test_a_desktop_activated_after_the_window_is_the_owners_choice(self):
+        self.start(keep_foreground=True)
+        self.window(1, 'aresos-desktop')
+        self.now[0] += shell.KEEP_WINDOW + 0.1
+        self.focus(1)
+        self.assertEqual(self.activations, [])
+        self.assertEqual(self.focus_events()[-1], ('foreground', 'desktop_activated', None))
+
+    def test_with_nothing_in_front_the_restored_desktop_keeps_focus_and_the_flag_is_spent(self):
+        self.start(keep_foreground=True, in_front=False)
+        self.window(1, 'aresos-desktop', activated=True)
+        self.assertEqual(self.activations, [])
+        self.window(2, 'org.kde.kwrite', activated=True)
+        self.now[0] += 0.5
+        self.focus(1)
+        self.assertEqual(self.activations, [])
+
+    def test_the_flag_never_reaches_launched_apps(self):
+        self.assertIn('ARESOS_SHELL_KEEP_FOREGROUND', shell.PRIVATE_ENVIRONMENT)
 
 
 class FakeCompositor:

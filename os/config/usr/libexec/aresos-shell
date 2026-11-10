@@ -39,6 +39,11 @@ every authenticated desktop event, and never reads from it:
   {"event": "desktop_connected"}
   {"event": "world_ready", "world": <save folder name>}
   {"event": "heartbeat", "ready": <bool>, "world": <save folder name or null>}
+
+After the supervisor restarts a crashed desktop it sets
+ARESOS_SHELL_KEEP_FOREGROUND=1: when the new desktop window takes focus while
+another window was in front, the helper gives that window its focus back once,
+so the restored hub waits below the app the owner is using (B2).
 """
 import argparse
 import dataclasses
@@ -77,6 +82,8 @@ HELLO_TIMEOUT = 10.0
 WINDOW_TIMEOUT = 30.0
 # A close this soon after its window lost focus is the compositor handing focus on, not the owner switching.
 HANDOFF = 0.5
+# A restored desktop window that takes focus this soon after appearing gives it back (keep_foreground).
+KEEP_WINDOW = 3.0
 # Pause between the end of one scope check and the start of the next (one batched systemctl call each).
 SCOPE_CHECK = 5.0
 SCOPE_TIMEOUT = 5.0
@@ -94,8 +101,9 @@ BASE_CAPABILITIES = frozenset({'list_apps', 'open_app', 'app_state', 'world_read
 WINDOW_CAPABILITIES = frozenset({'shell_focus', 'windows'})
 # The launch secrets stay with the desktop; launched apps never inherit them,
 # nor the helper's own service plumbing.
-PRIVATE_ENVIRONMENT = ('ARESOS_LAUNCH_NONCE', 'ARESOS_DESKTOP_INSTANCE', 'ARESOS_SHELL_STATUS_FD', 'NOTIFY_SOCKET',
-                       'LISTEN_FDS', 'LISTEN_PID', 'LISTEN_FDNAMES', 'WATCHDOG_PID', 'WATCHDOG_USEC')
+PRIVATE_ENVIRONMENT = ('ARESOS_LAUNCH_NONCE', 'ARESOS_DESKTOP_INSTANCE', 'ARESOS_SHELL_STATUS_FD',
+                       'ARESOS_SHELL_KEEP_FOREGROUND', 'NOTIFY_SOCKET', 'LISTEN_FDS', 'LISTEN_PID', 'LISTEN_FDNAMES',
+                       'WATCHDOG_PID', 'WATCHDOG_USEC')
 
 ENVELOPE = re.compile(r'aresos-shell/(\d{1,3})\.(\d{1,3})\Z')
 REQUEST_ID = re.compile(r'[A-Za-z0-9._:-]{1,128}\Z')
@@ -885,9 +893,11 @@ class Helper:
 
     def __init__(self, registry_dir, instance, nonce, journal_path, launcher=None, windows=None,
                  activate=None, clock=time.monotonic, executable=None, window_timeout=WINDOW_TIMEOUT, registry=None,
-                 watcher=None, status=no_status):
+                 watcher=None, status=no_status, keep_foreground=False):
         self.instance = instance
         self.status = status
+        self.keep_foreground = keep_foreground
+        self.desktop_appeared = None
         self.nonce = nonce
         self.apps, self.revision = registry or load_registry(registry_dir)
         self.launcher = launcher or ScopeLauncher()
@@ -1348,6 +1358,11 @@ class Helper:
         """
         opened, closed = self.windows.take()
         now = self.clock()
+        if any(toplevel.owner == Windows.SHELL for toplevel in opened):
+            self.desktop_appeared = now
+        if (self.keep_foreground and self.desktop_appeared is not None
+                and now - self.desktop_appeared > KEEP_WINDOW):
+            self.keep_foreground = False
         # Claims first, so a window that opened and closed between two reads still confirms its launch.
         for toplevel in opened:
             if toplevel.owner in (None, Windows.SHELL) or any(toplevel.handle in h for h in self.handles.values()):
@@ -1384,6 +1399,15 @@ class Helper:
             return
         previous_handle, previous_owner = self.active_handle, self.active_owner
         self.active_handle, self.active_owner = active.handle, active.owner
+        if active.owner == Windows.SHELL and self.keep_foreground and self.desktop_appeared is not None:
+            # The restored desktop window took focus on appearing; the window in front keeps it (once).
+            self.keep_foreground = False
+            if (previous_handle is not None and previous_owner != Windows.SHELL
+                    and previous_handle in self.windows.toplevels and self.activate_window is not None
+                    and self.activate_window(previous_handle)):
+                LOG.info('the restored desktop stays below the window in front')
+                self.active_handle, self.active_owner = previous_handle, previous_owner
+                return
         if active.owner == Windows.SHELL:
             self.returning_until = None
             self.handoff = None
@@ -1625,7 +1649,7 @@ class Server:
 
 
 def build(registry_dir, instance, nonce, journal_path, environ=None, launcher=None, clock=time.monotonic,
-          connect=None, status=no_status):
+          connect=None, status=no_status, keep_foreground=False):
     """Start-up in the order that matters: owners from the registry first, then the compositor's window list."""
     registry = load_registry(registry_dir)
     windows = Windows(clock=clock)
@@ -1636,7 +1660,8 @@ def build(registry_dir, instance, nonce, journal_path, environ=None, launcher=No
         LOG.warning('window tracking is off, apps report starting only: %s', error)
         wayland, windows = None, None
     helper = Helper(registry_dir, instance, nonce, journal_path, launcher=launcher, windows=windows,
-                    activate=wayland.activate if wayland else None, clock=clock, registry=registry, status=status)
+                    activate=wayland.activate if wayland else None, clock=clock, registry=registry, status=status,
+                    keep_foreground=keep_foreground)
     helper.watcher.watch(helper.watched_units())
     helper.watcher.start()
     return helper, wayland
@@ -1673,7 +1698,7 @@ def main(argv=None):
     path = args.socket or os.environ.get('ARESOS_SHELL_SOCKET') or os.path.join(runtime, 'aresos', 'shell.sock')
     prepare_socket(path)
     helper, wayland = build(args.registry, instance, nonce, os.path.join(os.path.dirname(path), 'shell-journal.json'),
-                            status=status)
+                            status=status, keep_foreground=os.environ.get('ARESOS_SHELL_KEEP_FOREGROUND') == '1')
     server = Server(path, helper, wayland)
 
     def stop(signum, frame):
