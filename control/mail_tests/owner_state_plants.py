@@ -208,8 +208,69 @@ def false_local_flag(changes, action, kwargs):
             item['flagged'] = False
 
 
+def context_lie(field, replacement):
+    original = Mail.append_context
+    def context(self, *args, **kwargs):
+        value = original(self, *args, **kwargs)
+        value[field] = replacement
+        return value
+    return lambda: patch.object(Mail, 'append_context', context)
+
+
+def missing_context(changes, action, kwargs):
+    for row in changes.values():
+        if isinstance(row, dict) and row.get('context_version') == 1:
+            row.pop('context', None)
+
+
+def false_restore(changes, action, kwargs):
+    if any(isinstance(row, dict) and row.get('state') == 'done' for row in changes.values()):
+        changes['generation'] = 'unapproved-restore'
+
+
+def wrong_append_bytes(self, account, folder, raw, flags=None, recipients=()):
+    # The context and the command coherently use the wrong Sent wire bytes.
+    changed = raw + b'Unapproved appended content\r\n'
+    value = self.append_context(account, folder, changed, flags, recipients)
+    with A.mutation(self.store, value):
+        return self.append(account, folder, changed, flags)
+
+
+def removed_intent(self, account, folder, raw, flags=None, recipients=()):
+    scope = self.store._action_scope
+    self.store.write({scope['source_key']: None}, scope['action'], 'Planted premature removal', outcome='started')
+    return self.append(account, folder, raw, flags)
+
+
+def dropped_context_commit():
+    original = Store.write
+    def persist(store, changes, action, summary, *args, **kwargs):
+        if any(isinstance(row, dict) and row.get('context', {}).get('command') == 'DATA' and row.get('state') == 'submitting' for row in changes.values()):
+            return None
+        return original(store, changes, action, summary, *args, **kwargs)
+    return patch.object(Store, 'write', persist)
+
+
 PLANTS.update({
     'narrow-payload': ('delete_permanent', (write_lie(narrow_payload),)),
     'false-transition': ('send', (write_lie(false_transition),)),
     'false-local-flag': ('local_flag', (write_lie(false_local_flag),)),
+    'missing-context': ('send', (write_lie(missing_context),)),
+    'false-restore': ('send', (write_lie(false_restore),)),
+    'wrong-context-account': ('send', (context_lie('account', 'other'),)),
+    'wrong-context-role': ('send', (context_lie('roles', {'sent': ['Wrong']}),)),
+    'wrong-append-flags': ('send', (context_lie('append_flags', '(\\Draft)'),)),
+    'wrong-sent-bytes': ('send', (lambda: patch.object(Mail, 'append_with_context', wrong_append_bytes),)),
+    'removed-intent': ('draft_append', (lambda: patch.object(Mail, 'append_with_context', removed_intent),)),
+    'dropped-context-commit': ('send', (dropped_context_commit,)),
 })
+
+
+FIELD_PLANTS = {
+    'flag': 'false-local-flag', 'state': 'false-transition',
+    'removed row': 'removed-intent', 'dropped sequence': 'dropped-context-commit',
+    'target': 'narrow-payload', 'recipient': 'false-recipient-refusal',
+    'flag list entry': 'wrong-answered-flags', 'append_flags': 'wrong-append-flags',
+    'hash': 'wrong-sent-bytes', 'destination': 'wrong-sent-destination',
+    'restore marker': 'false-restore', 'account': 'wrong-context-account', 'role': 'wrong-context-role',
+}

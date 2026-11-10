@@ -5,6 +5,7 @@ import copy
 import json
 from pathlib import Path
 import sqlite3
+import sys
 import tempfile
 import unittest
 
@@ -16,16 +17,29 @@ from owner_state_oracle.compare import pages
 class OwnerOracle(unittest.TestCase):
     def test_expectation_imports_are_standard_library_only(self):
         root = Path(__file__).resolve().parents[1] / 'owner_state_oracle'
-        allowed = {'contextlib', 'email', 'context', 'copy', 'dataclasses', 'hashlib', 'json', 'pathlib', 'sqlite3', 'shutil', 'tempfile', 'time', 're', 'gzip', 'os', 'argparse', 'unicodedata', 'random', 'uuid', 'unittest', 'fcntl', 'identity', 'gaps', 'model', 'records', 'local', 'resolutions', 'perturb', 'compare'}
-        for name in ('__init__.py', 'records.py', 'model.py', 'compare.py', 'context.py', 'gaps.py', 'local.py', 'identity.py', 'caller_capture.py', 'resolutions.py', 'perturb.py'):
-            tree = ast.parse((root / name).read_text())
-            for node in ast.walk(tree):
+        modules = {'__init__', 'records', 'model', 'compare', 'context', 'gaps', 'local', 'identity', 'caller_capture', 'resolutions', 'perturb', 'effects'}
+        def validate(source):
+            for node in ast.walk(ast.parse(source)):
                 if isinstance(node, ast.Import):
-                    self.assertTrue(all(a.name.split('.')[0] in allowed for a in node.names), (name, ast.dump(node)))
+                    self.assertTrue(all(a.name.split('.')[0] in sys.stdlib_module_names - {'builtins', 'importlib'} for a in node.names), ast.dump(node))
                 if isinstance(node, ast.ImportFrom):
-                    self.assertIn(node.module.split('.')[0], allowed, (name, ast.dump(node)))
-                if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
-                    self.assertNotIn(node.func.id, {'__import__', 'eval', 'exec'})
+                    if node.level:
+                        self.assertEqual(node.level, 1)
+                        self.assertIn(node.module, modules)
+                        self.assertTrue((root / (node.module + '.py')).is_file())
+                    else:
+                        self.assertIn(node.module.split('.')[0], sys.stdlib_module_names - {'builtins', 'importlib'})
+                if isinstance(node, (ast.Name, ast.Attribute, ast.Constant)):
+                    value = node.id if isinstance(node, ast.Name) else node.attr if isinstance(node, ast.Attribute) else node.value
+                    if isinstance(value, str):
+                        self.assertNotIn(value, {'__import__', '__builtins__', 'eval', 'exec', 'compile', 'import_module'})
+        for name in modules:
+            validate((root / (name + '.py')).read_text())
+        for source in ("builtins.__import__('aresos_control')", "getattr(builtins, '__import__')('aresos_control')",
+                       "from builtins import __import__ as load", "import records", "from records import decode",
+                       "from ..aresos_control import storage", "from .driver import Driver"):
+            with self.assertRaises(AssertionError, msg=source):
+                validate(source)
 
     def recorded(self):
         oracle = Oracle()
@@ -183,7 +197,12 @@ class OwnerOracle(unittest.TestCase):
         oracle = Oracle()
         row = {'id': 'g:s', 'action': 'mail_send', 'state': 'done'}
         self.assertTrue(oracle.completion_errors(Record(rows={'op:g:s': row})))
-        oracle.server('DATA', identities=[{'message_id': '<g.s@mail.aresos.invalid>'}])
+        oracle.call('mail_send', {'operation_id': 'g:s', 'description': {}}, 1)
+        oracle.server('DATA', identities=[{'message_id': '<g.s@mail.aresos.invalid>'}],
+                      committed_before={'op:g:s': {**row, 'state': 'submitting'}})
+        self.assertTrue(oracle.completion_errors(Record(rows={'op:g:s': row})))
+        oracle.server('SENT', folder='Sent', roles={'Sent': ['\\Sent']},
+                      identities=[{'message_id': '<g.s@mail.aresos.invalid>'}], source='op:g:s')
         self.assertFalse(oracle.completion_errors(Record(rows={'op:g:s': row})))
 
     def test_filing_clean_ack_recurrence_uses_a_new_occurrence(self):
@@ -779,16 +798,16 @@ class OwnerOracle(unittest.TestCase):
             oracle = Oracle()
             oracle.call('mail_operation_repair', {'operation_id': parent, 'stage': 'sent_copy'}, 123)
             context = dict(command='APPEND', account='box', identities=[{'message_id': '<' + parent.replace(':', '.') + '@mail.aresos.invalid>'}],
-                           roles={}, source='local', destination='Sent', sha256='wire')
+                           roles={'sent': ['Sent']}, source='local', destination='Sent', sha256='wire')
             rows = {'op:' + parent: {'id': parent, 'state': 'partial', 'context': context},
                     'op:' + child: {'id': child, 'state': 'submitting', 'repair_of': parent,
                                    'action': 'mail_operation_repair', 'payload': {'stage': 'sent_copy'}, 'context': dict(context)}}
             # Match the production scan's lexicographic ordering in both cases.
-            event = oracle.server('APPEND', 'box', 'Sent', [{'message_id': '<' + parent.replace(':', '.') + '@mail.aresos.invalid>'}], {},
+            event = oracle.server('APPEND', 'box', 'Sent', [{'message_id': '<' + parent.replace(':', '.') + '@mail.aresos.invalid>'}], {'Sent': ['\\Sent']},
                                   raw_sha256='wire', committed_before=dict(sorted(rows.items())))
             self.assertEqual(differences(event, oracle.script), ('op:' + child, []))
             event['committed_before']['op:' + child]['context']['destination'] = 'Wrong'
-            self.assertEqual(differences(event, oracle.script), ('op:' + child, ['destination']))
+            self.assertEqual(differences(event, oracle.script), ('op:' + child, ['destination', 'script.context.destination']))
 
     def test_notice_order_uses_distinct_public_ids_even_when_source_time_ties(self):
         from owner_state_oracle.compare import ordered_notices, notice_identity
@@ -1016,9 +1035,9 @@ class StageOneFixMutations(unittest.TestCase):
         from owner_state_oracle.context import differences
         oracle = Oracle()
         oracle.call('mail_operation_repair', {'operation_id': 'g:parent', 'stage': 'sent_copy'}, 1)
-        context = {'command': 'APPEND', 'account': 'box', 'roles': {}, 'source': 'local', 'destination': 'Sent',
+        context = {'command': 'APPEND', 'account': 'box', 'roles': {'sent': ['Sent']}, 'source': 'local', 'destination': 'Sent',
             'sha256': 'wire', 'identities': [{'message_id': '<g.parent@mail.aresos.invalid>'}], 'append_flags': '(\\Draft)'}
-        event = oracle.server('APPEND', 'box', 'Sent', [{'message_id': '<g.parent@mail.aresos.invalid>'}], {}, append_flags='(\\Draft)', raw_sha256='wire',
+        event = oracle.server('APPEND', 'box', 'Sent', [{'message_id': '<g.parent@mail.aresos.invalid>'}], {'Sent': ['\\Sent']}, append_flags='(\\Draft)', raw_sha256='wire',
             committed_before={'op:g:repair': {'id': 'g:repair', 'state': 'submitting', 'repair_of': 'g:parent',
             'action': 'mail_operation_repair', 'payload': {'stage': 'sent_copy'}, 'context': context}})
         self.assertEqual(differences(event, oracle.script)[1], ['script.command.append-flags', 'script.context.append-flags'])
@@ -1622,6 +1641,7 @@ class StageOneRoundThree(unittest.TestCase):
     def test_legacy_and_modern_intent_ids_bind_once(self):
         for identity in ('i', 'recovery-i'):
             oracle = Oracle()
+            oracle.seed_sequence = 1
             row = {'id': identity, 'app': 'mail', 'action': 'mail_flag', 'state': 'started'}
             record = Record(rows={'intent:i': row}, events=[{'seq': 1, 'action': 'fixture', 'set': {'intent:i': row}}])
             initial = oracle.expected(record)

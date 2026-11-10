@@ -7,16 +7,18 @@ from .records import canonical, fingerprint, visible
 
 def compare_proofs(oracle, record, check, after_sequence=0, context=True):
     """The sweep and alteration test deliver record defects to one checker."""
-    try:
-        expected = oracle.expected(record)
-        completion = oracle.completion_errors(record)
-        contexts = oracle.context_errors() | oracle.local_context_errors(record, after_sequence) if context else set()
-    except (KeyError, TypeError, ValueError, IndexError, AttributeError) as error:
-        check('record-format', set(), {Fact('record', 'invalid-record', detail=type(error).__name__)})
-        return set()
-    if context:
-        check('R2.context-before-command', set(), contexts)
-    check('completion', set(), completion)
+    expected = set()
+    for view, compute in [('expectations', lambda: oracle.expected(record)),
+                          ('completion', lambda: oracle.completion_errors(record)),
+                          *([('R2.context-before-command', lambda: oracle.context_errors() | oracle.local_context_errors(record, after_sequence))] if context else [])]:
+        try:
+            value = compute()
+            if view == 'expectations':
+                expected = value
+            else:
+                check(view, set(), value)
+        except (KeyError, TypeError, ValueError, IndexError, AttributeError) as error:
+            check('record-format.' + view, set(), {Fact('record', 'invalid-record', detail=type(error).__name__)})
     check('clean-result-proof', set(), oracle.invalid_clean_results)
     check('lifecycle-proof', set(), oracle.lifecycle_errors)
     return expected

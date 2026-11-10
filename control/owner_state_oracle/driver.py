@@ -130,7 +130,7 @@ class Driver:
                 if match:
                     name = folder_name(match[2])
                     oracle.delimiters[name] = None if match[1] == b'NIL' else json.loads(match[1])
-            oracle.server('LIST', getattr(self, 'account_id', 'box'), before_seq=max(self.snapshot().committed, default=0), check_sources=sorted(self.snapshot().rows), roles=f.imap.roles, mailboxes={name: self.identities(name) for name in f.imap.boxes})
+            oracle.server('LIST', getattr(self, 'account_id', 'box'), before_seq=max(self.snapshot().committed, default=0), check_sources=[self.checking_source] if getattr(self, 'checking_source', None) else [], roles=f.imap.roles, mailboxes={name: self.identities(name) for name in f.imap.boxes})
             return answer
         def selected(*args, **kwargs):
             answer = select(*args, **kwargs)
@@ -179,7 +179,7 @@ class Driver:
         def appended(account, folder, raw, flags=None):
             event = oracle.server('APPEND', account['id'], folder, roles=f.imap.roles,
                 identities=[__import__('owner_state_oracle.transcript', fromlist=['Transcript']).Transcript.message(raw)], raw_sha256=__import__('hashlib').sha256(raw).hexdigest(), accepted=False, reply='lost',
-                append_flags=flags, **self.precommit())
+                append_flags=flags, raw_hex=raw.hex(), **self.precommit())
             value = append(account, folder, raw, flags)
             event.update(accepted=True, reply='delivered', arrived=self.identities(folder, account['id']))
             return value
@@ -225,6 +225,7 @@ class Driver:
                             if name == 'data':
                                 from .transcript import Transcript
                                 event['identities'] = [Transcript.message(args[0])]
+                                event['raw_hex'] = args[0].hex()
                             if name == 'rcpt':
                                 intended_recipients.append(args[0])
                             if name == 'mail':
@@ -297,6 +298,36 @@ class Driver:
             event.update(accepted=True, reply='delivered')
             return result
         extra.enter_context(patch.object(receiver, 'local_stage', side_effect=receiver_stage))
+        from aresos_control.mail import filing
+        resolve_checks, get, scan = filing.resolve_checks, f.engine.store.get, filing.locations
+        self.checking_source = None
+        checking = [False]
+        def checking_get(key, *args, **kwargs):
+            if checking[0] and key.startswith(('mail:filing:', 'mail:rename:')):
+                self.checking_source = key
+            return get(key, *args, **kwargs)
+        def checked(mail):
+            previous, previous_source = checking[0], self.checking_source
+            checking[0] = True
+            try:
+                return resolve_checks(mail)
+            finally:
+                checking[0], self.checking_source = previous, previous_source
+        def scanned(mail, account, records):
+            start = len(oracle.servers)
+            expected = {name: self.identities(name, account['id']) for name in f.imap.boxes
+                        if '\\Noselect' not in f.imap.roles.get(name, [])}
+            result = scan(mail, account, records)
+            events = oracle.servers[start:]
+            complete = all(any(e['command'] == 'SELECT' and e.get('folder') == name and e['accepted'] and e['reply'] == 'delivered' for e in events)
+                and all(any(e['command'] == 'FETCH' and e.get('folder') == name and e.get('arguments', [None])[0] == str(ref['uid']) and e['accepted'] and e['reply'] == 'delivered' for e in events)
+                        for ref in refs) for name, refs in expected.items())
+            oracle.server('SCAN_RESULT', account['id'], accepted=complete, before_seq=max(self.snapshot().committed, default=0),
+                          check_sources=[self.checking_source] if self.checking_source else [], scan_start=start)
+            return result
+        extra.enter_context(patch.object(filing, 'resolve_checks', side_effect=checked))
+        extra.enter_context(patch.object(f.engine.store, 'get', side_effect=checking_get))
+        extra.enter_context(patch.object(filing, 'locations', side_effect=scanned))
         with extra, patch.object(f.imap, 'response', side_effect=responded), patch.object(f.imap, 'rename', side_effect=renamed, create=True), patch.object(f.imap, 'uid', side_effect=command), patch.object(f.imap, 'list', side_effect=listed), \
              patch.object(f.imap, 'select', side_effect=selected), patch.object(f.mail, 'append', side_effect=appended):
             yield

@@ -7,7 +7,7 @@ from owner_state_oracle.model import Oracle
 from owner_state_oracle.perturb import evaluate, STRUCTURAL
 import owner_state_oracle.context as context
 import owner_state_oracle.model as model
-from owner_state_plants import PLANTS, record
+from owner_state_plants import PLANTS, FIELD_PLANTS, record
 
 
 VALIDATORS = {
@@ -38,6 +38,8 @@ def run_plants_and_controls(test):
         _, differences = evaluate(oracle, decoded)
         test.assertTrue(any(f.kind not in STRUCTURAL for _, f in differences), name)
         recordings[name] = oracle, decoded
+    test.assertEqual(set(FIELD_PLANTS.values()) - recordings.keys(), set())
+    print(f'Owner real production field controls={len(FIELD_PLANTS)} caught through Driver.compare', flush=True)
     for validator, (name, kind, broken) in VALIDATORS.items():
         oracle, decoded = recordings[name]
         expected, own = require_plant(name, oracle, decoded, kind)

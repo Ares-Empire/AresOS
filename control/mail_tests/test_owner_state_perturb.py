@@ -111,14 +111,26 @@ class SystematicPerturbations(unittest.TestCase):
             exercise('send', boundaries['send'], 'single', cleanup, Gaps(recording=True), 'crash')
         from test_owner_state_plants import run_plants_and_controls
         run_plants_and_controls(self)
+        # Include both review reproductions with later acknowledgement, reads,
+        # expiry/archive attempts in the same field-level alteration corpus.
+        import importlib.util
+        from pathlib import Path
+        spec = importlib.util.spec_from_file_location('s2_regressions', Path(__file__).resolve().parents[1] / 'tests/test_owner_state_fixes_s2.py')
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        for kind in ('filing', 'rename'):
+            for related, target, scan in ((False, True, True), (True, False, True), (True, True, True)):
+                oracle, record, _ = module.filing_case(kind, related, target, scan)
+                recordings.append((f'check-regression/{kind}/{related}/{target}', freeze(oracle), record))
         counts = Counter()
+        statistics = Counter()
         states = state_vocabulary([record for _, _, record in recordings])
         shard = int(os.environ.get('OWNER_PERTURB_SHARD', '0'))
         shards = int(os.environ.get('OWNER_PERTURB_SHARDS', '1'))
         self.assertIn(shard, range(shards))
         recordings = [item for index, item in enumerate(recordings) if index % shards == shard]
         for scenario, oracle, record in recordings:
-            checked = check(scenario, oracle, record, states)
+            checked = check(scenario, oracle, record, states, statistics=statistics)
             counts.update(checked)
             print(f'Owner perturbation scenario={scenario} total={sum(checked.values())} slipped=0', flush=True)
         self.assertTrue(all(counts[kind] for kind in ('boolean', 'state', 'row', 'sequence', 'effect', 'restore')))
@@ -127,3 +139,4 @@ class SystematicPerturbations(unittest.TestCase):
             self.assertEqual({name.split('/')[1] for name, *_ in recordings if name.startswith('regression/')},
                              set(unittest.defaultTestLoader.getTestCaseNames(regressions.ReviewRegressions)))
         print(f'Owner perturbations scenarios={len(recordings)} kinds={dict(sorted(counts.items()))} total={sum(counts.values())} slipped=0', flush=True)
+        print(f'Owner validator alteration statistics={dict(sorted(statistics.items()))}', flush=True)

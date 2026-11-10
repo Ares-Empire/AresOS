@@ -24,7 +24,7 @@ FLOWS = ('send', 'repair', 'delete_trash', 'delete_permanent', 'unsubscribe_mail
          'password', 'filing_move', 'filing_copy', 'filing_rename', 'expiry', 'maintenance',
          'restart_index', 'restart_tail', 'export_rollback', 'archive')
 EXTRA = ('draft_append', 'folder_create', 'folder_delete', 'onboarding', 'flag', 'settings', 'folder_review',
-         'testapp_send', 'testapp_delete', 'testapp_config')
+         'testapp_send', 'testapp_delete', 'testapp_config', 'local_flag')
 
 
 def owns_case(case, shard, shards, worker=0, workers=1):
@@ -176,6 +176,9 @@ class OwnerScenario(Scenario):
             self.action, self.args, self.admin = 'mail_account_folders', {'id': 'box', 'roles_hash': review['data']['roles_hash']}, True
         elif flow == 'testapp_config':
             self.action, self.args, self.admin = 'testapp_fixture_configure', {'refuse': [], 'failure': 'none'}, True
+        elif flow == 'local_flag':
+            reference = f.engine.request({'v': 1, 'method': 'call', 'action': 'testapp_list', 'arguments': {'limit': 1}})['data']['items'][0]['reference']
+            self.action, self.args = 'testapp_flag', {'reference': reference, 'flagged': True}
         else:
             verb = flow.removeprefix('testapp_')
             arguments = {'account': 'fixture', 'to': ['alpha'], 'cc': [], 'bcc': [], 'subject': 'Synthetic', 'text': 'Exact', 'attachments': []}

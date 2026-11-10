@@ -38,15 +38,42 @@ def errors(record, script, after_sequence=0, servers=()):
         fields = set()
         source = 'event:' + str(event['seq'])
         local_delete = action == 'testapp_delete' and 'testapp' in changes
+        local_flag = action == 'testapp_flag' and 'testapp' in changes
         account_keys = [key for key in changes if key.startswith('mail:account:')]
         local_account = action in {'mail_account_settings', 'mail_account_folders'} and account_keys
-        if event['seq'] > after_sequence and (local_delete or local_account):
+        if event['seq'] > after_sequence and (local_delete or local_account or local_flag):
             calls = [call for call in script if call['action'] == action and call['clock'] <= event['time']]
             call = calls[-1] if calls else {}
             arguments = call.get('arguments', {})
             if not call:
                 fields.add('scripted call')
-            if local_delete:
+            if local_flag:
+                reference = arguments.get('reference', {})
+                intents = [(name, value) for name, value in rows.items() if name.startswith('intent:') and
+                           value.get('action') == action and value.get('state') == 'started' and
+                           call.get('start_seq', -1) < created[name][0] < event['seq']]
+                if len(intents) == 1:
+                    source, intent = intents[0]
+                    context = intent.get('context', {})
+                else:
+                    context = {}
+                    fields.add('current intent identity')
+                expected_context = {'command': 'LOCAL_FLAG', 'account': 'fixture', 'arguments': arguments,
+                    'identities': [reference], 'source': 'fixture/items', 'destination': 'fixture/items', 'roles': {}, 'recipients': []}
+                if any(context.get(field) != wanted for field, wanted in expected_context.items()):
+                    fields.add('exact mutation context')
+                before, after = rows.get('testapp', {}), changes.get('testapp') or {}
+                item = before.get('items', {}).get(reference.get('id'))
+                if not item or reference != {'scope': 'testapp/fixture/items', 'epoch': before.get('epoch'),
+                                             'id': item['id'], 'revision': item['revision']}:
+                    fields.add('exact target reference')
+                else:
+                    expected = {**item, 'flagged': arguments.get('flagged'), 'revision': item['revision'] + 1}
+                    wanted = {**before, 'items': {**before['items'], item['id']: expected}}
+                    if after != wanted:
+                        fields.add('exact flag value and revision')
+                kind = 'R2.LOCAL_FLAG'
+            elif local_delete:
                 operation_id = event.get('operation_id')
                 source = 'op:' + operation_id if operation_id else source
                 operation = rows.get(source, {})

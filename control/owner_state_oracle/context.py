@@ -102,6 +102,8 @@ def decode(row, key, rows, command):
         return {}
     if isinstance(row.get('context'), dict):
         return row['context']
+    if 'context_version' in row:
+        return {}  # A versioned row cannot silently opt into the legacy format.
     original = row
     if row.get('repair_of'):
         original = rows.get('op:' + row['repair_of'], {})
@@ -179,10 +181,8 @@ def required(event, script):
         description = call.get('arguments', {}).get('description', {})
         result.update(source=description.get('reference'), destination=event.get('url'), body=event.get('body'))
     elif command == 'RECEIVE':
-        call = call_for(event, script)
-        description = call.get('arguments', {}).get('description', {})
         result.update(source='fixture', destination='receiver', identities=event['identities'],
-                      recipients=description.get('to', []) + description.get('cc', []) + description.get('bcc', []))
+                      recipients=event.get('recipients', []))
     elif command == 'LOCAL_STAGE':
         result.update(source='fixture', destination='receiver/' + event['stage'], identities=event['identities'], stage=event['stage'])
     elif command == 'CONFIGURE':
@@ -232,9 +232,14 @@ def differences(event, script, servers=()):
         if field == 'identities':
             if not isinstance(found, list) or any(ref not in found for ref in value):
                 missing.append(field)
+        elif field == 'recipients' and event['command'] == 'RECEIVE':
+            if not isinstance(found, list) or not value or any(v not in found for v in value):
+                missing.append(field)
         elif found != value or value is None and field not in {'source'}:
             missing.append(field)
     missing.extend(script_differences(event, script, row, actual, servers))
+    if 'context_version' not in row and not isinstance(row.get('context'), dict) and not event.get('legacy_source'):
+        missing.append('unversioned runtime context')
     return key, sorted(set(missing))
 
 
@@ -331,6 +336,16 @@ def script_differences(event, script, row, context, servers=()):
             errors.append('script.repair-stage')
         if command not in ({'APPEND'} if stage == 'sent_copy' else {'STORE'} if stage == 'answered_flag' else set()):
             errors.append('script.repair-command')
+    if action in {'mail_send', 'mail_unsubscribe', 'mail_operation_repair', 'mail_draft_save'}:
+        if command == 'APPEND':
+            role = 'drafts' if action == 'mail_draft_save' else 'sent'
+            names = (special_roles(event.get('roles')) or {}).get(role, [])
+            expected.update(source='local', destination=names[0] if len(names) == 1 else None)
+        elif command == 'STORE':
+            reference = description.get('answered_reference')
+            expected.update(source=reference.get('folder') if reference else None,
+                            identities=[identity(reference)] if reference else [],
+                            flags=['+FLAGS.SILENT', '(\\Answered)'])
     if command in {'DATA', 'RECEIVE'} and any(k in description for k in ('to', 'cc', 'bcc')):
         expected['recipients'] = [address for _, address in getaddresses(description.get('to', []) + description.get('cc', []) + description.get('bcc', []))] if command == 'DATA' else description.get('to', []) + description.get('cc', []) + description.get('bcc', [])
     if command == 'DATA' and description.get('from'):
@@ -348,7 +363,10 @@ def script_differences(event, script, row, context, servers=()):
     if command == 'CONFIGURE':
         expected['arguments'] = args
     for field, value in expected.items():
-        if actual.get(field) != value:
+        if field == 'recipients' and command == 'RECEIVE':
+            if not actual.get(field) or any(v not in value for v in actual[field]):
+                errors.append('script.command.' + field)
+        elif actual.get(field) != value:
             errors.append('script.command.' + field)
         if context.get(field) != value:
             errors.append('script.context.' + field)
@@ -381,7 +399,7 @@ def flag_operations(arguments):
             for name, sign in (('add', '+'), ('remove', '-')) if arguments.get(name)]
 
 
-def missing_flag_commands(script, servers):
+def missing_flag_commands(script, servers, record=None):
     """Checking each attempted command alone cannot detect an omitted branch."""
     result = []
     for call in script:
@@ -390,10 +408,16 @@ def missing_flag_commands(script, servers):
         if not any(e['call'] == call['call'] for e in servers) and 'end_seq' not in call:
             continue
         events = [e for e in servers if e['call'] == call['call'] and e['command'] == 'STORE']
+        if not events:
+            continue  # Admission can fail before a batch or its intent starts.
         # A fault or a refused/lost command can legitimately interrupt a batch.
         # It never authorizes an extra command (differences checks those).
         if call.get('faults', {}).get('trace') or any(not e['accepted'] or e['reply'] != 'delivered' for e in events):
-            continue
+            # An interrupted batch is allowed only while its committed intent
+            # still carries recovery; faults never authorize silent completion.
+            keys = {bind(e, script)[0] for e in events}
+            if record is not None and any(key in record.rows for key in keys if key):
+                continue
         for ref in call['arguments'].get('references', []):
             for flags in flag_operations(call['arguments']):
                 matches = [e for e in events if e.get('account') == ref['account'] and e.get('folder') == ref['folder']

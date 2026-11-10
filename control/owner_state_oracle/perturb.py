@@ -372,7 +372,18 @@ def evaluate(oracle, record):
     return expected, differences
 
 
-def check(label, oracle, record, states=None, candidates=None):
+VALIDATOR_KINDS = {
+    'script_differences': {'R2.DATA', 'R2.APPEND', 'R2.STORE', 'R2.MOVE', 'R2.COPY', 'R2.RENAME', 'R2.POST', 'R2.RECEIVE'},
+    'stage_claims': {'unjustified-stage'},
+    'completion_errors': {'false-completion', 'duplicate-effect'},
+    'payload_claims': {'unapproved-payload', 'unapproved-recorded-approval', 'unapproved-input-hash', 'unapproved-expiry', 'unapproved-composition'},
+    'filing_claims': {'unapproved-filing-context', 'unapproved-filing-records', 'unverified-source-hash'},
+    'transition': {'unsupported-resolution', 'unjustified-resolution', 'unjustified-resolution-reason'},
+    'local.errors': {'R2.LOCAL_FLAG', 'R2.LOCAL_CHANGE', 'R2.LOCAL_DELETE'},
+}
+
+
+def check(label, oracle, record, states=None, candidates=None, statistics=None):
     expected, errors = evaluate(oracle, record)
     counts, covered = {}, set()
     def all_candidates():
@@ -388,6 +399,12 @@ def check(label, oracle, record, states=None, candidates=None):
         if field.startswith('coherent/'):
             new = {(view, fact) for view, fact in new if fact.kind not in STRUCTURAL}
         counts[kind] = counts.get(kind, 0) + 1
+        if statistics is not None and actual != expected:
+            statistics['changed'] = statistics.get('changed', 0) + 1
+            for validator, kinds in VALIDATOR_KINDS.items():
+                own = any(f.kind in kinds and (validator != 'script_differences' or 'script.' in f.detail) for _, f in new)
+                if own:
+                    statistics[validator] = statistics.get(validator, 0) + 1
         if actual != expected and not new:
             raise AssertionError(('Silent owner-state perturbation', label, field,
                                   'missing', sorted(expected - actual), 'extra', sorted(actual - expected)))
