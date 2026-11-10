@@ -244,7 +244,7 @@ class GuardLedgerTest(unittest.TestCase):
         self.addCleanup(guard.configure, '11c')
 
     def test_package27_allows_one_release_one_checks_run_and_three_rehearsals(self):
-        self.assertEqual(guard.SETTINGS['dispatch_caps'], {'release-27': 4, 'checks': 1, 'update': 3})
+        self.assertEqual(guard.SETTINGS['dispatch_caps'], {'release-27': 5, 'checks': 1, 'update': 3})
         self.assertEqual(guard.SETTINGS['publish_cap'], 1)
         self.assertEqual(guard.BRANCH, 'pkg/27-first-update-release')
         workflow = (ROOT / '.github/workflows/os-image.yml').read_text()
@@ -272,9 +272,11 @@ class GuardLedgerTest(unittest.TestCase):
             runs.append(dict(base, id=4, display_title='Package 27 image release'))
             self.assertEqual(guard.budget(0)['dispatch_counts']['release-27'], 4)
             runs.append(dict(base, id=5, display_title='Package 27 image release'))
+            self.assertEqual(guard.budget(0)['dispatch_counts']['release-27'], 5)
+            runs.append(dict(base, id=6, display_title='Package 27 image release'))
             with self.assertRaisesRegex(AssertionError, 'release-27 dispatch allowance exhausted|exceeds 1200'):
                 guard.budget(0)
-            for _ in range(4): runs.pop()
+            for _ in range(5): runs.pop()
             for number in range(3):
                 runs.append(dict(base, id=10 + number, display_title='Two-disk rehearsal (update)'))
             self.assertEqual(guard.budget(0)['dispatch_counts']['update'], 3)
@@ -286,6 +288,42 @@ class GuardLedgerTest(unittest.TestCase):
         self.assertEqual(guard.native_gate('update', 'probe-budget-ci', dict(runs=[]), 'a' * 40)['status'], 'pending')
         with self.assertRaisesRegex(AssertionError, 'no current probe native preflight'):
             guard.native_gate('update', 'ci', dict(runs=[]), 'a' * 40)
+
+
+class AptPatienceTest(unittest.TestCase):
+    def test_only_the_release_job_waits_longer_for_the_snapshot_mirror(self):
+        import yaml
+        jobs = yaml.load((ROOT / '.github/workflows/os-image.yml').read_text(), Loader=yaml.BaseLoader)['jobs']
+        step = lambda job: next(s for s in jobs[job]['steps'] if s.get('name', '').startswith('Install pinned'))
+        release = step('release-27')
+        self.assertEqual(release['timeout-minutes'], '40')
+        self.assertEqual(release['env'], {'ARESOS_APT_RETRIES': '5', 'ARESOS_APT_TIMEOUT': '60'})
+        # Package 21's reviewed check build keeps its step as reviewed.
+        check = step('check-build')
+        self.assertEqual(check['timeout-minutes'], '20')
+        self.assertNotIn('env', check)
+        script = (ROOT / 'os/ci/install-tools.sh').read_text()
+        self.assertIn('retries=${ARESOS_APT_RETRIES:-3}', script)
+        self.assertIn('-o Acquire::Retries="$retries"', script)
+        self.assertIn('options+=(-o Acquire::http::Timeout="$ARESOS_APT_TIMEOUT" -o Acquire::https::Timeout="$ARESOS_APT_TIMEOUT")', script)
+        self.assertNotIn('Acquire::Retries=3', script)
+
+    @unittest.skipIf(os.name == 'nt' or shutil.which('bash') is None, 'needs a Linux bash')
+    def test_apt_patience_values_must_be_numbers(self):
+        script = (ROOT / 'os/ci/install-tools.sh').read_text().split('sudo apt-get', 1)[0]
+        script = script.replace('jq -r .repository os/ci/toolchain.json', 'echo http://example.invalid')
+        script = script.replace("jq -r '.suites[]' os/ci/toolchain.json", 'echo noble')
+        script += 'printf "%s' + chr(92) + 'n" "${options[@]}"' + chr(10)
+        with tempfile.TemporaryDirectory(dir=ROOT / 'os/tests') as directory:
+            run = lambda **env: subprocess.run(['bash', '-c', script], cwd=directory, capture_output=True, text=True,
+                                               env=dict(os.environ, **env))
+            self.assertIn('Acquire::Retries=3', run().stdout)
+            good = run(ARESOS_APT_RETRIES='5', ARESOS_APT_TIMEOUT='60').stdout
+            self.assertIn('Acquire::Retries=5', good)
+            self.assertIn('Acquire::https::Timeout=60', good)
+            for env in (dict(ARESOS_APT_RETRIES='5;x'), dict(ARESOS_APT_TIMEOUT='60 -o x')):
+                with self.subTest(env=env):
+                    self.assertNotEqual(run(**env).returncode, 0)
 
 
 class PublishBranchTest(unittest.TestCase):

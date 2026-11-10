@@ -337,7 +337,12 @@ jobs:
         with:
           extra-squeeze: 'true'
       - name: Install pinned tools on disposable runner
-        timeout-minutes: 20
+        # Runs 42831158090 and 42835704653 stopped here on snapshot.ubuntu.com
+        # 500/504 answers; this job retries longer than the shared default.
+        timeout-minutes: 40
+        env:
+          ARESOS_APT_RETRIES: '5'
+          ARESOS_APT_TIMEOUT: '60'
         run: |
           set -euo pipefail
           mkdir -p evidence
