@@ -44,6 +44,7 @@ import logging
 import logging.handlers
 import math
 import os
+import re
 import secrets
 import selectors
 import shutil
@@ -55,6 +56,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import zlib
 
 LOG = logging.getLogger('aresos-desktop')
 
@@ -101,9 +103,14 @@ HELPER_BUDGET = (5, 60.0)
 HEAP_MB = 3072
 MIN_HEAP_MB = 512
 MEMORY_HIGH = '5G'
-# B5: after a memory kill, a retry waits until the last minute's memory pressure has cleared.
+# B5: after a memory kill, a retry waits until memory pressure has stayed clear for a whole minute: every sample
+# of PSI 'some avg10' at most PRESSURE_CLEAR percent and none unreadable (review 2, finding 2).
 PRESSURE_FILE = '/proc/pressure/memory'
 PRESSURE_CLEAR = 10.0
+PRESSURE_CLEAR_FOR = 60.0
+PRESSURE_SAMPLE = 5.0
+# The longest automatic restart delay: a restored restart deadline never waits longer (the clock may have moved).
+MAX_BACKOFF = BACKOFF * 2 ** (MAX_FAILURES - 1)
 RENDER_DISTANCE = 8
 SIMULATION_DISTANCE = 5
 MAX_LINE = 64 * 1024
@@ -479,6 +486,34 @@ class NbtError(ValueError):
     pass
 
 
+def java_utf(raw):
+    """An NBT string: Java's modified UTF-8 (DataOutput.writeUTF), not UTF-8.
+
+    NUL is C0 80 and a character outside the BMP is its two UTF-16 surrogates, three bytes each. Decoded as
+    DataInput.readUTF does: the 1-, 2- and 3-byte forms, anything else (4-byte UTF-8 included) is malformed.
+    """
+    if max(raw, default=0) < 0x80:
+        return raw.decode('ascii')
+    units = []
+    index, size = 0, len(raw)
+    while index < size:
+        first = raw[index]
+        if first < 0x80:
+            units.append(first)
+            index += 1
+        elif first >> 5 == 0b110 and index + 1 < size and raw[index + 1] >> 6 == 0b10:
+            units.append((first & 0x1f) << 6 | raw[index + 1] & 0x3f)
+            index += 2
+        elif (first >> 4 == 0b1110 and index + 2 < size and raw[index + 1] >> 6 == 0b10
+              and raw[index + 2] >> 6 == 0b10):
+            units.append((first & 0x0f) << 12 | (raw[index + 1] & 0x3f) << 6 | raw[index + 2] & 0x3f)
+            index += 3
+        else:
+            raise NbtError(f'malformed string at byte {index}')
+    # Surrogate pairs become one character; a lone surrogate stays as Java keeps it.
+    return struct.pack(f'<{len(units)}H', *units).decode('utf-16-le', 'surrogatepass')
+
+
 def read_nbt(data, limit=1 << 20):
     """Minecraft's named binary tag format: (root name, compound as {name: (tag type, value)}).
 
@@ -500,7 +535,7 @@ def read_nbt(data, limit=1 << 20):
         return struct.unpack(fmt, take(size))[0]
 
     def string():
-        return take(number('>H')).decode('utf-8')
+        return java_utf(take(number('>H')))
 
     def payload(tag, depth):
         if depth > 64:
@@ -548,8 +583,12 @@ def read_saved(path):
     """A gzip-compressed NBT file's root compound."""
     if not stat.S_ISREG(os.lstat(path).st_mode):
         raise NbtError('not a regular file')
-    with gzip.open(path, 'rb') as source:
-        data = source.read((1 << 24) + 1)
+    try:
+        with gzip.open(path, 'rb') as source:
+            data = source.read((1 << 24) + 1)
+    except (OSError, EOFError, zlib.error) as error:
+        # A bad header, corrupt DEFLATE data, a wrong checksum or a cut-off file: damage, never a crash.
+        raise NbtError(f'not readable gzip data ({error})') from None
     if len(data) > 1 << 24:
         raise NbtError('too large')
     return read_nbt(data)[1]
@@ -560,6 +599,22 @@ def field(compound, name, *tags):
     if entry is None or entry[0] not in tags:
         raise NbtError(f'{name} is missing or has the wrong type')
     return entry[1]
+
+
+# Minecraft 26.2's Identifier.parse (Level.RESOURCE_KEY_CODEC): [namespace:]path, the namespace of [a-z0-9_.-] and
+# not '..', the path of [a-z0-9_./-]; no namespace means minecraft.
+IDENTIFIER_NAMESPACE = re.compile(r'[a-z0-9_.-]*')
+IDENTIFIER_PATH = re.compile(r'[a-z0-9_./-]*')
+
+
+def valid_identifier(text):
+    namespace, colon, path = text.partition(':')
+    if not colon:
+        namespace, path = 'minecraft', text
+    elif not namespace:
+        namespace = 'minecraft'
+    return (namespace != '..' and IDENTIFIER_NAMESPACE.fullmatch(namespace) is not None
+            and IDENTIFIER_PATH.fullmatch(path) is not None)
 
 
 def check_marker(path):
@@ -578,12 +633,14 @@ def check_home(path):
         raise NbtError('yaw is not a number')
     if 'home' in data:
         home = field(data, 'home', 10)
-        field(home, 'dimension', 8)
+        if not valid_identifier(field(home, 'dimension', 8)):
+            raise NbtError('home dimension is not a valid identifier')
         position = field(home, 'position', 9)
         if len(position) != 3 or not all(isinstance(value, float) and math.isfinite(value) for value in position):
             raise NbtError('home position is not three numbers')
-        field(home, 'yaw', 5)
-        field(home, 'pitch', 5)
+        for name in ('yaw', 'pitch'):
+            if not math.isfinite(field(home, name, 5)):
+                raise NbtError(f'home {name} is not a number')
 
 
 def check_world(paths, lock):
@@ -671,12 +728,12 @@ def game_cgroup_matches(cgroup, launch_id):
 
 
 def memory_pressure(path=PRESSURE_FILE):
-    """The last minute's share of time with tasks stalled on memory (PSI 'some avg60'), or None if unknown."""
+    """The last ten seconds' share of time with tasks stalled on memory (PSI 'some avg10'), or None if unknown."""
     try:
         with open(path, encoding='ascii') as source:
             for line in source:
                 if line.startswith('some '):
-                    return float(dict(part.split('=', 1) for part in line.split()[1:])['avg60'])
+                    return float(dict(part.split('=', 1) for part in line.split()[1:])['avg10'])
     except (OSError, ValueError, KeyError):
         pass
     return None
@@ -714,6 +771,10 @@ class Persisted:
     hub_seen: bool = False
     # The last launch whose end has been accounted for, so a supervisor restart never counts an end twice.
     accounted: str = None
+    # What the session decided when that launch ended (review 2, finding 4), saved in the same write as `accounted`:
+    # {instance, launch, state, reason, detail, retry_after}. Bound to the session's instance, so a new session (a
+    # reboot) starts the hub as usual; only the latch outlives the session.
+    disposition: dict = None
 
     @classmethod
     def load(cls, path):
@@ -731,12 +792,13 @@ class Persisted:
         return cls(latched=bool(data.get('latched')), reason=data.get('reason'), detail=str(data.get('detail', '')),
                    consecutive=int(data.get('consecutive', 0)), failures=failures,
                    hub_seen=bool(data.get('hub_seen')),
-                   accounted=data.get('accounted') if isinstance(data.get('accounted'), str) else None)
+                   accounted=data.get('accounted') if isinstance(data.get('accounted'), str) else None,
+                   disposition=data.get('disposition') if isinstance(data.get('disposition'), dict) else None)
 
     def save(self, path):
         data = dict(schema=1, latched=self.latched, reason=self.reason, detail=self.detail,
                     consecutive=self.consecutive, failures=self.failures, hub_seen=self.hub_seen,
-                    accounted=self.accounted)
+                    accounted=self.accounted, disposition=self.disposition)
         write_atomic(path, json.dumps(data, indent=2) + '\n', 0o600)
 
     def record_failure(self, now):
@@ -750,6 +812,7 @@ class Persisted:
     def reset(self):
         self.latched, self.reason, self.detail = False, None, ''
         self.consecutive, self.failures = 0, []
+        self.disposition = None
 
 
 @dataclasses.dataclass
@@ -777,6 +840,15 @@ class Launch:
     authorized: float = None
     reported: bool = False  # the wrapper reported this launch's JVM (it may have ended since)
     failed: bool = False
+    wrapper_gone: float = None  # the wrapper's connection closed before its JVM was reported
+    # The wrapper stopped this JVM itself: the answer to its hand-off was lost after this supervisor accepted it.
+    stopped_reason: str = None
+
+
+def describe_status(status):
+    if status is None:
+        return 'no exit report'
+    return f'signal {-status}' if status < 0 else f'exit code {status}'
 
 
 def process_ticks(pid, proc='/proc'):
@@ -891,6 +963,10 @@ class Supervisor:
         self.helper_starts = []
         self.helper_restart_at = None
         self.view = None
+        # After a memory kill: since when every pressure sample was clear (review 2, finding 2). Never persisted, so a
+        # supervisor restart starts the minute again instead of skipping it.
+        self.pressure_clear_since = None
+        self.pressure_checked = None
 
     # -- persistence
 
@@ -901,6 +977,8 @@ class Supervisor:
         launch = self.launch
         data = dict(instance=self.instance, nonce=launch.nonce if launch else None,
                     launch=launch.id if launch else None, mode=launch.mode if launch else None,
+                    accepted=bool(launch and launch.accepted), reported=bool(launch and launch.reported),
+                    failed=bool(launch and launch.failed),
                     jvm_pid=launch.jvm_pid if launch else None, jvm_ticks=launch.jvm_ticks if launch else None)
         write_atomic(self.paths.runtime_file, json.dumps(data) + '\n', 0o600)
 
@@ -924,9 +1002,48 @@ class Supervisor:
 
     def latch(self, reason, detail=''):
         self.persisted.latched, self.persisted.reason, self.persisted.detail = True, reason, detail
+        self.persisted.disposition = None
         self.save()
         self.retry_at = None
+        if reason == 'killed':
+            # The minute of clear memory pressure starts after the kill.
+            self.pressure_clear_since = self.pressure_checked = None
         self.enter(RECOVERY, reason, detail)
+
+    def settle(self, state, reason=None, detail=''):
+        """A launch ended and the session waits for the owner's retry: kept across supervisor restarts (finding 4)."""
+        self.persisted.disposition = dict(instance=self.instance, launch=self.launch.id if self.launch else None,
+                                          state=state, reason=reason, detail=detail, retry_after=None)
+        self.save()
+        self.enter(state, reason, detail)
+
+    def schedule_restart(self, delay, detail):
+        """B2's automatic restart after a crash, with its deadline kept across supervisor restarts (finding 4)."""
+        self.persisted.disposition = dict(instance=self.instance, launch=self.launch.id if self.launch else None,
+                                          state=STARTING, reason='restarting', detail=detail,
+                                          retry_after=self.wall() + delay)
+        self.save()
+        LOG.info('restarting in %d s (%d of %d)', delay, self.persisted.consecutive, MAX_FAILURES)
+        self.retry_at = self.clock() + delay
+        self.enter(STARTING, 'restarting', detail)
+
+    def restore(self):
+        """This session's decision after its last launch ended, from before a supervisor restart."""
+        kept = self.persisted.disposition
+        if not isinstance(kept, dict) or kept.get('instance') != self.instance:
+            return False
+        detail = str(kept.get('detail') or '')
+        if isinstance(kept.get('retry_after'), (int, float)) and not isinstance(kept.get('retry_after'), bool):
+            delay = min(max(kept['retry_after'] - self.wall(), 0.0), MAX_BACKOFF)
+            LOG.info('the restart after the last crash is still due in %d s', delay)
+            self.retry_at = self.clock() + delay
+            self.enter(STARTING, 'restarting', detail)
+            return True
+        if kept.get('state') in (SETUP, AUTH_REQUIRED, RECOVERY) and isinstance(kept.get('reason'), str):
+            LOG.info('the session still waits for the owner (%s)', kept['reason'])
+            self.enter(kept['state'], kept['reason'], detail)
+            return True
+        return False
 
     # -- start-up
 
@@ -942,6 +1059,8 @@ class Supervisor:
             return
         if self.retry_at is not None or self.state is not None:
             return  # a crash restarts after its backoff; a quit or setup end waits for the owner
+        if self.restore():
+            return
         self.begin()
 
     def read_runtime(self):
@@ -978,7 +1097,11 @@ class Supervisor:
 
     def account_for(self, runtime):
         launch_id, pid = runtime.get('launch'), runtime.get('jvm_pid')
-        if not (isinstance(launch_id, str) and isinstance(pid, int)) or self.persisted.accounted == launch_id:
+        if not isinstance(launch_id, str) or self.persisted.accounted == launch_id:
+            return
+        if not isinstance(pid, int):
+            if runtime.get('accepted') is True and not runtime.get('reported') and not runtime.get('failed'):
+                self.account_for_start(runtime)
             return
         ticks = runtime.get('jvm_ticks') if isinstance(runtime.get('jvm_ticks'), int) else None
         now = self.clock()
@@ -987,6 +1110,20 @@ class Supervisor:
                              jvm_ticks=ticks, jvm_started=now, jvm_ended=now, reported=True)
         LOG.info('launch %s ended while no supervisor was running; accounting for it', launch_id)
         self.finish_jvm()
+
+    def account_for_start(self, runtime):
+        """A start the previous supervisor authorized but never got a JVM for (review 2, findings 1 and 3)."""
+        now = self.clock()
+        mode = runtime.get('mode') if runtime.get('mode') in ('setup', 'hub') else 'hub'
+        self.launch = Launch(id=runtime['launch'], nonce=runtime.get('nonce') or new_token(), mode=mode,
+                             started=now, accepted=True, authorized=now)
+        if self.start_record(self.launch.id) is None and self.runner.jvm_lock_held():
+            # Its wrapper still runs: it reports how the start ended, or the hand-off deadline decides.
+            LOG.info('launch %s: waiting for the start the previous supervisor authorized', self.launch.id)
+            self.enter(SETUP if mode == 'setup' else STARTING, 'setup' if mode == 'setup' else None)
+            return
+        LOG.info('launch %s: its start ended while no supervisor was running; accounting for it', self.launch.id)
+        self.unreported_start('the start of Minecraft ended while no supervisor was running')
 
     def validate(self, inputs=True):
         """The one gate before any game starts: (problem reason, detail) or (None, mode). Changes nothing."""
@@ -1018,6 +1155,9 @@ class Supervisor:
     def begin(self, automatic=False):
         """Check, provision and launch, or latch recovery with the reason."""
         self.retry_at = None
+        if self.persisted.disposition is not None:
+            self.persisted.disposition = None
+            self.save()
         if self.runner.jvm_lock_held():
             # Something still holds the desktop's lock (a game this supervisor cannot see): never start a second.
             self.enter(RECOVERY, 'locked', 'the desktop lock is held')
@@ -1040,7 +1180,7 @@ class Supervisor:
                                                         session_environment(self.environ))
         except OSError as error:
             self.launch.prism_exit = -1
-            self.enter(RECOVERY, 'prism_failed', str(error))
+            self.settle(RECOVERY, 'prism_failed', str(error))
             return
         LOG.info('launch %s: Prism started (%s)%s', self.launch.id, 'title screen for setup' if world is None
                  else f'--world {world}', ', automatic restart' if automatic else '')
@@ -1152,7 +1292,7 @@ class Supervisor:
             return
         if code not in (0, 1) or (code != 0 and launch.prism_ended - launch.started < EARLY_PRISM_FAILURE):
             tail = launch.output.decode('utf-8', 'replace').strip().splitlines()[-3:]
-            self.enter(RECOVERY, 'prism_failed', f'exit {code}' + (': ' + ' / '.join(tail) if tail else ''))
+            self.settle(RECOVERY, 'prism_failed', f'exit {code}' + (': ' + ' / '.join(tail) if tail else ''))
 
     # -- the wrapper (the real JVM)
 
@@ -1186,6 +1326,9 @@ class Supervisor:
         now = self.clock()
         launch.accepted, launch.authorized, launch.jvm_started = True, now, now
         self.retry_at = None
+        if self.persisted.disposition is not None:
+            self.persisted.disposition = None
+            self.save()
         self.save_runtime()
         if launch.mode == 'setup':
             if self.state != SETUP or self.reason != 'setup':
@@ -1216,22 +1359,74 @@ class Supervisor:
         LOG.info('launch %s: the game runs as pid %d', launch.id, pid)
         return True, ''
 
-    def on_jvm_failed(self, launch_id, reason):
-        """The wrapper could not start Java, or stopped it again because the supervisor refused it."""
+    def on_jvm_failed(self, launch_id, reason, status=None):
+        """The wrapper's report of a start that did not become a game: Java could not start, the supervisor refused
+        it, the hand-off broke (the wrapper stopped Java), or Java ended by itself first (`status`)."""
         launch = self.launch
-        if launch is None or launch.id != launch_id or launch.reported or launch.failed:
+        if launch is None or launch.id != launch_id or not launch.accepted or launch.failed:
             return
-        self.launch_failed(f'the launcher wrapper reported: {reason}')
+        if launch.reported:
+            # This supervisor accepted the JVM but the wrapper never got the answer, so it stopped Java (finding 3).
+            launch.stopped_reason = reason or 'the hand-off was lost'
+            return
+        self.start_ended(status, reason or 'the launcher wrapper reported a failed start')
 
     def on_wrapper_gone(self, launch_id):
-        """The wrapper's connection closed. Before a JVM was reported, that is a failed start."""
+        """The wrapper's connection closed before a JVM was reported. It may still report how the start ended (over
+        a new connection, or its exit record); if it does not, the start died unexplained (wrapper_ended)."""
         launch = self.launch
         if (launch is not None and launch.id == launch_id and launch.accepted and not launch.reported
-                and not launch.failed):
-            self.launch_failed('the launcher wrapper ended before Minecraft started')
+                and not launch.failed and launch.wrapper_gone is None):
+            launch.wrapper_gone = self.clock()
+
+    def wrapper_ended(self):
+        self.unreported_start('Minecraft and its launcher wrapper ended before the game was handed to AresOS')
 
     def handoff_lost(self):
-        self.launch_failed(f'no JVM was reported within {int(HANDOFF_TIMEOUT)} s of starting it')
+        self.unreported_start(f'no JVM and no failure were reported within {int(HANDOFF_TIMEOUT)} s of starting it')
+
+    def start_record(self, launch_id):
+        """(status or None, reason or None) from the wrapper's exit record of this launch's start, or None."""
+        try:
+            with open(self.paths.exit_file, encoding='utf-8') as source:
+                data = json.load(source)
+        except (OSError, ValueError):
+            return None
+        # Only a failed-start record (it states a reason); a game's exit record is read by exit_status().
+        if not isinstance(data, dict) or data.get('launch') != launch_id or not isinstance(data.get('reason'), str):
+            return None
+        status = data.get('status')
+        # A JVM the wrapper stopped itself tells nothing by its status: the reason says why.
+        if not isinstance(status, int) or isinstance(status, bool) or data.get('stopped'):
+            status = None
+        return status, data['reason']
+
+    def unreported_start(self, why):
+        """An authorized start ended without a report over the connection: its exit record decides, else unexplained."""
+        record = self.start_record(self.launch.id)
+        if record is not None:
+            self.start_ended(*record)
+        else:
+            self.start_ended(None, None, why)
+
+    def start_ended(self, status, reason, unexplained=None):
+        """A start that never became a reported game, classified like a game's end (JUDGMENT-CALL 10, review 2
+        finding 1): a SIGKILL or an end nobody explained latches `killed`, never counted, never restarted by itself;
+        anything else is a failed start, counted like a crash."""
+        launch = self.launch
+        launch.failed = True
+        if (status is None and reason is None) or status in SIGKILL_STATUSES:
+            scope = self.runner.scope_result(game_unit(launch.id))
+            why = 'Minecraft was killed by SIGKILL while it started' if status is not None else unexplained
+            LOG.error('launch %s: %s%s', launch.id, why, f' (scope result {scope})' if scope else '')
+            self.persisted.accounted = launch.id
+            self.latch('killed', why + (f'; its scope ended with {scope}' if scope else ''))
+            self.save_runtime()
+            return
+        if status is not None:
+            reason = f'{reason}; Java ended with {describe_status(status)}' if reason else (
+                f'Java ended with {describe_status(status)} before it was handed to AresOS')
+        self.launch_failed(f'the launcher wrapper reported: {reason}')
 
     def launch_failed(self, reason):
         """An authorized start that never became a running game: a failure, counted like a crash (B2)."""
@@ -1240,15 +1435,13 @@ class Supervisor:
         LOG.error('launch %s failed: %s', launch.id, reason)
         self.persisted.accounted = launch.id
         latch, delay = self.persisted.record_failure(self.wall())
-        self.save()
-        self.save_runtime()
         if latch:
             self.latch('crashes', reason)
         elif launch.mode == 'setup':
-            self.enter(SETUP, 'setup_crashed', reason)
+            self.settle(SETUP, 'setup_crashed', reason)
         else:
-            self.retry_at = self.clock() + delay
-            self.enter(STARTING, 'restarting', reason)
+            self.schedule_restart(delay, reason)
+        self.save_runtime()
 
     def on_jvm_report(self, pid, status, launch_id=None):
         launch = self.launch
@@ -1272,6 +1465,8 @@ class Supervisor:
             if (isinstance(data, dict) and data.get('launch') == launch.id and data.get('pid') == launch.jvm_pid
                     and (launch.jvm_ticks is None or data.get('ticks') in (None, launch.jvm_ticks))
                     and isinstance(data.get('status'), int)):
+                if data.get('stopped') and isinstance(data.get('reason'), str):
+                    launch.stopped_reason = data['reason']
                 return data['status']
         except (OSError, ValueError):
             pass
@@ -1287,16 +1482,19 @@ class Supervisor:
         launch.ready = False
         self.healthy_since = None
         self.persisted.accounted = launch.id
-        described = 'no exit report' if status is None else (
-            f'signal {-status}' if status < 0 else f'exit code {status}')
+        described = describe_status(status)
         LOG.info('launch %s: the game ended (%s%s)', launch.id, described, f', scope result {scope}' if scope else '')
+        if launch.stopped_reason:
+            # Stopped by its wrapper after a lost hand-off answer: a failed start, not the owner's quit or a kill.
+            self.launch_failed(f'the launcher wrapper reported: {launch.stopped_reason}')
+            return
         if status == 0:
-            self.save()
-            self.save_runtime()
+            # The decision is saved with the accounting (one write), so a supervisor restart keeps it (finding 4).
             if launch.mode == 'setup' and not self.persisted.hub_seen:
-                self.enter(SETUP, 'setup_closed')
+                self.settle(SETUP, 'setup_closed')
             else:
-                self.enter(RECOVERY, 'quit')
+                self.settle(RECOVERY, 'quit')
+            self.save_runtime()
             return
         if status is None or status in SIGKILL_STATUSES:
             # B5: a kill, or the JVM ending together with its wrapper (systemd-oomd or the kernel stopping the whole
@@ -1306,16 +1504,13 @@ class Supervisor:
             self.save_runtime()
             return
         latch, delay = self.persisted.record_failure(self.wall())
-        self.save()
-        self.save_runtime()
         if latch:
             self.latch('crashes', described)
         elif launch.mode == 'setup':
-            self.enter(SETUP, 'setup_crashed', described)
+            self.settle(SETUP, 'setup_crashed', described)
         else:
-            LOG.info('restarting in %d s (%d of %d)', delay, self.persisted.consecutive, MAX_FAILURES)
-            self.retry_at = self.clock() + delay
-            self.enter(STARTING, 'restarting', described)
+            self.schedule_restart(delay, described)
+        self.save_runtime()
 
     # -- time
 
@@ -1337,6 +1532,12 @@ class Supervisor:
         if (launch is not None and launch.accepted and not launch.reported and not launch.failed
                 and launch.authorized is not None):
             items.append((launch.authorized + HANDOFF_TIMEOUT, self.handoff_lost))
+            if launch.wrapper_gone is not None:
+                # A short wait for the wrapper's own report of how the start ended (it may reconnect to send it).
+                items.append((launch.wrapper_gone + EXIT_REPORT_WAIT, self.wrapper_ended))
+        if self.persisted.latched and self.persisted.reason == 'killed':
+            items.append(((self.pressure_checked if self.pressure_checked is not None else float('-inf'))
+                          + PRESSURE_SAMPLE, self.sample_pressure))
         if (launch is not None and launch.mode == 'hub' and launch.jvm_pid is not None and not launch.ever_ready
                 and not launch.timed_out and launch.jvm_started is not None):
             items.append((launch.jvm_started + START_TIMEOUT, self.start_timed_out))
@@ -1373,9 +1574,20 @@ class Supervisor:
 
     def prism_gave_up(self):
         if self.launch.mode == 'setup':
-            self.enter(SETUP, 'setup_cancelled')
+            self.settle(SETUP, 'setup_cancelled')
         else:
-            self.enter(AUTH_REQUIRED, 'auth')
+            self.settle(AUTH_REQUIRED, 'auth')
+
+    def sample_pressure(self):
+        """One memory-pressure sample after a kill; any pressure or unreadable value starts the clear minute again."""
+        now = self.clock()
+        self.pressure_checked = now
+        value = self.runner.memory_pressure()
+        if value is None or value > PRESSURE_CLEAR:
+            self.pressure_clear_since = None
+        elif self.pressure_clear_since is None:
+            self.pressure_clear_since = now
+        return value
 
     def start_timed_out(self):
         self.launch.timed_out = True
@@ -1400,10 +1612,18 @@ class Supervisor:
     def retry(self):
         """The owner's Retry: (ok, message). After a memory kill it waits for cleared pressure (B5)."""
         if self.persisted.latched and self.persisted.reason == 'killed':
-            pressure = self.runner.memory_pressure()
-            if pressure is not None and pressure > PRESSURE_CLEAR:
-                return False, (f'Memory is still under pressure ({pressure:.0f}% of the last minute). Close apps '
-                               'you do not need, then type retry again in a minute.')
+            value = self.sample_pressure()
+            clear = 0.0 if self.pressure_clear_since is None else self.clock() - self.pressure_clear_since
+            if clear < PRESSURE_CLEAR_FOR:
+                if value is None:
+                    why = (f'AresOS cannot read the memory pressure ({PRESSURE_FILE}), so it cannot tell '
+                           'that memory is free.')
+                elif value > PRESSURE_CLEAR:
+                    why = f'Memory is still under pressure ({value:.0f}% of the last 10 seconds).'
+                else:
+                    why = (f'Memory has been free for {clear:.0f} of the {PRESSURE_CLEAR_FOR:.0f} seconds AresOS waits '
+                           'for after a memory kill.')
+                return False, why + ' Close apps you do not need, then type retry again in a minute.'
         self.persisted.reset()
         self.save()
         self.retry_at = None
@@ -1752,8 +1972,13 @@ class Loop:
         if op == 'jvm_started' and peer.wrapper and isinstance(request.get('pid'), int):
             ok, text = supervisor.on_jvm_started(peer.pid, request['pid'], peer.launch)
             return {'ok': ok, 'message': text}
-        if op == 'jvm_failed' and peer.wrapper:
-            supervisor.on_jvm_failed(peer.launch, str(request.get('reason', ''))[:500])
+        if op == 'jvm_failed' and (peer.wrapper or isinstance(request.get('launch'), str)):
+            # The wrapper reports on its own connection, or on a new one after the first broke (it names the
+            # launch). Like jvm_exited, it can only describe the launch this supervisor is waiting for.
+            status = request.get('status')
+            status = status if isinstance(status, int) and not isinstance(status, bool) else None
+            supervisor.on_jvm_failed(peer.launch if peer.wrapper else request['launch'],
+                                     str(request.get('reason', ''))[:500], status)
             return {'ok': True}
         if op == 'jvm_exited' and isinstance(request.get('pid'), int):
             # Only the game this supervisor watches can be reported, so any same-user peer may report it.

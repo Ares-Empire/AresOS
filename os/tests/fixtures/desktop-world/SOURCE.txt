@@ -2,3 +2,8 @@ Saved data written by the AresOS mod itself (client game test 04c, seed 50,
 placeholder hub, 2026-11-10): the desktop marker and the Nether home, both
 gzip-compressed NBT. test_aresos_desktop reads them to prove its reader and
 check_world() follow the real format. They hold only the mod's own fields.
+
+level-modified-utf8.dat (review 2, finding 6): a level whose strings the JDK
+itself encoded with DataOutput.writeUTF, as Minecraft's NBT strings are (a
+world name with an emoji, a string with a NUL). JavaStrings.java wrote it:
+java JavaStrings.java level-modified-utf8.dat

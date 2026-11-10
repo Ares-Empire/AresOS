@@ -14,7 +14,12 @@ wrapper
     JVM's PID, and reports the exact exit status when it ends (also in
     desktop-exit.json, bound to the launch and the process, in case the
     supervisor was restarted meanwhile),
-  - reports a start that fails (jvm_failed) instead of leaving it open,
+  - reports a start that does not become a game (jvm_failed) instead of
+    leaving it open: with Java's own exit status when Java ended first (a
+    kill before the hand-off is classified like a kill after it), and in
+    desktop-exit.json too. If the connection breaks during the hand-off, it
+    stops Java (never a JVM the supervisor may not know) and reports on a new
+    connection,
   - forwards termination signals to Java, and Java dies with it if the
     wrapper is killed (Prism's Kill button kills the wrapper).
 Prism's stdin (its launch script), stdout and stderr pass straight through.
@@ -42,6 +47,7 @@ SUPPLIED = frozenset({'ARESOS_LAUNCH_NONCE', 'ARESOS_DESKTOP_INSTANCE', 'PATH', 
 FORWARDED = (signal.SIGTERM, signal.SIGINT, signal.SIGHUP, signal.SIGQUIT)
 REFUSED, BUSY = 78, 75
 SCOPE_WAIT = 10.0
+REPORT_TIMEOUT = 5.0
 
 
 def game_environment(environ, supplied, prism_root=PRISM_ROOT):
@@ -97,6 +103,20 @@ def write_exit(path, record):
     os.replace(temporary, path)
 
 
+def report_again(path, message):
+    """Send one report on a new connection (the first one broke); the exit record covers a supervisor that is gone."""
+    try:
+        supervisor = Supervisor(path, timeout=REPORT_TIMEOUT)
+    except OSError:
+        return
+    try:
+        supervisor.ask(message)
+    except (OSError, ValueError):
+        pass
+    finally:
+        supervisor.close()
+
+
 def scope_command(reply):
     """The command the supervisor puts before Java (the game's scope) and the unit Java must end up in."""
     scope, unit = reply.get('scope'), reply.get('unit')
@@ -150,8 +170,10 @@ def main(argv, environ=os.environ):
     except BlockingIOError:
         print('aresos-desktop-java: the AresOS desktop is already running', file=sys.stderr)
         return BUSY
+    socket_path = os.path.join(folder, 'desktop.sock')
+    exit_path = os.path.join(folder, 'desktop-exit.json')
     try:
-        supervisor = Supervisor(os.path.join(folder, 'desktop.sock'))
+        supervisor = Supervisor(socket_path)
         reply = supervisor.ask({'op': 'jvm_start', 'pid': os.getpid(), 'java': argv[1],
                                 'instance': environ.get('INST_ID'), 'instance_dir': environ.get('INST_DIR'),
                                 'cwd': os.getcwd()})
@@ -164,12 +186,24 @@ def main(argv, environ=os.environ):
               file=sys.stderr)
         return REFUSED
 
-    def failed(reason):
+    launch = reply.get('launch')
+
+    def failed(reason, status=None, stopped=False, pid=None, ticks=None):
+        """A start that did not become a game. `status` is Java's exit status if it ran; `stopped` means this
+        wrapper ended it (so the status says nothing about how Java would have ended)."""
         print(f'aresos-desktop-java: {reason}', file=sys.stderr)
         try:
-            supervisor.ask({'op': 'jvm_failed', 'reason': reason})
+            write_exit(exit_path, {'launch': launch, 'pid': pid, 'ticks': ticks, 'status': status,
+                                   'stopped': stopped, 'reason': reason})
+        except OSError as error:
+            print(f'aresos-desktop-java: could not record the failed start ({error})', file=sys.stderr)
+        message = {'op': 'jvm_failed', 'launch': launch, 'reason': reason}
+        if status is not None and not stopped:
+            message['status'] = status
+        try:
+            supervisor.ask(message)
         except (OSError, ValueError):
-            pass
+            report_again(socket_path, message)
         supervisor.close()
         return REFUSED
 
@@ -192,23 +226,37 @@ def main(argv, environ=os.environ):
             time.sleep(0.05)
         if child.poll() is None and not in_unit(child.pid, unit):
             stop(child)
-            return failed(f'the game did not reach its scope {unit}')
+            return failed(f'the game did not reach its scope {unit}', child.returncode, True, child.pid)
+    if child.poll() is not None:
+        # Java ended before it could be handed over (killed, for example): its status decides, as after the hand-off.
+        return failed('Java ended before it was handed to AresOS', child.returncode, False, child.pid)
     ticks = start_ticks(child.pid)
     try:
         answer = supervisor.ask({'op': 'jvm_started', 'pid': child.pid})
-        if not answer.get('ok'):
-            stop(child)
-            return failed('the supervisor refused the game: ' + str(answer.get('message', '')))
     except (OSError, ValueError) as error:
-        print(f'aresos-desktop-java: lost the supervisor ({error})', file=sys.stderr)
+        # Review 2, finding 3: the supervisor may not have recorded this JVM, and nothing could adopt it. Never leave
+        # it running untracked: stop it and report on a new connection.
+        if child.poll() is not None:
+            return failed(f'lost the supervisor during the hand-off ({error})', child.returncode, False, child.pid,
+                          ticks)
+        stop(child)
+        return failed(f'lost the supervisor during the hand-off ({error}); Java was stopped', child.returncode, True,
+                      child.pid, ticks)
+    if not answer.get('ok'):
+        refusal = str(answer.get('message', ''))
+        if child.poll() is not None:
+            return failed(f'Java ended before it was handed to AresOS ({refusal})', child.returncode, False,
+                          child.pid, ticks)
+        stop(child)
+        return failed('the supervisor refused the game: ' + refusal, child.returncode, True, child.pid, ticks)
     status = child.wait()
-    record = {'launch': reply.get('launch'), 'pid': child.pid, 'ticks': ticks, 'status': status}
+    record = {'launch': launch, 'pid': child.pid, 'ticks': ticks, 'status': status}
     try:
-        write_exit(os.path.join(folder, 'desktop-exit.json'), record)
+        write_exit(exit_path, record)
     except OSError as error:
         print(f'aresos-desktop-java: could not record the exit ({error})', file=sys.stderr)
     try:
-        supervisor.ask({'op': 'jvm_exited', 'pid': child.pid, 'status': status, 'launch': reply.get('launch')})
+        supervisor.ask({'op': 'jvm_exited', 'pid': child.pid, 'status': status, 'launch': launch})
     except (OSError, ValueError):
         pass
     supervisor.close()

@@ -3,6 +3,7 @@ import gzip
 import hashlib
 import importlib.machinery
 import json
+import math
 import os
 import pathlib
 import shutil
@@ -573,6 +574,74 @@ class WorldCheckTest(Base):
         (world / 'level.dat_old').write_bytes(nbt_file(LEVEL))
         self.assertEqual(desktop.check_world(self.paths, self.lock)[0], 'ok')
 
+    def test_exact_home_data_must_be_valid_by_the_mods_codecs(self):
+        # Review 2, finding 5: home.dimension is an Identifier (Level.RESOURCE_KEY_CODEC), and an exact home's yaw
+        # and pitch must be numbers, or the promised arrival cannot happen.
+        def home(dimension='minecraft:the_nether', yaw=90.0, pitch=20.0):
+            return saved({**HOME['data'][1], 'home': (COMPOUND, {
+                'dimension': (STRING, dimension), 'position': (LIST, (DOUBLE, [1.5, 64.0, 2.5])),
+                'yaw': (FLOAT, yaw), 'pitch': (FLOAT, pitch)})})
+        for dimension in ('minecraft:the_nether', 'the_nether', ':the_nether', 'aresos:hub/nether-1.2', 'a:'):
+            with self.subTest(valid=dimension):
+                self.assertEqual(self.check(home=home(dimension))[0], 'ok')
+        for dimension in ('Minecraft:the_nether', 'minecraft:the nether', 'a:b:c', '..:nether', 'mine/craft:x',
+                          'minecraft:nether\u00e9', ''.join(['minecraft:', 'x' * 3, '\\'])):
+            with self.subTest(invalid=dimension):
+                state, detail = self.check(home=home(dimension))
+                self.assertEqual(state, 'damaged', detail)
+                self.assertIn('home dimension is not a valid identifier', detail)
+        for name, value in (('yaw', math.nan), ('yaw', math.inf), ('pitch', -math.inf), ('pitch', math.nan)):
+            with self.subTest(angle=name, value=value):
+                state, detail = self.check(home=home(**{name: value}))
+                self.assertEqual(state, 'damaged', detail)
+                self.assertIn(f'home {name} is not a number', detail)
+
+    def test_strings_are_read_as_java_writes_them(self):
+        # Review 2, finding 6: NBT strings are Java's modified UTF-8. The fixture was written by the JDK's own
+        # DataOutput.writeUTF (fixtures/desktop-world/JavaStrings.java): an emoji and a NUL.
+        fixture = ROOT / 'os/tests/fixtures/desktop-world/level-modified-utf8.dat'
+        data = desktop.read_saved(str(fixture))['Data'][1]
+        self.assertEqual(data['LevelName'], (STRING, 'AresHub \U0001f525'))
+        self.assertEqual(data['Note'], (STRING, 'a\0b'))
+        world = make_world(self.paths, self.lock)
+        shutil.copy(fixture, world / 'level.dat')
+        self.assertEqual(desktop.check_world(self.paths, self.lock)[0], 'ok')
+        self.assertEqual(desktop.java_utf(b'\xed\xa0\xbd\xed\xb4\xa5\xc0\x80'), '\U0001f525\0')
+        self.assertEqual(desktop.java_utf(b'\xed\xa0\xbd'), '\ud83d', 'a lone surrogate stays, as in Java')
+        for bad in (b'\xf0\x9f\x94\xa5', b'\xc0', b'\xe0\x80', b'\x80', b'\xc3\x28'):
+            with self.subTest(bad=bad), self.assertRaises(desktop.NbtError):
+                desktop.java_utf(bad)
+
+    def test_corrupt_compressed_data_is_damage_never_a_crash(self):
+        # Review 2, finding 7: a valid gzip header followed by corrupt DEFLATE data raises zlib.error.
+        raw = gzip.compress(gzip.decompress(nbt_file(MARKER)))
+        corrupt = raw[:10] + b'\xff' * 24 + raw[-8:]
+        cases = {'corrupt deflate': corrupt, 'bad header': b'\x1f\x8b\x09' + raw[3:],
+                 'cut-off stream': raw[:-12], 'wrong checksum': raw[:-8] + b'\0' * 8,
+                 'truncated nbt': gzip.compress(gzip.decompress(raw)[:-3])}
+        for name, data in cases.items():
+            with self.subTest(name):
+                shutil.rmtree(self.paths.worlds, ignore_errors=True)
+                world = make_world(self.paths, self.lock)
+                (world / 'data/aresos/desktop.dat').write_bytes(data)
+                state, detail = desktop.check_world(self.paths, self.lock)
+                self.assertEqual(state, 'damaged', detail)
+                self.assertIn('unreadable', detail)
+        # The same corruption in level.dat falls back to a valid level.dat_old, or is damage without one.
+        shutil.rmtree(self.paths.worlds, ignore_errors=True)
+        world = make_world(self.paths, self.lock)
+        (world / 'level.dat').write_bytes(nbt_file(LEVEL)[:10] + b'\xff' * 24 + nbt_file(LEVEL)[-8:])
+        state, detail = desktop.check_world(self.paths, self.lock)
+        self.assertEqual(state, 'damaged', detail)
+        self.assertIn('level.dat: not readable gzip data', detail)
+        (world / 'level.dat_old').write_bytes(nbt_file(LEVEL))
+        self.assertEqual(desktop.check_world(self.paths, self.lock)[0], 'ok')
+        # Through the supervisor's own gate: recovery, not an exception in the keeper's loop.
+        (world / 'data/aresos/desktop.dat').write_bytes(corrupt)
+        sup = self.supervisor()
+        sup.start()
+        self.assertEqual((sup.state, sup.reason), ('RECOVERY', 'world_damaged'))
+
 
 # ---------------------------------------------------------------- launch command and environment
 
@@ -596,12 +665,13 @@ class LaunchTest(unittest.TestCase):
                        '0::/a/aresos.slice/aresos-game-abc123.scope\n0::/b\n'):
             self.assertFalse(desktop.game_cgroup_matches(cgroup, 'abc123'), cgroup)
 
-    def test_memory_pressure_reads_the_last_minute(self):
+    def test_memory_pressure_reads_the_last_ten_seconds(self):
+        # Review 2, finding 2: samples of 'some avg10'; the supervisor builds the clear minute from them.
         with tempfile.TemporaryDirectory() as folder:
             path = os.path.join(folder, 'memory')
             pathlib.Path(path).write_text('some avg10=1.00 avg60=23.50 avg300=4.00 total=1\n'
                                           'full avg10=0.00 avg60=2.00 avg300=0.00 total=1\n')
-            self.assertEqual(desktop.memory_pressure(path), 23.5)
+            self.assertEqual(desktop.memory_pressure(path), 1.0)
             self.assertIsNone(desktop.memory_pressure(os.path.join(folder, 'none')))
 
     def test_prism_gets_the_system_path_and_no_launch_secrets(self):
@@ -918,8 +988,16 @@ class RestartPolicyTest(Base):
         sup.tick()
         self.assertEqual(len(self.runner.prisms), 1)
 
-    def test_a_kill_waits_for_cleared_memory_pressure_before_retry(self):
-        # B5: relaunch only after the owner's Retry and once the last minute's pressure has cleared.
+    def pass_time(self, sup, seconds, pressure):
+        """Let `seconds` pass in sampling steps with the given pressure reading."""
+        self.runner.pressure = pressure
+        for _ in range(int(seconds // desktop.PRESSURE_SAMPLE)):
+            self.advance(desktop.PRESSURE_SAMPLE)
+            sup.tick()
+
+    def test_a_kill_waits_for_a_whole_clear_minute_before_retry(self):
+        # B5, review 2 finding 2: relaunch only after the owner's Retry and once memory pressure has stayed clear
+        # for 60 s without a break. One low reading is not enough, and a spike or an unreadable value starts over.
         sup = self.supervisor()
         sup.start()
         pid, _ = self.in_world(sup)
@@ -928,12 +1006,39 @@ class RestartPolicyTest(Base):
         ok, text = sup.retry()
         self.assertFalse(ok)
         self.assertIn('still under pressure (42%', text)
+        self.runner.pressure = 3.0
+        ok, text = sup.retry()
+        self.assertFalse(ok, 'pressure that just dropped is not a clear minute')
+        self.assertIn('free for 0 of the 60 seconds', text)
+        self.pass_time(sup, 40, 3.0)
+        self.pass_time(sup, 5, 20.0)  # a spike
+        self.pass_time(sup, 30, 3.0)
+        ok, text = sup.retry()
+        self.assertFalse(ok, 'the spike started the minute again')
+        self.pass_time(sup, 10, None)  # unreadable
+        self.pass_time(sup, 55, 3.0)
+        self.assertFalse(sup.retry()[0], 'an unreadable value started the minute again')
         self.assertTrue(self.stored()['latched'])
         self.assertEqual(len(self.runner.prisms), 1)
-        self.runner.pressure = 3.0
+        self.pass_time(sup, 10, 3.0)
         ok, _ = sup.retry()
         self.assertTrue(ok)
         self.assertEqual(len(self.runner.prisms), 2)
+
+    def test_a_supervisor_restart_never_skips_the_clear_minute(self):
+        sup = self.supervisor()
+        sup.start()
+        pid, _ = self.in_world(sup)
+        self.end_game(sup, pid, -9)
+        self.pass_time(sup, 120, 0.0)
+        again = self.supervisor()
+        again.start()
+        self.assertEqual((again.state, again.reason), ('RECOVERY', 'killed'))
+        ok, text = again.retry()
+        self.assertFalse(ok)
+        self.assertIn('free for 0 of the 60 seconds', text)
+        self.pass_time(again, 60, 0.0)
+        self.assertTrue(again.retry()[0])
 
     def test_prism_killed_before_the_game_latches(self):
         sup = self.supervisor()
@@ -1123,25 +1228,80 @@ class RestartPolicyTest(Base):
         sup.on_wrapper_gone(sup.launch.id)
         self.assertEqual((sup.state, sup.reason, sup.persisted.consecutive), ('RECOVERY', 'quit', 0))
 
-    def test_a_failed_start_is_reported_and_counted_never_left_open(self):
-        # Review 1, finding 7: spawn failure, a lost hand-off and the wrapper vanishing all end STARTING.
-        for end in ('jvm_failed', 'wrapper_gone', 'timeout'):
+    def authorized(self):
+        self.runner = FakeRunner()
+        desktop.Persisted().save(self.paths.state_file)
+        for name in (self.paths.exit_file, self.paths.runtime_file):
+            if os.path.exists(name):
+                os.unlink(name)
+        sup = self.supervisor()
+        sup.start()
+        ok, reply = sup.on_jvm_start(self.jvm_request())
+        self.assertTrue(ok)
+        return sup, reply['launch']
+
+    def write_start_record(self, launch, status=None, stopped=False, reason='Java could not be started'):
+        pathlib.Path(self.paths.exit_file).write_text(json.dumps(
+            {'launch': launch, 'pid': 77, 'ticks': None, 'status': status, 'stopped': stopped, 'reason': reason}))
+
+    def test_a_death_before_the_hand_off_latches_like_a_kill(self):
+        # Review 2, finding 1: a SIGKILL, or an end nobody explains, between authorization and the accepted PID is
+        # treated exactly as after the hand-off: latched `killed`, not counted, never restarted by itself.
+        self.runner.scope = 'oom-kill'
+        for end in ('java killed', 'wrapper gone', 'hand-off timeout', 'killed, from the exit record'):
             with self.subTest(end):
-                self.runner = FakeRunner()
-                desktop.Persisted().save(self.paths.state_file)
-                sup = self.supervisor()
-                sup.start()
-                ok, reply = sup.on_jvm_start(self.jvm_request())
-                self.assertTrue(ok)
-                if end == 'jvm_failed':
-                    sup.on_jvm_failed(reply['launch'], 'Java could not be started: no such file')
-                elif end == 'wrapper_gone':
-                    sup.on_wrapper_gone(reply['launch'])
-                else:
-                    self.advance(desktop.HANDOFF_TIMEOUT - 1)
+                sup, launch = self.authorized()
+                self.runner.scope = 'oom-kill'
+                if end == 'java killed':
+                    sup.on_jvm_failed(launch, 'Java ended before it was handed to AresOS', -9)
+                elif end == 'wrapper gone':
+                    sup.on_wrapper_gone(launch)
                     sup.tick()
-                    self.assertEqual(sup.state, 'STARTING')
-                    self.advance(1)
+                    self.assertEqual(sup.state, 'STARTING', 'it waits briefly for the wrapper\'s own report')
+                    self.advance(desktop.EXIT_REPORT_WAIT)
+                    sup.tick()
+                elif end == 'hand-off timeout':
+                    self.advance(desktop.HANDOFF_TIMEOUT)
+                    sup.tick()
+                else:
+                    sup.on_wrapper_gone(launch)
+                    self.write_start_record(launch, -9, reason='Java ended before it was handed to AresOS')
+                    self.advance(desktop.EXIT_REPORT_WAIT)
+                    sup.tick()
+                self.assertEqual((sup.state, sup.reason, sup.persisted.latched), ('RECOVERY', 'killed', True))
+                self.assertEqual((self.stored()['consecutive'], self.stored()['failures']), (0, []))
+                self.assertIn('its scope ended with oom-kill', sup.persisted.detail)
+                self.assertEqual(self.runner.scopes_asked, [f'aresos-game-{launch}.scope'])
+                self.assertEqual(self.stored()['accounted'], launch)
+                self.advance(3600)
+                sup.tick()
+                self.assertEqual(len(self.runner.prisms), 1, 'nothing restarts by itself')
+
+    def test_a_failed_start_is_reported_and_counted_never_left_open(self):
+        # Review 1, finding 7, with review 2 finding 1: a start that failed for a stated reason is counted like a
+        # crash. That includes a report on a new connection after the first broke, and the wrapper's exit record.
+        for end in ('jvm_failed', 'java ended by itself', 'report after the connection broke',
+                    'exit record after a timeout', 'stopped by the wrapper, status ignored'):
+            with self.subTest(end):
+                sup, launch = self.authorized()
+                if end == 'jvm_failed':
+                    sup.on_jvm_failed(launch, 'Java could not be started: no such file')
+                elif end == 'java ended by itself':
+                    sup.on_jvm_failed(launch, 'Java ended before it was handed to AresOS', 1)
+                    self.assertIn('Java ended with exit code 1', sup.detail)
+                elif end == 'report after the connection broke':
+                    sup.on_wrapper_gone(launch)
+                    self.advance(desktop.EXIT_REPORT_WAIT / 2)
+                    sup.tick()
+                    sup.on_jvm_failed(launch, 'lost the supervisor during the hand-off; Java was stopped')
+                elif end == 'exit record after a timeout':
+                    self.write_start_record(launch)
+                    self.advance(desktop.HANDOFF_TIMEOUT)
+                    sup.tick()
+                else:
+                    sup.on_wrapper_gone(launch)
+                    self.write_start_record(launch, -9, stopped=True, reason='lost the supervisor; Java was stopped')
+                    self.advance(desktop.EXIT_REPORT_WAIT)
                     sup.tick()
                 self.assertEqual((sup.state, sup.reason), ('STARTING', 'restarting'))
                 self.assertEqual(sup.persisted.consecutive, 1)
@@ -1151,6 +1311,21 @@ class RestartPolicyTest(Base):
                 # The automatic restart keeps an app in front (finding 11): the helper is told so.
                 self.assertEqual(self.runner.helpers[-1][2].get('ARESOS_SHELL_KEEP_FOREGROUND'), '1')
                 self.assertNotIn('ARESOS_SHELL_KEEP_FOREGROUND', self.runner.helpers[0][2])
+
+    def test_a_lost_hand_off_answer_after_acceptance_is_a_failed_start(self):
+        # Review 2, finding 3: the supervisor accepted the JVM, but the wrapper never got the answer, so it stopped
+        # Java itself. That is a failed start (counted), not the owner's quit and not a kill.
+        sup = self.supervisor()
+        sup.start()
+        pid, _ = self.run_game(sup)
+        sup.on_jvm_failed(sup.launch.id, 'lost the supervisor during the hand-off; Java was stopped')
+        self.runner.processes.pop(pid)
+        sup.on_jvm_gone()
+        self.advance(desktop.EXIT_REPORT_WAIT)
+        sup.tick()
+        self.assertEqual((sup.state, sup.reason, sup.persisted.latched), ('STARTING', 'restarting', False))
+        self.assertIn('lost the supervisor during the hand-off', sup.detail)
+        self.assertEqual(self.stored()['consecutive'], 1)
 
     def test_lost_heartbeats_show_without_touching_the_game(self):
         # Review 1, finding 10.
@@ -1185,6 +1360,29 @@ class RestartPolicyTest(Base):
         sup.start()
         pid, _ = self.run_game(sup)
         os.unlink(os.path.join(self.paths.worlds, 'AresHub/data/aresos/nether_home.dat'))
+        self.ready(sup)
+        self.assertEqual((sup.state, sup.reason, sup.persisted.latched), ('RECOVERY', 'world_damaged', True))
+        self.assertFalse(sup.launch.ready)
+        self.assertIn(pid, self.runner.processes)
+
+    def test_malformed_exact_home_data_is_refused_before_the_start_and_at_readiness(self):
+        # Review 2, finding 5, through both gates: the preflight and the readiness report.
+        home = saved({**HOME['data'][1], 'home': (COMPOUND, {
+            'dimension': (STRING, 'minecraft:the nether'), 'position': (LIST, (DOUBLE, [1.5, 64.0, 2.5])),
+            'yaw': (FLOAT, 0.0), 'pitch': (FLOAT, math.nan)})})
+        shutil.rmtree(self.paths.worlds)
+        world = make_world(self.paths, self.lock, home=home)
+        sup = self.supervisor()
+        sup.start()
+        self.assertEqual((sup.state, sup.reason), ('RECOVERY', 'world_damaged'))
+        self.assertIn('home dimension is not a valid identifier', sup.detail)
+        shutil.rmtree(world)
+        make_world(self.paths, self.lock)
+        desktop.Persisted().save(self.paths.state_file)
+        sup = self.supervisor()
+        sup.start()
+        pid, _ = self.run_game(sup)
+        (world / 'data/aresos/nether_home.dat').write_bytes(nbt_file(home))
         self.ready(sup)
         self.assertEqual((sup.state, sup.reason, sup.persisted.latched), ('RECOVERY', 'world_damaged', True))
         self.assertFalse(sup.launch.ready)
@@ -1310,10 +1508,12 @@ class AdoptionTest(Base):
                 self.assertEqual(self.stored()['consecutive'], counted)
                 self.assertEqual(self.stored()['accounted'], 'a')
                 self.assertEqual(self.runner.prisms, [], 'nothing starts before the old launch is accounted for')
-                # A second supervisor start never counts the same end again.
+                # A second supervisor start never counts the same end again, and keeps its decision (finding 4).
                 again = self.supervisor()
                 again.start()
                 self.assertEqual(self.stored()['consecutive'], counted)
+                self.assertEqual((again.state, again.reason, again.persisted.latched), expected)
+                self.assertEqual(self.runner.prisms, [])
         # A crash after two earlier failures latches, as if the supervisor had seen it.
         shutil.rmtree(self.paths.home)
         os.makedirs(self.paths.home)
@@ -1330,6 +1530,83 @@ class AdoptionTest(Base):
         sup.tick()
         self.assertEqual(len(self.runner.prisms), 1)
         self.assertNotEqual(sup.launch.nonce, 'n' * 32)
+
+    def test_the_decision_after_an_end_survives_supervisor_restarts(self):
+        # Review 2, finding 4: his quit stays stopped across two supervisor restarts; a pending crash restart keeps
+        # its deadline; a new session (another instance, as after a reboot) starts the hub as usual.
+        desktop.provision(self.paths, self.lock)
+        make_world(self.paths, self.lock)
+        first = self.supervisor()
+        first.start()
+        pid, _ = self.run_game(first)
+        self.ready(first)
+        self.end_game(first, pid, 0)
+        self.assertEqual((first.state, first.reason), ('RECOVERY', 'quit'))
+        for _ in range(2):
+            again = self.supervisor()
+            again.start()
+            self.assertEqual((again.state, again.reason, again.persisted.latched), ('RECOVERY', 'quit', False))
+            self.assertEqual(len(self.runner.prisms), 1, 'nothing starts after his quit')
+        self.assertTrue(again.retry()[0])
+        self.assertEqual(len(self.runner.prisms), 2)
+        pid, _ = self.run_game(again)
+        self.ready(again)
+        self.end_game(again, pid, 1)
+        self.assertEqual((again.state, again.reason), ('STARTING', 'restarting'))
+        self.advance(desktop.BACKOFF - 2)
+        restarted = self.supervisor()
+        restarted.start()
+        self.assertEqual((restarted.state, restarted.reason), ('STARTING', 'restarting'))
+        self.assertEqual(len(self.runner.prisms), 2)
+        self.advance(1)
+        restarted.tick()
+        self.assertEqual(len(self.runner.prisms), 2, 'the deadline is kept, not restarted from zero or skipped')
+        self.advance(1)
+        restarted.tick()
+        self.assertEqual(len(self.runner.prisms), 3)
+        self.assertEqual(self.stored()['consecutive'], 1, 'the crash was counted once')
+        # A new session: the quit of the last one does not keep the hub closed.
+        pid, _ = self.run_game(restarted)
+        self.end_game(restarted, pid, 0)
+        os.unlink(self.paths.runtime_file)
+        fresh = self.supervisor()
+        fresh.start()
+        self.assertEqual(fresh.state, 'STARTING')
+        self.assertEqual(len(self.runner.prisms), 4)
+
+    def test_a_start_authorized_before_a_supervisor_restart_is_accounted_for(self):
+        # Review 2, findings 1 and 3: the previous supervisor authorized a JVM that never reported to it.
+        cases = {'no record, nothing running': (None, False, ('RECOVERY', 'killed', True), 0),
+                 'killed, from the record': ({'status': -9, 'reason': 'Java ended'}, False,
+                                             ('RECOVERY', 'killed', True), 0),
+                 'failed, from the record': ({'status': None, 'reason': 'Java could not be started'}, False,
+                                             ('STARTING', 'restarting', False), 1),
+                 'its wrapper still runs': (None, True, ('STARTING', None, False), 0)}
+        for name, (record, held, expected, counted) in cases.items():
+            with self.subTest(name):
+                shutil.rmtree(self.paths.home)
+                os.makedirs(self.paths.home)
+                shutil.rmtree(self.paths.runtime)
+                os.makedirs(self.paths.run_dir)
+                desktop.provision(self.paths, self.lock)
+                make_world(self.paths, self.lock)
+                self.runner = FakeRunner()
+                self.runner.lock_held = held
+                pathlib.Path(self.paths.runtime_file).write_text(json.dumps(
+                    {'instance': 'desk-old', 'nonce': 'n' * 32, 'launch': 'b', 'mode': 'hub', 'accepted': True,
+                     'jvm_pid': None, 'jvm_ticks': None}))
+                if record:
+                    pathlib.Path(self.paths.exit_file).write_text(json.dumps(dict(record, launch='b', pid=5)))
+                sup = self.supervisor()
+                sup.start()
+                self.assertEqual((sup.state, sup.reason, sup.persisted.latched), expected)
+                self.assertEqual(self.stored()['consecutive'] if os.path.exists(self.paths.state_file) else 0,
+                                 counted)
+                self.assertEqual(self.runner.prisms, [])
+                if held:
+                    # The wrapper reports on a new connection, naming the launch.
+                    sup.on_jvm_failed('b', 'lost the supervisor during the hand-off; Java was stopped')
+                    self.assertEqual((sup.state, sup.reason), ('STARTING', 'restarting'))
 
     def test_an_adopted_game_that_never_becomes_ready_shows_after_the_timeout(self):
         # Review 1, finding 10: adoption keeps a bounded readiness check.
@@ -1476,6 +1753,69 @@ class MemoryProtectionFilesTest(unittest.TestCase):
             self.assertIn(name, checks)
 
 
+@unittest.skipUnless(LINUX, 'runs stand-in pressure sources')
+class PressureCheckTest(unittest.TestCase):
+    """Review 2, finding 9: the VM check passes only with real, proven pressure (checks.py, run in the VM)."""
+
+    def setUp(self):
+        sys.path[:0] = [str(ROOT / 'os/ci'), str(ROOT / 'os/ci/overlay')]
+        self.addCleanup(lambda: [sys.path.remove(p) for p in (str(ROOT / 'os/ci'), str(ROOT / 'os/ci/overlay'))])
+        import checks
+        self.checks = checks
+        alive = {'labwc': (10, '0::/s'), 'supervisor': (11, '0::/s'), 'keeper': (12, '0::/s'),
+                 'recovery terminal': (13, '0::/s')}
+        self.evidence = {'kernel': ['Out of memory: Killed process 1 (python3)'], 'oomd': [], 'unit': '',
+                         'proven': True}
+        for name, value in (('survivors', lambda: dict(alive)), ('timed_status', lambda: 0.1),
+                            ('desktop_status', lambda: {'state': 'RECOVERY'}),
+                            ('oom_evidence', lambda pid: self.evidence), ('PRESSURE_MIN_MIB', 128)):
+            patch = mock.patch.object(checks, name, value)
+            patch.start()
+            self.addCleanup(patch.stop)
+
+    def source(self, script):
+        patch = mock.patch.object(self.checks, 'pressure_command', lambda: ['/bin/sh', '-c', script])
+        patch.start()
+        self.addCleanup(patch.stop)
+
+    SCOPE = 'echo "SCOPE $$ 0::/user.slice/user-1001.slice/user@1001.service/aresos.slice/aresos-ci-pressure.scope"; '
+    GROW = 'for n in 64 128 192 256; do echo "ALLOCATED $n"; sleep 0.6; done; '
+
+    def test_real_pressure_passes(self):
+        self.source(self.SCOPE + self.GROW + 'kill -9 $$')
+        result = self.checks.memory_pressure()
+        self.assertEqual((result['allocated_mib'], result['hog_exit']), (256, -9))
+        self.assertTrue(result['status_seconds'])
+
+    def test_anything_short_of_proven_pressure_fails(self):
+        cases = {
+            'the launcher fails': ('echo "Failed to start transient scope unit: Access denied" >&2; exit 1',
+                                   'never ran in its scope'),
+            'another scope': ('echo "SCOPE $$ 0::/user.slice/session-2.scope"; ' + self.GROW + 'kill -9 $$',
+                              'ran elsewhere'),
+            'python fails at once': (self.SCOPE + 'echo "Traceback"; exit 1', 'ended before it made pressure'),
+            'ends by itself': (self.SCOPE + self.GROW + 'exit 1', 'was not killed'),
+        }
+        for name, (script, expected) in cases.items():
+            with self.subTest(name):
+                self.source(script)
+                with self.assertRaises(AssertionError) as caught:
+                    self.checks.memory_pressure()
+                self.assertIn(expected, str(caught.exception))
+        with self.subTest('killed without OOM evidence'):
+            self.source(self.SCOPE + self.GROW + 'kill -9 $$')
+            self.evidence = {'kernel': [], 'oomd': [], 'unit': 'Result=success', 'proven': False}
+            with self.assertRaises(AssertionError) as caught:
+                self.checks.memory_pressure()
+            self.assertIn('no kernel or systemd-oomd record', str(caught.exception))
+        with self.subTest('the supervisor does not answer'):
+            self.evidence = dict(self.evidence, proven=True)
+            with mock.patch.object(self.checks, 'timed_status', lambda: None):
+                with self.assertRaises(AssertionError) as caught:
+                    self.checks.memory_pressure()
+            self.assertIn('did not answer', str(caught.exception))
+
+
 class SessionFilesTest(unittest.TestCase):
     def test_autostart_runs_the_supervisor_instead_of_a_terminal(self):
         lines = [l for l in (CONFIG / 'usr/share/aresos/labwc/autostart').read_text().splitlines()
@@ -1551,6 +1891,8 @@ class WrapperTest(unittest.TestCase):
                                                           'PATH': desktop.SYSTEM_PATH},
                       'scope': [], 'unit': None}
         self.started_reply = {'ok': True}
+        self.drop_started = False
+        self.connections = 0
         self.listener = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         self.listener.bind(str(self.run_dir / 'desktop.sock'))
         self.listener.listen(4)
@@ -1563,9 +1905,11 @@ class WrapperTest(unittest.TestCase):
                 conn, _ = self.listener.accept()
             except OSError:
                 return
+            self.connections += 1
+            number = self.connections
             with conn:
-                buffer = b''
-                while True:
+                buffer, open_ = b'', True
+                while open_:
                     data = conn.recv(65536)
                     if not data:
                         break
@@ -1573,7 +1917,10 @@ class WrapperTest(unittest.TestCase):
                     while b'\n' in buffer:
                         line, buffer = buffer.split(b'\n', 1)
                         request = json.loads(line)
-                        self.requests.append(request)
+                        self.requests.append(dict(request, connection=number))
+                        if request['op'] == 'jvm_started' and self.drop_started:
+                            open_ = False  # the hand-off breaks: no answer, the connection closes
+                            break
                         reply = {'jvm_start': self.reply, 'jvm_started': self.started_reply}.get(request['op'],
                                                                                                  {'ok': True})
                         conn.sendall((json.dumps(reply) + '\n').encode())
@@ -1629,6 +1976,43 @@ class WrapperTest(unittest.TestCase):
         self.assertFalse(os.path.exists(f'/proc/{game}') and
                          pathlib.Path(f'/proc/{game}/stat').read_text().split(')')[1].split()[0] != 'Z')
 
+    def test_java_killed_before_the_hand_off_is_reported_with_its_status(self):
+        # Review 2, finding 1: Java dies (SIGKILL) while the wrapper waits for its scope, before jvm_started.
+        killer = self.root / 'fake-systemd-run'
+        killer.write_text('#!/bin/sh\nkill -9 $$\n')
+        killer.chmod(0o755)
+        self.reply = dict(self.reply, scope=[str(killer)], unit='aresos-game-L1.scope')
+        result = self.wrap()
+        self.assertEqual(result.returncode, wrapper.REFUSED, result.stderr)
+        self.assertEqual([r['op'] for r in self.requests], ['jvm_start', 'jvm_failed'])
+        self.assertEqual((self.requests[-1]['status'], self.requests[-1]['launch']), (-9, 'L1'))
+        record = json.loads((self.run_dir / 'desktop-exit.json').read_text())
+        self.assertEqual((record['launch'], record['status'], record['stopped']), ('L1', -9, False))
+
+    def test_a_lost_hand_off_stops_java_and_reports_on_a_new_connection(self):
+        # Review 2, finding 3: the connection breaks during jvm_started while Java runs. Java must not be left
+        # running untracked: the wrapper stops it and reports on a new connection, naming the launch.
+        self.drop_started = True
+        started = time.monotonic()
+        result = self.wrap(env={'FAKE_JAVA_SLEEP': '60'})
+        self.assertEqual(result.returncode, wrapper.REFUSED, result.stderr)
+        self.assertLess(time.monotonic() - started, 30)
+        self.assertEqual([r['op'] for r in self.requests], ['jvm_start', 'jvm_started', 'jvm_failed'])
+        failed = self.requests[-1]
+        self.assertNotEqual(failed['connection'], self.requests[0]['connection'])
+        self.assertEqual(failed['launch'], 'L1')
+        self.assertIn('lost the supervisor during the hand-off', failed['reason'])
+        self.assertNotIn('status', failed, 'a JVM the wrapper stopped says nothing by its status')
+        game = self.requests[1]['pid']
+        self.assertFalse(os.path.exists(f'/proc/{game}') and
+                         pathlib.Path(f'/proc/{game}/stat').read_text().split(')')[1].split()[0] != 'Z')
+        record = json.loads((self.run_dir / 'desktop-exit.json').read_text())
+        self.assertEqual((record['launch'], record['pid'], record['stopped']), ('L1', game, True))
+        import fcntl
+        lock = os.open(self.run_dir / 'desktop.lock', os.O_RDWR)
+        self.addCleanup(os.close, lock)
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)  # nothing holds the desktop lock any more
+
     def test_a_scope_that_is_not_usable_is_refused_before_java_runs(self):
         for scope, unit in (('systemd-run', None), (['relative/systemd-run', '--'], 'u.scope'), ([], 'u.scope'),
                             (['/usr/bin/systemd-run', '--'], None)):
@@ -1668,7 +2052,8 @@ class WrapperTest(unittest.TestCase):
             self.skipTest('no user systemd manager reachable here (CI runner); WSL and the image have one')
         launch = 'pkg23t' + os.urandom(3).hex()
         self.reply = dict(self.reply, launch=launch, scope=desktop.game_scope(launch), unit=desktop.game_unit(launch))
-        result = self.wrap(env={'DBUS_SESSION_BUS_ADDRESS': bus, 'FAKE_JAVA_EXIT': '0'})
+        # Java lives a moment, so it is handed over before it ends (one that ends first is a failed start).
+        result = self.wrap(env={'DBUS_SESSION_BUS_ADDRESS': bus, 'FAKE_JAVA_SLEEP': '2', 'FAKE_JAVA_EXIT': '0'})
         self.assertEqual(result.returncode, 0, result.stderr)
         record = json.loads((self.root / 'record.json').read_text())
         line = next(l for l in record['cgroup'].splitlines() if l.startswith('0::'))
@@ -1790,7 +2175,8 @@ class LoopTest(Base):
         self.exit_file = self.root / 'java-exit'
         java = bin_dir / 'java'
         # Each fake JVM waits for its own stop file, named after its PID.
-        java.write_text('#!/bin/sh\nread line\nwhile [ ! -e "$FAKE_JAVA_STOP.$$" ]; do sleep 0.05; done\n'
+        java.write_text('#!/bin/sh\necho $$ >> "$FAKE_JAVA_STOP.pids"\nread line\n'
+                        'while [ ! -e "$FAKE_JAVA_STOP.$$" ]; do sleep 0.05; done\n'
                         'exit "$(cat "$FAKE_JAVA_STOP.$$")"\n')
         for name, text in (('prism', FAKE_PRISM), ('helper', FAKE_HELPER), ('view', FAKE_VIEW)):
             (bin_dir / name).write_text(text)
@@ -1904,6 +2290,57 @@ class LoopTest(Base):
         launches = [l for l in self.log.read_text().splitlines() if l.startswith('--launch')]
         self.assertEqual(len(launches), 1)
         self.assertEqual(desktop.request(self.paths, {'op': 'status'})['consecutive'], 0)
+
+    def kill_before_the_hand_off(self, script):
+        # Review 2, finding 1, through the real loop and wrapper: SIGKILL right after authorization, before the PID
+        # is accepted. A stand-in for systemd-run kills Java (and maybe the wrapper) before Java reaches its scope.
+        killer = self.root / 'killer'
+        killer.write_text(script)
+        killer.chmod(0o755)
+        sup = self.loop.supervisor
+        with mock.patch.object(desktop, 'game_scope', lambda launch_id: [str(killer)]):
+            self.thread.start()
+            self.wait(lambda: (sup.state, sup.reason) == ('RECOVERY', 'killed'))
+            self.assertTrue(sup.persisted.latched)
+            time.sleep(1.5)  # far beyond the patched 0.2 s backoff
+        self.assertEqual(len([l for l in self.log.read_text().splitlines() if l.startswith('--launch')]), 1)
+        self.assertEqual(desktop.request(self.paths, {'op': 'status'})['consecutive'], 0)
+        return sup
+
+    def test_java_killed_before_the_hand_off_latches(self):
+        sup = self.kill_before_the_hand_off('#!/bin/sh\nkill -9 $$\n')
+        self.assertIn('killed by SIGKILL while it started', sup.persisted.detail)
+
+    def test_java_and_wrapper_killed_before_the_hand_off_latch(self):
+        sup = self.kill_before_the_hand_off('#!/bin/sh\nkill -9 $PPID\nkill -9 $$\n')
+        self.assertIn('ended before the game was handed to AresOS', sup.persisted.detail)
+
+    def test_a_lost_hand_off_never_leaves_java_running(self):
+        # Review 2, finding 3, through the real loop: the supervisor's connection to the wrapper breaks while it
+        # handles jvm_started, with Java alive. Java is stopped, the lock is free, and the start counts as failed.
+        handle = desktop.Loop.handle
+
+        def breaking(loop, peer, line):
+            if json.loads(line).get('op') == 'jvm_started':
+                loop.drop(peer)
+                return {'ok': True}
+            return handle(loop, peer, line)
+        sup = self.loop.supervisor
+        # A long backoff keeps the counted failure in view (no automatic restart during the test).
+        with mock.patch.object(desktop.Loop, 'handle', breaking), mock.patch.object(desktop, 'BACKOFF', 60):
+            self.thread.start()
+            self.wait(lambda: (sup.state, sup.reason) == ('STARTING', 'restarting'))
+            self.assertIn('lost the supervisor during the hand-off', sup.detail)
+            self.assertEqual((sup.persisted.consecutive, sup.persisted.latched), (1, False))
+            java = int(pathlib.Path(f'{self.exit_file}.pids').read_text().split()[0])
+
+            def gone():
+                try:
+                    return pathlib.Path(f'/proc/{java}/stat').read_text().split(')')[1].split()[0] == 'Z'
+                except OSError:
+                    return True
+            self.wait(gone)
+            self.wait(lambda: not self.loop.runner.jvm_lock_held())
 
     def test_prism_without_a_game_waits_in_auth_required(self):
         self.mode.write_text('no-game')
