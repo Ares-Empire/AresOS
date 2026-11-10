@@ -124,20 +124,22 @@
     if(!fileIdentities.has(file))fileIdentities.set(file,{identity:randomToken()});
     return fileIdentities.get(file);
   }
+  const selectedFileLists=()=>all().filter(element=>element instanceof HTMLInputElement&&element.type==='file'&&!password(element)).map(element=>({element,files:[...element.files]}));
   function prepareSelectedFiles(){
-    const pending=[];
-    for(const element of all())if(element instanceof HTMLInputElement&&element.type==='file'&&!password(element)){
-      for(const file of element.files){
+    const pending=[],selections=selectedFileLists();
+    for(const {files} of selections){
+      for(const file of files){
         const identity=fileIdentity(file);
-        if(identity.sha256)continue;
         identity.hashing??=(async()=>{
           const bytes=await blobBytes.call(file);
-          identity.sha256=crypto.subtle?Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)),byte=>byte.toString(16).padStart(2,'0')).join(''):sha256(new Uint8Array(bytes));
-        })();
+          const digest=crypto.subtle?Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)),byte=>byte.toString(16).padStart(2,'0')).join(''):sha256(new Uint8Array(bytes));
+          if(identity.staged&&digest!==identity.staged)throw Error('staged attachment bytes changed');
+          identity.sha256=digest;
+        })().finally(()=>{identity.hashing=null;});
         pending.push(identity.hashing);
       }
     }
-    return pending;
+    return {pending,unchanged:()=>{const current=selectedFileLists();return current.length===selections.length&&current.every((entry,index)=>entry.element===selections[index].element&&entry.files.length===selections[index].files.length&&entry.files.every((file,position)=>file===selections[index].files[position]));}};
   }
   // HTTP documents do not expose SubtleCrypto, including their isolated world.
   // SHA-256 here keeps owner-picked files usable there without exporting bytes.
@@ -289,14 +291,14 @@
     }
     return {unsaved,playing:all().some(element=>['AUDIO','VIDEO'].includes(element.tagName)&&!element.paused&&!element.ended)};
   }
-  function onMessage(message, sender, reply) {
+  function onMessage(message, sender, reply, filesReady=false) {
     if (sender.id !== chrome.runtime.id || !message || typeof message.command !== 'string') return;
     try {
       if(message.expected_document&&message.expected_document!==documentId)throw Error('refused: private password history was lost for this surviving document; ask the owner to reload');
       if(message.expected_origin&&message.expected_origin!==globalThis.origin)throw Error('refused: inherited frame origin cannot be authenticated');
-      if(['read','facts','observe'].includes(message.command)){
-        const pending=prepareSelectedFiles();
-        if(pending.length){Promise.all(pending).then(()=>onMessage(message,sender,reply),error=>reply({ok:false,error:'refused: selected file could not be hashed: '+String(error.message)}));return true;}
+      if(!filesReady&&['read','facts','observe'].includes(message.command)){
+        const {pending,unchanged}=prepareSelectedFiles();
+        if(pending.length){Promise.all(pending).then(()=>{if(!unchanged())throw Error('file selection changed during verification');onMessage(message,sender,reply,true);}).catch(error=>reply({ok:false,error:'refused: selected file could not be hashed: '+String(error.message)}));return true;}
       }
       let value;
       if (message.command === 'arm') { guard.arm(message); value={armed:true}; }
@@ -309,7 +311,7 @@
         if(!staged?.ready || !element?.isConnected || element.type !== 'file')throw Error('stale_reference: upload field or staged bytes changed');
         guard.direct(message.element);
         files.delete(message.token);
-        const identity={identity:randomToken(),sha256:staged.file.sha256};
+        const identity={identity:randomToken(),sha256:staged.file.sha256,staged:staged.file.sha256};
         const transfer=new DataTransfer();transfer.items.add(staged.ready);element.files=transfer.files;fileIdentities.set(element.files[0],identity);
         element.dispatchEvent(new Event('input',{bubbles:true}));element.dispatchEvent(new Event('change',{bubbles:true}));
         value={installed:true,sha256:staged.file.sha256,size:staged.file.size};

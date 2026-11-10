@@ -5,12 +5,12 @@
 accounts for P1–P31, including the browser-free mutation evidence. All browser tests run only through the
 `control-chrome.yml` Linux containers. No local browser executable or profile has been accessed.
 
-The lead's 2026-11-10 13:15 feature-preserving direction is being applied. The [current continuation checkpoint](BUILD-P-2.md)
-records the debugger barrier for native dialogs, isolated byte hashing for owner-chosen files and successful-send
-fixtures for ordinary blank/srcdoc editors. Missing-coverage native-dialog cases remain explicitly tracked for the
+The lead's 2026-11-10 13:15 feature-preserving direction is being applied. The [current continuation checkpoint](BUILD-P-3.md)
+records the private native-return debugger barrier, successful ordinary native answers, isolated byte hashing for
+owner-chosen files and successful sends from ordinary blank/srcdoc editors. Missing-coverage native-dialog cases remain explicitly tracked for the
 lead and owner; no fallback refusal is approved or silently treated as feature-complete.
 
-The latest local checkpoint is 195 passing Node tests, 44 focused Python tests, 184 full Python tests and 60
+The latest local checkpoint is 203 passing Node tests, 45 focused Python tests, 185 full Python tests and 67
 rejected mutations covering every P item. Final-head browser/base/Mail/boundary runs twice and the closing
 per-item receiver/log index remain required.
 The first container batch found a fake-timer fixture race; the next found a real paused-startup finish deadlock.

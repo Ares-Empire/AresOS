@@ -46,6 +46,8 @@ case('P10',R,'[role=listitem],[role=row],[role=article],section[aria-label],sect
 case('P11',A,"if kind in {'send', 'confirmation'} and not frame.get('form') and not adapter else None","if kind == 'send' and not frame.get('form') and not adapter else None",'test_questions.Questions.test_p11_confirmation_binds_a_sibling_draft',True)
 case('P12',R,"fileIdentities.set(file,{identity:randomToken()})","fileIdentities.set(file,{identity:file.name})",node('reader','P12'))
 case('P12-hash',R,"return hash.map(value=>value.toString(16).padStart(8,'0')).join('');","return '0'.repeat(64);",node('reader','P12 HTTP'))
+case('P12-rehash',R,'const identity=fileIdentity(file);','const identity=fileIdentity(file);if(identity.sha256)continue;',node('reader','P12 every binding rehashes'))
+case('P12-race',R,'if(!unchanged())','if(false)',node('reader','P12 a selection changed'))
 case('P12-binding',A,"'fields':item.get('selected_files',[])","'fields':[]",'test_questions.Questions.test_p12_owner_selected_file_question_shows_name_size_and_bound_digest',True)
 case('P13',R,"value = editableText(element).replace(/\\n$/, '');","value = text(element);",node('reader','P13'))
 case('P14',P,"ITEM = {'unsubscribe', 'abbestellen'}","ITEM = set()",'test_policy.ReviewClassification.test_p14_unsubscribe_binds_item_without_a_draft',True)

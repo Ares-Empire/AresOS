@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 import {webcrypto,createHash} from 'node:crypto';
 
-function fixture(fields,{subtle=true}={}) {
+function fixture(fields,{subtle=true,NativeBlob=Blob}={}) {
   let calls=0,fileSequence=0;const timers=[];
   class Element {
     isConnected=true;nodeType=1;tagName='INPUT';textContent='';childNodes=[];hidden=false;type='text';isContentEditable=false;labels=[];files=[];name='';
@@ -29,7 +29,7 @@ function fixture(fields,{subtle=true}={}) {
   let listener,observer,readerAPI;const observationOptions=[];
   const chrome={dom:{openOrClosedShadowRoot:()=>null},runtime:{id:'fixture',sendMessage:async()=>({}),onMessage:{addListener(fn){listener=fn;},removeListener(){}}}};
   class MutationObserver {constructor(fn){this.fn=fn;this.records=[];observer=this;}observe(root,options){observationOptions.push(options);}takeRecords(){return this.records.splice(0);}disconnect(){}}
-  const context=vm.createContext({document,chrome,Blob,crypto:{subtle:subtle?webcrypto.subtle:undefined,getRandomValues:array=>array.fill(++fileSequence)},MutationObserver,
+  const context=vm.createContext({document,chrome,Blob:NativeBlob,crypto:{subtle:subtle?webcrypto.subtle:undefined,getRandomValues:array=>array.fill(++fileSequence)},MutationObserver,
     Element,HTMLElement:Element,HTMLInputElement,HTMLTextAreaElement,HTMLSelectElement,HTMLButtonElement,Node:{TEXT_NODE:3},CustomEvent:class{},
     atob:value=>Buffer.from(value,'base64').toString('binary'),setTimeout:fn=>timers.push(fn),
     getComputedStyle:element=>({display:['DIV','P'].includes(element.tagName)?'block':'inline',visibility:'visible',webkitTextSecurity:element.mask || 'none'}),
@@ -161,6 +161,22 @@ test('P12 HTTP selected-file hashing matches SHA-256 across padding and multi-bl
     const reply=await f.readAsync();assert.equal(reply.ok,true,JSON.stringify(reply));
     assert.equal(reply.data.selected_files[0].value[0].sha256,createHash('sha256').update(bytes).digest('hex'),String(size));
   }
+});
+test('P12 every binding rehashes the selected native File even when its object and metadata survive',async()=>{
+  let bytes='GOOD',reads=0;
+  class NativeBlob {get size(){return 4;}async arrayBuffer(){reads++;return Uint8Array.from(Buffer.from(bytes)).buffer;}}
+  const file=Object.assign(new NativeBlob(),{name:'owner-picked.txt',lastModified:1700000000000});
+  const f=fixture([{type:'file',files:[file]}],{NativeBlob});
+  const first=(await f.readAsync()).data.selected_files[0].value[0];bytes='EVIL';
+  const changed=(await f.readAsync()).data.selected_files[0].value[0];
+  assert.equal(reads,2);assert.equal(first.identity,changed.identity);assert.equal(first.name,changed.name);assert.equal(first.size,changed.size);assert.equal(first.lastModified,changed.lastModified);
+  assert.equal(first.sha256,createHash('sha256').update('GOOD').digest('hex'));assert.equal(changed.sha256,createHash('sha256').update('EVIL').digest('hex'));
+});
+test('P12 a selection changed during asynchronous hashing refuses before snapshot extraction',async()=>{
+  let finish;class NativeBlob {get size(){return 4;}arrayBuffer(){return new Promise(resolve=>{finish=resolve;});}}
+  const file=()=>Object.assign(new NativeBlob(),{name:'owner-picked.txt',lastModified:0});
+  const f=fixture([{type:'file',files:[file()]}],{NativeBlob});const pending=f.readAsync();f.nodes[0].files=[file()];finish(new Uint8Array([1,2,3,4]).buffer);
+  const refused=await pending;assert.equal(refused.ok,false);assert.match(refused.error,/selection changed/);
 });
 test('P24 document designMode counts as an unsaved editor without a contenteditable attribute',()=>{
   const f=fixture([]);assert.equal(f.command({command:'reload_state'}).data.unsaved,false);f.designMode('on');assert.equal(f.command({command:'reload_state'}).data.unsaved,true);

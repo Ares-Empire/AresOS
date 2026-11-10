@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {setTimeout as delay} from 'node:timers/promises';
 import {allTabs} from './tabs.mjs';
 import {createHash} from 'node:crypto';
+import fs from 'node:fs';
 
 export async function reviewMatrices({check,nav,call,rpc,target,read,counts,eventually,approval,receiverEvidence,fixture,getTab,ownerKey,ownerChooseFile,admin,ownerNavigate,ownerDismiss,nativeDonor,closeNativeDonor,setTab,lifecycle}){
   await check('GROUP 4 REVIEW ordinary native dialogs from Claude owner and page tasks keep working',async()=>{
@@ -32,7 +33,9 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
     const first=await call('click',await target('Submit'));assert.ok(first.approval);
     assert.doesNotMatch(JSON.stringify(first.approval.description),/GOOD|EVIL/,'file bytes must never enter the approval or binding');
     for(const text of ['owner-picked.txt','4 bytes',createHash('sha256').update('GOOD').digest('hex')])assert.ok(first.approval.question.includes(text),first.approval.question);
-    await fixture.mutate(id,'review-change');const refused=await rpc('submit',first.approval);assert.ok(!refused.ok||refused.data.operation.state==='failed');assert.equal(receiverEvidence(id,'selected bytes changed').count,0);
+    fs.writeFileSync('/out/owner-picked.txt','EVIL');fs.utimesSync('/out/owner-picked.txt',1700000000,1700000000);
+    const refused=await rpc('submit',first.approval);assert.ok(!refused.ok||refused.data.operation.state==='failed');assert.equal(receiverEvidence(id,'selected bytes changed').count,0);
+    await fixture.mutate(id,'review-change');
     const second=await call('click',await target('Submit'));assert.ok(second.approval.question.includes(createHash('sha256').update('EVIL').digest('hex')));await approval(second,id);
     assert.match(fixture.arrivals.find(row=>new URL(row.url,'http://fixture.test').searchParams.get('case')===id).body,/EVIL/);
   });
@@ -56,7 +59,7 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
       else{
         assert.equal(counts(id),0,'the other controlled document cannot take the source native path');
         await call('read',{tab:child.tab});let cursor,prepared;
-        do{const pending=await rpc('control_pending',{limit:20,...(cursor?{cursor}:{})});assert.equal(pending.ok,true);for(const row of pending.data.items){if(row.app!=='chrome'||row.state!=='reserved')continue;const status=await call('operation_status',{operation_id:row.operation_id});if(status.operation.approval.description.untrusted_content.page_state.url.includes(id))prepared=status.operation.approval;}cursor=pending.data.cursor;}while(cursor&&!prepared);
+        do{const pending=await rpc('control_pending',{limit:10,...(cursor?{cursor}:{})});assert.equal(pending.ok,true);for(const row of pending.data.items){if(row.app!=='chrome'||row.state!=='reserved')continue;const status=await call('operation_status',{operation_id:row.operation_id});if(status.operation.approval?.description?.untrusted_content?.page_state?.url?.includes(id))prepared=status.operation.approval;}cursor=pending.data.cursor;}while(cursor&&!prepared);
         assert.ok(prepared);await approval({approval:prepared},id);await call('close_tab',{tab:child.tab});
       }
     }

@@ -163,6 +163,7 @@ try {
     ownerDismiss:()=>execFileSync('xdotool',['key','--clearmodifiers','Escape']),
     ownerChooseFile:async()=>{
       fs.writeFileSync('/out/owner-picked.txt','GOOD');
+      fs.utimesSync('/out/owner-picked.txt',1700000000,1700000000);
       const chooser=await eventually(()=>{const ids=execFileSync('xdotool',['search','--onlyvisible','--name','^(Open File|Open)$'],{encoding:'utf8'}).trim().split('\n').filter(Boolean);assert.equal(ids.length,1);return ids[0];},'one native file chooser');
       execFileSync('xdotool',['windowactivate','--sync',chooser]);await delay(300);execFileSync('import',['-window','root','/out/owner-file-chooser.png']);
       execFileSync('xdotool',['key','--clearmodifiers','ctrl+l']);execFileSync('xdotool',['type','--clearmodifiers','--delay','10','/out/owner-picked.txt']);await delay(1000);execFileSync('import',['-window','root','/out/owner-file-path.png']);

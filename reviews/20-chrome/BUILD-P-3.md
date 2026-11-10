@@ -50,3 +50,33 @@ No local browser/profile was touched; no other worktree or branch was read or
 changed. No workflow was cancelled in this trial. Ledger: **134 Chrome IDs before
 this push**, expected **136 after it**, allowance approximately 155. PR 27 remains
 draft; no merge.
+
+**Linux feedback:** `d5cdde7d`, policy job of **42830213180**, passed all
+15 native answer/return-value cases and all four inline editor cases. The raw
+0/1/1 snapshots and log lines are retained in
+[review-fixes-d5cd-native-editors.json](records/review-fixes-d5cd-native-editors.json).
+Its native chooser did not install a file. The remote screenshots showed the
+correct path but no selected file after Return. The driver now allows GTK path
+validation to settle and uses one explicit Open accelerator. The subsequent
+`76f9b5cf` trial, **42831333350**, passed the native dialogs, editors, chooser,
+same-metadata replacement refusal and inherited/new-frame matrices, then failed
+the cross-tab fixture's unsupported `control_pending(limit=20)`. The fixture now
+uses the public ten-row bound; the zero-arrival assertion remains unchanged.
+[Retained chooser events and receiver snapshots](records/review-fixes-76f9-chooser.json)
+include the actual owner-selected filename, byte digest question, refusal at
+zero, and fresh send/repeat 0/1/1. These are partial results, not acceptance green.
+
+**P12 refinement:** each snapshot now hashes the native bytes again, including
+when the File object and all its metadata survive. The old digest is not proof
+of the current backing file. A changed selection during asynchronous hashing
+refuses before snapshot extraction. Only digests/metadata leave the isolated
+world; byte buffers remain transient. Staged hashes are independently checked.
+Two new regressions and mutations pin the fresh hash and selection-race checks.
+The native chooser case now changes the actual disk bytes, restores the exact
+mtime, and requires refusal before dispatch, then installs a fresh selected File
+for successful approval. This expanded browser case still needs its next run.
+
+**Run:** full Node **203 passed**, no failures/cancellations/skips; **67 mutations
+rejected, every baseline passed**. The unchanged Python checkpoint remains 185
+tests OK. Only this build's superseded push/PR runs were cancelled; no owner or
+lead run was cancelled. Ledger: 138 IDs before the next push, expected 140 after.
