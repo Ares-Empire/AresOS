@@ -249,7 +249,7 @@ read-only commands ran directly, `install` went to `sudo -u '#1000'`, a missing 
 
 ## PLAN-GAP
 
-- **`vm.py` can't pass its power-key step since package 14.** It now searches the serial log through
+- **`vm.py` couldn't pass its power-key step since package 14** (fixed in review fixes 3). It now searches the serial log through
   `strip_kernel_lines`, which also removes the journal follower's `short-monotonic` lines, because they start with the
   same `[   73.458055] ` prefix as kernel records (`runs/vm-42709631386/serial-journal-ready-excerpt.txt`).
   `vm.py` last ran for package 13, before that change. Suggested fix for the release package: also accept the token
@@ -377,3 +377,51 @@ Verification of the fixes:
 
 - WSL, focused on `e83362d3` before the last test-only commit: `test_shell_assertions` 8 OK, `test_checkout_sources` 4 OK, `test_sysusers` 2 errors (WSL sudo, as before); `test_everyday_account` found the deny-clause assertion that `0659e6bc` fixed (6 policy tests OK locally after it).
 - Full WSL suite on `0659e6bc` (the last code commit; later commits change only `reviews/`), after another agent's suite finished and with 5.7 GB free: plain and `-B` both `Ran 714 tests`, `FAILED (failures=1, errors=12)`, only in the known WSL-only suites (all `sudo: a password is required`): `test_greeter` 3 errors, `test_inherited_homebrew` 1 failure + 7 errors, `test_sysusers` 2 errors. Everything else passes, including `test_everyday_account` (26 tests).
+
+## Review fixes 3 (review 3: CHANGES-NEEDED at `4c93ac33`; brief `21-review-fixes-3.md`)
+
+Board #156 is still open, so its behaviours stay: Homebrew through UID 1000, system-wide Wi-Fi and Flatpak installs
+asking for the password.
+
+1. **polkit `imply` (Medium): fixed by neutralizing the one implication.**
+   - polkitd grants an action when the subject is authorized outright for an action that implies it
+     (`org.freedesktop.policykit.imply`, one level deep). Flatpak 1.18.4's passwordless `app-update` implied
+     `runtime-install`, so an active `ares` could install any system-wide runtime without the password.
+   - Chosen: `build.sh` drops only `runtime-install` from `app-update`'s implication; `runtime-update` stays. Updates of
+     apps he installed system-wide stay passwordless; an update that needs a new runtime asks for the password once,
+     like any system-wide install; `flatpak --user` stays passwordless. The build stops for review if upstream changes
+     the annotation. This applies to every account (`ares-recovery` too).
+   - Rejected: an `ares` rule requiring `auth_admin` for `app-update`. That would also close the hole, but every
+     routine system-wide app update would ask for the password.
+2. **The audit follows implications.** `polkit-check.js` now applies `org.freedesktop.policykit.imply` as polkitd does
+   (one level, the implying action authorized outright) in every session kind, with and without wheel, and judges each
+   action by what `ares` really gets. The rerun inventory adds `org.freedesktop.login1.set-wall-message`, granted
+   through the passwordless power-off and reboot (sets the shutdown broadcast message); 132 passwordless actions are
+   reviewed by name. On the review-2 image the audit now reports `runtime-install` as `yes (implied by
+   org.freedesktop.Flatpak.app-update)`. No other implication gives `ares` anything: every other implying action is
+   itself password-gated or denied, or implies only actions that are already passwordless.
+3. **Live active-session regression.** `os/tests/guest.sh`, the VM policy step, now asks polkitd about a process in
+   `ares`'s real active local seat0 session (checked `Active=yes`, `Remote=no`, and the process's session scope):
+   `app-update` and `runtime-update` are allowed (pkcheck 0), `runtime-install`, `app-install` and `manage-units` need
+   the password (2), and `set-reboot-to-firmware-setup` and TuneD's `switch_profile` are refused (1).
+   `check_build=build` boots one VM pass again and requires that result.
+   - That needed `vm.py`'s journal readiness wait fixed (the PLAN-GAP above): it now also accepts a complete
+     follower line carrying the token. `vm.py` is bound by the package 16 walk; its new checkout bytes are in
+     `pending-rebind.json`, like `os-image.yml`'s.
+
+Verification of the fixes:
+
+| Run | What | Result |
+|---|---|---|
+| **42731965403** | **`check_build=build` on `dcf6d577`, now with one VM boot** | **Success.** Build log: `polkit: Flatpak app-update now implies only: org.freedesktop.Flatpak.runtime-update`. 26 in-image PASS lines and `IMAGE_CHECKS_PASSED`; `polkit: 21 rule files, 401 actions, 0 change with wheel, 73 denied to ares, 132 reviewed passwordless, 0 cached defaults in the image`, `POLKIT_CHECK_PASSED`; the check without the AresOS rule still fails. VM pass: guest policy with `ARESOS_ACTIVE_SESSION_POLKIT_PASSED` in session 1 (`Seat=seat0`, `Remote=no`, `Class=user`, `Active=yes`): `app-update` 0, `runtime-update` 0, `runtime-install` 2, `app-install` 2, `manage-units` 2, `power-off` 0, `set-reboot-to-firmware-setup` 1, `tuned.switch_profile` 1. Power events, the recovery shortcut, the tty3 recovery login and the offline power-key check passed too (`PASS: offline logind power-key path`, `UEFI VM checks passed`), so `vm.py` runs to the end again; `CHECK_BUILD_VM_PASSED`. Evidence: `runs/build-42731965403/`. |
+| **42735828754** | **`checks_only=true` on `dcf6d577`** | **Success.** `Ran 715 tests` `OK` natively, including `test_build_drops_only_the_runtime_install_implication_of_flatpak_app_update`. |
+
+- Locally against the review-2 image's real policies: the new audit reports `runtime-install` as passwordless "implied by
+  org.freedesktop.Flatpak.app-update" and fails; with the build's edit applied it passes. After the fix the only action
+  an implication raises for `ares` is `set-wall-message`.
+- Full WSL suite on `dcf6d577` (memory 5.7 GB free, no other suite running; scripts and temp folders now named
+  `pkg21-…`): plain and `-B` both `Ran 715 tests`, `FAILED (failures=1, errors=12)`, only in the known WSL-only suites:
+  `test_greeter` 3 errors, `test_inherited_homebrew` 1 failure + 7 errors, `test_sysusers` 2 errors.
+- Tests added: the live active-session polkit block in `guest.sh` (VM policy step); implication handling and the
+  wheel-grant "no implied extra" check in `polkit-check.js`; `test_build_drops_only_the_runtime_install_implication_of_flatpak_app_update`
+  (runs the build's edit on a sample and checks it refuses a changed upstream).
