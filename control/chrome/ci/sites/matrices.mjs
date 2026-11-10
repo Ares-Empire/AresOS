@@ -15,7 +15,7 @@ export async function siteMatrices({call,read,nav,target,counts,eventually,tab,f
     try{await fn();results.push({name,passed:true});console.log(name,'PASS');}
     catch(error){results.push({name,passed:false,error:String(error.stack)});console.error(name,'FAIL',error.stack);
       // Keep the original failure. Cleanup only unblocks the next independent case.
-      try{const page=await call('read',{tab});if(page.dialog)await rpc('dialog',{tab,expected:page.dialog,accept:false});}catch{}
+      try{const page=await call('read',{tab});if(page.untrusted_content.dialog)await rpc('dialog',{tab,expected:page.untrusted_content.dialog,accept:false});}catch{}
       try{await lifecycle({fixture:'qualification',mode:'qualified'});}catch{}
     }
     fs.writeFileSync('/out/adapters.json',JSON.stringify(results,null,2));
@@ -120,7 +120,7 @@ export async function siteMatrices({call,read,nav,target,counts,eventually,tab,f
       assert.equal(evidence(key,'before original approval').count,0);await call('submit',prepared.approval);assert.equal(evidence(key,'different confirmation waiting').count,0);
       let answer,dialogInput;
       if(mismatch==='button')answer=await call('click',await target('Delete now'));
-      else{const {dialog}=await call('read',{tab});assert.ok(dialog);dialogInput={tab,expected:dialog,accept:true,...(mismatch==='kind'?{text:'Synthetic confirmation'}:{})};answer=await call('dialog',dialogInput);}
+      else{const {untrusted_content:{dialog}}=await call('read',{tab});assert.ok(dialog);dialogInput={tab,expected:dialog,accept:true,...(mismatch==='kind'?{text:'Synthetic confirmation'}:{})};answer=await call('dialog',dialogInput);}
       if(mismatch==='button'||label.startsWith('Delete'))await approved(answer,key);
       else{
         // Merge/Close/Save aren't listed generic words. Their mismatched native
@@ -167,7 +167,7 @@ export async function siteMatrices({call,read,nav,target,counts,eventually,tab,f
     }
     const form=await rpc('fill_form',{fields:[{...await target('Amount'),text:'1'}]});assert.equal(form.ok,false);assert.equal(form.error.code,'readonly_site');
     assert.ok(!(await call('click',await target('Account details'))).approval);await eventually(()=>counts(id+':link')===1,'bank link');
-    const modalId=await fresh('bank');await fixture.mutate(modalId,'dialog');const dialog=await eventually(async()=>(await call('read',{tab})).dialog,'read-only native dialog');
+    const modalId=await fresh('bank');await fixture.mutate(modalId,'dialog');const dialog=await eventually(async()=>(await call('read',{tab})).untrusted_content.dialog,'read-only native dialog');
     for(const accept of [true,false]){const answer=await rpc('dialog',{tab,expected:dialog,accept});assert.equal(answer.ok,false);assert.equal(answer.error.code,'readonly_site');assert.equal(evidence(receiver(modalId,'Unexpected bank dialog'),'read-only dialog refused').count,0);}
     execFileSync('xdotool',['key','--clearmodifiers','Escape']);await delay(100);assert.equal(counts(receiver(modalId,'Unexpected bank dialog')),0);
   });

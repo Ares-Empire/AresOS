@@ -246,14 +246,14 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
       // while the mismatch leaves the renderer blocked on a native dialog.
       const retained=await call('click',await target('Delete branch'));assert.ok(retained.approval);
       await call('submit',prepared.approval);assert.equal(counts(id+'-Delete branch'),0);
-      const {dialog}=await call('read',{tab});assert.ok(dialog);const next=await call('dialog',{tab,expected:dialog,accept:true,...(mismatch==='prompt'?{text:'yes'}:{})});
+      const {untrusted_content:{dialog}}=await call('read',{tab});assert.ok(dialog);const next=await call('dialog',{tab,expected:dialog,accept:true,...(mismatch==='prompt'?{text:'yes'}:{})});
       await approval(next,id+'-Delete branch');
       assert.equal((await call('operation_status',{operation_id:retained.approval.operation_id})).operation.state,'reserved');
       await call('drop',{operation_id:retained.approval.operation_id});assert.equal(counts(id+'-Delete branch'),1);
     }
     for(const [id,text,asks] of [['new-confirm','Delete this item?',true],['free-confirm','Continue?',false]]){
       await nav('native-confirm&id='+id+'&text='+encodeURIComponent(text));const continued=await call('click',await target('Continue'));assert.ok(!continued.approval);assert.equal(counts(id),0);
-      const {dialog}=await call('read',{tab});assert.ok(dialog);const answer=await call('dialog',{tab,expected:dialog,accept:true});
+      const {untrusted_content:{dialog}}=await call('read',{tab});assert.ok(dialog);const answer=await call('dialog',{tab,expected:dialog,accept:true});
       if(asks)await approval(answer,id);else {assert.ok(!answer.approval);await eventually(()=>counts(id)===1,'free native confirmation');}
     }
   });
@@ -261,7 +261,7 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
     const id='native-dialog-form';await nav('native-confirm&id='+id+'&mode=form&text='+encodeURIComponent('Submit this item?'));
     const continued=await call('click',await target('Continue'));assert.equal(counts(id),0);
     assert.equal((await call('operation_status',{operation_id:continued.operation_id})).operation.state,'unknown');
-    const {dialog}=await call('read',{tab});const answer=await call('dialog',{tab,expected:dialog,accept:true});assert.ok(answer.approval);
+    const {untrusted_content:{dialog}}=await call('read',{tab});const answer=await call('dialog',{tab,expected:dialog,accept:true});assert.ok(answer.approval);
     await call('submit',answer.approval);assert.equal(counts(id),0,'answering the dialog cannot approve an unnamed form submission');
     const form=await reservedFor(id,answer.approval.operation_id);assert.ok(form);await approval({approval:form},id);
     assert.match(fixture.arrivals.find(row=>new URL(row.url,'http://fixture.test').searchParams.get('case')===id).body,/hidden=Bound\+after\+dialog/);
