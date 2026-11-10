@@ -118,10 +118,9 @@ async function preloadEvent(source,method,params){
     const owner=controlled.get(state.tab),hold=owner?.hold;
     if(hold&&(hold.inFlight||Date.now()<hold.until)){
       hold.inherited??=new Set();hold.inherited.add({state,context});
-      const inherited={generation:state.epoch,dispatch_nonce:hold.nonce,config:hold.config};
-      const armed=await targetCommand(state,'Runtime.evaluate',{contextId:context.id,expression:'globalThis[Symbol.for("aresos.chrome.guard.v2")].arm('+JSON.stringify(inherited)+')',disableBreaks:true,returnByValue:true});
+      const inherited={generation:state.epoch,dispatch_nonce:hold.nonce,config:hold.config,in_flight:hold.inFlight};
+      const armed=await targetCommand(state,'Runtime.evaluate',{contextId:context.id,expression:'globalThis[Symbol.for("aresos.chrome.guard.v2")].inherit('+JSON.stringify(inherited)+')',disableBreaks:true,returnByValue:true});
       if(armed.exceptionDetails)throw Error('refused: new frame could not inherit the active hold');
-      if(!hold.inFlight)await targetCommand(state,'Runtime.evaluate',{contextId:context.id,expression:'globalThis[Symbol.for("aresos.chrome.guard.v2")].finish('+JSON.stringify(state.epoch)+','+JSON.stringify(hold.nonce)+')',awaitPromise:true,disableBreaks:true,returnByValue:true});
     }
     const activated=await targetCommand(state,'Runtime.callFunctionOn',{objectId:installed.cleanup,functionDeclaration:'function(){return this.activate();}',returnByValue:true});
     if(activated.exceptionDetails)throw Error('refused: document guard activation failed');
@@ -352,7 +351,7 @@ async function armDialog(tab){
 async function finishFrames(tab,frames,epoch,nonce){
   let uncertain=false;
   for(const frame of frames){
-    if(dialogs.has(tab))return uncertain;
+    if(dialogs.has(tab))return true;
     const wake=waitDialog(tab);
     try{const result=await Promise.race([content(tab,frame.frameId??frame.frame,'finish_input',{generation:epoch,dispatch_nonce:nonce}),wake.promise]);if(result?.interrupted)return true;}
     catch{
@@ -492,10 +491,10 @@ async function facts(tab, reference) {
   const frames = await chrome.webNavigation.getAllFrames({tabId:tab}) || [];
   const result=[],uncovered=[];
   for (const frame of frames) {
-    let effective;try { effective=frameAddress(frame,frames); } catch { if (reference?.frame === frame.frameId) throw Error('refused: excluded frame');uncovered.push({frame:frame.frameId,reason:'excluded or unauthenticated origin'});continue; }
+    let effective;try { effective=frameAddress(frame,frames); } catch { if (reference?.frame === frame.frameId) throw Error('refused: excluded frame');uncovered.push({frame:frame.frameId,eligible:false,reason:'excluded origin or scheme'});continue; }
     let snapshot;try{snapshot = await content(tab,frame.frameId,reference?.frame === frame.frameId ? 'facts':'read',reference?.frame === frame.frameId ? {element:reference.element}:{});
     if(['about:blank','about:srcdoc'].includes(frame.url)&&frame.parentFrameId>=0&&(!frame.documentId||snapshot.origin!==new URL(effective).origin))throw Error('refused: inherited frame origin cannot be authenticated');
-    }catch(error){if(reference?.frame===frame.frameId)throw error;uncovered.push({frame:frame.frameId,reason:'reader or inherited origin unavailable'});continue;}
+    }catch(error){if(reference?.frame===frame.frameId)throw error;uncovered.push({frame:frame.frameId,eligible:true,reason:'reader or inherited origin unavailable'});continue;}
     if(frame.documentId){const known=privacyDocuments.get(frame.documentId);if(known&&known!==snapshot.document)throw Error('refused: private password history was lost for this surviving document; ask the owner to reload');privacyDocuments.set(frame.documentId,snapshot.document);}
     if (reference?.frame === frame.frameId && snapshot.document !== reference.document) throw Error('stale_reference: document changed');
     result.push({frame:frame.frameId,parent:frame.parentFrameId,browser_document:frame.documentId,...snapshot,effective_url:effective});
@@ -507,7 +506,7 @@ function binding(facts, reference, kind, adapter) {
   const frame = facts.frames.find(frame=>frame.frame === reference.frame);
   if (!frame?.target) throw Error('stale_reference: target not found');
   const target = frame.target;
-  if(['send','confirmation'].includes(kind)&&!frame.form&&!adapter&&facts.uncovered?.length)throw Error('refused: a complete draft binding needs every frame; a frame could not be inspected');
+  if(['send','confirmation'].includes(kind)&&!frame.form&&!adapter&&facts.uncovered?.some(frame=>frame.eligible!==false))throw Error('refused: a complete draft binding needs every frame; a frame could not be inspected');
   return {session,tab:facts.tab,control:facts.control,url:facts.url,title:facts.title||'',document:frame.document,frame:frame.frame,frame_url:frame.url,frame_title:frame.title||'',effective_url:frame.effective_url||frame.url,
     target:Object.fromEntries(['element','role','name','label','title','href','value','rich','password','states','editable','search','submit','page_dialog','options','implicit_submitter'].filter(key=>key in target).map(key=>[key,target[key]])),
     form:frame.form,
@@ -669,7 +668,7 @@ async function dispatch(command) {
       if (!entry) throw Error('refused: no history entry in that direction');
       safeURL(entry.url);if(entry.transitionType==='form_submit')throw Error('refused: a form-loaded history entry may resubmit; open its address fresh in a Claude tab');await cdp(tab,'Page.navigateToHistoryEntry',{entryId:entry.id});
     }
-    return {navigated:true};
+    return {navigated:true,page:await observation(tab)};
   }
   if (command.name !== 'input' && command.name !== 'resume') throw Error('permission_denied: unknown fixed command');
   let snapshot = await facts(tab,reference);
@@ -712,8 +711,8 @@ async function dispatch(command) {
     await content(tab,added.frame,'arm',{generation:dispatchEpoch,dispatch_nonce:inputNonce,config:owner.hold.config});
   }
   const coverage=await chrome.webNavigation.getAllFrames({tabId:tab})||[];
-  if(snapshot.frames.some(frame=>!coverage.some(current=>current.frameId===frame.frame&&current.documentId===frame.browser_document))||coverage.some(current=>!snapshot.frames.some(frame=>frame.frame===current.frameId)))throw Error('refused: frame coverage changed before input');
-  if(snapshot.uncovered?.length)throw Error('refused: a relevant frame cannot be guarded');
+  if(snapshot.frames.some(frame=>!coverage.some(current=>current.frameId===frame.frame&&current.documentId===frame.browser_document))||coverage.some(current=>{try{frameAddress(current,coverage);}catch{return false;}return !snapshot.frames.some(frame=>frame.frame===current.frameId);}))throw Error('refused: frame coverage changed before input');
+  if(snapshot.uncovered?.some(frame=>frame.eligible!==false))throw Error('refused: a relevant frame cannot be guarded');
   frame=snapshot.frames.find(frame=>frame.frame===reference.frame);target=frame.target;
   safeDestination(frame,command);
   assertControl(tab);
@@ -745,9 +744,9 @@ async function dispatch(command) {
   }
   assertControl(tab);
   }finally{
-    if(owner.hold?.nonce===inputNonce){owner.hold.inFlight=false;owner.hold.until=Date.now()+POLICY.holdMs;}
     owner.uncertainFinish=await finishFrames(tab,armed,dispatchEpoch,inputNonce);
-    for(const {state,context}of owner.hold?.inherited||[]){if(dialogs.has(tab))break;try{await targetCommand(state,'Runtime.evaluate',{contextId:context.id,expression:'globalThis[Symbol.for("aresos.chrome.guard.v2")].finish('+JSON.stringify(dispatchEpoch)+','+JSON.stringify(inputNonce)+')',awaitPromise:true,disableBreaks:true,returnByValue:true});}catch{owner.uncertainFinish=true;}}
+    for(const {state,context}of owner.hold?.inherited||[]){if(dialogs.has(tab))break;try{await Promise.allSettled([...state.installing||[]]);await targetCommand(state,'Runtime.evaluate',{contextId:context.id,expression:'globalThis[Symbol.for("aresos.chrome.guard.v2")].finish('+JSON.stringify(dispatchEpoch)+','+JSON.stringify(inputNonce)+')',awaitPromise:true,disableBreaks:true,returnByValue:true});}catch{owner.uncertainFinish=true;}}
+    if(owner.hold?.nonce===inputNonce){owner.hold.inFlight=owner.uncertainFinish;owner.hold.until=Date.now()+POLICY.holdMs;}
   }
   const uncertain_finish=owner.uncertainFinish;
   const steps=await collectSteps(tab,dispatchEpoch);
@@ -864,7 +863,7 @@ chrome.debugger.onEvent.addListener(async(source,method,params)=>{
     const tab=source.tabId,input=dialogInputs.get(dialogs.get(tab));dialogs.delete(tab);
     // Closing a covered dialog has no separate tool call to finish its input.
     // Use the nonce captured at opening; an old close can never clear a new arm.
-    if(input)try{await finishFrames(tab,await chrome.webNavigation.getAllFrames({tabId:tab})||[],input.epoch,input.nonce);}catch{}
+    if(input)try{const uncertain=await finishFrames(tab,await chrome.webNavigation.getAllFrames({tabId:tab})||[],input.epoch,input.nonce);const hold=controlled.get(tab)?.hold;if(hold?.nonce===input.nonce){hold.inFlight=uncertain;hold.until=Date.now()+POLICY.holdMs;}}catch{}
   }
 });
 chrome.debugger.onDetach.addListener(async source=>{

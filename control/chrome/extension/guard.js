@@ -211,7 +211,8 @@
       console.warn(delivery?'AresOS page API failed during native delivery; outcome uncertain.':'AresOS page descriptor was held before native delivery.');
     } // Invalid/forged reports can only add a hold.
   }
-  function watch(root) {
+  function watch(root,hold=null) {
+    if(hold){config=hold.config;until=Math.max(until,performance.now()+config.holdMs);owner=null;mark=null;}
     if (root===document || roots.has(root)) return;
     if(root instanceof Node)ownerMutations?.observe(root,ownerMutationOptions);
     const listeners=[];
@@ -256,7 +257,7 @@
         const stage=stack.at(-1);if(!stage?.target||stage.detail.request!==event.detail)return;
         // Pop before entering page handlers; nested requests get their own record.
         drop(stage.detail.request);
-        if(stage.detail.kind==='watch_root'){watch(stage.target);event.preventDefault();return;}
+        if(stage.detail.kind==='watch_root'){const other=foreignGuard(stage.target.ownerDocument||stage.target);if(other?.watch)other.watch(stage.target,active()?{config}:null);else if(!other)watch(stage.target);event.preventDefault();return;}
         const other=foreignGuard(stage.target);if(other){if(other.outside)outsideCall(event,stage);else if(other.route)other.route(event,stage,active()?{config}:null);return;}
         const element=eventElement(stage.target);
         if(['click','dispatch'].includes(stage.detail.kind)){
@@ -279,6 +280,7 @@
       const target=reader.element(value.target),implicit=reader.element(value.implicit);
       mark=value.operation ? {id:value.operation,target,form:reader.element(value.form),implicit,submitter:implicit||(value.primary_submission&&reader.target(target).submit?target:null),keydown:false,expected_key:value.key_input,expected_form:value.approved_form,input:false,primary:!value.primary_submission,consequential:!value.primary_submission,further:false} : null;
     },
+    inherit(value){this.arm(value);inFlight=value.in_flight===true;mark=null;},
     direct(element) { if(inFlight && mark && reader.element(element)===mark.target)mark.input=true; },
     async finish(epoch,nonce) {
       // A private message plus a later browser task over-covers the synchronous input handlers.

@@ -669,7 +669,7 @@ test('P23 input page evidence contains the bounded post-input notice',async()=>{
 test('P3 startup inherits an active hold before activation without any approval allowance',async()=>{
   const f=startupFixture();f.run("controlled.get(7).hold={nonce:'private',inFlight:true,until:Date.now()+500,config:{holdMs:500}};");
   await f.run('prepareTarget({tabId:7})');await startupContexts(f,'inherited');await paused(f,'inherited');
-  const calls=Array.from(f.run('startup')),armed=calls.findIndex(row=>row.method==='Runtime.evaluate'&&row.parameters.expression.includes('.arm('));
+  const calls=Array.from(f.run('startup')),armed=calls.findIndex(row=>row.method==='Runtime.evaluate'&&row.parameters.expression.includes('.inherit('));
   assert.ok(armed>=0);assert.doesNotMatch(calls[armed].parameters.expression,/operation|primary_submission/);
   assert.ok(armed<calls.findIndex(row=>row.method==='Runtime.callFunctionOn'&&row.parameters.functionDeclaration.includes('this.activate()')));
 });
@@ -682,4 +682,12 @@ test('P31 a preloaded popup still crosses its mandatory first-act reload',async(
   const f=lifecycleFixture();f.run("controlled.set(7,{epoch:'parent'});chrome.windows.get=async()=>({type:'popup'});");await f.run('createdTarget({sourceTabId:7,tabId:8})');
   f.run("chrome.webNavigation.getAllFrames=async()=>[{frameId:0,documentId:'native-popup',parentFrameId:-1,url:'http://fixture.test/'}];content=async(tab,frame,command)=>command==='reload_state'?{unsaved:false,playing:false}:{document:'preloaded',url:'http://fixture.test/'};isPreloaded=()=>true;documentMethods.set('[8,0]',{document:'native-popup',method:'GET'});globalThis.reloads=0;cdp=async(tab,method)=>method==='Page.getFrameTree'?{frameTree:{frame:{loaderId:'loader',url:'http://fixture.test/'}}}:reloads++;");
   assert.equal((await f.run('facts(8)')).needs_reload,true);assert.equal((await f.run("dispatch({name:'prepare_control',tab:8})")).reloaded,true);assert.equal(f.run('reloads'),1);
+});
+
+
+test('P3 a remaining hold never awaits a browser task while startup is paused',{timeout:1000},async()=>{
+  const f=startupFixture();f.run("controlled.get(7).hold={nonce:'private',inFlight:false,until:Date.now()+500,config:{holdMs:500}};const original=chrome.debugger.sendCommand;chrome.debugger.sendCommand=(source,method,parameters)=>method==='Runtime.evaluate'&&parameters.awaitPromise?new Promise(()=>{}):original(source,method,parameters);");
+  await f.run('prepareTarget({tabId:7})');await startupContexts(f,'remaining');await paused(f,'remaining');
+  assert.equal(f.run("isPreloaded(7,'private-document')"),true);assert.equal(f.run("startup.some(row=>row.method==='Debugger.resume')"),true);
+  assert.equal(f.run("startup.some(row=>row.method==='Runtime.evaluate'&&row.parameters.awaitPromise)"),false);
 });

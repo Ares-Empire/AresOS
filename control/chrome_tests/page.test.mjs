@@ -41,7 +41,7 @@ function fixture({relay=false,activate=true,link=true,browserDOM=false}={}) {
     getAttribute(name){return this[name]||null;}
     matches(){return false;}
     querySelector(){return null;}
-    attachShadow(){const root=new Node();root.root=root;root.host=this;return root;}
+    attachShadow(){const root=new Node();root.root=root;root.ownerDocument=this.ownerDocument;root.host=this;return root;}
     appendChild(node){node.parentNode=this;this.firstElementChild??=node;return node;}
   }
   class HTMLElement extends Element {click(){originalDispatch.call(this,new Event('click'));}}
@@ -536,4 +536,11 @@ test('P5 new roots install capture before a borrowed native dispatch can activat
     f.originalDispatch.call(button,new f.Event('click',{composed,cancelable}));
     assert.equal(handlers,0);assert.equal(f.reports.length,1);assert.equal(f.reports[0].kind,cancelable?'activation':'activation_unknown');
   }
+});
+
+
+test('P3 inheriting only the remaining window grants no allowance or permanent in-flight mark',()=>{
+  const f=fixture(),form=new f.HTMLFormElement();f.guard.inherit({generation:'epoch',dispatch_nonce:'source',config:policy,in_flight:false});
+  form.submit();assert.equal(f.arrivals.length,0);assert.equal(f.reports.length,1);
+  f.advance(policy.holdMs+1);form.submit();assert.equal(f.arrivals.length,1,'the inherited mark ends with the window without an async finish during startup');
 });
