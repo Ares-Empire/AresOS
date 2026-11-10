@@ -1,12 +1,11 @@
 # 19b — owner state
 
-**Current status — stage 2 STOPPED, not accepted (2026-11-10):** part A was
-committed and pushed separately as `fda0d164`. R2 implementation and its local
-proof are present, but permanent-journal growth exceeds the brief's stop
-threshold. The lead must take the figures to the owner. No final Linux green
-pair or complete Mail timing acceptance is claimed. Stage 3 was not started.
-The earlier stage sections below retain their historical evidence; the closing
-stage-2 stop section controls the current status.
+**Current status — stage 2 fold in verification (2026-11-10):** the authorized
+fold removes all additional permanent-journal bytes in the five storage samples.
+Both gated operations grow by zero bytes; continuation is authorized by the
+fold brief. Linux capture, strict pin and two final workflow passes are pending.
+Stage 3 was not started. Earlier sections retain their historical evidence;
+the stage-2 fold section at the end controls the current status.
 
 ## Done
 
@@ -993,3 +992,92 @@ PR #26 remains a draft against `pkg/19-mail`; never merged. No Gradle daemon
 was started. The closing large-file inventory is recorded below.
 
 **Run — closing `.work/` inventory:** no regular file exceeds 500 MiB.
+
+## Stage 2 fold round
+
+**Read — authorization:** `briefs/19b-s2-fold.md` authorizes this one fold round
+and continuation only if both send and permanent delete grow by under 1 KB.
+The earlier storage stop is historical. No immutable history is rewritten.
+The frozen pre-stage-2 store and all public approvals/questions remain unchanged.
+
+**Read — implementation:** the shared mutation boundary reads its own committed,
+unfinished row and reuses context only on exact equality, with current write
+admission still checked. A changed live context gets a separate commit. The
+submitting transaction carries the first deletion/test-app effect; stage writes
+carry SMTP DATA, HTTPS POST, EXPUNGE, the next batch target and test-app local
+stages. Sent APPEND's existing attempt-start write carries context, including
+on a repair's own identity. Filing's existing pre-command writes carry MOVE/COPY;
+RENAME's intent carries identities read before its command. Generic CREATE/first
+flag STORE use the starting intent. Onboarding CREATE combines its new free
+intent with the existing probe-configuration write. No remote command moves
+before its commit, and no remote read or replay is added.
+
+**Run — storage gate:** the unchanged `.work/19b-s2/storage-figures.py` harness was
+rerun against extracted tracked `control/` snapshots of `fda0d164` and `d87bc02d`,
+and the fold source. Both historical snapshots reproduce `STORAGE-S2.json`
+exactly. All five final samples finish `done`. Figures include composition or
+preparation, exclude caller import, and use the same ordinary roles and one
+Sent copy. “Records” counts transaction fences; each completed fence also has
+one commit-marker line, whose bytes are included. Physical journal line counts
+are twice the displayed record counts.
+
+| Operation | Before stage 2 `fda0d164`: bytes / records | Part B `d87bc02d`: bytes / records | Fold: bytes / records | Growth over before |
+| --- | ---: | ---: | ---: | ---: |
+| Mail send | 9,506 / 14 | 10,918 / 16 | 9,506 / 14 | **0** |
+| MOVE | 2,064 / 6 | 2,410 / 7 | 2,064 / 6 | 0 |
+| Permanent delete | 3,942 / 5 | 5,524 / 7 | 3,942 / 5 | **0** |
+| Free folder CREATE | 688 / 2 | 1,032 / 3 | 688 / 2 | 0 |
+| Mail send, 25 MiB attachment | 9,508 / 14 | 10,920 / 16 | 9,508 / 14 | 0 |
+
+The gate passes at the stricter decimal **1,000-byte** interpretation. All extra
+context transactions in these five samples are removed. `STORAGE-S2.json`
+retains all three sets of event/SQLite/index/projection figures and log hashes.
+The journal format is unchanged. The stage-3 projection remains absent (zero).
+
+**Read — retained records:** send's fourteen transactions are composition,
+reservation, submitting, six message/wire/SMTP/recipient stages, Sent APPEND
+start/end, two local-stage results and final outcome. MOVE's six are generic
+start, initial filing intent, pre-command started fence, post-command evidence,
+filing completion and generic completion. Delete's five are reservation,
+submitting, marked, target result and outcome. CREATE's two are its start and
+completion. Each already existed before stage 2 and retains its original
+state/evidence/lifecycle role; this round does not remove those boundaries.
+
+| Separate context still required outside the five samples | Reason |
+| --- | --- |
+| Draft APPEND | Generated Message-ID and wire hash follow the generic start; no intervening existing write precedes APPEND |
+| Onboarding probe APPEND | Probe MIME/Message-ID follows CREATE completion; its own identity and completion are required |
+| Free test-app CONFIGURE / LOCAL_FLAG | No existing write precedes the receiver setting or local-item effect |
+| Changed live roles/source/identity, or another flag variant | Earlier context differs; without an intervening existing write a replacement context commit must precede dispatch |
+
+**Read — verification scope:** the direct R2 suite includes real SIGKILL workers
+and ENOSPC at every logical write's entry and four durability fences, covering
+folded and separate paths. Its independent command comparison uses the same
+`differences` checker as the sweep and decodes the record before server entry.
+After process death, recovery must leave receiver deliveries/stages/settings
+unchanged. A failed new context blocks its own command; a refused onboarding
+result may be followed by a separately committed probe on another identity.
+The original failed-result/no-next-recipient assertion is unchanged; its
+injection now targets the folded recipient-result write. The existing complete
+backup/restore crash matrices cover every remaining test-app write.
+
+**Not verified yet:** Linux full capture, strict pin and both final Control
+workflow repetitions are pending below. Stage 3 has not started. The lead owns
+all three stage reviews; this run performs no own stage review.
+
+**Run — measured source:** production fold commits `1af497f8` and `fc7b6efa`.
+The final source repeats all five storage measurements byte-for-byte. LOCAL_FLAG
+also uses its existing item write to close the free intent, eliminating an empty
+completion transaction; its direct test requires exactly two writes and no open
+intent afterward. This does not affect the five storage samples.
+
+**Read / run — oracle correction:** injected pre-write failures can leave one
+onboarding probe submitting while another, independently committed probe starts.
+The old binder treated the two open operations as ambiguous. Internal operation
+binding now uses actual server command identity and the approved payload,
+independently of the context being tested. The negative self-test still catches
+a wrong destination or identity, and refuses a missing committed source. The
+new write-fence test initially assumed every failed result stopped all later
+onboarding probes; it now correctly requires that a failed *new context* blocks
+its own identity, while every later command independently proves its context.
+No existing assertion was weakened, and no new R2 gap is admitted.
