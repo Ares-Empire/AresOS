@@ -106,6 +106,13 @@ The baton from the last session. Read it after `STATE.md`. Overwrite it when you
   - **~15:00 update:** 23 reported. PR #36 is in review: REVIEW-1 (Astra) in `../AresOS-23-minecraft-starts/reviews/23-minecraft-starts/REVIEW-1.md`, log `../AresOS-23-review1.log`. Owner asks #168/#169 are open. 27's first release run failed before publish; the second (last) dispatch is approved. The test-leak fix is PR #37 in `../AresOS-fix-update-test-leak`; REVIEW-1 (Sol) is there, log `../AresOS-fixleak-review1.log`. A WSL proof (`pkg22d-leak.sh` in the scratchpad) is running.
   - **Codex allowance:** reset 2026-11-10 10:54 and must last until 11-17 (mac-capacity). Use gpt-6.1-sol for narrow review rounds and keep gpt-6-astra for first reviews of big packages and for the release.
   - **Memory:** Claude Code stops background wrappers when RAM runs low, but `codex.exe` keeps running and writes its review, so check for `REVIEW-N.md` before restarting anything. Restarting stopped work once memory allows is OK (owner, board #160). Only one full WSL suite at a time, and two agents share the laptop.
+  - **~15:00 UTC: Ubuntu's snapshot mirror (`snapshot.ubuntu.com`, pinned 2026-10-21) is down or very slow.** Every CI run that installs tools fails in "Install pinned tools" (502/503/504, or the 20-minute timeout):
+    - 23's three `check_build=build` runs: 42827288649, 42829696745, 42834907206;
+    - 27's release runs 3 and 4: 42831158090, 42835704653.
+    - Nothing was built or published. Both agents wait.
+    - A watcher (`mirror-watch.log` in the scratchpad) waits for two healthy checks. Then approve one 23 `check_build=build` and the next 27 release dispatch.
+    - If the mirror stays slow, add apt retries and a longer step timeout in `os-image.yml`. It is bound, so do it inside package 27.
+  - 23's REVIEW-2 (Astra) runs on `7ec26b84`, log `../AresOS-23-review2.log`. The owner answered #168, #169 and #170, so all of 23's calls are decided.
 - **Owner to-dos:**
   - Shift+Delete `C:\Users\pab\AresOS-delete-me` (115 GB of old replay ISOs).
 
