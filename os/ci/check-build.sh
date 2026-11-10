@@ -18,11 +18,15 @@ case $mode in
     build)
         date +%s > evidence/build-start-time.txt
         df -B1 / > evidence/runner-disk-before.txt
-        # Package 23: the AresOS mod jar from this checkout, required to match
-        # its pin, goes into the build context (os/minecraft/aresos.jar).
-        bash os/ci/build-mod.sh
-        sudo podman build --format=oci --build-arg "ARESOS_SOURCE_REVISION=$(git rev-parse HEAD)" \
+        # No separate mod step: the image build itself (the Containerfile's mod
+        # stage, then build.sh configure) builds the AresOS mod jar from this
+        # commit and requires its pin, as every image build does (package 23).
+        test ! -e os/minecraft/aresos.jar
+        revision=$(git rev-parse HEAD)
+        sudo podman build --format=oci --build-arg "ARESOS_SOURCE_REVISION=$revision" \
             --tag localhost/aresos:check --file os/Containerfile os 2>&1 | tee evidence/build.log
+        grep -E "^MOD_JAR_BUILT [0-9a-f]{64} from $revision\$" evidence/build.log
+        grep -Ex 'MOD_JAR_PINNED [0-9a-f]{64}' evidence/build.log
         date +%s > evidence/build-end-time.txt
         sudo podman image inspect localhost/aresos:check > evidence/image-inspect.json
         bash os/ci/check-image.sh localhost/aresos:check

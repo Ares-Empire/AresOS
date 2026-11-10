@@ -1,6 +1,33 @@
 #!/usr/bin/bash
 set -euo pipefail
 
+# Package 23: build the AresOS mod jar from the repository at one exact commit.
+# The Containerfile's `mod` stage runs this in the digest-pinned JDK image for
+# every image build; os/ci/build-mod.sh runs it to set or renew the pin. The
+# image's configure step accepts the jar only with its pinned SHA-256.
+if [[ $1 == mod ]]; then
+    revision=${2-} out=${3-}
+    if [[ ! $revision =~ ^[0-9a-f]{40}$ ]]; then
+        echo "The AresOS mod is built from an exact commit: pass --build-arg ARESOS_SOURCE_REVISION=<full commit> (got '$revision')" >&2
+        exit 1
+    fi
+    [[ $out == /* ]]
+    work=$(mktemp -d)
+    curl -fsSL --proto '=https' --tlsv1.2 --retry 3 -o "$work/source.tar.gz" \
+        "https://codeload.github.com/Ares-Empire/AresOS/tar.gz/$revision"
+    mkdir "$work/source"
+    tar -xzf "$work/source.tar.gz" -C "$work/source" --strip-components=1 --wildcards '*/mod/*'
+    cd "$work/source/mod"
+    version=$(sed -n 's/^version=//p' gradle.properties)
+    [[ $version =~ ^[0-9A-Za-z.+-]+$ ]]
+    GRADLE_USER_HOME="$work/gradle" ./gradlew --no-daemon --console=plain jar
+    mkdir -p "$out"
+    cp "build/libs/aresos-$version.jar" "$out/aresos.jar"
+    echo "MOD_JAR_BUILT $(sha256sum "$out/aresos.jar" | cut -d' ' -f1) from $revision"
+    rm -rf "$work"
+    exit 0
+fi
+
 if [[ $1 == packages ]]; then
     mkdir -p /usr/share/aresos/manifest /tmp/ares-rpms /tmp/ares-chrome
     rpm -qa --qf '%{NEVRA}\n' | sort > /tmp/base-packages.txt
@@ -119,14 +146,12 @@ for library in lock['fabric_loader']['libraries']:
     _, artifact, version = library['name'].split(':')
     fetch(library, share / 'libraries' / f'{artifact}-{version}.jar')
 for mod in lock['mods']:
-    target = share / 'mods' / mod['file']
     if 'url' in mod:
-        fetch(mod, target)
-    else:
-        source = pathlib.Path('/tmp/aresos/minecraft') / mod['file']
-        assert source.is_file(), f'{source} is missing: run os/ci/build-mod.sh before building the image'
-        check(mod, source)
-        shutil.copyfile(source, target)
+        fetch(mod, share / 'mods' / mod['file'])
+# Prism's own metadata for Minecraft and LWJGL, as local components (versions, natives and hashes fixed).
+(share / 'patches').mkdir()
+for component in lock['components']:
+    fetch(component, share / 'patches' / component['file'])
 shutil.copyfile('/tmp/aresos/minecraft/desktop.lock.json', share / 'desktop.lock.json')
 manifest = []
 for path in sorted(p for p in root.rglob('*') if p.is_file() and not p.is_symlink()):
@@ -145,6 +170,23 @@ PY
     rm -rf /tmp/ares-rpms /tmp/ares-chrome
     exit 0
 fi
+
+# Package 23: the mod jar the `mod` stage built from this commit, accepted only
+# with its pinned SHA-256 (a build without it, or with other bytes, stops here).
+python3 - <<'PY'
+import hashlib, json, pathlib, shutil
+lock = json.loads(pathlib.Path('/tmp/aresos/minecraft/desktop.lock.json').read_text())
+mod = next(mod for mod in lock['mods'] if mod['file'] == 'aresos.jar' and 'url' not in mod)
+jar = pathlib.Path('/tmp/aresos/minecraft/aresos.jar')
+assert jar.is_file(), 'The AresOS mod jar is missing: the Containerfile mod stage builds it'
+digest = hashlib.sha256(jar.read_bytes()).hexdigest()
+assert digest == mod['sha256'], f'The AresOS mod jar built from this commit is {digest}; desktop.lock.json pins {mod["sha256"]}'
+target = pathlib.Path('/usr/share/aresos/minecraft/mods/aresos.jar')
+assert not target.exists()
+shutil.copyfile(jar, target)
+target.chmod(0o644)
+print(f'MOD_JAR_PINNED {digest}')
+PY
 
 # Use the same declaration at build and boot: local /etc/passwd changes from
 # the installer otherwise hide new accounts in the image's /usr/etc/passwd.
