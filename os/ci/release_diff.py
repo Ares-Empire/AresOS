@@ -58,6 +58,19 @@ CONFIG_MODES = {'etc/sudoers.d/aresos-everyday': 0o440}
 # build.sh's chmod 0755 line; other os/config files keep their checkout mode.
 CHMOD_0755 = frozenset({'usr/bin/aresos-session', 'usr/bin/aresos-terminal', 'usr/bin/brew', 'usr/libexec/aresos-audit',
                         'usr/libexec/aresos-keyboard', 'usr/libexec/aresos-shell', 'usr/libexec/aresos-subids'})
+# Found by release 27's second run (42817411051); each rule names exact paths.
+# usr/lib/sysimage/rpm links to usr/share/rpm, where the rpm database file is.
+RPM_DATABASE = 'usr/share/rpm/rpmdb.sqlite'
+# build.sh's polkit edit writes through this policy link to its alternative.
+POLKIT_LINK_TARGETS = {'usr/share/polkit-1/actions/org.fedoraproject.FirewallD1.desktop.policy.choice':
+                       'usr/share/polkit-1/actions/org.fedoraproject.FirewallD1.policy'}
+# Chrome's install script links its NSS names to the system libraries.
+CHROME_NSS_LINKS = {'usr/lib/opt/google/chrome/' + name: '/lib64/' + target for name, target in (
+    ('libnspr4.so.0d', 'libnspr4.so'), ('libnss3.so.1d', 'libnss3.so'), ('libnssutil3.so.1d', 'libnssutil3.so'),
+    ('libplc4.so.0d', 'libplc4.so'), ('libplds4.so.0d', 'libplds4.so'), ('libsmime3.so.1d', 'libsmime3.so'),
+    ('libssl3.so.1d', 'libssl3.so'))}
+# Parent directories of Chrome's RPM files that its RPM does not own.
+CHROME_DIRECTORIES = ('usr/lib/opt/google', 'usr/share/gnome-control-center', 'usr/share/gnome-control-center/default-apps')
 # Rewritten by the package transaction itself (rpm, dnf5, ldconfig, file
 # triggers, the SELinux module install of greetd-selinux) in every build. Their
 # content is not compared; each changed path is listed in the result.
@@ -237,6 +250,23 @@ class Classifier:
 
     def build_rule(self, rel, before, after):
         base = entry(self.base_root, rel)
+        if rel in CHROME_NSS_LINKS:
+            if before is None and after and after['kind'] == stat.S_IFLNK and after['target'] == CHROME_NSS_LINKS[rel] \
+                    and (after['mode'], after['uid'], after['gid']) == (0o777, 0, 0):
+                return ('package', "package 21: Chrome's install script links its NSS names to the system libraries")
+            return None
+        if rel in CHROME_DIRECTORIES:
+            if before is None and after and after['kind'] == stat.S_IFDIR and (after['mode'], after['uid'], after['gid']) == (0o755, 0, 0):
+                return ('package', "package 21: parent directory of Chrome's RPM files")
+            return None
+        if rel in POLKIT_LINK_TARGETS:
+            link = entry(self.new_root, POLKIT_LINK_TARGETS[rel])
+            old, new, original = self.read('old', rel), self.read('new', rel), self.read('base', rel)
+            if link and link['kind'] == stat.S_IFLNK and link['target'] == pathlib.PurePosixPath(rel).name \
+                    and None not in (old, new, original) and old == original and same_meta(after, base) \
+                    and new.decode() == polkit_transform(pathlib.PurePosixPath(POLKIT_LINK_TARGETS[rel]).name, original.decode()):
+                return ('build', 'package 21: polkit defaults made uncached, written through the policy link')
+            return None
         if rel in CHROME_LINKS:
             if after and after['kind'] == stat.S_IFLNK and after['target'] == CHROME_LINKS[rel] and before is None:
                 return ('build', 'package 21: direct Chrome command links into /usr/lib/opt')
@@ -313,6 +343,10 @@ class Classifier:
         return None
 
     def generated_rule(self, rel, before, after):
+        if rel == RPM_DATABASE:
+            if before and after and before['kind'] == after['kind'] == stat.S_IFREG and same_meta(before, after):
+                return ('generated', 'rpm database (package list compared separately)')
+            return None
         for pattern, reason in GENERATED:
             if fnmatch.fnmatchcase(rel, pattern):
                 return ('generated', reason)

@@ -172,6 +172,56 @@ class ClassifierTest(unittest.TestCase):
         rel = 'etc/profile.d/brew-bash-completion.sh'
         self.assertIsNone(classifier.classify(rel, rd.entry(o, rel), rd.entry(n, rel)))
 
+    @unittest.skipIf(os.name == 'nt', 'symlinks and modes need Linux')
+    def test_run_two_exact_rules_explain_only_their_exact_paths(self):
+        """Run 42817411051's 12 classifier gaps: each rule is exact; near misses stay unexplained."""
+        choice = 'usr/share/polkit-1/actions/org.fedoraproject.FirewallD1.desktop.policy.choice'
+        link = 'usr/share/polkit-1/actions/org.fedoraproject.FirewallD1.policy'
+        policy = PolkitTransformTest.SAMPLE.replace('org.freedesktop.Flatpak.app-update', 'org.fedoraproject.FirewallD1.all')
+        transformed = rd.polkit_transform('org.fedoraproject.FirewallD1.policy', policy)
+        self.assertNotEqual(policy, transformed)
+        old = {choice: policy.encode(), rd.RPM_DATABASE: b'old database', link: ('link', 'org.fedoraproject.FirewallD1.desktop.policy.choice')}
+        new = {choice: transformed.encode(), rd.RPM_DATABASE: b'new database', link: ('link', 'org.fedoraproject.FirewallD1.desktop.policy.choice')}
+        new.update({path: ('link', target) for path, target in rd.CHROME_NSS_LINKS.items()})
+        new['usr/lib/opt/google/chrome/libfoo.so.1d'] = ('link', '/lib64/libfoo.so')
+        new['usr/lib/opt/google/chrome/libnss3.so.2d'] = ('link', '/lib64/libnss3.so')
+        base = {choice: policy.encode(), link: ('link', 'org.fedoraproject.FirewallD1.desktop.policy.choice')}
+        classifier, (o, n, b) = self.classifier(old, new, base)
+        for path in rd.CHROME_DIRECTORIES:
+            (n / path).mkdir(parents=True, exist_ok=True); (n / path).chmod(0o755)
+        (n / 'usr/share/gnome-control-center/other').mkdir()
+        explain = lambda rel: classifier.classify(rel, rd.entry(o, rel), rd.entry(n, rel))
+        for rel in [choice, rd.RPM_DATABASE, *rd.CHROME_NSS_LINKS, *rd.CHROME_DIRECTORIES]:
+            with self.subTest(explained=rel):
+                self.assertIsNotNone(explain(rel))
+        self.assertEqual(len(rd.CHROME_NSS_LINKS), 7)
+        # Another name, another target, another mode or other bytes: unexplained.
+        for rel in ('usr/lib/opt/google/chrome/libfoo.so.1d', 'usr/lib/opt/google/chrome/libnss3.so.2d',
+                    'usr/share/gnome-control-center/other'):
+            with self.subTest(near_miss=rel):
+                self.assertIsNone(explain(rel))
+        target = n / 'usr/lib/opt/google/chrome/libnss3.so.1d'
+        target.unlink(); os.symlink('/lib64/libnss3.so.2', target)
+        self.assertIsNone(explain('usr/lib/opt/google/chrome/libnss3.so.1d'))
+        (n / 'usr/share/gnome-control-center/default-apps').chmod(0o700)
+        self.assertIsNone(explain('usr/share/gnome-control-center/default-apps'))
+        (n / choice).write_bytes(transformed.replace('auth_admin', 'yes').encode())
+        self.assertIsNone(explain(choice))
+        (n / choice).write_bytes(transformed.encode())
+        (n / link).unlink(); os.symlink('org.fedoraproject.FirewallD1.server.policy.choice', n / link)
+        self.assertIsNone(explain(choice))
+        (n / rd.RPM_DATABASE).chmod(0o600)
+        self.assertIsNone(explain(rd.RPM_DATABASE))
+        self.assertIsNone(explain('usr/share/rpm/rpmdb.sqlite-shm'))
+
+    @unittest.skipIf(os.name == 'nt', 'modes need Linux')
+    def test_no_rule_explains_a_mode_or_owner_change_of_an_existing_directory(self):
+        # The run 2 finding: cp -a of os/config gave /etc/sudoers.d the checkout's 0755.
+        classifier, (o, n, b) = self.classifier({'etc/sudoers.d/keep': b'x'}, {'etc/sudoers.d/keep': b'x'}, {})
+        (o / 'etc/sudoers.d').chmod(0o750); (n / 'etc/sudoers.d').chmod(0o755)
+        classifier.config = classifier.config | {'etc/sudoers.d/aresos-everyday'}
+        self.assertIsNone(classifier.classify('etc/sudoers.d', rd.entry(o, 'etc/sudoers.d'), rd.entry(n, 'etc/sudoers.d')))
+
     def test_generated_paths_are_listed_and_units_cannot_be_generated(self):
         classifier = rd.Classifier.__new__(rd.Classifier)
         self.assertEqual(classifier.generated_rule('usr/lib/sysimage/rpm/rpmdb.sqlite', {}, {})[0], 'generated')
@@ -186,7 +236,7 @@ class GuardLedgerTest(unittest.TestCase):
         self.addCleanup(guard.configure, '11c')
 
     def test_package27_allows_one_release_one_checks_run_and_three_rehearsals(self):
-        self.assertEqual(guard.SETTINGS['dispatch_caps'], {'release-27': 2, 'checks': 1, 'update': 3})
+        self.assertEqual(guard.SETTINGS['dispatch_caps'], {'release-27': 3, 'checks': 1, 'update': 3})
         self.assertEqual(guard.SETTINGS['publish_cap'], 1)
         self.assertEqual(guard.BRANCH, 'pkg/27-first-update-release')
         workflow = (ROOT / '.github/workflows/os-image.yml').read_text()
@@ -210,9 +260,11 @@ class GuardLedgerTest(unittest.TestCase):
             runs.append(dict(base, id=2, display_title='Package 27 image release'))
             self.assertEqual(guard.budget(0)['dispatch_counts']['release-27'], 2)
             runs.append(dict(base, id=3, display_title='Package 27 image release'))
-            with self.assertRaisesRegex(AssertionError, 'release-27 dispatch allowance exhausted'):
+            self.assertEqual(guard.budget(0)['dispatch_counts']['release-27'], 3)
+            runs.append(dict(base, id=4, display_title='Package 27 image release'))
+            with self.assertRaisesRegex(AssertionError, 'release-27 dispatch allowance exhausted|exceeds 1200'):
                 guard.budget(0)
-            runs.pop(); runs.pop()
+            runs.pop(); runs.pop(); runs.pop()
             for number in range(3):
                 runs.append(dict(base, id=10 + number, display_title='Two-disk rehearsal (update)'))
             self.assertEqual(guard.budget(0)['dispatch_counts']['update'], 3)
