@@ -13,6 +13,8 @@ const dialogInputs=new WeakMap();
 const preloadTargets=new Map();
 const releasing=new Map(),admissions=new Map();
 let stopGeneration=0;
+let badgeUpdates=Promise.resolve();
+const badgedTabs=new Set();
 const documentMethods=new Map(),currentDocuments=new Map(),formLoadedDocuments=new Map();
 function navigationRecord(map,key,value){map.delete(key);map.set(key,value);if(map.size>20000)map.delete(map.keys().next().value);}
 const targetKey=source=>JSON.stringify([source.tabId,source.sessionId||null]);
@@ -174,13 +176,44 @@ function keyboard(value) {
   const text=name==='Enter'?'\r':name==='Space'?' ':key.length===1&&!(modifiers&6)?key:undefined;
   return {key,code,modifiers,windowsVirtualKeyCode,...(text===undefined?{}:{text})};
 }
-async function badge() {
-  await chrome.action.setBadgeText({text:controlled.size ? 'ON' : ''});
-  await chrome.action.setBadgeBackgroundColor({color:'#2468ca'});
-  for(const [tab,owner]of controlled)if(owner.virtualGroup){
-    await chrome.action.setBadgeText({tabId:tab,text:'CLAUDE'});
-    await chrome.action.setTitle({tabId:tab,title:'Claude controls this popup: Stop control'});
-  }
+function popupControls(){return [...controlled].filter(([,owner])=>owner.virtualGroup);}
+async function popupStatus(){
+  const popups=[];
+  for(const [tab,owner]of popupControls())try{
+    const current=await requireTab(tab);
+    if(controlled.get(tab)===owner)popups.push({tab,control:owner.epoch,title:current.title||current.url,url:current.url});
+  }catch{}
+  return {popups};
+}
+async function stopPopup(tab,epoch){
+  const owner=controlled.get(tab);
+  if(!owner?.virtualGroup||owner.epoch!==epoch)return {stopped:false,stale:true};
+  return {stopped:true,...await release(tab)};
+}
+function badge(){
+  // Read membership inside the queue, so a slow old update cannot resurrect a badge after Stop.
+  const pending=badgeUpdates.catch(()=>{}).then(async()=>{
+    const popupCounts=new Map();
+    for(const [,owner]of popupControls()){
+      let parent=owner;const seen=new Set();
+      while(parent.parentTab!==undefined&&!seen.has(parent.parentTab)){
+        seen.add(parent.parentTab);const tab=parent.parentTab;parent=controlled.get(tab);
+        if(!parent)break;
+        if(!parent.virtualGroup){popupCounts.set(tab,(popupCounts.get(tab)||0)+1);break;}
+      }
+    }
+    await chrome.action.setBadgeText({text:''});
+    await chrome.action.setBadgeBackgroundColor({color:'#2468ca'});
+    for(const tab of new Set([...badgedTabs,...controlled.keys()])){
+      const owner=controlled.get(tab),count=popupCounts.get(tab)||0;
+      const text=count?'POP':owner?'ON':'';
+      const title=count?'Claude controls '+count+' popup'+(count===1?'':'s')+' opened from here: Stop in this toolbar popup':owner?.virtualGroup?'Claude controls this popup: Stop in its opener toolbar popup':owner?'Claude controls this tab: Stop control':'AresOS Chrome: Stop control';
+      try{await chrome.action.setBadgeText({tabId:tab,text});await chrome.action.setTitle({tabId:tab,title});}
+      catch(error){if(controlled.has(tab))throw error;}
+      if(owner)badgedTabs.add(tab);else badgedTabs.delete(tab);
+    }
+  });
+  badgeUpdates=pending;return pending;
 }
 async function rules() {
   const previous = await chrome.declarativeNetRequest.getSessionRules();
@@ -216,6 +249,11 @@ async function admitTab(tab,generation,opener=null) {
   check();const current = await chrome.tabs.get(tab);check();safeURL(current.url||(opener?current.pendingUrl||'about:blank':current.url));
   if (controlled.has(tab)) return {tab, session, group:groupId};
   const window=await chrome.windows.get(current.windowId);check();
+  if(window.type!=='normal'&&!opener){
+    const parent=controlled.get(current.openerTabId);
+    if(!parent)throw Error('refused: popup control requires its opener in the Claude group');
+    opener={tab:current.openerTabId,epoch:parent.epoch};await requireTab(opener.tab);check();
+  }
   const original = {window:current.windowId,index:current.index,group:current.groupId,epoch:crypto.randomUUID(),debuggee:{tabId:tab},virtualGroup:window.type!=='normal',...(opener?{parentTab:opener.tab,parentEpoch:opener.epoch,popupNeedsReload:true}:{})};
   let attached=false,grouped=false;
   try{
@@ -227,7 +265,7 @@ async function admitTab(tab,generation,opener=null) {
     controlled.set(tab,original);await prepareTarget({tabId:tab});check();
     await rules();check();await badge();check();await lateReader(tab);check();assertControl(tab,original.epoch);
     if(opener){await requireTab(opener.tab);check();}
-    if(original.virtualGroup)audit({popup_admitted:{tab,window:current.windowId,type:window.type,opener:opener?.tab,badge:'CLAUDE'}});
+    if(original.virtualGroup)audit({popup_admitted:{tab,window:current.windowId,type:window.type,opener:opener?.tab,badge:'POP on opener'}});
     return {tab,session,group:groupId};
   }catch(error){
     if(controlled.get(tab)===original)await release(tab);
@@ -370,10 +408,10 @@ async function release(tab) {
     // may finish cleanup after a modal; the tab stays grouped until they do.
     try{await Promise.all((await chrome.webNavigation.getAllFrames({tabId:tab})||[]).map(frame=>content(tab,frame.frameId,'clear').catch(()=>{})));}catch{}
     await restoreTab(tab,original);releasing.delete(tab);
-    if(original.virtualGroup)try{await chrome.action.setBadgeText({tabId:tab,text:''});await chrome.action.setTitle({tabId:tab,title:'AresOS Chrome: Stop control'});}catch{}
     if(!controlled.size&&!releasing.size)groupId=null;
     await rules();await badge();return {released:tab,cleanup_pending:false};
   })();
+  badge().catch(error=>port?.postMessage({event:'reader_error',error:'Control badge unavailable: '+String(error),tab}));
   record.promise.catch(error=>port?.postMessage({event:'reader_error',error:'Private cleanup remains pending: '+String(error),tab}));
   return boundedRelease(tab,record.promise);
 }
@@ -459,6 +497,12 @@ async function collection(command) {
 async function dispatch(command) {
   const tab = command.tab ?? command.reference?.tab;
   const reference = command.reference;
+  if(command.name==='control_status'){
+    const windows=await chrome.windows.getAll();
+    const tabs=await chrome.tabs.query({});
+    return {windows:windows.map(({id,type,left,top,width,height,focused})=>({id,type,left,top,width,height,focused})),
+      tabs:await Promise.all(tabs.map(async({id,windowId,openerTabId})=>({tab:id,window:windowId,opener:openerTabId,badge:await chrome.action.getBadgeText({tabId:id}),title:await chrome.action.getTitle({tabId:id})}))),...await popupStatus()};
+  }
   if(command.name==='stop_popup'){await chrome.action.openPopup();return {opened:true};}
   if (command.name === 'audit') { recording=command.enabled === true; return {recording}; }
   if(command.name==='configure')return configure(command.excluded_hosts);
@@ -642,6 +686,8 @@ chrome.runtime.onMessage.addListener((message,sender,reply)=>{
   const popup=chrome.runtime.getURL('popup.html'),details=chrome.runtime.getURL('details.html');
   if (sender.id !== chrome.runtime.id || ![popup,details].includes(sender.url) || sender.frameId && sender.frameId !== 0) return;
   if (message?.command === 'stop') { stop().then(reply); return true; }
+  if(sender.url===popup&&message?.command==='popup_status'){popupStatus().then(reply);return true;}
+  if(sender.url===popup&&message?.command==='stop_popup'){stopPopup(message.tab,message.control).then(reply);return true;}
   // Details requests are data for the service's owner-only endpoint, never page input.
   if (sender.url === details && sender.tab?.id && sender.frameId === 0 && message?.command === 'sites') {
     const request_id=crypto.randomUUID();

@@ -18,7 +18,7 @@ SHARED += ('Taking or reading an owner tab preserves its document. Its first inp
            'If reload_required reports unsaved text or playing media, tell the owner; repeat with reload_taken_tab=true only when that reload is wanted. '
            'For that first reload, a non-GET or unknown-method document refuses; open its address fresh in a Claude tab. '
            'A popup opened by a Claude tab follows the same first-input reload rule while its opener stays controlled. '
-           'Popup windows stay in place and show CLAUDE on the extension action badge. ')
+           'Popup windows stay in place. Their opener shows POP on the pinned toolbar button; its popup lists each controlled popup with its own Stop. Stop ends control without closing or reloading it. ')
 
 
 def actions(Action):

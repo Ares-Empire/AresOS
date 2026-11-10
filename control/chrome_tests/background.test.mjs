@@ -89,7 +89,7 @@ test('popup admission preserves its window and uses a private group and tab badg
   const f=lifecycleFixture();f.run("controlled.set(7,{epoch:'parent'});chrome.windows.get=async()=>({type:'popup'});chrome.tabs.move=async()=>{throw Error('must not move a popup')};chrome.action.setBadgeText=async value=>{lifecycleCalls.push(JSON.stringify(value))};chrome.action.setTitle=async value=>{lifecycleCalls.push(JSON.stringify(value))};");
   await f.run('createdTarget({sourceTabId:7,tabId:8})');
   assert.equal(f.run('controlled.get(8).virtualGroup'),true);assert.equal(f.run('controlled.get(8).parentEpoch'),'parent');
-  assert.equal(f.run("lifecycleCalls.includes('group')"),false);assert.equal(f.run("lifecycleCalls.some(value=>value.includes('CLAUDE'))"),true);
+  assert.equal(f.run("lifecycleCalls.includes('group')"),false);assert.equal(f.run("lifecycleCalls.some(value=>value.includes('POP'))"),true);
   await f.run('release(8)');assert.equal(f.run("lifecycleCalls.includes('ungroup')"),false);
 });
 
@@ -552,4 +552,69 @@ test('a modal during native frame lookup refuses validity before starting ready'
   for(let attempt=0;attempt<20&&!f.run('frameReply');attempt++)await Promise.resolve();
   assert.ok(f.run('frameReply'));f.run("dialogs.set(7,{kind:'confirm'});wakeDialog(7);frameReply({url:'http://fixture.test/'})");await rejected;
   assert.equal(f.run('readyCalls'),0);assert.equal(f.run('effectStarted'),false);
+});
+
+
+test('popup opener badges are distinct, clear on Stop, and never open or focus a window',async()=>{
+  const f=lifecycleFixture();f.run("globalThis.badges=new Map();globalThis.titles=new Map();chrome.action.setBadgeText=async({tabId,text})=>badges.set(tabId,text);chrome.action.setTitle=async({tabId,title})=>titles.set(tabId,title);chrome.windows.create=chrome.windows.update=chrome.tabs.update=async()=>{throw Error('must never open or focus a window')};controlled.set(7,{epoch:'parent',window:1});controlled.set(8,{epoch:'child',virtualGroup:true,window:2,parentTab:7,parentEpoch:'parent'});controlled.set(9,{epoch:'other',virtualGroup:true,window:3,parentTab:7,parentEpoch:'parent'});chrome.tabs.get=async tab=>({url:'http://popup.test/',title:'Popup fixture',windowId:tab===7?1:tab===8?2:3,groupId:tab===7?1:-1});");
+  await f.run('badge()');assert.equal(f.run('badges.get(7)'),'POP');assert.match(f.run('titles.get(7)'),/2 popups opened from here/);
+  const status=await f.run('popupStatus()');assert.deepEqual(JSON.parse(JSON.stringify(status.popups.map(({tab,control})=>({tab,control})))),[{tab:8,control:'child'},{tab:9,control:'other'}]);
+  await f.run("stopPopup(8,'child')");assert.equal(f.run('controlled.has(8)'),false);assert.equal(f.run('controlled.has(9)'),true);assert.equal(f.run('badges.get(7)'),'POP');
+  await f.run("stopPopup(9,'other')");assert.equal(f.run('badges.get(7)'),'ON');assert.equal(f.run('badges.get(9)'),'');
+  assert.ok(!f.run("lifecycleCalls.some(value=>['Page.reload','Page.navigate','group','ungroup'].includes(value))"),'Stop never reloads, closes or regroups popups');
+  await f.run('release(7)');assert.equal(f.run('badges.get(7)'),'');
+});
+
+test('a stale popup Stop cannot end a replacement epoch or an ordinary tab',async()=>{
+  const f=lifecycleFixture();f.run("controlled.set(7,{epoch:'normal'});controlled.set(8,{epoch:'replacement',virtualGroup:true})");
+  assert.equal((await f.run("stopPopup(8,'old')")).stale,true);assert.equal((await f.run("stopPopup(7,'normal')")).stale,true);assert.equal(f.run('controlled.size'),2);
+});
+
+test('popup Stop revokes input and clears opener badge before blocked document cleanup completes',async()=>{
+  const f=lifecycleFixture();f.run("globalThis.badges=new Map();chrome.action.setBadgeText=async({tabId,text})=>badges.set(tabId,text);controlled.set(7,{epoch:'parent'});controlled.set(8,{epoch:'child',virtualGroup:true,parentTab:7,parentEpoch:'parent'});preloadTargets.set('[8,null]',{source:{tabId:8},tab:8,contexts:new Map(),documents:new Map([['main',{cleanup:'restore'}]]),installing:new Set()});chrome.debugger.sendCommand=(source,method)=>method==='Runtime.callFunctionOn'?new Promise(resolve=>{globalThis.finishPopupCleanup=resolve}):Promise.resolve({});");
+  await f.run('badge()');const pending=f.run("stopPopup(8,'child')");await spin(f,"typeof finishPopupCleanup==='function'&&badges.get(7)==='ON'");
+  assert.equal(f.run('controlled.has(8)'),false);assert.equal(f.run('controlled.has(7)'),true);assert.equal(f.run('releasing.has(8)'),true);
+  await assert.rejects(f.run('requireTab(8)'),/outside the Claude group/);
+  f.run('finishPopupCleanup({result:{value:true}})');await pending;
+});
+
+test('queued slow badge writes cannot resurrect a stopped popup badge',async()=>{
+  const f=lifecycleFixture();f.run("globalThis.badges=new Map();globalThis.slow=true;chrome.action.setBadgeText=async({tabId,text})=>{if(tabId===7&&text==='POP'&&slow){slow=false;await new Promise(resolve=>{globalThis.finishBadge=resolve});}badges.set(tabId,text)};controlled.set(7,{epoch:'parent'});controlled.set(8,{epoch:'child',virtualGroup:true,parentTab:7,parentEpoch:'parent'});");
+  const initial=f.run('badge()');await spin(f,"typeof finishBadge==='function'");const stopped=f.run("stopPopup(8,'child')");f.run('finishBadge()');await Promise.all([initial,stopped]);
+  assert.equal(f.run('badges.get(7)'),'ON');assert.equal(f.run('badges.get(8)'),'');
+});
+
+test('only the exact extension action popup can list or stop a controlled popup',async()=>{
+  const f=lifecycleFixture(),source=fs.readFileSync('control/chrome/extension/background.js','utf8');
+  f.run("chrome.runtime.id='fixture';chrome.runtime.onMessage={addListener:listener=>{globalThis.receive=listener}};globalThis.stops=[];stopPopup=async(...args)=>{stops.push(args);return {stopped:true}};");
+  f.run(source.slice(source.indexOf('chrome.runtime.onMessage.addListener('),source.indexOf('chrome.tabs.onUpdated.addListener(')));
+  for(const url of ['http://fixture.test/','chrome-extension://fixture/popup.html?popups','chrome-extension://fixture/details.html'])f.run(`receive({command:'stop_popup',tab:8,control:'child'},{id:'fixture',url:${JSON.stringify(url)},frameId:0},()=>{})`);
+  assert.equal(f.run('stops.length'),0);
+  let response;assert.equal(f.run("receive({command:'stop_popup',tab:8,control:'child'},{id:'fixture',url:'chrome-extension://fixture/popup.html',frameId:0},()=>{})"),true);await Promise.resolve();assert.equal(f.run('stops.length'),1);
+});
+
+test('the extension has no companion window creation or focusing path',()=>{
+  const source=fs.readFileSync('control/chrome/extension/background.js','utf8');
+  assert.doesNotMatch(source,/chrome\.windows\.(?:create|update|remove)\s*\(/);
+  for(const file of ['popup.html','popup.js','background.js'])assert.doesNotMatch(fs.readFileSync('control/chrome/extension/'+file,'utf8'),/popupPanel|[?]popups|companion|close-note/);
+});
+
+
+test('opener tab removal and native group removal revoke children and clear badges without another tool read',async()=>{
+  for(const mode of ['close','ungroup']){
+    const f=lifecycleFixture(),source=fs.readFileSync('control/chrome/extension/background.js','utf8');
+    f.run("globalThis.badges=new Map();chrome.action.setBadgeText=async({tabId,text})=>badges.set(tabId,text);controlled.set(7,{epoch:'parent'});controlled.set(8,{epoch:'child',virtualGroup:true,parentTab:7,parentEpoch:'parent'});chrome.tabs.onUpdated={addListener:listener=>{globalThis.updated=listener}};");
+    f.run(source.slice(source.indexOf('chrome.tabs.onUpdated.addListener('),source.indexOf('chrome.tabs.onRemoved.addListener(')));
+    await f.run('badge()');assert.equal(f.run('badges.get(7)'),'POP');
+    if(mode==='close')f.run('removedTab(7)');else{f.run("chrome.tabs.get=async()=>({url:'http://fixture.test/',groupId:-1})");await f.run('updated(7,{})');}
+    await spin(f,"!controlled.has(7)&&!controlled.has(8)&&badges.get(7)===''&&badges.get(8)==='' ");
+  }
+});
+
+
+test('manual popup taking requires and binds a currently controlled native opener',async()=>{
+  const f=lifecycleFixture();f.run("chrome.tabs.get=async tab=>({url:'http://popup.test/',windowId:tab===7?1:2,index:0,groupId:tab===7?1:-1,openerTabId:tab===8?7:undefined});chrome.windows.get=async window=>({type:window===1?'normal':'popup'});");
+  await assert.rejects(f.run('take(8)'),/popup control requires its opener/);assert.equal(f.run('controlled.size'),0);assert.equal(f.run('lifecycleCalls.length'),0,'uncontrolled opener never gets a debugger attach or page injection');
+  f.run("controlled.set(7,{epoch:'parent'})");await f.run('take(8)');assert.equal(f.run('controlled.get(8).parentTab'),7);assert.equal(f.run('controlled.get(8).parentEpoch'),'parent');
+  await f.run('release(7)');assert.equal(f.run('controlled.has(8)'),false);
 });
