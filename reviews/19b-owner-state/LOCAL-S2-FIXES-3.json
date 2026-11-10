@@ -1,0 +1,948 @@
+{
+  "alterations": 2081423,
+  "checks": [
+    {
+      "file": ".work/19b-s2-fixes-3/unit-final.txt",
+      "sha256": "ee182505941c0ec11248d252a0dd78351b1d55d23d5d7c66324f15b0f111460f",
+      "test_summary": [
+        "Ran 163 tests in 8.990s"
+      ]
+    },
+    {
+      "file": ".work/19b-s2-fixes-3/contracts-final.txt",
+      "sha256": "eddb603868c1fcc31060bdd90b89e4b34bc6bf033af05f7b729db8285f581e93",
+      "test_summary": [
+        "Ran 8 tests in 15.743s"
+      ]
+    },
+    {
+      "file": ".work/19b-s2-fixes-3/base-final.txt",
+      "sha256": "2e4bad6c7399608303ca07b23cb4a543a3a10408ec15d22aa14efaefdb99fe1e",
+      "test_summary": [
+        "Ran 19 tests in 21.502s"
+      ]
+    },
+    {
+      "file": ".work/19b-s2-fixes-3/action-context.txt",
+      "sha256": "1fb282edb6ad72fc64889c831009ae99a06a01e2387e315f2c577e3e5ceda4ca",
+      "test_summary": [
+        "Ran 13 tests in 224.920s"
+      ]
+    },
+    {
+      "file": ".work/19b-s2-fixes-3/storage.txt",
+      "sha256": "d115662b1a98024c1da0c9699221f4960e03f3dfeff83106bf6d5b271c232230",
+      "test_summary": []
+    },
+    {
+      "file": ".work/19b-s2-fixes-3/selection-final.txt",
+      "sha256": "b8b4ec31c05fac22671cfa267ce6483bcf4039831e08f295ae16789854a55af4",
+      "test_summary": [
+        "Ran 5 tests in 0.099s"
+      ]
+    }
+  ],
+  "classification": "Local diagnostics use worktree-only managed-policy fixtures and candidate gap recording. The installed-policy/channel and final exact-head acceptance is independently established by both strict Linux passes. Shards 4 and 10 were rerun for the safe missing-parent lookup; all other partitions retain their completed results.",
+  "corpus": [
+    [
+      "contracts/16",
+      "0",
+      "1",
+      "146637",
+      "685.474"
+    ],
+    [
+      "contracts/19",
+      "0",
+      "1",
+      "2142",
+      "0.595"
+    ],
+    [
+      "contracts/22",
+      "0",
+      "1",
+      "51657",
+      "84.269"
+    ],
+    [
+      "contracts/31",
+      "0",
+      "1",
+      "13012",
+      "7.039"
+    ],
+    [
+      "contracts/42",
+      "0",
+      "1",
+      "10573",
+      "3.616"
+    ],
+    [
+      "contracts/50",
+      "0",
+      "1",
+      "3705",
+      "0.888"
+    ],
+    [
+      "regression/test_review22_refused_recovery_result_keeps_changed_evidence_M03_C03",
+      "0",
+      "1",
+      "1830",
+      "0.268"
+    ],
+    [
+      "check-regression/rename/False/True/1-control_pending",
+      "0",
+      "1",
+      "396",
+      "0.042"
+    ],
+    [
+      "check-regression/rename/True/False/4-control_archive",
+      "0",
+      "1",
+      "362",
+      "0.035"
+    ],
+    [
+      "contracts/24",
+      "0",
+      "1",
+      "11130",
+      "8.313"
+    ],
+    [
+      "contracts/30",
+      "0",
+      "1",
+      "65113",
+      "233.328"
+    ],
+    [
+      "contracts/33",
+      "0",
+      "4",
+      "32921",
+      "381.105"
+    ],
+    [
+      "contracts/46",
+      "0",
+      "1",
+      "5428",
+      "2.972"
+    ],
+    [
+      "regression/test_review21_paging_changed_warnings",
+      "0",
+      "1",
+      "11515",
+      "24.791"
+    ],
+    [
+      "check-regression/filing/False/True/0-mail_notice_ack",
+      "0",
+      "1",
+      "388",
+      "0.066"
+    ],
+    [
+      "check-regression/filing/True/False",
+      "0",
+      "1",
+      "257",
+      "0.037"
+    ],
+    [
+      "contracts/11",
+      "0",
+      "1",
+      "11714",
+      "11.089"
+    ],
+    [
+      "contracts/29",
+      "0",
+      "1",
+      "56181",
+      "179.659"
+    ],
+    [
+      "contracts/33",
+      "1",
+      "4",
+      "32921",
+      "384.949"
+    ],
+    [
+      "regression/test_review21_acknowledged_rename_expiry",
+      "0",
+      "1",
+      "6503",
+      "4.315"
+    ],
+    [
+      "sweep/repair/None/single/None/live/65",
+      "0",
+      "1",
+      "16780",
+      "31.159"
+    ],
+    [
+      "check-regression/rename/True/False/0-mail_notice_ack",
+      "0",
+      "1",
+      "389",
+      "0.071"
+    ],
+    [
+      "local-flag/healthy",
+      "0",
+      "1",
+      "2115",
+      "0.530"
+    ],
+    [
+      "contracts/14",
+      "0",
+      "1",
+      "93253",
+      "290.625"
+    ],
+    [
+      "contracts/33",
+      "2",
+      "4",
+      "32921",
+      "373.002"
+    ],
+    [
+      "contracts/43",
+      "0",
+      "1",
+      "18727",
+      "15.391"
+    ],
+    [
+      "contracts/48",
+      "0",
+      "1",
+      "5428",
+      "2.602"
+    ],
+    [
+      "contracts/56",
+      "0",
+      "1",
+      "7886",
+      "4.770"
+    ],
+    [
+      "sweep/send/None/single/None/live/64",
+      "0",
+      "1",
+      "23609",
+      "34.323"
+    ],
+    [
+      "check-regression/filing/False/True/3-control_pending",
+      "0",
+      "1",
+      "412",
+      "0.073"
+    ],
+    [
+      "check-regression/filing/True/True",
+      "0",
+      "1",
+      "257",
+      "0.030"
+    ],
+    [
+      "contracts/2",
+      "0",
+      "1",
+      "9565",
+      "7.421"
+    ],
+    [
+      "contracts/6",
+      "0",
+      "1",
+      "21544",
+      "41.393"
+    ],
+    [
+      "contracts/9",
+      "0",
+      "1",
+      "10787",
+      "13.467"
+    ],
+    [
+      "contracts/33",
+      "3",
+      "4",
+      "32920",
+      "205.686"
+    ],
+    [
+      "contracts/34",
+      "0",
+      "1",
+      "1925",
+      "0.295"
+    ],
+    [
+      "contracts/35",
+      "0",
+      "1",
+      "1242",
+      "0.106"
+    ],
+    [
+      "contracts/52",
+      "0",
+      "1",
+      "3329",
+      "0.738"
+    ],
+    [
+      "sweep/onboarding/1711/persistent/None/live/67",
+      "0",
+      "1",
+      "50134",
+      "90.348"
+    ],
+    [
+      "check-regression/rename/False/True/2-mail_filing_notices",
+      "0",
+      "1",
+      "404",
+      "0.043"
+    ],
+    [
+      "check-regression/rename/False/True/4-control_archive",
+      "0",
+      "1",
+      "361",
+      "0.042"
+    ],
+    [
+      "check-regression/rename/True/False/2-mail_filing_notices",
+      "0",
+      "1",
+      "405",
+      "0.034"
+    ],
+    [
+      "contracts/12",
+      "0",
+      "1",
+      "35035",
+      "56.704"
+    ],
+    [
+      "contracts/15",
+      "0",
+      "1",
+      "119483",
+      "473.314"
+    ],
+    [
+      "contracts/21",
+      "0",
+      "1",
+      "22178",
+      "27.382"
+    ],
+    [
+      "contracts/32",
+      "3",
+      "4",
+      "23069",
+      "181.101"
+    ],
+    [
+      "contracts/36",
+      "0",
+      "1",
+      "1242",
+      "0.132"
+    ],
+    [
+      "contracts/51",
+      "0",
+      "1",
+      "2309",
+      "0.517"
+    ],
+    [
+      "contracts/53",
+      "0",
+      "1",
+      "6780",
+      "2.679"
+    ],
+    [
+      "sweep/delete_permanent/131/single/None/live/66",
+      "0",
+      "1",
+      "13464",
+      "7.522"
+    ],
+    [
+      "check-regression/filing/False/True",
+      "0",
+      "1",
+      "256",
+      "0.028"
+    ],
+    [
+      "check-regression/filing/False/True/2-mail_filing_notices",
+      "0",
+      "1",
+      "404",
+      "0.057"
+    ],
+    [
+      "check-regression/filing/True/False/1-control_pending",
+      "0",
+      "1",
+      "397",
+      "0.052"
+    ],
+    [
+      "check-regression/filing/True/False/2-mail_filing_notices",
+      "0",
+      "1",
+      "405",
+      "0.053"
+    ],
+    [
+      "contracts/3",
+      "0",
+      "1",
+      "9565",
+      "7.740"
+    ],
+    [
+      "contracts/4",
+      "0",
+      "1",
+      "5334",
+      "3.040"
+    ],
+    [
+      "contracts/27",
+      "0",
+      "1",
+      "37526",
+      "79.187"
+    ],
+    [
+      "contracts/32",
+      "2",
+      "4",
+      "23070",
+      "233.333"
+    ],
+    [
+      "contracts/44",
+      "0",
+      "1",
+      "26881",
+      "36.866"
+    ],
+    [
+      "contracts/54",
+      "0",
+      "1",
+      "19765",
+      "24.815"
+    ],
+    [
+      "sweep/onboarding/1711/persistent/None/live/68",
+      "0",
+      "1",
+      "56612",
+      "244.657"
+    ],
+    [
+      "check-regression/filing/True/False/3-control_pending",
+      "0",
+      "1",
+      "413",
+      "0.094"
+    ],
+    [
+      "check-regression/rename/False/True",
+      "0",
+      "1",
+      "256",
+      "0.034"
+    ],
+    [
+      "check-regression/rename/False/True/0-mail_notice_ack",
+      "0",
+      "1",
+      "388",
+      "0.078"
+    ],
+    [
+      "check-regression/rename/True/False/1-control_pending",
+      "0",
+      "1",
+      "397",
+      "0.059"
+    ],
+    [
+      "contracts/0",
+      "0",
+      "1",
+      "23609",
+      "51.545"
+    ],
+    [
+      "contracts/7",
+      "0",
+      "1",
+      "7886",
+      "5.847"
+    ],
+    [
+      "contracts/17",
+      "2",
+      "4",
+      "43001",
+      "286.548"
+    ],
+    [
+      "contracts/18",
+      "0",
+      "4",
+      "49186",
+      "333.599"
+    ],
+    [
+      "contracts/25",
+      "0",
+      "1",
+      "20522",
+      "17.882"
+    ],
+    [
+      "contracts/28",
+      "0",
+      "1",
+      "47249",
+      "65.995"
+    ],
+    [
+      "contracts/40",
+      "0",
+      "1",
+      "2402",
+      "0.445"
+    ],
+    [
+      "contracts/41",
+      "0",
+      "1",
+      "1746",
+      "0.249"
+    ],
+    [
+      "regression/test_review22_refused_recovery_result_keeps_changed_evidence_M03_C03",
+      "0",
+      "1",
+      "2702",
+      "0.582"
+    ],
+    [
+      "contracts/17",
+      "3",
+      "4",
+      "43000",
+      "291.463"
+    ],
+    [
+      "contracts/18",
+      "1",
+      "4",
+      "49186",
+      "343.990"
+    ],
+    [
+      "contracts/20",
+      "0",
+      "1",
+      "11936",
+      "8.399"
+    ],
+    [
+      "contracts/26",
+      "0",
+      "1",
+      "28676",
+      "34.294"
+    ],
+    [
+      "contracts/37",
+      "0",
+      "1",
+      "27170",
+      "30.289"
+    ],
+    [
+      "contracts/39",
+      "0",
+      "1",
+      "5691",
+      "2.506"
+    ],
+    [
+      "contracts/45",
+      "0",
+      "1",
+      "35731",
+      "38.402"
+    ],
+    [
+      "regression/test_review22_zero_byte_journal_enospc_recovers_without_restart_M10_M13",
+      "0",
+      "1",
+      "1064",
+      "0.095"
+    ],
+    [
+      "check-regression/filing/False/True/1-control_pending",
+      "0",
+      "1",
+      "396",
+      "0.046"
+    ],
+    [
+      "check-regression/rename/False/True/3-control_pending",
+      "0",
+      "1",
+      "412",
+      "0.048"
+    ],
+    [
+      "check-regression/rename/True/False",
+      "0",
+      "1",
+      "257",
+      "0.018"
+    ],
+    [
+      "check-regression/rename/True/False/3-control_pending",
+      "0",
+      "1",
+      "413",
+      "0.039"
+    ],
+    [
+      "contracts/13",
+      "0",
+      "1",
+      "64131",
+      "153.514"
+    ],
+    [
+      "contracts/18",
+      "2",
+      "4",
+      "49186",
+      "355.796"
+    ],
+    [
+      "contracts/32",
+      "0",
+      "4",
+      "23070",
+      "195.029"
+    ],
+    [
+      "contracts/47",
+      "0",
+      "1",
+      "3690",
+      "1.251"
+    ],
+    [
+      "contracts/55",
+      "0",
+      "1",
+      "7886",
+      "4.099"
+    ],
+    [
+      "sweep/filing_move/165/single/None/crash/69",
+      "0",
+      "1",
+      "23645",
+      "13.729"
+    ],
+    [
+      "sweep/send/cleanup-pair/crash/70",
+      "0",
+      "1",
+      "3104",
+      "0.748"
+    ],
+    [
+      "contracts/1",
+      "0",
+      "1",
+      "44523",
+      "56.507"
+    ],
+    [
+      "contracts/5",
+      "0",
+      "1",
+      "16902",
+      "11.638"
+    ],
+    [
+      "contracts/18",
+      "3",
+      "4",
+      "49186",
+      "152.417"
+    ],
+    [
+      "contracts/23",
+      "0",
+      "1",
+      "1746",
+      "0.222"
+    ],
+    [
+      "contracts/32",
+      "1",
+      "4",
+      "23070",
+      "96.664"
+    ],
+    [
+      "contracts/38",
+      "0",
+      "1",
+      "11821",
+      "5.072"
+    ],
+    [
+      "contracts/49",
+      "0",
+      "1",
+      "5633",
+      "1.643"
+    ],
+    [
+      "contracts/8",
+      "0",
+      "1",
+      "16780",
+      "31.979"
+    ],
+    [
+      "contracts/10",
+      "0",
+      "1",
+      "10624",
+      "10.200"
+    ],
+    [
+      "contracts/17",
+      "0",
+      "4",
+      "43001",
+      "290.368"
+    ],
+    [
+      "contracts/17",
+      "1",
+      "4",
+      "43001",
+      "261.193"
+    ],
+    [
+      "regression/test_review20_refused_reopen_then_archive",
+      "0",
+      "1",
+      "27511",
+      "96.724"
+    ],
+    [
+      "regression/test_review22_live_rename_trash_with_unresolved_drafts_M03_C03",
+      "0",
+      "1",
+      "5302",
+      "2.836"
+    ],
+    [
+      "check-regression/filing/False/True/4-control_archive",
+      "0",
+      "1",
+      "361",
+      "0.068"
+    ],
+    [
+      "check-regression/filing/True/False/0-mail_notice_ack",
+      "0",
+      "1",
+      "389",
+      "0.064"
+    ],
+    [
+      "check-regression/filing/True/False/4-control_archive",
+      "0",
+      "1",
+      "362",
+      "0.065"
+    ],
+    [
+      "check-regression/rename/True/True",
+      "0",
+      "1",
+      "257",
+      "0.032"
+    ]
+  ],
+  "kinds": {
+    "boolean": 48316,
+    "effect": 659196,
+    "key-deletion": 822299,
+    "restore": 1512,
+    "row": 3043,
+    "sequence": 1512,
+    "state": 545545
+  },
+  "logs": [
+    {
+      "file": ".work/19b-s2-fixes-3/alteration-0.txt",
+      "sha256": "219f41da11f558d24056b6f184115bb5c94247eef0a04fa45f0a54eca2d2470c",
+      "summary": "Owner perturbations scenarios=9 kinds={'boolean': 5438, 'effect': 71611, 'key-deletion': 89402, 'restore': 153, 'row': 312, 'sequence': 153, 'state': 63245} total=230314 slipped=0",
+      "test_summary": [
+        "Ran 1 test in 809.359s"
+      ]
+    },
+    {
+      "file": ".work/19b-s2-fixes-3/alteration-1.txt",
+      "sha256": "865621d70786ca1d946c439af8522099512a5b7aa20b94f90cc65de4165353c4",
+      "summary": "Owner perturbations scenarios=7 kinds={'boolean': 3065, 'effect': 40484, 'key-deletion': 51354, 'restore': 118, 'row': 277, 'sequence': 131, 'state': 31323} total=126752 slipped=0",
+      "test_summary": [
+        "Ran 1 test in 677.785s"
+      ]
+    },
+    {
+      "file": ".work/19b-s2-fixes-3/alteration-2.txt",
+      "sha256": "8196b4f164c4acd0a6d6fcd59010b2d80b486965775d2c2af6191b7f6c8ce924",
+      "summary": "Owner perturbations scenarios=7 kinds={'boolean': 2910, 'effect': 40172, 'key-deletion': 50683, 'restore': 113, 'row': 211, 'sequence': 106, 'state': 32408} total=126603 slipped=0",
+      "test_summary": [
+        "Ran 1 test in 639.089s"
+      ]
+    },
+    {
+      "file": ".work/19b-s2-fixes-3/alteration-3.txt",
+      "sha256": "71b29a3805d734ca626f70e5881e1d8ff2d7545b85322f8cc018b18e47d87abc",
+      "summary": "Owner perturbations scenarios=8 kinds={'boolean': 3928, 'effect': 56587, 'key-deletion': 70116, 'restore': 114, 'row': 233, 'sequence': 119, 'state': 51396} total=182493 slipped=0",
+      "test_summary": [
+        "Ran 1 test in 748.205s"
+      ]
+    },
+    {
+      "file": ".work/19b-s2-fixes-3/alteration-4.txt",
+      "sha256": "7bc27275ae529f61f6ef6eba85c8a349610b144e2877f3c13e7849829f18e0ad",
+      "summary": "Owner perturbations scenarios=11 kinds={'boolean': 3071, 'effect': 44727, 'key-deletion': 55601, 'restore': 121, 'row': 228, 'sequence': 110, 'state': 28758} total=132616 slipped=0",
+      "test_summary": [
+        "Ran 1 test in 376.701s"
+      ]
+    },
+    {
+      "file": ".work/19b-s2-fixes-3/alteration-5.txt",
+      "sha256": "fe000b6fe6793b018df98fdeb9b56cb6ceef215673405b936d301e8a26ba38f4",
+      "summary": "Owner perturbations scenarios=12 kinds={'boolean': 5028, 'effect': 70018, 'key-deletion': 87072, 'restore': 154, 'row': 304, 'sequence': 149, 'state': 62297} total=225022 slipped=0",
+      "test_summary": [
+        "Ran 1 test in 776.548s"
+      ]
+    },
+    {
+      "file": ".work/19b-s2-fixes-3/alteration-6.txt",
+      "sha256": "e5360353b37ff8d8014c41a06c4f54e377b6354f24ab31ad774a036a0dd995e2",
+      "summary": "Owner perturbations scenarios=11 kinds={'boolean': 4543, 'effect': 60805, 'key-deletion': 76362, 'restore': 146, 'row': 295, 'sequence': 145, 'state': 37911} total=180207 slipped=0",
+      "test_summary": [
+        "Ran 1 test in 657.035s"
+      ]
+    },
+    {
+      "file": ".work/19b-s2-fixes-3/alteration-7.txt",
+      "sha256": "a6b36b4627f69a74b12682a54ddd739d30233b2874279c434eb97aedf86829e8",
+      "summary": "Owner perturbations scenarios=9 kinds={'boolean': 4567, 'effect': 61533, 'key-deletion': 77259, 'restore': 165, 'row': 315, 'sequence': 124, 'state': 54340} total=198303 slipped=0",
+      "test_summary": [
+        "Ran 1 test in 790.125s"
+      ]
+    },
+    {
+      "file": ".work/19b-s2-fixes-3/alteration-8.txt",
+      "sha256": "c038107f7dc6ad04d7549c8766bc3da0fcb11599ef14582c54f13515abee37f4",
+      "summary": "Owner perturbations scenarios=12 kinds={'boolean': 5269, 'effect': 65471, 'key-deletion': 82413, 'restore': 127, 'row': 293, 'sequence': 168, 'state': 50191} total=203932 slipped=0",
+      "test_summary": [
+        "Ran 1 test in 777.172s"
+      ]
+    },
+    {
+      "file": ".work/19b-s2-fixes-3/alteration-9.txt",
+      "sha256": "a2415745f4673c23237543878885d3bffcc1919d3a9d08b87af57d874e333d48",
+      "summary": "Owner perturbations scenarios=7 kinds={'boolean': 4160, 'effect': 55466, 'key-deletion': 68781, 'restore': 97, 'row': 160, 'sequence': 86, 'state': 45962} total=174712 slipped=0",
+      "test_summary": [
+        "Ran 1 test in 751.473s"
+      ]
+    },
+    {
+      "file": ".work/19b-s2-fixes-3/alteration-10.txt",
+      "sha256": "529e98325b0b0ff6a1467aafa2af85c840796ac2f54f5bb6a5d0b2ea11de0f55",
+      "summary": "Owner perturbations scenarios=7 kinds={'boolean': 3232, 'effect': 47856, 'key-deletion': 58434, 'restore': 89, 'row': 233, 'sequence': 104, 'state': 42933} total=152881 slipped=0",
+      "test_summary": [
+        "Ran 1 test in 334.375s"
+      ]
+    },
+    {
+      "file": ".work/19b-s2-fixes-3/alteration-11.txt",
+      "sha256": "968ad6512cef42d5e5dbadc1bfadd9d426ec6a71d7008933aacf91d6aa4835a3",
+      "summary": "Owner perturbations scenarios=10 kinds={'boolean': 3105, 'effect': 44466, 'key-deletion': 54822, 'restore': 115, 'row': 182, 'sequence': 117, 'state': 44781} total=147588 slipped=0",
+      "test_summary": [
+        "Ran 1 test in 720.970s"
+      ]
+    }
+  ],
+  "parts": 110,
+  "scenarios": 98,
+  "slipped": 0,
+  "source": "6f941a0a25aedd84f364f44a71665045236e99aa",
+  "statistics": {
+    "alterations": 2081423,
+    "changed": 15943,
+    "coherent": 267100,
+    "completion_errors.changed": 1404,
+    "completion_errors.own_catches": 2740,
+    "filing_claims.changed": 162,
+    "filing_claims.own_catches": 1200,
+    "local.errors.changed": 1170,
+    "local.errors.own_catches": 1552,
+    "payload_claims.changed": 26,
+    "payload_claims.own_catches": 62172,
+    "script_differences.changed": 681,
+    "script_differences.own_catches": 5669,
+    "stage_claims.changed": 2383,
+    "stage_claims.own_catches": 55383,
+    "transition.changed": 3803,
+    "transition.own_catches": 12190
+  }
+}

@@ -2020,3 +2020,21 @@ was merged, and stage 3 was not started.
 **Read — field audit addition:** `DELETE.mailbox_inventory` is independent fixture evidence. The production-written probe `payload.empty` and `payload.empty_state` are compared against it by `payload_claims`; they cannot select qualification silently. The named coherent-flip test and complete field perturbation exercise this boundary. The existing allowlisted resolution kinds are unchanged.
 
 **Run — malformed internal-repair regression within item 1:** a later partition caught coherent deletion of the terminal internal repair's `repair_of`: a direct dictionary lookup raised before the semantic comparison completed. The exact Message-ID comparison now handles an absent parent safely, and the dedicated key-deletion regression requires `false-completion` through the shared comparison. The affected partition is rerun; unchanged partitions continue. This is a validator correction, with no production or pin relaxation.
+
+**Run — complete local alteration matrix:** **98 recordings / 110 disjoint parts / 2,081,423 alterations / 267,100 coherent variants / 15,943 owner-set changes / zero slipped**. All twelve final logs pass. LOCAL-S2-FIXES-3.json pins their hashes, individual part timings and focused check outputs. The stopped initial run and the two superseded missing-parent partitions are not counted as passes.
+
+| Validator | Alterations its own proof catches | Of those, owner set changes |
+| --- | ---: | ---: |
+| script_differences | 5,669 | 681 |
+| stage_claims | 55,383 | 2,383 |
+| completion_errors | 2,740 | 1,404 |
+| payload_claims | 62,172 | 26 |
+| filing_claims | 1,200 | 162 |
+| transition | 12,190 | 3,803 |
+| local.errors | 1,552 | 1,170 |
+
+**Run — local commands:** the runner in `.work/19b-s2-fixes-3/run-tests.py` patches only the installed boundary fixture for this worktree. With `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/mail_tests:control/tests .work/venv/bin/python`, `test_mail_ci_selection test_owner_state_oracle test_owner_state_fixes_s2 test_owner_state_plants test_owner_state_s2_effects` prints **163 tests / OK**. The worktree-policy runner `.work/19b-s2/local.py test_owner_state_contracts test_owner_state_regressions` uses candidate gap recording and prints **8 tests / OK**; strict pin acceptance follows Linux capture. The subprocess policy wrapper `.work/19b-s2-fixes-3/worker-tests.py test_action_context` prints **13 tests / OK** (224.920s), including every mutation's real-crash/context-write fence. With `PYTHONPATH=control:control/tests`, the same wrapper's `test_crashes test_journal_closed test_record` prints **19 tests / OK**, including unchanged record growth. `python3 control/generate.py --check` prints `Generated artifacts match definitions`; `git diff --check` is clean. Exact individual commands/results/hashes are in the manifest.
+
+**Run — local limitations and corrections:** the first mixed base/Mail runner invocation had a `support` import collision and did not pass. A direct child worker lacked the installed Linux boundary; the worktree-only subprocess wrapper corrected that, then all 13 action-context tests passed. The local installed-channel test cannot perform its Linux UID setup (`os.chown` PermissionError) and is left to Linux CI; no test assertion or platform setup was weakened. The successful base-only command is separate above. The two onboarding alteration failures were fixed in the validator and their affected partitions rerun, never pinned as production gaps.
+
+**Read — CI plan:** the capture and finished pin commits use `[skip ci]` to avoid duplicate automatic PR replays; the full named workflows are dispatched manually on each exact pushed source. This does not omit a test: base and Mail run once for capture, then base, Mail and boundary each run twice for strict acceptance. Every wait uses one blocking `gh run watch ID --exit-status --interval 60` command per named run.
