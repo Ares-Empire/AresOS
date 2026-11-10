@@ -42,13 +42,23 @@ class Unsubscribe(MailCase):
         trace_start = len(TRACE.events)
         requests = []
         status = [204]
+        state_root = self.root
+        def unsubscribe(approval):
+            start = max(decode(state_root / 'state', state_root / 'independent').committed, default=0)
+            index = len(TRACE.script)
+            result = self.data('unsubscribe', approval)['operation']
+            TRACE.script[index].update(start_seq=start,
+                end_seq=max(decode(state_root / 'state', state_root / 'independent').committed, default=0))
+            return result
         class Handler(BaseHTTPRequestHandler):
             def log_message(self,*args):
                 pass
             def do_GET(self):
                 raise AssertionError('No GET unsubscribe')
             def do_POST(self):
-                event = TRACE.command('POST', folder=self.path)
+                record = decode(state_root / 'state', state_root / 'independent')
+                event = TRACE.command('POST', folder=self.path, url='https://' + self.headers['Host'] + self.path,
+                    before_seq=max(record.committed, default=0), committed_before=record.rows)
                 requests.append((self.path,dict(self.headers),self.rfile.read(int(self.headers['Content-Length']))))
                 self.send_response(status[0])
                 self.send_header('Location','https://must-not-follow.invalid')
@@ -68,7 +78,7 @@ class Unsubscribe(MailCase):
             approval = self.data('prepare_unsubscribe',{'reference':ref,'target':target})['approval']
             self.assertEqual(requests,[])
             with patch('aresos_control.mail.dkim.dns_txt',return_value=[key]):
-                result = self.data('unsubscribe',approval)['operation']
+                result = unsubscribe(approval)
             self.assertEqual(result['state'],'done',result)
             self.assertEqual(requests[0][0],'/leave?token=synthetic')
             self.assertEqual(requests[0][2],b'List-Unsubscribe=One-Click')
@@ -85,7 +95,7 @@ class Unsubscribe(MailCase):
             ref = self.mail.append(self.account,'INBOX',raw)
             approval = self.data('prepare_unsubscribe',{'reference':ref,'target':target})['approval']
             with patch('aresos_control.mail.dkim.dns_txt',return_value=[key]):
-                self.assertEqual(self.data('unsubscribe',approval)['operation']['state'],'partial')
+                self.assertEqual(unsubscribe(approval)['state'],'partial')
             self.assertEqual(len(requests),2)
             unsigned = self.fixture(headers={'List-Unsubscribe':'<' + target + '>', 'List-Unsubscribe-Post':'List-Unsubscribe=One-Click'})
             unsigned_approval = self.data('prepare_unsubscribe',{'reference':unsigned,'target':target})['approval']
