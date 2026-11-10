@@ -1,0 +1,7 @@
+- **High — [owner.py:1837](/C:/Users/pab/AresOS-22-update-route/os/owner-tools/owner.py:1837): recovery is unreachable through the installed entry after a cut.** After `tools → .tools-held`, `/var/lib/ares/at` dangles, so no installed command reaches `settle_tools()`. If the USB bootstrap subsequently fails mounting, copying or verifying its bundle, repeated attempts leave no working entry. The new test masks this by calling an already-loaded `main()`. **Fix:** keep a trusted recovery launcher outside the swapped directory; test the actual subprocess entry immediately after the cut and following bootstrap failures.
+
+- **Medium — [owner.py:1652](/C:/Users/pab/AresOS-22-update-route/os/owner-tools/owner.py:1652): missing cwd does not prove the whole process is gone.** A multithreaded process whose main thread calls `pthread_exit()` loses `/proc/<pid>/cwd` while workers remain alive, potentially holding tools files. The scanner skips it entirely. This behavior is [documented by Linux](https://man7.org/linux/man-pages/man5/proc_pid_cwd.5.html). **Fix:** distinguish confirmed kernel threads and fully exited processes from surviving thread groups; count uncertainty as in use. Add a live-worker regression alongside the zombie test.
+
+Payload hashes, fingerprint pins, both bootstrap blocks and the exact 17 pending bindings match. No additional whole-PR recovery blocker found. Linux tests unavailable: Python absent; WSL access denied. No files edited.
+
+CHANGES-NEEDED

@@ -91,7 +91,8 @@ def export(host, store, fingerprint, checked_bundle, require):
             require(not target.is_symlink() and (not target.exists() or target.is_file()), 'USB record is not an ordinary file')
             if target.exists():
                 require(target.read_bytes() == path.read_bytes() or path.name in
-                    ('title.json', 'record-c.json', 'layout-pending.json', 'layout-completed.json', 'layout-abandoned.json', 'prepare-intent.json'),
+                    ('title.json', 'record-c.json', 'layout-pending.json', 'layout-completed.json', 'layout-abandoned.json', 'prepare-intent.json',
+                     'outcome-pending.json'),
                     'USB has a different immutable record; preserve both and get help')
         return destination, paths
     try:

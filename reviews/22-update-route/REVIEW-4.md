@@ -1,0 +1,7 @@
+- **High — [owner.py:1616](/C:/Users/pab/AresOS-22-update-route/os/owner-tools/owner.py:1616): legacy exclusion remains incomplete.** The scan requires exactly `-I -B`. An already-running `python3 -B /var/lib/ares/tools/owner.py …` is accepted by 15f but invisible to every scan. After passing its initial checks, it can mutate state after both new preflights. **Fix:** recognize valid interpreter argument variants and resolve relative script paths; test an actual legacy invocation without `-I` across the block/swap boundary.
+
+- **High — [owner.py:1692](/C:/Users/pab/AresOS-22-update-route/os/owner-tools/owner.py:1692): refused recovery can leave no working tools.** Interrupt after `.tools-held` moves to `retired-tools/<hash>` but before publishing the replacement. If resumed preflight refuses, `unblock()` cannot restore anything: it only checks `.tools-held`. `/var/lib/ares/at` remains broken; a persistent preflight failure prevents bootstrap completion too. **Fix:** restore the verified retired copy when publication has not occurred, with durable, resumable rename handling. Test that tools actually work after refusal between the two swap renames.
+
+Payload hashes, fingerprint pins and the exact 17-file pending-rebind set match. No additional whole-PR blocker found. Linux tests could not run: Python absent; WSL access denied. No files edited.
+
+CHANGES-NEEDED
