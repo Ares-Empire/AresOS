@@ -85,12 +85,18 @@ def check(action, request):
         result['terminals'] = terminal_shells(result['stdout'].split())
         # greetd's wrapper (non-interactive, not a login shell) sources
         # /etc/profile before the session: its profile scripts keep the system PATH.
+        # Review 6: a missing probe or no wrapper record fails instead of passing.
         probe = pathlib.Path('/tmp/aresos-ci-profile-path')
-        lines = probe.read_text().splitlines() if probe.exists() else []
+        assert probe.is_file(), 'the profile probe recorded nothing'
+        lines = probe.read_text().splitlines()
+        wrappers = []
         for line in lines:
             arg0, flags, login, path = line.split('|', 3)
             if 'i' not in flags and not arg0.startswith('-') and not login:
-                assert '/var/home/ares/.local/bin' not in path.split(':'), ('session wrapper got the daily PATH', lines)
+                wrappers.append(path)
+        assert wrappers, ('no non-interactive, non-login profile run (greetd wrapper) recorded', lines)
+        for path in wrappers:
+            assert '/var/home/ares/.local/bin' not in path.split(':'), ('session wrapper got the daily PATH', lines)
         result['profile_paths'] = lines
         ran = pathlib.Path('/tmp/aresos-ci-shadow-ran')
         assert not ran.exists(), ('a shadowing program ran', ran.read_text())

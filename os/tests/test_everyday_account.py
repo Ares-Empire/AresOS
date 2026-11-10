@@ -270,6 +270,10 @@ class StartupPathTest(unittest.TestCase):
         # And a probe last in /etc/profile.d shows greetd's wrapper keeps the system PATH.
         self.assertIn('/etc/profile.d/zz-aresos-ci-profile-path.sh', containerfile)
         self.assertIn("('session wrapper got the daily PATH', lines)", checks)
+        # Review 6: a missing probe, or one without a wrapper record, fails.
+        self.assertIn("assert probe.is_file(), 'the profile probe recorded nothing'", checks)
+        self.assertIn("assert wrappers, ('no non-interactive, non-login profile run (greetd wrapper) recorded', lines)",
+                      checks)
 
 
 class PolicyFilesTest(unittest.TestCase):
