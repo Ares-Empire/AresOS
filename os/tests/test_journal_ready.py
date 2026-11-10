@@ -51,6 +51,25 @@ class JournalReadyTest(unittest.TestCase):
             with self.subTest(line=line):
                 self.assertFalse(follower_ready(BEFORE + line + AFTER))
 
+    def test_no_line_break_may_sit_anywhere_before_the_message(self):
+        # Review 5: \s* in the timestamp spanned line breaks.
+        good = '[   73.458055] bazzite aresos-ci[2795]: ARESOS_JOURNAL_READY\n'
+        self.assertTrue(follower_ready(good))
+        message = good.index('ARESOS')
+        for position in range(1, message):
+            for breaker in ('\n', '\r', '\r\n'):
+                with self.subTest(position=position, breaker=repr(breaker)):
+                    broken = good[:position] + breaker + good[position:]
+                    self.assertFalse(follower_ready(broken), repr(broken))
+        for line in ('[\n 1.0] host aresos-ci[7]: ARESOS_JOURNAL_READY\n',
+                     '[\r 1.0] host aresos-ci[7]: ARESOS_JOURNAL_READY\n',
+                     '[ 1.0]\nhost aresos-ci[7]: ARESOS_JOURNAL_READY\n',
+                     '[ 1.0] host aresos-ci[7]:\nARESOS_JOURNAL_READY\n',
+                     '[ 1.0] host aresos-ci[7]: \rARESOS_JOURNAL_READY\n',
+                     'noise\r[ 1.0] host aresos-ci[7]: ARESOS_JOURNAL_READY\n'):
+            with self.subTest(line=repr(line)):
+                self.assertFalse(follower_ready(line))
+
     def test_an_unterminated_record_never_counts(self):
         self.assertFalse(follower_ready(READY.rstrip('\r\n')))
         self.assertFalse(follower_ready(BEFORE + READY.rstrip('\n')))

@@ -10,8 +10,9 @@ import re
 
 TOKEN = 'ARESOS_JOURNAL_READY'
 # A complete follower record: line start, monotonic timestamp, host, the
-# aresos-ci tag with its PID, the message, and the terminating newline.
-RECORD = re.compile(r'^\[\s*\d+\.\d+\] \S+ aresos-ci\[\d+\]: ([^\r\n]*)\r?\n', re.M)
+# aresos-ci tag with its PID, the message, and the terminating newline. No
+# part before the newline may match \r or \n (review 5: \s* did).
+RECORD = re.compile(r'^\[[ \t]*\d+\.\d+\] [^\s]+ aresos-ci\[\d+\]: ([^\r\n]*)\r?\n', re.M)
 COLOUR = re.compile(r'\x1b\[[0-9;:]*m')
 
 
