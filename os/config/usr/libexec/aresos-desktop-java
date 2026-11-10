@@ -8,9 +8,13 @@ wrapper
     is held from loading until the JVM's final exit (B2),
   - asks the supervisor (desktop.sock) for this launch: the launch nonce and
     desktop instance B1 binds the mod to, and the GPU choice (B5),
-  - starts Java as its child, tells the supervisor the JVM's PID, and reports
-    the exact exit status when it ends (also in desktop-exit.json, in case the
+  - starts Java as its child inside the game's own systemd scope, as the
+    supervisor names it (B5: the memory target holds however Prism was
+    started), waits until the JVM is in that scope, tells the supervisor the
+    JVM's PID, and reports the exact exit status when it ends (also in
+    desktop-exit.json, bound to the launch and the process, in case the
     supervisor was restarted meanwhile),
+  - reports a start that fails (jvm_failed) instead of leaving it open,
   - forwards termination signals to Java, and Java dies with it if the
     wrapper is killed (Prism's Kill button kills the wrapper).
 Prism's stdin (its launch script), stdout and stderr pass straight through.
@@ -24,6 +28,7 @@ import socket
 import subprocess
 import sys
 import tempfile
+import time
 
 SYSTEM_PATH = '/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin'
 PRISM_ROOT = '/usr/lib/prismlauncher'
@@ -36,6 +41,7 @@ SUPPLIED = frozenset({'ARESOS_LAUNCH_NONCE', 'ARESOS_DESKTOP_INSTANCE', 'PATH', 
                       '__GLX_VENDOR_LIBRARY_NAME', '__VK_LAYER_NV_optimus'})
 FORWARDED = (signal.SIGTERM, signal.SIGINT, signal.SIGHUP, signal.SIGQUIT)
 REFUSED, BUSY = 78, 75
+SCOPE_WAIT = 10.0
 
 
 def game_environment(environ, supplied, prism_root=PRISM_ROOT):
@@ -91,6 +97,43 @@ def write_exit(path, record):
     os.replace(temporary, path)
 
 
+def scope_command(reply):
+    """The command the supervisor puts before Java (the game's scope) and the unit Java must end up in."""
+    scope, unit = reply.get('scope'), reply.get('unit')
+    if (not isinstance(scope, list) or not all(isinstance(part, str) for part in scope)
+            or (scope and not os.path.isabs(scope[0])) or (unit is not None and not isinstance(unit, str))
+            or bool(scope) != bool(unit)):
+        raise ValueError('the supervisor sent no usable scope for the game')
+    return scope, unit
+
+
+def in_unit(pid, unit):
+    try:
+        with open(f'/proc/{pid}/cgroup', encoding='utf-8') as source:
+            return any(line.startswith('0::') and line.rstrip().endswith('/' + unit) for line in source)
+    except OSError:
+        return False
+
+
+def start_ticks(pid):
+    try:
+        with open(f'/proc/{pid}/stat', 'rb') as source:
+            data = source.read()
+        return int(data[data.rindex(b')') + 2:].split()[19])
+    except (OSError, ValueError, IndexError):
+        return None
+
+
+def stop(child):
+    if child.poll() is None:
+        child.terminate()
+        try:
+            child.wait(10)
+        except subprocess.TimeoutExpired:
+            child.kill()
+            child.wait()
+
+
 def main(argv, environ=os.environ):
     if len(argv) < 2 or not os.path.isabs(argv[1]):
         print('usage: aresos-desktop-java /path/to/java [arguments]', file=sys.stderr)
@@ -110,7 +153,8 @@ def main(argv, environ=os.environ):
     try:
         supervisor = Supervisor(os.path.join(folder, 'desktop.sock'))
         reply = supervisor.ask({'op': 'jvm_start', 'pid': os.getpid(), 'java': argv[1],
-                                'instance': environ.get('INST_ID')})
+                                'instance': environ.get('INST_ID'), 'instance_dir': environ.get('INST_DIR'),
+                                'cwd': os.getcwd()})
     except (OSError, ValueError) as error:
         print(f'aresos-desktop-java: the AresOS desktop starts only through its session supervisor ({error})',
               file=sys.stderr)
@@ -119,23 +163,52 @@ def main(argv, environ=os.environ):
         print('aresos-desktop-java: ' + str(reply.get('message', 'refused by the desktop supervisor')),
               file=sys.stderr)
         return REFUSED
-    env = game_environment(environ, reply.get('env', {}))
-    child = subprocess.Popen(argv[1:], env=env, pass_fds=(lock,), preexec_fn=die_with_parent(os.getpid()))
+
+    def failed(reason):
+        print(f'aresos-desktop-java: {reason}', file=sys.stderr)
+        try:
+            supervisor.ask({'op': 'jvm_failed', 'reason': reason})
+        except (OSError, ValueError):
+            pass
+        supervisor.close()
+        return REFUSED
+
+    try:
+        scope, unit = scope_command(reply)
+        env = game_environment(environ, reply.get('env', {}))
+    except ValueError as error:
+        return failed(str(error))
+    try:
+        child = subprocess.Popen([*scope, *argv[1:]], env=env, pass_fds=(lock,),
+                                 preexec_fn=die_with_parent(os.getpid()))
+    except (OSError, subprocess.SubprocessError) as error:
+        return failed(f'Java could not be started: {error}')
     for signum in FORWARDED:
         signal.signal(signum, lambda number, frame: child.send_signal(number))
+    if unit is not None:
+        # systemd-run creates the scope, then becomes Java in it: report the JVM only once it is there.
+        deadline = time.monotonic() + SCOPE_WAIT
+        while not in_unit(child.pid, unit) and child.poll() is None and time.monotonic() < deadline:
+            time.sleep(0.05)
+        if child.poll() is None and not in_unit(child.pid, unit):
+            stop(child)
+            return failed(f'the game did not reach its scope {unit}')
+    ticks = start_ticks(child.pid)
     try:
-        if not supervisor.ask({'op': 'jvm_started', 'pid': child.pid}).get('ok'):
-            print('aresos-desktop-java: the supervisor could not watch the game', file=sys.stderr)
+        answer = supervisor.ask({'op': 'jvm_started', 'pid': child.pid})
+        if not answer.get('ok'):
+            stop(child)
+            return failed('the supervisor refused the game: ' + str(answer.get('message', '')))
     except (OSError, ValueError) as error:
         print(f'aresos-desktop-java: lost the supervisor ({error})', file=sys.stderr)
     status = child.wait()
-    record = {'pid': child.pid, 'status': status, 'launch': reply.get('launch')}
+    record = {'launch': reply.get('launch'), 'pid': child.pid, 'ticks': ticks, 'status': status}
     try:
         write_exit(os.path.join(folder, 'desktop-exit.json'), record)
     except OSError as error:
         print(f'aresos-desktop-java: could not record the exit ({error})', file=sys.stderr)
     try:
-        supervisor.ask({'op': 'jvm_exited', 'pid': child.pid, 'status': status})
+        supervisor.ask({'op': 'jvm_exited', 'pid': child.pid, 'status': status, 'launch': reply.get('launch')})
     except (OSError, ValueError):
         pass
     supervisor.close()

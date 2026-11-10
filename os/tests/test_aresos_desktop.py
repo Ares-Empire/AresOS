@@ -6,6 +6,7 @@ import json
 import os
 import pathlib
 import shutil
+import struct
 import socket
 import subprocess
 import sys
@@ -37,7 +38,7 @@ LINUX = sys.platform.startswith('linux')
 
 
 def fake_share(folder, lock=LOCK):
-    """A stand-in for /usr/share/aresos/minecraft whose jars are random bytes, with a lock pinning them."""
+    """A stand-in for /usr/share/aresos/minecraft whose jars and metadata are random bytes, with a lock pinning them."""
     share = pathlib.Path(folder)
     lock = json.loads(json.dumps(lock))
     for name in ('libraries', 'mods', 'patches'):
@@ -50,17 +51,60 @@ def fake_share(folder, lock=LOCK):
         data = os.urandom(64)
         (share / 'mods' / mod['file']).write_bytes(data)
         mod['sha256'] = hashlib.sha256(data).hexdigest()
+    for component in lock['components']:
+        data = json.dumps({'uid': component['uid'], 'version': component['version'], 'n': os.urandom(4).hex()})
+        (share / 'patches' / component['file']).write_text(data)
+        component['sha256'] = hashlib.sha256(data.encode()).hexdigest()
     (share / 'patches' / (desktop.LOADER_UID + '.json')).write_text(json.dumps(desktop.loader_patch(lock)))
     (share / desktop.LOCK_NAME).write_text(json.dumps(lock))
     return str(share), lock
 
 
-def make_world(paths, lock, provisioned='complete\n'):
+# Minimal NBT writer for real-format saved data (tag, value) pairs, as Minecraft writes them.
+BYTE, SHORT, INT, LONG, FLOAT, DOUBLE, STRING, LIST, COMPOUND = 1, 2, 3, 4, 5, 6, 8, 9, 10
+
+
+def nbt_payload(tag, value):
+    if tag in (BYTE, SHORT, INT, LONG, FLOAT, DOUBLE):
+        return struct.pack({BYTE: '>b', SHORT: '>h', INT: '>i', LONG: '>q', FLOAT: '>f', DOUBLE: '>d'}[tag], value)
+    if tag == STRING:
+        data = value.encode()
+        return struct.pack('>H', len(data)) + data
+    if tag == LIST:
+        element, items = value
+        return struct.pack('>bi', element, len(items)) + b''.join(nbt_payload(element, item) for item in items)
+    if tag == COMPOUND:
+        out = b''
+        for name, (child, item) in value.items():
+            out += struct.pack('>b', child) + nbt_payload(STRING, name) + nbt_payload(child, item)
+        return out + b'\0'
+    raise ValueError(tag)
+
+
+def nbt_file(root):
+    return gzip.compress(struct.pack('>b', COMPOUND) + nbt_payload(STRING, '') + nbt_payload(COMPOUND, root))
+
+
+def saved(data):
+    return {'data': (COMPOUND, data), 'DataVersion': (INT, 4903)}
+
+
+MARKER = saved({'enabled': (BYTE, 1)})
+HOME = saved({'seed': (LONG, 49), 'x': (INT, -64), 'y': (INT, 56), 'z': (INT, 32), 'yaw': (FLOAT, 0.0)})
+LEVEL = {'Data': (COMPOUND, {'LevelName': (STRING, 'AresOS'), 'version': (INT, 19133)})}
+
+
+def make_world(paths, lock, provisioned='complete\n', marker=MARKER, home=HOME, level=LEVEL, manifest=True):
     world = pathlib.Path(paths.worlds) / lock['world']
     (world / 'data/aresos').mkdir(parents=True)
-    (world / 'level.dat').write_bytes(gzip.compress(b'level'))
-    (world / 'data/aresos/desktop.dat').write_bytes(gzip.compress(b'marker'))
-    (world / 'aresos-home.properties').write_text('version=1\n')
+    if level is not None:
+        (world / 'level.dat').write_bytes(nbt_file(level))
+    if marker is not None:
+        (world / 'data/aresos/desktop.dat').write_bytes(nbt_file(marker))
+    if home is not None:
+        (world / 'data/aresos/nether_home.dat').write_bytes(nbt_file(home))
+    if manifest:
+        (world / 'aresos-home.properties').write_text('version=1\nseed=49\n')
     if provisioned is not None:
         (world / 'aresos-home.provisioned').write_text(provisioned)
     return world
@@ -79,6 +123,9 @@ class FakeRunner:
         self.watched = []
         self.lock_held = False
         self.stops = 0
+        self.scope = None
+        self.scopes_asked = []
+        self.pressure = None
 
     def helper_running(self):
         return self.helper_alive
@@ -96,10 +143,13 @@ class FakeRunner:
         return object()
 
     def identify(self, pid):
-        return self.processes.get(pid)
+        if pid not in self.processes:
+            return None
+        parent, ticks, *cgroup = self.processes[pid]
+        return parent, ticks, cgroup[0] if cgroup else ''
 
     def alive(self, pid, ticks):
-        return self.processes.get(pid, (None, None))[1] == ticks
+        return pid in self.processes and self.processes[pid][1] == ticks
 
     def watch_jvm(self, pid, ticks):
         self.watched.append(pid)
@@ -108,10 +158,17 @@ class FakeRunner:
     def jvm_lock_held(self):
         return self.lock_held
 
+    def scope_result(self, unit):
+        self.scopes_asked.append(unit)
+        return self.scope
+
+    def memory_pressure(self):
+        return self.pressure
+
     def show_view(self, text):
         self.views.append(text)
 
-    def close_view(self):
+    def close_view(self, wait=False):
         self.closed_views += 1
 
 
@@ -142,15 +199,25 @@ class Base(unittest.TestCase):
                                            'WAYLAND_DISPLAY': 'wayland-0', 'PATH': '/home/ares/.local/bin:/usr/bin',
                                            'ARESOS_LAUNCH_NONCE': 'leaked-nonce-0000000000'})
 
+    def jvm_request(self, **changes):
+        instance = self.paths.instance('AresDesktop')
+        request = {'instance': 'AresDesktop', 'java': self.lock['java']['path'], 'instance_dir': instance,
+                   'cwd': os.path.join(instance, 'minecraft')}
+        request.update(changes)
+        return request
+
     def run_game(self, sup, wrapper_pid=None):
         """The wrapper asks, the JVM starts: returns (pid, the environment the game got)."""
         wrapper_pid = wrapper_pid or self.next_pid
         pid = wrapper_pid + 1
         self.next_pid += 10
-        ok, reply = sup.on_jvm_start({'instance': 'AresDesktop', 'java': self.lock['java']['path']})
+        ok, reply = sup.on_jvm_start(self.jvm_request())
         self.assertTrue(ok, reply)
-        self.runner.processes[pid] = (wrapper_pid, pid * 7)
-        self.assertTrue(sup.on_jvm_started(wrapper_pid, pid))
+        self.assertEqual(reply['scope'][-2:], ['--property=MemoryHigh=5G', '--'])
+        self.assertEqual(reply['unit'], f'aresos-game-{reply["launch"]}.scope')
+        self.runner.processes[pid] = (wrapper_pid, pid * 7,
+                                      f'0::/user.slice/user@1001.service/aresos.slice/{reply["unit"]}\n')
+        self.assertEqual(sup.on_jvm_started(wrapper_pid, pid, reply['launch']), (True, ''))
         return pid, reply['env']
 
     def end_game(self, sup, pid, status):
@@ -255,6 +322,20 @@ class VerifyInputsTest(unittest.TestCase):
         if LINUX:
             self.assertIn('fabric-api.jar is not a regular file', text)
 
+    def test_the_pinned_component_metas_are_inputs_too(self):
+        # Review 1, finding 8: the Minecraft and LWJGL metas Prism reads ship with the image and must match the pin.
+        patches = pathlib.Path(self.share) / 'patches'
+        meta = json.loads((patches / 'org.lwjgl3.json').read_text())
+        meta['version'] = '3.4.3'
+        (patches / 'org.lwjgl3.json').write_text(json.dumps(meta))
+        (patches / 'org.lwjgl.json').write_text('{}')
+        text = '\n'.join(desktop.verify_inputs(self.lock, self.share, java_check=False))
+        self.assertIn('org.lwjgl3.json does not match its pinned SHA-256', text)
+        self.assertIn('unpinned files: org.lwjgl.json', text)
+        self.assertEqual(sorted(os.path.basename(path) for path, _ in desktop.pinned_files(self.lock, self.share)
+                                if os.path.dirname(path) == str(patches)),
+                         ['net.minecraft.json', 'org.lwjgl3.json'])
+
     def test_java_and_prism_must_exist(self):
         problems = desktop.verify_inputs(self.lock, self.share, java_check=True)
         if not os.access(self.lock['java']['path'], os.X_OK):
@@ -297,7 +378,7 @@ class ProvisionTest(Base):
         self.assertEqual(settings['AutomaticJava'], 'false')
         pack = json.loads((instance / 'mmc-pack.json').read_text())
         self.assertEqual([(c['uid'], c['version']) for c in pack['components']],
-                         [('net.minecraft', '26.2'), ('net.fabricmc.fabric-loader', '0.19.5')])
+                         [('net.minecraft', '26.2'), ('org.lwjgl3', '3.4.1'), ('net.fabricmc.fabric-loader', '0.19.5')])
         options = (instance / 'minecraft/options.txt').read_text().splitlines()
         self.assertIn('renderDistance:8', options)
         self.assertIn('simulationDistance:5', options)
@@ -362,15 +443,16 @@ class ProvisionTest(Base):
         (instance / 'instance.cfg').write_text(config + 'lastLaunchTime=5\n')
         pack = json.loads((instance / 'mmc-pack.json').read_text())
         pack['components'][0]['version'] = '26.3'
-        pack['components'].append({'uid': 'org.lwjgl3', 'version': '3.4.1', 'dependencyOnly': True})
+        pack['components'][1]['version'] = '3.4.3'
         pack['components'].append({'uid': 'net.neoforged', 'version': '1'})
         (instance / 'mmc-pack.json').write_text(json.dumps(pack))
         problems = desktop.check_instance(self.paths, self.lock)
-        self.assertEqual(len(problems), 4, problems)
+        self.assertEqual(len(problems), 5, problems)
         text = '\n'.join(problems)
         self.assertIn('minecraft/saves points to /tmp/elsewhere', text)
         self.assertIn("WrapperCommand is '/usr/bin/env'", text)
         self.assertIn('Minecraft is 26.3, this AresOS pins 26.2', text)
+        self.assertIn('LWJGL is 3.4.3, this AresOS pins 3.4.1', text)
         self.assertIn('unexpected components: net.neoforged', text)
         self.assertEqual((instance / 'mmc-pack.json').read_text(), json.dumps(pack))
 
@@ -384,29 +466,112 @@ class ProvisionTest(Base):
             '[General]\nConfigVersion=1.3\nInstanceType=OneSix\nJavaPath=/usr/lib/jvm/java-25-openjdk/bin/java\n'
             'JavaVersion=25.0.5\nOverrideCommands=true\nOverrideJavaLocation=true\nlastLaunchTime=1763000000\n'
             'WrapperCommand=/usr/libexec/aresos-desktop-java\nname=AresDesktop\n')
+        # And mmc-pack.json as Prism saves it: its own order and cached fields.
         pack = json.loads((instance / 'mmc-pack.json').read_text())
-        pack['components'].insert(0, {'uid': 'org.lwjgl3', 'version': '3.4.1', 'dependencyOnly': True})
+        pack['components'].reverse()
+        for component in pack['components']:
+            component['cachedRequires'] = [{'uid': 'net.minecraft'}]
         (instance / 'mmc-pack.json').write_text(json.dumps(pack))
         self.assertEqual(desktop.check_instance(self.paths, self.lock), [])
 
+    def test_any_other_lwjgl_or_a_missing_or_doubled_component_is_drift(self):
+        # Review 1, finding 8: the whole executable set is pinned, LWJGL included.
+        desktop.provision(self.paths, self.lock)
+        pack_file = pathlib.Path(self.paths.instance('AresDesktop')) / 'mmc-pack.json'
+        original = json.loads(pack_file.read_text())
+        for change, expected in ((lambda c: c.__setitem__(1, dict(c[1], version='3.4.3')), 'LWJGL is 3.4.3'),
+                                 (lambda c: c.pop(1), 'LWJGL is None'),
+                                 (lambda c: c.append(dict(c[1])), 'a component listed twice')):
+            pack = json.loads(json.dumps(original))
+            change(pack['components'])
+            pack_file.write_text(json.dumps(pack))
+            self.assertIn(expected, '\n'.join(desktop.check_instance(self.paths, self.lock)))
+
 
 class WorldCheckTest(Base):
-    def test_states(self):
-        self.assertEqual(desktop.check_world(self.paths, self.lock)[0], 'missing')
-        world = make_world(self.paths, self.lock)
+    # Review 1, finding 2: real saved data, not gzip-readable placeholders.
+
+    def check(self, **world):
+        shutil.rmtree(self.paths.worlds, ignore_errors=True)
+        make_world(self.paths, self.lock, **world)
+        return desktop.check_world(self.paths, self.lock)
+
+    def test_the_readers_follow_the_mods_real_saved_data(self):
+        # Files the mod itself wrote in a client game test (os/tests/fixtures/desktop-world/SOURCE.txt).
+        fixtures = ROOT / 'os/tests/fixtures/desktop-world'
+        marker = desktop.read_saved(str(fixtures / 'desktop.dat'))
+        self.assertEqual(marker['data'], (COMPOUND, {'enabled': (BYTE, 1)}))
+        self.assertEqual(marker['DataVersion'][0], INT)
+        home = desktop.read_saved(str(fixtures / 'nether_home.dat'))['data'][1]
+        self.assertEqual({name: tag for name, (tag, _) in home.items()},
+                         {'seed': LONG, 'x': INT, 'y': INT, 'z': INT, 'yaw': FLOAT})
+        desktop.check_marker(str(fixtures / 'desktop.dat'))
+        desktop.check_home(str(fixtures / 'nether_home.dat'))
+        # A hub made of exactly those files passes.
+        world = make_world(self.paths, self.lock, marker=None, home=None)
+        shutil.copy(fixtures / 'desktop.dat', world / 'data/aresos/desktop.dat')
+        shutil.copy(fixtures / 'nether_home.dat', world / 'data/aresos/nether_home.dat')
         self.assertEqual(desktop.check_world(self.paths, self.lock), ('ok', str(world)))
+
+    def test_a_valid_hub_passes(self):
+        self.assertEqual(desktop.check_world(self.paths, self.lock)[0], 'missing')
+        self.assertEqual(self.check()[0], 'ok')
+        with_home = saved({**HOME['data'][1], 'home': (COMPOUND, {
+            'dimension': (STRING, 'minecraft:the_nether'), 'position': (LIST, (DOUBLE, [1.5, 64.0, 2.5])),
+            'yaw': (FLOAT, 90.0), 'pitch': (FLOAT, 20.0)})})
+        self.assertEqual(self.check(home=with_home)[0], 'ok')
+
+    def test_damage_is_named_and_never_repaired(self):
+        cases = {
+            'missing home data': (dict(home=None), 'the saved Nether home (data/aresos/nether_home.dat) is missing'),
+            'disabled marker': (dict(marker=saved({'enabled': (BYTE, 0)})), 'switched off'),
+            'marker without enabled': (dict(marker=saved({})), 'enabled is missing'),
+            'missing marker': (dict(marker=None), 'desktop marker (data/aresos/desktop.dat) is missing'),
+            'home with a wrong type': (dict(home=saved({**HOME['data'][1], 'x': (LONG, 1)})), 'x is missing'),
+            'home with a bad position': (dict(home=saved({**HOME['data'][1], 'home': (COMPOUND, {
+                'dimension': (STRING, 'minecraft:the_nether'), 'position': (LIST, (DOUBLE, [1.0])),
+                'yaw': (FLOAT, 0.0), 'pitch': (FLOAT, 0.0)})})), 'three numbers'),
+            'interrupted provisioning': (dict(provisioned='started\n'), 'the hub build was not finished'),
+            'no completion record': (dict(provisioned=None), 'no completion record'),
+            'no manifest': (dict(manifest=False), 'manifest'),
+            'unreadable level': (dict(level=None), 'the level cannot be read'),
+            'level without Data': (dict(level={'Other': (INT, 1)}), 'Data is missing'),
+        }
+        for name, (world, expected) in cases.items():
+            with self.subTest(name):
+                before = None
+                state, detail = self.check(**world)
+                self.assertEqual(state, 'damaged', detail)
+                self.assertIn(expected, detail)
+        # Never repaired: checking leaves every byte as it was.
+        world = pathlib.Path(self.paths.worlds, 'AresHub')
+        before = sorted((path, path.read_bytes()) for path in world.rglob('*') if path.is_file())
+        desktop.check_world(self.paths, self.lock)
+        self.assertEqual(sorted((path, path.read_bytes()) for path in world.rglob('*') if path.is_file()), before)
+
+    def test_malformed_nbt_is_damage(self):
+        raw = gzip.decompress(nbt_file(MARKER))
+        for name, data in (('not gzip', b'not gzip'), ('truncated', gzip.compress(raw[:-3])),
+                           ('trailing bytes', gzip.compress(raw + b'\0')),
+                           ('unknown tag', gzip.compress(raw[:3] + b'\x63' + raw[4:])),
+                           ('list root', gzip.compress(b'\x09' + raw[1:]))):
+            with self.subTest(name):
+                shutil.rmtree(self.paths.worlds, ignore_errors=True)
+                world = make_world(self.paths, self.lock)
+                (world / 'data/aresos/desktop.dat').write_bytes(data)
+                state, detail = desktop.check_world(self.paths, self.lock)
+                self.assertEqual(state, 'damaged', name)
+                self.assertIn('unreadable', detail)
+        deep = b'\x0a\x00\x00' + b'\x0a\x00\x00' * 100 + b'\x00' * 101
+        with self.assertRaises(desktop.NbtError):
+            desktop.read_nbt(deep)
+
+    def test_an_older_level_copy_counts_when_the_level_file_is_damaged(self):
+        world = make_world(self.paths, self.lock)
         (world / 'level.dat').write_bytes(b'not gzip')
         self.assertEqual(desktop.check_world(self.paths, self.lock)[0], 'damaged')
-        (world / 'level.dat_old').write_bytes(gzip.compress(b'old'))
+        (world / 'level.dat_old').write_bytes(nbt_file(LEVEL))
         self.assertEqual(desktop.check_world(self.paths, self.lock)[0], 'ok')
-        (world / 'data/aresos/desktop.dat').unlink()
-        self.assertIn('desktop marker', desktop.check_world(self.paths, self.lock)[1])
-
-    def test_an_interrupted_hub_build_is_damaged(self):
-        make_world(self.paths, self.lock, provisioned='started\n')
-        state, detail = desktop.check_world(self.paths, self.lock)
-        self.assertEqual(state, 'damaged')
-        self.assertIn('not finished', detail)
 
 
 # ---------------------------------------------------------------- launch command and environment
@@ -416,10 +581,28 @@ class LaunchTest(unittest.TestCase):
     def test_prism_runs_in_its_own_scope_with_the_b5_memory_target(self):
         self.assertEqual(desktop.prism_command(LOCK, 'abc123', 'AresHub'), [
             '/usr/bin/systemd-run', '--user', '--scope', '--quiet', '--collect', '--slice=aresos.slice',
-            '--unit=aresos-desktop-abc123.scope', '--property=MemoryHigh=5G', '--',
+            '--unit=aresos-desktop-abc123.scope', '--',
             '/usr/bin/prismlauncher', '--launch', 'AresDesktop', '--world', 'AresHub'])
         self.assertEqual(desktop.prism_command(LOCK, 'abc123')[-3:], ['/usr/bin/prismlauncher', '--launch',
                                                                       'AresDesktop'])
+        # Review 1, finding 4: the memory target sits on the JVM's own scope, which the wrapper creates.
+        self.assertEqual(desktop.game_scope('abc123'), [
+            '/usr/bin/systemd-run', '--user', '--scope', '--quiet', '--slice=aresos.slice',
+            '--unit=aresos-game-abc123.scope', '--property=MemoryHigh=5G', '--'])
+        self.assertTrue(desktop.game_cgroup_matches(
+            '0::/user.slice/user-1001.slice/user@1001.service/aresos.slice/aresos-game-abc123.scope\n', 'abc123'))
+        for cgroup in ('0::/user.slice/user-1001.slice/user@1001.service/aresos.slice/aresos-desktop-abc123.scope\n',
+                       '0::/user.slice/user-1001.slice/session-2.scope\n', '',
+                       '0::/a/aresos.slice/aresos-game-abc123.scope\n0::/b\n'):
+            self.assertFalse(desktop.game_cgroup_matches(cgroup, 'abc123'), cgroup)
+
+    def test_memory_pressure_reads_the_last_minute(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = os.path.join(folder, 'memory')
+            pathlib.Path(path).write_text('some avg10=1.00 avg60=23.50 avg300=4.00 total=1\n'
+                                          'full avg10=0.00 avg60=2.00 avg300=0.00 total=1\n')
+            self.assertEqual(desktop.memory_pressure(path), 23.5)
+            self.assertIsNone(desktop.memory_pressure(os.path.join(folder, 'none')))
 
     def test_prism_gets_the_system_path_and_no_launch_secrets(self):
         env = desktop.session_environment({'PATH': '/home/ares/.local/bin:/usr/bin', 'WAYLAND_DISPLAY': 'w',
@@ -698,7 +881,7 @@ class RestartPolicyTest(Base):
         self.assertEqual(len(self.runner.prisms), 1)
         self.assertEqual(sup.persisted.consecutive, 0)
         # The owner may start it again from Prism himself.
-        ok, _ = sup.on_jvm_start({'instance': 'AresDesktop', 'java': self.lock['java']['path']})
+        ok, _ = sup.on_jvm_start(self.jvm_request())
         self.assertTrue(ok)
         self.assertEqual(sup.state, 'STARTING')
 
@@ -714,7 +897,10 @@ class RestartPolicyTest(Base):
         sup.tick()
         self.assertEqual(len(self.runner.prisms), 1)
 
-    def test_an_unknown_exit_counts_as_a_failure_after_the_report_wait(self):
+    def test_a_whole_scope_death_without_a_report_latches_like_a_kill(self):
+        # Review 1, finding 1 (JUDGMENT-CALL 10 updated): systemd-oomd or the kernel stopping the whole scope kills
+        # the wrapper too, so no exit is reported. That is never a plain crash: latched, not counted, no restart.
+        self.runner.scope = 'oom-kill'
         sup = self.supervisor()
         sup.start()
         pid, _ = self.in_world(sup)
@@ -724,19 +910,72 @@ class RestartPolicyTest(Base):
         self.assertEqual(sup.state, 'IN_WORLD')
         self.advance(desktop.EXIT_REPORT_WAIT)
         sup.tick()
-        self.assertEqual((sup.state, sup.reason, sup.persisted.consecutive), ('STARTING', 'restarting', 1))
+        self.assertEqual((sup.state, sup.reason, sup.persisted.latched), ('RECOVERY', 'killed', True))
+        self.assertEqual((self.stored()['consecutive'], self.stored()['failures']), (0, []))
+        self.assertIn('ended together; its scope ended with oom-kill', sup.persisted.detail)
+        self.assertEqual(self.runner.scopes_asked, [f'aresos-game-{sup.launch.id}.scope'])
+        self.advance(3600)
+        sup.tick()
+        self.assertEqual(len(self.runner.prisms), 1)
+
+    def test_a_kill_waits_for_cleared_memory_pressure_before_retry(self):
+        # B5: relaunch only after the owner's Retry and once the last minute's pressure has cleared.
+        sup = self.supervisor()
+        sup.start()
+        pid, _ = self.in_world(sup)
+        self.end_game(sup, pid, -9)
+        self.runner.pressure = 42.0
+        ok, text = sup.retry()
+        self.assertFalse(ok)
+        self.assertIn('still under pressure (42%', text)
+        self.assertTrue(self.stored()['latched'])
+        self.assertEqual(len(self.runner.prisms), 1)
+        self.runner.pressure = 3.0
+        ok, _ = sup.retry()
+        self.assertTrue(ok)
+        self.assertEqual(len(self.runner.prisms), 2)
+
+    def test_prism_killed_before_the_game_latches(self):
+        sup = self.supervisor()
+        sup.start()
+        self.advance(30)
+        sup.on_prism_exit(-9)
+        self.assertEqual((sup.state, sup.reason, sup.persisted.latched), ('RECOVERY', 'killed', True))
+        self.advance(3600)
+        sup.tick()
+        self.assertEqual(len(self.runner.prisms), 1)
 
     def test_the_wrappers_exit_file_is_read_when_its_report_was_lost(self):
         sup = self.supervisor()
         sup.start()
         pid, _ = self.in_world(sup)
         os.makedirs(self.paths.run_dir, exist_ok=True)
-        pathlib.Path(self.paths.exit_file).write_text(json.dumps({'pid': pid, 'status': 0}))
+        record = {'launch': sup.launch.id, 'pid': pid, 'ticks': pid * 7, 'status': 0}
+        pathlib.Path(self.paths.exit_file).write_text(json.dumps(record))
         self.runner.processes.pop(pid)
         sup.on_jvm_gone()
         self.advance(desktop.EXIT_REPORT_WAIT)
         sup.tick()
         self.assertEqual((sup.state, sup.reason), ('RECOVERY', 'quit'))
+
+    def test_an_exit_record_of_another_launch_or_process_is_ignored(self):
+        # Review 1, finding 5: records bind to the launch ID and the process, not only a (reusable) PID.
+        for record in ({'launch': 'other', 'status': 0}, {'pid': 1, 'status': 0}, {'ticks': 1, 'status': 0}):
+            with self.subTest(record):
+                self.runner = FakeRunner()
+                sup = self.supervisor()
+                desktop.Persisted().save(self.paths.state_file)
+                sup = self.supervisor()
+                sup.start()
+                pid, _ = self.in_world(sup)
+                full = {'launch': sup.launch.id, 'pid': pid, 'ticks': pid * 7, **record}
+                os.makedirs(self.paths.run_dir, exist_ok=True)
+                pathlib.Path(self.paths.exit_file).write_text(json.dumps(full))
+                self.runner.processes.pop(pid)
+                sup.on_jvm_gone()
+                self.advance(desktop.EXIT_REPORT_WAIT)
+                sup.tick()
+                self.assertEqual(sup.reason, 'killed', record)
 
     def test_a_slow_start_shows_recovery_but_never_kills_the_game(self):
         sup = self.supervisor()
@@ -786,23 +1025,72 @@ class RestartPolicyTest(Base):
     def test_the_wrapper_is_refused_for_other_instances_java_or_a_second_game(self):
         sup = self.supervisor()
         sup.start()
-        for request in ({'instance': 'Gameplay', 'java': self.lock['java']['path']},
-                        {'instance': 'AresDesktop', 'java': '/usr/lib/jvm/java-21/bin/java'},
-                        {'instance': 'AresDesktop'}):
+        aside = self.paths.instance('AresDesktop') + '.aside-2026'
+        for request in (self.jvm_request(instance='Gameplay'),
+                        self.jvm_request(java='/usr/lib/jvm/java-21/bin/java'),
+                        self.jvm_request(java=None),
+                        self.jvm_request(instance_dir=aside),
+                        self.jvm_request(cwd=self.paths.home),
+                        self.jvm_request(instance_dir=None)):
             ok, reply = sup.on_jvm_start(request)
             self.assertFalse(ok, request)
+        self.assertFalse(sup.persisted.latched)
         self.run_game(sup)
-        ok, reply = sup.on_jvm_start({'instance': 'AresDesktop', 'java': self.lock['java']['path']})
+        ok, reply = sup.on_jvm_start(self.jvm_request())
         self.assertFalse(ok)
         self.assertIn('already running', reply['message'])
 
     def test_a_jvm_report_from_a_process_that_is_not_the_wrappers_child_is_refused(self):
         sup = self.supervisor()
         sup.start()
-        ok, _ = sup.on_jvm_start({'instance': 'AresDesktop', 'java': self.lock['java']['path']})
-        self.runner.processes[777] = (1, 5)
-        self.assertFalse(sup.on_jvm_started(4000, 777))
+        ok, _ = sup.on_jvm_start(self.jvm_request())
+        self.runner.processes[777] = (1, 5, '')
+        self.assertEqual(sup.on_jvm_started(4000, 777)[0], False)
         self.assertIsNone(sup.launch.jvm_pid)
+
+    def test_a_jvm_outside_its_memory_scope_is_refused(self):
+        # Review 1, finding 4: in the real runner the JVM must be in this launch's game scope.
+        self.runner.real = True
+        with mock.patch.object(desktop, 'verify_inputs', return_value=[]):
+            sup = self.supervisor()
+            sup.start()
+            ok, reply = sup.on_jvm_start(self.jvm_request())
+        self.assertTrue(ok)
+        prism_scope = f'0::/user.slice/user@1001.service/aresos.slice/aresos-desktop-{sup.launch.id}.scope\n'
+        self.runner.processes[4001] = (4000, 1, prism_scope)
+        ok, text = sup.on_jvm_started(4000, 4001)
+        self.assertFalse(ok)
+        self.assertIn('not in its memory scope', text)
+        self.runner.processes[4001] = (4000, 1, f'0::/user.slice/user@1001.service/aresos.slice/{reply["unit"]}\n')
+        self.assertEqual(sup.on_jvm_started(4000, 4001), (True, ''))
+
+    def test_every_new_jvm_passes_the_same_gate(self):
+        # Review 1, finding 6: a launch from Prism's own window, after the supervisor's own preflight, is checked
+        # again: changed image inputs, a changed instance and a damaged or vanished world all refuse and latch.
+        cases = (
+            ('inputs', lambda: pathlib.Path(self.paths.share, 'mods/fabric-api.jar').write_bytes(b'changed')),
+            ('instance', lambda: os.unlink(os.path.join(self.paths.instance('AresDesktop'), 'minecraft/mods'))),
+            ('world_damaged', lambda: os.unlink(os.path.join(self.paths.worlds, 'AresHub/data/aresos/nether_home.dat'))),
+            ('world_missing', lambda: shutil.rmtree(os.path.join(self.paths.worlds, 'AresHub'))),
+        )
+        for reason, damage in cases:
+            with self.subTest(reason):
+                shutil.rmtree(self.root / 'share')
+                shutil.rmtree(self.paths.home)
+                os.makedirs(self.paths.home)
+                _, self.lock = fake_share(self.root / 'share')
+                self.runner = FakeRunner()
+                desktop.provision(self.paths, self.lock)
+                make_world(self.paths, self.lock)
+                sup = self.supervisor()
+                sup.start()
+                pid, _ = self.in_world(sup)
+                self.end_game(sup, pid, 0)
+                damage()
+                ok, reply = sup.on_jvm_start(self.jvm_request())
+                self.assertFalse(ok)
+                self.assertEqual((sup.state, sup.reason, sup.persisted.latched), ('RECOVERY', reason, True))
+                self.assertIn('recovery', reply['message'])
 
     def test_a_held_desktop_lock_never_starts_a_second_game(self):
         self.runner.lock_held = True
@@ -828,6 +1116,79 @@ class RestartPolicyTest(Base):
         self.end_game(sup, pid, 0)
         self.assertEqual(sup.pending(), [])
         self.assertEqual(sup.deadline(), 30.0)
+        # A normally ended game is never mistaken for a lost hand-off later.
+        self.advance(desktop.HANDOFF_TIMEOUT * 2)
+        sup.tick()
+        self.assertEqual((sup.state, sup.reason), ('RECOVERY', 'quit'))
+        sup.on_wrapper_gone(sup.launch.id)
+        self.assertEqual((sup.state, sup.reason, sup.persisted.consecutive), ('RECOVERY', 'quit', 0))
+
+    def test_a_failed_start_is_reported_and_counted_never_left_open(self):
+        # Review 1, finding 7: spawn failure, a lost hand-off and the wrapper vanishing all end STARTING.
+        for end in ('jvm_failed', 'wrapper_gone', 'timeout'):
+            with self.subTest(end):
+                self.runner = FakeRunner()
+                desktop.Persisted().save(self.paths.state_file)
+                sup = self.supervisor()
+                sup.start()
+                ok, reply = sup.on_jvm_start(self.jvm_request())
+                self.assertTrue(ok)
+                if end == 'jvm_failed':
+                    sup.on_jvm_failed(reply['launch'], 'Java could not be started: no such file')
+                elif end == 'wrapper_gone':
+                    sup.on_wrapper_gone(reply['launch'])
+                else:
+                    self.advance(desktop.HANDOFF_TIMEOUT - 1)
+                    sup.tick()
+                    self.assertEqual(sup.state, 'STARTING')
+                    self.advance(1)
+                    sup.tick()
+                self.assertEqual((sup.state, sup.reason), ('STARTING', 'restarting'))
+                self.assertEqual(sup.persisted.consecutive, 1)
+                self.advance(desktop.BACKOFF)
+                sup.tick()
+                self.assertEqual(len(self.runner.prisms), 2)
+                # The automatic restart keeps an app in front (finding 11): the helper is told so.
+                self.assertEqual(self.runner.helpers[-1][2].get('ARESOS_SHELL_KEEP_FOREGROUND'), '1')
+                self.assertNotIn('ARESOS_SHELL_KEEP_FOREGROUND', self.runner.helpers[0][2])
+
+    def test_lost_heartbeats_show_without_touching_the_game(self):
+        # Review 1, finding 10.
+        sup = self.supervisor()
+        sup.start()
+        pid, _ = self.in_world(sup)
+        self.advance(desktop.HEARTBEAT_GAP)
+        sup.tick()
+        self.assertEqual((sup.state, sup.reason, sup.persisted.latched), ('RECOVERY', 'unready', False))
+        self.assertFalse(sup.launch.ready)
+        self.assertIn('stopped reporting', self.runner.views[-1])
+        self.assertIn(pid, self.runner.processes)
+        self.heartbeat(sup)
+        self.assertEqual(sup.state, 'IN_WORLD')
+
+    def test_an_exhausted_helper_after_the_hub_was_ready_shows(self):
+        sup = self.supervisor()
+        sup.start()
+        pid, _ = self.in_world(sup)
+        for _ in range(desktop.HELPER_BUDGET[0]):
+            self.runner.helper_alive = False
+            sup.on_helper_exit(1)
+            self.advance(desktop.HELPER_RESTART)
+            sup.tick()
+        self.assertEqual((sup.state, sup.reason), ('RECOVERY', 'helper'))
+        self.assertFalse(sup.launch.ready)
+        self.assertIn(pid, self.runner.processes)
+
+    def test_a_damaged_hub_is_never_declared_ready(self):
+        # Review 1, finding 2: the mod reports the marked world, but its home data is gone: not IN_WORLD.
+        sup = self.supervisor()
+        sup.start()
+        pid, _ = self.run_game(sup)
+        os.unlink(os.path.join(self.paths.worlds, 'AresHub/data/aresos/nether_home.dat'))
+        self.ready(sup)
+        self.assertEqual((sup.state, sup.reason, sup.persisted.latched), ('RECOVERY', 'world_damaged', True))
+        self.assertFalse(sup.launch.ready)
+        self.assertIn(pid, self.runner.processes)
 
 
 class RecoveryReasonsTest(Base):
@@ -915,17 +1276,76 @@ class AdoptionTest(Base):
         self.end_game(second, pid, 1)
         self.assertEqual((second.state, second.reason), ('STARTING', 'restarting'))
 
-    def test_a_dead_game_is_not_adopted(self):
+    def dead_launch(self, status=None, record=True, consecutive=0):
+        # Review 1, finding 5: the previous supervisor recorded a running JVM; it ended while none ran.
         desktop.provision(self.paths, self.lock)
         make_world(self.paths, self.lock)
-        os.makedirs(self.paths.run_dir)
+        desktop.Persisted(consecutive=consecutive, failures=[self.wall[0] - 1000] * consecutive).save(
+            self.paths.state_file)
+        os.makedirs(self.paths.run_dir, exist_ok=True)
+        pathlib.Path(self.paths.runtime_file).write_text(json.dumps(
+            {'instance': 'desk-old', 'nonce': 'n' * 32, 'launch': 'a', 'mode': 'hub', 'jvm_pid': 99, 'jvm_ticks': 1}))
+        if record:
+            pathlib.Path(self.paths.exit_file).write_text(json.dumps(
+                {'launch': 'a', 'pid': 99, 'ticks': 1, 'status': status}))
+        sup = self.supervisor()
+        sup.start()
+        return sup
+
+    def test_a_game_that_ended_while_no_supervisor_ran_is_accounted_for_once(self):
+        cases = {'normal exit': (0, True, ('RECOVERY', 'quit', False), 0),
+                 'crash': (1, True, ('STARTING', 'restarting', False), 1),
+                 'SIGKILL': (-9, True, ('RECOVERY', 'killed', True), 0),
+                 'no exit record': (None, False, ('RECOVERY', 'killed', True), 0)}
+        for name, (status, record, expected, counted) in cases.items():
+            with self.subTest(name):
+                shutil.rmtree(self.paths.home)
+                os.makedirs(self.paths.home)
+                shutil.rmtree(self.paths.runtime)
+                os.makedirs(self.paths.runtime)
+                self.runner = FakeRunner()
+                sup = self.dead_launch(status, record)
+                self.assertEqual(sup.instance, 'desk-old')
+                self.assertEqual((sup.state, sup.reason, sup.persisted.latched), expected)
+                self.assertEqual(self.stored()['consecutive'], counted)
+                self.assertEqual(self.stored()['accounted'], 'a')
+                self.assertEqual(self.runner.prisms, [], 'nothing starts before the old launch is accounted for')
+                # A second supervisor start never counts the same end again.
+                again = self.supervisor()
+                again.start()
+                self.assertEqual(self.stored()['consecutive'], counted)
+        # A crash after two earlier failures latches, as if the supervisor had seen it.
+        shutil.rmtree(self.paths.home)
+        os.makedirs(self.paths.home)
+        shutil.rmtree(self.paths.runtime)
+        os.makedirs(self.paths.runtime)
+        self.runner = FakeRunner()
+        sup = self.dead_launch(1, True, consecutive=2)
+        self.assertEqual((sup.state, sup.reason, sup.persisted.latched), ('RECOVERY', 'crashes', True))
+
+    def test_a_crash_accounted_after_downtime_restarts_after_its_backoff(self):
+        sup = self.dead_launch(1, True)
+        self.assertEqual(self.runner.prisms, [])
+        self.advance(desktop.BACKOFF)
+        sup.tick()
+        self.assertEqual(len(self.runner.prisms), 1)
+        self.assertNotEqual(sup.launch.nonce, 'n' * 32)
+
+    def test_an_adopted_game_that_never_becomes_ready_shows_after_the_timeout(self):
+        # Review 1, finding 10: adoption keeps a bounded readiness check.
+        desktop.provision(self.paths, self.lock)
+        make_world(self.paths, self.lock)
+        self.runner.processes[99] = (98, 1, '')
+        os.makedirs(self.paths.run_dir, exist_ok=True)
         pathlib.Path(self.paths.runtime_file).write_text(json.dumps(
             {'instance': 'desk-old', 'nonce': 'n' * 32, 'launch': 'a', 'mode': 'hub', 'jvm_pid': 99, 'jvm_ticks': 1}))
         sup = self.supervisor()
         sup.start()
-        self.assertEqual(sup.instance, 'desk-old')
-        self.assertEqual(len(self.runner.prisms), 1)
-        self.assertNotEqual(sup.launch.nonce, 'n' * 32)
+        self.assertEqual(sup.state, 'STARTING')
+        self.advance(desktop.START_TIMEOUT)
+        sup.tick()
+        self.assertEqual((sup.state, sup.reason), ('RECOVERY', 'slow_start'))
+        self.assertIn(99, self.runner.processes)
 
 
 class HelperTest(Base):
@@ -966,6 +1386,94 @@ class MessagesTest(Base):
         self.assertLessEqual(max(len(line) for state in ('SETUP',)
                                  for line in desktop.message(state, 'setup', '', self.lock, persisted).splitlines()),
                              104)
+
+
+class ImageBuildTest(unittest.TestCase):
+    """Review 1, finding 3: every image build builds the mod jar from its own commit and requires its pin."""
+
+    def test_the_containerfile_builds_the_jar_in_the_pinned_jdk_and_configure_checks_it(self):
+        containerfile = (ROOT / 'os/Containerfile').read_text()
+        stages = [line.split() for line in containerfile.splitlines() if line.startswith('FROM ')]
+        base = json.loads((ROOT / 'os/manifest/base.json').read_text())['reference']
+        # The workflow checks the first FROM against the pinned base; it stays first.
+        self.assertEqual(stages[0], ['FROM', base, 'AS', 'packages'])
+        builder = next(mod['builder'] for mod in LOCK['mods'] if mod['file'] == 'aresos.jar')
+        self.assertEqual(stages[1], ['FROM', builder, 'AS', 'mod'])
+        self.assertEqual(stages[2], ['FROM', 'packages', 'AS', 'aresos'])
+        mod_stage = containerfile.split('AS mod', 1)[1].split('FROM packages', 1)[0]
+        self.assertIn('ARG ARESOS_SOURCE_REVISION', mod_stage)
+        self.assertIn('RUN bash /tmp/aresos-mod/build.sh mod "$ARESOS_SOURCE_REVISION" /out', mod_stage)
+        final = containerfile.split('FROM packages AS aresos', 1)[1]
+        copy = final.index('COPY --from=mod /out/aresos.jar /tmp/aresos/minecraft/aresos.jar')
+        self.assertLess(copy, final.index('build.sh configure'))
+        build = (ROOT / 'os/build.sh').read_text()
+        configure = build.split('\nfi\n\n', 2)[-1]
+        self.assertIn("assert digest == mod['sha256']", configure)
+        self.assertIn("MOD_JAR_PINNED", configure)
+        self.assertNotIn('aresos.jar', build.split('if [[ $1 == packages ]]', 1)[1].split('\nfi\n', 1)[0])
+
+    def test_check_build_uses_the_same_path_as_every_other_image_build(self):
+        script = (ROOT / 'os/ci/check-build.sh').read_text()
+        build = script.split('build)', 1)[1].split(';;', 1)[0]
+        self.assertNotIn('build-mod.sh', build)
+        self.assertIn('test ! -e os/minecraft/aresos.jar', build)
+        self.assertIn('--build-arg "ARESOS_SOURCE_REVISION=$revision"', build)
+        self.assertIn('MOD_JAR_BUILT [0-9a-f]{64} from $revision', build)
+        renew = (ROOT / 'os/ci/build-mod.sh').read_text()
+        self.assertIn('/tmp/build.sh mod "$revision" /out', renew)
+
+    @unittest.skipUnless(LINUX, 'runs build.sh with stand-in curl and Gradle')
+    def test_build_sh_mod_builds_from_the_named_commit_only(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = pathlib.Path(folder)
+            revision = 'ab' * 20
+            source = root / f'AresOS-{revision}/mod'
+            (source / 'build/libs').mkdir(parents=True)
+            (source / 'gradle.properties').write_text('version=0.1.0\n')
+            (source / 'gradlew').write_text('#!/bin/sh\nprintf "%s\\n" "$*" > ../../gradle-args\n'
+                                            'printf jar-bytes > build/libs/aresos-0.1.0.jar\n')
+            (source / 'gradlew').chmod(0o755)
+            (root / f'AresOS-{revision}/os').mkdir()
+            (root / f'AresOS-{revision}/os/unrelated').write_text('not extracted')
+            archive = root / 'source.tar.gz'
+            subprocess.run(['tar', '-czf', str(archive), '-C', str(root), f'AresOS-{revision}'], check=True)
+            stubs = root / 'bin'
+            stubs.mkdir()
+            (stubs / 'curl').write_text('#!/bin/sh\nfor a; do case $prev in -o) out=$a;; esac; prev=$a; '
+                                        f'url=$a; done\necho "$url" > {root}/url\ncp {archive} "$out"\n')
+            (stubs / 'curl').chmod(0o755)
+            env = dict(os.environ, PATH=f'{stubs}:/usr/bin:/bin')
+            result = subprocess.run(['bash', str(ROOT / 'os/build.sh'), 'mod', revision, str(root / 'out')],
+                                    env=env, capture_output=True, text=True, timeout=60)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual((root / 'url').read_text().strip(),
+                             f'https://codeload.github.com/Ares-Empire/AresOS/tar.gz/{revision}')
+            self.assertEqual((root / 'out/aresos.jar').read_bytes(), b'jar-bytes')
+            digest = hashlib.sha256(b'jar-bytes').hexdigest()
+            self.assertIn(f'MOD_JAR_BUILT {digest} from {revision}', result.stdout)
+            for bad in ('unrecorded', 'main', 'ab' * 19, 'AB' * 20):
+                refused = subprocess.run(['bash', str(ROOT / 'os/build.sh'), 'mod', bad, str(root / 'out2')],
+                                         env=env, capture_output=True, text=True, timeout=60)
+                self.assertNotEqual(refused.returncode, 0, bad)
+                self.assertIn('exact commit', refused.stderr)
+
+
+class MemoryProtectionFilesTest(unittest.TestCase):
+    """Review 1, finding 9: the session (compositor, supervisor, recovery terminal) and every ancestor are protected;
+    systemd-oomd avoids the session scope. The VM check reads the effective values."""
+
+    def test_drop_ins(self):
+        units = CONFIG / 'usr/lib/systemd/system'
+        for slice_ in ('user.slice', 'user-1001.slice'):
+            lines = [l for l in (units / f'{slice_}.d/50-aresos-recovery.conf').read_text().splitlines()
+                     if l and not l.startswith('#')]
+            self.assertEqual(lines, ['[Slice]', 'MemoryLow=1G'], slice_)
+        lines = [l for l in (units / 'session-.scope.d/50-aresos-recovery.conf').read_text().splitlines()
+                 if l and not l.startswith('#')]
+        self.assertEqual(lines, ['[Scope]', 'MemoryLow=1G', 'ManagedOOMPreference=avoid'])
+        checks = (ROOT / 'os/ci/overlay/checks.py').read_text()
+        for name in ('def memory_protection', 'def memory_pressure', 'def desktop_jvm'):
+            self.assertIn(name, checks)
 
 
 class SessionFilesTest(unittest.TestCase):
@@ -1011,8 +1519,16 @@ FAKE_JAVA = textwrap.dedent('''\
     import json, os, sys, time
     record = os.environ.get('FAKE_JAVA_RECORD')
     if record:
+        with open('/proc/self/cgroup') as source:
+            cgroup = source.read()
         with open(record, 'w') as output:
-            json.dump({'argv': sys.argv, 'env': dict(os.environ), 'stdin': sys.stdin.readline()}, output)
+            line = [l for l in cgroup.splitlines() if l.startswith('0::')][0]
+            try:
+                high = open('/sys/fs/cgroup' + line[3:] + '/memory.high').read().strip()
+            except OSError:
+                high = None
+            json.dump({'argv': sys.argv, 'env': dict(os.environ), 'stdin': sys.stdin.readline(), 'cgroup': cgroup,
+                       'pid': os.getpid(), 'memory_high': high}, output)
     time.sleep(float(os.environ.get('FAKE_JAVA_SLEEP', '0')))
     sys.exit(int(os.environ.get('FAKE_JAVA_EXIT', '0')))
 ''')
@@ -1032,7 +1548,9 @@ class WrapperTest(unittest.TestCase):
         self.requests = []
         self.reply = {'ok': True, 'launch': 'L1', 'env': {'ARESOS_LAUNCH_NONCE': 'n' * 32,
                                                           'ARESOS_DESKTOP_INSTANCE': 'desk-1',
-                                                          'PATH': desktop.SYSTEM_PATH}}
+                                                          'PATH': desktop.SYSTEM_PATH},
+                      'scope': [], 'unit': None}
+        self.started_reply = {'ok': True}
         self.listener = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         self.listener.bind(str(self.run_dir / 'desktop.sock'))
         self.listener.listen(4)
@@ -1056,7 +1574,8 @@ class WrapperTest(unittest.TestCase):
                         line, buffer = buffer.split(b'\n', 1)
                         request = json.loads(line)
                         self.requests.append(request)
-                        reply = self.reply if request['op'] == 'jvm_start' else {'ok': True}
+                        reply = {'jvm_start': self.reply, 'jvm_started': self.started_reply}.get(request['op'],
+                                                                                                 {'ok': True})
                         conn.sendall((json.dumps(reply) + '\n').encode())
 
     def tearDown(self):
@@ -1064,11 +1583,12 @@ class WrapperTest(unittest.TestCase):
 
     def wrap(self, *args, env=None, stdin=b'launch\n'):
         environ = {'XDG_RUNTIME_DIR': str(self.root), 'INST_ID': 'AresDesktop', 'HOME': str(self.root),
+                   'INST_DIR': str(self.root / 'instance'),
                    'FAKE_JAVA_RECORD': str(self.root / 'record.json'), 'PATH': '/usr/lib/prismlauncher/bin:/usr/bin',
                    'LD_PRELOAD': '', 'QT_PLUGIN_PATH': '/usr/lib/prismlauncher/shared/lib/plugins'}
         environ.update(env or {})
         return subprocess.run([sys.executable, str(CONFIG / 'usr/libexec/aresos-desktop-java'), str(self.java),
-                               *args], env=environ, input=stdin, capture_output=True, timeout=30)
+                               *args], env=environ, input=stdin, capture_output=True, timeout=60, cwd=self.root)
 
     def test_the_game_gets_the_supervisors_environment_and_its_exit_is_reported(self):
         result = self.wrap('-Xmx3072m', 'org.prismlauncher.EntryPoint', env={'FAKE_JAVA_EXIT': '3'})
@@ -1084,9 +1604,78 @@ class WrapperTest(unittest.TestCase):
         self.assertEqual(ops, ['jvm_start', 'jvm_started', 'jvm_exited'])
         start, started, exited = self.requests
         self.assertEqual((start['java'], start['instance']), (str(self.java), 'AresDesktop'))
+        self.assertEqual((start['instance_dir'], start['cwd']), (str(self.root / 'instance'), str(self.root)))
         self.assertEqual(started['pid'], exited['pid'])
-        self.assertEqual(exited['status'], 3)
-        self.assertEqual(json.loads((self.run_dir / 'desktop-exit.json').read_text())['status'], 3)
+        self.assertEqual((exited['status'], exited['launch']), (3, 'L1'))
+        record = json.loads((self.run_dir / 'desktop-exit.json').read_text())
+        self.assertEqual((record['launch'], record['pid'], record['status']), ('L1', started['pid'], 3))
+        self.assertIsInstance(record['ticks'], int)
+
+    def test_a_start_that_fails_is_reported(self):
+        # Review 1, finding 7: Java that cannot start, and a JVM the supervisor refuses, end as jvm_failed.
+        self.java.chmod(0o644)
+        result = self.wrap()
+        self.assertEqual(result.returncode, wrapper.REFUSED, result.stderr)
+        self.assertEqual([r['op'] for r in self.requests], ['jvm_start', 'jvm_failed'])
+        self.assertIn('Java could not be started', self.requests[-1]['reason'])
+        self.java.chmod(0o755)
+        self.requests.clear()
+        self.started_reply = {'ok': False, 'message': 'the JVM is not in its memory scope x'}
+        result = self.wrap(env={'FAKE_JAVA_SLEEP': '30'})
+        self.assertEqual(result.returncode, wrapper.REFUSED, result.stderr)
+        self.assertEqual([r['op'] for r in self.requests], ['jvm_start', 'jvm_started', 'jvm_failed'])
+        self.assertIn('refused the game: the JVM is not in its memory scope', self.requests[-1]['reason'])
+        game = self.requests[1]['pid']
+        self.assertFalse(os.path.exists(f'/proc/{game}') and
+                         pathlib.Path(f'/proc/{game}/stat').read_text().split(')')[1].split()[0] != 'Z')
+
+    def test_a_scope_that_is_not_usable_is_refused_before_java_runs(self):
+        for scope, unit in (('systemd-run', None), (['relative/systemd-run', '--'], 'u.scope'), ([], 'u.scope'),
+                            (['/usr/bin/systemd-run', '--'], None)):
+            with self.subTest(scope=scope, unit=unit):
+                self.requests.clear()
+                self.reply = dict(self.reply, scope=scope, unit=unit)
+                result = self.wrap()
+                self.assertEqual(result.returncode, wrapper.REFUSED)
+                self.assertFalse((self.root / 'record.json').exists())
+                self.assertEqual(self.requests[-1]['op'], 'jvm_failed')
+
+    def test_the_game_waits_for_its_scope_and_is_reported_only_inside_it(self):
+        # A stand-in for systemd-run that never puts Java into the named scope: the wrapper must not report it.
+        fake = self.root / 'fake-systemd-run'
+        fake.write_text('#!/bin/sh\nwhile [ "$1" != "--" ]; do shift; done\nshift\nexec "$@"\n')
+        fake.chmod(0o755)
+        self.reply = dict(self.reply, scope=[str(fake), '--unit=aresos-game-L1.scope', '--'],
+                          unit='aresos-game-L1.scope')
+        started = time.monotonic()
+        result = self.wrap(env={'FAKE_JAVA_SLEEP': '30'})
+        self.assertEqual(result.returncode, wrapper.REFUSED, result.stderr)
+        self.assertLess(time.monotonic() - started, 25)
+        self.assertEqual([r['op'] for r in self.requests], ['jvm_start', 'jvm_failed'])
+        self.assertIn('did not reach its scope aresos-game-L1.scope', self.requests[-1]['reason'])
+
+    def test_the_real_jvm_runs_in_its_own_scope_with_the_memory_target(self):
+        # Review 1, finding 4: Prism (here: this test) runs outside any desktop scope; Java still lands in the
+        # game's scope with MemoryHigh=5G, because the wrapper starts it there. Needs a user systemd manager.
+        bus = f'unix:path=/run/user/{os.getuid()}/bus'
+        probe_env = {'PATH': '/usr/bin:/bin', 'XDG_RUNTIME_DIR': str(self.root), 'DBUS_SESSION_BUS_ADDRESS': bus}
+        try:
+            probe = subprocess.run(['/usr/bin/systemd-run', '--user', '--scope', '--quiet', '/bin/true'],
+                                   env=probe_env, capture_output=True, timeout=20)
+        except (OSError, subprocess.TimeoutExpired):
+            probe = None
+        if probe is None or probe.returncode != 0:
+            self.skipTest('no user systemd manager reachable here (CI runner); WSL and the image have one')
+        launch = 'pkg23t' + os.urandom(3).hex()
+        self.reply = dict(self.reply, launch=launch, scope=desktop.game_scope(launch), unit=desktop.game_unit(launch))
+        result = self.wrap(env={'DBUS_SESSION_BUS_ADDRESS': bus, 'FAKE_JAVA_EXIT': '0'})
+        self.assertEqual(result.returncode, 0, result.stderr)
+        record = json.loads((self.root / 'record.json').read_text())
+        line = next(l for l in record['cgroup'].splitlines() if l.startswith('0::'))
+        self.assertTrue(line.endswith(f'/aresos.slice/aresos-game-{launch}.scope'), line)
+        self.assertEqual(record['memory_high'], str(5 * 1024 ** 3))
+        started = next(r for r in self.requests if r['op'] == 'jvm_started')
+        self.assertEqual(started['pid'], record['pid'], 'the reported PID is the JVM itself, inside the scope')
 
     def test_a_refused_launch_never_runs_java(self):
         self.reply = {'ok': False, 'message': 'The AresOS desktop is in recovery.'}
@@ -1162,9 +1751,9 @@ FAKE_PRISM = textwrap.dedent('''\
     mode = open(os.environ['FAKE_PRISM_MODE']).read().strip()
     if mode == 'no-game':
         sys.exit(1)
-    env = dict(os.environ, INST_ID='AresDesktop')
+    env = dict(os.environ, INST_ID='AresDesktop', INST_DIR=os.environ['FAKE_INSTANCE'])
     result = subprocess.run([os.environ['FAKE_WRAPPER'], os.environ['FAKE_JAVA'], 'org.prismlauncher.EntryPoint'],
-                            env=env, input=b'launch\\n')
+                            env=env, input=b'launch\\n', cwd=os.path.join(os.environ['FAKE_INSTANCE'], 'minecraft'))
     sys.exit(0 if result.returncode == 0 else 1)
 ''')
 
@@ -1212,14 +1801,17 @@ class LoopTest(Base):
         env = {'HOME': self.paths.home, 'XDG_RUNTIME_DIR': self.paths.runtime, 'FAKE_LOG': str(self.log),
                'FAKE_PRISM_MODE': str(self.mode), 'FAKE_READY': str(self.ready_file),
                'FAKE_WRAPPER': str(CONFIG / 'usr/libexec/aresos-desktop-java'), 'FAKE_JAVA': str(java),
-               'FAKE_JAVA_STOP': str(self.exit_file), 'PATH': '/usr/bin:/bin'}
+               'FAKE_JAVA_STOP': str(self.exit_file), 'PATH': '/usr/bin:/bin',
+               'FAKE_INSTANCE': self.paths.instance('AresDesktop')}
         patches = [mock.patch.object(desktop, 'HELPER', str(bin_dir / 'helper')),
                    mock.patch.object(desktop, 'VIEW_COMMAND', [str(bin_dir / 'view')]),
                    mock.patch.object(desktop, 'prism_command',
                                      lambda lock, launch_id, world=None: [str(bin_dir / 'prism'), '--launch',
                                                                          'AresDesktop'] + (['--world', world]
                                                                                            if world else [])),
-                   mock.patch.object(desktop, 'BACKOFF', 0.2), mock.patch.object(desktop, 'PRISM_GRACE', 0.5)]
+                   mock.patch.object(desktop, 'BACKOFF', 0.2), mock.patch.object(desktop, 'PRISM_GRACE', 0.5),
+                   # No user systemd here: the wrapper runs Java directly (the scope itself is tested separately).
+                   mock.patch.object(desktop, 'game_scope', lambda launch_id: [])]
         for patch in patches:
             patch.start()
             self.addCleanup(patch.stop)
@@ -1227,6 +1819,14 @@ class LoopTest(Base):
         make_world(self.paths, self.lock)
         self.loop = desktop.Loop(self.paths, self.lock, environ=env, nvidia=False)
         self.loop.runner.real = False
+        self.prisms = []
+        start_prism = self.loop.runner.start_prism
+
+        def recorded(command, env):
+            process = start_prism(command, env)
+            self.prisms.append(process)
+            return process
+        self.loop.runner.start_prism = recorded
         self.thread = threading.Thread(target=self.loop.run, daemon=True)
         self.addCleanup(self.stop)
 
@@ -1241,6 +1841,16 @@ class LoopTest(Base):
         if launch is not None and launch.jvm_pid is not None:
             self.end_jvm(0)
         self.thread.join(10)
+        # The supervisor leaves a running game alone when it stops; the test reaps its stand-ins (own sessions).
+        for process in self.prisms:
+            if process.poll() is None:
+                try:
+                    os.killpg(process.pid, 9)
+                except ProcessLookupError:
+                    pass
+            process.wait(10)
+            if process.stdout is not None:
+                process.stdout.close()
 
     def wait(self, condition, timeout=15):
         deadline = time.monotonic() + timeout
@@ -1276,6 +1886,24 @@ class LoopTest(Base):
         self.assertTrue(reply['ok'])
         self.wait(lambda: sup.launch.jvm_pid is not None)
         self.assertFalse(sup.persisted.latched)
+
+    def test_a_whole_scope_kill_latches_and_nothing_restarts(self):
+        # Review 1, finding 1: kill the wrapper and Java together, as systemd-oomd or the kernel does to a whole
+        # scope. No exit is reported; the supervisor latches recovery and never starts Minecraft again by itself.
+        sup = self.loop.supervisor
+        self.thread.start()
+        self.wait(lambda: sup.launch is not None and sup.launch.jvm_pid is not None)
+        jvm = sup.launch.jvm_pid
+        wrapper_pid = int(pathlib.Path(f'/proc/{jvm}/stat').read_text().rsplit(')', 1)[1].split()[1])
+        for pid in (wrapper_pid, jvm):
+            os.kill(pid, 9)
+        self.wait(lambda: (sup.state, sup.reason) == ('RECOVERY', 'killed'))  # latch() persists, then enters
+        self.assertTrue(sup.persisted.latched)
+        self.assertIn('ended together', sup.persisted.detail)
+        time.sleep(1.5)  # far beyond the patched 0.2 s backoff
+        launches = [l for l in self.log.read_text().splitlines() if l.startswith('--launch')]
+        self.assertEqual(len(launches), 1)
+        self.assertEqual(desktop.request(self.paths, {'op': 'status'})['consecutive'], 0)
 
     def test_prism_without_a_game_waits_in_auth_required(self):
         self.mode.write_text('no-game')

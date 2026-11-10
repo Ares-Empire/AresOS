@@ -42,6 +42,7 @@ import hashlib
 import json
 import logging
 import logging.handlers
+import math
 import os
 import secrets
 import selectors
@@ -63,6 +64,7 @@ LOADER_UID = 'net.fabricmc.fabric-loader'
 PRISM = '/usr/bin/prismlauncher'
 PRISM_ROOT = '/usr/lib/prismlauncher'
 SYSTEMD_RUN = '/usr/bin/systemd-run'
+SYSTEMCTL = '/usr/bin/systemctl'
 HELPER = '/usr/libexec/aresos-shell'
 WRAPPER = '/usr/libexec/aresos-desktop-java'
 SELF = '/usr/libexec/aresos-desktop'
@@ -92,11 +94,16 @@ BACKOFF = 5.0
 PRISM_GRACE = 10.0
 EXIT_REPORT_WAIT = 2.0
 EARLY_PRISM_FAILURE = 3.0
+# From authorizing a JVM to the wrapper reporting its PID; the wrapper starts it at once.
+HANDOFF_TIMEOUT = 30.0
 HELPER_RESTART = 2.0
 HELPER_BUDGET = (5, 60.0)
 HEAP_MB = 3072
 MIN_HEAP_MB = 512
 MEMORY_HIGH = '5G'
+# B5: after a memory kill, a retry waits until the last minute's memory pressure has cleared.
+PRESSURE_FILE = '/proc/pressure/memory'
+PRESSURE_CLEAR = 10.0
 RENDER_DISTANCE = 8
 SIMULATION_DISTANCE = 5
 MAX_LINE = 64 * 1024
@@ -246,11 +253,22 @@ def sha256_file(path):
 
 
 def pinned_files(lock, share):
-    """(path in the image, pinned sha256) for every jar the instance uses."""
+    """(path in the image, pinned sha256) for every file the instance uses: jars and Prism's component metadata."""
     files = [(os.path.join(share, 'libraries', library_file(library)), library['sha256'])
              for library in lock['fabric_loader']['libraries']]
     files += [(os.path.join(share, 'mods', mod['file']), mod['sha256']) for mod in lock['mods']]
+    # Minecraft and LWJGL as Prism components (their libraries, natives and main jar are listed there with hashes
+    # that Prism checks on download). Being local patches, Prism never resolves other versions for them.
+    files += [(os.path.join(share, 'patches', component['file']), component['sha256'])
+              for component in lock['components']]
     return files
+
+
+def pinned_components(lock):
+    """uid → version of every component the desktop instance may contain."""
+    versions = {component['uid']: component['version'] for component in lock['components']}
+    versions[LOADER_UID] = lock['fabric_loader']['version']
+    return versions
 
 
 def verify_inputs(lock, share, java_check=True):
@@ -266,7 +284,8 @@ def verify_inputs(lock, share, java_check=True):
         except OSError as error:
             problems.append(f'{path}: {error.strerror}')
     folders = {'libraries': {library_file(library) for library in lock['fabric_loader']['libraries']},
-               'mods': {mod['file'] for mod in lock['mods']}}
+               'mods': {mod['file'] for mod in lock['mods']},
+               'patches': {component['file'] for component in lock['components']} | {LOADER_UID + '.json'}}
     for folder, expected in folders.items():
         try:
             extra = sorted(set(os.listdir(os.path.join(share, folder))) - expected)
@@ -315,11 +334,14 @@ MANAGED_SETTINGS = ('InstanceType', 'OverrideCommands', 'WrapperCommand', 'Overr
 
 
 def component_pack(lock):
+    versions = pinned_components(lock)
     return {'components': [
-        {'cachedName': 'Minecraft', 'cachedVersion': lock['minecraft'], 'important': True, 'uid': 'net.minecraft',
-         'version': lock['minecraft']},
-        {'cachedName': 'Fabric Loader', 'cachedVersion': lock['fabric_loader']['version'], 'uid': LOADER_UID,
-         'version': lock['fabric_loader']['version']}], 'formatVersion': 1}
+        {'cachedName': 'Minecraft', 'cachedVersion': versions['net.minecraft'], 'important': True,
+         'uid': 'net.minecraft', 'version': versions['net.minecraft']},
+        {'cachedName': 'LWJGL 3', 'cachedVersion': versions['org.lwjgl3'], 'dependencyOnly': True,
+         'uid': 'org.lwjgl3', 'version': versions['org.lwjgl3']},
+        {'cachedName': 'Fabric Loader', 'cachedVersion': versions[LOADER_UID], 'uid': LOADER_UID,
+         'version': versions[LOADER_UID]}], 'formatVersion': 1}
 
 
 def game_options():
@@ -435,50 +457,174 @@ def check_instance(paths, lock):
     try:
         with open(os.path.join(root, 'mmc-pack.json'), encoding='utf-8') as source:
             pack = json.load(source)
-        versions = {component.get('uid'): component.get('version') for component in pack.get('components', [])
-                    if not component.get('disabled')}
-        if versions.get('net.minecraft') != lock['minecraft']:
-            problems.append(f'Minecraft is {versions.get("net.minecraft")}, this AresOS pins {lock["minecraft"]}')
-        if versions.get(LOADER_UID) != lock['fabric_loader']['version']:
-            problems.append(f'Fabric Loader is {versions.get(LOADER_UID)}, this AresOS pins '
-                            f'{lock["fabric_loader"]["version"]}')
-        extra = sorted(set(versions) - {'net.minecraft', LOADER_UID, 'org.lwjgl3'})
-        if extra:
-            problems.append('unexpected components: ' + ', '.join(extra))
+        components = [component for component in pack.get('components', []) if not component.get('disabled')]
+        versions = {component.get('uid'): component.get('version') for component in components}
+        pinned = pinned_components(lock)
+        names = {'net.minecraft': 'Minecraft', 'org.lwjgl3': 'LWJGL', LOADER_UID: 'Fabric Loader'}
+        for uid, version in pinned.items():
+            if versions.get(uid) != version:
+                problems.append(f'{names.get(uid, uid)} is {versions.get(uid)}, this AresOS pins {version}')
+        extra = sorted(set(versions) - set(pinned))
+        if extra or len(components) != len(versions):
+            problems.append('unexpected components: ' + (', '.join(extra) or 'a component listed twice'))
     except (OSError, ValueError, AttributeError) as error:
         problems.append(f'mmc-pack.json: {error}')
     return problems
 
 
-def readable_gzip(path):
+# ---------------------------------------------------------------- the world's saved data
+
+
+class NbtError(ValueError):
+    pass
+
+
+def read_nbt(data, limit=1 << 20):
+    """Minecraft's named binary tag format: (root name, compound as {name: (tag type, value)}).
+
+    Bounded and strict, for reading small saved-data files: any truncation, unknown tag, trailing byte or excess
+    nesting is an error, never a guess.
+    """
+    position = 0
+
+    def take(count):
+        nonlocal position
+        if count < 0 or position + count > len(data):
+            raise NbtError('truncated')
+        chunk = data[position:position + count]
+        position += count
+        return chunk
+
+    def number(fmt):
+        size = struct.calcsize(fmt)
+        return struct.unpack(fmt, take(size))[0]
+
+    def string():
+        return take(number('>H')).decode('utf-8')
+
+    def payload(tag, depth):
+        if depth > 64:
+            raise NbtError('nested too deeply')
+        simple = {1: '>b', 2: '>h', 3: '>i', 4: '>q', 5: '>f', 6: '>d'}
+        if tag in simple:
+            return number(simple[tag])
+        if tag in (7, 11, 12):
+            count = number('>i')
+            width = {7: 1, 11: 4, 12: 8}[tag]
+            if count < 0 or count * width > limit:
+                raise NbtError('array too large')
+            raw = take(count * width)
+            return raw if tag == 7 else list(struct.unpack(f'>{count}{"i" if tag == 11 else "q"}', raw))
+        if tag == 8:
+            return string()
+        if tag == 9:
+            element, count = number('>b'), number('>i')
+            if count < 0 or count > limit or (count and element == 0):
+                raise NbtError('bad list')
+            return [payload(element, depth + 1) for _ in range(count)]
+        if tag == 10:
+            compound = {}
+            while True:
+                child = number('>b')
+                if child == 0:
+                    return compound
+                name = string()
+                compound[name] = (child, payload(child, depth + 1))
+        raise NbtError(f'unknown tag {tag}')
+
     try:
-        if not stat.S_ISREG(os.lstat(path).st_mode):
-            return False
-        with gzip.open(path, 'rb') as source:
-            while source.read(1 << 20):
-                pass
-        return True
-    except (OSError, EOFError, gzip.BadGzipFile):
-        return False
+        if number('>b') != 10:
+            raise NbtError('the root is not a compound')
+        name = string()
+        root = payload(10, 0)
+    except (struct.error, UnicodeDecodeError) as error:
+        raise NbtError(str(error)) from None
+    if position != len(data):
+        raise NbtError('trailing bytes')
+    return name, root
+
+
+def read_saved(path):
+    """A gzip-compressed NBT file's root compound."""
+    if not stat.S_ISREG(os.lstat(path).st_mode):
+        raise NbtError('not a regular file')
+    with gzip.open(path, 'rb') as source:
+        data = source.read((1 << 24) + 1)
+    if len(data) > 1 << 24:
+        raise NbtError('too large')
+    return read_nbt(data)[1]
+
+
+def field(compound, name, *tags):
+    entry = compound.get(name)
+    if entry is None or entry[0] not in tags:
+        raise NbtError(f'{name} is missing or has the wrong type')
+    return entry[1]
+
+
+def check_marker(path):
+    # DesktopWorld (mod): {data: {enabled: 1b}}. A disabled marker is not a desktop.
+    if field(field(read_saved(path), 'data', 10), 'enabled', 1) != 1:
+        raise NbtError('the desktop marker is switched off')
+
+
+def check_home(path):
+    # NetherHome (mod): {data: {seed: long, x, y, z: int, yaw: float, home?: {dimension, position, yaw, pitch}}}.
+    data = field(read_saved(path), 'data', 10)
+    field(data, 'seed', 4)
+    for name in ('x', 'y', 'z'):
+        field(data, name, 3)
+    if not math.isfinite(field(data, 'yaw', 5)):
+        raise NbtError('yaw is not a number')
+    if 'home' in data:
+        home = field(data, 'home', 10)
+        field(home, 'dimension', 8)
+        position = field(home, 'position', 9)
+        if len(position) != 3 or not all(isinstance(value, float) and math.isfinite(value) for value in position):
+            raise NbtError('home position is not three numbers')
+        field(home, 'yaw', 5)
+        field(home, 'pitch', 5)
 
 
 def check_world(paths, lock):
-    """('missing' | 'damaged' | 'ok', detail). Only reads; a damaged world is reported, never repaired."""
+    """('missing' | 'damaged' | 'ok', detail). Only reads; a damaged world is reported, never repaired.
+
+    'ok' means exactly what the mod needs for the hub: a readable level, the desktop marker switched on, the saved
+    Nether home and a finished hub build. Without the home data the mod opens the world but disables home arrival,
+    so that is damage too.
+    """
     world = os.path.join(paths.worlds, lock['world'])
     if not os.path.lexists(world):
         return 'missing', world
     if os.path.islink(world) or not os.path.isdir(world):
         return 'damaged', f'{world} is not a folder'
-    if not (readable_gzip(os.path.join(world, 'level.dat')) or readable_gzip(os.path.join(world, 'level.dat_old'))):
-        return 'damaged', 'level.dat cannot be read'
-    marker = os.path.join(world, 'data/aresos/desktop.dat')
-    if not readable_gzip(marker):
-        return 'damaged', 'the AresOS desktop marker (data/aresos/desktop.dat) is missing or unreadable'
-    provisioned = os.path.join(world, 'aresos-home.provisioned')
-    if os.path.exists(provisioned):
-        with open(provisioned, encoding='utf-8', errors='replace') as source:
-            if source.read() != 'complete\n':
-                return 'damaged', 'the hub was not finished when it was created (aresos-home.provisioned)'
+    # Minecraft falls back to level.dat_old when level.dat is damaged, so either one readable is enough.
+    problems = []
+    for name in ('level.dat', 'level.dat_old'):
+        try:
+            field(read_saved(os.path.join(world, name)), 'Data', 10)
+            break
+        except (OSError, EOFError, NbtError) as error:
+            problems.append(f'{name}: {error}')
+    else:
+        return 'damaged', f'the level cannot be read ({"; ".join(problems)})'
+    for relative, check, what in (('data/aresos/desktop.dat', check_marker, 'the AresOS desktop marker'),
+                                  ('data/aresos/nether_home.dat', check_home, 'the saved Nether home')):
+        try:
+            check(os.path.join(world, relative))
+        except FileNotFoundError:
+            return 'damaged', f'{what} ({relative}) is missing'
+        except (OSError, EOFError, NbtError) as error:
+            return 'damaged', f'{what} ({relative}) is unreadable: {error}'
+    for name, expected, what in (('aresos-home.provisioned', 'complete\n', 'the hub build'),):
+        try:
+            with open(os.path.join(world, name), encoding='utf-8', errors='replace') as source:
+                if source.read(64) != expected:
+                    return 'damaged', f'{what} was not finished ({name})'
+        except OSError:
+            return 'damaged', f'{what} has no completion record ({name})'
+    if not os.path.isfile(os.path.join(world, 'aresos-home.properties')):
+        return 'damaged', 'the hub manifest (aresos-home.properties) is missing'
     return 'ok', world
 
 
@@ -494,13 +640,46 @@ def nvidia_present(root='/'):
 
 
 def prism_command(lock, launch_id, world=None):
-    """Prism in its own user scope (B5: the game in its own group with a soft memory target)."""
+    """Prism in its own user scope, apart from the apps' (B5). The game itself gets game_scope()."""
     command = [SYSTEMD_RUN, '--user', '--scope', '--quiet', '--collect', '--slice=aresos.slice',
-               f'--unit=aresos-desktop-{launch_id}.scope', f'--property=MemoryHigh={MEMORY_HIGH}', '--',
+               f'--unit=aresos-desktop-{launch_id}.scope', '--',
                PRISM, '--launch', lock['instance']]
     if world:
         command += ['--world', world]
     return command
+
+
+def game_unit(launch_id):
+    return f'aresos-game-{launch_id}.scope'
+
+
+def game_scope(launch_id):
+    """The command the wrapper puts before Java (B5): the JVM in its own scope with the soft memory target.
+
+    It is applied where the JVM starts, so the limit holds however Prism was started: by this supervisor, by a
+    Prism that was already running (Prism hands `--launch` to it), or from Prism's own window. No `--collect`: a
+    scope killed for memory stays listed as failed until the supervisor has read why (scope_result).
+    """
+    return [SYSTEMD_RUN, '--user', '--scope', '--quiet', '--slice=aresos.slice', f'--unit={game_unit(launch_id)}',
+            f'--property=MemoryHigh={MEMORY_HIGH}', '--']
+
+
+def game_cgroup_matches(cgroup, launch_id):
+    """/proc/<pid>/cgroup (v2) puts the process in this launch's game scope."""
+    lines = [line for line in cgroup.splitlines() if line.startswith('0::')]
+    return len(lines) == 1 and lines[0].endswith(f'/aresos.slice/{game_unit(launch_id)}')
+
+
+def memory_pressure(path=PRESSURE_FILE):
+    """The last minute's share of time with tasks stalled on memory (PSI 'some avg60'), or None if unknown."""
+    try:
+        with open(path, encoding='ascii') as source:
+            for line in source:
+                if line.startswith('some '):
+                    return float(dict(part.split('=', 1) for part in line.split()[1:])['avg60'])
+    except (OSError, ValueError, KeyError):
+        pass
+    return None
 
 
 def session_environment(environ):
@@ -533,6 +712,8 @@ class Persisted:
     consecutive: int = 0
     failures: list = dataclasses.field(default_factory=list)
     hub_seen: bool = False
+    # The last launch whose end has been accounted for, so a supervisor restart never counts an end twice.
+    accounted: str = None
 
     @classmethod
     def load(cls, path):
@@ -549,11 +730,13 @@ class Persisted:
         failures = [float(t) for t in data.get('failures', []) if isinstance(t, (int, float))]
         return cls(latched=bool(data.get('latched')), reason=data.get('reason'), detail=str(data.get('detail', '')),
                    consecutive=int(data.get('consecutive', 0)), failures=failures,
-                   hub_seen=bool(data.get('hub_seen')))
+                   hub_seen=bool(data.get('hub_seen')),
+                   accounted=data.get('accounted') if isinstance(data.get('accounted'), str) else None)
 
     def save(self, path):
         data = dict(schema=1, latched=self.latched, reason=self.reason, detail=self.detail,
-                    consecutive=self.consecutive, failures=self.failures, hub_seen=self.hub_seen)
+                    consecutive=self.consecutive, failures=self.failures, hub_seen=self.hub_seen,
+                    accounted=self.accounted)
         write_atomic(path, json.dumps(data, indent=2) + '\n', 0o600)
 
     def record_failure(self, now):
@@ -589,6 +772,11 @@ class Launch:
     ever_ready: bool = False
     timed_out: bool = False
     adopted: bool = False
+    # An automatic restart after a crash: the new hub window must not take focus from an app in front (B2).
+    automatic: bool = False
+    authorized: float = None
+    reported: bool = False  # the wrapper reported this launch's JVM (it may have ended since)
+    failed: bool = False
 
 
 def process_ticks(pid, proc='/proc'):
@@ -647,8 +835,16 @@ def message(state, reason, detail, lock, persisted):
         'crashes': (f'Minecraft stopped unexpectedly {persisted.consecutive} times in a row or 3 times within 5 '
                     f'minutes\n(last: {detail}), so AresOS stopped restarting it.\n\nLogs:\n' + instance_logs(lock)
                     + f'\n\n{RETRY}'),
-        'killed': ('Minecraft was stopped by the system, most likely to free memory.\n'
+        'killed': (f'Minecraft was stopped from outside ({detail}),\n'
+                   'most likely by the system to free memory. AresOS does not restart it by itself.\n'
                    'Close apps you do not need, wait a minute, then start it again.\n\n' + RETRY),
+        'failed_start': (f'Minecraft did not start ({detail}).\n\nLogs:\n' + instance_logs(lock) + f'\n\n{RETRY}'),
+        'unready': ('The hub stopped reporting that it is ready (no heartbeat from the AresOS mod).\n'
+                    'Minecraft keeps running and nothing is changed; apps may not open from the hub.\n'
+                    'This window closes by itself when the hub reports again.\n\nLogs:\n' + instance_logs(lock)),
+        'helper': ('The AresOS app helper keeps failing, so apps cannot open from the hub and AresOS cannot\n'
+                   'see whether the hub is ready. Minecraft keeps running.\n\n'
+                   f'{RETRY} (after closing Minecraft) to start both again.'),
         'inputs': ('This AresOS image\'s Minecraft files do not match their pins, so the desktop is not\n'
                    f'started:\n{detail}\n\nThe next AresOS update or a rollback (at previous) brings them back.'),
         'instance': ('The desktop instance does not match this AresOS version:\n'
@@ -739,9 +935,13 @@ class Supervisor:
         self.instance = runtime.get('instance') or 'aresdesktop-' + secrets.token_hex(6)
         if self.adopt(runtime):
             return
+        # A game that ended while no supervisor ran is accounted for exactly once before anything starts again.
+        self.account_for(runtime)
         if self.persisted.latched:
             self.enter(RECOVERY, self.persisted.reason, self.persisted.detail)
             return
+        if self.retry_at is not None or self.state is not None:
+            return  # a crash restarts after its backoff; a quit or setup end waits for the owner
         self.begin()
 
     def read_runtime(self):
@@ -761,7 +961,7 @@ class Supervisor:
             return False
         launch = Launch(id=runtime.get('launch') or secrets.token_hex(6), nonce=nonce,
                         mode=runtime.get('mode') or 'hub', started=self.clock(), accepted=True, jvm_pid=pid,
-                        jvm_ticks=ticks, jvm_started=self.clock(), adopted=True)
+                        jvm_ticks=ticks, jvm_started=self.clock(), adopted=True, reported=True)
         self.launch = launch
         if not self.runner.watch_jvm(pid, ticks):
             self.launch = None
@@ -772,18 +972,28 @@ class Supervisor:
         if self.persisted.latched:
             self.enter(RECOVERY, self.persisted.reason, self.persisted.detail)
         else:
+            # Readiness is checked again within START_TIMEOUT (the mod reconnects to the new helper).
             self.enter(SETUP if launch.mode == 'setup' else STARTING, 'setup' if launch.mode == 'setup' else None)
         return True
 
-    def preflight(self):
-        """(problem reason, detail) or (None, mode)."""
-        problems = verify_inputs(self.lock, self.paths.share, java_check=self.runner.real)
-        if problems:
-            return 'inputs', '\n'.join('- ' + p for p in problems)
-        try:
-            provision(self.paths, self.lock)
-        except OSError as error:
-            return 'instance', f'- could not create the instance: {error}'
+    def account_for(self, runtime):
+        launch_id, pid = runtime.get('launch'), runtime.get('jvm_pid')
+        if not (isinstance(launch_id, str) and isinstance(pid, int)) or self.persisted.accounted == launch_id:
+            return
+        ticks = runtime.get('jvm_ticks') if isinstance(runtime.get('jvm_ticks'), int) else None
+        now = self.clock()
+        self.launch = Launch(id=launch_id, nonce=runtime.get('nonce') or new_token(),
+                             mode=runtime.get('mode') or 'hub', started=now, accepted=True, jvm_pid=pid,
+                             jvm_ticks=ticks, jvm_started=now, jvm_ended=now, reported=True)
+        LOG.info('launch %s ended while no supervisor was running; accounting for it', launch_id)
+        self.finish_jvm()
+
+    def validate(self, inputs=True):
+        """The one gate before any game starts: (problem reason, detail) or (None, mode). Changes nothing."""
+        if inputs:
+            problems = verify_inputs(self.lock, self.paths.share, java_check=self.runner.real)
+            if problems:
+                return 'inputs', '\n'.join('- ' + p for p in problems)
         problems = check_instance(self.paths, self.lock)
         if problems:
             return 'instance', '\n'.join('- ' + p for p in problems)
@@ -794,7 +1004,18 @@ class Supervisor:
             return ('world_missing', detail) if self.persisted.hub_seen else (None, 'setup')
         return None, 'hub'
 
-    def begin(self):
+    def preflight(self):
+        """Check the image's inputs, provision what is missing, then the common gate."""
+        problems = verify_inputs(self.lock, self.paths.share, java_check=self.runner.real)
+        if problems:
+            return 'inputs', '\n'.join('- ' + p for p in problems)
+        try:
+            provision(self.paths, self.lock)
+        except OSError as error:
+            return 'instance', f'- could not create the instance: {error}'
+        return self.validate(inputs=False)
+
+    def begin(self, automatic=False):
         """Check, provision and launch, or latch recovery with the reason."""
         self.retry_at = None
         if self.runner.jvm_lock_held():
@@ -805,10 +1026,11 @@ class Supervisor:
         if problem:
             self.latch(problem, detail)
             return
-        self.start_launch(detail)
+        self.start_launch(detail, automatic)
 
-    def start_launch(self, mode):
-        self.launch = Launch(id=secrets.token_hex(6), nonce=new_token(), mode=mode, started=self.clock())
+    def start_launch(self, mode, automatic=False):
+        self.launch = Launch(id=secrets.token_hex(6), nonce=new_token(), mode=mode, started=self.clock(),
+                             automatic=automatic)
         self.save_runtime()
         self.ensure_helper(restart=True)
         world = self.lock['world'] if mode == 'hub' else None
@@ -820,13 +1042,14 @@ class Supervisor:
             self.launch.prism_exit = -1
             self.enter(RECOVERY, 'prism_failed', str(error))
             return
-        LOG.info('launch %s: Prism started (%s)', self.launch.id, 'title screen for setup' if world is None
-                 else f'--world {world}')
+        LOG.info('launch %s: Prism started (%s)%s', self.launch.id, 'title screen for setup' if world is None
+                 else f'--world {world}', ', automatic restart' if automatic else '')
 
     # -- the helper
 
     def ensure_helper(self, restart=False):
-        nonce = self.launch.nonce if self.launch else None
+        launch = self.launch
+        nonce = launch.nonce if launch else None
         if nonce is None:
             return
         if self.runner.helper_running() and self.helper_nonce == nonce and not restart:
@@ -838,8 +1061,12 @@ class Supervisor:
         self.helper_nonce = nonce
         self.helper_restart_at = None
         self.helper_starts = [t for t in self.helper_starts if self.clock() - t < HELPER_BUDGET[1]] + [self.clock()]
+        env = session_environment(self.environ)
+        if launch.automatic:
+            # B2: after a crash the restored hub waits below the app in front (the helper keeps it in front).
+            env['ARESOS_SHELL_KEEP_FOREGROUND'] = '1'
         try:
-            self.runner.start_helper(self.instance, nonce, session_environment(self.environ))
+            self.runner.start_helper(self.instance, nonce, env)
         except OSError as error:
             LOG.error('could not start the app helper: %s', error)
 
@@ -850,6 +1077,13 @@ class Supervisor:
             LOG.error('the app helper failed %d times within %d s; not restarting it until the next launch',
                       len(recent), HELPER_BUDGET[1])
             self.helper_restart_at = None
+            launch = self.launch
+            if launch is not None and launch.jvm_pid is not None:
+                # Readiness can no longer be known: say so, without touching the game.
+                launch.ready = False
+                self.healthy_since = None
+                if not self.persisted.latched:
+                    self.enter(RECOVERY, 'helper')
             return
         self.helper_restart_at = self.clock() + HELPER_RESTART
 
@@ -876,6 +1110,15 @@ class Supervisor:
     def ready(self, world, now):
         launch = self.launch
         self.last_heartbeat = now
+        if world == self.lock['world'] and not launch.ready:
+            # A damaged hub is never declared ready, however the mod sees it (the game is left alone).
+            state, detail = check_world(self.paths, self.lock)
+            if state != 'ok':
+                launch.ready = False
+                if not (self.persisted.latched and self.persisted.reason == 'world_damaged'):
+                    LOG.error('the hub reported ready, but its saved data is not: %s', detail)
+                    self.latch('world_damaged', detail)
+                return
         if self.healthy_since is None:
             self.healthy_since = now
         launch.ready = launch.ever_ready = True
@@ -903,6 +1146,10 @@ class Supervisor:
         LOG.info('Prism exited (%s)', code)
         if launch.accepted:
             return
+        if code in SIGKILL_STATUSES:
+            # Killed from outside (B5: memory) before the game started: never started again by itself.
+            self.latch('killed', 'Prism Launcher was killed before Minecraft started')
+            return
         if code not in (0, 1) or (code != 0 and launch.prism_ended - launch.started < EARLY_PRISM_FAILURE):
             tail = launch.output.decode('utf-8', 'replace').strip().splitlines()[-3:]
             self.enter(RECOVERY, 'prism_failed', f'exit {code}' + (': ' + ' / '.join(tail) if tail else ''))
@@ -910,7 +1157,7 @@ class Supervisor:
     # -- the wrapper (the real JVM)
 
     def on_jvm_start(self, request):
-        """The wrapper asks for its launch: (ok, reply fields)."""
+        """The wrapper asks for its launch: (ok, reply fields). Every JVM passes the same gate."""
         if self.persisted.latched:
             return False, {'message': 'The AresOS desktop is in recovery. Type retry in its window first.'}
         if request.get('instance') != self.lock['instance']:
@@ -918,17 +1165,26 @@ class Supervisor:
         java = request.get('java')
         if not isinstance(java, str) or os.path.realpath(java) != os.path.realpath(self.lock['java']['path']):
             return False, {'message': f'The desktop runs only on the pinned Java ({self.lock["java"]["path"]}).'}
+        root = os.path.realpath(self.paths.instance(self.lock['instance']))
+        directory, cwd = request.get('instance_dir'), request.get('cwd')
+        if (not isinstance(directory, str) or not isinstance(cwd, str) or os.path.realpath(directory) != root
+                or os.path.realpath(cwd) != os.path.join(root, 'minecraft')):
+            return False, {'message': f'Only the managed instance in {root} runs through this wrapper.'}
         launch = self.launch
         if launch is not None and launch.jvm_pid is not None and self.runner.alive(launch.jvm_pid, launch.jvm_ticks):
             return False, {'message': 'The AresOS desktop is already running.'}
+        problem, mode = self.validate()
+        if problem:
+            self.latch(problem, mode)
+            return False, {'message': f'The AresOS desktop is in recovery ({problem}); see its window.'}
         if launch is None or launch.accepted:
             # Started from Prism by hand (not by this supervisor): a launch of its own, with a fresh nonce.
-            world, _ = check_world(self.paths, self.lock)
-            self.launch = launch = Launch(id=secrets.token_hex(6), nonce=new_token(),
-                                          mode='hub' if world == 'ok' else 'setup', started=self.clock())
+            self.launch = launch = Launch(id=secrets.token_hex(6), nonce=new_token(), mode=mode, started=self.clock())
             self.ensure_helper(restart=True)
-        launch.accepted = True
-        launch.jvm_started = self.clock()
+        else:
+            launch.mode = mode
+        now = self.clock()
+        launch.accepted, launch.authorized, launch.jvm_started = True, now, now
         self.retry_at = None
         self.save_runtime()
         if launch.mode == 'setup':
@@ -938,26 +1194,66 @@ class Supervisor:
             self.enter(STARTING)
         LOG.info('launch %s: the game is starting%s', launch.id, ' on NVIDIA' if self.nvidia else
                  ' on the default GPU (no NVIDIA driver found)')
-        return True, {'launch': launch.id, 'env': game_environment(self.instance, launch.nonce, self.nvidia)}
+        scope = game_scope(launch.id)
+        return True, {'launch': launch.id, 'env': game_environment(self.instance, launch.nonce, self.nvidia),
+                      'scope': scope, 'unit': game_unit(launch.id) if scope else None}
 
-    def on_jvm_started(self, wrapper_pid, pid):
+    def on_jvm_started(self, wrapper_pid, pid, launch_id=None):
+        """The wrapper reports the JVM's PID: (ok, message)."""
         launch = self.launch
-        if launch is None or not launch.accepted or launch.jvm_pid is not None:
-            return False
+        if (launch is None or not launch.accepted or launch.reported or launch.failed
+                or (launch_id is not None and launch_id != launch.id)):
+            return False, 'no launch is waiting for a JVM'
         identity = self.runner.identify(pid)
         if identity is None or identity[0] != wrapper_pid:
-            return False
-        ticks = identity[1]
-        if not self.runner.watch_jvm(pid, ticks):
-            return False
-        launch.jvm_pid, launch.jvm_ticks = pid, ticks
+            return False, 'the JVM is not the wrapper\'s child'
+        if self.runner.real and not game_cgroup_matches(identity[2], launch.id):
+            return False, f'the JVM is not in its memory scope {game_unit(launch.id)}'
+        if not self.runner.watch_jvm(pid, identity[1]):
+            return False, 'the JVM cannot be watched'
+        launch.jvm_pid, launch.jvm_ticks, launch.reported = pid, identity[1], True
         self.save_runtime()
         LOG.info('launch %s: the game runs as pid %d', launch.id, pid)
-        return True
+        return True, ''
 
-    def on_jvm_report(self, pid, status):
+    def on_jvm_failed(self, launch_id, reason):
+        """The wrapper could not start Java, or stopped it again because the supervisor refused it."""
         launch = self.launch
-        if launch is not None and launch.jvm_pid == pid and isinstance(status, int):
+        if launch is None or launch.id != launch_id or launch.reported or launch.failed:
+            return
+        self.launch_failed(f'the launcher wrapper reported: {reason}')
+
+    def on_wrapper_gone(self, launch_id):
+        """The wrapper's connection closed. Before a JVM was reported, that is a failed start."""
+        launch = self.launch
+        if (launch is not None and launch.id == launch_id and launch.accepted and not launch.reported
+                and not launch.failed):
+            self.launch_failed('the launcher wrapper ended before Minecraft started')
+
+    def handoff_lost(self):
+        self.launch_failed(f'no JVM was reported within {int(HANDOFF_TIMEOUT)} s of starting it')
+
+    def launch_failed(self, reason):
+        """An authorized start that never became a running game: a failure, counted like a crash (B2)."""
+        launch = self.launch
+        launch.failed = True
+        LOG.error('launch %s failed: %s', launch.id, reason)
+        self.persisted.accounted = launch.id
+        latch, delay = self.persisted.record_failure(self.wall())
+        self.save()
+        self.save_runtime()
+        if latch:
+            self.latch('crashes', reason)
+        elif launch.mode == 'setup':
+            self.enter(SETUP, 'setup_crashed', reason)
+        else:
+            self.retry_at = self.clock() + delay
+            self.enter(STARTING, 'restarting', reason)
+
+    def on_jvm_report(self, pid, status, launch_id=None):
+        launch = self.launch
+        if (launch is not None and launch.jvm_pid == pid and isinstance(status, int)
+                and launch_id in (None, launch.id)):
             launch.jvm_status = status
 
     def on_jvm_gone(self):
@@ -966,40 +1262,52 @@ class Supervisor:
             self.launch.jvm_ended = self.clock()
 
     def exit_status(self):
+        """The JVM's exit status from the wrapper, or its exit record bound to this launch and process."""
         launch = self.launch
         if launch.jvm_status is not None:
             return launch.jvm_status
         try:
             with open(self.paths.exit_file, encoding='utf-8') as source:
                 data = json.load(source)
-            if data.get('pid') == launch.jvm_pid and isinstance(data.get('status'), int):
+            if (isinstance(data, dict) and data.get('launch') == launch.id and data.get('pid') == launch.jvm_pid
+                    and (launch.jvm_ticks is None or data.get('ticks') in (None, launch.jvm_ticks))
+                    and isinstance(data.get('status'), int)):
                 return data['status']
-        except (OSError, ValueError, AttributeError):
+        except (OSError, ValueError):
             pass
         return None
 
     def finish_jvm(self):
         launch = self.launch
         status = self.exit_status()
+        scope = None
+        if status is None or status in SIGKILL_STATUSES:
+            scope = self.runner.scope_result(game_unit(launch.id))
         launch.jvm_pid = launch.jvm_ticks = launch.jvm_ended = None
         launch.ready = False
         self.healthy_since = None
-        self.save_runtime()
-        described = 'unknown exit' if status is None else (
+        self.persisted.accounted = launch.id
+        described = 'no exit report' if status is None else (
             f'signal {-status}' if status < 0 else f'exit code {status}')
-        LOG.info('launch %s: the game ended (%s)', launch.id, described)
+        LOG.info('launch %s: the game ended (%s%s)', launch.id, described, f', scope result {scope}' if scope else '')
         if status == 0:
+            self.save()
+            self.save_runtime()
             if launch.mode == 'setup' and not self.persisted.hub_seen:
                 self.enter(SETUP, 'setup_closed')
             else:
                 self.enter(RECOVERY, 'quit')
             return
-        if status in SIGKILL_STATUSES:
-            # B5: killed for memory or by force; never restarted by itself.
-            self.latch('killed', described)
+        if status is None or status in SIGKILL_STATUSES:
+            # B5: a kill, or the JVM ending together with its wrapper (systemd-oomd or the kernel stopping the whole
+            # scope leaves no report). Neither is a plain crash: never restarted by itself, never counted.
+            why = 'killed by SIGKILL' if status is not None else 'Minecraft and its launcher ended together'
+            self.latch('killed', why + (f'; its scope ended with {scope}' if scope else ''))
+            self.save_runtime()
             return
         latch, delay = self.persisted.record_failure(self.wall())
         self.save()
+        self.save_runtime()
         if latch:
             self.latch('crashes', described)
         elif launch.mode == 'setup':
@@ -1026,13 +1334,16 @@ class Supervisor:
         if (launch is not None and not launch.accepted and launch.prism_ended is not None
                 and self.state in (SETUP, STARTING) and self.reason in (None, 'setup')):
             items.append((launch.prism_ended + PRISM_GRACE, self.prism_gave_up))
+        if (launch is not None and launch.accepted and not launch.reported and not launch.failed
+                and launch.authorized is not None):
+            items.append((launch.authorized + HANDOFF_TIMEOUT, self.handoff_lost))
         if (launch is not None and launch.mode == 'hub' and launch.jvm_pid is not None and not launch.ever_ready
-                and not launch.adopted and not launch.timed_out and launch.jvm_started is not None):
+                and not launch.timed_out and launch.jvm_started is not None):
             items.append((launch.jvm_started + START_TIMEOUT, self.start_timed_out))
-        if self.healthy_since is not None:
-            items.append(((self.last_heartbeat or self.healthy_since) + HEARTBEAT_GAP, self.heartbeats_stopped))
-            if self.persisted.consecutive or self.persisted.failures:
-                items.append((self.healthy_since + HEALTHY_RESET, self.healthy_reset))
+        if launch is not None and launch.ready and launch.jvm_pid is not None:
+            items.append(((self.last_heartbeat or self.clock()) + HEARTBEAT_GAP, self.heartbeats_stopped))
+        if self.healthy_since is not None and (self.persisted.consecutive or self.persisted.failures):
+            items.append((self.healthy_since + HEALTHY_RESET, self.healthy_reset))
         return items
 
     def tick(self):
@@ -1058,7 +1369,7 @@ class Supervisor:
 
     def restart_launch(self):
         self.retry_at = None
-        self.begin()
+        self.begin(automatic=True)
 
     def prism_gave_up(self):
         if self.launch.mode == 'setup':
@@ -1072,8 +1383,12 @@ class Supervisor:
         self.enter(RECOVERY, 'slow_start')
 
     def heartbeats_stopped(self):
-        LOG.info('heartbeats stopped; the healthy period starts again with the next one')
+        """Lost readiness shows; the game is left alone and the view closes when heartbeats return."""
+        LOG.warning('no heartbeat for %d s: the hub is not reported ready any more', HEARTBEAT_GAP)
+        self.launch.ready = False
         self.healthy_since = None
+        if self.state == IN_WORLD and not self.persisted.latched:
+            self.enter(RECOVERY, 'unready')
 
     def healthy_reset(self):
         LOG.info('%d healthy minutes: failure counts reset', HEALTHY_RESET // 60)
@@ -1083,6 +1398,12 @@ class Supervisor:
     # -- the owner
 
     def retry(self):
+        """The owner's Retry: (ok, message). After a memory kill it waits for cleared pressure (B5)."""
+        if self.persisted.latched and self.persisted.reason == 'killed':
+            pressure = self.runner.memory_pressure()
+            if pressure is not None and pressure > PRESSURE_CLEAR:
+                return False, (f'Memory is still under pressure ({pressure:.0f}% of the last minute). Close apps '
+                               'you do not need, then type retry again in a minute.')
         self.persisted.reset()
         self.save()
         self.retry_at = None
@@ -1090,10 +1411,10 @@ class Supervisor:
         if launch is not None and launch.jvm_pid is not None and self.runner.alive(launch.jvm_pid, launch.jvm_ticks):
             self.enter(IN_WORLD if launch.ready else (SETUP if launch.mode == 'setup' else STARTING),
                        'setup' if launch.mode == 'setup' else None)
-            return 'Minecraft is still running; the recovery state is cleared.'
+            return True, 'Minecraft is still running; the recovery state is cleared.'
         LOG.info('retry requested by the owner')
         self.begin()
-        return f'State: {self.state}'
+        return True, f'State: {self.state}'
 
     def forget_hub(self):
         world, _ = check_world(self.paths, self.lock)
@@ -1180,11 +1501,29 @@ class Runner:
 
     # the JVM: not our child, so only a pidfd
     def identify(self, pid):
-        """(parent PID, start ticks) of a process, or None."""
+        """(parent PID, start ticks, /proc/<pid>/cgroup) of a process, or None."""
         try:
-            return parent_pid(pid), process_ticks(pid)
+            with open(f'/proc/{pid}/cgroup', encoding='utf-8') as source:
+                cgroup = source.read()
+            return parent_pid(pid), process_ticks(pid), cgroup
         except (OSError, ValueError, IndexError):
             return None
+
+    def scope_result(self, unit):
+        """How systemd says the game's scope ended (for example 'oom-kill'), or None. Clears a failed scope."""
+        try:
+            shown = subprocess.run([SYSTEMCTL, '--user', 'show', unit, '--property=Result', '--property=LoadState'],
+                                   capture_output=True, text=True, timeout=5)
+            values = dict(line.split('=', 1) for line in shown.stdout.splitlines() if '=' in line)
+            if values.get('LoadState') != 'loaded':
+                return None
+            subprocess.run([SYSTEMCTL, '--user', 'reset-failed', unit], capture_output=True, timeout=5)
+            return values.get('Result') or None
+        except (OSError, subprocess.SubprocessError, ValueError):
+            return None
+
+    def memory_pressure(self):
+        return memory_pressure()
 
     def alive(self, pid, ticks):
         try:
@@ -1235,10 +1574,17 @@ class Runner:
         except OSError as error:
             LOG.error('could not open the message window: %s', error)
 
-    def close_view(self):
+    def close_view(self, wait=False):
+        """Close the message window. The loop reaps it; on shutdown (wait) this waits for it itself."""
         view, self.view_process = self.view_process, None
         if view is not None and view.poll() is None:
             view.terminate()
+            if wait:
+                try:
+                    view.wait(5)
+                except subprocess.TimeoutExpired:
+                    view.kill()
+                    view.wait()
 
 
 class Peer:
@@ -1248,6 +1594,7 @@ class Peer:
         self.uid = uid
         self.buffer = b''
         self.wrapper = False
+        self.launch = None
 
 
 class Loop:
@@ -1372,8 +1719,10 @@ class Loop:
         try:
             self.selector.unregister(peer.sock)
         except (KeyError, ValueError):
-            pass
+            return
         peer.sock.close()
+        if peer.wrapper:
+            self.supervisor.on_wrapper_gone(peer.launch)
 
     def reply(self, peer, message):
         try:
@@ -1398,17 +1747,23 @@ class Loop:
                 return {'ok': False, 'error': 'not_authorized', 'message': 'pid does not match the connection'}
             ok, fields = supervisor.on_jvm_start(request)
             peer.wrapper = ok
+            peer.launch = fields.get('launch') if ok else None
             return dict(ok=ok, **fields)
         if op == 'jvm_started' and peer.wrapper and isinstance(request.get('pid'), int):
-            return {'ok': supervisor.on_jvm_started(peer.pid, request['pid'])}
+            ok, text = supervisor.on_jvm_started(peer.pid, request['pid'], peer.launch)
+            return {'ok': ok, 'message': text}
+        if op == 'jvm_failed' and peer.wrapper:
+            supervisor.on_jvm_failed(peer.launch, str(request.get('reason', ''))[:500])
+            return {'ok': True}
         if op == 'jvm_exited' and isinstance(request.get('pid'), int):
             # Only the game this supervisor watches can be reported, so any same-user peer may report it.
-            supervisor.on_jvm_report(request['pid'], request.get('status'))
+            supervisor.on_jvm_report(request['pid'], request.get('status'), request.get('launch'))
             return {'ok': True}
         if op == 'status':
             return dict(ok=True, **supervisor.status())
         if op == 'retry':
-            return {'ok': True, 'message': supervisor.retry()}
+            ok, text = supervisor.retry()
+            return {'ok': ok, 'message': text}
         if op == 'forget_hub':
             ok, text = supervisor.forget_hub()
             return {'ok': ok, 'message': text}
@@ -1484,7 +1839,14 @@ class Loop:
 
     def close(self):
         self.runner.stop_helper()
-        self.runner.close_view()
+        self.runner.close_view(wait=True)
+        # The game keeps running (the next supervisor adopts it); only this process's ends of its pipes close.
+        for key in list(self.selector.get_map().values()):
+            kind, data = key.data
+            if kind == 'peer':
+                data.sock.close()
+            elif kind == 'prism-output':
+                data.stdout.close()
         self.listener.close()
         try:
             os.unlink(self.paths.socket)

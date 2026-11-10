@@ -3,6 +3,24 @@
   "instance": "AresDesktop",
   "world": "AresHub",
   "minecraft": "26.2",
+  "components": [
+    {
+      "uid": "net.minecraft",
+      "version": "26.2",
+      "file": "net.minecraft.json",
+      "url": "https://meta.prismlauncher.org/v1/net.minecraft/26.2.json",
+      "sha256": "22a150f2ed1ea75f00f945d32ec30a1b8b5085c2ce54b72c7105440fab5ba92b",
+      "size": 24493
+    },
+    {
+      "uid": "org.lwjgl3",
+      "version": "3.4.1",
+      "file": "org.lwjgl3.json",
+      "url": "https://meta.prismlauncher.org/v1/org.lwjgl3/3.4.1.json",
+      "sha256": "4108a1aaaf182a397b588d9ee086a7473d1bc15407169475676740e04da6966b",
+      "size": 73685
+    }
+  ],
   "java": {
     "package": "java-25-openjdk-headless",
     "major": 25,

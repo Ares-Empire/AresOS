@@ -1,0 +1,4 @@
+Saved data written by the AresOS mod itself (client game test 04c, seed 50,
+placeholder hub, 2026-11-10): the desktop marker and the Nether home, both
+gzip-compressed NBT. test_aresos_desktop reads them to prove its reader and
+check_world() follow the real format. They hold only the mod's own fields.
