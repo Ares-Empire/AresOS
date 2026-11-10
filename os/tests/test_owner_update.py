@@ -1084,13 +1084,42 @@ class ToolsUpdateTest(unittest.TestCase):
                         self.refused(result, self.BOUNCE)
                     with self.assertRaises(AssertionError):
                         self.refused(result, self.NOT_INSTALLED)
-                    with self.assertRaises(AssertionError):
-                        self.works(home, 'x' * 64, 'y' * 64, timeout=2)
             # The complete lines, terminated, do pass refused(): the helper is strict, not broken.
             for name, line in (('bounce', self.BOUNCE), ('refusal', self.NOT_INSTALLED)):
                 with self.subTest(case=name + ' complete'):
                     (home / 'tools/at').write_text('echo "' + line + '"; exit 1\n')
                     self.refused(self.entry_run(home, 'check', timeout=2), line)
+
+    def test_works_reruns_only_after_a_complete_terminated_bounce(self):
+        """A bad first run followed by a good one: works() must fail after exactly one invocation.
+
+        Round 7's helper retried whenever the output mentioned the bounce, so a
+        hang or a truncated line followed by a sound second run passed. Here
+        the entry counts its invocations (in the home, outside the bundle) and
+        answers differently the second time.
+        """
+        marker = 'echo "15f stand-in ran"; exit 0'
+        bounce = 'echo "' + self.BOUNCE + '"; exit 1'
+        cases = {
+            'hang after the bounce, then success': ('echo "' + self.BOUNCE + '"; sleep 60', marker, False, 1),
+            'truncated bounce, then success': ('echo "STOP: These tools are not the installed entry"; exit 1', marker, False, 1),
+            'complete bounce, then success': (bounce, marker, True, 2),
+            'complete bounce, then bounce again': (bounce, bounce, False, 2),
+        }
+        for name, (first, second, passes, invocations) in cases.items():
+            with self.subTest(case=name), tempfile.TemporaryDirectory(dir=ROOT / 'os/tests') as temporary:
+                home = pathlib.Path(temporary) / 'home'
+                home.mkdir(mode=0o700)
+                script = ('#!/usr/bin/bash\ncount=/var/lib/ares/invocations\nn=$(cat "$count" 2>/dev/null || echo 0)\n'
+                          'echo $((n + 1)) > "$count"\nif [ "$n" = 0 ]; then\n' + first + '\nfi\n' + second + '\n')
+                old = write_bundle(home / 'tools', extra={'at': script.encode()})
+                os.symlink('tools/at', home / 'at')
+                if passes:
+                    self.assertEqual(self.works(home, old, old, timeout=2), '15f')
+                else:
+                    with self.assertRaises(AssertionError):
+                        self.works(home, old, old, timeout=2)
+                self.assertEqual((home / 'invocations').read_text().strip(), str(invocations), name)
 
     @contextlib.contextmanager
     def power_cut_after(self, renames):
