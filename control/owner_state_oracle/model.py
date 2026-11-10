@@ -102,18 +102,22 @@ class Oracle:
             if event.get('before_seq', -1) >= sequence:
                 continue
             source, row = self.bound(event)
-            call = next((c for c in self.script if c['call'] == event['call']), {})
-            matching_message = any(ref.get('message_id') == mid for ref in event.get('identities', []))
-            seed = (event.get('fixture_seed') and matching_message and
+            if source == key or event.get('source') == key:
+                events.append(event)
+                continue
+            seed = (event.get('fixture_seed') and
                     event.get('before_seq', -1) <= getattr(self, 'seed_sequence', -2) and
                     event['call'] in getattr(self, 'seed_calls', set()) and
-                    call.get('action') in {'mail_send', 'mail_unsubscribe'} and
-                    call.get('arguments', {}).get('operation_id') == operation_id and
                     any(key in e['set'] for e in getattr(self, 'seed_events', [])))
-            repair = (row and row.get('repair_of') == operation_id and matching_message and
-                      call.get('action') == 'mail_operation_repair' and
-                      call.get('arguments', {}).get('operation_id') == operation_id)
-            if source == key or event.get('source') == key or seed or repair:
+            repair = row and row.get('repair_of') == operation_id
+            # Paged reads can log hundreds of unrelated FETCHes. Only a seed
+            # or a parent repair can need this additional scripted-call join.
+            if not (seed or repair) or not any(ref.get('message_id') == mid for ref in event.get('identities', [])):
+                continue
+            call = next((c for c in self.script if c['call'] == event['call']), {})
+            if call.get('arguments', {}).get('operation_id') == operation_id and (
+                    seed and call.get('action') in {'mail_send', 'mail_unsubscribe'} or
+                    repair and call.get('action') == 'mail_operation_repair'):
                 events.append(event)
         return events
 
