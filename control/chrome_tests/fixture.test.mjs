@@ -60,3 +60,12 @@ test('review fixtures compile without starting a browser',async()=>{
   }
   for(const cross of [false,true])new vm.Script(passwordPage(cross).script);
 });
+
+test('review pages reach the HTTP response without falling through to the default 404',async()=>{
+  const fixture=await fixtures({port:0,secondPort:0}),base='http://127.0.0.1:'+fixture.port;
+  try{
+    for(const [mode,expected]of [['inline-hold','Continue'],['binding','Delete'],['independent-dialog','reviewChange']]){
+      const response=await fetch(base+'/?case=review-page&mode='+mode+'&variant=listitem&id=review-http');assert.equal(response.status,200);assert.ok((await response.text()).includes(expected));
+    }
+  }finally{fixture.close();}
+});

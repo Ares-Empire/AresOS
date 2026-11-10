@@ -40,7 +40,7 @@ export async function fixtures(options={}) {
     let body,script='';
     if(kind==='review-page'){const review=reviewPage(url);if(!review)throw Error('Unknown review fixture');({body,script}=review);}
     else if(['popup-opener','popup-child'].includes(kind)){const popup=popupPage(url);res.end(page(popup.body,popup.script));return;}
-    if(kind==='adapter-sites'){const site=(await import('./sites/fixture.mjs')).sitePage(url,req.headers.host);res.end(page(site.body,site.script));return;}
+    else if(kind==='adapter-sites'){const site=(await import('./sites/fixture.mjs')).sitePage(url,req.headers.host);res.end(page(site.body,site.script));return;}
     else if(kind==='native-donor'){
       const id=url.searchParams.get('id');body='<p id="native-donor">Ordinary native donor</p><button type="button" style="position:fixed;inset:0;width:100vw;height:100vh">Open controlled page</button>';
       script="document.title='Native donor '+"+JSON.stringify(id)+";document.querySelector('button').onclick=()=>window.open('/?case=compose&id='+"+JSON.stringify(id)+",'native-root-'+"+JSON.stringify(id)+");fetch('/compat-report',{method:'POST',body:JSON.stringify({id:"+JSON.stringify(id)+",phase:'donor-ready'})});";

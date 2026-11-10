@@ -17,6 +17,10 @@ export function reviewPage(url){
     body='<button type="button">Continue</button><iframe id="child"></iframe>'+sink;
     const markup=form();
     script=`const child=document.querySelector('#child');${variant==='srcdoc'?`child.srcdoc=${JSON.stringify(markup)};`:`child.contentDocument.body.innerHTML=${JSON.stringify(markup)};`}document.querySelector('button').onclick=()=>${variant==='borrowed'?'HTMLFormElement.prototype.submit.call(child.contentDocument.querySelector(\'form\'))':"child.contentDocument.querySelector('form').submit()"};`;
+  }else if(mode==='inline-editor'){
+    body='<button type="button">Send</button><iframe id="child" style="width:700px;height:250px"></iframe>';
+    const markup='<div contenteditable="true" aria-label="Draft"><div>First draft line</div><div>Second draft line</div></div>';
+    script=`const child=document.querySelector('#child');${variant==='srcdoc'?`child.srcdoc=${JSON.stringify(markup)};`:`child.contentDocument.body.innerHTML=${JSON.stringify(markup)};`}document.querySelector('button').onclick=()=>fetch(${JSON.stringify(receive)},{method:'POST',body:child.contentDocument.querySelector('[contenteditable]').innerText});globalThis.reviewChange=()=>child.contentDocument.querySelector('[contenteditable]').textContent='Changed inline draft';`;
   }else if(mode==='script-post'){
     body='<form method="post" action="/post-document?case='+id+'"><input name="draft" value="Script-started"></form>';
     script="setTimeout(()=>document.querySelector('form').submit(),100);";
@@ -50,9 +54,9 @@ export function reviewPage(url){
   }else if(mode==='confirmation'){
     body='<textarea aria-label="Draft">Approved draft</textarea><div role="dialog" aria-modal="true"><p>Send this message?</p><button type="button">OK</button></div>';
     script=`document.querySelector('button').onclick=()=>${send};globalThis.reviewChange=()=>document.querySelector('textarea').value='Different draft';`;
-  }else if(mode==='file'){
-    body=form('<input type="file" aria-label="File"><button type="submit">Submit</button>')+sink;
-    script="const field=document.querySelector('[type=file]');const install=bytes=>{const transfer=new DataTransfer();transfer.items.add(new File([bytes],'proof.txt',{lastModified:0}));field.files=transfer.files;};install('GOOD');globalThis.reviewChange=()=>install('EVIL');";
+  }else if(mode==='file'||mode==='owner-file'){
+    body=form('<input type="file" name="attachment" aria-label="File"><button type="submit">Submit</button>').replace('method="post"','method="post" enctype="multipart/form-data"')+sink;
+    script="const field=document.querySelector('[type=file]');const install=bytes=>{const old=field.files[0],transfer=new DataTransfer();transfer.items.add(new File([bytes],old?.name||'proof.txt',{lastModified:old?.lastModified||0}));field.files=transfer.files;};"+(mode==='file'?"install('GOOD');":"")+"globalThis.reviewChange=()=>install('EVIL');";
   }else if(mode==='rich'){
     body='<div contenteditable="true" aria-label="Draft"><div>Line one</div><div>Line two</div></div><button type="button">Send</button>';
     script=`document.querySelector('button').onclick=()=>${send};globalThis.reviewChange=()=>document.querySelector('[contenteditable]').textContent='Line one Line two';`;
@@ -68,6 +72,10 @@ export function reviewPage(url){
   }else if(mode==='independent-dialog'){
     body=form()+sink;
     script=`globalThis.reviewChange=()=>setTimeout(()=>{confirm('Continue?');document.querySelector('form').submit();},20);`;
+  }else if(mode==='native-dialog'){
+    const kind=url.searchParams.get('dialog');
+    body='<button type="button">Continue</button>'+form()+sink;
+    script=`const openDialog=()=>{${kind==='alert'?"alert('Continue?')":kind==='prompt'?"prompt('Continue?','Synthetic default')":"confirm('Continue?')"};document.querySelector('form').submit();};document.querySelector('button').onclick=openDialog;globalThis.reviewChange=()=>setTimeout(openDialog,20);`;
   }else return null;
   return {body,script};
 }

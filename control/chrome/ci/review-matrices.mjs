@@ -1,7 +1,27 @@
 import assert from 'node:assert/strict';
 import {setTimeout as delay} from 'node:timers/promises';
+import {allTabs} from './tabs.mjs';
+import {createHash} from 'node:crypto';
 
-export async function reviewMatrices({check,nav,call,rpc,target,read,counts,eventually,approval,receiverEvidence,fixture,getTab,ownerKey,admin,ownerNavigate,ownerDismiss,nativeDonor,closeNativeDonor,setTab,lifecycle}){
+export async function reviewMatrices({check,nav,call,rpc,target,read,counts,eventually,approval,receiverEvidence,fixture,getTab,ownerKey,ownerChooseFile,admin,ownerNavigate,ownerDismiss,nativeDonor,closeNativeDonor,setTab,lifecycle}){
+  await check('GROUP 3 REVIEW ordinary blank and srcdoc editors bind drafts and send normally',async()=>{
+    for(const variant of ['blank','srcdoc'])for(const changed of [false,true]){
+      const id='review-editor-'+variant+'-'+changed;await nav('review-page&mode=inline-editor&variant='+variant+'&id='+id);
+      let prepared=await call('click',await target('Send'));assert.ok(prepared.approval);assert.match(JSON.stringify(prepared.approval),/First draft line/);
+      if(changed){await fixture.mutate(id,'review-change');const old=await rpc('submit',prepared.approval);assert.ok(!old.ok||old.data.operation.state==='failed');assert.equal(receiverEvidence(id,'inline draft changed').count,0);prepared=await call('click',await target('Send'));}
+      await approval(prepared,id);
+    }
+  });
+  await check('GROUP 3 REVIEW owner chosen attachments show byte digests and bind identical metadata replacements',async()=>{
+    const id='review-owner-file';await nav('review-page&mode=owner-file&id='+id);
+    const opening=call('click',await target('File'));opening.catch(()=>{});await ownerChooseFile();await opening;
+    await eventually(async()=>(await read()).some(row=>row.expected.name==='File'&&row.expected.value?.length===1),'owner chosen File is installed');
+    const first=await call('click',await target('Submit'));assert.ok(first.approval);
+    for(const text of ['owner-picked.txt','4 bytes',createHash('sha256').update('GOOD').digest('hex')])assert.ok(first.approval.question.includes(text),first.approval.question);
+    await fixture.mutate(id,'review-change');const refused=await rpc('submit',first.approval);assert.ok(!refused.ok||refused.data.operation.state==='failed');assert.equal(receiverEvidence(id,'selected bytes changed').count,0);
+    const second=await call('click',await target('Submit'));assert.ok(second.approval.question.includes(createHash('sha256').update('EVIL').digest('hex')));await approval(second,id);
+    assert.match(fixture.arrivals.find(row=>new URL(row.url,'http://fixture.test').searchParams.get('case')===id).body,/EVIL/);
+  });
   await check('GROUP 2 REVIEW inherited and newly created frames hold submissions',async()=>{
     for(const variant of ['blank','srcdoc','borrowed','new']){
       const id='review-frame-'+variant;await nav('review-page&mode='+(variant==='new'?'new-frame':'inline-hold')+'&variant='+variant+'&id='+id);
@@ -12,7 +32,7 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
   await check('GROUP 2 REVIEW borrowed wrappers respect another controlled tab and an ordinary document',async()=>{
     for(const outside of [false,true]){
       const id='review-cross-tab-'+outside;await nav('review-page&mode=cross-tab&id='+id);await call('click',await target('Open window'));
-      const child=await eventually(async()=>(await call('tabs',{limit:100})).items.find(row=>row.url?.includes('mode=cross-tab-inner&id='+id)),'controlled other tab');
+      const child=await eventually(async()=>(await allTabs(call)).items.find(row=>row.url?.includes('mode=cross-tab-inner&id='+id)),'controlled other tab');
       const childTarget=async()=>{const page=await call('read',{tab:child.tab});const row=page.untrusted_content.tree.split('\n').filter(line=>line.startsWith('{')).map(JSON.parse).find(row=>row.expected.name==='Ready');return row&&{reference:row.reference,expected:row.expected};};
       const old=await eventually(childTarget,'other tab reader');const first=await rpc('click',old);assert.equal(first.ok,false);assert.equal(first.error.code,'stale_reference');
       await call('click',await eventually(childTarget,'guarded other tab'));
@@ -95,34 +115,35 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
   await check('GROUP 8 REVIEW script-started POST documents in tabs and popups never reload',async()=>{
     const tab=getTab(),id='review-script-post';await call('release_tab',{tab});await ownerNavigate('http://fixture.test:8765/?case=review-page&mode=script-post&id='+id);await eventually(()=>counts(id)===1,'script POST');await call('take_tab',{tab});const refused=await rpc('click',await target('Continue'));assert.equal(refused.ok,false);assert.match(refused.error.message,/form submission|request method/);assert.equal(counts(id),1);
     await nav('review-page&mode=script-popup&id=review-script-popup');await call('click',await target('Open window'));await eventually(()=>counts('review-script-popup')===1,'popup script POST');
-    const child=await eventually(async()=>(await call('tabs',{limit:100})).items.find(row=>row.url?.includes('/post-document?case=review-script-popup')),'POST popup exists');
+    const child=await eventually(async()=>(await allTabs(call)).items.find(row=>row.url?.includes('/post-document?case=review-script-popup')),'POST popup exists');
     const page=await call('read',{tab:child.tab});const row=page.untrusted_content.tree.split('\n').filter(line=>line.startsWith('{')).map(JSON.parse).find(row=>row.expected.name==='Continue');assert.ok(row);
     const popupRefused=await rpc('click',{reference:row.reference,expected:row.expected});assert.equal(popupRefused.ok,false);assert.match(popupRefused.error.message,/form submission|request method/);assert.equal(counts('review-script-popup'),1);await call('close_tab',{tab:child.tab});
   });
-  await check('GROUP 4 REVIEW independent native dialogs arm before accept or dismiss or stay with owner',async()=>{
-    for(const accept of [false,true]){
-      const id='review-independent-dialog-'+accept;await nav('review-page&mode=independent-dialog&id='+id);await delay(600);await fixture.mutate(id,'review-change');
-      const dialog=await eventually(async()=>(await call('read',{tab:getTab()})).dialog,'independent native dialog');assert.equal(counts(id),0);
-      const answer=await rpc('dialog',{tab:getTab(),expected:dialog,accept});
-      assert.equal(receiverEvidence(id,'after native answer or owner handoff').count,0,'answering must never resume an unapproved form submission');
-      if(!answer.ok){assert.equal(answer.error.code,'refused');assert.match(answer.error.message,/leave it to the owner/);assert.deepEqual((await call('read',{tab:getTab()})).dialog,dialog);console.log('REVIEW P1 private modal arming unavailable: owner handoff, receiver 0',id);ownerDismiss();await delay(600);}
-      else{await approval(answer.data,id);console.log('REVIEW P1 RECEIVER0/1/1',id);}
+  await check('GROUP 4 REVIEW ordinary native dialogs from Claude owner and page tasks keep working',async()=>{
+    for(const kind of ['alert','confirm','prompt'])for(const origin of ['claude','owner','task'])for(const accept of kind==='alert'?[true]:[false,true]){
+      const id='review-dialog-'+kind+'-'+origin+'-'+accept;await nav('review-page&mode=native-dialog&dialog='+kind+'&id='+id);await delay(600);
+      if(origin==='claude'){const opened=await rpc('click',await target('Continue'));assert.ok(opened.ok||opened.error.code==='unknown',JSON.stringify(opened));}
+      else if(origin==='owner')ownerKey();else await fixture.mutate(id,'review-change');
+      const dialog=await eventually(async()=>(await call('read',{tab:getTab()})).dialog,'native '+kind+' from '+origin);assert.equal(dialog.kind,kind);assert.equal(receiverEvidence(id,'native dialog open').count,0);
+      const answer=await call('dialog',{tab:getTab(),expected:dialog,accept,...(kind==='prompt'?{text:'Synthetic answer'}:{})});
+      assert.equal(receiverEvidence(id,'after native answer').count,0,'answering cannot approve the resumed form');
+      await approval(answer,id);console.log('REVIEW P1 ANSWERED RECEIVER0/1/1',id);
     }
   });
   await check('GROUP 8 REVIEW no-op checks and isolated choices leave the owner tab selected',async()=>{
     const tab=getTab();await nav('features&id=review-noop');await call('check',{...await target('Tick'),checked:true});
     const owner=(await call('open',{url:'about:blank'})).untrusted_content.tab;assert.ok(Number.isInteger(owner));await call('release_tab',{tab:owner});
-    const active=async()=>(await call('tabs',{limit:100})).items.find(row=>row.active&&row.focused)?.tab;assert.equal(await active(),owner);
+    const active=async()=>(await allTabs(call)).items.find(row=>row.active&&row.focused)?.tab;assert.equal(await active(),owner);
     const result=await call('check',{...await target('Tick'),checked:true});assert.equal(result.untrusted_content.no_change,true);assert.equal(result.untrusted_content.dispatched,false);assert.equal(await active(),owner);
     await call('select',{...await target('Choice'),value:'b'});assert.equal(await active(),owner,'isolated selection cannot take focus');
-    assert.equal((await call('tabs',{limit:100})).items.find(row=>row.tab===tab).active,false);
+    assert.equal((await allTabs(call)).items.find(row=>row.tab===tab).active,false);
     await call('take_tab',{tab:owner});await call('close_tab',{tab:owner});
   });
   await check('GROUP 8 REVIEW Stop removes navigation blocks while a frozen wrapper awaits cleanup',async()=>{
     const tab=getTab();await nav('review-page&mode=frozen-stop&id=review-stop-blocks');await call('click',await target('Continue'));await lifecycle({fixture:'stop'});
-    const stopped=(await call('tabs',{limit:100})).items.find(row=>row.tab===tab);assert.equal(stopped.controlled,false);assert.equal(stopped.cleanup_pending,true);
+    const stopped=(await allTabs(call)).items.find(row=>row.tab===tab);assert.equal(stopped.controlled,false);assert.equal(stopped.cleanup_pending,true);
     await ownerNavigate('http://approval.test:8765/receive?case=review-stop-blocks');await eventually(()=>counts('review-stop-blocks')===1,'owner navigation is no longer DNR-blocked');
-    await eventually(async()=>!(await call('tabs',{limit:100})).items.find(row=>row.tab===tab).cleanup_pending,'native document replacement finishes cleanup');
+    await eventually(async()=>!(await allTabs(call)).items.find(row=>row.tab===tab).cleanup_pending,'native document replacement finishes cleanup');
     await ownerNavigate('http://fixture.test:8765/?case=compose');await call('take_tab',{tab});
   });
   await check('GROUP 5 REVIEW page outcome records the actual post-input notice',async()=>{

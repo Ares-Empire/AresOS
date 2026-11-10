@@ -9,8 +9,9 @@ import {reviewMatrices} from './review-matrices.mjs';
 import {popupMatrices} from './popups.mjs';
 import {collectSiteResults} from './site-results.mjs';
 import {receiverSnapshot} from './receiver-evidence.mjs';
+import {allTabs} from './tabs.mjs';
 
-export async function matrices({call,read,nav,target,counts,eventually,tab,fixture,admin,rpc,caller,ownerNavigate,ownerOpenPopup,popupEvidence,popupControl,nativeDonor,closeNativeDonor,ownerKey,ownerDismiss,ownerHistory,ownerBookmark,lifecycle,restoreControl,stopClick,baseline,isolationAfter}) {
+export async function matrices({call,read,nav,target,counts,eventually,tab,fixture,admin,rpc,caller,ownerNavigate,ownerOpenPopup,popupEvidence,popupControl,nativeDonor,closeNativeDonor,ownerKey,ownerChooseFile,ownerDismiss,ownerHistory,ownerBookmark,lifecycle,restoreControl,stopClick,baseline,isolationAfter}) {
   const results=[];let trustOperation;
   const receiverEvidence=(id,phase)=>{const row=receiverSnapshot(fixture.arrivals,id,phase);fs.appendFileSync('/out/page-receiver.jsonl',JSON.stringify(row)+'\n');return row;};
   async function check(name,fn) {
@@ -49,7 +50,7 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
       await approval(await call('click',await target('Continue')),id);
     }
   });
-  await reviewMatrices({check,nav,call,rpc,target,read,counts,eventually,approval,receiverEvidence,fixture,getTab:()=>tab,setTab:value=>{tab=value},ownerKey,admin,ownerNavigate,ownerDismiss,nativeDonor,closeNativeDonor,lifecycle});
+  await reviewMatrices({check,nav,call,rpc,target,read,counts,eventually,approval,receiverEvidence,fixture,getTab:()=>tab,setTab:value=>{tab=value},ownerKey,ownerChooseFile,admin,ownerNavigate,ownerDismiss,nativeDonor,closeNativeDonor,lifecycle});
   await popupMatrices({check,call,rpc,nav,counts,eventually,getTab:()=>tab,setTab:value=>{tab=value},fixture,ownerOpenPopup,popupEvidence,popupControl,approval});
   await check('GROUP 7 native compatibility inside and outside Claude tabs',async()=>{
     await nav('native-compat&id=controlled');
@@ -284,7 +285,7 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
   await check('GROUP 6 exclusions through frame, popup, redirect, taking and history',async()=>{
     await nav('frame-excluded');assert.doesNotMatch(JSON.stringify(await read()),/EXCLUDED_PAGE_SENTINEL_20/);
     await nav('popup-excluded');await call('click',await target('Continue'));await delay(250);
-    const tabs=await call('tabs',{limit:100});const excludedPopups=tabs.items.filter(item=>item.url?.includes('approval.test'));assert.equal(excludedPopups.length,1,'excluded popup must exist');for(const item of excludedPopups){const result=await rpc('take_tab',{tab:item.tab});assert.equal(result.ok,false);}
+    const tabs=await allTabs(call);const excludedPopups=tabs.items.filter(item=>item.url?.includes('approval.test'));assert.equal(excludedPopups.length,1,'excluded popup must exist');for(const item of excludedPopups){const result=await rpc('take_tab',{tab:item.tab});assert.equal(result.ok,false);}
     await ownerNavigate('http://fixture.test:8765/?case=compose');await call('take_tab',{tab});
     await call('navigate',{tab,url:'http://fixture.test:8765/?case=redirect'});await delay(400);const redirected=await rpc('read',{tab});assert.equal(redirected.ok,false);
     await ownerNavigate('http://approval.test:8765/?case=excluded');assert.equal((await rpc('take_tab',{tab})).ok,false);
