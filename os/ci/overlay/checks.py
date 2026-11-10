@@ -3,6 +3,7 @@ import json
 import os
 import pathlib
 import subprocess
+import threading
 import time
 import traceback
 
@@ -237,35 +238,98 @@ def memory_protection():
                 oomd_active=run('systemctl', 'is-active', 'systemd-oomd.service')['stdout'].strip())
 
 
-HOG = '''
-import sys
+PRESSURE_UNIT = 'aresos-ci-pressure.scope'
+# The pressure source says where it runs, then how much it holds after each step (64 MiB, every page touched).
+HOG = """
+import os, time
+print('SCOPE', os.getpid(), open('/proc/self/cgroup').read().strip().replace('\\n', ' '), flush=True)
 chunks = []
 while True:
     chunk = bytearray(64 << 20)
-    chunk[::4096] = b"\\1" * (len(chunk) // 4096)
+    chunk[::4096] = b'\\1' * (len(chunk) // 4096)
     chunks.append(chunk)
-    print(len(chunks) * 64, flush=True)
-'''
+    print('ALLOCATED', len(chunks) * 64, flush=True)
+    time.sleep(0.05)
+"""
+# The source must reach at least this much before it is killed, so the kill comes from real memory pressure.
+PRESSURE_MIN_MIB = 1024
+# Every status request to the supervisor during the pressure must be answered within this time.
+RESPONSIVE = 30.0
+
+
+def pressure_command():
+    return [*AS_ARES, '/usr/bin/systemd-run', '--user', '--scope', '--quiet', '--slice=aresos.slice',
+            f'--unit={PRESSURE_UNIT}', '--property=MemorySwapMax=0', '/usr/bin/python3', '-c', HOG]
+
+
+def timed_status():
+    """Seconds the supervisor took to answer a status request, or None if it did not answer in time."""
+    started = time.monotonic()
+    try:
+        result = subprocess.run([*AS_ARES, '/usr/libexec/aresos-desktop', 'status'], capture_output=True,
+                                text=True, timeout=RESPONSIVE)
+        json.loads(result.stdout)
+    except (subprocess.TimeoutExpired, ValueError):
+        return None
+    return time.monotonic() - started if result.returncode == 0 else None
+
+
+def oom_evidence(pid):
+    """The kernel's or systemd-oomd's record of killing the pressure source, and its scope's systemd result."""
+    kernel = run('journalctl', '-k', '-o', 'cat', '--no-pager', '-n', '3000')['stdout'].splitlines()
+    oomd = run('journalctl', '-u', 'systemd-oomd.service', '-o', 'cat', '--no-pager', '-n', '200')['stdout']
+    unit = run(*AS_ARES, '/usr/bin/systemctl', '--user', 'show', PRESSURE_UNIT, '-p', 'Result')['stdout'].strip()
+    kernel = [line for line in kernel if f'Killed process {pid} ' in line
+              or (f'/{PRESSURE_UNIT},' in line and f'pid={pid},' in line)]
+    oomd = [line for line in oomd.splitlines() if PRESSURE_UNIT in line]
+    return dict(kernel=kernel, oomd=oomd, unit=unit,
+                proven=bool(kernel or oomd or unit == 'Result=oom-kill'))
 
 
 def memory_pressure():
-    """Package 23 review 1 (finding 9): exhaust memory from a cgroup next to the game's. The pressure source is
-    killed; the compositor, the supervisor and the recovery terminal survive, and the supervisor still answers."""
+    """Package 23 (review 1 finding 9, review 2 finding 9): exhaust memory from a scope next to the game's. The
+    source must enter that scope, allocate, and be killed for memory (kernel or systemd-oomd evidence for exactly
+    that scope or process); the supervisor answers throughout, and the compositor, the supervisor, its keeper and
+    the recovery terminal survive."""
     before = survivors()
     assert set(before) == {'labwc', 'supervisor', 'keeper', 'recovery terminal'}, before
-    hog = subprocess.Popen([*AS_ARES, '/usr/bin/systemd-run', '--user', '--scope', '--quiet', '--slice=aresos.slice',
-                            '--unit=aresos-ci-pressure.scope', '--property=MemorySwapMax=0', '/usr/bin/python3', '-c',
-                            HOG], stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    output, _ = hog.communicate(timeout=600)
-    lines = output.decode(errors='replace').splitlines()
-    assert hog.returncode != 0, ('the pressure source was not stopped', lines[-5:])
+    hog = subprocess.Popen(pressure_command(), stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                           stderr=subprocess.STDOUT, text=True)
+    lines = []
+
+    def read():
+        for line in hog.stdout:
+            lines.append(line.rstrip('\n'))
+    reader = threading.Thread(target=read, daemon=True)
+    reader.start()
+    answers = []
+    deadline = time.monotonic() + 600
+    while hog.poll() is None and time.monotonic() < deadline:
+        if any(line.startswith('ALLOCATED ') for line in lines):
+            answers.append(timed_status())
+        time.sleep(0.5)
+    if hog.poll() is None:
+        hog.kill()
+        hog.wait()
+        raise AssertionError(('the pressure source was not stopped within 600 s', lines[-5:]))
+    reader.join(10)
+    scope = [line.split(' ', 2) for line in lines if line.startswith('SCOPE ')]
+    assert scope, ('the pressure source never ran in its scope', hog.returncode, lines[-5:])
+    pid, cgroup = int(scope[0][1]), scope[0][2]
+    assert cgroup.endswith(f'/aresos.slice/{PRESSURE_UNIT}'), ('the pressure source ran elsewhere', cgroup)
+    allocated = max([int(line.split()[1]) for line in lines if line.startswith('ALLOCATED ')], default=0)
+    assert allocated >= PRESSURE_MIN_MIB, ('the pressure source ended before it made pressure', allocated,
+                                           hog.returncode, lines[-5:])
+    assert hog.returncode in (128 + 9, -9), ('the pressure source was not killed', hog.returncode, lines[-5:])
+    evidence = oom_evidence(pid)
+    assert evidence['proven'], ('no kernel or systemd-oomd record of killing the pressure source', evidence)
+    assert answers and all(answer is not None for answer in answers), (
+        'the supervisor did not answer within %d s during the pressure' % RESPONSIVE, answers)
     after = survivors()
     assert after == before, ('a protected process did not survive', before, after)
     state = desktop_status()
-    kernel = run('journalctl', '-k', '-o', 'cat', '--no-pager', '-g', 'Out of memory|Killed process|oom-kill')
-    oomd = run('journalctl', '-u', 'systemd-oomd.service', '-o', 'cat', '--no-pager', '-n', '20')
-    return dict(hog_exit=hog.returncode, allocated_mib=lines[-1] if lines else None, survivors=after,
-                supervisor_state=state['state'], kernel=kernel['stdout'][-3000:], oomd=oomd['stdout'][-3000:])
+    return dict(hog_exit=hog.returncode, pid=pid, cgroup=cgroup, allocated_mib=allocated, status_seconds=answers,
+                survivors=after, supervisor_state=state['state'], evidence=evidence)
 
 
 def check(action, request):
