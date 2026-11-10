@@ -32,9 +32,9 @@ def binding(facts, reference, kind, adapter):
     target = frame['target']
     if kind in {'send', 'confirmation'} and not frame.get('form') and not adapter and facts.get('uncovered'):
         raise Refused('refused', 'A complete draft binding needs every frame; a frame could not be inspected.')
-    keys = ['element','role','name','label','title','href','value','password','states','editable','search','submit','page_dialog','options','implicit_submitter']
+    keys = ['element','role','name','label','title','href','value','rich','password','states','editable','search','submit','page_dialog','options','implicit_submitter']
     return {'session':facts['session'],'tab':facts['tab'],'control':facts.get('control'),'url':facts['url'],'title':facts.get('title', ''),'document':frame['document'],
-            'frame':frame['frame'],'frame_url':frame['url'],'effective_url':frame.get('effective_url',frame['url']),'target':{key:target[key] for key in keys if key in target},
+            'frame':frame['frame'],'frame_url':frame['url'],'frame_title':frame.get('title',''),'effective_url':frame.get('effective_url',frame['url']),'target':{key:target[key] for key in keys if key in target},
             'form':frame.get('form'),
             'editable':[{'frame':item['frame'],'document':item['document'],'url':item['url'],'fields':item['editable']} for item in facts['frames']]
                 if kind in {'send', 'confirmation'} and not frame.get('form') and not adapter else None,
@@ -281,20 +281,20 @@ class Chrome:
         state = data['page_state']
         def bounded(value, kind='name', position=1):
             value=str(value)
-            return value if len(value)<=120 else f'{kind} {position}, a {len(value)}-character name'
+            return value if len(visible(value))<=120 else f'{kind} {position}, a {len(value)}-character name'
         def recipient_summary(value):
-            values=recipients(value)
+            values=recipients(value, ordered=True)
             if values is None:return bounded(value, 'recipient list')
             shown=[]
             for index,value in enumerate(values):
                 part=bounded(value, 'recipient', index+1)
-                if len(','.join(shown+[part]))>180:break
+                if len(visible(','.join(shown+[part])))>180:break
                 shown.append(part)
             remaining=len(values)-len(shown)
             return ','.join(shown)+(f' and {remaining} more' if remaining else '')
         if state.get('dialog') and data['input']['verb']=='dialog':
             dialog=state['dialog']
-            return f"On {state['url']}, as the page shows it, {'accept' if data['input'].get('accept') else 'dismiss'} {dialog['kind']} '{dialog['text']}' from frame {dialog['frame']}?"
+            return f"On {state['url']}, page '{bounded(state.get('title',''))}', as the page shows it, {'accept' if data['input'].get('accept') else 'dismiss'} {dialog['kind']} '{dialog['text']}' from frame {dialog['frame']}?"
         target = state.get('target', {})
         site = state.get('frame_url', state.get('url', ''))
         label = ('resume '+data['resume_kind'] if data.get('resume_kind') else target.get('name') or data['input'].get('key') or data['input']['verb'])
@@ -443,6 +443,8 @@ class Chrome:
             self.allowed_url(href)
         adapter = recognize(frame.get('effective_url',frame['url']), frame['adapter'], frame['target'], verb, args, self.hosts, mode['adapters'])
         kind = classify(verb,args,frame,conservative=mode['conservative'],readonly=readonly,adapter=adapter)
+        if adapter and kind in {'delete', 'pay', 'item'} and kind != adapter['effect']:
+            adapter = None
         if facts.get('needs_reload'):
             self.free('prepare_control', tab=args['reference']['tab'], reload_taken_tab=args.get('reload_taken_tab', False))
             raise Refused('stale_reference', 'The taken tab reloaded to install its page guard. Every old reference is stale; read again.')

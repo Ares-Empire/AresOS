@@ -33,7 +33,7 @@ DEEZER_REMOVE = {'unlike', 'unfollow', 'remove from playlist', 'remove from favo
                  'remove from favourites', 'remove favorite', 'remove favourite', 'delete playlist'}
 
 
-def recipients(value):
+def recipients(value, *, ordered=False):
     """Keep displayed identities exact; split only outside quoted names/angle addresses.
 
     A simple comma split can give different recipient sets the same allow key (a
@@ -68,7 +68,7 @@ def recipients(value):
         parts.append(value[start:].strip())
     elif parts:
         return None
-    return sorted(set(parts))
+    return parts if ordered else sorted(set(parts))
 
 
 def recognize(url, reading, target, verb, args, hosts=None, enabled=None):

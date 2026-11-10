@@ -55,7 +55,7 @@
   const control=element=>element.closest('button,input,a,[role=button],[role=link],[role=menuitem],[onclick]') || element;
   const eventElement=node=>node instanceof Element?node:node?.parentElement||(globalThis.ShadowRoot&&node instanceof ShadowRoot?node.host:null);
   function facts(element) { return reader.target(element); }
-  function decoded(value) { return value.replace(/(?:%[0-9a-f]{2})+/gi,encoded=>new TextDecoder('utf-8').decode(Uint8Array.from(encoded.match(/%../g),byte=>parseInt(byte.slice(1),16)))); }
+  function decoded(value) { return value.replace(/(?:%[0-9a-f]{2})+/gi,encoded=>new TextDecoder('utf-8',{ignoreBOM:true}).decode(Uint8Array.from(encoded.match(/%../g),byte=>parseInt(byte.slice(1),16)))); }
   function listed(value) {
     const unicode=config.unicodeWords;if(!unicode)return true;
     const folded=Array.from(value.normalize('NFC'),char=>unicode.fold[char]??char).join('');let word='';
@@ -120,6 +120,7 @@
   }
   function captureInput(event,root) {
     let element=eventElement(event.composedPath()[0]);
+    if(element&&nativeRoot&&nativeRoot.call(element,{composed:true})!==ownDocument)return;
     if(type(event)==='invalid'&&owner)owner.changed=true;
     if(['pointerdown','pointerup','pointermove','mousedown','mouseup','click','keydown','keypress','keyup'].includes(type(event)))ownerInput(event,element);
     if (!active()) return;
@@ -148,7 +149,7 @@
     if(doc===ownDocument)return null;
     let view;try{view=defaultView?defaultView.call(doc):doc.defaultView;}catch{return {unknown:true};}
     if(!view)return null;
-    try{return view[Symbol.for('aresos.chrome.guard.v2')]||{outside:true};}catch{return {unknown:true};}
+    try{return view[Symbol.for('aresos.chrome.guard.v2')]||(view.top&&view.top===window.top?{unknown:true}:{outside:true});}catch{return {unknown:true};}
   }
   function outsideCall(event,stage){const {target,detail}=stage;if(detail.kind==='native_submit')native.submit.call(target);else if(detail.kind==='request_submit')requestNative(detail.with_submitter?target.form:target,detail.with_submitter?target:null);else event.preventDefault();}
   function onCall(event,request=null) {
@@ -157,7 +158,7 @@
     event.stopImmediatePropagation();
     const element=request?request.target:event.composedPath()[0];
     const other=foreignGuard(element);
-    if(other){if(other.outside)return outsideCall(event,request||{target:element,detail:event.detail});if(other.route)return other.route(event,request||{target:element,detail:event.detail});event.preventDefault();return;}
+    if(other){if(other.outside)return outsideCall(event,request||{target:element,detail:event.detail});if(other.route)return other.route(event,request||{target:element,detail:event.detail},active()?{config}:null);event.preventDefault();return;}
     if (!reader) { event.preventDefault();return; }
     let delivery=false;
     try {
@@ -230,7 +231,8 @@
   // This object exists only in the extension's isolated world. MAIN has no API or capability.
   globalThis[Symbol.for('aresos.chrome.guard.v2')] = {
     get ready(){return !!reader;},
-    route(event,stage){if(stage.detail.kind==='click'||stage.detail.kind==='dispatch'){const node=eventElement(stage.target),name=stage.detail.kind==='click'?'click':stage.detail.event_type;if(node)watch(node.getRootNode());if(active()&&node&&(name==='click'&&asks(node)||name==='submit'&&!search(reader.form(node)))){report('activation',control(node));return;}event.preventDefault();}else onCall(event,stage);},
+    control(epoch){generation=epoch;},
+    route(event,stage,hold){if(hold){config=hold.config;until=Math.max(until,performance.now()+config.holdMs);owner=null;mark=null;}if(stage.detail.kind==='click'||stage.detail.kind==='dispatch'){const node=eventElement(stage.target),name=stage.detail.kind==='click'?'click':stage.detail.event_type;if(node)watch(node.getRootNode());if(active()&&node&&(name==='click'&&asks(node)||name==='submit'&&!search(reader.form(node)))){report('activation',control(node));return;}event.preventDefault();}else onCall(event,stage);},
     identity(){return reader?.document;},
     relay(node){
       if(!reader||!(node instanceof HTMLElement)||node.ownerDocument!==document||node.isConnected||node.parentNode||!node.firstElementChild)throw Error('invalid private relay');
@@ -255,7 +257,7 @@
         // Pop before entering page handlers; nested requests get their own record.
         drop(stage.detail.request);
         if(stage.detail.kind==='watch_root'){watch(stage.target);event.preventDefault();return;}
-        const other=foreignGuard(stage.target);if(other){if(other.outside)outsideCall(event,stage);else if(other.route)other.route(event,stage);return;}
+        const other=foreignGuard(stage.target);if(other){if(other.outside)outsideCall(event,stage);else if(other.route)other.route(event,stage,active()?{config}:null);return;}
         const element=eventElement(stage.target);
         if(['click','dispatch'].includes(stage.detail.kind)){
           const name=stage.detail.kind==='click'?'click':stage.detail.event_type;

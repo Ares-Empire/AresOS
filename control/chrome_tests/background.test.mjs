@@ -212,7 +212,7 @@ test('startup evaluates only fixed bundles in authenticated private contexts bef
   await f.run("preloadEvent({tabId:7},'Debugger.paused',{hitBreakpoints:['inert-breakpoint'],callFrames:[{location:{scriptId:'bootstrap'}}]})");
   const commands=Array.from(f.run('startup'));
   const evaluated=commands.filter(value=>value.method==='Runtime.evaluate');
-  assert.deepEqual(evaluated.map(value=>value.parameters.contextId),[2,2]);
+  assert.deepEqual(evaluated.map(value=>value.parameters.contextId),[2,2,2]);
   assert.equal(commands.some(value=>value.method==='Runtime.enable'),false);
   assert.ok(commands.some(value=>value.method==='Runtime.callFunctionOn'&&value.parameters.functionDeclaration.includes('wrapper fixture')));
   assert.ok(commands.some(value=>value.method==='DOM.resolveNode'&&!('executionContextId' in value.parameters)));
@@ -654,7 +654,7 @@ test('P25 satisfied checks and isolated selections do not activate an inactive t
 });
 test('P27 Stop lifts navigation blocks before deferred native restoration',async()=>{
   const f=lifecycleFixture();f.run("controlled.set(7,{epoch:'epoch'});preloadTargets.set('[7,null]',{tab:7,source:{tabId:7},contexts:new Map(),documents:new Map([['main',{cleanup:'handle'}]]),installing:new Set()});chrome.debugger.sendCommand=()=>new Promise(()=>{});globalThis.ruleChanges=[];chrome.declarativeNetRequest.updateSessionRules=async value=>ruleChanges.push(value);globalThis.timerCallbacks=[];setTimeout=(callback,delay)=>{timerCallbacks.push({callback,delay})};");
-  const pending=f.run('release(7)');await spin(f,'ruleChanges.length>0');const last=f.run('ruleChanges.at(-1)');assert.equal(last.addRules.length,0);f.run('timerCallbacks.find(timer=>timer.delay===1000).callback()');assert.equal((await pending).cleanup_pending,true);
+  const pending=f.run('release(7)');await spin(f,'ruleChanges.length>0');const last=f.run('ruleChanges.at(-1)');assert.equal(last.addRules.length,0);await spin(f,'timerCallbacks.some(timer=>timer.delay===1000)');f.run('timerCallbacks.find(timer=>timer.delay===1000).callback()');assert.equal((await pending).cleanup_pending,true);
 });
 test('P28 final binding refusal finishes every armed frame',async()=>{
   const f=fixture();f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});globalThis.reads=0;globalThis.finished=[];requireTab=async()=>({});facts=async()=>({tab:7,frames:[{frame:0,document:'doc',target:{element:'e1',name:++reads===1?'Before':'After'}}]});content=async(tab,frame,command)=>{if(command==='finish_input')finished.push(frame);return {}};globalThis.approved=binding({tab:7,frames:[{frame:0,document:'doc',target:{element:'e1',name:'Before'}}]},{frame:0},null,false);");
@@ -663,4 +663,23 @@ test('P28 final binding refusal finishes every armed frame',async()=>{
 test('P23 input page evidence contains the bounded post-input notice',async()=>{
   const f=fixture();f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({});facts=async()=>({frames:[{frame:0,target:{element:'e1'}}]});content=async(tab,frame,command)=>command==='observe'?{url:'http://fixture.test/',notices:['ERROR: the change failed']} : {};chrome.webNavigation={getAllFrames:async()=>[{frameId:0}]};collectSteps=async()=>[];");
   const result=await f.run("dispatch({name:'input',tab:7,reference:{frame:0,element:'e1'},input:{verb:'select'}})");assert.equal(result.page.notices[0],'ERROR: the change failed');
+});
+
+
+test('P3 startup inherits an active hold before activation without any approval allowance',async()=>{
+  const f=startupFixture();f.run("controlled.get(7).hold={nonce:'private',inFlight:true,until:Date.now()+500,config:{holdMs:500}};");
+  await f.run('prepareTarget({tabId:7})');await startupContexts(f,'inherited');await paused(f,'inherited');
+  const calls=Array.from(f.run('startup')),armed=calls.findIndex(row=>row.method==='Runtime.evaluate'&&row.parameters.expression.includes('.arm('));
+  assert.ok(armed>=0);assert.doesNotMatch(calls[armed].parameters.expression,/operation|primary_submission/);
+  assert.ok(armed<calls.findIndex(row=>row.method==='Runtime.callFunctionOn'&&row.parameters.functionDeclaration.includes('this.activate()')));
+});
+test('P3 a frame appearing on the final snapshot is armed without an allowance before input',async()=>{
+  const f=fixture();f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({});globalThis.reads=0;globalThis.arms=[];const top={frame:0,document:'top',browser_document:'native-top',target:{element:'e1'}};const child={frame:2,document:'child',browser_document:'native-child'};facts=async()=>({frames:++reads===1?[top]:[top,child]});isPreloaded=()=>true;content=async(tab,frame,command,args)=>{if(command==='arm')arms.push({frame,args});return {}};chrome.webNavigation={getAllFrames:async()=>[{frameId:0,documentId:'native-top'},{frameId:2,documentId:'native-child'}]};collectSteps=async()=>[];");
+  await f.run("dispatch({name:'input',tab:7,reference:{frame:0,element:'e1'},input:{verb:'select',value:'a'}})");
+  assert.deepEqual(Array.from(f.run('arms.map(row=>row.frame)')),[0,2]);assert.equal(f.run('arms[1].args.operation'),undefined);
+});
+test('P31 a preloaded popup still crosses its mandatory first-act reload',async()=>{
+  const f=lifecycleFixture();f.run("controlled.set(7,{epoch:'parent'});chrome.windows.get=async()=>({type:'popup'});");await f.run('createdTarget({sourceTabId:7,tabId:8})');
+  f.run("chrome.webNavigation.getAllFrames=async()=>[{frameId:0,documentId:'native-popup',parentFrameId:-1,url:'http://fixture.test/'}];content=async(tab,frame,command)=>command==='reload_state'?{unsaved:false,playing:false}:{document:'preloaded',url:'http://fixture.test/'};isPreloaded=()=>true;documentMethods.set('[8,0]',{document:'native-popup',method:'GET'});globalThis.reloads=0;cdp=async(tab,method)=>method==='Page.getFrameTree'?{frameTree:{frame:{loaderId:'loader',url:'http://fixture.test/'}}}:reloads++;");
+  assert.equal((await f.run('facts(8)')).needs_reload,true);assert.equal((await f.run("dispatch({name:'prepare_control',tab:8})")).reloaded,true);assert.equal(f.run('reloads'),1);
 });

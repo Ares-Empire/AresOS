@@ -42,3 +42,55 @@ class Questions(unittest.TestCase):
         self.browser.facts['frames'][0]['adapter']['kind'] = 'gemini_question'
         self.browser.facts['frames'][0]['target']['name'] = 'Send'
         self.assertNotIn('Gemini: ask a question', self.prepare()['question'])
+
+    def test_p22_delete_question_names_the_action_key_item_and_bound_title(self):
+        facts=self.browser.facts
+        facts['title']='Document library'
+        facts['frames'][0]['target']['name']='Quarterly report'
+        facts['frames'][0]['item']='Quarterly report'
+        result=self.call('press', {**self.target(),'key':'Shift+Delete'})
+        self.assertTrue(result['ok'], result)
+        approval=result['data']['approval']
+        for value in ["delete 'Quarterly report'", 'Shift+Delete', 'Document library']:
+            self.assertIn(value, approval['question'])
+        self.assertEqual(approval['description']['untrusted_content']['page_state']['title'],'Document library')
+
+    def test_p22_many_recipients_and_long_names_are_bounded_without_losing_full_values(self):
+        self.page('gmail')
+        reading=self.browser.facts['frames'][0]['adapter']
+        reading['to']=','.join(f'person{number:02d}@mail.test' for number in range(30))
+        reading['bcc']=','.join(f'hidden{number:02d}@mail.test' for number in range(25))
+        reading['attachments']=[{'label':'A'*240,'text':'3 bytes'}]
+        approval=self.prepare()
+        self.assertIn('and 21 more',approval['question'])
+        self.assertIn('and 16 more',approval['question'])
+        self.assertIn('attachment 1, a 240-character name',approval['question'])
+        bound=approval['description']['untrusted_content']['page_state']['adapter']
+        self.assertEqual(bound['to'],reading['to']);self.assertEqual(bound['bcc'],reading['bcc'])
+        self.assertEqual(bound['attachments'][0]['label'],'A'*240)
+
+    def test_p11_confirmation_binds_a_sibling_draft(self):
+        from aresos_control.chrome.adapter import binding
+        frame=self.browser.facts['frames'][0]
+        frame['target'].update(name='OK',page_dialog={'kind':'dialog','text':'Send this message?'})
+        approval=self.prepare();state=approval['description']['untrusted_content']['page_state']
+        self.assertIsNotNone(state['editable'])
+        before=copy.deepcopy(binding(self.browser.facts,{'frame':0},'confirmation',None))
+        frame['editable'][0]['value']='Changed draft'
+        self.assertNotEqual(before,binding(self.browser.facts,{'frame':0},'confirmation',None))
+
+    def test_p9_trusted_predicate_independently_forbids_explicit_deletion_payment_and_whatsapp(self):
+        from aresos_control.common import digest
+        from aresos_control.chrome.sites import KINDS
+        self.page('gemini');approval=self.prepare()
+        operation=self.engine.operation(approval['operation_id'],'chrome')
+        self.engine.store.write({'chrome:allow:'+self.chrome.allow_id(operation):{'kind_hash':digest(KINDS['gemini_question'])}},'chrome_test_setup','Synthetic owner entry')
+        self.assertTrue(self.chrome.trusted(operation))
+        for title in ['Pay', 'Delete']:
+            changed=copy.deepcopy(operation);changed['payload']['binding']['target']['title']=title
+            self.assertFalse(self.chrome.trusted(changed))
+        for effect in ['pay','delete']:
+            changed=copy.deepcopy(operation);changed['payload']['kind']=effect
+            self.assertFalse(self.chrome.trusted(changed))
+        changed=copy.deepcopy(operation);changed['payload']['adapter']['site']='whatsapp'
+        self.assertFalse(self.chrome.trusted(changed))

@@ -98,7 +98,7 @@ async function preloadEvent(source,method,params){
     if(state.documents.has(main.uniqueId))return;
     const [guard,reader,page]=await bundle();
     assertTarget(state);
-    const isolated=await targetCommand(state,'Runtime.evaluate',{contextId:context.id,expression:guard+'\n'+reader+'\n;globalThis[Symbol.for("aresos.chrome.guard.v2")].identity()',returnByValue:true,disableBreaks:true});
+    const isolated=await targetCommand(state,'Runtime.evaluate',{contextId:context.id,expression:'if(chrome.runtime.id!=='+JSON.stringify(chrome.runtime.id)+')throw Error("Unrelated isolated world");\n'+guard+'\n'+reader+'\n;globalThis[Symbol.for("aresos.chrome.guard.v2")].identity()',returnByValue:true,disableBreaks:true});
     if(isolated.exceptionDetails||typeof isolated.result?.value!=='string')throw Error('refused: isolated guard did not initialize before page scripts');
     // DOM.resolveNode without an executionContextId resolves in this node's MAIN
     // world. No Runtime subscription, page global or console payload is needed.
@@ -114,8 +114,10 @@ async function preloadEvent(source,method,params){
     const resolved=await targetCommand(state,'DOM.resolveNode',{backendNodeId:described.node.backendNodeId,executionContextId:context.id});
     const linked=await targetCommand(state,'Runtime.callFunctionOn',{objectId:resolved.object.objectId,functionDeclaration:'function(){return globalThis[Symbol.for("aresos.chrome.guard.v2")].relay(this);}',returnByValue:true});
     if(linked.exceptionDetails||linked.result?.value!==installed.document)throw Error('refused: private native relay did not initialize');
+    await targetCommand(state,'Runtime.evaluate',{contextId:context.id,expression:'globalThis[Symbol.for("aresos.chrome.guard.v2")].control('+JSON.stringify(state.epoch)+')',disableBreaks:true,returnByValue:true});
     const owner=controlled.get(state.tab),hold=owner?.hold;
     if(hold&&(hold.inFlight||Date.now()<hold.until)){
+      hold.inherited??=new Set();hold.inherited.add({state,context});
       const inherited={generation:state.epoch,dispatch_nonce:hold.nonce,config:hold.config};
       const armed=await targetCommand(state,'Runtime.evaluate',{contextId:context.id,expression:'globalThis[Symbol.for("aresos.chrome.guard.v2")].arm('+JSON.stringify(inherited)+')',disableBreaks:true,returnByValue:true});
       if(armed.exceptionDetails)throw Error('refused: new frame could not inherit the active hold');
@@ -141,6 +143,7 @@ async function lateReader(tab){
     assertControl(tab,owner.epoch);
     try{frameAddress(frame,frames);}catch{continue;}
     await chrome.scripting.executeScript({target:{tabId:tab,frameIds:[frame.frameId]},files:['guard.js','reader.js'],world:'ISOLATED',injectImmediately:true});assertControl(tab,owner.epoch);
+    await content(tab,frame.frameId,'set_control',{generation:owner.epoch});
   }}finally{owner.settingUp.delete(settingUp);complete();}
 }
 function waitDialog(tab){
@@ -323,19 +326,24 @@ async function armDialog(tab){
   const frames=await chrome.webNavigation.getAllFrames({tabId:tab})||[];
   const documents=[...preloadTargets.values()].filter(state=>state.tab===tab).flatMap(state=>[...state.documents.values()].filter(doc=>doc.ready).map(doc=>({state,doc})));
   if(!frames.length||documents.length!==frames.length)throw Error('refused: the dialog cannot be answered with complete private guard coverage; leave it to the owner');
-  const config={...POLICY,blockedHosts:excludedHosts};
+  const config={...POLICY,blockedHosts:excludedHosts};let aborted=false;
+  const closeLateArm=(state,context)=>targetCommand(state,'Runtime.evaluate',{contextId:context.id,expression:'globalThis[Symbol.for("aresos.chrome.guard.v2")].finish('+JSON.stringify(owner.epoch)+','+JSON.stringify(nonce)+')',disableBreaks:true,awaitPromise:true,returnByValue:true}).catch(()=>{});
   owner.hold={nonce,config,inFlight:true,until:Date.now()+POLICY.holdMs};owner.inputNonce=nonce;
   try{
     for(const {state,doc}of documents){
       const context=[...state.contexts.values()].find(context=>context.uniqueId===doc.isolated);
       if(!context)throw Error('private document context is unavailable');
       let timer;try{
-        const armed=await Promise.race([targetCommand(state,'Runtime.evaluate',{contextId:context.id,expression:'globalThis[Symbol.for("aresos.chrome.guard.v2")].arm('+JSON.stringify({generation:owner.epoch,dispatch_nonce:nonce,config})+')',disableBreaks:true,returnByValue:true}),new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('modal prevented private arming')),500);})]);
+        const pending=targetCommand(state,'Runtime.evaluate',{contextId:context.id,expression:'globalThis[Symbol.for("aresos.chrome.guard.v2")].arm('+JSON.stringify({generation:owner.epoch,dispatch_nonce:nonce,config})+')',disableBreaks:true,returnByValue:true});
+        pending.then(()=>{if(aborted)return closeLateArm(state,context);},()=>{});
+        const armed=await Promise.race([pending,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('modal prevented private arming')),500);})]);
         if(armed.exceptionDetails)throw Error('private arming failed');
       }finally{clearTimeout(timer);}
     }
     return {owner,nonce,frames};
   }catch{
+    aborted=true;
+    for(const {state,doc}of documents){const context=[...state.contexts.values()].find(context=>context.uniqueId===doc.isolated);if(context)closeLateArm(state,context);}
     owner.hold.inFlight=false;owner.hold.until=Date.now()+POLICY.holdMs;
     // Pending evaluation can only add protection once the owner closes the modal.
     throw Error('refused: private guards could not be armed while this dialog is open; leave it to the owner');
@@ -413,7 +421,7 @@ async function reloadIdentity(tab){
   const tree=await cdp(tab,'Page.getFrameTree'),frames=await chrome.webNavigation.getAllFrames({tabId:tab})||[];
   const top=frames.find(frame=>frame.frameId===0);
   if(!top||!tree.frameTree?.frame.loaderId||tree.frameTree.frame.url!==top.url)throw Error('stale_reference: navigation changed; read again');
-  for(const frame of frames){if(frame.url==='about:blank')continue;const key=JSON.stringify([tab,frame.frameId]),method=documentMethods.get(key);if(method?.document===frame.documentId&&method.method!=='GET'||controlled.get(tab)?.parentTab!==undefined&&formLoadedDocuments.get(key)===frame.documentId)throw Error('refused: this document was loaded by a form submission; open its address fresh in a Claude tab');if(frame.frameId===0&&controlled.get(tab)?.getLoaders?.has(tree.frameTree.frame.loaderId))continue;if(method?.document!==frame.documentId||method.method!=='GET')throw Error('refused: this document was loaded by a form submission or its request method is unknown; open its address fresh in a Claude tab');}
+  for(const frame of frames){if(['about:blank','about:srcdoc'].includes(frame.url))continue;const key=JSON.stringify([tab,frame.frameId]),method=documentMethods.get(key);if(method?.document===frame.documentId&&method.method!=='GET'||controlled.get(tab)?.parentTab!==undefined&&formLoadedDocuments.get(key)===frame.documentId)throw Error('refused: this document was loaded by a form submission; open its address fresh in a Claude tab');if(frame.frameId===0&&controlled.get(tab)?.getLoaders?.has(tree.frameTree.frame.loaderId))continue;if(method?.document!==frame.documentId||method.method!=='GET')throw Error('refused: this document was loaded by a form submission or its request method is unknown; open its address fresh in a Claude tab');}
   rememberGet(tab,tree.frameTree.frame.loaderId);
   return {loaderId:tree.frameTree.frame.loaderId,frameId:tree.frameTree.frame.id||null,frames:frames.map(frame=>[frame.frameId,frame.documentId,frame.url])};
 }
@@ -440,8 +448,8 @@ async function release(tab) {
   for(const [token,stage] of stagedUploads)if(stage.tab===tab)stagedUploads.delete(token);
   port?.postMessage({event:'released',tab,session});
   const record={original,promise:null};releasing.set(tab,record);
-  await rules();
   record.promise=(async()=>{
+    await rules();
     await Promise.all(children.map(async child=>{await release(child);if(releasing.has(child))await releasing.get(child).promise;}));
     await Promise.allSettled([...original.settingUp||[],...[...preloadTargets.values()].filter(state=>state.tab===tab).flatMap(state=>[...state.installing||[]])]);
     for(const [key,state]of preloadTargets){if(state.tab!==tab)continue;
@@ -500,8 +508,8 @@ function binding(facts, reference, kind, adapter) {
   if (!frame?.target) throw Error('stale_reference: target not found');
   const target = frame.target;
   if(['send','confirmation'].includes(kind)&&!frame.form&&!adapter&&facts.uncovered?.length)throw Error('refused: a complete draft binding needs every frame; a frame could not be inspected');
-  return {session,tab:facts.tab,control:facts.control,url:facts.url,title:facts.title||'',document:frame.document,frame:frame.frame,frame_url:frame.url,effective_url:frame.effective_url||frame.url,
-    target:Object.fromEntries(['element','role','name','label','title','href','value','password','states','editable','search','submit','page_dialog','options','implicit_submitter'].filter(key=>key in target).map(key=>[key,target[key]])),
+  return {session,tab:facts.tab,control:facts.control,url:facts.url,title:facts.title||'',document:frame.document,frame:frame.frame,frame_url:frame.url,frame_title:frame.title||'',effective_url:frame.effective_url||frame.url,
+    target:Object.fromEntries(['element','role','name','label','title','href','value','rich','password','states','editable','search','submit','page_dialog','options','implicit_submitter'].filter(key=>key in target).map(key=>[key,target[key]])),
     form:frame.form,
     editable:['send','confirmation'].includes(kind) && !frame.form && !adapter ? facts.frames.map(frame=>({frame:frame.frame,document:frame.document,url:frame.url,fields:frame.editable})) : null,
     item:['delete','pay','item','activation','confirmation'].includes(kind) ? frame.item : null,
@@ -590,19 +598,19 @@ async function dispatch(command) {
   if (command.name === 'dialog_facts') {
     const current=await requireTab(tab), dialog=dialogs.get(tab);dispatchEpoch=controlled.get(tab).epoch;
     if(!dialog || dialog.frame === undefined)throw Error('refused: dialog opener is not yet established; inspect with the owner');
-    safeURL(dialog.frame_url);return {session,tab,control:controlled.get(tab).epoch,url:current.url,dialog};
+    safeURL(dialog.frame_url);return {session,tab,control:controlled.get(tab).epoch,url:current.url,...(typeof current.title==='string'?{title:current.title}:{}),dialog};
   }
   if (command.name === 'dialog') {
     const current=await requireTab(tab), dialog=dialogs.get(tab);dispatchEpoch=controlled.get(tab).epoch;
-    const expected={session,tab,control:controlled.get(tab).epoch,url:current.url,dialog};
+    const expected={session,tab,control:controlled.get(tab).epoch,url:current.url,...(typeof current.title==='string'?{title:current.title}:{}),dialog};
     if(!dialog || dialog.frame === undefined || stable(expected)!==stable(command.binding))throw Error('stale_approval: dialog or its opener changed');
     safeURL(dialog.frame_url);
     if(command.operation && used.has(command.operation))throw Error('refused: dialog operation already attempted');
-    const armed=await armDialog(tab);
+    const armed=await armDialog(tab);dialogInputs.set(dialog,{epoch:dispatchEpoch,nonce:armed.nonce});
+    let uncertain_finish;
     if(command.operation)used.add(command.operation);
     try{await cdp(tab,'Page.handleJavaScriptDialog',{accept:command.input.accept,...(command.input.text === undefined ? {}:{promptText:command.input.text})});
-    }finally{armed.owner.hold.inFlight=false;armed.owner.hold.until=Date.now()+POLICY.holdMs;}
-    const uncertain_finish=await finishFrames(tab,armed.frames,dispatchEpoch,armed.nonce);
+    }finally{armed.owner.hold.inFlight=false;armed.owner.hold.until=Date.now()+POLICY.holdMs;uncertain_finish=await finishFrames(tab,armed.frames,dispatchEpoch,armed.nonce);}
     const steps=await collectSteps(tab,dispatchEpoch);
     return {checked:true,dispatched:true,page:await observation(tab),steps,dialog:dialogs.get(tab)||null,uncertain_finish};
   }
@@ -646,7 +654,7 @@ async function dispatch(command) {
     if(!current.needs_reload)return {ready:true};
     const initial=await reloadIdentity(tab);
     let unsaved=!!current.uncovered?.length,playing=!!(await chrome.tabs.get(tab)).audible;
-    for(const frame of current.frames){const state=await content(tab,frame.frame,'reload_state');unsaved ||= state.unsaved;playing ||= state.playing;}
+    for(const frame of current.frames){try{const state=await content(tab,frame.frame,'reload_state');unsaved ||= state.unsaved;playing ||= state.playing;}catch{unsaved=true;}}
     if((unsaved||playing)&&command.reload_taken_tab!==true)throw Error('reload_required: this taken tab '+[unsaved?'may have unsaved text or editable content':null,playing?'is playing media':null].filter(Boolean).join(' and ')+'; tell the owner, then repeat with reload_taken_tab=true only when the reload is wanted');
     await reloadChecked(tab,initial,command.reload_taken_tab!==true);
     return {reloaded:true,message:'The taken tab reloaded to install its page guard before page scripts. Every old reference is stale; read again.'};
@@ -739,6 +747,7 @@ async function dispatch(command) {
   }finally{
     if(owner.hold?.nonce===inputNonce){owner.hold.inFlight=false;owner.hold.until=Date.now()+POLICY.holdMs;}
     owner.uncertainFinish=await finishFrames(tab,armed,dispatchEpoch,inputNonce);
+    for(const {state,context}of owner.hold?.inherited||[]){if(dialogs.has(tab))break;try{await targetCommand(state,'Runtime.evaluate',{contextId:context.id,expression:'globalThis[Symbol.for("aresos.chrome.guard.v2")].finish('+JSON.stringify(dispatchEpoch)+','+JSON.stringify(inputNonce)+')',awaitPromise:true,disableBreaks:true,returnByValue:true});}catch{owner.uncertainFinish=true;}}
   }
   const uncertain_finish=owner.uncertainFinish;
   const steps=await collectSteps(tab,dispatchEpoch);
@@ -818,6 +827,7 @@ chrome.debugger.onEvent.addListener(async(source,method,params)=>{
   }
   if(method.startsWith('Runtime.')||method.startsWith('Debugger.')||method.startsWith('Target.')){await preloadEvent(source,method,params);return;}
   if(method==='Page.frameDetached'&&params.reason==='remove'){
+    for(const state of preloadTargets.values())if(state.source.tabId===source.tabId){for(const [id,context]of state.contexts)if(context.auxData?.frameId===params.frameId){state.contexts.delete(id);for(const [key,doc]of state.documents)if(doc.isolated===context.uniqueId)state.documents.delete(key);}contextChanged(state);}
     for(const state of preloadTargets.values())if(state.source.tabId===source.tabId&&state.source.sessionId&&state.frameId===params.frameId)destroyedTarget(state);
   }
   if(source.sessionId){const state=preloadTargets.get(targetKey(source));if(!state)return;source={tabId:state.tab};}

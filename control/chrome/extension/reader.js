@@ -107,6 +107,14 @@
     }
     return result;
   }
+  function richIdentity(node){
+    if(node.nodeType===Node.TEXT_NODE)return node.parentElement&&password(node.parentElement)?'':node.textContent;
+    if(!(node instanceof Element))return null;
+    if(password(node))return {element:id(node),password:true};
+    if(['SCRIPT','STYLE','NOSCRIPT','INPUT','TEXTAREA','SELECT'].includes(node.tagName))return null;
+    const style=getComputedStyle(node);if(node.hidden||style.display==='none'||style.visibility==='hidden')return null;
+    return {tag:node.tagName,display:style.display,whiteSpace:style.whiteSpace||'',children:[...node.childNodes].map(richIdentity)};
+  }
   const blobSize=globalThis.Blob&&Object.getOwnPropertyDescriptor(Blob.prototype,'size')?.get;
   function selectedFile(file){
     if(!blobSize)throw Error('refused: selected file content identity cannot be verified');
@@ -125,7 +133,7 @@
     else if (element.isContentEditable) value = editableText(element).replace(/\n$/, '');
     else return {};
     traces.push({element: id(element), value});
-    return {value};
+    return {value,...(element.isContentEditable?{rich:richIdentity(element)}:{})};
   }
   function role(element) {
     if (element.getAttribute('role')) return element.getAttribute('role');
@@ -225,6 +233,7 @@
       to:read(['[name=to]','[aria-label=To]'],fields),cc:read(['[name=cc]','[aria-label=Cc]'],fields),bcc:read(['[name=bcc]','[aria-label=Bcc]'],fields),
       subject:read(['[name=subjectbox]','[name=subject]'],fields),text:read(['[aria-label="Message Body"]','[aria-label="Type a message"]','[aria-label="Enter a prompt here"]','[name=comment]'],fields),
       chat:read(['header [title]','[aria-label="Chat name"]'],fields),context:read(['[aria-label="Action context"]'],fields),preview:read(['[aria-label="Message preview"]'],fields),
+      rich_drafts:fields.filter(node=>node.isContentEditable).map(node=>({element:id(node),...safeValue(node)})),
       attachments:fields.filter(node=>node.matches('[aria-label^="Attachment:"]')).map(node=>({label:name(node),text:text(node)})),target:target ? name(target):null};
   }
   guard.reader({document:documentId,id,element:key=>elements.get(key),target:targetFacts,form:(element,submitter)=>formFacts(element.form || (element.tagName==='FORM' ? element:null),submitter || element),report:(step,generation)=>{chrome.runtime.sendMessage({event:'held_step',step,generation}).catch(()=>{});},dispose:()=>{revisionObserver.disconnect();files.clear();elements.clear();traces.length=0;chrome.runtime.onMessage.removeListener(onMessage);}});
@@ -250,7 +259,7 @@
       if (message.command === 'arm') { guard.arm(message); value={armed:true}; }
       else if (message.command === 'finish_input') { guard.finish(message.generation,message.dispatch_nonce).then(()=>reply({ok:true,data:{finished:true}})); return true; }
       else if (message.command === 'resume') { if(message.generation!==controlGeneration)throw Error('stale_reference: control ended'); value=guard.resume(message.hold,message.operation,message.element,message.form); }
-      else if (message.command === 'set_control') { controlGeneration=message.generation; value={controlled:true}; }
+      else if (message.command === 'set_control') { controlGeneration=message.generation;guard.control?.(message.generation); value={controlled:true}; }
       else if (['focus','select','check','stage_file','install_file'].includes(message.command) && message.generation !== controlGeneration) throw Error('stale_reference: control ended');
       if (message.command === 'install_file') {
         const staged=files.get(message.token),element=elements.get(message.element);

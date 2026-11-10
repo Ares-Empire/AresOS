@@ -22,7 +22,9 @@ function fixture({relay=false,activate=true,link=true,browserDOM=false}={}) {
     dispatchEvent(event){
       event.target=this;event.eventPhase=1;
       try {
-        for(const fn of windowListeners.get(event.type)||[]){fn(event);if(event.stopped)return !event.defaultPrevented;}
+        const localRoot=this.getRootNode?.();
+        for(const fn of localRoot?.host&&event.composed!==true?[]:windowListeners.get(event.type)||[]){fn(event);if(event.stopped)return !event.defaultPrevented;}
+        if(localRoot?.host)for(const fn of localRoot.listeners.get(event.type)||[]){fn(event);if(event.stopped)return !event.defaultPrevented;}
         event.eventPhase=2;
         for(const fn of this.listeners.get(event.type)||[]){fn(event);if(event.stopped)break;}
         return !event.defaultPrevented;
@@ -39,6 +41,7 @@ function fixture({relay=false,activate=true,link=true,browserDOM=false}={}) {
     getAttribute(name){return this[name]||null;}
     matches(){return false;}
     querySelector(){return null;}
+    attachShadow(){const root=new Node();root.root=root;root.host=this;return root;}
     appendChild(node){node.parentNode=this;this.firstElementChild??=node;return node;}
   }
   class HTMLElement extends Element {click(){originalDispatch.call(this,new Event('click'));}}
@@ -515,7 +518,7 @@ test('P26 wrappers have native nonconstructible method shapes',()=>{
   }
 });
 test('P4 borrowed wrappers route to another controlled document guard',()=>{
-  const source=fixture({relay:true}),target=fixture({relay:true}),form=new target.HTMLFormElement();target.arm(form,form);
+  const source=fixture({relay:true}),target=fixture({relay:true}),form=new target.HTMLFormElement();source.arm(new source.HTMLElement(),null);target.guard.control('target-epoch');
   source.HTMLFormElement.prototype.submit.call(form);assert.equal(source.arrivals.length,0);assert.equal(target.arrivals.length,0);assert.equal(target.reports.length,1);
   const outside=fixture({relay:true}),ordinary=new outside.HTMLFormElement();outside.cleanup();delete outside.document.defaultView[Symbol.for('aresos.chrome.guard.v2')];
   source.HTMLFormElement.prototype.submit.call(ordinary);assert.equal(source.arrivals.length,1,'the saved source native is used for an uncontrolled document');
@@ -523,4 +526,14 @@ test('P4 borrowed wrappers route to another controlled document guard',()=>{
 test('P5 composed root keeps asking controls inside shadow DOM held',()=>{
   const f=fixture(),host=new f.HTMLElement(),root=new f.Node(),form=new f.HTMLFormElement();root.host=host;form.root=root;f.arm(host,null);
   form.submit();assert.equal(f.arrivals.length,0);assert.equal(f.reports.length,1,'composed:false would bypass the guard');
+});
+
+
+test('P5 new roots install capture before a borrowed native dispatch can activate a control',()=>{
+  for(const composed of [false,true])for(const cancelable of [false,true]){
+    const f=fixture({relay:true}),host=new f.HTMLElement(),button=new f.HTMLElement();button.tagName='BUTTON';button.textContent='Delete';f.arm(host,null);
+    const root=host.attachShadow({mode:'closed'});button.root=root;let handlers=0;button.addEventListener('click',()=>handlers++);
+    f.originalDispatch.call(button,new f.Event('click',{composed,cancelable}));
+    assert.equal(handlers,0);assert.equal(f.reports.length,1);assert.equal(f.reports[0].kind,cancelable?'activation':'activation_unknown');
+  }
 });
