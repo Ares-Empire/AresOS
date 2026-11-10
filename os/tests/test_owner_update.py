@@ -827,8 +827,12 @@ class ToolsUpdateTest(unittest.TestCase):
         self.addCleanup(bytecode.stop)
 
     @contextlib.contextmanager
-    def installation(self, installed=None, stick=None, state=None, legacy_owner=b'# package 15f stand-in\n'):
-        """installed/stick: (history or None for a history-less bundle, target, extra files)."""
+    def installation(self, installed=None, stick=None, state=None, legacy_owner=b'print("15f stand-in ran")\n', versioned=False):
+        """installed/stick: (history or None for a history-less bundle, target, extra files).
+
+        The installed tools live in tools/ (the first install, or the 15f
+        stand-in) or, with versioned, in tools-<fingerprint>/ as after an update.
+        """
         with tempfile.TemporaryDirectory(dir=ROOT / 'os/tests') as temporary, contextlib.ExitStack() as stack:
             root = pathlib.Path(temporary)
             home = root / 'home'
@@ -846,9 +850,12 @@ class ToolsUpdateTest(unittest.TestCase):
                 stack.enter_context(patch.object(owner, 'LEGACY_TOOLS', (old,)))
             else:
                 old = write_bundle(home / 'tools', *installed)
-            for path in [home / 'tools', *(home / 'tools').rglob('*')]:
+            toolset = 'tools-' + old if versioned else 'tools'
+            if versioned:
+                (home / 'tools').rename(home / toolset)
+            for path in [home / toolset, *(home / toolset).rglob('*')]:
                 path.chmod(0o700 if path.is_dir() or path.name == 'at' else 0o600)
-            os.symlink('tools/at', home / 'at')
+            os.symlink(toolset + '/at', home / 'at')
             writer = object.__new__(owner.Tools)
             writer.store = home
             writer.save('install-intent', dict(schema='install1', manifest='1' * 64, disks=dict(target='TARGET', protected='KEEP'),
@@ -869,14 +876,44 @@ class ToolsUpdateTest(unittest.TestCase):
                 for p in home.rglob('*')}
 
     def updated(self, home, fingerprint, old):
-        self.assertEqual(owner.checked_bundle(home / 'tools'), fingerprint)
+        self.assertEqual(owner.checked_bundle(home / ('tools-' + fingerprint)), fingerprint)
         self.assertEqual(owner.checked_bundle(home / 'retired-tools' / old), old)
-        self.assertEqual(os.readlink(home / 'at'), 'tools/at')
-        self.assertFalse((home / '.tools-held').exists() or (home / '.tools-held').is_symlink())
-        self.assertFalse((home / '.update-tools').exists())
+        self.assertEqual(os.readlink(home / 'at'), 'tools-' + fingerprint + '/at')
+        for name in ('tools', 'tools-' + old, '.tools-held', '.update-tools', '.at.new'):
+            self.assertFalse((home / name).exists() or (home / name).is_symlink(), name)
         intent = json.loads((home / 'tools-update-intent.json').read_text())
         self.assertEqual((intent['phase'], intent['previous'], intent['manifest']), ('complete', old, fingerprint))
         self.assertEqual(len(list((home / 'records').glob('*-tools-update.json'))), 1)
+
+    NAMESPACE = ('mount -t tmpfs none /run && mount -t tmpfs none /var/lib && mkdir /var/lib/ares '
+                 '&& mount --bind "$1" /var/lib/ares && echo pkg22-namespace-ready && exec bash "/var/lib/ares/$2" "${@:3}"')
+
+    def entry_run(self, home, *args, path='at', timeout=60):
+        """Run the real documented entry as root over this home: bash /var/lib/ares/at ...
+
+        An unprivileged user and mount namespace makes the fixture owner uid 0,
+        mounts the fixture home at /var/lib/ares and a tmpfs at /run for the
+        owner lock. Nothing is patched: the tools run exactly as installed.
+        """
+        process = subprocess.Popen(['unshare', '-Urm', 'bash', '-c', self.NAMESPACE, 'entry', str(home), path, *args],
+                                   stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        try:
+            stdout, stderr = process.communicate(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            stdout, stderr = process.communicate()
+            return SimpleNamespace(returncode=None, stdout=stdout, stderr=stderr, timed_out=True)
+        if 'pkg22-namespace-ready' not in stdout:
+            self.skipTest('no unprivileged user and mount namespace here: ' + stderr.strip())
+        return SimpleNamespace(returncode=process.returncode, stdout=stdout, stderr=stderr, timed_out=False)
+
+    def reached(self, result):
+        """Which toolset the entry ran: the 15f stand-in, the new tools (stopped by their own check), or neither."""
+        if '15f stand-in ran' in result.stdout or result.timed_out:
+            return '15f'
+        if 'Required tool missing' in result.stdout:  # the new tools ran check and met the fixture host
+            return 'new'
+        return None
 
     def test_older_installed_tools_are_replaced_and_kept_and_records_survive(self):
         with self.installation() as (home, run, fingerprint, old, host):
@@ -898,7 +935,7 @@ class ToolsUpdateTest(unittest.TestCase):
         with self.installation(installed=(history(H13, 2), H13[-1]), stick=(history(H21, 3), H21[-1])) as (home, run, fingerprint, old, host):
             self.assertEqual(run()[:2], ['Tools updated from version 2 to 3', 'manifest SHA256 ' + fingerprint])
             self.updated(home, fingerprint, old)
-            self.assertEqual(owner.lineage(home / 'tools')['releases'], H21)
+            self.assertEqual(owner.lineage(home / ('tools-' + fingerprint))['releases'], H21)
 
     def test_downgrade_same_version_foreign_history_and_unknown_legacy_refuse_without_writes(self):
         cases = {
@@ -944,10 +981,10 @@ class ToolsUpdateTest(unittest.TestCase):
             with patch.object(owner.Tools, 'save', new=lambda obj, name, value: (steps.append(name), original(obj, name, value))[1]):
                 run()
         self.assertEqual(steps, ['tools-update-intent'] * 4 + [steps[4], 'tools-update-intent'])
-        # Every file copy, every rename (six journal and record writes, the
-        # block, the publication and the retirement) and every record write.
+        # Every file copy, every rename (six journal and record writes, the new
+        # directory, the entry switch, the block and the retirement) and every record write.
         injections = [('copy', n) for n in range(1, len(common.bundle.PAYLOAD) + 3)] + \
-                     [('replace', n) for n in range(1, 10)] + [('save', n) for n in range(1, 7)]
+                     [('replace', n) for n in range(1, 11)] + [('save', n) for n in range(1, 7)]
         for kind, stop in injections:
             with self.subTest(kind=kind, stop=stop), self.installation() as (home, run, fingerprint, old, host):
                 seen = 0
@@ -971,20 +1008,20 @@ class ToolsUpdateTest(unittest.TestCase):
                 self.updated(home, fingerprint, old)
 
     def works(self, home, old, fingerprint):
-        """Invariant 1: /var/lib/ares/at runs one complete, verified toolset."""
-        self.assertIn(owner.checked_bundle(home / 'tools'), (old, fingerprint))
-        process = subprocess.Popen(['bash', str(home / 'at'), 'check'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        try:
-            stdout, _ = process.communicate(timeout=5)
-            # The 15f stand-in exits 0; the new tools run and stop at their root check.
-            self.assertTrue(process.returncode == 0 or 'Use sudo from the authenticated ares-recovery session' in stdout, stdout)
-        except subprocess.TimeoutExpired:
-            # A sleeping 15f stand-in: it is running tools/owner.py, so the entry works.
-            running = [r for r in owner.installed_commands(home) if r['pid'] == process.pid]
-            self.assertTrue(running and str(home / 'tools/owner.py') in running[0]['argv'], running)
-        finally:
-            process.kill()
-            process.communicate()
+        """Invariant 1: the real entry reaches a complete, verified toolset, or the route to one.
+
+        Before publication the entry may still point at the new tools after a
+        cut; they settle the state and say to run the command again, and the
+        second run reaches the previous tools.
+        """
+        result = self.entry_run(home, 'check', timeout=4)
+        if 'not the installed entry' in result.stdout:
+            result = self.entry_run(home, 'check', timeout=4)
+        which = self.reached(result)
+        self.assertIsNotNone(which, result.stdout + result.stderr)
+        toolset = os.readlink(home / 'at').removesuffix('/at')
+        self.assertEqual(owner.checked_bundle(home / toolset), old if which == '15f' else fingerprint)
+        return which
 
     @contextlib.contextmanager
     def power_cut_after(self, renames):
@@ -1010,6 +1047,13 @@ class ToolsUpdateTest(unittest.TestCase):
                 lambda home, host: patchers.pop().stop())
 
     @staticmethod
+    def record(home, name, value):
+        """A private (0600) record, as the tools write them."""
+        writer = object.__new__(owner.Tools)
+        writer.store = home / 'records'
+        writer.save(name, value)
+
+    @staticmethod
     def journal_value(home, name, value):
         journal = home / 'tools-update-intent.json'
         if journal.exists():
@@ -1031,7 +1075,7 @@ class ToolsUpdateTest(unittest.TestCase):
         bundle, an observation that fails, and an unexpected exception.
         """
         refusals = {
-            'layout trial': (lambda home, host: (home / 'records/layout-pending.json').write_text('{}'),
+            'layout trial': (lambda home, host: self.record(home, 'layout-pending', dict(phase='pin')),
                              lambda home, host: (home / 'records/layout-pending.json').unlink(), owner.Stop),
             'transaction': (lambda home, host: host.state['rpm'].update(transaction=['upgrade', 'uupd', 'socket']),
                             lambda home, host: host.state['rpm'].update(transaction=None), owner.Stop),
@@ -1043,9 +1087,10 @@ class ToolsUpdateTest(unittest.TestCase):
             'preflight error': (*self.failing(owner, 'observations', owner.Stop('Read failed: rpm-ostree status --json')), owner.Stop),
             'unexpected exception': (*self.failing(owner, 'installed_commands', RuntimeError('unexpected')), RuntimeError),
         }
-        # A full run renames nine times: four journal writes, the block, the
-        # publication, the retirement, the receipt and the last journal write.
-        for cut in range(1, 10):
+        # A full run renames ten times: the journal to copy, the new directory,
+        # the journal to publish, the entry switch, the block, the journal to
+        # retire, the retirement, the journal to records, the receipt, complete.
+        for cut in range(1, 11):
             for name, (change, undo, refusal) in refusals.items():
                 with self.subTest(cut=cut, refusal=name), self.installation() as (home, run, fingerprint, old, host):
                     with self.power_cut_after(cut), self.assertRaises(OSError):
@@ -1057,69 +1102,111 @@ class ToolsUpdateTest(unittest.TestCase):
                         except refusal:
                             pass
                         self.works(home, old, fingerprint)
-                        self.assertFalse((home / '.tools-held').exists() and not (home / 'tools').exists())
                     undo(home, host)
                     run()
                     self.updated(home, fingerprint, old)
-                    self.works(home, old, fingerprint)
+                    self.assertEqual(self.works(home, old, fingerprint), 'new')
+
+    def test_the_real_entry_reaches_a_toolset_after_every_cut_and_every_bootstrap_failure(self):
+        """No gap: bash /var/lib/ares/at always runs a complete toolset, or says which command to run again.
+
+        The entry runs as root in its own namespace with nothing patched, right
+        after a cut at every rename, and again after a bootstrap that fails to
+        mount (it never runs), to copy (its private copy differs), to verify
+        (the stick check refuses) or at the disk record.
+        """
+        real_check = owner.checked_bundle
+        def corrupt_copy(usb):
+            def checked_bundle(root):
+                if pathlib.Path(root) == usb / 'ares-tools':
+                    raise owner.Stop('Bundle hash mismatch: owner.py')
+                return real_check(root)
+            return patch.object(owner, 'checked_bundle', side_effect=checked_bundle)
+        failures = {
+            'mount': None,
+            'copy': corrupt_copy,
+            'verify': lambda usb: patch.object(owner, 'tools_stick', side_effect=owner.Stop('Private bootstrap copy differs from the tools USB')),
+            'disk record': lambda usb: patch.object(owner, 'disk_record', side_effect=owner.Stop('Wrong or ambiguous target disk serial')),
+        }
+        for cut in range(1, 11):
+            for name, failure in failures.items():
+                with self.subTest(cut=cut, failure=name), self.installation() as (home, run, fingerprint, old, host):
+                    with self.power_cut_after(cut), self.assertRaises(OSError):
+                        run()
+                    entry = os.readlink(home / 'at')
+                    self.assertIn(entry, ('tools/at', 'tools-' + fingerprint + '/at'))
+                    self.assertEqual(owner.checked_bundle(home / entry.removesuffix('/at')), old if entry == 'tools/at' else fingerprint)
+                    first = self.works(home, old, fingerprint)  # right after the cut
+                    if failure is not None:
+                        with failure(home.parent / 'usb'), self.assertRaises(owner.Stop):
+                            run()
+                    second = self.works(home, old, fingerprint)  # after the failed bootstrap
+                    # Before publication (journal at copy or publish) the previous tools answer; from retire on, the new ones.
+                    phase = json.loads((home / 'tools-update-intent.json').read_text())['phase']
+                    self.assertEqual({first, second}, {'15f' if phase in ('copy', 'publish') else 'new'}, (cut, phase))
+                    run()
+                    self.updated(home, fingerprint, old)
 
     def test_every_entry_settles_the_tools_before_any_check(self):
-        """The bootstrap and every installed command recover first, from the journal alone."""
-        with self.installation() as (home, run, fingerprint, old, host):
-            with self.power_cut_after(3), self.assertRaises(OSError):  # the block: no tools in place
-                run()
-            self.assertFalse((home / 'tools').exists())
-            with patch.object(owner, 'disk_record', side_effect=owner.Stop('Wrong or ambiguous target disk serial')), \
-                    patch.object(owner, 'tools_stick', side_effect=owner.Stop('Tools USB label not found')), \
-                    self.assertRaisesRegex(owner.Stop, 'Tools USB label not found'):
-                run()
-            # Restored before the stick or the disks were looked at, and it stays restored on a repeat.
-            self.assertEqual(owner.checked_bundle(home / 'tools'), old)
-            self.assertFalse((home / '.tools-held').exists())
-            self.works(home, old, fingerprint)
-        for cut, expected_phase, expected in ((3, 'publish', 'old'), (4, 'retire', 'new')):
+        """A cut at the entry switch, at the block and after publication: the first real entry run settles it."""
+        for cut, expected in ((4, '15f'), (5, '15f'), (6, 'new')):
             with self.subTest(cut=cut), self.installation() as (home, run, fingerprint, old, host):
                 with self.power_cut_after(cut), self.assertRaises(OSError):
                     run()
-                self.assertEqual(json.loads((home / 'tools-update-intent.json').read_text())['phase'], 'publish')
-                # An installed command's main() settles first; by the time its own
-                # command runs, the toolset and the journal are already decided.
-                seen = []
-                def check(tools):
-                    seen.append((owner.checked_bundle(home / 'tools'), json.loads((home / 'tools-update-intent.json').read_text())['phase']))
-                    raise owner.Stop('command checks reached')
-                with self.as_root(home), patch.object(owner, '__file__', str(home / 'tools/owner.py')), \
-                        patch.object(owner, 'LOCK', home.parent / 'ares-owner.lock'), patch.object(owner, 'STOP_RECORDS', home / 'diagnostics'), \
-                        patch.object(owner.Tools, 'check', check), patch.object(owner.sys, 'argv', ['at', 'check']), \
-                        contextlib.redirect_stdout(io.StringIO()), self.assertRaisesRegex(owner.Stop, 'command checks reached'):
-                    owner.main()
-                self.assertEqual(seen, [(old if expected == 'old' else fingerprint, expected_phase)])
-                self.assertEqual((home / '.tools-held').exists(), expected == 'new')
-                self.works(home, old, fingerprint)
+                self.assertEqual(os.readlink(home / 'at'), 'tools-' + fingerprint + '/at')
+                self.assertEqual((home / 'tools').exists(), cut == 4)
+                result = self.entry_run(home, 'check')
+                if expected == '15f':
+                    # The new tools settled the state (entry back, tools back) and bounced the command.
+                    self.assertIn('not the installed entry', result.stdout)
+                    self.assertEqual(os.readlink(home / 'at'), 'tools/at')
+                    self.assertEqual(owner.checked_bundle(home / 'tools'), old)
+                    self.assertFalse((home / '.tools-held').exists())
+                    self.assertEqual(json.loads((home / 'tools-update-intent.json').read_text())['phase'], 'publish')
+                    result = self.entry_run(home, 'check')
+                else:
+                    self.assertEqual(json.loads((home / 'tools-update-intent.json').read_text())['phase'], 'retire')
+                    self.assertTrue((home / '.tools-held').exists())
+                self.assertEqual(self.reached(result), expected, result.stdout + result.stderr)
                 run()
                 self.updated(home, fingerprint, old)
 
-    @contextlib.contextmanager
-    def as_root(self, home):
-        """Run main() as root over this unprivileged fixture: uid 0 for the caller and its home."""
-        real_stat, real_lstat = pathlib.Path.stat, pathlib.Path.lstat
-        def rooted(info):
-            values = {name: getattr(info, name) for name in dir(info) if name.startswith('st_')}
-            return SimpleNamespace(**dict(values, st_uid=0))
-        def metadata(path, *args, **kwargs):
-            info = real_stat(path, *args, **kwargs)
-            return rooted(info) if path.is_absolute() and path.is_relative_to(home) else info
-        def link_metadata(path, *args, **kwargs):
-            info = real_lstat(path, *args, **kwargs)
-            return rooted(info) if path.is_absolute() and path.is_relative_to(home) else info
-        with patch.object(pathlib.Path, 'stat', metadata), patch.object(pathlib.Path, 'lstat', link_metadata), \
-                patch.object(owner.os, 'geteuid', return_value=0), patch.object(owner.os, 'umask'):
-            yield
+    def test_a_versioned_toolset_updates_by_the_entry_switch_alone_and_refuses_afterwards(self):
+        """The second update: nothing is held aside, and the old versioned tools refuse once the entry moved on."""
+        with self.installation(installed=(history(H13, 2), H13[-1]), stick=(history(H21, 3), H21[-1]), versioned=True) as (home, run, fingerprint, old, host):
+            self.assertEqual(os.readlink(home / 'at'), 'tools-' + old + '/at')
+            self.assertEqual(self.reached(self.entry_run(home, 'check')), 'new')
+            renames = []
+            real = pathlib.Path.replace
+            record = lambda p, t: (renames.append((p.name, pathlib.Path(t).name)), real(p, t))[1]
+            with patch.object(pathlib.Path, 'replace', new=record), self.power_cut_after(4), self.assertRaises(OSError):
+                run()  # cut right after the entry switch, before publication
+            self.assertEqual(os.readlink(home / 'at'), 'tools-' + fingerprint + '/at')
+            # Run through their own directory, the old tools settle the state: before
+            # publication they are current, so the entry is theirs again and they answer.
+            self.assertEqual(self.reached(self.entry_run(home, 'check', path='tools-' + old + '/at')), 'new')
+            self.assertEqual(os.readlink(home / 'at'), 'tools-' + old + '/at')
+            self.assertEqual(json.loads((home / 'tools-update-intent.json').read_text())['phase'], 'publish')
+            with patch.object(pathlib.Path, 'replace', new=record), self.power_cut_after(2), self.assertRaises(OSError):
+                run()  # resumed: entry switch, checks, then the journal to retire: published
+            self.assertEqual(json.loads((home / 'tools-update-intent.json').read_text())['phase'], 'retire')
+            # Now the old tools refuse through their own directory: the entry moved on for good.
+            result = self.entry_run(home, 'check', path='tools-' + old + '/at')
+            self.assertIn('not the installed entry', result.stdout)
+            self.assertEqual(os.readlink(home / 'at'), 'tools-' + fingerprint + '/at')
+            self.assertEqual(self.reached(self.entry_run(home, 'check')), 'new')
+            with patch.object(pathlib.Path, 'replace', new=record):
+                run()
+            self.assertNotIn('.tools-held', [name for pair in renames for name in pair])
+            self.updated(home, fingerprint, old)
+            self.assertEqual(self.reached(self.entry_run(home, 'check')), 'new')
+            result = self.entry_run(home, 'check', path='retired-tools/' + old + '/at')
+            self.assertIn('Run the installed root-only tools', result.stdout)
 
     def test_unexpected_states_stop_without_moving_anything(self):
         """Outside the journal's model the decision refuses; it never guesses."""
         with self.installation() as (home, run, fingerprint, old, host):
-            with self.power_cut_after(3), self.assertRaises(OSError):
+            with self.power_cut_after(5), self.assertRaises(OSError):
                 run()
             held = home / '.tools-held'
             (held / 'owner.py').write_bytes(b'# tampered\n')
@@ -1128,7 +1215,7 @@ class ToolsUpdateTest(unittest.TestCase):
                 run()
             self.assertEqual(before, self.snapshot(home))
         with self.installation() as (home, run, fingerprint, old, host):
-            with self.power_cut_after(2), self.assertRaises(OSError):
+            with self.power_cut_after(3), self.assertRaises(OSError):
                 run()
             self.journal_value(home, 'previous', 'a' * 64)
             before = self.snapshot(home)
@@ -1142,14 +1229,17 @@ class ToolsUpdateTest(unittest.TestCase):
             order = []
             real = pathlib.Path.replace
             def rename(path, target):
-                if path in (home / 'tools', home / '.update-tools', home / '.tools-held'):
+                if path in (home / 'tools', home / '.update-tools', home / '.tools-held', home / '.at.new'):
                     order.append((path.name, pathlib.Path(target).relative_to(home).as_posix()))
                     if path == home / '.tools-held':
-                        self.assertEqual(owner.checked_bundle(home / 'tools'), fingerprint)
+                        self.assertEqual(owner.checked_bundle(home / ('tools-' + fingerprint)), fingerprint)
+                        self.assertEqual(os.readlink(home / 'at'), 'tools-' + fingerprint + '/at')
+                        self.assertEqual(json.loads((home / 'tools-update-intent.json').read_text())['phase'], 'retire')
                 return real(path, target)
             with patch.object(pathlib.Path, 'replace', new=rename):
                 run()
-            self.assertEqual(order, [('tools', '.tools-held'), ('.update-tools', 'tools'), ('.tools-held', 'retired-tools/' + old)])
+            self.assertEqual(order, [('.update-tools', 'tools-' + fingerprint), ('.at.new', 'at'), ('tools', '.tools-held'),
+                                     ('.tools-held', 'retired-tools/' + old)])
             self.updated(home, fingerprint, old)
 
     def legacy_command(self, path, home):
@@ -1183,16 +1273,24 @@ class ToolsUpdateTest(unittest.TestCase):
             self.updated(home, fingerprint, old)
 
     def legacy_attempts(self, home):
-        """Try every way into the installed tools; return each exit status."""
+        """Try every way into the old tools; return each exit status (the entry's with its first STOP line)."""
         attempts = {
             'at': ['bash', str(home / 'at'), 'check'],
             'tools/at': ['bash', str(home / 'tools/at'), 'check'],
             'tools/owner.py': ['/usr/bin/python3', '-I', '-B', str(home / 'tools/owner.py'), 'check'],
         }
-        return {name: subprocess.run(argv, capture_output=True, timeout=10).returncode for name, argv in attempts.items()}
+        codes = {}
+        for name, argv in attempts.items():
+            result = subprocess.run(argv, capture_output=True, text=True, timeout=10)
+            codes[name] = (result.returncode, result.stdout.splitlines()[0]) if name == 'at' else result.returncode
+        return codes
 
     def test_every_legacy_path_is_unusable_at_the_final_scan_and_the_publication(self):
-        """Blocked before scanning: at the deciding scan and the publication nothing old can start."""
+        """Blocked before scanning: at the deciding scan and at publication nothing old can start.
+
+        The entry already reaches the new tools (here stopped by their root
+        check, as this test is not root); the old directory is gone.
+        """
         with self.installation() as (home, run, fingerprint, old, host):
             seen = []
             scan = owner.installed_commands
@@ -1200,24 +1298,24 @@ class ToolsUpdateTest(unittest.TestCase):
                 if (home / '.tools-held').is_dir():
                     seen.append(('scan', self.legacy_attempts(home)))
                 return scan(where)
-            real = pathlib.Path.replace
-            def rename(path, target):
-                if path == home / '.update-tools':
+            real = owner.Tools.save
+            def save(obj, name, value):
+                if name == 'tools-update-intent' and value.get('phase') == 'retire':
                     seen.append(('publish', self.legacy_attempts(home)))
-                return real(path, target)
-            with patch.object(owner, 'installed_commands', side_effect=scanned), \
-                    patch.object(pathlib.Path, 'replace', new=rename):
+                return real(obj, name, value)
+            with patch.object(owner, 'installed_commands', side_effect=scanned), patch.object(owner.Tools, 'save', new=save):
                 run()
             self.assertEqual([where for where, _ in seen], ['scan', 'publish'])
             for where, codes in seen:
                 # 127: bash cannot open the script; 2: python3 cannot open the file.
-                self.assertEqual(codes, {'at': 127, 'tools/at': 127, 'tools/owner.py': 2}, where)
+                self.assertEqual(codes, {'at': (1, 'STOP: Use sudo from the authenticated ares-recovery session'),
+                                         'tools/at': 127, 'tools/owner.py': 2}, where)
             self.updated(home, fingerprint, old)
 
     def test_the_held_old_tools_cannot_run_outside_their_home(self):
-        """The 15f main (git e062f4a2, the 3ef85c4a bundle) has this same requirement."""
+        """The 15f main (git e062f4a2, the 3ef85c4a bundle) requires payload == HOME / 'tools'; so does this one for tools/."""
         source = (ROOT / 'os/owner-tools/owner.py').read_text()
-        self.assertIn("require(payload == HOME / 'tools' and HOME.stat().st_uid == 0", source)
+        self.assertIn("require((payload == HOME / 'tools' or payload == HOME / ('tools-' + fingerprint)) and HOME.stat().st_uid == 0", source)
         with tempfile.TemporaryDirectory(dir=ROOT / 'os/tests') as temporary:
             home = pathlib.Path(temporary)
             held = home / '.tools-held'
@@ -1231,7 +1329,8 @@ class ToolsUpdateTest(unittest.TestCase):
 
     def test_a_legacy_command_that_ran_after_the_early_checks_leaves_no_stale_result(self):
         """It started and finished before the block; the checks after the block see it."""
-        trial = b'import pathlib\n(pathlib.Path(__file__).resolve().parent.parent / "records/layout-pending.json").write_text("{}")\n'
+        trial = (b'import pathlib\n(pathlib.Path(__file__).resolve().parent.parent / "records/layout-pending.json").write_text("{}")\n'
+                 b'print("15f stand-in ran")\n')
         with self.installation(legacy_owner=trial) as (home, run, fingerprint, old, host):
             real = shutil.copy2
             ran = []
@@ -1243,9 +1342,10 @@ class ToolsUpdateTest(unittest.TestCase):
                 run()
             self.assertEqual(ran, [0])
             self.assertEqual(owner.checked_bundle(home / 'tools'), old)
+            self.assertEqual(os.readlink(home / 'at'), 'tools/at')
             self.assertFalse((home / '.tools-held').exists())
             self.assertEqual(json.loads((home / 'tools-update-intent.json').read_text())['phase'], 'publish')
-            self.works(home, old, fingerprint)
+            self.assertEqual(self.works(home, old, fingerprint), '15f')
             (home / 'records/layout-pending.json').unlink()
             run()
             self.updated(home, fingerprint, old)
@@ -1272,12 +1372,14 @@ class ToolsUpdateTest(unittest.TestCase):
 
     def test_an_interruption_while_the_old_tools_are_blocked_recovers(self):
         with self.installation() as (home, run, fingerprint, old, host):
-            # Rename 3 is the block (after the journal writes for copy and publish).
-            with self.power_cut_after(3), self.assertRaises(OSError):
+            # Rename 5 is the block (journal copy, the new directory, journal publish, the entry switch).
+            with self.power_cut_after(5), self.assertRaises(OSError):
                 run()
             self.assertFalse((home / 'tools').exists())
             self.assertEqual(owner.checked_bundle(home / '.tools-held'), old)
-            self.assertEqual(self.legacy_attempts(home), {'at': 127, 'tools/at': 127, 'tools/owner.py': 2})
+            self.assertEqual(self.legacy_attempts(home), {'at': (1, 'STOP: Use sudo from the authenticated ares-recovery session'),
+                                                          'tools/at': 127, 'tools/owner.py': 2})
+            self.assertEqual(self.works(home, old, fingerprint), '15f')
             run()
             self.updated(home, fingerprint, old)
 
@@ -1374,6 +1476,34 @@ class ToolsUpdateTest(unittest.TestCase):
             run()
             self.updated(home, fingerprint, old)
 
+    def test_a_live_thread_beside_an_exited_leader_counts(self):
+        """proc(5): cwd is unavailable once the main thread exited; the group may still hold the tools."""
+        program = ('import ctypes, sys, threading, time\n'
+                   'held = open(sys.argv[1])\n'
+                   'threading.Thread(target=lambda: time.sleep(60)).start()\n'
+                   'ctypes.CDLL(None).pthread_exit(None)\n')
+        with self.installation() as (home, run, fingerprint, old, host):
+            worker = subprocess.Popen(['/usr/bin/python3', '-c', program, str(home / 'tools/owner.py')], cwd='/')
+            self.addCleanup(lambda: (worker.kill(), worker.wait()))
+            deadline = time.monotonic() + 10
+            while (pathlib.Path('/proc') / str(worker.pid) / 'stat').read_text().rsplit(')', 1)[1].split()[0] != 'Z':
+                self.assertLess(time.monotonic(), deadline)
+                time.sleep(.05)
+            with self.assertRaises(FileNotFoundError):
+                os.readlink('/proc/' + str(worker.pid) + '/cwd')
+            found = [r for r in owner.installed_commands(home) if r['pid'] == worker.pid]
+            self.assertEqual(len(found), 1, found)
+            self.assertIn('unreadable', found[0]['reason'])
+            self.assertFalse(owner.process_absent(pathlib.Path('/proc') / str(worker.pid)))
+            before = self.snapshot(home)
+            with self.assertRaisesRegex(owner.Stop, r'is running \(pid .*\b' + str(worker.pid) + r'\b'):
+                run()
+            self.assertEqual(before, self.snapshot(home))
+            worker.kill()
+            worker.wait()
+            run()
+            self.updated(home, fingerprint, old)
+
     def test_confirmed_absence_is_not_doubt(self):
         """What the kernel reports as absent (ENOENT) does not refuse: a zombie, a closed descriptor.
 
@@ -1395,6 +1525,7 @@ class ToolsUpdateTest(unittest.TestCase):
                 self.assertEqual((process / 'stat').read_text().rsplit(')', 1)[1].split()[0], 'Z')
                 with self.assertRaises(FileNotFoundError):
                     os.readlink(str(process / 'cwd'))
+                self.assertTrue(owner.process_absent(process))
                 self.assertFalse(any(r['pid'] == zombie.pid for r in owner.installed_commands(home)))
             finally:
                 zombie.kill()

@@ -1588,8 +1588,55 @@ def seal_copy(stage):
 
 
 TOOLS_JOURNAL = 'tools-update-intent'
-UPDATE_NAMES = ('diagnostics', 'install-intent.json', 'tools', 'records', 'at', '.tools-held',
+# Toolset directories: tools (the first install) or tools-<fingerprint> (every update).
+TOOLSET = r'tools|tools-[0-9a-f]{64}'
+UPDATE_NAMES = ('diagnostics', 'install-intent.json', 'tools', 'records', 'at', '.at.new', '.tools-held',
                 TOOLS_JOURNAL + '.json', '.update-tools', 'retired-tools')
+PF_KTHREAD = 0x00200000
+
+
+def switch_entry(name):
+    """Point /var/lib/ares/at at a toolset by one atomic rename; it never dangles."""
+    entry, fresh = HOME / 'at', HOME / '.at.new'
+    require(not entry.exists() or entry.is_symlink(), 'Unexpected installed entry point; get help')
+    fresh.unlink(missing_ok=True)
+    fresh.symlink_to(name + '/at')
+    fresh.replace(entry)
+    sync_directory(HOME)
+
+
+def entry_toolset():
+    """The toolset directory name the entry points at, or None when it is no toolset link."""
+    entry = HOME / 'at'
+    if not entry.is_symlink():
+        return None
+    match = re.fullmatch('(' + TOOLSET + ')/at', os.readlink(entry))
+    return match.group(1) if match else None
+
+
+def process_absent(process):
+    """Nothing of the thread group can act any more; anything less is doubt.
+
+    A kernel thread (PF_KTHREAD), or every thread of the group exited (Z/X) or
+    past its exit: a thread whose own working directory reads as ENOENT has no
+    filesystem context left, which the kernel releases after its files and its
+    memory map. A live thread beside an exited leader keeps its working
+    directory readable, so the group counts.
+    """
+    try:
+        if int((process / 'stat').read_text().rsplit(')', 1)[1].split()[6]) & PF_KTHREAD:
+            return True
+        for task in (process / 'task').iterdir():
+            if (task / 'stat').read_text().rsplit(')', 1)[1].split()[0] in ('Z', 'X'):
+                continue
+            try:
+                os.readlink(str(task / 'cwd'))
+            except FileNotFoundError:
+                continue
+            return False
+    except OSError:
+        return not process.exists()
+    return True
 
 
 def own_descendant(process):
@@ -1610,30 +1657,31 @@ def installed_commands(home):
     """Processes that may run, read or stand in any copy of the installed tools.
 
     A process counts if its working directory, an open file, or any argument
-    (resolved against its working directory, links followed too) lies in
-    tools/, .tools-held/, .update-tools/ or retired-tools/, or is the entry
-    link at. That covers every interpreter option and relative path. False
-    positives only refuse.
+    (resolved against its working directory, links followed too) lies in any
+    toolset directory (tools/, tools-<fingerprint>/), .tools-held/,
+    .update-tools/ or retired-tools/, or is the entry link at. That covers
+    every interpreter option and relative path. False positives only refuse.
 
     Unreadable means in use: any error reading a process's working directory,
-    arguments or descriptors counts it. The one exception is a confirmed
-    absence, which the kernel reports as ENOENT or ESRCH and never for a
-    running user process: the process is gone; it has no filesystem context
-    (a kernel thread, a zombie, or a task past exit, which released its files
-    before its working directory), so nothing of it can hold the tools; or
-    that descriptor is closed. Root is never refused a read, so as root
-    nothing else is exempt. An unprivileged caller (a test) is refused by the
-    kernel's ptrace policy for processes outside its own tree; it skips those,
-    which cannot be a root-run owner command of the tools it is looking for.
-    Everything it started counts on every error.
+    arguments or descriptors counts it, unless process_absent confirms that
+    nothing of it can act any more, or the one failing descriptor is closed
+    (ENOENT, which the kernel gives for no other reason). Root is never
+    refused a read, so as root nothing else is exempt. An unprivileged caller
+    (a test) is refused by the kernel's ptrace policy for processes outside
+    its own tree; it skips those, which cannot be a root-run owner command of
+    the tools it is looking for. Everything it started counts on every error.
     """
     bases = {str(home), os.path.realpath(home)}
-    roots = {os.path.join(base, name) for base in bases for name in ('tools', '.tools-held', '.update-tools', 'retired-tools')}
-    links = {os.path.join(base, 'at') for base in bases}
+    names = re.compile('(' + TOOLSET + r'|\.tools-held|\.update-tools|retired-tools)(/.*)?')
 
     def inside(path):
         path = os.path.normpath(path.removesuffix(' (deleted)'))
-        return path in links or any(path == root or path.startswith(root + '/') for root in roots)
+        for base in bases:
+            if path == os.path.join(base, 'at'):
+                return True
+            if path.startswith(base + '/') and names.fullmatch(path[len(base) + 1:]):
+                return True
+        return False
 
     found = []
     for process in pathlib.Path('/proc').iterdir():
@@ -1649,10 +1697,10 @@ def installed_commands(home):
                     paths.append(os.readlink(str(descriptor)))
                 except FileNotFoundError:
                     continue  # This descriptor is closed: absent, not doubt.
-        except (FileNotFoundError, ProcessLookupError):
-            continue  # The process or its filesystem context is gone: absent, not doubt.
         except OSError as error:
-            if os.geteuid() != 0 and isinstance(error, PermissionError) and not own_descendant(process):
+            if process_absent(process):
+                continue
+            if os.geteuid() != 0 and not own_descendant(process):
                 continue
             found.append(dict(pid=pid, reason='unreadable: ' + str(error)))
             continue
@@ -1667,14 +1715,15 @@ def settle_tools():
     """Recovery first: leave exactly one verified toolset in tools/, then return the journal.
 
     Every entry into the tools (the bootstrap and each installed command) and
-    every refusal or exception before publication ends here, before any
+    every refusal or exception of a tools update ends here, before any
     fallible check, so this decides from the tools update journal and the
     files beside it alone. Before publication (phases copy and publish) the
-    old tools are current: a held copy goes back when tools/ is empty. Once
-    the new tools stand in tools/, verified, publication is decided and the
-    journal is moved past it. Anything else lies outside the journal's model
-    and STOPs with nothing moved. Returns None when no tools update is
-    journalled: the first-install route has its own journal.
+    previous toolset is current: a first-install tools/ held aside goes back
+    when it is missing, and the entry is pointed at it again. From
+    publication on (the journal at retire or later) the new toolset is
+    current and the entry points at it. Anything else lies outside the
+    journal's model and STOPs with nothing moved. Returns None when no tools
+    update is journalled: the first-install route has its own journal.
     """
     journal = HOME / (TOOLS_JOURNAL + '.json')
     if HOME.is_symlink() or not HOME.is_dir() or not (journal.exists() or journal.is_symlink()):
@@ -1687,10 +1736,10 @@ def settle_tools():
     intent = home.load(TOOLS_JOURNAL)
     require(isinstance(intent, dict) and intent.get('schema') == 'tools-update1'
         and intent.get('phase') in ('copy', 'publish', 'retire', 'records', 'complete')
-        and all(isinstance(intent.get(k), str) and re.fullmatch('[0-9a-f]{64}', intent[k]) for k in ('previous', 'manifest')),
+        and all(isinstance(intent.get(k), str) and re.fullmatch('[0-9a-f]{64}', intent[k]) for k in ('previous', 'manifest'))
+        and isinstance(intent.get('previous_directory'), str) and re.fullmatch(TOOLSET, intent['previous_directory'])
+        and intent['previous_directory'] in ('tools', 'tools-' + intent['previous']),
         'Invalid tools update journal; get help')
-    current, held = HOME / 'tools', HOME / '.tools-held'
-    published = intent['phase'] not in ('copy', 'publish')
 
     def verified(path):
         # The copy's fingerprint, or why it is no verified toolset.
@@ -1699,21 +1748,24 @@ def settle_tools():
         except Stop as error:
             return 'unverified (' + str(error) + ')'
 
-    if current.exists() or current.is_symlink():
-        found = verified(current)
-        if found == intent['manifest'] and intent['phase'] != 'copy':
-            if intent['phase'] == 'publish':
-                # Published, then cut before the journal said so: finish publication.
-                intent['phase'] = 'retire'
-                home.save(TOOLS_JOURNAL, intent)
+    held = HOME / '.tools-held'
+    if intent['phase'] in ('copy', 'publish'):
+        current, expected = intent['previous_directory'], intent['previous']
+        if not (HOME / current).exists() and not (HOME / current).is_symlink():
+            found = verified(held) if current == 'tools' and held.is_dir() and not held.is_symlink() else 'missing'
+            require(found == expected, 'No installed tools and no verified held copy: ' + found + '; get help')
+            held.replace(HOME / current)
+            sync_directory(HOME)
         else:
-            require(not published and found == intent['previous'] and not held.exists() and not held.is_symlink(),
+            found = verified(HOME / current)
+            require(found == expected and not held.exists() and not held.is_symlink(),
                 'Installed tools match neither side of the tools update: ' + found + '; get help')
     else:
-        found = verified(held) if held.is_dir() and not held.is_symlink() else 'missing'
-        require(not published and found == intent['previous'], 'No installed tools and no verified held copy: ' + found + '; get help')
-        held.replace(current)
-        sync_directory(HOME)
+        current, expected = 'tools-' + intent['manifest'], intent['manifest']
+        found = verified(HOME / current)
+        require(found == expected, 'Published tools differ: ' + found + '; get help')
+    if entry_toolset() != current:
+        switch_entry(current)
     return intent
 
 
@@ -1739,19 +1791,23 @@ def update_tools(payload, fingerprint, host, intent):
     """Replace the installed tools with a newer reviewed bundle, keeping records.
 
     Runs from the bootstrap's verified private copy, like install, after
-    settle_tools left exactly one verified toolset in tools/ (intent is its
-    journal). Older or same-version tools, a release history that does not
-    extend the installed one, or a deployment state the new tools would refuse
-    all STOP before any write. The old tools move, never get deleted, to
+    settle_tools left one verified toolset current (intent is its journal).
+    Older or same-version tools, a release history that does not extend the
+    installed one, or a deployment state the new tools would refuse all STOP
+    before any write. The old tools move, never get deleted, to
     retired-tools/<manifest>.
 
-    Invariant: exactly one complete, verified toolset works through
-    /var/lib/ares/at. The only moment without one is in the publish phase,
-    between moving the old tools aside and moving the new ones in. Every
-    refusal or exception in this function ends in settle_tools (install wraps
-    it), which puts the held copy back; a power cut there is settled by the
-    next entry. The old tools are retired only after the new ones are
-    published and verified.
+    No gap at the entry: the new toolset is copied whole to
+    tools-<fingerprint>/ beside the old one, and /var/lib/ares/at is switched
+    to it by one atomic rename, so the documented entry always reaches a
+    complete, verified toolset. The switch blocks a versioned old toolset (its
+    main refuses once the entry moved on); a first-install tools/ is moved
+    aside after the switch, because the 15f main refuses outside tools/.
+    The deciding checks run under that block; the journal's step to retire is
+    the publication. Every refusal or exception of this function ends in
+    settle_tools (install wraps it), which puts the previous toolset and the
+    entry back before publication; a power cut is settled by the next entry.
+    The old tools are retired only after publication.
     """
     require(sys.stdin.isatty(), 'Tools update runs only from the physical recovery console')
     device = tools_stick(host, payload, fingerprint)
@@ -1759,17 +1815,17 @@ def update_tools(payload, fingerprint, host, intent):
     for name in ('records', 'diagnostics', 'retired-tools'):
         if (HOME / name).exists() or (HOME / name).is_symlink():
             owned_directory(HOME / name)
-    require(all(p.name in UPDATE_NAMES or p.name.startswith(('.install-intent.', '.' + TOOLS_JOURNAL + '.'))
-        and p.name.endswith('.new') for p in HOME.iterdir()), 'Unexpected installation files; preserve them and get help')
+    require(all(p.name in UPDATE_NAMES or re.fullmatch(TOOLSET, p.name)
+        or p.name.startswith(('.install-intent.', '.' + TOOLS_JOURNAL + '.')) and p.name.endswith('.new')
+        for p in HOME.iterdir()), 'Unexpected installation files; preserve them and get help')
     home = object.__new__(Tools); home.store = HOME
     records = object.__new__(Tools); records.store = HOME / 'records'
     installed = home.load('install-intent')
     require(installed.get('schema') == 'install1' and installed.get('phase') == 'complete', 'Installation is unfinished; get help')
     disk_record(host, records.load('disks'))
-    entry = HOME / 'at'
-    require(entry.is_symlink() and os.readlink(entry) == 'tools/at', 'Unexpected installed entry point')
     new = lineage(payload)
-    current, staged, held, retired = HOME / 'tools', HOME / '.update-tools', HOME / '.tools-held', HOME / 'retired-tools'
+    staged, held, retired = HOME / '.update-tools', HOME / '.tools-held', HOME / 'retired-tools'
+    published = HOME / ('tools-' + fingerprint)
 
     def system_ready():
         # The new tools must accept today's system before they replace the old ones.
@@ -1790,9 +1846,15 @@ def update_tools(payload, fingerprint, host, intent):
     if intent is None or intent['phase'] == 'complete':
         require(not staged.exists() and not staged.is_symlink() and not held.exists() and not held.is_symlink(),
             'Unjournalled partial tools copy or held tools; preserve them and get help')
+        old_name = entry_toolset()
+        require(old_name is not None, 'Unexpected installed entry point')
+        require(all(p.name == old_name for p in HOME.iterdir() if re.fullmatch(TOOLSET, p.name)),
+            'Unexpected toolset directories; preserve them and get help')
+        current = HOME / old_name
         require(not current.is_symlink() and current.is_dir(), 'Installed tools are missing; get help')
         private_tree(current)
         old = checked_bundle(current)
+        require(old_name in ('tools', 'tools-' + old), 'Installed tools differ from their directory name; get help')
         require(intent is None or intent['manifest'] == old, 'Tools update journal differs from the installed tools; get help')
         if old == fingerprint:
             return ['Tools already installed; nothing changed', 'manifest SHA256 ' + fingerprint]
@@ -1801,59 +1863,69 @@ def update_tools(payload, fingerprint, host, intent):
             + '; refusing version ' + str(new['tools_version']) + ' (downgrade or same version)')
         require(extends(old_history, new['releases']), 'Bundle release history does not extend the installed one; get help')
         require(not (retired / old).exists() and not (retired / old).is_symlink(), 'Retired tools already exist; get help')
+        require(not published.exists() and not published.is_symlink(), 'Unjournalled new tools directory; preserve it and get help')
         exclusive()
         system_ready()
-        intent = dict(schema='tools-update1', previous=old, manifest=fingerprint, previous_version=old_version,
-            tools_version=new['tools_version'], tools_volume_uuid=device['volume']['uuid'], phase='copy')
+        intent = dict(schema='tools-update1', previous=old, previous_directory=old_name, manifest=fingerprint,
+            previous_version=old_version, tools_version=new['tools_version'], tools_volume_uuid=device['volume']['uuid'], phase='copy')
         home.save(TOOLS_JOURNAL, intent)
     else:
         require(intent['manifest'] == fingerprint and intent.get('tools_volume_uuid') == device['volume']['uuid'],
             'Interrupted tools update does not exactly match this bundle/stick; get help')
         if intent['phase'] in ('copy', 'publish'):
-            # A resumed run refuses early too, with the old tools in place and usable.
+            # A resumed run refuses early too, with the old tools current and usable.
             exclusive()
             system_ready()
     def advance(phase):
         intent['phase'] = phase
         home.save(TOOLS_JOURNAL, intent)
-    old = intent['previous']
+    old, old_name = intent['previous'], intent['previous_directory']
+    current = HOME / old_name
     if intent['phase'] == 'copy':
-        # The old tools stay in place and usable while the new ones are copied.
+        # The old tools stay current and usable while the new ones are copied whole.
         require(checked_bundle(current) == old and not held.exists() and not held.is_symlink()
-            and not (retired / old).exists(), 'Installed tools changed during the update')
-        discard_partial_copy(staged, payload)
-        shutil.copytree(payload, staged, symlinks=False, copy_function=shutil.copy2)
-        seal_copy(staged)
-        require(checked_bundle(staged) == fingerprint, 'Staged tools differ; preserve diagnostics')
+            and not (retired / old).exists() and entry_toolset() == old_name, 'Installed tools changed during the update')
+        if published.exists() or published.is_symlink():
+            require(not published.is_symlink() and published.is_dir() and checked_bundle(published) == fingerprint,
+                'Unverified new tools directory; preserve it and get help')
+        else:
+            discard_partial_copy(staged, payload)
+            shutil.copytree(payload, staged, symlinks=False, copy_function=shutil.copy2)
+            seal_copy(staged)
+            require(checked_bundle(staged) == fingerprint, 'Staged tools differ; preserve diagnostics')
+            staged.replace(published)
+            sync_directory(HOME)
         advance('publish')
     if intent['phase'] == 'publish':
-        # settle_tools left the old tools here: published new ones move the journal on.
-        require(not current.is_symlink() and checked_bundle(current) == old and not held.exists() and not held.is_symlink(),
-            'Unexpected installed tools before publication; get help')
-        require(not staged.is_symlink() and staged.is_dir() and checked_bundle(staged) == fingerprint, 'Staged tools differ; get help')
-        # Block: every way into the old tools lies under tools/ (at is a link to
-        # tools/at, which runs tools/owner.py, and the 15f main refuses outside
-        # tools/), so moving it aside blocks them all.
-        current.replace(held)
-        sync_directory(HOME)
+        # settle_tools left the old tools current and the entry on them.
+        require(not current.is_symlink() and checked_bundle(current) == old and not held.exists() and not held.is_symlink()
+            and entry_toolset() == old_name, 'Unexpected installed tools before publication; get help')
+        require(not published.is_symlink() and published.is_dir() and checked_bundle(published) == fingerprint
+            and not staged.exists(), 'New tools differ; get help')
+        # Block, with the entry never dangling: switch it to the complete new
+        # toolset, then move a first-install tools/ aside (the 15f main refuses
+        # outside tools/, so that blocks tools/at and tools/owner.py too; a
+        # versioned old toolset refuses by itself once the entry moved on).
+        switch_entry('tools-' + fingerprint)
+        if old_name == 'tools':
+            current.replace(held)
+            sync_directory(HOME)
         # Then the deciding checks, under the block, immediately before publication.
         exclusive()
         system_ready()
-        staged.replace(current)
-        sync_directory(HOME)
-        require(checked_bundle(current) == fingerprint and not staged.exists(), 'Published tools differ; get help')
         advance('retire')
+    require(checked_bundle(published) == fingerprint and entry_toolset() == 'tools-' + fingerprint, 'Published tools differ; get help')
     if intent['phase'] == 'retire':
-        # Only now, with the new tools published and verified, does the old copy retire.
-        require(checked_bundle(current) == fingerprint, 'Published tools differ; get help')
-        if held.exists() or held.is_symlink():
-            require(held.is_dir() and not held.is_symlink() and checked_bundle(held) == old
-                and not (retired / old).exists(), 'Held tools differ; get help')
+        # Only now, with the new tools published, does the old copy retire.
+        source = held if old_name == 'tools' else current
+        if source.exists() or source.is_symlink():
+            require(source.is_dir() and not source.is_symlink() and checked_bundle(source) == old
+                and not (retired / old).exists(), 'Old tools differ; get help')
             if not retired.exists():
                 retired.mkdir(mode=0o700)
                 sync_directory(HOME)
             owned_directory(retired)
-            held.replace(retired / old)
+            source.replace(retired / old)
             sync_directory(retired)
             sync_directory(HOME)
         require(checked_bundle(retired / old) == old, 'Retired tools differ; get help')
@@ -1861,7 +1933,6 @@ def update_tools(payload, fingerprint, host, intent):
         intent['receipt'] = datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%S.%fZ') + '-tools-update'
         advance('records')
     if intent['phase'] == 'records':
-        require(checked_bundle(current) == fingerprint, 'Published tools differ')
         require(re.fullmatch(r'[0-9]{8}T[0-9]{6}\.[0-9]{6}Z-tools-update', intent.get('receipt', '')), 'Invalid tools update journal')
         if not (records.store / (intent['receipt'] + '.json')).exists():
             records.save(intent['receipt'], dict(status='passed', command=['install'], manifest=fingerprint, previous_manifest=old,
@@ -2040,8 +2111,12 @@ def main():
         if command == 'install':
             lines = install(payload, host)
         else:
-            require(payload == HOME / 'tools' and HOME.stat().st_uid == 0
+            # A first-install tools/ runs only from there (the 15f tools have the same
+            # rule); a versioned toolset runs only while the entry points at it.
+            require((payload == HOME / 'tools' or payload == HOME / ('tools-' + fingerprint)) and HOME.stat().st_uid == 0
                     and stat.S_IMODE(HOME.stat().st_mode) == 0o700, 'Run the installed root-only tools')
+            require(payload == HOME / 'tools' or entry_toolset() == payload.name, 'These tools are not the installed entry '
+                    '(the tools update was undone or superseded); run sudo /var/lib/ares/at ' + ' '.join(action) + ' again')
             private_tree(payload)
             private_tree(HOME / 'records')
             if STOP_RECORDS.exists():
