@@ -52,15 +52,15 @@ owner handoff / non-cancellable uncertainty, whose different meaning is stated i
 
 ## Local verification checkpoint
 
-**Run:** full Node: **182 tests, 182 pass, 0 fail/cancelled/skipped**. Full Python before the latest extra question
+**Run:** full Node: **185 tests, 185 pass, 0 fail/cancelled/skipped**. Full Python before the latest extra question
 assertions: **176 tests, OK, 342.094 s**. Focused current policy/sites/questions/unit suite: **40 tests, OK**.
 `python3 control/generate.py --check`: `Generated artifacts match definitions`. `git diff --check`: clean.
 
-**Run:** `python3 -B reviews/20-chrome/mutation-audit.py`: **44 mutations rejected; every baseline passed**.
+**Run:** `python3 -B reviews/20-chrome/mutation-audit.py`: **47 mutations rejected; every baseline passed**.
 The auditor copies only into this worktree's `.work/`, mutates the copy and removes it. Exact commands and failing
 assertions are in [review-fixes-mutations.json](records/review-fixes-mutations.json). The first attempt exposed the
 missing nonnegative capture assertion in the new head-script unit; that test was strengthened and the complete
-44-mutation audit rerun successfully.
+47-mutation audit rerun successfully.
 
 ## CI ledger (not acceptance)
 
@@ -109,3 +109,11 @@ node therefore gives a frame-specific MAIN handle without subscribing to Runtime
 from the actual browser bootstrap and native-submission progress observed above.
 
 The exact retained early-failure log index is [review-fixes-first-batches.json](records/review-fixes-first-batches.json).
+
+
+**Built/run — precollection refinement:** origin and surviving-document expectations now travel into the reader's
+private message handler and are checked before snapshot/value extraction; a post-collection refusal alone was
+insufficient. Dedicated throwing-getter and background expectation tests cover both ends. Inline frames also enter
+stopped-step polling and validity checks. The added mutations remove each precollection check independently.
+CI ordering now runs the focused page Python and all Node checks first, then the complete browser matrix, then the
+unchanged full Python sweep. A green job still requires every suite; earlier browser failures return sooner.

@@ -5,7 +5,7 @@
 accounts for P1–P31, including the browser-free mutation evidence. All browser tests run only through the
 `control-chrome.yml` Linux containers. No local browser executable or profile has been accessed.
 
-The latest local checkpoint is 182 passing Node tests, 40 focused Python tests, and the earlier 176-test full Python
+The latest local checkpoint is 185 passing Node tests, 40 focused Python tests, and the earlier 176-test full Python
 pass. Final-head browser/base/Mail/boundary runs twice and the closing per-item receiver/log index remain required.
 The first container batch found a fake-timer fixture race; the next found a real paused-startup finish deadlock.
 Both have dedicated regressions and are fixed for the next batch. Missing cases are never counted as passes.
