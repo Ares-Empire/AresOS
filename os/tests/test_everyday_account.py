@@ -178,12 +178,22 @@ class PolicyFilesTest(unittest.TestCase):
         for prefix in ('org.projectatomic.rpmostree1.', 'org.freedesktop.sysupdate1.', 'org.freedesktop.fwupd.',
                        'org.bazzite.'):
             self.assertIn(f'action.id.indexOf("{prefix}") == 0', rule)
-        listed = re.search(r'var aresosPasswordActions = \[(.*?)\];', rule, re.S).group(1)
-        actions = re.findall(r'"([^"]+)"', listed)
-        self.assertEqual(actions, sorted(actions))
-        for action in ('org.freedesktop.Flatpak.app-install', 'org.gtk.vfs.file-operations-helper',
-                       'org.freedesktop.NetworkManager.settings.modify.system'):
-            self.assertIn(action, actions)
+        # Review 2: upstream wheel grants get each action's own uncached
+        # default for ares, per session kind [remote, inactive, active].
+        listed = re.search(r'var aresosWheelGrantDefaults = \{(.*?)\};', rule, re.S).group(1)
+        grants = {name: values.split('", "') for name, values in re.findall(r'"([^"]+)": \["([^\]]+)"\]', listed)}
+        self.assertEqual(list(grants), sorted(grants))
+        self.assertEqual(grants['org.gtk.vfs.file-operations-helper'], ['no', 'no', 'auth_admin'])
+        for action in ('org.freedesktop.Flatpak.app-install', 'org.freedesktop.NetworkManager.settings.modify.system'):
+            self.assertEqual(grants[action], ['auth_admin'] * 3)
+        self.assertFalse(any(value.endswith('_keep') for values in grants.values() for value in values))
+        self.assertIn('return !subject.local ? defaults[0] : (subject.active ? defaults[2] : defaults[1]);', rule)
+        # TuneD: everything except read-only queries is denied (a profile can
+        # change kernel arguments through TuneD's bootloader plugin).
+        read_only = re.findall(r'"([^"]+)"', re.search(r'var aresosTunedReadOnly = \[(.*?)\];', rule, re.S).group(1))
+        self.assertNotIn('com.redhat.tuned.switch_profile', read_only)
+        self.assertNotIn('com.redhat.tuned.auto_profile', read_only)
+        self.assertIn('(action.id.indexOf("com.redhat.tuned.") == 0 && aresosTunedReadOnly.indexOf(action.id) < 0)', rule)
         # Review 1: logind's next-boot and firmware-setup choices (and modem
         # firmware) are open to any active session by default; deny them to
         # ares outright, with or without wheel. Ordinary power actions stay.
@@ -196,12 +206,29 @@ class PolicyFilesTest(unittest.TestCase):
         self.assertIn('aresosDeniedActions.indexOf(action.id) >= 0) {\n        return polkit.Result.NO;', rule)
         review = json.loads((ROOT / 'ci/polkit-review.json').read_text())
         self.assertEqual(review['denied_actions'], denied)
+        self.assertEqual(review['tuned_read_only'], read_only)
+        self.assertEqual(review['expected']['com.redhat.tuned.switch_profile'], {'rule': 'no', 'without_wheel': 'no'})
+        self.assertTrue(all(reason.strip() for reason in review['passwordless'].values()))
+        self.assertFalse(set(review['passwordless']) & (set(denied) | {'com.redhat.tuned.switch_profile'}))
         for power in ('power-off', 'reboot', 'suspend'):
             self.assertNotIn(f'org.freedesktop.login1.{power}"', rule)
             self.assertEqual(review['expected'][f'org.freedesktop.login1.{power}'], {'rule': None, 'effective': 'yes'})
         self.assertNotIn('manage-unit-files', rule)
-        self.assertIn('return polkit.Result.AUTH_ADMIN_KEEP;', rule)
+        self.assertNotIn('_KEEP', rule)
         self.assertNotIn('Result.YES', rule)
+
+    def test_build_makes_every_polkit_default_uncached_and_refuses_leftovers(self):
+        build = (ROOT / 'build.sh').read_text()
+        self.assertIn(r"cached = re.compile(r'(<allow_(?:any|inactive|active)>\s*)auth_(admin|self)_keep(\s*</allow_)')", build)
+        self.assertIn(r"new, count = cached.subn(r'\1auth_\2\3', text)", build)
+        # The same rewrite on a sample: every cached default, nothing else.
+        rewrite = re.compile(r'(<allow_(?:any|inactive|active)>\s*)auth_(admin|self)_keep(\s*</allow_)')
+        sample = ('<allow_any>auth_admin_keep</allow_any><allow_inactive>auth_self_keep</allow_inactive>'
+                  '<allow_active>yes</allow_active><description>auth_admin_keep</description>')
+        self.assertEqual(rewrite.subn(r'\1auth_\2\3', sample),
+                         ('<allow_any>auth_admin</allow_any><allow_inactive>auth_self</allow_inactive>'
+                          '<allow_active>yes</allow_active><description>auth_admin_keep</description>', 2))
+        self.assertIn("raise SystemExit(f'polkit defaults still cached in {left} (changed {changed})')", build)
 
     def test_flatpak_helpers_are_reviewed_while_automatic_updaters_stay_masked(self):
         system = (ROOT / 'policy/masked-system-units.txt').read_text().splitlines()

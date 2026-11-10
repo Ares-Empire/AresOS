@@ -1,17 +1,20 @@
 // Everyday account like Windows (owner, 2026-11-09): `ares` is in wheel and
 // confirms admin actions with its own password. This file sorts first, so its
-// answers for `ares` win over every later rule.
+// answers for `ares` win over every later rule. CI evaluates the built image's
+// real rules against os/ci/polkit-review.json (os/ci/polkit-check.js).
 //
-// 1. The OS image, firmware and next boot change only through the signed
-//    release route or an explicit sudo, never through these session actions,
-//    even with the password: rpm-ostree, systemd-sysupdate, fwupd, Bazzite's
-//    own actions, modem firmware, and logind's next-boot and firmware-setup
-//    choices (allowed to any active session by default). Windows stays the
-//    firmware default and the boot order changes only with the owner.
-// 2. Upstream rules let any wheel member do the actions below without a
-//    password (Bazzite base 44.20261012.1). For `ares` they ask for it, so a
-//    program running as him, such as Claude Code, cannot use them unasked.
-//    CI fails if a new base adds another such grant (os/ci/polkit-check.js).
+// 1. Denied to `ares` even with the password: the OS image, firmware and next
+//    boot change only through the signed release route or an explicit sudo.
+//    That covers rpm-ostree, systemd-sysupdate, fwupd, Bazzite's own actions,
+//    modem firmware, logind's next-boot and firmware-setup choices, and every
+//    TuneD action except read-only queries (a TuneD profile can change kernel
+//    arguments through its bootloader plugin).
+// 2. Never cached: build.sh rewrites every installed polkit default from
+//    auth_*_keep to auth_*, so an authorization is never reused, not even by
+//    the same process (review 2 of package 21).
+// 3. Upstream rules let any wheel member do some actions without a password.
+//    For `ares` those get the action's own (uncached) default instead, per
+//    session kind: [remote, local inactive, local active].
 var aresosDeniedActions = [
     "org.freedesktop.ModemManager1.Firmware",
     "org.freedesktop.login1.set-reboot-parameter",
@@ -20,25 +23,43 @@ var aresosDeniedActions = [
     "org.freedesktop.login1.set-reboot-to-firmware-setup"
 ];
 
-var aresosPasswordActions = [
-    "org.corectrl.helper.init",
-    "org.corectrl.helperkiller.init",
-    "org.fedoraproject.FirewallD1.config",
-    "org.fedoraproject.FirewallD1.direct",
-    "org.fedoraproject.FirewallD1.ipset",
-    "org.fedoraproject.FirewallD1.policy",
-    "org.fedoraproject.FirewallD1.zone",
-    "org.freedesktop.Flatpak.app-install",
-    "org.freedesktop.Flatpak.app-uninstall",
-    "org.freedesktop.Flatpak.runtime-install",
-    "org.freedesktop.Flatpak.runtime-uninstall",
-    "org.freedesktop.NetworkManager.settings.modify.system",
-    "org.freedesktop.bolt.authorize",
-    "org.freedesktop.bolt.enroll",
-    "org.freedesktop.bolt.manage",
-    "org.gtk.vfs.file-operations-helper",
-    "org.kde.kcontrol.kcmclock.save"
+var aresosTunedReadOnly = [
+    "com.redhat.tuned.active_profile",
+    "com.redhat.tuned.get_all_plugins",
+    "com.redhat.tuned.get_instances",
+    "com.redhat.tuned.get_plugin_documentation",
+    "com.redhat.tuned.get_plugin_hints",
+    "com.redhat.tuned.instance_get_devices",
+    "com.redhat.tuned.is_running",
+    "com.redhat.tuned.post_loaded_profile",
+    "com.redhat.tuned.profile_info",
+    "com.redhat.tuned.profile_mode",
+    "com.redhat.tuned.profiles",
+    "com.redhat.tuned.profiles2",
+    "com.redhat.tuned.recommend_profile",
+    "com.redhat.tuned.verify_profile",
+    "com.redhat.tuned.verify_profile_ignore_missing"
 ];
+
+var aresosWheelGrantDefaults = {
+    "org.corectrl.helper.init": ["auth_admin", "auth_admin", "auth_admin"],
+    "org.corectrl.helperkiller.init": ["auth_admin", "auth_admin", "auth_admin"],
+    "org.fedoraproject.FirewallD1.config": ["auth_admin", "auth_admin", "auth_admin"],
+    "org.fedoraproject.FirewallD1.direct": ["auth_admin", "auth_admin", "auth_admin"],
+    "org.fedoraproject.FirewallD1.ipset": ["auth_admin", "auth_admin", "auth_admin"],
+    "org.fedoraproject.FirewallD1.policy": ["auth_admin", "auth_admin", "auth_admin"],
+    "org.fedoraproject.FirewallD1.zone": ["auth_admin", "auth_admin", "auth_admin"],
+    "org.freedesktop.Flatpak.app-install": ["auth_admin", "auth_admin", "auth_admin"],
+    "org.freedesktop.Flatpak.app-uninstall": ["auth_admin", "auth_admin", "auth_admin"],
+    "org.freedesktop.Flatpak.runtime-install": ["auth_admin", "auth_admin", "auth_admin"],
+    "org.freedesktop.Flatpak.runtime-uninstall": ["auth_admin", "auth_admin", "auth_admin"],
+    "org.freedesktop.NetworkManager.settings.modify.system": ["auth_admin", "auth_admin", "auth_admin"],
+    "org.freedesktop.bolt.authorize": ["auth_admin", "auth_admin", "auth_admin"],
+    "org.freedesktop.bolt.enroll": ["auth_admin", "auth_admin", "auth_admin"],
+    "org.freedesktop.bolt.manage": ["auth_admin", "auth_admin", "auth_admin"],
+    "org.gtk.vfs.file-operations-helper": ["no", "no", "auth_admin"],
+    "org.kde.kcontrol.kcmclock.save": ["auth_admin", "auth_admin", "auth_admin"]
+};
 
 polkit.addRule(function(action, subject) {
     if (subject.user != "ares") {
@@ -48,7 +69,8 @@ polkit.addRule(function(action, subject) {
         action.id.indexOf("org.freedesktop.sysupdate1.") == 0 ||
         action.id.indexOf("org.freedesktop.fwupd.") == 0 ||
         action.id.indexOf("org.bazzite.") == 0 ||
-        aresosDeniedActions.indexOf(action.id) >= 0) {
+        aresosDeniedActions.indexOf(action.id) >= 0 ||
+        (action.id.indexOf("com.redhat.tuned.") == 0 && aresosTunedReadOnly.indexOf(action.id) < 0)) {
         return polkit.Result.NO;
     }
     // uupd.rules lets anyone start the (masked) updater units.
@@ -58,8 +80,9 @@ polkit.addRule(function(action, subject) {
             return polkit.Result.NO;
         }
     }
-    if (aresosPasswordActions.indexOf(action.id) >= 0) {
-        return polkit.Result.AUTH_ADMIN_KEEP;
+    var defaults = aresosWheelGrantDefaults[action.id];
+    if (defaults) {
+        return !subject.local ? defaults[0] : (subject.active ? defaults[2] : defaults[1]);
     }
     return polkit.Result.NOT_HANDLED;
 });

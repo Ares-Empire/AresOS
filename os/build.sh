@@ -152,6 +152,25 @@ if left:
     raise SystemExit('Passwordless sudo rule needs review: ' + '; '.join(left))
 PY
 visudo --check
+# No cached admin authorization (review 2): polkit lets the same process reuse
+# an auth_*_keep authorization for a while, even with other parameters. Make
+# every installed default uncached, for every account, and refuse leftovers.
+python3 - <<'PY'
+import pathlib, re
+actions = pathlib.Path('/usr/share/polkit-1/actions')
+cached = re.compile(r'(<allow_(?:any|inactive|active)>\s*)auth_(admin|self)_keep(\s*</allow_)')
+changed = 0
+for path in sorted(actions.glob('*.policy')):
+    text = path.read_text()
+    new, count = cached.subn(r'\1auth_\2\3', text)
+    if count:
+        path.write_text(new)
+        changed += count
+left = [path.name for path in actions.glob('*.policy') if re.search(r'_keep\s*</allow_', path.read_text())]
+if left or not changed:
+    raise SystemExit(f'polkit defaults still cached in {left} (changed {changed})')
+print(f'polkit: {changed} cached defaults made uncached')
+PY
 # The OS image, firmware and app store stay out of the daily account's reach.
 # Flatpak and Homebrew are his apps now and stay executable.
 for command in uupd ujust topgrade bazzite-updater bazzite-portal bazaar plasma-discover gnome-software; do
