@@ -528,7 +528,12 @@ class Chrome:
                 self.reconcile_checks({'tab':None},[])
                 continue
             if tab not in queues:
-                queues[tab]=self.bridge.call('queued_steps',tab=tab)
+                try:queues[tab]=self.bridge.call('queued_steps',tab=tab)
+                except Refused as exc:
+                    if exc.code not in {'chrome_unavailable','transport_error'}:raise
+                    # Losing contact proves neither a clean result nor a lost
+                    # hold. Keep the committed open check readable offline.
+                    continue
                 # Queue identity is enough to prove that a stopped step cannot
                 # resume, even after its tab was released or reading is gated.
                 self.reconcile_checks({'tab':tab},queues[tab])

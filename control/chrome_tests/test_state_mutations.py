@@ -44,6 +44,8 @@ class Mutations(unittest.TestCase):
              'test_state_fixes.StateFixes.test_s6_a_stale_step_cannot_be_prepared_if_the_same_queue_entry_returns'),
             ('S6 read-gated queue loss','aresos_control/chrome/adapter.py',[("    def reconcile_open_checks(self):\n","    def reconcile_open_checks(self):\n        return\n")],
              'test_state_fixes.StateFixes.test_s6_notices_and_pending_resolve_lost_queues_without_page_reads'),
+            ('S6 unavailable queue','aresos_control/chrome/adapter.py',[("if exc.code not in {'chrome_unavailable','transport_error'}:raise","if True:raise")],
+             'test_state_fixes.StateFixes.test_s6_unavailable_queue_keeps_its_committed_open_check_readable'),
             ('S7 admission','aresos_control/engine.py',[("                        and request.get('action')!='chrome_drop'\n",'')],
              'test_state_fixes.StateFixes.test_s7_drop_spends_cancel_reservation_at_history_and_physical_boundaries'),
             ('S8 public archive','aresos_control/engine.py',[("if exc.code!='owner_state_unavailable':raise","if True:raise")],

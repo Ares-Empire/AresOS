@@ -235,6 +235,16 @@ class StateFixes(unittest.TestCase):
             source=next(value for _,value in self.engine.store.iter_items('intent:chrome:') if value['step']['id']==action)
             self.assertEqual(source['state'],'done');self.assertFalse(source['resumable'])
 
+    def test_s6_unavailable_queue_keeps_its_committed_open_check_readable(self):
+        key,_=self.chrome.observe_step({**self.step(),'kind':'native_submit'},1)
+        with patch.object(self.browser,'call',side_effect=Refused('transport_error','Synthetic disconnected queue')):
+            result=self.call('notices');self.assertTrue(result['ok'],result)
+            self.assertEqual(result['data']['total'],1)
+            pending=self.engine.pending(resolve_checks=True)
+            self.assertEqual(len(pending['notices']),1)
+        self.assertEqual(self.engine.store.get(key)['state'],'started')
+        self.assertEqual(self.browser.dispatched,[])
+
     def test_s7_drop_spends_cancel_reservation_at_history_and_physical_boundaries(self):
         from aresos_control.space import SAFETY_FLOOR
         from collections import namedtuple
