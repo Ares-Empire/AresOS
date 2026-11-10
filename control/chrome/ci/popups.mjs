@@ -11,11 +11,11 @@ export function popupPage(url){
   };
   return {
     body:`<input aria-label="Draft" value="Saved"><form method="post" action="/receive?case=${id}" target="sink"><input name="draft" value="Saved"><button type="button">Continue</button></form><iframe name="sink" hidden></iframe>`,
-    script:`document.title='Popup '+${JSON.stringify(id)};const firstSubmit=HTMLFormElement.prototype.submit;fetch('/receive?case=loaded-'+${JSON.stringify(id)},{method:'POST',body:JSON.stringify({opener:!!opener,name:window.name,outerWidth,outerHeight})});${mode==='dirty'?"document.querySelector('input').value='Unsaved';":''}document.querySelector('button').onclick=()=>{opener?.postMessage(${JSON.stringify(id)},'http://fixture.test:8765');firstSubmit.call(document.querySelector('form'));};`,
+    script:`document.title='Popup '+${JSON.stringify(id)};const firstSubmit=HTMLFormElement.prototype.submit,documentToken=Date.now()+'-'+Math.random();const probes=new EventSource('/events?id='+${JSON.stringify(id)});probes.onmessage=event=>{const change=JSON.parse(event.data);if(change.change==='popup-probe'){fetch('/receive?case=state-'+${JSON.stringify(id)},{method:'POST',body:JSON.stringify({document:documentToken,opener:!!opener,openerClosed:opener?.closed,name:window.name,draft:document.querySelector('input').value})});fetch('/mutation-ack?nonce='+change.nonce);}};fetch('/receive?case=loaded-'+${JSON.stringify(id)},{method:'POST',body:JSON.stringify({opener:!!opener,name:window.name,outerWidth,outerHeight})});${mode==='dirty'?"document.querySelector('input').value='Unsaved';":''}document.querySelector('button').onclick=()=>{opener?.postMessage(${JSON.stringify(id)},'http://fixture.test:8765');firstSubmit.call(document.querySelector('form'));};`,
   };
 }
 
-export async function popupMatrices({check,call,rpc,nav,counts,eventually,getTab,fixture,ownerOpenPopup,popupEvidence,approval}){
+export async function popupMatrices({check,call,rpc,nav,counts,eventually,getTab,fixture,ownerOpenPopup,popupEvidence,popupControl,setTab,approval}){
   const rows=async targetTab=>{
     const page=await call('read',{tab:targetTab});
     return page.untrusted_content.tree.split('\n').filter(line=>line.startsWith('{')).map(JSON.parse);
@@ -39,6 +39,44 @@ export async function popupMatrices({check,call,rpc,nav,counts,eventually,getTab
       assert.deepEqual(await popupEvidence(id,'after'),nativeBefore,'native popup window, position and size remain intact');
       await approval(await call('click',fresh),id);await eventually(()=>counts('flow-'+id)===1,'opener receives postMessage after reload');evidence(id,'guarded 0/1/1 and opener complete');
       await call('close_tab',{tab:popup.tab});
+    }
+  });
+  await check('GROUP 8 opener badges and per-popup Stop preserve windows documents and focus',async()=>{
+    const tab=getTab(),id='popup-stop';await nav('popup-opener&id='+id);
+    const original=await popupControl('state');
+    const open=(await rows(tab)).find(row=>row.expected.name==='Open window');
+    await call('click',{reference:open.reference,expected:open.expected});const popup=await find(id);
+    const active=await eventually(async()=>{const state=await popupControl('state');return state.tabs.find(row=>row.tab===tab)?.badge==='POP'&&state;},'opener popup badge');
+    assert.equal(active.windows.length,original.windows.length+1,'only the page popup opens');
+    assert.deepEqual(active.windows.filter(row=>row.id!==popup.window).map(({focused,...row})=>row),original.windows.map(({focused,...row})=>row));
+    assert.equal(active.windows.find(row=>row.focused)?.id,popup.window,'native page popup keeps focus');
+    assert.equal(active.windows.find(row=>row.id===popup.window)?.type,'popup');
+    assert.deepEqual(active.popups.map(row=>row.tab),[popup.tab]);
+    const before=await target(popup.tab);await eventually(()=>counts('loaded-'+id)===1,'single popup load');
+    const probe=async()=>{const n=counts('state-'+id);await fixture.mutate(id,'popup-probe');await eventually(()=>counts('state-'+id)===n+1,'same-document state probe');return JSON.parse(fixture.arrivals.filter(row=>new URL(row.url,'http://fixture.test').searchParams.get('case')==='state-'+id).at(-1).body);};
+    const pageBefore=await probe(),nativeBefore=await popupEvidence(id,'before-stop');
+    const ui=await popupControl('stop',tab);
+    assert.deepEqual(ui.after.windows,ui.before.windows,'Stop creates no window and changes no focus, position, size or type');
+    assert.equal((await find(id)).controlled,false);assert.equal(ui.after.tabs.find(row=>row.tab===tab)?.badge,'ON');
+    assert.deepEqual(ui.after.popups,[]);assert.equal((await call('tabs',{limit:10})).items.find(row=>row.tab===tab).controlled,true,'per-popup Stop keeps opener control');
+    assert.deepEqual(await probe(),pageBefore,'same document, draft, window.name and opener after Stop');
+    assert.deepEqual(await popupEvidence(id,'after-stop'),nativeBefore);assert.equal(counts('loaded-'+id),1,'Stop never reloads');
+    const denied=await rpc('click',before);assert.equal(denied.ok,false);assert.equal(counts(id),0,'later Claude input is refused without dispatch');evidence(id,'per-popup Stop preserves document and refuses later input');
+    await popupControl('close-popup',id);
+  });
+  await check('GROUP 8 closing or releasing an opener ends popup control and clears badges',async()=>{
+    for(const mode of ['release','close']){
+      const tab=getTab(),id='popup-opener-'+mode;await nav('popup-opener&id='+id);
+      const open=(await rows(tab)).find(row=>row.expected.name==='Open window');await call('click',{reference:open.reference,expected:open.expected});const popup=await find(id);
+      await eventually(async()=>(await popupControl('state')).tabs.find(row=>row.tab===tab)?.badge==='POP','opener badge before '+mode);
+      const before=await target(popup.tab),nativeBefore=await popupEvidence(id,'before-'+mode);
+      await eventually(()=>counts('loaded-'+id)===1,'opener lifecycle initial load');
+      if(mode==='release')await call('release_tab',{tab});else setTab(await popupControl('close-opener',tab));
+      const ended=await eventually(async()=>{const state=await popupControl('state');return !state.popups.length&&state;},'opener '+mode+' revokes child');
+      assert.ok(!ended.tabs.find(row=>row.tab===tab)?.badge,'opener badge clears');
+      assert.equal((await find(id)).controlled,false);assert.deepEqual(await popupEvidence(id,'after-'+mode),nativeBefore);
+      assert.equal((await rpc('click',before)).ok,false);assert.equal(counts('loaded-'+id),1);assert.equal(counts(id),0);evidence(id,'opener '+mode+' refuses later input without reload');
+      await popupControl('close-popup',id);if(mode==='release')await call('take_tab',{tab});
     }
   });
   await check('GROUP 8 POST popups never resubmit and ordinary openers stay untouched',async()=>{

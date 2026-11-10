@@ -7,7 +7,7 @@ import {measureCompatibility,compareCompatibility} from './compatibility.mjs';
 import {popupMatrices} from './popups.mjs';
 import {collectSiteResults} from './site-results.mjs';
 
-export async function matrices({call,read,nav,target,counts,eventually,tab,fixture,admin,rpc,caller,ownerNavigate,ownerOpenPopup,popupEvidence,nativeDonor,closeNativeDonor,ownerKey,ownerDismiss,ownerHistory,ownerBookmark,lifecycle,restoreControl,stopClick,baseline,isolationAfter}) {
+export async function matrices({call,read,nav,target,counts,eventually,tab,fixture,admin,rpc,caller,ownerNavigate,ownerOpenPopup,popupEvidence,popupControl,nativeDonor,closeNativeDonor,ownerKey,ownerDismiss,ownerHistory,ownerBookmark,lifecycle,restoreControl,stopClick,baseline,isolationAfter}) {
   const results=[];let trustOperation;
   async function check(name,fn) {
     try {await fn();results.push({name,passed:true});console.log(name,'PASS');}
@@ -44,7 +44,7 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
       await approval(await call('click',await target('Continue')),id);
     }
   });
-  await popupMatrices({check,call,rpc,nav,counts,eventually,getTab:()=>tab,fixture,ownerOpenPopup,popupEvidence,approval});
+  await popupMatrices({check,call,rpc,nav,counts,eventually,getTab:()=>tab,setTab:value=>{tab=value},fixture,ownerOpenPopup,popupEvidence,popupControl,approval});
   await check('GROUP 7 native compatibility inside and outside Claude tabs',async()=>{
     await nav('native-compat&id=controlled');
     const controlled=await measureCompatibility({id:'controlled',fixture,eventually,start:async()=>call('click',await target('Continue'))});

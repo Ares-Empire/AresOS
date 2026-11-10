@@ -63,6 +63,9 @@ def request(value,admin=False):
     popup=Path('/run/aresos-tools/fixture-popup')
     if popup.exists():
         popup.unlink();daemon.engine.adapters['chrome'].bridge.call('stop_popup')
+    status=Path('/run/aresos-tools/fixture-control_status')
+    if status.exists():
+        status.unlink();Path('/out/control-status.json').write_text(json.dumps(daemon.engine.adapters['chrome'].bridge.call('control_status')))
     stop=Path('/run/aresos-tools/fixture-stop')
     if stop.exists():
         stop.unlink();Path('/out/stop-result.json').write_text(json.dumps(daemon.engine.adapters['chrome'].bridge.call('stop')))

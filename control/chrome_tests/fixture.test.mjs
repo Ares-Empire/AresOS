@@ -26,3 +26,19 @@ test('favicon and unrelated requests preserve mutation channels; applied mutatio
     await fetch(base+'/mutation-ack?nonce='+mutation.nonce);await pending;assert.equal(settled,true);
   }finally{await reader?.cancel();fixture.close();}
 });
+
+
+test('popup state probe uses the receiver mutation protocol and preserves document identity',async()=>{
+  let probe;const sent=[];const input={value:'Draft kept'};
+  const page=popupPage(new URL('http://popup.test/?case=popup-child&id=probe&mode=clean'));
+  vm.runInNewContext(page.script,{
+    document:{title:'',querySelector:selector=>selector==='input'?input:{}},
+    HTMLFormElement:{prototype:{submit(){throw Error('probe must never submit')}}},Date:{now:()=>123},Math:{random:()=>0.5},
+    EventSource:class{set onmessage(value){probe=value;}},fetch:(...args)=>{sent.push(args);return Promise.resolve();},
+    opener:{closed:false},window:{name:'same-popup'},outerWidth:620,outerHeight:480,
+  });
+  for(const nonce of ['1','2'])await probe({data:JSON.stringify({change:'popup-probe',nonce})});
+  const states=sent.filter(([url])=>url==='/receive?case=state-probe').map(([,options])=>JSON.parse(options.body));
+  assert.equal(states.length,2);assert.deepEqual(states[0],states[1]);assert.equal(states[0].document,'123-0.5');assert.equal(states[0].draft,'Draft kept');assert.equal(states[0].opener,true);
+  assert.ok(sent.some(([url])=>url==='/mutation-ack?nonce=1'));assert.ok(sent.some(([url])=>url==='/mutation-ack?nonce=2'));
+});
