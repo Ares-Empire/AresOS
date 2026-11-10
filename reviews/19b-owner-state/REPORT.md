@@ -1423,3 +1423,10 @@ case and unchanged source inputs. Hash rebuilding starts at the first changed
 fence. This changes only synthetic copies under test. The LOCAL_FLAG healthy
 record is also in the systematic corpus, in addition to its production plant,
 negative controls and complete normal fault sweep.
+
+**Read / run — event copies:** coherent state and stage mutations update their
+duplicated event outcomes and stage-result metadata too. Stage/event and
+filing-state/event copy disagreements are explicitly integrity-only; they do not
+count toward catching coherent variants. The transformation test checks these
+copies directly. The final coherent-only diagnostic and full-field passes are
+reported separately; final Linux runs exercise the complete finished source.

@@ -213,7 +213,7 @@ def field_paths(record):
 # remain useful integrity checks but cannot establish a coherent lie was caught.
 STRUCTURAL = {'changed-decoded-projection', 'changed-observed-commit', 'changed-fixture-input',
               'missing-committed-history', 'uncommitted-event', 'changed-independent-fence',
-              'changed-fenced-operation', 'unjustified-lock', 'invalid-record'}
+              'changed-fenced-operation', 'unjustified-lock', 'invalid-record', 'changed-stage-event', 'unjustified-filing-start'}
 SNAPSHOTS = ('committed_before', 'created_before', 'check_sources')
 
 
@@ -330,7 +330,35 @@ def coherent_change(oracle, record, key, path=(), kind='row', replacement=None, 
             pass  # A later version may no longer contain this nested field.
     for event in changed.events + changed.prepared:
         if event['seq'] >= since:
+            before = event['set'].get(key)
             update(event['set'])
+            after = event['set'].get(key)
+            if isinstance(before, dict) and isinstance(after, dict):
+                if before.get('state') != after.get('state') and event.get('outcome') == before.get('state'):
+                    if 'state' in after:
+                        event['outcome'] = after['state']
+                    else:
+                        event.pop('outcome', None)
+                content = event.get('untrusted_content', {})
+                stage = content.get('stage')
+                old_stages, new_stages = before.get('stages', {}), after.get('stages', {})
+                if stage in old_stages and content.get('outcome') == old_stages[stage] and old_stages.get(stage) != new_stages.get(stage):
+                    content = copy.deepcopy(content)
+                    if stage in new_stages:
+                        content['outcome'] = new_stages[stage]
+                    else:
+                        content.pop('stage', None)
+                        content.pop('outcome', None)
+                    event['untrusted_content'] = content
+                for name in ('filing', 'rename'):
+                    claim = content.get(name)
+                    if isinstance(claim, dict) and claim.get('state') == before.get('state') and before.get('state') != after.get('state'):
+                        content = copy.deepcopy(content)
+                        if 'state' in after:
+                            content[name]['state'] = after['state']
+                        else:
+                            content[name].pop('state', None)
+                        event['untrusted_content'] = content
     prefix, created, cursor, fence_rows = {}, {}, 0, {}
     server_sequences = {}
     for server in replay.servers:
@@ -382,6 +410,17 @@ def coherent_change(oracle, record, key, path=(), kind='row', replacement=None, 
     origin_description = compact_description(origin) if isinstance(origin, dict) else None
     new_origin = altered_origin.get(key)
     changed_description = compact_description(new_origin) if isinstance(new_origin, dict) else None
+    for event in changed.events + changed.prepared:
+        if event['seq'] < since or not key.startswith('op:') or event.get('operation_id') != key[3:]:
+            continue
+        old_fence = next((fence for fence in record.fences if fence['seq'] == event['seq']), {})
+        old_op = next((op for op in old_fence.get('operations', []) if op.get('id') == key[3:]), None)
+        row = event['set'].get(key) or fence_rows.get(event['seq'])
+        if old_op and event.get('outcome') == old_op.get('state'):
+            if row and 'state' in row:
+                event['outcome'] = row['state']
+            else:
+                event.pop('outcome', None)
     # Re-encode matching compact copies, including approval-derived descriptions.
     # A fence can refer to the pre-existing row when this event omits it.
     versions = {e['seq']: e for e in changed.events + changed.prepared}

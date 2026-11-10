@@ -284,3 +284,8 @@ new fence result. Missing working events retain matching compact field and
 approval-description copies. Only changed fence bodies and their subsequent
 hash chain are rebuilt. Server snapshots are indexed by their before-sequence;
 no mutation or decoded field is dropped by this scheduling optimization.
+
+Coherent stage and state changes also update their duplicated event outcomes and
+stage-result metadata. Copy disagreements between a stage row and its event, or
+a filing state and its event outcome, are integrity checks and cannot count as
+independent detections of a coherent lie.
