@@ -1194,13 +1194,17 @@ class ToolsUpdateTest(unittest.TestCase):
                     with self.power_cut_after(cut), self.assertRaises(OSError):
                         run()
                     change(home, host)
-                    for attempt in range(2):  # a persistent failure refuses every time
-                        try:
-                            run()
-                        except refusal:
-                            pass
-                        self.works(home, old, fingerprint)
-                    undo(home, host)
+                    # Undo however the subtest ends: a patched check left active by a
+                    # skip or a failure would break every later test (main, 2026-11-10).
+                    try:
+                        for attempt in range(2):  # a persistent failure refuses every time
+                            try:
+                                run()
+                            except refusal:
+                                pass
+                            self.works(home, old, fingerprint)
+                    finally:
+                        undo(home, host)
                     run()
                     self.updated(home, fingerprint, old)
                     self.assertEqual(self.works(home, old, fingerprint), 'new')
