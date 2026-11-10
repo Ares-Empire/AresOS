@@ -1,0 +1,105 @@
+{
+  "after": {
+    "delete": {
+      "index_bytes": 0,
+      "journal_bytes": 5524,
+      "journal_records": 7,
+      "outcome": "done",
+      "projection_bytes": 0,
+      "sqlite_event_bytes": 22317,
+      "sqlite_file_bytes": 32768
+    },
+    "free_change": {
+      "index_bytes": 0,
+      "journal_bytes": 1032,
+      "journal_records": 3,
+      "outcome": "done",
+      "projection_bytes": 0,
+      "sqlite_event_bytes": 2585,
+      "sqlite_file_bytes": 8192
+    },
+    "move": {
+      "index_bytes": 0,
+      "journal_bytes": 2410,
+      "journal_records": 7,
+      "outcome": "done",
+      "projection_bytes": 0,
+      "sqlite_event_bytes": 10688,
+      "sqlite_file_bytes": 16384
+    },
+    "send": {
+      "index_bytes": 0,
+      "journal_bytes": 10918,
+      "journal_records": 16,
+      "outcome": "done",
+      "projection_bytes": 0,
+      "sqlite_event_bytes": 57570,
+      "sqlite_file_bytes": 73728
+    },
+    "send_25mib": {
+      "index_bytes": 0,
+      "journal_bytes": 10920,
+      "journal_records": 16,
+      "outcome": "done",
+      "projection_bytes": 0,
+      "sqlite_event_bytes": 66980,
+      "sqlite_file_bytes": 81920
+    }
+  },
+  "after_source": "9662bf7a",
+  "before": {
+    "delete": {
+      "index_bytes": 0,
+      "journal_bytes": 3942,
+      "journal_records": 5,
+      "outcome": "done",
+      "projection_bytes": 0,
+      "sqlite_event_bytes": 11202,
+      "sqlite_file_bytes": 24576
+    },
+    "free_change": {
+      "index_bytes": 0,
+      "journal_bytes": 688,
+      "journal_records": 2,
+      "outcome": "done",
+      "projection_bytes": 0,
+      "sqlite_event_bytes": 1229,
+      "sqlite_file_bytes": 0
+    },
+    "move": {
+      "index_bytes": 0,
+      "journal_bytes": 2064,
+      "journal_records": 6,
+      "outcome": "done",
+      "projection_bytes": 0,
+      "sqlite_event_bytes": 7279,
+      "sqlite_file_bytes": 12288
+    },
+    "send": {
+      "index_bytes": 0,
+      "journal_bytes": 9506,
+      "journal_records": 14,
+      "outcome": "done",
+      "projection_bytes": 0,
+      "sqlite_event_bytes": 36663,
+      "sqlite_file_bytes": 57344
+    },
+    "send_25mib": {
+      "index_bytes": 0,
+      "journal_bytes": 9508,
+      "journal_records": 14,
+      "outcome": "done",
+      "projection_bytes": 0,
+      "sqlite_event_bytes": 42977,
+      "sqlite_file_bytes": 57344
+    }
+  },
+  "before_source": "fda0d164 (production before stage 2)",
+  "encoding_equivalence": "The final optional-role/independent folder-name fix repeats all five ordinary-role measurements byte-for-byte.",
+  "logs": {
+    ".work/19b-s2/storage-after-final.txt": "ea0b1a1d366c5c05466b85fde600c4060c968c4c85c66d679559a45d62cb93f2",
+    ".work/19b-s2/storage-after.txt": "ea0b1a1d366c5c05466b85fde600c4060c968c4c85c66d679559a45d62cb93f2",
+    ".work/19b-s2/storage-before.txt": "513d149331d60cbb987cff90b2e4ed34356ccd22b26de1606c34af4a18acf336"
+  },
+  "measurement": "Synthetic ordinary Mail send, MOVE, permanent delete and CREATE; includes compose/prepare, excludes caller import; direct dispatch; one Sent copy; 25 MiB binary caller attachment. SQLite file growth is page allocation, SQLite event bytes are canonical complete committed events, permanent journal includes fences and markers. The disposable index allocates no additional pages in these samples. Stage 3 projection is not built (zero bytes)."
+}

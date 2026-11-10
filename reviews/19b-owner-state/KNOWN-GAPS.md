@@ -204,3 +204,39 @@ expose unsupported filing closure and correct exact HTTPS body evidence; no
 production gap is closed in part A. Every digest still covers the complete
 key/row/stage/calls/missing/extra/pages data. The final stage-2 Linux repetitions
 will replace this intermediate local evidence; see REPORT.md for its scope.
+
+## Stage 2 pin (R2 closed)
+
+**Run:** `LEDGER-S2.json` records all twelve complete local 32-flow captures,
+fresh focused/named lists and the previously strict installed-channel prefix.
+Every capture was then verified with the strict checker. The pin contains
+**2,200,009 stage-3 keys and zero stage-2 keys**, **1,952 groups / 898,329 bytes**,
+SHA-256 `36335d9f705794079937fdac48633273c3f4f986d7ee5ea45ad8726b32107055`.
+All 44,857 part-A R2 assertions passed; none was reassigned to stage 3. Additional
+context transactions introduce further fault sites and exact stage-3 deltas.
+D3 and all three G22 cases remain assigned to stage 3.
+
+Format 3 now explicitly declares `suite_buckets: {"onboarding": 24}`. Other
+flows retain twelve buckets. Each group is still verified wholly by one Linux
+job (shared clean groups by every worker for that suite). The twelve local
+workers each cover two complete onboarding buckets; the 24 Linux onboarding
+jobs each cover one. Two other flow groups have twelve jobs each. Tests prove
+the actual flow/bucket/case partitions and the unchanged inherited sweep.
+
+To regenerate the complete list and compact pin from these local artifacts:
+
+```sh
+PYTHONPATH=control python3 -m owner_state_oracle.gaps .work/19b-s2/capture-b/lists/owner-gaps-*.json.gz --full --output .work/19b-s2/full.json
+PYTHONPATH=control python3 -m owner_state_oracle.gaps .work/19b-s2/full.json --output .work/19b-s2/compact.json
+python3 - <<'PY'
+import json
+from pathlib import Path
+p = Path('.work/19b-s2/compact.json')
+p.write_text(json.dumps(json.loads(p.read_text()), sort_keys=True, indent=1) + '\n')
+PY
+diff -u reviews/19b-owner-state/KNOWN-GAPS.json .work/19b-s2/compact.json
+```
+
+Final Linux strict evidence, its exact source, artifact hashes, ownership
+multiplicities and run count will be appended after both repetitions. The local
+pin is not a claim that stage 3 is complete.

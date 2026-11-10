@@ -109,3 +109,31 @@ Quiet send, move, copy, rename and delete contracts additionally require zero
 oracle lifecycle, clean-result and completion-proof errors. Direct positive and
 negative tests bind legacy/current generic intent handles once and corroborate
 the real Sent-check opener; a false checked flag cannot suppress enrollment.
+
+
+## Stage 2 R2 implementation
+
+**Read — source `2eb79db6`, CI source `82902fd8`:** M02/C02, M03/C03,
+M04, M05 and M12 now use the shared `aresos_control/action_context.py` commit
+boundary. Mail records exact command context on its started filing/rename row
+or submitting operation; other free changes have their own started intent and
+full arguments. SMTP DATA, APPEND (draft/Sent/probe), MOVE, COPY, STORE, EXPUNGE,
+CREATE, DELETE, RENAME, HTTPS POST, receiver configuration/delivery/local stages,
+and local test-app deletion/flagging are covered. Repairs use their own identity
+with the original message/stage binding. Role baselines and command flags,
+recipients, Message-IDs, hashes and destinations remain internal.
+
+`test_action_context` proves command order and failed-commit prevention by kind,
+separate free attempts, invalid finished-source rejection, and old/new format
+coexistence. The old-store fixture was written by the pre-stage-2 production
+code (`fda0d164`); unfinished approved and free work says “not yet checked”,
+finished old work stays quiet, and new operations complete. The actual fault
+sweep uses the same independent script/server/commit comparison on every call,
+mode and fault boundary; stage-2 known gaps must be empty at this stage's head.
+
+**Read — scope:** this closes the R2 portion of these rows. Their owner-state
+read/fallback, occurrence/acknowledgement, restore and current-refusal portions
+remain assigned to stage 3. D3 and all three G22 cases remain open; the durable
+projection and common owner-state read path are not built in stage 2.
+
+**Run — stage 2 pin:** `LEDGER-S2.json` records 2,200,009 exact stage-3 failures and **zero stage-2 failures** (1,952 groups / 898,329 bytes). Local complete 32-flow captures and all 68 final-source alteration scenarios passed; final Linux proof is recorded in REPORT.md.

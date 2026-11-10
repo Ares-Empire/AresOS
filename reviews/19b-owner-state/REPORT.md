@@ -738,3 +738,162 @@ remain assigned to stage 3. **Open questions:** none.
 **Run — part A completion:** the four disjoint local perturbation passes printed `OK`: **68 recorded scenarios / 307869 alterations / zero slipped**. Counts: boolean=6607, effect=103562, restore=1329, row=1794, sequence=1329, state=193248. Every pass also caught all 13 planted faults through the comparison and rejected all 13 broken-oracle controls. All twelve strict affected-flow workers exited 0; each ran every single, persistent, cleanup-pair and crash case it owns across filing MOVE/COPY/RENAME and HTTPS unsubscribe. The final oracle self-tests, strict contracts/regressions, generator and diff checks passed. Logs are `.work/19b-s2/part-a-{self-final,strict-focused-final,perturb-0,perturb-1,perturb-2,perturb-3}.txt` and `capture-a/{shard}-{worker}.txt`.
 
 **Run count:** part A adds **zero workflow IDs / attempts**; its checkpoint push uses `[skip ci]`. Linux acceptance is reserved for stage 2’s finished source and second pass. The checkpoint contains no production or workflow change.
+
+## Stage 2: action context (R2)
+
+**Read — production `2eb79db6`:** the shared `action_context` module commits a
+complete context before entering an effect. It requires a submitting operation
+or a started filing/free intent; a finished or missing source cannot authorize
+another effect. Generic free attempts get separate identities and full caller
+arguments. Context includes account, exact message identities, source,
+destination, role roots/delimiters, recipients and command details (flags,
+append_flags, wire hash or POST body). A failed commit prevents the command.
+SQLite's immutable events retain every previous context; no remote work is
+replayed. The independent journal remains compact, with its existing fences and
+commit markers. The durable owner projection belongs to stage 3.
+
+**Read — Mail:** preparation records retain the role baseline. DATA, draft/Sent/
+probe APPEND, MOVE/COPY, STORE, exact EXPUNGE, folder CREATE/DELETE/RENAME and
+HTTPS POST all pass the shared commit boundary. Probe folder and Message-ID
+identities precede their commands. A repair commits on its own operation row,
+with the original message/stage identity. The adapter's APPEND wrapper commits
+before the actual append entry point, so the existing remote fixtures observe
+the correct order too. Context is additive on stage/outcome writes, preventing
+an earlier in-memory operation object from discarding the latest context.
+
+**Read — base/test app:** Engine supplies scoped action authority to submission
+and repair. Receiver configuration, delivery and local-stage effects, exact
+local deletion, and free local flagging commit their context first. Context,
+format markers and preparation roles are excluded from public operation
+responses. Approval inputs, questions, bindings, untrusted marking, repair quiet
+periods and acknowledgement permissions are unchanged. No generated tool file
+changes; the generator still checks against the same definitions.
+
+**Read — compatibility:** unfinished older operations and free changes disclose
+that their context is “not yet checked”; finished older operations add nothing.
+Supplemental legacy rows stream into the existing bounded catalogue. A first
+implementation exceeded the 1 MiB paging-memory assertion at 10,000 operations;
+streaming fixed it without changing that assertion. The frozen legacy fixture
+was written by pre-stage-2 production `fda0d164`, with its actual SQLite SQL dump
+and independently committed journal. The new code opens it, preserves old
+warnings, keeps finished old work quiet and accepts a new completed send.
+
+**Read — test infrastructure:** the independent oracle now also checks receiver
+local-stage mutations and exact pre-commit context for local deletion. Its
+positive local-delete fixtures explicitly supply the stronger context while
+retaining all existing negative assertions and prepared-effect cases. Frozen
+oracle recordings drop the production recorder callback and its queued engine
+responses; it is plumbing, never an expectation input. The field/path audit and
+planted controls remain active. No test is removed, skipped or replaced.
+
+**Run — local focused verification:** `test_action_context` printed `Ran 7 tests
+in 5.548s`, `OK`, including per-kind successful order and refused-commit cases,
+separate free attempts, a finished-source rejection, local flag ordering, and
+actual pre-stage-2 store compatibility. The oracle/selection self-tests printed
+`Ran 118 tests in 0.579s`, `OK`. The supported local base subset printed `Ran 35
+tests in 7.106s`, `OK`; its unchanged 10,000-operation paging assertion measured
+96,059 bytes. `test_record` printed `Ran 3 tests in 3.412s`, `OK`: tiny and
+maximum-body-plus-25-MiB test-app sends each add 6,121 permanent-journal bytes
+across nine context/state/stage records; the three-recipient sample adds 9,040
+bytes across thirteen records. Counts are now measured rather than hardcoded to
+the pre-context number of writes. The original no-private-body/attachment/path
+assertions remain intact. Generator, Python compilation, shell syntax and diff
+checks passed.
+
+**Run — local environment limit:** the earlier broad local base/crash attempts
+failed in child processes at `boundary_not_installed`: the worktree policy
+substitute is not installed system policy and is not inherited across exec.
+The first attempt printed 47 tests with 129 failing subtests / 22 errors,
+including the subsequently fixed paging-memory assertion. The second printed
+47 tests with 128 failing subtests / 22 errors, all in installed-policy child
+paths. Those runs are not green evidence. The unchanged complete base/crash/
+installed-channel tests must pass in both final Linux repetitions below.
+Nothing was installed or changed on the host to emulate Linux.
+
+**Read — CI `00f24ebb`, refined at `82902fd8`:** only `control-mail.yml` changes. Four jobs partition
+suite modules, four partition every recorded alteration scenario, and two
+ordinary flow groups each have twelve isolated sweep jobs. Onboarding has 24
+dedicated jobs/buckets. Format 3 explicitly records this per-suite exception;
+ordinary flows retain their twelve buckets. Every bucket stays whole. The
+inherited whole-flow fault cases have exactly one owner in the ordinary groups;
+its unchanged clean/control checks still run in onboarding jobs.
+Selection tests prove the complete module/flow/bucket unions and uniqueness;
+shared clean oracle cases still run identically in twelve workers. Artifacts
+are uploaded by every job and the cap remains 45 minutes. Actual durations and
+the two passing repetitions follow below; layout alone is not timing evidence.
+
+**Run — storage:** `STORAGE-S2.json` records synthetic ordinary Mail operations
+before (`fda0d164`) and after R2. Every sample completed `done`, with one Sent
+copy and ordinary folder roles. Measurements include composing/preparing but
+exclude the already imported caller attachment. “Events” is the byte sum of
+canonical full committed events; “DB” is physical SQLite page growth, and
+“journal” includes permanent fences and commit markers. The disposable index
+needed no additional pages in these small samples. There is no stage-3
+projection yet (zero bytes), so these are incremental R2 figures.
+
+| Operation | Journal before → after, bytes | Full event bytes before → after | DB page bytes before → after |
+| --- | ---: | ---: | ---: |
+| Mail send | 9,506 → 10,918 | 36,663 → 57,570 | 57,344 → 73,728 |
+| MOVE | 2,064 → 2,410 | 7,279 → 10,688 | 12,288 → 16,384 |
+| Permanent delete | 3,942 → 5,524 | 11,202 → 22,317 | 24,576 → 32,768 |
+| Free folder CREATE | 688 → 1,032 | 1,229 → 2,585 | 0 → 8,192 |
+| Mail send with 25 MiB attachment | 9,508 → 10,920 | 42,977 → 66,980 | 57,344 → 81,920 |
+
+The two-byte journal difference between the ordinary/attachment samples is
+sequence-width allocation after import; the aligned test-app invariant above
+checks exact equality independently of body/attachment size. Raw attachment
+and MIME bytes remain in their existing blob/wire stores; context stores
+identities and hashes. Archive and acknowledged-warning compatibility is
+covered by the unchanged complete suites in the final Linux repetitions.
+
+**Not verified / remaining scope:** no real account or provider is used.
+R1/R3, the durable projection/fallback, warning lifecycle redesign, restore's
+free-change projection and D3 remain stage 3. `warnings.py`, `paging.py` and
+the public restore descriptions are unchanged. The full package is not claimed
+complete; this run stops after stage 2. The lead owns the stage, storage-fault
+and oracle-independence reviews; no own stage review was run.
+
+**JUDGMENT-CALL:** no approval or product-action decision. Context is an additive
+SQLite/event field, with a small format marker distinguishing new reservations
+from older ones lacking preparation context. The existing compact permanent
+journal is preserved; choosing its stage-3 projection format is deferred.
+CI flow isolation and process partitioning are reversible infrastructure
+choices, proved not to omit cases. **PLAN-GAP:** none added; D3 remains open.
+**Open questions:** none.
+
+
+**Read — final R2 follow-up `9662bf7a`:** context uses every root from the latest
+successful existing role check, including unrelated ambiguous optional roots.
+These read inputs are committed before the effect; no owner warning depends on
+the cache. Local settings retain their stored preparation map. The independent
+server recorder decodes quoted modified UTF-7 names, so quoted/Unicode optional
+roots with different delimiters compare exactly. The new legal-action regression
+and existing focused/regression cases printed `Ran 15 tests in 17.473s`, `OK`;
+119 oracle/selection self-tests printed `Ran 119 tests in 0.524s`, `OK`. This
+follow-up adds no remote read or changes any approval/action. Empty optional
+maps retain the same encoding used by the full local capture.
+
+**Run — full local capture and strict comparison:** all twelve workers completed
+all 32 flows, all discovered fault sites and every single/persistent/cleanup/
+crash/restart case, then printed six-test `OK` results and exited 0. For example,
+worker 0 printed `Ran 6 tests in 3768.659s`, `OK`. Onboarding discovers 3,017
+boundaries and took 1,300.774–2,051.408s per worker while the twelve local workers
+shared the host. That measured tail motivated its dedicated 24-bucket CI split.
+The full raw lists were then checked with the strict compact-ledger verifier,
+including ownership, shared-key equality, exact rows/stages/deltas and all owned
+groups; all 17 capture lists matched. The installed-channel two-key prefix
+retains its prior strict Linux evidence until the final repetitions.
+
+**Run — stage-2 gap closure:** the new format-3 pin contains **2,200,009 exact
+stage-3 keys and zero stage-2 keys**, in **1,952 groups / 898,329 bytes**, SHA-256
+`36335d9f705794079937fdac48633273c3f4f986d7ee5ea45ad8726b32107055`.
+All 44,857 part-A stage-2 assertions have passed; no R2 assertion was moved to
+stage 3. Remaining/new stage-3 failures are collected at the additional context
+transaction boundaries and retain their complete exact deltas. `LEDGER-S2.json`
+records all actual-list hashes, counts and the deterministic 24-bucket onboarding
+exception. Each of the twelve local capture workers owns two complete onboarding
+buckets, while each Linux onboarding job owns one. The selection/ownership tests
+check both topologies, every flow and all shared clean cases. No full list is
+committed. The final Linux strict proof and run count follow below.
+
+**Run — final local alteration matrix:** 68 scenarios, **362059 alterations, zero slipped**, across four disjoint passing shards. Kinds: boolean=6714, effect=148321, restore=1412, row=1877, sequence=1412, state=202323. All 13 planted field kinds reached the comparison and all 13 broken-oracle controls failed as intended in each shard. Elapsed times were 180.760s / 267.601s / 292.477s / 116.567s. The final five Mail storage measurements were also repeated byte-for-byte after the optional-role fix; the updated storage manifest pins the final output.
