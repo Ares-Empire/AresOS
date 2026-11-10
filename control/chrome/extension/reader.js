@@ -2,7 +2,11 @@
 (() => {
   'use strict';
   try {
-  const elements = new Map(), ids = new WeakMap(), protectedFields = new WeakSet();
+  const elements = new Map(), ids = new WeakMap();
+  // This passive ISOLATED tracker has document lifetime, including release/retake.
+  const privacyKey=Symbol.for('aresos.chrome.passwords.v1');
+  const privacy=globalThis[privacyKey]??={protectedFields:new WeakSet(),observed:new WeakSet(),fileIdentities:new WeakMap()};
+  const {protectedFields,fileIdentities}=privacy;
   const guard=globalThis[Symbol.for('aresos.chrome.guard.v2')];
   if(guard.ready)return;
   const documentId = [...crypto.getRandomValues(new Uint8Array(16))].map(value=>value.toString(16).padStart(2,'0')).join('');
@@ -25,13 +29,13 @@
   function observe(root) {
     revisionObserver.observe(root,{subtree:true,attributes:true,childList:true,characterData:true});
     // Never ask the browser to include old value attributes in mutation records.
-    observer.observe(root,{subtree:true,attributes:true,attributeOldValue:true,attributeFilter:['type','autocomplete','style']});
+    if(!privacy.observed.has(root)){privacy.observed.add(root);observer.observe(root,{subtree:true,attributes:true,attributeOldValue:true,attributeFilter:['type','autocomplete','style']});}
   }
   function protect(changes) {
     for(const change of changes)if(change.type==='attributes' && (change.attributeName==='type' && (change.oldValue||'').toLowerCase()==='password' || change.attributeName==='autocomplete' && /(?:password|one-time-code)/i.test(change.oldValue||'') || change.attributeName==='style' && /-webkit-text-security\s*:\s*(?!none\b)/i.test(change.oldValue||'')))protectedFields.add(change.target);
   }
-  function password(element) {
-    if(observer?.takeRecords)protect(observer.takeRecords());
+  function ownPassword(element) {
+    if(protectedFields.has(element))return true;
     if (!(element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement || element instanceof HTMLSelectElement || element instanceof HTMLButtonElement || element.isContentEditable)) return false;
     let unsafe = protectedFields.has(element);
     try {
@@ -40,6 +44,13 @@
     } catch { unsafe = true; }
     if (unsafe) protectedFields.add(element);
     return unsafe;
+  }
+  function password(element) {
+    if(observer?.takeRecords)protect(observer.takeRecords());
+    for(let node=element;node;node=node.parentElement||node.getRootNode?.().host){
+      if(node instanceof Element && ownPassword(node))return true;
+    }
+    return false;
   }
   function remember(root) {
     if(!watchedRoots.has(root)){watchedRoots.add(root);guard.watch(root);}
@@ -60,7 +71,7 @@
     remember(document);
   };
   revisionObserver = new MutationObserver(changed);
-  observer = new MutationObserver(changed);
+  observer = privacy.observer??=new MutationObserver(protect);
   observe(document);
   remember(document);
   const id = element => {
@@ -68,7 +79,7 @@
     return ids.get(element);
   };
   function text(node, includeHidden=false) {
-    if (node.nodeType === Node.TEXT_NODE) return node.textContent;
+    if(node.nodeType===Node.TEXT_NODE)return node.parentElement&&password(node.parentElement)?'':node.textContent;
     if (!(node instanceof Element) || ['SCRIPT','STYLE','NOSCRIPT','INPUT','TEXTAREA','SELECT'].includes(node.tagName) || password(node)) return '';
     if (!includeHidden && (node.hidden || getComputedStyle(node).display === 'none' || getComputedStyle(node).visibility === 'hidden')) return '';
     if(node.tagName==='IMG')return node.getAttribute('alt')||'';
@@ -79,18 +90,39 @@
     const labelled = (element.getAttribute('aria-labelledby') || '').split(/\s+/).map(key => root.getElementById?.(key)).filter(Boolean);
     const buttonValue=element instanceof HTMLInputElement && ['button','submit','reset'].includes(element.type) ? safeValue(element).value || (element.type==='submit'?'Submit':element.type==='reset'?'Reset':''):null;
     return (labelled.length ? labelled.map(node=>text(node,true)).join(' ') : element.getAttribute('aria-label') ||
-      (element.labels?.length ? [...element.labels].map(node=>text(node,true)).join(' ') : element.getAttribute('alt') || element.getAttribute('title') || buttonValue ||
-      (['BUTTON','A','SUMMARY'].includes(element.tagName) || element.hasAttribute('role') ? text(element) : element.getAttribute('placeholder') || ''))).replace(/\s+/g, ' ').trim();
+      (element.labels?.length ? [...element.labels].map(node=>text(node,true)).join(' ') : element.getAttribute('alt') || buttonValue ||
+      ((['BUTTON','A','SUMMARY'].includes(element.tagName) || element.hasAttribute('role') ? text(element) : element.getAttribute('placeholder') || '') || element.getAttribute('title') || ''))).replace(/\s+/g, ' ').trim();
+  }
+  function editableText(node) {
+    if(node.nodeType===Node.TEXT_NODE)return node.parentElement&&password(node.parentElement)?'':node.textContent;
+    if(!(node instanceof Element)||password(node)||['SCRIPT','STYLE','NOSCRIPT','INPUT','TEXTAREA','SELECT'].includes(node.tagName))return '';
+    const style=getComputedStyle(node);if(node.hidden||style.display==='none'||style.visibility==='hidden')return '';
+    if(node.tagName==='BR')return '\n';
+    let result='';
+    for(const child of node.childNodes){
+      const block=child instanceof Element&&(['DIV','P','LI','TR','SECTION','ARTICLE','BLOCKQUOTE','PRE'].includes(child.tagName)||['block','list-item','table-row'].includes(getComputedStyle(child).display));
+      if(block&&result&&!result.endsWith('\n'))result+='\n';
+      result+=editableText(child);
+      if(block&&!result.endsWith('\n'))result+='\n';
+    }
+    return result;
+  }
+  const blobSize=globalThis.Blob&&Object.getOwnPropertyDescriptor(Blob.prototype,'size')?.get;
+  function selectedFile(file){
+    if(!blobSize)throw Error('refused: selected file content identity cannot be verified');
+    const size=blobSize.call(file); // Native Blob identity denotes immutable bytes.
+    if(!fileIdentities.has(file))fileIdentities.set(file,{identity:crypto.randomUUID()});
+    return {name:file.name,size,lastModified:file.lastModified,...fileIdentities.get(file)};
   }
   function safeValue(element) {
     // The exclusion is repeated immediately before EACH value/text read.
     if (password(element)) return {password: true};
     let value;
     if (element instanceof HTMLInputElement) {
-      if (element.type === 'file') value = [...element.files].map(file => ({name: file.name, size: file.size, lastModified: file.lastModified}));
+      if (element.type === 'file') value = [...element.files].map(selectedFile);
       else value = element.value;
     } else if (element instanceof HTMLTextAreaElement || element instanceof HTMLSelectElement || element instanceof HTMLButtonElement) value = element.value;
-    else if (element.isContentEditable) value = text(element);
+    else if (element.isContentEditable) value = editableText(element).replace(/\n$/, '');
     else return {};
     traces.push({element: id(element), value});
     return {value};
@@ -135,7 +167,7 @@
       box: {x:box.x,y:box.y,width:box.width,height:box.height}, onscreen: box.bottom > 0 && box.right > 0 && box.top < innerHeight && box.left < innerWidth && box.width > 0 && box.height > 0};
   }
   function itemText(element) {
-    return text(element.closest('li,tr,article,form,dialog,[role=dialog],[role=alertdialog],[role=region]') || element).replace(/\s+/g, ' ').trim();
+    return text(element.closest('li,tr,article,[role=listitem],[role=row],[role=article],section[aria-label],section[aria-labelledby],form,dialog,[role=dialog],[role=alertdialog],[role=region]') || element).replace(/\s+/g, ' ').trim();
   }
   function embedding(element) {
     const box=element.getBoundingClientRect();let aligned=true;
@@ -146,7 +178,7 @@
         if(!matrix.is2D || matrix.b!==0 || matrix.c!==0 || matrix.a<=0 || matrix.d<=0)aligned=false;
       }
     }
-    return {element:id(element),url:element.srcdoc ? 'about:srcdoc':element.src || 'about:blank',box:{x:box.x,y:box.y,width:box.width,height:box.height},
+    return {element:id(element),url:element.hasAttribute('srcdoc') ? 'about:srcdoc':element.src || 'about:blank',box:{x:box.x,y:box.y,width:box.width,height:box.height},
       width:element.offsetWidth,height:element.offsetHeight,borderX:element.clientLeft,borderY:element.clientTop,aligned};
   }
   function hit(element,x,y){
@@ -162,6 +194,7 @@
     const rows = nodes.filter(node => (!modal || modal.contains(node)) && !['SCRIPT','STYLE','NOSCRIPT','OPTION'].includes(node.tagName)).map(node => {
       const facts = targetFacts(node);
       if (facts.role === 'generic' && !node.isContentEditable) {
+        if(password(node))return null;
         const own=[...node.childNodes].filter(child=>child.nodeType===Node.TEXT_NODE).map(child=>child.textContent).join(' ').replace(/\s+/g,' ').trim();
         if(!own || password(node) || node.hidden || getComputedStyle(node).display==='none' || getComputedStyle(node).visibility==='hidden')return null;
         facts.role='text';facts.name=own;
@@ -170,7 +203,7 @@
       return {...facts, text: ['textbox','combobox','button','link','iframe'].includes(facts.role) ? '' : text(node).replace(/\s+/g, ' ').trim()};
     }).filter(Boolean);
     const editable = nodes.filter(node => node.matches('input,textarea,select,[contenteditable]') && !['hidden','button','submit','reset','image','file'].includes(node.type)).map(field);
-    return {document: documentId, revision, url: location.href, title: document.title, scroll: {x:scrollX,y:scrollY}, rows,
+    return {document: documentId, revision, url: location.href, origin:globalThis.origin, title: document.title, scroll: {x:scrollX,y:scrollY}, rows,
       target: element ? targetFacts(element) : null, form: element ? formFacts(element.form || (element.tagName === 'FORM' ? element : null), implicitSubmitter(element) || element) : null,
       editable, embeds:nodes.filter(node=>node.tagName==='IFRAME').map(embedding), item: element ? itemText(element) : '', adapter: adapterRead(nodes, element), trace: traces.splice(0)};
   }
@@ -194,7 +227,7 @@
       chat:read(['header [title]','[aria-label="Chat name"]'],fields),context:read(['[aria-label="Action context"]'],fields),preview:read(['[aria-label="Message preview"]'],fields),
       attachments:fields.filter(node=>node.matches('[aria-label^="Attachment:"]')).map(node=>({label:name(node),text:text(node)})),target:target ? name(target):null};
   }
-  guard.reader({document:documentId,id,element:key=>elements.get(key),target:targetFacts,form:(element,submitter)=>formFacts(element.form || (element.tagName==='FORM' ? element:null),submitter || element),report:(step,generation)=>{chrome.runtime.sendMessage({event:'held_step',step,generation}).catch(()=>{});},dispose:()=>{observer.disconnect();revisionObserver.disconnect();files.clear();elements.clear();traces.length=0;chrome.runtime.onMessage.removeListener(onMessage);}});
+  guard.reader({document:documentId,id,element:key=>elements.get(key),target:targetFacts,form:(element,submitter)=>formFacts(element.form || (element.tagName==='FORM' ? element:null),submitter || element),report:(step,generation)=>{chrome.runtime.sendMessage({event:'held_step',step,generation}).catch(()=>{});},dispose:()=>{revisionObserver.disconnect();files.clear();elements.clear();traces.length=0;chrome.runtime.onMessage.removeListener(onMessage);}});
   function reloadState(){
     let unsaved=false;
     for(const element of all()){
@@ -224,6 +257,7 @@
         if(!staged?.ready || !element?.isConnected || element.type !== 'file')throw Error('stale_reference: upload field or staged bytes changed');
         guard.direct(message.element);
         files.delete(message.token);
+        fileIdentities.set(staged.ready,{identity:crypto.randomUUID(),sha256:staged.file.sha256});
         const transfer=new DataTransfer();transfer.items.add(staged.ready);element.files=transfer.files;
         element.dispatchEvent(new Event('input',{bubbles:true}));element.dispatchEvent(new Event('change',{bubbles:true}));
         value={installed:true,sha256:staged.file.sha256,size:staged.file.size};
@@ -244,6 +278,10 @@
       else if (message.command === 'dispose') {value={disposed:true,restored:guard.dispose(),document:documentId}; }
       else if (['set_control','arm','resume'].includes(message.command)) {}
       else if (message.command === 'hit') value={hit:hit(elements.get(message.element),message.x,message.y)};
+      else if(message.command==='observe'){
+        const node=elements.get(message.element);
+        value={url:location.href,title:document.title,notices:all().filter(element=>element.matches('[role=status],[role=alert],dialog[open],[role=dialog],[role=alertdialog]')).slice(0,5).map(element=>text(element).slice(0,2048)),change:node?.isConnected?{element:id(node),name:name(node),checked:!!node.checked,selected:!!node.selected}: {element_present:false}};
+      }
       else if (message.command === 'reload_state') value=reloadState();
       else if (message.command === 'ready') value = {preload:true,document:documentId,...(message.element?{element_present:!!elements.get(message.element)?.isConnected}:{})};
       else if (message.command === 'read' || message.command === 'facts') value = snapshot(message.element);
