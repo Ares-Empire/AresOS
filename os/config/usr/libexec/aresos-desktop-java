@@ -47,6 +47,9 @@ SUPPLIED = frozenset({'ARESOS_LAUNCH_NONCE', 'ARESOS_DESKTOP_INSTANCE', 'PATH', 
 FORWARDED = (signal.SIGTERM, signal.SIGINT, signal.SIGHUP, signal.SIGQUIT)
 REFUSED, BUSY = 78, 75
 SCOPE_WAIT = 10.0
+# Stopping an unaccepted Java: SIGTERM, then SIGKILL after STOP_WAIT; then the report, on a new connection if
+# needed. The supervisor waits for that report at least this long (aresos-desktop LOST_HANDOFF_WAIT).
+STOP_WAIT = 10.0
 REPORT_TIMEOUT = 5.0
 
 
@@ -148,7 +151,7 @@ def stop(child):
     if child.poll() is None:
         child.terminate()
         try:
-            child.wait(10)
+            child.wait(STOP_WAIT)
         except subprocess.TimeoutExpired:
             child.kill()
             child.wait()
@@ -197,8 +200,9 @@ def main(argv, environ=os.environ):
                                    'stopped': stopped, 'reason': reason})
         except OSError as error:
             print(f'aresos-desktop-java: could not record the failed start ({error})', file=sys.stderr)
-        message = {'op': 'jvm_failed', 'launch': launch, 'reason': reason}
-        if status is not None and not stopped:
+        # `stopped` says who ended Java: the supervisor classifies a status only when this wrapper did not stop it.
+        message = {'op': 'jvm_failed', 'launch': launch, 'reason': reason, 'stopped': stopped}
+        if status is not None:
             message['status'] = status
         try:
             supervisor.ask(message)

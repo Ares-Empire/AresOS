@@ -95,6 +95,12 @@ HEARTBEAT_GAP = 20.0
 BACKOFF = 5.0
 PRISM_GRACE = 10.0
 EXIT_REPORT_WAIT = 2.0
+# A wrapper whose connection broke before its JVM was accepted stops Java (SIGTERM, SIGKILL after its STOP_WAIT)
+# and then reports on a new connection (REPORT_TIMEOUT): the wait for that report covers both, with a margin
+# (review 3, finding 2). aresos-desktop-java holds the same two numbers; a test keeps them equal.
+WRAPPER_STOP_WAIT = 10.0
+WRAPPER_REPORT_TIMEOUT = 5.0
+LOST_HANDOFF_WAIT = WRAPPER_STOP_WAIT + WRAPPER_REPORT_TIMEOUT + 5.0
 EARLY_PRISM_FAILURE = 3.0
 # From authorizing a JVM to the wrapper reporting its PID; the wrapper starts it at once.
 HANDOFF_TIMEOUT = 30.0
@@ -109,6 +115,8 @@ PRESSURE_FILE = '/proc/pressure/memory'
 PRESSURE_CLEAR = 10.0
 PRESSURE_CLEAR_FOR = 60.0
 PRESSURE_SAMPLE = 5.0
+# A longer gap between two samples (a stalled supervisor) is unobserved time, never clear time (review 3, finding 3).
+PRESSURE_GAP = PRESSURE_SAMPLE + 5.0
 # The longest automatic restart delay: a restored restart deadline never waits longer (the clock may have moved).
 MAX_BACKOFF = BACKOFF * 2 ** (MAX_FAILURES - 1)
 RENDER_DISTANCE = 8
@@ -843,6 +851,8 @@ class Launch:
     wrapper_gone: float = None  # the wrapper's connection closed before its JVM was reported
     # The wrapper stopped this JVM itself: the answer to its hand-off was lost after this supervisor accepted it.
     stopped_reason: str = None
+    # The start was latched as an unexplained end; the wrapper's late report may still explain it.
+    unexplained: bool = False
 
 
 def describe_status(status):
@@ -1359,17 +1369,40 @@ class Supervisor:
         LOG.info('launch %s: the game runs as pid %d', launch.id, pid)
         return True, ''
 
-    def on_jvm_failed(self, launch_id, reason, status=None):
+    def on_jvm_failed(self, launch_id, reason, status=None, stopped=False):
         """The wrapper's report of a start that did not become a game: Java could not start, the supervisor refused
-        it, the hand-off broke (the wrapper stopped Java), or Java ended by itself first (`status`)."""
+        it, or the hand-off broke. `stopped` says the wrapper ended Java itself; otherwise `status` is how Java
+        ended by itself (a kill included), and it is classified like any game's end (review 3, finding 1)."""
         launch = self.launch
-        if launch is None or launch.id != launch_id or not launch.accepted or launch.failed:
+        if launch is None or launch.id != launch_id or not launch.accepted:
+            return
+        reason = reason or 'the launcher wrapper reported a failed start'
+        if launch.failed:
+            if launch.unexplained:
+                self.late_report(status, reason, stopped)
             return
         if launch.reported:
-            # This supervisor accepted the JVM but the wrapper never got the answer, so it stopped Java (finding 3).
-            launch.stopped_reason = reason or 'the hand-off was lost'
+            # This supervisor accepted the JVM, but the wrapper never got the answer.
+            if stopped:
+                launch.stopped_reason = reason  # it stopped Java: a failed start
+            elif status is not None and launch.jvm_status is None:
+                launch.jvm_status = status  # Java ended by itself: its status decides, a SIGKILL latches
             return
-        self.start_ended(status, reason or 'the launcher wrapper reported a failed start')
+        self.start_ended(None if stopped else status, reason)
+
+    def late_report(self, status, reason, stopped):
+        """The wrapper's report came after its start was latched as unexplained: it still counts (review 3,
+        finding 2). A kill stays latched; any other end replaces the latch with a failed start, counted once."""
+        launch = self.launch
+        launch.unexplained = False
+        if not stopped and status in SIGKILL_STATUSES:
+            return
+        if not (self.persisted.latched and self.persisted.reason == 'killed'):
+            return  # the owner has decided since (retry): nothing to replace
+        LOG.info('launch %s: the wrapper explained the start after all: %s', launch.id, reason)
+        self.persisted.latched, self.persisted.reason, self.persisted.detail = False, None, ''
+        launch.failed = False
+        self.start_ended(None if stopped else status, reason)
 
     def on_wrapper_gone(self, launch_id):
         """The wrapper's connection closed before a JVM was reported. It may still report how the start ended (over
@@ -1418,6 +1451,7 @@ class Supervisor:
         if (status is None and reason is None) or status in SIGKILL_STATUSES:
             scope = self.runner.scope_result(game_unit(launch.id))
             why = 'Minecraft was killed by SIGKILL while it started' if status is not None else unexplained
+            launch.unexplained = status is None
             LOG.error('launch %s: %s%s', launch.id, why, f' (scope result {scope})' if scope else '')
             self.persisted.accounted = launch.id
             self.latch('killed', why + (f'; its scope ended with {scope}' if scope else ''))
@@ -1534,7 +1568,7 @@ class Supervisor:
             items.append((launch.authorized + HANDOFF_TIMEOUT, self.handoff_lost))
             if launch.wrapper_gone is not None:
                 # A short wait for the wrapper's own report of how the start ended (it may reconnect to send it).
-                items.append((launch.wrapper_gone + EXIT_REPORT_WAIT, self.wrapper_ended))
+                items.append((launch.wrapper_gone + LOST_HANDOFF_WAIT, self.wrapper_ended))
         if self.persisted.latched and self.persisted.reason == 'killed':
             items.append(((self.pressure_checked if self.pressure_checked is not None else float('-inf'))
                           + PRESSURE_SAMPLE, self.sample_pressure))
@@ -1581,6 +1615,8 @@ class Supervisor:
     def sample_pressure(self):
         """One memory-pressure sample after a kill; any pressure or unreadable value starts the clear minute again."""
         now = self.clock()
+        if self.pressure_checked is not None and now - self.pressure_checked > PRESSURE_GAP:
+            self.pressure_clear_since = None  # nobody looked in between: unknown, not clear
         self.pressure_checked = now
         value = self.runner.memory_pressure()
         if value is None or value > PRESSURE_CLEAR:
@@ -1978,7 +2014,7 @@ class Loop:
             status = request.get('status')
             status = status if isinstance(status, int) and not isinstance(status, bool) else None
             supervisor.on_jvm_failed(peer.launch if peer.wrapper else request['launch'],
-                                     str(request.get('reason', ''))[:500], status)
+                                     str(request.get('reason', ''))[:500], status, request.get('stopped') is True)
             return {'ok': True}
         if op == 'jvm_exited' and isinstance(request.get('pid'), int):
             # Only the game this supervisor watches can be reported, so any same-user peer may report it.
