@@ -5,6 +5,146 @@ Branch `pkg/23-minecraft-starts`, PR #36. Review: Codex gpt-6-astra (high), fres
 
 Nothing was pushed to a registry, signed or published. The release pin is unchanged.
 
+## Review fixes 2 (REVIEW-2, 2026-11-10)
+
+REVIEW-2 (Codex gpt-6-astra, high, on `7ec26b84`) found 1 blocking and 8 should-fix problems. It agrees with the
+updated JUDGMENT-CALL 10, which the owner accepted (board #170: "Yes"); these fixes complete it and change nothing
+in it. Each fix is at its cause. Under "Regression proof" each finding's tests run with only that fix reverted
+(interfaces kept, so shared setup still works), and the failing assertion is recorded. The mod is unchanged, so no
+Gradle run was needed and the jar pin stays.
+
+1. **Blocking: a kill before the PID hand-off latches like a kill after it.**
+   - Cause: between authorizing a JVM and accepting its PID, a dead Java or a dead wrapper ended as `jvm_failed` or
+     "wrapper gone", and both counted as a plain crash with an automatic restart.
+   - Fix: the wrapper reports Java's own exit status when Java ends before the hand-off (also when the supervisor
+     refused it because it had already died), and writes it to `desktop-exit.json` with the launch ID. The
+     supervisor classifies every unreported start with the same rule as a game's end (`start_ended`): a SIGKILL,
+     or an end nobody explains (the wrapper's connection closed and no report followed within 2 s, or no JVM and
+     no report within the 30 s hand-off limit), latches `killed` with the scope's systemd result, uncounted and
+     never restarted by itself. Only a start that failed for a stated reason (Java could not start, the scope was
+     unusable, the supervisor refused it, Java exited by itself) counts as a failed start. A supervisor restart
+     accounts for a start the previous one authorized: by the wrapper's failure record, or as unexplained, or it
+     waits for a wrapper that still holds the lock.
+   - Tests: `RestartPolicyTest.test_a_death_before_the_hand_off_latches_like_a_kill` (Java killed, wrapper gone,
+     hand-off timeout, killed by the record), `test_a_failed_start_is_reported_and_counted_never_left_open` (what
+     still counts), `AdoptionTest.test_a_start_authorized_before_a_supervisor_restart_is_accounted_for`,
+     `WrapperTest.test_java_killed_before_the_hand_off_is_reported_with_its_status`, and through the real loop and
+     wrapper `LoopTest.test_java_killed_before_the_hand_off_latches` and
+     `test_java_and_wrapper_killed_before_the_hand_off_latch`: a stand-in for `systemd-run` SIGKILLs Java (and
+     the wrapper) right after authorization, before the PID is accepted. Recovery latches `killed`, there is one
+     launch, and nothing is counted.
+2. **Retry needs a whole minute of clear memory pressure.**
+   - Cause: one `avg60` reading at or below 10 % allowed Retry, and an unreadable reading allowed it too.
+   - Fix: while the `killed` latch holds, the supervisor samples PSI `some avg10` every 5 s. Any sample above 10 %,
+     and any unreadable one, starts the minute again; Retry works only after 60 s of clear samples without a
+     break, and its message says how far along that is. The interval lives only in the running supervisor, so a
+     restarted supervisor starts the minute again and never skips it.
+   - Tests: `RestartPolicyTest.test_a_kill_waits_for_a_whole_clear_minute_before_retry` (the old test that dropped
+     pressure from 42 to 3 without time passing is gone: 3 % right after 42 % is refused; a spike and an
+     unreadable value each restart the minute), `test_a_supervisor_restart_never_skips_the_clear_minute`.
+3. **A lost hand-off never leaves an untracked JVM.**
+   - Cause: if the connection broke during `jvm_started`, the wrapper only printed a message and waited for Java,
+     which then ran untracked, holding the desktop lock.
+   - Fix: the wrapper aborts the unaccepted start. It stops Java (SIGTERM, then SIGKILL after 10 s), records the
+     failed start, and reports it on a new connection, naming the launch (the supervisor accepts `jvm_failed` from
+     a new connection only for the launch it is waiting for, like `jvm_exited`). If the supervisor had already
+     accepted the PID and only the answer was lost, the wrapper's report or record marks the JVM as stopped by
+     its wrapper, so its end is a failed start, not his quit and not a kill.
+   - Tests: `WrapperTest.test_a_lost_hand_off_stops_java_and_reports_on_a_new_connection` (a real closure during
+     `jvm_started` with Java alive: Java is gone, the lock is free, the report comes on a second connection),
+     `LoopTest.test_a_lost_hand_off_never_leaves_java_running` (the real loop drops the wrapper's connection while
+     handling `jvm_started`), `RestartPolicyTest.test_a_lost_hand_off_answer_after_acceptance_is_a_failed_start`.
+4. **The decision after an end survives a supervisor restart.**
+   - Cause: only `accounted` was saved. After his quit, a restarted supervisor found nothing to adopt or account
+     for and started Minecraft; a pending crash restart lost its deadline.
+   - Fix: the state file keeps the session's disposition next to `accounted`, written in the same save: a stop
+     that waits for his retry (his quit, the setup ends, Prism failures, sign-in), or a pending restart with its
+     wall-clock deadline (capped at the longest backoff). A restarted supervisor restores it and counts nothing
+     again. It is bound to the session's instance ID: a new session (after a reboot) starts the hub as before;
+     only the crash latch outlives the session (call 12).
+   - Tests: `AdoptionTest.test_the_decision_after_an_end_survives_supervisor_restarts` (his quit across two
+     restarts, a pending backoff that keeps its deadline, a new session that starts normally), and
+     `test_a_game_that_ended_while_no_supervisor_ran_is_accounted_for_once` now also checks the second
+     supervisor's state.
+5. **Exact-home data must be valid, not only present.**
+   - Fix: `home.dimension` must parse as Minecraft 26.2's `Identifier` (checked in its bytecode:
+     `[namespace:]path`, namespace `[a-z0-9_.-]` and not `..`, path `[a-z0-9_./-]`), and an exact home's yaw and
+     pitch must be finite.
+   - Tests: `WorldCheckTest.test_exact_home_data_must_be_valid_by_the_mods_codecs` (valid and malformed
+     identifiers, NaN and infinite angles) and
+     `RestartPolicyTest.test_malformed_exact_home_data_is_refused_before_the_start_and_at_readiness`.
+6. **NBT strings are read as Java writes them.**
+   - Fix: strings are decoded as Java's modified UTF-8 (`DataInput.readUTF`): NUL as `C0 80`, characters outside
+     the BMP as two three-byte surrogates, joined into one character; 4-byte UTF-8 is malformed, as in Java.
+   - Tests: `WorldCheckTest.test_strings_are_read_as_java_writes_them` with `fixtures/desktop-world/
+     level-modified-utf8.dat`, written by the JDK's own `writeUTF` (`JavaStrings.java` next to it): a world name
+     with an emoji and a string with a NUL.
+7. **Corrupt compressed data is damage, not a crash.**
+   - Fix: `read_saved` turns every decompression error (`zlib.error`, `EOFError`, `OSError` from `gzip`) into
+     `NbtError`, so it is world damage, and a damaged `level.dat` falls back to `level.dat_old`.
+   - Tests: `WorldCheckTest.test_corrupt_compressed_data_is_damage_never_a_crash`: corrupt DEFLATE, a bad header, a
+     cut-off stream, a wrong checksum and truncated NBT, each separately; the fallback to a valid `level.dat_old`;
+     and the supervisor's own gate ending in RECOVERY `world_damaged` instead of an exception.
+8. **The focus hand-back survives late identification.**
+   - Fix: the helper remembers the window that last lost focus (`keep_target`), apart from the active window. When
+     Minecraft's window takes focus before it names its app ID, the editor is still the one that gets focus back.
+   - Tests: `KeepForegroundTest.test_a_desktop_identified_after_it_took_focus_still_gives_focus_back`, and
+     `test_late_identification_gives_the_same_result_at_every_split`, which runs the compositor's events through
+     the Wayland parser split at every byte.
+9. **The VM pressure check proves pressure.**
+   - Fix: the pressure source prints its PID and cgroup first, then each 64 MiB it holds. The check requires that
+     it ran in `aresos.slice/aresos-ci-pressure.scope`, reached at least 1 GiB, was killed by SIGKILL, and that the
+     kernel log (`Killed process <pid>` or an `oom-kill` line naming the scope) or systemd-oomd's log names it, or
+     its scope ended with `Result=oom-kill`. The supervisor must answer a status request within 30 s every half
+     second while the pressure lasts. Then the protected processes must still be the same.
+   - Tests: `PressureCheckTest` runs the real check function with stand-in sources: a launcher failure, another
+     scope, a Python error at start, a source that ends by itself, a kill without OOM evidence and a supervisor that
+     does not answer each fail it; real pressure passes.
+
+### Regression proof (each fix reverted alone)
+
+From a copy of the working tree per finding, in WSL. The script is not committed; the summary is in
+`runs/wsl-review-fixes-2/revert-proof.txt`.
+
+| Finding (fix reverted) | Its tests | What fails |
+|---|---|---|
+| 1, supervisor (`start_ended` counts every pre-hand-off death) | all 4 cases of `test_a_death_before_the_hand_off_latches_like_a_kill`, 2 cases of `test_a_start_authorized_before_a_supervisor_restart_is_accounted_for`, both real-loop tests | `('STARTING', 'restarting', False) != ('RECOVERY', 'killed', True)`: counted and restarted. The real loop runs into `RECOVERY crashes` after three automatic restarts. |
+| 1, wrapper (no check that Java already ended) | `WrapperTest.test_java_killed_before_the_hand_off_is_reported_with_its_status` | `137 != 78`: the wrapper hands over a dead Java and exits with its status. The real-loop test still passes: the supervisor refuses the dead PID and the wrapper then reports Java's status, a second guard. |
+| 2 (one clear reading allows Retry) | both | `True is not false : pressure that just dropped is not a clear minute`; after a supervisor restart, Retry is allowed at once. |
+| 3, wrapper (old: print and wait for Java) | both | The wrapper test ends in `TimeoutExpired` after 60 s (the wrapper waits for the untracked Java). The real loop times out in `RECOVERY killed` while Java keeps running. |
+| 3, supervisor (a lost answer after acceptance ignored) | `test_a_lost_hand_off_answer_after_acceptance_is_a_failed_start` | `('RECOVERY', 'killed', True) != ('STARTING', 'restarting', False)` |
+| 4 (`restore()` removed) | both | `('STARTING', None, False) != ('RECOVERY', 'quit', False)`: Minecraft starts again after his quit; for a crash, `('STARTING', None, False) != ('STARTING', 'restarting', False)`: the backoff is skipped. |
+| 5 (dimension and angles unchecked) | both | All 11 malformed cases give `'ok' != 'damaged'`; the gate test gives `('STARTING', None) != ('RECOVERY', 'world_damaged')`. |
+| 6 (plain UTF-8) | `test_strings_are_read_as_java_writes_them` | `NbtError: 'utf-8' codec can't decode byte 0xed in position 8`: the JDK-written level reads as damaged. |
+| 7 (no error mapping) | `test_corrupt_compressed_data_is_damage_never_a_crash` | `zlib.error: Error -3 while decompressing data: invalid block type` escapes, in `check_world` and in the supervisor's start. |
+| 8 (target = the previous active window) | both | `[] != [2]`; through the parser `[] != [4278190083]` for every split after the new window's first `done` (splits 72 to 107). Earlier splits deliver the app ID in the same batch, which the old code handled. |
+| 9 (old check: any nonzero exit passes) | `test_anything_short_of_proven_pressure_fails` | All six cases: `AssertionError not raised`. |
+
+No fix's tests passed with that fix reverted. Full output: `runs/wsl-review-fixes-2/revert-proof.txt`.
+
+### Checks of this round
+
+- WSL (Ubuntu 24.04, Python 3.12), fresh `git clone` of `pkg/23-minecraft-starts` at `53ef1faf`, run under
+  `setsid` with stdin from `/dev/null`, no other suite running: the full suite plain and `-B`, both `Ran 976
+  tests`, `FAILED (failures=1, errors=12)`, exactly the known WSL-only set that also fails on main
+  (`test_greeter` 3, `test_inherited_homebrew` 8, `test_sysusers` 2). `test_aresos_desktop` (113) and
+  `test_aresos_shell` (74) pass, including the real user-systemd scope test and the real-loop kill and hand-off
+  tests.
+- The suite showed one `ResourceWarning` from the new pressure check (its output pipe stayed open); `d13e0477`
+  closes it, and `PressureCheckTest` passes with `-W always::ResourceWarning`.
+- Memory: Windows showed 4.6 to 4.9 GB free (WSL's page cache counts as used there; inside WSL 7.1 GB was
+  available) for the focused runs and the revert proof; the full suite waited for 5.0 GB.
+- CI: the integrator approved one `check_build=build` on this round's code. It waits until Ubuntu's snapshot
+  mirror serves its indexes again (at 16:10 to 16:16 UTC it answered 502/503 and about 100 to 300 kB/s; see
+  "Checks of this round" in review fixes 1 for why that stops the build).
+
+### Not proven yet
+
+- The VM checks: `desktop_jvm`, `memory_protection` and finding 9's `memory_pressure` run in the next
+  `check_build=build`, with the jar the image builds itself.
+- The pre-hand-off kill with a real Minecraft and systemd-oomd (the tests kill Java and the wrapper by hand).
+- The hand-back under labwc with a real game window (finding 8; the VM has no game).
+
 ## Review fixes 1 (REVIEW-1, 2026-11-10)
 
 REVIEW-1 (Codex gpt-6-astra, high) found 3 blocking and 8 should-fix problems. Each is fixed at its cause, with
@@ -179,6 +319,10 @@ errors on round 0's helper, because the shared fixture now passes `keep_foregrou
     tests`, `OK (skipped=136)`, the same skips as main's leak-fix run (42819274873: `Ran 853 tests`,
     `OK (skipped=136)`); the 105 package 23 tests all ran and passed. Evidence: `runs/checks-42830860249/`.
   - Evidence for the two stopped builds: `runs/builds-42827288649-42829696745/summary.txt`.
+  - 42834907206 (`check_build=build` on `7ec26b84`, the integrator's extra run): also stopped before any build.
+    The mirror answered again but slowly: "Install pinned tools on disposable runner" fetched the indexes in
+    12 min 17 s (59.7 MB at 81 kB/s) and hit its 20-minute limit while downloading packages (round 0's run needed
+    4 min 18 s for this step).
 - Not rerun: `check_build=resolve`. The jar pin did not change (the mod is unchanged); the next `build` shows
   whether the image's own `mod` stage gives the same bytes.
 
@@ -504,7 +648,8 @@ Owner-facing ones first (1 to 6); 7 to 14 are technical.
 9. **Fabric Loader stays 0.19.5** although 0.20.1 (2026-10-19) exists: the mod builds and its client tests run on
    0.19.5. Moving the image to 0.20.x belongs with a mod change that also moves `gradle.properties`. Fabric API
    0.161.0+26.2 is already the newest for 26.2.
-10. **Kills and unknown exits (updated in review fixes 1; the reviewer disagreed with the first version).** A
+10. **Kills and unknown exits (updated in review fixes 1 and accepted by the owner, board #170; review fixes 2
+    applies it before the PID hand-off too).** A
     JVM killed by SIGKILL (the kernel's OOM killer, systemd-oomd, or a forced kill) and an exit nobody reported (the
     wrapper ended too, as when a whole scope is killed or with Prism's Kill button) both latch recovery `killed`.
     Neither counts as a crash, and neither restarts by itself (B5: no automatic restart under memory pressure). The
