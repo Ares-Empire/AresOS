@@ -203,7 +203,8 @@ class PolicyFilesTest(unittest.TestCase):
                                   'org.freedesktop.login1.set-reboot-to-boot-loader-entry',
                                   'org.freedesktop.login1.set-reboot-to-boot-loader-menu',
                                   'org.freedesktop.login1.set-reboot-to-firmware-setup'])
-        self.assertIn('aresosDeniedActions.indexOf(action.id) >= 0) {\n        return polkit.Result.NO;', rule)
+        self.assertIn('aresosDeniedActions.indexOf(action.id) >= 0 ||\n', rule)
+        self.assertIn('aresosTunedReadOnly.indexOf(action.id) < 0)) {\n        return polkit.Result.NO;', rule)
         review = json.loads((ROOT / 'ci/polkit-review.json').read_text())
         self.assertEqual(review['denied_actions'], denied)
         self.assertEqual(review['tuned_read_only'], read_only)
