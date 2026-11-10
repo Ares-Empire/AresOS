@@ -108,6 +108,7 @@ V='control/chrome/ci/verdicts.mjs'
 case('P29',V,'export function assertComplete(results,qualified){','export function assertComplete(results,qualified){return;',node('verdicts','P29'))
 case('P30', 'control/chrome/ci/ingress-scan.mjs',"const result=[];let pending=null;","return text.split('\\n').filter(Boolean).map(JSON.parse);const result=[];let pending=null;",node('ingress-scan','P30'))
 case('P30-getters','control/chrome/ci/password-ingress.js','get(){return emit(key,get.call(this));}','get(){return get.call(this);}',node('password-ingress','P30'))
+case('P30-null-ingress','control/chrome/ci/ingress-scan.mjs','rows.filter(row=>row?.protocol_event)','rows.filter(row=>row.protocol_event)',node('ingress-scan','P30 protocol'))
 case('P31-popup',B,'popupNeedsReload:true','popupNeedsReload:false',node('background','P31'))
 F='control/chrome/ci/fixture.mjs'
 case('P31-http',F,"else if(kind==='adapter-sites')","if(kind==='adapter-sites')",node('fixture','review pages reach'))

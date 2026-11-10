@@ -120,3 +120,48 @@ Local Node: 220 pass, zero failures/cancellations/skips. All 92 removal mutation
 fail with passing baselines, including retirement, generation and overlap checks.
 Python stays 189 OK (only JavaScript changed since that complete run).
 Ledger: 158 before this batch; expected 160 after the push.
+
+
+### Shared workflow repeats on de337c55
+
+All eight completed green: base 42870172481 / 42874609495 (142 tests each), Mail
+42870172385 / 42874707566 (142 base + 309 Mail plus all four sweep shards each),
+boundary 42870172295 / 42874802464 (127 native and 127 broker attacks in each
+seccomp mode, zero hostile connections), qualification 42870172545 / 42874901253
+(47 Python + 220 Node each). records/review-fixes-de3-shared.json retains exact
+artifact paths, one-based output lines, source and job conclusions.
+
+The closing ordinary-dialog assertions now explicitly require a guarded opener,
+an answer that already happened and a separate held submission approval. That
+strengthening and the report will be included in closing-head revalidation.
+The Chrome pair is still pending; no partial case list counts as acceptance.
+
+
+### Completed de337c55 trial: 60 named passes, P30 scanner corrected
+
+Runs 42870158864 / 42870172304 completed red. Three modes finish P30's real
+browser operations and then the test scanner dereferences a valid null CDP
+result; the push-external mode is still progressing through P30 when the
+105-minute container cap ends it (exit 124). The retained policy matrix has
+60 passes in 61 executed names, including the complete adapter mismatch and
+Gemini cases that previously exposed stale contexts. Later cases did not run.
+records/review-fixes-de3-p30.json retains exact lines, failure and cutoff times.
+
+The protocol selector now handles null independently; full raw audit rows remain
+in the fragment-safe password scan. Its regression retains both nulls and
+forbidden Runtime events after them. Removing null safety fails the regression.
+The corrected offline scan of the completed policy evidence covers 121,236 rows,
+3 nulls, 21,752 incoming protocol events, zero forbidden Runtime value events,
+and no password sentinel in reassembled browser ingress, tools or service data.
+That is useful privacy evidence, not a passing full CI result.
+
+The 77-case whole-suite container allowance becomes 155 minutes (job 165), also
+in qualification's identical full-suite container step. The prior cap stopped a
+progressing run one minute after its last passed exclusion case. Per-case
+assertions, owner timing and operation deadlines are unchanged; nothing is
+skipped. Runtime input hash remains
+bfd84256f4e36c1a61f66e815b87e48b39fa4d4b4f6bebd3e446a7c7078705f3.
+
+Local Node: 221 pass; 93 mutations rejected, all baselines passing. Local Python
+remains 189 OK. Shared workflows already passed twice on de337c55. The closing
+head will repeat the full set. Ledger: 160 before this batch, expected 162 after.

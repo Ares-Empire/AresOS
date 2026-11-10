@@ -12,3 +12,7 @@ export function completeIngress(text){
   }
   if(pending)throw Error('Incomplete audit fragment');return result;
 }
+
+// Protocol commands legitimately return null; retain those rows for the value
+// scan while selecting event records independently.
+export function protocolEvents(rows){return rows.filter(row=>row?.protocol_event).map(row=>row.protocol_event);}

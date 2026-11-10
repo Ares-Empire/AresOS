@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import {verdicts,assertComplete} from './verdicts.mjs';
 import {setTimeout as delay} from 'node:timers/promises';
 import {measureCompatibility,compareCompatibility} from './compatibility.mjs';
-import {completeIngress} from './ingress-scan.mjs';
+import {completeIngress,protocolEvents} from './ingress-scan.mjs';
 import {reviewMatrices} from './review-matrices.mjs';
 import {popupMatrices} from './popups.mjs';
 import {collectSiteResults} from './site-results.mjs';
@@ -303,9 +303,9 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
     await call('click',await target('Show'));await call('click',await target('Show cross'));assert.doesNotMatch(JSON.stringify(await read()),/SENTINEL_PRIVATE_PASSWORD_20/);
     await call('release_tab',{tab});await call('take_tab',{tab});assert.doesNotMatch(JSON.stringify(await read()),/SENTINEL_PRIVATE_PASSWORD_20/);
     const ingress=completeIngress(fs.readFileSync('/out/browser-boundary.jsonl','utf8'));
-    assert.ok(ingress.some(row=>row.reader_ingress),'test build must record sensitive native getter ingress');
-    assert.ok(ingress.some(row=>row.protocol_event),'test build must audit incoming protocol events');
-    assert.equal(ingress.some(row=>['Runtime.consoleAPICalled','Runtime.exceptionThrown'].includes(row.protocol_event?.method)),false,'Runtime values must never reach the extension');
+    assert.ok(ingress.some(row=>row?.reader_ingress),'test build must record sensitive native getter ingress');
+    const protocol=protocolEvents(ingress);assert.ok(protocol.length,'test build must audit incoming protocol events');
+    assert.equal(protocol.some(event=>['Runtime.consoleAPICalled','Runtime.exceptionThrown'].includes(event.method)),false,'Runtime values must never reach the extension');
     for(const file of ['browser-boundary.jsonl','tool.jsonl','service.txt'])assert.doesNotMatch(file==='browser-boundary.jsonl'?JSON.stringify(completeIngress(fs.readFileSync('/out/'+file,'utf8'))):fs.readFileSync('/out/'+file,'utf8'),/SENTINEL_PRIVATE_PASSWORD_20/,file);
   });
   await check('GROUP 6 schemes links and forward routes',async()=>{

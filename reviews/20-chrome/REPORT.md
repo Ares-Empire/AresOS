@@ -40,10 +40,10 @@ inherited origins; selected native files are freshly SHA-256 hashed for each bin
 outer native host plus a primitive path resolved in the isolated world. Runtime.enable remains absent.
 
 Only plain Python/Node ran on this Mac. No local Chrome/Chromium or browser profile was accessed. Browser tests
-run only in GitHub Linux containers through control-chrome. Current local Node: **220 passed**, zero failed,
+run only in GitHub Linux containers through control-chrome. Current local Node: **221 passed**, zero failed,
 cancelled or skipped. Focused Python: **49 OK**. The current full sweep is **189 OK, 232.606 s**
 (`PYTHONPATH=control:control/chrome_tests python3 -m unittest discover -s control/chrome_tests -v`).
-An initial invocation without PYTHONPATH failed to import test_bridge; the corrected complete run passed. The expanded mutation audit rejects **92 mutations**, every baseline passing.
+An initial invocation without PYTHONPATH failed to import test_bridge; the corrected complete run passed. The expanded mutation audit rejects **93 mutations**, every baseline passing.
 [Exact mutation commands/assertions](records/review-fixes-mutations.json) include bounded handoff, detachment,
 retained state/recovery, no false timeout after Page enabling, mandatory borrowed questions, exact answer binding,
 no automatic confirmation/trusted exemption, exact-once dispatch and prior-hold completion. Generated artifacts
@@ -61,6 +61,7 @@ their Linux proof is pending.
 | `651096b2`, 42832298611 external / 42832312713 policy | [Actual backing-file mutation with restored timestamp, exact digest questions, refusal at zero and fresh 0/1/1](records/review-fixes-6510-native-file.json); retake found stale cleanup contexts. |
 | `ace83b8e`, 42833507627 / 42833520319 | Native missing-context proof fixed cleanup; cross-tab and pay/delete override cases passed; [shadow handoff failed](records/review-fixes-ace8-shadow.json). |
 | `02f523d3`, 42839228786 / 42839244624 | [Both new shadow matrices passed, with raw receiver rows](records/review-fixes-02f5-shadow.json). Review key/word/URL, binding, exact owner mark, reload/media, script POST and focus matrices passed. Frozen cleanup owner-driver wait failed. |
+| `de337c55`, 42870158864 / 42870172304 | [The retained policy job passes 60 of 61 executed names](records/review-fixes-de3-p30.json), including all native and context-sensitive adapter cases. P30 completes its browser operations, then its scanner dereferences a legitimate null audit result; the corrected offline scan finds no sentinel or forbidden Runtime events. Push-external reaches the 105-minute container cap while still progressing through P30. The scanner is fixed and the whole-suite allowance is now 155 minutes; all individual assertions/deadlines stay strict. |
 | `25263559`, 42864982361 / 42865000405 | [Six inline-native cases and the complete cross-site mismatch matrix pass](records/review-fixes-252-context-reuse.json). Whole runs fail when reused numeric renderer contexts retain old private records, leaving some new documents without readers. The root-navigation retirement and startup identity checks now have overlap/reuse regressions and three removal mutations. |
 | `2d2c728e`, 42849298252 / 42849536082 | [Both modes pass the 15 ordinary dialogs, bounded owner handoff/recovery, borrowed-native questions, every review matrix and frozen-wrapper cleanup](records/review-fixes-2d2-dialog-decisions.json). Whole runs fail at cross-site native confirmation guard lookup; Gemini also failed; the next trial independently diagnosed a reused context number. The lookup now uses the authenticated opener document rather than the root event target. |
 | `0894243b`, 42840910762 / 42841180213 | Ordinary native matrix passed; mandatory preexisting-dialog case failed during take. [Exact pending protocol command, zero receiver and failed row](records/review-fixes-0894-preexisting-blocker.json). |
@@ -68,12 +69,23 @@ their Linux proof is pending.
 CI was awaited with one blocking `gh run watch --exit-status --interval 60` command per latest run; failed logs
 were read after completion. No missing or failed named case qualified. Group 12 remains false until 18d.
 
+## Shared workflows verified twice on de337c55
+
+[Exact run metadata, artifact paths and one-based output lines](records/review-fixes-de3-shared.json):
+base 42870172481 / 42874609495 (**142 tests** each); Mail 42870172385 / 42874707566
+(**142 base + 309 Mail tests**, all four sweep shards each); boundary 42870172295 / 42874802464
+(**127 native + 127 broker attacks in each seccomp mode**, zero hostile connections);
+qualification 42870172545 / 42874901253 (**47 Python + 220 Node tests** each).
+All eight workflows completed successfully. These ran through one blocking watch per workflow; no failed log
+was read before completion. The Chrome pair on this source completed red at P30 / the container cap; its retained evidence is above.
+
 ## Not verified yet
 
-Final-head Chrome twice in both modes, base/Mail/boundary twice, full expanded P30 ingress/getter coverage and the
-remaining later core/adapter cases. The bounded handoff/recovery, outside-native cases and frozen-wrapper correction passed the completed trial
-in both modes. The inline-native and cross-site corrections passed their trial. Root-navigation retirement and startup
-identity checks need their next Linux trial. Owner Enter has an interim
+The whole Chrome set twice in both modes, full expanded P30 ingress/getter coverage and the remaining later
+core cases. Base/Mail/boundary and qualification passed twice on de337c55; closing-head revalidation follows
+the final report/assertion commit. The bounded handoff/recovery, outside-native cases and frozen-wrapper correction passed the completed trial
+in both modes. The inline-native and cross-site corrections passed their trial. Root-navigation retirement and startup identity checks passed their next trial. The null-safe P30 audit
+scan and the remaining later inventory need the next complete Linux trial. Owner Enter has an interim
 named matrix pass; final CI and the lead's panel confirmation remain required. Group 12 stays false until 18d.
 No real accounts, live signed-in sites or production qualification were used.
 
@@ -85,8 +97,8 @@ frame's authenticated effective URL and must survive integration. No branch was 
 privacy hook ran normally. Only this build's superseded runs were cancelled; no owner/lead run was cancelled.
 
 The earlier closing runs 42843419421 / 42843914061 are both completed failures on the superseded asking path.
-They were awaited by one blocking shell watch loop. The branch ledger is **158 Chrome IDs before the next push**,
-expected **160 after**, below the revised approximate 175 limit. Future runs are awaited with blocking watches;
+They were awaited by one blocking shell watch loop. The branch ledger is **160 Chrome IDs before the next push**,
+expected **162 after**, below the revised approximate 175 limit. Future runs are awaited with blocking watches;
 failed logs are read after completion. The previous .work inventory found no regular file over 500 MiB.
 
 Both open native-dialog policy choices are now decided. Genuinely unreachable guard/frame coverage still fails

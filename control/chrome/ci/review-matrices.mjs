@@ -10,8 +10,9 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
       const id='review-dialog-'+kind+'-'+origin+'-'+accept;await nav('review-page&mode=native-dialog&dialog='+kind+'&id='+id);await delay(600);
       if(origin==='claude'){const opened=await rpc('click',await target('Continue'));assert.ok(opened.ok||opened.error.code==='unknown',JSON.stringify(opened));}
       else if(origin==='owner')ownerKey();else await fixture.mutate(id,'review-change');
-      const dialog=await eventually(async()=>(await call('read',{tab:getTab()})).dialog,'native '+kind+' from '+origin);assert.equal(dialog.kind,kind);assert.equal(receiverEvidence(id,'native dialog open').count,0);
+      const dialog=await eventually(async()=>(await call('read',{tab:getTab()})).dialog,'native '+kind+' from '+origin);assert.equal(dialog.kind,kind);assert.equal(dialog.unguarded,undefined,'ordinary dialogs must retain their private return hold');assert.equal(receiverEvidence(id,'native dialog open').count,0);
       const answer=await call('dialog',{tab:getTab(),expected:dialog,accept,...(kind==='prompt'?{text:'Synthetic answer'}:{})});
+      assert.ok(!answer.approval,'the ordinary native answer has already happened');assert.ok(answer.followups?.some(row=>row.approval),'its resumed submission has a separate held approval');
       assert.equal(receiverEvidence(id,'after native answer').count,0,'answering cannot approve the resumed form');
       await approval(answer,id);console.log('REVIEW P1 ANSWERED RECEIVER0/1/1',id);
       const received=fixture.arrivals.find(row=>new URL(row.url,'http://fixture.test').searchParams.get('case')===id);
