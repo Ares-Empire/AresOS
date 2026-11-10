@@ -444,6 +444,11 @@ class Store:
 
     def _restore_chrome(self):
         for key, value in self.chrome_state.restore_rows():
+            if key=='chrome:qualification':
+                # Qualification reads already use this complete committed
+                # value. Its multi-year history can exceed a restore batch;
+                # copying it into disposable SQLite would add no authority.
+                continue
             if key.startswith('op:') and value is not None:
                 if value['state']=='reserved':
                     value.update(state='failed',notice=True,reason='Restore invalidated this generation\'s approval; nothing resumed.')

@@ -67,17 +67,17 @@ class Engine:
             raise Refused("stale_reference", "Operation not found for this app; list pending or ask the owner to check the independent record.")
         return op
 
-    def notice_page(self, args=None, app=None, resolve_checks=True):
+    def notice_page(self, args=None, app=None, resolve_checks=True, include_chrome=True):
         from .mail.filing import notice_page
         mail = self.adapters['mail']
         chrome = self.adapters['chrome']
-        if resolve_checks and app in {None,'chrome'}:chrome.reconcile_open_checks()
+        if include_chrome and resolve_checks and app in {None,'chrome'}:chrome.reconcile_open_checks()
         return notice_page(self.store, args, app=app,
             checks=mail.resolve_sent_checks() if resolve_checks else mail.unresolved_sent_checks(),
-            extras=chrome.notice_rows if app in {None, 'chrome'} else None, exclude_apps={'chrome'})
+            extras=chrome.notice_rows if include_chrome and app in {None, 'chrome'} else None, exclude_apps={'chrome'})
 
-    def notices(self, app=None, resolve_checks=True):
-        page = self.notice_page(app=app, resolve_checks=resolve_checks)
+    def notices(self, app=None, resolve_checks=True, include_chrome=True):
+        page = self.notice_page(app=app, resolve_checks=resolve_checks, include_chrome=include_chrome)
         if not page['items']:
             return {}
         result = {'notices': page['items']}
@@ -87,7 +87,7 @@ class Engine:
             # Mail. A Chrome row outside this compact page still needs the
             # shared catalogue, so inspect its committed source as well.
             if app is None and all(item.get('app') == 'mail' for item in page['items']):
-                if next(self.adapters['chrome'].notice_rows(), None) is None:
+                if not include_chrome or next(self.adapters['chrome'].notice_rows(), None) is None:
                     route = 'mail_filing_notices'
             result['notices_more'] = {'count': page['total'] - len(page['items']),
                                       'action': route}
@@ -105,9 +105,25 @@ class Engine:
             if exc.code!='owner_state_unavailable':raise
             # Disclosure failure is not admission failure. In particular, the
             # owner must still be able to archive the finished index entries.
-            return {'items':[], 'total':0, 'cursor':None, 'restore_required':self.store.locked,
-                    'unavailable':str(exc), 'notices':[{'operation_id':'chrome-owner-state-unavailable',
-                        'app':'chrome','state':'unknown','untrusted_content':{'warning':str(exc)}}]}
+            try:
+                result=self._pending(app,args,False,include_chrome=False)
+                other_total=len(result.get('notices',[]))+result.get('notices_more',{}).get('count',0)
+            except (OSError,sqlite3.Error):
+                cached_app=app if app in self._last_pending else None
+                result=copy.deepcopy(self._last_pending.get(cached_app,{'items':[],'total':0,'cursor':None}))
+                result['items']=[item for item in result['items'] if item.get('app')!='chrome']
+                result['notices']=[item for item in result.get('notices',[]) if item.get('app')!='chrome']
+                other_total=self._last_notice_counts.get(cached_app,len(result['notices']))
+                result['snapshot']='Other app state is a storage snapshot; recover storage before relying on it.'
+            others=result.get('notices',[])
+            route=result.get('notices_more',{}).get('action','mail_filing_notices' if all(item['app']=='mail' for item in others) else 'control_notices')
+            result.update(unavailable=str(exc),restore_required=self.store.locked)
+            result['notices']=[{'operation_id':'chrome-owner-state-unavailable','app':'chrome','state':'unknown',
+                'untrusted_content':{'warning':str(exc)}},*others][:3]
+            result.pop('notices_more',None)
+            if other_total+1>len(result['notices']):
+                result['notices_more']={'count':other_total+1-len(result['notices']),'action':route}
+            return result
         except (OSError, sqlite3.Error) as exc:
             if storage_refusal(exc) is None:
                 raise
@@ -157,8 +173,8 @@ class Engine:
                 result['notices_more']={'count':total-len(result['notices']),'action':route}
             return result
 
-    def _pending(self, app=None, args=None, resolve_checks=True):
-        notices = self.notices(resolve_checks=resolve_checks)
+    def _pending(self, app=None, args=None, resolve_checks=True, include_chrome=True):
+        notices = self.notices(resolve_checks=resolve_checks,include_chrome=include_chrome)
         def rows():
             for key, op in self.store.iter_items('op:'):
                 if (op['app']=='chrome' or (app is not None and op['app'] != app) or
@@ -168,7 +184,7 @@ class Engine:
                 created = self.store.db.execute('SELECT created FROM retained WHERE k=?', (key,)).fetchone()
                 row = {'operation_id': op['id'], 'app': op['app'], 'state': op['state'], 'reason': op['reason']}
                 yield ((created[0] if created else 0, op['id']), row)
-            if app in {None,'chrome'}:
+            if include_chrome and app in {None,'chrome'}:
                 yield from self.adapters['chrome'].pending_rows()
         return ordered_page(rows, args, ['pending', app]) | {'restore_required': self.store.locked} | notices
 

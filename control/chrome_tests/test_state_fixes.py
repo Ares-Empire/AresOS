@@ -77,6 +77,18 @@ class StateFixes(unittest.TestCase):
         self.browser.version='157.0.1.2'
         self.assertEqual(self.call('read',{'tab':1})['error']['code'],'qualification_failed')
 
+    def test_s1_large_qualification_history_restores_without_a_large_rewrite(self):
+        snapshot=self.snapshot();record=self.chrome.qualification.record()
+        for number in range(1,240):record['entries'].append(entry(build=self.chrome.qualification.build,version=f'157.0.{number+1}.0'))
+        record['entries'][-1]['core']['binding']=False
+        self.assertGreater(len(json.dumps(record,separators=(',',':'))),65536)
+        self.engine.store.write({'chrome:qualification':record},'chrome_qualification','Synthetic retained qualification history')
+        self.reopen(snapshot);self.restore()
+        self.assertEqual(self.chrome.qualification.record(),record)
+        self.reopen();self.assertEqual(self.chrome.qualification.record(),record)
+        self.browser.version='157.0.999.0'
+        self.assertEqual(self.call('click',self.target())['error']['code'],'qualification_failed')
+
     def test_s2_readable_rollback_pending_uses_committed_reservation(self):
         snapshot=self.snapshot();approval=self.prepare()
         self.reopen(snapshot)
@@ -274,6 +286,17 @@ class StateFixes(unittest.TestCase):
                     'arguments':{'before':time.time()-1,'confirm':'archive finished history'}},True)
                 self.assertTrue(reply['ok'],reply)
                 self.assertNotIn('unavailable',self.engine.pending(resolve_checks=False))
+
+    def test_s8_index_bound_keeps_readable_mail_warnings_and_their_continuation(self):
+        from aresos_control.chrome.committed import Projection
+        self.mail_notices(4)
+        for number in range(4):self.assertTrue(self.call('submit',self.prepare())['ok'])
+        self.chrome.committed=self.engine.store._chrome_state=Projection(self.engine.store)
+        with patch('aresos_control.chrome.committed.MAX_KEYS',3):
+            pending=self.engine.pending(resolve_checks=False)
+            self.assertEqual(pending['notices'][0]['operation_id'],'chrome-owner-state-unavailable')
+            self.assertEqual([item['operation_id'] for item in pending['notices'][1:]],['mail-3','mail-2'])
+            self.assertEqual(pending['notices_more'],{'count':2,'action':'mail_filing_notices'})
 
     def mail_notices(self,count):
         self.engine.store.write({'notice:mail-'+str(i):{'id':'mail-'+str(i),'app':'mail','state':'partial','ack':False,
