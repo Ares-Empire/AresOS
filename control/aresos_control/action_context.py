@@ -54,7 +54,7 @@ def mutation(store, value, *, source_key=None, action=None, changes=None):
     # A failed admission or either commit prevents entering the effect. A lost
     # effect/result leaves this exact context open for inspection, never replay.
     yield key
-    if own:
+    if own and store.get(key) is not None:
         store.write({}, action, 'Mutation completion recorded', outcome='done')
 
 

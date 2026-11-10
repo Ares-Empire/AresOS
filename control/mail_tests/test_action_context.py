@@ -172,6 +172,7 @@ class ActionContexts(unittest.TestCase):
             reference = engine.request({'v': 1, 'method': 'call', 'action': 'testapp_list', 'arguments': {'limit': 1}})['data']['items'][0]['reference']
             args = {'reference': reference, 'flagged': True}
             write = engine.store.write
+            sequence = engine.store.sequence
             before_effect = []
             def persist(changes, *values, **kwargs):
                 initial = kwargs.get('intent_context', {})
@@ -191,6 +192,9 @@ class ActionContexts(unittest.TestCase):
             self.assertEqual(reply['ok'], not fail, reply)
             self.assertEqual(before_effect, [] if fail else [True])
             self.assertEqual(engine.store.get('testapp')['items'][reference['id']]['flagged'], not fail)
+            if not fail:
+                self.assertEqual(engine.store.sequence - sequence, 2)
+                self.assertEqual(engine.store.items('intent:'), [])
             scenario.close()
 
     def test_store_written_by_pre_stage_two_code_opens_and_accepts_new_operations(self):
