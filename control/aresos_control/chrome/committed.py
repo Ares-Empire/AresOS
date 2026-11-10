@@ -5,6 +5,7 @@ append-only journal, including acknowledgement updates, is the authority.
 """
 import copy
 import json
+from contextlib import contextmanager
 
 from ..common import Refused, digest
 
@@ -34,8 +35,20 @@ class Projection:
     def mark_ack(self,key):
         bit=self.bit(key);self.ack_filter[bit//8] |= 1<<(bit%8)
 
+    @contextmanager
+    def journal_reader(self):
+        stream=open(self.store.evidence_dir/'operations.jsonl','rb')
+        try:yield stream
+        finally:
+            try:stream.close()
+            except OSError as exc:
+                # Closing a read-only descriptor cannot invalidate the bytes
+                # already read and hash-verified. Report storage trouble without
+                # replacing those owner facts with an unavailable disclosure.
+                self.store.observations.storage(exc,generic=True)
+
     def committed_records(self, offset=0):
-        with open(self.store.evidence_dir/'operations.jsonl','rb') as stream:
+        with self.journal_reader() as stream:
             stream.seek(offset)
             pending=None
             while True:
@@ -144,7 +157,7 @@ class Projection:
         if entry is None:return copy.deepcopy(default)
         record=self.record_cache.get(entry['offset'])
         if record is None:
-            with open(self.store.evidence_dir/'operations.jsonl','rb') as stream:
+            with self.journal_reader() as stream:
                 stream.seek(entry['offset']);record=json.loads(stream.readline())
             if len(json.dumps(record))<=4*1024*1024:
                 if len(self.record_cache)>=5:self.record_cache.pop(next(iter(self.record_cache)))

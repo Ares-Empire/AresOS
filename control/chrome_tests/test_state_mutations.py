@@ -60,6 +60,8 @@ class Mutations(unittest.TestCase):
              'test_state_fixes.StateFixes.test_s10_mixed_notice_pages_use_nanosecond_chronology'),
             ('S11 oracle','chrome_tests/chrome_oracle.py',[("    assert set(warnings)==expected['warnings'],('warning mismatch',set(warnings),expected['warnings'])","    pass")],
              'test_state_oracle.Oracle.test_s11_r1_missing_warning_and_extra_live_interruption_both_fail'),
+            ('S11 journal read close','aresos_control/chrome/committed.py',[("                self.store.observations.storage(exc,generic=True)","                raise")],
+             'test_state_exhaustion.Exhaustion.test_s11_persistent_write_exhaustion_retains_exact_committed_disclosure'),
             ('S12 dialog','aresos_control/chrome/adapter.py',[("'tree':tree[offset:end],'dialog':visible(facts.get('dialog'))}","'tree':tree[offset:end]},'dialog':visible(facts.get('dialog'))")],
              'test_state_fixes.StateFixes.test_s12_every_page_text_copy_is_inside_untrusted_content'),
             ('S12 stages','aresos_control/engine.py',[("        elif op['app']=='chrome':\n            outcome={'untrusted_content':visible(outcome)}\n",'')],

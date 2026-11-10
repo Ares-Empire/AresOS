@@ -44,15 +44,14 @@ class StateViews:
                     self.assertTrue(result.get('pending',{}).get('unavailable') or result['error']['code'] in {'restore_required','journal_incomplete','storage_limit','storage_error'})
                     disclosure=result.get('pending',{})
                     disclosed={item['operation_id'] for item in disclosure.get('notices',[]) if item['app']=='chrome'}
-                    if 'chrome-owner-state-unavailable' not in disclosed:
-                        compare(expected,warnings=disclosed)
-                    self.view_counts['unavailable']+=1;break
+                    compare(expected,warnings=disclosed)
+                    if action!='passive' and 'items' not in data:
+                        self.view_counts['unavailable']+=1;break
                 if action=='chrome_notices':
                     warnings.update(item['operation_id'] for item in data['items'])
                     cursor=data['cursor']
                 elif action=='control_pending':
-                    if any(item['operation_id']=='chrome-owner-state-unavailable' for item in data.get('notices',[])):
-                        self.view_counts['unavailable']+=1;break
+                    self.assertFalse(any(item['operation_id']=='chrome-owner-state-unavailable' for item in data.get('notices',[])),data)
                     pending.update({item['operation_id']:item['state'] for item in data['items'] if item['app']=='chrome'})
                     record=history(self.root/'evidence')
                     for item in data['items']:
@@ -65,8 +64,7 @@ class StateViews:
                     cursor=data['cursor']
                 else:
                     view=result['pending'] if action=='passive' else data
-                    if any(item['operation_id']=='chrome-owner-state-unavailable' for item in view.get('notices',[])):
-                        self.view_counts['unavailable']+=1;break
+                    self.assertFalse(any(item['operation_id']=='chrome-owner-state-unavailable' for item in view.get('notices',[])),view)
                     warnings.update(item['operation_id'] for item in view.get('notices',[]) if item['app']=='chrome')
                     cursor=data.get('cursor') if action=='control_log' else None
                 if not cursor:
@@ -75,7 +73,7 @@ class StateViews:
         states={}
         for identifier in self.expected_views()['operations']:
             result=self.engine.request({'v':1,'method':'call','action':'chrome_operation_status','arguments':{'operation_id':identifier}})
-            if result['ok']:states[identifier]=result['data']['operation']['state']
+            if 'operation' in result.get('data',{}):states[identifier]=result['data']['operation']['state']
             else:
                 self.assertIn(result['error']['code'],{'storage_limit','storage_error','journal_incomplete','restore_required','owner_state_unavailable'})
                 self.view_counts['unavailable']+=1
