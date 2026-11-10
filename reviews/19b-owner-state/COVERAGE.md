@@ -131,9 +131,26 @@ finished old work stays quiet, and new operations complete. The actual fault
 sweep uses the same independent script/server/commit comparison on every call,
 mode and fault boundary; stage-2 known gaps must be empty at this stage's head.
 
-**Read — scope:** the implementation and local comparison cover the R2 portion of these rows; stage-2 acceptance is held at the storage stop. Their owner-state
+**Read — scope:** the implementation covers the R2 portion of these rows; the authorized fold cleared the storage stop and the complete Linux re-pin is recorded below. Their owner-state
 read/fallback, occurrence/acknowledgement, restore and current-refusal portions
 remain assigned to stage 3. D3 and all three G22 cases remain open; the durable
 projection and common owner-state read path are not built in stage 2.
 
 **Run — stage 2 pin:** `LEDGER-S2.json` records 2,200,009 exact stage-3 failures and **zero stage-2 failures** (1,952 groups / 898,329 bytes). Local complete 32-flow captures and all 68 final-source alteration scenarios passed; Linux diagnostics and the required storage stop are recorded in REPORT.md. No final Linux strict pair is claimed.
+
+
+## Stage 2 fold verification
+
+**Run:** M04/M05/M06/context-order retain their original obligations. Exact
+context now joins existing pre-command commits; dispatch independently reads
+and checks the unfinished committed source, including current admission.
+`ContextWriteFences` covers 129 writes in 20 flows, 1,161 entry/fence failure or
+real process-kill cases. The frozen old store and public-audit privacy checks
+remain in `test_action_context`; no approval or question field changes.
+
+`LEDGER-CAPTURE-S2-FOLD.json` pins all 53 fresh complete Linux actual lists:
+**1,849,228 stage-3 keys / zero stage-2 keys, 1,936 groups, 890,087 bytes**.
+All owned/shared groups strictly verify. The inherited direct archive and real
+HTTPS test fixtures were corrected without changing these independent inputs;
+REPORT.md records their diagnostic failures and fixes. Final Linux strict-pair
+evidence follows there. Stage 3 is not built or claimed complete.

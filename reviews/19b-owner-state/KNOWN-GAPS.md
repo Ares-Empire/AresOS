@@ -1,6 +1,6 @@
-# Stage 1 known gaps
+# Owner-state known gaps
 
-The current executable pin is the round-3 pin described below; earlier sections retain their historical conversion and verification evidence.
+The current executable pin is the stage-2 fold pin described in the final section; earlier sections retain their historical conversion and verification evidence.
 
 The list starts with Mail review 22's three blocking cases. They remain failures in production; stage 1 exposes them without changing their assertions.
 
@@ -237,8 +237,51 @@ PY
 diff -u reviews/19b-owner-state/KNOWN-GAPS.json .work/19b-s2/compact.json
 ```
 
-This is a local pin, not final Linux acceptance. The first Linux diagnostic
-wave found different export syscall boundary counts; a complete Linux capture
-and repin are required before strict final repetitions. The storage stop in
-REPORT.md holds stage 2 pending the lead/owner decision, so no final Linux proof
-is claimed. The local pin does not claim stage 3 is complete.
+This historical local pin predates the authorized fold. The corrected complete
+Linux pin below supersedes it. Its original storage stop and diagnostic limits
+remain documented in REPORT.md; stage 3 is still outside this run.
+
+
+## Stage 2 fold: complete Linux pin
+
+**Run:** `LEDGER-CAPTURE-S2-FOLD.json` pins Mail **42760159138 / attempt 1** and
+fresh base **42760159041 / attempt 1**, source
+`a1859a6969911e3d38866807e0812e6088d4fa7c`. All 48 sweep/onboarding jobs completed
+their owned flows and six-test worker runs. All **53 actual lists** agree on
+shared keys, have correct unique ownership, and strictly verify against the
+packed pin. No earlier partial or local list is borrowed.
+
+The compact format-3 pin contains **1,849,228 exact stage-3 keys / zero stage-2
+keys**, **1,936 groups / 890,087 bytes**, SHA-256
+`ff3de0ad2c95e7892ad09f46878ee9ba77e5aad7d6490ac369c3bc66297ad988`.
+There are 350,781 fewer exact failures than the part-B pin because the fold
+removes context transactions and their fault sites; Linux trace numbering and
+exact changed deltas are captured rather than normalized away. No R2 assertion
+is reassigned to stage 3. D3 and the G22 cases remain stage 3.
+
+The standalone HTTPS receiver and inherited direct archive sweep needed test
+recorder/determinism corrections after capture. Neither is an input to these
+53 owner-state lists; production, decoder, expectations and owner-sweep scripts
+remain identical. Final strict repetitions must validate both fixes and this
+entire pin. REPORT.md records all diagnostic failures instead of treating the
+capture workflow as green.
+
+To reproduce from the downloaded Mail artifact tree, which includes the copied
+fresh base-channel list under `fresh-base/` (full lists stay under `.work/`):
+
+```sh
+PYTHONPATH=control python3 - <<'PY'
+from pathlib import Path
+import json, subprocess, sys
+root = Path('.work/19b-fold/ci/42760159138-1')
+inputs = sorted(root.rglob('owner-gaps-*.json.gz'))
+assert len(inputs) == 53
+subprocess.run([sys.executable, '-m', 'owner_state_oracle.gaps',
+                *map(str, inputs), '--full', '--output', '.work/19b-fold/full.json'], check=True)
+subprocess.run([sys.executable, '-m', 'owner_state_oracle.gaps',
+                '.work/19b-fold/full.json', '--output', '.work/19b-fold/compact.json'], check=True)
+p = Path('.work/19b-fold/compact.json')
+p.write_text(json.dumps(json.loads(p.read_text()), sort_keys=True, indent=1) + '\n')
+assert p.read_bytes() == Path('reviews/19b-owner-state/KNOWN-GAPS.json').read_bytes()
+PY
+```

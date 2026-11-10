@@ -1131,3 +1131,63 @@ pin. Base `42758730461` passed 263 tests in 217.510s (`results.txt:392`, `OK`
 `:394`, PASS `:401`); boundary `42758810824` passed. These are superseded
 source diagnostics, not final acceptance. The replacement below is the one
 complete Linux capture on the corrected fold.
+
+**Read — fold field-audit addition:** `context.internal_command` reads committed
+`id`, `repair_of`, payload folder and message references only to join an
+internal probe to the actual logged command when several probes remain open.
+It does not derive or resolve an obligation. `differences` still compares the
+selected context and command independently against the scripted account,
+recipient set and previously logged probe CREATE/APPEND identities. A missing
+source, corrupted context identity or wrong destination still fails
+`test_internal_probe_binding_uses_command_identity_with_multiple_open_probes`.
+The complete decoded-field perturbation audit remains active. The Adapter
+protocol now supplies `submission_context(operation)`; returning `None` retains
+the separate commit at dispatch when an earlier context cannot be prepared.
+
+**Run — complete corrected Linux capture and strict offline re-pin:** Mail
+[42760159138](https://github.com/Ares-Empire/AresOS/actions/runs/42760159138),
+base [42760159041](https://github.com/Ares-Empire/AresOS/actions/runs/42760159041),
+attempt 1, source `a1859a6969911e3d38866807e0812e6088d4fa7c`.
+All 48 sweep/onboarding owners completed all assigned flows and six-test child
+runs. Every input is fresh Linux evidence, including the independent base
+channel. The merge verifies **53 full actual lists**, correct ownership,
+identical shared-key deltas and exact complete row/stage/calls/facts/pages
+hashes. The new compact pin is **1,849,228 exact keys, all stage 3; zero stage 2;
+1,936 groups; 890,087 bytes**, SHA-256
+`ff3de0ad2c95e7892ad09f46878ee9ba77e5aad7d6490ac369c3bc66297ad988`.
+Every one of the 53 inputs then passed the strict compact verifier. No R2
+assertion was reclassified, and no full list is committed.
+`LEDGER-CAPTURE-S2-FOLD.json` records every input/log hash, ownership, suite
+counts and all 56 job durations. Maximum capture job duration was **1,127s
+(18m47s)**, below both the 45-minute cap and the 35-minute aim.
+
+**Run — diagnostic failures retained and fixed:** this capture is not a green
+workflow. Besides old-pin comparisons, it found one real-HTTPS fixture failure
+(`test_unsubscribe.py:78`) and eight inherited direct-archive prefix mismatches
+(`test_review23_sweep.py:651/:655`). The HTTPS transcript lacked the URL,
+pre-command committed rows and caller sequence interval required by part A's
+strong completion proof. `a70e02ab` records those independent inputs, keeping
+the original completion assertion. Its real local HTTPS receiver test, with
+only IMAP substituted, printed `Ran 1 test in 0.622s`, `OK`; the 204, redirect,
+no-cookie/no-GET and exact-body assertions remain.
+
+`8915955b` fixes the inherited archive fixture's random IDs and changing event
+timestamps. Only direct `Scenario('archive')` gets fixed IDs/clock; it advances
+time to age real commits. The independent `OwnerScenario` already had its own
+deterministic clock/IDs and retains exactly the captured execution. Three
+complete archive replays now have equal write traces. The focused inherited
+shard runs every original prefix assertion and fault/cleanup case, printing
+**301 single / 301 persistent / 1,532 archive cleanup-pair cases**, plus the
+restore cases, `Ran 2 tests in 84.319s`, `OK`. No assertion or fault mode was
+removed. Final local self/selection checks print `Ran 120 tests in 0.230s`,
+`OK`; focused R2/contracts/regressions print `Ran 17 tests in 7.650s`, `OK`.
+These fixture corrections do not supply or alter any of the 53 captured owner
+lists; the two final full strict repetitions below must validate both fixes
+and the complete pin.
+
+**Read — ledger change:** the fold removes context transactions and their raw
+failure sites. The final Linux pin has a net 350,781 fewer stage-3 assertion
+keys and 16 fewer groups than part B's local pin; Linux export/SQLite syscall
+numbering and exact changed deltas remain explicit. The digest includes every
+remaining exact failure; nothing is normalized away or accepted as an R2 gap.
+D3, G22 and all R1/R3/lifecycle work remain assigned to stage 3.
