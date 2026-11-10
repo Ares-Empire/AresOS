@@ -1463,7 +1463,7 @@ class Oracle:
             if account_id in self.qualification_observed:
                 continue
             completed = [e['seq'] for e in record.events if e['action'] == 'mail_account_add' and e.get('outcome') == 'done' and
-                         'mail:account:' + str(account_id) in e['set'] and call.get('start_seq', -1) < e['seq'] <= call.get('end_seq', -1)]
+                         not any(k.startswith('intent:') for k in e['set']) and call.get('start_seq', -1) < e['seq'] <= call.get('end_seq', -1)]
             if not completed:
                 continue
             events = [e for e in self.servers if e.get('account') == account_id and e['call'] == call['call']]

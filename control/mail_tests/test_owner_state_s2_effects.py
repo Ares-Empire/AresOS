@@ -15,7 +15,7 @@ from storage_faults import OSWrites
 
 
 class EffectRegressions(unittest.TestCase):
-    def filing_scan(self, body='valid', absent_target=False, lie=False, omit_warning=False):
+    def filing_scan(self, body='valid', absent_target=False, lie=False, omit_warning=False, arrival=False):
         scenario = OwnerScenario('fixture')
         try:
             fixture = scenario.fixture
@@ -31,6 +31,15 @@ class EffectRegressions(unittest.TestCase):
             key = 'mail:filing:scan'
             driver.fixture_input({key: row}, 'Synthetic interrupted filing')
             uid, write = fixture.imap.uid, fixture.engine.store.write
+            select = fixture.imap.select
+            arrived = []
+            if arrival:
+                fixture.imap.boxes['Source'] = {1: fixture.imap.boxes['Source'][1]}
+            def selected(folder, *args, **kwargs):
+                if arrival and folder.strip('"') == 'Source' and not arrived:
+                    arrived.append(True)
+                    fixture.imap.boxes['Source'][2] = b'Message-ID: <arrival@mail.invalid>\r\n\r\nUnrelated arriving mail'
+                return select(folder, *args, **kwargs)
             def fetched(command, *args):
                 answer = uid(command, *args)
                 if command == 'FETCH' and 'BODY.PEEK[]' in str(args) and body != 'valid':
@@ -48,11 +57,17 @@ class EffectRegressions(unittest.TestCase):
                         if name.startswith('notice:'):
                             del changes[name]
                 return write(changes, action, *args, **kwargs)
-            with patch.object(fixture.imap, 'uid', side_effect=fetched), patch.object(fixture.engine.store, 'write', side_effect=persisted), driver.observe():
+            with patch.object(fixture.imap, 'select', side_effect=selected), patch.object(fixture.imap, 'uid', side_effect=fetched), patch.object(fixture.engine.store, 'write', side_effect=persisted), driver.observe():
                 result = scenario.call()
             driver.reply(result)
             scans = [event for event in driver.oracle.servers if event['command'] == 'SCAN_RESULT']
             self.assertTrue(scans)
+            if arrival:
+                self.assertTrue(arrived)
+                listing = next(e for e in driver.oracle.servers if e['command'] == 'LIST' and e.get('check_sources'))
+                search = next(e for e in driver.oracle.servers if e['command'] == 'SEARCH' and e.get('folder') == 'Source' and e.get('arguments') == [None, 'ALL'])
+                self.assertEqual([r['uid'] for r in listing['mailboxes']['Source']], [1])
+                self.assertEqual([r['uid'] for r in search['identities']], [1, 2])
             self.assertEqual(scans[-1]['accepted'], body == 'valid')
             # Revalidate the actual recorded replies even if the summary lies.
             for event in scans:
@@ -94,6 +109,15 @@ class EffectRegressions(unittest.TestCase):
 
     def test_complete_filing_scan_can_commit_a_warning_when_destination_disappeared(self):
         expected, errors, row = self.filing_scan(absent_target=True)
+        self.assertEqual(row['state'], 'partial')
+        self.assertFalse(row.get('check_open'))
+        self.assertTrue(row['warning_checks']['filing']['warning'])
+        self.assertTrue(all(item['scan_complete'] for item in row['locations']))
+        self.assertFalse(any(f.kind in {'unjustified-check-close', 'unsupported-resolution'} for _, f in errors), errors)
+        self.assertFalse(any(f.source == 'mail:filing:scan' and f.kind == 'recovery' for f in expected), expected)
+
+    def test_unrelated_mail_arriving_after_list_has_complete_search_and_body_evidence(self):
+        expected, errors, row = self.filing_scan(arrival=True)
         self.assertEqual(row['state'], 'partial')
         self.assertFalse(row.get('check_open'))
         self.assertTrue(row['warning_checks']['filing']['warning'])
