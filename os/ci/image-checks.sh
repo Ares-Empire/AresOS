@@ -319,6 +319,15 @@ for mode in normal recovery; do
 done
 grep -qx 'export PATH=/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin' /usr/bin/aresos-session
 pass 'the session itself starts with the system PATH and absolute commands'
+# greetd's session wrapper, a non-interactive /bin/sh, sources /etc/profile
+# before /usr/bin/aresos-session: the base image's profile scripts run there
+# with the system PATH. His login shells get his own.
+wrapper_path=$(runuser -u ares -- env -i HOME=/var/home/ares PATH=/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin \
+    /bin/sh -c '[ -f /etc/profile ] && . /etc/profile; printf "%s" "$PATH"' < /dev/null 2> /dev/null)
+case ":$wrapper_path:" in *:/var/home/ares/.local/bin:*) exit 1 ;; esac
+login_path=$(runuser -l ares -c 'printf "%s" "$PATH"' < /dev/null 2> /dev/null)
+case ":$login_path:" in *:/var/home/ares/.local/bin:*) ;; *) exit 1 ;; esac
+pass "greetd's profile wrapper keeps the system PATH ($wrapper_path); his login shell adds his own ($login_path)"
 # Every absolute command the greeter, session, terminals, shortcuts and their
 # helpers run must exist in this image, or an absolute path would only trade
 # one way to fail for another.

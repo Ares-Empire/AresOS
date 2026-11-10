@@ -132,18 +132,22 @@ class TerminalShellTest(unittest.TestCase):
 
 
 class DailyPathTest(unittest.TestCase):
-    def profile_path(self, home, uid):
+    def profile_path(self, home, uid, shell=('bash', '--noprofile', '--norc', '-l'), arg0=None):
         # The real file calls /usr/bin/id; this copy lets the test choose the UID.
+        # A login shell by default; greetd's session wrapper is a plain `sh -c`.
         source = (CONFIG / 'etc/profile.d/aresos.sh').read_text()
         self.assertEqual(source.count('"$(/usr/bin/id -u)"'), 1)
         with tempfile.TemporaryDirectory() as directory:
             copy = pathlib.Path(directory, 'aresos.sh')
             copy.write_text(source.replace('"$(/usr/bin/id -u)"', '"$(id -u)"'))
-            script = f'id() {{ echo {uid}; }}\nPATH=/somewhere/else\n. {copy}\nprintf "%s|%s" "$PATH" "${{HOMEBREW_NO_AUTO_UPDATE-}}"\n'
-            result = subprocess.run(['bash', '--noprofile', '--norc', '-c', script], capture_output=True, text=True,
-                                    env={'HOME': str(home)}, timeout=30)
-        self.assertEqual(result.stderr, '')
-        return result.stdout.split('|')
+            script = f'id() {{ echo {uid}; }}\nPATH=/somewhere/else\n. {copy}\nprintf "%s|%s|%s" "$PATH" "${{HOMEBREW_NO_AUTO_UPDATE-}}" "${{_aresos_daily-unset}}"\n'
+            result = subprocess.run([*shell, '-c', script, *([arg0] if arg0 else [])], capture_output=True, text=True,
+                                    env={'HOME': str(home)}, timeout=30, stdin=subprocess.DEVNULL)
+        if '-i' not in shell:
+            self.assertEqual(result.stderr, '')
+        path, update, helper = result.stdout.split('|')
+        self.assertEqual(helper, 'unset')
+        return path, update
 
     def test_daily_path_has_his_tools_first_and_system_before_optional_directories(self):
         with tempfile.TemporaryDirectory() as home:
@@ -158,6 +162,18 @@ class DailyPathTest(unittest.TestCase):
             self.assertGreater(path.split(':').index(str(exports)), path.split(':').index('/usr/sbin'))
             for optional in ('/home/linuxbrew/.linuxbrew/bin', '/var/lib/flatpak/exports/bin'):
                 self.assertEqual(optional in path.split(':'), os.path.isdir(optional))
+
+    def test_his_interactive_and_login_shells_get_it_but_the_session_wrapper_never(self):
+        # Review 5: greetd sources /etc/profile in a non-interactive /bin/sh
+        # before /usr/bin/aresos-session; that wrapper keeps the PATH it has.
+        with tempfile.TemporaryDirectory() as home:
+            daily = home + '/.local/bin'
+            for shell, arg0 in ((('bash', '--noprofile', '--norc', '-i'), None), (('sh',), '-sh')):
+                with self.subTest(shell=shell, arg0=arg0):
+                    self.assertEqual(self.profile_path(home, 1001, shell, arg0)[0].split(':')[0], daily)
+            for shell in (('sh',), ('bash', '--noprofile', '--norc')):
+                with self.subTest(shell=shell):
+                    self.assertEqual(self.profile_path(home, 1001, shell), ('/somewhere/else', '1'))
 
     def test_other_accounts_keep_their_own_path(self):
         with tempfile.TemporaryDirectory() as home:
@@ -226,6 +242,9 @@ class StartupPathTest(unittest.TestCase):
         self.assertIn('Before=greetd.service', unit)
         checks = (ROOT / 'ci/overlay/checks.py').read_text()
         self.assertIn("assert not ran.exists(), ('a shadowing program ran', ran.read_text())", checks)
+        # And a probe last in /etc/profile.d shows greetd's wrapper keeps the system PATH.
+        self.assertIn('/etc/profile.d/zz-aresos-ci-profile-path.sh', containerfile)
+        self.assertIn("('session wrapper got the daily PATH', lines)", checks)
 
 
 class PolicyFilesTest(unittest.TestCase):

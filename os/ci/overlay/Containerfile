@@ -5,8 +5,9 @@ COPY os/tests/guest.sh os/tests/power-events.py /usr/libexec/aresos-ci/
 COPY os/ci/overlay/aresos-ci.service os/ci/overlay/logind-debug.conf os/ci/overlay/journal-debug.conf /tmp/aresos-ci/
 COPY os/ci/overlay/updater-generator os/ci/overlay/static-canary.service /tmp/aresos-ci/
 COPY os/ci/overlay/shadow-path.sh os/ci/overlay/shadow-names.txt /usr/libexec/aresos-ci/
-COPY os/ci/overlay/shadow-path.service /tmp/aresos-ci/
+COPY os/ci/overlay/shadow-path.service os/ci/overlay/profile-path-probe.sh /tmp/aresos-ci/
 RUN install -Dm0644 /tmp/aresos-ci/aresos-ci.service /usr/lib/systemd/system/aresos-ci.service && \
+    install -Dm0644 /tmp/aresos-ci/profile-path-probe.sh /etc/profile.d/zz-aresos-ci-profile-path.sh && \
     install -Dm0644 /tmp/aresos-ci/shadow-path.service /usr/lib/systemd/system/aresos-ci-shadow-path.service && \
     mkdir -p /usr/lib/systemd/system/greetd.service.wants && \
     ln -s ../aresos-ci-shadow-path.service /usr/lib/systemd/system/greetd.service.wants/aresos-ci-shadow-path.service && \
