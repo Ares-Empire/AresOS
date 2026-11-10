@@ -46,6 +46,8 @@ I only build things myself when writing the brief would cost more than doing it 
 
 **Only one Minecraft client-test run at a time on the laptop.** Two test clients steal each other's window focus, which opens vanilla's pause menu and breaks click-driven tests. Seen 2026-10-22, when brief 10's run collided with my 09 integration gate. Don't start an integration gate while a Codex package is in its client-test phase, and vice versa.
 
+**Memory on the laptop (16 GB).** Gradle needs about 6 GB free, and a full WSL suite 4–5 GB, one suite at a time. Each package uses its own `pkgNN-` script and `/tmp` names. Claude Code may stop background work while memory is low. Restart it once enough memory is free again (owner, 2026-11-10, board #160). First check whether the work actually finished: a stopped review often still wrote its `REVIEW-N.md`.
+
 ## Owner decides (always ask, never assume)
 
 - Anything touching the laptop's disks, partitions or BIOS/boot settings, or installing AresOS onto a drive. Once he has said yes, Claude may carry it out itself (hard rule 1).
