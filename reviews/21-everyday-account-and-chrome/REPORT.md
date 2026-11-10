@@ -12,15 +12,16 @@ Nothing was pushed, signed or published to a registry. The release pin is unchan
 - **wheel** (`os/config/usr/lib/sysusers.d/aresos.conf`): `m ares wheel`. Boot-time sysusers adds `ares` to the
   laptop's existing `/etc/group` and `/etc/gshadow` and leaves passwd/shadow alone. The image still locks the
   password, so `sudo` fails and auto-login is unchanged until the owner sets one (package 22's guide).
-- **sudo** (`os/config/etc/sudoers.d/aresos-everyday`, mode 0440): `Defaults:ares timestamp_type=ppid`. Fedora's
-  `%wheel ALL=(ALL) ALL` asks for his own password. A typed password is remembered only for commands with the same
-  parent process, normally the shell he typed it in, so Claude Code, which is a different process, can't reuse it
-  (JUDGMENT-CALL 2). `build.sh` now fails on any `NOPASSWD` or `!authenticate` rule left after the old
-  updater-grant cleanup, and runs `visudo --check`.
+- **sudo** (`os/config/etc/sudoers.d/aresos-everyday`, mode 0440): `Defaults:ares timestamp_timeout=0` (since the
+  review fixes; it was `timestamp_type=ppid`). Fedora's `%wheel ALL=(ALL) ALL` asks for his own password, every time:
+  sudo keeps no ticket, so nothing can reuse a password he typed (JUDGMENT-CALL 2). `build.sh` fails on any
+  `NOPASSWD` or `!authenticate` rule left after the old updater-grant cleanup, and runs `visudo --check`.
 - **polkit** (`os/config/usr/share/polkit-1/rules.d/00-aresos-maintenance.rules`, sorts first):
   - Denied to `ares` even with the password: `org.projectatomic.rpmostree1.*`, `org.freedesktop.sysupdate1.*`,
-    `org.freedesktop.fwupd.*`, `org.bazzite.*`, and starting `uupd.service`/`uupd-manual.service` (the base's
-    `uupd.rules` lets anyone start them; they stay masked anyway).
+    `org.freedesktop.fwupd.*`, `org.bazzite.*`, modem firmware, logind's next-boot and firmware-setup choices
+    (`set-reboot-to-firmware-setup`, `set-reboot-to-boot-loader-entry`/`-menu`, `set-reboot-parameter`; added in the
+    review fixes), and starting `uupd.service`/`uupd-manual.service` (the base's `uupd.rules` lets anyone start
+    them; they stay masked anyway).
   - The base ships rules that let any wheel member act **without a password**. For `ares` these now ask for it
     (`AUTH_ADMIN_KEEP`): Flatpak app/runtime install and uninstall, gvfs admin file operations
     (`org.gtk.vfs.file-operations-helper`, in effect root file access), NetworkManager system connections,
@@ -103,7 +104,7 @@ Nothing was pushed, signed or published to a registry. The release pin is unchan
     existing `ares` joins wheel on upgrade without passwd/shadow changes.
   - `test_inherited_homebrew`: expects `u:1001:r-x` (read and run, never write) with owner and content unchanged;
     new test that the earlier `u:1001:---` entry is replaced.
-  - `os/tests/guest.sh` (VM policy): `ares` in wheel with `(ALL) ALL` and `timestamp_type=ppid`, no passwordless
+  - `os/tests/guest.sh` (VM policy): `ares` in wheel with `(ALL) ALL` and `timestamp_timeout=0`, no passwordless
     rule, `sudo -n` failing; `flatpak` and `brew` executable; the other updaters still not.
   - `os/tests/inherited-homebrew.sh` (switch and rehearsal VMs): `ares` reads and runs the inherited brew, can't
     write the prefix, finds `/usr/bin/brew` and Homebrew on the login and session PATH, and an install without a
@@ -176,9 +177,9 @@ read-only commands ran directly, `install` went to `sudo -u '#1000'`, a missing 
 
 - A real labwc session on the laptop: the KDE polkit agent's dialog and his password in it; GUI Flatpak installs.
   The VM boot showed the session and terminals, not the agent's window.
-- Setting the password (`sudo passwd ares` as `ares-recovery`, package 22's guide), then real `sudo`, the per-process
-  password memory across two terminals, and `brew install` through the owner with the real Homebrew 7.0.9. CI used a
-  stand-in brew script and a fixture UID 1000.
+- Setting the password (`sudo passwd ares` as `ares-recovery`, package 22's guide), then real `sudo` on the laptop
+  and `brew install` through the owner with the real Homebrew 7.0.9. CI used a stand-in brew script, a fixture UID
+  1000, and a throwaway password set only inside the check container.
 - The updated laptop's own `/etc`: sysusers adding `ares` to an existing wheel line and the subid service writing next
   to `ares-recovery`'s ranges are covered by tests, a fresh image and a fresh VM, not by an updated installed system.
 - Real rootless podman and distrobox containers (CI proved the user-namespace mapping only).
@@ -200,10 +201,14 @@ read-only commands ran directly, `install` went to `sudo -u '#1000'`, a missing 
      Homebrew runs as `ares-recovery`, which his password already allows. Relative paths given to brew resolve from
      the prefix, not from his directory.
    - Reversal: delete `/usr/bin/brew` and the tmpfiles line; `sudo setfacl -x u:1001 /var/home/linuxbrew`.
-2. **sudo remembers his password per parent process (`timestamp_type=ppid`).**
-   - Chosen so a password typed in his shell can't be reused by Claude Code started from that shell, which sudo's
-     default per-terminal memory allows for 5 minutes. He still types it only once per shell per 5 minutes.
-   - Rejected: the default (reuse risk); `timestamp_timeout=0` (asks every single time).
+2. **sudo asks for his password every time (`timestamp_timeout=0`).** Corrected in the review fixes.
+   - The first version used `timestamp_type=ppid` and claimed Claude Code couldn't reuse a typed password. That was
+     wrong: a program started from his shell can `exec sudo -n …`, keep the shell as sudo's parent and reuse the
+     ticket, as sudo documents. The in-image check now proves the reuse under the old setting and its refusal under
+     the new one.
+   - Chosen: no ticket at all, like Windows' Yes prompt. Every `sudo`, and so every `brew install`, asks for the
+     password; for several admin steps in a row he can use one `sudo -s` or `sudo bash -c '…'`.
+   - Rejected: sudo's default per-terminal ticket and the per-parent ticket (both reusable by a program he starts).
    - Limit: Claude runs as `ares` and can edit his dotfiles, so a password typed into a shell Claude has tampered with
      could be captured. That holds for any agent running as the same user; no sudo setting fixes it.
    - Reversal: delete `/etc/sudoers.d/aresos-everyday`.
@@ -262,3 +267,56 @@ read-only commands ran directly, `install` went to `sudo -u '#1000'`, a missing 
 ## Open questions
 
 - None blocking. The JUDGMENT-CALLs above go to the owner before merge.
+
+## Review fixes (review 1: CHANGES-NEEDED at `80458b47`; brief `21-review-fixes.md`)
+
+Owner question board #156 is still open, so its points keep their current behaviour: Homebrew through UID 1000, and
+system-wide Wi-Fi and Flatpak installs asking for the password.
+
+1. **Blocker: sudo password reuse.** Fixed.
+   - `aresos-everyday` is now `Defaults:ares timestamp_timeout=0`: every `sudo` asks for his password and sudo keeps
+     no ticket. The review was right that `timestamp_type=ppid` let a program started from his shell `exec sudo -n`
+     and reuse the shell's ticket; JUDGMENT-CALL 2 is corrected above.
+   - New in-image test (`os/ci/image-checks.sh`): inside the check container only, `ares` gets a throwaway password
+     (read from a 0600 file, kept out of the trace). One shell authenticates with `sudo -S`, then a child keeps that
+     shell as sudo's parent and runs `exec sudo -n true`. Control first: with the old `timestamp_type=ppid` ticket the
+     child gets in, so the probe can see reuse. Then, with the image's real setting, the child is refused with
+     `a password is required` (exit 1, not the probe's own 90). The account is locked again afterwards.
+   - `guest.sh`, its shell-assertion fixture, `test_everyday_account`, `os/README.md` and OS-BASE follow
+     `timestamp_timeout=0`.
+2. **Blocker: passwordless boot and firmware control.** Fixed.
+   - `00-aresos-maintenance.rules` now denies `ares` outright, with or without the password:
+     `org.freedesktop.login1.set-reboot-to-firmware-setup`, `set-reboot-to-boot-loader-entry`,
+     `set-reboot-to-boot-loader-menu`, `set-reboot-parameter` (all `allow_active=yes` by default, so `yes` in the
+     earlier evidence) and `org.freedesktop.ModemManager1.Firmware` (modem firmware; `auth_admin` before). No other
+     boot or firmware action was `yes` in the evidence. Power off, reboot and suspend are unchanged.
+   - `polkit-check.js` now requires `no` both with and without wheel for the OS-change prefixes, for the new
+     `denied_actions`, and for any action whose name matches a boot/firmware pattern
+     (`firmware|boot-?loader|reboot-to|reboot-parameter|bootconfig|bios|kargs`), because inherited defaults never
+     show up as a wheel difference. `polkit-review.json` pins power-off, reboot and suspend as still passwordless.
+   - Checked locally against the real rules extracted from run 42715519293's image: the previous rule fails on
+     exactly these five actions; the new rule passes (62 actions denied to `ares`).
+3. **Should-fix: `foot` through PATH.** Fixed. `aresos-terminal` runs `/usr/bin/foot` with `/usr/bin/bash`.
+   - New tests: `test_everyday_account` runs the real wrapper, normal and recovery, with a broken `foot` first on
+     PATH and checks it never runs; `image-checks.sh` replaces `/usr/bin/foot` in the check container with a
+     recording stand-in, puts a broken `foot` in `~/.local/bin` (first on his login PATH), runs both terminals as
+     `ares` and checks that only `/usr/bin/foot` ran, with `ARESOS_TERMINAL` `recovery` and `normal`.
+   - Not changed: the recovery terminal still inherits his session PATH; only `foot` and the shell are pinned.
+
+Verification of the fixes:
+
+| Run | What | Result |
+|---|---|---|
+| 42721423312, 42721664820 | `build` | Cancelled by me before the checks ran, to fix the reuse probe first (password out of the trace; child kept out of bash's exec-in-place). |
+| 42721773111 | `build` | Failed at writing the throwaway password: root may not write into an `ares`-owned file in sticky `/tmp`. Moved to `/run`. |
+| **42723594272** | **`build` on `9c606fda`** | **Success.** 24 in-image PASS lines, including the two new ones: `after a successful sudo, a child exec of sudo -n is refused (the old ppid ticket allowed it)` and `both terminals run /usr/bin/foot even with a broken foot first on PATH`. `sudo -l` shows `timestamp_timeout=0`. `polkit: 21 rule files, 401 actions, 0 change with wheel, 62 denied to ares`, `POLKIT_CHECK_PASSED`, the check without the AresOS rule still fails; rootless mapping and lock equality pass. Evidence: `runs/build-42723594272/` (the trace shows the control's successful reuse and the real setting's `sudo: a password is required`). |
+| **42724943196** | **`checks_only=true` on `9c606fda`** | **Success.** `Ran 713 tests` `OK` natively with sudo (the new tests included), compile and syntax sweeps, live system-manager query. |
+
+- WSL, focused on the pushed `368e5510` (same tests as the final head): `test_everyday_account` 25 OK,
+  `test_shell_assertions` 8 OK, `test_checkout_sources` 4 OK; `test_sysusers` 2 errors (WSL's `sudo` needs a password,
+  as before). No full WSL suite: free memory stayed at 1.5 GB, under the 4 GB rule; the native run covers the suite.
+- Tests added: the reuse probe with its `ppid` control and the `/usr/bin/foot` stand-in check (`image-checks.sh`);
+  `test_a_broken_foot_first_on_path_is_never_run`; the denied-action list, its match with `polkit-review.json` and the
+  unchanged power actions in `test_polkit_rule_denies_os_changes_and_asks_for_upstream_wheel_grants`; the
+  `polkit-check.js` rules for denies with and without wheel and the boot/firmware name pattern. Changed:
+  `test_sysusers_adds_wheel_and_sudo_asks_for_the_password_every_time`, `guest.sh` and its shell-assertion fixture.
