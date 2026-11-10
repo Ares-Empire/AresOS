@@ -18,6 +18,43 @@ FLOWS = ('send', 'repair', 'delete_trash', 'delete_permanent', 'unsubscribe_mail
 
 
 class ActionContexts(unittest.TestCase):
+    def test_rename_rechecks_uidvalidity_on_the_mutation_connection_before_context(self):
+        for failed_result in (False, True):
+            with self.subTest(failed_result=failed_result):
+                scenario = OwnerScenario('filing_rename')
+                try:
+                    fixture = scenario.fixture
+                    safe_folder, write = fixture.mail.safe_folder, fixture.engine.store.write
+                    old = fixture.imap.validities['Source']
+                    result_writes = []
+                    def recreated(*args, **kwargs):
+                        source = safe_folder(*args, **kwargs)
+                        fixture.imap.validities['Source'] = old + 1
+                        fixture.imap.boxes['Source'] = {1: b'Message-ID: <replacement@mail.invalid>\r\n\r\nReplacement'}
+                        return source
+                    def persisted(changes, action, *args, **kwargs):
+                        if action == 'mail_folder_rename' and any(key.startswith('mail:rename:') and row and row['state'] != 'started'
+                                                                for key, row in changes.items()):
+                            result_writes.append(True)
+                            if failed_result:
+                                raise OSError(errno.ENOSPC, 'Synthetic result storage failure')
+                        return write(changes, action, *args, **kwargs)
+                    driver = Driver(scenario)
+                    with patch.object(fixture.mail, 'safe_folder', side_effect=recreated), patch.object(fixture.engine.store, 'write', side_effect=persisted), driver.observe():
+                        result = scenario.call()
+                    driver.reply(result)
+                    self.assertFalse(result['ok'], result)
+                    self.assertEqual(result['error']['code'], 'stale_reference', result)
+                    self.assertEqual(fixture.imap.validities['Source'], old + 1)
+                    self.assertNotIn('Renamed', fixture.imap.boxes)
+                    self.assertFalse(any(e['command'] == 'RENAME' for e in driver.oracle.servers))
+                    self.assertEqual(sum(e['command'] == 'SELECT' and e.get('folder') == 'Source' for e in driver.oracle.servers), 2)
+                    self.assertFalse(any(e['command'] == 'FETCH' for e in driver.oracle.servers))
+                    self.assertFalse(any(k.startswith('mail:rename:') for k in driver.snapshot().rows))
+                    self.assertFalse(result_writes, 'Stale namespace must stop before context or result storage')
+                finally:
+                    scenario.close()
+
     def test_healthy_rename_uses_uid_namespace_without_fetching_any_message_body(self):
         nested = b'Message-ID: <nested@mail.invalid>\r\n\r\nbody\r\n'
         for _ in range(45):
@@ -63,6 +100,8 @@ class ActionContexts(unittest.TestCase):
                         'uidvalidity': fixture.imap.validities['Renamed'], 'uid': 1}])
                     self.assertFalse(driver.oracle.context_errors())
                     self.assertFalse(any(e['command'] == 'FETCH' for e in driver.oracle.servers))
+                    self.assertEqual(sum(e['command'] == 'SELECT' and e.get('folder') == 'Source' for e in driver.oracle.servers), 2,
+                                     'Enumeration plus the R2 namespace check; no body reads')
                     self.assertEqual(fetches, [])
                 finally:
                     scenario.close()

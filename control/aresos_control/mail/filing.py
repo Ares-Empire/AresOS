@@ -65,12 +65,15 @@ LOCATION_PAGE_BYTES = 12 * 1024
 
 
 def rename_folder(mail, account, client, source, target, roles_before):
+    # safe_folder enumerates on another connection. A recreated mailbox has a
+    # different UID namespace even when its name and special roles stay equal.
+    if select(client, source['folder']) != source['uidvalidity']:
+        raise Refused('stale_reference', 'Folder changed; inspect it again before renaming.')
     filing_id = uuid.uuid4().hex
     intent = {'id': filing_id, 'source': source['folder'], 'target': target,
               'account': account['id'], 'message_count': len(source['uids']), 'roles_before': roles_before, 'state': 'started'}
     key = 'mail:rename:' + filing_id
-    # safe_folder already enumerated the exact UID namespace immediately before
-    # this call. Folder identity does not depend on MIME contents or body size.
+    # Folder identity does not depend on MIME contents or body size.
     identities = [{'account': account['id'], 'folder': source['folder'],
                    'uidvalidity': source['uidvalidity'], 'uid': uid} for uid in source['uids']]
     value = mail.mutation_context(account, 'RENAME', source=source['folder'], destination=target, identities=identities)
