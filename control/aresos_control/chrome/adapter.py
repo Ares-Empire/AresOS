@@ -667,7 +667,7 @@ class Chrome:
             facts=self.bridge.call('dialog_facts',tab=args['tab'])
             if facts['dialog'] != args['expected']:
                 raise Refused('stale_approval','Dialog or opener changed; read and prepare again.')
-            readonly=any(self.store.get('chrome:readonly:'+hostname(url),False) for url in [facts['url'],facts['dialog']['frame_url']])
+            readonly=any(self.store.get('chrome:readonly:'+hostname(url),False) for url in [facts['url'],facts.get('effective_url',facts['dialog']['frame_url'])])
             if readonly:
                 raise Refused('readonly_site','This site is read-only; the owner must answer its dialogs.')
             kind=classify('dialog',args,{'dialog':facts['dialog']},conservative=mode['conservative'])

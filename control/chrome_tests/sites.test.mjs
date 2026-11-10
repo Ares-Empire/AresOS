@@ -23,7 +23,7 @@ test('actual extension confirmation handler compares each field and consumes a m
     const plan={expected,browser_document:mismatch==='document'?'different-document':'document-1',matched:[]};
     let listener;
     const chrome={debugger:{onEvent:{addListener:fn=>{listener=fn;}}},webNavigation:{getAllFrames:async()=>[{frameId:0,documentId:'document-1',url:'http://github.test/'}]}};
-    const context=vm.createContext({recording:false,chrome,crypto:{randomUUID:()=> 'dialog'},safeURL:()=>{},wakeDialog:()=>{},
+    const context=vm.createContext({recording:false,chrome,crypto:{randomUUID:()=> 'dialog'},safeURL:()=>{},inlineFrame:()=>false,wakeDialog:()=>{},
       dialogs:new Map(),dialogTargets:new WeakMap(),preloadTargets:new Map(),targetKey:()=>'',armDialog:async()=>({nonce:'barrier',ready:Promise.resolve(),frames:[],owner:{hold:{}}}),finishFrames:async()=>false,controlled:new Map([[7,{epoch:'epoch',inputNonce:'nonce'}]]),dialogInputs:new WeakMap(),confirmationPlans:new Map([[7,plan]]),
       privacyDocuments:new Map([['document-1','private']]),nativeDialogStarts:new Map([['[7,"document-1"]',[{kind:'confirm',document:'private'}]]]),
       cdp:async(tab,method,args)=>accepted.push({tab,method,args})});

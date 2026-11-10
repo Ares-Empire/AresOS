@@ -562,10 +562,10 @@ async function facts(tab, reference) {
   if([...preloadTargets.values()].some(state=>state.tab===tab&&state.failures?.size))throw Error('refused: this tab could not install its document-start guard; open its address fresh in a Claude tab');
   if (reference && (reference.session !== session || reference.tab !== tab)) throw Error('stale_reference: browser session changed; read again');
   if(dialogs.has(tab)){
-    const dialog=dialogs.get(tab);safeURL(dialog.frame_url);
+    const dialog=dialogs.get(tab);safeURL(dialog.effective_url||dialog.frame_url);
     if(dialog.frame===undefined)throw Error('refused: dialog opener is not yet established; inspect with the owner');
     if(reference)throw Error('stale_reference: a native dialog is open; inspect and answer it first');
-    return {session,tab,group:groupId,control:controlled.get(tab).epoch,url:current.url,title:current.title,frames:[],frame_tree:[],dialog};
+    return {session,tab,group:groupId,control:controlled.get(tab).epoch,url:current.url,title:current.title,frames:[],frame_tree:[],...(dialog.effective_url?{effective_url:dialog.effective_url}:{}),dialog};
   }
   const frames = await chrome.webNavigation.getAllFrames({tabId:tab}) || [];
   const result=[],uncovered=[];
@@ -678,13 +678,13 @@ async function dispatch(command) {
   if (command.name === 'dialog_facts') {
     const current=await requireTab(tab), dialog=dialogs.get(tab);dispatchEpoch=controlled.get(tab).epoch;
     if(!dialog || dialog.frame === undefined)throw Error('refused: dialog opener is not yet established; inspect with the owner');
-    safeURL(dialog.frame_url);return {session,tab,control:controlled.get(tab).epoch,url:current.url,...(typeof current.title==='string'?{title:current.title}:{}),dialog};
+    safeURL(dialog.effective_url||dialog.frame_url);return {session,tab,control:controlled.get(tab).epoch,url:current.url,...(typeof current.title==='string'?{title:current.title}:{}),...(dialog.effective_url?{effective_url:dialog.effective_url}:{}),dialog};
   }
   if (command.name === 'dialog') {
     const current=await requireTab(tab), dialog=dialogs.get(tab);dispatchEpoch=controlled.get(tab).epoch;
-    const expected={session,tab,control:controlled.get(tab).epoch,url:current.url,...(typeof current.title==='string'?{title:current.title}:{}),dialog,...(dialog?.unguarded?{answer:{accept:command.input.accept,...(command.input.text===undefined?{}:{text:command.input.text})}}:{})};
+    const expected={session,tab,control:controlled.get(tab).epoch,url:current.url,...(typeof current.title==='string'?{title:current.title}:{}),...(dialog?.effective_url?{effective_url:dialog.effective_url}:{}),dialog,...(dialog?.unguarded?{answer:{accept:command.input.accept,...(command.input.text===undefined?{}:{text:command.input.text})}}:{})};
     if(!dialog || dialog.frame === undefined || stable(expected)!==stable(command.binding))throw Error('stale_approval: dialog or its opener changed');
-    safeURL(dialog.frame_url);
+    safeURL(dialog.effective_url||dialog.frame_url);
     if(command.operation && used.has(command.operation))throw Error('refused: dialog operation already attempted');
     if(dialog.unguarded){
       if(command.approved!==true||!command.operation)throw Error('refused: this unguarded dialog answer requires its exact approval');
@@ -697,7 +697,7 @@ async function dispatch(command) {
         if(completion){const result=await Promise.race([completion,wake.promise]);if(result?.interrupted)throw Error('unknown: dialog answer interrupted by Stop; inspect and never replay');}
       }finally{wake.dispose();}
       const steps=await collectSteps(tab,dispatchEpoch);
-      return {checked:true,dispatched:true,unguarded_continuation:true,needs_reload:!!owner.popupNeedsReload,steps,dialog:dialogs.get(tab)||null,page:{available:true,url:current.url,notice:"This dialog used a native function outside the page guard; its continuation isn't held. Existing private holds still apply."}};
+      return {checked:true,dispatched:true,unguarded_continuation:true,needs_reload:!!owner.popupNeedsReload,steps,dialog:dialogs.get(tab)||null,notice:"This dialog used a native function outside the page guard; its continuation isn't held. Existing private holds still apply.",page:await observation(tab)};
     }
     const armed=await armDialog(tab,command.conservative);dialogInputs.set(dialog,{epoch:dispatchEpoch,nonce:armed.nonce,managed:true});
     let uncertain_finish;
@@ -952,20 +952,29 @@ chrome.debugger.onEvent.addListener(async(source,method,params)=>{
   }
   if (method === 'Page.javascriptDialogOpening') {
     const tab=source.tabId;
-    try{safeURL(params.url);}catch{
+    const inherited=inlineFrame(params.url);
+    try{if(!inherited)safeURL(params.url);}catch{
       // The browser pushes dialog events for all attached frames. Exclude its
       // opener before accessing or retaining the message, and leave it to him.
       dialogs.set(tab,{frame_url:params.url,blocked:true});wakeDialog(tab);return;
     }
-    const dialog={id:crypto.randomUUID(),kind:params.type,text:params.message,frame_url:params.url,button:'OK'};
+    const dialog={id:crypto.randomUUID(),...(!inherited?{kind:params.type,text:params.message}:{}),frame_url:params.url,button:'OK'};
     dialogTargets.set(dialog,preloadTargets.get(targetKey(nativeSource)));
     const input=controlled.get(tab),nonce=input?.inputNonce,plan=confirmationPlans.get(tab);
     if(nonce)dialogInputs.set(dialog,{epoch:input.epoch,nonce});
     dialogs.set(tab,dialog);
     const frames=await chrome.webNavigation.getAllFrames({tabId:tab}) || [];
     if(dialogs.get(tab)!==dialog||controlled.get(tab)!==input||input?.inputNonce!==nonce)return;
-    const origins=frames.filter(frame=>frame.url===params.url);
-    if(origins.length===1){dialog.frame=origins[0].frameId;dialog.browser_document=origins[0].documentId;}
+    // CDP and webNavigation use different frame identifiers. Join them only
+    // through the private document identity authenticated by reader_ready.
+    const documents=[...preloadTargets.values()].filter(state=>state.tab===tab).flatMap(state=>[...state.documents.values()]).filter(doc=>doc.ready&&doc.frameId===params.frameId);
+    const authenticated=frames.filter(frame=>documents.some(doc=>privacyDocuments.get(frame.documentId)===doc.document));
+    const origins=authenticated.length===1?authenticated:inherited?[]:frames.filter(frame=>frame.url===params.url);
+    if(origins.length===1){
+      if(inherited){try{dialog.effective_url=frameAddress(origins[0],frames);}catch{dialog.blocked=true;wakeDialog(tab);return;}dialog.kind=params.type;dialog.text=params.message;}
+      dialog.frame=origins[0].frameId;dialog.browser_document=origins[0].documentId;
+    }
+
     const native=nativeDialogStarts.get(JSON.stringify([tab,dialog.browser_document]))?.at(-1);
     if(!native||native.kind!==dialog.kind||native.document!==privacyDocuments.get(dialog.browser_document))dialog.unguarded=true;
     const expected=plan?.expected;

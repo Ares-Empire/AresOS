@@ -40,13 +40,17 @@ inherited origins; selected native files are freshly SHA-256 hashed for each bin
 outer native host plus a primitive path resolved in the isolated world. Runtime.enable remains absent.
 
 Only plain Python/Node ran on this Mac. No local Chrome/Chromium or browser profile was accessed. Browser tests
-run only in GitHub Linux containers through control-chrome. Current local Node: **214 passed**, zero failed,
-cancelled or skipped. Focused Python: **48 OK**. The recovered previous full sweep is **188 OK, 292.209 s**;
-the new full sweep is running. The expanded mutation audit rejects **85 mutations**, every baseline passing.
+run only in GitHub Linux containers through control-chrome. Current local Node: **217 passed**, zero failed,
+cancelled or skipped. Focused Python: **49 OK**. The current full sweep is **189 OK, 232.606 s**
+(`PYTHONPATH=control:control/chrome_tests python3 -m unittest discover -s control/chrome_tests -v`).
+An initial invocation without PYTHONPATH failed to import test_bridge; the corrected complete run passed. The expanded mutation audit rejects **88 mutations**, every baseline passing.
 [Exact mutation commands/assertions](records/review-fixes-mutations.json) include bounded handoff, detachment,
 retained state/recovery, no false timeout after Page enabling, mandatory borrowed questions, exact answer binding,
 no automatic confirmation/trusted exemption, exact-once dispatch and prior-hold completion. Generated artifacts
-match; diff checks are clean.
+match; diff checks are clean. A further P23 regression observes the actual page after an outside-native answer.
+Native dialogs from inherited editor frames now join CDP and webNavigation identities through the authenticated
+private document, with inherited read-only checks. Six additional blank/srcdoc native cases are mandatory;
+their Linux proof is pending.
 
 **Partial Linux evidence; whole runs failed:**
 

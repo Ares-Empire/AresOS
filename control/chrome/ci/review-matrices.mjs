@@ -18,6 +18,14 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
       assert.equal(new URLSearchParams(received.body).get('reply'),kind==='alert'?'undefined':kind==='prompt'?(accept?'Synthetic answer':'null'):String(accept),'the cached native dialog must keep its return value');
     }
   });
+  await check('GROUP 4 REVIEW blank and srcdoc native dialogs answer with a held continuation',async()=>{
+    for(const variant of ['blank','srcdoc'])for(const kind of ['alert','confirm','prompt']){
+      const id='review-inline-dialog-'+variant+'-'+kind;await nav('review-page&mode=inline-dialog&variant='+variant+'&dialog='+kind+'&id='+id);await delay(600);
+      const opened=await rpc('click',await target('Continue'));assert.ok(opened.ok||opened.error.code==='unknown',JSON.stringify(opened));
+      const dialog=await eventually(async()=>(await call('read',{tab:getTab()})).dialog,'inline '+variant+' '+kind);assert.equal(dialog.kind,kind);assert.notEqual(dialog.frame,0);assert.equal(dialog.unguarded,undefined);assert.equal(receiverEvidence(id,'inline native dialog open').count,0);
+      const answer=await call('dialog',{tab:getTab(),expected:dialog,accept:true,...(kind==='prompt'?{text:'Inline answer'}:{})});assert.equal(receiverEvidence(id,'inline native answered with hold').count,0);await approval(answer,id);
+    }
+  });
   await check('GROUP 8 REVIEW preexisting dialogs hand off within bounds and recover after the owner answers',async()=>{
     for(const kind of ['alert','confirm','prompt']){
       const id='review-preexisting-'+kind,tab=getTab(),session=(await call('tabs')).session;

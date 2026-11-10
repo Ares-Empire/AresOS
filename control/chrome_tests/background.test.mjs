@@ -817,3 +817,32 @@ test('P1 a borrowed answer preserves and finishes a previous hold before returni
   const pending=f.run('dispatch(command).then(value=>{finished=true;return value})');pending.catch(()=>{});await spin(f,"typeof finishOld==='function'");for(let n=0;n<30;n++)await Promise.resolve();assert.equal(f.run('finished'),false);assert.equal(f.run('controlled.get(7).hold.inFlight'),true);
   f.run('finishOld(false)');await pending;assert.equal(f.run('controlled.get(7).hold.inFlight'),false);assert.equal(f.run('answers.length'),1);
 });
+test('P23 a borrowed dialog result observes the actual page after its native answer',async()=>{
+  const f=unguardedDialogFixture();f.run("globalThis.address='http://fixture.test/';chrome.tabs.get=async()=>({url:address,title:'Fixture',groupId:1});chrome.tabs.sendMessage=async()=>({ok:true,data:{url:address,title:'After native answer',notices:['Native handler completed']}});chrome.debugger.sendCommand=async(source,method,args)=>{if(method==='Page.handleJavaScriptDialog'){answers.push(args);dialogs.delete(7);address='http://fixture.test/after-native';}return {}};");
+  const result=await f.run('dispatch(command)');assert.equal(result.page.available,true);assert.equal(result.page.url,'http://fixture.test/after-native');assert.deepEqual(Array.from(result.page.notices),['Native handler completed']);
+});
+
+test('P2 native dialogs in blank and srcdoc frames use authenticated private documents',async()=>{
+  const source=fs.readFileSync('control/chrome/extension/background.js','utf8');
+  for(const address of ['about:blank','about:srcdoc'])for(const authentic of [true,false]){
+    const f=fixture();f.run("excludedHosts=[];groupId=1;controlled.set(7,{epoch:'epoch'});chrome.tabs.get=async()=>({url:'http://fixture.test/editor',groupId:1});chrome.debugger={onEvent:{addListener:fn=>{globalThis.onEvent=fn}}};");
+    f.run(`chrome.webNavigation={getAllFrames:async()=>[{frameId:0,parentFrameId:-1,documentId:'parent-native',url:'http://fixture.test/editor'},{frameId:2,parentFrameId:0,documentId:'child-native',url:${JSON.stringify(address)}}]};privacyDocuments.set('child-native',${JSON.stringify(authentic?'private-child':'replacement')});preloadTargets.set('child',{tab:7,documents:new Map([['main',{document:'private-child',frameId:'cdp-child',ready:true}]])});nativeDialogStarts.set('[7,"child-native"]',[{kind:'prompt',document:'private-child'}]);`);
+    f.run(source.slice(source.indexOf('chrome.debugger.onEvent.addListener('),source.indexOf('chrome.debugger.onDetach.addListener(')));
+    await f.run(`onEvent({tabId:7},'Page.javascriptDialogOpening',{frameId:'cdp-child',type:'prompt',message:'Inline native prompt',url:${JSON.stringify(address)}})`);
+    if(authentic){
+      const facts=await f.run("dispatch({name:'dialog_facts',tab:7})");assert.equal(facts.effective_url,'http://fixture.test/editor');assert.equal(facts.dialog.frame,2);assert.equal(facts.dialog.browser_document,'child-native');assert.equal(facts.dialog.unguarded,undefined);assert.equal(facts.dialog.text,'Inline native prompt');
+      assert.equal((await f.run('facts(7)')).dialog.frame,2);
+      f.run("globalThis.answers=0;armDialog=async()=>({nonce:'armed',frames:[],owner:controlled.get(7),ready:Promise.resolve()});cdp=async()=>{answers++;dialogs.delete(7)};finishFrames=async()=>false;collectSteps=async()=>[];observation=async()=>({available:false})");
+      await f.run(`dispatch({name:'dialog',tab:7,binding:${JSON.stringify(facts)},input:{accept:true,text:'Answer'}})`);assert.equal(f.run('answers'),1);
+    }else{
+      assert.equal(f.run('dialogs.get(7).text'),undefined,'no text retained before inherited opener authentication');await assert.rejects(f.run("dispatch({name:'dialog_facts',tab:7})"),/opener is not yet established/);
+    }
+  }
+});
+
+test('P2 native frame identity distinguishes two documents with the same HTTP address',async()=>{
+  const f=fixture(),source=fs.readFileSync('control/chrome/extension/background.js','utf8');
+  f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});chrome.debugger={onEvent:{addListener:fn=>{globalThis.onEvent=fn}}};chrome.webNavigation={getAllFrames:async()=>[{frameId:0,documentId:'a',url:'http://fixture.test/editor'},{frameId:2,documentId:'b',url:'http://fixture.test/editor'}]};privacyDocuments.set('b','private-child');preloadTargets.set('child',{tab:7,documents:new Map([['main',{document:'private-child',frameId:'cdp-child',ready:true}]])});");
+  f.run(source.slice(source.indexOf('chrome.debugger.onEvent.addListener('),source.indexOf('chrome.debugger.onDetach.addListener(')));
+  await f.run("onEvent({tabId:7},'Page.javascriptDialogOpening',{frameId:'cdp-child',type:'alert',message:'Exact child',url:'http://fixture.test/editor'})");assert.equal(f.run('dialogs.get(7).frame'),2);
+});

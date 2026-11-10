@@ -79,6 +79,10 @@ export function reviewPage(url){
   }else if(mode==='borrowed-dialog'){
     const kind=url.searchParams.get('dialog')||'confirm';body=form('<input type="hidden" name="reply">')+sink;
     script=`globalThis.reviewChange=()=>setTimeout(()=>{const reply=opener.firstScriptDialogs[${JSON.stringify(kind)}].call(window,'Borrowed native','Original prompt');document.querySelector('[name=reply]').value=String(reply);document.querySelector('form').submit();},20);`;
+  }else if(mode==='inline-dialog'){
+    const kind=url.searchParams.get('dialog');body='<button type="button">Continue</button><iframe id="child"></iframe>'+sink;
+    const markup=form('<input type="hidden" name="reply">');
+    script=`const child=document.querySelector('#child');${variant==='srcdoc'?`child.srcdoc=${JSON.stringify(markup)};`:`child.contentDocument.body.innerHTML=${JSON.stringify(markup)};`}document.querySelector('button').onclick=()=>{const reply=child.contentWindow[${JSON.stringify(kind)}]('Inline native','Synthetic default');child.contentDocument.querySelector('[name=reply]').value=String(reply);child.contentDocument.querySelector('form').submit();};`;
   }else if(mode==='native-dialog'){
     const kind=url.searchParams.get('dialog');
     body='<button type="button">Continue</button>'+form('<input type="hidden" name="reply" value="Unanswered">')+sink;

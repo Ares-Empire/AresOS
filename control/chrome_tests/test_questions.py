@@ -96,6 +96,15 @@ class Questions(unittest.TestCase):
         frame['selected_files'][0]['value'][0]['sha256']='b'*64
         self.assertNotEqual(before,binding(self.browser.facts,{'frame':0},'form',None))
 
+    def test_p2_inline_native_dialog_uses_authenticated_inherited_readonly_host(self):
+        native={'session':self.browser.session,'tab':1,'url':'https://fixture.test/','effective_url':'https://editor.test/','dialog':{'kind':'confirm','text':'Send this message?','frame':2,'frame_url':'about:srcdoc','effective_url':'https://editor.test/','button':'OK'}}
+        original=self.browser.call
+        self.browser.call=lambda name,**args:copy.deepcopy(native) if name=='dialog_facts' else original(name,**args)
+        prepared=self.call('dialog',{'tab':1,'expected':native['dialog'],'accept':True});self.assertTrue(prepared['ok'],prepared)
+        self.engine.store.write({'chrome:readonly:editor.test':True},'chrome_test_setup','Synthetic inherited readonly host')
+        refused=self.call('dialog',{'tab':1,'expected':native['dialog'],'accept':True});self.assertFalse(refused['ok'],refused);self.assertEqual(refused['error']['code'],'readonly_site')
+        self.assertFalse(self.call('submit',prepared['data']['approval'])['ok']);self.assertEqual(self.browser.dispatched,[])
+
     def test_p1_native_answer_keeps_the_service_conservative_policy(self):
         self.browser.version='159.0.1.0'
         native={'session':self.browser.session,'tab':1,'url':'https://fixture.test/','dialog':{'kind':'confirm','text':'Continue?','frame':0,'frame_url':'https://fixture.test/','button':'OK'}}

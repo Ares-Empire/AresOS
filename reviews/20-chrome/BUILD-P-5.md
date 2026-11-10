@@ -42,3 +42,30 @@ modes, and base/Mail/boundary twice remain required before acceptance.
 
 No local browser/profile was started, read or touched. Only Part P files changed.
 Ledger: 154 before the next push, expected 156 after, allowance approximately 175.
+
+
+### Final acceptance followup in progress
+
+P23 now collects a real bounded post-answer observation for a borrowed native
+answer; its fixed policy notice is separate from page evidence. The regression
+changes the address and notice in the native answer double and fails if the
+pre-answer snapshot is returned.
+
+P2/P1 also cover native alert/confirm/prompt from inherited blank/srcdoc editor
+frames. Their CDP frame IDs join webNavigation IDs through the authenticated
+private document; a missing or changed identity never admits inline dialog text.
+The inherited effective address remains in the bound facts and enforces the
+read-only host at preparation and final dispatch. Same-URL HTTP frames are
+resolved by the same native identity. Six Linux cases require answer plus held
+continuation and receiver 0/1/1; those results remain pending.
+
+Local Node: 217 pass, zero failed/cancelled/skipped; focused questions: 15 OK
+(total focused policy/questions/sites/unit 49); recovered full Python result:
+188 OK in 565.656 s. All 88 removal mutations failed with passing baselines.
+No browser ran locally. These additions will be batched with completed CI
+feedback before the next push.
+
+The current complete Python sweep passed: **189 OK, 232.606 s**, with
+`PYTHONPATH=control:control/chrome_tests`. The initial command omitted that import
+path and failed loading test_bridge; no test assertion or implementation changed
+to correct the invocation.
