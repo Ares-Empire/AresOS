@@ -197,7 +197,7 @@ class GuardTest(unittest.TestCase):
 
     def test_workflow_limits_and_both_ci_reservations_cover_the_owner_plan(self):
         job=yaml.load((ROOT/'.github/workflows/os-image.yml').read_text(),Loader=yaml.BaseLoader)['jobs']['rehearsal']
-        limits="${{ inputs.rehearsal == 'owner-tools' && 240 || (github.ref_name == 'pkg/14-owner-tools' || github.ref_name == 'pkg/16-staged-release') && inputs.rehearsal == 'probe' && 70 || (inputs.rehearsal == 'part-b' || inputs.rehearsal == 'keyboard') && 130 || 40 }}"
+        limits="${{ inputs.rehearsal == 'update' && 300 || inputs.rehearsal == 'owner-tools' && 240 || (github.ref_name == 'pkg/14-owner-tools' || github.ref_name == 'pkg/16-staged-release') && inputs.rehearsal == 'probe' && 70 || (inputs.rehearsal == 'part-b' || inputs.rehearsal == 'keyboard') && 130 || 40 }}"
         self.assertEqual(job['timeout-minutes'],limits)
         steps={s['name']:s for s in job['steps'] if 'name' in s}
         native=steps[guard.NATIVE_STEP]
@@ -209,11 +209,11 @@ class GuardTest(unittest.TestCase):
         self.assertIn('.work/browser-env/bin/pip --retries 5 --timeout 60 install playwright==1.58.0',native['run'])
         self.assertEqual(steps['Install pinned rehearsal tools on disposable runner']['timeout-minutes'],'20')
         self.assertEqual(steps['Prepare disposable file disks and qualify the real live environment']['timeout-minutes'],
-            "${{ inputs.rehearsal == 'owner-tools' && 200 || (inputs.rehearsal == 'part-b' || inputs.rehearsal == 'keyboard') && 106 || 80 }}")
+            "${{ inputs.rehearsal == 'update' && 270 || inputs.rehearsal == 'owner-tools' && 200 || (inputs.rehearsal == 'part-b' || inputs.rehearsal == 'keyboard') && 106 || 80 }}")
         reservation=limits.replace('&& 70','&& 72').replace('|| 40','|| 42')
         self.assertIn(reservation,steps['Reserve the separate 11c minute budget (including privacy checks)']['run'])
         self.assertEqual(steps['Require completed native preflight before any package 13 VM']['run'],
-            "python3 os/ci/rehearsal_guard.py ci '${{ (github.ref_name == 'pkg/14-owner-tools' || github.ref_name == 'pkg/16-staged-release') && 72 || 42 }}'")
+            "python3 os/ci/rehearsal_guard.py ci '${{ inputs.rehearsal == 'update' && 300 || (github.ref_name == 'pkg/14-owner-tools' || github.ref_name == 'pkg/16-staged-release') && 72 || 42 }}'")
 
     def test_new_head_requires_fresh_probe_and_owner_token_has_no_fallback(self):
         run=dict(event='workflow_dispatch',path='.github/workflows/os-image.yml',head_branch=guard.BRANCH,

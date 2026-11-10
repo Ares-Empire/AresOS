@@ -280,7 +280,7 @@ class NativeWalkTest(unittest.TestCase):
         job=workflow['jobs']['rehearsal']
         step,=[s for s in job['steps'] if s.get('name')=='Qualify tools, regressions, rewritten release identity and private access']
         self.assertNotIn('continue-on-error',step)
-        self.assertIn('if test "$GITHUB_REF_NAME" = pkg/14-owner-tools || test "$GITHUB_REF_NAME" = pkg/16-staged-release; then\n',step['run'])
+        self.assertIn('if test "$GITHUB_REF_NAME" = pkg/14-owner-tools || test "$GITHUB_REF_NAME" = pkg/16-staged-release || test "$GITHUB_REF_NAME" = pkg/27-first-update-release; then\n',step['run'])
         self.assertIn('sudo -E env -u GH_TOKEN python3 os/ci/owner_devices.py',step['run'])
         self.assertLess(step['run'].index('owner_devices.py'),step['run'].index('verify_release.py'))
 

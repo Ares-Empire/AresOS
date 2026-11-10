@@ -339,5 +339,85 @@ class PublishBranchTest(unittest.TestCase):
         self.assertLess(text.index('esac'), text.index('rehearsal_guard.py publish-ci'))
 
 
+class VerifyRelease27Test(unittest.TestCase):
+    """verify_release.py binds release 27 to its source trees and its own release job."""
+    TREES = {path: format(n, '040x') for n, path in enumerate(sorted(['os/Containerfile', 'os/.containerignore', 'os/build.sh',
+        'os/packages.lock.json', 'os/google-chrome.lock.json', 'os/config', 'os/policy', 'os/manifest/base.json',
+        'os/keys', 'os/tests/audit.py']), 1)}
+
+    def verify(self, release=None, job='Package 27 release build, image diff, VM and publish', head=None):
+        import ast, contextlib, io
+        source = 'b' * 40
+        release = release or dict(reference='ghcr.io/ares-empire/aresos@sha256:' + '27' * 32, source_commit=source,
+            visibility='private', base=json.loads((ROOT / 'os/manifest/base.json').read_text())['reference'],
+            run='https://github.com/Ares-Empire/AresOS/actions/runs/42807087845',
+            signature=dict(method='cosign keyless', issuer='https://token.actions.githubusercontent.com',
+                identity='https://github.com/Ares-Empire/AresOS/.github/workflows/os-image.yml@refs/heads/pkg/27-first-update-release'),
+            image_diff=dict(status='passed', unexplained=[]), job_token_read=dict(status='passed', owner_token_used=False),
+            source_trees=dict(self.TREES))
+        head = dict(self.TREES, **(head or {}))
+        run = dict(head_sha=source, path='.github/workflows/os-image.yml', head_branch='pkg/27-first-update-release',
+                   event='workflow_dispatch', display_title='Package 27 image release', run_attempt=1)
+        prefix = 'repos/Ares-Empire/AresOS/actions/runs/42807087845'
+
+        def output(command, **kwargs):
+            if command == ['git', 'rev-parse', '--is-shallow-repository']:
+                return b'false\n'
+            if command[:2] == ['git', 'rev-parse']:
+                return (head[command[2].removeprefix('HEAD:')] + '\n').encode()
+            self.assertEqual(command[:2], ['gh', 'api'])
+            return json.dumps(run if command[2] == prefix else dict(total_count=1, jobs=[dict(name=job, conclusion='success')])).encode()
+        original = pathlib.Path.read_text
+        read = lambda path, *a, **k: json.dumps(release) if path.as_posix() == 'evidence/release.json' else original(path, *a, **k)
+        path = ROOT / 'os/ci/verify_release.py'
+        with patch.object(sys, 'argv', ['verify_release.py', '42807087845']), \
+             patch.dict(os.environ, GITHUB_REPOSITORY='Ares-Empire/AresOS'), patch('pathlib.Path.read_text', read), \
+             patch('subprocess.check_output', side_effect=output), patch('subprocess.run') as git, \
+             contextlib.redirect_stdout(io.StringIO()), self.assertRaises(SystemExit) as done:
+            exec(compile(ast.parse(path.read_text()), str(path), 'exec'), {'__name__': '__main__'})
+        git.assert_not_called()  # no fetch or ancestry: a squash merge keeps the trees
+        return done.exception.code
+
+    def test_release27_passes_on_its_own_trees_and_job(self):
+        self.assertEqual(self.verify(), 0)
+
+    def test_a_changed_runtime_tree_another_job_or_identity_refuses(self):
+        with self.assertRaisesRegex(AssertionError, 'payload changed: os/config'):
+            self.verify(head={'os/config': 'f' * 40})
+        with self.assertRaisesRegex(AssertionError, 'must have succeeded'):
+            self.verify(job='image')
+        with self.assertRaises(AssertionError):
+            self.verify(release=dict(reference='ghcr.io/ares-empire/aresos@sha256:' + '27' * 32, source_commit='b' * 40,
+                visibility='private', base=json.loads((ROOT / 'os/manifest/base.json').read_text())['reference'],
+                run='https://github.com/Ares-Empire/AresOS/actions/runs/42807087845',
+                signature=dict(method='cosign keyless', issuer='https://token.actions.githubusercontent.com',
+                    identity='https://github.com/Ares-Empire/AresOS/.github/workflows/os-image.yml@refs/heads/main'),
+                image_diff=dict(status='passed', unexplained=[]), job_token_read=dict(status='passed', owner_token_used=False),
+                source_trees=dict(self.TREES)))
+
+
+class DispatchMatrixTest(unittest.TestCase):
+    def test_package27_runs_only_its_release_checks_and_update_rehearsal(self):
+        import yaml
+        from test_owner_staged_release import condition
+        workflow = yaml.load((ROOT / '.github/workflows/os-image.yml').read_text(), Loader=yaml.BaseLoader)
+        branch = {'github.ref_name': 'pkg/27-first-update-release'}
+        for mode in ('', 'inspect', 'fixture', 'probe', 'part-b', 'keyboard', 'owner-tools', 'update'):
+            for name, job in workflow['jobs'].items():
+                with self.subTest(mode=mode, job=name):
+                    self.assertEqual(condition(job['if'], mode=mode, **branch), name == 'rehearsal' and mode == 'update')
+        for name, job in workflow['jobs'].items():
+            with self.subTest(release=name):
+                self.assertEqual(condition(job['if'], mode='', **branch, **{'inputs.release_27': True}), name == 'release-27')
+                self.assertEqual(condition(job['if'], mode='', **branch, **{'inputs.checks_only': True}), name == 'regressions')
+                self.assertFalse(condition(job['if'], mode='update', **branch, **{'inputs.release_27': True}))
+        # No other branch can use the update rehearsal or the release-27 job.
+        for name, job in workflow['jobs'].items():
+            with self.subTest(other=name):
+                self.assertFalse(condition(job['if'], mode='update', **{'github.ref_name': 'pkg/23-minecraft-starts'}))
+                self.assertFalse(condition(job['if'], mode='', **{'github.ref_name': 'main', 'inputs.release_27': True})
+                                 and name == 'release-27')
+
+
 if __name__ == '__main__':
     unittest.main()

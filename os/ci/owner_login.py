@@ -187,11 +187,13 @@ def login_action(root, action, argument=0):
             time.sleep(.1)
         raise AssertionError('No fresh login prompt before username')
     if action == 'echo':
+        # The administrator by default; package 27 also logs in the daily account.
+        user=argument if argument in ('ares-recovery','ares') else 'ares-recovery'
         stable=0
         while login_remaining(state)>0:
             row=login_foreground(tty);_,line=screen(pathlib.Path('/dev/vcsa'+tty[3:]).read_bytes())
             assert row['pid']==state['getty']['pid'] and row['start']==state['getty']['start'], 'Username reader changed'
-            stable=stable+1 if line.endswith('ares-recovery') else 0
+            stable=stable+1 if line.endswith(user) and not line.endswith('-'+user) else 0
             if stable>=3:return dict(ready=True,echo_matches=True,value_recorded=False)
             time.sleep(.1)
         return dict(ready=False,reason='budget-exceeded')

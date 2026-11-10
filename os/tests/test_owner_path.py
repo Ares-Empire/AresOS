@@ -553,9 +553,15 @@ class OwnerPathTest(unittest.TestCase):
         hardware = next(line for line in status.splitlines() if line.startswith('| Early hardware / P1a |'))
         for value in ('**Brightness FAIL** (board #139)', '**Power-button gate OPEN** (board #140)', 'stay OPEN'):
             self.assertIn(value, hardware)
-        update = next(line for line in status.splitlines() if line.startswith('| Update route tools (package 22) |'))
-        for value in ('NOT USED', 'no newer release exists yet', 'no real update and no VM rehearsal',
-                      "with the owner's OK", 'pending-rebind.json', 'no new image or stage'):
+        update = next(line for line in status.splitlines() if line.startswith('| Update route (packages 22 and 27) |'))
+        # Package 27: the rehearsal's own bindings exist only once it passed;
+        # until then the row must forbid step 8 on the laptop.
+        if (ROOT/'os/manifest/ci/27/source-bindings.json').exists():
+            expected = ('VM REHEARSAL PASSED', 'actions/runs/', 'step 8 is the owner\'s own step')
+        else:
+            expected = ('VM REHEARSAL PENDING', 'do not run step 8 on the laptop until this row says PASSED')
+        for value in (*expected, 'NOT USED', 'R13 on the laptop', '27 report', '`daily_wheel: true`',
+                      'one-time password box', 'published privately'):
             self.assertIn(value, update)
         tools = next(line for line in status.splitlines() if line.startswith('| Post-release tools change |'))
         for value in ('PR #22', '3ef85c4a', 'unit-tested and reviewed', 'without a new VM rehearsal',
@@ -633,7 +639,8 @@ class OwnerPathTest(unittest.TestCase):
     def test_login_budget_is_below_hash_bound_shipped_policy_without_claiming_active_faillock(self):
         folder = ROOT/'reviews/15-owner-path/15e-login-policy'
         evidence = json.loads((folder/'index.json').read_text())
-        release = json.loads((ROOT/'os/manifest/release.json').read_text())
+        # 15e read release 13's image; that evidence stays release 13's.
+        release = json.loads((ROOT/'os/manifest/releases/13.json').read_text())
         self.assertEqual(evidence['image'], release['reference'])
         self.assertEqual(evidence['base'], release['base'])
         self.assertIn('FROM '+release['base'], (ROOT/'os/Containerfile').read_text())
@@ -807,7 +814,9 @@ class OwnerPathTest(unittest.TestCase):
         historical = json.loads((ROOT/'os/manifest/ci/11n/b-1/release.json').read_text())['reference']
         self.assertNotEqual(current, historical)
         self.assertIn('**R06 (historical):** `' + historical + '`', text)
-        self.assertIn('**R13 (current):** `' + current + '`', text)
+        previous = json.loads((ROOT/'os/manifest/releases/13.json').read_text())['reference']
+        self.assertIn('**R27 (current):** `' + current + '`', text)
+        self.assertIn('**R13 (previous):** `' + previous + '`', text)
         rows = [[v.strip() for v in line.strip('|').split('|')]
                 for line in section(text, 'current-gates').splitlines() if line.startswith('| ')]
         for row in rows[2:]:

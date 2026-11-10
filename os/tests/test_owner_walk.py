@@ -37,13 +37,49 @@ def retained(name):
     return json.loads((FIXTURES / (name + '-deployments.json')).read_text())
 
 
-def walk(ps2=False):
+UPDATE_STAGES = ['stock', 'tools-stock', 'corrected-stock', 'release-13', 'release-27', 'previous-13']
+QUALIFICATION_STAGES = ['stock','tools-stock','corrected-stock','layout-reset-trial','layout-reset-recovery','aresos','aresos-intl','aresos-back-de','rollback-stock','default-stock']
+
+
+def update_states(pair):
+    """Package 22's three-deployment shapes, built from the retained release 13 pair."""
+    old = next(d for d in pair['rpm']['deployments'] if d['booted'])
+    stock = next(d for d in pair['rpm']['deployments'] if d['pinned'])
+    reference = json.loads((ROOT / 'os/manifest/release.json').read_text())['reference']
+    new = copy.deepcopy(old)
+    new.update(checksum='c2' * 32, serial=0, **{'container-image-reference': 'ostree-unverified-registry:' + reference,
+                                               'container-image-reference-digest': reference.split('@')[1]})
+    def slot(row):
+        return dict(ostree=dict(checksum=row['checksum'], deploySerial=row['serial'], stateroot=row['osname']),
+            pinned=row['pinned'], image=dict(image=dict(image=row['container-image-reference'].split(':', 1)[1],
+            transport='registry'), imageDigest=row['container-image-reference-digest']))
+    def machine(*rows):
+        rows = [copy.deepcopy(r) for r in rows]
+        booted = next(i for i, r in enumerate(rows) if r['booted'])
+        staged = [r for r in rows if r.get('staged')]
+        others = [i for i, r in enumerate(rows) if not r.get('staged') and i != booted]
+        bootc = copy.deepcopy(pair['bootc'])
+        bootc['status'].update(booted=slot(rows[booted]), staged=slot(staged[0]) if staged else None,
+            rollback=slot(rows[others[0]]), rollbackQueued=others[0] < booted)
+        return dict(rpm=dict(copy.deepcopy(pair['rpm']), deployments=rows), bootc=bootc, bls=[])
+    up = lambda row, **kw: dict(copy.deepcopy(row), **kw)
+    return {'owner-update-staged': machine(up(new, booted=False, staged=True), up(old, booted=True), stock),
+            'release-27': machine(up(new, booted=True), up(old, booted=False), stock),
+            'owner-previous-queued': machine(up(old, booted=False), up(new, booted=True), stock),
+            'previous-13': machine(up(old, booted=True), up(new, booted=False), stock)}
+
+
+def walk(ps2=False, route='qualification'):
+    assert route in ('qualification', 'update')
     visits, commands, typed, checks, markers = [], [], [], [], []
     visible_blocks = []
     physical_cases = []
     prompt_waits, idle_answers, hidden_reads = {}, [], []
     hidden_shapes, wait_shapes = [], []
     pinned, pair, staged, queued, rolled = (retained(n) for n in ('after-pin', 'aresos', 'after-switch-staged', 'after-rollback-queued', 'rollback'))
+    updates = update_states(pair)
+    old_reference = json.loads((ROOT / 'os/manifest/releases/13.json').read_text())['reference']
+    new_reference = json.loads((ROOT / 'os/manifest/release.json').read_text())['reference']
     stock = copy.deepcopy(pinned['rpm']['deployments'][0])
     first = common.stock()
     first['bls'] = copy.deepcopy(pinned['bls'])
@@ -91,6 +127,7 @@ def walk(ps2=False):
                     and isinstance(n.func,ast.Attribute) and n.func.attr=='b64decode']
                 compile(base64.b64decode(encoded),'prepared-observer-model','exec')
             if name.endswith('-homebrew'): return 'f' * 64 + '  /home/linuxbrew/.linuxbrew/bin/brew\n'
+            if name.endswith('-policy'): return 'ARESOS_ACTIVE_SESSION_POLKIT_PASSED\nARESOS_GUEST_CHECKS_PASSED\n'
             return ''
 
         def capture_json(self, name, source):
@@ -160,7 +197,11 @@ def walk(ps2=False):
                 tty,=re.findall(r"pathlib.Path\('/dev/(vcsa[34])'",script)
                 tty='tty'+tty[-1]
                 predicate,=re.findall(r'^    if \((.*)\):$',script,re.M)
-                if "bool(re.search(r'" in predicate:
+                if "'updated successfully' in full" in predicate or "'a password is required' in full" in predicate:
+                    text=('passwd: all authentication tokens updated successfully.\nroot@bazzite:~#' if 'updated' in predicate
+                          else 'sudo: a password is required\n[ares@bazzite ~]$')
+                    raw=vcsa(text);kind='owner-output';shape='root-console-output'
+                elif "bool(re.search(r'" in predicate:
                     wait=name.rsplit('-sample-',1)[0]
                     prompt_waits[wait]=prompt_waits.get(wait,0)+1
                     if ps2 and self.stage not in ('stock','tools-stock'):
@@ -185,9 +226,30 @@ def walk(ps2=False):
             if name in ('offline-first-stock-link', 'stock-offline-login', 'live-offline-before-webui'):
                 return dict(status='passed', physical_link_down=True)
             if name == 'owner-record-list': return []
+            if name == 'update-tools-install-owner-result':
+                return dict(status='passed', trace=[], manifest=media.fingerprint, previous_manifest=vm.LAPTOP_TOOLS,
+                    previous_version=1, tools_version=2, releases=[dict(reference=old_reference), dict(reference=new_reference)])
+            if name.endswith('-owner-result') and route == 'update':
+                lines = {'owner-update-owner-result': ['Signed exact release staged ' + new_reference],
+                         'release-27-title-owner-result': ['Update to ' + new_reference + ' confirmed after the restart'],
+                         'owner-previous-owner-result': ['Previous AresOS queued for the next start ' + old_reference],
+                         'previous-13-title-owner-result': ['Return to ' + old_reference + ' confirmed after the restart']}
+                if name == 'previous-13-update-refused-owner-result':
+                    return dict(status='stopped', trace=[], error='Target release is already deployed; get help')
+                if 'refus' in name or '-dummy-' in name:
+                    return dict(status='stopped', trace=[],
+                        error='Private release read failed; check read:packages permission/expiry and network; no credential was written')
+                return dict(status='passed', trace=[], result=lines.get(name, []))
             if name.endswith('-owner-result'):
                 return dict(status='stopped' if 'refus' in name or '-dummy-' in name else 'passed', trace=[],
                     error='Private release read failed; check read:packages permission/expiry and network; no credential was written')
+            if name.endswith('-path-result'):
+                return dict(uid=1001, owner_uid=1001, path=vm.DAILY_PATH + ':/home/linuxbrew/.linuxbrew/bin')
+            if name.endswith('-rules'):
+                return dict(ares_in_wheel=True, sudo_all_with_password=True, sudo_keeps_no_ticket=True, sudo_n_refused=True,
+                    ares_password_set=True, chrome_started=True, chrome_stderr_tail='', chrome_version='Google Chrome 157.0.8103.50',
+                    session_path=vm.SYSTEM_PATH, hub_terminal_argv=vm.HUB_TERMINAL,
+                    aresos_shell=dict(browser=True, notepad=True, terminal=True), aresos_shell_executable=True)
             if name == 'owner-prepared': return dict(stock=stock,state=dict(rpm=pinned['rpm'],bootc=pinned['bootc']))
             if name == 'owner-switch-pending': return staged['bootc']
             if name == 'owner-rollback-pending': return queued['bootc']
@@ -268,19 +330,30 @@ def walk(ps2=False):
             self.last_visible_frame = None
 
     class Media:
-        fingerprint = '0' * 64
+        fingerprint = vm.LAPTOP_TOOLS if route == 'update' else '0' * 64
+        def replace(self, stage):
+            assert self.fingerprint == vm.LAPTOP_TOOLS and guest_media[0] is None
+            self.fingerprint = common.bundle.check(ROOT / 'os/owner-tools/payload')
+            checks.append(stage + '-windows-copy')
         def attach(self, guest, stage):
             assert guest.owner_signed_in and guest.owner_physical_signed_in
             guest.owner_media = self
+            guest_media[0] = self
             if ps2:vm.owner_xhci.checkpoint(guest,stage+'-model-after-hotplug',attached=True)
             checks.append(stage + '-hotplug')
         def detach(self, guest, stage):
             assert guest.owner_media is self
             guest.owner_media = None
+            guest_media[0] = None
             if ps2:vm.owner_xhci.checkpoint(guest,stage+'-model-after-detach',attached=False,needed=False)
             checks.append(stage + '-detach')
 
+    guest_media = [None]
+    media = Media()
+
     def snapshot(guest, stage):
+        if route == 'update' and stage in updates: return updates[stage]
+        if route == 'update' and stage == 'previous-13-after-refusal': return updates['previous-13']
         if stage == 'offline-first-stock': return first
         if stage == 'owner-switch-staged': return staged
         if stage == 'owner-rollback-queued': return queued
@@ -322,19 +395,26 @@ def walk(ps2=False):
         stack.enter_context(patch.object(vm.time, 'sleep'))
         stack.enter_context(patch.dict(os.environ, GITHUB_ACTOR='synthetic-user', GH_TOKEN='synthetic_only_0123', GITHUB_SHA='a'*40))
         audit = Mock()
-        vm.qualification(audit, Media(), 'yz-/!ü0123456789abcdef', 'SYNTHETIC-HASH')
-        result = json.loads((pathlib.Path(temporary) / 'owner-tools-result.json').read_text())
+        if route == 'update':
+            vm.update_rehearsal(audit, media, 'yz-/!ü0123456789abcdef', 'SYNTHETIC-HASH', 'abcdefghijklmnopqrstuvwx')
+            result = json.loads((pathlib.Path(temporary) / 'update-rehearsal-result.json').read_text())
+        else:
+            # The retained switch fixtures are release 13's first switch.
+            vm.qualification(audit, media, 'yz-/!ü0123456789abcdef', 'SYNTHETIC-HASH', release=old_reference)
+            result = json.loads((pathlib.Path(temporary) / 'owner-tools-result.json').read_text())
         assert result['status'] == 'passed'
-        assert audit.check.call_count == 10
+        assert audit.check.call_count == len(UPDATE_STAGES if route == 'update' else QUALIFICATION_STAGES)
         events = [json.loads(p.read_text()) for p in pathlib.Path(temporary).glob('*-resync-1.json')]
         assert len(events) == len(prompt_waits) and all(n == 2 for n in prompt_waits.values())
         assert all(e['enter_sent'] and e['ready'] and e['observer']['ready'] and
                    e['observer']['observation']['foreground_chain'] for e in events)
         assert all(wait + '-idle-1' in idle_answers for wait in prompt_waits)
-        ready_names = [name for name, phase in hidden_reads if phase == 'ready']
+        # passwd's first value completes when the same reader asks again (-repeat).
+        ready_names = [name for name, phase in hidden_reads if phase == 'ready' and not name.endswith('-repeat')]
         left_names = [name.removesuffix('-left') for name, phase in hidden_reads if phase == 'left']
+        left_names += [name.removesuffix('-repeat') for name, phase in hidden_reads if phase == 'ready' and name.endswith('-repeat')]
         assert ready_names and len(set(ready_names)) == len(ready_names) and set(ready_names) == set(left_names)
-    assert visits == ['stock','tools-stock','corrected-stock','layout-reset-trial','layout-reset-recovery','aresos','aresos-intl','aresos-back-de','rollback-stock','default-stock']
+    assert visits == (UPDATE_STAGES if route == 'update' else QUALIFICATION_STAGES)
     assert {'prepared-unattended-windows','offline-roundtrip-unattended-windows','offline-roundtrip-detached-windows','final-unattended-windows','final-detached-windows'} <= set(markers)
     assert checks.index('tools-stock-hotplug') < checks.index('tools-stock-detach') < checks.index('tools-stock-reboot-tools-absent')
     return dict(stages=visits, commands=commands, typed=typed, visible_blocks=visible_blocks, checks=checks, markers=markers,
@@ -374,6 +454,30 @@ class OwnerWalkTest(unittest.TestCase):
         self.assertTrue(any(name.endswith('-xhci-health') for name in names))
         for stage in ('aresos','aresos-intl','aresos-back-de','rollback-stock','default-stock'):
             self.assertTrue(any(name.startswith(stage) and name.endswith('-xhci-health') for name in names),stage)
+
+    def test_update_route_walks_the_laptop_tools_update_password_and_previous(self):
+        commands = json.loads((ROOT / 'os/owner-tools/commands.json').read_text())
+        for ps2 in (False, True):
+            with self.subTest(ps2=ps2):
+                result = walk(ps2=ps2, route='update')
+                typed = [text for text, profile in result['visible_blocks']]
+                # Steps 4 to 6 with the laptop's 15f bootstrap, step 8 with this guide's.
+                self.assertEqual(sum(t.rstrip('\n') == vm.laptop_commands()['install'] for t in typed), 1)
+                self.assertEqual(sum(t.rstrip('\n') == commands['install'] for t in typed), 1)
+                self.assertNotEqual(vm.laptop_commands()['install'], commands['install'])
+                for name in ('prepare', 'login', 'verify', 'switch', 'update', 'previous', 'check', 'title', 'records', 'export', 'reboot'):
+                    self.assertIn(commands[name] + '\n', typed, name)
+                order = [typed.index(commands['install'] + '\n'), typed.index(commands['update'] + '\n'),
+                         typed.index('sudo passwd ares\n'), typed.index('sudo -v\n'), typed.index(commands['previous'] + '\n')]
+                self.assertEqual(order, sorted(order))
+                self.assertIn('ares\n', typed)
+                self.assertIn('sudo -n true\n', typed)
+                self.assertIn('sudo-passwd-reader', {s['shape'] for s in result['hidden_shapes']})
+                checks = result['checks']
+                self.assertLess(checks.index('update-windows-copy-windows-copy'), checks.index('update-tools-hotplug'))
+                self.assertLess(checks.index('update-tools-hotplug'), checks.index('update-tools-detach'))
+                self.assertIn('owner-update-reboot-tools-absent', checks)
+                self.assertEqual(result['markers'][-2:], ['final-unattended-windows', 'final-detached-windows'])
 
     def test_live_offline_command_is_composed_and_checked(self):
         guest = object.__new__(vm.Guest)
@@ -467,7 +571,8 @@ class OwnerWalkTest(unittest.TestCase):
         saved=retained('after-pin')
         stock=saved['rpm']['deployments'][0]
         prepared=dict(stock_identity=list(common.owner.key(stock)), stock=stock, state=dict(rpm=saved['rpm'],bootc=saved['bootc']))
-        release=json.loads((ROOT/'os/manifest/release.json').read_text())['reference']
+        # The retained 13f states are release 13's.
+        release=json.loads((ROOT/'os/manifest/releases/13.json').read_text())['reference']
         for row in index['files']:
             self.assertEqual(hashlib.sha256((FIXTURES/row['file']).read_bytes()).hexdigest(),row['sha256'])
             state=json.loads((FIXTURES/row['file']).read_text())

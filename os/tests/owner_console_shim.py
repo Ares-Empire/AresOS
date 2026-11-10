@@ -94,6 +94,21 @@ def hidden_rows(physical, expected, phase, leaves=True, rejected=False):
             rows = rows[:4]
             rows[2]['tpgid'] = rows[3]['tpgid'] = rows[3]['pgrp']
         return rows, 'nested-owner-getpass' if phase != 'left' or not leaves else 'sudo-i-readline'
+    if expected['kind'] == 'passwd':
+        # Package 27: `sudo passwd ares` in the root console, passwd on sudo's pts.
+        if phase == 'left' and leaves:
+            login.update(tty=0,tpgid=-1)
+            return [login,shell], 'persistent-login-readline'
+        login.update(tty=0,tpgid=-1)
+        shell['tpgid'] = 3000
+        argv = ['sudo', *expected['argv']]
+        return [login,shell,row(3000,2926,3000,2926,physical,3000,'sudo',argv),
+            row(3001,3000,3001,3001,136*256+2,3002,'sudo',argv),
+            row(3002,3001,3002,3001,136*256+2,3002,'passwd',expected['argv'])], 'sudo-passwd-reader'
+    if expected == dict(kind='sudo', argv=['sudo', '-v'], next=dict(kind='shell')) and phase == 'left' and leaves:
+        # Package 27: his `sudo -v` in a plain tty4 login shell returns to it.
+        login.update(tty=0,tpgid=-1)
+        return [login,shell], 'persistent-login-readline'
     if expected['kind'] == 'login':
         if phase == 'left' and leaves and not rejected:
             login.update(tty=0,tpgid=-1)

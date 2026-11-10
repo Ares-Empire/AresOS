@@ -34,7 +34,9 @@ def require_runner():
     assert os.environ.get('GITHUB_REPOSITORY') == 'Ares-Empire/AresOS'
     assert ((os.environ.get('GITHUB_REF_NAME'),os.environ.get('REHEARSAL_PACKAGE')) == ('pkg/14-owner-tools','14') or
             (os.environ.get('GITHUB_REF_NAME'),os.environ.get('REHEARSAL_PACKAGE'),os.environ.get('REHEARSAL_MODE')) ==
-            ('pkg/16-staged-release','16','probe'))
+            ('pkg/16-staged-release','16','probe') or
+            (os.environ.get('GITHUB_REF_NAME'),os.environ.get('REHEARSAL_PACKAGE'),os.environ.get('REHEARSAL_MODE')) ==
+            ('pkg/27-first-update-release','27','update'))
 
 
 class Media:
@@ -65,9 +67,18 @@ class Media:
             raise
         return loop
 
-    def create(self):
+    def create(self, source=None):
+        """Format the stick and copy a bundle with the Windows helper.
+
+        source: an existing checked bundle (package 27: the laptop's older tools)
+        instead of this checkout's payload.
+        """
         assert not self.path.exists() and not self.payload.exists()
-        self.fingerprint = bundle_module('bundle').build(self.payload)
+        if source is None:
+            self.fingerprint = bundle_module('bundle').build(self.payload)
+        else:
+            shutil.copytree(source, self.payload)
+            self.fingerprint = bundle_module('owner').checked_bundle(self.payload)
         with self.path.open('xb') as output:
             output.truncate(128 * 1024 ** 2)
         subprocess.run(['sgdisk', '--clear', '--new=1:2048:0', '--typecode=1:0700', str(self.path)], check=True)
@@ -95,6 +106,42 @@ Copy-AresToolsPayload -Source $Source -Destination $Destination -Drive $drive
             manifest_sha256=self.fingerprint, source='Copy-AresToolsPayload in OwnerTools.psm1',
             filesystem='FUSE exFAT', label='ARESTOOLS', fsck_readonly=True, readonly_bundle_verified=True,
             file_backed=True, real_hardware=False))
+
+    def replace(self, stage):
+        """Step 8's Windows side: keep the old bundle under a dated name, copy the new one."""
+        assert not self.attached and self.fingerprint
+        old = self.fingerprint
+        payload = td.WORK / 'owner-payload-update'
+        assert not payload.exists()
+        fingerprint = bundle_module('bundle').build(payload)
+        assert fingerprint != old
+        renamed = 'ares-tools-replaced-' + time.strftime('%Y%m%d-%H%M', time.gmtime())
+        loop = self.mounted()
+        try:
+            owner_fuse.mount(loop + 'p1', self.mount)
+            assert (self.mount / 'ares-tools').is_dir() and not (self.mount / renamed).exists()
+            # The guide's three PowerShell lines, against the file-backed stick.
+            script = '''param($Source,$Destination,$Root,$Renamed)
+Rename-Item -LiteralPath $Destination -NewName $Renamed
+Import-Module ./docs/install-tools/OwnerTools.psm1 -Force
+$drive=@{Letter='T';DriveType='Removable';BusType='USB';IsBoot=$false;IsSystem=$false;
+Serial='VIRTUAL-TOOLS';FileSystem='exFAT';Root=$Root}
+Copy-AresToolsPayload -Source $Source -Destination $Destination -Drive $drive
+'''
+            path = td.WORK / 'replace-owner-tools.ps1'
+            path.write_text(script)
+            subprocess.run(['pwsh', '-NoProfile', '-File', str(path), str(payload), str(self.mount / 'ares-tools'),
+                            str(self.mount), renamed], check=True)
+            checked = bundle_module('owner').checked_bundle
+            assert checked(self.mount / 'ares-tools') == fingerprint and checked(self.mount / renamed) == old
+            subprocess.run(['sync', '-f', str(self.mount)], check=True)
+        finally:
+            owner_fuse.detach(loop, self.mount)
+        self.fingerprint = fingerprint
+        self.verify(stage)
+        td.save(stage + '-windows-copy', dict(status='passed', manifest_sha256=fingerprint, replaced_manifest_sha256=old,
+            replaced_folder=renamed, source='Rename-Item, then Copy-AresToolsPayload in OwnerTools.psm1',
+            image_sha256=self.expected, filesystem='FUSE exFAT', label='ARESTOOLS', real_hardware=False))
 
     def verify(self, stage):
         assert not self.attached

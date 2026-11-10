@@ -250,3 +250,27 @@ class RefusalTest(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+def release13_bundle(destination):
+    """These tools with release 13 as their newest release: the retained 13f fixtures' era."""
+    import hashlib
+    payload = ROOT / 'os/owner-tools/payload'
+    record = json.loads((ROOT / 'os/manifest/releases/13.json').read_text())
+    history = dict(tools_version=json.loads((payload / 'history.json').read_text())['tools_version'],
+                   releases=[dict(reference=record['reference'], identity=record['signature']['identity'], daily_wheel=False)])
+    files = {row['path']: (payload / row['path']).read_bytes() for row in json.loads((payload / 'SHA256.json').read_text())}
+    files['history.json'] = (json.dumps(history, indent=2) + '\n').encode()
+    files['release.json'] = (ROOT / 'os/manifest/releases/13.json').read_bytes()
+    destination = pathlib.Path(destination)
+    rows = []
+    for name in sorted(files):
+        (destination / name).parent.mkdir(parents=True, exist_ok=True)
+        (destination / name).write_bytes(files[name])
+        rows.append(dict(sha256=hashlib.sha256(files[name]).hexdigest(), path=name))
+    raw = (json.dumps(rows, indent=2) + '\n').encode()
+    sums = ''.join(r['sha256'] + '  ' + r['path'] + '\n' for r in rows) + hashlib.sha256(raw).hexdigest() + '  SHA256.json\n'
+    (destination / 'SHA256.json').write_bytes(raw)
+    (destination / 'SHA256SUMS').write_bytes(sums.encode())
+    assert owner.checked_bundle(destination) == hashlib.sha256(sums.encode()).hexdigest()
+    return destination

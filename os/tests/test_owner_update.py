@@ -30,7 +30,10 @@ from test_owner_devices import FixtureHost, fixture
 ROOT, owner = common.ROOT, common.owner
 PAYLOAD = ROOT / 'os/owner-tools/payload'
 VALUES = {r['kind']: r['value'] for r in json.loads((ROOT / 'os/tests/fixtures/owner-tools/retained-parsers.json').read_text())}
-RELEASE = json.loads((ROOT / 'os/manifest/release.json').read_text())
+# The modelled machine runs release 13, the laptop's release; R21 and R30 are
+# synthetic newer releases. The pinned release (27) is checked separately.
+RELEASE = json.loads((ROOT / 'os/manifest/releases/13.json').read_text())
+PINNED = json.loads((ROOT / 'os/manifest/release.json').read_text())
 R13 = RELEASE['reference']
 R21 = 'ghcr.io/ares-empire/aresos@sha256:' + '21' * 32
 R30 = 'ghcr.io/ares-empire/aresos@sha256:' + '30' * 32
@@ -133,6 +136,9 @@ def write_bundle(destination, history=None, target=None, drop=(), extra=None):
     files = {row['path']: (PAYLOAD / row['path']).read_bytes() for row in json.loads((PAYLOAD / 'SHA256.json').read_text())}
     if history is not None:
         files['history.json'] = (json.dumps(history, indent=2) + '\n').encode()
+    if target is None and 'history.json' in drop:
+        # A history-less (15f) bundle targets release 13, as on the laptop.
+        files['release.json'] = (ROOT / 'os/manifest/releases/13.json').read_bytes()
     if target is not None:
         release = copy.deepcopy(RELEASE)
         release['reference'], release['signature']['identity'] = target['reference'], target['identity']
@@ -365,8 +371,11 @@ class HistoryTest(unittest.TestCase):
     def test_reviewed_history_ends_with_the_pinned_release_and_r13_is_not_wheel(self):
         value = owner.lineage(PAYLOAD)
         self.assertEqual(value['tools_version'], 2)
-        self.assertEqual(value['releases'], H13)
-        self.assertEqual(value['releases'][-1]['reference'], RELEASE['reference'])
+        # Package 27 appended release 27, whose daily account is an administrator.
+        self.assertEqual(value['releases'][:1], H13)
+        self.assertEqual(value['releases'][-1], dict(reference=PINNED['reference'], identity=PINNED['signature']['identity'],
+                                                     daily_wheel=True))
+        self.assertEqual(len(value['releases']), 2)
         self.assertIs(value['releases'][0]['daily_wheel'], False)
         self.assertEqual((ROOT / 'os/owner-tools/history.json').read_bytes(), (PAYLOAD / 'history.json').read_bytes())
 
@@ -948,7 +957,10 @@ class ToolsUpdateTest(unittest.TestCase):
             self.assertEqual({k: v for k, v in records.items()}, {p.name: p.read_bytes() for p in (home / 'records').iterdir()
                                                                 if not p.name.endswith('-tools-update.json')})
             receipt = json.loads(next((home / 'records').glob('*-tools-update.json')).read_text())
-            self.assertEqual((receipt['previous_manifest'], receipt['manifest'], receipt['releases']), (old, fingerprint, H13))
+            # The reviewed bundle over the 15f tools: the laptop's own update, release 13 then 27.
+            self.assertEqual((receipt['previous_manifest'], receipt['manifest'], receipt['releases']),
+                             (old, fingerprint, owner.lineage(PAYLOAD)['releases']))
+            self.assertEqual([r['reference'] for r in receipt['releases']], [R13, PINNED['reference']])
             self.private.assert_any_call(home / 'tools')
             self.assertFalse(any(row.get('mutation') for row in host.trace))
             again = self.snapshot(home)
