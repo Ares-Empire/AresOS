@@ -11,8 +11,11 @@ def open_filings(store):
     return store._open_filings
 
 
-def unfinished(store, cutoff=None, keys=None):
-    if keys is not None:
+def unfinished(store, cutoff=None, keys=None, rows=None):
+    supplied = rows is not None
+    if supplied:
+        pass
+    elif keys is not None:
         rows = ((key, value) for key in sorted(keys) if (value := store.get(key)) is not None)
     elif cutoff is None:
         from itertools import chain
@@ -30,14 +33,17 @@ def unfinished(store, cutoff=None, keys=None):
     for key, value in rows:
         if key.startswith(('mail:filing:', 'mail:rename:')) and (value.get('state') == 'started' or value.get('check_open')):
             yield key, value['id'], 'mail', 'Filing was interrupted. Messages or folders may have moved into a special folder, including Trash. Nothing is moved back or deleted automatically. Check your mail program and the filing audit before repeating.'
-        elif key.startswith('op:') and value.get('state') in {'submitting', 'unknown', 'partial'}:
-            yield key, 'recovery-' + value['id'], value['app'], 'An approved operation or local repair is unfinished. Delivery, deletion, POST or APPEND may already have happened, and Sent copies may be duplicated. Inspect operation_status and the server; never resubmit automatically.'
+        elif key.startswith('op:') and (value.get('state') in {'submitting', 'unknown', 'partial'} or
+                value.get('state') == 'reserved' and not value.get('context_version')):
+            legacy = 'The context of this older operation is not yet checked. ' if not value.get('context_version') else ''
+            yield key, 'recovery-' + value['id'], value['app'], legacy + 'An approved operation or local repair is unfinished. Delivery, deletion, POST or APPEND may already have happened, and Sent copies may be duplicated. Inspect operation_status and the server; never resubmit automatically.'
         elif key.startswith('export:'):
             yield key, 'recovery-' + key[7:], value['app'], 'A caller export is unfinished. Its recovery space is still held. Inspect the destination file and recorded export before repeating or resolving it.'
         elif key.startswith('mail:account:') and not value.get('onboarded', value.get('ready', False)):
             yield key, 'recovery-' + digest(key)[:32], 'mail', 'Owner account setup is unfinished. Probes may already have sent mail or created folders. Inspect the setup log and server; never repeat probes automatically.'
         elif key.startswith('intent:'):
-            yield key, value['id'], value['app'], 'A change was interrupted before its completion was recorded. It may already have changed the server. Inspect the audit and your app before repeating.'
+            legacy = 'The context of this older change is not yet checked. ' if not value.get('context_version') else ''
+            yield key, value['id'], value['app'], legacy + 'A change was interrupted before its completion was recorded. It may already have changed the server. Inspect the audit and your app before repeating.'
 
     if not hasattr(store, 'legacy_intents'):
         latest = {}
@@ -53,7 +59,8 @@ def unfinished(store, cutoff=None, keys=None):
                 key = 'legacy-intent:' + action + ':' + str(seq)
                 store.legacy_intents.append((key, 'recovery-' + digest(key)[:32], action.split('_', 1)[0],
                     'A change in the older audit log has no recorded completion. It may already have changed the server. Inspect the audit and your app before repeating.'))
-    yield from store.legacy_intents
+    if not supplied:
+        yield from store.legacy_intents
 
 
 def recovery_notices(store, include_checks=True):
@@ -63,10 +70,18 @@ def recovery_notices(store, include_checks=True):
         keys.update(open_filings(store))
         keys.update(key for key, value in store.iter_items('mail:account:')
                     if not value.get('onboarded', value.get('ready', False)))
-    for key, notice_id, app, reason in unfinished(store, keys=keys):
+    sources = unfinished(store, keys=keys)
+    if include_checks:
+        from itertools import chain
+        legacy = ((key, value) for key, value in store.iter_items('op:') if key not in keys and
+            not value.get('context_version') and value.get('state') in {'reserved', 'submitting', 'unknown', 'partial'})
+        sources = chain(sources, unfinished(store, rows=legacy))
+    for key, notice_id, app, reason in sources:
         filing = key.startswith(('mail:filing:', 'mail:rename:'))
         account = key.startswith('mail:account:')
-        if (key, notice_id) not in candidates and not (include_checks and (filing or account)):
+        operation = store.get(key) if key.startswith('op:') else None
+        legacy = operation is not None and not operation.get('context_version')
+        if (key, notice_id) not in candidates and not (include_checks and (filing or account or legacy)):
             continue
         if filing:
             reason = ('Filing roles and locations are not yet checked. The interrupted check has no committed result. '

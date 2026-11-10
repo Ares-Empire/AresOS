@@ -51,6 +51,7 @@ class Oracle:
         self.commit_observations = {}
         self.repair_authority = {}
         self.source_ids = {}
+        self.legacy_sources = set()
 
     def resolve(self, kind, source, sequence=None, **proofs):
         if permitted(kind, proofs):
@@ -310,7 +311,7 @@ class Oracle:
                     if row['state'] in {'reserved', 'submitting', 'partial', 'unknown'} or (
                             key in self.operation_notices and 'operation:' + row['id'] not in self.acknowledged):
                         facts.add(Fact(key, 'pending', detail=canonical({'state': row['state'], 'reason': 'RESTORED_EVIDENCE' if 'restored' in row.get('reason', '').lower() and any(word in row.get('reason', '').lower() for word in ('newer', 'missing')) else row.get('reason')})))
-                if row['state'] in {'submitting', 'unknown', 'partial'} and (app is None or row['app'] == app):
+                if (row['state'] in {'submitting', 'unknown', 'partial'} or row['state'] == 'reserved' and key in self.legacy_sources) and (app is None or row['app'] == app):
                     facts.add(Fact(key, 'recovery'))
                 check = row.get('sent_copy_check', {})
                 if row['app'] == 'mail' and (app is None or app == 'mail'):
@@ -698,6 +699,8 @@ class Oracle:
                         if not min(c['clock'] for c in calls) * 1_000_000_000 - 1 <= value['created_at'] <= event['time'] * 1_000_000_000 + 1:
                             self.lifecycle_errors.add(Fact(key, 'notice-creation-time'))
                 if key.startswith('op:') and value:
+                    if not old and not value.get('context_version') and (event['seq'] <= getattr(self, 'seed_sequence', 0) or event['action'] == 'fixture'):
+                        self.legacy_sources.add(key)
                     if value.get('action', '').endswith('_operation_repair'):
                         candidates = [c for c in self.script if c['action'] == value['action'] and
                                       c.get('start_seq', -1) < event['seq'] <= c.get('end_seq', -1)]
@@ -780,7 +783,7 @@ class Oracle:
                                 value = {**value, 'app': apps.pop()}
                     if value.get('id') != key[3:]:
                         self.lifecycle_errors.add(Fact(key, 'operation-identity'))
-                    for field in ('id', 'app', 'action', 'payload', 'approval', 'expires', 'repair_of'):
+                    for field in ('id', 'app', 'action', 'payload', 'approval', 'expires', 'repair_of', 'context_version', 'roles_before'):
                         if field in old and value.get(field) != old[field]:
                             self.lifecycle_errors.add(Fact(key, 'changed-operation-context', detail=field))
                             value = {**value, field: old[field]}

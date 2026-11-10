@@ -291,7 +291,7 @@ class Driver:
         extra.enter_context(patch.object(receiver, 'accept', side_effect=receive))
         local_stage = receiver.local_stage
         def receiver_stage(operation_id, stage):
-            event = oracle.server('LOCAL_STAGE', 'fixture', identities=[{'operation_id': operation_id}], stage=stage, accepted=False, reply='lost')
+            event = oracle.server('LOCAL_STAGE', 'fixture', identities=[{'operation_id': operation_id}], stage=stage, accepted=False, reply='lost', **self.precommit())
             result = local_stage(operation_id, stage)
             event.update(accepted=True, reply='delivered')
             return result

@@ -54,6 +54,12 @@ def errors(record, script, after_sequence=0, servers=()):
                     fields.add('prior submitting operation')
                 if arguments.get('operation_id') != operation_id or operation.get('approval') != arguments:
                     fields.add('scripted approval')
+                context = operation.get('context', {})
+                expected_context = {'command': 'LOCAL_DELETE', 'account': 'fixture', 'arguments': arguments,
+                    'identities': [item['reference'] for item in arguments.get('description', {}).get('items', [])],
+                    'source': 'fixture/items', 'destination': None, 'roles': {}, 'recipients': []}
+                if any(context.get(field) != expected for field, expected in expected_context.items()):
+                    fields.add('exact mutation context')
                 targets = arguments.get('description', {}).get('items', [])
                 if not targets or operation.get('payload', {}).get('items') != targets:
                     fields.add('exact target references')

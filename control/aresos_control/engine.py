@@ -6,6 +6,7 @@ import sqlite3
 import time
 import uuid
 
+from .action_context import action_scope
 from . import retention
 from .adapters import NothingLeft, Uncertain
 from .blobs import Blobs
@@ -176,7 +177,9 @@ class Engine:
         approval = approval_input(op_id, {**description, "expires_at": expires}, question)
         op = {"id": op_id, "generation": self.store.generation, "app": app, "action": app + "_" + verb,
               "input_hash": digest(approval), "approval": approval, "payload": payload, "state": "reserved",
-              "expires": expires, "stages": {}, "reason": "Awaiting exact approval; nothing submitted."}
+              "expires": expires, "stages": {}, "context_version": 1, "reason": "Awaiting exact approval; nothing submitted."}
+        if app == 'mail':
+            op['roles_before'] = self.adapters[app].preparation_roles(payload)
         if app == 'mail' and payload.get('composition'):
             op['sent_copy_check'] = {'state': 'open'}
         self.store.write({"op:" + op_id: op}, op["action"], "reserved " + op["action"], op_id)
@@ -238,7 +241,8 @@ class Engine:
         self.store.write({"op:" + op["id"]: op}, action.name, "submitting", op["id"])
         self.store.checkpoint("submitting")
         try:
-            state, reason = adapter.execute(op, lambda name, outcome: self.stage(op["id"], name, outcome))
+            with action_scope(self.store, action.name, args, "op:" + op["id"]):
+                state, reason = adapter.execute(op, lambda name, outcome: self.stage(op["id"], name, outcome))
         except NothingLeft as exc:
             self.store.observations.storage(exc.__cause__ or exc)
             state, reason = "failed", "Submission stopped before delivery; no mail submitted." if action.app == "mail" else str(exc)
@@ -257,7 +261,7 @@ class Engine:
 
     def public_operation(self, op):
         result = {k: v for k, v in op.items() if k not in
-                  {'payload', 'input_hash', 'attempt_ended_at', 'repair_identity_missing',
+                  {'payload', 'input_hash', 'context', 'context_version', 'roles_before', 'attempt_ended_at', 'repair_identity_missing',
                    'sent_append_started_at', 'sent_append_ended_at', 'sent_copy_check', 'warning_checks'} and v is not None}
         if op.get('repair_identity_missing'):
             result['reason'] += ' Permanent repair stage identity is missing; another repair is refused.'
@@ -373,12 +377,13 @@ class Engine:
         repair = {"id": op_id, "generation": self.store.generation, "app": app, "action": app + "_operation_repair",
                   "approval": approval, "input_hash": digest(args), "payload": args,
                   "state": "reserved", "stages": {}, "reason": "Reserved local repair only.", "expires": time.time() + self.ttl,
-                  "repair_of": old["id"]}
+                  "repair_of": old["id"], "context_version": 1, "roles_before": old.get("roles_before", {})}
         self.store.write({"op:" + op_id: repair}, repair["action"], "reserved local repair of " + old["id"], op_id)
         repair.update(state="submitting", reason="Repairing local stage only.")
         self.store.write({"op:" + op_id: repair}, repair["action"], "local repair of " + old["id"], op_id)
         try:
-            result = self.adapters[app].repair(old, args["stage"])
+            with action_scope(self.store, repair["action"], args, "op:" + op_id):
+                result = self.adapters[app].repair(old, args["stage"])
             self.store.observations.stage(old['id'], args['stage'], result)
             old = self.operation(old['id'], app)
             old["stages"][args["stage"]] = result

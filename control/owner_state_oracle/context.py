@@ -3,7 +3,7 @@ from email.utils import getaddresses
 
 ROLES = ('sent', 'drafts', 'trash', 'junk', 'archive')
 UID_COMMANDS = {'MOVE', 'COPY', 'STORE', 'EXPUNGE'}
-MUTATIONS = UID_COMMANDS | {'DATA', 'APPEND', 'CREATE', 'DELETE', 'RENAME', 'POST', 'RECEIVE', 'CONFIGURE'}
+MUTATIONS = UID_COMMANDS | {'DATA', 'APPEND', 'CREATE', 'DELETE', 'RENAME', 'POST', 'RECEIVE', 'CONFIGURE', 'LOCAL_STAGE'}
 
 
 def special_roles(value):
@@ -155,6 +155,8 @@ def required(event, script):
         description = call.get('arguments', {}).get('description', {})
         result.update(source='fixture', destination='receiver', identities=event['identities'],
                       recipients=description.get('to', []) + description.get('cc', []) + description.get('bcc', []))
+    elif command == 'LOCAL_STAGE':
+        result.update(source='fixture', destination='receiver/' + event['stage'], identities=event['identities'], stage=event['stage'])
     elif command == 'CONFIGURE':
         result.update(source='fixture', destination='receiver/config', arguments=event.get('arguments'))
     return result
@@ -173,6 +175,8 @@ def permitted(row, call):
         return {'MOVE'} if mode == 'trash' else {'STORE', 'EXPUNGE'} if mode == 'permanent' else set()
     if action in {'mail_folder_delete', 'mail_onboarding_folder_probe'}:
         return {'DELETE'}
+    if action == 'testapp_operation_repair':
+        return {'LOCAL_STAGE'}
     if action == 'mail_operation_repair':
         stage = arguments.get('stage')
         return {'APPEND'} if stage == 'sent_copy' else {'STORE'} if stage == 'answered_flag' else set()
@@ -182,7 +186,7 @@ def permitted(row, call):
         return {'DATA', 'APPEND', 'STORE'}
     return {'mail_move': {'MOVE'}, 'mail_copy': {'COPY'}, 'mail_folder_rename': {'RENAME'},
             'mail_folder_create': {'CREATE'}, 'mail_draft_save': {'APPEND'}, 'mail_flag': {'STORE'},
-            'testapp_send': {'RECEIVE'}, 'testapp_fixture_configure': {'CONFIGURE'}}.get(action)
+            'testapp_send': {'RECEIVE', 'LOCAL_STAGE'}, 'testapp_fixture_configure': {'CONFIGURE'}}.get(action)
 
 
 def differences(event, script, servers=()):
@@ -309,6 +313,10 @@ def script_differences(event, script, row, context, servers=()):
         expected['body'] = 'List-Unsubscribe=One-Click'
         if 'reference' in description:
             expected['source'] = description['reference']
+    if command == 'LOCAL_STAGE':
+        expected['identities'] = [{'operation_id': args.get('operation_id')}]
+        if action == 'testapp_operation_repair':
+            expected['stage'] = args.get('stage')
     if command == 'CONFIGURE':
         expected['arguments'] = args
     for field, value in expected.items():

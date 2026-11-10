@@ -1,4 +1,5 @@
 """Fake app and a durable far-side receiver. Neither uses a network or real account."""
+from .action_context import context as action_context, mutation
 import json
 from pathlib import Path
 import sqlite3
@@ -105,7 +106,10 @@ class TestApp:
         data = self.store.get("testapp")
         item = data["items"][args["reference"]["id"]]
         item["flagged"], item["revision"] = args["flagged"], item["revision"] + 1
-        self.store.write({"testapp": data}, "testapp_flag", f"flag exact item {item['id']}={item['flagged']}; revision {item['revision']}")
+        value = action_context(self.store, 'LOCAL_FLAG', 'fixture', identities=[args['reference']],
+            source='fixture/items', destination='fixture/items', arguments=args)
+        with mutation(self.store, value, action='testapp_flag'):
+            self.store.write({"testapp": data}, "testapp_flag", f"flag exact item {item['id']}={item['flagged']}; revision {item['revision']}")
         return {"reference": self.reference(item), "flagged": item["flagged"]}
 
     def call(self, verb, args):
@@ -120,9 +124,9 @@ class TestApp:
         if verb == "flag":
             return self.flag(args)
         if verb == "fixture_configure":
-            self.store.write({}, "testapp_fixture_configure", "configure fake receiver", outcome="started")
-            self.receiver.configure(args)
-            self.store.write({}, "testapp_fixture_configure", "configured fake receiver", outcome="done")
+            value = action_context(self.store, 'CONFIGURE', 'fixture', source='fixture', destination='receiver/config', arguments=args)
+            with mutation(self.store, value, action='testapp_fixture_configure'):
+                self.receiver.configure(args)
             return args
         raise Refused("invalid_input", "Unsupported adapter action; inspect its tool list.")
 
@@ -181,7 +185,10 @@ class TestApp:
             for target in payload["items"]:
                 data = self.store.get("testapp")
                 data["items"].pop(target["reference"]["id"])
-                self.store.write({"testapp": data}, "testapp_delete", "deleted exact item " + target["reference"]["id"], operation["id"])
+                value = action_context(self.store, 'LOCAL_DELETE', 'fixture', identities=[item['reference'] for item in payload['items']],
+                    source='fixture/items', destination=None)
+                with mutation(self.store, value):
+                    self.store.write({"testapp": data}, "testapp_delete", "deleted exact item " + target["reference"]["id"], operation["id"])
                 self.store.checkpoint("deleted:" + target["reference"]["id"])
                 stage("target:" + target["reference"]["id"], "deleted")
             return "done", "All exact targets deleted."
@@ -189,7 +196,10 @@ class TestApp:
         outgoing = {**payload, "attachment_bytes": [self.blobs.read(b["sha256"]).hex() for b in payload["attachments"]]}
         accepted, refused = 0, 0
         for recipient in payload["to"] + payload["cc"] + payload["bcc"]:
-            result = self.receiver.accept(operation["id"], recipient, outgoing)
+            value = action_context(self.store, 'RECEIVE', 'fixture', source='fixture', destination='receiver',
+                identities=[{'operation_id': operation['id']}], recipients=payload['to'] + payload['cc'] + payload['bcc'])
+            with mutation(self.store, value):
+                result = self.receiver.accept(operation["id"], recipient, outgoing)
             stage("recipient:" + recipient, result)
             accepted += result == "accepted"
             refused += result == "refused"
@@ -197,7 +207,10 @@ class TestApp:
             return "failed", "No recipient accepted; nothing left the fixture sender."
         for name in ("sent_copy", "answered_flag"):
             try:
-                self.receiver.local_stage(operation["id"], name)
+                value = action_context(self.store, 'LOCAL_STAGE', 'fixture', source='fixture', destination='receiver/' + name,
+                    identities=[{'operation_id': operation['id']}], stage=name)
+                with mutation(self.store, value):
+                    self.receiver.local_stage(operation["id"], name)
                 stage(name, "done")
             except RuntimeError as exc:
                 stage(name, "failed")
@@ -208,5 +221,8 @@ class TestApp:
         # The independent fixture evidence qualifies local repair, never recipient submission.
         if operation["action"] != "testapp_send" or not self.evidence(operation["id"])["arrivals"]:
             raise Refused("refused", "No accepted-send evidence for this local repair; inspect operation_status.")
-        self.receiver.local_stage(operation["id"], which)
+        value = action_context(self.store, 'LOCAL_STAGE', 'fixture', source='fixture', destination='receiver/' + which,
+            identities=[{'operation_id': operation['id']}], stage=which)
+        with mutation(self.store, value):
+            self.receiver.local_stage(operation["id"], which)
         return "done"

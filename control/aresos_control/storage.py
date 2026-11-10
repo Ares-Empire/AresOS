@@ -510,7 +510,18 @@ class Store:
         self.checkpoint("journal_committed")
 
     @recorded_write
-    def write(self, changes, action, summary, operation_id=None, restoring=False, outcome="done", untrusted_content=None, recovery=False):
+    def write(self, changes, action, summary, operation_id=None, restoring=False, outcome="done", untrusted_content=None, recovery=False, intent_context=None, intent_arguments=None):
+        # Stage/outcome writers may hold an earlier object. Preserve additive
+        # mutation context while keeping the exact older versions in history.
+        if not restoring:
+            changes = dict(changes)
+            for key, value in changes.items():
+                if isinstance(value, dict) and key.startswith(('op:', 'intent:', 'mail:filing:', 'mail:rename:')):
+                    previous = self.get(key) or {}
+                    for field in ('context', 'context_version'):
+                        if field not in value and field in previous:
+                            value = {**value, field: previous[field]}
+                    changes[key] = value
         if any(key.startswith(('mail:filing:', 'mail:rename:')) for key in changes):
             self._open_filings = None
         self.ensure_writable()
@@ -524,7 +535,7 @@ class Store:
         # This covers APPEND/draft, flags, folder creation, settings and future
         # adapters using started/done, in the same admitted transaction.
         intent_key = self.active_intents.get(action)
-        explicit = operation_id or any(k.startswith(('op:', 'mail:filing:', 'mail:rename:',
+        explicit = operation_id or any(k.startswith(('op:', 'intent:', 'mail:filing:', 'mail:rename:',
                                                      'export:', 'mail:account:')) for k in changes)
         tracked_intent = not explicit and (outcome == 'started' or intent_key is not None)
         if tracked_intent:
@@ -534,7 +545,11 @@ class Store:
                 # attempt of the same action. Only this live call owns its key.
                 intent_key = 'intent:' + uuid.uuid4().hex
                 changes[intent_key] = {'id': 'recovery-' + intent_key[7:], 'action': action,
-                    'app': action.split('_', 1)[0], 'state': 'started'}
+                    'app': action.split('_', 1)[0], 'state': 'started', 'context_version': 1}
+                if intent_context is not None:
+                    changes[intent_key]['context'] = copy.deepcopy(intent_context)
+                if intent_arguments is not None:
+                    changes[intent_key]['arguments'] = copy.deepcopy(intent_arguments)
             elif outcome in {'done', 'partial', 'refused'}:
                 changes[intent_key] = None
             else:

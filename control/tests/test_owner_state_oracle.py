@@ -553,6 +553,8 @@ class OwnerOracle(unittest.TestCase):
         arguments = {'operation_id': 'g:d', 'description': {'account': 'fixture', 'items': [target]}}
         operation = {'id': 'g:d', 'action': 'testapp_delete', 'app': 'testapp', 'state': 'submitting',
                      'approval': copy.deepcopy(arguments), 'payload': {'items': [target]}}
+        operation['context'] = {'command': 'LOCAL_DELETE', 'account': 'fixture', 'arguments': copy.deepcopy(arguments),
+            'identities': [target['reference']], 'source': 'fixture/items', 'destination': None, 'roles': {}, 'recipients': []}
         oracle = Oracle()
         oracle.call('testapp_delete', arguments, 1)
         events = [
@@ -598,6 +600,8 @@ class OwnerOracle(unittest.TestCase):
         operation = record.events[0]['set']['op:g:d']
         operation['payload']['items'] = copy.deepcopy(oracle.script[0]['arguments']['description']['items'])
         operation['approval'] = copy.deepcopy(oracle.script[0]['arguments'])
+        operation['context']['arguments'] = copy.deepcopy(oracle.script[0]['arguments'])
+        operation['context']['identities'] = [item['reference'] for item in operation['payload']['items']]
         record.events[2]['seq'] = 4
         record.events.insert(2, {'seq': 3, 'time': 1, 'action': 'testapp_delete', 'operation_id': 'g:d',
                                 'set': {'testapp': {'epoch': 'epoch', 'items': {}}}})
@@ -1729,3 +1733,13 @@ class StageTwoPartA(unittest.TestCase):
         with patch('owner_state_oracle.perturb.mutations', return_value=iter(selected)):
             with self.assertRaisesRegex(AssertionError, 'Unaudited decoded fields'):
                 check('new-field', Oracle(), record)
+
+    def test_frozen_oracle_does_not_retain_the_live_production_driver(self):
+        from owner_state_oracle.perturb import freeze
+        oracle = Oracle()
+        oracle.response_observer = lambda *_: None
+        oracle.call('mail_accounts', {}, 1)
+        frozen = freeze(oracle)
+        oracle.script[0]['arguments']['later'] = True
+        self.assertIsNone(frozen.response_observer)
+        self.assertEqual(frozen.script[0]['arguments'], {})

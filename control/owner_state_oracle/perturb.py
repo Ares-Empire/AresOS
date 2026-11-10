@@ -227,6 +227,11 @@ def freeze(oracle):
     for key, value in oracle.__dict__.items():
         if key not in {'response_observer', 'validated_input', 'validated_record'}:
             setattr(result, key, copy.deepcopy(value))
+    # The callback retains its live Driver, engine and queued envelopes. It is
+    # recorder plumbing, never an expectation input. Frozen replays need none.
+    result.response_observer = None
+    result.validated_input = None
+    result.validated_record = None
     return result
 
 
