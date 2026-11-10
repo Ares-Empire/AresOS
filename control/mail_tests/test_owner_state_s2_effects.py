@@ -92,6 +92,20 @@ class EffectRegressions(unittest.TestCase):
         self.assertTrue(any(f.kind == 'unapproved-probe-payload' and f.detail == 'empty' for _, f in errors))
         check('onboarding-empty', oracle, decoded, candidates=[('coherent/empty', 'boolean', (replay, changed))])
 
+    def test_removed_internal_repair_parent_reaches_the_semantic_comparison(self):
+        from owner_state_plants import record
+        from owner_state_oracle.perturb import coherent_change, check
+        oracle, decoded, deltas = record('onboarding')
+        self.assertFalse(deltas)
+        event = next(e for e in reversed(decoded.events) if any((v or {}).get('repair_of')
+                     for v in e['set'].values() if isinstance(v, dict)))
+        key = next(k for k, v in event['set'].items() if v and v.get('repair_of'))
+        replay, changed = coherent_change(oracle, decoded, key, ('repair_of',), 'key-deletion', since=event['seq'])
+        _, errors = evaluate(replay, changed)
+        self.assertTrue(any(f.kind == 'false-completion' for _, f in errors), errors)
+        check('onboarding-repair-parent', oracle, decoded,
+              candidates=[('coherent/repair-parent', 'key-deletion', (replay, changed))])
+
     def test_onboarding_effect_join_requires_its_call_identity_and_smtp_transaction(self):
         from owner_state_plants import record
         from owner_state_oracle.perturb import clone

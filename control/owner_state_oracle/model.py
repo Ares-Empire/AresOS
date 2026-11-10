@@ -1836,7 +1836,7 @@ class Oracle:
                 command = {'sent_copy': 'APPEND', 'answered_flag': 'STORE'}.get(stage)
                 matches = [e for e in self.servers if e['command'] == command and e['accepted'] and
                            e['reply'] == 'delivered' and self.bound(e)[0] == key and
-                           (not self.onboarding_call(key) or any(i.get('message_id') == '<' + operation['repair_of'].replace(':', '.') + '@mail.aresos.invalid>' for i in e.get('identities', [])))]
+                           (not self.onboarding_call(key) or any(i.get('message_id') == '<' + str(operation.get('repair_of', '')).replace(':', '.') + '@mail.aresos.invalid>' for i in e.get('identities', [])))]
                 settled = any(e['command'] == 'SENT' and e.get('source') == 'op:' + str(operation.get('repair_of')) and e['identities'] for e in self.servers)
                 if not matches and not (stage == 'sent_copy' and settled):
                     errors.add(Fact(key, 'false-completion', detail='Approved repair stage lacks delivered effect or read-only settlement evidence'))
