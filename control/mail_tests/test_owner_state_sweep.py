@@ -13,7 +13,7 @@ from unittest.mock import patch
 from aresos_control.engine import Engine
 from owner_state_oracle.driver import Driver
 from owner_state_oracle.model import Oracle
-from owner_state_oracle.gaps import Gaps
+from owner_state_oracle.gaps import Gaps, owner, BUCKETS, SUITE_BUCKETS
 from owner_state_oracle.clock import scripted_calendar
 from owner_state_oracle.identity import scripted_ids, caller_name, caller_directory
 from test_review23_sweep import Scenario
@@ -311,8 +311,8 @@ class OwnerStateSweep(unittest.TestCase):
         self.assertEqual(results[0], results[1])
 
     def test_shards_cover_every_fault_and_keep_its_cleanup_and_crash_cases(self):
-        for shards in (1, 2, 4):
-            for workers in (1, 2, 3):
+        for shards in (1, 2, 4, 12, 24):
+            for workers in ((1,) if shards >= 12 else (1, 2, 3)):
                 for point in range(1, 102):
                     owners = []
                     for shard in range(shards):
@@ -327,6 +327,11 @@ class OwnerStateSweep(unittest.TestCase):
                     self.assertEqual(len(owners), 1)
                 self.assertTrue(all(owns_case('flow/single/0/0/live-restored/view', shard, shards, worker, workers)
                                     for shard in range(shards) for worker in range(workers)))
+        for flow in FLOWS + EXTRA:
+            count = SUITE_BUCKETS.get(flow, BUCKETS)
+            for point in range(1, 21):
+                case = f'{flow}/single/{point}/0/live-restored/view'
+                self.assertTrue(owns_case(case, int(owner(case)), count, 0, 1))
         self.assertEqual({shard for flow in FLOWS + EXTRA for shard in range(4)
                           if owns_case(f'{flow}/single/1', shard, 4)}, set(range(4)))
         self.assertEqual({shard for point in range(1, 1409, 44) for shard in range(4)

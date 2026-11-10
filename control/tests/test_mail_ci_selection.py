@@ -4,7 +4,7 @@ import unittest
 import ast
 
 from ci.mail.tests import select_names, flow_partition
-from owner_state_oracle.gaps import owned, BUCKETS
+from owner_state_oracle.gaps import owned, BUCKETS, SUITE_BUCKETS
 
 
 class MailSelections(unittest.TestCase):
@@ -40,11 +40,12 @@ class MailSelections(unittest.TestCase):
         self.assertEqual(sum(map(len, groups)), len(flows))
         self.assertEqual(groups[2], ('onboarding',))
         for flow in flows:
-            for bucket in range(BUCKETS):
-                self.assertEqual(sum(flow in groups[group] and owned({'owner': str(bucket)}, shard, 12, 0, 1)
-                    for group in range(3) for shard in range(12)), 1)
+            for bucket in range(SUITE_BUCKETS.get(flow, BUCKETS)):
+                self.assertEqual(sum(flow in groups[group] and owned({'owner': str(bucket), 'suite': flow}, shard, count, 0, 1)
+                    for group in range(3) for count in [24 if group == 2 else 12] for shard in range(count)), 1)
         for index, flow in enumerate(assignments['FLOWS']):
-            self.assertEqual(sum(index % 36 == group * 12 + shard for group in range(3) for shard in range(12)), 1)
+            self.assertEqual(sum(index % (3 * count) == group * count + shard for group in range(3)
+                for count in [24 if group == 2 else 12] for shard in range(count)), 1)
         for group, count in ((-1, 2), (2, 2), (0, 0)):
             with self.assertRaises(ValueError):
                 flow_partition(flows, group, count)

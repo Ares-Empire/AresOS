@@ -78,7 +78,7 @@ def main(selection):
         names.remove('test_owner_state_sweep')
     started = time.monotonic()
     def run():
-        # The owner worker keeps its twelve ledger buckets. The inherited
+        # The owner worker keeps its suite ledger buckets. The inherited
         # whole-flow sweep partitions across every group/job exactly once.
         group = int(os.environ.get('MAIL_FLOW_GROUP', '0'))
         groups = int(os.environ.get('MAIL_FLOW_GROUPS', '1'))

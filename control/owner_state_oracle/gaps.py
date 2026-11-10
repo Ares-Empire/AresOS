@@ -32,14 +32,15 @@ def full_pack(entries):
     return {'format': 2, 'groups': list(groups.values())}
 
 
-BUCKETS = 12  # Four CI shards, three isolated workers per shard.
+BUCKETS = 12
+SUITE_BUCKETS = {'onboarding': 24}  # Its full probe history has the longest fault replay.
 
 
 def owner(key):
     parts = key.split('/')
     if len(parts) > 2 and parts[1] in {'single', 'persistent'} and parts[2].isdigit():
         point = int(parts[2])
-        return 'shared' if not point else str(int.from_bytes(hashlib.sha256(f'{parts[0]}/{point}'.encode()).digest()[:8]) % BUCKETS)
+        return 'shared' if not point else str(int.from_bytes(hashlib.sha256(f'{parts[0]}/{point}'.encode()).digest()[:8]) % SUITE_BUCKETS.get(parts[0], BUCKETS))
     return 'suite'
 
 
@@ -68,13 +69,14 @@ def pack(entries):
         for value in keys:
             digest.update((json.dumps(value, sort_keys=True, ensure_ascii=True, separators=(',', ':')) + '\n').encode())
         result.append({**group, 'count': len(keys), 'sha256': digest.hexdigest(), 'samples': [value[0] for value in keys[:3]]})
-    return {'format': 3, 'buckets': BUCKETS, 'groups': sorted(result, key=lambda g: g['id'])}
+    return {'format': 3, 'buckets': BUCKETS, 'suite_buckets': SUITE_BUCKETS, 'groups': sorted(result, key=lambda g: g['id'])}
 
 
 def owned(group, shard=0, shards=1, worker=0, workers=1):
     if group['owner'] in {'suite', 'shared'}:
         return True
-    assert BUCKETS % (shards * workers) == 0, 'Ledger ownership requires a divisor of twelve workers'
+    buckets = SUITE_BUCKETS.get(group.get('suite'), BUCKETS)
+    assert buckets % (shards * workers) == 0, 'Ledger ownership requires a divisor of its suite buckets'
     bucket = int(group['owner'])
     return bucket % shards == shard and (bucket // shards) % workers == worker
 

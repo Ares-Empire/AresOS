@@ -194,10 +194,12 @@ the command. Every previous context version remains in immutable event history.
 The independent journal's compact format is unchanged; the SQLite-independent
 owner-state projection is stage 3 and is not built in this stage.
 
-The new layout keeps the twelve ownership buckets and assigns each flow wholly
-to one of three CI flow groups (onboarding has its own group). Each group has twelve jobs with one owner process.
-The inherited whole-flow sweep partitions across the resulting 36 jobs.
+The layout keeps twelve ownership buckets for ordinary flows, with 24 for
+onboarding (declared by format 3's `suite_buckets`). Two ordinary flow groups
+have twelve jobs each; onboarding has 24 dedicated jobs. Each job has one owner
+process. Every inherited whole-flow fault case is owned once in the ordinary
+groups; all existing clean/control checks still execute in the onboarding jobs.
 Four other jobs partition Mail suite modules, and four partition the complete
-recorded alteration corpus. Selection tests prove module, flow and ownership
+recorded alteration corpus. Selection tests prove module, flow, bucket and case
 unions, including shared clean cases. No case or assertion is dropped, and the
 45-minute job limit is unchanged.

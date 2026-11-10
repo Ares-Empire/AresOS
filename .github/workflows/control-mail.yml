@@ -66,7 +66,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        flow_group: [0, 1, 2]
+        flow_group: [0, 1]
         shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
     runs-on: ubuntu-24.04
     timeout-minutes: 45
@@ -85,6 +85,35 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: control-mail-sweep-${{ matrix.flow_group }}-${{ matrix.shard }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            .work/mail-ci/setup.txt
+            .work/mail-ci/mail.txt
+            .work/mail-ci/owner-gaps-*.json.gz
+            .work/mail-ci/isolation.txt
+            .work/mail-ci/greenmail.txt
+            .work/mail-ci/dovecot.txt
+  onboarding:
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: OS and SQLite fault sweep in isolated mail containers
+        env:
+          MAIL_SWEEP_SHARD: ${{ matrix.shard }}
+          MAIL_SWEEP_SHARDS: 24
+          OWNER_SWEEP_WORKERS: 1
+          MAIL_FLOW_GROUP: 2
+          MAIL_FLOW_GROUPS: 3
+        run: bash control/ci/mail/run.sh sweep
+      - name: Upload sweep output and fixture isolation
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: control-mail-onboarding-${{ matrix.shard }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             .work/mail-ci/setup.txt
             .work/mail-ci/mail.txt
