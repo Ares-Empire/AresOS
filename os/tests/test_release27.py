@@ -187,6 +187,14 @@ class ClassifierTest(unittest.TestCase):
         new['usr/lib/opt/google/chrome/libnss3.so.2d'] = ('link', '/lib64/libnss3.so')
         base = {choice: policy.encode(), link: ('link', 'org.fedoraproject.FirewallD1.desktop.policy.choice')}
         classifier, (o, n, b) = self.classifier(old, new, base)
+        # The image's files are root's; this fixture's are the test user's.
+        real_entry = rd.entry
+        def as_root(root, rel):
+            value = real_entry(root, rel)
+            if value is not None and (value['uid'], value['gid']) == (os.getuid(), os.getgid()):
+                value.update(uid=0, gid=0)
+            return value
+        self.enterContext(patch.object(rd, 'entry', side_effect=as_root))
         for path in rd.CHROME_DIRECTORIES:
             (n / path).mkdir(parents=True, exist_ok=True); (n / path).chmod(0o755)
         (n / 'usr/share/gnome-control-center/other').mkdir()
