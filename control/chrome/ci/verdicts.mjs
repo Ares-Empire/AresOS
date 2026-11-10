@@ -15,11 +15,17 @@ export const REQUIRED={
   };
 
 // Adapter-specific evidence must not turn an unrelated adapter off.
+const MULTI_ADAPTER_REQUIRED={
+  'GROUP 10 ADAPTER clear merge settings and sharing variants stay guarded':['github','gemini','deezer'],
+  'GROUP 10 adapter shortcuts and account-specific questions':['gmail','whatsapp','gemini'],
+  'GROUP 10 ADAPTER unfamiliar pages and qualification fallback on all sites':['gmail','whatsapp','github','bank','gemini','deezer'],
+};
 export const ADAPTER_REQUIRED=Object.fromEntries(['gmail','whatsapp','github','bank','gemini','deezer'].map(site=>[site,
   Object.values(REQUIRED).flat().filter(name=>
     name===`GROUP 10 adapter ${site}` || site==='bank'&&name==='GROUP 10 read-only bank' ||
     site==='gmail'&&name==='GROUP 10 ADAPTER two Gmail compose windows and inbox shortcut' ||
     site==='github'&&name==='GROUP 4 ADAPTER every named GitHub confirmation mismatch' ||
+    MULTI_ADAPTER_REQUIRED[name]?.includes(site) ||
     new RegExp(`^GROUP (?:4|10|11) ADAPTER ${site}\\b`,'i').test(name))]));
 export const SUPPORT=['FEATURE tools forms options find wait fill_form scroll and full catalogues','VIEW representative long article/form complete paging','QUALIFICATION conservative activations ask and core failures gate before reads'];
 const adapterNames=new Set(Object.values(ADAPTER_REQUIRED).flat());
@@ -38,7 +44,7 @@ export function verdicts(results,baseline,adapters){
   const sharedGroup=group=>REQUIRED[group].filter(name=>!name.includes(' ADAPTER ')).every(passed);
   const qualified={groups,core:{classification:groups[1],page_script:groups[2]&&groups[8]&&groups[9]&&groups[13],binding:groups[3]&&sharedGroup(4)&&groups[5],password_exclusion:groups[7]},adapters:{}};
   for(const group of Object.keys(qualified.core))qualified.core[group] &&= groups[6]&&support;
-  const shared=Object.values(qualified.core).every(Boolean)&&sharedGroup(11)&&sharedAdapterNames.every(passed)&&passed('GROUP 10 adapter shortcuts and account-specific questions');
+  const shared=Object.values(qualified.core).every(Boolean)&&sharedGroup(11)&&sharedAdapterNames.every(passed);
   for(const [site,names]of Object.entries(ADAPTER_REQUIRED))qualified.adapters[site]=adapters[site]===true&&shared&&names.every(passed);
   return qualified;
 }

@@ -63,12 +63,23 @@ test('every named core popup and adapter case is in the exact required inventory
 });
 
 test('one adapter failure preserves all independent adapter verdicts',()=>{
-  for(const [site,names]of Object.entries(ADAPTER_REQUIRED))for(const name of names){
+  for(const [site,names]of Object.entries(ADAPTER_REQUIRED))for(const name of names.filter(name=>Object.values(ADAPTER_REQUIRED).filter(rows=>rows.includes(name)).length===1)){
     for(const rows of [complete().filter(row=>row.name!==name),complete().map(row=>row.name===name?{...row,passed:false}:row)]){
       const result=verdicts(rows,baseline,adapters);
       for(const other of Object.keys(adapters))assert.equal(result.adapters[other],other!==site,site+': '+name+' -> '+other);
       assert.ok(Object.values(result.core).every(Boolean),'adapter-only failure cannot disable core');
     }
+  }
+});
+
+test('multi-adapter matrices preserve sites outside their actual fixture coverage',()=>{
+  for(const [name,affected]of [
+    ['GROUP 10 ADAPTER clear merge settings and sharing variants stay guarded',['github','gemini','deezer']],
+    ['GROUP 10 adapter shortcuts and account-specific questions',['gmail','whatsapp','gemini']],
+  ])for(const rows of [complete().filter(row=>row.name!==name),complete().map(row=>row.name===name?{...row,passed:false}:row)]){
+    const result=verdicts(rows,baseline,adapters);
+    for(const site of Object.keys(adapters))assert.equal(result.adapters[site],!affected.includes(site),name+' -> '+site);
+    assert.ok(Object.values(result.core).every(Boolean),'adapter matrix failure cannot disable generic core');
   }
 });
 
