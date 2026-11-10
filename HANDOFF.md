@@ -118,6 +118,11 @@ The baton from the last session. Read it after `STATE.md`. Overwrite it when you
     - Then send mac-capacity one line: where it stopped and what's left. Patrik reads the real usage, and mac-capacity shares out the rest until the Thu 00:00 reset.
     - A "pause now" from mac-capacity before 09:00 means pause early.
     - Package 27 stays first.
+  - **Disk (2026-11-10 23:10 UTC): C: had 0 MB, now 2.3 GB free.**
+    - `C:/Users/pab/AresOS-delete-me` holds 114.7 GB: package 14's old replay ISOs and squashfs images.
+    - Board #173 asks the owner to OK its permanent deletion. On "Yes", delete it. On "myself", remind him.
+    - Agents keep disk use minimal meanwhile.
+    - The WSL disk image is 14.2 GB with about 3 GB in use; compacting it needs admin.
 - **Owner to-dos:**
   - Shift+Delete `C:\Users\pab\AresOS-delete-me` (115 GB of old replay ISOs).
 
