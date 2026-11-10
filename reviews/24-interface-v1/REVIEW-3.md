@@ -1,0 +1,5 @@
+- **P2 — [aresos-shell:1087](C:/Users/pab/AresOS-24-interface-v1/os/config/usr/libexec/aresos-shell:1087): journal recovery remains incomplete after restart.** `reconcile()` retains active scopes as `starting`, but the restarted helper has no corresponding `processes` entries. Their later exits are never checked, so these entries remain protected indefinitely and can exhaust journal capacity again. **Fix:** continue monitoring adopted scopes, close/settle their entries when they end, and test restart while running → exit → replay retention → capacity recovery.
+
+- **P3 — [ShellFocusClientGameTest.java:105](C:/Users/pab/AresOS-24-interface-v1/mod/src/gametest/java/dev/aresos/test/ShellFocusClientGameTest.java:105): the regression test bypasses focus-token verification.** Injecting `shell_focus` calls `returnedFromApp()`, which finishes the logo visit without consulting `FOCUS_RETURN`. The test therefore passes even if the first launch’s failure incorrectly cancels the second launch’s focus token. **Fix:** exercise focus loss and `regainedFocus()` after the delayed failure, asserting that the second launch still returns correctly.
+
+CHANGES-NEEDED

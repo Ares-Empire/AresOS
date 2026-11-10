@@ -1,0 +1,8 @@
+{
+  "schema": 1,
+  "id": "terminal",
+  "name": "Terminal",
+  "argv": ["/usr/bin/foot", "--app-id=aresos.terminal"],
+  "working_directory": "~",
+  "window": {"app_ids": ["aresos.terminal"], "instance": "multi"}
+}

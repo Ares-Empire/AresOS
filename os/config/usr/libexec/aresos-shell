@@ -1,0 +1,1652 @@
+#!/usr/bin/python3
+"""AresOS app helper: the OS side of the aresos-shell/1.0 interface.
+
+Design: docs/design/OS-BASE.md Appendix B1 (mod and OS interface v1) and B2
+(supervision and focus). The desktop mod connects over a private Unix socket
+and never sends a command. It names an app ID; this helper starts the reviewed
+launch definition from /usr/share/aresos/apps in its own systemd user scope,
+watches the app's windows and tells the mod when focus moves.
+
+Wire format: one UTF-8 JSON object per line, at most 64 KiB per line.
+  request  {"protocol": "aresos-shell/1.0", "id": <request id>, "op": <operation>, ...}
+  reply    {"protocol": ..., "id": <request id>, "ok": true, ...}
+           {"protocol": ..., "id": <request id or null>, "ok": false, "error": <code>, "message": <text>}
+  event    {"protocol": ..., "id": <event id>, "event": "app_state" | "shell_focus", ...}
+
+Operations (B1): hello, list_apps, open_app, world_ready, heartbeat. Everything
+else, including the guardian's request_power, prepare_stop and save_complete
+(package 25), is rejected as unknown_operation.
+
+Registry: one reviewed, image-shipped file per app in /usr/share/aresos/apps:
+  {"schema": 1, "id": "notepad", "name": "Notepad",
+   "argv": ["/usr/bin/kwrite"]   (or "desktop_entry": "org.kde.kwrite.desktop"),
+   "working_directory": "~",
+   "window": {"app_ids": ["org.kde.kwrite"], "instance": "multi"}}
+window.app_ids are the Wayland app_ids (under XWayland, the WM_CLASS class) of
+the app's windows. window.instance is "multi" when every launch is its own
+process, and "single" when a launch hands over to an already running instance
+and exits (Chrome), so an early clean exit is not a failure.
+
+The supervisor that starts the desktop (package 23) gives this helper and the
+game the same ARESOS_DESKTOP_INSTANCE and ARESOS_LAUNCH_NONCE. The mod must
+present both in hello, world_ready and heartbeat. This binds a connection to
+the supervised desktop; it is a local session protocol, not a security
+boundary against other programs of the same user.
+"""
+import argparse
+import dataclasses
+import glob
+import hashlib
+import hmac
+import json
+import logging
+import os
+import posixpath
+import re
+import secrets
+import selectors
+import shutil
+import signal
+import socket
+import stat
+import struct
+import subprocess
+import sys
+import threading
+import time
+import queue
+
+LOG = logging.getLogger('aresos-shell')
+
+NAME = 'aresos-shell'
+MAJOR = 1
+MINOR = 0
+MAX_MESSAGE = 64 * 1024
+MAX_OUTGOING = 1024 * 1024
+MAX_CONNECTIONS = 8
+MAX_APPS = 256
+MAX_LIST = 32
+HELLO_TIMEOUT = 10.0
+WINDOW_TIMEOUT = 30.0
+# A close this soon after its window lost focus is the compositor handing focus on, not the owner switching.
+HANDOFF = 0.5
+# Pause between the end of one scope check and the start of the next (one batched systemctl call each).
+SCOPE_CHECK = 5.0
+SCOPE_TIMEOUT = 5.0
+JOURNAL_LIMIT = 256
+# Well beyond the mod's 45-second open timeout, the only window in which it resends a request ID.
+REPLAY_HORIZON = 600.0
+REGISTRY = '/usr/share/aresos/apps'
+DESKTOP_ENTRY_DIRS = ('/usr/share/applications', '/usr/local/share/applications')
+EXEC_PATH = '/usr/local/bin:/usr/bin'
+SYSTEMD_RUN = '/usr/bin/systemd-run'
+SYSTEMCTL = '/usr/bin/systemctl'
+# The desktop mod sets this Wayland app_id (and X11 class) on its own window.
+DESKTOP_APP_IDS = frozenset({'aresos-desktop'})
+BASE_CAPABILITIES = frozenset({'list_apps', 'open_app', 'app_state', 'world_ready', 'heartbeat'})
+WINDOW_CAPABILITIES = frozenset({'shell_focus', 'windows'})
+# The launch secrets stay with the desktop; launched apps never inherit them,
+# nor the helper's own service plumbing.
+PRIVATE_ENVIRONMENT = ('ARESOS_LAUNCH_NONCE', 'ARESOS_DESKTOP_INSTANCE', 'NOTIFY_SOCKET', 'LISTEN_FDS',
+                       'LISTEN_PID', 'LISTEN_FDNAMES', 'WATCHDOG_PID', 'WATCHDOG_USEC')
+
+ENVELOPE = re.compile(r'aresos-shell/(\d{1,3})\.(\d{1,3})\Z')
+REQUEST_ID = re.compile(r'[A-Za-z0-9._:-]{1,128}\Z')
+APP_ID = re.compile(r'[a-z0-9_-]{1,64}\Z')
+WINDOW_ID = re.compile(r'[A-Za-z0-9._-]{1,128}\Z')
+DESKTOP_FILE = re.compile(r'[A-Za-z0-9._-]{1,128}\.desktop\Z')
+INSTANCE = re.compile(r'[A-Za-z0-9._-]{1,64}\Z')
+NONCE = re.compile(r'[A-Za-z0-9_-]{16,128}\Z')
+CAPABILITY = re.compile(r'[a-z_]{1,32}\Z')
+WORLD_ID = re.compile(r'[^\x00-\x1f]{1,128}\Z')
+
+FINAL = frozenset({'failed', 'closed'})
+
+
+def protocol(minor=MINOR):
+    return f'{NAME}/{MAJOR}.{minor}'
+
+
+class Failure(Exception):
+    """A request the helper refuses with a stable error code."""
+
+    def __init__(self, code, message, close=False, **fields):
+        super().__init__(message)
+        self.code = code
+        self.message = message
+        self.close = close
+        self.fields = fields
+
+
+# ---------------------------------------------------------------- registry
+
+@dataclasses.dataclass(frozen=True)
+class App:
+    """One reviewed launch definition. The mod only ever sees id/name/availability."""
+    id: str
+    name: str
+    argv: tuple = ()
+    desktop_entry: str = None
+    working_directory: str = '~'
+    app_ids: frozenset = frozenset()
+    instance: str = 'multi'
+    invalid: str = None
+
+
+ENTRY_KEYS = {'schema', 'id', 'name', 'argv', 'desktop_entry', 'working_directory', 'window'}
+WINDOW_KEYS = {'app_ids', 'instance'}
+
+
+def parse_entry(data):
+    """Validate one registry file strictly: entries are reviewed, so typos must not pass."""
+    if not isinstance(data, dict):
+        raise ValueError('entry is not an object')
+    unknown = set(data) - ENTRY_KEYS
+    if unknown:
+        raise ValueError('unknown keys: ' + ', '.join(sorted(unknown)))
+    if data.get('schema') != 1:
+        raise ValueError('schema must be 1')
+    app_id, name = data.get('id'), data.get('name')
+    if not isinstance(app_id, str) or not APP_ID.match(app_id):
+        raise ValueError('id must match [a-z0-9_-]{1,64}')
+    if not isinstance(name, str) or not name.strip() or len(name) > 64 or any(ord(c) < 32 for c in name):
+        raise ValueError('name must be 1-64 printable characters')
+    argv, entry = data.get('argv'), data.get('desktop_entry')
+    if (argv is None) == (entry is None):
+        raise ValueError('exactly one of argv or desktop_entry is required')
+    if argv is not None:
+        if (not isinstance(argv, list) or not argv or len(argv) > 64
+                or not all(isinstance(part, str) and part and '\0' not in part for part in argv)):
+            raise ValueError('argv must be a non-empty list of strings')
+        if not posixpath.isabs(argv[0]):
+            raise ValueError('argv[0] must be an absolute path')
+    if entry is not None and (not isinstance(entry, str) or not DESKTOP_FILE.match(entry)):
+        raise ValueError('desktop_entry must be a desktop file ID')
+    directory = data.get('working_directory', '~')
+    if not isinstance(directory, str) or not (directory == '~' or os.path.isabs(directory)) or '\0' in directory:
+        raise ValueError('working_directory must be ~ or an absolute path')
+    window = data.get('window')
+    if not isinstance(window, dict) or set(window) - WINDOW_KEYS:
+        raise ValueError('window must be an object with app_ids and instance')
+    app_ids, instance = window.get('app_ids'), window.get('instance')
+    if (not isinstance(app_ids, list) or not app_ids or len(app_ids) > 8
+            or not all(isinstance(value, str) and WINDOW_ID.match(value) for value in app_ids)):
+        raise ValueError('window.app_ids must list 1-8 Wayland app IDs')
+    if DESKTOP_APP_IDS & set(app_ids):
+        raise ValueError('window.app_ids must not claim the desktop window')
+    if instance not in ('single', 'multi'):
+        raise ValueError('window.instance must be single or multi')
+    return App(app_id, name, tuple(argv or ()), entry, directory, frozenset(app_ids), instance)
+
+
+def load_registry(directory):
+    """Return (apps by ID, revision). Broken entries stay visible as unavailable."""
+    apps, owners = {}, {}
+    digest = hashlib.sha256()
+    for path in sorted(glob.glob(os.path.join(glob.escape(directory), '*.json')))[:MAX_APPS]:
+        digest.update(os.path.basename(path).encode() + b'\0')
+        try:
+            with open(path, 'rb') as handle:
+                raw = handle.read(MAX_MESSAGE + 1)
+            digest.update(raw + b'\0')
+            if len(raw) > MAX_MESSAGE:
+                raise ValueError('entry is too large')
+            data = json.loads(raw.decode('utf-8'), parse_constant=_reject_constant)
+        except (OSError, ValueError, RecursionError) as error:
+            LOG.error('registry entry %s is unreadable: %s', path, error)
+            continue
+        try:
+            app = parse_entry(data)
+        except ValueError as error:
+            LOG.error('registry entry %s is invalid: %s', path, error)
+            app_id, name = (data.get('id'), data.get('name')) if isinstance(data, dict) else (None, None)
+            if isinstance(app_id, str) and APP_ID.match(app_id):
+                app = App(app_id, name if isinstance(name, str) and name.strip() and len(name) <= 64 else app_id,
+                          invalid='invalid_entry')
+            else:
+                continue
+        if app.id in apps:
+            LOG.error('registry ID %s is defined twice; both copies are unavailable', app.id)
+            app = dataclasses.replace(apps[app.id], invalid='duplicate_entry')
+        apps[app.id] = app
+        for window_id in app.app_ids:
+            owners.setdefault(window_id, set()).add(app.id)
+    # One window identity must lead to exactly one app, or focus return would guess.
+    for window_id, ids in owners.items():
+        if len(ids) > 1:
+            LOG.error('window app_id %s is claimed by %s; those entries are unavailable', window_id, sorted(ids))
+            for app_id in ids:
+                apps[app_id] = dataclasses.replace(apps[app_id], invalid='duplicate_window_identity')
+    return apps, digest.hexdigest()[:16]
+
+
+def _reject_constant(value):
+    raise ValueError('invalid JSON constant ' + value)
+
+
+def resolve(app, executable=None, entry_dirs=DESKTOP_ENTRY_DIRS):
+    """Return (argv, working directory, None) or (None, None, reason). Checked at each use."""
+    executable = executable or (lambda path: os.path.isfile(path) and os.access(path, os.X_OK))
+    if app.invalid:
+        return None, None, app.invalid
+    if app.desktop_entry:
+        path = next((os.path.join(folder, app.desktop_entry) for folder in entry_dirs
+                     if os.path.isfile(os.path.join(folder, app.desktop_entry))), None)
+        if path is None:
+            return None, None, 'not_installed'
+        try:
+            argv, directory = desktop_exec(path)
+        except (OSError, ValueError) as error:
+            LOG.error('desktop entry %s cannot be used: %s', path, error)
+            return None, None, 'invalid_entry'
+        if not posixpath.isabs(argv[0]):
+            found = shutil.which(argv[0], path=EXEC_PATH)
+            if found is None:
+                return None, None, 'not_installed'
+            argv[0] = found
+        return argv, directory or app.working_directory, None if executable(argv[0]) else 'not_installed'
+    return list(app.argv), app.working_directory, None if executable(app.argv[0]) else 'not_installed'
+
+
+EXEC_RESERVED = set('\t\n\'><~|&;$*?#()`\\')
+STRING_ESCAPES = {'s': ' ', 'n': '\n', 't': '\t', 'r': '\r', '\\': '\\'}
+
+
+def desktop_exec(path):
+    """Split a desktop entry's Exec key per the Desktop Entry spec, without files or URLs."""
+    group, values = None, {}
+    with open(path, encoding='utf-8') as handle:
+        for line in handle.read(MAX_MESSAGE).splitlines():
+            line = line.strip()
+            if not line or line.startswith('#'):
+                continue
+            if line.startswith('['):
+                group = line
+                continue
+            if group == '[Desktop Entry]' and '=' in line:
+                key, value = line.split('=', 1)
+                values.setdefault(key.strip(), value.strip())
+    if values.get('Type') != 'Application' or not values.get('Exec'):
+        raise ValueError('not an application entry with Exec')
+    exec_value = _unescape_string(values['Exec'])
+    args, current, quoted, escaped, started = [], [], False, False, False
+    for char in exec_value:
+        if quoted:
+            if escaped:
+                if char not in '"`$\\':
+                    raise ValueError('invalid escape in quoted Exec argument')
+                current.append(char)
+                escaped = False
+            elif char == '\\':
+                escaped = True
+            elif char == '"':
+                quoted = False
+            else:
+                current.append(char)
+        elif char == '"':
+            quoted = started = True
+        elif char == ' ':
+            if started:
+                args.append(''.join(current))
+                current, started = [], False
+        elif char in EXEC_RESERVED:
+            raise ValueError('unquoted reserved character in Exec')
+        else:
+            current.append(char)
+            started = True
+    if quoted:
+        raise ValueError('unterminated quote in Exec')
+    if started:
+        args.append(''.join(current))
+    argv = []
+    for arg in args:
+        if arg in ('%f', '%F', '%u', '%U', '%d', '%D', '%n', '%N', '%v', '%m'):
+            continue
+        if arg == '%i':
+            if values.get('Icon'):
+                argv += ['--icon', values['Icon']]
+            continue
+        if arg == '%c':
+            argv.append(values.get('Name', ''))
+            continue
+        if arg == '%k':
+            argv.append(path)
+            continue
+        if re.search(r'%[^%]', arg.replace('%%', '')):
+            raise ValueError('unsupported field code in Exec')
+        argv.append(arg.replace('%%', '%'))
+    if not argv:
+        raise ValueError('empty Exec')
+    directory = values.get('Path') or None
+    if directory is not None and not posixpath.isabs(directory):
+        raise ValueError('Path must be absolute')
+    return argv, directory
+
+
+def _unescape_string(value):
+    result, index = [], 0
+    while index < len(value):
+        char = value[index]
+        if char == '\\' and index + 1 < len(value) and value[index + 1] in STRING_ESCAPES:
+            result.append(STRING_ESCAPES[value[index + 1]])
+            index += 2
+            continue
+        result.append(char)
+        index += 1
+    return ''.join(result)
+
+
+# ---------------------------------------------------------------- journal
+
+class Journal:
+    """Launch results by request ID, kept across helper restarts (B1).
+
+    Lives in $XDG_RUNTIME_DIR, so it ends with the login session, like the desktop instance it belongs to.
+    Replay protection is never dropped early: only a launch whose answer can no longer change, last changed at
+    least REPLAY_HORIZON ago, may be forgotten (the mod resends a request ID only within its 45-second open
+    timeout). Its answer is settled when it finished, or when it was handed over to a running app whose windows
+    can't be watched; how long that app stays open does not hold the entry. A launch still in progress is never
+    forgotten. With no room left, new launches are refused instead.
+    """
+
+    def __init__(self, path, instance, clock=time.monotonic):
+        self.path = path
+        self.instance = instance
+        self.clock = clock
+        self.entries = {}
+        self.load()
+
+    def load(self):
+        try:
+            with open(self.path, encoding='utf-8') as handle:
+                data = json.load(handle)
+        except FileNotFoundError:
+            return
+        except (OSError, ValueError, RecursionError) as error:
+            LOG.error('launch journal unreadable, starting empty: %s', error)
+            return
+        if not isinstance(data, dict) or data.get('instance') != self.instance:
+            LOG.info('launch journal belongs to another desktop instance; starting empty')
+            return
+        now = self.clock()
+        launches = data.get('launches')
+        for request_id, entry in (launches.items() if isinstance(launches, dict) else ()):
+            if (isinstance(request_id, str) and REQUEST_ID.match(request_id) and isinstance(entry, dict)
+                    and isinstance(entry.get('app_id'), str) and isinstance(entry.get('state'), str)):
+                updated = entry.get('updated')
+                # The monotonic clock is system-wide, so ages survive a helper restart; anything odd counts as new.
+                if type(updated) not in (int, float) or not 0 <= updated <= now:
+                    entry['updated'] = now
+                self.entries[request_id] = entry
+
+    def touch(self, entry):
+        entry['updated'] = self.clock()
+
+    def put(self, request_id, entry):
+        self.touch(entry)
+        self.entries[request_id] = entry
+
+    def room(self):
+        """True when a new request can be recorded, after forgetting what can no longer be replayed."""
+        if len(self.entries) < JOURNAL_LIMIT:
+            return True
+        now = self.clock()
+        expired = [key for key, entry in self.entries.items()
+                   if (entry['state'] in FINAL or entry.get('settled'))
+                   and now - entry.get('updated', now) >= REPLAY_HORIZON]
+        for key in expired:
+            del self.entries[key]
+        return len(self.entries) < JOURNAL_LIMIT
+
+    def save(self):
+        data = json.dumps({'instance': self.instance, 'launches': self.entries}, separators=(',', ':'))
+        temporary = f'{self.path}.{os.getpid()}.tmp'
+        descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | getattr(os, "O_NOFOLLOW", 0), 0o600)
+        try:
+            with os.fdopen(descriptor, 'w', encoding='utf-8') as handle:
+                handle.write(data)
+                handle.flush()
+                os.fsync(handle.fileno())
+            os.replace(temporary, self.path)
+        except BaseException:
+            try:
+                os.unlink(temporary)
+            except OSError:
+                pass
+            raise
+
+
+# ---------------------------------------------------------------- launching
+
+def unit_escape(value):
+    return value.replace('-', '\\x2d')
+
+
+class ScopeLauncher:
+    """Start apps in their own user scope, outside the game's and the helper's cgroups."""
+
+    def __init__(self, popen=subprocess.Popen, run=subprocess.run, environ=None):
+        self.popen = popen
+        self.run = run
+        self.environ = os.environ if environ is None else environ
+
+    @staticmethod
+    def unit(app, launch_id):
+        # systemd's desktop naming: app-<launcher>-<application id>-<random>.scope
+        return f'app-aresos-{unit_escape(app.id)}-{launch_id}.scope'
+
+    def command(self, app, argv, launch_id):
+        return [SYSTEMD_RUN, '--user', '--scope', '--quiet', '--collect', '--slice=app.slice',
+                f'--unit={self.unit(app, launch_id)}', f'--description=AresOS app: {app.name}', '--', *argv]
+
+    def environment(self):
+        return {key: value for key, value in self.environ.items() if key not in PRIVATE_ENVIRONMENT}
+
+    def spawn(self, app, argv, directory, launch_id):
+        home = self.environ.get('HOME') or os.path.expanduser('~')
+        cwd = home if directory == '~' else directory
+        # --scope execs the app in this child, so poll() reports the app's own exit.
+        return self.popen(self.command(app, argv, launch_id), cwd=cwd, env=self.environment(),
+                          stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                          start_new_session=True, close_fds=True)
+
+
+
+# ---------------------------------------------------------------- scope watching
+
+ACTIVE, GONE, UNKNOWN = 'active', 'gone', 'unknown'
+# systemd's ActiveState column. Only these two lists decide; any other value (maintenance, a future state, a typo)
+# is UNKNOWN, so an odd line can never end a launch.
+RUNNING_STATES = frozenset({'active', 'activating', 'deactivating', 'reloading', 'refreshing'})
+ENDED_STATES = frozenset({'inactive', 'failed'})
+LIST_SCOPES = [SYSTEMCTL, '--user', 'list-units', '--type=scope', '--all', '--no-legend', '--plain', '--no-pager']
+
+
+def parse_scopes(text):
+    """Unit name to ACTIVE state from `systemctl list-units --plain --no-legend`, or None if any line is odd."""
+    states = {}
+    for line in text.splitlines():
+        fields = line.split()
+        if not fields:
+            continue
+        if fields[0] in ('*', '●'):  # status bullets, should --plain ever keep them
+            fields = fields[1:]
+        if len(fields) < 4 or not fields[0].endswith('.scope'):
+            return None
+        unit, state = fields[0], fields[2]
+        # A unit listed twice with different states says nothing certain.
+        states[unit] = state if states.get(unit, state) == state else None
+    return states
+
+
+def classify(state):
+    if state in RUNNING_STATES:
+        return ACTIVE
+    if state in ENDED_STATES:
+        return GONE
+    return UNKNOWN
+
+
+def query_scopes(units, run=subprocess.run, timeout=SCOPE_TIMEOUT):
+    """One batched call for all units: each is ACTIVE, GONE or UNKNOWN (the call failed or made no sense)."""
+    try:
+        done = run(LIST_SCOPES, capture_output=True, text=True, timeout=timeout, stdin=subprocess.DEVNULL)
+    except (OSError, ValueError, subprocess.SubprocessError):
+        return {unit: UNKNOWN for unit in units}
+    states = parse_scopes(done.stdout) if done.returncode == 0 and isinstance(done.stdout, str) else None
+    if states is None:
+        return {unit: UNKNOWN for unit in units}
+    # A transient scope started with --collect disappears from a complete, valid list once it has ended.
+    return {unit: classify(states[unit]) if unit in states else GONE for unit in units}
+
+
+class ScopeWatcher:
+    """Checks launch scopes on its own thread, never on the event loop.
+
+    The event loop says which units to watch (`watch`); one thread runs one batched query per pass, waits
+    SCOPE_CHECK after each pass ends, and posts the answers to a queue with a wake-up byte for the loop.
+    """
+
+    def __init__(self, run=subprocess.run, interval=SCOPE_CHECK, timeout=SCOPE_TIMEOUT):
+        self.run = run
+        self.interval = interval
+        self.timeout = timeout
+        self.lock = threading.Lock()
+        self.units = frozenset()
+        self.results = queue.SimpleQueue()
+        self.stopping = threading.Event()
+        self.thread = None
+        self.reader, self.writer = socket.socketpair()
+        self.reader.setblocking(False)
+        self.writer.setblocking(False)
+
+    def watch(self, units):
+        with self.lock:
+            self.units = frozenset(units)
+
+    def start(self):
+        self.thread = threading.Thread(target=self.loop, name='aresos-scope-watcher', daemon=True)
+        self.thread.start()
+
+    def loop(self):
+        while not self.stopping.wait(self.interval):
+            try:
+                self.check()
+            except Exception:
+                LOG.exception('scope check failed; trying again next pass')
+
+    def check(self):
+        """One pass; tests call it directly instead of running the thread."""
+        with self.lock:
+            units = self.units
+        if not units:
+            return
+        self.results.put(query_scopes(units, self.run, self.timeout))
+        try:
+            self.writer.send(b'w')
+        except OSError:
+            pass  # a full wake-up buffer already holds a wake-up
+
+    def take(self):
+        """All answers posted since the last call, oldest first."""
+        try:
+            while self.reader.recv(4096):
+                pass
+        except OSError:
+            pass
+        answers = []
+        while True:
+            try:
+                answers.append(self.results.get_nowait())
+            except queue.Empty:
+                return answers
+
+    def stop(self):
+        self.stopping.set()
+        if self.thread is not None:
+            self.thread.join(self.timeout + 1)
+        self.reader.close()
+        self.writer.close()
+
+
+# ---------------------------------------------------------------- windows
+
+@dataclasses.dataclass
+class Toplevel:
+    handle: int
+    seen: float
+    app_id: str = ''
+    parent: int = 0
+    activated: bool = False
+    ready: bool = False
+    owner: str = None
+    pending: dict = dataclasses.field(default_factory=dict)
+
+
+class Windows:
+    """Toplevels as the compositor reports them, with the open/close changes not yet taken.
+
+    Each toplevel's title, app_id, parent and state apply together at its done event, as the protocol says, so a
+    read that ends between them never shows a half-changed window.
+    """
+    SHELL = '\0desktop'
+
+    def __init__(self, clock=time.monotonic):
+        self.clock = clock
+        self.toplevels = {}
+        self.opened = []
+        self.closed = []
+        self.owners = {}
+
+    def set_registry(self, apps):
+        self.owners = {window_id: app.id for app in apps.values() if not app.invalid for window_id in app.app_ids}
+        # Windows listed before the registry was known get their owners now (twice, so dialogs follow parents).
+        for _ in range(2):
+            for toplevel in self.toplevels.values():
+                if toplevel.ready:
+                    self._settle(toplevel)
+
+    def new(self, handle):
+        self.toplevels[handle] = Toplevel(handle, self.clock())
+
+    def app_id(self, handle, value):
+        if handle in self.toplevels:
+            self.toplevels[handle].pending['app_id'] = value or ''
+
+    def parent(self, handle, parent):
+        if handle in self.toplevels:
+            self.toplevels[handle].pending['parent'] = parent
+
+    def state(self, handle, activated):
+        if handle in self.toplevels:
+            self.toplevels[handle].pending['activated'] = activated
+
+    def done(self, handle):
+        toplevel = self.toplevels.get(handle)
+        if toplevel is None:
+            return
+        for key, value in toplevel.pending.items():
+            setattr(toplevel, key, value)
+        toplevel.pending.clear()
+        if not toplevel.ready:
+            toplevel.ready = True
+            toplevel.owner = self._owner(toplevel, set())
+            self.opened.append(toplevel)
+        else:
+            self._settle(toplevel)
+
+    def _settle(self, toplevel):
+        # Some apps set their app_id only after the window first appears; announce it again when it becomes theirs.
+        owner = self._owner(toplevel, set())
+        if owner != toplevel.owner:
+            toplevel.owner = owner
+            if toplevel not in self.opened:
+                self.opened.append(toplevel)
+
+    def gone(self, handle):
+        toplevel = self.toplevels.pop(handle, None)
+        if toplevel is not None and toplevel.ready:
+            self.closed.append(toplevel)
+
+    def _owner(self, toplevel, seen):
+        if toplevel.app_id in DESKTOP_APP_IDS:
+            return self.SHELL
+        if toplevel.app_id in self.owners:
+            return self.owners[toplevel.app_id]
+        # Dialogs belong to their parent's app, so closing one never looks like the app closing.
+        parent = self.toplevels.get(toplevel.parent)
+        if parent is not None and parent.handle not in seen:
+            seen.add(toplevel.handle)
+            return self._owner(parent, seen)
+        return None
+
+    def take(self):
+        opened, closed = self.opened, self.closed
+        self.opened, self.closed = [], []
+        return opened, closed
+
+    def active(self):
+        return next((t for t in self.toplevels.values() if t.ready and t.activated), None)
+
+    def of(self, owner):
+        return [t for t in self.toplevels.values() if t.ready and t.owner == owner]
+
+
+class WaylandError(Exception):
+    pass
+
+
+class ForeignToplevels:
+    """A minimal Wayland client for zwlr_foreign_toplevel_manager_v1, standard library only.
+
+    labwc implements the wlr foreign-toplevel protocol; it reports every
+    toplevel's app_id, parent and activated state, and lets us activate one.
+    """
+    MANAGER = 'zwlr_foreign_toplevel_manager_v1'
+    STATE_ACTIVATED = 2
+
+    def __init__(self, sock, windows):
+        self.sock = sock
+        self.windows = windows
+        self.buffer = bytearray()
+        self.next_id = 2
+        self.kinds = {1: 'display'}
+        self.globals = {}
+        self.callbacks = set()
+        self.manager = None
+        self.seat = None
+        self.registry = self._new('registry')
+        self._send(1, 1, struct.pack('=I', self.registry))
+
+    @classmethod
+    def connect(cls, windows, environ=None, timeout=5.0):
+        environ = os.environ if environ is None else environ
+        display = environ.get('WAYLAND_DISPLAY')
+        if not display:
+            raise WaylandError('WAYLAND_DISPLAY is not set')
+        path = display if posixpath.isabs(display) else posixpath.join(environ.get('XDG_RUNTIME_DIR', ''), display)
+        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        sock.settimeout(timeout)
+        try:
+            sock.connect(path)
+            client = cls(sock, windows)
+            client.roundtrip()
+            if not client.bind():
+                raise WaylandError('the compositor does not offer ' + cls.MANAGER)
+            client.roundtrip()
+        except BaseException:
+            sock.close()
+            raise
+        sock.setblocking(False)
+        return client
+
+    def _new(self, kind):
+        object_id = self.next_id
+        self.next_id += 1
+        self.kinds[object_id] = kind
+        return object_id
+
+    def _send(self, object_id, opcode, payload=b''):
+        message = struct.pack('=II', object_id, ((8 + len(payload)) << 16) | opcode) + payload
+        self.sock.sendall(message)
+
+    @staticmethod
+    def string(value):
+        data = value.encode('utf-8') + b'\0'
+        return struct.pack('=I', len(data)) + data + b'\0' * (-len(data) % 4)
+
+    def bind(self):
+        manager = next(((name, version) for name, (interface, version) in self.globals.items()
+                        if interface == self.MANAGER), None)
+        seat = next(((name, version) for name, (interface, version) in self.globals.items()
+                     if interface == 'wl_seat'), None)
+        if manager is None:
+            return False
+        self.manager = self._new('manager')
+        self._send(self.registry, 0, struct.pack('=I', manager[0]) + self.string(self.MANAGER)
+                   + struct.pack('=II', min(manager[1], 3), self.manager))
+        if seat is not None:
+            self.seat = self._new('seat')
+            self._send(self.registry, 0, struct.pack('=I', seat[0]) + self.string('wl_seat')
+                       + struct.pack('=II', 1, self.seat))
+        return True
+
+    def roundtrip(self):
+        callback = self._new('callback')
+        self.callbacks.add(callback)
+        self._send(1, 0, struct.pack('=I', callback))
+        while callback in self.callbacks:
+            data = self.sock.recv(65536)
+            if not data:
+                raise WaylandError('the compositor closed the connection')
+            self.feed(data)
+
+    def activate(self, handle):
+        if self.seat is None or self.kinds.get(handle) != 'toplevel':
+            return False
+        self._send(handle, 4, struct.pack('=I', self.seat))
+        return True
+
+    def readable(self):
+        try:
+            data = self.sock.recv(65536)
+        except BlockingIOError:
+            return
+        if not data:
+            raise WaylandError('the compositor closed the connection')
+        self.feed(data)
+
+    def feed(self, data):
+        self.buffer += data
+        while len(self.buffer) >= 8:
+            object_id, word = struct.unpack_from('=II', self.buffer)
+            size, opcode = word >> 16, word & 0xffff
+            if size < 8 or size % 4:
+                raise WaylandError('invalid message size from the compositor')
+            if len(self.buffer) < size:
+                return
+            payload = bytes(self.buffer[8:size])
+            del self.buffer[:size]
+            self.dispatch(object_id, opcode, payload)
+
+    @staticmethod
+    def _string(payload, offset):
+        (length,) = struct.unpack_from('=I', payload, offset)
+        offset += 4
+        if length == 0:
+            return None, offset
+        value = payload[offset:offset + length - 1].decode('utf-8', 'replace')
+        return value, offset + length + (-length % 4)
+
+    def dispatch(self, object_id, opcode, payload):
+        kind = self.kinds.get(object_id)
+        if kind == 'display':
+            if opcode == 0:
+                _, code = struct.unpack_from('=II', payload)
+                message, _ = self._string(payload, 8)
+                raise WaylandError(f'compositor error {code}: {message}')
+        elif kind == 'registry':
+            if opcode == 0:
+                (name,) = struct.unpack_from('=I', payload)
+                interface, offset = self._string(payload, 4)
+                (version,) = struct.unpack_from('=I', payload, offset)
+                self.globals[name] = (interface, version)
+            elif opcode == 1:
+                (name,) = struct.unpack_from('=I', payload)
+                interface, _ = self.globals.pop(name, (None, 0))
+                if interface == self.MANAGER and self.manager is not None:
+                    raise WaylandError('the compositor removed ' + self.MANAGER)
+        elif kind == 'callback':
+            self.callbacks.discard(object_id)
+            self.kinds.pop(object_id, None)
+        elif kind == 'manager':
+            if opcode == 0:
+                (handle,) = struct.unpack_from('=I', payload)
+                self.kinds[handle] = 'toplevel'
+                self.windows.new(handle)
+            elif opcode == 1:
+                raise WaylandError(self.MANAGER + ' finished')
+        elif kind == 'toplevel':
+            if opcode == 1:
+                value, _ = self._string(payload, 0)
+                self.windows.app_id(object_id, value)
+            elif opcode == 4:
+                (length,) = struct.unpack_from('=I', payload)
+                values = struct.unpack_from(f'={length // 4}I', payload, 4)
+                self.windows.state(object_id, self.STATE_ACTIVATED in values)
+            elif opcode == 5:
+                self.windows.done(object_id)
+            elif opcode == 6:
+                self.windows.gone(object_id)
+                self.kinds.pop(object_id, None)
+                self._send(object_id, 7)
+            elif opcode == 7:
+                (parent,) = struct.unpack_from('=I', payload)
+                self.windows.parent(object_id, parent)
+
+
+# ---------------------------------------------------------------- protocol core
+
+class Helper:
+    """The protocol state machine. Sockets and the compositor stay outside it."""
+
+    def __init__(self, registry_dir, instance, nonce, journal_path, launcher=None, windows=None,
+                 activate=None, clock=time.monotonic, executable=None, window_timeout=WINDOW_TIMEOUT, registry=None,
+                 watcher=None):
+        self.instance = instance
+        self.nonce = nonce
+        self.apps, self.revision = registry or load_registry(registry_dir)
+        self.launcher = launcher or ScopeLauncher()
+        # Started by build(); tests drive its passes directly.
+        self.watcher = watcher or ScopeWatcher(run=self.launcher.run)
+        self.windows = windows
+        self.activate_window = activate
+        self.clock = clock
+        self.executable = executable
+        self.window_timeout = window_timeout
+        self.capabilities = BASE_CAPABILITIES | (WINDOW_CAPABILITIES if windows is not None else frozenset())
+        if windows is not None:
+            windows.set_registry(self.apps)
+        self.journal = Journal(journal_path, instance, clock)
+        self.connections = []
+        self.desktop = None
+        self.events = 0
+        self.processes = {}
+        self.deadlines = {}
+        self.started = {}
+        self.handles = {}
+        self.shell = 'foreground'
+        self.foreground_app = None
+        self.active_handle = None
+        self.active_owner = None
+        self.handoff = None
+        self.returning_until = None
+        self.adopting = set()
+        self.world = None
+        self.last_heartbeat = None
+        self.reconcile()
+        if windows is not None:
+            # The compositor has listed its windows by now: tie restarted launches to them, then take stock.
+            self.adopt_windows()
+            self.windows_changed()
+
+    # -- restart reconciliation
+
+    def reconcile(self):
+        """Never relaunch after a restart: settle every launch the journal still calls open.
+
+        One batched scope query (not one per launch) says which apps still run; an unknown answer decides nothing
+        and leaves the launch to the scope watcher.
+        """
+        units = {entry['unit'] for entry in self.journal.entries.values()
+                 if entry['state'] not in FINAL and not entry.get('settled') and entry.get('unit')}
+        states = query_scopes(units, self.watcher.run, self.watcher.timeout) if units else {}
+        changed = False
+        for request_id, entry in self.journal.entries.items():
+            if entry['state'] in FINAL:
+                continue
+            scope = states.get(entry.get('unit'), GONE)
+            if scope == ACTIVE and entry.pop('uncertain', None):
+                self.journal.touch(entry)
+                changed = True
+            if entry['state'] == 'launching':
+                if scope == GONE:
+                    entry.update(state='failed', error='launch_uncertain',
+                                 message='the helper restarted while starting this app; it was not retried')
+                else:
+                    entry['state'] = 'starting'
+                    if scope == UNKNOWN:
+                        entry['uncertain'] = True  # if it turns out gone, it never surely started
+                self.journal.touch(entry)
+                changed = True
+                if entry['state'] in FINAL:
+                    continue
+            if self.windows is not None:
+                if entry['state'] == 'starting':
+                    # Any matching window listed from now on may be its window, including ones open already.
+                    self.started[request_id] = 0.0
+                    self.deadlines[request_id] = self.clock() + self.window_timeout
+                else:
+                    self.adopting.add(request_id)
+            elif scope == GONE and not entry.get('settled'):
+                state, fields = self.end_of_scope(entry)
+                if state == 'settled':
+                    entry['settled'] = True
+                elif state is not None:
+                    entry['state'] = state
+                    entry.update(fields)
+                if state is not None:
+                    self.journal.touch(entry)
+                    changed = True
+        if changed:
+            self.journal.save()
+
+    def adopt_windows(self):
+        """After a restart, give launches that had windows the app's current windows, or close them."""
+        for request_id, entry in self.journal.entries.items():
+            if request_id not in self.adopting or entry['state'] in FINAL:
+                continue
+            windows = {toplevel.handle for toplevel in self.windows.of(entry['app_id'])}
+            if windows:
+                # Which of an app's windows came from which launch is lost with the old helper; share them.
+                self.handles[request_id] = windows
+            else:
+                self.set_state(request_id, 'closed')
+        self.adopting.clear()
+
+    # -- connections
+
+    def connected(self, conn):
+        conn.authenticated = False
+        conn.capabilities = frozenset()
+        conn.minor = MINOR
+        conn.opened = self.clock()
+        conn.inbuf = bytearray()
+        self.connections.append(conn)
+
+    def disconnected(self, conn):
+        if conn in self.connections:
+            self.connections.remove(conn)
+        if self.desktop is conn:
+            self.desktop = None
+
+    def receive(self, conn, data):
+        conn.inbuf += data
+        while True:
+            end = conn.inbuf.find(b'\n')
+            if end < 0:
+                if len(conn.inbuf) > MAX_MESSAGE:
+                    self.error(conn, None, Failure('message_too_large', f'messages are limited to {MAX_MESSAGE} bytes',
+                                                   close=True))
+                    conn.inbuf.clear()
+                return
+            line = bytes(conn.inbuf[:end])
+            del conn.inbuf[:end + 1]
+            if len(line) >= MAX_MESSAGE:
+                self.error(conn, None, Failure('message_too_large', f'messages are limited to {MAX_MESSAGE} bytes',
+                                               close=True))
+                conn.inbuf.clear()
+                return
+            self.handle_line(conn, line)
+            if getattr(conn, 'closing', False):
+                return
+
+    def handle_line(self, conn, line):
+        try:
+            message = json.loads(line.decode('utf-8'), parse_constant=_reject_constant)
+            # JSON escapes can smuggle lone surrogates into any string; nothing below may ever meet one.
+            json.dumps(message, ensure_ascii=False).encode('utf-8')
+        except (UnicodeError, ValueError, RecursionError):
+            self.error(conn, None, Failure('malformed', 'expected one JSON object of valid UTF-8 per line'))
+            return
+        if not isinstance(message, dict):
+            self.error(conn, None, Failure('malformed', 'expected a JSON object'))
+            return
+        request_id = message.get('id')
+        if not isinstance(request_id, str) or not REQUEST_ID.match(request_id):
+            self.error(conn, None, Failure('malformed', 'id must match [A-Za-z0-9._:-]{1,128}'))
+            return
+        version = ENVELOPE.match(message.get('protocol')) if isinstance(message.get('protocol'), str) else None
+        if version is None or int(version.group(1)) != MAJOR:
+            self.error(conn, request_id, Failure('incompatible_version', f'this helper speaks {protocol()}',
+                                                 close=not conn.authenticated))
+            return
+        operation = message.get('op')
+        try:
+            # Check the type before the lookup: a list or object is not even hashable.
+            if not isinstance(operation, str):
+                raise Failure('malformed', 'op must be a string')
+            handler = {'hello': self.hello, 'list_apps': self.list_apps, 'open_app': self.open_app,
+                       'world_ready': self.world_ready, 'heartbeat': self.heartbeat}.get(operation)
+            if handler is None:
+                raise Failure('unknown_operation', f'unknown operation {operation[:64]!r}')
+            if not conn.authenticated and operation != 'hello':
+                raise Failure('hello_required', 'send hello first')
+            result = handler(conn, request_id, message)
+        except Failure as failure:
+            self.error(conn, request_id, failure)
+            return
+        if result is not None:
+            ok = result.pop('ok', True)
+            self.send(conn, dict({'id': request_id, 'ok': ok}, **result))
+
+    def send(self, conn, message):
+        conn.send(dict({'protocol': protocol(conn.minor)}, **message))
+
+    def error(self, conn, request_id, failure):
+        self.send(conn, dict({'id': request_id, 'ok': False, 'error': failure.code, 'message': failure.message},
+                             **failure.fields))
+        if failure.close:
+            conn.finish()
+
+    def emit(self, event, **fields):
+        conn = self.desktop
+        if conn is None or event not in conn.capabilities:
+            return
+        self.events += 1
+        self.send(conn, dict({'id': f'e-{self.events}', 'event': event}, **fields))
+
+    def authorized(self, message):
+        instance, nonce = message.get('instance'), message.get('nonce')
+        if not isinstance(instance, str) or not isinstance(nonce, str):
+            return False
+        try:
+            return (hmac.compare_digest(instance.encode('utf-8'), self.instance.encode('utf-8'))
+                    and hmac.compare_digest(nonce.encode('utf-8'), self.nonce.encode('utf-8')))
+        except UnicodeError:
+            return False
+
+    # -- operations
+
+    def hello(self, conn, request_id, message):
+        if conn.authenticated:
+            raise Failure('invalid_state', 'hello already completed')
+        major, minor = message.get('major'), message.get('minor')
+        if type(major) is not int or type(minor) is not int or minor < 0:
+            raise Failure('malformed', 'major and minor must be integers', close=True)
+        if major != MAJOR:
+            raise Failure('incompatible_version', f'this helper speaks {protocol()}', close=True)
+        capabilities = names(message.get('capabilities', []))
+        required = names(message.get('requires', []))
+        missing = sorted(required - self.capabilities)
+        if missing:
+            raise Failure('incompatible_version', 'missing capabilities: ' + ', '.join(missing), close=True,
+                          missing=missing)
+        if not self.authorized(message):
+            LOG.warning('refused a hello with the wrong desktop instance or launch nonce')
+            raise Failure('not_authorized', 'desktop instance or launch nonce does not match', close=True)
+        conn.authenticated = True
+        conn.minor = min(minor, MINOR)
+        conn.capabilities = capabilities
+        previous, self.desktop = self.desktop, conn
+        if previous is not None and previous is not conn:
+            # The newest authenticated desktop wins, e.g. the mod reconnecting.
+            previous.finish()
+        LOG.info('desktop connected (minor %d)', conn.minor)
+        return {'major': MAJOR, 'minor': conn.minor, 'capabilities': sorted(self.capabilities)}
+
+    def availability(self, app):
+        return resolve(app, self.executable)
+
+    def list_apps(self, conn, request_id, message):
+        apps = []
+        for app in sorted(self.apps.values(), key=lambda app: app.id):
+            _, _, reason = self.availability(app)
+            apps.append({'id': app.id, 'name': app.name, 'available': reason is None, 'reason': reason})
+        return {'revision': self.revision, 'apps': apps}
+
+    def open_app(self, conn, request_id, message):
+        app_id = message.get('app_id')
+        if not isinstance(app_id, str) or len(app_id) > 128:
+            raise Failure('malformed', 'app_id must be a string')
+        entry = self.journal.entries.get(request_id)
+        if entry is not None:
+            if entry['app_id'] != app_id:
+                raise Failure('request_id_reused', 'this request ID already opened another app')
+            # A duplicate (e.g. resent after a reconnect) returns the same launch, never a second one.
+            return self.launch_result(request_id, entry)
+        if not self.journal.room():
+            # Forgetting a recent request ID could start an app twice; refusing a new one cannot.
+            raise Failure('journal_full', 'too many launches in the last few minutes; try again shortly',
+                          request_id=request_id, app_id=app_id, state='failed')
+        app = self.apps.get(app_id)
+        if app is None:
+            return self.record(request_id, {'app_id': app_id, 'launch_id': None, 'state': 'failed',
+                                            'error': 'unknown_app', 'message': 'no reviewed launch definition'})
+        argv, directory, reason = self.availability(app)
+        if reason is not None:
+            return self.record(request_id, {'app_id': app_id, 'launch_id': None, 'state': 'failed',
+                                            'error': 'unavailable', 'reason': reason, 'message': reason})
+        launch_id = secrets.token_hex(8)
+        unit = self.launcher.unit(app, launch_id)
+        entry = {'app_id': app_id, 'launch_id': launch_id, 'state': 'launching', 'unit': unit}
+        self.journal.put(request_id, entry)
+        # Recorded before starting: a crash in between is reconciled, not retried.
+        self.journal.save()
+        try:
+            process = self.launcher.spawn(app, argv, directory, launch_id)
+        except (OSError, ValueError, subprocess.SubprocessError) as error:
+            LOG.error('could not start %s: %s', app.id, error)
+            entry.update(state='failed', error='launch_failed', message='could not start the app')
+            self.journal.touch(entry)
+            self.journal.save()
+            return self.launch_result(request_id, entry)
+        LOG.info('started %s in %s', app.id, unit)
+        entry['state'] = 'starting'
+        self.journal.touch(entry)
+        self.journal.save()
+        self.processes[request_id] = process
+        if self.windows is not None:
+            self.started[request_id] = self.clock()
+            self.deadlines[request_id] = self.clock() + self.window_timeout
+        return self.launch_result(request_id, entry)
+
+    def record(self, request_id, entry):
+        self.journal.put(request_id, entry)
+        self.journal.save()
+        return self.launch_result(request_id, entry)
+
+    @staticmethod
+    def launch_result(request_id, entry):
+        state = 'starting' if entry['state'] == 'launching' else entry['state']
+        result = {'ok': state != 'failed', 'request_id': request_id, 'launch_id': entry.get('launch_id'),
+                  'app_id': entry['app_id'], 'state': state}
+        if state == 'failed':
+            result.update(error=entry.get('error', 'launch_failed'), message=entry.get('message', ''))
+            if entry.get('reason'):
+                result['reason'] = entry['reason']
+        return result
+
+    def world_ready(self, conn, request_id, message):
+        if not self.authorized(message):
+            raise Failure('not_authorized', 'desktop instance or launch nonce does not match', close=True)
+        world = message.get('world')
+        if (not isinstance(world, dict) or world.get('desktop') is not True
+                or not isinstance(world.get('id'), str) or not WORLD_ID.match(world['id'])):
+            raise Failure('malformed', 'world must name the marked desktop world')
+        if self.world != world['id']:
+            LOG.info('desktop world ready')
+        self.world = world['id']
+        self.last_heartbeat = self.clock()
+        return {}
+
+    def heartbeat(self, conn, request_id, message):
+        if not self.authorized(message):
+            raise Failure('not_authorized', 'desktop instance or launch nonce does not match', close=True)
+        ready = message.get('ready')
+        if not isinstance(ready, bool):
+            raise Failure('malformed', 'ready must be a boolean')
+        if not ready and self.world is not None:
+            LOG.info('desktop world no longer ready')
+            self.world = None
+        self.last_heartbeat = self.clock()
+        return {}
+
+    # -- launch lifecycle
+
+    def set_state(self, request_id, state, **fields):
+        entry = self.journal.entries.get(request_id)
+        if entry is None or entry['state'] == state or entry['state'] in FINAL:
+            return
+        entry['state'] = state
+        entry.update(fields)
+        if state in ('focused', 'background'):
+            entry.pop('uncertain', None)  # a window confirms the app started
+        self.journal.touch(entry)
+        self.journal.save()
+        if state in FINAL or state in ('focused', 'background'):
+            self.deadlines.pop(request_id, None)
+        event = {'request_id': request_id, 'launch_id': entry.get('launch_id'), 'app_id': entry['app_id'],
+                 'state': state}
+        event.update(fields)
+        self.emit('app_state', **event)
+
+    def settle(self, request_id):
+        """This request's answer can no longer change, though the app may still run: replay retention may end."""
+        entry = self.journal.entries.get(request_id)
+        if entry is None or entry.get('settled'):
+            return
+        entry['settled'] = True
+        self.journal.touch(entry)
+        self.journal.save()
+
+    def confirmed(self, request_id):
+        """Its app is seen running (scope or window): an interrupted start is no longer in doubt."""
+        entry = self.journal.entries.get(request_id)
+        if entry is not None and entry.pop('uncertain', None):
+            self.journal.touch(entry)
+            self.journal.save()
+
+    def end_of_scope(self, entry):
+        """What a launch becomes once its scope is gone and no process of ours can say how it ended."""
+        app = self.apps.get(entry['app_id'])
+        single = app is not None and app.instance == 'single'
+        if entry.get('uncertain'):
+            return 'failed', {'error': 'launch_uncertain',
+                              'message': 'the helper restarted while starting this app; it was not retried'}
+        if self.windows is None:
+            # A one-process app has closed; a handed-over app's answer can't change any more.
+            return ('settled', {}) if single else ('closed', {})
+        if entry['state'] == 'starting' and not single:
+            return 'failed', {'error': 'launch_failed', 'message': 'exited before showing a window'}
+        # With window tracking, windows decide the rest (a handed-over launch waits for its window).
+        return None, {}
+
+    def watched_units(self):
+        """Unit to request ID for every launch whose end only its scope can show.
+
+        Without window tracking that is every unresolved launch, focused and background included. With tracking,
+        windows decide, except for a launch still starting that this helper did not start itself (no process).
+        """
+        units = {}
+        for request_id, entry in self.journal.entries.items():
+            if entry['state'] in FINAL or entry.get('settled') or not entry.get('unit'):
+                continue
+            if self.windows is None or (entry['state'] == 'starting' and request_id not in self.processes):
+                units[entry['unit']] = request_id
+        return units
+
+    def scopes_answered(self):
+        """Apply the scope watcher's answers. Only GONE ends a launch; UNKNOWN keeps it and its watch."""
+        watched = self.watched_units()
+        for answers in self.watcher.take():
+            for unit, state in answers.items():
+                request_id = watched.get(unit)
+                if state == ACTIVE and request_id is not None:
+                    self.confirmed(request_id)
+                # A launch with its own process is ended by that process and its exit code, never by the list.
+                if state != GONE or request_id is None or request_id in self.processes:
+                    continue
+                entry = self.journal.entries.get(request_id)
+                if entry is None or entry['state'] in FINAL or entry.get('settled'):
+                    continue
+                state_after, fields = self.end_of_scope(entry)
+                if state_after == 'settled':
+                    self.settle(request_id)
+                elif state_after is not None:
+                    self.set_state(request_id, state_after, **fields)
+        self.watcher.watch(self.watched_units())
+
+    def tick(self):
+        now = self.clock()
+        for conn in list(self.connections):
+            if not conn.authenticated and now - conn.opened > HELLO_TIMEOUT:
+                conn.finish()
+        for request_id, process in list(self.processes.items()):
+            code = process.poll()
+            if code is None:
+                continue
+            del self.processes[request_id]
+            entry = self.journal.entries.get(request_id)
+            if entry is None or entry['state'] != 'starting':
+                continue
+            app = self.apps.get(entry['app_id'])
+            if self.windows is None:
+                if code != 0:
+                    self.set_state(request_id, 'failed', error='launch_failed', message=f'exited with status {code}')
+                elif app is not None and app.instance == 'single':
+                    # Handed over to the running instance, whose windows can't be watched here: answer settled.
+                    self.settle(request_id)
+                else:
+                    self.set_state(request_id, 'closed')
+            elif code != 0 or (app is not None and app.instance == 'multi'):
+                self.set_state(request_id, 'failed', error='launch_failed',
+                               message=f'exited with status {code} before showing a window')
+            # A single-instance app hands the launch to its running instance and exits 0.
+        for request_id, deadline in list(self.deadlines.items()):
+            if now >= deadline:
+                del self.deadlines[request_id]
+                entry = self.journal.entries.get(request_id)
+                if entry is not None and entry['state'] == 'starting':
+                    self.set_state(request_id, 'failed', error='no_window',
+                                   message='no matching window appeared')
+        self.scopes_answered()
+
+    def windows_changed(self):
+        """Apply the compositor's changes so far.
+
+        A socket read is not a compositor batch: the same close-and-refocus can arrive split across reads in any
+        order. So the transition state lives on the helper (the last active window and a short hand-off record),
+        and the outcome is the same however the bytes were split.
+        """
+        opened, closed = self.windows.take()
+        now = self.clock()
+        # Claims first, so a window that opened and closed between two reads still confirms its launch.
+        for toplevel in opened:
+            if toplevel.owner in (None, Windows.SHELL) or any(toplevel.handle in h for h in self.handles.values()):
+                continue
+            waiting = [request_id for request_id, entry in self.journal.entries.items()
+                       if entry['state'] == 'starting' and entry['app_id'] == toplevel.owner
+                       and self.started.get(request_id, float('inf')) <= toplevel.seen]
+            if waiting:
+                request_id = waiting[0]
+                self.started.pop(request_id, None)
+                self.handles.setdefault(request_id, set()).add(toplevel.handle)
+        returned = False
+        for toplevel in closed:
+            for request_id, handles in list(self.handles.items()):
+                if toplevel.handle in handles:
+                    handles.discard(toplevel.handle)
+                    if not handles:
+                        del self.handles[request_id]
+                        self.set_state(request_id, 'closed')
+            app = toplevel.owner
+            if returned or app in (None, Windows.SHELL) or self.windows.of(app):
+                continue
+            # The compositor may already have activated the next window when the close arrives.
+            handed_off = (self.handoff is not None and self.handoff[1] == toplevel.handle
+                          and now - self.handoff[2] <= HANDOFF)
+            if app == self.foreground_app or handed_off:
+                returned = True
+                self.return_to_desktop(app)
+        active = self.windows.active()
+        for request_id, handles in self.handles.items():
+            focused = active is not None and active.handle in handles
+            self.set_state(request_id, 'focused' if focused else 'background')
+        if active is None:
+            return
+        previous_handle, previous_owner = self.active_handle, self.active_owner
+        self.active_handle, self.active_owner = active.handle, active.owner
+        if active.owner == Windows.SHELL:
+            self.returning_until = None
+            self.handoff = None
+            self.foreground_app = None
+            if self.shell == 'background':
+                self.shell = 'foreground'
+                self.emit('shell_focus', focus='foreground', reason='desktop_activated')
+            return
+        if returned or (self.returning_until is not None and now <= self.returning_until):
+            # The compositor's own pick after the close; the desktop's activation is on its way.
+            return
+        self.returning_until = None
+        if active.handle != previous_handle:
+            self.handoff = ((previous_owner, previous_handle, now)
+                            if previous_owner not in (None, Windows.SHELL) and previous_owner != active.owner else None)
+        self.foreground_app = active.owner
+        if self.shell == 'foreground':
+            self.shell = 'background'
+            fields = {'focus': 'background', 'reason': 'app_activated' if active.owner else 'other_window'}
+            if active.owner:
+                fields['app_id'] = active.owner
+            self.emit('shell_focus', **fields)
+
+    def return_to_desktop(self, app):
+        """The foreground app's last relevant window closed: give the hub its focus back."""
+        desktop = self.windows.of(Windows.SHELL)
+        activated = bool(desktop) and self.activate_window is not None and bool(self.activate_window(desktop[-1].handle))
+        self.foreground_app = None
+        self.handoff = None
+        self.shell = 'foreground'
+        self.returning_until = self.clock() + HANDOFF if activated else None
+        LOG.info('%s closed its last window; returning to the desktop', app)
+        self.emit('shell_focus', focus='foreground', reason='app_closed', app_id=app, activated=activated)
+
+
+def names(values):
+    if not isinstance(values, list) or len(values) > MAX_LIST:
+        raise Failure('malformed', 'capability lists must be arrays of names')
+    result = set()
+    for value in values:
+        if not isinstance(value, str) or not CAPABILITY.match(value):
+            raise Failure('malformed', 'capability names must match [a-z_]{1,32}')
+        result.add(value)
+    return frozenset(result)
+
+
+# ---------------------------------------------------------------- server
+
+class Peer:
+    """One client connection with non-blocking buffers."""
+
+    def __init__(self, sock, server):
+        self.sock = sock
+        self.server = server
+        self.outbuf = bytearray()
+        self.closing = False
+        self.closed = False
+
+    def send(self, message):
+        if self.closed:
+            return
+        data = json.dumps(message, separators=(',', ':'), ensure_ascii=False).encode('utf-8') + b'\n'
+        if len(data) > MAX_MESSAGE:
+            LOG.error('dropped an oversized outgoing message')
+            return
+        if len(self.outbuf) + len(data) > MAX_OUTGOING:
+            LOG.warning('client is not reading; disconnecting it')
+            self.close()
+            return
+        self.outbuf += data
+        self.flush()
+
+    def flush(self):
+        while self.outbuf and not self.closed:
+            try:
+                sent = self.sock.send(self.outbuf)
+            except BlockingIOError:
+                break
+            except OSError:
+                self.close()
+                return
+            del self.outbuf[:sent]
+        if self.closed:
+            return
+        if self.closing and not self.outbuf:
+            self.close()
+        else:
+            self.server.watch(self)
+
+    def finish(self):
+        self.closing = True
+        self.flush()
+
+    def close(self):
+        if self.closed:
+            return
+        self.closed = True
+        self.server.forget(self)
+        self.sock.close()
+
+
+def peer_uid(sock):
+    pid, uid, gid = struct.unpack('3i', sock.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED, struct.calcsize('3i')))
+    return uid
+
+
+def prepare_socket(path, uid=None):
+    """Create the private runtime folder and claim the socket path, refusing a live helper."""
+    uid = os.getuid() if uid is None else uid
+    folder = os.path.dirname(path)
+    os.makedirs(folder, mode=0o700, exist_ok=True)
+    info = os.lstat(folder)
+    if not stat.S_ISDIR(info.st_mode) or info.st_uid != uid:
+        raise SystemExit(f'{folder} must be a directory owned by this user')
+    if info.st_mode & 0o077:
+        os.chmod(folder, 0o700)
+    try:
+        info = os.lstat(path)
+    except FileNotFoundError:
+        return
+    if not stat.S_ISSOCK(info.st_mode):
+        raise SystemExit(f'{path} exists and is not a socket')
+    probe = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    try:
+        probe.connect(path)
+    except (ConnectionRefusedError, FileNotFoundError):
+        os.unlink(path)
+        return
+    finally:
+        probe.close()
+    raise SystemExit('another aresos-shell is already serving ' + path)
+
+
+class Server:
+    def __init__(self, path, helper, wayland=None, uid=None):
+        self.path = path
+        self.helper = helper
+        self.wayland = wayland
+        self.uid = os.getuid() if uid is None else uid
+        self.selector = selectors.DefaultSelector()
+        self.peers = {}
+        self.stopping = False
+        prepare_socket(path, self.uid)
+        self.listener = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        old = os.umask(0o177)
+        try:
+            self.listener.bind(path)
+        finally:
+            os.umask(old)
+        os.chmod(path, 0o600)
+        self.listener.listen(MAX_CONNECTIONS)
+        self.listener.setblocking(False)
+        self.selector.register(self.listener, selectors.EVENT_READ, 'listener')
+        if wayland is not None:
+            self.selector.register(wayland.sock, selectors.EVENT_READ, 'wayland')
+        self.selector.register(helper.watcher.reader, selectors.EVENT_READ, 'scopes')
+
+    def watch(self, peer):
+        events = selectors.EVENT_READ | (selectors.EVENT_WRITE if peer.outbuf else 0)
+        if peer.sock.fileno() >= 0 and peer.sock in self.peers:
+            self.selector.modify(peer.sock, events, peer)
+
+    def forget(self, peer):
+        if self.peers.pop(peer.sock, None) is not None:
+            self.selector.unregister(peer.sock)
+        self.helper.disconnected(peer)
+
+    def accept(self):
+        try:
+            sock, _ = self.listener.accept()
+        except BlockingIOError:
+            return
+        try:
+            uid = peer_uid(sock)
+        except OSError:
+            uid = None
+        if uid != self.uid or len(self.peers) >= MAX_CONNECTIONS:
+            LOG.warning('refused a connection (%s)', 'other user' if uid != self.uid else 'too many connections')
+            sock.close()
+            return
+        sock.setblocking(False)
+        peer = Peer(sock, self)
+        self.peers[sock] = peer
+        self.selector.register(sock, selectors.EVENT_READ, peer)
+        self.helper.connected(peer)
+
+    def step(self, timeout=0.5):
+        for key, mask in self.selector.select(timeout):
+            self.handle(key, mask)
+        self.helper.tick()
+
+    def handle(self, key, mask):
+        """One selector event: a new client, compositor news, scope answers or client traffic."""
+        if key.data == 'listener':
+            self.accept()
+            return
+        if key.data == 'wayland':
+            self.wayland.readable()
+            self.helper.windows_changed()
+            return
+        if key.data == 'scopes':
+            self.helper.scopes_answered()
+            return
+        peer = key.data
+        if mask & selectors.EVENT_WRITE:
+            peer.flush()
+        if not mask & selectors.EVENT_READ or peer.closed:
+            return
+        try:
+            data = peer.sock.recv(65536)
+        except BlockingIOError:
+            return
+        except OSError:
+            data = b''
+        if not data:
+            peer.close()
+        elif not peer.closing:
+            try:
+                self.helper.receive(peer, data)
+            except Exception:
+                LOG.exception('unexpected error while handling a request; dropping that connection')
+                peer.close()
+
+    def run(self):
+        while not self.stopping:
+            self.step()
+        self.close()
+
+    def close(self):
+        for peer in list(self.peers.values()):
+            peer.close()
+        self.selector.close()
+        self.listener.close()
+        self.helper.watcher.stop()
+        try:
+            os.unlink(self.path)
+        except FileNotFoundError:
+            pass
+
+
+def build(registry_dir, instance, nonce, journal_path, environ=None, launcher=None, clock=time.monotonic,
+          connect=None):
+    """Start-up in the order that matters: owners from the registry first, then the compositor's window list."""
+    registry = load_registry(registry_dir)
+    windows = Windows(clock=clock)
+    windows.set_registry(registry[0])
+    try:
+        wayland = (connect or ForeignToplevels.connect)(windows, environ)
+    except (OSError, WaylandError, struct.error) as error:
+        LOG.warning('window tracking is off, apps report starting only: %s', error)
+        wayland, windows = None, None
+    helper = Helper(registry_dir, instance, nonce, journal_path, launcher=launcher, windows=windows,
+                    activate=wayland.activate if wayland else None, clock=clock, registry=registry)
+    helper.watcher.watch(helper.watched_units())
+    helper.watcher.start()
+    return helper, wayland
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description='AresOS app helper (aresos-shell/1.0)')
+    parser.add_argument('--registry', default=REGISTRY, help='folder of reviewed app entries')
+    parser.add_argument('--socket', help='socket path (default $XDG_RUNTIME_DIR/aresos/shell.sock)')
+    parser.add_argument('--list', action='store_true', help='print the registry with availability and exit')
+    args = parser.parse_args(argv)
+    logging.basicConfig(level=logging.INFO, format='aresos-shell: %(levelname)s %(message)s')
+    if args.list:
+        apps, revision = load_registry(args.registry)
+        rows = []
+        for app in sorted(apps.values(), key=lambda app: app.id):
+            _, _, reason = resolve(app)
+            rows.append({'id': app.id, 'name': app.name, 'available': reason is None, 'reason': reason})
+        print(json.dumps({'revision': revision, 'apps': rows}, indent=2))
+        return 0
+    runtime = os.environ.get('XDG_RUNTIME_DIR')
+    instance, nonce = os.environ.get('ARESOS_DESKTOP_INSTANCE', ''), os.environ.get('ARESOS_LAUNCH_NONCE', '')
+    if not runtime or not os.path.isabs(runtime):
+        parser.error('XDG_RUNTIME_DIR must be set')
+    if not INSTANCE.match(instance) or not NONCE.match(nonce):
+        parser.error('ARESOS_DESKTOP_INSTANCE and ARESOS_LAUNCH_NONCE (16+ URL-safe characters) must be set '
+                     'by the desktop supervisor')
+    path = args.socket or os.environ.get('ARESOS_SHELL_SOCKET') or os.path.join(runtime, 'aresos', 'shell.sock')
+    prepare_socket(path)
+    helper, wayland = build(args.registry, instance, nonce, os.path.join(os.path.dirname(path), 'shell-journal.json'))
+    server = Server(path, helper, wayland)
+
+    def stop(signum, frame):
+        server.stopping = True
+
+    signal.signal(signal.SIGTERM, stop)
+    signal.signal(signal.SIGINT, stop)
+    LOG.info('serving %s on %s (%d apps)', protocol(), path, len(helper.apps))
+    try:
+        server.run()
+    except WaylandError as error:
+        # Window tracking is part of the negotiated contract; restart rather than silently lose it.
+        LOG.error('lost the compositor: %s', error)
+        server.close()
+        return 1
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())

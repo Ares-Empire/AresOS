@@ -92,7 +92,7 @@ systemd-sysusers /usr/lib/sysusers.d/aresos.conf
 passwd --lock ares
 passwd --lock root
 chmod 0755 /usr/bin/aresos-session /usr/bin/aresos-terminal /usr/bin/brew /usr/libexec/aresos-audit \
-    /usr/libexec/aresos-keyboard /usr/libexec/aresos-subids
+    /usr/libexec/aresos-keyboard /usr/libexec/aresos-shell /usr/libexec/aresos-subids
 chmod 0440 /etc/sudoers.d/aresos-everyday
 /usr/libexec/aresos-subids
 systemctl enable aresos-subids.service

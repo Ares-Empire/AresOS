@@ -1,0 +1,11 @@
+- **P2 — [AresOsClient.java:146](C:/Users/pab/AresOS-24-interface-v1/mod/src/client/java/dev/aresos/client/AresOsClient.java:146): late failures can cancel the wrong launch.** Launch the same app twice; a delayed failure from the first cancels the second launch’s focus token and logo return because matching uses only `appId`. Carry the original request ID/token through the failure callback. Add a two-launch regression test.
+
+- **P2 — [aresos-shell:388](C:/Users/pab/AresOS-24-interface-v1/os/config/usr/libexec/aresos-shell:388): degraded tracking eventually refuses every launch.** `tick()` removes cleanly exited processes but leaves their entries `starting`. The new journal policy never expires these, so 256 successful launches exhaust capacity; waiting ten minutes cannot help. Mark completed per-process launches terminal and separate replay retention from unobservable handed-off window lifetimes. Test capacity recovery after successful exits.
+
+- **P2 — [ShellClient.java:336](C:/Users/pab/AresOS-24-interface-v1/mod/src/main/java/dev/aresos/shell/ShellClient.java:336): late failures disappear across reconnects.** Requests accepted as `starting` move into `watching`, but reconnect replays only `opens`; replies also consult only `opens` at line 467. A failure recorded while disconnected therefore never reaches the player. Reconcile watched IDs on reconnect and route their replies through late-failure handling; test failure during disconnection.
+
+- **P3 — [aresos-shell:1127](C:/Users/pab/AresOS-24-interface-v1/os/config/usr/libexec/aresos-shell:1127): the 0.5-second rule is an approximation.** It restores the tested split-read transitions, but switching apps immediately before the former app exits steals focus back to Minecraft. That is a plausible v1 tradeoff, not proof of background-focus preservation. Explicitly test both sides of the threshold and record it as a focus-policy judgment call; advancing the existing background-close test avoids this edge.
+
+Static review: points **1, 2 and 5** appear fixed; **3** has the caveat above; **4 and 6** remain incomplete. No Windows behavior regression found. **7’s** pending Gradle/client/WSL runs are appropriately deferred to the integrator and do not independently block this verdict.
+
+CHANGES-NEEDED

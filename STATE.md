@@ -70,8 +70,19 @@ Updated 2026-11-09. The live truth is `git log`, `gh pr list` and `git worktree 
 ## In progress
 
 - **Package 21** (brief `21-everyday-account-and-chrome.md`, empire brief 262): the everyday account like Windows, Chrome, PATH, foot font, small tools, key bindings, and a throwaway CI image build. A Claude agent builds it; Codex reviews.
+  - PR #31. Owner answers (board #156, 2026-11-10, "Yes to all"): Homebrew installs ask his password every time (the prefix stays the stock admin's, so the Bazzite backup keeps it); saving a system-wide Wi-Fi network or installing a system-wide Flatpak asks his password; sudo keeps no ticket, so no program can reuse a password he typed. Judgment calls 4 to 9 wait on board #163.
 - **Package 22** (brief `22-update-route.md`, empire brief 263): `at update` to move the laptop to a new signed release, the step 8 guide, the admin password step, INSTALL-STATUS for steps 4–7. A Claude agent builds it; Codex reviews.
-- **Then:** 21b (backlight and power button, after a read-only check on the laptop in AresOS), a release package (rehearsal, then publishing with his OK), and Minecraft in AresOS (P2).
+  - PR #32 (built by a Claude agent; fingerprint `2a9965ea…`). Owner answers to its judgment calls (board #154, 2026-11-09, "Yes to both"):
+    - the laptop keeps the current and previous AresOS plus the pinned Bazzite backup, and older AresOS versions drop off;
+    - after the first update, `rollback`/`keep-stock`/the recovery menu and layout trials refuse until follow-up **22c** extends them. That follow-up comes before the second update. Meanwhile the way back is `at previous` or F12 → Windows.
+- **Package 24** (brief `24-interface-v1.md`, empire brief 265): the OS helper (`aresos-shell/1.0`) and the mod's Linux client, so apps open from the hub on AresOS. Windows behaviour unchanged. A Claude agent builds it; Codex reviews.
+  - PR #33. Owner answers (board #155, 2026-11-09, "Yes to all"): Notepad opens KWrite; each Chrome-logo click opens a new Chrome window, like on Windows (switching comes later with the app wheel); the terminal looks like a command block and the browser like a compass.
+- **Owner OK to merge and publish this round (2026-11-09: "Once its safe and done you can merge and publish"):** packages 21–24 merge after a fresh SAFE review and passing checks. The next AresOS release built from them may be published and pinned without asking again, once its rehearsal passes. Installing it on the laptop (`at update`) is still his own step. Anything outside this round still needs his OK.
+- **Ready, starts when 21 merges:** package 23 (brief `23-minecraft-starts.md`, empire brief 264): Prism and Java 25 in the image, the managed `AresDesktop` instance, the `AresHub` world, and a supervisor that boots into the hub.
+- **Then:**
+  - 21b: backlight and power button, after the read-only check on the laptop in AresOS (board #149 tells the next AresOS session).
+  - P2's remaining packages: 25 (guardian: clean save and shutdown) and 26 (backups).
+  - A release package: rehearsal, then publishing with his OK, then `at update` on the laptop.
 
 - **Package 12 (the companion in the hub)**: brief drafted 2026-10-25, waiting for the owner's go. A generic companion system in the mod (look packs as data, an original placeholder look), with the owner's Claude crab as a private pack outside this repo. The desktop companions live in the private repo `Ares-Empire/companions` (browser preview: `python tools/serve.py`, then http://127.0.0.1:8765/preview/).
 
