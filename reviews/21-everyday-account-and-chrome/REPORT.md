@@ -23,7 +23,8 @@ Nothing was pushed, signed or published to a registry. The release pin is unchan
     review fixes), and starting `uupd.service`/`uupd-manual.service` (the base's `uupd.rules` lets anyone start
     them; they stay masked anyway).
   - The base ships rules that let any wheel member act **without a password**. For `ares` these now ask for it
-    (`AUTH_ADMIN_KEEP`): Flatpak app/runtime install and uninstall, gvfs admin file operations
+    (since review 2: each action's own uncached default per session kind, in `aresosWheelGrantDefaults`; it was
+    `AUTH_ADMIN_KEEP`): Flatpak app/runtime install and uninstall, gvfs admin file operations
     (`org.gtk.vfs.file-operations-helper`, in effect root file access), NetworkManager system connections,
     firewalld configuration, Thunderbolt (bolt), CoreCtrl's helper and KDE's clock (JUDGMENT-CALL 3).
   - The old denies on all Flatpak actions and on `manage-unit-files` are gone; those follow their defaults, which
@@ -219,7 +220,7 @@ read-only commands ran directly, `install` went to `sudo -u '#1000'`, a missing 
    - Rejected: keeping the passwordless grants (Claude could then write any file as root through gvfs admin,
      reconfigure the firewall or add a VPN).
    - Cost: a password prompt when he saves a new Wi-Fi as a system connection or installs a system-wide Flatpak.
-   - Reversal: remove names from `aresosPasswordActions`; `polkit-check.js` then lists them for review.
+   - Reversal: remove names from `aresosWheelGrantDefaults`; `polkit-check.js` then lists them for review.
 4. **`script` moves the util-linux family from 2.41.5 to 2.41.6.**
    - Fedora `updates` no longer carries `util-linux-script-2.41.5-1.fc44`; the only one is 2.41.6-1.fc44, which needs
      the matching `util-linux-core`. The lock therefore upgrades 11 base packages: `util-linux`, `util-linux-core`,
@@ -237,6 +238,14 @@ read-only commands ran directly, `install` went to `sudo -u '#1000'`, a missing 
 7. **Small defaults**: foot size 16 (his own value; 12 to 14 would also read well); Chrome as the default browser
    through a desktop-specific list; `flatpak-oci-authenticator.service` and the NVIDIA Flatpak runtime sync stay
    masked (Flathub apps need neither).
+
+8. **No polkit authorization is cached, for any account** (review fixes 2).
+   - Chosen: rewrite the installed defaults, so no process can reuse an authorization, for any action, parameters or
+     account. This was simpler and more complete than a 227-entry per-action table in the rule, and CI keeps it whole.
+   - Cost: every privileged step asks again. A system-wide `flatpak install` can ask once for the runtime and once for
+     the app; `systemctl restart x` asks each time; `ares-recovery` loses caching too. `flatpak --user` installs need
+     no password.
+   - Reversal: drop the rewrite in `build.sh`; `polkit-check.js` then reports every cached default.
 
 ## PLAN-GAP
 
@@ -320,3 +329,50 @@ Verification of the fixes:
   unchanged power actions in `test_polkit_rule_denies_os_changes_and_asks_for_upstream_wheel_grants`; the
   `polkit-check.js` rules for denies with and without wheel and the boot/firmware name pattern. Changed:
   `test_sysusers_adds_wheel_and_sudo_asks_for_the_password_every_time`, `guest.sh` and its shell-assertion fixture.
+
+## Review fixes 2 (review 2: CHANGES-NEEDED at `5f1099e2`; brief `21-review-fixes-2.md`)
+
+Board #156 is still open, so its behaviours stay: Homebrew through UID 1000, system-wide Wi-Fi and Flatpak installs
+asking for the password.
+
+1. **Blocker: TuneD as a passwordless route to boot changes.** Fixed.
+   - Every `com.redhat.tuned.*` action except 15 read-only queries (`aresosTunedReadOnly`: profiles, active profile,
+     plugin docs, verification) is now denied to `ares` in every session kind, with and without wheel. That covers
+     `switch_profile`, `auto_profile`, `start`, `stop`, `reload`, `disable`, the `instance_*` changes and log capture.
+     New TuneD actions in a later base are denied until reviewed.
+   - The power-profile switch stays passwordless, because tuned-ppd only maps it to the profiles in
+     `/etc/tuned/ppd.conf`. A new in-image check resolves every mapped profile and its includes and proves none has a
+     bootloader section or `cmdline` option: `balanced`, `balanced-battery-bazzite`, `balanced-bazzite`, `powersave`,
+     `powersave-battery-bazzite`, `powersave-bazzite`, `throughput-performance`, `throughput-performance-bazzite`.
+   - The check no longer relies on a name pattern alone: every action that stays passwordless for `ares` (131 in this
+     base) is listed by name with a reason in `polkit-review.json` under `passwordless`, and `polkit-check.js` fails
+     on any unlisted passwordless action and on stale entries.
+2. **Blocker: cached admin authorization.** Fixed.
+   - `build.sh` rewrites every installed polkit default from `auth_admin_keep`/`auth_self_keep` to
+     `auth_admin`/`auth_self` (333 defaults across 227 actions, including systemd unit management and GVfs) and fails
+     if any remains. No account gets a cached authorization any more (JUDGMENT-CALL 8).
+   - The AresOS rule never returns a cached result. Upstream wheel grants now give `ares` the action's own uncached
+     default per session kind (`aresosWheelGrantDefaults`; CI checks the table against the image). This also fixes a
+     round-1 slip: returning `AUTH_ADMIN_KEEP` everywhere loosened GVfs (`no` by default) outside an active local
+     session.
+   - `polkit-check.js` now evaluates remote, local inactive and local active sessions with and without wheel, and
+     fails on any cached result, on anything weaker than polkit's own uncached default, and on any boot, firmware,
+     OS-change or TuneD-change action that isn't `no`. Run locally against the previous image, the round-1 rule fails
+     with 153 findings and the unrewritten defaults fail on every cached one.
+   - New live regression in `image-checks.sh`: a real `polkitd` on a private system bus, a text agent on a pty, and the
+     throwaway password. `ares` authorizes once with `pkcheck --allow-user-interaction`, then the same process checks
+     again without interaction. Control: a check-only action with a cached default is reused (exit 0), so the probe
+     can see reuse. NetworkManager system settings and firewalld configuration, both cached by the base in this
+     session kind, are asked again (exit 2, "requires authentication"). Without logind every subject counts as
+     remote; the static evaluation covers the active local session for all 401 actions.
+
+JUDGMENT-CALL 8 (no cached polkit authorization for any account) is in the JUDGMENT-CALL list above.
+
+Verification of the fixes:
+
+| Run | What | Result |
+|---|---|---|
+| **42727378915** | **`check_build=build` on `e83362d3`** | **Success.** 26 in-image PASS lines, including `polkit: after ares authorizes once, the same process is asked again (a cached control action is reused)` and `every power profile ares can switch to leaves the bootloader and kernel arguments alone`. Build log: `polkit: 333 cached defaults made uncached`. `polkit: 21 rule files, 401 actions, 0 change with wheel, 73 denied to ares, 131 reviewed passwordless, 0 cached defaults in the image`, `POLKIT_CHECK_PASSED`; the check without the AresOS rule still fails. Evidence: `runs/build-42727378915/`. |
+| **42729131585** | **`checks_only=true` on `0659e6bc`** | **Success.** `Ran 714 tests` `OK` natively with sudo, including `test_build_makes_every_polkit_default_uncached_and_refuses_leftovers` and the updated polkit test; compile and syntax sweeps and the live system-manager query passed. |
+
+- WSL, focused on `e83362d3` before the last test-only commit: `test_shell_assertions` 8 OK, `test_checkout_sources` 4 OK, `test_sysusers` 2 errors (WSL sudo, as before); `test_everyday_account` found the deny-clause assertion that `0659e6bc` fixed (6 policy tests OK locally after it). A full WSL suite on the final head is queued behind another agent's run (one suite at a time); its result follows in this section.
