@@ -57,7 +57,7 @@ jobs:
     needs: qualification-plan
     if: needs.qualification-plan.result == 'success' && needs.qualification-plan.outputs.matrix != '' && fromJSON(needs.qualification-plan.outputs.matrix).include[0] != null
     runs-on: ubuntu-24.04
-    timeout-minutes: 95
+    timeout-minutes: 115
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.qualification-plan.outputs.matrix) }}
@@ -95,7 +95,7 @@ jobs:
           NODE_OPTIONS: --import=/workspace/control/chrome_tests/qualification-completion.mjs
         run: |
           mkdir -p .work/20-chrome/ci
-          timeout --signal=TERM --kill-after=30s 85m docker run --rm --network none --cap-add SYS_ADMIN --security-opt seccomp=unconfined --security-opt apparmor=unconfined --shm-size=512m -e INSTALL_MODE -e QUALIFICATION_VERSION -e QUALIFICATION_PAIR -e NODE_OPTIONS -e GITHUB_RUN_ID -e GITHUB_SHA -v "$PWD/.work/20-chrome/ci:/out" qualification
+          timeout --signal=TERM --kill-after=30s 105m docker run --rm --network none --cap-add SYS_ADMIN --security-opt seccomp=unconfined --security-opt apparmor=unconfined --shm-size=512m -e INSTALL_MODE -e QUALIFICATION_VERSION -e QUALIFICATION_PAIR -e NODE_OPTIONS -e GITHUB_RUN_ID -e GITHUB_SHA -v "$PWD/.work/20-chrome/ci:/out" qualification
       - name: Retain pair identity even when the test failed
         if: always()
         env:

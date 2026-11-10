@@ -3,6 +3,13 @@ set -euo pipefail
 test "${GITHUB_ACTIONS:-}" = true
 test -f /.dockerenv
 test "$(uname -s)" = Linux
+# A network-none container may lack its own hostname in hosts. Keep sudo's
+# logging lookup local rather than waiting for an unreachable DNS server.
+python3 - <<'PY'
+import socket
+with open('/etc/hosts','a') as hosts:
+    hosts.write('\n127.0.0.1 '+socket.gethostname()+'\n')
+PY
 mkdir -p /out
 chmod 777 /out
 qualification-chrome --version | tee /out/chrome-version.txt
