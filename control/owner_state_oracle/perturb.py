@@ -9,7 +9,7 @@ EFFECT_FIELDS = {'target', 'destination', 'last_known_destination', 'recipients'
                  'flags', 'add', 'remove', 'sha256', 'raw_sha256', 'wire_sha256', 'sent_wire_sha256',
                  'hash', 'input_hash', 'composition_hash', 'evidence_fingerprint', 'fingerprint',
                  'source', 'sources', 'reference', 'references', 'identities', 'items', 'folder', 'uid',
-                 'message_id', 'account', 'mode', 'repair_of', 'operation_id', 'stage', 'app'}
+                 'message_id', 'account', 'mode', 'repair_of', 'operation_id', 'stage', 'app', 'id'}
 
 
 def is_state(key, path):

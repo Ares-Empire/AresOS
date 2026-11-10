@@ -1614,3 +1614,37 @@ class StageOneRoundThree(unittest.TestCase):
         self.assertIn(notice, oracle.expected(Record(rows={'op:g:r': recovered})))
         from owner_state_oracle.compare import pending_facts
         self.assertNotIn(notice, pending_facts({'items': [{'operation_id': 'g:r', **recovered}]}))
+
+    def test_legacy_and_modern_intent_ids_bind_once(self):
+        for identity in ('i', 'recovery-i'):
+            oracle = Oracle()
+            row = {'id': identity, 'app': 'mail', 'action': 'mail_flag', 'state': 'started'}
+            record = Record(rows={'intent:i': row}, events=[{'seq': 1, 'action': 'fixture', 'set': {'intent:i': row}}])
+            initial = oracle.expected(record)
+            self.assertIn(Fact('intent:i', 'recovery-handle', identity), initial)
+            self.assertEqual(oracle.lifecycle_errors, set())
+            changed = {**row, 'id': 'recovery-i' if identity == 'i' else 'i'}
+            later = Record(rows={'intent:i': changed}, events=[{'seq': 1, 'action': 'fixture', 'set': {'intent:i': changed}}])
+            self.assertEqual(oracle.expected(later), initial)
+            self.assertIn(Fact('intent:i', 'source-identity'), oracle.lifecycle_errors)
+
+    def test_valid_sent_check_reopen_is_corroborated_before_its_read(self):
+        oracle = Oracle()
+        oracle.seed_sequence = 1
+        oracle.call('mail_accounts', {}, 2)
+        oracle.script[-1].update(start_seq=1, end_seq=3)
+        row = {'id': 'g:s', 'app': 'mail', 'action': 'mail_send', 'state': 'done',
+               'sent_copy_check': {'state': 'checked', 'clean': True}}
+        opened = {**row, 'sent_copy_check': {'state': 'open', 'clean': True}}
+        record = Record(events=[{'seq': 1, 'action': 'fixture', 'set': {'op:g:s': row}},
+            {'seq': 2, 'action': 'mail_sent_copy_check_open', 'set': {'op:g:s': opened}}])
+        oracle.server('SENT', 'box', 'Sent', [], source='op:g:s', before_seq=2)
+        oracle.expected(record)
+        self.assertNotIn(Fact('op:g:s', 'unjustified-check-reopen', detail='2'), oracle.lifecycle_errors)
+        record.events[-1]['set']['op:g:s'] = {**opened, 'sent_copy_check': row['sent_copy_check']}
+        self.assertTrue(any(f.kind == 'unchecked' for f in oracle.expected(record)))
+        self.assertIn(Fact('op:g:s', 'missing-check-enrollment', detail='2'), oracle.lifecycle_errors)
+        record.events[-1]['set']['op:g:s'] = opened
+        record.events[-1]['action'] = 'mail_send'
+        oracle.expected(record)
+        self.assertIn(Fact('op:g:s', 'unjustified-check-reopen', detail='2'), oracle.lifecycle_errors)

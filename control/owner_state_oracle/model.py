@@ -50,6 +50,7 @@ class Oracle:
         self.filing_authority = {}
         self.commit_observations = {}
         self.repair_authority = {}
+        self.source_ids = {}
 
     def resolve(self, kind, source, sequence=None, **proofs):
         if permitted(kind, proofs):
@@ -650,9 +651,13 @@ class Oracle:
                 old = rows.get(key, {})
                 if key.startswith(('intent:', 'mail:filing:', 'mail:rename:')) and value:
                     identity = key.split(':', 2)[-1] if key.startswith('mail:') else key[7:]
-                    if value.get('id') != identity:
+                    allowed = {identity, 'recovery-' + identity} if key.startswith('intent:') else {identity}
+                    if value.get('id') not in allowed or old and value.get('id') != old.get('id'):
                         self.lifecycle_errors.add(Fact(key, 'source-identity'))
-                        value = {**value, 'id': identity}
+                        value = {**value, 'id': old.get('id', identity)}
+                    if key in self.source_ids and value.get('id') != self.source_ids[key]:
+                        self.lifecycle_errors.add(Fact(key, 'source-identity'))
+                        value = {**value, 'id': self.source_ids[key]}
                     if key.startswith('mail:') and value.get('app', 'mail') != 'mail':
                         self.lifecycle_errors.add(Fact(key, 'unjustified-app-scope'))
                         value = {**value, 'app': 'mail'}
@@ -714,9 +719,19 @@ class Oracle:
                     self.payload_claims(key, value)
                     checked = value.get('sent_copy_check', {})
                     prior_check = old.get('sent_copy_check', {})
-                    if old and checked != prior_check and checked.get('state') == 'open':
-                        if event['action'] != 'mail_sent_copy_check' or not self.scripted_transition(event, 'mail_operation_status', value.get('id')):
+                    opening = event['action'] == 'mail_sent_copy_check_open'
+                    if opening or old and checked != prior_check and checked.get('state') == 'open':
+                        calls = [c for c in self.script if c.get('start_seq', -1) < event['seq'] <= c.get('end_seq', -1)]
+                        planned = any(c['action'] in {'control_pending', 'control_log', 'mail_filing_notices',
+                            'mail_operation_status', 'mail_operation_repair', 'mail_notice_ack'} for c in calls)
+                        observed = any(e['command'] == 'SENT' and e.get('source') == key and
+                            e['call'] in {c['call'] for c in calls} and e.get('before_seq', -1) >= event['seq'] for e in self.servers)
+                        valid_open = opening and (planned or observed)
+                        if not valid_open:
                             self.lifecycle_errors.add(Fact(key, 'unjustified-check-reopen', detail=str(event['seq'])))
+                        if opening and checked.get('state') != 'open':
+                            self.lifecycle_errors.add(Fact(key, 'missing-check-enrollment', detail=str(event['seq'])))
+                        value = {**value, 'sent_copy_check': {**checked, 'state': 'open'} if valid_open else prior_check}
                     if checked and checked.get('state') not in {'open', 'checked'}:
                         self.lifecycle_errors.add(Fact(key, 'invalid-check-state', detail=str(event['seq'])))
                     if checked.get('state') == 'open' and event['action'] == 'mail_sent_copy_check' and self.result_proof(key, 'sent_copies', event['seq']):
@@ -966,7 +981,13 @@ class Oracle:
             return 'check-' + fingerprint(source)[:32] if identity in self.acknowledged else identity
         if source.startswith(('mail:account:', 'legacy-intent:')):
             return 'recovery-' + fingerprint(source)[:32]
-        return record.rows.get(source, {}).get('id', source)
+        identity = record.rows.get(source, {}).get('id') or source
+        if source.startswith('intent:'):
+            bound = self.source_ids.setdefault(source, identity)
+            if identity != bound:
+                self.lifecycle_errors.add(Fact(source, 'source-identity'))
+            return bound
+        return identity
 
     def background_history(self):
         if self.background:

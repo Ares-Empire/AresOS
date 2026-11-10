@@ -157,3 +157,12 @@ validated reason survives a later recovery state; a generic restore reason
 cannot replace it. Pending pages compare that notice fact with the independently
 retained obligation while continuing to count one operation row. A scripted,
 committed acknowledgement is the only notice discharge.
+
+Generic intent handles accept the documented legacy suffix or current
+`recovery-`-prefixed suffix on first observation, then bind that identity across
+history and rollback. Neither form may switch after binding. A Sent check opens
+on the actual `mail_sent_copy_check_open` event, correlated with a scripted read
+or its raw Sent observation. That event establishes an unchecked obligation even
+if its recorded state flag falsely says checked. Ordinary clean send, move,
+copy, rename and delete contracts assert that no lifecycle, clean-result or
+completion-proof error was introduced by the oracle itself.

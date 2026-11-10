@@ -486,10 +486,10 @@ rejects replacing the expiry disclosure with a generic restored-evidence reason.
 The full field audit's operation-notice row includes this separate fact; only
 the exact committed acknowledgement discharges it.
 
-**Run — final local acceptance:** **106 oracle self-tests passed** (`Ran 106 tests
+**Run — intermediate local acceptance:** **106 oracle self-tests passed** (`Ran 106 tests
 in 0.262s`, `OK`), and the full focused/regression/driver/expanded-perturbation
 pass printed **`Ran 10 tests in 416.292s`, `OK`**. Generator again printed
-`Generated artifacts match definitions`; diff check was silent. The final
+`Generated artifacts match definitions`; diff check was silent. That
 corpus contains **67 recorded scenarios**: all **53 focused contract states**,
 seven states from the six named regressions, and seven sweep snapshots with
 faults after accepted effects. Every mode is represented, including persistent
@@ -498,7 +498,7 @@ cleanup pair. Full locations and permitted request statuses are in the checked
 owner set. Every perturbation either introduced a new difference or preserved
 that exact set; pre-existing defects did not count as a new difference.
 
-| Final perturbation kind | Executed |
+| Intermediate expanded perturbation kind | Executed |
 | --- | ---: |
 | Boolean flags | 6,548 |
 | States, event outcomes and stage results | 193,050 |
@@ -514,3 +514,42 @@ stage, restore without an independently observed precondition, and coherent
 wrong intent/export scope. Together with the five finding-specific tests above,
 they exercise the executable table's fail-closed semantics. No production code
 or public action changed.
+
+**Read — positive-path proof audit:** ordinary generic intents use either the
+legacy suffix or the current `recovery-`-prefixed suffix. The oracle accepts
+either initially and binds it across history and rollback. The actual Sent
+check opener is `mail_sent_copy_check_open`; a correlated opener establishes
+an unchecked obligation even when its recorded state falsely says checked.
+`test_legacy_and_modern_intent_ids_bind_once` and
+`test_valid_sent_check_reopen_is_corroborated_before_its_read` exercise both
+positive and breaking forms. Quiet send, move, copy, rename and delete
+contracts now additionally assert zero lifecycle, clean-result and completion
+proof errors, preventing oracle false positives from entering the new pin.
+The systematic test also changes every individual `id` field.
+
+**Run — second superseded diagnostic:** source
+`8221ca06cf6a1eba71dff390e29ef946b9861c50`, base
+[42724117647](https://github.com/Ares-Empire/AresOS/actions/runs/42724117647)
+passed 249 tests in 169.677s (`results.txt:378`, PASS at `:387`). Mail
+[42724117581](https://github.com/Ares-Empire/AresOS/actions/runs/42724117581)
+was cancelled during the positive-path proof audit above. All five jobs were
+cancelled; none is acceptance or a source for the new ledger.
+
+**Run — finished-source local acceptance:** **108 oracle self-tests** printed
+`Ran 108 tests in 0.272s`, `OK`. The focused contracts, six named regressions,
+two real-driver checks and full systematic matrix printed
+`Ran 10 tests in 436.248s`, `OK`. The final corpus is **67 recorded scenarios**:
+53 focused states, seven regression states and seven sweep snapshots in every
+mode. **236,560 perturbations ran; none slipped.** This supersedes the earlier
+local counts. Generator printed `Generated artifacts match definitions`, and
+`git diff --check` was silent.
+
+| Finished-source perturbation kind | Executed |
+| --- | ---: |
+| Boolean flags | 6,548 |
+| States, outcomes and stage results | 193,050 |
+| Effects, identities, recipients, flags, hashes, destinations and app scope | 32,526 |
+| Removed rows / historical versions | 1,786 |
+| Dropped committed sequences | 1,325 |
+| Restore markers before sequences | 1,325 |
+| **Total, none slipped** | **236,560** |

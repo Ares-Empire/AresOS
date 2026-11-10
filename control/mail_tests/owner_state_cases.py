@@ -65,6 +65,9 @@ def run(gaps):
             assert not reply['pending'].get('notices'), reply
             compare(s, d, 'quiet-' + flow)
             assert not [f for f in d.oracle.expected(d.snapshot()) if f.kind not in {'pending'}]
+            assert not d.oracle.lifecycle_errors, (flow, d.oracle.lifecycle_errors)
+            assert not d.oracle.invalid_clean_results, (flow, d.oracle.invalid_clean_results)
+            assert not d.oracle.completion_errors(d.snapshot()), flow
             if flow == 'send':
                 key = 'op:' + s.operation_id
                 old = copy.deepcopy(d.snapshot().rows[key])

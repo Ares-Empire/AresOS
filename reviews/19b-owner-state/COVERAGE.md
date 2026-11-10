@@ -104,3 +104,8 @@ unchanged expectations (including holds and qualification).
 | M12/C05 | Incomplete-account recovery through restore/deletion, including a restore in the first reply, until corroborated onboarding completion |
 | M02/C02/C04/M14 | Source hashes from pre-command message bytes and independently logged destinations; coherent false-hash/false-location disclosure rejected |
 | C01–C05, all warning rows | Latest raw evidence and a matching result commit select clean epochs; warning/clean flags are compared claims. Acknowledgements and unrelated commits cannot close checks |
+
+Quiet send, move, copy, rename and delete contracts additionally require zero
+oracle lifecycle, clean-result and completion-proof errors. Direct positive and
+negative tests bind legacy/current generic intent handles once and corroborate
+the real Sent-check opener; a false checked flag cannot suppress enrollment.
