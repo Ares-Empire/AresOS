@@ -88,10 +88,35 @@ joined to the native opener; it still requires every current frame's guard and
 the exact private return token. The unused transport-target map is retired.
 A regression gives parent and child different targets and verifies that the
 barrier belongs to the authenticated child and covers both. Its root-only
-mutation fails. The Gemini failure followed the modal this bug left open.
+mutation fails. Gemini remained independently red; the next trial diagnosed reused context numbers.
 
 The Linux harness also retries native-profile directory removal briefly while
 killed container Chrome children finish exiting; no profile is accessed locally.
 Current local Node: 218 pass; all 89 mutations rejected with passing baselines;
 Python remains 189 OK (only JavaScript changed since that complete run).
 Ledger: 156 Chrome IDs before this batch; expected 158 after its push.
+
+
+### Completed 25263559 trial: native matrices pass; context lifetime corrected
+
+Runs 42864982361 / 42865000405 completed red. The retained policy result executes
+43 named cases, 39 passing. All review matrices pass, including the six blank /
+srcdoc native cases; the complete GitHub mismatch matrix now also passes.
+The Gemini failure is independent of the retired native target lookup.
+Exact PASS lines, failed rows and the native context trace are retained in
+records/review-fixes-252-context-reuse.json. P30 and later cases remain pending.
+
+Chrome reused numeric context 8 after a renderer swap. A stale record belonging
+to an old descendant survived the root-only context cleanup, so bootstrap
+mistook the new context for an already-installed reader and resumed immediately.
+The root's native Page.frameNavigated now retires all that target's old realms,
+scripts, private records and failures. It also advances a context generation,
+so a reused number cannot resurrect an overlapping startup's identity. Every
+bootstrap command checks that identity before and after awaiting Chrome; an old
+startup cannot evaluate in or resume a replacement document. A child navigation
+preserves the parent's guard. Runtime.enable remains absent.
+
+Local Node: 220 pass, zero failures/cancellations/skips. All 92 removal mutations
+fail with passing baselines, including retirement, generation and overlap checks.
+Python stays 189 OK (only JavaScript changed since that complete run).
+Ledger: 158 before this batch; expected 160 after the push.

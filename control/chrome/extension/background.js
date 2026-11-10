@@ -84,7 +84,7 @@ async function preloadEvent(source,method,params){
   if(method==='Runtime.executionContextsCleared'){state.contexts.clear();state.scripts.clear();state.documents.clear();state.failures?.clear();contextChanged(state);return;}
   if(method==='Debugger.scriptParsed'){
     if(params.url===chrome.runtime.getURL('context.js')&&params.executionContextAuxData?.isDefault===false){
-      const context={id:params.executionContextId,uniqueId:'isolated-'+params.executionContextId,origin:chrome.runtime.getURL('').replace(/\/$/,''),auxData:params.executionContextAuxData};
+      const context={id:params.executionContextId,uniqueId:'isolated-'+params.executionContextId+(state.contextGeneration?'-navigation-'+state.contextGeneration:''),origin:chrome.runtime.getURL('').replace(/\/$/,''),auxData:params.executionContextAuxData};
       state.contexts.set(context.id,context);state.scripts.set(params.scriptId,context.id);
     }
     return;
@@ -118,6 +118,7 @@ async function preloadEvent(source,method,params){
   }
   const pause=Symbol();state.pause=pause;let startup;
   const sameDocument=()=>!startup||state.contexts.get(startup.main.id)?.uniqueId===startup.main.uniqueId&&state.contexts.get(startup.isolated.id)?.uniqueId===startup.isolated.uniqueId;
+  const documentCommand=async(method,parameters)=>{if(!sameDocument())throw Error('stale_reference: document changed during startup');const value=await targetCommand(state,method,parameters);if(!sameDocument())throw Error('stale_reference: document changed during startup');return value;};
   let complete;const installing=new Promise(resolve=>{complete=resolve;});state.installing??=new Set();state.installing.add(installing);
   try{
     assertTarget(state);
@@ -130,32 +131,32 @@ async function preloadEvent(source,method,params){
     if(state.documents.has(main.uniqueId))return;
     const [guard,reader,page]=await bundle();
     assertTarget(state);
-    const isolated=await targetCommand(state,'Runtime.evaluate',{contextId:context.id,expression:'if(chrome.runtime.id!=='+JSON.stringify(chrome.runtime.id)+')throw Error("Unrelated isolated world");\n'+guard+'\n'+reader+'\n;globalThis[Symbol.for("aresos.chrome.guard.v2")].identity()',returnByValue:true,disableBreaks:true});
+    const isolated=await documentCommand('Runtime.evaluate',{contextId:context.id,expression:'if(chrome.runtime.id!=='+JSON.stringify(chrome.runtime.id)+')throw Error("Unrelated isolated world");\n'+guard+'\n'+reader+'\n;globalThis[Symbol.for("aresos.chrome.guard.v2")].identity()',returnByValue:true,disableBreaks:true});
     if(isolated.exceptionDetails||typeof isolated.result?.value!=='string')throw Error('refused: isolated guard did not initialize before page scripts');
     // DOM.resolveNode without an executionContextId resolves in this node's MAIN
     // world. No Runtime subscription, page global or console payload is needed.
-    const carrier=await targetCommand(state,'Runtime.evaluate',{contextId:context.id,expression:'document.createElement("div")',disableBreaks:true});
-    const description=await targetCommand(state,'DOM.describeNode',{objectId:carrier.result.objectId,depth:0});
-    const mainNode=await targetCommand(state,'DOM.resolveNode',{backendNodeId:description.node.backendNodeId});
-    const wrapped=await targetCommand(state,'Runtime.callFunctionOn',{objectId:mainNode.object.objectId,functionDeclaration:'function(){return (\n'+page.trim().replace(/;$/, '')+'\n);}',silent:true});
+    const carrier=await documentCommand('Runtime.evaluate',{contextId:context.id,expression:'document.createElement("div")',disableBreaks:true});
+    const description=await documentCommand('DOM.describeNode',{objectId:carrier.result.objectId,depth:0});
+    const mainNode=await documentCommand('DOM.resolveNode',{backendNodeId:description.node.backendNodeId});
+    const wrapped=await documentCommand('Runtime.callFunctionOn',{objectId:mainNode.object.objectId,functionDeclaration:'function(){return (\n'+page.trim().replace(/;$/, '')+'\n);}',silent:true});
     if(wrapped.exceptionDetails||!wrapped.result?.objectId)throw Error('refused: page wrappers did not initialize before page scripts');
     const installed={document:isolated.result.value,frameId:context.auxData.frameId,main:main.uniqueId,isolated:context.uniqueId,cleanup:wrapped.result.objectId,ready:false};state.documents.set(main.uniqueId,installed);
     assertTarget(state);
-    const relay=await targetCommand(state,'Runtime.callFunctionOn',{objectId:installed.cleanup,functionDeclaration:'function(){return this.relay;}'});
-    const described=await targetCommand(state,'DOM.describeNode',{objectId:relay.result.objectId,depth:0});
-    const resolved=await targetCommand(state,'DOM.resolveNode',{backendNodeId:described.node.backendNodeId,executionContextId:context.id});
-    const linked=await targetCommand(state,'Runtime.callFunctionOn',{objectId:resolved.object.objectId,functionDeclaration:'function(){return globalThis[Symbol.for("aresos.chrome.guard.v2")].relay(this);}',returnByValue:true});
+    const relay=await documentCommand('Runtime.callFunctionOn',{objectId:installed.cleanup,functionDeclaration:'function(){return this.relay;}'});
+    const described=await documentCommand('DOM.describeNode',{objectId:relay.result.objectId,depth:0});
+    const resolved=await documentCommand('DOM.resolveNode',{backendNodeId:described.node.backendNodeId,executionContextId:context.id});
+    const linked=await documentCommand('Runtime.callFunctionOn',{objectId:resolved.object.objectId,functionDeclaration:'function(){return globalThis[Symbol.for("aresos.chrome.guard.v2")].relay(this);}',returnByValue:true});
     if(linked.exceptionDetails||linked.result?.value!==installed.document)throw Error('refused: private native relay did not initialize');
-    await targetCommand(state,'Runtime.evaluate',{contextId:context.id,expression:'globalThis[Symbol.for("aresos.chrome.guard.v2")].control('+JSON.stringify(state.epoch)+')',disableBreaks:true,returnByValue:true});
+    await documentCommand('Runtime.evaluate',{contextId:context.id,expression:'globalThis[Symbol.for("aresos.chrome.guard.v2")].control('+JSON.stringify(state.epoch)+')',disableBreaks:true,returnByValue:true});
     const owner=controlled.get(state.tab),hold=owner?.hold;
     if(hold&&(hold.inFlight||Date.now()<hold.until)){
       hold.inherited??=new Set();hold.inherited.add({state,context});
       const inherited={generation:state.epoch,dispatch_nonce:hold.nonce,config:hold.config,in_flight:hold.inFlight};
-      const armed=await targetCommand(state,'Runtime.evaluate',{contextId:context.id,expression:'globalThis[Symbol.for("aresos.chrome.guard.v2")].inherit('+JSON.stringify(inherited)+')',disableBreaks:true,returnByValue:true});
+      const armed=await documentCommand('Runtime.evaluate',{contextId:context.id,expression:'globalThis[Symbol.for("aresos.chrome.guard.v2")].inherit('+JSON.stringify(inherited)+')',disableBreaks:true,returnByValue:true});
       if(armed.exceptionDetails)throw Error('refused: new frame could not inherit the active hold');
       installed.activeNonce=hold.inFlight?hold.nonce:null;
     }
-    const activated=await targetCommand(state,'Runtime.callFunctionOn',{objectId:installed.cleanup,functionDeclaration:'function(){return this.activate();}',returnByValue:true});
+    const activated=await documentCommand('Runtime.callFunctionOn',{objectId:installed.cleanup,functionDeclaration:'function(){return this.activate();}',returnByValue:true});
     if(activated.exceptionDetails)throw Error('refused: document guard activation failed');
     installed.ready=true;
   }catch(error){if(preloadTargets.get(targetKey(source))===state&&controlled.get(state.tab)?.epoch===state.epoch&&sameDocument()){state.failures??=new Map();state.failures.set(startup?.main.uniqueId||'unknown',{main:startup?.main.uniqueId,isolated:startup?.isolated.uniqueId,error:String(error)});port?.postMessage({event:'reader_error',error:String(error),tab:state.tab});}}
@@ -936,7 +937,14 @@ chrome.webNavigation.onCommitted.addListener(({tabId,frameId,documentId,transiti
 chrome.debugger.onEvent.addListener(async(source,method,params)=>{
   if(recording)audit({protocol_event:{source,method,params}});
   if(method==='Page.frameNavigated'){
-    const state=preloadTargets.get(targetKey(source));if(state){for(const [id,context]of state.contexts)if(context.auxData?.frameId===params.frame.id){state.contexts.delete(id);for(const [key,doc]of state.documents)if(doc.isolated===context.uniqueId)state.documents.delete(key);}contextChanged(state);}
+    const state=preloadTargets.get(targetKey(source));if(state){
+      if(params.frame.id===state.frameId){
+        // A renderer can reuse numeric context IDs. All descendants of this
+        // target's old root ended too, including contexts without Runtime events.
+        state.contextGeneration=(state.contextGeneration||0)+1;state.contexts.clear();state.scripts.clear();state.documents.clear();state.failures?.clear();
+      }else for(const [id,context]of state.contexts)if(context.auxData?.frameId===params.frame.id){state.contexts.delete(id);for(const [key,doc]of state.documents)if(doc.isolated===context.uniqueId)state.documents.delete(key);}
+      contextChanged(state);
+    }
   }
   if(method.startsWith('Runtime.')||method.startsWith('Debugger.')||method.startsWith('Target.')){await preloadEvent(source,method,params);return;}
   if(method==='Page.frameDetached'&&params.reason==='remove'){

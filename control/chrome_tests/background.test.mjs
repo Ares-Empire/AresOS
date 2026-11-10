@@ -852,3 +852,27 @@ test('P1 a cross-site dialog arms its authenticated child guard despite root eve
   const f=fixture();f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});dispatchEpoch='epoch';chrome.webNavigation={getAllFrames:async()=>[{frameId:0,documentId:'parent-native',url:'http://fixture.test/'},{frameId:2,documentId:'child-native',url:'http://second.test/'}]};privacyDocuments.set('parent-native','parent-private');privacyDocuments.set('child-native','child-private');preloadTargets.set('[7,null]',{tab:7,source:{tabId:7},documents:new Map([['parent',{document:'parent-private',ready:true}]])});preloadTargets.set('[7,\"child\"]',{tab:7,source:{tabId:7,sessionId:'child'},documents:new Map([['child',{document:'child-private',ready:true}]])});dialogs.set(7,{kind:'confirm',frame:2,browser_document:'child-native'});nativeDialogStarts.set('[7,\"child-native\"]',[{kind:'confirm',token:'native-child-return',document:'child-private'}]);");
   const result=await f.run('armDialog(7)');assert.equal(result.frames.length,2);assert.equal(f.run("preloadTargets.get('[7,null]').dialogBarrier"),undefined);assert.equal(f.run("preloadTargets.get('[7,\"child\"]').dialogBarrier.token"),'native-child-return');assert.equal(f.run("preloadTargets.get('[7,\"child\"]').dialogBarrier.documents.length"),2);
 });
+
+test('P19 root navigation retires descendant records before a renderer reuses context numbers',async()=>{
+  const f=startupFixture(),source=fs.readFileSync('control/chrome/extension/background.js','utf8');await f.run('prepareTarget({tabId:7})');await startupContexts(f,'first');await paused(f,'first');
+  f.run("preloadTargets.get('[7,null]').frameId='frame';preloadTargets.get('[7,null]').contexts.get(2).auxData.frameId='old-child';chrome.debugger.onEvent={addListener:fn=>{globalThis.onEvent=fn}};");
+  f.run(source.slice(source.indexOf('chrome.debugger.onEvent.addListener('),source.indexOf('chrome.debugger.onDetach.addListener(')));
+  await f.run("onEvent({tabId:7},'Page.frameNavigated',{frame:{id:'frame',loaderId:'second-native-document'}})");
+  assert.equal(f.run("preloadTargets.get('[7,null]').documents.size"),0);assert.equal(f.run("preloadTargets.get('[7,null]').contexts.size"),0);
+  await f.run("preloadEvent({tabId:7},'Debugger.scriptParsed',{scriptId:'reused',executionContextId:2,url:'chrome-extension://fixture/context.js',executionContextAuxData:{isDefault:false,frameId:'frame'}})");await paused(f,'reused');
+  assert.equal(f.run("startup.filter(row=>row.method==='Runtime.evaluate'&&row.parameters.expression.includes('guard fixture')).length"),2,'both native documents install before page code');
+  assert.equal(f.run("preloadTargets.get('[7,null]').documents.get('isolated-2-navigation-1').ready"),true);
+  const before=f.run("preloadTargets.get('[7,null]').documents.size");await f.run("onEvent({tabId:7},'Page.frameNavigated',{frame:{id:'unrelated-child',parentId:'frame'}})");assert.equal(f.run("preloadTargets.get('[7,null]').documents.size"),before,'a child navigation cannot retire the current parent guard');
+});
+
+test('P19 a cancelled startup cannot evaluate or resume a reused native context',async()=>{
+  const f=startupFixture(),source=fs.readFileSync('control/chrome/extension/background.js','utf8');await f.run('prepareTarget({tabId:7})');await startupContexts(f,'old');
+  f.run("preloadTargets.get('[7,null]').frameId='frame';preloadBundle=new Promise(resolve=>{globalThis.oldBundle=resolve});chrome.debugger.onEvent={addListener:fn=>{globalThis.onEvent=fn}};");
+  f.run(source.slice(source.indexOf('chrome.debugger.onEvent.addListener('),source.indexOf('chrome.debugger.onDetach.addListener(')));
+  const old=paused(f,'old');await spin(f,"typeof oldBundle==='function'");
+  await f.run("onEvent({tabId:7},'Page.frameNavigated',{frame:{id:'frame',loaderId:'replacement'}})");
+  await f.run("preloadEvent({tabId:7},'Debugger.scriptParsed',{scriptId:'replacement',executionContextId:2,url:'chrome-extension://fixture/context.js',executionContextAuxData:{isDefault:false,frameId:'frame'}})");
+  f.run("oldBundle(['// guard fixture','// reader fixture','// wrapper fixture'])");await old;
+  assert.equal(f.run("startup.filter(row=>row.method==='Runtime.evaluate').length"),0,'old setup cannot run in the replacement context');assert.equal(f.run("startup.filter(row=>row.method==='Debugger.resume').length"),0,'old setup cannot release a replacement pause');
+  await paused(f,'replacement');assert.equal(f.run("preloadTargets.get('[7,null]').documents.get('isolated-2-navigation-1').ready"),true);assert.equal(f.run("startup.filter(row=>row.method==='Debugger.resume').length"),1);
+});
