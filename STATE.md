@@ -1,8 +1,17 @@
 # AresOS: state
 
-Updated 2026-11-09. The live truth is `git log`, `gh pr list` and `git worktree list`. Update this file when a PR merges or a decision lands.
+Updated 2026-11-10. The live truth is `git log`, `gh pr list` and `git worktree list`. Update this file when a PR merges or a decision lands.
 
 ## Done (on main)
+
+- **Interface v1: apps open from the hub on AresOS** (PR #33, brief 24 to 24-review-fixes-5, empire brief 265, merged 2026-11-10 as `7cf0541b`):
+  - The OS helper `aresos-shell/1.0` (`/usr/libexec/aresos-shell`) and the mod's Linux client. Windows behaviour is unchanged.
+  - Built by a Claude agent. Reviews 1–5 were CHANGES-NEEDED; review 6 (gpt-6-astra, high) said SAFE.
+  - On the reviewed code: the Gradle build, two full client-test runs and the full WSL suite passed, apart from the known WSL-only failures.
+  - Owner answers:
+    - board #155: Notepad opens KWrite; each Chrome-logo click opens a new window; the terminal looks like a command block and the browser like a compass;
+    - board #157 (2026-11-10, "Yes"): if the first app closes within half a second of switching to another, you land back in the hub.
+  - It reaches the laptop with the next release.
 
 - **Owner checklist and emergency card** (PR #14, briefs 15–15e, merged 2026-11-02 as `2f4c0d9`, under the owner's standing permission to merge once SAFE):
   - One numbered install checklist (`docs/INSTALL.md`), plus procedures, reference, records and a symptom-first `docs/EMERGENCY.md`.
@@ -70,8 +79,24 @@ Updated 2026-11-09. The live truth is `git log`, `gh pr list` and `git worktree 
 ## In progress
 
 - **Package 21** (brief `21-everyday-account-and-chrome.md`, empire brief 262): the everyday account like Windows, Chrome, PATH, foot font, small tools, key bindings, and a throwaway CI image build. A Claude agent builds it; Codex reviews.
+  - PR #31. Owner answers (board #156, 2026-11-10, "Yes to all"): Homebrew installs ask his password every time (the prefix stays the stock admin's, so the Bazzite backup keeps it); saving a system-wide Wi-Fi network or installing a system-wide Flatpak asks his password; sudo keeps no ticket, so no program can reuse a password he typed. Board #163 (2026-11-10, "Eventually we make Desktop shortczts tho right? The Rest is fine") accepts judgment calls 4 to 9. Desktop shortcuts do come: a shortcut or launcher reaches his own programs by their full path in his folders, not through the session's PATH. The control layer relies on the sudo rule: it asks every time, keeps no ticket and allows no passwordless rules (mac-aresos-control, 2026-11-10). Later packages keep all three.
+  - Review 6 (2026-11-10): SAFE, with one Low note. Round 6 (`21-review-fixes-6.md`) merges main, which now includes 24 (one-line `os/build.sh` conflict). It also checks that 21 and 24's helper work together, fixes the Low note and reruns the CI image build. Round 6 is done: main merged; the hub Terminal now gives his daily PATH; the xdg-desktop-portal-wlr pin moved to 0.8.5 because Fedora dropped 0.8.4 (JUDGMENT-CALL 10, board #167; **main's lock has the same vanished pin, so image builds from main fail until 21 merges**). CI build+VM 42792865417 and checks 42798151752 passed. **Review 7 (gpt-6.1-sol, high): SAFE.** Merge after his answer to #167.
 - **Package 22** (brief `22-update-route.md`, empire brief 263): `at update` to move the laptop to a new signed release, the step 8 guide, the admin password step, INSTALL-STATUS for steps 4–7. A Claude agent builds it; Codex reviews.
-- **Then:** 21b (backlight and power button, after a read-only check on the laptop in AresOS), a release package (rehearsal, then publishing with his OK), and Minecraft in AresOS (P2).
+  - PR #32 (built by a Claude agent; fingerprint `2a9965ea…`). Owner answers to its judgment calls (board #154, 2026-11-09, "Yes to both"):
+    - the laptop keeps the current and previous AresOS plus the pinned Bazzite backup, and older AresOS versions drop off;
+    - after the first update, `rollback`/`keep-stock`/the recovery menu and layout trials refuse until follow-up **22c** extends them. That follow-up comes before the second update. Meanwhile the way back is `at previous` or F12 → Windows.
+  - Reviews 1–8: the tools self-update was rebuilt recovery-first by a Fable 5.2 agent from round 5 on. Review 8 (2026-11-10) found one Medium in the test helpers only (a hung bounce could still pass). Round 8 (`22-review-fixes-8.md`) fixed it; the full WSL suites passed apart from the known WSL-only failures. Review 9 found its regression too weak; round 9 strengthened it (a mutation check proves it catches the old bug). **Review 10 (gpt-6.1-sol, high): SAFE** at `9314634a`. Its other judgment calls go to the owner as board #166: 3 (`at previous`), 5 and 6 (old tools kept and renamed), 8 (the update gate), and the four technical ones 2, 7, 9 and 10. Merge after his answer.
+- **Owner OK to merge and publish this round (2026-11-09: "Once its safe and done you can merge and publish"):** packages 21–24 merge after a fresh SAFE review, passing checks and his answers to their judgment calls. The next AresOS release built from them may be published and pinned without asking again, once its rehearsal passes. Installing it on the laptop (`at update`) is still his own step. Anything outside this round still needs his OK.
+- **Ready, starts when 21 merges:** package 23 (brief `23-minecraft-starts.md`, empire brief 264): Prism and Java 25 in the image, the managed `AresDesktop` instance, the `AresHub` world, and a supervisor that boots into the hub.
+- **Then:**
+  - 21b: backlight and power button, after the read-only check on the laptop in AresOS (board #149 tells the next AresOS session).
+  - P2's remaining packages: 25 (guardian: clean save and shutdown) and 26 (backups).
+  - Desktop shortcuts and the app wheel (owner, board #163): they open the apps from the hub and his own programs (`~/.local/bin`, Homebrew, Flatpak exports), each found by its full path.
+  - **Package 27, the first update release** (brief `27-first-update-release.md`, empire brief 266; starts once 21 and 22 are merged):
+    - build, image diff, publish, then a VM rehearsal of the owner's update from release 13 (update, admin password, previous, forward again);
+    - after the rehearsal passes, pin the release and empty `pending-rebind.json`;
+    - then the owner runs `at update` and `sudo passwd ares` on the laptop.
+    - Packages 23 and 21b go into the next release, which needs 22c first.
 
 - **Package 12 (the companion in the hub)**: brief drafted 2026-10-25, waiting for the owner's go. A generic companion system in the mod (look packs as data, an original placeholder look), with the owner's Claude crab as a private pack outside this repo. The desktop companions live in the private repo `Ares-Empire/companions` (browser preview: `python tools/serve.py`, then http://127.0.0.1:8765/preview/).
 
@@ -106,7 +131,7 @@ Updated 2026-11-09. The live truth is `git log`, `gh pr list` and `git worktree 
      - A bigger foot font at 1080p (he uses 16).
      - `script` (util-linux) and qrencode.
      - His account installing software normally (#102/#106).
-     - Control's `/etc/claude-code` files, once brief 18d is on main (#136/#137).
+     - Control's `/etc/claude-code` files, once brief 18d is on main (#136/#137), and `gh` 2.102 or newer in the image for its Chrome tool (board #150, 2026-11-10).
      - Record steps 5–7 in INSTALL-STATUS.
    - **Claude Code runs on AresOS as `ares` (DONE 2026-11-09, reported by `mac-aresos-install`).** It has a full `claude auth login` (signed in on his phone through a one-time LAN page, so Remote Control works); the interim setup token is deleted, and he revokes it if claude.ai lists it. In `$HOME` only: gh and gitleaks (checksum-verified, in `~/.local/bin`; gh logged in), an interim PATH in `~/.bashrc` (Claude Code's shell reads it), aresync's new-machine checklist with systemd user units, 21 repos cloned, and foot font 16. Sessions there are named `linux-…` (aresync PR #1). The plan it followed:
    - **Right after step 7 PASS: Claude Code for the daily `ares` user** (owner wish 2026-11-09, via `mac-aresos-install`; he wants to build companions, app tools and the home screen inside AresOS). The image allows it: `ares` has a writable home (`/var/home/ares`) and a terminal (foot) at login; step 7 proves network. Steps: in foot, `curl -fsSL https://claude.ai/install.sh | bash` (no admin needed), then start `~/.local/bin/claude` by its full path, because the AresOS terminal doesn't search `~/.local/bin` yet (`/etc/profile.d/aresos.sh` fixes PATH for UID 1001, and foot reads only the image's bashrc). Sign-in: `ares` can't run flatpak (no Firefox), so the owner makes a `claude setup-token` on the Mac himself, copies it with scp into a 0600 file in `ares`'s home, and starts Claude with `CLAUDE_CODE_OAUTH_TOKEN` from that file (guided by `mac-aresos-install`; the token never passes through a Claude session). Switch to a normal sign-in once the next image has a browser route. The lasting fix (that path in `ares`'s PATH, and his account installing software normally, board #102/#106) goes into the next image package, which needs his OK as a release.

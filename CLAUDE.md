@@ -15,7 +15,7 @@ The workflow is nametbd's Codex-era workflow (branch `archive/codex-era-workflow
 - **Claude (me):** planner, orchestrator and integrator. I cut the design into small packages, write the briefs, launch Codex, check its work, merge, and keep the docs true.
 - **Codex:** the builder. One headless `codex exec` run per package, in its own git worktree. It builds, tests, and opens a PR. It never merges.
 
-**Claude agents may build packages too** (owner, 2026-11-09: "we could work with claude agents too", to use his Claude allowance). They get the same brief, worktree, branch and AGENTS.md rules as Codex. A fresh Codex context reviews their work, so a builder never reviews itself. Pick Codex or a Claude agent per package by fit and remaining allowance.
+**Claude agents may build packages too** (owner, 2026-11-09: "we could work with claude agents too", to use his Claude allowance). They get the same brief, worktree, branch and AGENTS.md rules as Codex. A fresh Codex context reviews their work, so a builder never reviews itself. Pick Codex or a Claude agent per package by fit and remaining allowance. Claude agents run on Opus by default. For a hard AresOS task or a problem that resists normal attempts, use Fable 5.2 (owner, 2026-11-09: "in the dev of an own OS I could imagine hard tasks").
 
 I only build things myself when writing the brief would cost more than doing it (a one-line fix, a config tweak). Anything I build still gets reviewed by a fresh Codex context. I never review my own work.
 
@@ -45,6 +45,8 @@ I only build things myself when writing the brief would cost more than doing it 
 | `os/` | The Bazzite-based AresOS image (from PR #3). |
 
 **Only one Minecraft client-test run at a time on the laptop.** Two test clients steal each other's window focus, which opens vanilla's pause menu and breaks click-driven tests. Seen 2026-10-22, when brief 10's run collided with my 09 integration gate. Don't start an integration gate while a Codex package is in its client-test phase, and vice versa.
+
+**Memory on the laptop (16 GB).** Gradle needs about 6 GB free, and a full WSL suite 4–5 GB, one suite at a time. Each package uses its own `pkgNN-` script and `/tmp` names. Claude Code may stop background work while memory is low. Restart it once enough memory is free again (owner, 2026-11-10, board #160). First check whether the work actually finished: a stopped review often still wrote its `REVIEW-N.md`.
 
 ## Owner decides (always ask, never assume)
 

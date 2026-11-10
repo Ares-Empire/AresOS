@@ -1,2 +1,24 @@
-printf '\nAresOS\n\nSuper+Ctrl+Escape: recovery terminal\nCtrl+Alt+F3: separate TTY (provision a recovery password first)\n\n'
-PS1='aresos \w \$ '
+_aresos_terminal=${ARESOS_TERMINAL:-}
+unset ARESOS_TERMINAL
+# The banner and the AresOS prompt belong to the terminals aresos-terminal
+# starts (the session's and Super+Ctrl+Escape's). The hub's Terminal app
+# (/usr/share/aresos/apps/terminal.json) uses this file without them, as a
+# plain terminal.
+if [ -n "$_aresos_terminal" ]; then
+    printf '\nAresOS\n\nSuper+Ctrl+Escape: recovery terminal\nCtrl+Alt+F3: separate TTY (provision a recovery password first)\n\n'
+    PS1='aresos \w \$ '
+fi
+# Every terminal but the recovery one gets his daily PATH (~/.local/bin first,
+# then the system, then Homebrew and Flatpak) and then his own ~/.bashrc, so
+# his settings win; an error in that file ends only its own `source`. The
+# recovery terminal keeps the session's system PATH and never reads his file.
+if [ "$_aresos_terminal" != recovery ]; then
+    unset _aresos_terminal
+    if [ -r /etc/profile.d/aresos.sh ]; then
+        . /etc/profile.d/aresos.sh
+    fi
+    if [ -f "$HOME/.bashrc" ] && [ -r "$HOME/.bashrc" ]; then
+        . "$HOME/.bashrc"
+    fi
+fi
+unset _aresos_terminal

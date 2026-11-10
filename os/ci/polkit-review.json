@@ -1,0 +1,258 @@
+{
+  "comment": "Package 21: what the daily account `ares` (in wheel, owner 2026-11-09) may do through polkit. polkit-check.js evaluates the built image's real rules against this, for local active, local inactive and remote sessions, with and without wheel, following org.freedesktop.policykit.imply as polkitd does.",
+  "os_change_prefixes": [
+    "org.projectatomic.rpmostree1.",
+    "org.freedesktop.sysupdate1.",
+    "org.freedesktop.fwupd.",
+    "org.bazzite."
+  ],
+  "denied_actions": [
+    "org.freedesktop.ModemManager1.Firmware",
+    "org.freedesktop.login1.set-reboot-parameter",
+    "org.freedesktop.login1.set-reboot-to-boot-loader-entry",
+    "org.freedesktop.login1.set-reboot-to-boot-loader-menu",
+    "org.freedesktop.login1.set-reboot-to-firmware-setup"
+  ],
+  "boot_or_firmware_pattern": "firmware|boot-?loader|reboot-to|reboot-parameter|bootconfig|bios|kargs",
+  "tuned_read_only": [
+    "com.redhat.tuned.active_profile",
+    "com.redhat.tuned.get_all_plugins",
+    "com.redhat.tuned.get_instances",
+    "com.redhat.tuned.get_plugin_documentation",
+    "com.redhat.tuned.get_plugin_hints",
+    "com.redhat.tuned.instance_get_devices",
+    "com.redhat.tuned.is_running",
+    "com.redhat.tuned.post_loaded_profile",
+    "com.redhat.tuned.profile_info",
+    "com.redhat.tuned.profile_mode",
+    "com.redhat.tuned.profiles",
+    "com.redhat.tuned.profiles2",
+    "com.redhat.tuned.recommend_profile",
+    "com.redhat.tuned.verify_profile",
+    "com.redhat.tuned.verify_profile_ignore_missing"
+  ],
+  "reviewed_passwordless_wheel": {},
+  "probe_actions": [],
+  "expected": {
+    "org.freedesktop.Flatpak.app-install": {
+      "rule": "auth_admin",
+      "without_wheel": "auth_admin"
+    },
+    "org.freedesktop.Flatpak.runtime-install": {
+      "rule": "auth_admin",
+      "effective": "auth_admin",
+      "effective_without_wheel": "auth_admin"
+    },
+    "org.freedesktop.Flatpak.app-uninstall": {
+      "rule": "auth_admin"
+    },
+    "org.freedesktop.Flatpak.app-update": {
+      "rule": null,
+      "effective": "yes"
+    },
+    "org.freedesktop.systemd1.manage-unit-files": {
+      "rule": null,
+      "effective": "auth_admin"
+    },
+    "org.freedesktop.systemd1.manage-units": {
+      "rule": null,
+      "effective": "auth_admin"
+    },
+    "org.freedesktop.policykit.exec": {
+      "rule": null,
+      "effective": "auth_admin"
+    },
+    "org.gtk.vfs.file-operations-helper": {
+      "rule": "auth_admin",
+      "without_wheel": "auth_admin"
+    },
+    "org.freedesktop.NetworkManager.settings.modify.system": {
+      "rule": "auth_admin",
+      "without_wheel": "auth_admin"
+    },
+    "org.projectatomic.rpmostree1.upgrade": {
+      "rule": "no",
+      "without_wheel": "no"
+    },
+    "org.projectatomic.rpmostree1.rebase": {
+      "rule": "no"
+    },
+    "org.freedesktop.fwupd.update-internal": {
+      "rule": "no"
+    },
+    "org.freedesktop.login1.set-reboot-to-firmware-setup": {
+      "rule": "no",
+      "without_wheel": "no"
+    },
+    "org.freedesktop.login1.set-reboot-to-boot-loader-entry": {
+      "rule": "no",
+      "without_wheel": "no"
+    },
+    "org.freedesktop.login1.set-reboot-to-boot-loader-menu": {
+      "rule": "no",
+      "without_wheel": "no"
+    },
+    "org.freedesktop.login1.power-off": {
+      "rule": null,
+      "effective": "yes"
+    },
+    "org.freedesktop.login1.reboot": {
+      "rule": null,
+      "effective": "yes"
+    },
+    "org.freedesktop.login1.suspend": {
+      "rule": null,
+      "effective": "yes"
+    },
+    "com.redhat.tuned.switch_profile": {
+      "rule": "no",
+      "without_wheel": "no"
+    },
+    "com.redhat.tuned.auto_profile": {
+      "rule": "no",
+      "without_wheel": "no"
+    },
+    "com.redhat.tuned.profiles": {
+      "rule": null,
+      "effective": "yes"
+    },
+    "org.freedesktop.Flatpak.runtime-update": {
+      "rule": null,
+      "effective": "yes"
+    }
+  },
+  "passwordless": {
+    "com.redhat.tuned.active_profile": "TuneD read-only query (profiles, state, plugin docs, verification); profile changes are denied.",
+    "com.redhat.tuned.get_all_plugins": "TuneD read-only query (profiles, state, plugin docs, verification); profile changes are denied.",
+    "com.redhat.tuned.get_instances": "TuneD read-only query (profiles, state, plugin docs, verification); profile changes are denied.",
+    "com.redhat.tuned.get_plugin_documentation": "TuneD read-only query (profiles, state, plugin docs, verification); profile changes are denied.",
+    "com.redhat.tuned.get_plugin_hints": "TuneD read-only query (profiles, state, plugin docs, verification); profile changes are denied.",
+    "com.redhat.tuned.instance_get_devices": "TuneD read-only query (profiles, state, plugin docs, verification); profile changes are denied.",
+    "com.redhat.tuned.is_running": "TuneD read-only query (profiles, state, plugin docs, verification); profile changes are denied.",
+    "com.redhat.tuned.post_loaded_profile": "TuneD read-only query (profiles, state, plugin docs, verification); profile changes are denied.",
+    "com.redhat.tuned.profile_info": "TuneD read-only query (profiles, state, plugin docs, verification); profile changes are denied.",
+    "com.redhat.tuned.profile_mode": "TuneD read-only query (profiles, state, plugin docs, verification); profile changes are denied.",
+    "com.redhat.tuned.profiles": "TuneD read-only query (profiles, state, plugin docs, verification); profile changes are denied.",
+    "com.redhat.tuned.profiles2": "TuneD read-only query (profiles, state, plugin docs, verification); profile changes are denied.",
+    "com.redhat.tuned.recommend_profile": "TuneD read-only query (profiles, state, plugin docs, verification); profile changes are denied.",
+    "com.redhat.tuned.verify_profile": "TuneD read-only query (profiles, state, plugin docs, verification); profile changes are denied.",
+    "com.redhat.tuned.verify_profile_ignore_missing": "TuneD read-only query (profiles, state, plugin docs, verification); profile changes are denied.",
+    "io.systemd.ask-password.ask": "systemd password agent for the caller's own prompts; grants nothing.",
+    "io.systemd.mount-file-system.make-directory": "systemd-mountfsd: mounts directories and verified images into the caller's own user namespace, which is unprivileged by design; the host mount table and the OS image are not touched.",
+    "io.systemd.mount-file-system.mount-directory": "systemd-mountfsd: mounts directories and verified images into the caller's own user namespace, which is unprivileged by design; the host mount table and the OS image are not touched.",
+    "io.systemd.mount-file-system.mount-directory-privately": "systemd-mountfsd: mounts directories and verified images into the caller's own user namespace, which is unprivileged by design; the host mount table and the OS image are not touched.",
+    "io.systemd.mount-file-system.mount-image": "systemd-mountfsd: mounts directories and verified images into the caller's own user namespace, which is unprivileged by design; the host mount table and the OS image are not touched.",
+    "io.systemd.mount-file-system.mount-image-privately": "systemd-mountfsd: mounts directories and verified images into the caller's own user namespace, which is unprivileged by design; the host mount table and the OS image are not touched.",
+    "io.systemd.namespace-resource.allocate-user-namespace": "systemd-nsresourced: user namespaces, cgroups and interfaces delegated to the caller, unprivileged by design.",
+    "io.systemd.namespace-resource.delegate-cgroup": "systemd-nsresourced: user namespaces, cgroups and interfaces delegated to the caller, unprivileged by design.",
+    "io.systemd.namespace-resource.delegate-mount": "systemd-nsresourced: user namespaces, cgroups and interfaces delegated to the caller, unprivileged by design.",
+    "io.systemd.namespace-resource.delegate-network-interface": "systemd-nsresourced: user namespaces, cgroups and interfaces delegated to the caller, unprivileged by design.",
+    "io.systemd.namespace-resource.register-user-namespace": "systemd-nsresourced: user namespaces, cgroups and interfaces delegated to the caller, unprivileged by design.",
+    "net.hadess.PowerProfiles.hold-profile": "Power profile switching (tuned-ppd maps it to the fixed profiles in /etc/tuned/ppd.conf; the image check proves none of them has a bootloader or kernel-argument section).",
+    "net.hadess.PowerProfiles.release-profile": "Power profile switching (tuned-ppd maps it to the fixed profiles in /etc/tuned/ppd.conf; the image check proves none of them has a bootloader or kernel-argument section).",
+    "net.hadess.PowerProfiles.switch-profile": "Power profile switching (tuned-ppd maps it to the fixed profiles in /etc/tuned/ppd.conf; the image check proves none of them has a bootloader or kernel-argument section).",
+    "net.hadess.SensorProxy.claim-sensor": "Reads light/orientation sensors.",
+    "net.reactivated.fprint.device.verify": "Verifies the caller's own enrolled fingerprint.",
+    "org.a11y.brlapi.write-display": "Writes to a braille display for accessibility.",
+    "org.debian.pcsc-lite.access_card": "Smart card reader access for the active user.",
+    "org.debian.pcsc-lite.access_pcsc": "Smart card reader access for the active user.",
+    "org.fedoraproject.FirewallD1.config.info": "firewalld read-only information.",
+    "org.fedoraproject.FirewallD1.direct.info": "firewalld read-only information.",
+    "org.fedoraproject.FirewallD1.info": "firewalld read-only information.",
+    "org.fedoraproject.FirewallD1.policies.info": "firewalld read-only information.",
+    "org.freedesktop.Flatpak.app-update": "Flatpak app updates and remote metadata (apps only, never the OS image); installs and removals ask for the password.",
+    "org.freedesktop.Flatpak.appstream-update": "Flatpak app updates and remote metadata (apps only, never the OS image); installs and removals ask for the password.",
+    "org.freedesktop.Flatpak.metadata-update": "Flatpak app updates and remote metadata (apps only, never the OS image); installs and removals ask for the password.",
+    "org.freedesktop.Flatpak.modify-repo": "Flatpak app updates and remote metadata (apps only, never the OS image); installs and removals ask for the password.",
+    "org.freedesktop.Flatpak.override-parental-controls-update": "Flatpak app updates and remote metadata (apps only, never the OS image); installs and removals ask for the password.",
+    "org.freedesktop.Flatpak.runtime-update": "Flatpak app updates and remote metadata (apps only, never the OS image); installs and removals ask for the password.",
+    "org.freedesktop.Flatpak.update-remote": "Flatpak app updates and remote metadata (apps only, never the OS image); installs and removals ask for the password.",
+    "org.freedesktop.ModemManager1.CellBroadcast": "Mobile modem use (messages, location, calls); the laptop has no modem; modem firmware is denied.",
+    "org.freedesktop.ModemManager1.Contacts": "Mobile modem use (messages, location, calls); the laptop has no modem; modem firmware is denied.",
+    "org.freedesktop.ModemManager1.Device.Control": "Mobile modem use (messages, location, calls); the laptop has no modem; modem firmware is denied.",
+    "org.freedesktop.ModemManager1.Location": "Mobile modem use (messages, location, calls); the laptop has no modem; modem firmware is denied.",
+    "org.freedesktop.ModemManager1.Messaging": "Mobile modem use (messages, location, calls); the laptop has no modem; modem firmware is denied.",
+    "org.freedesktop.ModemManager1.Time": "Mobile modem use (messages, location, calls); the laptop has no modem; modem firmware is denied.",
+    "org.freedesktop.ModemManager1.USSD": "Mobile modem use (messages, location, calls); the laptop has no modem; modem firmware is denied.",
+    "org.freedesktop.ModemManager1.Voice": "Mobile modem use (messages, location, calls); the laptop has no modem; modem firmware is denied.",
+    "org.freedesktop.NetworkManager.enable-disable-connectivity-check": "Network use by the active user: on/off switches, scanning, hotspots and his own connections; system-wide connections ask for the password.",
+    "org.freedesktop.NetworkManager.enable-disable-network": "Network use by the active user: on/off switches, scanning, hotspots and his own connections; system-wide connections ask for the password.",
+    "org.freedesktop.NetworkManager.enable-disable-statistics": "Network use by the active user: on/off switches, scanning, hotspots and his own connections; system-wide connections ask for the password.",
+    "org.freedesktop.NetworkManager.enable-disable-wifi": "Network use by the active user: on/off switches, scanning, hotspots and his own connections; system-wide connections ask for the password.",
+    "org.freedesktop.NetworkManager.enable-disable-wimax": "Network use by the active user: on/off switches, scanning, hotspots and his own connections; system-wide connections ask for the password.",
+    "org.freedesktop.NetworkManager.enable-disable-wwan": "Network use by the active user: on/off switches, scanning, hotspots and his own connections; system-wide connections ask for the password.",
+    "org.freedesktop.NetworkManager.network-control": "Network use by the active user: on/off switches, scanning, hotspots and his own connections; system-wide connections ask for the password.",
+    "org.freedesktop.NetworkManager.settings.modify.own": "Network use by the active user: on/off switches, scanning, hotspots and his own connections; system-wide connections ask for the password.",
+    "org.freedesktop.NetworkManager.wifi.scan": "Network use by the active user: on/off switches, scanning, hotspots and his own connections; system-wide connections ask for the password.",
+    "org.freedesktop.NetworkManager.wifi.share.open": "Network use by the active user: on/off switches, scanning, hotspots and his own connections; system-wide connections ask for the password.",
+    "org.freedesktop.NetworkManager.wifi.share.protected": "Network use by the active user: on/off switches, scanning, hotspots and his own connections; system-wide connections ask for the password.",
+    "org.freedesktop.RealtimeKit1.acquire-high-priority": "Real-time scheduling for audio within RealtimeKit's limits.",
+    "org.freedesktop.RealtimeKit1.acquire-real-time": "Real-time scheduling for audio within RealtimeKit's limits.",
+    "org.freedesktop.UPower.PowerProfiles.hold-profile": "Power profile switching (tuned-ppd maps it to the fixed profiles in /etc/tuned/ppd.conf; the image check proves none of them has a bootloader or kernel-argument section).",
+    "org.freedesktop.UPower.PowerProfiles.release-profile": "Power profile switching (tuned-ppd maps it to the fixed profiles in /etc/tuned/ppd.conf; the image check proves none of them has a bootloader or kernel-argument section).",
+    "org.freedesktop.UPower.PowerProfiles.switch-profile": "Power profile switching (tuned-ppd maps it to the fixed profiles in /etc/tuned/ppd.conf; the image check proves none of them has a bootloader or kernel-argument section).",
+    "org.freedesktop.UPower.enable-charging-limit": "Turns the battery charge limit on or off (battery care); not the OS, firmware or boot.",
+    "org.freedesktop.accounts.change-own-user-data": "Changes the caller's own account details (name, icon).",
+    "org.freedesktop.color-manager.create-device": "Colour profiles for displays and devices.",
+    "org.freedesktop.color-manager.create-profile": "Colour profiles for displays and devices.",
+    "org.freedesktop.color-manager.delete-device": "Colour profiles for displays and devices.",
+    "org.freedesktop.color-manager.delete-profile": "Colour profiles for displays and devices.",
+    "org.freedesktop.color-manager.device-inhibit": "Colour profiles for displays and devices.",
+    "org.freedesktop.color-manager.modify-device": "Colour profiles for displays and devices.",
+    "org.freedesktop.color-manager.modify-profile": "Colour profiles for displays and devices.",
+    "org.freedesktop.color-manager.sensor-lock": "Colour profiles for displays and devices.",
+    "org.freedesktop.home1.update-home-by-owner": "systemd-homed: the owner updates his own home record; homed is not used here.",
+    "org.freedesktop.login1.chvt": "Session control for the caller: switching VTs, inhibitors, lingering of his own user manager.",
+    "org.freedesktop.login1.hibernate": "Ordinary power actions (sleep stays disabled in logind and sleep.conf); the next-boot choices are denied.",
+    "org.freedesktop.login1.hibernate-multiple-sessions": "Ordinary power actions (sleep stays disabled in logind and sleep.conf); the next-boot choices are denied.",
+    "org.freedesktop.login1.inhibit-block-idle": "Session control for the caller: switching VTs, inhibitors, lingering of his own user manager.",
+    "org.freedesktop.login1.inhibit-block-shutdown": "Session control for the caller: switching VTs, inhibitors, lingering of his own user manager.",
+    "org.freedesktop.login1.inhibit-block-sleep": "Session control for the caller: switching VTs, inhibitors, lingering of his own user manager.",
+    "org.freedesktop.login1.inhibit-delay-shutdown": "Session control for the caller: switching VTs, inhibitors, lingering of his own user manager.",
+    "org.freedesktop.login1.inhibit-delay-sleep": "Session control for the caller: switching VTs, inhibitors, lingering of his own user manager.",
+    "org.freedesktop.login1.inhibit-handle-hibernate-key": "Session control for the caller: switching VTs, inhibitors, lingering of his own user manager.",
+    "org.freedesktop.login1.inhibit-handle-lid-switch": "Session control for the caller: switching VTs, inhibitors, lingering of his own user manager.",
+    "org.freedesktop.login1.inhibit-handle-power-key": "Session control for the caller: switching VTs, inhibitors, lingering of his own user manager.",
+    "org.freedesktop.login1.inhibit-handle-reboot-key": "Session control for the caller: switching VTs, inhibitors, lingering of his own user manager.",
+    "org.freedesktop.login1.inhibit-handle-suspend-key": "Session control for the caller: switching VTs, inhibitors, lingering of his own user manager.",
+    "org.freedesktop.login1.power-off": "Ordinary power actions (sleep stays disabled in logind and sleep.conf); the next-boot choices are denied.",
+    "org.freedesktop.login1.power-off-multiple-sessions": "Ordinary power actions (sleep stays disabled in logind and sleep.conf); the next-boot choices are denied.",
+    "org.freedesktop.login1.reboot": "Ordinary power actions (sleep stays disabled in logind and sleep.conf); the next-boot choices are denied.",
+    "org.freedesktop.login1.reboot-multiple-sessions": "Ordinary power actions (sleep stays disabled in logind and sleep.conf); the next-boot choices are denied.",
+    "org.freedesktop.login1.set-self-linger": "Session control for the caller: switching VTs, inhibitors, lingering of his own user manager.",
+    "org.freedesktop.login1.set-wall-message": "Sets the message logged-in users see before a shutdown or reboot; granted through the passwordless power-off and reboot, which imply it.",
+    "org.freedesktop.login1.suspend": "Ordinary power actions (sleep stays disabled in logind and sleep.conf); the next-boot choices are denied.",
+    "org.freedesktop.login1.suspend-multiple-sessions": "Ordinary power actions (sleep stays disabled in logind and sleep.conf); the next-boot choices are denied.",
+    "org.freedesktop.machine1.host-login": "machined: a login prompt on the host (needs credentials) and registering his own containers/VMs.",
+    "org.freedesktop.machine1.register-machine": "machined: a login prompt on the host (needs credentials) and registering his own containers/VMs.",
+    "org.freedesktop.realmd.discover-realm": "Discovers directory realms; joins need the password.",
+    "org.freedesktop.udisks2.ata-check-power": "udisks2 on removable (non-system) drives and loop files he can read; internal drives use the *-system actions, which ask for the password.",
+    "org.freedesktop.udisks2.ata-smart-update": "udisks2 on removable (non-system) drives and loop files he can read; internal drives use the *-system actions, which ask for the password.",
+    "org.freedesktop.udisks2.ata-standby": "udisks2 on removable (non-system) drives and loop files he can read; internal drives use the *-system actions, which ask for the password.",
+    "org.freedesktop.udisks2.cancel-job": "udisks2 on removable (non-system) drives and loop files he can read; internal drives use the *-system actions, which ask for the password.",
+    "org.freedesktop.udisks2.eject-media": "udisks2 on removable (non-system) drives and loop files he can read; internal drives use the *-system actions, which ask for the password.",
+    "org.freedesktop.udisks2.encrypted-change-passphrase": "udisks2 on removable (non-system) drives and loop files he can read; internal drives use the *-system actions, which ask for the password.",
+    "org.freedesktop.udisks2.encrypted-unlock": "udisks2 on removable (non-system) drives and loop files he can read; internal drives use the *-system actions, which ask for the password.",
+    "org.freedesktop.udisks2.filesystem-mount": "udisks2 on removable (non-system) drives and loop files he can read; internal drives use the *-system actions, which ask for the password.",
+    "org.freedesktop.udisks2.loop-setup": "udisks2 on removable (non-system) drives and loop files he can read; internal drives use the *-system actions, which ask for the password.",
+    "org.freedesktop.udisks2.modify-device": "udisks2 on removable (non-system) drives and loop files he can read; internal drives use the *-system actions, which ask for the password.",
+    "org.freedesktop.udisks2.nvme-smart-update": "udisks2 on removable (non-system) drives and loop files he can read; internal drives use the *-system actions, which ask for the password.",
+    "org.freedesktop.udisks2.power-off-drive": "udisks2 on removable (non-system) drives and loop files he can read; internal drives use the *-system actions, which ask for the password.",
+    "org.freedesktop.udisks2.rescan": "udisks2 on removable (non-system) drives and loop files he can read; internal drives use the *-system actions, which ask for the password.",
+    "org.kde.filesharing.samba.isuserknown": "KDE read-only queries (Samba user, SMART status, DMI information).",
+    "org.kde.kameleon.qmk.helper.ApplyColor": "Sets keyboard RGB colours.",
+    "org.kde.kameleon.qmk.helper.HasDevices": "Sets keyboard RGB colours.",
+    "org.kde.kameleonhelper.writecolor": "Sets keyboard RGB colours.",
+    "org.kde.kded.smart.smartctl": "KDE read-only queries (Samba user, SMART status, DMI information).",
+    "org.kde.kinfocenter.dmidecode.memoryinformation": "KDE read-only queries (Samba user, SMART status, DMI information).",
+    "org.kde.kinfocenter.dmidecode.systeminformation": "KDE read-only queries (Samba user, SMART status, DMI information).",
+    "org.kde.powerdevil.backlighthelper.brightness": "Plasma power helpers: screen brightness, reading charge settings and GPUs, wake-up source counts.",
+    "org.kde.powerdevil.backlighthelper.brightnessmax": "Plasma power helpers: screen brightness, reading charge settings and GPUs, wake-up source counts.",
+    "org.kde.powerdevil.backlighthelper.setbrightness": "Plasma power helpers: screen brightness, reading charge settings and GPUs, wake-up source counts.",
+    "org.kde.powerdevil.backlighthelper.syspath": "Plasma power helpers: screen brightness, reading charge settings and GPUs, wake-up source counts.",
+    "org.kde.powerdevil.chargethresholdhelper.getconservationmode": "Plasma power helpers: screen brightness, reading charge settings and GPUs, wake-up source counts.",
+    "org.kde.powerdevil.chargethresholdhelper.getthreshold": "Plasma power helpers: screen brightness, reading charge settings and GPUs, wake-up source counts.",
+    "org.kde.powerdevil.discretegpuhelper.hasdualgpu": "Plasma power helpers: screen brightness, reading charge settings and GPUs, wake-up source counts.",
+    "org.kde.powerdevil.wakeupsourcehelper.setwakeupcount": "Plasma power helpers: screen brightness, reading charge settings and GPUs, wake-up source counts."
+  }
+}

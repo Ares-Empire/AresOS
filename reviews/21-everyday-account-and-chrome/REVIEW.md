@@ -1,0 +1,9 @@
+Reviewed `80458b47`.
+
+- **Blocker — [os/config/etc/sudoers.d/aresos-everyday:5](C:/Users/pab/AresOS-21-everyday-account/os/config/etc/sudoers.d/aresos-everyday:5):** `timestamp_type=ppid` does not provide the claimed isolation. After the owner authenticates, a program launched by that shell can `exec sudo -n …`, retaining the shell as its parent and reusing its cached authorization. [Sudo’s documented semantics](https://www.sudo.ws/docs/man/1.9.14/sudoers.man.pdf) permit this. Set `timestamp_timeout=0`, correct the judgment-call claim, and test reuse after successful authentication; the locked-account tests cannot catch it.
+
+- **Blocker — [00-aresos-maintenance.rules:36](C:/Users/pab/AresOS-21-everyday-account/os/config/usr/share/polkit-1/rules.d/00-aresos-maintenance.rules:36):** The deny list leaves firmware/boot-control actions passwordless. The committed polkit evidence reports `yes` for `org.freedesktop.login1.set-reboot-to-firmware-setup` and the boot-loader selection actions. An active `ares` process can therefore change next-boot behavior through [logind](https://www.freedesktop.org/software/systemd/man/259/org.freedesktop.login1.html). Deny these actions explicitly and test them independently of wheel membership; the wheel-difference audit misses inherited grants.
+
+- **Should-fix — [os/config/usr/bin/aresos-terminal:10](C:/Users/pab/AresOS-21-everyday-account/os/config/usr/bin/aresos-terminal:10):** Recovery still resolves `foot` through PATH, now headed by `~/.local/bin`. A broken executable named `foot` there disables both normal and recovery terminals despite skipping `.bashrc`. Use `/usr/bin/foot` and test recovery with a shadowing executable on PATH.
+
+CHANGES-NEEDED

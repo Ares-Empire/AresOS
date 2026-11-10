@@ -1,0 +1,58 @@
+{
+  "id": 5,
+  "returncode": 0,
+  "stdout": "2146\n2830\n",
+  "stderr": "",
+  "terminals": [
+    {
+      "pid": "2146",
+      "cmdline": [
+        "/usr/bin/foot",
+        "--title=AresOS",
+        "/usr/bin/bash",
+        "--rcfile",
+        "/usr/share/aresos/bashrc",
+        "-i"
+      ],
+      "shells": [
+        "/usr/bin/bash"
+      ]
+    },
+    {
+      "pid": "2830",
+      "cmdline": [
+        "/usr/bin/foot",
+        "--title=AresOS",
+        "/usr/bin/bash",
+        "--rcfile",
+        "/usr/share/aresos/bashrc",
+        "-i"
+      ],
+      "shells": [
+        "/usr/bin/bash"
+      ]
+    }
+  ],
+  "profile_paths": [
+    "/bin/sh|hBc||/usr/local/bin:/usr/bin:/usr/local/sbin"
+  ],
+  "shadowed": [
+    "sh",
+    "bash",
+    "dash",
+    "dbus-run-session",
+    "dbus-daemon",
+    "dbus-broker-launch",
+    "labwc",
+    "busctl",
+    "foot",
+    "id",
+    "python3",
+    "env",
+    "xdg-open",
+    "Xwayland",
+    "polkit-kde-authentication-agent-1",
+    "aresos-terminal",
+    "aresos-session"
+  ]
+}

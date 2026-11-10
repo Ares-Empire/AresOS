@@ -1,0 +1,11 @@
+[Unit]
+Description=CI only: broken shadowing programs in the daily account's ~/.local/bin
+After=systemd-tmpfiles-setup.service
+Before=greetd.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/bash /usr/libexec/aresos-ci/shadow-path.sh
+
+[Install]
+WantedBy=greetd.service

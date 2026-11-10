@@ -1,0 +1,5 @@
+# Everyday account like Windows (owner, 2026-11-09): `ares` is in wheel and
+# sudo asks for his own password every time, like Windows' Yes prompt. No
+# ticket is kept, so no other program running as him, such as Claude Code,
+# can reuse a password he typed (review 1 of package 21).
+Defaults:ares timestamp_timeout=0

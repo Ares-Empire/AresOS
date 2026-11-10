@@ -3,9 +3,16 @@
   <core><decoration>server</decoration></core>
   <theme><name>Default</name></theme>
   <keyboard>
-    <keybind key="W-C-Escape"><action name="Execute" command="/usr/bin/aresos-terminal" /></keybind>
+    <keybind key="W-C-Escape"><action name="Execute" command="/usr/bin/aresos-terminal --recovery" /></keybind>
     <keybind key="A-F4"><action name="Close" /></keybind>
     <keybind key="A-Tab"><action name="NextWindow" /></keybind>
+    <!-- Brightness changes only once the laptop exposes a backlight device. -->
+    <keybind key="XF86MonBrightnessUp"><action name="Execute" command="/usr/bin/brightnessctl --quiet set 5%+" /></keybind>
+    <keybind key="XF86MonBrightnessDown"><action name="Execute" command="/usr/bin/brightnessctl --quiet --min-value=1 set 5%-" /></keybind>
+    <keybind key="XF86AudioRaiseVolume"><action name="Execute" command="/usr/bin/wpctl set-volume --limit 1.0 @DEFAULT_AUDIO_SINK@ 5%+" /></keybind>
+    <keybind key="XF86AudioLowerVolume"><action name="Execute" command="/usr/bin/wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-" /></keybind>
+    <keybind key="XF86AudioMute"><action name="Execute" command="/usr/bin/wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle" /></keybind>
+    <keybind key="XF86AudioMicMute"><action name="Execute" command="/usr/bin/wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle" /></keybind>
   </keyboard>
   <windowRules>
     <windowRule identifier="foot"><action name="Maximize" /></windowRule>

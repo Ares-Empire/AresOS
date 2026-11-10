@@ -1,0 +1,3 @@
+polkit: 21 rule files, 401 actions, 0 change with wheel, 62 denied to ares
+POLKIT_CHECK_PASSED
+The same check fails without the AresOS rule, as expected
