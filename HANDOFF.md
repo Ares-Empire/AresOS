@@ -113,10 +113,10 @@ The baton from the last session. Read it after `STATE.md`. Overwrite it when you
     - A watcher (`mirror-watch.log` in the scratchpad) waits for two healthy checks. Then approve one 23 `check_build=build` and the next 27 release dispatch.
     - If the mirror stays slow, add apt retries and a longer step timeout in `os-image.yml`. It is bound, so do it inside package 27.
   - 23's REVIEW-2 (Astra) runs on `7ec26b84`, log `../AresOS-23-review2.log`. The owner answered #168, #169 and #170, so all of 23's calls are decided.
-  - **Claude allowance (mac-capacity, updated 2026-11-10 23:35, from Patrik):**
-    - The pause now comes from usage, not the clock: about 96% of the weekly limit (84% at 23:35). Keep working past Wed 09:00.
-    - When mac-capacity sends "pause now": reach the next clean point (a round or stage finished, STATE and HANDOFF current), stop, and send it one line.
-    - If nothing comes, carry on until the reset on Thu 00:00.
+  - **Claude allowance (mac-capacity, 2026-11-10 23:40, from Patrik; the original plan):**
+    - Work normally tonight. Pause on Wed 11-11 between about 09:00 and 12:00 at a clean point: a round or stage finished, nothing half-done, STATE and HANDOFF current.
+    - Then send mac-capacity one line: where it stopped and what's left. Patrik reads the real usage, and mac-capacity shares out the rest until the Thu 00:00 reset.
+    - A "pause now" from mac-capacity before 09:00 means pause early.
     - Package 27 stays first.
 - **Owner to-dos:**
   - Shift+Delete `C:\Users\pab\AresOS-delete-me` (115 GB of old replay ISOs).
