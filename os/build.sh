@@ -170,6 +170,20 @@ left = [path.name for path in actions.glob('*.policy') if re.search(r'_keep\s*</
 if left or not changed:
     raise SystemExit(f'polkit defaults still cached in {left} (changed {changed})')
 print(f'polkit: {changed} cached defaults made uncached')
+# Flatpak's passwordless app-update implies runtime-install, so an app update
+# could install any system-wide runtime without the password (review 3). Keep
+# the implied runtime-update: updates of installed apps stay passwordless and
+# a new runtime asks for the password like any other system-wide install.
+flatpak = actions / 'org.freedesktop.Flatpak.policy'
+text = flatpak.read_text()
+update = re.search(r'<action id="org\.freedesktop\.Flatpak\.app-update">.*?</action>', text, re.S)
+imply = re.compile(r'(<annotate key="org\.freedesktop\.policykit\.imply">)([^<]*)(</annotate>)')
+found = imply.findall(update.group(0)) if update else []
+if len(found) != 1 or 'org.freedesktop.Flatpak.runtime-install' not in found[0][1].split():
+    raise SystemExit(f'Flatpak app-update implication changed upstream; review required: {found}')
+kept = ' '.join(name for name in found[0][1].split() if name != 'org.freedesktop.Flatpak.runtime-install')
+flatpak.write_text(text.replace(update.group(0), imply.sub(lambda m: m.group(1) + kept + m.group(3), update.group(0))))
+print(f'polkit: Flatpak app-update now implies only: {kept}')
 PY
 # The OS image, firmware and app store stay out of the daily account's reach.
 # Flatpak and Homebrew are his apps now and stay executable.

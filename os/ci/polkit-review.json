@@ -1,5 +1,5 @@
 {
-  "comment": "Package 21: what the daily account `ares` (in wheel, owner 2026-11-09) may do through polkit. polkit-check.js evaluates the built image's real rules against this, for local active, local inactive and remote sessions, with and without wheel.",
+  "comment": "Package 21: what the daily account `ares` (in wheel, owner 2026-11-09) may do through polkit. polkit-check.js evaluates the built image's real rules against this, for local active, local inactive and remote sessions, with and without wheel, following org.freedesktop.policykit.imply as polkitd does.",
   "os_change_prefixes": [
     "org.projectatomic.rpmostree1.",
     "org.freedesktop.sysupdate1.",
@@ -39,7 +39,9 @@
       "without_wheel": "auth_admin"
     },
     "org.freedesktop.Flatpak.runtime-install": {
-      "rule": "auth_admin"
+      "rule": "auth_admin",
+      "effective": "auth_admin",
+      "effective_without_wheel": "auth_admin"
     },
     "org.freedesktop.Flatpak.app-uninstall": {
       "rule": "auth_admin"
@@ -111,6 +113,10 @@
       "without_wheel": "no"
     },
     "com.redhat.tuned.profiles": {
+      "rule": null,
+      "effective": "yes"
+    },
+    "org.freedesktop.Flatpak.runtime-update": {
       "rule": null,
       "effective": "yes"
     }
@@ -214,6 +220,7 @@
     "org.freedesktop.login1.reboot": "Ordinary power actions (sleep stays disabled in logind and sleep.conf); the next-boot choices are denied.",
     "org.freedesktop.login1.reboot-multiple-sessions": "Ordinary power actions (sleep stays disabled in logind and sleep.conf); the next-boot choices are denied.",
     "org.freedesktop.login1.set-self-linger": "Session control for the caller: switching VTs, inhibitors, lingering of his own user manager.",
+    "org.freedesktop.login1.set-wall-message": "Sets the message logged-in users see before a shutdown or reboot; granted through the passwordless power-off and reboot, which imply it.",
     "org.freedesktop.login1.suspend": "Ordinary power actions (sleep stays disabled in logind and sleep.conf); the next-boot choices are denied.",
     "org.freedesktop.login1.suspend-multiple-sessions": "Ordinary power actions (sleep stays disabled in logind and sleep.conf); the next-boot choices are denied.",
     "org.freedesktop.machine1.host-login": "machined: a login prompt on the host (needs credentials) and registering his own containers/VMs.",

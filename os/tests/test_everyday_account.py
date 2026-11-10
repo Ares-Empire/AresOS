@@ -218,6 +218,33 @@ class PolicyFilesTest(unittest.TestCase):
         self.assertNotIn('_KEEP', rule)
         self.assertNotIn('Result.YES', rule)
 
+    def test_build_drops_only_the_runtime_install_implication_of_flatpak_app_update(self):
+        # Review 3: polkitd grants an implied action when the subject has the
+        # implying one outright, so the passwordless app-update installed runtimes.
+        build = (ROOT / 'build.sh').read_text()
+        block = build.split("flatpak = actions / 'org.freedesktop.Flatpak.policy'", 1)[1].split('\nPY\n', 1)[0]
+        self.assertIn("raise SystemExit(f'Flatpak app-update implication changed upstream; review required: {found}')", block)
+        self.assertIn('Flatpak app-update now implies only', block)
+        with tempfile.TemporaryDirectory() as directory:
+            actions = pathlib.Path(directory)
+            policy = actions / 'org.freedesktop.Flatpak.policy'
+            imply = '<annotate key="org.freedesktop.policykit.imply">{}</annotate>'
+            original = ('<action id="org.freedesktop.Flatpak.app-install">' +
+                        imply.format('org.freedesktop.Flatpak.app-update org.freedesktop.Flatpak.runtime-install') +
+                        '</action>\n<action id="org.freedesktop.Flatpak.app-update"><defaults/>' +
+                        imply.format('org.freedesktop.Flatpak.runtime-install org.freedesktop.Flatpak.runtime-update') +
+                        '</action>\n')
+            policy.write_text(original)
+            exec(compile('import re\n' + "flatpak = actions / 'org.freedesktop.Flatpak.policy'" + block, 'build.sh', 'exec'),
+                 {'actions': actions, 'print': lambda *a: None})
+            self.assertEqual(policy.read_text(), original.replace(
+                'org.freedesktop.Flatpak.runtime-install org.freedesktop.Flatpak.runtime-update',
+                'org.freedesktop.Flatpak.runtime-update'))
+            # Run again: the implication is gone, so the build stops for review.
+            with self.assertRaises(SystemExit):
+                exec(compile('import re\n' + "flatpak = actions / 'org.freedesktop.Flatpak.policy'" + block,
+                             'build.sh', 'exec'), {'actions': actions, 'print': lambda *a: None})
+
     def test_build_makes_every_polkit_default_uncached_and_refuses_leftovers(self):
         build = (ROOT / 'build.sh').read_text()
         self.assertIn(r"cached = re.compile(r'(<allow_(?:any|inactive|active)>\s*)auth_(admin|self)_keep(\s*</allow_)')", build)

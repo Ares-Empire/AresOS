@@ -91,7 +91,9 @@ function policyActions() {
         const found = new RegExp(`<${tag}>\\s*([^<\\s]+)\\s*</${tag}>`).exec(match[0]);
         return found ? found[1] : 'no';
       };
-      actions[match[1]] = { file: name, defaults: [get('allow_any'), get('allow_inactive'), get('allow_active')] };
+      const imply = /<annotate\s+key="org\.freedesktop\.policykit\.imply"\s*>([^<]*)<\/annotate>/.exec(match[0]);
+      actions[match[1]] = { file: name, defaults: [get('allow_any'), get('allow_inactive'), get('allow_active')],
+                            implies: imply ? imply[1].trim().split(/\s+/) : [] };
     }
   }
   return actions;
@@ -123,6 +125,25 @@ for (const id of [...ids].sort()) {
   };
 }
 
+// polkitd also grants an action when the subject is authorized outright for
+// an action that implies it (org.freedesktop.policykit.imply, one level deep,
+// checked without interaction). Judge every action by what ares really gets.
+const impliedBy = {};
+for (const [id, a] of Object.entries(actions)) {
+  for (const target of a.implies) (impliedBy[target] = impliedBy[target] || []).push(id);
+}
+for (const [id, row] of Object.entries(rows)) {
+  for (const [where, c] of Object.entries(row.contexts)) {
+    const via = (impliedBy[id] || []).find((source) => rows[source] && rows[source].contexts[where].effective === 'yes');
+    c.granted = via ? 'yes' : c.effective;
+    if (via) c.implied_by = via;
+  }
+  row.direct_effective = row.effective;
+  row.effective = row.contexts['active/wheel'].granted;
+  row.effective_without_wheel = row.contexts['active/plain'].granted;
+  if (row.contexts['active/wheel'].implied_by) row.implied_by = row.contexts['active/wheel'].implied_by;
+}
+
 const bootOrFirmware = new RegExp(review.boot_or_firmware_pattern, 'i');
 const listedPasswordless = new Set(Object.keys(review.passwordless));
 for (const [id, row] of Object.entries(rows)) {
@@ -132,8 +153,9 @@ for (const [id, row] of Object.entries(rows)) {
   const mustDeny = review.os_change_prefixes.some((prefix) => id.startsWith(prefix)) ||
     review.denied_actions.includes(id) || bootOrFirmware.test(id) || tunedChange;
   for (const [where, c] of Object.entries(row.contexts)) {
-    if (mustDeny && c.effective !== 'no') {
-      failures.push(`${id} (${where}): OS, boot, firmware or TuneD change must be denied to ares, got ${c.effective}`);
+    if (mustDeny && c.granted !== 'no') {
+      failures.push(`${id} (${where}): OS, boot, firmware or TuneD change must be denied to ares, got ${c.granted}` +
+                    (c.implied_by ? ` (implied by ${c.implied_by})` : ''));
     }
     // No authorization is ever cached for ares (review 2).
     if (c.effective.endsWith('_keep')) failures.push(`${id} (${where}): cached authorization ${c.effective}`);
@@ -146,7 +168,8 @@ for (const [id, row] of Object.entries(rows)) {
   // Every action ares may do without a password is reviewed by name.
   const passwordless = row.effective === 'yes' || row.effective_without_wheel === 'yes';
   if (passwordless && !listedPasswordless.has(id)) {
-    failures.push(`${id}: passwordless for ares (${row.implicit_active} by default) but not reviewed in passwordless`);
+    failures.push(`${id}: passwordless for ares (${row.implied_by ? 'implied by ' + row.implied_by : row.implicit_active + ' by default'}) ` +
+                  'but not reviewed in passwordless');
   }
   if (!passwordless && listedPasswordless.has(id)) {
     failures.push(`${id}: reviewed as passwordless but now ${row.effective}; remove the stale entry`);
@@ -162,6 +185,12 @@ for (const [id, mapped] of Object.entries(context.aresosWheelGrantDefaults || {}
     const own = actions[id].defaults.map(uncached);
     if (JSON.stringify([...mapped]) !== JSON.stringify(own)) {
       failures.push(`${id}: rule defaults ${JSON.stringify([...mapped])} differ from the image's ${JSON.stringify(own)}`);
+    }
+    // ...and no implication may hand ares more than that.
+    for (const [where, c] of Object.entries(rows[id].contexts)) {
+      if (c.granted !== mapped[DEFAULT_INDEX[where.split('/')[0]]]) {
+        failures.push(`${id} (${where}): ares gets ${c.granted} (implied by ${c.implied_by}), not its own default`);
+      }
     }
   }
 }
