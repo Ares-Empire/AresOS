@@ -92,7 +92,11 @@ Updated 2026-11-10. The live truth is `git log`, `gh pr list` and `git worktree 
   - 21b: backlight and power button, after the read-only check on the laptop in AresOS (board #149 tells the next AresOS session).
   - P2's remaining packages: 25 (guardian: clean save and shutdown) and 26 (backups).
   - Desktop shortcuts and the app wheel (owner, board #163): they open the apps from the hub and his own programs (`~/.local/bin`, Homebrew, Flatpak exports), each found by its full path.
-  - A release package: rehearsal, then publishing with his OK, then `at update` on the laptop.
+  - **Package 27, the first update release** (brief `27-first-update-release.md`, empire brief 266; starts once 21 and 22 are merged):
+    - build, image diff, publish, then a VM rehearsal of the owner's update from release 13 (update, admin password, previous, forward again);
+    - after the rehearsal passes, pin the release and empty `pending-rebind.json`;
+    - then the owner runs `at update` and `sudo passwd ares` on the laptop.
+    - Packages 23 and 21b go into the next release, which needs 22c first.
 
 - **Package 12 (the companion in the hub)**: brief drafted 2026-10-25, waiting for the owner's go. A generic companion system in the mod (look packs as data, an original placeholder look), with the owner's Claude crab as a private pack outside this repo. The desktop companions live in the private repo `Ares-Empire/companions` (browser preview: `python tools/serve.py`, then http://127.0.0.1:8765/preview/).
 
