@@ -316,7 +316,7 @@ jobs:
           if-no-files-found: error
   release-27:
     name: Package 27 release build, image diff, VM and publish
-    if: github.event_name == 'workflow_dispatch' && inputs.release_27 && github.ref_name == 'pkg/27-first-update-release' && !inputs.release_13 && !inputs.checks_only && !inputs.switch_from_run && !inputs.rehearsal && inputs.check_build == ''
+    if: github.ref_name == 'pkg/27-first-update-release' && github.event_name == 'workflow_dispatch' && inputs.release_27 && !inputs.release_13 && !inputs.checks_only && !inputs.switch_from_run && !inputs.rehearsal && inputs.check_build == ''
     runs-on: ubuntu-24.04
     timeout-minutes: 180
     permissions:
