@@ -1,8 +1,11 @@
 """Package 27: the release build's diff rules, guard ledger and publish branch."""
+import ast
+import copy
 import json
 import os
 import pathlib
 import re
+import shlex
 import shutil
 import stat
 import subprocess
@@ -478,6 +481,449 @@ class DispatchMatrixTest(unittest.TestCase):
                 self.assertFalse(condition(job['if'], mode='update', **{'github.ref_name': 'pkg/23-minecraft-starts'}))
                 self.assertFalse(condition(job['if'], mode='', **{'github.ref_name': 'main', 'inputs.release_27': True})
                                  and name == 'release-27')
+
+
+UPDATE_REF = 'pkg/27-first-update-release'
+# GitHub's own variables for an update dispatch on the package 27 branch.
+UPDATE_GITHUB = dict(GITHUB_REF_NAME=UPDATE_REF, GITHUB_EVENT_NAME='workflow_dispatch', GITHUB_ACTIONS='true',
+                     GITHUB_REPOSITORY='Ares-Empire/AresOS', GITHUB_SHA='a' * 40, GITHUB_RUN_ID='1', GITHUB_RUN_ATTEMPT='1')
+UPDATE_INPUTS = {'github.ref_name': UPDATE_REF, 'github.event_name': 'workflow_dispatch', 'inputs.rehearsal': 'update',
+                 'inputs.checks_only': False, 'inputs.release_13': False, 'inputs.release_27': False,
+                 'inputs.check_build': '', 'inputs.switch_from_run': '', 'inputs.probe_run': ''}
+UNKNOWN = object()
+
+
+def workflow_expression(expression):
+    """A workflow expression's value for an update dispatch on the package 27 branch."""
+    expression = re.sub(r'\bsecrets\.\w+', repr('secret'), expression)
+    for name, value in UPDATE_INPUTS.items():
+        expression = expression.replace(name, repr(value))
+    for call, value in (('always()', 'True'), ('success()', 'True'), ('cancelled()', 'False'), ('failure()', 'False')):
+        expression = expression.replace(call, value)
+    expression = expression.replace('&&', ' and ').replace('||', ' or ')
+    expression = re.sub(r'!(?!=)', ' not ', expression)
+    return eval(expression, {'__builtins__': {}}, {})
+
+
+def workflow_text(value):
+    """Text as the runner renders it: each ${{ }} replaced by its string."""
+    def render(match):
+        result = workflow_expression(match.group(1))
+        return ('true' if result else 'false') if isinstance(result, bool) else str(result)
+    return re.sub(r'\$\{\{(.*?)\}\}', render, value, flags=re.S)
+
+
+def constant(value):
+    """A value an ast.Constant can hold (lists as tuples), or UNKNOWN."""
+    if isinstance(value, (list, tuple)):
+        items = tuple(constant(item) for item in value)
+        return UNKNOWN if any(item is UNKNOWN for item in items) else items
+    return value if value is None or isinstance(value, (str, int, float, bool)) else UNKNOWN
+
+
+class GateScan:
+    """The environment and argument gates a script surely reaches, evaluated for one step.
+
+    Starting from the script's top-level code (as `__main__`), it follows the
+    functions that code calls, in this module or in an os/ci module it
+    imports, and runs the top level of each imported module (an imported
+    module's `__main__` block is skipped). Code runs **surely** when every
+    branch above it is known to run:
+    - an `if` whose test depends only on os.environ, sys.argv and names bound
+      from them is followed into the branch that runs, and stays sure;
+    - any other `if`, a loop body or an `except` handler is unsure;
+    - a function is sure only when sure code calls it by name; anything else
+      it is merely referenced by (a callback, a dict of commands, a method of
+      an unresolved object) is followed as unsure.
+    In sure code, every `assert` and `observations.check` condition that
+    depends only on those values is evaluated; for `a and b` each part counts
+    on its own. Unsure code is followed for what it calls but its gates are
+    not judged, so a gate for another package's branch cannot fail the scan.
+    """
+    ALLOWED = (ast.Expression, ast.Constant, ast.Tuple, ast.List, ast.Set, ast.BoolOp, ast.And, ast.Or, ast.Compare,
+               ast.Eq, ast.NotEq, ast.In, ast.NotIn, ast.Is, ast.IsNot, ast.UnaryOp, ast.Not, ast.Load)
+    DEFINITIONS = (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)
+    UNSURE_EXPRESSIONS = (ast.IfExp, ast.Lambda, ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp)
+
+    def __init__(self, environment, argv, sources=None):
+        self.environment, self.argv, self.sources = environment, list(argv), sources
+        self.modules, self.globals, self.done, self.results = {}, {}, set(), []
+
+    def run(self, script):
+        self.load(script, '__main__')
+        return self.results
+
+    def text(self, path):
+        return self.sources[path] if self.sources is not None else (ROOT / path).read_text(encoding='utf-8')
+
+    def source(self, module):
+        path = 'os/ci/' + module.split('.')[0] + '.py'
+        known = path in self.sources if self.sources is not None else (ROOT / path).exists()
+        return path if known else None
+
+    def module(self, path):
+        if path not in self.modules:
+            tree = ast.parse(self.text(path))
+            definitions = {s.name: s for s in tree.body if isinstance(s, self.DEFINITIONS)}
+            aliases = {}
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Import):
+                    for alias in node.names:
+                        if self.source(alias.name):
+                            aliases[alias.asname or alias.name] = (self.source(alias.name), None)
+                elif isinstance(node, ast.ImportFrom) and node.module and not node.level and self.source(node.module):
+                    for alias in node.names:
+                        aliases[alias.asname or alias.name] = (self.source(node.module), alias.name)
+            self.modules[path] = (tree, definitions, aliases)
+        return self.modules[path]
+
+    def load(self, path, name=None):
+        """Run a module's top level once, as on import (surely: importing runs it)."""
+        if ('module', path) in self.done:
+            return
+        self.done.add(('module', path))
+        tree, _, _ = self.module(path)
+        self.globals[path] = {'__name__': name or pathlib.Path(path).stem}
+        self.visit(path, tree.body, self.globals[path], sure=True, top=True)
+
+    def definition(self, path, name, sure):
+        """A function that code calls (sure) or names (unsure); for a class, its methods."""
+        _, definitions, _ = self.module(path)
+        if name not in definitions or ('definition', path, name, sure) in self.done:
+            return
+        self.done.add(('definition', path, name, sure))
+        self.load(path)
+        node = definitions[name]
+        if isinstance(node, ast.ClassDef):
+            for item in node.body:
+                body = item.body if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)) else [item]
+                # Constructing the class runs __init__; other methods run on objects we do not follow.
+                self.visit(path, body, self.globals[path], sure=sure and getattr(item, 'name', '') == '__init__')
+        else:
+            self.visit(path, node.body, self.globals[path], sure=sure)
+
+    def resolve(self, path, node):
+        """The (module, name) a Name or module.attribute refers to, or None."""
+        _, definitions, aliases = self.module(path)
+        if isinstance(node, ast.Name):
+            if node.id in definitions:
+                return path, node.id
+            if node.id in aliases and aliases[node.id][1] is not None:
+                return aliases[node.id]
+        if (isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name)
+                and node.value.id in aliases and aliases[node.value.id][1] is None):
+            return aliases[node.value.id][0], node.attr
+        return None
+
+    def sure_calls(self, node):
+        """Calls in an expression that run whenever the expression does."""
+        if isinstance(node, self.UNSURE_EXPRESSIONS):
+            return
+        if isinstance(node, ast.BoolOp):
+            yield from self.sure_calls(node.values[0])
+            return
+        if isinstance(node, ast.Call):
+            yield node
+        for child in ast.iter_child_nodes(node):
+            yield from self.sure_calls(child)
+
+    def reach(self, path, node, sure):
+        called = {id(call.func) for call in self.sure_calls(node)} if sure else set()
+        for reference in ast.walk(node):
+            target = self.resolve(path, reference) if isinstance(reference, (ast.Name, ast.Attribute)) else None
+            if target is not None and not (isinstance(reference, ast.Name) and not isinstance(reference.ctx, ast.Load)):
+                self.definition(*target, sure=id(reference) in called)
+
+    def read(self, node):
+        """The value of an environment or argument read, or UNKNOWN."""
+        if isinstance(node, ast.Subscript) and isinstance(node.slice, ast.Constant):
+            if ast.unparse(node.value) == 'os.environ' and isinstance(node.slice.value, str):
+                return self.environment.get(node.slice.value)
+            if ast.unparse(node.value) == 'sys.argv' and isinstance(node.slice.value, int):
+                index = node.slice.value
+                return self.argv[index] if -len(self.argv) <= index < len(self.argv) else None
+        if isinstance(node, ast.Subscript) and ast.unparse(node.value) == 'sys.argv' and isinstance(node.slice, ast.Slice):
+            bounds = [part.value if isinstance(part, ast.Constant) else UNKNOWN if part is not None else None
+                      for part in (node.slice.lower, node.slice.upper, node.slice.step)]
+            return UNKNOWN if any(bound is UNKNOWN for bound in bounds) else tuple(self.argv[slice(*bounds)])
+        if (isinstance(node, ast.Call) and ast.unparse(node.func) in ('os.environ.get', 'os.getenv')
+                and node.args and isinstance(node.args[0], ast.Constant) and not node.keywords):
+            default = node.args[1] if len(node.args) > 1 else ast.Constant(None)
+            if isinstance(default, ast.Constant):
+                return self.environment.get(node.args[0].value, default.value)
+        return UNKNOWN
+
+    def evaluate(self, node, names):
+        """(value, derived): UNKNOWN unless the node depends only on reads and names bound from them."""
+        scan, derived = self, []
+
+        class Bind(ast.NodeTransformer):
+            def bound(self, node):
+                value = constant(scan.read(node))
+                if value is UNKNOWN:
+                    return self.generic_visit(node)
+                derived.append(True)
+                return ast.Constant(value)
+            visit_Subscript = visit_Call = bound
+
+            def visit_Name(self, node):
+                if node.id in names:
+                    derived.append(True)
+                    return ast.Constant(names[node.id])
+                return node
+
+        expression = ast.fix_missing_locations(ast.Expression(Bind().visit(copy.deepcopy(node))))
+        if not all(isinstance(part, self.ALLOWED) for part in ast.walk(expression)):
+            return UNKNOWN, False
+        return eval(compile(expression, '<gate>', 'eval'), {'__builtins__': {}}), bool(derived)
+
+    def gate(self, path, test, names, line):
+        parts = test.values if isinstance(test, ast.BoolOp) and isinstance(test.op, ast.And) else [test]
+        for part in parts:
+            value, derived = self.evaluate(part, names)
+            if value is not UNKNOWN and derived:
+                self.results.append((path, line, ast.unparse(part), bool(value)))
+
+    def bind(self, target, value, names):
+        if isinstance(target, ast.Name):
+            names.pop(target.id, None)
+            if value is not UNKNOWN:
+                names[target.id] = value
+        elif isinstance(target, (ast.Tuple, ast.List)):
+            values = value if isinstance(value, tuple) and len(value) == len(target.elts) else [UNKNOWN] * len(target.elts)
+            for element, item in zip(target.elts, values):
+                self.bind(element, item, names)
+        else:
+            for node in ast.walk(target):
+                if isinstance(node, ast.Name):
+                    names.pop(node.id, None)
+
+    def visit(self, path, body, names, sure, top=False):
+        names = names if top else dict(names)
+        for statement in body:
+            if isinstance(statement, self.DEFINITIONS):
+                for expression in statement.decorator_list + getattr(statement, 'bases', []):
+                    self.reach(path, expression, sure)
+                if not top and not isinstance(statement, ast.ClassDef):
+                    self.visit(path, statement.body, names, sure=False)
+                continue
+            if isinstance(statement, ast.If):
+                test, derived = self.evaluate(statement.test, names)
+                if test is not UNKNOWN and (derived or isinstance(statement.test, ast.Constant)):
+                    self.visit(path, statement.body if test else statement.orelse, names, sure, top)
+                    continue
+            if isinstance(statement, (ast.Import, ast.ImportFrom)):
+                modules = ([alias.name for alias in statement.names] if isinstance(statement, ast.Import)
+                           else [statement.module] if statement.module and not statement.level else [])
+                for module in filter(self.source, modules):
+                    self.load(self.source(module))
+            compound = any(isinstance(getattr(statement, field, None), list) for field in ('body', 'orelse', 'finalbody'))
+            headers = ([getattr(statement, field) for field in ('test', 'iter', 'subject') if hasattr(statement, field)]
+                       + [item.context_expr for item in getattr(statement, 'items', [])]) if compound else [statement]
+            for header in headers:
+                self.reach(path, header, sure)
+            if sure and isinstance(statement, ast.Assert):
+                self.gate(path, statement.test, names, statement.lineno)
+            elif sure and not compound:
+                for node in self.sure_calls(statement):
+                    if isinstance(node.func, ast.Attribute) and node.func.attr == 'check' and node.args:
+                        self.gate(path, node.args[0], names, node.lineno)
+            if isinstance(statement, ast.Assign):
+                value, derived = self.evaluate(statement.value, names)
+                for target in statement.targets:
+                    self.bind(target, constant(value) if derived else UNKNOWN, names)
+            else:
+                # Any other rebinding (augmented, loop or with targets) forgets the name.
+                targets = [getattr(statement, 'target', None)] + [i.optional_vars for i in getattr(statement, 'items', [])]
+                for target in filter(None, targets):
+                    self.bind(target, UNKNOWN, names)
+            # A with or try body runs surely; an unknown if, a loop and an except handler do not.
+            body_sure = sure and isinstance(statement, (ast.With, ast.AsyncWith, ast.Try))
+            for field, field_sure in (('body', body_sure), ('orelse', False), ('finalbody', sure)):
+                if isinstance(getattr(statement, field, None), list):
+                    self.visit(path, getattr(statement, field), names, field_sure, top)
+            for handler in getattr(statement, 'handlers', []):
+                self.visit(path, handler.body, names, False, top)
+
+
+def shell_condition(text, environment):
+    """True, False or None (unknown) for `test A = B` / `test A != B` chains joined by || and &&."""
+    def word(token):
+        value = re.sub(r'\$\{?(\w+)\}?', lambda m: environment.get(m.group(1), ''), token)
+        return None if '$' in value or '`' in value else value
+
+    def test(part):
+        try:
+            tokens = shlex.split(part.strip())
+        except ValueError:
+            return None
+        if tokens[:1] == ['['] and tokens[-1:] == [']']:
+            tokens = ['test'] + tokens[1:-1]
+        if len(tokens) != 4 or tokens[0] != 'test' or tokens[2] not in ('=', '!='):
+            return None
+        left, right = word(tokens[1]), word(tokens[3])
+        if left is None or right is None:
+            return None
+        return (left == right) == (tokens[2] == '=')
+
+    result = False
+    for alternative in text.split('||'):
+        values = [test(part) for part in alternative.split('&&')]
+        both = None if None in values and False not in values else all(values)
+        if both is True:
+            return True
+        if both is None:
+            result = None
+    return result
+
+
+def shell_lines(run, environment):
+    """The lines of a step's run script that can execute for this environment.
+
+    Follows `if/elif/else/fi` over `test` comparisons of literals and
+    variables (shell_condition); a branch with an unknown condition counts as
+    possibly running. Heredoc bodies are data, not commands.
+    """
+    stack, heredoc = [], None
+    for line in run.splitlines():
+        stripped = line.strip()
+        if heredoc is not None:
+            heredoc = None if stripped == heredoc else heredoc
+            continue
+        active = all(level['active'] for level in stack)
+        match = re.fullmatch(r'(if|elif) (.*); then', stripped)
+        if match:
+            if match.group(1) == 'if':
+                stack.append(dict(parent=active, taken=False, active=False))
+            level = stack[-1]
+            condition = shell_condition(match.group(2), environment)
+            level['active'] = level['parent'] and not level['taken'] and condition is not False
+            level['taken'] = level['taken'] or condition is True
+            continue
+        if stripped == 'else':
+            stack[-1]['active'] = stack[-1]['parent'] and not stack[-1]['taken']
+            continue
+        if stripped == 'fi':
+            stack.pop()
+            continue
+        if active:
+            yield line
+        opened = re.search(r"<<-?\s*'?(\w+)'?\s*$", line)
+        if opened:
+            heredoc = opened.group(1)
+
+
+def step_runs(step, environment):
+    """Each os/ci Python script a step can run: its path, argv and `env -u` removals."""
+    for line in shell_lines(workflow_text(step['run']), environment):
+        for match in re.finditer(r'\bos/ci/[\w/-]+\.py\b', line):
+            try:
+                words = shlex.split(line[match.start():])
+            except ValueError:
+                words = line[match.start():].split()
+            argv = [match.group(0)]
+            for word in words[1:]:
+                if re.match(r'(\d*[<>]|[;&|])', word):
+                    break
+                argv.append(word)
+            yield match.group(0), argv, re.findall(r'\benv -u (\w+)', line[:match.start()])
+
+
+class UpdateJobGatesTest(unittest.TestCase):
+    """Every script the update rehearsal job runs accepts the environment that job gives it.
+
+    Run 42924871252 stopped in its capability step: owner_capabilities.py still
+    allowed only the probe and owner-tools modes. For each step of the
+    rehearsal job that runs for an update dispatch on the package 27 branch,
+    this takes the environment the step really gets (workflow, job and step
+    env, GitHub's own variables, `env -u` on the line) and the script's own
+    arguments, and evaluates every environment or argument gate the script
+    reaches (GateScan). The VM step's scripts are included.
+    """
+
+    def update_steps(self):
+        import yaml
+        workflow = yaml.load((ROOT / '.github/workflows/os-image.yml').read_text(), Loader=yaml.BaseLoader)
+        job = workflow['jobs']['rehearsal']
+        self.assertTrue(workflow_expression(job['if']))
+        merged = {**workflow.get('env', {}), **job.get('env', {})}
+        base = dict(UPDATE_GITHUB, **{k: workflow_text(v) for k, v in merged.items()})
+        self.assertEqual(base['REHEARSAL_PACKAGE'], '27')
+        for step in job['steps']:
+            if 'run' in step and workflow_expression(step.get('if', 'success()')):
+                yield step, dict(base, **{k: workflow_text(v) for k, v in step.get('env', {}).items()})
+
+    def scan(self):
+        failures, evaluated = [], set()
+        for step, environment in self.update_steps():
+            for script, argv, removed in step_runs(step, environment):
+                for path, line, text, passed in GateScan({k: v for k, v in environment.items() if k not in removed},
+                                                         argv).run(script):
+                    evaluated.add(path)
+                    if not passed:
+                        failures.append(f"{step['name']}: {path}:{line}: {text}")
+        return failures, evaluated
+
+    def test_every_update_step_script_accepts_the_update_environment(self):
+        failures, evaluated = self.scan()
+        self.assertEqual(failures, [])
+        # The scan really reached the gates of the job's native scripts.
+        self.assertLessEqual({'os/ci/owner_capabilities.py', 'os/ci/owner_devices.py', 'os/ci/owner_media.py',
+                              'os/ci/registry_auth.py', 'os/ci/rehearsal_guard.py'}, evaluated)
+
+    def test_the_scan_follows_only_reached_code(self):
+        sources = {
+            'os/ci/fixture.py': (
+                "import os, sys\n"
+                "import helper\n"
+                "def other():\n"
+                "    assert os.environ['REHEARSAL_MODE'] == 'probe'\n"
+                "def main():\n"
+                "    mode, = sys.argv[1:]\n"
+                "    if os.environ.get('REHEARSAL_PACKAGE') == '13':\n"
+                "        other()\n"
+                "    assert os.environ.get('REHEARSAL_MODE') in ('probe', 'owner-tools')\n"
+                "    assert os.geteuid() == 0 and mode == 'update'\n"
+                "    helper.require()\n"
+                "if __name__ == '__main__':\n"
+                "    main()\n"),
+            'os/ci/helper.py': (
+                "import os\n"
+                "nodes = []\n"
+                "def require():\n"
+                "    assert os.environ.get('REHEARSAL_PACKAGE') in ('14', '27')\n"
+                "    assert nodes\n"
+                "def unused():\n"
+                "    assert os.environ.get('REHEARSAL_PACKAGE') == '16'\n"
+                "if __name__ == '__main__':\n"
+                "    assert os.environ.get('REHEARSAL_MODE') == 'probe'\n"),
+        }
+        results = GateScan(dict(REHEARSAL_MODE='update', REHEARSAL_PACKAGE='27'), ['os/ci/fixture.py', 'update'],
+                           sources).run('os/ci/fixture.py')
+        self.assertEqual([(path, line, passed) for path, line, _, passed in results],
+                         [('os/ci/fixture.py', 9, False), ('os/ci/fixture.py', 10, True), ('os/ci/helper.py', 4, True)])
+
+    def test_the_step_scripts_and_their_arguments_come_from_the_job(self):
+        runs = {(script, tuple(argv[1:])) for step, environment in self.update_steps()
+                for script, argv, _ in step_runs(step, environment)}
+        for expected in (('os/ci/owner_capabilities.py', ()), ('os/ci/rehearsal_guard.py', ('probe-budget-ci', '300')),
+                         ('os/ci/rehearsal_guard.py', ('ci', '300')), ('os/ci/registry_auth.py', ('create',)),
+                         ('os/ci/owner_devices.py', ()), ('os/ci/owner_vm.py', ('update',))):
+            self.assertIn(expected, runs)
+        # The VM step's shell branches for other packages do not run.
+        self.assertFalse({script for script, _ in runs} & {'os/ci/keyboard_vm.py', 'os/ci/two_disk_vm.py'})
+
+    def test_shell_branches_follow_the_environment(self):
+        run = '\n'.join([
+            'a',
+            "if test '$REHEARSAL_PACKAGE' = 13; then", '  b',
+            'elif test "$REHEARSAL_PACKAGE" = 14 || test "$REHEARSAL_PACKAGE" = 27; then', "  c <<'PY'", 'fi', 'PY',
+            'elif test "$(cat x)" = y; then', '  d',
+            'else', '  e', 'fi',
+            'if command -v x; then', '  f', 'fi'])
+        self.assertEqual([line.strip() for line in shell_lines(run, dict(REHEARSAL_PACKAGE='27'))],
+                         ['a', "c <<'PY'", 'f'])
+        self.assertEqual([line.strip() for line in shell_lines(run, dict(REHEARSAL_PACKAGE='16'))], ['a', 'd', 'e', 'f'])
 
 
 if __name__ == '__main__':
