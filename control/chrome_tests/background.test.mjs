@@ -691,3 +691,9 @@ test('P3 a remaining hold never awaits a browser task while startup is paused',{
   assert.equal(f.run("isPreloaded(7,'private-document')"),true);assert.equal(f.run("startup.some(row=>row.method==='Debugger.resume')"),true);
   assert.equal(f.run("startup.some(row=>row.method==='Runtime.evaluate'&&row.parameters.awaitPromise)"),false);
 });
+
+
+test('P17 expected privacy identity is enforced inside the reader before a lost-history snapshot',async()=>{
+  const f=fixture();f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({url:'http://fixture.test/'});chrome.webNavigation={getAllFrames:async()=>[{frameId:0,documentId:'same-browser-document',url:'http://fixture.test/'}]};globalThis.privateDocument='original';globalThis.valueReads=0;content=async(tab,frame,command,args)=>{if(args.expected_document&&args.expected_document!==privateDocument)throw Error('refused: private password history was lost');valueReads++;return {document:privateDocument,url:'http://fixture.test/'};};");
+  await f.run('facts(7)');f.run("privateDocument='lost'");await assert.rejects(f.run('facts(7)'),/password history was lost/);assert.equal(f.run('valueReads'),1,'the second snapshot must never collect values');
+});

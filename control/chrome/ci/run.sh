@@ -22,7 +22,8 @@ if test "${INJECTION_PROBE:-}" = true; then
   runuser -u owner -- env GITHUB_ACTIONS=true dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1000x24' node control/chrome/ci/probe.mjs 2>&1 | tee /out/injection-probe.txt
   exit
 fi
-python3 -m unittest discover -s control/chrome_tests -v 2>&1 | tee /out/python.txt
+# Fast page checks precede browser feedback; the full storage sweeps remain mandatory below.
+PYTHONPATH=control:control/chrome_tests python3 -m unittest test_policy test_questions test_sites test_unit -v 2>&1 | tee /out/python-page.txt
 node --test control/chrome_tests/*.test.mjs 2>&1 | tee /out/node.txt
 runuser -u owner -- env GITHUB_ACTIONS=true dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1000x24' bash -c '
   openbox > /out/baseline-openbox.txt 2>&1 &
@@ -41,3 +42,6 @@ runuser -u owner -- env GITHUB_ACTIONS=true dbus-run-session -- xvfb-run -a -s '
   openbox > /out/openbox.txt 2>&1 &
   node control/chrome/ci/browser.mjs
 ' 2>&1 | tee /out/browser.txt
+
+# A successful browser matrix is not CI acceptance until the complete Python suite passes.
+python3 -m unittest discover -s control/chrome_tests -v 2>&1 | tee /out/python.txt

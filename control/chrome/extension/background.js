@@ -390,12 +390,13 @@ async function collectSteps(tab,epoch=controlled.get(tab)?.epoch){
   if(dialogs.has(tab))return []; // the private observations remain queued
   const found=new Map();let overflow=null;
   const include=value=>{const key=stepKey(value);if(value.id.startsWith('overflow-')){overflow??=value;return;}if(found.size<512||found.has(key))found.set(key,value);else overflow??={...value,id:'overflow-'+value.id,kind:'activation_unknown',cancellable:false,label:'Additional page steps exceeded the response limit; inspect with the owner and never replay.'};};
-  for(const frame of await chrome.webNavigation.getAllFrames({tabId:tab})||[]){
+  const frames=await chrome.webNavigation.getAllFrames({tabId:tab})||[];
+  for(const frame of frames){
     if(dialogs.has(tab))return [];
     const wake=waitDialog(tab);
     try{
-      safeURL(frame.url);
-      const values=await Promise.race([content(tab,frame.frameId,'steps'),wake.promise]);
+      const effective=frameAddress(frame,frames),inherited=['about:blank','about:srcdoc'].includes(frame.url)&&frame.parentFrameId>=0;
+      const values=await Promise.race([content(tab,frame.frameId,'steps',inherited?{expected_origin:new URL(effective).origin}:{}),wake.promise]);
       if(Array.isArray(values))for(const step of values){const value={...step,frame:frame.frameId};include(value);const current=stepControl(tab,epoch);if(current){rememberStep(current,stepKey(value));current.steps??=new Map();if(current.steps.size<512)current.steps.set(stepKey(value),value);}}
     }catch{}finally{wake.dispose();}
   }
@@ -492,9 +493,9 @@ async function facts(tab, reference) {
   const result=[],uncovered=[];
   for (const frame of frames) {
     let effective;try { effective=frameAddress(frame,frames); } catch { if (reference?.frame === frame.frameId) throw Error('refused: excluded frame');uncovered.push({frame:frame.frameId,eligible:false,reason:'excluded origin or scheme'});continue; }
-    let snapshot;try{snapshot = await content(tab,frame.frameId,reference?.frame === frame.frameId ? 'facts':'read',reference?.frame === frame.frameId ? {element:reference.element}:{});
+    let snapshot;try{snapshot = await content(tab,frame.frameId,reference?.frame === frame.frameId ? 'facts':'read',{...(reference?.frame===frame.frameId?{element:reference.element}:{}),...(privacyDocuments.has(frame.documentId)?{expected_document:privacyDocuments.get(frame.documentId)}:{}),...(['about:blank','about:srcdoc'].includes(frame.url)&&frame.parentFrameId>=0?{expected_origin:new URL(effective).origin}:{})});
     if(['about:blank','about:srcdoc'].includes(frame.url)&&frame.parentFrameId>=0&&(!frame.documentId||snapshot.origin!==new URL(effective).origin))throw Error('refused: inherited frame origin cannot be authenticated');
-    }catch(error){if(reference?.frame===frame.frameId)throw error;uncovered.push({frame:frame.frameId,eligible:true,reason:'reader or inherited origin unavailable'});continue;}
+    }catch(error){if(reference?.frame===frame.frameId||String(error.message).includes('password history was lost'))throw error;uncovered.push({frame:frame.frameId,eligible:true,reason:'reader or inherited origin unavailable'});continue;}
     if(frame.documentId){const known=privacyDocuments.get(frame.documentId);if(known&&known!==snapshot.document)throw Error('refused: private password history was lost for this surviving document; ask the owner to reload');privacyDocuments.set(frame.documentId,snapshot.document);}
     if (reference?.frame === frame.frameId && snapshot.document !== reference.document) throw Error('stale_reference: document changed');
     result.push({frame:frame.frameId,parent:frame.parentFrameId,browser_document:frame.documentId,...snapshot,effective_url:effective});
@@ -615,8 +616,10 @@ async function dispatch(command) {
   }
   if(command.name==='tab_context'){const current=await chrome.tabs.get(tab);safeURL(current.url);return {session,tab,url:current.url,title:current.title,control:controlled.get(tab)?.epoch||null,frames:(await chrome.webNavigation.getAllFrames({tabId:tab})||[]).map(frame=>({frame:frame.frameId,url:frame.url,document:frame.documentId}))};}
   if (command.name === 'validity') {
-    await requireTab(tab);safeURL((await chrome.webNavigation.getFrame({tabId:tab,frameId:reference.frame})).url);
-    return {session,control:controlled.get(tab).epoch,...await content(tab,reference.frame,'ready',{element:reference.element})};
+    await requireTab(tab);const frame={...await chrome.webNavigation.getFrame({tabId:tab,frameId:reference.frame}),frameId:reference.frame};
+    const inherited=['about:blank','about:srcdoc'].includes(frame.url)&&frame.parentFrameId>=0;
+    const effective=inherited?frameAddress(frame,await chrome.webNavigation.getAllFrames({tabId:tab})||[]):safeURL(frame.url);
+    return {session,control:controlled.get(tab).epoch,...await content(tab,reference.frame,'ready',{element:reference.element,expected_document:reference.document,...(inherited?{expected_origin:new URL(effective).origin}:{})})};
   }
   if (command.name === 'read' || command.name === 'facts') return facts(tab,reference);
   if (command.name === 'stage_file') {

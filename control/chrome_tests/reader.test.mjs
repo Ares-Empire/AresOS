@@ -33,7 +33,7 @@ function fixture(fields) {
     atob:value=>Buffer.from(value,'base64').toString('binary'),setTimeout:fn=>timers.push(fn),
     getComputedStyle:element=>({display:['DIV','P'].includes(element.tagName)?'block':'inline',visibility:'visible',webkitTextSecurity:element.mask || 'none'}),
     [Symbol.for('aresos.chrome.guard.v2')]:{watch(){},reader(value){readerAPI=value;},arm(){},clear(){},resume(){return {resumed:'native_submit'};},steps(){return [];}},
-    location:{href:'https://fixture.test/'},scrollX:0,scrollY:0,innerWidth:100,innerHeight:100});
+    origin:'https://fixture.test',location:{href:'https://fixture.test/'},scrollX:0,scrollY:0,innerWidth:100,innerHeight:100});
   vm.runInContext(fs.readFileSync('control/chrome/extension/reader.js','utf8'),context);
   function read(){let result;listener({command:'read'},{id:'fixture'},value=>result=value);assert.equal(result.ok,true,JSON.stringify(result));return result;}
   function command(message){let result;listener(message,{id:'fixture'},value=>result=value);return result;}
@@ -159,4 +159,14 @@ test('P10 affected item includes every ARIA item and named section',()=>{
     const before=f.command({command:'facts',element:'e1'}).data.item;
     item.childNodes[0].textContent='Invoice B';assert.notEqual(f.command({command:'facts',element:'e1'}).data.item,before,selector);
   }
+});
+
+
+test('P17 lost-history identity refuses before collecting any field value',()=>{
+  const f=fixture([{}]);const identity=f.read().data.document,before=f.calls();f.nodes[0].forbidden=true;
+  const refused=f.command({command:'read',expected_document:identity+'-lost'});assert.equal(refused.ok,false);assert.match(refused.error,/password history was lost/);assert.equal(f.calls(),before);
+});
+test('P2 inherited origin is checked before any field getter',()=>{
+  const f=fixture([{forbidden:true}]);const refused=f.command({command:'read',expected_origin:'https://different.test'});
+  assert.equal(refused.ok,false);assert.match(refused.error,/origin cannot be authenticated/);assert.equal(f.calls(),0);
 });

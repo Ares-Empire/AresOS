@@ -255,6 +255,8 @@
   function onMessage(message, sender, reply) {
     if (sender.id !== chrome.runtime.id || !message || typeof message.command !== 'string') return;
     try {
+      if(message.expected_document&&message.expected_document!==documentId)throw Error('refused: private password history was lost for this surviving document; ask the owner to reload');
+      if(message.expected_origin&&message.expected_origin!==globalThis.origin)throw Error('refused: inherited frame origin cannot be authenticated');
       let value;
       if (message.command === 'arm') { guard.arm(message); value={armed:true}; }
       else if (message.command === 'finish_input') { guard.finish(message.generation,message.dispatch_nonce).then(()=>reply({ok:true,data:{finished:true}})); return true; }
