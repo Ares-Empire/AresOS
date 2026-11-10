@@ -476,6 +476,7 @@ async function collection(command) {
   if(command.cursor){
     const [token,position]=command.cursor.split(':');record=listSnapshots.get(token);offset=Number(position);
     if(!record || record.key!==key || Date.now()-record.time>300000 || !Number.isInteger(offset) || offset<0 || offset>=record.items.length)throw Error('stale_reference: list snapshot changed; read without the cursor');
+    record.time=Date.now();
   } else {
     let items;
     if(command.name==='downloads')items=await chrome.downloads.search({limit:10001,query:command.text?[command.text]:[]});
