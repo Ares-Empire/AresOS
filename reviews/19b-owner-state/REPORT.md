@@ -1406,3 +1406,11 @@ context, atomic source/result rows, and required current warning context.
 Synthetic check regressions freeze their seed separately. Coherent mutations
 copy only the affected path; the nested copy/version test proves both the source
 record and independent server inputs remain unchanged.
+
+**Read / run — final malformed-record guards:** identity/app/action omissions are
+checked before dependent resolution helpers inspect later records. A complete
+source-specific filing check cannot be persisted as still unchecked without a
+semantic difference. The existing expiry test's positive fixture now includes
+its original mail_send action; all expiry, acknowledgement and archive
+assertions remain unchanged. Frozen legacy field absences remain distinct from
+new runtime omissions.

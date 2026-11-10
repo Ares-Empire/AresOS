@@ -152,6 +152,10 @@ class Oracle:
         if row is None:
             self.proof('filing_claims', Fact(key, 'missing-check-result', detail=str(event['seq'])))
             return None
+        if event['action'] == 'mail_filing_check' and (row.get('state') == 'started' or row.get('check_open')):
+            kind = 'rename' if key.startswith('mail:rename:') else 'filing'
+            if self.result_proof(key, kind, event['seq']):
+                self.proof('filing_claims', Fact(key, 'uncommitted-check-result', detail=str(event['seq'])))
         calls = [c for c in self.script if c.get('start_seq', -1) < event['seq'] <= c.get('end_seq', -1)
                  and c['action'] in {'mail_move', 'mail_copy', 'mail_folder_rename'}]
         if calls:
@@ -647,7 +651,7 @@ class Oracle:
             kind, proofs = 'cancellation', dict(scripted_identity=self.scripted_transition(event, '_operation_cancel', identity), reserved=True, commit_order=ordered)
         elif event['action'] == 'control_restore_confirm' and after == 'unknown':
             kind, proofs = 'restore', dict(scripted_confirmation=self.scripted_transition(event, 'control_restore_confirm'),
-                rollback_interval=self.restore_proof(event) and any(f['seq'] < event['seq'] and any(op['id'] == identity for op in f.get('operations', [])) for f in record.fences), commit_order=ordered)
+                rollback_interval=self.restore_proof(event) and any(f['seq'] < event['seq'] and any(op.get('id') == identity for op in f.get('operations', [])) for f in record.fences), commit_order=ordered)
         elif after == 'done':
             kind, proofs = 'completion', dict(scripted_approval=bool(own) or self.resolution_proof(record, event, key, row),
                 required_effects=self.resolution_proof(record, event, key, row), commit_order=ordered)
@@ -698,6 +702,22 @@ class Oracle:
                 self._evidence_index.setdefault((server['command'], group), []).append((index, server))
         self._effect_record = record
         self.lifecycle_errors.update(Fact(*error[:2], detail=error[2]) for error in consistency_errors(record))
+        legacy_fields = {(key, field) for event in getattr(self, 'seed_events', record.events)
+                         if event['seq'] <= getattr(self, 'seed_sequence', 0)
+                         for key, value in event['set'].items()
+                         if key.startswith('op:') and isinstance(value, dict) and not value.get('context_version')
+                         for field in ('action', 'app') if field not in value}
+        # Later malformed claims must be reported even if an earlier resolution
+        # examines that future record before the ordered reconstruction reaches it.
+        for event in record.events:
+            for key, value in event['set'].items():
+                if key.startswith('op:') and isinstance(value, dict) and value.get('id') != key[3:]:
+                    self.lifecycle_errors.add(Fact(key, 'operation-identity', detail=str(event['seq'])))
+                if key.startswith('op:') and isinstance(value, dict) and event['seq'] > getattr(self, 'seed_sequence', 0) and self.calls_at(event['seq']) and not any(
+                        c['action'] == 'fixture_input' for c in self.calls_at(event['seq'])):
+                    for field, kind in (('action', 'unjustified-operation-action'), ('app', 'unjustified-app-scope')):
+                        if field not in value and (key, field) not in legacy_fields:
+                            self.lifecycle_errors.add(Fact(key, kind, detail=str(event['seq'])))
         prefix = {}
         observed = sorted(self.commit_observations.items())
         cursor = 0
@@ -933,7 +953,7 @@ class Oracle:
                                 allowed.add(action)
                             elif action == 'control_restore_confirm':
                                 allowed.update(op.get('description', {}).get('action') for fence in record.fences
-                                               for op in fence.get('operations', []) if op['id'] == value.get('id'))
+                                               for op in fence.get('operations', []) if op.get('id') == value.get('id'))
                         if calls and value.get('action') not in allowed:
                             self.lifecycle_errors.add(Fact(key, 'unjustified-operation-action'))
                             if len(allowed) == 1:
@@ -961,6 +981,8 @@ class Oracle:
                             if field in old and value.get(field) != old[field]:
                                 self.lifecycle_errors.add(Fact(key, 'changed-filing-context', detail=canonical({'sequence': event['seq'], 'field': field})))
                                 value = {**value, field: old[field]}
+                    if old:
+                        self.warning_contexts.setdefault(key, copy.deepcopy(old))
                     value = self.filing_claims(key, value, event)
                     if not old and not fixture and value.get('state') != 'started':
                         self.lifecycle_errors.add(Fact(key, 'unsupported-resolution', detail='initial filing result without an open check'))

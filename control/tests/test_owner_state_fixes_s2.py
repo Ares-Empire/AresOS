@@ -75,6 +75,10 @@ class StageTwoFixes(unittest.TestCase):
         record.rows[key] = record.events[-1]['set'][key]
         _, errors = evaluate(oracle, record)
         self.assertTrue(any(f.kind == 'changed-filing-context' for _, f in errors))
+        record.events[-1]['set'][key] = {**record.events[0]['set'][key]}
+        record.rows[key] = record.events[-1]['set'][key]
+        _, errors = evaluate(oracle, record)
+        self.assertTrue(any(f.kind == 'uncommitted-check-result' for _, f in errors))
         record.events[-1]['set'] = {}
         record.rows[key] = record.events[0]['set'][key]
         _, errors = evaluate(oracle, record)

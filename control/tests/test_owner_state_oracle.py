@@ -1173,7 +1173,7 @@ class StageOneRoundTwo(unittest.TestCase):
         oracle = Oracle()
         oracle.call('control_pending', {}, 11)
         oracle.script[-1].update(start_seq=1, end_seq=2)
-        row = {'id': 'g:r', 'app': 'mail', 'state': 'reserved', 'expires': 10,
+        row = {'id': 'g:r', 'app': 'mail', 'action': 'mail_send', 'state': 'reserved', 'expires': 10,
                'reason': 'Awaiting exact approval; nothing submitted.'}
         expired = {**row, 'state': 'failed', 'reason': 'expired: nothing submitted', 'notice': notice}
         record = Record(events=[{'seq': 1, 'action': 'mail_send', 'set': {'op:g:r': row}},
