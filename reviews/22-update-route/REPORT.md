@@ -175,4 +175,7 @@ The guide's tools box now says a STOP always leaves working tools in place.
 
 New tools fingerprint `53be5568a11ad09132b86413eda8ca751c36cf398032b8cb2d0a8a228b745208` (earlier values: `2a9965ea…`, `712a5710…`, `9c749647…`, `1e7cbdb6…`). `pending-rebind.json` keeps exact hashes for the 17 changed bound files.
 
-FIXES4-VERIFIED
+Verified for review fixes 4:
+- WSL full suites on a fresh clone of the pushed head `e0df4b4a` (code identical to the final head; only this report changed after), each started with at least 4 GB free (4.5 and 4.6 GB) and no other suite running: plain `Ran 738 tests`, `FAILED (failures=1, errors=9)`; `-B` `Ran 738 tests`, `FAILED (failures=1, errors=9)`. Both are exactly the known WSL-only set: `test_greeter` (3 errors), `test_inherited_homebrew` (1 failure + 5 errors), `test_sysusers` (1 error).
+- Focused WSL suites before the push: `test_owner_update` 49 OK (run twice, both OK; it includes the 18 power-cut runs and the seven real legacy-process kinds), `test_owner_path` 39, `test_owner_equality` 9, `test_checkout_sources` 4, `test_owner_step_limits` 4, `test_owner_entry` 3, `test_owner_diagnostics` 10, `test_owner_export` 3, `test_owner_devices` 6, `test_owner_hidden` 10, `test_owner_setup_resume` 9, `test_owner_tools` 13, `test_owner_finalize` 9, `test_owner_retained` 5, `test_owner_commands` 6, `test_owner_walk` 9, all OK.
+- Windows: `owner-pass.Tests.ps1` (fixtures only) printed `PASS 6 documented Windows PASS results equal captured entry stdout; no hardware queries.` with the new fingerprint; its scratch folder was removed.
