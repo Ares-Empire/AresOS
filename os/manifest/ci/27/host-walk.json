@@ -134,7 +134,7 @@
       "path": "os/ci/owner_keys.py"
     },
     {
-      "sha256": "1d5841d55a09fa746fd19411ec8b5044186771f15749e2d46c5d49465e595629",
+      "sha256": "33e1f9103167e8705e85d0555303aad16e14fa33012c78afe344b5686feeaaf1",
       "path": "os/ci/owner_login.py"
     },
     {
@@ -166,7 +166,7 @@
       "path": "os/ci/registry_auth.py"
     },
     {
-      "sha256": "f9ecccb1400c3b0b254b2da75e26824681bf9f7ddff142eaab2e44178f302ff5",
+      "sha256": "402ac3ae861a921997eeaf9990dcc7894812a785678d7e06d97d248ccc97fe5f",
       "path": "os/ci/rehearsal-packages.json"
     },
     {
@@ -938,7 +938,7 @@
       "path": "os/tests/test_owner_layout_adapter.py"
     },
     {
-      "sha256": "f3e69d963426684daf547b2bcbf0e98fb54c2ff6b130994dada31407c701fb06",
+      "sha256": "e2a439f5cc82e2f7676573cf28e58c511e368a48cc0e2390d947af6429aa589f",
       "path": "os/tests/test_owner_login.py"
     },
     {
