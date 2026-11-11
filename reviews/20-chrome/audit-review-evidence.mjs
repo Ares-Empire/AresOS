@@ -1,17 +1,14 @@
 // Read retained Linux artifacts only. This program starts no browser.
 import assert from 'node:assert/strict';
-import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import {assertComplete} from '../../control/chrome/ci/verdicts.mjs';
-import {completeIngress,protocolEvents} from '../../control/chrome/ci/ingress-scan.mjs';
+import {jsonLines,completeIngressStream,containsText,digestFile} from './audit-streams.mjs';
 
 const walk=directory=>fs.readdirSync(directory,{withFileTypes:true}).flatMap(entry=>entry.isDirectory()?walk(path.join(directory,entry.name)):[path.join(directory,entry.name)]);
 const read=file=>fs.readFileSync(file,'utf8');
 const json=file=>JSON.parse(read(file));
-const lines=file=>read(file).split('\n').filter(Boolean).map(line=>JSON.parse(line));
 const caseId=row=>new URL(row.url,'http://fixture.test').searchParams.get('case');
-const digest=value=>crypto.createHash('sha256').update(value).digest('hex');
 const results=[];
 for(const root of process.argv.slice(2))for(const matrix of walk(root).filter(file=>path.basename(file)==='matrices.json')){
   const folder=path.dirname(matrix),rows=json(matrix),verdict=json(path.join(folder,'qualification-result.json'));
@@ -22,13 +19,13 @@ for(const root of process.argv.slice(2))for(const matrix of walk(root).filter(fi
     assert.equal(matches.length,1,row.name);
     return {name:row.name,line:matches[0]};
   });
-  const raw=lines(path.join(folder,'receiver.jsonl')),rawIdentities=new Set(raw.map(row=>JSON.stringify(row)));
-  const counts=new Map();
-  for(const row of raw){const id=caseId(row);counts.set(id,(counts.get(id)||0)+1);}
+  const rawIdentities=new Set(),counts=new Map();
+  for await(const row of jsonLines(path.join(folder,'receiver.jsonl'))){rawIdentities.add(JSON.stringify(row));const id=caseId(row);counts.set(id,(counts.get(id)||0)+1);}
   const receiverAudits=[];
   for(const name of ['page-receiver.jsonl','adapters-receiver.jsonl']){
-    const snapshots=lines(path.join(folder,name)),sequences=new Map();
-    for(const row of snapshots){
+    const sequences=new Map();let snapshots=0;
+    for await(const row of jsonLines(path.join(folder,name))){
+      snapshots++;
       assert.equal(row.count,row.arrivals.length,`${name}: ${row.id} ${row.phase}`);
       for(const arrival of row.arrivals){
         assert.equal(caseId(arrival),row.id);
@@ -44,19 +41,24 @@ for(const root of process.argv.slice(2))for(const matrix of walk(root).filter(fi
       assert.equal(counts.get(id),1,`${id}: independent final receiver count`);
     }
     assert(sequences.size>0,`${name}: missing approval evidence`);
-    receiverAudits.push({file:name,snapshots:snapshots.length,complete_0_1_1_sequences:sequences.size,independent_arrivals_match:true});
+    receiverAudits.push({file:name,snapshots,complete_0_1_1_sequences:sequences.size,independent_arrivals_match:true});
   }
-  const ingress=completeIngress(read(path.join(folder,'browser-boundary.jsonl'))),events=protocolEvents(ingress),getters=ingress.filter(row=>row?.reader_ingress);
-  assert(events.length>0&&getters.length>0,'Missing protocol or sensitive-getter coverage');
-  assert.equal(events.filter(event=>['Runtime.consoleAPICalled','Runtime.exceptionThrown'].includes(event.method)).length,0);
-  for(const [name,value]of [['browser-boundary.jsonl',JSON.stringify(ingress)],['tool.jsonl',read(path.join(folder,'tool.jsonl'))],['service.txt',read(path.join(folder,'service.txt'))]])assert(!value.includes('SENTINEL_PRIVATE_PASSWORD_20'),`Password sentinel reached ${name}`);
+  let ingress=0,nullRows=0,events=0,getters=0;const getterKinds=new Map();
+  for await(const row of completeIngressStream(path.join(folder,'browser-boundary.jsonl'))){
+    ingress++;if(row===null)nullRows++;
+    if(row?.protocol_event){events++;assert.equal(['Runtime.consoleAPICalled','Runtime.exceptionThrown'].includes(row.protocol_event.method),false);}
+    if(row?.reader_ingress){getters++;const kind=row.reader_ingress.kind;getterKinds.set(kind,(getterKinds.get(kind)||0)+1);}
+    assert(!JSON.stringify(row).includes('SENTINEL_PRIVATE_PASSWORD_20'),'Password sentinel reached browser-boundary.jsonl');
+  }
+  assert(events>0&&getters>0,'Missing protocol or sensitive-getter coverage');
+  for(const name of ['tool.jsonl','service.txt'])assert(!await containsText(path.join(folder,name),'SENTINEL_PRIVATE_PASSWORD_20'),`Password sentinel reached ${name}`);
   const python=read(path.join(folder,'python.txt')),py=/^Ran (\d+) tests in ([0-9.]+)s$/m.exec(python);
   assert(py&&/^OK$/m.test(python),'Full Python suite missing or failed');
   assert.equal(Number(py[1]),220);
   const node=Object.fromEntries([...read(path.join(folder,'node.txt')).matchAll(/^(?:# |ℹ )?(tests|pass|fail|cancelled|skipped)\s+(\d+)/gm)].map(match=>[match[1],Number(match[2])]));
   assert.deepEqual(node,{tests:243,pass:243,fail:0,cancelled:0,skipped:0});
-  const hashes=Object.fromEntries(['browser.txt','matrices.json','receiver.jsonl','page-receiver.jsonl','adapters-receiver.jsonl','browser-boundary.jsonl','tool.jsonl','service.txt','python.txt','node.txt'].map(name=>[name,digest(fs.readFileSync(path.join(folder,name)))]));
-  results.push({artifact:path.basename(folder),chrome:read(path.join(folder,'chrome-version.txt')).trim(),named_passes:rows.length,test_index:testIndex,verdicts:verdict,receiver_audit:receiverAudits,password_audit:{rows:ingress.length,null_rows:ingress.filter(row=>row===null).length,protocol_events:events.length,forbidden_runtime_value_events:0,sensitive_getters:getters.length,getter_kinds:Object.fromEntries([...new Set(getters.map(row=>row.reader_ingress.kind))].map(kind=>[kind,getters.filter(row=>row.reader_ingress.kind===kind).length])),password_sentinel_absent:true},python:{tests:Number(py[1]),seconds:Number(py[2])},node,sha256:hashes});
+  const hashes={};for(const name of ['browser.txt','matrices.json','receiver.jsonl','page-receiver.jsonl','adapters-receiver.jsonl','browser-boundary.jsonl','tool.jsonl','service.txt','python.txt','node.txt'])hashes[name]=await digestFile(path.join(folder,name));
+  results.push({artifact:path.basename(folder),chrome:read(path.join(folder,'chrome-version.txt')).trim(),named_passes:rows.length,test_index:testIndex,verdicts:verdict,receiver_audit:receiverAudits,password_audit:{rows:ingress,null_rows:nullRows,protocol_events:events,forbidden_runtime_value_events:0,sensitive_getters:getters,getter_kinds:Object.fromEntries(getterKinds),password_sentinel_absent:true},python:{tests:Number(py[1]),seconds:Number(py[2])},node,sha256:hashes});
 }
 assert(results.length>0,'No artifacts found');
 console.log(JSON.stringify(results,null,2));
