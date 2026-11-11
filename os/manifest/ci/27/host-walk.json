@@ -102,7 +102,7 @@
       "path": "os/ci/offline_webui.py"
     },
     {
-      "sha256": "9e7553d82e0658f940cf147d6a20aa48eca6c9065dd139a5aa07aba13b4be92e",
+      "sha256": "d7bc9cce46bf7f37f6e725ab625a92dd0ec73524d5760ee068dba6b4c51df5d1",
       "path": "os/ci/owner_capabilities.py"
     },
     {
@@ -114,7 +114,7 @@
       "path": "os/ci/owner_counter_kernel.py"
     },
     {
-      "sha256": "61dc33525f98e2c2aed181a70e87834eb876bd319565364f90722ca0c7768ce2",
+      "sha256": "a870586216a1d728e332678b2b1c6a3331facbe846bb6a2ebeb8885164cddb47",
       "path": "os/ci/owner_devices.py"
     },
     {
