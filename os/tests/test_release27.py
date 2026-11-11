@@ -912,6 +912,163 @@ class OwnerHarnessPackagesTest(unittest.TestCase):
                       self.run_as('27', lambda module, guest: module.start(guest, 'install')))
 
 
+# What decides "which package or mode is this" in the VM step's process: the
+# environment the job sets and the owner_vm.py argument (the same mode).
+DECISION_READS = ('REHEARSAL_PACKAGE', 'REHEARSAL_MODE', 'GITHUB_REF_NAME')
+WORLDS = dict(update=dict(REHEARSAL_PACKAGE='27', REHEARSAL_MODE='update', GITHUB_REF_NAME='pkg/27-first-update-release',
+                          argv=['os/ci/owner_vm.py', 'update']),
+              owner_tools=dict(REHEARSAL_PACKAGE='14', REHEARSAL_MODE='owner-tools', GITHUB_REF_NAME='pkg/14-owner-tools',
+                               argv=['os/ci/owner_vm.py', 'owner-tools']))
+# Decisions where package 27's update rehearsal deliberately differs from
+# package 14's owner-tools qualification (or that no literal can settle), each
+# with its reason. Everything else must decide alike for both.
+REVIEWED_DECISIONS = {
+    ('os/ci/owner_vm.py', "authorization['allowance'] == package"):
+        "the guard's dispatch authorization names the running package",
+    ('os/ci/owner_vm.py', "mode == 'owner-tools'"):
+        'only the qualification needs a passing probe on the same commit (JUDGMENT-CALL 5)',
+    ('os/ci/owner_vm.py', "{'16': 'os/manifest/ci/16/host-walk.json', '27': 'os/manifest/ci/27/host-walk.json'}.get(package, "
+                          "'os/manifest/ci/14/host-walk/result.json')"):
+        "each package's own host walk",
+    ('os/ci/owner_vm.py', "package == '27'"):
+        'package 27 records the checkout bytes it walked (27-bound-sources)',
+    ('os/ci/owner_vm.py', "mode == 'update'"):
+        "the update rehearsal starts from the laptop's tools and runs its own route",
+    ('os/ci/rehearsal_auth.py', "mode in ('probe', 'part-b') or release_diff"):
+        'owner-secret auth: its create, preflight and pull steps do not run on pkg/27',
+}
+
+
+def decision_reads(node, aliases):
+    """The name a node reads (an env name, 'argv1' or 'argv'), or None."""
+    if isinstance(node, ast.Subscript) and ast.unparse(node.value) == 'os.environ' and isinstance(node.slice, ast.Constant):
+        return node.slice.value if node.slice.value in DECISION_READS else None
+    if (isinstance(node, ast.Call) and ast.unparse(node.func) in ('os.environ.get', 'os.getenv') and node.args
+            and isinstance(node.args[0], ast.Constant) and node.args[0].value in DECISION_READS):
+        return node.args[0].value
+    if ast.unparse(node) == 'sys.argv[1]':
+        return 'argv1'
+    if ast.unparse(node) == 'sys.argv[1:]':
+        return 'argv'
+    if isinstance(node, ast.Name):
+        return aliases.get(node.id)
+    return None
+
+
+def vm_step_decisions(paths, entries):
+    """Every comparison, startswith/endswith/get or lookup on the package, mode or branch, with its whole condition.
+
+    An imported module's `if __name__ == '__main__':` block is skipped: it
+    runs only when that module is its own process, with its own arguments.
+    """
+    found = []
+    for path in paths:
+        tree = ast.parse((ROOT / path).read_text(encoding='utf-8'))
+        parents = {child: parent for parent in ast.walk(tree) for child in ast.iter_child_nodes(parent)}
+        skipped = set() if path in entries else {id(node) for statement in tree.body if isinstance(statement, ast.If)
+                                                 and ast.unparse(statement.test) == "__name__ == '__main__'"
+                                                 for node in ast.walk(statement)}
+        constants = {}
+        for statement in tree.body:
+            if isinstance(statement, ast.Assign) and len(statement.targets) == 1 and isinstance(statement.targets[0], ast.Name):
+                try:
+                    constants[statement.targets[0].id] = eval(compile(ast.Expression(statement.value), path, 'eval'),
+                                                              {'__builtins__': {}}, dict(constants))
+                except Exception:
+                    pass
+        # Innermost scopes first; each node is judged once, with its own scope's local names.
+        functions = [n for n in ast.walk(tree) if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))]
+        for scope in list(reversed(functions)) + [tree]:
+            aliases = {}
+            for node in ast.walk(scope):
+                if isinstance(node, ast.Assign) and len(node.targets) == 1:
+                    target, read = node.targets[0], decision_reads(node.value, {})
+                    if isinstance(target, ast.Name) and read:
+                        aliases[target.id] = read
+                    elif isinstance(target, ast.Tuple) and read == 'argv' and isinstance(target.elts[0], ast.Name):
+                        aliases[target.elts[0].id] = 'argv1'
+            for node in ast.walk(scope):
+                if id(node) in skipped:
+                    continue
+                skipped.add(id(node))
+                operands = ([node.left] + node.comparators if isinstance(node, ast.Compare) else
+                            [node.func.value] + node.args if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+                            and node.func.attr in ('startswith', 'endswith', 'get') else
+                            [node.slice] if isinstance(node, ast.Subscript) and not decision_reads(node, aliases) else [])
+                if not any(decision_reads(part, aliases) for operand in operands for part in ast.walk(operand)):
+                    continue
+                root = node
+                while isinstance(parents.get(root), (ast.BoolOp, ast.UnaryOp, ast.Compare)):
+                    root = parents[root]
+                found.append((path, root, node, aliases, constants))
+    return found
+
+
+def decide(node, world, aliases, constants):
+    class Bind(ast.NodeTransformer):
+        def generic_visit(self, child):
+            read = decision_reads(child, aliases)
+            if read in ('argv1', 'argv'):
+                return ast.Constant(world['argv'][1] if read == 'argv1' else tuple(world['argv'][1:]))
+            if read:
+                return ast.Constant(world[read])
+            return super().generic_visit(child)
+    expression = Bind().visit(ast.Expression(copy.deepcopy(node)))
+    expression = ast.fix_missing_locations(expression)
+    try:
+        value = eval(compile(expression, '<decision>', 'eval'), {'__builtins__': {}}, dict(constants))
+    except Exception:
+        return UNKNOWN
+    return list(value) if isinstance(value, tuple) else value
+
+
+class VmStepDecisionsTest(unittest.TestCase):
+    """Every package, mode or branch decision the VM step can reach treats the update rehearsal as the owner-tools one.
+
+    Runs 42924871252 and 42933781975 both stopped on a decision that did not
+    know package 27 yet. This reads every module the VM step's scripts import
+    (owner_vm.py and prepare_two_disks.py), finds each comparison, prefix
+    test, dictionary lookup or `in` test on REHEARSAL_PACKAGE, REHEARSAL_MODE,
+    GITHUB_REF_NAME or the mode argument (directly or through a local name),
+    and evaluates its whole condition for package 27's update rehearsal and
+    for package 14's owner-tools qualification. They must agree unless the
+    decision is in REVIEWED_DECISIONS. Shell scripts, overlay files and guest
+    templates were searched too: none reads these names (the one guest
+    template that did now receives a host-computed boolean).
+    """
+
+    def test_the_update_rehearsal_decides_like_the_owner_tools_qualification(self):
+        entries = ('os/ci/owner_vm.py', 'os/ci/prepare_two_disks.py')
+        paths, todo = [], list(entries)
+        while todo:
+            path = todo.pop()
+            if path in paths:
+                continue
+            paths.append(path)
+            for node in ast.walk(ast.parse((ROOT / path).read_text(encoding='utf-8'))):
+                names = ([a.name for a in node.names] if isinstance(node, ast.Import) else
+                         [node.module] if isinstance(node, ast.ImportFrom) and node.module and not node.level else [])
+                todo += [m for m in ('os/ci/' + n.split('.')[0] + '.py' for n in names) if (ROOT / m).exists()]
+        differing, used = [], set()
+        for path, root, node, aliases, constants in vm_step_decisions(sorted(paths), entries):
+            for candidate in (root, node):
+                key = (path, ast.unparse(candidate))
+                if key in REVIEWED_DECISIONS:
+                    used.add(key)
+                    break
+                values = [decide(candidate, world, aliases, constants) for world in WORLDS.values()]
+                if UNKNOWN not in values:
+                    if values[0] != values[1]:
+                        differing.append(f'{path}:{node.lineno}: {key[1]} -> {values}')
+                    break
+            else:
+                differing.append(f'{path}:{node.lineno}: {ast.unparse(root)} (not decidable)')
+        self.assertEqual(differing, [])
+        self.assertEqual(sorted(set(REVIEWED_DECISIONS) - used), [], 'stale reviewed decisions')
+        self.assertIn('os/ci/installer_webui.py', paths)
+        self.assertIn('os/ci/two_disk_vm.py', paths)
+
+
 class UpdateJobGatesTest(unittest.TestCase):
     """Every script the update rehearsal job runs accepts the environment that job gives it.
 
