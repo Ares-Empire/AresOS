@@ -85,10 +85,6 @@ class Driver:
             for key, value in event['set'].items():
                 if value is not None:
                     created.setdefault(key, event['seq'])
-        for sequence, changes in record.owner_versions.items():
-            for key, value in changes.items():
-                if value is not None:
-                    created[key] = min(created.get(key, sequence), sequence)
         return dict(committed_before=copy.deepcopy(record.rows), created_before=created,
                     call_start_seq=getattr(self.oracle, 'active_start_seq', 0), before_seq=max(record.committed, default=0),
                     fault_point=len(ACTIVE.points) if ACTIVE else 0)
@@ -105,18 +101,15 @@ class Driver:
         s, f, oracle = self.scenario, self.scenario.fixture, self.oracle
         from storage_faults import ACTIVE
         faults = faults or ACTIVE
-        failure_start = len(faults.failures) if faults else 0
         previous_call = getattr(oracle, 'active_call', None)
         previous_start = getattr(oracle, 'active_start_seq', 0)
         before = self.snapshot()
-        oracle.active_start_seq = max((f['seq'] for f in before.fences), default=0)
+        oracle.active_start_seq = max(before.committed, default=0)
         oracle.call(s.action, s.args, time.time(), {'mode': faults.mode, 'at': faults.fail_at,
                     'cleanup': faults.cleanup_at, 'background': getattr(s, 'flow', '') in {'expiry', 'maintenance'}} if faults else {})
-        oracle.script[-1]['faults'].update(getattr(oracle, 'explicit_faults', {}))
         self.call_index = len(oracle.script) - 1
         oracle.script[self.call_index]['start_seq'] = oracle.active_start_seq
         oracle.script[self.call_index]['restore_precondition'] = before.locked
-        oracle.script[self.call_index]['restore_working_head'] = before.head[0] if before.head else None
         # These four results are made by Scenario.call, not a public request.
         oracle.script[self.call_index]['synthetic_result'] = s.flow if getattr(s, 'flow', '') in {
             'expiry', 'maintenance', 'restart_index', 'restart_tail'} else None
@@ -342,27 +335,12 @@ class Driver:
         extra.enter_context(patch.object(filing, 'resolve_checks', side_effect=checked))
         extra.enter_context(patch.object(f.engine.store, 'get', side_effect=checking_get))
         extra.enter_context(patch.object(filing, 'locations', side_effect=scanned))
-        if getattr(s, 'flow', '') in {'maintenance', 'expiry'}:
-            maintenance_call = oracle.script[self.call_index]
-            maintenance_call['maintenance_started'] = False
-            work = f.engine._expire
-            def maintenance_work():
-                before = self.snapshot()
-                maintenance_call['maintenance_started'] = True
-                maintenance_call['maintenance_open_sequence'] = max(before.committed, default=0)
-                guard = before.rows.get('notice:background-storage', {})
-                if not (guard.get('check_open') and guard.get('check_kind') == 'maintenance'):
-                    self.errors.append(Fact('background:storage', 'maintenance-without-committed-check'))
-                result = work()
-                maintenance_call['maintenance_finished'] = True
-                return result
-            extra.enter_context(patch.object(f.engine, '_expire', maintenance_work))
         with extra, patch.object(f.imap, 'response', side_effect=responded), patch.object(f.imap, 'rename', side_effect=renamed, create=True), patch.object(f.imap, 'uid', side_effect=command), patch.object(f.imap, 'list', side_effect=listed), \
              patch.object(f.imap, 'select', side_effect=selected), patch.object(f.mail, 'append', side_effect=appended):
             yield
-        oracle.script[self.call_index]['end_seq'] = max((f['seq'] for f in self.snapshot().fences), default=0)
+        oracle.script[self.call_index]['end_seq'] = max(self.snapshot().committed, default=0)
         if faults:
-            oracle.script[self.call_index]['faults']['trace'] = list(faults.failures[failure_start:])
+            oracle.script[self.call_index]['faults']['trace'] = list(faults.failures)
             oracle.script[self.call_index]['faults']['active_exhaustion'] = faults.mode == 'persistent' and faults.failed
         oracle.active_call = previous_call
         oracle.active_start_seq = previous_start
@@ -383,13 +361,8 @@ class Driver:
         active = getattr(self.oracle, 'active_call', None)
         for pending in self.oracle.script:
             if pending['call'] == active:
-                pending['end_seq'] = max((f['seq'] for f in record.fences), default=0)
+                pending['end_seq'] = max(record.committed, default=0)
         expected = self.oracle.expected(record)
-        projected = self.oracle.projection(record)
-        record = copy.copy(record)
-        if not hasattr(self.oracle, 'envelope_projections'):
-            self.oracle.envelope_projections = []
-        self.oracle.envelope_projections.append((record, projected))
         self.envelopes.append((copy.deepcopy(call), copy.deepcopy(reply), record, expected))
 
     def drain_envelopes(self, checker):
@@ -407,7 +380,6 @@ class Driver:
                     caveat = any(not q['ready'] and q['sent_policy'] == 'client' for q in self.oracle.qualification(record).values())
                     checker('qualification.sent-caveat', {Fact('qualification', 'bounded-client-caveat')} if caveat else set(),
                         {Fact('qualification', 'bounded-client-caveat')} if 'bounded window' in reply.get('data', {}).get('notice', '') and 'unready' in reply['data']['notice'] else set())
-        self.oracle.envelope_projections = []
 
     def compare(self, check=None):
         f = self.scenario.fixture
@@ -430,18 +402,7 @@ class Driver:
                 for event in [*after.events, *after.prepared]), ('Read committed a local mutation', action)
             return reply
         checker = check or self.oracle.compare
-        checker('maintenance-admission-proof', set(), set(self.errors))
         record = self.snapshot()
-        projected = dict(f.engine.store.owner_projection.iter_items())
-        checker('projection-decoder-agreement',
-                {Fact(k, 'owner-facts', detail=canonical(v)) for k, v in record.owner_rows.items()},
-                {Fact(k, 'owner-facts', detail=canonical(v)) for k, v in projected.items()})
-        if not record.locked and not record.prepared and not record.unprepared_fences:
-            from .projection import fact, selected
-            sqlite_rows = {k: fact(k, v) for k, v in record.rows.items() if selected(k)}
-            checker('projection-sqlite-agreement',
-                    {Fact(k, 'owner-facts', detail=canonical(v)) for k, v in sqlite_rows.items()},
-                    {Fact(k, 'owner-facts', detail=canonical(v)) for k, v in projected.items()})
         self.drain_envelopes(checker)
         if 'export' in getattr(self.scenario, 'flow', ''):
             destination = __import__('pathlib').Path(self.scenario.args['folder']) / self.scenario.args['name']
@@ -470,29 +431,11 @@ class Driver:
             if not key.startswith('op:'):
                 continue
             result = read(operation['app'] + '_operation_status', {'operation_id': operation['id']})
-            status_record = self.snapshot()
-            committed = self.oracle.projection(status_record).rows.get(key, operation)
-            if status_record.locked:
-                latest = max((f['seq'] for f in status_record.fences if any(op['id'] == operation['id'] for op in f['operations'])), default=0)
-                local = max((e['seq'] for e in status_record.events if key in e['set']), default=0)
-                if latest != local or committed.get('state') == 'submitting':
-                    committed = {**committed, 'state': 'unknown'}
+            committed = self.snapshot().rows.get(key, operation)
             actual = result.get('data', {}).get('operation', {})
             for field in ('approval', 'stages', 'state'):
                 wanted = committed.get(field)
                 got = actual.get(field)
-                fallback = actual.get('approval') == {'unavailable': True}
-                if fallback:
-                    faults = self.oracle.script[-1].get('faults', {})
-                    restored = any(e['action'] == 'control_restore_confirm' and self.oracle.restore_proof(e) and
-                                   (e['set'].get(key) or {}).get('approval') == {'unavailable': True} for e in status_record.events)
-                    checker('operation-fallback-cause', set(), set() if faults.get('trace') or status_record.locked or
-                            status_record.prepared or status_record.unprepared_fences or restored else {Fact(key, 'unjustified-fallback')})
-                    if field == 'approval':
-                        wanted = {'unavailable': True}
-                    elif field == 'stages':
-                        from .projection import stage_codes
-                        wanted = wanted if committed.get('_owner_encoded') else stage_codes(wanted or {})
                 def differences(left, right, path=''):
                     if isinstance(left, dict) and isinstance(right, dict):
                         return [child for name in sorted(left.keys() | right.keys()) for child in
@@ -505,11 +448,6 @@ class Driver:
                     {Fact(key, field, detail='committed')} if actual and wanted == got else
                     {Fact(key, field + '.mismatch', detail=canonical(differences(wanted, got)))} if actual else set())
         for occurrence, (source, expected) in self.oracle.location_evidence.items():
-            if occurrence.startswith('uncommitted:'):
-                # This is an oracle-only observation identity, never an
-                # advertised location handle. D3 retains its durable generic
-                # obligation; any delivered rich detail is checked separately.
-                continue
             actual, fragments, available = [], {}, True
             for page in pages(read, 'mail_filing_locations', {'filing_id': occurrence}):
                 if page.get('unavailable'):

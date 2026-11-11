@@ -90,18 +90,15 @@ def rename_folder(mail, account, client, source, target, roles_before):
             '\\all', '\\archive', '\\drafts', '\\flagged', '\\junk', '\\sent', '\\trash', '\\important'}})
         role = ', '.join(roles) if roles else folder_role(target, listed)
         needs_notice = bool(roles) or role != 'an ordinary folder'
-        intent['roles_after'] = resolve(listed, allow_incomplete=True)
+        intent['roles_after'] = resolve(listed)
     except (Refused, OSError, imaplib.IMAP4.error, Uncertain):
         role, needs_notice = 'an unverified role', True
     intent.update(state='partial' if needs_notice else 'done', observed_role=role)
     changes = {key: intent}
     result = {'account': account['id'], 'folder': target, 'state': intent['state']}
-    if role == 'an unverified role':
-        intent.update(state='started', check_open=True, role_check_unavailable=True)
-        result.update(state='partial', reason='Folder role is not yet checked; it may be in Trash. Inspect your mail program.')
-    elif needs_notice:
+    if needs_notice:
         reason = ('The special folders changed while Claude was moving this folder. '
-                  'Nothing was deleted. It is now ' + short_name(target) + ', inside ' + role.lstrip('\\') +
+                  'Nothing was deleted. It is now ' + short_name(target) + ', inside ' + role +
                   '. Check it in your mail program.')
         content = {'filing_id': filing_id, 'message_count': intent['message_count'], 'reason': reason,
                    'folders': [short_name(source['folder']), short_name(target)], 'folders_more': 0,
@@ -111,9 +108,6 @@ def rename_folder(mail, account, client, source, target, roles_before):
         changes.update(notices)
         result.update(state='partial', reason=visible(reason), untrusted_content=visible(content))
     mail.store.observations.observe(filing_id, visible({'rename': intent, 'result': result}))
-    if role == 'an unverified role':
-        mail.store.write(changes, 'mail_filing_check', 'Rename role is unavailable; check stays open', outcome='started')
-        return result
     if needs_notice:
         mail.store.defer_notice(filing_id, changes, 'mail_folder_rename', 'folder rename checked')
         mail.store.flush_notices()
@@ -174,18 +168,10 @@ def resolve_checks(mail):
                 intent['id'] in mail.store.deferred_notices):
             continue
         try:
-            epoch = mail.store.owner_projection.open_epoch(key)
-            from ..warnings import unrecorded_evidence
-            notices = unrecorded_evidence(mail.store, key, epoch,
-                'filing' if prefix == 'mail:filing:' else 'rename') if epoch is not None else {}
-            intent['check_open'] = True
-            mail.store.write({key: intent, **notices}, 'mail_filing_check_open',
-                             'Filing evidence check opened before reading', outcome='started')
             account = mail.account(intent['account'], ready=False)
             with mail.transport.imap(account) as client:
                 listed = folders(client)
             current = resolve(listed, allow_incomplete=True)
-            intent.pop('role_check_unavailable', None)
             unresolved = current.pop('unresolved_roles')
             incomplete = False
             if prefix == 'mail:filing:':
@@ -202,9 +188,6 @@ def resolve_checks(mail):
                 changes = {}
             else:
                 if not any(folder['name'] == intent['target'] for folder in listed):
-                    intent.update(roles_after=current, observed_role='not present')
-                    mail.store.write({key: intent}, 'mail_filing_check',
-                        'Rename target remains absent; check stays open', outcome='started')
                     continue
                 intent.update(roles_after=current, observed_role=folder_role(intent['target'], listed))
                 content = {'filing_id': intent['id'], 'message_count': intent['message_count'],
@@ -275,8 +258,6 @@ def public_notice(store, notice):
 
 def notice_page(store, args=None, app=None, checks=()):
     from ..recovery import recovery_notices
-    from ..owner_state import owner_view
-    store = owner_view(store)
     args = args or {}
     checks = tuple(checks)
     deferred = {}
@@ -331,8 +312,6 @@ def location_pages(observed):
 
 
 def location_page(store, args):
-    from ..owner_state import owner_view
-    store = owner_view(store)
     filing_id = args['filing_id']
     prefix = 'mail:filing-locations:' + filing_id + ':'
     # Failed writes retain their exact pages with the deferred owner notice.
@@ -364,7 +343,7 @@ def file_messages(mail, account, client, verb, refs, target, names, needed):
     intent = {'id': intent_id, 'account': account['id'], 'verb': verb, 'sources': refs,
               'target': target, 'state': 'started', 'records': records}
 
-    def record(state, notice=None, pages=None, evidence_result=False):
+    def record(state, notice=None, pages=None):
         intent['state'] = state
         changes = {key: intent}
         if notice:
@@ -380,7 +359,7 @@ def file_messages(mail, account, client, verb, refs, target, names, needed):
             mail.store.defer_notice(intent_id, changes, 'mail_' + verb, 'Filing intent ' + intent_id)
             mail.store.flush_notices()
         else:
-            mail.store.write(changes, 'mail_filing_check' if evidence_result else 'mail_' + verb, 'Filing intent ' + intent_id,
+            mail.store.write(changes, 'mail_' + verb, 'Filing intent ' + intent_id,
                              outcome=state, untrusted_content={'filing': {'filing_id': intent_id, 'state': state,
                                  'message_count': len(records), 'locations_action': 'mail_filing_locations'}})
 
@@ -423,28 +402,13 @@ def file_messages(mail, account, client, verb, refs, target, names, needed):
         record('done')
         return {'state': 'done', 'items': [r['destination'] for r in records]}
 
-    if listed is None:
-        # No post-command role evidence was obtained. Keep the admitted check
-        # open instead of reading further evidence or inventing an occurrence.
-        reason = 'Filing roles are not yet checked; messages may have moved into Trash. Nothing was deleted. Inspect the filing and your mail program.'
-        intent.update(check_open=True, role_check_unavailable=True,
-                      observed_role='an unverified role', reason=reason)
-        record('started', evidence_result=True)
-        return {'state': 'partial', 'items': [], 'reason': visible(reason),
-                'untrusted_content': visible(summary(intent))}
-
     # IMAP cannot bind a recovery destination's identity or roles atomically.
     # Preserve every surviving copy; only ordinary owner-approved deletion cleans up.
     observed = locations(mail, account, records)
     reason = warning(verb, listed, observed, changed)
     intent.update(reason=reason, locations=observed, roles_after=listed,
                   observed_role=folder_role(target, listed))
-    intent['reason'] += ' The target ' + short_name(target) + ' is now ' + intent['observed_role'] + '.'
-    if any(not item['scan_complete'] for item in observed):
-        intent['check_open'] = True
     content = summary(intent)
-    if intent.get('check_open'):
-        content['scan_complete'] = False
     notice = {'id': intent_id, 'app': 'mail', 'state': 'partial', 'untrusted_content': content,
               'ack': False, 'created_at': time.time_ns()}
     pages = location_pages(observed)

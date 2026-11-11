@@ -4,7 +4,7 @@ No expectation module imports `aresos_control` or the driver. `records.py`, `mod
 
 `evidence/operations.jsonl` is ASCII canonical JSON (sorted keys, separators comma/colon), one LF per record. A format-2 fence has format, seq, previous, time, generation, operations and hash. Hash is SHA-256 over the canonical object without hash; previous is the preceding fence hash (initially the empty string). A commit marker has commit=seq and matching hash. The decoder rejects corruption and unsupported versions; only an unterminated final line can be ignored. Format 1 is accepted with the same hash-chain contract.
 
-`state/control.sqlite` contains events(seq,value), head(id,seq,hash), kv(k,v), retained(k,created), operation_versions(id,seq). The decoder reads events and head, **never kv or the production index**. Each event contains seq/time/action/summary/outcome/operation_id/set/record and optional space/untrusted_content. Its record must equal the independent fence. Only a matching commit marker makes set's values committed (null deletes a key). Prepared events are separate evidence, never completed actions. Immutable events recover state without relying on working warning selection. Archives are JSONL `aresos-history-1` exports containing event or key/value entries; only a manifest in committed history, with matching SHA-256, authorizes reading their events. Stage 3 adds the owner-fact format below; old fences without an owner commitment remain readable.
+`state/control.sqlite` contains events(seq,value), head(id,seq,hash), kv(k,v), retained(k,created), operation_versions(id,seq). The decoder reads events and head, **never kv or the production index**. Each event contains seq/time/action/summary/outcome/operation_id/set/record and optional space/untrusted_content. Its record must equal the independent fence. Only a matching commit marker makes set's values committed (null deletes a key). Prepared events are separate evidence, never completed actions. Immutable events recover state without relying on working warning selection. Archives are JSONL `aresos-history-1` exports containing event or key/value entries; only a manifest in committed history, with matching SHA-256, authorizes reading their events. Projection format will be added in stage 3 without changing old records.
 
 Server trace entries carry call correlation, command, account, selected folder, exact message identities (including raw-byte hash/Message-ID where applicable), roles, attempted/accepted and reply delivered/lost. The script carries ordered action/arguments, clock, fault number/label/mode/cleanup point and delivered/lost caller reply. Traces stay in memory outside fault injection; optional JSON exports are written after faults end. Credentials and AUTH arguments are excluded. The oracle retains evidence independently of whether the service commits its warning. Occurrence UUIDs are opaque: the decoder binds them to independently selected evidence; changing or deleting a notice cannot delete an expected occurrence. Unknown UUID binding is explicit `uncommitted:…` and fails comparison.
 Pre-command snapshots include the committed sequence, the creation sequence of each source and the scenario call's start sequence. Explicit approved operation IDs bind exact operations; repairs follow only their own `repair_of` link. Free filing/rename intents must belong to the current call, account and target. New generic contexts use command/account/identities/source/destination/roles/recipients plus command-specific flags, wire hash or POST body. `context.py` also decodes the existing Mail payloads. A historical row with matching strings cannot satisfy another attempt.
@@ -36,7 +36,7 @@ Read success/error status is checked even for an empty view. Permitted refusals 
 
 The compact format-3 gap ledger hashes canonical newline-delimited `[assertion-key,{row,stage,delta}]` entries, sorted by exact key. Groups bind suite, one fixed ownership bucket, matrix row and closing stage. Twelve buckets map wholly to four CI shards × three workers; point-zero groups are shared. Counts, samples, digests and owned-group completeness are all strict. Full actual lists are generated under `.work/` and uploaded by the existing artifact steps; see `KNOWN-GAPS.md` for merge/regenerate/diff commands.
 
-D3 (recorded for stage 3): reserve evidence-record capacity through `space.py` before a remote evidence check. A failing disk must leave the check open and retain either the specific observed occurrence or a committed generic “evidence was seen but couldn't be recorded; check Trash” warning. `retained_role` accepts the generic alternative only with a matching committed notice and an open check. An ordinary “not yet checked” notice alone does not meet this obligation. Stage 3 implements the admission and durable-open-check rule; the maintenance first-write amendment is described below.
+D3 (recorded for stage 3): reserve evidence-record capacity through `space.py` before a remote evidence check. A failing disk must leave the check open and retain either the specific observed occurrence or a committed generic “evidence was seen but couldn't be recorded; check Trash” warning. `retained_role` accepts the generic alternative only with a matching committed notice and an open check. An ordinary “not yet checked” notice alone does not meet this obligation. This stage implements only the oracle contract.
 
 
 Full audit comparison includes caller paths. Owner fixtures therefore use fixed-width, injective caller directory names from flow/mode/primary/cleanup/live-or-crash, with advisory locking until cleanup when cases overlap across workers. Their width matches tempfile's original `tmp` + eight characters, preserving serialized record lengths and fault-boundary layouts. Production tempfiles and inherited sweep defaults are unchanged. The offline `caller_capture.py` tool can replay that declared input in historical full captures and rejects conflicting targets within one script. It is never used by expectations or the strict checker: runtime audit equality and deltas retain every complete literal path.
@@ -342,7 +342,7 @@ for its message inventory, so an intervening arrival is valid evidence.
 Alteration jobs use `owner_state_alteration_costs.json`, measured from timestamped
 job logs of run 42868506005 attempt 2. Long recordings are split by candidate
 ordinal modulo four; LPT placement uses measured seconds, not recording count.
-All alteration shards together execute every candidate once; the finished stage-3 workflow uses 24 shards with the same measured-cost manifest. Every part still walks
+All twelve jobs together execute every candidate once. Every part still walks
 and audits the complete discovered field set, and its selected candidates reach
 the unchanged comparison. Only the discovered fault offset in a sweep label is
 normalised for cross-platform scheduling; each replay still injects its actual
@@ -352,200 +352,3 @@ Onboarding folder DELETE records its pre-command mailbox inventory independently
 of the service's payload/context. Probe account/folder/empty/empty-state claims
 are validated against this inventory and the scripted account-add account before
 qualification can use them; a coherent flag lie is a payload proof difference.
-
-
-## Stage 3 fixed owner facts
-
-`evidence/owner-state.bin` starts with eight bytes `AO19B4\0\n`. A frame is a
-big-endian uint32 compressed length, uint64 existing journal sequence, zlib level-9
-canonical JSON, and one 32-byte SHA-256 chain hash. The hash binds the preceding
-frame hash, header, compressed payload and matching independent fence hash.
-A frame maps selected source keys to `{kind, facts}`. The only active kinds are
-context, resolution, check-open, check-result and acknowledgement. Tombstones
-use the separate compact stream below. The facts omit authored text, approval
-inputs, arguments and audit summaries; recipient values are hashed and counted.
-Warning/recovery prose is generated from native identities, roles, short states,
-counts and reason/qualification codes. SQLite may supply matching detail.
-
-A new fence has a base64 SHA-256 `owner` commitment to the canonical complete
-`{source:{kind,facts}}` publication. It adds 55 JSON bytes, creates no transaction,
-and binds both the kind and the facts. A missing committed frame, including a
-removed complete suffix, fails. A compacted subset is accepted only after a
-hash-verified original export reconstructs the complete publication and matches
-every surviving kind and fact. No separate readable full-event copy is kept.
-
-`evidence/owner-tombstones.bin` has the same magic. Each record has a two-byte
-body length, compact body and one 32-byte chain hash. A shared resolution gives
-archive filename, SHA-256 and publication sequence. A tombstone gives source
-identity, final-state byte and acknowledgement identities. The chain also binds
-the SHA-256 of that source's exact full archive entry. Common operation IDs use
-33 binary bytes; derived acknowledgement IDs use prefix/suffix codes. The full
-export is re-read and verified before retirement and on later tombstone reads.
-
-The independent decoder exposes owner_rows, owner_sequences, owner_versions,
-owner_kinds and owner_retired. Every scalar/list element enters alteration
-enumeration. Decoding authenticates publication; the model still needs script,
-server and commit-order proof to grant completion or acknowledgement. Restore
-ranges identify the actual missing interval, never arbitrary future gaps.
-
-D3 check-open episodes are anchored by source and publication sequence. When a
-later check replaces an episode with no committed result, a durable generic
-occurrence retains that loss through subsequent clean evidence. Its identity
-contains the old episode sequence. The independent model reconstructs the
-episode; a naked generic notice flag is insufficient. Existing specific warning
-occurrences remain independently acknowledged. A still-open check continues to
-show the ordinary unchecked/recovery warning.
-
-D3 maintenance admission precedes every maintenance-body write. Space for both
-open and resolving records is admitted before publishing a committed generic
-background check. If that gate cannot commit, the body never starts. If the
-body starts and its disk fails, the already-committed open check remains a
-generic warning through crash/restart; RAM is unnecessary. A clean resolving
-commit removes only the call's own fresh gate. An earlier unresolved warning is
-retained. `STORAGE-S3-FIRST-WRITE.py` is now a passing regression of the exact
-point-1 persistent fault; no maintenance `journal.write` begins in that case.
-
-D4 excludes a call's own in-flight export intent from its reply only after its
-resolving commit can be confirmed. Failed resolution includes the warning in
-that reply; a crash before resolution leaves it in the next view. An exception
-after a complete matching SQLite event/head and independent commit marker does
-not turn that confirmed commit into an unfinished action. A prepared restore
-can explain only its correlated, bounded pre-call backup interval, and grants
-no completion, generation or acknowledgement by itself.
-
-The source read facade is `owner_state.OwnerView`. Healthy SQLite supplies the
-full wording; a storage failure or restore lock selects independently committed
-native facts. SQLite detail may enrich a projected row only if its selected
-facts match. Recipient hashes and short stage codes remain native through
-repeated restore; `_owner_encoded` is internal working-state plumbing, excluded
-from public operations and projection records. A missing full approval stays
-unavailable and cannot authorize work. No remote effect is replayed by restore.
-
-A small bounded verified-row cache and the disposable journal index accelerate
-reads. The latter's `owner_rows` and `births` tables are rebuildable. Their
-signatures cover active facts, tombstones, the journal and retained archive file
-metadata; neither a cache nor a startup snapshot defines owner obligations.
-Archive changes invalidate verification; the tamper regression changes an
-already-cached export and requires failure. The driver compares independent
-decoder facts, production projection and readable/unlocked SQLite after every
-sweep case. A separate all-flow test forces every main-database read to fail.
-
-Every committed owner publication must have its frame or a hash-qualified
-retirement, including superseded publications and publications with an empty
-current owner set. Compaction cannot silently drop one source from a frame.
-The independent alteration corpus includes both native-fact and coherent
-history lies. Passive reply snapshots retain the observation's original state,
-so future acknowledgements or restores cannot change expectations for a reply
-already delivered.
-
-Storage inventories and measurements for the final candidate are in
-`reviews/19b-owner-state/STORAGE-S3-FINISH.json`; the older FINAL report preserves
-the original failing first-write evidence. The final CI acceptance evidence and
-the owner's 2026-11-11 storage acceptance (board #176) are documented in REPORT.md.
-
-
-### Fence-only restore recovery
-
-Normal operation fences remain format 2. A format-3 fence is used only when
-owner-confirmed restore appends past an abandoned fence: `restore_from` is the
-first sequence after the last actual commit marker. It preserves the existing
-hash chain and sequence order. Its full event must be `control_restore_confirm`
-with the restoring space plan. A commit marker confirms only its own fence;
-it never makes preceding abandoned publications into results. The committed
-restore event bounds the historical abandoned interval, so a later restart
-can recognize it without a RAM-only list. Unknown versions fail explicitly.
-No existing fence or commit is rewritten.
-
-The owner frame/tombstone format and its five active fact kinds are unchanged.
-Their readers select exact commit-marked publications, rather than every frame
-below the largest commit number. A second crash before the new restore event
-commits leaves the original result uncommitted and the previous owner facts
-visible. Restore reconciles explicit native deletions as well as retained rows,
-using at most 32 current SQLite keys per scan. A completed export cannot reappear
-from an older backup. A fence-only result cannot close an evidence check or an
-export; its previous committed fact survives. The bounded short description
-already present in the old fence remains available when the approval's question
-and full body are missing; it does not authorize a submission.
-
-The expectation replay correlates fault traces to each call, so a prior page's
-failure is not a new failure on a continuation. It uses earlier native history
-for missing SQLite prefixes and excludes later observed outcomes when replaying
-an earlier restore. Native recipient-stage hashes are matched to independently
-recorded recipients, and onboarding enrollment needs a matching account-add
-call plus a reservation created in that call. Complete-role recovery reads do
-not certify completion of an interrupted filing command. A missing rename target
-commits its availability result while the check remains open, preventing a new
-loss occurrence and page restart on every read.
-
-`role_check_unavailable` is a selected native availability fact. It never proves
-an observation or a clean result: the oracle requires the matching negative
-LIST/SELECT evidence or the correlated injected storage failure. Without a
-post-command role catalogue, filing commits that open availability result before
-any further location read. A subsequent successful check clears the flag.
-
-Maintenance first discovers due work without writes. Idle ticks add no fences
-and do not perturb audit cursors. Due expiry, blob cleanup or deferred records
-still require the committed D3 gate before any body write. A prepared restore's
-saved space plan replaces its already-spent holds before replay admission;
-rollback and check holds are not counted a second time.
-
-An applied prepared head is an unfinished write, not an older restored backup.
-The decoder verifies the matching prepared fence before allowing that distinction.
-Only the unfinished sequence's correlated first disk fault can remain a refusal;
-an earlier unrelated admission failure cannot. Exact readable commits release
-their holds even when a failed sync left the live writer behind.
-
-A deferred positive filing result may close only its original mutation's episode,
-using the matching delivered post-command evidence and no intervening check-open.
-It cannot supply a new or clean check's result. Read-only recovery keeps the exact
-destination that survived in the committed source; it cannot reconstruct a lost
-COPYUID reply from the test recorder. Retained destination claims still require
-the independently recorded remote reply. Oracle-only uncommitted observations
-have no public location handle: D3's generic obligation remains mandatory, and
-delivered rich detail is checked separately. Committed occurrence handles and
-every one of their location pages remain strict comparisons.
-
-Passive pending cursors carry `pending/<app>/` before the existing opaque cursor.
-`control_pending` preserves that advertised app scope across the handoff; ordinary
-all-app cursors remain unchanged. Unknown or conflicting scopes refuse. Catalogue
-changes still restart with `page_changed`. `paging.py` itself is unchanged.
-The daemon's final error path reports owner-source unavailability explicitly;
-it no longer references the removed RAM-only pending snapshot.
-
-New restore events set `owner_restore_context: true`. Their non-deletion owner
-publications are context, preserving the existing check epoch instead of
-pretending owner confirmation started a new evidence read. Older unflagged
-restore publications retain their original kind rules and hash commitments.
-No existing journal bytes or owner commitments change.
-
-When confirmation conservatively adopts a positive filing warning from an
-abandoned publication, it retains the matching role and exact location pages,
-but never the abandoned action completion or check closure. Restore admission
-includes those selected facts. A warning and an open check have distinct handles
-when the warning itself does not already disclose its incomplete check. Native
-fallback reconstructs each occurrence's role from its original matching source
-publication, rather than borrowing a newer source role. Normal-operation owner
-frames and permanent-byte figures are unchanged.
-
-Filing result proof distinguishes an intermediate started context from a
-declared result: explicit check results, result payloads and matching warning
-publications must agree with delivered evidence. A later failed result write
-does not retroactively complete its preceding context write. Deferred warning
-creation times remain bound to their original evidence call and occurrence
-fingerprint, rather than the request which eventually flushes them.
-Onboarding may retain a pre-command submitting row only when a correlated later
-result fault explains the absence of its delivered outcome; this never proves
-qualification or completion. Applied prepared restore events retain their
-original restore lock until their confirmation commits.
-
-An interrupted onboarding result keeps the more specific exact-cleanup failure
-when that cleanup has its own independently correlated fault; a successful
-cleanup cannot turn an unverified initial probe into qualification. If EXPUNGE
-was never reached, an unknown result requires a fault between that operation's
-own submitting and outcome observations. Earlier unrelated faults supply no
-authority. A recovered intermediate stage does not move that start boundary:
-the first submitting commit identifies the attempt even if a later stage is
-first observed after its failed fsync has been recovered. Faults after the
-outcome observation still supply no authority.
-Native `marked:` receipts use the documented detail hash: proof needs
-both the exact hash of `deleted flag set` and the matching acknowledged UID STORE.

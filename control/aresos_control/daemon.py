@@ -75,8 +75,8 @@ class Daemon:
             try:
                 pending = self.engine.pending(resolve_checks=False)
             except Exception:
-                pending = {**pending, 'restore_required': self.engine.store.locked,
-                    'unavailable': 'Committed owner facts could not be read; inspect the independent evidence and service state before further changes.'}
+                pending = {**self.engine._last_pending.get(None, pending),
+                           "unavailable": "Live pending read failed; inspect this snapshot and service state before further changes."}
         result = {"ok": False, "error": {"code": getattr(exc, "code", "internal_error"),
             "message": str(exc) if isinstance(exc, Refused) else "Request failed unexpectedly; inspect operation status before repeating changes."},
             "pending": pending}

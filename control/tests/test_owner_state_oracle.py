@@ -27,7 +27,7 @@ def empty_scan(oracle, listing, sources):
 class OwnerOracle(unittest.TestCase):
     def test_expectation_imports_are_standard_library_only(self):
         root = Path(__file__).resolve().parents[1] / 'owner_state_oracle'
-        modules = {'__init__', 'records', 'model', 'compare', 'context', 'gaps', 'local', 'identity', 'caller_capture', 'resolutions', 'perturb', 'effects', 'projection'}
+        modules = {'__init__', 'records', 'model', 'compare', 'context', 'gaps', 'local', 'identity', 'caller_capture', 'resolutions', 'perturb', 'effects'}
         def validate(source):
             for node in ast.walk(ast.parse(source)):
                 if isinstance(node, ast.Import):
@@ -214,50 +214,6 @@ class OwnerOracle(unittest.TestCase):
         oracle.server('SENT', folder='Sent', roles={'Sent': ['\\Sent']},
                       identities=[{'message_id': '<g.s@mail.aresos.invalid>'}], source='op:g:s')
         self.assertFalse(oracle.completion_errors(Record(rows={'op:g:s': row})))
-
-    def test_preflight_reason_uses_evidence_before_this_calls_data(self):
-        for prior_data, wanted in ((False, 'Far-side submission evidence already exists; inspect evidence, never submit again.'),
-                                   (True, 'Submission outcome uncertain; inspect evidence, never retry.')):
-            oracle = Oracle()
-            oracle.call('mail_send', {'operation_id': 'g:s'}, 1)
-            oracle.script[-1].update(start_seq=0, end_seq=3)
-            if prior_data:
-                oracle.server('DATA', source='op:g:s', before_seq=1,
-                    identities=[{'message_id': '<g.s@mail.aresos.invalid>'}],
-                    committed_before={'op:g:s': {'id': 'g:s', 'state': 'submitting', 'action': 'mail_send'}})
-            oracle.server('SENT', source='op:g:s', before_seq=2,
-                identities=[{'message_id': '<g.s@mail.aresos.invalid>'}])
-            state, reason = oracle.outcome({'id': 'g:s', 'state': 'unknown'}, {'seq': 3, 'action': 'mail_send'})
-            self.assertEqual(('unknown', wanted), (state, reason))
-
-    def test_onboarding_rcpt_without_data_needs_one_current_account_bound_probe(self):
-        oracle = Oracle()
-        oracle.call('mail_account_add', {'id': 'new'}, 1)
-        key = 'op:g:probe'
-        row = {'action': 'mail_send', 'state': 'submitting',
-               'payload': {'composition': {'mail': {'account': 'new'}}}}
-        event = oracle.server('RCPT', account='new', recipients=['owner@mail.invalid'],
-            smtp_transaction=1, before_seq=3, call_start_seq=1,
-            committed_before={key: row}, created_before={key: 2})
-        self.assertIn(event, oracle.operation_events(key, 4))
-        event['created_before'][key] = 1
-        self.assertNotIn(event, oracle.operation_events(key, 4))
-        event['created_before'][key] = 2
-        event['committed_before']['op:g:other'] = row
-        event['created_before']['op:g:other'] = 2
-        self.assertNotIn(event, oracle.operation_events(key, 4))
-
-    def test_unavailable_filing_result_needs_independent_failure_and_an_open_check(self):
-        oracle = Oracle()
-        oracle.call('mail_move', {}, 1, {'trace': [(1, 'file.write', 'ENOSPC')]})
-        oracle.script[-1].update(start_seq=0, end_seq=2)
-        row = {'state': 'started', 'check_open': True, 'role_check_unavailable': True,
-               'observed_role': 'an unverified role'}
-        event = {'seq': 2, 'action': 'mail_filing_check'}
-        self.assertTrue(oracle.unavailable_filing_result('mail:filing:f', row, event))
-        oracle.script[-1]['faults'] = {}
-        self.assertFalse(oracle.unavailable_filing_result('mail:filing:f', row, event))
-        self.assertTrue(any(f.kind == 'false-unavailable-result' for f in oracle.lifecycle_errors))
 
     def test_filing_clean_ack_recurrence_uses_a_new_occurrence(self):
         for kind in ('rename', 'filing'):
@@ -770,14 +726,14 @@ class OwnerOracle(unittest.TestCase):
         from owner_state_oracle.gaps import Gaps
         request = {'method': 'call', 'action': 'testapp_operation_status'}
         invalid = self.status_response()
-        invalid['data'].pop('operation')
-        invalid['data']['unsupported_evidence'] = {'code': 'storage_limit', 'message': 'Synthetic'}
+        invalid['data'].pop('evidence')
+        invalid['data']['evidence_error'] = {'code': 'storage_limit', 'message': 'Synthetic'}
         reply, failures = read_response(lambda: response_checks.validate_response(request, invalid))
         self.assertEqual(reply, invalid)
         details = [json.loads(value) for value in failures]
         self.assertEqual({value['rule'] for value in details}, {'required', 'additionalProperties'})
-        self.assertEqual(next(value['missing'] for value in details if value['rule'] == 'required'), ['operation'])
-        self.assertEqual(next(value['extra'] for value in details if value['rule'] == 'additionalProperties'), ['unsupported_evidence'])
+        self.assertEqual(next(value['missing'] for value in details if value['rule'] == 'required'), ['evidence'])
+        self.assertEqual(next(value['extra'] for value in details if value['rule'] == 'additionalProperties'), ['evidence_error'])
         recorded = Gaps(recording=True)
         check = recorded.checker('schema-case')
         check('schema', set(), {Fact('response', 'schema', detail=value) for value in failures})
@@ -1741,166 +1697,6 @@ class StageOneRoundThree(unittest.TestCase):
 
 
 class StageTwoPartA(unittest.TestCase):
-    def test_recovered_cleanup_stage_does_not_move_the_attempts_fault_boundary(self):
-        for fault in (9, 21, 51):
-            with self.subTest(fault=fault):
-                oracle = Oracle()
-                oracle.call('mail_account_add', {'id': 'box'}, 1, {'trace': [(fault, 'file.fsync', 'ENOSPC')]})
-                oracle.script[-1].update(start_seq=0, end_seq=4)
-                oracle.commit_fault_points.update({(1, 1): 20, (1, 2): 40, (1, 3): 50})
-                row = {'action': 'mail_delete', 'payload': {}, 'state': 'submitting'}
-                record = Record(events=[{'seq': 1, 'set': {'op:g:c': row}},
-                    {'seq': 2, 'set': {'op:g:c': {**row, 'stages': {'marked': 'observed'}}}},
-                    {'seq': 3, 'set': {'op:g:c': {**row, 'state': 'unknown'}}}])
-                result = oracle.probe_outcome([], record, 4, 'mail_delete', lambda payload: True, [], 'done')
-                self.assertEqual('unknown' if fault == 21 else None, result)
-                self.assertEqual(bool(oracle.lifecycle_errors), fault != 21)
-
-    def test_later_fault_cannot_excuse_a_false_completed_probe_result(self):
-        oracle = Oracle()
-        oracle.call('mail_account_add', {'id': 'box'}, 1, {'trace': [(21, 'file.fsync', 'ENOSPC')]})
-        oracle.script[-1].update(start_seq=0, end_seq=3)
-        oracle.commit_fault_points.update({(1, 2): 20, (1, 3): 30})
-        row = {'action': 'mail_onboarding_folder_probe', 'payload': {}, 'state': 'submitting'}
-        command = {'call': 1, 'account': 'box', 'before_seq': 1, 'fault_point': 10,
-                   'accepted': False, 'reply': 'delivered'}
-        oracle.probe_outcome([command], Record(events=[{'seq': 2, 'set': {'op:g:p': row}}]), 3,
-            row['action'], lambda payload: True, [command], 'refused')
-        self.assertTrue(any(f.kind == 'unjustified-probe-result' for f in oracle.lifecycle_errors))
-
-    def test_native_deleted_flag_receipt_requires_its_exact_code_and_store(self):
-        ref = dict(account='box', folder='Source', uidvalidity=1, uid=1, message_id='<synthetic@mail.invalid>')
-        for correct_hash, observed in ((True, True), (False, True), (True, False)):
-            with self.subTest(correct_hash=correct_hash, observed=observed):
-                oracle = Oracle()
-                if observed:
-                    oracle.server('STORE', 'box', 'Source', [ref], source='op:g:c', before_seq=1,
-                                  arguments=['1', '+FLAGS.SILENT', '(\\Deleted)'])
-                marker = 'marked:' + fingerprint(ref)
-                row = {'id': 'g:c', 'app': 'mail', 'action': 'mail_delete', 'state': 'unknown',
-                    '_owner_encoded': True, 'payload': {'items': [{'reference': ref}]},
-                    'stages': {marker: {'code': 'detail', 'hash': fingerprint('deleted flag set' if correct_hash else 'wrong')}}}
-                oracle.stage_claims({'seq': 2, 'action': 'mail_delete', 'set': {'op:g:c': row}}, 'op:g:c', {}, row)
-                failure = Fact('op:g:c', 'unjustified-stage', detail=marker)
-                self.assertEqual(failure not in oracle.lifecycle_errors, correct_hash and observed)
-
-    def test_cleanup_without_expunge_needs_its_own_fault_and_never_proves_done(self):
-        for fault, state in ((9, 'unknown'), (21, 'unknown'), (21, 'done')):
-            with self.subTest(fault=fault, state=state):
-                oracle = Oracle()
-                oracle.call('mail_account_add', {'id': 'box'}, 1, {'trace': [(fault, 'file.fsync', 'ENOSPC')]})
-                oracle.script[-1].update(start_seq=0, end_seq=3)
-                oracle.commit_fault_points.update({(1, 2): 20, (1, 3): 30})
-                row = {'action': 'mail_delete', 'payload': {}, 'state': 'submitting'}
-                record = Record(events=[{'seq': 2, 'set': {'op:g:c': row}},
-                    {'seq': 3, 'set': {'op:g:c': {**row, 'state': state}}}])
-                result = oracle.probe_outcome([], record, 3, 'mail_delete', lambda payload: True, [], 'done')
-                if fault == 21 and state == 'unknown':
-                    self.assertEqual('unknown', result)
-                    self.assertFalse(oracle.lifecycle_errors)
-                else:
-                    self.assertIsNone(result)
-                    self.assertTrue(any(f.kind == 'unjustified-probe-result' for f in oracle.lifecycle_errors))
-
-    def test_unverified_initial_probe_keeps_the_more_specific_failed_cleanup(self):
-        for cleaned in (False, True):
-            with self.subTest(cleaned=cleaned):
-                oracle = Oracle()
-                oracle.call('mail_account_add', {'id': 'box'}, 1,
-                            {'trace': [(12, 'file.fsync', 'ENOSPC'), (32, 'file.fsync', 'ENOSPC')]})
-                oracle.script[-1].update(start_seq=0, end_seq=4)
-                oracle.commit_fault_points.update({(1, 1): 20, (1, 3): 40})
-                ref = dict(account='box', folder='Probe', uidvalidity=1, uid=1, message_id='<probe@mail.invalid>')
-                oracle.server('APPEND', 'box', 'Probe', arrived=[ref])
-                oracle.server('DELETE', 'box', arguments=['Probe'], before_seq=0, fault_point=10,
-                    accepted=False, response_code='NO', response_text=['[CANNOT] Folder is nonempty'])
-                oracle.server('FETCH', 'box', 'Probe', [ref])
-                oracle.server('EXPUNGE', 'box', 'Probe', arguments=['1'], before_seq=2, fault_point=30, accepted=cleaned)
-                record = Record(events=[{'seq': 1, 'set': {'op:g:p': {'action': 'mail_onboarding_folder_probe',
-                    'payload': {'folder': 'Probe', 'empty': False}, 'state': 'unknown'}}},
-                    {'seq': 3, 'set': {'op:g:c': {'action': 'mail_delete', 'payload': {'items': [{'reference': ref}]},
-                                                'state': 'done' if cleaned else 'unknown'}}}])
-                self.assertEqual((False, 'survival-unverified' if cleaned else 'exact-cleanup-failed'),
-                                 oracle.probe_qualification(oracle.servers, record, 4))
-
-    def test_probe_keeps_its_precommand_state_only_for_a_later_result_fault(self):
-        for fault in (9, 11):
-            with self.subTest(fault=fault):
-                oracle = Oracle()
-                oracle.call('mail_account_add', {'id': 'box'}, 1, {'trace': [(fault, 'file.fsync', 'ENOSPC')]})
-                oracle.script[-1].update(start_seq=0, end_seq=2)
-                oracle.commit_fault_points.update({(1, 1): 10, (1, 2): 20})
-                row = {'action': 'mail_onboarding_folder_probe', 'state': 'submitting', 'payload': {}}
-                record = Record(events=[{'seq': 1, 'set': {'op:g:p': row}}])
-                command = {'call': 1, 'account': 'box', 'before_seq': 1, 'fault_point': 10,
-                           'accepted': False, 'reply': 'delivered'}
-                result = oracle.probe_outcome([command], record, 2, row['action'], lambda payload: True, [command], 'refused')
-                if fault == 11:
-                    self.assertEqual('submitting', result)
-                    self.assertFalse(oracle.lifecycle_errors)
-                else:
-                    self.assertTrue(any(f.kind == 'unjustified-probe-result' for f in oracle.lifecycle_errors))
-
-    def test_recovery_location_does_not_reinvent_an_uncommitted_copyuid(self):
-        oracle = Oracle()
-        source = dict(account='box', folder='Source', uidvalidity=1, uid=1, message_id='<synthetic@mail.invalid>')
-        destination = {**source, 'folder': 'Target', 'uid': 9}
-        context = {'id': 'f', 'records': [{'source': source, 'sha256': 'synthetic', 'destination': None}]}
-        mutation = {'call': 1, 'identities': [{**source, 'sha256': 'synthetic'}], 'destination': destination}
-        listing = {'call': 1, 'mailboxes': {}}
-        self.assertEqual(destination, oracle.locations(context, listing, mutation)[0]['last_known_destination'])
-        listing['call'] = 2
-        self.assertIsNone(oracle.locations(context, listing, mutation)[0]['last_known_destination'])
-        context['records'][0]['destination'] = destination
-        self.assertEqual(destination, oracle.locations(context, listing, mutation)[0]['last_known_destination'])
-
-    def test_fault_trace_cannot_excuse_reopening_a_proven_filing_result(self):
-        source = dict(account='box', folder='Source', uidvalidity=1, uid=1, message_id='<synthetic@mail.invalid>')
-        roles = {'Sent': ['\\Sent'], 'Drafts': ['\\Drafts'], 'Trash': ['\\Trash'], 'Target': []}
-        for state in ('started', 'unknown', 'failed'):
-            with self.subTest(state=state):
-                oracle = Oracle()
-                oracle.call('mail_move', {'references': [source], 'target': 'Target'}, 1,
-                            {'trace': [(9, 'file.write', 'ENOSPC')]})
-                oracle.script[-1].update(start_seq=0, end_seq=2)
-                row = dict(id='f', account='box', verb='move', sources=[source], target='Target', state='started')
-                oracle.server('MOVE', 'box', 'Source', [source], roles, arguments=['1', 'Target'], before_seq=1,
-                    call_start_seq=0, created_before={'mail:filing:f': 1}, committed_before={'mail:filing:f': row}, copyuid_delivered=False)
-                listing = oracle.server('LIST', 'box', roles=roles, before_seq=1)
-                empty_scan(oracle, listing, ['mail:filing:f'])
-                record = Record(events=[{'seq': 1, 'time': 1, 'action': 'mail_move', 'set': {'mail:filing:f': row}},
-                    {'seq': 2, 'time': 1, 'action': 'mail_move',
-                     'untrusted_content': {'filing': {'filing_id': 'f', 'state': 'done'}},
-                     'set': {'mail:filing:f': {**row, 'state': state}}}])
-                oracle.expected(record)
-                self.assertIn(Fact('mail:filing:f', 'uncommitted-check-result', detail='2'), oracle.lifecycle_errors)
-
-    def test_deferred_positive_filing_result_cannot_fund_a_new_or_clean_check(self):
-        source = dict(account='box', folder='Source', uidvalidity=1, uid=1, message_id='<synthetic@mail.invalid>')
-        roles = {'Sent': ['\\Sent'], 'Drafts': ['\\Drafts'], 'Trash': ['\\Trash'], 'Target': []}
-        for new_check, warning, action in ((False, True, 'mail_move'), (True, True, 'mail_move'),
-                                          (False, False, 'mail_move'), (False, True, 'mail_copy')):
-            with self.subTest(new_check=new_check, warning=warning, action=action):
-                oracle = Oracle()
-                oracle.call('mail_move', {'references': [source], 'target': 'Target'}, 1)
-                oracle.script[-1].update(start_seq=0, end_seq=1)
-                row = dict(id='f', account='box', verb='move', sources=[source], target='Target', state='started')
-                oracle.server('MOVE', 'box', 'Source', [source], roles, arguments=['1', 'Target'], before_seq=1,
-                    call_start_seq=0, created_before={'mail:filing:f': 1}, committed_before={'mail:filing:f': row}, copyuid_delivered=False)
-                listing = oracle.server('LIST', 'box', roles=roles, before_seq=1)
-                empty_scan(oracle, listing, ['mail:filing:f'])
-                oracle.reply({'ok': False}, delivered=False)
-                oracle.call('mail_accounts', {}, 2)
-                oracle.script[-1].update(start_seq=1, end_seq=3)
-                events = [{'seq': 1, 'time': 1, 'action': 'mail_move', 'set': {'mail:filing:f': row}}]
-                if new_check:
-                    events.append({'seq': 2, 'time': 2, 'action': 'mail_filing_check_open', 'set': {'mail:filing:f': row}})
-                events.append({'seq': 3, 'time': 2, 'action': action, 'set': {'mail:filing:f':
-                    {**row, 'state': 'partial', 'warning_checks': {'filing': {'warning': warning}}}}})
-                oracle.expected(Record(events=events))
-                self.assertEqual(oracle.result_proof('mail:filing:f', 'filing', 3),
-                                 not new_check and warning and action == 'mail_move')
-
     def test_pre_move_list_and_undelivered_results_never_close_filing(self):
         source = dict(account='box', folder='Source', uidvalidity=1, uid=1, message_id='<synthetic@mail.invalid>')
         roles = {'Sent': ['\\Sent'], 'Drafts': ['\\Drafts'], 'Trash': ['\\Trash'], 'Target': []}

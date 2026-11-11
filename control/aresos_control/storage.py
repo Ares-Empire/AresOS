@@ -13,11 +13,9 @@ from . import retention
 from .common import Refused, canonical, storage_stream, cleanup, digest, json_value, visible, storage_refusal
 from .results import Observations, recorded_write
 from .space import SpaceLedger, record_budget
-from .owner_projection import OwnerProjection
 
 RESTORE_BATCH_BYTES = 64 * 1024
 RESTORE_BATCH_COUNT = 32
-CHECK_RESULT_BYTES = retention.FILING_RESERVE
 
 
 def replay_budget(event):
@@ -36,8 +34,6 @@ def sync_directory(path):
 
 
 def short_description(operation):
-    if operation.get('approval') == {'unavailable': True}:
-        return copy.deepcopy(operation['_owner_description'])
     description = operation["approval"]["description"]
     if operation.get("app") == "mail" and "untrusted_content" in description:
         result = {"action": description["action"], "untrusted_content": copy.deepcopy(description["untrusted_content"])}
@@ -134,7 +130,7 @@ class JournalRecords:
 
 class Store:
     def __init__(self, state_dir, evidence_dir, checkpoint=lambda _: None):
-        self.db = self.index = self.journal = self.owner_projection = None
+        self.db = self.index = self.journal = None
         try:
             self._initialize(state_dir, evidence_dir, checkpoint)
         except BaseException as exc:
@@ -148,7 +144,6 @@ class Store:
             raise ValueError("Independent evidence must be outside the backup tree")
         self.checkpoint = checkpoint
         self.write_failed = False
-        self.write_sequence = None
         self.storage_cause = None
         self.deferred_notices = {}
         self.active_intents = {}
@@ -186,14 +181,10 @@ class Store:
         self.events = JournalRecords(self)
         try:
             self.events, self.committed = self._read_journal()
-            self.owner_projection = OwnerProjection(self)
-            self.owner_projection.seed()
             seq, hash_value = self.db.execute("SELECT seq,hash FROM head WHERE id=1").fetchone()
             expected = self.events[seq - 1]["hash"] if 0 < seq <= len(self.events) else ""
             if seq > len(self.events) or hash_value != expected:
                 raise Refused("evidence_mismatch", "The independent record is missing or different; stop and have the owner recover it. No submissions allowed.")
-            self.restore_head = seq
-            self.restore_unprepared = set(range(self.committed + 1, self.sequence + 1)) if self.sequence > self.committed and self._prepared(self.sequence) is None else set()
             self.locked = seq < self.committed or bool(self.get('restore_pending'))
             if len(self.events) > self.committed:
                 last = self.events[-1]
@@ -275,7 +266,6 @@ class Store:
             for op in record['operations']:
                 self.index.execute('INSERT OR REPLACE INTO latest VALUES (?,?,?)',
                                    (op['id'], record['seq'], canonical(op)))
-                self.index.execute('INSERT OR IGNORE INTO births VALUES (?,?)', (op['id'], record['time']))
             self.index.commit()
         self.sequence, self.head_hash = record['seq'], record['hash']
 
@@ -285,7 +275,6 @@ class Store:
         if indexing:
             self.index.execute('DELETE FROM records')
             self.index.execute('DELETE FROM latest')
-            self.index.execute('DELETE FROM births')
         with storage_stream(open(self.journal.name, 'rb')) as stream:
             for raw in stream:
                 if not raw.endswith(b'\n'):
@@ -306,14 +295,12 @@ class Store:
                 try:
                     row = json.loads(raw)
                     if 'commit' in row:
-                        if (self.sequence < committed + 1 or
+                        if (self.sequence != committed + 1 or
                                 row != {'commit': self.sequence, 'hash': self.head_hash}):
                             raise ValueError('invalid commit')
                         committed = self.sequence
                     else:
-                        recovery_fence = (row.get('format') == 3 and self.sequence > committed and
-                                          row.get('restore_from') == committed + 1)
-                        if not recovery_fence and (self.sequence != committed or row['format'] != 2):
+                        if self.sequence != committed or row['format'] != 2:
                             raise ValueError('uncommitted event or unsupported record format')
                         hash_value = row.pop('hash')
                         if (row['seq'] != self.sequence + 1 or row['previous'] != self.head_hash
@@ -335,20 +322,16 @@ class Store:
         Keep the next 32 IDs in sort order, rescan for the next window. It is
         slower than an index but needs neither writable disk nor history RAM.
         """
-        cursor = ''
         if self.index is not None:
             through = self.sequence if through is None else through
-            try:
-                for op_id, seq, encoded in self.index.execute('SELECT id,seq,value FROM latest WHERE seq<=? ORDER BY id', (through,)):
-                    cursor = op_id
-                    yield op_id, seq, json.loads(encoded)
-                return
-            except sqlite3.Error as exc:
-                self.observations.storage(exc)
+            for op_id, seq, encoded in self.index.execute('SELECT id,seq,value FROM latest WHERE seq<=? ORDER BY id', (through,)):
+                yield op_id, seq, json.loads(encoded)
+            return
+        cursor = ''
         through = self.sequence if through is None else through
         while True:
             batch = {}
-            for record in self.owner_projection.journal_records() if self.owner_projection else self.events:
+            for record in self.events:
                 if record['seq'] > through:
                     break
                 for op in record['operations']:
@@ -370,13 +353,10 @@ class Store:
     def _load_reservations(self):
         self.ledger.holds.clear()
         from .exports import budget as export_budget
-        from .owner_state import owner_view
-        view = owner_view(self)
-        for key, transfer in view.iter_items('export:'):
+        for key, transfer in self.iter_items('export:'):
             self.ledger.holds[key] = export_budget(transfer)
-        for _, op in view.iter_items('op:', restore_outcomes=False):
-            original = view.get('op:' + op['repair_of']) if op.get('repair_of') else None
-            self.ledger.holds.update(self.ledger.right(op, original))
+        for _, op in self.iter_items('op:'):
+            self.ledger.holds.update(self.ledger.right(op, self.get('op:' + (op.get('repair_of') or ''))))
         if self.sequence > self.committed and not self.locked:
             prepared = self._prepared(self.sequence)
             if prepared is not None:
@@ -390,29 +370,14 @@ class Store:
             for restored in self._restore_operations():
                 budget += record_budget(restored)
                 self.ledger.holds.update(self.ledger.right(restored, self.get('op:' + (restored.get('repair_of') or ''))))
-            for _, changes in self.owner_projection.retired(full=True):
-                budget += record_budget(changes)
-            for key,value in self.owner_projection.iter_items():
-                if key.startswith(('intent:', 'notice:', 'mail:filing:', 'mail:rename:', 'mail:account:')) and not self.owner_projection.same(key, self.get(key), value):
-                    budget += record_budget(value)
-            for key, value in self.owner_projection.restored_deletions():
-                budget += record_budget({key: value})
-            for value in self._unprepared_owner_facts().values():
-                budget += record_budget(value)
             self.ledger.holds['restore'] = budget
-        for prefix in ('op:', 'intent:', 'mail:filing:', 'mail:rename:', 'notice:'):
-            for key, value in view.iter_items(prefix, restore_outcomes=False):
-                if (value.get('check_open') or value.get('sent_copy_check', {}).get('state') == 'open' or
-                        prefix in {'mail:filing:', 'mail:rename:'} and value.get('state') == 'started'):
-                    self.ledger.holds['check:' + key] = CHECK_RESULT_BYTES
         prepared = self._pending_event()
         if prepared is not None:
             plan = prepared.get('space')
             if plan:
                 # Reconstruct the already-admitted transaction, replacing its
                 # spent cancel/settlement/restore bytes with just replay work.
-                if not self.locked or plan.get('restoring'):
-                    self.ledger.finish(plan['updates'], plan['consume'])
+                self.ledger.finish(plan['updates'], plan['consume'])
                 self.ledger.holds['replay'] = replay_budget(prepared)
 
     def _pending_event(self):
@@ -449,14 +414,7 @@ class Store:
     def _restore_operations(self, through=None):
         # Admission and confirmation must enumerate exactly the same work.
         # Unchanged closed history costs no reconstruction space.
-        projected_rows = iter(self.owner_projection.iter_items('op:'))
-        current = next(projected_rows, None)
         for op_id, seq, known in self.iter_latest(through):
-            key = 'op:' + op_id
-            while current and current[0] < key:
-                current = next(projected_rows, None)
-            if any('archived:' + op_id in changes for _, changes in self.owner_projection.retired()):
-                continue
             old = self.get('op:' + op_id)
             if old is None and self.get('archived:' + op_id) == {'seq': seq}:
                 continue
@@ -464,37 +422,7 @@ class Store:
             if old is None or version != (seq,) or old['state'] == 'submitting':
                 if old is None:
                     old = missing_operation(known)
-                projected = current[1] if current and current[0] == key else None
-                if projected is not None:
-                    from .owner_state import owner_view
-                    detail = {k: old[k] for k in ('approval', 'payload', 'input_hash') if k in old}
-                    available = bool(old.get('approval', {}).get('question'))
-                    old = {**old, **owner_view(self).inflate('op:' + op_id, projected), **detail}
-                    if not available:
-                        # The existing fence's bounded description remains
-                        # useful even though its approval body is unavailable.
-                        old['approval'] = missing_operation(known)['approval']
                 old.update(state='unknown', reason='Restored log: independent record has newer or missing evidence. Owner must check.')
-                if seq in self.restore_unprepared and old.get('sent_copy_check'):
-                    # Confirming a fence-only event cannot certify its claimed
-                    # evidence result or reopen a previously resolved check.
-                    prior = {}
-                    for source_seq, data, _, _ in self.owner_projection._records(self.owner_projection.path):
-                        if source_seq < seq and 'op:' + op_id in data:
-                            prior = data['op:' + op_id]['facts'] or {}
-                    old['sent_copy_check'] = prior.get('sent_copy_check', {'state': 'open'})
-                    # Retaining a positive warning also retains its occurrence
-                    # binding. Confirmation grants no clean result or action
-                    # completion from the abandoned publication.
-                    for source_seq, data, _, _ in self.owner_projection._records(self.owner_projection.path):
-                        if source_seq not in self.restore_unprepared:
-                            continue
-                        incoming = (data.get(key) or {}).get('facts') or {}
-                        for kind, check in incoming.get('warning_checks', {}).items():
-                            notice = (data.get('notice:' + str(check.get('occurrence_id'))) or {}).get('facts') or {}
-                            if (check.get('warning') and notice.get('source_key') == key and notice.get('check_kind') == kind and
-                                    notice.get('evidence_fingerprint') == check.get('fingerprint')):
-                                old.setdefault('warning_checks', {})[kind] = check
             elif old['state'] == 'reserved':
                 old.update(state='failed', reason="Restore invalidated this generation's approval; nothing resumed.")
             else:
@@ -518,9 +446,7 @@ class Store:
                 index.execute('PRAGMA synchronous=OFF')
                 index.execute('PRAGMA cache_size=-1024')
                 index.executescript('CREATE TABLE records (seq INTEGER PRIMARY KEY, hash TEXT NOT NULL, offset INTEGER NOT NULL);'
-                                    'CREATE TABLE latest (id TEXT PRIMARY KEY, seq INTEGER NOT NULL, value TEXT NOT NULL);'
-                                    'CREATE TABLE births (id TEXT PRIMARY KEY, created REAL NOT NULL);'
-                                    'CREATE TABLE owner_rows (k TEXT PRIMARY KEY, v TEXT NOT NULL);')
+                                    'CREATE TABLE latest (id TEXT PRIMARY KEY, seq INTEGER NOT NULL, value TEXT NOT NULL);')
                 self.index = index
                 self._read_journal(indexing=True)
             except BaseException as exc:
@@ -550,8 +476,6 @@ class Store:
             self.write_failed = True
             with cleanup('journal truncation', exc):
                 self._truncate_journal(offset)
-                if 'operations' in value and value['seq'] == self.sequence + 1:
-                    self.owner_projection._recover_tail()
             raise storage_refusal(exc) or Refused('storage_error', 'Journal storage write failed; restart the service and check the recorded operation.') from exc
         return offset
 
@@ -561,11 +485,7 @@ class Store:
 
     def _prepared(self, seq):
         row = self.db.execute("SELECT value FROM events WHERE seq=?", (seq,)).fetchone()
-        event = json.loads(row[0]) if row else None
-        if event and event['record'].get('format') == 3 and (
-                event['action'] != 'control_restore_confirm' or not event.get('space', {}).get('restoring')):
-            raise Refused('evidence_corrupt', 'A recovery fence has no matching restore event.')
-        return event
+        return json.loads(row[0]) if row else None
 
     def _apply(self, event):
         record = event["record"]
@@ -587,9 +507,6 @@ class Store:
         record = event["record"]
         self._append({"commit": record["seq"], "hash": record["hash"]})
         self.committed = record["seq"]
-        if event['action'] == 'control_restore_confirm' and event['set'].get('generation') and event['set'].get('restore_pending') is None:
-            self.locked = False
-            self.ledger.holds.pop('restore', None)
         self.checkpoint("journal_committed")
 
     @recorded_write
@@ -604,11 +521,6 @@ class Store:
                     for field in ('context', 'context_version'):
                         if field not in value and field in previous:
                             value = {**value, field: previous[field]}
-                    if (key.startswith('op:') and previous.get('sent_copy_check', {}).get('state') == 'checked' and
-                            value.get('sent_copy_check', {}).get('state') == 'open' and
-                            action != 'mail_sent_copy_check_open' and (untrusted_content or {}).get('stage') != 'smtp_data'):
-                        value = {**value, 'sent_copy_check': previous['sent_copy_check'],
-                                 'warning_checks': previous.get('warning_checks', {})}
                     changes[key] = value
         if any(key.startswith(('mail:filing:', 'mail:rename:')) for key in changes):
             self._open_filings = None
@@ -642,6 +554,15 @@ class Store:
                 changes[intent_key] = None
             else:
                 changes[intent_key] = self.get(intent_key)
+        if (hasattr(self, 'startup_intents') and not restoring and not recovery and
+                not self.flushing_notices and not self.archiving and not cancellation):
+            from .recovery import recovery_notices
+            from itertools import islice
+            rows = self.items('notice:')
+            room = min(3, max(0, retention.NOTICE_COUNT - len(rows)))
+            notices = {'notice:' + n['id']: n for n in islice(recovery_notices(self, include_checks=False), room)}
+            if sum(len(canonical(n)) for _, n in rows) + len(canonical(notices)) < retention.NOTICE_BYTES:
+                changes = {**notices, **changes}
         operations = {k[3:]: v if v is not None else self.get(k)
                       for k, v in changes.items() if k.startswith("op:")}
         if operation_id and operation_id not in operations:
@@ -654,20 +575,6 @@ class Store:
                 updates[key] = export_budget(transfer) if transfer is not None else 0
                 if transfer is None and key in self.ledger.holds:
                     consume.append(key)
-        # A warning-producing read owns its result space before the remote
-        # evidence is requested. A failed result leaves this right and source.
-        for key, value in changes.items():
-            if not key.startswith(('op:', 'intent:', 'mail:filing:', 'mail:rename:', 'notice:')):
-                continue
-            held_key = 'check:' + key
-            opened = isinstance(value, dict) and (value.get('check_open') or
-                value.get('sent_copy_check', {}).get('state') == 'open' or
-                key.startswith(('mail:filing:', 'mail:rename:')) and value.get('state') == 'started')
-            if opened and held_key not in self.ledger.holds:
-                updates[held_key] = CHECK_RESULT_BYTES
-            elif not opened and held_key in self.ledger.holds:
-                updates[held_key] = 0
-                consume.append(held_key)
         compact = []
         for op in operations.values():
             rights = self.ledger.right(op, self.get('op:' + (op.get('repair_of') or '')))
@@ -684,33 +591,22 @@ class Store:
                   "previous": self.head_hash, "time": time.time(),
                   "generation": changes.get("generation", self.generation),
                   "operations": compact}
-        if restoring and self.sequence > self.committed:
-            record.update(format=3, restore_from=self.committed + 1)
         record["hash"] = digest(record)
         if restoring and len(canonical(record).encode()) > RESTORE_BATCH_BYTES:
             raise Refused('storage_limit', 'One restore evidence record exceeds the bounded confirmation batch; ask the owner to inspect it.')
         event = {"seq": record["seq"], "time": record["time"], "action": action, "summary": summary,
                  "outcome": operation["state"] if operation else outcome, "operation_id": operation_id,
                  "set": changes, "record": record}
-        if restoring:
-            event['restore_range'] = [self.restore_head + 1, self.sequence]
-            event['owner_restore_context'] = True
         if untrusted_content is not None:
             json_value(untrusted_content)
             event["untrusted_content"] = visible(untrusted_content)
-        event['restoring'] = restoring
-        owner_data = self.owner_projection.changes(event)
-        event.pop('restoring')
-        if owner_data:
-            record['owner'] = self.owner_projection.publication_hash(owner_data)
-            record['hash'] = digest({k: v for k, v in record.items() if k != 'hash'})
         # Validate and serialize the COMPLETE event before the independent fence.
         event['space'] = {'updates': updates, 'consume': consume, 'restoring': restoring}
         encoded = canonical(json_value(event))
         # Admission happens before the restore fence, so a quota refusal cannot
         # turn into journal_incomplete or demand owner restore confirmation.
         # Leave room for the restore balance added to the saved plan below.
-        cost = len(encoded.encode()) * 5 + len(canonical(record).encode()) * 3 + 36864
+        cost = len(encoded.encode()) * 3 + len(canonical(record).encode()) * 3 + 36864
         recovery = recovery or self.recovering or retention.recovery_action(action) or action == 'control_expire'
         owner_recovery = restoring or self.archiving
         if restoring:
@@ -718,7 +614,7 @@ class Store:
             remaining = self.ledger.holds.get('restore', 0) - cost
             if remaining < 0:
                 raise Refused('storage_limit', 'Restore confirmation exceeds its held reservation; free storage before confirming.')
-            updates['restore'] = 0 if changes.get('generation') and changes.get('restore_pending') is None else remaining
+            updates['restore'] = remaining
             consume = []
             event['space'] = {'updates': updates, 'consume': consume, 'restoring': True}
             encoded = canonical(json_value(event))
@@ -729,16 +625,6 @@ class Store:
         # A crash here may need owner confirmation: compact metadata cannot
         # reconstruct the full event, and absence cannot prove no restore.
         self.write_failed = True
-        self.write_sequence = record['seq']
-        try:
-            self.owner_projection.prepare(event, owner_data)
-        except BaseException as exc:
-            # No fence has been published yet. Remove only the speculative
-            # owner tail before another call can reuse this sequence/hash.
-            with cleanup('unpublished owner tail', exc):
-                self.owner_projection._recover_tail()
-                self.write_failed = False
-            raise
         offset = self._append(record)
         self._index_record(record, offset)
         self.checkpoint("journal_appended")
@@ -846,148 +732,23 @@ class Store:
 
     @property
     def generation(self):
-        from .owner_state import owner_view
-        return owner_view(self).get("generation")
-
-    def refresh_restore(self, clear_transient=True):
-        if self.write_failed and not self.locked:
-            try:
-                seq, claimed = self.db.execute('SELECT seq,hash FROM head WHERE id=1').fetchone()
-                committed = self.owner_projection.committed_head()
-                last = None
-                for last in self.owner_projection.journal_records():
-                    pass
-                # A post-commit checkpoint exception retains the restart latch.
-                # Recheck a refused unpublished tail after its request returns.
-                if ((clear_transient or committed > self.committed) and
-                        not (self.write_sequence == committed == self.committed) and
-                        seq == committed and (last['seq'] if last else 0) == committed and
-                        claimed == (last['hash'] if last else '') and self._prepared(committed + 1) is None):
-                    # A refused fence may have left only an unpublished owner
-                    # tail. With matching committed heads there is no lasting
-                    # transaction refusal once that tail can be removed.
-                    self.committed = committed
-                    self.owner_projection._recover_tail()
-                    self.write_failed = False
-                    self._load_reservations()
-                elif seq < committed or (seq > committed and self._pending_event() is None):
-                    self.locked = True
-                    self.restore_head = min(seq, committed)
-                    self._load_reservations()
-            except (OSError, sqlite3.Error) as exc:
-                if storage_refusal(exc) is None:
-                    raise
-                self.observations.storage(exc)
-        if not self.locked:
-            return
-        try:
-            seq, claimed = self.db.execute('SELECT seq,hash FROM head WHERE id=1').fetchone()
-            if seq <= self.restore_head or seq != self.owner_projection.committed_head():
-                return
-            event = self._prepared(seq)
-            if (event is None or event['action'] != 'control_restore_confirm' or
-                    not event['set'].get('generation') or event['set'].get('restore_pending') is not None or
-                    event['record'] != self.owner_projection.fence(seq) or claimed != event['record']['hash']):
-                return
-            # A failed marker fsync followed by failed truncation may still
-            # leave both exact commits readable. Confirm them before clearing
-            # the live latch, just as restart recovery does; replay no effects.
-            self.committed = seq
-            self.locked = self.write_failed = False
-            self.ledger.finish(event['space']['updates'], event['space']['consume'])
-            self.ledger.holds.pop('restore', None)
-        except (OSError, sqlite3.Error) as exc:
-            if storage_refusal(exc) is None:
-                raise
-            self.observations.storage(exc)
-
-    def _unprepared_owner_facts(self):
-        unresolved = {}
-        if not self.restore_unprepared:
-            return unresolved
-        for seq, data, _, _ in self.owner_projection._records(self.owner_projection.path):
-            if seq in self.restore_unprepared:
-                for key, row in data.items():
-                    if key.startswith(('intent:', 'export:', 'notice:', 'mail:filing:', 'mail:filing-locations:', 'mail:rename:', 'mail:account:')):
-                        unresolved.setdefault(key, row['facts'])
-        return unresolved
+        return self.get("generation")
 
     def confirm_restore(self):
         self.ensure_writable()
         if not self.locked:
             raise Refused("refused", "No older log is awaiting confirmation.")
-        unresolved = self._unprepared_owner_facts()
-        # A fence-only publication has no prepared result to replay. Owner
-        # confirmation cannot turn its deletion/completion into evidence.
-        previously_committed = set()
-        unpublished = dict(unresolved)
-        for _, changes in self.owner_projection.records():
-            previously_committed.update(key for key in changes if key in unresolved)
-            unresolved.update((key, value) for key, value in changes.items() if key in unresolved)
-        adopted_filings = set()
-        for key, value in unresolved.items():
-            if key.startswith('notice:') and value is not None and key not in previously_committed:
-                unresolved[key] = {**value, 'created_at': time.time_ns()}
-                source = unpublished.get(value.get('source_key')) or {}
-                binding = source.get('warning_checks', {}).get(value.get('check_kind'), {})
-                if (value.get('check_kind') in {'filing', 'rename'} and binding.get('warning') and
-                        binding.get('occurrence_id') == value.get('id') and
-                        binding.get('fingerprint') == value.get('evidence_fingerprint') and source.get('observed_role')):
-                    # Retain the observed warning, without promoting the
-                    # abandoned action/check result or its source state.
-                    unresolved[key]['observed_role'] = source['observed_role']
-                    source_key = value['source_key']
-                    previous = unresolved.get(source_key)
-                    if (isinstance(previous, dict) and
-                            (previous.get('state') == 'started' or previous.get('check_open'))):
-                        previous = copy.deepcopy(previous)
-                        previous.setdefault('warning_checks', {})[value['check_kind']] = binding
-                        unresolved[source_key] = previous
-                    if value['check_kind'] == 'filing':
-                        adopted_filings.add(value['id'])
-        for key in list(unresolved):
-            if (key.startswith('mail:filing-locations:') and key not in previously_committed and
-                    not any(key.startswith('mail:filing-locations:' + identity + ':') for identity in adopted_filings)):
-                del unresolved[key]
+        if len(self.events) > self.committed:
+            last = self.events[-1]
+            self.ledger.admit(4096, updates={'restore': self.ledger.holds['restore'] - 4096})
+            self._append({"commit": last["seq"], "hash": last["hash"]})
+            self.ledger.holds['restore'] -= 4096
+            self.committed = last["seq"]
         # Keep the lock durable across every batch and crash. Only the final
         # marker advances generation; nothing is resumed in an intermediate DB.
         through = self.sequence
         changes = {}
         batch_bytes = 0
-        # A backup cannot undo a confirmed retirement or acknowledgement.
-        # Re-read the export through its tombstone before using these rows.
-        for _, retired in self.owner_projection.retired(full=True):
-            for key, value in retired.items():
-                if self.get(key) == value:
-                    continue
-                amount = len(canonical(value).encode()) + 1024
-                if changes and (len(changes) >= RESTORE_BATCH_COUNT or batch_bytes + amount > RESTORE_BATCH_BYTES):
-                    changes['restore_pending'] = True
-                    self.write(changes, 'control_restore_confirm', 'bounded archive reconciliation batch', restoring=True)
-                    changes, batch_bytes = {}, 0
-                changes[key] = value
-                batch_bytes += amount
-        from .owner_state import owner_view
-        view = owner_view(self)
-        from itertools import chain
-        current = chain(self.owner_projection.iter_items(), self.owner_projection.restored_deletions())
-        reconciliation = chain(((k, v) for k, v in current if k not in unresolved), unresolved.items())
-        for key, value in reconciliation:
-            if not key.startswith(('intent:', 'export:', 'notice:', 'mail:filing:', 'mail:filing-locations:', 'mail:rename:', 'mail:account:')):
-                continue
-            old = self.get(key)
-            if key not in unresolved and (old == value or old is not None and self.owner_projection.same(key, old, value)):
-                continue
-            value = view.inflate(key, value)
-            if key.startswith('mail:account:') and old is not None and value is not None:
-                value = {**old, **value}
-            amount = len(canonical(value).encode()) + 1024
-            if changes and (len(changes) >= RESTORE_BATCH_COUNT or batch_bytes + amount > RESTORE_BATCH_BYTES):
-                changes['restore_pending'] = True
-                self.write(changes, 'control_restore_confirm', 'bounded owner-state reconciliation batch', restoring=True)
-                changes, batch_bytes = {}, 0
-            changes[key] = value
-            batch_bytes += amount
         for old in self._restore_operations(through):
             key = 'op:' + old['id']
             amount = len(canonical(old).encode()) + len(canonical(short_description(old)).encode()) + 1024

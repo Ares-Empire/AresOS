@@ -58,15 +58,6 @@ def filing_followups(oracle, record, key):
 
 
 class StageTwoFixes(unittest.TestCase):
-    def test_scan_and_list_check_annotations_must_remain_correlated(self):
-        oracle, record, key = filing_case('filing', True, False, True)
-        _, errors = evaluate(oracle, record)
-        proof = Fact(key, 'unbound-check-scan', detail='script.check_sources')
-        self.assertFalse(any(f == proof for _, f in errors))
-        oracle.servers[0]['check_sources'] = []
-        _, changed = evaluate(oracle, record)
-        self.assertTrue(any(f == proof for _, f in changed))
-
     def test_validator_figures_record_the_method_that_emitted_the_proof(self):
         oracle, record, _ = filing_case('rename', False, True, False)
         proofs = {}

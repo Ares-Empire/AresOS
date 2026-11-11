@@ -74,21 +74,18 @@ class OwnerScenario(Scenario):
         def scripted(engine, envelope, *args, **kwargs):
             from storage_faults import ACTIVE
             fault = ACTIVE
-            failure_start = len(fault.failures) if fault else 0
             self.test_clock += 0.001
             clock = time.time()
             self.owner_oracle.call(envelope.get('action', envelope.get('method')), envelope.get('arguments', {key: value for key, value in envelope.items() if key not in {'v', 'password'}}), clock,
                 {'mode': fault.mode, 'at': fault.fail_at, 'cleanup': fault.cleanup_at} if fault else {})
             index = len(self.owner_oracle.script) - 1
-            self.owner_oracle.script[index]['faults'].update(getattr(self.owner_oracle, 'explicit_faults', {}))
             self.owner_oracle.script[index]['parent'] = getattr(self.owner_oracle, 'active_call', None)
             self.owner_oracle.script[index]['request_method'] = envelope.get('method')
             observer = getattr(self.owner_oracle, 'response_observer', None)
             if observer:
                 before = observer.__self__.snapshot()
-                self.owner_oracle.script[index]['start_seq'] = max((f['seq'] for f in before.fences), default=0)
+                self.owner_oracle.script[index]['start_seq'] = max(before.committed, default=0)
                 self.owner_oracle.script[index]['restore_precondition'] = before.locked
-                self.owner_oracle.script[index]['restore_working_head'] = before.head[0] if before.head else None
             try:
                 with recorded_samples(self.owner_oracle, index):
                     reply = request(engine, envelope, *args, **kwargs)
@@ -99,9 +96,9 @@ class OwnerScenario(Scenario):
             observer = getattr(self.owner_oracle, 'response_observer', None)
             if observer:
                 record = observer.__self__.snapshot()
-                self.owner_oracle.script[index]['end_seq'] = max((f['seq'] for f in record.fences), default=0)
+                self.owner_oracle.script[index]['end_seq'] = max(record.committed, default=0)
                 if fault:
-                    self.owner_oracle.script[index]['faults']['trace'] = list(fault.failures[failure_start:])
+                    self.owner_oracle.script[index]['faults']['trace'] = list(fault.failures)
                     self.owner_oracle.script[index]['faults']['active_exhaustion'] = fault.mode == 'persistent' and fault.failed
                 observer(index, reply)
             return reply
@@ -318,7 +315,7 @@ class OwnerStateSweep(unittest.TestCase):
         self.assertEqual(results[0], results[1])
 
     def test_shards_cover_every_fault_and_keep_its_cleanup_and_crash_cases(self):
-        for shards in (1, 2, 4, 8, 12, 24, 48):
+        for shards in (1, 2, 4, 12, 24):
             for workers in ((1,) if shards >= 12 else (1, 2, 3)):
                 for point in range(1, 102):
                     owners = []

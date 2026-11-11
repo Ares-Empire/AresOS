@@ -2,7 +2,7 @@
 import json
 import re
 from .model import Fact
-from .records import canonical, fingerprint, visible, pending_reason
+from .records import canonical, fingerprint, visible
 
 
 def compare_proofs(oracle, record, check, after_sequence=0, context=True):
@@ -32,12 +32,8 @@ def notice_facts(notice, record, oracle):
     if occurrence == 'background-storage':
         reason = content.get('reason', '')
         cause = 'storage_limit' if 'Disk full or storage quota exhausted' in reason else 'storage_error' if 'Storage I/O failed' in reason else 'unknown'
-        if (content.get('maintenance_check') and 'no committed result' in reason and
-                any(c.get('faults', {}).get('background') and c.get('faults', {}).get('trace') for c in oracle.script) and
-                (record.owner_rows.get('notice:background-storage') or {}).get('check_kind') == 'maintenance'):
-            cause = (oracle.background or {}).get('code', 'unknown')
         return {Fact('background:storage', 'background-storage', occurrence, cause)}
-    saved = record.rows.get('notice:' + occurrence, record.owner_rows.get('notice:' + occurrence, {}))
+    saved = record.rows.get('notice:' + occurrence, {})
     source = saved.get('source_key') or content.get('intent_key')
     if content.get('check') == 'sent_copies':
         return {Fact('op:' + content['operation_id'], 'unchecked-handle', occurrence), Fact('op:' + content['operation_id'], 'unchecked'), Fact('op:' + content['operation_id'], 'unchecked-context', detail=canonical({'app': notice.get('app'), 'state': notice.get('state'), 'operation_identity': content.get('operation_id') == content['operation_id'], 'check': content.get('check'), 'not_yet_checked': 'not yet checked' in content.get('reason', '')}))}
@@ -53,13 +49,6 @@ def notice_facts(notice, record, oracle):
         return {Fact('unbound:' + occurrence, 'unexpected')}
     if content.get('recovery_warning') or content.get('check_open') or saved.get('check_kind') == 'recovery':
         return {Fact(source, 'recovery-handle', occurrence), Fact(source, 'recovery'), Fact(source, 'recovery-context', detail=canonical({'app': notice.get('app'), 'state': notice.get('state'), 'intent_identity': content.get('intent_key') == source, 'reason_present': bool(content.get('reason', '').strip())}))}
-    if saved.get('check_kind') == 'evidence_unrecorded':
-        reason = content.get('reason', '').lower()
-        kind = content.get('check_kind')
-        required = ('sent' if source.startswith('op:') else 'trash')
-        valid = (content.get('lost_check') is not None and 'no committed result' in reason and
-                 required in reason and 'nothing' in reason and 'deleted' in reason)
-        return {Fact(source, 'evidence-unrecorded' if valid else 'invalid-generic-warning', occurrence, kind)}
     kind = saved.get('check_kind', 'rename' if source.startswith('mail:rename:') else 'filing')
     evidence = next((f.detail for f in oracle.detected if f.occurrence == occurrence), '')
     # Public catalogues disclose count/role, not full server identities. Exact
@@ -95,37 +84,7 @@ def notice_facts(notice, record, oracle):
               'folders_more': content.get('folders_more'), 'folders_more_text': content.get('folders_more_text'),
               'reason_family': 'sent_copies' if str(content.get('message_count')) + ' copies' in reason and 'Sent' in reason else 'other'}
     result.add(Fact(source, 'notice-context', occurrence, canonical({field: values[field] for field in fields})))
-    # D3 permits richer live detail over an independently committed open check.
-    # Compare that detail to the server-derived warning before normalising its
-    # obligation to the durable generic handle which will survive a restart.
-    unrecorded = next((f for f in oracle.detected if f.source == source and f.kind == kind and
-                       f.occurrence.startswith('uncommitted:') and f.detail == evidence), None)
-    current = record.rows.get(source, record.owner_rows.get(source, {}))
-    if (not saved and unrecorded and kind in {'filing', 'rename'} and
-            (current.get('state') == 'started' or current.get('check_open'))):
-        context = oracle.warning_contexts.get(source, {})
-        locations = oracle.location_evidence.get(unrecorded.occurrence, (None, []))[1]
-        names = {context.get('target', '')} | {ref['folder'] for ref in context.get('sources', [])}
-        names.update(ref['folder'] for item in locations for ref in item.get('observed_locations', []))
-        valid = (values['app'] == 'mail' and values['state'] == 'partial' and values['intent_identity'] and
-                 values['preserves_messages'] and values['filing_identity'])
-        if kind == 'filing' and context.get('sources'):
-            valid &= values['message_count'] == len(context['sources']) and values['folders'] == sorted(names)[:3]
-        if kind == 'rename':
-            mutations = [e for e in oracle.servers if e['command'] == 'RENAME' and oracle.bound(e)[0] == source]
-            count = len(mutations[0]['identities']) if mutations else context.get('message_count')
-            folders = [name[:64] + ('…' if len(name) > 64 else '') for name in (context.get('source', ''), context.get('target', ''))]
-            valid &= (values['message_count'] == count and values['folders'] == folders and
-                      values['folders_more'] == 0 and values['folders_more_text'] == '')
-        if not valid:
-            return {Fact(source, 'invalid-live-warning-detail', occurrence)}
-        base = current.get('id', source.rsplit(':', 1)[-1])
-        handle = 'check-' + fingerprint(source)[:32] if record.rows.get('notice:' + base, {}).get('ack') else base
-        return {Fact(source, 'recovery'), Fact(source, 'recovery-handle', handle),
-                Fact(source, 'recovery-context', detail=canonical({'app': 'mail', 'state': 'unknown',
-                     'intent_identity': True, 'reason_present': True}))}
-    if ((content.get('unresolved_roles') or content.get('scan_complete') is False) and
-            (current.get('check_open') or current.get('state') == 'started')):
+    if content.get('unresolved_roles') or content.get('scan_complete') is False:
         result.add(Fact(source, 'recovery-handle', occurrence))
         result.add(Fact(source, 'recovery', occurrence))
         result.add(Fact(source, 'recovery-context', occurrence, canonical({'app': notice.get('app'), 'state': notice.get('state'), 'intent_identity': content.get('intent_key') == source, 'reason_present': bool(content.get('reason', '').strip())})))
@@ -133,7 +92,7 @@ def notice_facts(notice, record, oracle):
 
 
 def pending_facts(page):
-    result = {Fact('op:' + row['operation_id'], 'pending', detail=canonical({'state': row['state'], 'reason': pending_reason(row.get('reason'))})) for row in page.get('items', [])}
+    result = {Fact('op:' + row['operation_id'], 'pending', detail=canonical({'state': row['state'], 'reason': 'RESTORED_EVIDENCE' if 'restored' in row.get('reason', '').lower() and any(word in row.get('reason', '').lower() for word in ('newer', 'missing')) else row.get('reason')})) for row in page.get('items', [])}
     for row in page.get('items', []):
         for kind in ('expired', 'cancelled'):
             if kind + ':' in row.get('reason', '').lower():
@@ -178,7 +137,7 @@ def source_order(record, source):
 
 
 def source_app(record, source):
-    app = record.rows.get(source, record.owner_rows.get(source, {})).get('app')
+    app = record.rows.get(source, {}).get('app')
     if app is None and source.startswith('op:'):
         action = next((op.get('description', {}).get('action', '') for fence in reversed(record.fences) for op in fence.get('operations', []) if op['id'] == source[3:]), '')
         app = action.split('_', 1)[0]
@@ -220,7 +179,7 @@ def ordered_notices(record, expected, app=None):
         return created, identity
     groups = {}
     for fact in expected:
-        if fact.kind not in {'pending', 'operation-notice'} and (app is None or record.rows.get(fact.source, record.owner_rows.get(fact.source, {})).get('app', 'mail') == app):
+        if fact.kind not in {'pending', 'operation-notice'} and (app is None or record.rows.get(fact.source, {}).get('app', 'mail') == app):
             family = 'unchecked' if fact.kind.startswith('unchecked') else 'recovery' if fact.kind.startswith('recovery') else ''
             handle = next((f.occurrence for f in expected if f.source == fact.source and f.kind == family + '-handle'), None)
             group = handle or notice_identity(record, fact)
@@ -321,10 +280,10 @@ def compare_views(read, oracle, snapshot, check, ordinary='mail_accounts'):
             offset += len(page.get('items', []))
         check(label + '.complete', set().union(*wanted), set(seen))
 
-    reply = read(ordinary, {})
     record = snapshot()
     expected = oracle.expected(record)
     record = oracle.projection(record)
+    reply = read(ordinary, {})
     page = reply.get('pending', {})
     wanted = ordered_pending(record, expected, app=ordinary.split('_', 1)[0])
     check('passive.pending-head', pending_page(wanted[:5], expected), pending_facts(page))
@@ -377,19 +336,6 @@ def compare_views(read, oracle, snapshot, check, ordinary='mail_accounts'):
                 import time
                 day = time.strftime('%Y-%m-%d', time.localtime())
                 audit = sorted((e for e in record.events if e['seq'] in record.working_sequences and time.strftime('%Y-%m-%d', time.localtime(e['time'])) == day), key=lambda e: (e['time'], e['seq']))
-                fallback = any(e.get('action') == 'control_owner_state' for e in page.get('items', []))
-                if fallback:
-                    call = oracle.script[-1] if oracle.script else {}
-                    allowed = (record.locked or record.prepared or record.unprepared_fences or
-                               call.get('faults', {}).get('mode') == 'persistent' and bool(call.get('faults', {}).get('trace')))
-                    check('aresos log.fallback-cause', set(), set() if allowed else {Fact('audit', 'unjustified-fallback')})
-                    audit = [{'seq': f['seq'], 'time': f['time'], 'action': 'control_owner_state',
-                              'summary': 'Committed owner facts; SQLite audit detail is unavailable.',
-                              'outcome': 'done', 'operation_id': None,
-                              'untrusted_content': visible({'operations': [op['id'] for op in f['operations']],
-                                                    'sources': record.owner_versions.get(f['seq'], {})})}
-                             for f in record.fences if f['seq'] in record.committed and
-                             time.strftime('%Y-%m-%d', time.localtime(f['time'])) == day]
                 wanted = [audit_fact(e, expected=True) for e in audit]
                 actual = [audit_fact(e) for e in page.get('items', [])]
                 check(view + '.page', set(wanted[offset:offset + 5]), set(actual))
@@ -405,7 +351,7 @@ def compare_views(read, oracle, snapshot, check, ordinary='mail_accounts'):
 
 
 def retained_role(source, role, record, page):
-    """Specific evidence or its independently anchored D3 occurrence survives."""
+    """D3 permits a committed generic warning only while its check is open."""
     facts = set()
     check = record.rows.get(source, {})
     open_check = check.get('state') == 'started' or check.get('check_open')
@@ -419,14 +365,6 @@ def retained_role(source, role, record, page):
         saved = record.rows.get('notice:' + str(notice.get('operation_id')), {})
         stored = saved.get('untrusted_content', {})
         reason = stored.get('reason', '')
-        from .projection import check_episodes
-        episodes, _ = check_episodes(record)
-        episode = episodes.get((source, stored.get('lost_check')))
-        if (belongs and not saved.get('ack') and saved.get('check_kind') == 'evidence_unrecorded' and
-                episode and episode['ending'] != 'result' and 'no committed result' in reason.lower() and
-                role.lower() in reason.lower() and 'nothing' in reason.lower() and 'deleted' in reason.lower()):
-            facts.add(Fact(source, 'observed-role', detail=role))
-            continue
         if (open_check and not saved.get('ack') and saved.get('source_key', stored.get('intent_key')) == source and
                 content == stored and 'evidence was seen' in reason.lower() and
                 "couldn't be recorded" in reason.lower() and 'check ' + role.lower() in reason.lower()):

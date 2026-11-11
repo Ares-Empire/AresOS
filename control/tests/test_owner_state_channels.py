@@ -96,8 +96,7 @@ class OwnerStateChannels(unittest.TestCase):
         gaps = Gaps()
         gaps.bind(record)
         check = gaps.checker('channel/passive-testapp-cursor')
-        wanted = {fact for fact in oracle.expected(record) if fact.kind in {'pending', 'operation-notice'} and
-                  fact.source[3:] in ids[5:]}
+        wanted = {fact for fact in oracle.expected(record) if fact.kind == 'pending' and fact.source[3:] in ids[5:]}
         check('own-page', wanted, pending_facts(continuation))
         check('unchanged-page', set(), {Fact('pending', 'page_changed')} if continuation.get('page_changed') else set())
         check.finish()

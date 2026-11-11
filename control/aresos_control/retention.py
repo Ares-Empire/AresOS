@@ -66,7 +66,7 @@ def hashes(value):
             yield from hashes(v)
 
 
-def expire(engine, check_only=False):
+def expire(engine):
     from .warnings import source_notices
     store = engine.store
     if store.locked or store.write_failed:
@@ -110,7 +110,7 @@ def expire(engine, check_only=False):
                 changes[key] = None
                 if prefix == 'mail:filing:' or prefix == 'notice:':
                     changes.update({k: None for k, _ in store.items('mail:filing-locations:' + value['id'] + ':')})
-    if changes and not check_only:
+    if changes:
         store.write(changes, 'control_expire', 'expired unused working data; operation evidence and unresolved warnings retained')
     pinned = set()
     for _, comp in store.items('mail:composition:'):
@@ -119,7 +119,5 @@ def expire(engine, check_only=False):
     # completed operations can be inspected/repaired. They are bounded by caps.
     for op in operations:
         pinned.update(hashes(op))
-    blob_work = False
     for blob_store in (engine.blobs, engine.adapters['mail'].wires):
-        blob_work = blob_store.expire(pinned, now, TTL, check_only=check_only) or blob_work
-    return bool(changes) or blob_work
+        blob_store.expire(pinned, now, TTL)

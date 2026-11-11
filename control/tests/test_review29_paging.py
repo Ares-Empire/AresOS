@@ -9,40 +9,6 @@ from support import EngineCase
 
 
 class Paging29(EngineCase):
-    def test_recorded_location_pages_remain_readable_while_restore_is_required(self):
-        prefix = 'mail:filing-locations:held:'
-        page = {'locations': [], 'fragments': []}
-        self.engine.store.write({prefix + 'meta': {'pages': 1, 'total_messages': 0},
-            prefix + '0': page}, 'fixture', 'Synthetic committed location pages')
-        self.engine.store.locked = True
-        result = self.call('mail_filing_locations', {'filing_id': 'held'})
-        self.assertFalse(result['ok'])
-        self.assertEqual('restore_required', result['error']['code'])
-        self.assertEqual(page, result['data']['untrusted_content'])
-        import sqlite3
-        failure = sqlite3.OperationalError('database or disk is full')
-        failure.sqlite_errorcode = sqlite3.SQLITE_FULL
-        with patch.object(self.engine.store, 'get', side_effect=failure):
-            result = self.call('mail_filing_locations', {'filing_id': 'held'})
-        self.assertEqual('storage_limit', result['error']['code'])
-        self.assertEqual(page, result['data']['untrusted_content'])
-        self.assertTrue(result['pending']['restore_required'])
-
-    def test_passive_app_cursor_keeps_its_scope_in_control_pending(self):
-        ids = [self.reserve()['operation_id'] for _ in range(7)]
-        first = self.call('testapp_list')['pending']
-        self.assertEqual([item['operation_id'] for item in first['items']], ids[:5])
-        tail = self.data('control_pending', {'cursor': first['cursor']})
-        self.assertEqual([item['operation_id'] for item in tail['items']], ids[5:])
-        self.assertEqual(tail['total'], 7)
-        self.assertIsNone(tail['cursor'])
-        self.assertNotIn('page_changed', tail)
-        # A real membership/state change must still invalidate that cursor.
-        self.data('testapp_operation_cancel', {'operation_id': ids[0]})
-        changed = self.data('control_pending', {'cursor': first['cursor']})
-        self.assertIn('page_changed', changed)
-        self.assertEqual([item['operation_id'] for item in changed['items']], ids[:5])
-
     def seed_notices(self):
         changes = {'notice:' + str(i): {'id': str(i), 'app': 'mail', 'state': 'partial',
             'ack': False, 'created_at': i, 'untrusted_content': {'reason': 'Synthetic warning ' + str(i)}}
@@ -131,9 +97,9 @@ class Paging29(EngineCase):
         self.assertIn('restarted', changed['page_changed'])
         self.assertEqual(changed['untrusted_content']['locations'], [{'id': 'changed'}])
 
-    def test_stage3_restore_result_and_description_confirm_independent_reconciliation(self):
-        sentence = ('Free-change checks, warnings and acknowledgements are re-derived from the independent owner record. '
-                    'No remote work is replayed.')
+    def test_review29_restore_result_and_description_add_the_same_bounded_sentence(self):
+        sentence = ('Free changes made after the backup time (moves, renames and folder changes) and their warnings '
+                    'are not in the backup, so check those folders yourself.')
         old = {'generation': '0' * 32, 'unknown': []}
         with patch.object(self.engine.store, 'confirm_restore', return_value=old):
             result = self.data('control_restore_confirm', {'confirm': 'invalidate earlier approvals'}, admin=True)

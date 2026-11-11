@@ -26,6 +26,7 @@ class Engine:
         self.boundary = Boundary()
         self.store = Store(state_dir, evidence_dir, checkpoint)
         self.receiver = None
+        self._last_pending = {}
         try:
             self._initialize_adapters(ttl, checkpoint, file_limit)
         except BaseException as exc:
@@ -59,15 +60,7 @@ class Engine:
     def notices(self, app=None, resolve_checks=True):
         from .mail.filing import notice_page
         mail = self.adapters['mail']
-        try:
-            checks = mail.resolve_sent_checks() if resolve_checks else tuple(mail.unresolved_sent_checks())
-        except (OSError, sqlite3.Error) as exc:
-            if storage_refusal(exc) is None:
-                raise
-            self.store.observations.storage(exc)
-            self.store.owner_read_failed = True
-            checks = tuple(mail.unresolved_sent_checks())
-        page = notice_page(self.store, app=app, checks=checks)
+        page = notice_page(self.store, app=app, checks=mail.resolve_sent_checks() if resolve_checks else mail.unresolved_sent_checks())
         if not page['items']:
             return {}
         result = {'notices': page['items']}
@@ -77,44 +70,49 @@ class Engine:
         return result
 
     def pending(self, app=None, args=None, resolve_checks=True):
-        if not getattr(self.store, 'in_request', False):
-            self.store.check_sessions = set()
         try:
-            return self._pending(app, args, resolve_checks)
+            result = self._pending(app, args, resolve_checks)
+            self._last_pending[app] = copy.deepcopy(result)
+            return result
         except (OSError, sqlite3.Error) as exc:
             if storage_refusal(exc) is None:
                 raise
             self.store.observations.storage(exc)
-            return self._pending(app, args, False)
+            # Persistent exhaustion can prevent SQLite's rollback, so even a
+            # SELECT may fail. Keep the last disclosure and newly seen warnings
+            # in the reply instead of losing the entire storage-error frame.
+            result = copy.deepcopy(self._last_pending.get(app, self._last_pending.get(None, {
+                'items': [], 'total': 0, 'cursor': None, 'restore_required': self.store.locked})))
+            result['unavailable'] = 'Live pending read failed on storage; snapshot only. Restart recovery and inspect status before any further change.'
+            from .mail.filing import public_notice
+            notices = {n['operation_id']: n for n in result.get('notices', [])}
+            new_notices = []
+            for changes, _, _ in self.store.deferred_notices.values():
+                for key, value in changes.items():
+                    if key.startswith('notice:') and not value.get('ack'):
+                        notices[value['id']] = public_notice(self.store, value)
+                        new_notices.append(value['id'])
+                        self.store.observations.observe(value['id'], {'filing_warning': value['untrusted_content']})
+            if notices:
+                order = list(dict.fromkeys([*reversed(new_notices), *notices]))
+                result['notices'] = [notices[key] for key in order[:3]]
+                total = len(notices) + result.get('notices_more', {}).get('count', 0)
+                if total > 3:
+                    result['notices_more'] = {'count': total - 3, 'action': 'mail_filing_notices'}
+            return result
 
     def _pending(self, app=None, args=None, resolve_checks=True):
-        from .owner_state import owner_view
-        args = dict(args or {})
-        cursor = args.get('cursor')
-        if isinstance(cursor, str) and cursor.startswith('pending/'):
-            _, scope, cursor = cursor.split('/', 2)
-            if scope not in self.adapters or app is not None and app != scope:
-                raise Refused('stale_reference', 'Pending cursor belongs to another app; read again without it.')
-            app = scope
-            args['cursor'] = cursor
-        self.store.refresh_restore(clear_transient=not getattr(self.store, 'in_request', False))
-        view = owner_view(self.store)
         notices = self.notices(resolve_checks=resolve_checks)
         def rows():
-            for key, op in view.iter_items('op:'):
+            for key, op in self.store.iter_items('op:'):
                 if ((app is not None and op['app'] != app) or
                         not (op['state'] in {'reserved', 'submitting', 'partial', 'unknown'} or
                              (op.get('notice') and not op.get('ack')))):
                     continue
-                created = view.retained_at(key)
-                yield ((created, op['id']),
+                created = self.store.db.execute('SELECT created FROM retained WHERE k=?', (key,)).fetchone()
+                yield ((created[0] if created else 0, op['id']),
                        {'operation_id': op['id'], 'app': op['app'], 'state': op['state'], 'reason': op['reason']})
-        page = ordered_page(rows, args, ['pending', app])
-        if app is not None and page['cursor']:
-            # Passive app envelopes advertise control_pending as their reader.
-            # Carry that app scope across the handoff without changing paging.
-            page['cursor'] = 'pending/' + app + '/' + page['cursor']
-        return page | {'restore_required': self.store.locked} | notices
+        return ordered_page(rows, args, ['pending', app]) | {'restore_required': self.store.locked} | notices
 
     def page(self, values, args, scope):
         token, offset = digest([scope, values]), 0
@@ -136,9 +134,7 @@ class Engine:
             # Store.write/_append latch once a transaction may have started.
             # A ledger refusal before any write needs only the owner notice.
             notice_id = 'background-storage'
-            from .owner_state import owner_view
-            old = owner_view(self.store).get('notice:' + notice_id)
-            notice = old or {'id': notice_id, 'app': 'mail', 'state': 'partial', 'ack': False,
+            notice = {'id': notice_id, 'app': 'mail', 'state': 'partial', 'ack': False,
                       'created_at': time.time_ns(), 'untrusted_content': {'reason': str(error)}}
             self.store.defer_notice(notice_id, {'notice:' + notice_id: notice},
                                     'control_maintenance', 'Background storage failure')
@@ -147,41 +143,9 @@ class Engine:
             logging.getLogger(__name__).error('Background maintenance failed; inspect service state.')
 
     def expire(self):
-        if self.store.locked or self.store.write_failed:
-            return
-        # Idle daemon ticks must not grow the permanent journal or invalidate
-        # every audit continuation. Discover work before admitting its gate.
-        if not (self.store.deferred_notices or
-                any(op['state'] == 'reserved' and time.time() >= op['expires']
-                    for _, op in self.store.iter_items('op:')) or
-                retention.expire(self, check_only=True)):
-            return
-        # Admit the whole maintenance attempt before its first journal write.
-        # The open check is the durable generic warning if the disk then fails;
-        # no cleanup/expiry work is allowed to precede that commitment.
-        from .storage import CHECK_RESULT_BYTES
-        key = 'notice:background-storage'
-        self.store.ledger.admit(CHECK_RESULT_BYTES * 2)
-        previous = self.store.get(key)
-        notice = previous or {'id': 'background-storage', 'app': 'mail',
-            'state': 'partial', 'ack': False, 'created_at': time.time_ns(),
-            'check_kind': 'maintenance', 'check_open': True,
-            'untrusted_content': {'maintenance_check': True, 'reason':
-                'Background maintenance has no committed result. Storage may have failed; inspect the log and disk before continuing.'}}
-        self.store.write({key: notice}, 'control_maintenance_check_open',
-            'Maintenance result is not yet committed', recovery=True)
-        completed = False
         try:
             self._expire()
-            completed = True
-            self.store.write({key: previous}, 'control_maintenance_check_result',
-                             'Maintenance finished', recovery=True)
         except Exception as exc:
-            if completed and not any(k == key for k, _ in self.store.owner_projection.iter_items(key)):
-                # The resolving marker can be confirmed from the independent
-                # bytes even when its fsync/close reported an error (D4).
-                self.store.observations.storage(exc)
-                raise
             self.background_error(exc)
             raise
 
@@ -226,17 +190,7 @@ class Engine:
         op = self.operation(op_id)
         if op["app"] == "mail":
             outcome = self.adapters["mail"].stage_outcome(op, name, outcome)
-        began_submission = op['app'] == 'mail' and op['state'] == 'reserved' and name == 'message_id'
-        if began_submission:
-            op.update(state='submitting', reason='Durably submitting; do not cancel or retry.')
-            if self.store.observations.evidence.get(op_id, {}).get('sent') == []:
-                op['sent_copy_check'] = {'state': 'checked'}
-                if op.get('warning_checks', {}).get('sent_copies'):
-                    from .warnings import check_result
-                    check_result(self.store, op, 'op:' + op_id, 'sent_copies', [])
         op["stages"][name] = outcome
-        if op['app'] == 'mail' and name == 'smtp_data':
-            op['sent_copy_check'] = {'state': 'open'}
         if name == 'sent_copy' and outcome == 'done' and op.get('sent_copy_check', {}).get('state') == 'open':
             op['sent_copy_check'] = {'state': 'checked', 'clean': True}
             from .warnings import check_result
@@ -248,10 +202,6 @@ class Engine:
         if op["app"] == "mail":
             self.store.write(changes, op["action"], "Mail operation stage recorded", op_id,
                              untrusted_content={"stage": name, "outcome": outcome})
-            if name == 'smtp_data':
-                self.store.check_sessions.add(('op:' + op_id, self.store.sequence))
-            if began_submission:
-                self.store.checkpoint('submitting')
         else:
             self.store.write(changes, op["action"], "stage " + visible(name) + ": " + outcome, op_id)
         self.store.checkpoint("stage:" + name)
@@ -273,14 +223,7 @@ class Engine:
             return {"operation": self.public_operation(op)}
         adapter = self.adapters[action.app]
         adapter.revalidate(op)
-        sender = action.app == 'mail' and bool(op.get('payload', {}).get('composition'))
-        if sender:
-            self.store.write({'op:' + op['id']: op}, 'mail_sent_copy_check_open',
-                             'Sent-copy check opened before submission', op['id'])
-        with action_scope(self.store, action.name, args, 'op:' + op['id']):
-            existing = adapter.has_submission_evidence(op['id'])
-        op = self.operation(op['id'])
-        if existing:
+        if adapter.has_submission_evidence(op["id"]):
             op.update(state="unknown", reason="Far-side submission evidence already exists; inspect evidence, never submit again.")
             op["stages"]["preflight_evidence"] = "present"
             # Persist the positive finding before another adapter call can fail.
@@ -302,9 +245,8 @@ class Engine:
             value = adapter.submission_context(op)
         if value is not None:
             op.update(context=value, context_version=1)
-        if not sender:
-            self.store.write({"op:" + op["id"]: op}, action.name, "submitting", op["id"])
-            self.store.checkpoint("submitting")
+        self.store.write({"op:" + op["id"]: op}, action.name, "submitting", op["id"])
+        self.store.checkpoint("submitting")
         try:
             with action_scope(self.store, action.name, args, "op:" + op["id"]):
                 state, reason = adapter.execute(op, lambda name, outcome, **kw: self.stage(op["id"], name, outcome, **kw))
@@ -326,7 +268,7 @@ class Engine:
 
     def public_operation(self, op):
         result = {k: v for k, v in op.items() if k not in
-                  {'payload', 'input_hash', 'context', 'context_version', '_owner_encoded', '_owner_description', 'roles_before', 'attempt_ended_at', 'repair_identity_missing',
+                  {'payload', 'input_hash', 'context', 'context_version', 'roles_before', 'attempt_ended_at', 'repair_identity_missing',
                    'sent_append_started_at', 'sent_append_ended_at', 'sent_copy_check', 'warning_checks'} and v is not None}
         if op.get('repair_identity_missing'):
             result['reason'] += ' Permanent repair stage identity is missing; another repair is refused.'
@@ -341,8 +283,6 @@ class Engine:
                                     + time.strftime('%Y-%m-%d %H:%M:%S UTC', time.gmtime(retry))
                                     + f' (Unix {retry:.3f}); the earlier APPEND may still land.')
         warning = op.get('stages', {}).get('sent_copy_warning')
-        if isinstance(warning, dict) and warning.get('code') == 'sent_copies':
-            warning = f"Sent contains {warning.get('count')} copies. Nothing was deleted. Check your mail program."
         if warning:
             result['reason'] += ' ' + warning
         return approval_order(result)
@@ -351,10 +291,6 @@ class Engine:
         old = self.operation(args["operation_id"], app)
         observation = {}
         def response(operation):
-            nonlocal old
-            committed = self.store.get('op:' + old['id'])
-            if committed is not None and not observation.get('settlement_storage_error'):
-                old = committed
             result = {'operation': self.public_operation(operation), 'original': self.public_operation(old)}
             if 'evidence_error' in observation:
                 result['evidence_error'] = observation['evidence_error']
@@ -476,18 +412,14 @@ class Engine:
                 repair["state"], repair["reason"] = "failed", "Local repair refused before acting; inspect operation status." if app == "mail" else "Local repair refused before acting: " + str(exc)
             changes = {"op:" + op_id: repair}
         except Exception as exc:
-            storage = self.store.observations.storage(exc)
-            repair["state"], repair["reason"] = "unknown", (
-                'Local repair storage failed; inspect evidence, never submit.' if storage else
-                'Local repair uncertain; inspect far-side stage evidence. Never submit.')
+            self.store.observations.storage(exc)
+            repair["state"], repair["reason"] = "unknown", "Local repair uncertain; inspect far-side stage evidence. Never submit."
             changes = {"op:" + op_id: repair}
         repair['attempt_ended_at'] = time.time()
         self.store.write(changes, repair["action"], repair["state"], op_id)
         return response(repair)
 
     def dispatch(self, name, args, admin=False):
-        if not getattr(self.store, 'in_request', False):
-            self.store.check_sessions = set()
         action = BY_NAME.get(name)
         if action is None:
             raise Refused("invalid_input", "Unknown action; inspect the tool list.")
@@ -500,7 +432,7 @@ class Engine:
         validate(args, action.input)
         if action.effect != 'read':
             self.store.ensure_writable()
-        if self.store.locked and name not in {"control_restore_confirm", "control_pending", "control_log", "mail_filing_notices", "mail_filing_locations"} and not name.endswith('_operation_status'):
+        if self.store.locked and name != "control_restore_confirm":
             raise Refused("restore_required", "Older log refused; owner must confirm restore before any app access.")
         if name == "control_restore_confirm":
             from .definitions import RESTORE_WARNING
@@ -509,7 +441,7 @@ class Engine:
             from .archive import archive
             return archive(self.store, args['before'], self.adapters['mail'])
         if name == "control_pending":
-            return self.pending(args=args, resolve_checks=not self.store.locked)
+            return self.pending(args=args)
         if name == 'control_observations':
             from .results import observation_page
             return observation_page(self.store, args['cursor'])
@@ -517,10 +449,9 @@ class Engine:
             day = time.strftime("%Y-%m-%d", time.localtime())
             # Continuations read committed warnings: revalidating here would
             # itself add audit rows and invalidate every continuation forever.
-            notices = self.notices(resolve_checks='cursor' not in args and not self.store.locked)
-            from .owner_state import owner_view
+            notices = self.notices(resolve_checks='cursor' not in args)
             def rows():
-                for event in owner_view(self.store).iter_audit():
+                for event in self.store.iter_audit():
                     if time.strftime("%Y-%m-%d", time.localtime(event["time"])) == day:
                         yield (event['time'], event['seq']), event
             page = ordered_page(rows, args, ['log', day])
@@ -539,7 +470,7 @@ class Engine:
                     entry["untrusted_content"] = event["untrusted_content"]
                 entries.append(entry)
             page['items'] = entries
-            return page | notices | {'restore_required': self.store.locked}
+            return page | notices
         app, verb = action.app, action.verb
         adapter = self.adapters[app]
         if verb.startswith("prepare_"):
@@ -547,14 +478,7 @@ class Engine:
         if action.effect in {"send", "delete"}:
             return self.submit(action, args)
         if verb == "operation_status":
-            from .owner_state import owner_view
-            op = owner_view(self.store).get('op:' + args['operation_id'])
-            if self.store.locked or self.store.write_failed or op and op.get('approval') == {'unavailable': True}:
-                if op is None or op['app'] != app:
-                    raise Refused('stale_reference', 'Operation is not in the committed owner state.')
-                return {'operation': self.public_operation(op), 'evidence': {'absence_is_not_proof': True, 'unavailable': True}}
-            if op is None or op['app'] != app:
-                raise Refused('stale_reference', 'Operation is not in the committed owner state.')
+            op = self.operation(args["operation_id"], app)
             result = {}
             try:
                 result["evidence"] = adapter.evidence(op["id"])
@@ -563,12 +487,10 @@ class Engine:
                 # repair. Return that warning in this very status response.
                 op = self.operation(op['id'], app)
                 warning = result['evidence'].get('sent_copy_warning')
-                if warning and not op.get('repair_of'):
+                if warning:
                     op['stages']['sent_copy_warning'] = warning
             except (Refused, OSError, sqlite3.Error, imaplib.IMAP4.error, Uncertain) as exc:
                 storage = self.store.observations.error or storage_refusal(exc)
-                if storage is not None:
-                    self.store.observations.storage(storage)
                 result["evidence_error"] = {"code": getattr(storage or exc, "code", "transport_error"),
                     "message": "Live evidence is not yet checked. " + (str(storage) if storage else
                                "Server evidence is unavailable; inspect the recorded operation and your mail program.")}
@@ -594,8 +516,6 @@ class Engine:
             if notice is None:
                 from .recovery import recovery_notices
                 notice = next((n for n in recovery_notices(self.store) if n['id'] == args['operation_id']), None)
-                if notice is not None:
-                    notice['created_at'] = time.time_ns()
             if notice and notice["app"] == app:
                 if notice.get('check_only'):
                     raise Refused('refused', 'Only cancelled/expired notices may be acknowledged; unresolved work stays visible.')
@@ -673,11 +593,8 @@ class Engine:
     def request(self, request, admin=False):
         previous_request = getattr(self.store, 'in_request', False)
         self.store.in_request = True
-        self.store.check_sessions = set()
         try:
             self.store.observations = Observations()
-            self.store.owner_read_failed = False
-            self.store.refresh_restore()
             self.pending(resolve_checks=False)
             try:
                 if not isinstance(request, dict) or request.get('action') not in {'control_archive', 'control_restore_confirm'}:
@@ -686,15 +603,6 @@ class Engine:
                 self.store.remember_storage(exc)
                 self.store.observations.storage(exc)
             result = self._admitted_request(request, admin)
-            if (isinstance(request, dict) and request.get('method') == 'mail_account_add' and
-                    isinstance(request.get('arguments'), dict) and
-                    isinstance(request['arguments'].get('id'), str) and not result['ok']):
-                from .owner_state import owner_view
-                account = owner_view(self.store).get('mail:account:' + request.get('arguments', {}).get('id', ''))
-                if account is not None and account.get('onboarded'):
-                    result.setdefault('data', {})['account'] = self.adapters['mail'].public_account(account)
-            if self.store.observations.error is not None or result.get('error', {}).get('code') in {'storage_limit', 'storage_error', 'journal_incomplete'}:
-                result['pending'] = self.pending(resolve_checks=False)
             return self.store.observations.finish(result, self.store)
         finally:
             self.store.in_request = previous_request
@@ -801,9 +709,7 @@ class Engine:
                     data = {"recorded": True}
             else:
                 raise Refused("invalid_input", "Unknown method or wrong socket; inspect the protocol.")
-            result = {"ok": True, "data": data, "pending": self.pending(app if app in self.adapters else None, resolve_checks=False)}
-            if self.store.locked:
-                result.update(ok=False, error={'code': 'restore_required', 'message': 'Older log detected; owner confirmation is required. Committed owner facts remain readable.'})
+            result = {"ok": True, "data": data, "pending": self.pending(app, resolve_checks=False)}
             # Blob transfer is private framing, never a model-facing result.
             if method != "download" and len(canonical(result).encode()) > RESULT_LIMIT and method != "tools" and request.get("action") != "control_observations":
                 raise Refused("result_too_large", "Result exceeds 49152 bytes; request a smaller page. Check status before repeating changes.")
@@ -812,13 +718,13 @@ class Engine:
             self.store.observations.storage(exc)
             storage = storage_refusal(exc)
             if storage:
-                return {'ok': False, 'error': {'code': storage.code, 'message': str(storage)}, 'pending': self.pending(app if app in self.adapters else None, resolve_checks=False)}
-            return {"ok": False, "error": {"code": "transport_error", "message": "Mail transport failed; inspect operation status before repeating changes. No automatic retry."}, "pending": self.pending(app if app in self.adapters else None, resolve_checks=False)}
+                return {'ok': False, 'error': {'code': storage.code, 'message': str(storage)}, 'pending': self.pending(app, resolve_checks=False)}
+            return {"ok": False, "error": {"code": "transport_error", "message": "Mail transport failed; inspect operation status before repeating changes. No automatic retry."}, "pending": self.pending(app, resolve_checks=False)}
         except (Refused, ValueError, KeyError, TypeError) as exc:
             self.store.observations.storage(exc)
             message = str(exc) if isinstance(exc, Refused) else "Invalid input or unsupported server data; inspect the tool schema and operation status."
             if app == "mail":
                 message = self.adapters["mail"].transport.scrub(message)
-            return {"ok": False, "error": {"code": getattr(exc, "code", "invalid_input"), "message": message}, "pending": self.pending(app if app in self.adapters else None, resolve_checks=False)}
+            return {"ok": False, "error": {"code": getattr(exc, "code", "invalid_input"), "message": message}, "pending": self.pending(app, resolve_checks=False)}
         except Exception:
-            return {"ok": False, "error": {"code": "internal_error", "message": "Request failed unexpectedly; inspect operation status before repeating changes."}, "pending": self.pending(app if app in self.adapters else None, resolve_checks=False)}
+            return {"ok": False, "error": {"code": "internal_error", "message": "Request failed unexpectedly; inspect operation status before repeating changes."}, "pending": self.pending(app, resolve_checks=False)}
