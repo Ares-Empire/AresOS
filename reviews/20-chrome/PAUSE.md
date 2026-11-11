@@ -50,21 +50,24 @@ in `briefs/20-review-fixes.md`, and the seven reviews are in this folder.
 `REPORT.md` and `STATE-FIXES-REPORT.md` record these as decided rules. The lead writes them into `docs/design/CONTROL.md`
 section 6.
 
-**Running now:** the integration build of brief `20-integrate-3.md`.
+**Stopped, not running:** the integration build of brief `20-integrate-3.md`. Claude Code stopped it because the
+Mac was critically low on memory while the session was idle; that says nothing about the build itself. It is not
+restarted until the lead asks.
 
-- Codex session `01a1c8af-1843-7512-8616-bdbf64a067a2`. Its log is `~/AresOS-20-integrate3.log`, and its last message
-  will be in `~/AresOS-20-integrate3.last.md`.
-- On head `f25ac736`, base, Mail, boundary and qualification have each passed twice.
-- Chrome runs `42963287917` and `42963294395` are still running. The build's independent audit of their artifacts
-  comes after them, then its report commit and push.
-- This file is committed locally on top of `f25ac736` and goes out with that push. If the build stops before
-  pushing, push the branch on resume.
+- Codex session `01a1c8af-1843-7512-8616-bdbf64a067a2`. Its log is `~/AresOS-20-integrate3.log`. To continue it, run
+  `codex exec resume` with that id, the same model and effort, from `~/AresOS-20-chrome`.
+- The Chrome pair on `f25ac736` (`42963287917`, `42963294395`) failed. The build then repaired popup reader recovery
+  (`8ab84e7c`), gave the combined suite more time (`8e73c52f`) and recorded the evidence (`0ae4ac41`, `[skip ci]`).
+- On `0ae4ac41`, base, Mail, boundary and qualification have each passed twice.
+- Chrome run `42989465778` on `0ae4ac41` was still running when the build stopped. Still to do: its result, a second
+  complete Chrome run on the same head, the build's independent audit of the artifacts, and the final report.
+- This file and the build's commits are pushed.
 
 **Workflow runs:**
 
 | Branch | `control-chrome.yml` runs used | Allowance |
 |---|---|---|
-| `pkg/20-chrome` | 174 | about 185 |
+| `pkg/20-chrome` | 175 | about 185 |
 | `pkg/20-chrome-state` | 17 | 25 |
 | `pkg/20-chrome-adapters` | 6 | 25 |
 | `pkg/20-chrome-qual` | 15 | 25 |
@@ -88,8 +91,9 @@ All three side branches are merged.
 
 ## On resume
 
-1. Read the integration build's last message. Check that the Chrome pair on its final head passed in both install
-   modes. If it did, send the lead the head; if not, fix what failed within the run allowance.
+1. With the lead's go, resume the integration build (session above): check run `42989465778`, get a second complete
+   Chrome run on the same head, then the artifact audit and the report. Once its head is green twice, send the lead
+   the head; if anything fails, fix it within the run allowance.
 2. Wait for the lead's concrete list from the decision-24 clarification. Then rescope the re-check, its angles and
    threat model, and any fix work to that list. The scoped re-check had been prepared: each reviewer checks its own
    findings plus the fix diff, with astra for A to D, sol for the package review and E, and the lead's Claude
