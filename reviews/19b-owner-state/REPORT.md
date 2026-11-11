@@ -2866,3 +2866,112 @@ Tool actions, approval inputs, question text and binding were not changed.
 
 No mid-run answer or approval is requested. The lead has the measured table and
 counterexample. The run ends at the storage stop, with stage 3 incomplete.
+
+## Re-scope (owner, 2026-11-12)
+
+**Read — scope:** `briefs/19b-rescope.md` supersedes the original stage-3
+acceptance bar. Stage 2 is the end. This change only implements ★2: workflow
+selection, test organisation and documentation. No production code, tool action,
+question, approval binding, credential handling or marking changes. The saved
+stage-3 candidates remain inactive patches. This is implementation/verification,
+not the package lead's package or security review.
+
+**Read — optional checks:** `.github/workflows/control-owner-oracle.yml` has
+only `workflow_dispatch`. It retains every strict owner-state sweep mode, fault,
+cleanup pair, crash/restart and restored-space comparison in
+`test_owner_state_sweep`, the full `test_owner_state_perturb` corpus and planted
+controls (`test_owner_state_plants`), the pinned matrix contracts and all-flow
+point-zero comparison in `test_owner_state_contracts`, the three pinned
+`G22-*` methods in `test_owner_state_regressions`, the installed-channel cursor
+comparison in `test_owner_state_channels`, and the real-ledger ownership test
+in `test_owner_state_oracle`. None of their assertions is weakened or deleted.
+The former required 64-job Mail matrix becomes eight required jobs (four suite
+shards and four inherited-sweep shards). Manual checks retain 12 ordinary
+owner shards in each of two flow groups, 24 onboarding shards, 12 alteration
+shards and one installed-channel/ledger job. Contracts/G22 execute once in
+owner group 0, shard 0. Required Mail jobs have a 35-minute cap; optional fault
+and alteration jobs keep the 45-minute cap.
+
+**Read — ledger correction:** the stage-3 candidate had emptied
+`KNOWN-GAPS.json`; `dec6903b` restored `control/`, `.github/` and `docs/` but
+left review documents unchanged. Restored the exact compact pin from the SAFE
+stage-2 head `7b0e9a05`: 1,968,467 keys, all stage 3, zero R2, 2,011 groups,
+924,737 bytes, SHA-256
+`356e8960830c6d46ee375462192ab7333593175ce8bd756ee5fe9e408b7982fc`.
+`KNOWN-GAPS.md` now labels it optional. It remains strict: additions, removals,
+unexpected passes, changed deltas and unexecuted owned groups fail the manual
+check. Full actual lists remain ignored downloadable CI artifacts.
+
+**Read — what stays required, by module:**
+
+| Area | Required selection |
+| --- | --- |
+| Base | Every existing `control/tests/test_*.py` suite, except the installed-channel pinned case and real-ledger ownership method named above. Includes `test_owner_state_oracle` self-tests (synthetic ledger tests included), its import-independence test, `test_owner_state_fixes_s2`, and `test_mail_ci_selection`. |
+| Mail suites | Every pre-19b Mail suite: `test_adapter`, `test_composition`, `test_delete`, `test_fixture`, `test_onboarding`, `test_proxy`, `test_roles`, `test_send`, `test_unsubscribe`, and all `test_review*` modules except the separately sharded inherited sweep/IO pair. |
+| Inherited fault sweep | `test_review23_sweep` and `test_review24_io`, unchanged assertions and full modes, over four shards. |
+| Targeted 19b regressions | `test_action_context`, `test_owner_state_s2_effects`, and the passing review-20 refused-reopen/archive and review-21 acknowledged-rename/expiry and changed-warning/paging methods in `test_owner_state_regressions`. |
+| Normal use | `test_owner_state_quiet`: point zero for all 34 flows; no warnings when none are owed, no warning over-count or duplicate, exact R2 pre-command context and approval disclosure. The ten existing clean-operation fixtures separately assert done, no passive notices, and no lifecycle/completion errors, including send, move/copy/rename and both delete kinds. |
+| Boundary | Existing hostile, seccomp-present/absent and separate coding-policy/user suites, unchanged. |
+
+Required tests consult neither `KNOWN-GAPS.json` nor
+`owner_state_quiet_gaps.json`. The original full point-zero equality test still
+runs unchanged in the optional check: its nine pinned production failures are
+known limits, rather than a condition for passing required CI. Required quiet
+checks assert absence of spurious warnings; exhaustive missing-disclosure and
+warning-detail equality belongs to the retained optional oracle. Base/Mail
+selection tests check complete/disjoint ownership and preserve every original
+case. `pkg/19-mail` remains an allowed PR base.
+
+**Read — known limits under ★3 (owner effects; no new harm ruling is implied):**
+
+| Dropped stage-3 behavior / case | Effect for the owner |
+| --- | --- |
+| Shared committed-record read path and durable owner-state projection | Working rows, startup state or memory can remain the only source of some pending work/warnings; a failed write or restart can lose a disclosure. |
+| SQLite-read fallback, including persistent exhaustion and failed rollback | Pending/notices/log/passive views need not remain complete or available when the working database cannot be read. |
+| Restore reconciliation of generic free-change checks, warnings and acknowledgements | Restoring an older database can lose an unacknowledged warning or revive an acknowledged one; Mail round 29's restore-limit sentence remains true and stays in the tool result/description. |
+| General warning lifecycle through clean checks, changed evidence, acknowledgement, archive, expiry and restart | An occurrence can disappear too soon, return after acknowledgement, or disclose stale/incomplete evidence; exhaustive identity/equality guarantees are optional evidence only. |
+| Current refusal recomputation / `G22-latch` | A zero-byte journal ENOSPC can keep a healthy later write refused until recovery/restart. |
+| `G22-rename` | A live rename can describe the destination as unverified while LIST observed Trash and Drafts was unresolved. |
+| `G22-evidence` | A refused recovery-result write can discard the observed Trash warning before the remote role changes again. |
+| First-write full-disk background warning | When the first failed maintenance write changes no persisted byte, its deferred background-storage warning can disappear after restart. |
+| Open evidence checks and failed result writes | A read-only check's evidence or unfinished state need not survive exhaustion/restart; the owner may miss the reason further inspection is needed. |
+| Admission/holds, unfinished export publication, rollback/manifests and ordinary disclosures | Working and passive views can omit or disagree about held/unfinished work or its publication state under faults. |
+| Qualification/protected roles and legacy context-free unfinished work | Warnings can be incomplete or require another explicit check; stage 2 commits context for new mutations but does not build stage 3's durable disclosure source. |
+| Point-zero attachment export, export rollback and test-app export | Export/download envelopes omit an unfinished publication notice. |
+| Point-zero cancellation and expiry | Passive pending envelopes omit the cancellation/expiry notice and resolved work. |
+| Point-zero rename | A retained warning says ordinary although the independently observed destination role is Trash. |
+| Point-zero failed password publication | Failed account setup can leave its committed password-publication intent undisclosed; this is a missing warning, not a new credential channel. |
+| Point-zero restore | Committed sequences outside the declared rollback interval and restored pending work can be absent from passive views. |
+| Point-zero settlement | The duplicate-case public `sent_copy_warning` stage can differ from its committed parent stage. |
+| Installed test-app passive cursor | Its continuation can restart/change scope instead of returning its own remaining pending page; the explicit all-app hook continuation remains separately asserted by the retained test. |
+
+The compact ledger and coverage matrix retain the full affected row/view/mode
+inventory. These are disclosure, availability and lifecycle limitations for the
+lead's security review; ★3 still requires fixing flaws with real harm potential.
+This run adds no production workaround or new replay path.
+
+**Read — storage decision:** the owner's 2026-11-11 board #176 storage decision
+applied to the dropped stage-3 candidate and is moot now. Stage 2 adds **zero
+permanent journal bytes**; no projection is enabled. Prior candidate storage
+figures above remain historical measurements, not an active storage policy.
+
+**Read — Chrome compatibility:** `git diff d3babf1f --
+control/aresos_control/warnings.py control/aresos_control/mail/warnings.py
+control/aresos_control/paging.py control/aresos_control/mail/paging.py` is empty.
+Every production change to `warnings.py` and `paging.py` since `d3babf1f`:
+**none**. Withdrawn candidate-only changes above are not active.
+
+**Run — local checks before CI:** 148 selector/oracle/stage-2 self-tests passed
+(`.work/19b-rescope-unit.txt`: `Ran 148 tests ... OK`). The first focused Mail
+invocation had a local `support` module path collision; corrected the path
+order. With worktree-only synthetic policy fixtures, 35 of 36 focused Mail tests
+passed, including both new quiet tests, all original contracts and named gaps;
+`test_action_context`'s spawned worker alone failed because it could not inherit
+the local policy mock (`boundary_not_installed`). This is not container evidence;
+Linux CI runs with the installed managed policy. Shell syntax checks and
+`git diff --check` passed. No system software or settings were changed.
+
+**Verification / run count:** remote run IDs, attempts, results, output lines and
+job durations are recorded below after the blocking watches. The intended
+acceptance is one manual optional dispatch and two passes of each required
+workflow on the completed implementation; prior package runs above are historical.
