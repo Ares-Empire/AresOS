@@ -81,12 +81,21 @@ class Mail:
             return self.append(account, folder, raw, flags)
 
     def public_account(self, account):
+        fields = ("id", "addresses", "capabilities", "smtp_capabilities", "special", "sent_policy", "safe_folder_delete", "format", "signature", "ready")
+        if any(field not in account for field in fields):
+            # A compact restore retains identity and qualification, while the
+            # lost working configuration must be set up by the owner.
+            defaults = {'addresses': [], 'capabilities': [], 'smtp_capabilities': [], 'special': {},
+                        'sent_policy': 'unqualified', 'safe_folder_delete': False, 'format': 'plain', 'signature': ''}
+            return {**defaults, **{k: account[k] for k in fields if k in account}, 'ready': False,
+                    'optional_roles': {role: {'status': 'needs_setup', 'reason': SETUP} for role in OPTIONAL},
+                    'folder_delete_reason': account.get('folder_delete_reason', 'Working configuration is unavailable after restore. ' + SETUP)}
         try:
             with self.transport.imap(account) as client:
                 optional = optional_status(recorded_optional(account), optional_roles(folders(client)))
         except (Refused, OSError, imaplib.IMAP4.error):
             optional = {role: {"status": "needs_setup", "reason": "Current role could not be checked. " + SETUP} for role in OPTIONAL}
-        return {k: account[k] for k in ("id", "addresses", "capabilities", "smtp_capabilities", "special", "sent_policy", "safe_folder_delete", "format", "signature", "ready")} | {"optional_roles": optional, "folder_delete_reason": account.get("folder_delete_reason", "Not qualified by onboarding.")}
+        return {k: account[k] for k in fields} | {"optional_roles": optional, "folder_delete_reason": account.get("folder_delete_reason", "Not qualified by onboarding.")}
 
     def fresh_roles(self, account, client=None, names=(), needed=()):
         if client is None:
@@ -743,16 +752,35 @@ class Mail:
             return result
 
     def register_sent_check(self, operation):
-        if operation.get('sent_copy_check', {}).get('state') != 'open':
-            opened = copy.deepcopy(operation)
-            opened['sent_copy_check'] = {**opened.get('sent_copy_check', {}), 'state': 'open'}
-            try:
-                self.store.write({'op:' + operation['id']: opened}, 'mail_sent_copy_check_open',
-                                 'Sent-copy check opened before reading evidence', operation['id'])
-            except (Refused, OSError, sqlite3.Error) as exc:
-                self.store.observations.storage(exc, generic=True)
-                raise
-            operation.update(opened)
+        key = 'op:' + operation['id']
+        current = self.store.get(key)
+        operation.update(current)
+        epoch = self.store.owner_projection.open_epoch(key)
+        sessions = getattr(self.store, 'check_sessions', set())
+        scope = getattr(self.store, '_action_scope', None) or {}
+        own = scope.get('source_key') == key and epoch == self.store.sequence
+        if epoch is not None and ((key, epoch) in sessions or own):
+            sessions.add((key, epoch))
+            self.store.check_sessions = sessions
+            return
+        from ..warnings import unrecorded_evidence
+        changes = unrecorded_evidence(self.store, key, epoch, 'sent_copies') if epoch is not None else {}
+        opened = copy.deepcopy(operation)
+        opened['sent_copy_check'] = {'state': 'open'}
+        changes[key] = opened
+        try:
+            self.store.write(changes, 'mail_sent_copy_check_open',
+                             'Sent-copy check opened before reading evidence', operation['id'])
+        except Refused as exc:
+            if exc.code == 'storage_limit' and not self.store.write_failed and epoch is not None:
+                closed = copy.deepcopy(operation)
+                closed['sent_copy_check'] = {'state': 'checked', 'clean': False, 'unrecorded': True}
+                self.store.write({**changes, key: closed}, 'mail_sent_copy_check',
+                                 'Interrupted Sent evidence retained before a new check', operation['id'], recovery=True)
+            raise
+        operation.update(opened)
+        sessions.add((key, self.store.sequence))
+        self.store.check_sessions = sessions
 
     def sent_copy_count(self, operation, matches, commit_clean=False):
         from ..warnings import check_result
@@ -825,7 +853,7 @@ class Mail:
         for key, op in view.iter_items('op:'):
             check = op.get('sent_copy_check', {})
             if op['app'] == 'mail' and (check.get('state') == 'open' or
-                    check and self.store.write_failed and key not in warnings):
+                    check and (self.store.write_failed or self.store.locked) and key not in warnings):
                 yield self.unchecked_sent_notice(op)
 
     def evidence(self, operation_id):

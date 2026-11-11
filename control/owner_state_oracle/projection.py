@@ -34,7 +34,7 @@ def stage_codes(stages):
     return result
 
 
-FIELDS = set("id generation app action state expires notice ack context_version repair_of context roles_before check_open sent_copy_check warning_checks source_key check_kind evidence_fingerprint created_at onboarded ready qualification account source destination target references identities message_count locations roles special stage stages attempt_ended_at sent_append_started_at sent_append_ended_at repair_identity_missing untrusted_content reason path sha256 before events operations head checks size created_blob verb sources records observed_role roles_after unresolved_roles pages total_messages fragments".split())
+FIELDS = set("id generation app action state expires notice ack context_version repair_of context roles_before check_open sent_copy_check warning_checks source_key check_kind evidence_fingerprint created_at onboarded ready qualification account source destination target references identities message_count locations roles special stage stages attempt_ended_at sent_append_started_at sent_append_ended_at repair_identity_missing untrusted_content reason path sha256 before events operations head checks size created_blob verb sources records observed_role roles_after unresolved_roles pages total_messages fragments sent_policy safe_folder_delete".split())
 OMIT = {'reason', 'question', 'text', 'html', 'subject', 'title', 'password', 'arguments', 'approval', 'payload', 'summary', 'body', 'raw'}
 PREFIX = ('op:', 'intent:', 'export:', 'notice:', 'mail:filing:', 'mail:rename:', 'mail:filing-locations:', 'mail:account:', 'archived:', 'archive:')
 
@@ -65,11 +65,69 @@ def fact(key, value):
             row['reason_kind'] = 'smtp_partial_local' if value['reason'].startswith('Some recipients refused;') else 'smtp_local'
     if 'stages' in value:
         row['stages'] = stage_codes(value['stages'])
+    if 'folder_delete_reason' in value:
+        text = value['folder_delete_reason']
+        row['qualification_code'] = 'qualified' if text.startswith('Qualified:') else next((code for phrase,code in (
+            ('did not survive', 'probe_missing'), ('Exact probe UID EXPUNGE cleanup failed', 'exact_cleanup_failed'),
+            ('Empty probe folder DELETE cleanup failed', 'empty_cleanup_failed'),
+            ('Exact probe removed; empty folder retained', 'generic_cleaned'),
+            ('could not be verified', 'survival_unverified')) if phrase in text), 'unqualified')
     return row
 
 
-def publication(changes):
-    return base64.b64encode(hashlib.sha256(canonical(changes).encode()).digest()).decode()
+def record_kind(event, key, value):
+    if not isinstance(value, dict):
+        return 'resolution'
+    action, state = event['action'], value.get('state')
+    family = 'op' if key.startswith('op:') else 'filing' if key.startswith('mail:filing:') else 'rename' if key.startswith('mail:rename:') else ''
+    if action.endswith('_notice_ack') and value.get('ack'):
+        return 'acknowledgement'
+    explicit = (action == 'mail_sent_copy_check_open' and family == 'op' or
+                action == 'mail_filing_check_open' and family in {'filing', 'rename'})
+    mutation_check = family in {'filing', 'rename'} and state == 'started' and bool(value.get('context')) and (
+        family == 'rename' or all(not row.get('destination') for row in value.get('records', [])))
+    if explicit or mutation_check:
+        return 'check-open'
+    if key.startswith('intent:archive-'):
+        return 'check-open' if state == 'started' and value.get('check_open') else 'check-result'
+    stage = event.get('untrusted_content', {}).get('stage', '')
+    if (family == 'op' and stage == 'smtp_data' and
+            (event.get('untrusted_content', {}).get('outcome') == 'attempting' or not value.get('context')) and
+            value.get('sent_copy_check', {}).get('state') == 'open'):
+        return 'check-open'
+    result = (action in {'mail_sent_copy_check', 'mail_filing_check'} or
+              key.startswith('notice:') and bool(value.get('check_kind')) or
+              family in {'filing', 'rename'} and state in {'done', 'partial'} or stage == 'sent_copy')
+    if result:
+        return 'check-result'
+    return 'context' if state in {'reserved', 'submitting', 'started'} or event.get('outcome') == 'started' else 'resolution'
+
+
+def check_episodes(record):
+    episodes, current = {}, {}
+    for sequence, changes in sorted(record.owner_versions.items()):
+        for source, row in changes.items():
+            if not source.startswith(('op:', 'mail:filing:', 'mail:rename:')):
+                continue
+            kind = record.owner_kinds.get(sequence, {}).get(source)
+            if kind == 'check-open':
+                if source in current:
+                    episodes[source, current[source]]['end'] = sequence
+                    episodes[source, current[source]]['ending'] = 'replaced'
+                current[source] = sequence
+                episodes[source, sequence] = {'start': sequence, 'source': source, 'end': None, 'ending': None}
+            closed = kind == 'check-result' or source.startswith('op:') and (row or {}).get('sent_copy_check', {}).get('state') != 'open'
+            if closed and source in current:
+                episodes[source, current[source]]['end'] = sequence
+                episodes[source, current[source]]['ending'] = 'result'
+                current.pop(source)
+    return episodes, current
+
+
+def publication(changes, kinds=None):
+    kinds = kinds or {}
+    encoded = {k: {'kind': kinds.get(k, 'resolution'), 'facts': value} for k,value in changes.items()}
+    return base64.b64encode(hashlib.sha256(canonical(encoded).encode()).digest()).decode()
 
 
 def archive_publication(evidence, run, entries):
@@ -137,7 +195,7 @@ def export(evidence, run):
 def decode(evidence, fences, committed):
     """Return selected facts, per-key sequences, and qualified full history."""
     fences = {row['seq']: row for row in fences}
-    versions, history, runs, covered = [], {}, {}, set()
+    versions, history, runs, covered, owner_kinds = [], {}, {}, set(), {}
     path = Path(evidence) / 'owner-tombstones.bin'
     if path.exists():
         raw = path.read_bytes()
@@ -239,16 +297,18 @@ def decode(evidence, fences, committed):
             # The chain verifies the file bytes. The independent fence anchors
             # the complete source set; retirement may retain a covered subset.
             facts = {k: row['facts'] for k, row in data.items()}
-            tag = base64.b64encode(hashlib.sha256(canonical(facts).encode()).digest()).decode()
+            kinds = {k: row['kind'] for k,row in data.items()}
+            tag = publication(facts, kinds)
             if fences[seq].get('owner') not in (None, tag):
                 original = history.get(seq)
                 full_facts = {k: fact(k,v) for k,v in original['set'].items() if selected(k)} if original else {}
-                if (not original or publication(full_facts) != fences[seq]['owner'] or
-                        any(k not in full_facts or value != full_facts[k] for k,value in facts.items())):
+                if (not original or publication(full_facts, {k: record_kind(original, k, v) for k,v in original['set'].items() if selected(k)}) != fences[seq]['owner'] or
+                        any(k not in full_facts or value != full_facts[k] or kinds[k] != record_kind(original, k, original['set'][k]) for k,value in facts.items())):
                     raise ValueError('Owner publication hash mismatch')
             if seq in committed:
                 covered.add(seq)
                 versions.append((seq, facts, False))
+                owner_kinds[seq] = kinds
             previous, last, offset = chain, seq, offset + 44 + size
     missing = {seq for seq, record in fences.items() if seq in committed and record.get('owner')} - covered
     if missing:
@@ -263,4 +323,4 @@ def decode(evidence, fences, committed):
             sequences[key] = seq
             if complete:
                 full.add(key)
-    return rows, sequences, history, full, {seq: changes for seq,changes,complete in versions if not complete}, [[seq, changes] for seq,changes,complete in versions if complete]
+    return rows, sequences, history, full, {seq: changes for seq,changes,complete in versions if not complete}, [[seq, changes] for seq,changes,complete in versions if complete], owner_kinds

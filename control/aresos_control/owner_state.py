@@ -118,6 +118,17 @@ class OwnerView:
         row = dict(row)
         row.pop('reason_code', None)
         reason_kind = row.pop('reason_kind', None)
+        if key.startswith('mail:account:'):
+            code = row.pop('qualification_code', None)
+            if code:
+                row['folder_delete_reason'] = {
+                    'qualified': 'Qualified: exact probe survival and cleanup were verified.',
+                    'probe_missing': 'Probe folder did not survive nonempty DELETE.',
+                    'exact_cleanup_failed': 'Exact probe UID EXPUNGE cleanup failed; inspect setup.',
+                    'empty_cleanup_failed': 'Empty probe folder DELETE cleanup failed; inspect setup.',
+                    'generic_cleaned': 'Exact probe removed; empty folder retained for owner cleanup.',
+                    'survival_unverified': 'Probe survival or cleanup could not be verified.',
+                    'unqualified': 'Folder deletion has not been qualified.'}[code]
         if key.startswith('op:'):
             row.setdefault('approval', {'unavailable': True})
             row.setdefault('expires', 0)
@@ -142,7 +153,13 @@ class OwnerView:
             if row.get('check_kind') in {'rename', 'filing'}:
                 source = self.get(row.get('source_key', '')) or {}
                 role = source.get('observed_role', 'an unverified role').lstrip('\\')
-                content['reason'] = 'Filing needs inspection, inside ' + role + '. Nothing was deleted. Check your mail program.'
+                location = ('inside ' + role if row['check_kind'] == 'rename' else
+                            'The target ' + str(source.get('target', 'unknown'))[:64] + ' is now ' + role)
+                content['reason'] = 'Filing needs inspection. ' + location + '. Nothing was deleted. Check your mail program.'
+            if row.get('check_kind') == 'evidence_unrecorded':
+                content['reason'] = ('An earlier Sent check has no committed result. Sent copies may be duplicated. Nothing was deleted. Check your mail program.'
+                                     if content.get('check_kind') == 'sent_copies' else
+                                     'An earlier filing check has no committed result. Messages or folders may have moved into Trash. Nothing was deleted. Check your mail program.')
             if row.get('check_kind') == 'sent_copies':
                 content['reason'] = f"Sent contains {content.get('message_count', 0)} copies. Nothing was deleted. Check your mail program."
             row['untrusted_content'] = content

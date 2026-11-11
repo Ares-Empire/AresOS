@@ -17,7 +17,8 @@ def check_result(store, source, source_key, kind, evidence, content=None, notice
     if content is None:
         # Fingerprints identify warning evidence. A clean result only ends
         # that condition; keep its previous occurrence for history/ack.
-        checks[kind] = {**previous, 'warning': False}
+        if previous:
+            checks[kind] = {**previous, 'warning': False}
         return {}, None
     fingerprint = digest(evidence)
     if previous.get('warning') and previous.get('fingerprint') == fingerprint:
@@ -50,3 +51,25 @@ def source_notices(store, source_key):
         if (notice.get('source_key') == source_key or content.get('intent_key') == source_key or
                 source_key.startswith(('mail:filing:', 'mail:rename:')) and notice['id'] == source_id):
             yield notice
+
+
+def unrecorded_evidence(store, source_key, epoch, check_kind):
+    """An interrupted check's generic occurrence survives later clean evidence."""
+    identity = ('sent-' + digest(source_key[3:])[:32] if source_key.startswith('op:')
+                else source_key.rsplit(':', 1)[-1]) + '-' + format(epoch, '032x')
+    existing = store.get('notice:' + identity)
+    if existing is not None:
+        return {}
+    content = {'intent_key': source_key, 'lost_check': epoch, 'check_kind': check_kind,
+               'reason': ('An earlier evidence check has no committed result. Sent copies may be duplicated. '
+                          'Nothing was deleted. Inspect Sent in your mail program.' if check_kind == 'sent_copies' else
+                          'An earlier filing check has no committed result. Messages or folders may have moved into Trash. '
+                          'Nothing was deleted. Inspect the filing audit and your mail program.')}
+    if source_key.startswith('op:'):
+        content['operation_id'] = source_key[3:]
+    notice = {'id': identity, 'app': 'mail', 'state': 'partial', 'ack': False,
+              'created_at': time.time_ns(), 'source_key': source_key,
+              'check_kind': 'evidence_unrecorded',
+              'evidence_fingerprint': digest(['unrecorded', source_key, epoch]),
+              'untrusted_content': content}
+    return {'notice:' + identity: notice}

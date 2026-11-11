@@ -69,6 +69,8 @@ class Engine:
         return result
 
     def pending(self, app=None, args=None, resolve_checks=True):
+        if not getattr(self.store, 'in_request', False):
+            self.store.check_sessions = set()
         try:
             return self._pending(app, args, resolve_checks)
         except (OSError, sqlite3.Error) as exc:
@@ -168,7 +170,17 @@ class Engine:
         op = self.operation(op_id)
         if op["app"] == "mail":
             outcome = self.adapters["mail"].stage_outcome(op, name, outcome)
+        began_submission = op['app'] == 'mail' and op['state'] == 'reserved' and name == 'message_id'
+        if began_submission:
+            op.update(state='submitting', reason='Durably submitting; do not cancel or retry.')
+            if self.store.observations.evidence.get(op_id, {}).get('sent') == []:
+                op['sent_copy_check'] = {'state': 'checked'}
+                if op.get('warning_checks', {}).get('sent_copies'):
+                    from .warnings import check_result
+                    check_result(self.store, op, 'op:' + op_id, 'sent_copies', [])
         op["stages"][name] = outcome
+        if op['app'] == 'mail' and name == 'smtp_data':
+            op['sent_copy_check'] = {'state': 'open'}
         if name == 'sent_copy' and outcome == 'done' and op.get('sent_copy_check', {}).get('state') == 'open':
             op['sent_copy_check'] = {'state': 'checked', 'clean': True}
             from .warnings import check_result
@@ -180,6 +192,10 @@ class Engine:
         if op["app"] == "mail":
             self.store.write(changes, op["action"], "Mail operation stage recorded", op_id,
                              untrusted_content={"stage": name, "outcome": outcome})
+            if name == 'smtp_data':
+                self.store.check_sessions.add(('op:' + op_id, self.store.sequence))
+            if began_submission:
+                self.store.checkpoint('submitting')
         else:
             self.store.write(changes, op["action"], "stage " + visible(name) + ": " + outcome, op_id)
         self.store.checkpoint("stage:" + name)
@@ -201,7 +217,14 @@ class Engine:
             return {"operation": self.public_operation(op)}
         adapter = self.adapters[action.app]
         adapter.revalidate(op)
-        if adapter.has_submission_evidence(op["id"]):
+        sender = action.app == 'mail' and bool(op.get('payload', {}).get('composition'))
+        if sender:
+            self.store.write({'op:' + op['id']: op}, 'mail_sent_copy_check_open',
+                             'Sent-copy check opened before submission', op['id'])
+        with action_scope(self.store, action.name, args, 'op:' + op['id']):
+            existing = adapter.has_submission_evidence(op['id'])
+        op = self.operation(op['id'])
+        if existing:
             op.update(state="unknown", reason="Far-side submission evidence already exists; inspect evidence, never submit again.")
             op["stages"]["preflight_evidence"] = "present"
             # Persist the positive finding before another adapter call can fail.
@@ -223,8 +246,9 @@ class Engine:
             value = adapter.submission_context(op)
         if value is not None:
             op.update(context=value, context_version=1)
-        self.store.write({"op:" + op["id"]: op}, action.name, "submitting", op["id"])
-        self.store.checkpoint("submitting")
+        if not sender:
+            self.store.write({"op:" + op["id"]: op}, action.name, "submitting", op["id"])
+            self.store.checkpoint("submitting")
         try:
             with action_scope(self.store, action.name, args, "op:" + op["id"]):
                 state, reason = adapter.execute(op, lambda name, outcome, **kw: self.stage(op["id"], name, outcome, **kw))
@@ -402,6 +426,8 @@ class Engine:
         return response(repair)
 
     def dispatch(self, name, args, admin=False):
+        if not getattr(self.store, 'in_request', False):
+            self.store.check_sessions = set()
         action = BY_NAME.get(name)
         if action is None:
             raise Refused("invalid_input", "Unknown action; inspect the tool list.")
@@ -505,6 +531,8 @@ class Engine:
             if notice is None:
                 from .recovery import recovery_notices
                 notice = next((n for n in recovery_notices(self.store) if n['id'] == args['operation_id']), None)
+                if notice is not None:
+                    notice['created_at'] = time.time_ns()
             if notice and notice["app"] == app:
                 if notice.get('check_only'):
                     raise Refused('refused', 'Only cancelled/expired notices may be acknowledged; unresolved work stays visible.')
@@ -582,6 +610,7 @@ class Engine:
     def request(self, request, admin=False):
         previous_request = getattr(self.store, 'in_request', False)
         self.store.in_request = True
+        self.store.check_sessions = set()
         try:
             self.store.observations = Observations()
             self.pending(resolve_checks=False)

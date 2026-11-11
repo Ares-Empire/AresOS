@@ -30,7 +30,7 @@ def state_vocabulary(records):
         visit(record.events)
         visit(record.fences)
         visit(record.prepared)
-        for group in ('owner_rows', 'owner_sequences', 'owner_versions', 'owner_retired'):
+        for group in ('owner_rows', 'owner_sequences', 'owner_versions', 'owner_retired', 'owner_kinds'):
             visit(getattr(record, group))
     return tuple(sorted(result))
 
@@ -133,7 +133,7 @@ def mutations(record, states=None):
             else:
                 changed.rows[key] = replacement
             yield 'rows/' + key + '/' + '/'.join(map(str, path)), kind, changed
-    for group in ('owner_rows', 'owner_sequences', 'owner_versions', 'owner_retired'):
+    for group in ('owner_rows', 'owner_sequences', 'owner_versions', 'owner_retired', 'owner_kinds'):
         value = getattr(record, group)
         for path,kind,replacement in audited_leaves(value, states):
             changed = copy.copy(record)
@@ -205,12 +205,12 @@ RECORD_EXCLUSIONS = {
 
 
 def field_paths(record):
-    assert set(record.__dict__) == {'rows', 'events', 'fences', 'prepared', 'locked', 'owner_rows', 'owner_sequences', 'owner_versions', 'owner_retired'} | RECORD_EXCLUSIONS.keys(), ('Unaudited decoded record fields', set(record.__dict__))
+    assert set(record.__dict__) == {'rows', 'events', 'fences', 'prepared', 'locked', 'owner_rows', 'owner_sequences', 'owner_versions', 'owner_retired', 'owner_kinds'} | RECORD_EXCLUSIONS.keys(), ('Unaudited decoded record fields', set(record.__dict__))
     result = {'locked'}
     for group in ('fences', 'prepared'):
         for index, value in enumerate(getattr(record, group)):
             result.update(group + '/' + str(index) + '/' + '/'.join(map(str, path)) for path in scalar_fields(value))
-    for group in ('owner_rows', 'owner_sequences', 'owner_versions', 'owner_retired'):
+    for group in ('owner_rows', 'owner_sequences', 'owner_versions', 'owner_retired', 'owner_kinds'):
         result.update(group + '/' + '/'.join(map(str, path)) for path in scalar_fields(getattr(record, group)))
     for key, row in record.rows.items():
         result.update('rows/' + key + '/' + '/'.join(map(str, path)) for path in scalar_fields(row))

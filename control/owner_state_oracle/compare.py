@@ -49,6 +49,13 @@ def notice_facts(notice, record, oracle):
         return {Fact('unbound:' + occurrence, 'unexpected')}
     if content.get('recovery_warning') or content.get('check_open') or saved.get('check_kind') == 'recovery':
         return {Fact(source, 'recovery-handle', occurrence), Fact(source, 'recovery'), Fact(source, 'recovery-context', detail=canonical({'app': notice.get('app'), 'state': notice.get('state'), 'intent_identity': content.get('intent_key') == source, 'reason_present': bool(content.get('reason', '').strip())}))}
+    if saved.get('check_kind') == 'evidence_unrecorded':
+        reason = content.get('reason', '').lower()
+        kind = content.get('check_kind')
+        required = ('sent' if source.startswith('op:') else 'trash')
+        valid = (content.get('lost_check') is not None and 'no committed result' in reason and
+                 required in reason and 'nothing' in reason and 'deleted' in reason)
+        return {Fact(source, 'evidence-unrecorded' if valid else 'invalid-generic-warning', occurrence, kind)}
     kind = saved.get('check_kind', 'rename' if source.startswith('mail:rename:') else 'filing')
     evidence = next((f.detail for f in oracle.detected if f.occurrence == occurrence), '')
     # Public catalogues disclose count/role, not full server identities. Exact
@@ -137,7 +144,7 @@ def source_order(record, source):
 
 
 def source_app(record, source):
-    app = record.rows.get(source, {}).get('app')
+    app = record.rows.get(source, record.owner_rows.get(source, {})).get('app')
     if app is None and source.startswith('op:'):
         action = next((op.get('description', {}).get('action', '') for fence in reversed(record.fences) for op in fence.get('operations', []) if op['id'] == source[3:]), '')
         app = action.split('_', 1)[0]
@@ -179,7 +186,7 @@ def ordered_notices(record, expected, app=None):
         return created, identity
     groups = {}
     for fact in expected:
-        if fact.kind not in {'pending', 'operation-notice'} and (app is None or record.rows.get(fact.source, {}).get('app', 'mail') == app):
+        if fact.kind not in {'pending', 'operation-notice'} and (app is None or record.rows.get(fact.source, record.owner_rows.get(fact.source, {})).get('app', 'mail') == app):
             family = 'unchecked' if fact.kind.startswith('unchecked') else 'recovery' if fact.kind.startswith('recovery') else ''
             handle = next((f.occurrence for f in expected if f.source == fact.source and f.kind == family + '-handle'), None)
             group = handle or notice_identity(record, fact)

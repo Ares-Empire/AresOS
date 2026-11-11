@@ -35,7 +35,7 @@ FIELDS = {'id', 'generation', 'app', 'action', 'state', 'expires', 'notice', 'ac
           'repair_identity_missing', 'untrusted_content', 'reason', 'path', 'sha256',
           'before', 'events', 'operations', 'head', 'checks', 'size', 'created_blob',
           'verb', 'sources', 'records', 'observed_role', 'roles_after', 'unresolved_roles',
-          'pages', 'total_messages', 'fragments'}
+          'pages', 'total_messages', 'fragments', 'sent_policy', 'safe_folder_delete'}
 TEXT = {'reason', 'question', 'text', 'html', 'subject', 'title', 'password',
         'arguments', 'approval', 'payload', 'summary', 'body', 'raw'}
 
@@ -69,6 +69,14 @@ def fact(key, value):
         reason = value['reason']
         if reason.endswith(' Missing local stages; repair without SMTP.'):
             row['reason_kind'] = 'smtp_partial_local' if reason.startswith('Some recipients refused;') else 'smtp_local'
+    if 'folder_delete_reason' in value:
+        reason = value['folder_delete_reason']
+        row['qualification_code'] = ('qualified' if reason.startswith('Qualified:') else
+            'probe_missing' if 'did not survive' in reason else
+            'exact_cleanup_failed' if 'Exact probe UID EXPUNGE cleanup failed' in reason else
+            'empty_cleanup_failed' if 'Empty probe folder DELETE cleanup failed' in reason else
+            'generic_cleaned' if 'Exact probe removed; empty folder retained' in reason else
+            'survival_unverified' if 'could not be verified' in reason else 'unqualified')
     if 'stages' in value:
         row['stages'] = {}
         for name,outcome in value['stages'].items():
@@ -140,6 +148,37 @@ def unpack_identity(data, offset=0):
         return (value[:32] + ':' + value[32:] if kind == 1 else value), offset + size + 1
     size = data[offset + 1]
     return data[offset + 2:offset + 2 + size].decode(), offset + size + 2
+
+
+def record_kind(event, key, value):
+    if value is None or not isinstance(value, dict):
+        return 'resolution'
+    action = event['action']
+    if action.endswith('_notice_ack') and value.get('ack'):
+        return 'acknowledgement'
+    if action == 'mail_sent_copy_check_open' and key.startswith('op:'):
+        return 'check-open'
+    if action == 'mail_filing_check_open' and key.startswith(('mail:filing:', 'mail:rename:')):
+        return 'check-open'
+    if key.startswith(('mail:filing:', 'mail:rename:')) and value.get('state') == 'started' and value.get('context'):
+        if key.startswith('mail:rename:') or not any(r.get('destination') for r in value.get('records', [])):
+            return 'check-open'
+    if key.startswith('intent:archive-'):
+        return 'check-open' if value.get('check_open') and value.get('state') == 'started' else 'check-result'
+    stage = event.get('untrusted_content', {}).get('stage', '')
+    if (key.startswith('op:') and stage == 'smtp_data' and
+            (event.get('untrusted_content', {}).get('outcome') == 'attempting' or not value.get('context')) and
+            value.get('sent_copy_check', {}).get('state') == 'open'):
+        return 'check-open'
+    if action in {'mail_sent_copy_check', 'mail_filing_check'} or key.startswith('notice:') and value.get('check_kind'):
+        return 'check-result'
+    if key.startswith(('mail:filing:', 'mail:rename:')) and value.get('state') in {'done', 'partial'}:
+        return 'check-result'
+    if stage == 'sent_copy':
+        return 'check-result'
+    if value.get('state') in {'reserved', 'submitting', 'started'} or event.get('outcome') == 'started':
+        return 'context'
+    return 'resolution'
 
 
 class OwnerProjection:
@@ -232,9 +271,9 @@ class OwnerProjection:
                     record = fence[2]
                     if record.get('owner') and record['owner'] != self.publication_hash(data):
                         original = self.archived_event(seq)
-                        full = {k: {'facts': fact(k, v)} for k,v in original['set'].items() if selected(k)} if original else {}
+                        full = {k: {'kind': record_kind(original, k, v), 'facts': fact(k, v)} for k,v in original['set'].items() if selected(k)} if original else {}
                         if (not original or record['owner'] != self.publication_hash(full) or
-                                any(k not in full or row['facts'] != full[k]['facts'] for k,row in data.items())):
+                                any(k not in full or row != full[k] for k,row in data.items())):
                             raise ValueError('owner publication hash')
                     if any(v['kind'] not in KINDS[:-1] for v in data.values()):
                         raise ValueError('record kind')
@@ -246,6 +285,8 @@ class OwnerProjection:
     def _recover_tail(self):
         self.previous = bytes(32)
         if not self.path.exists():
+            if any(r.get('owner') for r in self.journal_records()):
+                raise Refused('evidence_corrupt', 'Committed owner projection file is missing; owner recovery required.')
             self.store.ledger.admit(65536)
             self._new(self.path)
         for _, _, chain, _ in self._records(self.path, repair=True):
@@ -276,7 +317,7 @@ class OwnerProjection:
 
     @staticmethod
     def publication_hash(data):
-        payload = {k: row['facts'] for k,row in data.items()}
+        payload = {k: {'kind': row.get('kind', 'resolution'), 'facts': row['facts']} for k,row in data.items()}
         return base64.b64encode(hashlib.sha256(canonical(payload).encode()).digest()).decode()
 
     def archived_event(self, seq):
@@ -299,29 +340,27 @@ class OwnerProjection:
 
     def changes(self, event):
         data = {}
+        previous_rows = {}
+        if event.get('restoring'):
+            wanted = {key for key in event['set'] if selected(key)}
+            # A restore batch has at most 32 source identities. Reconstruct
+            # that bounded set together instead of rescanning once per key.
+            for _, changes in self.records():
+                previous_rows.update((key, value) for key, value in changes.items() if key in wanted)
         for key, value in event['set'].items():
             if not selected(key):
                 continue
             old = self.store.get(key)
             new = fact(key, value)
-            previous = next((v for k,v in self.iter_items(key) if k == key), None) if event.get('restoring') else fact(key, old)
-            if new == previous:
+            previous = previous_rows.get(key) if event.get('restoring') else fact(key, old)
+            if new == previous and not (event['action'] in {'mail_sent_copy_check_open', 'mail_filing_check_open'} and key.startswith(('op:', 'mail:filing:', 'mail:rename:'))):
                 continue
-            kind = 'resolution'
-            if value is not None and isinstance(value, dict):
-                if value.get('ack') and not (old or {}).get('ack'):
-                    kind = 'acknowledgement'
-                elif value.get('check_open') or value.get('sent_copy_check', {}).get('state') == 'open':
-                    kind = 'check-open'
-                elif value.get('warning_checks') != (old or {}).get('warning_checks') or value.get('sent_copy_check') != (old or {}).get('sent_copy_check'):
-                    kind = 'check-result'
-                elif value.get('context') != (old or {}).get('context') or old is None and value.get('state') in {'started', 'reserved', 'submitting'}:
-                    kind = 'context'
+            kind = record_kind(event, key, value)
             data[key] = {'kind': kind, 'facts': new}
         if data:
             for key,value in event['set'].items():
                 if selected(key) and key not in data:
-                    data[key] = {'kind': 'resolution', 'facts': fact(key,value)}
+                    data[key] = {'kind': record_kind(event, key, value), 'facts': fact(key,value)}
         return data
 
     def prepare(self, event, data=None):
@@ -331,6 +370,8 @@ class OwnerProjection:
 
     def seed(self):
         if self.path.stat().st_size == len(MAGIC) and self.store.committed:
+            if any(r.get('owner') for r in self.journal_records()):
+                raise Refused('evidence_corrupt', 'Committed owner projection history is missing; owner recovery required.')
             data = {k: {'kind': 'context' if isinstance(v, dict) and v.get('context') else 'resolution',
                         'facts': fact(k, v)} for k, v in self.store.iter_items('') if selected(k)}
             self.store.ledger.admit(len(canonical(data).encode()) * 3 + 65536)
@@ -380,6 +421,19 @@ class OwnerProjection:
                 if batch[key] is not None:
                     yield key, batch[key]
             cursor = max(batch)
+
+    def open_epoch(self, key):
+        epoch = None
+        for seq, data, _, _ in self._records(self.path):
+            if seq > self.store.committed or key not in data:
+                continue
+            row = data[key]
+            value = row['facts'] or {}
+            if row['kind'] == 'check-open':
+                epoch = seq
+            if row['kind'] == 'check-result' or key.startswith('op:') and value.get('sent_copy_check', {}).get('state') != 'open':
+                epoch = None
+        return epoch
 
     def audit(self):
         # The independent fence still proves each commit's existence and exact

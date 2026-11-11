@@ -803,12 +803,14 @@ class Store:
                          if key.startswith(('intent:', 'mail:filing:', 'mail:rename:')) and
                          isinstance(row['facts'], dict) and row['facts'].get('state') == 'started'}
         for key, value in self.owner_projection.iter_items():
-            if not key.startswith(('intent:', 'notice:', 'mail:filing:', 'mail:rename:', 'mail:account:')):
+            if not key.startswith(('intent:', 'export:', 'notice:', 'mail:filing:', 'mail:rename:', 'mail:account:')):
                 continue
             old = self.get(key)
             if old is not None and self.owner_projection.same(key, old, value):
                 continue
             value = None if key in abort_sources else view.inflate(key, value)
+            if key.startswith('mail:account:') and old is not None:
+                value = {**old, **value}
             amount = len(canonical(value).encode()) + 1024
             if changes and (len(changes) >= RESTORE_BATCH_COUNT or batch_bytes + amount > RESTORE_BATCH_BYTES):
                 changes['restore_pending'] = True

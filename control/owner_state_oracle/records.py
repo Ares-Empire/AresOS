@@ -60,6 +60,7 @@ class Record:
     owner_sequences: dict = field(default_factory=dict)
     owner_versions: dict = field(default_factory=dict)
     owner_retired: list = field(default_factory=list)
+    owner_kinds: dict = field(default_factory=dict)
 
 
 def restore_intervals(events):
@@ -128,7 +129,7 @@ def consistency_errors(record):
             else:
                 rows[key] = value
     if record.owner_versions or record.owner_retired:
-        from .projection import fact, selected, publication
+        from .projection import fact, selected, publication, record_kind
         owner_rows, owner_sequences = {}, {}
         for sequence, changes in sorted([*record.owner_versions.items(), *record.owner_retired], key=lambda item: item[0]):
             for key,value in changes.items():
@@ -144,12 +145,14 @@ def consistency_errors(record):
         events = {event['seq']: event for event in record.events}
         for sequence, changes in record.owner_versions.items():
             fence = fences.get(sequence, {})
-            if fence.get('owner') in (None, publication(changes)):
+            if fence.get('owner') in (None, publication(changes, record.owner_kinds.get(sequence, {}))):
                 continue
             event = events.get(sequence)
             original = {k: fact(k,v) for k,v in event['set'].items() if selected(k)} if event else {}
-            if (not event or publication(original) != fence.get('owner') or
-                    any(k not in original or value != original[k] for k,value in changes.items())):
+            if (not event or publication(original, {k:record_kind(event,k,v) for k,v in event['set'].items() if selected(k)}) != fence.get('owner') or
+                    any(k not in original or value != original[k] or
+                        record.owner_kinds.get(sequence, {}).get(k) != record_kind(event,k,event['set'][k])
+                        for k,value in changes.items())):
                 errors.append(('owner', 'changed-owner-publication', str(sequence)))
     if record.fences:
         for key in rows.keys() | record.rows.keys():
@@ -201,7 +204,7 @@ def decode(state, evidence):
             head = db.execute('SELECT seq,hash FROM head WHERE id=1').fetchone()
     result.head = head
     from .projection import decode as decode_owner
-    result.owner_rows, result.owner_sequences, owner_history, owner_full, result.owner_versions, result.owner_retired = decode_owner(evidence, result.fences, result.committed)
+    result.owner_rows, result.owner_sequences, owner_history, owner_full, result.owner_versions, result.owner_retired, result.owner_kinds = decode_owner(evidence, result.fences, result.committed)
     result.working_sequences = {event['seq'] for event in events}
     def valid_event(event):
         fence = fences.get(event['seq'])

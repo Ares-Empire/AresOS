@@ -168,6 +168,13 @@ def resolve_checks(mail):
                 intent['id'] in mail.store.deferred_notices):
             continue
         try:
+            epoch = mail.store.owner_projection.open_epoch(key)
+            from ..warnings import unrecorded_evidence
+            notices = unrecorded_evidence(mail.store, key, epoch,
+                'filing' if prefix == 'mail:filing:' else 'rename') if epoch is not None else {}
+            intent['check_open'] = True
+            mail.store.write({key: intent, **notices}, 'mail_filing_check_open',
+                             'Filing evidence check opened before reading', outcome='started')
             account = mail.account(intent['account'], ready=False)
             with mail.transport.imap(account) as client:
                 listed = folders(client)
@@ -314,6 +321,8 @@ def location_pages(observed):
 
 
 def location_page(store, args):
+    from ..owner_state import owner_view
+    store = owner_view(store)
     filing_id = args['filing_id']
     prefix = 'mail:filing-locations:' + filing_id + ':'
     # Failed writes retain their exact pages with the deferred owner notice.
