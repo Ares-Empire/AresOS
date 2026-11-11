@@ -257,8 +257,8 @@ class GuardLedgerTest(unittest.TestCase):
         guard.configure('27')
         self.addCleanup(guard.configure, '11c')
 
-    def test_package27_allows_one_release_one_checks_run_and_three_rehearsals(self):
-        self.assertEqual(guard.SETTINGS['dispatch_caps'], {'release-27': 5, 'checks': 1, 'update': 3})
+    def test_package27_allows_its_release_checks_and_rehearsal_dispatches(self):
+        self.assertEqual(guard.SETTINGS['dispatch_caps'], {'release-27': 5, 'checks': 1, 'update': 5})
         self.assertEqual(guard.SETTINGS['publish_cap'], 1)
         self.assertEqual(guard.BRANCH, 'pkg/27-first-update-release')
         workflow = (ROOT / '.github/workflows/os-image.yml').read_text()
@@ -291,11 +291,17 @@ class GuardLedgerTest(unittest.TestCase):
             with self.assertRaisesRegex(AssertionError, 'release-27 dispatch allowance exhausted|exceeds 1200'):
                 guard.budget(0)
             for _ in range(5): runs.pop()
-            for number in range(3):
+            # Runs 1-3, run 42973044866 (stopped by this cap before any work) and the
+            # integrator-approved fourth rehearsal (2026-11-11). Their jobs are
+            # accounted (one hour each), so the count, not the minutes, stops a sixth.
+            job.update(started_at='2026-11-10T02:00:00Z', completed_at='2026-11-10T03:00:00Z',
+                       steps=[dict(name='Set up job', conclusion='success', started_at='2026-11-10T02:00:00Z',
+                                   completed_at='2026-11-10T03:00:00Z')])
+            for number in range(5):
                 runs.append(dict(base, id=10 + number, display_title='Two-disk rehearsal (update)'))
-            self.assertEqual(guard.budget(0)['dispatch_counts']['update'], 3)
+            self.assertEqual(guard.budget(0)['dispatch_counts']['update'], 5)
             runs.append(dict(base, id=20, display_title='Two-disk rehearsal (update)'))
-            with self.assertRaisesRegex(AssertionError, 'update dispatch allowance exhausted|exceeds 1200'):
+            with self.assertRaisesRegex(AssertionError, 'update dispatch allowance exhausted'):
                 guard.budget(0)
 
     def test_update_rehearsal_defers_native_proof_only_for_its_own_budget_step(self):
