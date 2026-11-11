@@ -118,6 +118,10 @@ The baton from the last session. Read it after `STATE.md`. Overwrite it when you
     - If run 4 needs another real round, or Patrik's meter shows ~96%, stop at a clean point. The rest continues after the Thu 00:00 reset.
     - Guide Patrik through `at update` today only if 27 merges in time; otherwise after the reset.
     - **After the reset, start fresh agents.** Don't resume `afc79d03d9f22e06d` (about 1M tokens) or `af1524c06373de3ac` (about 0.9M).
+  - **Stopped 2026-11-11 ~10:30 local for the Claude allowance (both packages at clean points):**
+    - **27:** `pkg/27-first-update-release` at `8f28ca0b` or later, everything pushed. Rehearsal run 4 proved `at update`; the harness's util-linux pin stopped it after the R27 boot. After the reset, start a **fresh** Opus agent in `../AresOS-27-first-update-release` with `briefs/27-rehearsal-fixes-1.md`. Then the Codex review (Astra high), merge, and guide the owner through `at update` and `sudo passwd ares`.
+    - **23:** parked at `b32af2e2`. After the reset, start a fresh Fable 5.2 agent in `../AresOS-23-minecraft-starts` with `briefs/23-review-fixes-5.md`.
+    - Old agents `afc79d03d9f22e06d` and `af1524c06373de3ac` are stopped; don't resume them.
   - **Safety bar for AresOS tools (Patrik via mac-capacity, 2026-11-11 ~08:10; the control lead records it for decision 24):**
     - "baseline is basically MCPs or CLIs like any other mcp or cli that already exists", "reasonably safe", not "nothing could ever go wrong". It is a judgment that "cannot be taken too literally".
     - Extra care only where AresOS adds its own risk (Claude Code as system operator). Disks, boot, updates and rollback are already in that group.

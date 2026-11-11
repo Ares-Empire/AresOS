@@ -131,7 +131,10 @@ Updated 2026-11-10. The live truth is `git log`, `gh pr list` and `git worktree 
     - Run 3 of 3 (42940741765 at `fb06ccde`) reached the owner walk. Everything passed up to `at update`, with every protected-disk audit unchanged.
     - Then `at update` failed: "Failed to start ostree-finalize-staged.service". Every image since #3 masks `ostree-finalize-staged` and `bootc-finalize-staged` (`os/policy/masked-system-units.txt`), so nothing can be staged from a running AresOS. The earlier switch ran from stock. On the laptop it would have stopped safely ("do not reboot").
     - Fix (option 1, tools only, no new image): `update.sh` unmasks exactly those two right before the switch, all-or-nothing. Automatic updaters stay masked.
-    - The owner accepted it (board #175, 2026-11-11: "yes to 175"; JUDGMENT-CALL 11). Built as `329c7479`, new tools fingerprint `daa31228…`. Rehearsal run 4 is next.
+    - The owner accepted it (board #175, 2026-11-11: "yes to 175"; JUDGMENT-CALL 11). Built as `329c7479`, new tools fingerprint `daa31228…`.
+    - **Rehearsal run 4 (42974982988) proved `at update`:** R13 staged the signed R27 with R13 kept as rollback, `at title` and `at reboot` ran, and R27 booted. Every protected-disk audit was unchanged.
+    - It then stopped in the harness: the login observer pins util-linux 2.41.5, and R27 ships 2.41.6.
+    - **Paused for the Claude reset.** Next: a fresh Opus agent with `briefs/27-rehearsal-fixes-1.md`: compare 2.41.5 with 2.41.6, accept both, cap 6, run 5, then records, Codex review, merge, and guide the owner.
     - PLAN-GAP for the next release: stop masking the two units in the image.
     - Also found: the owner tools' `main()` sets umask 077 and three test modules never restored it, which made a later test flaky. Fixed in 27 (`common.kept_umask`).
   - Its JUDGMENT-CALL 2: package 22's tools can't go forward again after `at previous`, so the rehearsal ends on 13 with 27 beside it; going forward after a rollback belongs in 22c.
