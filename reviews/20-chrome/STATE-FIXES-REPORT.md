@@ -35,6 +35,14 @@ This preserves the decided borrowed-dialog question instead of exposing incomple
 regressions and removal mutations cover the fix; the combined report retains the failed raw object and final
 verification. No shared production paging, results, state or Mail file changes for this fix.
 
+The next combined pair found a popup admitted before its document committed, leaving no reader in the surviving
+page. The Chrome-only recovery installs the passive ISOLATED reader/guard on the exact native document when the
+browser reports a missing receiver. Document-ID-addressed reads/injection prevent navigation from mixing privacy
+identities; an existing password-history refusal is preserved. First-act reload and all dirty/media/POST checks
+remain. Both full-fixture workflow deadlines now accommodate the sequential exhaustive browser/Python stages
+(240-minute container, 250-minute job). The combined report records the failed pair, strict regressions and run
+allowance discrepancy. Shared production paging, results, state and Mail files remain unchanged by this fix.
+
 **Status: Part S complete; final-source suites green twice.** Draft PR [#34](https://github.com/Ares-Empire/AresOS/pull/34) targets `pkg/20-chrome`. Runtime and fixture source `e5f3d8c5`; runtime hash `7d84b3d1223caff2b40d9feb68ffba285fc6819eac89eca711494a692e576edc`.
 
 ## Done (read)

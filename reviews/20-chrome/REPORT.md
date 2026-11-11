@@ -6,6 +6,11 @@
 [BUILD-P-1.md](BUILD-P-1.md) and [BUILD-P-5.md](BUILD-P-5.md) map P1–P31. PR [#27](https://github.com/Ares-Empire/AresOS/pull/27)
 remains draft and unmerged. **Owner Enter: passes in CI, panel to confirm. Group 12 remains deferred to 18d.**
 
+**Integration is not yet green.** The pair on `f25ac736` completed with one popup failure and three container
+deadlines after their browser matrices passed. The strict full-suite audit rejects this pair. The missing-reader
+and deadline fixes below are being verified. One manual full Chrome run fits the original cap; its required
+repeat needs the conflicting run allowances resolved.
+
 ## Done / scope (read)
 
 `collection()` in `control/chrome/extension/background.js` records a separate, immutable creation time.
@@ -23,7 +28,7 @@ Part P-owned file was merged into Part P's equivalent renewal; this run keeps th
 It additionally checks all three catalogues immediately before and at idle/absolute expiry, repeated refusal,
 fresh restart, pruning an actively used expired snapshot, invalid-cursor nonrenewal and two retained snapshots.
 The page removal audit adds absolute-cap, idle-deadline, absolute-pruning and actionable-error mutations.
-The independent receiver auditor now requires the combined **220 Python / 238 Node** inventory, with no failure,
+The independent receiver auditor now requires the combined **220 Python / 243 Node** inventory, with no failure,
 cancellation or skip accepted, and retains the existing exact browser inventory and receiver/ingress assertions.
 
 `python3 control/generate.py` regenerated every artifact; its check found no drift. No shared runtime,
@@ -33,7 +38,7 @@ Part S's `untrusted_content.dialog`, like the other fixture consumers. Receiver/
 The browser-free contract regression executes the actual 15 ordinary and six inline dialog review variants with
 a read result that rejects top-level dialog access; its removal mutation fails. A later combined run exposed the
 native-dialog publication race described below; its fix also stays in `background.js`. Final runtime build hash:
-`6580a966bf3da06179a43ae251a9b6efd39fa712dcf41ba2a932256bc1f26abc`.
+`74741aa57ecbd62922500cbb600426719ef5141d35efd3b7750c1b13683a6269`.
 Specification was fetched with `git fetch origin main` and read using `git show origin/main:<path>`; local
 integration/review briefs take precedence. Nothing outside this worktree, no browser/profile on this Mac,
 and no system software or Gradle daemon was used.
@@ -93,8 +98,9 @@ and policy install modes.
 The **exact final pushed head**, completed run links, every named PASS line, independent receiver audit,
 password-ingress audit and base/Mail/boundary/qualification repeats are recorded in the closing build response
 and [PR #27's checks](https://github.com/Ares-Empire/AresOS/pull/27/checks).
-This report is committed in the single implementation
-batch before those runs; it does not claim a future pass. No subsequent evidence-only commit changes that head.
+This report is committed before the next exact-head verification; it does not claim a future pass.
+The final report commit suppresses automatic duplicate push/PR dispatches and the full suites are launched
+manually, as described in the run ledger below. No test command or assertion is skipped by the manual execution.
 Raw artifacts stay with their named runs; the local audit/index outputs are retained in `.work/20-integrate3/`.
 The current auditor is `node reviews/20-chrome/audit-review-evidence.mjs <downloaded-artifacts>`.
 
@@ -168,6 +174,54 @@ changes no runtime or test after these checks. The final exact-head Chrome pair 
 must finish before the closing response reports green, and their four full browser artifacts must pass the
 independent receiver/ingress audit. Superseded partial passes are not substitutes.
 
+**Third combined head / missing popup reader and full-suite deadlines (run/read):** base, Mail, boundary and
+qualification pass twice on `f25ac736` ([eight completed results and output hashes](records/integrate3/third-shared-workflows.json)).
+Chrome [42963287917](https://github.com/Ares-Empire/AresOS/actions/runs/42963287917) external passes 20 named
+cases, then fails the first popup's `Continue` lookup. Admission completed against the popup's initial empty
+frame tree; only its hidden child's context marker was observed after attachment, and the committed top document
+had no reader reply. The repeated empty reads contain no password-history refusal; earlier refusals in the raw
+artifact belong to preceding review cases. The other three install legs, including both legs of
+[42963294395](https://github.com/Ares-Empire/AresOS/actions/runs/42963294395), finish all **80/80 browser cases**
+but exit 124 during the full Python suite at the former 165-minute container deadline. Their missing Python `OK`
+is a failure, never acceptance. [Exact matrix counts, failure lines, job times, raw hashes and diagnosis](records/integrate3/popup-and-deadline-failure.json)
+retain these results.
+
+The [partial receiver diagnostics](records/integrate3/partial-receiver-diagnostics.json) retain the unchanged
+strict auditor's successful receiver/ingress checks before its full-Python assertion: each complete browser
+artifact has **1,219 page + 139 adapter** independent 0/1/1 sequences, **3,481 sensitive-getter observations**,
+zero forbidden Runtime value events and no password sentinel. Each invocation then exits **1** at
+**“Full Python suite missing or failed”**. A diagnostic-only print before that assertion changes no check;
+these three partial diagnostics are explicitly not full acceptance.
+
+Reads now recover only Chrome's missing-receiver API rejection, by installing the passive ISOLATED reader/guard
+on that exact committed native document. They neither navigate nor mark it preloaded; first-act guarded reload,
+dirty/media/POST checks and password-history refusals remain. Injection and snapshot messages address native
+document IDs so a navigation cannot associate a replacement's privacy identity with an old frame snapshot.
+Control epochs are rechecked after an asynchronous read/recovery. Five browser-free regressions cover late
+popup commit, navigation during enumeration, retained password-history refusal, a modal during blocked injection,
+and Stop/re-take during injection. The full fixture and qualification-pair containers now allow **240 minutes**
+inside **250-minute jobs**, keeping the exhaustive browser and Python stages sequential and every per-case
+assertion/deadline intact. Three new page removal mutations cover recovery and both document-ID boundaries.
+The extension APIs' document selectors are documented by Chrome's
+[tabs API](https://developer.chrome.com/docs/extensions/reference/api/tabs) and
+[scripting API](https://developer.chrome.com/docs/extensions/reference/api/scripting). No DevTools command,
+MAIN injection, shared runtime or feature-removing refusal is added.
+
+**Missing-reader final-source local verification (run):** the frozen runtime/test source at `8e73c52f` passes
+the full local Python command above: **220 tests, OK, 1,335.928 s**. It includes writer sweeps **1,862 single /
+1,862 persistent / 7,128 cleanup pairs**, dispatch sweeps **448 / 448 / 2,128**, all **nine actual process cuts**
+and all **24 state removal mutations**. Node passes **243/243**, zero failures/cancellations/skips. The full page
+audit rejects **114 mutations**, every baseline passing. Four of the five new focused regressions fail against
+the unfixed code (the existing password refusal already passes); all five pass after the fix, including both
+Stop and re-take variants. [Exact commands, exits, result lines, source/runtime and output hashes](records/integrate3/local-popup-summary.json)
+index the retained [Python](records/integrate3/local-python-popup-frozen.txt), [Node](records/integrate3/local-node-popup.txt),
+[page audit output](records/integrate3/page-mutations-popup.txt), [mutations](records/integrate3/page-mutations-popup.json),
+[before](records/integrate3/popup-regressions-before.txt) and [after](records/integrate3/popup-regressions-after.txt).
+All generated files were regenerated and checked again; `git diff --check` passes. The earlier overlapping
+Python invocation also passes 220 tests in 1,398.366 s, but only the frozen-source run is used for this claim.
+No browser ran locally. Final-head Linux completion and the required second Chrome iteration remain separate
+requirements; the closing response states their actual status without substituting a partial result.
+
 ## Not verified / PLAN-GAP / JUDGMENT-CALL / open questions
 
 Group **12** stays false until 18d's real normal/skip-permissions precedence harness. Owner Enter keeps the panel
@@ -183,16 +237,30 @@ to the lead and is settled. No new implementation question remains; the stated s
 GitHub listed **168** Chrome run IDs on `pkg/20-chrome` before this run, including the lead's two cancelled
 brief-only runs (`42953990307`, `42953996489`). The initial batched push added two failed combined runs (**170**).
 The S12 fixture-consumer/base-test correction added another pair (**172**). The native-dialog readiness fix
-requires the final push/PR pair: **174 / about 175**. If another full pair is needed, it would exceed the cap;
-that must be reported and stopped rather than silently spending extra runs.
+added the third failed pair (**174**). The original user message and integrate-3 brief cap this at about **175**;
+the lead's newer [PAUSE.md](PAUSE.md), committed locally as `737e72bc` while CI ran, records **174 / about 185**
+and directs the independent integration build to keep fixing failures within that allowance. A new full pair
+would reach **176**. This build has asked which cap governs before launching that pair; local fixes and checks
+continue while the conflicting constraint is unresolved. Until a response raises the allowance, the original
+**175** cap governs. The final report commit includes `[skip ci]` to suppress the automatic two-run push/PR pair;
+the complete, unchanged Chrome workflow is manually dispatched **once** (both install modes), spending only the
+one remaining authorized run, and base/Mail/boundary/qualification are each manually dispatched twice. The
+pre-dispatch ledger checks the cap before launching anything. The second complete Chrome run remains required;
+passing once cannot be called green twice. The marker only affects automatic push/PR triggers, as documented by
+[GitHub](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/skip-workflow-runs); manual workflows
+execute every test. The decision-24 threat-model/re-check changes remain paused, exactly as PAUSE.md directs.
 `pkg/20-chrome-state` has **16 run IDs, 17 executions including its failed-runner retry**, within its separate
 about-25 allowance. No run belonging to another build is cancelled here. Each CI run is awaited using one
 blocking `gh run watch <id> --exit-status --interval 60` call; failure logs are read only after completion.
-The closing PR evidence records the actual counts; exceeding 175 stops this build and is reported.
+Other branch counts remain **six** adapter runs and **fifteen** qualification runs, each within its about-25
+allowance. The closing evidence records the actual count and governing cap; no unapproved extra pair is launched.
 The [pre-push disk inventory](records/integrate3/work-inventory.json) has **4,956 regular files, 3,424,122,971 bytes**
 under `.work/`; **no file over 500 MB**, no ISO/extracted image/browser profile and no local browser download.
 The closing build response records the final post-download inventory. No local test process or Gradle daemon
 started by this build remains after verification.
+The [latest pre-push inventory](records/integrate3/work-inventory-popup.json), including all three failed batches'
+raw Linux artifacts, lists **7,739 files / 4,342,970,719 bytes**, with **no file over 500 MB** and no browser profile,
+ISO or extracted image. Final local verification leaves no Python/Node test process started by this build running.
 
 ---
 

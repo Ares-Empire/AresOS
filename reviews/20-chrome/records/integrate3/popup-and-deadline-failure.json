@@ -1,0 +1,150 @@
+{
+  "head": "f25ac73687011c423eebc98a2ee7d642c58e84eb",
+  "acceptance": false,
+  "reason": "One missing-reader popup failure; three complete browser matrices lacked the full Python result after container deadline.",
+  "chrome": [
+    {
+      "run": 42963294395,
+      "url": "https://github.com/Ares-Empire/AresOS/actions/runs/42963294395",
+      "conclusion": "failure",
+      "jobs": [
+        {
+          "name": "fixtures (external)",
+          "conclusion": "failure",
+          "startedAt": "2026-11-11T05:04:19Z",
+          "completedAt": "2026-11-11T07:50:34Z"
+        },
+        {
+          "name": "fixtures (policy)",
+          "conclusion": "failure",
+          "startedAt": "2026-11-11T05:04:19Z",
+          "completedAt": "2026-11-11T07:50:47Z"
+        }
+      ],
+      "artifacts": [
+        {
+          "artifact": "control-chrome-42963294395-1-external",
+          "named_rows": 80,
+          "passed": 80,
+          "failures": [],
+          "full_python_ok": false,
+          "failure_lines": [],
+          "sha256": {
+            "matrices.json": "6a3cded8a12a37fab045263e9211bf62c4b61c993e01e97b567723151cfde029",
+            "browser.txt": "eb547dcab5e94324c67b55e3a02873d7b1c40380b2b1c13ddaac111b0aecf5e9",
+            "browser-boundary.jsonl": "51e52a86ef6432cd3014db359ac109572bb0474695b4f1f939ed9ae51a9f4c73",
+            "service.txt": "fb77b725b87e4cb25275ddc0efa55e68081a15b2a6d3c21edf2c8b4f3e1e3ba7",
+            "node.txt": "7858b399500da796318dacc1789927f670dcf1e6b78d9194da69e224b48747ab",
+            "python.txt": "e816d3e5c939bc9067bbe6f5fcdac9dbdb3027747b876c5e33f54ee812faaab6"
+          }
+        },
+        {
+          "artifact": "control-chrome-42963294395-1-policy",
+          "named_rows": 80,
+          "passed": 80,
+          "failures": [],
+          "full_python_ok": false,
+          "failure_lines": [],
+          "sha256": {
+            "matrices.json": "6a3cded8a12a37fab045263e9211bf62c4b61c993e01e97b567723151cfde029",
+            "browser.txt": "7beecccb184f9a4f47ec7113ee94da38770ff7228d726bd2ef76654e56e0e9a8",
+            "browser-boundary.jsonl": "f4694bf2c31c1d54d72618e43888a271fa433e45c47192ee8308c51bee123601",
+            "service.txt": "63db6152bd9395e6a5317ea228b3c4868c922dd047f84cd236fed74e02077714",
+            "node.txt": "fefad7fc4ff3145e3e6207e86ae61786fa546c9bd2ad36ccbc0dcb1b90622737",
+            "python.txt": "eac71e625518f636d845e9a94aa935dddf869954d78f02684cfc06a03dd7ca2b"
+          }
+        }
+      ]
+    },
+    {
+      "run": 42963287917,
+      "url": "https://github.com/Ares-Empire/AresOS/actions/runs/42963287917",
+      "conclusion": "failure",
+      "jobs": [
+        {
+          "name": "fixtures (external)",
+          "conclusion": "failure",
+          "startedAt": "2026-11-11T05:04:15Z",
+          "completedAt": "2026-11-11T05:11:11Z"
+        },
+        {
+          "name": "fixtures (policy)",
+          "conclusion": "failure",
+          "startedAt": "2026-11-11T05:04:15Z",
+          "completedAt": "2026-11-11T07:50:21Z"
+        }
+      ],
+      "artifacts": [
+        {
+          "artifact": "control-chrome-42963287917-1-external",
+          "named_rows": 21,
+          "passed": 20,
+          "failures": [
+            {
+              "name": "GROUP 8 popups preserve opener flow and guard first input without moving windows",
+              "passed": false,
+              "error": "Error: popup target: undefined\n    at eventually (file:///workspace/control/chrome/ci/browser.mjs:29:208)\n    at async target (file:///workspace/control/chrome/ci/popups.mjs:23:44)\n    at async file:///workspace/control/chrome/ci/popups.mjs:32:88\n    at async check (file:///workspace/control/chrome/ci/matrices.mjs:19:10)\n    at async popupMatrices (file:///workspace/control/chrome/ci/popups.mjs:26:3)\n    at async matrices (file:///workspace/control/chrome/ci/matrices.mjs:54:3)\n    at async file:///workspace/control/chrome/ci/browser.mjs:146:24"
+            }
+          ],
+          "full_python_ok": false,
+          "failure_lines": [
+            {
+              "line": 90,
+              "text": "GROUP 8 popups preserve opener flow and guard first input without moving windows FAIL Error: popup target: undefined"
+            },
+            {
+              "line": 92,
+              "text": "    at async target (file:///workspace/control/chrome/ci/popups.mjs:23:44)"
+            },
+            {
+              "line": 93,
+              "text": "    at async file:///workspace/control/chrome/ci/popups.mjs:32:88"
+            },
+            {
+              "line": 102,
+              "text": "Error: popup target: undefined"
+            },
+            {
+              "line": 104,
+              "text": "    at async target (file:///workspace/control/chrome/ci/popups.mjs:23:44)"
+            },
+            {
+              "line": 105,
+              "text": "    at async file:///workspace/control/chrome/ci/popups.mjs:32:88"
+            }
+          ],
+          "sha256": {
+            "matrices.json": "87fcf0d88b5b15f76a314718a087e6c7185e9445464cd8f53bc756efb6829839",
+            "browser.txt": "5a47a86a050c91eea67d08c5181fd8fee70b992e94f84e1c8eb53681d92298f0",
+            "browser-boundary.jsonl": "0d6b1d6953b40bedca513133585c282e297f76ca613965f0ca9b3a49c603261c",
+            "service.txt": "b5d7545e89c8b2208abf5644b4afc6d2e168b0ab74356a566fc06179e5f034f6",
+            "node.txt": "cb5cde04c0e1917876cd58778e6104ba3ebf0a19f3a35b7bec39216c17163b36"
+          }
+        },
+        {
+          "artifact": "control-chrome-42963287917-1-policy",
+          "named_rows": 80,
+          "passed": 80,
+          "failures": [],
+          "full_python_ok": false,
+          "failure_lines": [],
+          "sha256": {
+            "matrices.json": "6a3cded8a12a37fab045263e9211bf62c4b61c993e01e97b567723151cfde029",
+            "browser.txt": "4eba4f80119c4d7dd2b1f54dc545a084d08d97125c3b1e11d81b7aa27f14d255",
+            "browser-boundary.jsonl": "23fc91bfa47653ea3c34eab4ddb09d4299e4cf65360da4b9d08d595fc65ed136",
+            "service.txt": "4e7f9cb008c0a7a139f2b0ba8497d0388f1c9fb101d5c47d7b770d1bb5f081cd",
+            "node.txt": "4ba98c67f70b0e992cca32575c251edb4377adcc33be4d3c8e6b9ab411ac6ff6",
+            "python.txt": "561c48a21f81c499d3f6167c344a36320488fdb5dd9743febbada10a72add8b1"
+          }
+        }
+      ]
+    }
+  ],
+  "diagnosis": {
+    "missing_reader": "The popup was admitted while its native frame tree still had an empty URL. Its first document committed during setup; the only context.js parse observed after attachment belonged to the hidden child frame. Subsequent reads had no content reply and no rows. A browser-free test reproduces admission on initial about:blank followed by commit and a missing receiver.",
+    "privacy_history": "Earlier password-history refusals in this artifact belong to preceding review cases; none occurs among the final popup reads. They are not evidence that the popup lost password history. Recovery must preserve those refusals.",
+    "timeouts": "Both policy artifacts and the PR external artifact completed all 80 browser cases, but their full Python output has no final OK. Docker exited 124 at the former 165-minute container deadline. No partial result is accepted.",
+    "fix": "Recover only Chrome API missing-receiver rejection, inject ISOLATED reader/guard on the exact committed native document, and retain the first-act reload. Pin reads by native document ID. Full-fixture and qualification containers get 240 minutes within 250-minute jobs; no per-case deadline or assertion changes.",
+    "allowance": "The lead committed PAUSE.md on top of f25ac736 with 174 used / about 185 allowed, directing this independent integration build to continue and fix failures within that allowance."
+  }
+}

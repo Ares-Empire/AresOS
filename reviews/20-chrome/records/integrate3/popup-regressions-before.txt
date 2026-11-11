@@ -1,0 +1,85 @@
+✖ a popup committing after admission acquires a reader without reloading its document (8.667375ms)
+✖ a document replaced between frame enumeration and read cannot inherit its successor privacy identity (2.590667ms)
+✔ missing-reader recovery never clears or retries a surviving document password-history refusal (2.858334ms)
+✖ a dialog opening during missing-reader recovery is readable while injection is blocked (2.9125ms)
+✖ ending control during missing-reader installation cannot publish a snapshot or set control (3.885709ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 1
+ℹ fail 4
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 126.067167
+
+✖ failing tests:
+
+test at control/chrome_tests/background.test.mjs:656:1
+✖ a popup committing after admission acquires a reader without reloading its document (8.667375ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  0 !== 1
+  
+      at TestContext.<anonymous> (file:///Users/pab/AresOS-20-chrome/control/chrome_tests/background.test.mjs:658:69)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 0,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at control/chrome_tests/background.test.mjs:664:1
+✖ a document replaced between frame enumeration and read cannot inherit its successor privacy identity (2.590667ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  1 !== 0
+  
+      at TestContext.<anonymous> (file:///Users/pab/AresOS-20-chrome/control/chrome_tests/background.test.mjs:666:46)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 1,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at control/chrome_tests/background.test.mjs:675:1
+✖ a dialog opening during missing-reader recovery is readable while injection is blocked (2.9125ms)
+  AssertionError [ERR_ASSERTION]: typeof finishInjection==='function'
+  
+  false !== true
+  
+      at spin (file:///Users/pab/AresOS-20-chrome/control/chrome_tests/background.test.mjs:32:120)
+      at async TestContext.<anonymous> (file:///Users/pab/AresOS-20-chrome/control/chrome_tests/background.test.mjs:677:35)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at control/chrome_tests/background.test.mjs:682:1
+✖ ending control during missing-reader installation cannot publish a snapshot or set control (3.885709ms)
+  AssertionError [ERR_ASSERTION]: typeof finishInjection==='function'
+  
+  false !== true
+  
+      at spin (file:///Users/pab/AresOS-20-chrome/control/chrome_tests/background.test.mjs:32:120)
+      at async TestContext.<anonymous> (file:///Users/pab/AresOS-20-chrome/control/chrome_tests/background.test.mjs:684:35)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
