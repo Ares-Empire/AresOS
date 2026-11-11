@@ -23,7 +23,7 @@
       "path": "docs/EMERGENCY.md"
     },
     {
-      "sha256": "a62ebc8821b9349e883baf299ecf6dd17aa98ea6e4c801ba7bf65c9f0751941d",
+      "sha256": "448d12f8558ffa8c22a7c74f69f47e8b6cc577593433e1ec7eb909b0fd789cc2",
       "path": "docs/INSTALL.md"
     },
     {
@@ -87,7 +87,7 @@
       "path": "os/owner-tools/bundle.py"
     },
     {
-      "sha256": "c1c798b4f79b081f821540d85e5d658a69b27ac7c67b688978cabb5e60159ec0",
+      "sha256": "f3cd749581a4f6866ae2bf0ee5c3b083191cd8e42002350f8448748ed5a41475",
       "path": "os/owner-tools/commands.json"
     },
     {
@@ -99,11 +99,11 @@
       "path": "os/owner-tools/owner.py"
     },
     {
-      "sha256": "607affcf88108dbe6db2809adf56348aeab2fa8b356197698e2dc97087afe31a",
+      "sha256": "a9c9286344a12ae3ef05846104ffe8914f2d08072cc300e3d83d31d55ef4b79c",
       "path": "os/owner-tools/payload/SHA256.json"
     },
     {
-      "sha256": "167f587ccd72f3d13226bf9d60f684cde56c1cb7ee674da0a0b1008b2013db94",
+      "sha256": "daa31228a011fb059643d2884199ba95b7dd8a0b9002429f64641e7e89036da5",
       "path": "os/owner-tools/payload/SHA256SUMS"
     },
     {
