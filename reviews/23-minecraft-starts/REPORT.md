@@ -5,6 +5,72 @@ Branch `pkg/23-minecraft-starts`, PR #36. Review: Codex gpt-6-astra (high), fres
 
 Nothing was pushed to a registry, signed or published. The release pin is unchanged.
 
+## Review fixes 3 (REVIEW-3, 2026-11-10)
+
+REVIEW-3 (Codex gpt-6-astra, high, on `e69b16a0`) found all 9 REVIEW-2 findings fixed and three problems left at
+the hand-off's edges: 1 blocking, 2 should-fix. Each fix is at its cause, with a test that fails with only that fix
+reverted (below). Only the supervisor, the wrapper and their tests changed: no image build input and no VM check,
+so no CI run.
+
+1. **Blocking: a SIGKILL after the PID was accepted latches, never restarts.**
+   - Cause: when the supervisor accepted `jvm_started` but its answer was lost, and Java was SIGKILLed before the
+     wrapper acted on the loss, the wrapper's report (`status=-9`) set `stopped_reason` anyway. `finish_jvm()`
+     preferred that reason, so the kill restarted as a plain crash.
+   - Fix: the wrapper's `jvm_failed` always says who ended Java (`stopped`), and sends the real status whenever it
+     knows it; the exit record carries the same flag. For an accepted JVM the supervisor uses the reason only when
+     the wrapper stopped Java; otherwise Java's own status is its exit status, and a SIGKILL latches `killed` like
+     any game's end.
+   - Tests: `RestartPolicyTest.test_a_sigkill_after_acceptance_with_a_lost_answer_latches` (by the report and by
+     the exit record: latched, nothing counted, never restarted); `WrapperTest.test_java_killed_after_a_lost_answer_
+     reports_its_own_end` (the real wrapper: no answer, Java SIGKILLed, reported with `status -9, stopped false`);
+     `LoopTest.test_a_kill_after_acceptance_with_a_lost_answer_latches` (the real loop accepts the PID, then drops the
+     connection while Java is SIGKILLed).
+2. **The supervisor's wait covers the wrapper's stop; a late report still counts.**
+   - Cause: after the connection closed before acceptance, the supervisor waited 2 s, but the wrapper may take 10 s
+     to stop Java (SIGTERM, then SIGKILL) before reporting. A slow stop became a false kill latch, and its report
+     was then dropped.
+   - Fix: the supervisor waits `LOST_HANDOFF_WAIT` = the wrapper's `STOP_WAIT` (10 s) + its `REPORT_TIMEOUT` (5 s) +
+     5 s margin = 20 s (still below the 30 s hand-off limit). A test keeps the supervisor's copies of the wrapper's
+     numbers equal. If a report still comes after an unexplained latch, it is applied: an explained end replaces
+     the latch with one failed start (counted once); a kill stays latched. A JVM that the wrapper SIGKILLed after
+     its stop window counts as stopped by the wrapper, not as a kill.
+   - Tests: `RestartPolicyTest.test_the_wait_for_a_lost_hand_off_covers_the_wrappers_stop`,
+     `test_a_late_report_still_explains_an_unexplained_start`; `WrapperTest.test_java_that_ignores_sigterm_is_killed_
+     and_reported_as_stopped`; through the real loop `LoopTest.test_a_lost_hand_off_with_a_java_that_delays_sigterm`
+     (Java stops 3 s after SIGTERM) and `test_a_lost_hand_off_with_a_java_that_ignores_sigterm` (killed after
+     10 s): each ends with Java gone, the lock free and exactly one failed start, not latched.
+3. **A gap in pressure sampling starts the clear minute again.**
+   - Fix: a gap between two samples longer than `PRESSURE_GAP` (the 5 s cadence + 5 s tolerance) resets the
+     interval: unobserved time is unknown, not clear.
+   - Test: `RestartPolicyTest.test_a_gap_in_sampling_starts_the_clear_minute_again` (70 s without sampling ticks,
+     then Retry is refused; after a sampled minute it works).
+
+### Regression proof (each fix reverted alone)
+
+| Finding (fix reverted) | Its tests | What fails |
+|---|---|---|
+| 1 (any report after acceptance sets the stopped reason) | `test_a_sigkill_after_acceptance_with_a_lost_answer_latches`, the real-loop test | The report case: `('STARTING', 'restarting', False) != ('RECOVERY', 'killed', True)`, the kill restarts as a crash. The real loop runs into `RECOVERY crashes` after three restarts. (The exit-record case passes either way: that path already used the status.) |
+| 2 (the old 2 s wait, late reports dropped) | all four | `2.0 not greater than 15.0`; a late explained report leaves `('RECOVERY', 'killed', True)`; both real-loop tests (Java delays or ignores SIGTERM) time out in `RECOVERY killed`. |
+| 3 (no gap check) | `test_a_gap_in_sampling_starts_the_clear_minute_again` | `True is not false`: Retry is allowed right after 70 unobserved seconds. |
+
+No fix's tests passed with that fix reverted. Output: `runs/wsl-review-fixes-3/revert-proof.txt`.
+
+### Checks of this round
+
+- WSL (Ubuntu 24.04, Python 3.12), never in parallel with package 27's suites (a slot script waited for theirs to
+  end), under `setsid` with stdin from `/dev/null`:
+  - From the worktree: `test_aresos_desktop` 124 tests OK, `test_aresos_shell` 74 OK.
+  - Full suite from a fresh `git clone --depth 1` of `pkg/23-minecraft-starts` at `7cb21e76`, plain and `-B`: in
+    both, exactly the known WSL-only failures that also fail on main (`test_greeter` 3, `test_inherited_homebrew`
+    8, `test_sysusers` 2) and nothing else. The clone and its logs were removed right after (the laptop's disk had
+    about 2 GB free), so the `Ran` line was not kept; the same commit's run from the worktree ran 987 tests. That
+    worktree run is not used as evidence: on the Windows-mounted folder, Linux file modes don't hold, so 150 owner-
+    tool tests fail there for that reason alone.
+  - Memory: the machine had 3.3 to 4.7 GB available (the brief asks for 5 GB). WSL's own page cache counts as used
+    on Windows, and inside WSL about 7 GB was available. The runs waited for no other suite and at least 4.5 GB.
+- CI: none. Only the supervisor, the wrapper and their tests changed; the image build and the VM checks are as in
+  run 42865819198.
+
 ## Review fixes 2 (REVIEW-2, 2026-11-10)
 
 REVIEW-2 (Codex gpt-6-astra, high, on `7ec26b84`) found 1 blocking and 8 should-fix problems. It agrees with the
