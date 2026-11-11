@@ -21,6 +21,13 @@ They now use S12's `untrusted_content.dialog`, as `ci/matrices.mjs` and `ci/site
 This is a fixture-consumer correction only, with a browser-free contract regression/removal mutation; no service
 result shape, page behavior, receiver assertion or approval assertion changed.
 
+The combined Mail PR run exposed a base test's timing-sensitive injection: a 50 ms whole-upload timeout could
+fire before its final frame. The minimal `control/tests/test_review22_protocol.py` change injects timeout only
+after that frame is sent, preserving the unknown result, committed bytes and import-journal assertions. Ten
+focused repetitions and all three socket timeout cases pass. This is a test-fixture change; shared production
+paging, results, engine, storage and Mail code are unchanged by the integration run. See the combined report for
+the failed run and the required exact-head repeats.
+
 **Status: Part S complete; final-source suites green twice.** Draft PR [#34](https://github.com/Ares-Empire/AresOS/pull/34) targets `pkg/20-chrome`. Runtime and fixture source `e5f3d8c5`; runtime hash `7d84b3d1223caff2b40d9feb68ffba285fc6819eac89eca711494a692e576edc`.
 
 ## Done (read)

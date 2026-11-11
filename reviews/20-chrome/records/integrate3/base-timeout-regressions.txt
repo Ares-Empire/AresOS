@@ -1,0 +1,8 @@
+test_review22_save_after_client_timeout_is_unknown_and_committed_log_is_visible (test_review22_protocol.Timeouts22.test_review22_save_after_client_timeout_is_unknown_and_committed_log_is_visible) ... ok
+test_review22_save_held_eleven_seconds_receives_committed_ack (test_review22_protocol.Timeouts22.test_review22_save_held_eleven_seconds_receives_committed_ack) ... ok
+test_review22_upload_lost_final_ack_is_unknown_and_import_commits (test_review22_protocol.Timeouts22.test_review22_upload_lost_final_ack_is_unknown_and_import_commits) ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 22.385s
+
+OK

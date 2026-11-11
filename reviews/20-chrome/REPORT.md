@@ -115,6 +115,24 @@ index the retained [Python](records/integrate3/local-python-recovery.txt), [Node
 Generated artifacts still match and the runtime hash is unchanged. The next push repeats every named CI workflow
 on the corrected exact head; the failed browser pair is never counted as acceptance.
 
+**Initial shared results / deterministic base-test repair (run/read):**
+[exact completed results](records/integrate3/initial-combined-workflows.json) retain base, boundary and qualification
+green twice on `4340939a`. Mail [42955406042](https://github.com/Ares-Empire/AresOS/actions/runs/42955406042)
+passed **142 base + 309 Mail tests and all four sweep shards**. Mail
+[42955382856](https://github.com/Ares-Empire/AresOS/actions/runs/42955382856) passed its four sweep shards but its
+base suite failed `test_review22_upload_lost_final_ack_is_unknown_and_import_commits` before Mail ran
+([exact failure](records/integrate3/base-upload-failure.txt)). Its 50 ms deadline applied to startup/admission/chunk
+replies too, so it could fail before the end frame; the missing blob proves the import was not committed, not which
+earlier response timed out. `control/tests/test_review22_protocol.py` now injects a socket timeout only when the
+client has sent its real final end frame. The real server still commits after the client disconnects. Every prior
+unknown/hash/byte/journal assertion stays, with a new assertion that the intended boundary was reached; no timeout
+or production code changes. [Ten repetitions](records/integrate3/base-upload-repeat.txt) pass in **2.556 s**;
+the [three real socket timeout tests](records/integrate3/base-timeout-regressions.txt) pass in **22.385 s**.
+The first local attempt omitted jsonschema's path and failed import; the corrected invocation uses
+`PYTHONPATH=control:control/tests:.work/20-chrome/python-deps`, reusing the existing worktree-only dependency,
+with `PYTHONDONTWRITEBYTECODE=1`. No software was installed. Full Linux base/Mail repeats remain mandatory on the
+next head; the one earlier Mail pass is not substituted for them.
+
 ## Not verified / PLAN-GAP / JUDGMENT-CALL / open questions
 
 Group **12** stays false until 18d's real normal/skip-permissions precedence harness. Owner Enter keeps the panel
