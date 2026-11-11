@@ -423,6 +423,16 @@ def file_messages(mail, account, client, verb, refs, target, names, needed):
         record('done')
         return {'state': 'done', 'items': [r['destination'] for r in records]}
 
+    if listed is None:
+        # No post-command role evidence was obtained. Keep the admitted check
+        # open instead of reading further evidence or inventing an occurrence.
+        reason = 'Filing roles are not yet checked; messages may have moved into Trash. Nothing was deleted. Inspect the filing and your mail program.'
+        intent.update(check_open=True, role_check_unavailable=True,
+                      observed_role='an unverified role', reason=reason)
+        record('started', evidence_result=True)
+        return {'state': 'partial', 'items': [], 'reason': visible(reason),
+                'untrusted_content': visible(summary(intent))}
+
     # IMAP cannot bind a recovery destination's identity or roles atomically.
     # Preserve every surviving copy; only ordinary owner-approved deletion cleans up.
     observed = locations(mail, account, records)
@@ -430,8 +440,6 @@ def file_messages(mail, account, client, verb, refs, target, names, needed):
     intent.update(reason=reason, locations=observed, roles_after=listed,
                   observed_role=folder_role(target, listed))
     intent['reason'] += ' The target ' + short_name(target) + ' is now ' + intent['observed_role'] + '.'
-    if listed is None:
-        intent['reason'] += ' Its role is not verified; messages may have moved into Trash.'
     if any(not item['scan_complete'] for item in observed):
         intent['check_open'] = True
     content = summary(intent)
@@ -445,11 +453,7 @@ def file_messages(mail, account, client, verb, refs, target, names, needed):
         'filing_id': intent_id, 'count': sum(len(item['observed_locations']) for item in observed),
         'total_messages': len(observed), 'locations_action': 'mail_filing_locations',
         'cursor': f'{sequence_token(intent_id, pages)}:1' if len(pages) > 1 else None})
-    if listed is None:
-        intent.update(check_open=True, role_check_unavailable=True)
-        record('started', pages=pages, evidence_result=True)
-    else:
-        record('partial', notice, pages)
+    record('partial', notice, pages)
     first = location_page(mail.store, {'filing_id': intent_id})
     return {'state': 'partial', 'items': [], 'reason': visible(reason),
             'untrusted_content': {**visible(content), **first['untrusted_content'], 'cursor': first['cursor']}}

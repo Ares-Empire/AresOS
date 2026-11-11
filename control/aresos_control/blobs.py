@@ -134,12 +134,14 @@ class Blobs:
         if len(rows) + 1 > retention.BLOB_COUNT or sum(p.stat().st_size for p in rows) + size > retention.BLOB_BYTES:
             retention.refuse('Private blobs in ' + self.directory.name, retention.BLOB_COUNT, retention.BLOB_BYTES)
 
-    def expire(self, pinned, now, ttl):
+    def expire(self, pinned, now, ttl, check_only=False):
         self.ensure_writable()
         # Unlinking only frees blocks; still account for filesystem metadata.
         candidates = [path for path in self.directory.iterdir()
                       if re.fullmatch(r'[0-9a-f]{64}', path.name) and path.name not in pinned
                       and now - path.stat().st_mtime >= ttl]
+        if check_only:
+            return bool(candidates)
         if candidates:
             self.ledger.admit(8192)
         changed = False
@@ -149,6 +151,7 @@ class Blobs:
             changed = True
         if changed:
             sync_directory(self.directory)
+        return changed
 
     def origins(self, key):
         staged = self._staged.get(key) if self._staged is not None else None

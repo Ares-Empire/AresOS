@@ -148,6 +148,7 @@ class Store:
             raise ValueError("Independent evidence must be outside the backup tree")
         self.checkpoint = checkpoint
         self.write_failed = False
+        self.write_sequence = None
         self.storage_cause = None
         self.deferred_notices = {}
         self.active_intents = {}
@@ -408,7 +409,7 @@ class Store:
             if plan:
                 # Reconstruct the already-admitted transaction, replacing its
                 # spent cancel/settlement/restore bytes with just replay work.
-                if not self.locked:
+                if not self.locked or plan.get('restoring'):
                     self.ledger.finish(plan['updates'], plan['consume'])
                 self.ledger.holds['replay'] = replay_budget(prepared)
 
@@ -549,7 +550,6 @@ class Store:
                 self._truncate_journal(offset)
                 if 'operations' in value and value['seq'] == self.sequence + 1:
                     self.owner_projection._recover_tail()
-                    self.write_failed = False
             raise storage_refusal(exc) or Refused('storage_error', 'Journal storage write failed; restart the service and check the recorded operation.') from exc
         return offset
 
@@ -726,6 +726,7 @@ class Store:
         # A crash here may need owner confirmation: compact metadata cannot
         # reconstruct the full event, and absence cannot prove no restore.
         self.write_failed = True
+        self.write_sequence = record['seq']
         try:
             self.owner_projection.prepare(event, owner_data)
         except BaseException as exc:
@@ -784,6 +785,8 @@ class Store:
             # Ledger/quota checks and optional derived-state admission run anew.
             self.storage_cause = None
         if self.write_failed:
+            if self.storage_cause is not None:
+                raise self.storage_cause
             raise Refused('journal_incomplete', 'A journal transaction did not finish; all writes are refused until service restart recovery has run.')
 
     def remember_storage(self, exc):
@@ -843,7 +846,7 @@ class Store:
         from .owner_state import owner_view
         return owner_view(self).get("generation")
 
-    def refresh_restore(self):
+    def refresh_restore(self, clear_transient=True):
         if self.write_failed and not self.locked:
             try:
                 seq, claimed = self.db.execute('SELECT seq,hash FROM head WHERE id=1').fetchone()
@@ -851,7 +854,10 @@ class Store:
                 last = None
                 for last in self.owner_projection.journal_records():
                     pass
-                if (seq == committed and (last['seq'] if last else 0) == committed and
+                # A post-commit checkpoint exception retains the restart latch.
+                # Recheck a refused unpublished tail after its request returns.
+                if (clear_transient and not (self.write_sequence == committed == self.committed) and
+                        seq == committed and (last['seq'] if last else 0) == committed and
                         claimed == (last['hash'] if last else '') and self._prepared(committed + 1) is None):
                     # A refused fence may have left only an unpublished owner
                     # tail. With matching committed heads there is no lasting
@@ -860,7 +866,7 @@ class Store:
                     self.owner_projection._recover_tail()
                     self.write_failed = False
                     self._load_reservations()
-                elif seq != committed:
+                elif seq < committed or (seq > committed and self._pending_event() is None):
                     self.locked = True
                     self.restore_head = min(seq, committed)
                     self._load_reservations()

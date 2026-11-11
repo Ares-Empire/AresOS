@@ -28,6 +28,20 @@ def crash_restart(scenario):
 
 
 class MaintenanceAdmission(unittest.TestCase):
+    def test_idle_maintenance_never_starts_a_journal_transaction(self):
+        scenario = OwnerScenario('maintenance')
+        try:
+            engine = scenario.fixture.engine
+            engine.expire()
+            before = (engine.store.evidence_dir / 'operations.jsonl').read_bytes()
+            with patch.object(engine.store, 'write', wraps=engine.store.write) as write:
+                for _ in range(10):
+                    engine.expire()
+            write.assert_not_called()
+            self.assertEqual(before, (engine.store.evidence_dir / 'operations.jsonl').read_bytes())
+        finally:
+            scenario.close()
+
     def test_first_write_full_disk_regression(self):
         # STORAGE-S3-FIRST-WRITE.py's exact point-1 persistent failure. With no
         # committed gate the maintenance body and its journal must never start.

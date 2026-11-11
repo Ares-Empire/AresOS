@@ -2,7 +2,7 @@
 import errno
 import json
 import sqlite3
-from unittest.mock import patch
+from unittest.mock import call, patch
 
 from aresos_control.common import Refused
 from aresos_control.engine import Engine
@@ -50,7 +50,9 @@ class Journal22(EngineCase):
         self.assertIn('Disk full', result['error']['message'])
         self.assertTrue(store.write_failed)
         self.assertEqual((store.evidence_dir / 'operations.jsonl').read_bytes(), before)
-        sync.assert_called_once_with(store.journal.fileno())
+        # Owner facts now sync their speculative frame and recovered tail too.
+        # The journal's failed append must still sync its truncation exactly once.
+        self.assertEqual(sync.call_args_list.count(call(store.journal.fileno())), 1)
         self.restart()
         self.reserve()
 

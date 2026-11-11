@@ -89,7 +89,7 @@ class Engine:
 
     def _pending(self, app=None, args=None, resolve_checks=True):
         from .owner_state import owner_view
-        self.store.refresh_restore()
+        self.store.refresh_restore(clear_transient=not getattr(self.store, 'in_request', False))
         view = owner_view(self.store)
         notices = self.notices(resolve_checks=resolve_checks)
         def rows():
@@ -135,6 +135,13 @@ class Engine:
 
     def expire(self):
         if self.store.locked or self.store.write_failed:
+            return
+        # Idle daemon ticks must not grow the permanent journal or invalidate
+        # every audit continuation. Discover work before admitting its gate.
+        if not (self.store.deferred_notices or
+                any(op['state'] == 'reserved' and time.time() >= op['expires']
+                    for _, op in self.store.iter_items('op:')) or
+                retention.expire(self, check_only=True)):
             return
         # Admit the whole maintenance attempt before its first journal write.
         # The open check is the durable generic warning if the disk then fails;
@@ -657,6 +664,7 @@ class Engine:
         try:
             self.store.observations = Observations()
             self.store.owner_read_failed = False
+            self.store.refresh_restore()
             self.pending(resolve_checks=False)
             try:
                 if not isinstance(request, dict) or request.get('action') not in {'control_archive', 'control_restore_confirm'}:
@@ -665,7 +673,9 @@ class Engine:
                 self.store.remember_storage(exc)
                 self.store.observations.storage(exc)
             result = self._admitted_request(request, admin)
-            if isinstance(request, dict) and request.get('method') == 'mail_account_add' and not result['ok']:
+            if (isinstance(request, dict) and request.get('method') == 'mail_account_add' and
+                    isinstance(request.get('arguments'), dict) and
+                    isinstance(request['arguments'].get('id'), str) and not result['ok']):
                 from .owner_state import owner_view
                 account = owner_view(self.store).get('mail:account:' + request.get('arguments', {}).get('id', ''))
                 if account is not None and account.get('onboarded'):

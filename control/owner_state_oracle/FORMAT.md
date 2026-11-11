@@ -36,7 +36,7 @@ Read success/error status is checked even for an empty view. Permitted refusals 
 
 The compact format-3 gap ledger hashes canonical newline-delimited `[assertion-key,{row,stage,delta}]` entries, sorted by exact key. Groups bind suite, one fixed ownership bucket, matrix row and closing stage. Twelve buckets map wholly to four CI shards × three workers; point-zero groups are shared. Counts, samples, digests and owned-group completeness are all strict. Full actual lists are generated under `.work/` and uploaded by the existing artifact steps; see `KNOWN-GAPS.md` for merge/regenerate/diff commands.
 
-D3 (recorded for stage 3): reserve evidence-record capacity through `space.py` before a remote evidence check. A failing disk must leave the check open and retain either the specific observed occurrence or a committed generic “evidence was seen but couldn't be recorded; check Trash” warning. `retained_role` accepts the generic alternative only with a matching committed notice and an open check. An ordinary “not yet checked” notice alone does not meet this obligation. This stage implements only the oracle contract.
+D3 (recorded for stage 3): reserve evidence-record capacity through `space.py` before a remote evidence check. A failing disk must leave the check open and retain either the specific observed occurrence or a committed generic “evidence was seen but couldn't be recorded; check Trash” warning. `retained_role` accepts the generic alternative only with a matching committed notice and an open check. An ordinary “not yet checked” notice alone does not meet this obligation. Stage 3 implements the admission and durable-open-check rule; the maintenance first-write amendment is described below.
 
 
 Full audit comparison includes caller paths. Owner fixtures therefore use fixed-width, injective caller directory names from flow/mode/primary/cleanup/live-or-crash, with advisory locking until cleanup when cases overlap across workers. Their width matches tempfile's original `tmp` + eight characters, preserving serialized record lengths and fault-boundary layouts. Production tempfiles and inherited sweep defaults are unchanged. The offline `caller_capture.py` tool can replay that declared input in historical full captures and rejects conflicting targets within one script. It is never used by expectations or the strict checker: runtime audit equality and deltas retain every complete literal path.
@@ -342,7 +342,7 @@ for its message inventory, so an intervening arrival is valid evidence.
 Alteration jobs use `owner_state_alteration_costs.json`, measured from timestamped
 job logs of run 42868506005 attempt 2. Long recordings are split by candidate
 ordinal modulo four; LPT placement uses measured seconds, not recording count.
-All twelve jobs together execute every candidate once. Every part still walks
+All alteration shards together execute every candidate once; the finished stage-3 workflow uses 24 shards with the same measured-cost manifest. Every part still walks
 and audits the complete discovered field set, and its selected candidates reach
 the unchanged comparison. Only the discovered fault offset in a sweep label is
 normalised for cross-platform scheduling; each replay still injects its actual
@@ -354,7 +354,7 @@ are validated against this inventory and the scripted account-add account before
 qualification can use them; a coherent flag lie is a payload proof difference.
 
 
-## Stage 3 fixed owner facts (candidate; acceptance incomplete)
+## Stage 3 fixed owner facts
 
 `evidence/owner-state.bin` starts with eight bytes `AO19B4\0\n`. A frame is a
 big-endian uint32 compressed length, uint64 existing journal sequence, zlib level-9
@@ -396,11 +396,95 @@ episode; a naked generic notice flag is insufficient. Existing specific warning
 occurrences remain independently acknowledged. A still-open check continues to
 show the ordinary unchecked/recovery warning.
 
-This format is a candidate on the draft branch. The unchanged background-first-
-cause contract above still fails when the first write and all later writes fail
-without changing any persisted bytes; the final storage report records that
-counterexample. The known-gap ledger has not been cleared.
+D3 maintenance admission precedes every maintenance-body write. Space for both
+open and resolving records is admitted before publishing a committed generic
+background check. If that gate cannot commit, the body never starts. If the
+body starts and its disk fails, the already-committed open check remains a
+generic warning through crash/restart; RAM is unnecessary. A clean resolving
+commit removes only the call's own fresh gate. An earlier unresolved warning is
+retained. `STORAGE-S3-FIRST-WRITE.py` is now a passing regression of the exact
+point-1 persistent fault; no maintenance `journal.write` begins in that case.
 
-The measured stage-3 format, inventories and exact first-write counterexample
-are in `reviews/19b-owner-state/STORAGE-S3-FINAL.md`. These are local diagnostics,
-not acceptance of the complete stage-3 sweep or a substitute for the CI gates.
+D4 excludes a call's own in-flight export intent from its reply only after its
+resolving commit can be confirmed. Failed resolution includes the warning in
+that reply; a crash before resolution leaves it in the next view. An exception
+after a complete matching SQLite event/head and independent commit marker does
+not turn that confirmed commit into an unfinished action. A prepared restore
+can explain only its correlated, bounded pre-call backup interval, and grants
+no completion, generation or acknowledgement by itself.
+
+The source read facade is `owner_state.OwnerView`. Healthy SQLite supplies the
+full wording; a storage failure or restore lock selects independently committed
+native facts. SQLite detail may enrich a projected row only if its selected
+facts match. Recipient hashes and short stage codes remain native through
+repeated restore; `_owner_encoded` is internal working-state plumbing, excluded
+from public operations and projection records. A missing full approval stays
+unavailable and cannot authorize work. No remote effect is replayed by restore.
+
+A small bounded verified-row cache and the disposable journal index accelerate
+reads. The latter's `owner_rows` and `births` tables are rebuildable. Their
+signatures cover active facts, tombstones, the journal and retained archive file
+metadata; neither a cache nor a startup snapshot defines owner obligations.
+Archive changes invalidate verification; the tamper regression changes an
+already-cached export and requires failure. The driver compares independent
+decoder facts, production projection and readable/unlocked SQLite after every
+sweep case. A separate all-flow test forces every main-database read to fail.
+
+Every committed owner publication must have its frame or a hash-qualified
+retirement, including superseded publications and publications with an empty
+current owner set. Compaction cannot silently drop one source from a frame.
+The independent alteration corpus includes both native-fact and coherent
+history lies. Passive reply snapshots retain the observation's original state,
+so future acknowledgements or restores cannot change expectations for a reply
+already delivered.
+
+Storage inventories and measurements for the final candidate are in
+`reviews/19b-owner-state/STORAGE-S3-FINISH.json`; the older FINAL report preserves
+the original failing first-write evidence. The final CI acceptance evidence and
+the owner's 2026-11-11 storage acceptance (board #176) are documented in REPORT.md.
+
+
+### Fence-only restore recovery
+
+Normal operation fences remain format 2. A format-3 fence is used only when
+owner-confirmed restore appends past an abandoned fence: `restore_from` is the
+first sequence after the last actual commit marker. It preserves the existing
+hash chain and sequence order. Its full event must be `control_restore_confirm`
+with the restoring space plan. A commit marker confirms only its own fence;
+it never makes preceding abandoned publications into results. The committed
+restore event bounds the historical abandoned interval, so a later restart
+can recognize it without a RAM-only list. Unknown versions fail explicitly.
+No existing fence or commit is rewritten.
+
+The owner frame/tombstone format and its five active fact kinds are unchanged.
+Their readers select exact commit-marked publications, rather than every frame
+below the largest commit number. A second crash before the new restore event
+commits leaves the original result uncommitted and the previous owner facts
+visible. Restore reconciles explicit native deletions as well as retained rows,
+using at most 32 current SQLite keys per scan. A completed export cannot reappear
+from an older backup. A fence-only result cannot close an evidence check or an
+export; its previous committed fact survives. The bounded short description
+already present in the old fence remains available when the approval's question
+and full body are missing; it does not authorize a submission.
+
+The expectation replay correlates fault traces to each call, so a prior page's
+failure is not a new failure on a continuation. It uses earlier native history
+for missing SQLite prefixes and excludes later observed outcomes when replaying
+an earlier restore. Native recipient-stage hashes are matched to independently
+recorded recipients, and onboarding enrollment needs a matching account-add
+call plus a reservation created in that call. Complete-role recovery reads do
+not certify completion of an interrupted filing command. A missing rename target
+commits its availability result while the check remains open, preventing a new
+loss occurrence and page restart on every read.
+
+`role_check_unavailable` is a selected native availability fact. It never proves
+an observation or a clean result: the oracle requires the matching negative
+LIST/SELECT evidence or the correlated injected storage failure. Without a
+post-command role catalogue, filing commits that open availability result before
+any further location read. A subsequent successful check clears the flag.
+
+Maintenance first discovers due work without writes. Idle ticks add no fences
+and do not perturb audit cursors. Due expiry, blob cleanup or deferred records
+still require the committed D3 gate before any body write. A prepared restore's
+saved space plan replaces its already-spent holds before replay admission;
+rollback and check holds are not counted a second time.

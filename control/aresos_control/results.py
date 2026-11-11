@@ -172,7 +172,7 @@ def recorded_write(method):
             store.remember_storage(exc)
             from .common import cleanup
             with cleanup('owner state after failed write', exc):
-                store.refresh_restore()
+                store.refresh_restore(clear_transient=False)
             raise
         store.storage_cause = None
         if not store.flushing_notices:
