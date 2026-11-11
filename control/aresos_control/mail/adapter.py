@@ -837,6 +837,8 @@ class Mail:
                 continue
             if (op['app'] != 'mail' or not op.get('payload', {}).get('composition') or
                     (op['state'] in {'reserved', 'failed', 'refused'} and 'sent_copy_check' not in op)):
+                if op['app'] == 'mail' and op.get('sent_copy_check', {}).get('state') == 'open':
+                    unresolved.append(self.unchecked_sent_notice(op))
                 continue
             try:
                 account = self.account(op['payload']['composition']['mail']['account'], ready=False)

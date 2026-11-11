@@ -52,18 +52,27 @@ def strip(value, field=''):
 
 
 def fact(key, value):
-    if value is None or key in {'generation', 'restore_pending'}:
+    if value is None or key in {'generation', 'restore_pending'} or key.startswith('archived:'):
         return value
     row = {k: strip(v, k) for k,v in value.items() if k in FIELDS and k not in OMIT}
     if 'context' in row:
-        recipients = value['context'].get('recipients', [])
-        row['context']['recipients'] = [fingerprint(v) for v in recipients]
-        row['context']['recipient_count'] = len(recipients)
+        if value.get('_owner_encoded'):
+            row['context'] = json.loads(canonical(value['context']))
+        else:
+            recipients = value['context'].get('recipients', [])
+            row['context']['recipients'] = [fingerprint(v) for v in recipients]
+            row['context']['recipient_count'] = len(recipients)
     if 'reason' in value:
         row['reason_code'] = fingerprint(value['reason'])
+        if value['reason'].startswith('Restored log:'):
+            row['reason_kind'] = 'restored'
+        codes = {'expired: nothing submitted': 'expired', 'cancelled: nothing submitted': 'cancelled',
+                 'Local repair uncertain; inspect far-side stage evidence. Never submit.': 'repair_uncertain'}
+        if value['reason'] in codes:
+            row['reason_kind'] = codes[value['reason']]
         if value['reason'].endswith(' Missing local stages; repair without SMTP.'):
             row['reason_kind'] = 'smtp_partial_local' if value['reason'].startswith('Some recipients refused;') else 'smtp_local'
-    if 'stages' in value:
+    if 'stages' in value and not value.get('_owner_encoded'):
         row['stages'] = stage_codes(value['stages'])
     if 'folder_delete_reason' in value:
         text = value['folder_delete_reason']
@@ -76,6 +85,8 @@ def fact(key, value):
 
 
 def record_kind(event, key, value):
+    if event['action'] == 'control_maintenance_check_open' and key == 'notice:background-storage':
+        return 'check-open'
     if not isinstance(value, dict):
         return 'resolution'
     action, state = event['action'], value.get('state')
@@ -221,6 +232,7 @@ def decode(evidence, fences, committed):
                 archive_entries = export(evidence, run)
                 if fences[run['seq']].get('owner') not in (None, publication(archive_publication(evidence, run, archive_entries))):
                     raise ValueError('Uncovered archive publication')
+                versions.append((run['seq'], archive_publication(evidence, run, archive_entries), True))
                 for entry in archive_entries:
                     if 'event' in entry:
                         event = entry['event']

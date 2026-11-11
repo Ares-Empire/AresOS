@@ -60,9 +60,12 @@ def fact(key, value):
         return copy.deepcopy(value)
     row = {k: facts(v, k) for k, v in value.items() if k in FIELDS and k not in TEXT}
     if 'context' in row:
-        recipients = value['context'].get('recipients', [])
-        row['context']['recipients'] = [digest(r) for r in recipients]
-        row['context']['recipient_count'] = len(recipients)
+        if value.get('_owner_encoded'):
+            row['context'] = copy.deepcopy(value['context'])
+        else:
+            recipients = value['context'].get('recipients', [])
+            row['context']['recipients'] = [digest(r) for r in recipients]
+            row['context']['recipient_count'] = len(recipients)
     # Warning/reason strings are not a second readable-event journal. Retain a
     # fingerprint and a state code; the read path supplies conservative wording.
     if 'reason' in value:
@@ -86,7 +89,7 @@ def fact(key, value):
             'empty_cleanup_failed' if 'Empty probe folder DELETE cleanup failed' in reason else
             'generic_cleaned' if 'Exact probe removed; empty folder retained' in reason else
             'survival_unverified' if 'could not be verified' in reason else 'unqualified')
-    if 'stages' in value:
+    if 'stages' in value and not value.get('_owner_encoded'):
         row['stages'] = {}
         for name,outcome in value['stages'].items():
             key_parts = name.split(':', 1)
@@ -429,7 +432,17 @@ class OwnerProjection:
     def iter_items(self, prefix=''):
         cursor = ''
         paths = (self.path, self.tombstones, self.store.evidence_dir / 'operations.jsonl')
-        signature = tuple((p.stat().st_size, p.stat().st_mtime_ns) if p.exists() else None for p in paths)
+        def stamp(path):
+            row = path.stat()
+            return row.st_dev, row.st_ino, row.st_size, row.st_mtime_ns, row.st_ctime_ns
+        signature = tuple(stamp(p) if p.exists() else None for p in paths)
+        archives = self.store.evidence_dir / 'archives'
+        checksum = 0
+        if archives.exists():
+            with os.scandir(archives) as entries:
+                for entry in entries:
+                    checksum = (checksum + int(digest([entry.name, stamp(Path(entry.path))]), 16)) % (1 << 256)
+        signature += (checksum,)
         if signature != getattr(self, '_small_signature', None):
             small, sizes = {}, {}
             for _, changes in self.records():

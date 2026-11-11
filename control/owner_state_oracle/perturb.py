@@ -539,13 +539,14 @@ def freeze(oracle):
         if key == '_evidence_index':
             result._evidence_index = None
             continue
-        if key not in {'response_observer', 'validated_input', 'validated_record'}:
+        if key not in {'response_observer', 'validated_input', 'validated_record', 'envelope_projections'}:
             setattr(result, key, copy.deepcopy(value))
     # The callback retains its live Driver, engine and queued envelopes. It is
     # recorder plumbing, never an expectation input. Frozen replays need none.
     result.response_observer = None
     result.validated_input = None
     result.validated_record = None
+    result.envelope_projections = []
     return result
 
 

@@ -94,8 +94,7 @@ class MaintenanceAdmission(unittest.TestCase):
             scenario.close()
 
 
-if __name__ == '__main__':
-    unittest.main()
+
 
 class ExportResolution(unittest.TestCase):
     def test_failed_resolving_commit_warns_in_the_calls_own_reply_D4(self):
@@ -134,3 +133,7 @@ class ExportResolution(unittest.TestCase):
                                 for n in scenario.fixture.engine.pending(resolve_checks=False)['notices']))
         finally:
             scenario.close()
+
+
+if __name__ == '__main__':
+    unittest.main()

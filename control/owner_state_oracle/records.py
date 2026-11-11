@@ -95,7 +95,7 @@ def unexplained_sequences(record):
     return record.committed - present - explained
 
 
-def consistency_errors(record):
+def consistency_errors(record, prepared_restore_sequences=()):
     """Compare the decoded projection to its commits, including compact fences."""
     errors, rows = [], {}
     fences = {f['seq']: f for f in record.fences}
@@ -107,7 +107,7 @@ def consistency_errors(record):
         startup_lock = any(seq <= record.startup_sequence for seq in record.unprepared_fences)
         if (locked or startup_lock) != record.locked:
             errors.append(('restore', 'unjustified-lock', ''))
-    for seq in unexplained_sequences(record):
+    for seq in unexplained_sequences(record) - set(prepared_restore_sequences):
         errors.append(('sequence:' + str(seq), 'missing-committed-history', ''))
     for event in record.events:
         seq = event['seq']
@@ -128,8 +128,14 @@ def consistency_errors(record):
                 rows.pop(key, None)
             else:
                 rows[key] = value
-    if record.owner_versions or record.owner_retired:
+    if record.owner_versions or record.owner_retired or any(f.get('owner') and f['seq'] in record.committed for f in record.fences):
         from .projection import fact, selected, publication, record_kind
+        covered = set(record.owner_versions) | {seq for seq, _ in record.owner_retired}
+        if record.owner_retired:
+            covered.update(e['seq'] for e in record.events if e['seq'] not in record.working_sequences)
+        for sequence, fence in fences.items():
+            if sequence in record.committed and fence.get('owner') and sequence not in covered:
+                errors.append(('owner', 'missing-owner-publication', str(sequence)))
         owner_rows, owner_sequences = {}, {}
         for sequence, changes in sorted([*record.owner_versions.items(), *record.owner_retired], key=lambda item: item[0]):
             for key,value in changes.items():
@@ -149,7 +155,9 @@ def consistency_errors(record):
                 continue
             event = events.get(sequence)
             original = {k: fact(k,v) for k,v in event['set'].items() if selected(k)} if event else {}
+            retired_keys = {key for seq, rows in record.owner_retired if seq >= sequence for key in rows}
             if (not event or publication(original, {k:record_kind(event,k,v) for k,v in event['set'].items() if selected(k)}) != fence.get('owner') or
+                    not (original.keys() - changes.keys()) <= retired_keys or
                     any(k not in original or value != original[k] or
                         record.owner_kinds.get(sequence, {}).get(k) != record_kind(event,k,event['set'][k])
                         for k,value in changes.items())):

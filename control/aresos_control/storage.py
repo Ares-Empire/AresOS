@@ -36,6 +36,8 @@ def sync_directory(path):
 
 
 def short_description(operation):
+    if operation.get('approval') == {'unavailable': True}:
+        return copy.deepcopy(operation['_owner_description'])
     description = operation["approval"]["description"]
     if operation.get("app") == "mail" and "untrusted_content" in description:
         result = {"action": description["action"], "untrusted_content": copy.deepcopy(description["untrusted_content"])}
@@ -446,6 +448,15 @@ class Store:
             if old is None or version != (seq,) or old['state'] == 'submitting':
                 if old is None:
                     old = missing_operation(known)
+                projected = next((v for k, v in self.owner_projection.iter_items('op:' + op_id) if k == 'op:' + op_id), None)
+                if projected is not None:
+                    from .owner_state import owner_view
+                    detail = {k: old[k] for k in ('approval', 'payload', 'input_hash') if k in old}
+                    available = bool(old.get('approval', {}).get('question'))
+                    old = {**old, **owner_view(self).inflate('op:' + op_id, projected), **detail}
+                    if not available:
+                        old['approval'] = {'unavailable': True}
+                        old['_owner_description'] = known['description']
                 old.update(state='unknown', reason='Restored log: independent record has newer or missing evidence. Owner must check.')
             elif old['state'] == 'reserved':
                 old.update(state='failed', reason="Restore invalidated this generation's approval; nothing resumed.")

@@ -79,6 +79,7 @@ class OwnerScenario(Scenario):
             self.owner_oracle.call(envelope.get('action', envelope.get('method')), envelope.get('arguments', {key: value for key, value in envelope.items() if key not in {'v', 'password'}}), clock,
                 {'mode': fault.mode, 'at': fault.fail_at, 'cleanup': fault.cleanup_at} if fault else {})
             index = len(self.owner_oracle.script) - 1
+            self.owner_oracle.script[index]['faults'].update(getattr(self.owner_oracle, 'explicit_faults', {}))
             self.owner_oracle.script[index]['parent'] = getattr(self.owner_oracle, 'active_call', None)
             self.owner_oracle.script[index]['request_method'] = envelope.get('method')
             observer = getattr(self.owner_oracle, 'response_observer', None)
@@ -86,6 +87,7 @@ class OwnerScenario(Scenario):
                 before = observer.__self__.snapshot()
                 self.owner_oracle.script[index]['start_seq'] = max((f['seq'] for f in before.fences), default=0)
                 self.owner_oracle.script[index]['restore_precondition'] = before.locked
+                self.owner_oracle.script[index]['restore_working_head'] = before.head[0] if before.head else None
             try:
                 with recorded_samples(self.owner_oracle, index):
                     reply = request(engine, envelope, *args, **kwargs)

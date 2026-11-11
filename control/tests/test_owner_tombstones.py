@@ -291,5 +291,28 @@ class OwnerTombstones(unittest.TestCase):
         self.assertEqual(before, dict(self.store.owner_projection.iter_items()))
 
 
+
+
+class CachedArchiveIntegrity(unittest.TestCase):
+    setUp = OwnerTombstones.setUp
+    tearDown = OwnerTombstones.tearDown
+    finished = OwnerTombstones.finished
+    write = OwnerTombstones.write
+    archive = OwnerTombstones.archive
+    def test_cached_facts_revalidate_a_changed_export_even_with_its_old_mtime(self):
+        import os
+        op = self.finished(1)
+        self.write({'op:' + op['id']: op})
+        manifest = self.archive()
+        dict(self.store.owner_projection.iter_items())
+        path = Path(manifest['path'])
+        before = path.stat()
+        path.write_bytes(path.read_bytes() + b'\n')
+        os.utime(path, ns=(before.st_atime_ns, before.st_mtime_ns))
+        with self.assertRaises(Refused) as refused:
+            dict(self.store.owner_projection.iter_items())
+        self.assertEqual('evidence_corrupt', refused.exception.code)
+
+
 if __name__ == '__main__':
     unittest.main()

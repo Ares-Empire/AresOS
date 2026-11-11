@@ -80,6 +80,12 @@ def run(gaps):
                 old = copy.deepcopy(d.snapshot().rows[key])
                 for field in ('context', 'sent_copy_check', 'warning_checks'):
                     old.pop(field, None)
+                # Store.write preserves R2 context by design. The fixture's
+                # scripted input must describe the exact legacy migration it
+                # actually requests, including that additive context.
+                for field in ('context', 'context_version'):
+                    if field in d.snapshot().rows[key]:
+                        old[field] = copy.deepcopy(d.snapshot().rows[key][field])
                 d.fixture_input({key: old}, 'Documented finished legacy operation')
                 f.engine.close()
                 s.bind(Engine(f.root / 'state', f.root / 'evidence'))
@@ -124,8 +130,11 @@ def run(gaps):
         compare(s, d, 'lifecycle-recurrence')
         assert len([fact for fact in d.oracle.expected(d.snapshot()) if fact.kind == 'sent_copies']) == 2
         # Archive and expiry cannot remove an unacknowledged occurrence.
-        f.engine.request({'v': 1, 'method': 'call', 'action': 'control_archive',
-                          'arguments': {'before': time.time() - .001, 'confirm': 'archive finished history'}}, True)
+        archive_args = {'before': time.time() - .001, 'confirm': 'archive finished history'}
+        with d.observe_view('control_archive', archive_args):
+            archived = f.engine.request({'v': 1, 'method': 'call', 'action': 'control_archive',
+                              'arguments': archive_args}, True)
+        d.reply(archived)
         compare(s, d, 'lifecycle-archive')
         with patch('aresos_control.retention.time.time', return_value=time.time() + 90001):
             f.engine.expire()
@@ -177,15 +186,16 @@ def run(gaps):
             ('file-proxy', 'testapp_file_save', {'sha256': '0' * 64, 'folder': '/synthetic', 'name': 'x'}, 'proxy_required'),
         ]
         for family, action, args, expected in cases:
-            d.oracle.call(action, args, time.time())
-            result = f.engine.request({'v': 1, 'method': 'call', 'action': action, 'arguments': args})
-            d.oracle.reply(result)
+            with d.observe_view(action, args):
+                result = f.engine.request({'v': 1, 'method': 'call', 'action': action, 'arguments': args})
+            d.reply(result)
             assert not result['ok'], (family, result)
             assert result['error']['code'] == expected, (family, result)
             compare(s, d, 'refusal-' + family)
         # Evidence unavailability is a read failure, with passive disclosures.
-        with patch.object(f.mail.transport, 'imap', side_effect=OSError('Synthetic offline')):
+        with patch.object(f.mail.transport, 'imap', side_effect=OSError('Synthetic offline')), d.observe_view('mail_read', {'reference': ref}):
             result = f.call('read', {'reference': ref})
+        d.reply(result)
         assert result['error']['code'] == 'transport_error', result
         compare(s, d, 'refusal-transport')
     finally:
@@ -427,7 +437,9 @@ def run(gaps):
                 'arguments': {'confirm': 'invalidate earlier approvals'}}, True)
         d.reply(restored)
         assert restored['ok'], restored
-        assert f.engine.store.get('mail:account:new') is None
+        recovered = f.engine.store.get('mail:account:new')
+        assert recovered is not None and recovered['id'] == 'new'
+        assert not recovered['onboarded'] and not recovered['ready']
         assert any(fact.source == 'mail:account:new' and fact.kind == 'recovery' for fact in d.oracle.expected(d.snapshot()))
         compare(s, d, 'initial-account-first-reply-restore')
     finally:
@@ -489,7 +501,7 @@ def run(gaps):
         d.reply(result)
         assert result['ok'] and result['data']['operation']['state'] == 'done', result
         assert any(event['command'] == 'RECEIVE' and event['accepted'] for event in d.oracle.servers)
-        with patch.object(f.engine.receiver, 'evidence', side_effect=OSError(errno.ENOSPC, 'Synthetic evidence storage failure')):
+        with patch.object(d.oracle, 'explicit_faults', {'read_storage': 'ENOSPC'}, create=True), patch.object(f.engine.receiver, 'evidence', side_effect=OSError(errno.ENOSPC, 'Synthetic evidence storage failure')):
             compare(s, d, 'testapp-status-schema-storage')
         assert any(call['action'] == 'testapp_operation_status' and
             call.get('result', {}).get('data', {}).get('evidence_error', {}).get('code') == 'storage_limit'

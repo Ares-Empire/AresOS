@@ -306,7 +306,7 @@ class Engine:
 
     def public_operation(self, op):
         result = {k: v for k, v in op.items() if k not in
-                  {'payload', 'input_hash', 'context', 'context_version', 'roles_before', 'attempt_ended_at', 'repair_identity_missing',
+                  {'payload', 'input_hash', 'context', 'context_version', '_owner_encoded', '_owner_description', 'roles_before', 'attempt_ended_at', 'repair_identity_missing',
                    'sent_append_started_at', 'sent_append_ended_at', 'sent_copy_check', 'warning_checks'} and v is not None}
         if op.get('repair_identity_missing'):
             result['reason'] += ' Permanent repair stage identity is missing; another repair is refused.'

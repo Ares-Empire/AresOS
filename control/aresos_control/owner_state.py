@@ -140,6 +140,7 @@ class OwnerView:
         if not isinstance(row, dict):
             return row
         row = dict(row)
+        row['_owner_encoded'] = True
         row.pop('reason_code', None)
         reason_kind = row.pop('reason_kind', None)
         if key.startswith('mail:account:'):

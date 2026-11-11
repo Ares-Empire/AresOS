@@ -83,8 +83,7 @@ class OwnerStageThreeFacts(unittest.TestCase):
         self.assertTrue(public['folder_delete_reason'].startswith('Qualified:'))
 
 
-if __name__ == '__main__':
-    unittest.main()
+
 
 class PreparedRestoreProof(unittest.TestCase):
     def test_prepared_boundary_explains_only_the_recorded_backup_holes(self):
@@ -103,3 +102,59 @@ class PreparedRestoreProof(unittest.TestCase):
         event['restore_range'] = [4, 5]
         oracle.script[-1]['restore_precondition'] = False
         self.assertFalse(oracle.prepared_restore_sequences(record))
+
+class RestoredNativeFacts(unittest.TestCase):
+    setUp = OwnerStageThreeFacts.setUp
+    tearDown = OwnerStageThreeFacts.tearDown
+
+    def restore_backup(self, backup):
+        self.store.close()
+        (self.root / 'state/control.sqlite').write_bytes(backup.read_bytes())
+        self.store = Store(self.root / 'state', self.root / 'evidence')
+        self.assertTrue(self.store.locked)
+        self.store.confirm_restore()
+
+    def test_free_context_recipient_hashes_survive_two_older_restores(self):
+        from contextlib import closing
+        backup = self.root / 'older.sqlite'
+        with closing(sqlite3.connect(backup)) as db:
+            self.store.db.backup(db)
+        key = 'intent:native'
+        self.store.write({key: {'id': 'recovery-native', 'app': 'mail', 'action': 'mail_draft_save',
+            'state': 'started', 'context_version': 1, 'context': {'format': 1, 'command': 'APPEND',
+            'account': 'box', 'recipients': ['one@mail.invalid'], 'destination': 'Drafts'}}},
+            'fixture', 'Synthetic native context')
+        expected = dict(self.store.owner_projection.iter_items())[key]['context']
+        for _ in range(2):
+            self.restore_backup(backup)
+            actual = dict(self.store.owner_projection.iter_items())[key]
+            self.assertEqual(expected, actual['context'])
+            self.assertNotIn('_owner_encoded', actual)
+
+    def test_operation_stage_codes_and_context_survive_older_restore(self):
+        from contextlib import closing
+        from aresos_control.common import digest
+        backup = self.root / 'older.sqlite'
+        with closing(sqlite3.connect(backup)) as db:
+            self.store.db.backup(db)
+        identity = self.store.generation + ':' + 'a' * 32
+        key = 'op:' + identity
+        op = {'id': identity, 'generation': self.store.generation, 'input_hash': digest(identity),
+            'app': 'mail', 'action': 'mail_send', 'state': 'done', 'expires': 0,
+            'approval': {'question': 'Synthetic approval', 'description': {'action': 'mail_send'}},
+            'payload': {}, 'reason': 'Synthetic completion', 'context_version': 1,
+            'context': {'command': 'SMTP', 'account': 'box', 'recipients': ['one@mail.invalid']},
+            'stages': {'rcpt:one@mail.invalid': 'accepted:250',
+                       'sent_copy_warning': 'Sent contains 2 copies with this Message-ID.'}}
+        self.store.write({key: op}, 'fixture', 'Synthetic native stages')
+        expected = dict(self.store.owner_projection.iter_items())[key]
+        self.restore_backup(backup)
+        actual = dict(self.store.owner_projection.iter_items())[key]
+        self.assertEqual(expected['context'], actual['context'])
+        self.assertEqual(expected['stages'], actual['stages'])
+        self.assertEqual('unknown', actual['state'])
+        self.assertEqual({'unavailable': True}, self.store.get(key)['approval'])
+
+
+if __name__ == '__main__':
+    unittest.main()

@@ -726,14 +726,14 @@ class OwnerOracle(unittest.TestCase):
         from owner_state_oracle.gaps import Gaps
         request = {'method': 'call', 'action': 'testapp_operation_status'}
         invalid = self.status_response()
-        invalid['data'].pop('evidence')
-        invalid['data']['evidence_error'] = {'code': 'storage_limit', 'message': 'Synthetic'}
+        invalid['data'].pop('operation')
+        invalid['data']['unsupported_evidence'] = {'code': 'storage_limit', 'message': 'Synthetic'}
         reply, failures = read_response(lambda: response_checks.validate_response(request, invalid))
         self.assertEqual(reply, invalid)
         details = [json.loads(value) for value in failures]
         self.assertEqual({value['rule'] for value in details}, {'required', 'additionalProperties'})
-        self.assertEqual(next(value['missing'] for value in details if value['rule'] == 'required'), ['evidence'])
-        self.assertEqual(next(value['extra'] for value in details if value['rule'] == 'additionalProperties'), ['evidence_error'])
+        self.assertEqual(next(value['missing'] for value in details if value['rule'] == 'required'), ['operation'])
+        self.assertEqual(next(value['extra'] for value in details if value['rule'] == 'additionalProperties'), ['unsupported_evidence'])
         recorded = Gaps(recording=True)
         check = recorded.checker('schema-case')
         check('schema', set(), {Fact('response', 'schema', detail=value) for value in failures})
