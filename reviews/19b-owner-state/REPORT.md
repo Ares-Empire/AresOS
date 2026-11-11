@@ -2281,3 +2281,212 @@ no force-push, no other branch/worktree or system settings changed. Only the
 stop report/evidence is committed and pushed to `pkg/19b-owner-state`; PR #26
 remains draft against `pkg/19-mail`. No Gradle process was started. `.work/`
 files over 500,000,000 bytes: **[]**. Candidate temporary fixtures were cleaned.
+
+## Stage 3 — projection redesign round: storage stop (2026-11-11)
+
+**Status: STOP; stage 3 remains incomplete.** **Read:**
+`briefs/19b-s3-redesign.md` at starting head `bd4b88e3` makes the permanent
+increase over `7b0e9a05` the gate. Both send and permanent delete exceed
+1,000 **and** 1,024 bytes in this redesign. The active projection shrinks, but
+its retired history is kept and must count. No allowance or successful
+stage-3 acceptance is assumed. The candidate was withdrawn; this round commits
+its patch, harness, measurements, failing comparison output and report only.
+
+**Done / read:** read AGENTS, the original brief, the Mail note, all stage fix
+briefs, then stage-3 start and redesign last, and the prior stop/candidate.
+`git diff 7b0e9a05 HEAD -- control .github/workflows` at this round's start
+printed nothing. Baseline production source was extracted from `7b0e9a05`
+under this worktree's `.work/19b-s3-redesign/baseline/`; no other checkout,
+branch, worktree or system files were changed. PR #26 remains draft against
+`pkg/19-mail`.
+
+**Done / run — candidate built and measured:**
+[`STORAGE-S3-REDESIGN.patch`](STORAGE-S3-REDESIGN.patch) adds a separate
+`owner-state.bin` beside the journal, plus retirement under `owner-history/`.
+It appends only when a selected owner fact changes. Each file has one
+eight-byte format header; each record has a four-byte compressed length,
+eight-byte existing transaction sequence, compressed compact field deltas,
+and **one 32-byte chain hash**. Its predecessor is implicit. The existing
+immutable journal supplies the fence hash as an integrity input without
+copying it into the record. Only commit-marked sequences publish. Records
+precede their existing fences; no operation transactions or journal bytes are
+added. Interrupted unpublished tails are ignored/recovered by the candidate.
+
+The selected fields are identities, numeric state/flag codes, expiry and
+hashes of context, stages, reasons, check results, roles, qualification and
+notice evidence. Full contexts, approval inputs and prose remain in SQLite.
+The compact iterator uses 32-key windows and independent files without
+consulting SQLite or its index. This is a **compact reference contract**, not
+a completed implementation of the entire owner-visible read path. In
+particular hashes alone do not reproduce public wording or all structured
+evidence. The candidate is not installed as a public fallback.
+
+**Verified / run — both storage numbers (local; no workflow ID):** the same
+five-operation fixture was run against the frozen baseline and the candidate,
+including actual owner archive/export and SQLite VACUUM. Every operation
+printed `outcome: done`; no unacknowledged notice was present in these clean
+samples, and each approved operation's working row archived out.
+
+| Operation | (a) Extra bytes while open | (b) Extra permanent bytes after finish/archive | Extra live projection after archive | Extra retained projection history | Gate |
+| --- | ---: | ---: | ---: | ---: | --- |
+| Send | 2,175 | 2,751 | 0 | 2,751 | STOP |
+| Move | 968 | 1,135 | 0 | 1,135 | over 1 KB |
+| Permanent delete | 988 | 1,249 | 0 | 1,249 | STOP |
+| Free CREATE | 277 | 444 | 0 | 444 | under 1 KB |
+| Send with 25 MiB attachment | 2,171 | 2,744 | 0 | 2,744 | over 1 KB |
+
+Number (a) compares peak retained bytes at an existing `sqlite_prepared`
+checkpoint where a committed source is still open, before its resolving
+transaction applies. Number (b) compares the complete retained file inventory
+after archive against its corresponding pre-operation inventory, then
+subtracts that same baseline increase. It includes **every file** under both
+state and evidence: SQLite, rollback files if present, disposable index,
+receiver, blobs/wires, permanent journal, original full-history exports,
+active projection and retired projection history. Logical SQLite-event bytes
+are separately reported, never counted again on top of the physical file.
+Caller import precedes the initial sample, as in STORAGE-S2. The 25 MiB binary
+attachment is the same fixture on both sides; no extra attachment copy is
+hidden from the inventory.
+
+**Run — attribution:** the journal, its transaction counts, SQLite file and
+event bytes, index and original full-history export bytes all have **zero
+increase** versus the baseline in both phases. All additional permanent bytes
+are in `owner-history/*.bin`, including each file's eight-byte header. They
+are counted as growth despite leaving the active file. The original operation
+and archive transactions are unchanged:
+
+| Operation | Journal bytes / transactions before → candidate, composition/execution | Journal bytes / transactions before → candidate, including archive | Projection records: operation → retained after archive |
+| --- | --- | --- | ---: |
+| Send | 9,506 / 14 → 9,506 / 14 | 11,606 / 17 → 11,606 / 17 | 12 → 15 |
+| Move | 2,064 / 6 → 2,064 / 6 | 2,410 / 7 → 2,410 / 7 | 6 → 7 |
+| Permanent delete | 3,942 / 5 → 3,942 / 5 | 4,726 / 6 → 4,726 / 6 | 5 → 6 |
+| Free CREATE | 688 / 2 → 688 / 2 | 1,032 / 3 → 1,032 / 3 | 2 → 3 |
+| 25 MiB send | 9,508 / 14 → 9,508 / 14 | 11,608 / 17 → 11,608 / 17 | 12 → 15 |
+
+**Read / run — reason for every record:** the JSON manifest gives all **37
+operation records and 46 retained records** individually, with sequence,
+action, summary, changed field codes and byte count. The ordered record roles
+are:
+
+| Operation | Records during preparation/execution, in order | Additional records through archive |
+| --- | --- | --- |
+| Send | reservation; submitting; Message-ID stage; wire hash stage; RCPT stage; DATA attempting + context hash; DATA accepted stage; recipient result stage; APPEND context hash; Sent result/check fingerprint; answered stage; terminal state/reason hash | Sent check reopened; committed clean result; operation tombstone + archive identities |
+| Move | parent intent/context hash; filing identity + prepared roles hash; MOVE context hash; destination-result hash; filing resolution; parent intent tombstone | archive identity |
+| Permanent delete | reservation/roles; submitting + STORE context hash; marked result + EXPUNGE context hash; target result; terminal state/reason hash | operation tombstone + archive identities |
+| Free CREATE | intent/context hash; completion tombstone | archive identity |
+| 25 MiB send | same twelve roles as send | same three archive roles as send |
+
+Composition-only audit and the unchanged owner reference at APPEND end no
+longer emit projection records. Framing is 44 bytes per record instead of
+259. Nevertheless, preserving this independent delta history leaves more
+than 1 KB after archive for send and permanent delete. An earlier complete
+replay measured send 2,175/2,751 and delete 988/1,249 as well. Compressed hash
+payloads are not guaranteed byte-identical: the earlier large-send sample was
+2,171/2,748 and CREATE was 277/445, versus the primary table's 2,171/2,744 and
+277/444. Both observations are retained; this variation cannot change either
+gate result. This is a failed design measurement, not a lower bound on every
+possible projection design.
+
+**Verified / run — archive and comparison tests:**
+[`STORAGE-S3-REDESIGN-TESTS.py`](STORAGE-S3-REDESIGN-TESTS.py) ran **six test
+methods: five passed, one failed with eight subtest failures**, exit 1. The
+complete output, with only the absolute worktree prefix normalized, is
+[`STORAGE-S3-REDESIGN-TEST-OUTPUT.txt`](STORAGE-S3-REDESIGN-TEST-OUTPUT.txt).
+These are candidate diagnostics, not replacements for any existing test or
+the independent oracle.
+
+- **Run:** one and then **1,001 synthetic terminal, acknowledged send records**
+  leave the active file at **261 bytes** in both cases. This exercises actual
+  Store commits/retirement; it is not 1,001 SMTP sends. Retired records still
+  agree with the decoded committed source, and their history bytes remain in
+  the permanent storage calculation.
+- **Run:** unresolved intents, a completed filing with an open check and a
+  source with an unacknowledged warning remain in the live projection;
+  acknowledged notices retire. Repeating retirement adds no duplicate file.
+- **Run:** independent test-side field mapping compares the compact references
+  against hash-valid committed SQLite events and qualified original archives.
+  All **34 flows** were attempted fault-free and at first/last SQLite-write
+  sites where available, in single and persistent exhaustion, cleanup pairs,
+  crash-byte restart and space-restored phases. The sample completes **420
+  successful scenarios / 549 successful compact comparisons**. There are
+  **32 real SQLite SELECT failures** (`OperationalError: database or disk is
+  full`) under persistent faults, with the compact reference comparison still
+  succeeding through its independent-file iterator. Separate tests also
+  replace both SQLite connections with failing readers and compare after a
+  restart; committed payload corruption is rejected, and a planted missing
+  projection update is detected.
+- **Run — failures preserved:** six comparisons fail in the **restore** flow
+  (first write, single/persistent, live/crash; last write, single/persistent,
+  live). Its restored working database lacks a newer reservation that the
+  independent projection retains; failed confirmation leaves those views
+  different. Two additional assertions report no cleanup site discovered
+  after those failed restore comparisons, so those pair samples do not run.
+  No assertion was relaxed or pinned as passing. A full read-path design must
+  reconcile restore obligations using the independent source; this round does
+  not claim that raw old SQLite should erase the newer reservation.
+
+**Run — commands and outputs:**
+
+```sh
+# Baseline: source extracted from 7b0e9a05 inside this worktree.
+mkdir -p .work/19b-s3-redesign/baseline
+git archive 7b0e9a05 control/aresos_control | tar -x -C .work/19b-s3-redesign/baseline
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=.work/19b-s3-redesign/baseline/control:control:control/mail_tests .work/venv/bin/python reviews/19b-owner-state/STORAGE-S3-REDESIGN-HARNESS.py .work/19b-s3-redesign/before-final.json --local-policy
+# Candidate applied: repeat the harness and run its diagnostic tests.
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/mail_tests .work/venv/bin/python reviews/19b-owner-state/STORAGE-S3-REDESIGN-HARNESS.py .work/19b-s3-redesign/after-final.json --local-policy
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/mail_tests .work/venv/bin/python reviews/19b-owner-state/STORAGE-S3-REDESIGN-TESTS.py --local-policy
+python3 reviews/19b-owner-state/STORAGE-S3-REDESIGN-VERIFY.py
+```
+
+The two measurement commands each print `measuring send`, `move`, `delete`,
+`free_change`, `send_25mib`, then the full JSON, exit 0. The test command prints
+`Ran 6 tests ... FAILED (failures=8)`, exit 1, as detailed above. The evidence
+validator checks every pinned hash, both numbers, file attribution, all record
+accounting, five `done` outcomes and the preserved failing output, then prints
+`Storage redesign evidence PASS ... Stage 3 STOP.` Its success validates the
+evidence, **not** the candidate's acceptance tests.
+
+**Run:** candidate syntax parses; `python3 control/generate.py --check` prints
+`Generated artifacts match definitions`; `git diff --check` is empty.
+`git apply --check --reverse .../STORAGE-S3-REDESIGN.patch` passed while
+applied. After withdrawal, `git apply --check` passes and `git diff -- control
+.github/workflows` is empty. To reproduce the candidate, apply the archived
+patch and reverse it afterwards, including on a failing test exit:
+
+```sh
+set -e
+git apply reviews/19b-owner-state/STORAGE-S3-REDESIGN.patch
+trap 'git apply --reverse reviews/19b-owner-state/STORAGE-S3-REDESIGN.patch' EXIT
+# Run the candidate commands above; the diagnostic tests currently fail (exit 1).
+```
+
+**Not verified / not done:** equality of **complete public owner-visible sets**,
+the exhaustive fault sweep, live public fallback routing, durable detailed
+warning reconstruction from compact references, D3 evidence reservations, D4
+own-reply resolution, full archive/restore/expiry integration, bounded
+retirement under faults and legacy migration acceptance. Two complete Control
+workflow passes were not run because the gate failed. The existing compact
+ledger is unchanged at **1,968,467 stage-3 keys / 2,011 groups**; it is not empty.
+No production test, oracle expectation, ledger entry or coverage assertion was
+weakened, removed or relabelled. Removed-test mapping: none. `warnings.py` and
+`paging.py`: no changes; no Chrome API change.
+
+**JUDGMENT-CALL:** the inactive candidate conservatively retains retired compact
+delta chains for independent context/check/acknowledgement provenance. Keeping
+that history made storage exceed the gate. No owner-facing policy was enabled;
+changing or accepting this retention design remains for the lead.
+
+**PLAN-GAP:** shrinking the active file does not satisfy the permanent budget
+when the same deltas survive in `owner-history`. A future design could test
+derivation from the already-kept, hash-qualified original archive instead of
+retaining a second chain. That alternative and restore reconciliation were
+not built after the explicit stop fired. **Open questions:** none requiring an
+answer during this stopped run; the lead has the measurements and failures.
+
+**Run / read — closing scope:** zero new workflow IDs or attempts, hence no CI
+watch or per-turn status polling in this batch. Prior stage-2 CI remains
+historical evidence only. The evidence/report commits use `[skip ci]`; the
+normal privacy hook runs on push without `--no-verify`. No own stage review,
+merge, force-push, other branch/worktree mutation, system change or Gradle
+daemon. `.work/` files over 500,000,000 bytes: **[]**. The candidate is withdrawn
+and PR #26 remains draft. Work stops here under the stage-3 storage rule.
