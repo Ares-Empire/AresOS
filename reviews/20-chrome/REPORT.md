@@ -1,9 +1,11 @@
-# 20 — Part P review fixes: resumed, acceptance pending
+# 20 — Part P review fixes: implementation acceptance green
 
-**In progress.** The lead's 2026-11-10 decisions, about 17:00, lift the earlier stop and replace both open native-dialog
-items. The preexisting-dialog PLAN-GAP is retired in favor of the decided owner handoff. The outside-native case
-uses the approved asking pattern. [PR 27](https://github.com/Ares-Empire/AresOS/pull/27) stays draft and unmerged.
-The final whole set twice in both install modes, base/Mail/boundary twice, full P30 and later cases remain required.
+**P1–P31 implemented.** Source `2488d2420f5c39f54e3503e1746992e028ebf145` passed the complete
+**80-name suite twice in both install modes**, full P30 and all later cases included. Base, Mail, boundary and
+qualification also passed twice on that source. [PR 27](https://github.com/Ares-Empire/AresOS/pull/27) stays draft
+and unmerged; Part S is separate. **Owner Enter: passes in CI, panel to confirm.** Group 12 remains false until 18d.
+The closing report/evidence commit must repeat this full acceptance set on its exact head; its final run links
+are recorded on PR 27 without another commit that would change the verified head.
 
 ## Decided dialog rules — lead, 2026-11-10
 
@@ -41,7 +43,7 @@ outer native host plus a primitive path resolved in the isolated world. Runtime.
 
 Only plain Python/Node ran on this Mac. No local Chrome/Chromium or browser profile was accessed. Browser tests
 run only in GitHub Linux containers through control-chrome. Current local Node: **229 passed**, zero failed,
-cancelled or skipped. Focused Python: **49 OK**. The current full sweep is **189 OK, 232.606 s**
+cancelled or skipped. Focused Python: **49 OK**. The current full sweep is **189 OK, 244.571 s**
 (`PYTHONPATH=control:control/chrome_tests python3 -m unittest discover -s control/chrome_tests -v`).
 An initial invocation without PYTHONPATH failed to import test_bridge; the corrected complete run passed. The expanded mutation audit rejects **102 mutations**, every baseline passing.
 [Exact mutation commands/assertions](records/review-fixes-mutations.json) include bounded handoff, detachment,
@@ -52,9 +54,50 @@ Native dialogs from inherited editor frames now join CDP and webNavigation ident
 private document, with inherited read-only checks.
 The latest borrowed-native regression also covers message/default object conversion: conversion finishes before
 a private dialog token exists, so a nested borrowed dialog cannot inherit the outer call’s authority. Native
-string hints, defaults, ignored extra arguments, return values and thrown identities have regressions. Ten
-borrowed browser variants are required in the next trial; that extension is not yet browser-verified. Six additional blank/srcdoc native cases are mandatory;
-their Linux proof is pending.
+string hints, defaults, ignored extra arguments, return values and thrown identities have regressions. All ten
+borrowed browser variants and all six blank/srcdoc native cases passed in each of the four completed Linux jobs.
+
+## Complete Linux acceptance on 2488d242
+
+[Push 42915282247](https://github.com/Ares-Empire/AresOS/actions/runs/42915282247) and
+[PR 42915293661](https://github.com/Ares-Empire/AresOS/actions/runs/42915293661) are green, external and policy
+installation in each. Every job passed **80/80 exact names**, all core/adapter verdicts and groups 1–11/13;
+group 12 is explicitly false. Every job also passed **189 Python** and **229 Node** tests, zero Node
+failures/cancellations/skips. [Exact names and one-based PASS lines](records/review-fixes-2488-test-index.md),
+[completed source/job metadata](records/review-fixes-2488-runs.json),
+[independent artifact audit](records/review-fixes-2488-audit.json), and
+[receiver arrival rows with URL, method, timestamp and body SHA-256](records/review-fixes-2488-summary.json)
+retain the evidence. Raw receiver, ingress, tool and service files remain in each named workflow artifact,
+with their SHA-256 digests recorded by the audit.
+
+| Run / installation | Named cases | Python output | Node |
+|---|---:|---|---:|
+| 42915282247 external | 80/80 | 189 OK, 790.691 s | 229/229 |
+| 42915282247 policy | 80/80 | 189 OK, 786.981 s | 229/229 |
+| 42915293661 external | 80/80 | 189 OK, 1065.794 s | 229/229 |
+| 42915293661 policy | 80/80 | 189 OK, 631.514 s | 229/229 |
+
+**Receiver audit:** `node reviews/20-chrome/audit-review-evidence.mjs <downloaded-artifacts>` passes all four
+artifacts. Each has **1,219 page + 139 adapter approval sequences**, all 0/1/1, with every retained arrival
+matching the independent receiver and each final receiver count exactly one. It also requires the exact
+inventory and verdicts, the full Python/Node outputs, and fragment-safe ingress completeness. It rejects the
+retained 76-pass trial. The old helper's 77 count described that failed trial's executed prefix; the complete
+inventory is 80, including the final actual Stop, crash-cutpoint and no-listening-port cases. No missing case
+is counted as passing.
+
+**P30:** all document/open-shadow/closed-shadow/cross-site password variants exercise read, read_form,
+preparation and final binding, with release/retake and sticky-password transitions. Each artifact retains
+3,481–3,483 sensitive-getter records and 25,173–26,782 protocol events. The independent scan reassembles all
+fragmented ingress (140,591–142,200 rows), including legitimate null results: **zero Runtime console/exception
+value events and no password sentinel** in browser ingress, tool replies or service output.
+
+**Late and feature-preserving cases:** all 15 Claude/owner/task native combinations, six inline-native cases,
+three bounded owner handoff/recovery cases, ten borrowed-native variants (direct, argument conversion and
+changed dialogs), four ordinary/stale inline editors, actual chooser/backing-file byte replacement, both new
+shadow matrices, frozen-wrapper Stop, inactive no-ops, media/dirty reloads, script POST tabs/popups, full catalogue
+paging and the final three whole-suite cases passed in all four jobs. [P1–P31 map](BUILD-P-1.md) links every fix
+to regressions/removal mutations; the exact browser line for each named matrix is in the index above.
+The installed runtime hash is `117dc34ebc93455ce47ca79d187fc5c7e5107ad130e6e5eb1e615a0c885e91c7`.
 
 **Partial Linux evidence; whole runs failed:**
 
@@ -65,7 +108,7 @@ their Linux proof is pending.
 | `651096b2`, 42832298611 external / 42832312713 policy | [Actual backing-file mutation with restored timestamp, exact digest questions, refusal at zero and fresh 0/1/1](records/review-fixes-6510-native-file.json); retake found stale cleanup contexts. |
 | `ace83b8e`, 42833507627 / 42833520319 | Native missing-context proof fixed cleanup; cross-tab and pay/delete override cases passed; [shadow handoff failed](records/review-fixes-ace8-shadow.json). |
 | `02f523d3`, 42839228786 / 42839244624 | [Both new shadow matrices passed, with raw receiver rows](records/review-fixes-02f5-shadow.json). Review key/word/URL, binding, exact owner mark, reload/media, script POST and focus matrices passed. Frozen cleanup owner-driver wait failed. |
-| `3f1af5b2`, 42889458048 / 42889469858 | [All 77 names executed; 76 pass, including P30 and the late safety cases](records/review-fixes-3f1-late-catalogue.json). Full catalogue history paging reaches 732 of 877 items before its absolute five-minute snapshot expires. Active cursors now renew the immutable snapshot; five idle minutes still expire it. The strengthened case requires every item exactly once. |
+| `3f1af5b2`, 42889458048 / 42889469858 | [77 of 80 names executed; 76 pass, including P30](records/review-fixes-3f1-late-catalogue.json). Full catalogue history paging reaches 732 of 877 items before its absolute five-minute snapshot expires. Active cursors now renew the immutable snapshot; five idle minutes still expire it. The strengthened case requires every item exactly once. |
 | `de337c55`, 42870158864 / 42870172304 | [The retained policy job passes 60 of 61 executed names](records/review-fixes-de3-p30.json), including all native and context-sensitive adapter cases. P30 completes its browser operations, then its scanner dereferences a legitimate null audit result; the corrected offline scan finds no sentinel or forbidden Runtime events. Push-external reaches the 105-minute container cap while still progressing through P30. The scanner is fixed and the whole-suite allowance is now 155 minutes; all individual assertions/deadlines stay strict. |
 | `25263559`, 42864982361 / 42865000405 | [Six inline-native cases and the complete cross-site mismatch matrix pass](records/review-fixes-252-context-reuse.json). Whole runs fail when reused numeric renderer contexts retain old private records, leaving some new documents without readers. The root-navigation retirement and startup identity checks now have overlap/reuse regressions and three removal mutations. |
 | `2d2c728e`, 42849298252 / 42849536082 | [Both modes pass the 15 ordinary dialogs, bounded owner handoff/recovery, borrowed-native questions, every review matrix and frozen-wrapper cleanup](records/review-fixes-2d2-dialog-decisions.json). Whole runs fail at cross-site native confirmation guard lookup; Gemini also failed; the next trial independently diagnosed a reused context number. The lookup now uses the authenticated opener document rather than the root event target. |
@@ -74,25 +117,23 @@ their Linux proof is pending.
 CI was awaited with one blocking `gh run watch --exit-status --interval 60` command per latest run; failed logs
 were read after completion. No missing or failed named case qualified. Group 12 remains false until 18d.
 
-## Shared workflows verified twice on de337c55
+## Shared workflows verified twice on 2488d242
 
-[Exact run metadata, artifact paths and one-based output lines](records/review-fixes-de3-shared.json):
-base 42870172481 / 42874609495 (**142 tests** each); Mail 42870172385 / 42874707566
-(**142 base + 309 Mail tests**, all four sweep shards each); boundary 42870172295 / 42874802464
+[Exact run metadata, artifact paths and one-based output lines](records/review-fixes-2488-shared.json):
+base 42915293611 / 42915922398 (**142 tests** each); Mail 42915293687 / 42916012876
+(**142 base + 309 Mail tests**, all four sweep shards each); boundary 42915293786 / 42916096946
 (**127 native + 127 broker attacks in each seccomp mode**, zero hostile connections);
-qualification 42870172545 / 42874901253 (**47 Python + 220 Node tests** each).
+qualification 42915293644 / 42916179264 (**47 Python + 229 Node tests** each).
 All eight workflows completed successfully. These ran through one blocking watch per workflow; no failed log
-was read before completion. The Chrome pair on this source completed red at P30 / the container cap; its retained evidence is above.
+was read before completion. The earlier [de337c55 repeats](records/review-fixes-de3-shared.json) remain historical.
 
-## Not verified yet
+## Not verified / review boundaries
 
-The whole Chrome set twice in both modes with the current native hardening and active-catalogue lifetime.
-P30 and the other late safety cases passed on 3f1af5b2; the full catalogue case remained red. Base/Mail/boundary and qualification passed twice on de337c55; closing-head revalidation follows
-the final report/assertion commit. The bounded handoff/recovery, outside-native cases and frozen-wrapper correction passed the completed trial
-in both modes. The inline-native and cross-site corrections passed their trial. Root-navigation retirement and startup identity checks passed their next trial. The null-safe P30 audit scan and all other late safety cases passed. The current native hardening and
-active catalogue paging need their next complete Linux trial. Owner Enter has an interim
-named matrix pass; final CI and the lead's panel confirmation remain required. Group 12 stays false until 18d.
-No real accounts, live signed-in sites or production qualification were used.
+Owner Enter **passes in CI, panel to confirm**; the lead's panel reviews its receiver/binding angles.
+Group 12 remains false until 18d supplies the real normal/skip-permissions precedence harness. Real accounts,
+live signed-in sites, native-UI answering of a preexisting modal and production qualification were not used.
+Part S's independent state changes are not integrated here. The closing immutable-head repeat is recorded
+with its exact run links on PR 27; the table above identifies the verified implementation-source artifacts.
 
 ## Ownership, runs and remaining decisions
 
@@ -102,13 +143,16 @@ frame's authenticated effective URL and must survive integration. No branch was 
 privacy hook ran normally. Only this build's superseded runs were cancelled; no owner/lead run was cancelled.
 
 The earlier closing runs 42843419421 / 42843914061 are both completed failures on the superseded asking path.
-They were awaited by one blocking shell watch loop. The branch ledger is **162 Chrome IDs before the next push**,
-expected **164 after**, below the revised approximate 175 limit. Future runs are awaited with blocking watches;
-failed logs are read after completion. The previous .work inventory found no regular file over 500 MiB.
+The implementation-source ledger is **164 Chrome workflow IDs**, including cancelled IDs; the closing report
+push is expected to add two (**166**, below the approximate 175 limit). All named workflows are awaited with
+one blocking `gh run watch --exit-status --interval 60` per run; completed failures alone have their logs read.
+Before the closing push, `.work/` contains **3,977 regular files, 2,618,296,875 bytes; no regular file exceeds
+500 MiB**. There are no downloaded ISO/image layers or local browser profiles. No Gradle daemon was started.
 
 Both open native-dialog policy choices are now decided. Genuinely unreachable guard/frame coverage still fails
 closed under the brief; ordinary editor/dialog cases must pass. No new feature-removing fallback is approved.
-No JUDGMENT-CALL is introduced by these decided rules. Remaining open acceptance items are listed above.
+No JUDGMENT-CALL is introduced by these decided rules. There is no unresolved Part P implementation decision;
+the review boundaries above remain explicit.
 
 The report below is historical integration evidence, not acceptance evidence for this fix round.
 

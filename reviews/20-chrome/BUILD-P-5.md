@@ -155,7 +155,7 @@ The corrected offline scan of the completed policy evidence covers 121,236 rows,
 and no password sentinel in reassembled browser ingress, tools or service data.
 That is useful privacy evidence, not a passing full CI result.
 
-The 77-case whole-suite container allowance becomes 155 minutes (job 165), also
+The 80-case whole-suite container allowance becomes 155 minutes (job 165), also
 in qualification's identical full-suite container step. The prior cap stopped a
 progressing run one minute after its last passed exclusion case. Per-case
 assertions, owner timing and operation deadlines are unchanged; nothing is
@@ -201,7 +201,7 @@ No extra workflow was started and no local browser/profile was accessed.
 ### Completed 3f1af5b2 trial and closing native/catalogue batch
 
 Runs 42889458048 / 42889469858 completed red at the sole remaining named failure:
-full catalogue history paging. The retained policy matrix executes all 77 names,
+full catalogue history paging. The retained policy matrix executes 77 of 80 names,
 76 passing, including P30, native/core/adapter matrices, Stop/recovery, wrapper
 compatibility and qualification/residual cases. Full Python after the browser
 was not run. records/review-fixes-3f1-late-catalogue.json retains every PASS line,
@@ -240,3 +240,40 @@ rejected, every baseline passing. Generated and diff checks pass. Runtime hash:
 Python remains the recovered 189 OK; no Python implementation changed. The old
 shared twice-green source is retained explicitly as de337c55, not this new head.
 The next push is expected to bring the Chrome ledger from 162 to 164.
+
+### 2488d242 local and shared completion
+
+The complete local Python sweep passed **189 tests, OK, 244.571 s** with
+`PYTHONPATH=control:control/chrome_tests python3 -m unittest discover -s control/chrome_tests -v`.
+Node remains **229 pass**, zero failed/cancelled/skipped, and all **102 removal
+mutations** are rejected with passing baselines. No browser ran locally.
+
+All eight shared workflows on 2488d242 completed green: base 42915293611 /
+42915922398 (142 each); Mail 42915293687 / 42916012876 (142 base + 309 Mail and
+four sweep shards each); boundary 42915293786 / 42916096946 (127 native + 127
+broker attacks in each seccomp mode, zero hostile connections); qualification
+42915293644 / 42916179264 (47 Python + 229 Node each). Exact artifact paths,
+one-based output lines and completed job metadata are retained in
+records/review-fixes-2488-shared.json. The Chrome pair is still being awaited
+with one blocking watch per workflow; it is not yet acceptance evidence.
+
+
+### Complete 2488d242 acceptance
+
+Chrome **42915282247 / 42915293661**, external and policy in each, completed
+successfully. Every job passed the exact **80-name** inventory, full P30 and all
+late cases, **189 Python** and **229 Node** tests. The three cases after FEATURE
+(actual popup Stop, all crash cutpoints, no listening port) now ran and passed;
+the earlier 77-name count described only the executed prefix of the failed trial.
+No assertion/inventory was relaxed. The full catalogue test still pages two
+items at a time and checks the exact total and unique identities.
+
+The durable browser-free artifact auditor passes all four raw datasets:
+**1,219 page + 139 adapter 0/1/1 sequences per job**, independent arrivals matching;
+3,481–3,483 sensitive getters; zero forbidden Runtime console/exception events;
+no password sentinel in complete reconstructed ingress, tools or service output.
+It rejects the retained failed trial. Exact lines, raw arrival summaries,
+checksums and completed run metadata are in records/review-fixes-2488-*.json and
+the 80-case test index. The next commit contains report/evidence only; its exact
+head repeats Chrome twice in both modes and all shared workflows twice, with
+final run links on PR 27. Ledger before that closing push: 164; expected 166.

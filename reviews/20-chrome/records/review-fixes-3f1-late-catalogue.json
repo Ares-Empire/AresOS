@@ -353,5 +353,11 @@
     "adapters-receiver.jsonl": "5ee8e936dd029e1950cd5c2b3c8605b5dd4ce25202244863c0e71521546248ff",
     "tool.jsonl": "7c5c0219c5e8d7bd2da05ed6c8e21695111236433941e0bfbb2f23a1bffecb63",
     "service.txt": "492b5f0feca5bcfcb72b46c66aef6430cd63ae06cc3fe2b4435ef80d95c8ac21"
-  }
+  },
+  "expected_named_inventory": 80,
+  "not_executed_after_catalogue_failure": [
+    "GROUP 8 actual popup Stop button drops all prepared work",
+    "GROUP 9 Chrome host service crash cutpoints never replay",
+    "GROUP 7 no listening port after tool suite"
+  ]
 }
