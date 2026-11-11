@@ -84,6 +84,29 @@
   function activate(){
   if(closed)throw Error('The document guard was disposed');if(enabled)return;enabled=true;
   if(saved.attachShadow)install(Element.prototype,'attachShadow',function(){const result=invoke(saved.attachShadow,this,arguments);report(result,{kind:'watch_root'});return result;});
+  // A fresh realm's native attachShadow bypasses the wrapper above. Register
+  // the receiving root before content insertion or listener registration, so
+  // even a non-composed event in the same handler meets isolated capture.
+  function watchReceiver(target){
+    if(!enabled||!shadowHost)return;
+    let localRoot,host;try{localRoot=invoke(root,target,[]);host=invoke(shadowHost,localRoot,[]);}catch{return;}
+    if(host)report(localRoot,{kind:'watch_root'});
+  }
+  for(const [prototype,names] of [[globalThis.Node?.prototype,['appendChild','insertBefore','replaceChild']],
+    [globalThis.Element?.prototype,['append','prepend','replaceChildren','insertAdjacentElement','insertAdjacentHTML']],
+    [globalThis.DocumentFragment?.prototype,['append','prepend','replaceChildren']],
+    [EventTarget.prototype,['addEventListener']]])for(const name of names){
+      const method=prototype&&descriptor(prototype,name)?.value;
+      if(typeof method==='function')install(prototype,name,function(){watchReceiver(this);return invoke(method,this,arguments);});
+    }
+  for(const prototype of [globalThis.Element?.prototype,globalThis.ShadowRoot?.prototype]){
+    const previous=prototype&&descriptor(prototype,'innerHTML');if(!previous?.set)continue;
+    const method=previous.set;
+    const value=({set innerHTML(html){watchReceiver(this);invoke(method,this,[html]);}});
+    const setter=descriptor(value,'innerHTML').set;
+    invoke(setString,nativeStrings,[setter,invoke(nativeString,method,[])]);
+    define(prototype,'innerHTML',options({...previous,set:setter}));installed.push({prototype,name:'innerHTML',value:setter,previous,setter:true});
+  }
   for(const name of ['alert','confirm','prompt']){
     let prototype=globalThis;while(prototype&&!descriptor(prototype,name))prototype=Object.getPrototypeOf(prototype);
     const method=prototype&&descriptor(prototype,name)?.value;if(typeof method!=='function')continue;
@@ -138,7 +161,7 @@
   }
   // Runtime.evaluate retains this return value as a private remote handle. It is
   // never a global or a DOM capability the page can invoke to end its hold.
-  function cleanup(){closed=true;enabled=false;let restored=true;for(let index=0;index<installed.length;index++){const item=installed[index],current=descriptor(item.prototype,item.name);if(current&&descriptor(current,'value')&&current.value===item.value){try{define(item.prototype,item.name,item.previous);}catch{try{define(item.prototype,item.name,options({value:item.previous.value}));}catch{restored=false;}}}}return restored;}
+  function cleanup(){closed=true;enabled=false;let restored=true;for(let index=0;index<installed.length;index++){const item=installed[index],current=descriptor(item.prototype,item.name),key=item.setter?'set':'value';if(current&&descriptor(current,key)&&current[key]===item.value){try{define(item.prototype,item.name,item.previous);}catch{try{define(item.prototype,item.name,options({[key]:item.previous[key]}));}catch{restored=false;}}}}return restored;}
   if(privateControl)privateControl.addEventListener('aresos-relay-cleanup',event=>{if(cleanup())event.preventDefault();});
   if(privateRelay)return {activate,cleanup,relay:privateRelay};
   activate();return cleanup;

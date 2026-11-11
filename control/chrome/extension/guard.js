@@ -80,13 +80,18 @@
     element=control(element);
     if(config?.conservative)return true;
     const target = facts(element), form = reader.form(element);
-    if (form && target.submit) return !search(form);
+    if (!target.editable && explicit(target,form)) return true;
+    if (form && target.submit) return !search(form,element);
     if (target.editable) return false;
-    return listed([target.name,target.label,target.title,target.role,target.page_dialog?.text,target.password ? '' : target.value,form?.action ? decoded(form.action):'']
-      .join(' '));
+    return false;
   }
-  function search(form) {
+  function explicit(target,form) {
+    return listed([target?.name,target?.label,target?.title,target?.role,target?.page_dialog?.text,target?.password ? '' : target?.value,form?.action ? decoded(form.action):''].join(' '));
+  }
+  function search(form,element=null) {
     if(config?.conservative||form?.method!=='get'||!form.search)return false;
+    // A search container never exempts an explicit Pay/Delete/Send control.
+    if(explicit(element?facts(element):null,form)||(form.fields||[]).some(field=>['submit','image'].includes(field.type)&&explicit(field,null)))return false;
     try{const url=new URL(form.action),host=url.hostname.replace(/\.+$/,'');return ['http:','https:'].includes(url.protocol)&&!url.username&&!url.password&&!(config.blockedHosts||config.fixedHosts||[]).some(blocked=>host===blocked||host.endsWith('.'+blocked));}catch{return false;}
   }
   function report(kind, element, submitter = null, cancellable = true) {
@@ -114,7 +119,7 @@
   }
   function submit(form, submitter, kind) {
     if (!(form instanceof HTMLFormElement)) return;
-    if (!active() || ownerSubmission(form,submitter) || search(reader.form(form,submitter)) || allowance(form,null,submitter)) {
+    if (!active() || ownerSubmission(form,submitter) || search(reader.form(form,submitter),submitter||form) || allowance(form,null,submitter)) {
       if (kind === 'native_submit') native.submit.call(form);
       else requestNative(form,submitter);
     } else report(kind,form,submitter);
@@ -135,7 +140,13 @@
     if (!active()) return;
     if (!(element instanceof Element)) return;
     const nodeRoot=element.getRootNode();
-    if(root===window ? nodeRoot!==document || globalThis.chrome?.dom?.openOrClosedShadowRoot(element) : nodeRoot!==root)return;
+    if(root===window){
+      // Native-created roots may have bypassed the MAIN attachShadow wrapper.
+      // Install capture while this composed event is still above the root.
+      if(nodeRoot!==document){watch(nodeRoot);return;}
+      const shadow=globalThis.chrome?.dom?.openOrClosedShadowRoot(element);
+      if(shadow)watch(shadow);
+    }else if(nodeRoot!==root)return;
     if(type(event)==='click')element=control(element);
     if (inFlight && event.isTrusted && mark && element === mark.target) {
       if(['keydown','input','change'].includes(type(event)))mark.input=true;
@@ -143,7 +154,7 @@
       if(type(event)==='keydown'&&expected&&event.key===expected.key&&!!event.ctrlKey===!!(expected.modifiers&2)&&!!event.metaKey===!!(expected.modifiers&4)&&!!event.altKey===!!(expected.modifiers&1)&&!!event.shiftKey===!!(expected.modifiers&8))mark.keydown=true;
     }
     if (type(event) === 'submit') {
-      if (ownerSubmission(element,event.submitter,event) || search(reader.form(element,event.submitter)) || allowance(element,event,event.submitter)) return;
+      if (ownerSubmission(element,event.submitter,event) || search(reader.form(element,event.submitter),event.submitter||element) || allowance(element,event,event.submitter)) return;
       event.preventDefault();event.stopImmediatePropagation();report('submit_event',element,event.submitter);
     } else if (type(event) === 'click' && asks(element)) {
       if(!inFlight&&event.isTrusted)return;
@@ -244,7 +255,7 @@
   globalThis[Symbol.for('aresos.chrome.guard.v2')] = {
     get ready(){return !!reader;},
     control(epoch){generation=epoch;},
-    route(event,stage,hold){if(hold){config=hold.config;until=Math.max(until,performance.now()+config.holdMs);owner=null;mark=null;}if(stage.detail.kind==='click'||stage.detail.kind==='dispatch'){const node=eventElement(stage.target),name=stage.detail.kind==='click'?'click':stage.detail.event_type;if(node)watch(node.getRootNode());if(active()&&node&&(name==='click'&&asks(node)||name==='submit'&&!search(reader.form(node)))){report('activation',control(node));return;}event.preventDefault();}else onCall(event,stage);},
+    route(event,stage,hold){if(hold){config=hold.config;until=Math.max(until,performance.now()+config.holdMs);owner=null;mark=null;}if(stage.detail.kind==='click'||stage.detail.kind==='dispatch'){const node=eventElement(stage.target),name=stage.detail.kind==='click'?'click':stage.detail.event_type;if(node)watch(node.getRootNode());if(active()&&node&&(name==='click'&&asks(node)||name==='submit'&&!search(reader.form(node),node))){report('activation',control(node));return;}event.preventDefault();}else onCall(event,stage);},
     identity(){return reader?.document;},
     dialogBoundary(){return {document:reader?.document,token:endingDialog};},
     relay(node){
@@ -287,7 +298,7 @@
           const name=stage.detail.kind==='click'?'click':stage.detail.event_type;
           if(typeof name!=='string')return;
           if(element)watch(element.getRootNode());
-          if(active()&&element&&(name==='click'&&asks(element)||name==='submit'&&!search(reader.form(element)))){report('activation',control(element));return;}
+          if(active()&&element&&(name==='click'&&asks(element)||name==='submit'&&!search(reader.form(element),element))){report('activation',control(element));return;}
           // This decision never leaves the private, detached control node. No
           // original Event is transferred, so page code cannot discover the relay.
           event.preventDefault();return;

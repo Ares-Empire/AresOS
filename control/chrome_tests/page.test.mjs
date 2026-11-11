@@ -12,7 +12,7 @@ function fixture({relay=false,activate=true,link=true,browserDOM=false,nativeSha
     constructor(type,options={}) {Object.assign(this,{type,cancelable:true,defaultPrevented:false,stopped:false,eventPhase:0,isTrusted:false,...options});}
     preventDefault(){if(this.cancelable)this.defaultPrevented=true;}
     stopImmediatePropagation(){this.stopped=true;}
-    composedPath(){return [this.target];}
+    composedPath(){return [this.visibleTarget||this.target];}
   }
   class CustomEvent extends Event {constructor(type,options={}){super(type,options);this.detail=nativeShadows&&type==='aresos-relay-meta'?structuredClone(options.detail):options.detail;if(type==='aresos-page-call-v2')bridgeDetails.push(options.detail);}}
   class EventTarget {
@@ -23,7 +23,9 @@ function fixture({relay=false,activate=true,link=true,browserDOM=false,nativeSha
       event.target=this;event.eventPhase=1;
       try {
         const localRoot=this.getRootNode?.();
+        event.visibleTarget=localRoot?.mode==='closed'?localRoot.host:null;
         for(const fn of localRoot?.host&&event.composed!==true?[]:windowListeners.get(event.type)||[]){fn(event);if(event.stopped)return !event.defaultPrevented;}
+        event.visibleTarget=null;
         if(localRoot?.host)for(const fn of localRoot.listeners.get(event.type)||[]){fn(event);if(event.stopped)return !event.defaultPrevented;}
         event.eventPhase=2;
         for(const fn of this.listeners.get(event.type)||[]){fn(event);if(event.stopped)break;}
@@ -39,6 +41,10 @@ function fixture({relay=false,activate=true,link=true,browserDOM=false,nativeSha
     get host(){return shadowHosts.get(this);}set host(value){shadowHosts.set(this,value);hostShadows.set(value,this);}
     getRootNode(options={}){const root=this.root??this.ownerDocument??document;return options.composed&&root.host?root.host.getRootNode(options):root;}
   }
+  Node.prototype.appendChild=function(node){node.parentNode=this;node.root=this.getRootNode();this.childNodes=[...this.childNodes,node];return node;};
+  Node.prototype.append=function(...nodes){for(const node of nodes)Node.prototype.appendChild.call(this,node);};
+  const nativeAppend=Node.prototype.appendChild,markup=new WeakMap();
+  const nativeHTMLSetter=function(value){markup.set(this,String(value));};Object.defineProperty(Node.prototype,'innerHTML',{configurable:true,get(){return markup.get(this)||'';},set:nativeHTMLSetter});
   class Element extends Node {
     isConnected=true;tagName='DIV';type='';textContent='';form=null;role='';
     constructor(){super();this.ownerDocument=document;nodes.push(this);}
@@ -47,7 +53,7 @@ function fixture({relay=false,activate=true,link=true,browserDOM=false,nativeSha
     getAttribute(name){return this[name]||null;}
     matches(){return false;}
     querySelector(){return null;}
-    attachShadow(){const root=new Node();root.root=root;root.ownerDocument=this.ownerDocument;root.host=this;return root;}
+    attachShadow(options={}){const root=new Node();root.root=root;root.ownerDocument=this.ownerDocument;root.host=this;root.mode=options.mode;return root;}
     appendChild(node){node.parentNode=this;this.firstElementChild??=node;return node;}
   }
   class HTMLElement extends Element {click(){originalDispatch.call(this,new Event('click'));}}
@@ -57,7 +63,7 @@ function fixture({relay=false,activate=true,link=true,browserDOM=false,nativeSha
     submit(){arrivals.push('native');}
     requestSubmit(submitter){if(!this.valid)return;const event=new Event('submit',{submitter,isTrusted:true});if(originalDispatch.call(this,event))arrivals.push('event');}
   }
-  const originalRequestSubmit=HTMLFormElement.prototype.requestSubmit;
+  const originalRequestSubmit=HTMLFormElement.prototype.requestSubmit,nativeAttach=Element.prototype.attachShadow,nativeListen=EventTarget.prototype.addEventListener;
   const document=new EventTarget();document.getElementById=key=>document.labels?.[key];
   if(relay)document.createElement=()=>{const node=new HTMLElement();node.root=node;node.ownerDocument=document;node.isConnected=false;node.parentNode=null;return node;};
   const window={addEventListener(type,fn){if(!windowListeners.has(type))windowListeners.set(type,[]);windowListeners.get(type).push(fn);},removeEventListener(type,fn){windowListeners.set(type,(windowListeners.get(type)||[]).filter(value=>value!==fn));}};
@@ -65,7 +71,7 @@ function fixture({relay=false,activate=true,link=true,browserDOM=false,nativeSha
   class AbstractRange {}
   const rangeNodes=new WeakMap();class StaticRange extends AbstractRange {constructor(options){super();rangeNodes.set(this,options.startContainer);}get startContainer(){if(!rangeNodes.has(this))throw TypeError('Invalid StaticRange');return rangeNodes.get(this);}}
   class InputEvent extends Event {constructor(type,options={}){super(type,options);this.ranges=options.targetRanges?Array.from(options.targetRanges):[];}getTargetRanges(){return retarget?this.ranges.filter(range=>!range.startContainer.getRootNode().host):this.ranges;}}
-  const globals={window,document,performance:{now:()=>now},setTimeout,MessageChannel,Symbol,Event,CustomEvent,EventTarget,Node,Element,HTMLElement,HTMLInputElement,HTMLFormElement,DOMException,URL,TextDecoder,Uint8Array,...(relay?{AbstractRange,StaticRange,InputEvent}:{}),...(nativeShadows?{Document:class Document{},ShadowRoot:Node,chrome:{dom:{openOrClosedShadowRoot:host=>hostShadows.get(host)}}}:browserDOM?{Document:class Document{}}:{})};
+  const globals={window,document,performance:{now:()=>now},setTimeout,MessageChannel,Symbol,Event,CustomEvent,EventTarget,Node,DocumentFragment:Node,Element,HTMLElement,HTMLInputElement,HTMLFormElement,DOMException,URL,TextDecoder,Uint8Array,...(relay?{AbstractRange,StaticRange,InputEvent}:{}),...(nativeShadows?{Document:class Document{},ShadowRoot:Node,chrome:{dom:{openOrClosedShadowRoot:host=>hostShadows.get(host)}}}:browserDOM?{Document:class Document{}}:{})};
   const dialogCalls=[],dialogReports=[],dialogValues=[],dialogValue=value=>value===undefined?'':`${value}`;if(dialogs)Object.assign(globals,{alert:({alert(value){dialogValues.push([dialogValue(value)]);dialogCalls.push('alert');}}).alert,confirm:({confirm(value){dialogValues.push([dialogValue(value)]);dialogCalls.push('confirm');return true;}}).confirm,prompt:({prompt(value,initial){dialogValues.push([dialogValue(value),dialogValue(initial)]);dialogCalls.push('prompt');return 'native response';}}).prompt});const nativeDialogs=dialogs?{alert:globals.alert,confirm:globals.confirm,prompt:globals.prompt}:{};
   let guard;const isolated=vm.createContext({...globals,fixtureDialogPause:()=>onDialogBoundary(guard)});
   vm.runInContext(fs.readFileSync('control/chrome/extension/guard.js','utf8').replace('debugger;','fixtureDialogPause();'),isolated);
@@ -74,7 +80,7 @@ function fixture({relay=false,activate=true,link=true,browserDOM=false,nativeSha
   const ids=new Map(), elements=new Map();let sequence=0;
   function id(node){if(!ids.has(node)){const key='e'+(++sequence);ids.set(node,key);elements.set(key,node);}return ids.get(node);}
   function name(node){const labels=(node['aria-labelledby']||'').split(/\s+/).map(key=>document.getElementById(key)).filter(Boolean);return labels.length ? labels.map(label=>label.textContent).join(' ') : node['aria-label'] || node.labels?.map(label=>label.textContent).join(' ') || node.textContent;}
-  guard.reader({dialog:(...value)=>dialogReports.push(value),document:'document-1',id,element:key=>elements.get(key),target:node=>({name:name(node),title:node.title,role:node.role,password:!!node.password,submit:!!node.form && node.type==='submit',editable:node instanceof HTMLInputElement}),form:(node,button)=>{const form=node.form || (node.tagName==='FORM' ? node:null);return form ? {method:button?.formmethod || form.method,search:form.role==='search',action:button?.formAction || form.action,encoding:form.encoding||'application/x-www-form-urlencoded',target:form.target||''}:null;}});
+  guard.reader({dialog:(...value)=>dialogReports.push(value),document:'document-1',id,element:key=>elements.get(key),target:node=>({name:name(node),title:node.title,role:node.role,password:!!node.password,submit:!!node.form && node.type==='submit',editable:node instanceof HTMLInputElement}),form:(node,button)=>{const form=node.form || (node.tagName==='FORM' ? node:null);return form ? {method:button?.formmethod || form.method,search:form.role==='search',action:button?.formAction || form.action,encoding:form.encoding||'application/x-www-form-urlencoded',target:form.target||'',fields:nodes.filter(node=>node.form===form).map(node=>({type:node.type,label:name(node)}))}:null;}});
   const main=vm.createContext({...globals});
   const nativeFunctions=[HTMLFormElement.prototype.submit,HTMLFormElement.prototype.requestSubmit,HTMLElement.prototype.click,EventTarget.prototype.dispatchEvent];
   const nativeStrings=nativeFunctions.map(fn=>Function.prototype.toString.call(fn));
@@ -85,7 +91,7 @@ function fixture({relay=false,activate=true,link=true,browserDOM=false,nativeSha
   assert.equal(vm.runInContext("globalThis[Symbol.for('aresos.chrome.guard.v2')]",main),undefined);
   function arm(target,form,operation=null,conservative=false){guard.arm({generation:'epoch',config:{...policy,conservative},target:id(target),form:form ? id(form):null,operation,primary_submission:false});}
   const api={...guard,resume:(id,operation)=>{const step=reports.find(item=>item.id===id);return guard.resume(id,operation,step?.submitter||step?.element,step?.element);}};
-  return {api,guard,arrivals,dialogCalls,dialogReports,dialogValues,nativeDialogs,bridgeDetails,cleanup,nativeStrings,nativeFunctions,factory:relay?installed:null,Node,EventTarget,get reports(){reports.push(...guard.steps());return reports;},document,HTMLFormElement,HTMLElement,HTMLInputElement,Event,CustomEvent,originalDispatch,originalRequestSubmit,arm,main,id,advance:milliseconds=>{now+=milliseconds;}};
+  return {api,guard,arrivals,dialogCalls,dialogReports,dialogValues,nativeDialogs,bridgeDetails,cleanup,nativeStrings,nativeFunctions,factory:relay?installed:null,Node,EventTarget,get reports(){reports.push(...guard.steps());return reports;},document,HTMLFormElement,HTMLElement,HTMLInputElement,Event,CustomEvent,originalDispatch,originalRequestSubmit,nativeAttach,nativeAppend,nativeListen,nativeHTMLSetter,arm,main,id,advance:milliseconds=>{now+=milliseconds;}};
 }
 
 test('private factory creation changes no prototype before its cleanup handle can be retained',()=>{
@@ -542,7 +548,7 @@ test('P5 composed root keeps asking controls inside shadow DOM held',()=>{
 test('P5 new roots install capture before a borrowed native dispatch can activate a control',()=>{
   for(const composed of [false,true])for(const cancelable of [false,true]){
     const f=fixture({relay:true}),host=new f.HTMLElement(),button=new f.HTMLElement();button.tagName='BUTTON';button.textContent='Delete';f.arm(host,null);
-    const root=host.attachShadow({mode:'closed'});button.root=root;let handlers=0;button.addEventListener('click',()=>handlers++);
+    const root=host.attachShadow({mode:'closed'});assert.ok(root.listeners.get('click')?.length,'wrapped creation synchronously installs capture');button.root=root;let handlers=0;button.addEventListener('click',()=>handlers++);
     f.originalDispatch.call(button,new f.Event('click',{composed,cancelable}));
     assert.equal(handlers,0);assert.equal(f.reports.length,1);assert.equal(f.reports[0].kind,cancelable?'activation':'activation_unknown');
   }
@@ -603,4 +609,49 @@ test('P1 dialog conversion keeps native defaults ignored extras and thrown ident
     const failure={fixture:'conversion failure'};f.main.fail=()=>{throw failure;};
     assert.throws(()=>vm.runInContext(`${kind}({toString(){return fail();}})`,f.main),error=>error===failure);assert.equal(f.dialogReports.length,0);
   }
+});
+
+// Recheck: a GET search container cannot override an explicit asking label.
+test('recheck search labels win in activation and every submission route',()=>{
+  for(const label of ['Pay','Delete'])for(const route of ['click','dispatch','fallback','native-submit','request-submit','submit-event','relay-submit']){
+    const f=fixture({relay:true}),form=new f.HTMLFormElement(),button=new f.HTMLElement();
+    form.method='get';form.role='search';form.action='http://fixture.test/search';
+    button.tagName='BUTTON';button.type='submit';button.textContent=label;button.form=form;
+    let handlers=0;button.addEventListener('click',()=>handlers++);form.addEventListener('submit',()=>handlers++);f.arm(button,form);
+    if(route==='click')button.click();
+    else if(route==='dispatch')button.dispatchEvent(new f.Event('click'));
+    else if(route==='fallback')f.originalDispatch.call(button,new f.Event('click'));
+    else if(route==='native-submit')form.submit();
+    else if(route==='request-submit')form.requestSubmit(button);
+    else if(route==='submit-event')f.originalDispatch.call(form,new f.Event('submit',{submitter:button}));
+    else form.dispatchEvent(new f.Event('submit'));
+    assert.equal(handlers,0,label+' '+route);assert.equal(f.arrivals.length,0);assert.equal(f.reports.length,1);
+  }
+});
+test('recheck composed native roots discover capture without prior registration',()=>{
+  for(const mode of ['open','closed'])for(const cancelable of [false,true]){
+    const f=fixture({relay:true,nativeShadows:true}),host=new f.HTMLElement(),button=new f.HTMLElement();
+    const root=f.nativeAttach.call(host,{mode});f.nativeAppend.call(root,button);
+    button.tagName='BUTTON';button.textContent='Delete';let handlers=0;f.nativeListen.call(button,'click',()=>handlers++);f.arm(host,null);
+    f.originalDispatch.call(button,new f.Event('click',{composed:true,cancelable}));
+    assert.equal(handlers,0);assert.equal(f.reports.length,1);assert.equal(f.reports[0].kind,cancelable?'activation':'activation_unknown');
+  }
+});
+test('recheck native roots register before noncomposed content or listeners',()=>{
+  for(const mode of ['open','closed'])for(const route of ['append','appendChild','listener','markup'])for(const cancelable of [false,true]){
+    const f=fixture({relay:true,nativeShadows:true}),host=new f.HTMLElement(),button=new f.HTMLElement();
+    const root=f.nativeAttach.call(host,{mode});button.tagName='BUTTON';button.textContent='Delete';let handlers=0;
+    if(route==='listener'){f.nativeAppend.call(root,button);button.addEventListener('click',()=>handlers++);}
+    else if(route==='markup'){f.nativeAppend.call(root,button);f.nativeListen.call(button,'click',()=>handlers++);root.innerHTML='native setter still runs';assert.equal(root.innerHTML,'native setter still runs');}
+    else{f.nativeListen.call(button,'click',()=>handlers++);root[route](button);}
+    f.arm(host,null);f.originalDispatch.call(button,new f.Event('click',{composed:false,cancelable}));
+    assert.equal(handlers,0,mode+' '+route);assert.equal(f.reports.length,1);assert.equal(f.reports[0].kind,cancelable?'activation':'activation_unknown');
+    assert.equal(f.cleanup(),true);assert.equal(f.Node.prototype.appendChild,f.nativeAppend);assert.equal(f.EventTarget.prototype.addEventListener,f.nativeListen);assert.equal(Object.getOwnPropertyDescriptor(f.Node.prototype,'innerHTML').set,f.nativeHTMLSetter);
+  }
+});
+test('recheck a shadow host itself still meets window activation capture',()=>{
+  const f=fixture({relay:true,nativeShadows:true}),host=new f.HTMLElement();host.textContent='Delete';
+  f.nativeAttach.call(host,{mode:'closed'});let handlers=0;f.nativeListen.call(host,'click',()=>handlers++);f.arm(host,null);
+  f.originalDispatch.call(host,new f.Event('click',{composed:true,cancelable:true}));
+  assert.equal(handlers,0);assert.equal(f.reports.length,1);
 });
