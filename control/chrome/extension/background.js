@@ -652,9 +652,9 @@ async function collection(command) {
   let record,offset=0;
   if(command.cursor){
     const [token,position]=command.cursor.split(':');record=listSnapshots.get(token);offset=Number(position);
-    if(!record || record.key!==key || Date.now()-record.time>300000 || !Number.isInteger(offset) || offset<0 || offset>=record.items.length)throw Error('stale_reference: list snapshot changed; read without the cursor');
+    if(!record || record.key!==key || Date.now()-record.time>=300000 || Date.now()-record.created>=1800000 || !Number.isInteger(offset) || offset<0 || offset>=record.items.length)throw Error('stale_reference: list snapshot changed or expired; start the list again without a cursor');
     // Large catalogues can take longer than five minutes to page. Keep the
-    // immutable snapshot while it is used; idle expiry and the size bound stay.
+    // immutable snapshot while it is used, up to thirty minutes from creation.
     record.time=Date.now();listSnapshots.delete(record.id);listSnapshots.set(record.id,record);
   } else {
     let items;
@@ -666,8 +666,8 @@ async function collection(command) {
       items=(await chrome.tabs.query({})).map(tab=>({tab:tab.id,window:tab.windowId,index:tab.index,active:tab.active,focused:focused.has(tab.windowId),title:tab.title,url:tab.url,controlled:controlled.has(tab.id)&&(controlled.get(tab.id).virtualGroup||tab.groupId===groupId),cleanup_pending:releasing.has(tab.id)}));
     }
     if(items.length>10000 || JSON.stringify(items).length>8*1024*1024)throw Error('refused: this complete list exceeds the 10000-item or 8 MiB snapshot bound; narrow the search');
-    record={id:crypto.randomUUID(),key,items,time:Date.now()};
-    for(const [id,value]of listSnapshots)if(Date.now()-value.time>300000)listSnapshots.delete(id);
+    const now=Date.now();record={id:crypto.randomUUID(),key,items,time:now,created:now};
+    for(const [id,value]of listSnapshots)if(now-value.time>=300000 || now-value.created>=1800000)listSnapshots.delete(id);
     if(listSnapshots.size>=2)listSnapshots.delete(listSnapshots.keys().next().value);
     listSnapshots.set(record.id,record);
   }

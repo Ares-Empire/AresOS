@@ -23,7 +23,7 @@ test('active catalogue paging outlives five minutes without changing its capture
     for(;;){
       seen.push(...page.items.map(row=>row.id));
       if(!page.cursor)break;
-      f.advance(240000);
+      f.advance(40000);
       page=await f.read({name,text:'fixture.test',limit:2,cursor:page.cursor});
     }
     assert.deepEqual(seen,expected);assert.equal(f.searches(),1);
@@ -31,9 +31,50 @@ test('active catalogue paging outlives five minutes without changing its capture
 });
 
 test('idle catalogue snapshots still expire after five minutes',async()=>{
-  const f=fixture(),page=await f.read({name:'history',text:'fixture.test',limit:2});
-  f.advance(300001);
-  await assert.rejects(f.read({name:'history',text:'fixture.test',limit:2,cursor:page.cursor}),/stale_reference/);
+  for(const name of ['downloads','history','bookmarks']){
+    const f=fixture();let page=await f.read({name,text:'fixture.test',limit:2});
+    f.advance(299999);
+    page=await f.read({name,text:'fixture.test',limit:2,cursor:page.cursor});
+    f.advance(300000);
+    await assert.rejects(f.read({name,text:'fixture.test',limit:2,cursor:page.cursor}),/stale_reference:.*start the list again without a cursor/);
+    assert.equal(f.searches(),1,'expired cursors never silently query a new list');
+  }
+});
+
+test('active catalogue walks expire exactly thirty minutes after creation and must restart',async()=>{
+  for(const name of ['downloads','history','bookmarks']){
+    const f=fixture();f.advance(123000);
+    let page=await f.read({name,text:'fixture.test',limit:2});
+    for(let minute=4;minute<=28;minute+=4){
+      f.advance(240000);
+      page=await f.read({name,text:'fixture.test',limit:2,cursor:page.cursor});
+    }
+    f.advance(119999);
+    page=await f.read({name,text:'fixture.test',limit:2,cursor:page.cursor});
+    f.advance(1);
+    await assert.rejects(f.read({name,text:'fixture.test',limit:2,cursor:page.cursor}),/stale_reference:.*start the list again without a cursor/);
+    f.advance(1);
+    await assert.rejects(f.read({name,text:'fixture.test',limit:2,cursor:page.cursor}),/stale_reference:.*start the list again without a cursor/);
+    assert.equal(f.searches(),1,'an expired walk does not renew or silently restart');
+    f.rows.splice(0,f.rows.length,{id:'replacement',url:'http://fixture.test/replacement'});
+    const restarted=await f.read({name,text:'fixture.test',limit:2});
+    assert.deepEqual(Array.from(restarted.items,row=>row.id),['replacement']);assert.equal(f.searches(),2);
+  }
+});
+
+test('new catalogues prune absolute expiry even when the expired snapshot was used last',async()=>{
+  const f=fixture();let page=await f.read({name:'history',text:'fixture.test',limit:2});
+  const old=page.cursor.split(':')[0];
+  for(let minute=4;minute<=28;minute+=4){
+    f.advance(240000);
+    page=await f.read({name:'history',text:'fixture.test',limit:2,cursor:page.cursor});
+  }
+  const recent=await f.read({name:'bookmarks',text:'fixture.test',limit:2});
+  f.advance(60000);await f.read({name:'history',text:'fixture.test',limit:2,cursor:page.cursor});
+  f.advance(60000);await f.read({name:'downloads',text:'fixture.test',limit:2});
+  assert.equal(f.run(`listSnapshots.has(${JSON.stringify(old)})`),false);
+  assert.equal(f.run(`listSnapshots.has(${JSON.stringify(recent.cursor.split(':')[0])})`),true);
+  assert.equal(f.run('listSnapshots.size'),2);
 });
 
 test('invalid cursors cannot renew a snapshot and retained snapshots stay bounded',async()=>{
