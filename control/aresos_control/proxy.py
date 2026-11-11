@@ -58,8 +58,8 @@ class Proxy:
                 result = self.client.request({"method": "saved", "app": self.app, "outcome": saved, 'export_id': admission['export_id']})
                 if result['ok']:
                     result["data"] = saved
-                elif result.get('error', {}).get('code') == 'unknown':
-                    result['data']['saved'] = saved
+                else:
+                    result.setdefault('data', {})['saved'] = saved
                 return result
             if self.app == "mail" and verb == "compose":
                 arguments = dict(arguments)
@@ -102,8 +102,8 @@ class Proxy:
                 result = self.client.request({"method": "saved", "app": "mail", "outcome": saved, 'export_id': item['export_id']})
                 if result['ok']:
                     result['data'] = saved
-                elif result.get('error', {}).get('code') == 'unknown':
-                    result['data']['saved'] = saved
+                else:
+                    result.setdefault('data', {})['saved'] = saved
                 return result
             return self.client.call(action.name, arguments)
         except (Refused, OSError, ValueError) as exc:

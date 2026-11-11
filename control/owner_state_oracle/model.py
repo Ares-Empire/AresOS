@@ -6,7 +6,7 @@ import copy
 import hashlib
 import json
 import re
-from .records import canonical, fingerprint, visible, restore_intervals, consistency_errors
+from .records import canonical, fingerprint, visible, restore_intervals, consistency_errors, pending_reason
 from .resolutions import RESOLUTIONS, permitted
 from .context import bind as bind_context, differences as context_differences, special_roles, special_delimiters, missing_flag_commands, rename_destination, MUTATIONS
 from .local import errors as local_errors
@@ -179,7 +179,7 @@ class Oracle:
         onboarding = self.onboarding_call(source)
         internal_repair = onboarding and event['action'] == 'mail_operation_repair' and onboarding in self.calls_at(event['seq'])
         return (bool(internal_repair) or event['action'] == 'mail_sent_copy_check' or
-                event.get('untrusted_content', {}).get('stage') == 'sent_copy' or
+                event.get('untrusted_content', {}).get('stage') in {'sent_copy', 'message_id'} or
                 event['action'] == 'mail_operation_repair' and any(
                     c['action'] == 'mail_operation_repair' and c['arguments'].get('operation_id') == source.removeprefix('op:') and
                     c['arguments'].get('stage') == 'sent_copy' for c in self.calls_at(event['seq'])))
@@ -426,6 +426,34 @@ class Oracle:
             self.location_evidence[self.occurrences[key]] = (source, copy.deepcopy(evidence['locations']))
         return Fact(source, kind, self.occurrences[key], canonical(detail))
 
+    def generic_evidence(self, record):
+        """D3's durable generic occurrences are bound to interrupted episodes.
+
+        An anchored check-open is necessary, and a later opening (or the
+        reserved-space fallback result) proves that its result was missing.
+        A naked notice flag never supplies that proof.
+        """
+        from .projection import check_episodes
+        episodes, current = check_episodes(record)
+        facts = set()
+        valid = {}
+        for (source, epoch), episode in episodes.items():
+            end = episode['end']
+            end_row = record.owner_versions.get(end, {}).get(source) or {}
+            fallback = end_row.get('sent_copy_check', {}).get('unrecorded') is True
+            if episode['ending'] != 'replaced' and not fallback:
+                continue
+            identity = ('sent-' + fingerprint(source[3:])[:32] if source.startswith('op:')
+                        else source.rsplit(':', 1)[-1]) + '-' + format(epoch, '032x')
+            valid[source, epoch] = identity
+            if identity not in self.acknowledged:
+                kind = 'sent_copies' if source.startswith('op:') else 'rename' if source.startswith('mail:rename:') else 'filing'
+                facts.add(Fact(source, 'evidence-unrecorded', identity, kind))
+        self.generic_episodes = valid
+        self.current_episodes = current
+        self.check_episodes = episodes
+        return facts
+
     def expected(self, record, live=False, app=None):
         facts = set()
         record = self.lifecycle(record)
@@ -483,13 +511,13 @@ class Oracle:
                 if app is None or row['app'] == app:
                     if row['state'] in {'reserved', 'submitting', 'partial', 'unknown'} or (
                             key in self.operation_notices and 'operation:' + row['id'] not in self.acknowledged):
-                        facts.add(Fact(key, 'pending', detail=canonical({'state': row['state'], 'reason': 'RESTORED_EVIDENCE' if 'restored' in row.get('reason', '').lower() and any(word in row.get('reason', '').lower() for word in ('newer', 'missing')) else row.get('reason')})))
+                        facts.add(Fact(key, 'pending', detail=canonical({'state': row['state'], 'reason': pending_reason(row.get('reason'))})))
                 if (row['state'] in {'submitting', 'unknown', 'partial'} or row['state'] == 'reserved' and key in self.legacy_sources) and (app is None or row['app'] == app):
                     facts.add(Fact(key, 'recovery'))
                 check = row.get('sent_copy_check', {})
                 if row['app'] == 'mail' and (app is None or app == 'mail'):
-                    failed_recheck = live and bool(check) and self.script and bool(self.script[-1].get('faults', {}).get('trace'))
-                    if (check.get('state') == 'open' or failed_recheck) and not any(f.source == key and f.kind == 'sent_copies' and f.occurrence not in self.acknowledged for f in self.detected):
+                    failed_recheck = bool(check) and (bool(record.prepared) or len(record.fences) > max(record.committed, default=0) or live and self.script and bool(self.script[-1].get('faults', {}).get('trace')))
+                    if check.get('state') == 'open' or failed_recheck and not any(f.source == key and f.kind == 'sent_copies' and f.occurrence not in self.acknowledged for f in self.detected):
                         facts.add(Fact(key, 'unchecked'))
             elif key.startswith(('mail:filing:', 'mail:rename:', 'intent:', 'export:', 'mail:account:')):
                 row_app = row.get('app', 'mail')
@@ -500,6 +528,24 @@ class Oracle:
                     key.startswith('mail:account:') and not row.get('onboarded', row.get('ready', False)))
                 if unfinished:
                     facts.add(Fact(key, 'recovery'))
+        # Independently decoded owner facts survive a rolled-back or unreadable
+        # SQLite view. They add obligations; ending one still needs the scripted
+        # acknowledgement or result proof below.
+        for source, row in record.owner_rows.items():
+            if not isinstance(row, dict):
+                continue
+            if source.startswith('notice:') and row.get('ack'):
+                seq = record.owner_sequences[source]
+                proof = {'seq': seq, 'time': next(f['time'] for f in record.fences if f['seq'] == seq)}
+                if self.scripted_transition(proof, '_notice_ack', row['id']):
+                    self.acknowledged.add(row['id'])
+            if source.startswith('op:') and row.get('sent_copy_check', {}).get('state') == 'open' and row.get('app') == 'mail':
+                facts.add(Fact(source, 'unchecked'))
+            if source not in record.rows and source.startswith(('intent:', 'export:', 'mail:filing:', 'mail:rename:', 'mail:account:')):
+                opened = (source.startswith(('intent:', 'export:')) or row.get('state') == 'started' or
+                          row.get('check_open') or source.startswith('mail:account:') and not row.get('onboarded', row.get('ready', False)))
+                if opened and (app is None or row.get('app', 'mail') == app):
+                    facts.add(Fact(source, 'recovery'))
         if record.locked:
             latest, local = {}, {}
             for fence in record.fences:
@@ -552,7 +598,8 @@ class Oracle:
             if states:
                 state = states[-1]
                 unavailable = any(e['call'] == state['call'] and e['command'] == 'CONNECT' and not e['accepted'] for e in self.servers)
-                refused = bool(call.get('faults', {}).get('trace')) or call.get('faults', {}).get('admission') == 'full'
+                refused = (bool(call.get('faults', {}).get('trace')) or call.get('faults', {}).get('admission') == 'full' or
+                           bool(record.prepared) or len(record.fences) > max(record.committed, default=0))
                 registrations = {}
                 for event in record.events:
                     for source, value in event['set'].items():
@@ -567,7 +614,9 @@ class Oracle:
                     required = account.get('special', {})
                     roles_unresolved = any([name for name, flags in role_map.items() if '\\' + role in [f.lower() for f in flags]] != [required.get(role)] for role in ('sent', 'drafts', 'trash'))
                     if unavailable or refused or roles_unresolved:
-                        facts.add(Fact(source, 'unchecked'))
+                        if not any(f.source == source and f.kind == 'sent_copies' and
+                                   f.occurrence not in self.acknowledged for f in self.detected):
+                            facts.add(Fact(source, 'unchecked'))
                         continue
                     mid = '<' + operation['id'].replace(':', '.') + '@mail.aresos.invalid>'
                     copies = [{k: v for k, v in ref.items() if k != 'sha256'}
@@ -614,8 +663,23 @@ class Oracle:
             elif event['command'] == 'SENT' and len(event['identities']) > 1:
                 self.detected.add(self.warning(event['source'], 'sent_copies', sorted(event['identities'], key=canonical), record))
         self.processed_server = len(self.servers)
-        facts.update(f for f in self.detected if f.occurrence not in self.acknowledged and
-                     (app is None or app == 'mail'))
+        generic = self.generic_evidence(record)
+        if app is None or app == 'mail':
+            facts.update(generic)
+        for warning in self.detected:
+            if warning.occurrence in self.acknowledged or app not in (None, 'mail'):
+                continue
+            # A warning seen during a check whose result could not be committed
+            # is disclosed by its open-check warning and then its durable D3
+            # occurrence. Already committed specific evidence is never replaced.
+            covered = False
+            if warning.occurrence.startswith('uncommitted:'):
+                start = self.warning_started.get((warning.source, warning.kind), 0)
+                covered = any(source == warning.source and epoch <= start and
+                              (episode['end'] is None or start <= episode['end'])
+                              for (source, epoch), episode in self.check_episodes.items())
+            if not covered:
+                facts.add(warning)
         for fact in list(facts):
             if fact.kind not in {'sent_copies', 'filing', 'rename'}:
                 continue
@@ -646,7 +710,7 @@ class Oracle:
                 facts.add(Fact(source, 'recovery', occurrence))
         for fact in list(facts):
             if fact.kind == 'recovery':
-                row = record.rows.get(fact.source, self.warning_contexts.get(fact.source, {}))
+                row = record.rows.get(fact.source, record.owner_rows.get(fact.source, self.warning_contexts.get(fact.source, {})))
                 app_name = row.get('app', 'mail')
                 partial = any(w.occurrence == fact.occurrence and w.kind in {'filing', 'rename'} for w in self.detected) if fact.occurrence else False
                 facts.add(Fact(fact.source, 'recovery-context', fact.occurrence, canonical({
@@ -669,7 +733,8 @@ class Oracle:
             source, kind, encoded, epoch = key
             evidence = json.loads(encoded)
             wanted = fingerprint(sorted({canonical(ref) for ref in evidence}) if kind == 'sent_copies' else evidence)
-            matches = [n for k, n in record.rows.items() if k.startswith('notice:') and
+            notice_sources = {**record.owner_rows, **record.rows}
+            matches = [n for k, n in notice_sources.items() if k.startswith('notice:') and
                 n.get('source_key') == source and n.get('check_kind') == kind and
                 (n.get('evidence_fingerprint') == wanted or 'evidence_fingerprint' not in n) and
                 n['id'] not in self.occurrences.values()]
@@ -771,6 +836,9 @@ class Oracle:
             kind, proofs = 'submission', dict(scripted_approval=proof, commit_order=ordered or not self.script)
         elif before == 'reserved' and after == 'submitting':
             kind, proofs = 'submission', dict(scripted_approval=bool(own), commit_order=ordered)
+        elif event['action'] == 'control_restore_confirm' and before == 'reserved' and after == 'failed':
+            kind, proofs = 'restore_invalidation', dict(scripted_confirmation=self.restore_proof(event),
+                prior_reserved=True, no_effect=not commands, commit_order=ordered)
         elif before == 'reserved' and after == 'failed' and any(c['clock'] >= old.get('expires', float('inf')) for c in calls):
             kind, proofs = 'expiry', dict(scripted_clock=any(c['clock'] >= old.get('expires', float('inf')) for c in calls), reserved=True, commit_order=ordered)
         elif before == 'reserved' and after == 'failed' and self.scripted_transition(event, '_operation_cancel', identity):
@@ -1059,10 +1127,11 @@ class Oracle:
                     if opening or old and checked != prior_check and checked.get('state') == 'open':
                         calls = self.calls_at(event['seq'])
                         planned = any(c['action'] in {'control_pending', 'control_log', 'mail_filing_notices',
-                            'mail_operation_status', 'mail_operation_repair', 'mail_notice_ack'} for c in calls)
+                            'mail_operation_status', 'mail_operation_repair', 'mail_notice_ack'} or c['action'] in {'mail_send', 'mail_unsubscribe'} and c.get('arguments', {}).get('operation_id') == value['id'] for c in calls)
                         observed = any(e['command'] == 'SENT' and e.get('source') == key and
                             e['call'] in {c['call'] for c in calls} and e.get('before_seq', -1) >= event['seq'] for e in self.servers)
-                        valid_open = opening and (planned or observed)
+                        folded = event.get('untrusted_content', {}).get('stage') == 'smtp_data'
+                        valid_open = (opening or folded) and (fixture or planned or observed)
                         if not valid_open:
                             self.lifecycle_errors.add(Fact(key, 'unjustified-check-reopen', detail=str(event['seq'])))
                         if opening and checked.get('state') != 'open':
@@ -1123,7 +1192,7 @@ class Oracle:
                         self.lifecycle_errors.add(Fact(key, 'invalid-filing-state', detail=str(event['seq'])))
                     if value.get('state') == 'started' and event.get('outcome') not in {None, 'started', 'unknown'}:
                         self.lifecycle_errors.add(Fact(key, 'unjustified-filing-start', detail=str(event['seq'])))
-                    if old and not old.get('check_open') and value.get('check_open') and event['action'] != 'mail_filing_check':
+                    if old and not old.get('check_open') and value.get('check_open') and event['action'] not in {'mail_filing_check', 'mail_filing_check_open'}:
                         self.lifecycle_errors.add(Fact(key, 'unjustified-check-reopen', detail=str(event['seq'])))
                 if key.startswith('mail:account:') and value and event['seq'] > getattr(self, 'seed_sequence', 0):
                     if event['action'] == 'mail_account_add' and event.get('outcome') == 'done' and not value.get('onboarded'):
@@ -1464,7 +1533,13 @@ class Oracle:
         # Status is checked even when every catalogue is empty. A handled raw
         # failure may still yield success; only injected causes permit errors.
         if record.locked:
-            return {'restore_required'}
+            permitted = {'restore_required'}
+            faults = call.get('faults', {})
+            if faults.get('trace') or faults.get('active_exhaustion'):
+                permitted.add('storage_limit')
+                if any(f[2] == 'EIO' for f in faults.get('trace', [])):
+                    permitted.add('storage_error')
+            return permitted
         allowed = {'allowed'}
         faults = call.get('faults', {})
         if faults.get('admission') == 'full':
@@ -1730,6 +1805,8 @@ class Oracle:
     def hold_facts(self, record):
         keys = set()
         for key, row in record.rows.items():
+            if key.startswith(('op:', 'intent:', 'mail:filing:', 'mail:rename:')) and (row.get('check_open') or row.get('sent_copy_check', {}).get('state') == 'open' or key.startswith(('mail:filing:', 'mail:rename:')) and row.get('state') == 'started'):
+                keys.add('check:' + key)
             if key.startswith('export:'):
                 keys.add(key)
             if key.startswith('op:'):
@@ -1739,6 +1816,10 @@ class Oracle:
                     keys.add('cancel:' + row['id'])
         if record.locked:
             keys.add('restore')
+            for fence in record.fences:
+                for op in fence['operations']:
+                    if 'op:' + op['id'] not in record.rows and 'archived:' + op['id'] not in record.rows and 'archived:' + op['id'] not in record.owner_rows and op.get('description', {}).get('action', '').endswith('_operation_repair'):
+                        keys.add('settle:' + op['id'])
         return {Fact(key, 'held') for key in keys}
 
     def completion_errors(self, record):

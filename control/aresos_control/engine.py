@@ -26,7 +26,6 @@ class Engine:
         self.boundary = Boundary()
         self.store = Store(state_dir, evidence_dir, checkpoint)
         self.receiver = None
-        self._last_pending = {}
         try:
             self._initialize_adapters(ttl, checkpoint, file_limit)
         except BaseException as exc:
@@ -70,47 +69,28 @@ class Engine:
         return result
 
     def pending(self, app=None, args=None, resolve_checks=True):
+        if not getattr(self.store, 'in_request', False):
+            self.store.check_sessions = set()
         try:
-            result = self._pending(app, args, resolve_checks)
-            self._last_pending[app] = copy.deepcopy(result)
-            return result
+            return self._pending(app, args, resolve_checks)
         except (OSError, sqlite3.Error) as exc:
             if storage_refusal(exc) is None:
                 raise
             self.store.observations.storage(exc)
-            # Persistent exhaustion can prevent SQLite's rollback, so even a
-            # SELECT may fail. Keep the last disclosure and newly seen warnings
-            # in the reply instead of losing the entire storage-error frame.
-            result = copy.deepcopy(self._last_pending.get(app, self._last_pending.get(None, {
-                'items': [], 'total': 0, 'cursor': None, 'restore_required': self.store.locked})))
-            result['unavailable'] = 'Live pending read failed on storage; snapshot only. Restart recovery and inspect status before any further change.'
-            from .mail.filing import public_notice
-            notices = {n['operation_id']: n for n in result.get('notices', [])}
-            new_notices = []
-            for changes, _, _ in self.store.deferred_notices.values():
-                for key, value in changes.items():
-                    if key.startswith('notice:') and not value.get('ack'):
-                        notices[value['id']] = public_notice(self.store, value)
-                        new_notices.append(value['id'])
-                        self.store.observations.observe(value['id'], {'filing_warning': value['untrusted_content']})
-            if notices:
-                order = list(dict.fromkeys([*reversed(new_notices), *notices]))
-                result['notices'] = [notices[key] for key in order[:3]]
-                total = len(notices) + result.get('notices_more', {}).get('count', 0)
-                if total > 3:
-                    result['notices_more'] = {'count': total - 3, 'action': 'mail_filing_notices'}
-            return result
+            return self._pending(app, args, False)
 
     def _pending(self, app=None, args=None, resolve_checks=True):
+        from .owner_state import owner_view
+        view = owner_view(self.store)
         notices = self.notices(resolve_checks=resolve_checks)
         def rows():
-            for key, op in self.store.iter_items('op:'):
+            for key, op in view.iter_items('op:'):
                 if ((app is not None and op['app'] != app) or
                         not (op['state'] in {'reserved', 'submitting', 'partial', 'unknown'} or
                              (op.get('notice') and not op.get('ack')))):
                     continue
-                created = self.store.db.execute('SELECT created FROM retained WHERE k=?', (key,)).fetchone()
-                yield ((created[0] if created else 0, op['id']),
+                created = view.retained_at(key)
+                yield ((created, op['id']),
                        {'operation_id': op['id'], 'app': op['app'], 'state': op['state'], 'reason': op['reason']})
         return ordered_page(rows, args, ['pending', app]) | {'restore_required': self.store.locked} | notices
 
@@ -190,7 +170,17 @@ class Engine:
         op = self.operation(op_id)
         if op["app"] == "mail":
             outcome = self.adapters["mail"].stage_outcome(op, name, outcome)
+        began_submission = op['app'] == 'mail' and op['state'] == 'reserved' and name == 'message_id'
+        if began_submission:
+            op.update(state='submitting', reason='Durably submitting; do not cancel or retry.')
+            if self.store.observations.evidence.get(op_id, {}).get('sent') == []:
+                op['sent_copy_check'] = {'state': 'checked'}
+                if op.get('warning_checks', {}).get('sent_copies'):
+                    from .warnings import check_result
+                    check_result(self.store, op, 'op:' + op_id, 'sent_copies', [])
         op["stages"][name] = outcome
+        if op['app'] == 'mail' and name == 'smtp_data':
+            op['sent_copy_check'] = {'state': 'open'}
         if name == 'sent_copy' and outcome == 'done' and op.get('sent_copy_check', {}).get('state') == 'open':
             op['sent_copy_check'] = {'state': 'checked', 'clean': True}
             from .warnings import check_result
@@ -202,6 +192,10 @@ class Engine:
         if op["app"] == "mail":
             self.store.write(changes, op["action"], "Mail operation stage recorded", op_id,
                              untrusted_content={"stage": name, "outcome": outcome})
+            if name == 'smtp_data':
+                self.store.check_sessions.add(('op:' + op_id, self.store.sequence))
+            if began_submission:
+                self.store.checkpoint('submitting')
         else:
             self.store.write(changes, op["action"], "stage " + visible(name) + ": " + outcome, op_id)
         self.store.checkpoint("stage:" + name)
@@ -223,7 +217,14 @@ class Engine:
             return {"operation": self.public_operation(op)}
         adapter = self.adapters[action.app]
         adapter.revalidate(op)
-        if adapter.has_submission_evidence(op["id"]):
+        sender = action.app == 'mail' and bool(op.get('payload', {}).get('composition'))
+        if sender:
+            self.store.write({'op:' + op['id']: op}, 'mail_sent_copy_check_open',
+                             'Sent-copy check opened before submission', op['id'])
+        with action_scope(self.store, action.name, args, 'op:' + op['id']):
+            existing = adapter.has_submission_evidence(op['id'])
+        op = self.operation(op['id'])
+        if existing:
             op.update(state="unknown", reason="Far-side submission evidence already exists; inspect evidence, never submit again.")
             op["stages"]["preflight_evidence"] = "present"
             # Persist the positive finding before another adapter call can fail.
@@ -245,8 +246,9 @@ class Engine:
             value = adapter.submission_context(op)
         if value is not None:
             op.update(context=value, context_version=1)
-        self.store.write({"op:" + op["id"]: op}, action.name, "submitting", op["id"])
-        self.store.checkpoint("submitting")
+        if not sender:
+            self.store.write({"op:" + op["id"]: op}, action.name, "submitting", op["id"])
+            self.store.checkpoint("submitting")
         try:
             with action_scope(self.store, action.name, args, "op:" + op["id"]):
                 state, reason = adapter.execute(op, lambda name, outcome, **kw: self.stage(op["id"], name, outcome, **kw))
@@ -291,6 +293,10 @@ class Engine:
         old = self.operation(args["operation_id"], app)
         observation = {}
         def response(operation):
+            nonlocal old
+            committed = self.store.get('op:' + old['id'])
+            if committed is not None and not observation.get('settlement_storage_error'):
+                old = committed
             result = {'operation': self.public_operation(operation), 'original': self.public_operation(old)}
             if 'evidence_error' in observation:
                 result['evidence_error'] = observation['evidence_error']
@@ -420,6 +426,8 @@ class Engine:
         return response(repair)
 
     def dispatch(self, name, args, admin=False):
+        if not getattr(self.store, 'in_request', False):
+            self.store.check_sessions = set()
         action = BY_NAME.get(name)
         if action is None:
             raise Refused("invalid_input", "Unknown action; inspect the tool list.")
@@ -432,7 +440,7 @@ class Engine:
         validate(args, action.input)
         if action.effect != 'read':
             self.store.ensure_writable()
-        if self.store.locked and name != "control_restore_confirm":
+        if self.store.locked and name not in {"control_restore_confirm", "control_pending", "control_log", "mail_filing_notices"} and not name.endswith('_operation_status'):
             raise Refused("restore_required", "Older log refused; owner must confirm restore before any app access.")
         if name == "control_restore_confirm":
             from .definitions import RESTORE_WARNING
@@ -441,7 +449,7 @@ class Engine:
             from .archive import archive
             return archive(self.store, args['before'], self.adapters['mail'])
         if name == "control_pending":
-            return self.pending(args=args)
+            return self.pending(args=args, resolve_checks=not self.store.locked)
         if name == 'control_observations':
             from .results import observation_page
             return observation_page(self.store, args['cursor'])
@@ -449,9 +457,10 @@ class Engine:
             day = time.strftime("%Y-%m-%d", time.localtime())
             # Continuations read committed warnings: revalidating here would
             # itself add audit rows and invalidate every continuation forever.
-            notices = self.notices(resolve_checks='cursor' not in args)
+            notices = self.notices(resolve_checks='cursor' not in args and not self.store.locked)
+            from .owner_state import owner_view
             def rows():
-                for event in self.store.iter_audit():
+                for event in owner_view(self.store).iter_audit():
                     if time.strftime("%Y-%m-%d", time.localtime(event["time"])) == day:
                         yield (event['time'], event['seq']), event
             page = ordered_page(rows, args, ['log', day])
@@ -470,7 +479,7 @@ class Engine:
                     entry["untrusted_content"] = event["untrusted_content"]
                 entries.append(entry)
             page['items'] = entries
-            return page | notices
+            return page | notices | {'restore_required': self.store.locked}
         app, verb = action.app, action.verb
         adapter = self.adapters[app]
         if verb.startswith("prepare_"):
@@ -478,6 +487,12 @@ class Engine:
         if action.effect in {"send", "delete"}:
             return self.submit(action, args)
         if verb == "operation_status":
+            if self.store.locked or self.store.write_failed:
+                from .owner_state import owner_view
+                op = owner_view(self.store).get('op:' + args['operation_id'])
+                if op is None or op['app'] != app:
+                    raise Refused('stale_reference', 'Operation is not in the committed owner state.')
+                return {'operation': self.public_operation(op), 'evidence': {'absence_is_not_proof': True, 'unavailable': True}}
             op = self.operation(args["operation_id"], app)
             result = {}
             try:
@@ -487,7 +502,7 @@ class Engine:
                 # repair. Return that warning in this very status response.
                 op = self.operation(op['id'], app)
                 warning = result['evidence'].get('sent_copy_warning')
-                if warning:
+                if warning and not op.get('repair_of'):
                     op['stages']['sent_copy_warning'] = warning
             except (Refused, OSError, sqlite3.Error, imaplib.IMAP4.error, Uncertain) as exc:
                 storage = self.store.observations.error or storage_refusal(exc)
@@ -516,6 +531,8 @@ class Engine:
             if notice is None:
                 from .recovery import recovery_notices
                 notice = next((n for n in recovery_notices(self.store) if n['id'] == args['operation_id']), None)
+                if notice is not None:
+                    notice['created_at'] = time.time_ns()
             if notice and notice["app"] == app:
                 if notice.get('check_only'):
                     raise Refused('refused', 'Only cancelled/expired notices may be acknowledged; unresolved work stays visible.')
@@ -593,6 +610,7 @@ class Engine:
     def request(self, request, admin=False):
         previous_request = getattr(self.store, 'in_request', False)
         self.store.in_request = True
+        self.store.check_sessions = set()
         try:
             self.store.observations = Observations()
             self.pending(resolve_checks=False)
@@ -603,6 +621,8 @@ class Engine:
                 self.store.remember_storage(exc)
                 self.store.observations.storage(exc)
             result = self._admitted_request(request, admin)
+            if self.store.observations.error is not None or result.get('error', {}).get('code') in {'storage_limit', 'storage_error', 'journal_incomplete'}:
+                result['pending'] = self.pending(resolve_checks=False)
             return self.store.observations.finish(result, self.store)
         finally:
             self.store.in_request = previous_request
@@ -709,7 +729,9 @@ class Engine:
                     data = {"recorded": True}
             else:
                 raise Refused("invalid_input", "Unknown method or wrong socket; inspect the protocol.")
-            result = {"ok": True, "data": data, "pending": self.pending(app, resolve_checks=False)}
+            result = {"ok": True, "data": data, "pending": self.pending(app if app in self.adapters else None, resolve_checks=False)}
+            if self.store.locked:
+                result.update(ok=False, error={'code': 'restore_required', 'message': 'Older log detected; owner confirmation is required. Committed owner facts remain readable.'})
             # Blob transfer is private framing, never a model-facing result.
             if method != "download" and len(canonical(result).encode()) > RESULT_LIMIT and method != "tools" and request.get("action") != "control_observations":
                 raise Refused("result_too_large", "Result exceeds 49152 bytes; request a smaller page. Check status before repeating changes.")
@@ -718,13 +740,13 @@ class Engine:
             self.store.observations.storage(exc)
             storage = storage_refusal(exc)
             if storage:
-                return {'ok': False, 'error': {'code': storage.code, 'message': str(storage)}, 'pending': self.pending(app, resolve_checks=False)}
-            return {"ok": False, "error": {"code": "transport_error", "message": "Mail transport failed; inspect operation status before repeating changes. No automatic retry."}, "pending": self.pending(app, resolve_checks=False)}
+                return {'ok': False, 'error': {'code': storage.code, 'message': str(storage)}, 'pending': self.pending(app if app in self.adapters else None, resolve_checks=False)}
+            return {"ok": False, "error": {"code": "transport_error", "message": "Mail transport failed; inspect operation status before repeating changes. No automatic retry."}, "pending": self.pending(app if app in self.adapters else None, resolve_checks=False)}
         except (Refused, ValueError, KeyError, TypeError) as exc:
             self.store.observations.storage(exc)
             message = str(exc) if isinstance(exc, Refused) else "Invalid input or unsupported server data; inspect the tool schema and operation status."
             if app == "mail":
                 message = self.adapters["mail"].transport.scrub(message)
-            return {"ok": False, "error": {"code": getattr(exc, "code", "invalid_input"), "message": message}, "pending": self.pending(app, resolve_checks=False)}
+            return {"ok": False, "error": {"code": getattr(exc, "code", "invalid_input"), "message": message}, "pending": self.pending(app if app in self.adapters else None, resolve_checks=False)}
         except Exception:
-            return {"ok": False, "error": {"code": "internal_error", "message": "Request failed unexpectedly; inspect operation status before repeating changes."}, "pending": self.pending(app, resolve_checks=False)}
+            return {"ok": False, "error": {"code": "internal_error", "message": "Request failed unexpectedly; inspect operation status before repeating changes."}, "pending": self.pending(app if app in self.adapters else None, resolve_checks=False)}

@@ -97,9 +97,9 @@ class Paging29(EngineCase):
         self.assertIn('restarted', changed['page_changed'])
         self.assertEqual(changed['untrusted_content']['locations'], [{'id': 'changed'}])
 
-    def test_review29_restore_result_and_description_add_the_same_bounded_sentence(self):
-        sentence = ('Free changes made after the backup time (moves, renames and folder changes) and their warnings '
-                    'are not in the backup, so check those folders yourself.')
+    def test_stage3_restore_result_and_description_confirm_independent_reconciliation(self):
+        sentence = ('Free-change checks, warnings and acknowledgements are re-derived from the independent owner record. '
+                    'No remote work is replayed.')
         old = {'generation': '0' * 32, 'unknown': []}
         with patch.object(self.engine.store, 'confirm_restore', return_value=old):
             result = self.data('control_restore_confirm', {'confirm': 'invalidate earlier approvals'}, admin=True)

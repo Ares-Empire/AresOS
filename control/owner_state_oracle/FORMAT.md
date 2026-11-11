@@ -4,7 +4,7 @@ No expectation module imports `aresos_control` or the driver. `records.py`, `mod
 
 `evidence/operations.jsonl` is ASCII canonical JSON (sorted keys, separators comma/colon), one LF per record. A format-2 fence has format, seq, previous, time, generation, operations and hash. Hash is SHA-256 over the canonical object without hash; previous is the preceding fence hash (initially the empty string). A commit marker has commit=seq and matching hash. The decoder rejects corruption and unsupported versions; only an unterminated final line can be ignored. Format 1 is accepted with the same hash-chain contract.
 
-`state/control.sqlite` contains events(seq,value), head(id,seq,hash), kv(k,v), retained(k,created), operation_versions(id,seq). The decoder reads events and head, **never kv or the production index**. Each event contains seq/time/action/summary/outcome/operation_id/set/record and optional space/untrusted_content. Its record must equal the independent fence. Only a matching commit marker makes set's values committed (null deletes a key). Prepared events are separate evidence, never completed actions. Immutable events recover state without relying on working warning selection. Archives are JSONL `aresos-history-1` exports containing event or key/value entries; only a manifest in committed history, with matching SHA-256, authorizes reading their events. Projection format will be added in stage 3 without changing old records.
+`state/control.sqlite` contains events(seq,value), head(id,seq,hash), kv(k,v), retained(k,created), operation_versions(id,seq). The decoder reads events and head, **never kv or the production index**. Each event contains seq/time/action/summary/outcome/operation_id/set/record and optional space/untrusted_content. Its record must equal the independent fence. Only a matching commit marker makes set's values committed (null deletes a key). Prepared events are separate evidence, never completed actions. Immutable events recover state without relying on working warning selection. Archives are JSONL `aresos-history-1` exports containing event or key/value entries; only a manifest in committed history, with matching SHA-256, authorizes reading their events. Stage 3 adds the owner-fact format below; old fences without an owner commitment remain readable.
 
 Server trace entries carry call correlation, command, account, selected folder, exact message identities (including raw-byte hash/Message-ID where applicable), roles, attempted/accepted and reply delivered/lost. The script carries ordered action/arguments, clock, fault number/label/mode/cleanup point and delivered/lost caller reply. Traces stay in memory outside fault injection; optional JSON exports are written after faults end. Credentials and AUTH arguments are excluded. The oracle retains evidence independently of whether the service commits its warning. Occurrence UUIDs are opaque: the decoder binds them to independently selected evidence; changing or deleting a notice cannot delete an expected occurrence. Unknown UUID binding is explicit `uncommitted:…` and fails comparison.
 Pre-command snapshots include the committed sequence, the creation sequence of each source and the scenario call's start sequence. Explicit approved operation IDs bind exact operations; repairs follow only their own `repair_of` link. Free filing/rename intents must belong to the current call, account and target. New generic contexts use command/account/identities/source/destination/roles/recipients plus command-specific flags, wire hash or POST body. `context.py` also decodes the existing Mail payloads. A historical row with matching strings cannot satisfy another attempt.
@@ -352,3 +352,55 @@ Onboarding folder DELETE records its pre-command mailbox inventory independently
 of the service's payload/context. Probe account/folder/empty/empty-state claims
 are validated against this inventory and the scripted account-add account before
 qualification can use them; a coherent flag lie is a payload proof difference.
+
+
+## Stage 3 fixed owner facts (candidate; acceptance incomplete)
+
+`evidence/owner-state.bin` starts with eight bytes `AO19B4\0\n`. A frame is a
+big-endian uint32 compressed length, uint64 existing journal sequence, zlib level-9
+canonical JSON, and one 32-byte SHA-256 chain hash. The hash binds the preceding
+frame hash, header, compressed payload and matching independent fence hash.
+A frame maps selected source keys to `{kind, facts}`. The only active kinds are
+context, resolution, check-open, check-result and acknowledgement. Tombstones
+use the separate compact stream below. The facts omit authored text, approval
+inputs, arguments and audit summaries; recipient values are hashed and counted.
+Warning/recovery prose is generated from native identities, roles, short states,
+counts and reason/qualification codes. SQLite may supply matching detail.
+
+A new fence has a base64 SHA-256 `owner` commitment to the canonical complete
+`{source:{kind,facts}}` publication. It adds 55 JSON bytes, creates no transaction,
+and binds both the kind and the facts. A missing committed frame, including a
+removed complete suffix, fails. A compacted subset is accepted only after a
+hash-verified original export reconstructs the complete publication and matches
+every surviving kind and fact. No separate readable full-event copy is kept.
+
+`evidence/owner-tombstones.bin` has the same magic. Each record has a two-byte
+body length, compact body and one 32-byte chain hash. A shared resolution gives
+archive filename, SHA-256 and publication sequence. A tombstone gives source
+identity, final-state byte and acknowledgement identities. The chain also binds
+the SHA-256 of that source's exact full archive entry. Common operation IDs use
+33 binary bytes; derived acknowledgement IDs use prefix/suffix codes. The full
+export is re-read and verified before retirement and on later tombstone reads.
+
+The independent decoder exposes owner_rows, owner_sequences, owner_versions,
+owner_kinds and owner_retired. Every scalar/list element enters alteration
+enumeration. Decoding authenticates publication; the model still needs script,
+server and commit-order proof to grant completion or acknowledgement. Restore
+ranges identify the actual missing interval, never arbitrary future gaps.
+
+D3 check-open episodes are anchored by source and publication sequence. When a
+later check replaces an episode with no committed result, a durable generic
+occurrence retains that loss through subsequent clean evidence. Its identity
+contains the old episode sequence. The independent model reconstructs the
+episode; a naked generic notice flag is insufficient. Existing specific warning
+occurrences remain independently acknowledged. A still-open check continues to
+show the ordinary unchecked/recovery warning.
+
+This format is a candidate on the draft branch. The unchanged background-first-
+cause contract above still fails when the first write and all later writes fail
+without changing any persisted bytes; the final storage report records that
+counterexample. The known-gap ledger has not been cleared.
+
+The measured stage-3 format, inventories and exact first-write counterexample
+are in `reviews/19b-owner-state/STORAGE-S3-FINAL.md`. These are local diagnostics,
+not acceptance of the complete stage-3 sweep or a substitute for the CI gates.
