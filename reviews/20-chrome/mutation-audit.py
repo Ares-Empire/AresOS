@@ -125,6 +125,7 @@ case('P30-getters','control/chrome/ci/password-ingress.js','get(){return emit(ke
 case('P30-null-ingress','control/chrome/ci/ingress-scan.mjs','rows.filter(row=>row?.protocol_event)','rows.filter(row=>row.protocol_event)',node('ingress-scan','P30 protocol'))
 case('P31-popup',B,'popupNeedsReload:true','popupNeedsReload:false',node('background','P31'))
 F='control/chrome/ci/fixture.mjs'
+case('combined-S12-review-dialog','control/chrome/ci/review-matrices.mjs',"(await call('read',{tab:getTab()})).untrusted_content.dialog","(await call('read',{tab:getTab()})).dialog",node('fixture','combined S12 native-dialog'))
 case('P31-http',F,"else if(kind==='adapter-sites')","if(kind==='adapter-sites')",node('fixture','review pages reach'))
 case('P31-head',F,'globalThis.firstScriptSubmit=HTMLFormElement.prototype.submit;','',node('fixture','P31 first script'))
 case('P31-get-case',F,'target="_blank"><input type="hidden" name="case" value="\'+id+\'"><input type="search"','target="_blank"><input type="search"',node('fixture','P31 first script'))

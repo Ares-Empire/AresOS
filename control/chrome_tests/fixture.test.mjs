@@ -2,6 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
+import fs from 'node:fs';
 import {fixtures} from '../chrome/ci/fixture.mjs';
 import {popupPage} from '../chrome/ci/popups.mjs';
 
@@ -68,4 +69,38 @@ test('review pages reach the HTTP response without falling through to the defaul
       const response=await fetch(base+'/?case=review-page&mode='+mode+'&variant=listitem&id=review-http');assert.equal(response.status,200);assert.ok((await response.text()).includes(expected));
     }
   }finally{fixture.close();}
+});
+
+test('combined S12 native-dialog review fixtures consume only untrusted dialog data',async()=>{
+  const source=fs.readFileSync('control/chrome/ci/review-matrices.mjs','utf8');
+  const context=vm.createContext({assert,URL,URLSearchParams,delay:async()=>{},console:{log(){}}});
+  vm.runInContext(source.slice(source.indexOf('export async function reviewMatrices')).replace('export ',''),context);
+  const arrivals=[];let parameters,dialog,answer,reads=0,checks=0;
+  await context.reviewMatrices({
+    check:async(name,run)=>{
+      if(!['GROUP 4 REVIEW ordinary native dialogs from Claude owner and page tasks keep working',
+        'GROUP 4 REVIEW blank and srcdoc native dialogs answer with a held continuation'].includes(name))return;
+      checks++;await run();
+    },
+    nav:async query=>{parameters=new URLSearchParams(query);dialog={id:parameters.get('id'),kind:parameters.get('dialog'),frame:parameters.get('mode')==='inline-dialog'?2:0};},
+    call:async(name,args)=>{
+      if(name==='read'){
+        reads++;
+        return {untrusted_content:{dialog},get dialog(){throw Error('The fixture read page data outside untrusted_content');}};
+      }
+      assert.equal(name,'dialog');assert.equal(args.expected,dialog);answer=args;
+      return {followups:[{approval:{operation_id:dialog.id}}]};
+    },
+    rpc:async name=>{assert.equal(name,'click');return {ok:true};},
+    target:async()=>({}),getTab:()=>7,ownerKey(){},
+    fixture:{arrivals,mutate:async()=>{}},
+    eventually:async predicate=>{const value=await predicate();assert.ok(value,'the current native dialog must be found');return value;},
+    receiverEvidence:id=>({count:arrivals.filter(row=>new URL(row.url,'http://fixture.test').searchParams.get('case')===id).length}),
+    approval:async(result,id)=>{
+      assert.equal(result.followups[0].approval.operation_id,id);
+      const reply=dialog.kind==='alert'?'undefined':dialog.kind==='prompt'?(answer.accept?answer.text:'null'):String(answer.accept);
+      arrivals.push({url:'http://fixture.test/receive?case='+id,body:new URLSearchParams({reply}).toString()});
+    },
+  });
+  assert.equal(checks,2);assert.equal(reads,21);assert.equal(arrivals.length,21);
 });

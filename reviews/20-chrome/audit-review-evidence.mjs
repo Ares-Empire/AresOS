@@ -54,7 +54,7 @@ for(const root of process.argv.slice(2))for(const matrix of walk(root).filter(fi
   assert(py&&/^OK$/m.test(python),'Full Python suite missing or failed');
   assert.equal(Number(py[1]),220);
   const node=Object.fromEntries([...read(path.join(folder,'node.txt')).matchAll(/^(?:# |ℹ )?(tests|pass|fail|cancelled|skipped)\s+(\d+)/gm)].map(match=>[match[1],Number(match[2])]));
-  assert.deepEqual(node,{tests:234,pass:234,fail:0,cancelled:0,skipped:0});
+  assert.deepEqual(node,{tests:235,pass:235,fail:0,cancelled:0,skipped:0});
   const hashes=Object.fromEntries(['browser.txt','matrices.json','receiver.jsonl','page-receiver.jsonl','adapters-receiver.jsonl','browser-boundary.jsonl','tool.jsonl','service.txt','python.txt','node.txt'].map(name=>[name,digest(fs.readFileSync(path.join(folder,name)))]));
   results.push({artifact:path.basename(folder),chrome:read(path.join(folder,'chrome-version.txt')).trim(),named_passes:rows.length,test_index:testIndex,verdicts:verdict,receiver_audit:receiverAudits,password_audit:{rows:ingress.length,null_rows:ingress.filter(row=>row===null).length,protocol_events:events.length,forbidden_runtime_value_events:0,sensitive_getters:getters.length,getter_kinds:Object.fromEntries([...new Set(getters.map(row=>row.reader_ingress.kind))].map(kind=>[kind,getters.filter(row=>row.reader_ingress.kind===kind).length])),password_sentinel_absent:true},python:{tests:Number(py[1]),seconds:Number(py[2])},node,sha256:hashes});
 }

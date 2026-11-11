@@ -10,7 +10,7 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
       const id='review-dialog-'+kind+'-'+origin+'-'+accept;await nav('review-page&mode=native-dialog&dialog='+kind+'&id='+id);await delay(600);
       if(origin==='claude'){const opened=await rpc('click',await target('Continue'));assert.ok(opened.ok||opened.error.code==='unknown',JSON.stringify(opened));}
       else if(origin==='owner')ownerKey();else await fixture.mutate(id,'review-change');
-      const dialog=await eventually(async()=>(await call('read',{tab:getTab()})).dialog,'native '+kind+' from '+origin);assert.equal(dialog.kind,kind);assert.equal(dialog.unguarded,undefined,'ordinary dialogs must retain their private return hold');assert.equal(receiverEvidence(id,'native dialog open').count,0);
+      const dialog=await eventually(async()=>(await call('read',{tab:getTab()})).untrusted_content.dialog,'native '+kind+' from '+origin);assert.equal(dialog.kind,kind);assert.equal(dialog.unguarded,undefined,'ordinary dialogs must retain their private return hold');assert.equal(receiverEvidence(id,'native dialog open').count,0);
       const answer=await call('dialog',{tab:getTab(),expected:dialog,accept,...(kind==='prompt'?{text:'Synthetic answer'}:{})});
       assert.ok(!answer.approval,'the ordinary native answer has already happened');assert.ok(answer.followups?.some(row=>row.approval),'its resumed submission has a separate held approval');
       assert.equal(receiverEvidence(id,'after native answer').count,0,'answering cannot approve the resumed form');
@@ -23,7 +23,7 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
     for(const variant of ['blank','srcdoc'])for(const kind of ['alert','confirm','prompt']){
       const id='review-inline-dialog-'+variant+'-'+kind;await nav('review-page&mode=inline-dialog&variant='+variant+'&dialog='+kind+'&id='+id);await delay(600);
       const opened=await rpc('click',await target('Continue'));assert.ok(opened.ok||opened.error.code==='unknown',JSON.stringify(opened));
-      const dialog=await eventually(async()=>(await call('read',{tab:getTab()})).dialog,'inline '+variant+' '+kind);assert.equal(dialog.kind,kind);assert.notEqual(dialog.frame,0);assert.equal(dialog.unguarded,undefined);assert.equal(receiverEvidence(id,'inline native dialog open').count,0);
+      const dialog=await eventually(async()=>(await call('read',{tab:getTab()})).untrusted_content.dialog,'inline '+variant+' '+kind);assert.equal(dialog.kind,kind);assert.notEqual(dialog.frame,0);assert.equal(dialog.unguarded,undefined);assert.equal(receiverEvidence(id,'inline native dialog open').count,0);
       const answer=await call('dialog',{tab:getTab(),expected:dialog,accept:true,...(kind==='prompt'?{text:'Inline answer'}:{})});assert.equal(receiverEvidence(id,'inline native answered with hold').count,0);await approval(answer,id);
     }
   });
@@ -46,18 +46,18 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
   await check('GROUP 4 REVIEW borrowed native dialogs always ask bind the answer and never replay',async()=>{
     for(const kind of ['alert','confirm','prompt'])for(const variant of kind==='prompt'?['direct','conversion-message','conversion-default','changed-dialog']:['direct','conversion-message','changed-dialog']){
       setTab(await nativeDonor(getTab()));const tab=getTab(),id='review-borrowed-'+kind+'-'+variant;await nav('review-page&mode=borrowed-dialog&dialog='+kind+'&variant='+variant+'&id='+id);await delay(600);await fixture.mutate(id,'review-change');
-      const dialog=await eventually(async()=>(await call('read',{tab})).dialog,'borrowed '+kind);assert.equal(dialog.unguarded,true);
+      const dialog=await eventually(async()=>(await call('read',{tab})).untrusted_content.dialog,'borrowed '+kind);assert.equal(dialog.unguarded,true);
       const prepared=await call('dialog',{tab,expected:dialog,accept:true,...(kind==='prompt'?{text:'Chosen prompt'}:{})});assert.ok(prepared.approval);assert.match(prepared.approval.question,/outside the page guard/);assert.match(prepared.approval.question,/continuation isn't held/);assert.equal(receiverEvidence(id,'borrowed question').count,0);
       const changed=structuredClone(prepared.approval);changed.description.untrusted_content.input.accept=false;assert.equal((await rpc('submit',changed)).ok,false);assert.equal((await rpc('submit_trusted',prepared.approval)).ok,false);assert.equal(receiverEvidence(id,'borrowed unapproved answers refused').count,0);
       if(variant==='changed-dialog'){
-        ownerDismiss();await eventually(async()=>!(await call('read',{tab})).dialog,'owner closed first borrowed dialog');await fixture.mutate(id,'review-change');
-        const replacement=await eventually(async()=>(await call('read',{tab})).dialog,'replacement borrowed dialog');assert.notEqual(replacement.id,dialog.id);assert.equal(replacement.unguarded,true);
+        ownerDismiss();await eventually(async()=>!(await call('read',{tab})).untrusted_content.dialog,'owner closed first borrowed dialog');await fixture.mutate(id,'review-change');
+        const replacement=await eventually(async()=>(await call('read',{tab})).untrusted_content.dialog,'replacement borrowed dialog');assert.notEqual(replacement.id,dialog.id);assert.equal(replacement.unguarded,true);
         const stale=await rpc('submit',prepared.approval);assert.ok(!stale.ok||stale.data.operation.state==='failed');assert.equal(receiverEvidence(id,'changed dialog approval refused').count,0);
         await approval(await call('dialog',{tab,expected:replacement,accept:true,...(kind==='prompt'?{text:'Replacement answer'}:{})}),id);
       }else if(variant==='direct')await approval(prepared,id);
       else{
         await call('submit',prepared.approval);assert.equal(receiverEvidence(id,'borrowed approved before outer dialog').count,0);await call('submit',prepared.approval);assert.equal(receiverEvidence(id,'borrowed approval repeated before outer dialog').count,0);
-        const outer=await eventually(async()=>(await call('read',{tab})).dialog,'outer native after string conversion');assert.equal(outer.unguarded,undefined);assert.notEqual(outer.id,dialog.id);
+        const outer=await eventually(async()=>(await call('read',{tab})).untrusted_content.dialog,'outer native after string conversion');assert.equal(outer.unguarded,undefined);assert.notEqual(outer.id,dialog.id);
         const answered=await call('dialog',{tab,expected:outer,accept:true,...(kind==='prompt'?{text:'Outer answer'}:{})});assert.ok(!answered.approval);assert.equal(receiverEvidence(id,'outer native answered with hold').count,0);await approval(answered,id);
       }
       await closeNativeDonor();
