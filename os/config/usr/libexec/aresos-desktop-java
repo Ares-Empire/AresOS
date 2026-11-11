@@ -147,14 +147,31 @@ def start_ticks(pid):
         return None
 
 
-def stop(child):
-    if child.poll() is None:
-        child.terminate()
-        try:
-            child.wait(STOP_WAIT)
-        except subprocess.TimeoutExpired:
-            child.kill()
-            child.wait()
+def stop(child, sent):
+    """Stop an unaccepted Java: SIGTERM, then SIGKILL after STOP_WAIT. Each signal goes into `sent` before it is
+    sent, so the end is later classified from what really happened (stopped_by_wrapper), never from where this code
+    was when Java ended (review 4, finding 1)."""
+    if child.poll() is not None:
+        return
+    sent.append(int(signal.SIGTERM))
+    child.send_signal(signal.SIGTERM)
+    try:
+        child.wait(STOP_WAIT)
+    except subprocess.TimeoutExpired:
+        sent.append(int(signal.SIGKILL))
+        child.send_signal(signal.SIGKILL)
+        child.wait()
+
+
+def stopped_by_wrapper(status, sent):
+    """Whether Java's real end is this wrapper's own doing: it died of a signal the wrapper sent, or exited with
+    Java's SIGTERM status (143) after the wrapper's SIGTERM. Anything else, a SIGKILL the wrapper did not send
+    included, is how Java ended by itself. aresos-desktop applies the same rule to the same facts."""
+    if not isinstance(status, int) or not sent:
+        return False
+    if status < 0:
+        return -status in sent
+    return status == 128 + signal.SIGTERM and signal.SIGTERM in sent
 
 
 def main(argv, environ=os.environ):
@@ -191,17 +208,19 @@ def main(argv, environ=os.environ):
 
     launch = reply.get('launch')
 
-    def failed(reason, status=None, stopped=False, pid=None, ticks=None):
-        """A start that did not become a game. `status` is Java's exit status if it ran; `stopped` means this
-        wrapper ended it (so the status says nothing about how Java would have ended)."""
+    sent = []
+
+    def failed(reason, status=None, pid=None, ticks=None):
+        """A start that did not become a game, reported with the facts: Java's real status if it ran, and the
+        signals this wrapper sent it. `stopped` is derived from those two (stopped_by_wrapper), nothing else."""
+        stopped = stopped_by_wrapper(status, sent)
         print(f'aresos-desktop-java: {reason}', file=sys.stderr)
         try:
-            write_exit(exit_path, {'launch': launch, 'pid': pid, 'ticks': ticks, 'status': status,
+            write_exit(exit_path, {'launch': launch, 'pid': pid, 'ticks': ticks, 'status': status, 'sent': sent,
                                    'stopped': stopped, 'reason': reason})
         except OSError as error:
             print(f'aresos-desktop-java: could not record the failed start ({error})', file=sys.stderr)
-        # `stopped` says who ended Java: the supervisor classifies a status only when this wrapper did not stop it.
-        message = {'op': 'jvm_failed', 'launch': launch, 'reason': reason, 'stopped': stopped}
+        message = {'op': 'jvm_failed', 'launch': launch, 'reason': reason, 'sent': sent, 'stopped': stopped}
         if status is not None:
             message['status'] = status
         try:
@@ -229,40 +248,36 @@ def main(argv, environ=os.environ):
         while not in_unit(child.pid, unit) and child.poll() is None and time.monotonic() < deadline:
             time.sleep(0.05)
         if child.poll() is None and not in_unit(child.pid, unit):
-            stop(child)
-            return failed(f'the game did not reach its scope {unit}', child.returncode, True, child.pid)
+            stop(child, sent)
+            return failed(f'the game did not reach its scope {unit}', child.wait(), child.pid)
     if child.poll() is not None:
         # Java ended before it could be handed over (killed, for example): its status decides, as after the hand-off.
-        return failed('Java ended before it was handed to AresOS', child.returncode, False, child.pid)
+        return failed('Java ended before it was handed to AresOS', child.wait(), child.pid)
     ticks = start_ticks(child.pid)
     try:
         answer = supervisor.ask({'op': 'jvm_started', 'pid': child.pid})
     except (OSError, ValueError) as error:
         # Review 2, finding 3: the supervisor may not have recorded this JVM, and nothing could adopt it. Never leave
-        # it running untracked: stop it and report on a new connection.
-        if child.poll() is not None:
-            return failed(f'lost the supervisor during the hand-off ({error})', child.returncode, False, child.pid,
-                          ticks)
-        stop(child)
-        return failed(f'lost the supervisor during the hand-off ({error}); Java was stopped', child.returncode, True,
-                      child.pid, ticks)
+        # it running untracked: stop it (if it still runs) and report on a new connection. Whether this wrapper or
+        # something else ended Java is decided from the facts, whatever happened in between.
+        stop(child, sent)
+        return failed(f'lost the supervisor during the hand-off ({error})', child.wait(), child.pid, ticks)
     if not answer.get('ok'):
-        refusal = str(answer.get('message', ''))
-        if child.poll() is not None:
-            return failed(f'Java ended before it was handed to AresOS ({refusal})', child.returncode, False,
-                          child.pid, ticks)
-        stop(child)
-        return failed('the supervisor refused the game: ' + refusal, child.returncode, True, child.pid, ticks)
+        stop(child, sent)
+        return failed('the supervisor refused the game: ' + str(answer.get('message', '')), child.wait(), child.pid,
+                      ticks)
     status = child.wait()
     record = {'launch': launch, 'pid': child.pid, 'ticks': ticks, 'status': status}
     try:
         write_exit(exit_path, record)
     except OSError as error:
         print(f'aresos-desktop-java: could not record the exit ({error})', file=sys.stderr)
+    message = {'op': 'jvm_exited', 'pid': child.pid, 'status': status, 'launch': launch}
     try:
-        supervisor.ask({'op': 'jvm_exited', 'pid': child.pid, 'status': status, 'launch': launch})
+        supervisor.ask(message)
     except (OSError, ValueError):
-        pass
+        # The supervisor that accepted the JVM is gone: tell the one running now (the exit record says it too).
+        report_again(socket_path, message)
     supervisor.close()
     return status if status >= 0 else 128 - status
 
