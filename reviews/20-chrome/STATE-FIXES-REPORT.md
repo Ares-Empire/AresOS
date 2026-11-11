@@ -40,10 +40,19 @@ page. The Chrome-only recovery installs the passive ISOLATED reader/guard on the
 browser reports a missing receiver. Document-ID-addressed reads/injection prevent navigation from mixing privacy
 identities; an existing password-history refusal is preserved. First-act reload and all dirty/media/POST checks
 remain. Both full-fixture workflow deadlines now accommodate the sequential exhaustive browser/Python stages
-(240-minute container, 250-minute job). The combined report records the failed pair, strict regressions and run
-allowance discrepancy. Shared production paging, results, state and Mail files remain unchanged by this fix.
+(240-minute container, 250-minute job). The combined report records the failed pair, strict regressions and the user's
+expanded allowance of 185, explicitly authorized by the user on 2026-11-11 after the Mac low-memory interruption.
+Shared production paging, results, state and Mail files remain unchanged by this fix.
 
-**Status: Part S complete; final-source suites green twice.** Draft PR [#34](https://github.com/Ares-Empire/AresOS/pull/34) targets `pkg/20-chrome`. Runtime and fixture source `e5f3d8c5`; runtime hash `7d84b3d1223caff2b40d9feb68ffba285fc6819eac89eca711494a692e576edc`.
+**Combined integration verified on `0ae4ac41`:** Chrome run `42989465778` attempts 1 and 2 each pass every job
+in external and policy install modes. Four strict saved-artifact audits pass, with 80 named browser cases,
+220 Python and 243 Node tests per artifact, complete independent receiver 0/1/1 sequences and no password
+sentinel or forbidden Runtime value events. Base, Mail, boundary and qualification each pass twice on the same
+source. [Closing evidence](records/integrate3/closing/INDEX.md) records every named PASS line and run/attempt link.
+The lead's pause-only `65ba456b` is preserved; the later audit/report changes do not alter installed code, CI
+assertions or Mail. Main Chrome accounting is 176/185, including the full rerun; no review was started.
+
+**Original Part S status: complete; final-source suites green twice.** Draft PR [#34](https://github.com/Ares-Empire/AresOS/pull/34) targets `pkg/20-chrome`. Runtime and fixture source `e5f3d8c5`; runtime hash `7d84b3d1223caff2b40d9feb68ffba285fc6819eac89eca711494a692e576edc`.
 
 ## Done (read)
 

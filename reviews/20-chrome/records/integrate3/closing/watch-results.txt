@@ -1,0 +1,6 @@
+First completed watch command: gh run watch 42989465778 --exit-status --interval 60
+FIRST_CHROME_RESULT 42989465778 success watch_exit 0
+
+Full repeat command: gh run rerun 42989465778
+Second completed watch command: gh run watch 42989465778 --exit-status --interval 60
+SECOND_COMPLETE_CHROME_ATTEMPT 42989465778 2 success watch_exit 0

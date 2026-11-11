@@ -1,0 +1,65 @@
+{
+  "qualified_source": "0ae4ac414cb6423059e496d1fdbb90860428c101",
+  "auditor_commit": "b0a32a93",
+  "sources_sha256": {
+    "reviews/20-chrome/audit-review-evidence.mjs": "6ecbb986f5aa50104257a20a4076e469ed6e94b23fe1073011f89892e4e0f53c",
+    "reviews/20-chrome/audit-streams.mjs": "5304592b9c5345d44b45e0bf39a209efcc25a50b4c67ce059cf9f5940ce04948",
+    "reviews/20-chrome/audit-streams.test.mjs": "08eed216596b2e940baa6a376c4a15960fb1a2c552ca1840bb081bb0994a2aeb",
+    "control/chrome/ci/ingress-scan.mjs": "fc5af384737a8d7c220de32e19aca4d24ce7e64f8b6e425ec4762f6d2d68755d",
+    "control/chrome/ci/verdicts.mjs": "237f1586047d699954a5f2a704ebcbc71de22aff8574a8b45d5468381a59bbaf"
+  },
+  "executions": [
+    {
+      "attempt": 1,
+      "mode": "external",
+      "command": "/usr/bin/time -l node --max-old-space-size=192 reviews/20-chrome/audit-review-evidence.mjs .work/20-integrate3/manual-final/artifacts/42989465778/control-chrome-42989465778-1-external",
+      "exit": 0,
+      "peak_rss_bytes": 174800896,
+      "stdout_sha256": "1c6fa0db148d42211cbbe5ffd00e5d8dae63c06733754c02c5b0dbf5ce9c8806",
+      "resources_file": "audit-attempt1-external-resources.txt",
+      "resources_sha256": "5753af3afbfe27dc25963ce8920ca88a6508034f736ca05121cd6cab66b7778e",
+      "stdout_file": "audit-attempt1-external.json"
+    },
+    {
+      "attempt": 1,
+      "mode": "policy",
+      "command": "/usr/bin/time -l node --max-old-space-size=192 reviews/20-chrome/audit-review-evidence.mjs .work/20-integrate3/manual-final/artifacts/42989465778/control-chrome-42989465778-1-policy",
+      "exit": 0,
+      "peak_rss_bytes": 173441024,
+      "stdout_sha256": "b0b6875786e172f9a7b055ea4b5333470ade830d2b38ef3764ff0e6fbbb19c8b",
+      "resources_file": "audit-attempt1-policy-resources.txt",
+      "resources_sha256": "b4f3cfbc0030dba98799e9f161600447b17335114b43655d309cc8d692ffbc4e",
+      "stdout_file": "audit-attempt1-policy.json"
+    },
+    {
+      "attempt": 2,
+      "mode": "external",
+      "command": "/usr/bin/time -l node --max-old-space-size=192 reviews/20-chrome/audit-review-evidence.mjs .work/20-integrate3/manual-final/artifacts/42989465778-attempt2/control-chrome-42989465778-2-external",
+      "exit": 0,
+      "peak_rss_bytes": 171032576,
+      "stdout_sha256": "4d9ec6124d5521af8052e87cd392d514e364236836a393e76e2eb24036469adb",
+      "resources_file": "audit-attempt2-external-resources.txt",
+      "resources_sha256": "c092fadecbbaaa22b1fa877c80ccdc4e91a50c116e444e22191c47f9533292ee",
+      "stdout_file": "audit-attempt2-external.json"
+    },
+    {
+      "attempt": 2,
+      "mode": "policy",
+      "command": "/usr/bin/time -l node --max-old-space-size=192 reviews/20-chrome/audit-review-evidence.mjs .work/20-integrate3/manual-final/artifacts/42989465778-attempt2/control-chrome-42989465778-2-policy",
+      "exit": 0,
+      "peak_rss_bytes": 173375488,
+      "stdout_sha256": "5d55b770fe29914e5044fa68507d2f4981861dd354a14ad88e7d94ef039b17f9",
+      "resources_file": "audit-attempt2-policy-resources.txt",
+      "resources_sha256": "f40a5e046471f9f90d29080105fe888557f2834752cd99985b0e084722b08d4e",
+      "stdout_file": "audit-attempt2-policy.json"
+    }
+  ],
+  "stream_reader_tests": {
+    "command": "node --max-old-space-size=128 --test --test-concurrency=1 reviews/20-chrome/audit-streams.test.mjs",
+    "tests": 5,
+    "pass": 5,
+    "exit": 0,
+    "output": "audit-streams-tests.txt",
+    "sha256": "1813dc77dd9a265309155ae7b486d24bfac160c37efcdac8bf077667cc481b9b"
+  }
+}

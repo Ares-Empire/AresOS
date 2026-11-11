@@ -1,15 +1,18 @@
 # 20 — combined page/state fixes and capped catalogue snapshots
 
-**Read — integrate-3 is the governing brief.** The lead already merged Part P (`df9b3fc5`) and Part S
+**Read — integrate-3 and the user's 2026-11-11 resume instructions govern.** The lead already merged Part P (`df9b3fc5`) and Part S
 (`1418fcde`, merge `3b37bd57`). This run adds the decided catalogue cap and verifies their combined head.
 [STATE-FIXES-REPORT.md](STATE-FIXES-REPORT.md) maps S1–S12 and records the accepted lifetime decision;
 [BUILD-P-1.md](BUILD-P-1.md) and [BUILD-P-5.md](BUILD-P-5.md) map P1–P31. PR [#27](https://github.com/Ares-Empire/AresOS/pull/27)
 remains draft and unmerged. **Owner Enter: passes in CI, panel to confirm. Group 12 remains deferred to 18d.**
 
-**Integration is not yet green.** The pair on `f25ac736` completed with one popup failure and three container
-deadlines after their browser matrices passed. The strict full-suite audit rejects this pair. The missing-reader
-and deadline fixes below are being verified. One manual full Chrome run fits the original cap; its required
-repeat needs the conflicting run allowances resolved.
+**Combined integration: green twice on `0ae4ac41`.** [Attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42989465778/attempts/1)
+and [attempt 2](https://github.com/Ares-Empire/AresOS/actions/runs/42989465778/attempts/2) each run every Chrome job
+in both install modes. All four artifacts pass 80 named browser cases, 220 Python tests, 243 Node tests and the
+independent receiver/ingress audit. Base, Mail, boundary and qualification each pass twice on that same source.
+The [closing evidence index](records/integrate3/closing/INDEX.md) records all 320 named PASS lines and ten complete
+workflow executions. The lead's pause-only `65ba456b` is preserved; the subsequent audit/report commits change
+no installed runtime, CI tests or workflow. PR #27 remains draft; no merge or review was started.
 
 ## Done / scope (read)
 
@@ -69,6 +72,13 @@ and no system software or Gradle daemon was used.
   each have a removal regression. In-flight, while-mark-set wrong-form/wrong-submitter, delayed and unconsumed-mark
   cases remain held. No panel acceptance is inferred from CI.
 
+- **Other controlled documents:** an asking call through another controlled document goes through that
+  document's private guard. Unclear ownership holds the call; page-visible state cannot relax it.
+- **Owner-selected files:** the exact chosen content is bound by SHA-256 and shown in the question. Changing
+  selected bytes invalidates the approval, including a same-name/same-size replacement.
+- **Inline editors:** `about:blank` and `srcdoc` editors participate in complete binding through authenticated
+  inherited origin and native document identity. They are covered rather than refused as a class.
+
 **Fixed DevTools additions for controlled-only injection:** `Runtime.evaluate`, `Runtime.callFunctionOn`,
 `Runtime.runIfWaitingForDebugger`, `Debugger.enable`, `Debugger.disable`, `Debugger.setBreakpointByUrl`,
 `Debugger.resume`, `Target.setAutoAttach`, `Target.detachFromTarget`, `DOM.describeNode`, `DOM.resolveNode`,
@@ -93,16 +103,17 @@ the state mutation names, output hashes and exact result lines are in [local-sum
 Regeneration/check printed `Generated tools, help, reference and ask rules` then `Generated artifacts match definitions`;
 `git diff --check` passed. These commands started no browser.
 
-Browser acceptance is collected only by `control-chrome.yml` in GitHub Linux containers, twice in both external
-and policy install modes.
-The **exact final pushed head**, completed run links, every named PASS line, independent receiver audit,
-password-ingress audit and base/Mail/boundary/qualification repeats are recorded in the closing build response
-and [PR #27's checks](https://github.com/Ares-Empire/AresOS/pull/27/checks).
-This report is committed before the next exact-head verification; it does not claim a future pass.
-The final report commit suppresses automatic duplicate push/PR dispatches and the full suites are launched
-manually, as described in the run ledger below. No test command or assertion is skipped by the manual execution.
-Raw artifacts stay with their named runs; the local audit/index outputs are retained in `.work/20-integrate3/`.
-The current auditor is `node reviews/20-chrome/audit-review-evidence.mjs <downloaded-artifacts>`.
+Browser acceptance runs only in GitHub Linux containers through `control-chrome.yml`. The qualified source is
+`0ae4ac414cb6423059e496d1fdbb90860428c101`, with the unchanged runtime build hash above. The user requested
+both complete attempts on that source followed by this report push. This post-verification report/auditor-only
+push uses `[skip ci]` to avoid launching unnecessary extra Chrome jobs; it is not substituted for a test run.
+[Completed metadata](records/integrate3/closing/completed.json), [all named cases](records/integrate3/closing/INDEX.md),
+[receiver/ingress audits and raw file hashes](records/integrate3/closing/receiver-audit.json),
+[shared-suite results](records/integrate3/closing/shared-summary.json),
+[view measurements](records/integrate3/closing/view-measurements.json) and
+[audit commands/resources](records/integrate3/closing/audit-commands.json) retain the final evidence.
+Raw Linux artifacts remain under their named GitHub run/attempts and in `.work/20-integrate3/manual-final/`.
+No earlier partial pass is counted toward this acceptance.
 
 **Initial combined CI failed, not acceptance:** [42955378005](https://github.com/Ares-Empire/AresOS/actions/runs/42955378005)
 and [42955382845](https://github.com/Ares-Empire/AresOS/actions/runs/42955382845), both install modes, source
@@ -219,8 +230,48 @@ index the retained [Python](records/integrate3/local-python-popup-frozen.txt), [
 [before](records/integrate3/popup-regressions-before.txt) and [after](records/integrate3/popup-regressions-after.txt).
 All generated files were regenerated and checked again; `git diff --check` passes. The earlier overlapping
 Python invocation also passes 220 tests in 1,398.366 s, but only the frozen-source run is used for this claim.
-No browser ran locally. Final-head Linux completion and the required second Chrome iteration remain separate
-requirements; the closing response states their actual status without substituting a partial result.
+No browser ran locally. The two complete Linux attempts and their four independent audits are now finished, as recorded below.
+
+## Combined closing verification (run)
+
+Both complete attempts use `0ae4ac41`; the second is an **all-jobs rerun**, not a failed-job-only retry.
+The one blocking `gh run watch 42989465778 --exit-status --interval 60` for each complete attempt ends **0**.
+The first local watch was resumed after the Mac low-memory/network interruption; the Linux run itself continued
+and passed. No additional Chrome runtime or CI fix was needed after `0ae4ac41`.
+
+Browser package: **Google Chrome 157.0.8103.50** in all four artifacts. Each has zero Python/Node failures or skips.
+
+| Attempt | Install | Named browser passes | Python tests / duration | Node passes | Protocol events | Sensitive-getter observations | Audit peak RSS MiB |
+|---|---|---:|---|---:|---:|---:|---:|
+| 1 | external | 80 | 220 / 2016.671 s | 243 | 26,817 | 3,481 | 166.7 |
+| 1 | policy | 80 | 220 / 1604.174 s | 243 | 25,168 | 3,481 | 165.4 |
+| 2 | external | 80 | 220 / 1202.306 s | 243 | 26,737 | 3,483 | 163.1 |
+| 2 | policy | 80 | 220 / 1982.947 s | 243 | 25,196 | 3,481 | 165.3 |
+
+Each artifact independently matches **1,219 page + 139 adapter** complete receiver sequences to the raw receiver:
+zero arrivals before approval, one after approval, one after repeat, and exactly one final raw arrival per case.
+All four scans find **zero** `Runtime.consoleAPICalled` / `Runtime.exceptionThrown` value events and **no**
+password sentinel in reconstructed ingress, tool output or service output. Null protocol returns remain part
+of the scan. The complete 80-name inventory and all qualification verdicts are required, with group 12's
+explicit 18d deferral retained. Long-page reads cover 221,195–221,477 characters in 14 pages; measured times are
+11,904–21,597 ms. These are observed fixture measurements, not estimates of real account performance.
+
+The raw logs are 70–76 MB each. `audit-review-evidence.mjs` now reads JSONL and hashes incrementally through
+`audit-streams.mjs`, preserving every prior named-case, receiver, fragment, privacy and full-suite assertion.
+Four separate `node --max-old-space-size=192` processes run sequentially; `/usr/bin/time -l` records at most
+**174,800,896 bytes (166.7 MiB) RSS**. The [five small reader tests](records/integrate3/closing/audit-streams-tests.txt)
+pass with a 128 MiB heap, comparing the original fragment parser's output/errors, retaining nulls and UTF-8
+boundaries, detecting a sentinel split across chunks, and matching the complete byte SHA-256. These tests and
+artifact audits start no browser or container. The audit tool is checkpointed in `b0a32a93`; installed runtime,
+CI assertions and test inventory remain those of `0ae4ac41`.
+
+All four shared workflows also pass twice on `0ae4ac41`: base **142** tests per execution; Mail **142 base + 309
+Mail** tests plus all four sweep shards; boundary **127 attacks** in each present/absent mode, with zero hostile
+connections; qualification **47 Python + 243 Node** tests and genuine delivery-attestation verification. The
+[shared results](records/integrate3/closing/shared-summary.json) retain exact commands' output lines and hashes.
+Initial Mail dispatch `42989479000` was automatically cancelled by the following manual dispatch because its
+workflow sets `cancel-in-progress: true`; it is excluded explicitly. Runs `42989483334` and `42993942180` then
+complete successfully in sequence. No failed or cancelled execution is used as acceptance.
 
 ## Not verified / PLAN-GAP / JUDGMENT-CALL / open questions
 
@@ -237,30 +288,42 @@ to the lead and is settled. No new implementation question remains; the stated s
 GitHub listed **168** Chrome run IDs on `pkg/20-chrome` before this run, including the lead's two cancelled
 brief-only runs (`42953990307`, `42953996489`). The initial batched push added two failed combined runs (**170**).
 The S12 fixture-consumer/base-test correction added another pair (**172**). The native-dialog readiness fix
-added the third failed pair (**174**). The original user message and integrate-3 brief cap this at about **175**;
-the lead's newer [PAUSE.md](PAUSE.md), committed locally as `737e72bc` while CI ran, records **174 / about 185**
-and directs the independent integration build to keep fixing failures within that allowance. A new full pair
-would reach **176**. This build has asked which cap governs before launching that pair; local fixes and checks
-continue while the conflicting constraint is unresolved. Until a response raises the allowance, the original
-**175** cap governs. The final report commit includes `[skip ci]` to suppress the automatic two-run push/PR pair;
-the complete, unchanged Chrome workflow is manually dispatched **once** (both install modes), spending only the
-one remaining authorized run, and base/Mail/boundary/qualification are each manually dispatched twice. The
-pre-dispatch ledger checks the cap before launching anything. The second complete Chrome run remains required;
-passing once cannot be called green twice. The marker only affects automatic push/PR triggers, as documented by
-[GitHub](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/skip-workflow-runs); manual workflows
-execute every test. The decision-24 threat-model/re-check changes remain paused, exactly as PAUSE.md directs.
-`pkg/20-chrome-state` has **16 run IDs, 17 executions including its failed-runner retry**, within its separate
-about-25 allowance. No run belonging to another build is cancelled here. Each CI run is awaited using one
-blocking `gh run watch <id> --exit-status --interval 60` call; failure logs are read only after completion.
-Other branch counts remain **six** adapter runs and **fifteen** qualification runs, each within its about-25
-allowance. The closing evidence records the actual count and governing cap; no unapproved extra pair is launched.
-The [pre-push disk inventory](records/integrate3/work-inventory.json) has **4,956 regular files, 3,424,122,971 bytes**
-under `.work/`; **no file over 500 MB**, no ISO/extracted image/browser profile and no local browser download.
-The closing build response records the final post-download inventory. No local test process or Gradle daemon
-started by this build remains after verification.
-The [latest pre-push inventory](records/integrate3/work-inventory-popup.json), including all three failed batches'
-raw Linux artifacts, lists **7,739 files / 4,342,970,719 bytes**, with **no file over 500 MB** and no browser profile,
-ISO or extracted image. Final local verification leaves no Python/Node test process started by this build running.
+added the third failed pair (**174**). The original user message and integrate-3 cap were about **175**.
+The `0ae4ac41` report commit used `[skip ci]` to suppress duplicate automatic push/PR dispatches, then ran the
+complete Chrome workflow manually once (**175**) and each shared workflow twice. No test command or assertion
+was skipped in those manual executions. The marker affects automatic push/PR triggers only
+([GitHub documentation](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/skip-workflow-runs)).
+
+After a Mac low-memory interruption, the user explicitly authorized **at most ten more complete Chrome runs,
+185 in all**, and restored shell network access. The first Linux run continued and passed; it was not restarted
+because of the Mac event. The lead's pause-only commit `65ba456b` advanced the branch while that run was active.
+The second dispatch's preflight stopped before launching on the wrong head. `gh run rerun 42989465778` then
+reran **all jobs**, keeping the original `0ae4ac41` source as
+[GitHub guarantees for reruns](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/re-run-workflows-and-jobs).
+Attempts 1 and 2 have separate jobs and artifacts. The complete second attempt is charged as an additional run:
+**176 / 185** using the user's 175-used resume baseline, even though GitHub retains one run ID for both attempts.
+The lead's commit is preserved. The decision-24 threat-model/re-check work remains paused; no review was started.
+The [closing API ledger](records/integrate3/closing/closing-run-ledger.json) counts IDs and executions separately:
+
+| Branch | Workflow | Distinct IDs | Complete/attempted executions |
+|---|---|---:|---:|
+| `pkg/20-chrome` | `control-chrome.yml` | 175 | 176 |
+| `pkg/20-chrome-state` | `control-chrome.yml` | 16 | 17 |
+| `pkg/20-chrome-adapters` | `control-chrome.yml` | 6 | 6 |
+| `pkg/20-chrome-qual` | `control-chrome.yml` | 5 | 5 |
+| `pkg/20-chrome-qual` | `control-chrome-qualification.yml` | 10 | 11 |
+
+The qualification branch's previously stated 15 run IDs comprise five Chrome runs plus ten qualification-workflow
+runs ([qualification ledger](records/integrate3/closing/qualification-branch-ledger.json)); including its retry,
+that is 16 executions. All side branches remain within their about-25 allowances. Main Chrome usage is
+**176 / 185**, including the full second attempt. Each attempt was awaited by a blocking watch, not repeated
+per-turn GitHub queries. No run belonging to another build was cancelled.
+
+The [closing pre-push disk snapshot](records/integrate3/closing/work-inventory.json) lists **8,732 regular files / 5,148,720,908 bytes**
+under `.work/`. **Files over 500 MB remaining: none.** Raw Linux evidence is retained once per artifact; there
+is no ISO, extracted image, partial browser-package download or local browser profile from this build. No local
+browser or container sweep ran during resumption. No Gradle daemon was started, and the task's local test and
+blocking-watch processes have ended.
 
 ---
 

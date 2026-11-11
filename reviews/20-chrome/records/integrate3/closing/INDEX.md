@@ -1,0 +1,363 @@
+# Exact combined-head acceptance
+
+Both complete Chrome attempts ran every job on the same source; neither is a failed-job-only retry. The lead pause-note commit is preserved.
+Source: `0ae4ac414cb6423059e496d1fdbb90860428c101`
+
+- [control-chrome.yml 42989465778 attempt 2](https://github.com/Ares-Empire/AresOS/actions/runs/42989465778/attempts/2): success; event workflow_dispatch.
+- [control-chrome.yml 42989465778 attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42989465778/attempts/1): success; event workflow_dispatch.
+- [control-base.yml 42989470455 attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42989470455): success; event workflow_dispatch.
+- [control-base.yml 42989474631 attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42989474631): success; event workflow_dispatch.
+- [control-mail.yml 42989483334 attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42989483334): success; event workflow_dispatch.
+- [control-boundary.yml 42989487327 attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42989487327): success; event workflow_dispatch.
+- [control-boundary.yml 42989491696 attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42989491696): success; event workflow_dispatch.
+- [control-chrome-qualification.yml 42989496775 attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42989496775): success; event workflow_dispatch.
+- [control-chrome-qualification.yml 42989500983 attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42989500983): success; event workflow_dispatch.
+- [control-mail.yml 42993942180 attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42993942180): success; event workflow_dispatch.
+
+## control-chrome-42989465778-1-external
+Google Chrome 157.0.8103.50; 80 named passes; Python 220; Node 243.
+Measured long page: {"characters": 221196, "utf8_bytes": 221196, "pages": 14, "milliseconds": 21597, "token_estimate": 55299}.
+page-receiver.jsonl: 1219 complete independent 0/1/1 sequences.
+adapters-receiver.jsonl: 139 complete independent 0/1/1 sequences.
+Password ingress: 26817 protocol events; 3481 sensitive-getter observations; zero forbidden Runtime value events and no sentinel.
+- browser.txt:17 — GROUP 2 first-script natives are guarded in pages and frames PASS
+- browser.txt:33 — GROUP 4 REVIEW ordinary native dialogs from Claude owner and page tasks keep working PASS
+- browser.txt:34 — GROUP 4 REVIEW blank and srcdoc native dialogs answer with a held continuation PASS
+- browser.txt:35 — GROUP 8 REVIEW preexisting dialogs hand off within bounds and recover after the owner answers PASS
+- browser.txt:36 — GROUP 4 REVIEW borrowed native dialogs always ask bind the answer and never replay PASS
+- browser.txt:37 — GROUP 3 REVIEW ordinary blank and srcdoc editors bind drafts and send normally PASS
+- browser.txt:38 — GROUP 3 REVIEW owner chosen attachments show byte digests and bind identical metadata replacements PASS
+- browser.txt:43 — GROUP 2 REVIEW inherited and newly created frames hold submissions PASS
+- browser.txt:44 — GROUP 2 REVIEW borrowed wrappers respect another controlled tab and an ordinary document PASS
+- browser.txt:45 — GROUP 11 REVIEW explicit pay and delete evidence overrides an owner allowed adapter PASS
+- browser.txt:52 — GROUP 2 REVIEW synchronous new shadow roots keep all submission kinds held PASS
+- browser.txt:61 — GROUP 2 REVIEW new shadow roots capture borrowed native events including noncomposed ones PASS
+- browser.txt:68 — GROUP 1 REVIEW modified deletion keys normalized words malformed URLs and visible names PASS
+- browser.txt:80 — GROUP 3 REVIEW item confirmation file rich text and title mutations refuse PASS
+- browser.txt:84 — GROUP 2 REVIEW owner mark exact form submitter and unconsumed delayed work PASS
+- browser.txt:85 — GROUP 8 REVIEW iframe drafts and detached or Web Audio report before reload PASS
+- browser.txt:86 — GROUP 8 REVIEW script-started POST documents in tabs and popups never reload PASS
+- browser.txt:87 — GROUP 8 REVIEW no-op checks and isolated choices leave the owner tab selected PASS
+- browser.txt:88 — GROUP 8 REVIEW Stop removes navigation blocks while a frozen wrapper awaits cleanup PASS
+- browser.txt:89 — GROUP 5 REVIEW page outcome records the actual post-input notice PASS
+- browser.txt:92 — GROUP 8 popups preserve opener flow and guard first input without moving windows PASS
+- browser.txt:94 — GROUP 8 opener badges and per-popup Stop preserve windows documents and focus PASS
+- browser.txt:97 — GROUP 8 closing or releasing an opener ends popup control and clears badges PASS
+- browser.txt:100 — GROUP 8 POST popups never resubmit and ordinary openers stay untouched PASS
+- browser.txt:101 — GROUP 7 native compatibility inside and outside Claude tabs PASS
+- browser.txt:102 — GROUP 8 Stop under a native modal revokes input before deferred cleanup PASS
+- browser.txt:103 — GROUP 8 taken tabs preserve reads and guard the first input reload PASS
+- browser.txt:113 — GROUP 10 ADAPTER Gmail full compose and every bound field PASS
+- browser.txt:124 — GROUP 10 ADAPTER two Gmail compose windows and inbox shortcut PASS
+- browser.txt:144 — GROUP 11 ADAPTER Gmail exact To Cc Bcc roles account revocation and widening PASS
+- browser.txt:151 — GROUP 10 ADAPTER WhatsApp every message chat text attachments and free activity PASS
+- browser.txt:169 — GROUP 10 ADAPTER GitHub actions and all named confirmations PASS
+- browser.txt:185 — GROUP 10 ADAPTER clear merge settings and sharing variants stay guarded PASS
+- browser.txt:208 — GROUP 4 ADAPTER every named GitHub confirmation mismatch PASS
+- browser.txt:216 — GROUP 10 ADAPTER Gemini question content and always asking chat changes PASS
+- browser.txt:224 — GROUP 11 ADAPTER Gemini exact account owner entry and revocation PASS
+- browser.txt:237 — GROUP 10 ADAPTER Deezer playback additions removals posts shares and payments PASS
+- browser.txt:238 — GROUP 10 ADAPTER bank owner restriction all inputs and positive reads links scroll PASS
+- browser.txt:254 — GROUP 10 ADAPTER unfamiliar pages and qualification fallback on all sites PASS
+- browser.txt:255 — GROUP 10 ADAPTER Gemini question uses its required semantic name PASS
+- browser.txt:256 — GROUP 10 ADAPTER Gmail question names its attachments PASS
+- browser.txt:257 — GROUP 10 ADAPTER Gmail deletion shortcut question names the deletion PASS
+- browser.txt:258 — GROUP 1 submit compose deletion and free-input matrix PASS
+- browser.txt:271 — GROUP 1 what asks word/label/key matrix PASS
+- browser.txt:272 — GROUP 1 Unicode word matching agrees across service and guard PASS
+- browser.txt:273 — GROUP 2 stopped page steps handler/resume matrix PASS
+- browser.txt:274 — GROUP 2 script activations never replay PASS
+- browser.txt:275 — GROUP 2 loop with uncancelled enclosing submit sends once PASS
+- browser.txt:276 — GROUP 2 delayed submission stays held after slow frame arming PASS
+- browser.txt:277 — GROUP 2 nested validation and fresh-frame fallback PASS
+- browser.txt:278 — GROUP 2 owner synchronous task delayed work and in-flight interleavings PASS
+- browser.txt:279 — GROUP 2 after his mark timers never exempt forms submitters or validation repairs PASS
+- browser.txt:280 — GROUP 2 unknown activation survives navigation of its source document PASS
+- browser.txt:281 — GROUP 3 binding every form fact and generic sibling draft PASS
+- browser.txt:282 — GROUP 4 page confirmations bind their full text and ask independently PASS
+- browser.txt:283 — GROUP 3 cross-frame adapter empty and oversized drafts PASS
+- browser.txt:284 — GROUP 4 exact native confirmation and mismatch matrix PASS
+- browser.txt:285 — GROUP 4 a native-dialog handler submission is prepared separately PASS
+- browser.txt:286 — GROUP 5 question fields, hidden values, password label, upload path and hash PASS
+- browser.txt:287 — GROUP 6 exclusions through frame, popup, redirect, taking and history PASS
+- browser.txt:288 — GROUP 7 all password kinds across open closed and cross-site roots PASS
+- browser.txt:289 — GROUP 6 schemes links and forward routes PASS
+- browser.txt:290 — GROUP 8 drop release close and stale references never dispatch prepared work PASS
+- browser.txt:291 — GROUP 13 changed read-only preview is a stated residual PASS
+- browser.txt:292 — GROUP 8 deadline and tabs outside the group PASS
+- browser.txt:293 — GROUP 10 adapter gmail PASS
+- browser.txt:294 — GROUP 10 adapter whatsapp PASS
+- browser.txt:295 — GROUP 10 adapter github PASS
+- browser.txt:296 — GROUP 10 adapter gemini PASS
+- browser.txt:297 — GROUP 10 adapter deezer PASS
+- browser.txt:298 — GROUP 10 read-only bank PASS
+- browser.txt:299 — GROUP 10 adapter shortcuts and account-specific questions PASS
+- browser.txt:300 — GROUP 11 exact owner kind, recipients, account and revocation PASS
+- browser.txt:310 — QUALIFICATION conservative activations ask and core failures gate before reads PASS
+- browser.txt:311 — GROUP 13 autosave and after-limit submissions are not held PASS
+- browser.txt:313 — VIEW representative long article/form complete paging PASS
+- browser.txt:314 — FEATURE tools forms options find wait fill_form scroll and full catalogues PASS
+- browser.txt:315 — GROUP 8 actual popup Stop button drops all prepared work PASS
+- browser.txt:325 — GROUP 9 Chrome host service crash cutpoints never replay PASS
+- browser.txt:326 — GROUP 7 no listening port after tool suite PASS
+
+## control-chrome-42989465778-1-policy
+Google Chrome 157.0.8103.50; 80 named passes; Python 220; Node 243.
+Measured long page: {"characters": 221476, "utf8_bytes": 221476, "pages": 14, "milliseconds": 15800, "token_estimate": 55369}.
+page-receiver.jsonl: 1219 complete independent 0/1/1 sequences.
+adapters-receiver.jsonl: 139 complete independent 0/1/1 sequences.
+Password ingress: 25168 protocol events; 3481 sensitive-getter observations; zero forbidden Runtime value events and no sentinel.
+- browser.txt:17 — GROUP 2 first-script natives are guarded in pages and frames PASS
+- browser.txt:33 — GROUP 4 REVIEW ordinary native dialogs from Claude owner and page tasks keep working PASS
+- browser.txt:34 — GROUP 4 REVIEW blank and srcdoc native dialogs answer with a held continuation PASS
+- browser.txt:35 — GROUP 8 REVIEW preexisting dialogs hand off within bounds and recover after the owner answers PASS
+- browser.txt:36 — GROUP 4 REVIEW borrowed native dialogs always ask bind the answer and never replay PASS
+- browser.txt:37 — GROUP 3 REVIEW ordinary blank and srcdoc editors bind drafts and send normally PASS
+- browser.txt:38 — GROUP 3 REVIEW owner chosen attachments show byte digests and bind identical metadata replacements PASS
+- browser.txt:43 — GROUP 2 REVIEW inherited and newly created frames hold submissions PASS
+- browser.txt:44 — GROUP 2 REVIEW borrowed wrappers respect another controlled tab and an ordinary document PASS
+- browser.txt:45 — GROUP 11 REVIEW explicit pay and delete evidence overrides an owner allowed adapter PASS
+- browser.txt:52 — GROUP 2 REVIEW synchronous new shadow roots keep all submission kinds held PASS
+- browser.txt:61 — GROUP 2 REVIEW new shadow roots capture borrowed native events including noncomposed ones PASS
+- browser.txt:68 — GROUP 1 REVIEW modified deletion keys normalized words malformed URLs and visible names PASS
+- browser.txt:80 — GROUP 3 REVIEW item confirmation file rich text and title mutations refuse PASS
+- browser.txt:84 — GROUP 2 REVIEW owner mark exact form submitter and unconsumed delayed work PASS
+- browser.txt:85 — GROUP 8 REVIEW iframe drafts and detached or Web Audio report before reload PASS
+- browser.txt:86 — GROUP 8 REVIEW script-started POST documents in tabs and popups never reload PASS
+- browser.txt:87 — GROUP 8 REVIEW no-op checks and isolated choices leave the owner tab selected PASS
+- browser.txt:88 — GROUP 8 REVIEW Stop removes navigation blocks while a frozen wrapper awaits cleanup PASS
+- browser.txt:89 — GROUP 5 REVIEW page outcome records the actual post-input notice PASS
+- browser.txt:92 — GROUP 8 popups preserve opener flow and guard first input without moving windows PASS
+- browser.txt:94 — GROUP 8 opener badges and per-popup Stop preserve windows documents and focus PASS
+- browser.txt:97 — GROUP 8 closing or releasing an opener ends popup control and clears badges PASS
+- browser.txt:100 — GROUP 8 POST popups never resubmit and ordinary openers stay untouched PASS
+- browser.txt:101 — GROUP 7 native compatibility inside and outside Claude tabs PASS
+- browser.txt:102 — GROUP 8 Stop under a native modal revokes input before deferred cleanup PASS
+- browser.txt:103 — GROUP 8 taken tabs preserve reads and guard the first input reload PASS
+- browser.txt:113 — GROUP 10 ADAPTER Gmail full compose and every bound field PASS
+- browser.txt:124 — GROUP 10 ADAPTER two Gmail compose windows and inbox shortcut PASS
+- browser.txt:144 — GROUP 11 ADAPTER Gmail exact To Cc Bcc roles account revocation and widening PASS
+- browser.txt:151 — GROUP 10 ADAPTER WhatsApp every message chat text attachments and free activity PASS
+- browser.txt:169 — GROUP 10 ADAPTER GitHub actions and all named confirmations PASS
+- browser.txt:185 — GROUP 10 ADAPTER clear merge settings and sharing variants stay guarded PASS
+- browser.txt:208 — GROUP 4 ADAPTER every named GitHub confirmation mismatch PASS
+- browser.txt:216 — GROUP 10 ADAPTER Gemini question content and always asking chat changes PASS
+- browser.txt:224 — GROUP 11 ADAPTER Gemini exact account owner entry and revocation PASS
+- browser.txt:237 — GROUP 10 ADAPTER Deezer playback additions removals posts shares and payments PASS
+- browser.txt:238 — GROUP 10 ADAPTER bank owner restriction all inputs and positive reads links scroll PASS
+- browser.txt:254 — GROUP 10 ADAPTER unfamiliar pages and qualification fallback on all sites PASS
+- browser.txt:255 — GROUP 10 ADAPTER Gemini question uses its required semantic name PASS
+- browser.txt:256 — GROUP 10 ADAPTER Gmail question names its attachments PASS
+- browser.txt:257 — GROUP 10 ADAPTER Gmail deletion shortcut question names the deletion PASS
+- browser.txt:258 — GROUP 1 submit compose deletion and free-input matrix PASS
+- browser.txt:271 — GROUP 1 what asks word/label/key matrix PASS
+- browser.txt:272 — GROUP 1 Unicode word matching agrees across service and guard PASS
+- browser.txt:273 — GROUP 2 stopped page steps handler/resume matrix PASS
+- browser.txt:274 — GROUP 2 script activations never replay PASS
+- browser.txt:275 — GROUP 2 loop with uncancelled enclosing submit sends once PASS
+- browser.txt:276 — GROUP 2 delayed submission stays held after slow frame arming PASS
+- browser.txt:277 — GROUP 2 nested validation and fresh-frame fallback PASS
+- browser.txt:278 — GROUP 2 owner synchronous task delayed work and in-flight interleavings PASS
+- browser.txt:279 — GROUP 2 after his mark timers never exempt forms submitters or validation repairs PASS
+- browser.txt:280 — GROUP 2 unknown activation survives navigation of its source document PASS
+- browser.txt:281 — GROUP 3 binding every form fact and generic sibling draft PASS
+- browser.txt:282 — GROUP 4 page confirmations bind their full text and ask independently PASS
+- browser.txt:283 — GROUP 3 cross-frame adapter empty and oversized drafts PASS
+- browser.txt:284 — GROUP 4 exact native confirmation and mismatch matrix PASS
+- browser.txt:285 — GROUP 4 a native-dialog handler submission is prepared separately PASS
+- browser.txt:286 — GROUP 5 question fields, hidden values, password label, upload path and hash PASS
+- browser.txt:287 — GROUP 6 exclusions through frame, popup, redirect, taking and history PASS
+- browser.txt:288 — GROUP 7 all password kinds across open closed and cross-site roots PASS
+- browser.txt:289 — GROUP 6 schemes links and forward routes PASS
+- browser.txt:290 — GROUP 8 drop release close and stale references never dispatch prepared work PASS
+- browser.txt:291 — GROUP 13 changed read-only preview is a stated residual PASS
+- browser.txt:292 — GROUP 8 deadline and tabs outside the group PASS
+- browser.txt:293 — GROUP 10 adapter gmail PASS
+- browser.txt:294 — GROUP 10 adapter whatsapp PASS
+- browser.txt:295 — GROUP 10 adapter github PASS
+- browser.txt:296 — GROUP 10 adapter gemini PASS
+- browser.txt:297 — GROUP 10 adapter deezer PASS
+- browser.txt:298 — GROUP 10 read-only bank PASS
+- browser.txt:299 — GROUP 10 adapter shortcuts and account-specific questions PASS
+- browser.txt:300 — GROUP 11 exact owner kind, recipients, account and revocation PASS
+- browser.txt:310 — QUALIFICATION conservative activations ask and core failures gate before reads PASS
+- browser.txt:311 — GROUP 13 autosave and after-limit submissions are not held PASS
+- browser.txt:313 — VIEW representative long article/form complete paging PASS
+- browser.txt:314 — FEATURE tools forms options find wait fill_form scroll and full catalogues PASS
+- browser.txt:315 — GROUP 8 actual popup Stop button drops all prepared work PASS
+- browser.txt:325 — GROUP 9 Chrome host service crash cutpoints never replay PASS
+- browser.txt:326 — GROUP 7 no listening port after tool suite PASS
+
+## control-chrome-42989465778-2-external
+Google Chrome 157.0.8103.50; 80 named passes; Python 220; Node 243.
+Measured long page: {"characters": 221477, "utf8_bytes": 221477, "pages": 14, "milliseconds": 11904, "token_estimate": 55370}.
+page-receiver.jsonl: 1219 complete independent 0/1/1 sequences.
+adapters-receiver.jsonl: 139 complete independent 0/1/1 sequences.
+Password ingress: 26737 protocol events; 3483 sensitive-getter observations; zero forbidden Runtime value events and no sentinel.
+- browser.txt:17 — GROUP 2 first-script natives are guarded in pages and frames PASS
+- browser.txt:33 — GROUP 4 REVIEW ordinary native dialogs from Claude owner and page tasks keep working PASS
+- browser.txt:34 — GROUP 4 REVIEW blank and srcdoc native dialogs answer with a held continuation PASS
+- browser.txt:35 — GROUP 8 REVIEW preexisting dialogs hand off within bounds and recover after the owner answers PASS
+- browser.txt:36 — GROUP 4 REVIEW borrowed native dialogs always ask bind the answer and never replay PASS
+- browser.txt:37 — GROUP 3 REVIEW ordinary blank and srcdoc editors bind drafts and send normally PASS
+- browser.txt:38 — GROUP 3 REVIEW owner chosen attachments show byte digests and bind identical metadata replacements PASS
+- browser.txt:43 — GROUP 2 REVIEW inherited and newly created frames hold submissions PASS
+- browser.txt:44 — GROUP 2 REVIEW borrowed wrappers respect another controlled tab and an ordinary document PASS
+- browser.txt:45 — GROUP 11 REVIEW explicit pay and delete evidence overrides an owner allowed adapter PASS
+- browser.txt:52 — GROUP 2 REVIEW synchronous new shadow roots keep all submission kinds held PASS
+- browser.txt:61 — GROUP 2 REVIEW new shadow roots capture borrowed native events including noncomposed ones PASS
+- browser.txt:68 — GROUP 1 REVIEW modified deletion keys normalized words malformed URLs and visible names PASS
+- browser.txt:80 — GROUP 3 REVIEW item confirmation file rich text and title mutations refuse PASS
+- browser.txt:84 — GROUP 2 REVIEW owner mark exact form submitter and unconsumed delayed work PASS
+- browser.txt:85 — GROUP 8 REVIEW iframe drafts and detached or Web Audio report before reload PASS
+- browser.txt:86 — GROUP 8 REVIEW script-started POST documents in tabs and popups never reload PASS
+- browser.txt:87 — GROUP 8 REVIEW no-op checks and isolated choices leave the owner tab selected PASS
+- browser.txt:88 — GROUP 8 REVIEW Stop removes navigation blocks while a frozen wrapper awaits cleanup PASS
+- browser.txt:89 — GROUP 5 REVIEW page outcome records the actual post-input notice PASS
+- browser.txt:92 — GROUP 8 popups preserve opener flow and guard first input without moving windows PASS
+- browser.txt:94 — GROUP 8 opener badges and per-popup Stop preserve windows documents and focus PASS
+- browser.txt:97 — GROUP 8 closing or releasing an opener ends popup control and clears badges PASS
+- browser.txt:100 — GROUP 8 POST popups never resubmit and ordinary openers stay untouched PASS
+- browser.txt:101 — GROUP 7 native compatibility inside and outside Claude tabs PASS
+- browser.txt:102 — GROUP 8 Stop under a native modal revokes input before deferred cleanup PASS
+- browser.txt:103 — GROUP 8 taken tabs preserve reads and guard the first input reload PASS
+- browser.txt:113 — GROUP 10 ADAPTER Gmail full compose and every bound field PASS
+- browser.txt:124 — GROUP 10 ADAPTER two Gmail compose windows and inbox shortcut PASS
+- browser.txt:144 — GROUP 11 ADAPTER Gmail exact To Cc Bcc roles account revocation and widening PASS
+- browser.txt:151 — GROUP 10 ADAPTER WhatsApp every message chat text attachments and free activity PASS
+- browser.txt:169 — GROUP 10 ADAPTER GitHub actions and all named confirmations PASS
+- browser.txt:185 — GROUP 10 ADAPTER clear merge settings and sharing variants stay guarded PASS
+- browser.txt:208 — GROUP 4 ADAPTER every named GitHub confirmation mismatch PASS
+- browser.txt:216 — GROUP 10 ADAPTER Gemini question content and always asking chat changes PASS
+- browser.txt:224 — GROUP 11 ADAPTER Gemini exact account owner entry and revocation PASS
+- browser.txt:237 — GROUP 10 ADAPTER Deezer playback additions removals posts shares and payments PASS
+- browser.txt:238 — GROUP 10 ADAPTER bank owner restriction all inputs and positive reads links scroll PASS
+- browser.txt:254 — GROUP 10 ADAPTER unfamiliar pages and qualification fallback on all sites PASS
+- browser.txt:255 — GROUP 10 ADAPTER Gemini question uses its required semantic name PASS
+- browser.txt:256 — GROUP 10 ADAPTER Gmail question names its attachments PASS
+- browser.txt:257 — GROUP 10 ADAPTER Gmail deletion shortcut question names the deletion PASS
+- browser.txt:258 — GROUP 1 submit compose deletion and free-input matrix PASS
+- browser.txt:271 — GROUP 1 what asks word/label/key matrix PASS
+- browser.txt:272 — GROUP 1 Unicode word matching agrees across service and guard PASS
+- browser.txt:273 — GROUP 2 stopped page steps handler/resume matrix PASS
+- browser.txt:274 — GROUP 2 script activations never replay PASS
+- browser.txt:275 — GROUP 2 loop with uncancelled enclosing submit sends once PASS
+- browser.txt:276 — GROUP 2 delayed submission stays held after slow frame arming PASS
+- browser.txt:277 — GROUP 2 nested validation and fresh-frame fallback PASS
+- browser.txt:278 — GROUP 2 owner synchronous task delayed work and in-flight interleavings PASS
+- browser.txt:279 — GROUP 2 after his mark timers never exempt forms submitters or validation repairs PASS
+- browser.txt:280 — GROUP 2 unknown activation survives navigation of its source document PASS
+- browser.txt:281 — GROUP 3 binding every form fact and generic sibling draft PASS
+- browser.txt:282 — GROUP 4 page confirmations bind their full text and ask independently PASS
+- browser.txt:283 — GROUP 3 cross-frame adapter empty and oversized drafts PASS
+- browser.txt:284 — GROUP 4 exact native confirmation and mismatch matrix PASS
+- browser.txt:285 — GROUP 4 a native-dialog handler submission is prepared separately PASS
+- browser.txt:286 — GROUP 5 question fields, hidden values, password label, upload path and hash PASS
+- browser.txt:287 — GROUP 6 exclusions through frame, popup, redirect, taking and history PASS
+- browser.txt:288 — GROUP 7 all password kinds across open closed and cross-site roots PASS
+- browser.txt:289 — GROUP 6 schemes links and forward routes PASS
+- browser.txt:290 — GROUP 8 drop release close and stale references never dispatch prepared work PASS
+- browser.txt:291 — GROUP 13 changed read-only preview is a stated residual PASS
+- browser.txt:292 — GROUP 8 deadline and tabs outside the group PASS
+- browser.txt:293 — GROUP 10 adapter gmail PASS
+- browser.txt:294 — GROUP 10 adapter whatsapp PASS
+- browser.txt:295 — GROUP 10 adapter github PASS
+- browser.txt:296 — GROUP 10 adapter gemini PASS
+- browser.txt:297 — GROUP 10 adapter deezer PASS
+- browser.txt:298 — GROUP 10 read-only bank PASS
+- browser.txt:299 — GROUP 10 adapter shortcuts and account-specific questions PASS
+- browser.txt:300 — GROUP 11 exact owner kind, recipients, account and revocation PASS
+- browser.txt:310 — QUALIFICATION conservative activations ask and core failures gate before reads PASS
+- browser.txt:311 — GROUP 13 autosave and after-limit submissions are not held PASS
+- browser.txt:313 — VIEW representative long article/form complete paging PASS
+- browser.txt:314 — FEATURE tools forms options find wait fill_form scroll and full catalogues PASS
+- browser.txt:315 — GROUP 8 actual popup Stop button drops all prepared work PASS
+- browser.txt:325 — GROUP 9 Chrome host service crash cutpoints never replay PASS
+- browser.txt:326 — GROUP 7 no listening port after tool suite PASS
+
+## control-chrome-42989465778-2-policy
+Google Chrome 157.0.8103.50; 80 named passes; Python 220; Node 243.
+Measured long page: {"characters": 221195, "utf8_bytes": 221195, "pages": 14, "milliseconds": 20867, "token_estimate": 55299}.
+page-receiver.jsonl: 1219 complete independent 0/1/1 sequences.
+adapters-receiver.jsonl: 139 complete independent 0/1/1 sequences.
+Password ingress: 25196 protocol events; 3481 sensitive-getter observations; zero forbidden Runtime value events and no sentinel.
+- browser.txt:17 — GROUP 2 first-script natives are guarded in pages and frames PASS
+- browser.txt:33 — GROUP 4 REVIEW ordinary native dialogs from Claude owner and page tasks keep working PASS
+- browser.txt:34 — GROUP 4 REVIEW blank and srcdoc native dialogs answer with a held continuation PASS
+- browser.txt:35 — GROUP 8 REVIEW preexisting dialogs hand off within bounds and recover after the owner answers PASS
+- browser.txt:36 — GROUP 4 REVIEW borrowed native dialogs always ask bind the answer and never replay PASS
+- browser.txt:37 — GROUP 3 REVIEW ordinary blank and srcdoc editors bind drafts and send normally PASS
+- browser.txt:38 — GROUP 3 REVIEW owner chosen attachments show byte digests and bind identical metadata replacements PASS
+- browser.txt:43 — GROUP 2 REVIEW inherited and newly created frames hold submissions PASS
+- browser.txt:44 — GROUP 2 REVIEW borrowed wrappers respect another controlled tab and an ordinary document PASS
+- browser.txt:45 — GROUP 11 REVIEW explicit pay and delete evidence overrides an owner allowed adapter PASS
+- browser.txt:52 — GROUP 2 REVIEW synchronous new shadow roots keep all submission kinds held PASS
+- browser.txt:61 — GROUP 2 REVIEW new shadow roots capture borrowed native events including noncomposed ones PASS
+- browser.txt:68 — GROUP 1 REVIEW modified deletion keys normalized words malformed URLs and visible names PASS
+- browser.txt:80 — GROUP 3 REVIEW item confirmation file rich text and title mutations refuse PASS
+- browser.txt:84 — GROUP 2 REVIEW owner mark exact form submitter and unconsumed delayed work PASS
+- browser.txt:85 — GROUP 8 REVIEW iframe drafts and detached or Web Audio report before reload PASS
+- browser.txt:86 — GROUP 8 REVIEW script-started POST documents in tabs and popups never reload PASS
+- browser.txt:87 — GROUP 8 REVIEW no-op checks and isolated choices leave the owner tab selected PASS
+- browser.txt:88 — GROUP 8 REVIEW Stop removes navigation blocks while a frozen wrapper awaits cleanup PASS
+- browser.txt:89 — GROUP 5 REVIEW page outcome records the actual post-input notice PASS
+- browser.txt:92 — GROUP 8 popups preserve opener flow and guard first input without moving windows PASS
+- browser.txt:94 — GROUP 8 opener badges and per-popup Stop preserve windows documents and focus PASS
+- browser.txt:97 — GROUP 8 closing or releasing an opener ends popup control and clears badges PASS
+- browser.txt:100 — GROUP 8 POST popups never resubmit and ordinary openers stay untouched PASS
+- browser.txt:101 — GROUP 7 native compatibility inside and outside Claude tabs PASS
+- browser.txt:102 — GROUP 8 Stop under a native modal revokes input before deferred cleanup PASS
+- browser.txt:103 — GROUP 8 taken tabs preserve reads and guard the first input reload PASS
+- browser.txt:113 — GROUP 10 ADAPTER Gmail full compose and every bound field PASS
+- browser.txt:124 — GROUP 10 ADAPTER two Gmail compose windows and inbox shortcut PASS
+- browser.txt:144 — GROUP 11 ADAPTER Gmail exact To Cc Bcc roles account revocation and widening PASS
+- browser.txt:151 — GROUP 10 ADAPTER WhatsApp every message chat text attachments and free activity PASS
+- browser.txt:169 — GROUP 10 ADAPTER GitHub actions and all named confirmations PASS
+- browser.txt:185 — GROUP 10 ADAPTER clear merge settings and sharing variants stay guarded PASS
+- browser.txt:208 — GROUP 4 ADAPTER every named GitHub confirmation mismatch PASS
+- browser.txt:216 — GROUP 10 ADAPTER Gemini question content and always asking chat changes PASS
+- browser.txt:224 — GROUP 11 ADAPTER Gemini exact account owner entry and revocation PASS
+- browser.txt:237 — GROUP 10 ADAPTER Deezer playback additions removals posts shares and payments PASS
+- browser.txt:238 — GROUP 10 ADAPTER bank owner restriction all inputs and positive reads links scroll PASS
+- browser.txt:254 — GROUP 10 ADAPTER unfamiliar pages and qualification fallback on all sites PASS
+- browser.txt:255 — GROUP 10 ADAPTER Gemini question uses its required semantic name PASS
+- browser.txt:256 — GROUP 10 ADAPTER Gmail question names its attachments PASS
+- browser.txt:257 — GROUP 10 ADAPTER Gmail deletion shortcut question names the deletion PASS
+- browser.txt:258 — GROUP 1 submit compose deletion and free-input matrix PASS
+- browser.txt:271 — GROUP 1 what asks word/label/key matrix PASS
+- browser.txt:272 — GROUP 1 Unicode word matching agrees across service and guard PASS
+- browser.txt:273 — GROUP 2 stopped page steps handler/resume matrix PASS
+- browser.txt:274 — GROUP 2 script activations never replay PASS
+- browser.txt:275 — GROUP 2 loop with uncancelled enclosing submit sends once PASS
+- browser.txt:276 — GROUP 2 delayed submission stays held after slow frame arming PASS
+- browser.txt:277 — GROUP 2 nested validation and fresh-frame fallback PASS
+- browser.txt:278 — GROUP 2 owner synchronous task delayed work and in-flight interleavings PASS
+- browser.txt:279 — GROUP 2 after his mark timers never exempt forms submitters or validation repairs PASS
+- browser.txt:280 — GROUP 2 unknown activation survives navigation of its source document PASS
+- browser.txt:281 — GROUP 3 binding every form fact and generic sibling draft PASS
+- browser.txt:282 — GROUP 4 page confirmations bind their full text and ask independently PASS
+- browser.txt:283 — GROUP 3 cross-frame adapter empty and oversized drafts PASS
+- browser.txt:284 — GROUP 4 exact native confirmation and mismatch matrix PASS
+- browser.txt:285 — GROUP 4 a native-dialog handler submission is prepared separately PASS
+- browser.txt:286 — GROUP 5 question fields, hidden values, password label, upload path and hash PASS
+- browser.txt:287 — GROUP 6 exclusions through frame, popup, redirect, taking and history PASS
+- browser.txt:288 — GROUP 7 all password kinds across open closed and cross-site roots PASS
+- browser.txt:289 — GROUP 6 schemes links and forward routes PASS
+- browser.txt:290 — GROUP 8 drop release close and stale references never dispatch prepared work PASS
+- browser.txt:291 — GROUP 13 changed read-only preview is a stated residual PASS
+- browser.txt:292 — GROUP 8 deadline and tabs outside the group PASS
+- browser.txt:293 — GROUP 10 adapter gmail PASS
+- browser.txt:294 — GROUP 10 adapter whatsapp PASS
+- browser.txt:295 — GROUP 10 adapter github PASS
+- browser.txt:296 — GROUP 10 adapter gemini PASS
+- browser.txt:297 — GROUP 10 adapter deezer PASS
+- browser.txt:298 — GROUP 10 read-only bank PASS
+- browser.txt:299 — GROUP 10 adapter shortcuts and account-specific questions PASS
+- browser.txt:300 — GROUP 11 exact owner kind, recipients, account and revocation PASS
+- browser.txt:310 — QUALIFICATION conservative activations ask and core failures gate before reads PASS
+- browser.txt:311 — GROUP 13 autosave and after-limit submissions are not held PASS
+- browser.txt:313 — VIEW representative long article/form complete paging PASS
+- browser.txt:314 — FEATURE tools forms options find wait fill_form scroll and full catalogues PASS
+- browser.txt:315 — GROUP 8 actual popup Stop button drops all prepared work PASS
+- browser.txt:325 — GROUP 9 Chrome host service crash cutpoints never replay PASS
+- browser.txt:326 — GROUP 7 no listening port after tool suite PASS
