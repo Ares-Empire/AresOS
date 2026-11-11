@@ -1,0 +1,1725 @@
+[
+  {
+    "item": "P1",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P1|answering a dialog collects",
+      "control/chrome_tests/background.test.mjs"
+    ],
+    "output": "\u2716 answering a dialog collects a resumed handler submission without sending it (11.633417ms)\n\u2716 P1 independently opened native dialogs refuse if private arming cannot be established (527.858833ms)\n\u2714 P17 losing password history in a surviving browser document refuses reads (1.23875ms)\n\u2714 P17 expected privacy identity is enforced inside the reader before a lost-history snapshot (0.738417ms)\n\u2714 P1 native document registration authenticates readiness and never overwrites lost privacy history (0.942334ms)\n\u2714 P1 pending debugger commands log their order without script arguments or page values (0.723875ms)\n\u2714 P1 only the authenticated native return boundary can arm the continuation (1.449ms)\n\u2714 P1 a native boundary after revocation resumes the owner during pending cleanup (0.714292ms)\n\u2714 P1 an existing modal hold is reusable only while every current guard proves its nonce (4.343875ms)\n\u2714 P1 Stop rejects a pending native answer barrier and clears its private begin records (1.392167ms)\n\u2714 P1 decided borrowed dialog approval answers exactly once without clearing existing guards (528.005625ms)\n\u2714 P1 decided borrowed dialog refuses changed dialog or chosen answer before dispatch (4.126459ms)\n\u2714 P1 an uncertain borrowed native answer is consumed before dispatch and never replayed (0.7695ms)\n\u2714 P1 native opening metadata makes borrowed functions ask without downgrading guarded dialogs (1.1455ms)\n\u2714 P1 native dialog metadata waits for classification across every read path (4.758417ms)\n\u2714 P1 a dialog opening during the final reader reply cannot escape unclassified (0.816792ms)\n\u2714 P1 dialog classification waits are bounded and a later completed lookup recovers (0.776833ms)\n\u2714 P1 the owner may close a borrowed dialog before approval without any tool answer (0.702666ms)\n\u2714 P1 preexisting modal handoff is bounded detaches and recovers the same control after owner answer (1.250709ms)\n\u2714 P1 a responding Page domain may finish slow setup without a false owner handoff (0.79875ms)\n\u2714 P1 a borrowed answer preserves and finishes a previous hold before returning its followups (0.915125ms)\n\u2714 P1 a cross-site dialog arms its authenticated child guard despite root event routing (1.248083ms)\n\u2714 P19 root navigation retires descendant records before a renderer reuses context numbers (0.924833ms)\n\u2714 P19 a cancelled startup cannot evaluate or resume a reused native context (0.817125ms)\n\u2714 P1 a private native token cannot authenticate a second dialog before its end message arrives (0.735875ms)\n\u2716 P1 a dialog changed during the final native frame query refuses before answering (1.18475ms)\n\u2714 P1 a private end pause retires unclaimed authority before resume and rejects a late begin (1.21225ms)\n\u2714 P1 an old private end query cannot resume a replacement startup (1.754125ms)\n\u2714 P1 an old dialog return query cannot poison a replacement document (0.995416ms)\n\u2139 Error: Test \"P1 a dialog changed during the final native frame query refuses before answering\" at control/chrome_tests/background.test.mjs:971:1 generated asynchronous activity after the test ended. This activity created the error \"TypeError: Cannot read properties of undefined (reading 'resolve')\" and would have caused the test to fail, but instead triggered an unhandledRejection event.\n\u2139 tests 29\n\u2139 suites 0\n\u2139 pass 26\n\u2139 fail 3\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 1142.110292\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/background.test.mjs:327:1\n\u2716 answering a dialog collects a resumed handler submission without sending it (11.633417ms)\n  AssertionError [ERR_ASSERTION]: native return boundary must be armed before answering\n  \n  false !== true\n  \n      at f.run.assertBarrier (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:334:51)\n      at Object.sendCommand (evalmachine.<anonymous>:1:761)\n      at cdp (evalmachine.<anonymous>:248:33)\n      at dispatch (evalmachine.<anonymous>:769:15)\n      at async TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:342:16)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: false,\n    code: 'ERR_ASSERTION',\n    actual: false,\n    expected: true,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n\ntest at control/chrome_tests/background.test.mjs:636:1\n\u2716 P1 independently opened native dialogs refuse if private arming cannot be established (527.858833ms)\n  AssertionError [ERR_ASSERTION]: Missing expected rejection.\n      at async TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:638:3)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {\n    generatedMessage: false,\n    code: 'ERR_ASSERTION',\n    actual: undefined,\n    expected: /leave it to the owner/,\n    operator: 'rejects',\n    diff: 'simple'\n  }\n\ntest at control/chrome_tests/background.test.mjs:971:1\n\u2716 P1 a dialog changed during the final native frame query refuses before answering (1.18475ms)\n  AssertionError [ERR_ASSERTION]: typeof framesReady==='function'\n  \n  false !== true\n  \n      at spin (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:32:120)\n      at async TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:973:118)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {\n    generatedMessage: false,\n    code: 'ERR_ASSERTION',\n    actual: false,\n    expected: true,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P1-boundary",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "answering a dialog collects",
+      "control/chrome_tests/background.test.mjs"
+    ],
+    "output": "\u2716 answering a dialog collects a resumed handler submission without sending it (10.734875ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 47.211291\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/background.test.mjs:327:1\n\u2716 answering a dialog collects a resumed handler submission without sending it (10.734875ms)\n  AssertionError [ERR_ASSERTION]: native return boundary must be armed before answering\n  \n  false !== true\n  \n      at f.run.assertBarrier (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:334:51)\n      at Object.sendCommand (evalmachine.<anonymous>:1:761)\n      at cdp (evalmachine.<anonymous>:248:33)\n      at dispatch (evalmachine.<anonymous>:769:15)\n      at async TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:342:16)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: false,\n    code: 'ERR_ASSERTION',\n    actual: false,\n    expected: true,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P1-window-return",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P1 native dialog return values",
+      "control/chrome_tests/page.test.mjs"
+    ],
+    "output": "\u2716 P1 native dialog return values survive and the private boundary precedes the caller continuation (3.107375ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 39.893\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/page.test.mjs:574:1\n\u2716 P1 native dialog return values survive and the private boundary precedes the caller continuation (3.107375ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n  \n  1 !== 0\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/page.test.mjs:579:81)\n      at Test.runInAsyncScope (node:async_hooks:226:14)\n      at Test.run (node:internal/test_runner/test:1382:25)\n      at Test.start (node:internal/test_runner/test:1242:17)\n      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: 1,\n    expected: 0,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P1-dialog-conversion",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P1 borrowed dialogs during",
+      "control/chrome_tests/page.test.mjs"
+    ],
+    "output": "\u2716 P1 borrowed dialogs during native string conversion cannot borrow the outer return token (2.865167ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 39.876791\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/page.test.mjs:590:1\n\u2716 P1 borrowed dialogs during native string conversion cannot borrow the outer return token (2.865167ms)\n  node:internal/assert/utils:146\n    throw error;\n    ^\n  \n  AssertionError [ERR_ASSERTION]: argument conversion precedes private dialog authority\n  \n  1 !== 0\n  \n      at f.main.convert (file://<mutation-worktree>/control/chrome_tests/page.test.mjs:593:62)\n      at [Symbol.toPrimitive] (evalmachine.<anonymous>:1:54)\n      at dialogValue (file://<mutation-worktree>/control/chrome_tests/page.test.mjs:75:100)\n      at alert (file://<mutation-worktree>/control/chrome_tests/page.test.mjs:75:182)\n      at evalmachine.<anonymous>:124:18\n      at alert (evalmachine.<anonymous>:83:90)\n      at evalmachine.<anonymous>:1:78\n      at evalmachine.<anonymous>:1:93\n      at Script.runInContext (node:vm:150:12)\n      at Object.runInContext (node:vm:302:6) {\n    generatedMessage: false,\n    code: 'ERR_ASSERTION',\n    actual: 1,\n    expected: 0,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P1-opening-once",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P1 a private native token",
+      "control/chrome_tests/background.test.mjs"
+    ],
+    "output": "\u2716 P1 a private native token cannot authenticate a second dialog before its end message arrives (2.974542ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 42.213417\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/background.test.mjs:962:1\n\u2716 P1 a private native token cannot authenticate a second dialog before its end message arrives (2.974542ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n  + actual - expected\n  \n  + undefined\n  - true\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:968:146)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: undefined,\n    expected: true,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P1-opening-binding",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P1 a cross-site dialog",
+      "control/chrome_tests/background.test.mjs"
+    ],
+    "output": "\u2716 P1 a cross-site dialog arms its authenticated child guard despite root event routing (2.647583ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 40.156125\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/background.test.mjs:931:1\n\u2716 P1 a cross-site dialog arms its authenticated child guard despite root event routing (2.647583ms)\n  AssertionError [ERR_ASSERTION]: Missing expected rejection.\n      at async TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:934:87)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: false,\n    code: 'ERR_ASSERTION',\n    actual: undefined,\n    expected: /no authenticated return boundary/,\n    operator: 'rejects',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P1-opening-readiness",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P1 native dialog metadata waits",
+      "control/chrome_tests/background.test.mjs"
+    ],
+    "output": "\u2716 P1 native dialog metadata waits for classification across every read path (2.998666ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 41.295625\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/background.test.mjs:842:1\n\u2716 P1 native dialog metadata waits for classification across every read path (2.998666ms)\n  AssertionError [ERR_ASSERTION]: no partial dialog or transient refusal before private classification\n  \n  true !== false\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:849:12)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: false,\n    code: 'ERR_ASSERTION',\n    actual: true,\n    expected: false,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P1-opening-final-reader",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P1 a dialog opening during",
+      "control/chrome_tests/background.test.mjs"
+    ],
+    "output": "\u2716 P1 a dialog opening during the final reader reply cannot escape unclassified (3.129583ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 39.817583\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/background.test.mjs:856:1\n\u2716 P1 a dialog opening during the final reader reply cannot escape unclassified (3.129583ms)\n  AssertionError [ERR_ASSERTION]: the last reader reply must not publish a pending dialog\n  \n  true !== false\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:863:10)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: false,\n    code: 'ERR_ASSERTION',\n    actual: true,\n    expected: false,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P1-opening-completion",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P1 native dialog metadata waits",
+      "control/chrome_tests/background.test.mjs"
+    ],
+    "output": "\u2716 P1 native dialog metadata waits for classification across every read path (5005.892458ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 5042.960166\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/background.test.mjs:842:1\n\u2716 P1 native dialog metadata waits for classification across every read path (5005.892458ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n  + actual - expected\n  \n  + Error: refused: dialog opener is still being established; read again before answering\n  +     at Timeout.<anonymous> (evalmachine.<anonymous>:598:96)\n  +     at listOnTimeout (node:internal/timers:605:17)\n  +     at process.processTimers (node:internal/timers:541:7)\n  - undefined\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:851:12)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: Error: refused: dialog opener is still being established; read again before answering\n        at Timeout.<anonymous> (evalmachine.<anonymous>:598:96)\n        at listOnTimeout (node:internal/timers:605:17)\n        at process.processTimers (node:internal/timers:541:7),\n    expected: undefined,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P1-opening-deadline",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P1 dialog classification waits",
+      "control/chrome_tests/background.test.mjs"
+    ],
+    "output": "\u2716 P1 dialog classification waits are bounded and a later completed lookup recovers (3.022791ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 42.182792\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/background.test.mjs:868:1\n\u2716 P1 dialog classification waits are bounded and a later completed lookup recovers (3.022791ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n  \n  30000 !== 5000\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:871:44)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: 30000,\n    expected: 5000,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P1-dialog-fresh",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P1 a dialog changed during",
+      "control/chrome_tests/background.test.mjs"
+    ],
+    "output": "\u2716 P1 a dialog changed during the final native frame query refuses before answering (7.992333ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 44.769792\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/background.test.mjs:971:1\n\u2716 P1 a dialog changed during the final native frame query refuses before answering (7.992333ms)\n  AssertionError [ERR_ASSERTION]: Missing expected rejection.\n      at async TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:975:3)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: false,\n    code: 'ERR_ASSERTION',\n    actual: undefined,\n    expected: /stale_approval: dialog changed/,\n    operator: 'rejects',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P1-end-lifetime",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P1 a private end pause",
+      "control/chrome_tests/background.test.mjs"
+    ],
+    "output": "\u2716 P1 a private end pause retires unclaimed authority before resume and rejects a late begin (2.926542ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 40.639958\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/background.test.mjs:987:1\n\u2716 P1 a private end pause retires unclaimed authority before resume and rejects a late begin (2.926542ms)\n  Error: Private authority survived the native return\n      at chrome.debugger.sendCommand (evalmachine.<anonymous>:1:462)\n      at preloadCommand (evalmachine.<anonymous>:31:42)\n      at targetCommand (evalmachine.<anonymous>:45:96)\n      at preloadEvent (evalmachine.<anonymous>:136:24)\n      at async TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:991:3)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)\n"
+  },
+  {
+    "item": "P1-end-late-begin",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P1 a private end pause",
+      "control/chrome_tests/background.test.mjs"
+    ],
+    "output": "\u2716 P1 a private end pause retires unclaimed authority before resume and rejects a late begin (3.511375ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 42.952\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/background.test.mjs:987:1\n\u2716 P1 a private end pause retires unclaimed authority before resume and rejects a late begin (3.511375ms)\n  AssertionError [ERR_ASSERTION]: an asynchronous old begin cannot resurrect an ended native call\n  \n  1 !== 0\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:994:222)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: false,\n    code: 'ERR_ASSERTION',\n    actual: 1,\n    expected: 0,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "catalogue-active-lifetime",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "catalogue snapshots survive",
+      "control/chrome_tests/background.test.mjs"
+    ],
+    "output": "\u2716 catalogue snapshots survive active pagination and expire after five idle minutes (2.400584ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 39.644792\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/background.test.mjs:979:1\n\u2716 catalogue snapshots survive active pagination and expire after five idle minutes (2.400584ms)\n  Error: stale_reference: list snapshot changed or expired; start the list again without a cursor\n      at collection (evalmachine.<anonymous>:688:186)\n      at evalmachine.<anonymous>:1:1\n      at Script.runInContext (node:vm:150:12)\n      at Object.runInContext (node:vm:302:6)\n      at Object.run (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:15:24)\n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:982:70)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)\n"
+  },
+  {
+    "item": "catalogue-absolute-lifetime",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "active catalogue walks expire",
+      "control/chrome_tests/state-catalogues.test.mjs"
+    ],
+    "output": "\u2716 active catalogue walks expire exactly thirty minutes after creation and must restart (1.60025ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 36.257208\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/state-catalogues.test.mjs:44:1\n\u2716 active catalogue walks expire exactly thirty minutes after creation and must restart (1.60025ms)\n  AssertionError [ERR_ASSERTION]: Missing expected rejection.\n      at async TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/state-catalogues.test.mjs:55:5)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: false,\n    code: 'ERR_ASSERTION',\n    actual: undefined,\n    expected: /stale_reference:.*start the list again without a cursor/,\n    operator: 'rejects',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "catalogue-idle-deadline",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "idle catalogue",
+      "control/chrome_tests/state-catalogues.test.mjs"
+    ],
+    "output": "\u2716 idle catalogue snapshots still expire after five minutes (1.718875ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 38.117542\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/state-catalogues.test.mjs:33:1\n\u2716 idle catalogue snapshots still expire after five minutes (1.718875ms)\n  AssertionError [ERR_ASSERTION]: Missing expected rejection.\n      at async TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/state-catalogues.test.mjs:39:5)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: false,\n    code: 'ERR_ASSERTION',\n    actual: undefined,\n    expected: /stale_reference:.*start the list again without a cursor/,\n    operator: 'rejects',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "catalogue-absolute-pruning",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "new catalogues prune",
+      "control/chrome_tests/state-catalogues.test.mjs"
+    ],
+    "output": "\u2716 new catalogues prune absolute expiry even when the expired snapshot was used last (1.678667ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 37.750708\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/state-catalogues.test.mjs:65:1\n\u2716 new catalogues prune absolute expiry even when the expired snapshot was used last (1.678667ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n  \n  true !== false\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/state-catalogues.test.mjs:75:10)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: true,\n    expected: false,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "catalogue-restart-message",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "active catalogue walks expire",
+      "control/chrome_tests/state-catalogues.test.mjs"
+    ],
+    "output": "\u2716 active catalogue walks expire exactly thirty minutes after creation and must restart (1.680416ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 35.822666\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/state-catalogues.test.mjs:44:1\n\u2716 active catalogue walks expire exactly thirty minutes after creation and must restart (1.680416ms)\n  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /stale_reference:.*start the list again without a cursor/. Input:\n  \n  'Error: stale_reference: list snapshot changed or expired; try later'\n  \n      at async TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/state-catalogues.test.mjs:55:5)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: Error: stale_reference: list snapshot changed or expired; try later\n        at collection (evalmachine.<anonymous>:6:186)\n        at evalmachine.<anonymous>:1:1\n        at Script.runInContext (node:vm:150:12)\n        at Object.runInContext (node:vm:302:6)\n        at Object.read (file://<mutation-worktree>/control/chrome_tests/state-catalogues.test.mjs:14:28)\n        at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/state-catalogues.test.mjs:55:28)\n        at async Test.run (node:internal/test_runner/test:1389:7)\n        at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3),\n    expected: /stale_reference:.*start the list again without a cursor/,\n    operator: 'rejects',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P1-end-pause-fresh",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P1 an old private end query",
+      "control/chrome_tests/background.test.mjs"
+    ],
+    "output": "\u2716 P1 an old private end query cannot resume a replacement startup (3.736791ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 42.068541\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/background.test.mjs:997:1\n\u2716 P1 an old private end query cannot resume a replacement startup (3.736791ms)\n  AssertionError [ERR_ASSERTION]: only the first completed startup has resumed\n  \n  2 !== 1\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:1005:10)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: false,\n    code: 'ERR_ASSERTION',\n    actual: 2,\n    expected: 1,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P1-return-no-poison",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P1 an old dialog return query",
+      "control/chrome_tests/background.test.mjs"
+    ],
+    "output": "\u2716 P1 an old dialog return query cannot poison a replacement document (3.689667ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 42.727459\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/background.test.mjs:1008:1\n\u2716 P1 an old dialog return query cannot poison a replacement document (3.689667ms)\n  AssertionError [ERR_ASSERTION]: the old failure cannot disable the replacement control\n  + actual - expected\n  \n  + true\n  - undefined\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:1015:91)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: false,\n    code: 'ERR_ASSERTION',\n    actual: true,\n    expected: undefined,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P1-auth",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P1 only the authenticated",
+      "control/chrome_tests/background.test.mjs"
+    ],
+    "output": "\u2716 P1 only the authenticated native return boundary can arm the continuation (3.51575ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 40.1995\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/background.test.mjs:773:1\n\u2716 P1 only the authenticated native return boundary can arm the continuation (3.51575ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n  \n  1 !== 0\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:777:118)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: 1,\n    expected: 0,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P1-conservative",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "python3",
+      "-B",
+      "-m",
+      "unittest",
+      "test_questions.Questions.test_p1_native_answer_keeps_the_service_conservative_policy",
+      "-v"
+    ],
+    "output": "test_p1_native_answer_keeps_the_service_conservative_policy (test_questions.Questions.test_p1_native_answer_keeps_the_service_conservative_policy) ... FAIL\n\n======================================================================\nFAIL: test_p1_native_answer_keeps_the_service_conservative_policy (test_questions.Questions.test_p1_native_answer_keeps_the_service_conservative_policy)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"<mutation-worktree>/control/chrome_tests/test_questions.py\", line 135, in test_p1_native_answer_keeps_the_service_conservative_policy\n    self.assertTrue(operation['payload'].get('conservative'));self.assertTrue(self.chrome.command(operation['payload']).get('conservative'))\n                                                              ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: None is not true\n\n----------------------------------------------------------------------\nRan 1 test in 0.016s\n\nFAILED (failures=1)\n"
+  },
+  {
+    "item": "P1-cross-site-target",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P1 a cross-site dialog",
+      "control/chrome_tests/background.test.mjs"
+    ],
+    "output": "\u2716 P1 a cross-site dialog arms its authenticated child guard despite root event routing (2.231333ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 38.828916\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/background.test.mjs:931:1\n\u2716 P1 a cross-site dialog arms its authenticated child guard despite root event routing (2.231333ms)\n  Error: refused: native dialog has no authenticated return boundary; leave it to the owner\n      at armDialog (evalmachine.<anonymous>:430:95)\n"
+  },
+  {
+    "item": "P1-coverage",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "answering a dialog collects",
+      "control/chrome_tests/background.test.mjs"
+    ],
+    "output": "\u2716 answering a dialog collects a resumed handler submission without sending it (11.485167ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 49.102458\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/background.test.mjs:327:1\n\u2716 answering a dialog collects a resumed handler submission without sending it (11.485167ms)\n  Error: refused: dialog document context disappeared\n      at preloadEvent (evalmachine.<anonymous>:115:27)\n      at async Object.sendCommand (evalmachine.<anonymous>:1:835)\n      at async cdp (evalmachine.<anonymous>:254:16)\n      at async dispatch (evalmachine.<anonymous>:769:9)\n      at async TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:342:16)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)\n"
+  },
+  {
+    "item": "P1-ready",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P1 native document registration",
+      "control/chrome_tests/background.test.mjs"
+    ],
+    "output": "\u2716 P1 native document registration authenticates readiness and never overwrites lost privacy history (2.680041ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 40.596333\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/background.test.mjs:761:1\n\u2716 P1 native document registration authenticates readiness and never overwrites lost privacy history (2.680041ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n  + actual - expected\n  \n  + undefined\n  - 'private'\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:763:58)\n      at Test.runInAsyncScope (node:async_hooks:226:14)\n      at Test.run (node:internal/test_runner/test:1382:25)\n      at Test.start (node:internal/test_runner/test:1242:17)\n      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: undefined,\n    expected: 'private',\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P1-existing-allowance",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P1 an existing modal hold",
+      "control/chrome_tests/background.test.mjs"
+    ],
+    "output": "\u2716 P1 an existing modal hold is reusable only while every current guard proves its nonce (3.904083ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 42.272333\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/background.test.mjs:783:1\n\u2716 P1 an existing modal hold is reusable only while every current guard proves its nonce (3.904083ms)\n  AssertionError [ERR_ASSERTION]: Missing expected rejection: unmatched-approval\n      at async TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:791:10)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: false,\n    code: 'ERR_ASSERTION',\n    actual: undefined,\n    expected: /no authenticated return boundary/,\n    operator: 'rejects',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P1-existing-proof",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P1 an existing modal hold",
+      "control/chrome_tests/background.test.mjs"
+    ],
+    "output": "\u2716 P1 an existing modal hold is reusable only while every current guard proves its nonce (4.894166ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 41.892333\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/background.test.mjs:783:1\n\u2716 P1 an existing modal hold is reusable only while every current guard proves its nonce (4.894166ms)\n  AssertionError [ERR_ASSERTION]: Missing expected rejection: finished\n      at async TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:791:10)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: false,\n    code: 'ERR_ASSERTION',\n    actual: undefined,\n    expected: /no authenticated return boundary/,\n    operator: 'rejects',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P1-borrowed-asks",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "python3",
+      "-B",
+      "-m",
+      "unittest",
+      "test_questions.Questions.test_p1_decided_borrowed_dialog_always_asks_binds_answer_and_never_trusts",
+      "-v"
+    ],
+    "output": "test_p1_decided_borrowed_dialog_always_asks_binds_answer_and_never_trusts (test_questions.Questions.test_p1_decided_borrowed_dialog_always_asks_binds_answer_and_never_trusts) ... FAIL\n\n======================================================================\nFAIL: test_p1_decided_borrowed_dialog_always_asks_binds_answer_and_never_trusts (test_questions.Questions.test_p1_decided_borrowed_dialog_always_asks_binds_answer_and_never_trusts)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"<mutation-worktree>/control/chrome_tests/test_questions.py\", line 142, in test_p1_decided_borrowed_dialog_always_asks_binds_answer_and_never_trusts\n    self.assertTrue(result['ok'],result);self.assertIn('approval',result['data']);approval=result['data']['approval'];self.assertEqual(self.browser.dispatched,[])\n                                         ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 'approval' not found in {'operation_id': 'dd2f65e90ce4427baacd1c9d9793039f:c15387a87cff48008786f6424e9a1354', 'untrusted_content': {'checked': True, 'dispatched': True, 'steps': []}, 'followups': []}\n\n----------------------------------------------------------------------\nRan 1 test in 0.016s\n\nFAILED (failures=1)\n"
+  },
+  {
+    "item": "P1-borrowed-warning",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "python3",
+      "-B",
+      "-m",
+      "unittest",
+      "test_questions.Questions.test_p1_decided_borrowed_dialog_always_asks_binds_answer_and_never_trusts",
+      "-v"
+    ],
+    "output": "test_p1_decided_borrowed_dialog_always_asks_binds_answer_and_never_trusts (test_questions.Questions.test_p1_decided_borrowed_dialog_always_asks_binds_answer_and_never_trusts) ... FAIL\n\n======================================================================\nFAIL: test_p1_decided_borrowed_dialog_always_asks_binds_answer_and_never_trusts (test_questions.Questions.test_p1_decided_borrowed_dialog_always_asks_binds_answer_and_never_trusts)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"<mutation-worktree>/control/chrome_tests/test_questions.py\", line 144, in test_p1_decided_borrowed_dialog_always_asks_binds_answer_and_never_trusts\n    self.assertIn(text,approval['question'])\n    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 'outside the page guard' not found in \"On https://fixture.test/, page 'Fixture', as the page shows it, accept with prompt text 'Chosen text' prompt 'Choose answer' from frame 0? Continuation approved.\"\n\n----------------------------------------------------------------------\nRan 1 test in 0.016s\n\nFAILED (failures=1)\n"
+  },
+  {
+    "item": "P1-borrowed-trust",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "python3",
+      "-B",
+      "-m",
+      "unittest",
+      "test_questions.Questions.test_p1_borrowed_dialog_never_inherits_an_otherwise_valid_owner_entry",
+      "-v"
+    ],
+    "output": "test_p1_borrowed_dialog_never_inherits_an_otherwise_valid_owner_entry (test_questions.Questions.test_p1_borrowed_dialog_never_inherits_an_otherwise_valid_owner_entry) ... FAIL\n\n======================================================================\nFAIL: test_p1_borrowed_dialog_never_inherits_an_otherwise_valid_owner_entry (test_questions.Questions.test_p1_borrowed_dialog_never_inherits_an_otherwise_valid_owner_entry)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"<mutation-worktree>/control/chrome_tests/test_questions.py\", line 167, in test_p1_borrowed_dialog_never_inherits_an_otherwise_valid_owner_entry\n    self.assertTrue(self.chrome.trusted(operation));operation['payload']['unguarded_dialog']=True;self.assertFalse(self.chrome.trusted(operation))\n                                                                                                  ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: True is not false\n\n----------------------------------------------------------------------\nRan 1 test in 0.019s\n\nFAILED (failures=1)\n"
+  },
+  {
+    "item": "P1-borrowed-answer",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P1 decided borrowed dialog refuses",
+      "control/chrome_tests/background.test.mjs"
+    ],
+    "output": "\u2716 P1 decided borrowed dialog refuses changed dialog or chosen answer before dispatch (535.957416ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 574.412625\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/background.test.mjs:816:1\n\u2716 P1 decided borrowed dialog refuses changed dialog or chosen answer before dispatch (535.957416ms)\n  AssertionError [ERR_ASSERTION]: Missing expected rejection.\n      at async TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:818:52)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: false,\n    code: 'ERR_ASSERTION',\n    actual: undefined,\n    expected: /stale_approval|requires its exact approval/,\n    operator: 'rejects',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P1-borrowed-approval",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P1 decided borrowed dialog refuses",
+      "control/chrome_tests/background.test.mjs"
+    ],
+    "output": "\u2716 P1 decided borrowed dialog refuses changed dialog or chosen answer before dispatch (538.149583ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 575.554584\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/background.test.mjs:816:1\n\u2716 P1 decided borrowed dialog refuses changed dialog or chosen answer before dispatch (538.149583ms)\n  AssertionError [ERR_ASSERTION]: Missing expected rejection.\n      at async TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:818:52)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: false,\n    code: 'ERR_ASSERTION',\n    actual: undefined,\n    expected: /stale_approval|requires its exact approval/,\n    operator: 'rejects',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P1-borrowed-once",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P1 an uncertain borrowed",
+      "control/chrome_tests/background.test.mjs"
+    ],
+    "output": "\u2716 P1 an uncertain borrowed native answer is consumed before dispatch and never replayed (7.894625ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 44.712166\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/background.test.mjs:821:1\n\u2716 P1 an uncertain borrowed native answer is consumed before dispatch and never replayed (7.894625ms)\n  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /already attempted/. Input:\n  \n  'Error: native answer response was lost'\n  \n      at async TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:824:3)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: Error: native answer response was lost\n        at chrome.debugger.sendCommand (evalmachine.<anonymous>:1:125)\n        at cdp (evalmachine.<anonymous>:248:33)\n        at dispatch (evalmachine.<anonymous>:759:15)\n        at async waitForActual (node:assert:615:5)\n        at async strict.rejects (node:assert:738:25)\n        at async TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:824:3)\n        at async Test.run (node:internal/test_runner/test:1389:7)\n        at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3),\n    expected: /already attempted/,\n    operator: 'rejects',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P1-borrowed-origin",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P1 native opening metadata",
+      "control/chrome_tests/background.test.mjs"
+    ],
+    "output": "\u2716 P1 native opening metadata makes borrowed functions ask without downgrading guarded dialogs (2.841666ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 40.279458\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/background.test.mjs:826:1\n\u2716 P1 native opening metadata makes borrowed functions ask without downgrading guarded dialogs (2.841666ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n  + actual - expected\n  \n  + undefined\n  - true\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:829:145)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: undefined,\n    expected: true,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P1-borrowed-matched",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "a stale approved dialog opening",
+      "control/chrome_tests/background.test.mjs"
+    ],
+    "output": "\u2716 a stale approved dialog opening never accepts the different dialog that replaced it (4.036542ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 41.322375\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/background.test.mjs:287:1\n\u2716 a stale approved dialog opening never accepts the different dialog that replaced it (4.036542ms)\n  AssertionError [ERR_ASSERTION]: a borrowed native cannot inherit automatic confirmation\n  \n  1 !== 0\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:304:70)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: false,\n    code: 'ERR_ASSERTION',\n    actual: 1,\n    expected: 0,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P1-borrowed-prior-hold",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P1 a borrowed answer preserves",
+      "control/chrome_tests/background.test.mjs"
+    ],
+    "output": "\u2716 P1 a borrowed answer preserves and finishes a previous hold before returning its followups (8.153375ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 45.199958\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/background.test.mjs:892:1\n\u2716 P1 a borrowed answer preserves and finishes a previous hold before returning its followups (8.153375ms)\n  AssertionError [ERR_ASSERTION]: followup collection waits for the old input completion\n  \n  true !== false\n  \n      at f.run.verifyOldFinished (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:894:52)\n      at collectSteps (evalmachine.<anonymous>:1:24)\n      at dispatch (evalmachine.<anonymous>:763:25) {\n    generatedMessage: false,\n    code: 'ERR_ASSERTION',\n    actual: true,\n    expected: false,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P1-preexisting-bound",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P1 preexisting modal handoff",
+      "control/chrome_tests/background.test.mjs"
+    ],
+    "output": "\u2716 P1 preexisting modal handoff is bounded detaches and recovers the same control after owner answer (3.832791ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 40.114083\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/background.test.mjs:879:1\n\u2716 P1 preexisting modal handoff is bounded detaches and recovers the same control after owner answer (3.832791ms)\n  AssertionError [ERR_ASSERTION]: handedOff\n  \n  false !== true\n  \n      at spin (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:32:120)\n      at async TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:882:274)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: false,\n    code: 'ERR_ASSERTION',\n    actual: false,\n    expected: true,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P1-preexisting-detach",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P1 preexisting modal handoff",
+      "control/chrome_tests/background.test.mjs"
+    ],
+    "output": "\u2716 P1 preexisting modal handoff is bounded detaches and recovers the same control after owner answer (3.323541ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 40.711209\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/background.test.mjs:879:1\n\u2716 P1 preexisting modal handoff is bounded detaches and recovers the same control after owner answer (3.323541ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n  \n  true !== false\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:883:136)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: true,\n    expected: false,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P1-preexisting-retain",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P1 preexisting modal handoff",
+      "control/chrome_tests/background.test.mjs"
+    ],
+    "output": "\u2716 P1 preexisting modal handoff is bounded detaches and recovers the same control after owner answer (3.658042ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 40.615583\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/background.test.mjs:879:1\n\u2716 P1 preexisting modal handoff is bounded detaches and recovers the same control after owner answer (3.658042ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n  \n  false !== true\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:884:51)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: false,\n    expected: true,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P1-preexisting-recover",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P1 preexisting modal handoff",
+      "control/chrome_tests/background.test.mjs"
+    ],
+    "output": "\u2716 P1 preexisting modal handoff is bounded detaches and recovers the same control after owner answer (3.342458ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 39.463\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/background.test.mjs:879:1\n\u2716 P1 preexisting modal handoff is bounded detaches and recovers the same control after owner answer (3.342458ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n  \n  false !== true\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:885:67)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: false,\n    expected: true,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P1-preexisting-slow",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P1 a responding Page domain",
+      "control/chrome_tests/background.test.mjs"
+    ],
+    "output": "\u2716 P1 a responding Page domain may finish slow setup without a false owner handoff (3.3695ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 40.301375\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/background.test.mjs:887:1\n\u2716 P1 a responding Page domain may finish slow setup without a false owner handoff (3.3695ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n  + actual - expected\n  \n  + true\n  - undefined\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:890:61)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: true,\n    expected: undefined,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P2",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P2",
+      "control/chrome_tests/background.test.mjs"
+    ],
+    "output": "\u2716 P2 inherited blank and srcdoc frames need authenticated origin and enter binding (3.02325ms)\n\u2714 P24 final identity query finishes before the last dirty and audible check (6.180375ms)\n\u2714 P24 uncovered and unreadable frames count as possibly unsaved before both reload boundaries (1.200041ms)\n\u2714 P25 satisfied checks and isolated selections do not activate an inactive tab (1.859416ms)\n\u2714 P27 Stop lifts navigation blocks before deferred native restoration (1.141333ms)\n\u2714 P28 final binding refusal finishes every armed frame (0.902167ms)\n\u2714 P23 input page evidence contains the bounded post-input notice (0.74825ms)\n\u2714 P2 inherited frame URLs with fragments retain the same authenticated origin path (0.723542ms)\n\u2714 P27 native missing-context proof retires stale cleanup handles without a Runtime subscription (1.975083ms)\n\u2714 P23 a borrowed dialog result observes the actual page after its native answer (527.58725ms)\n\u2714 P2 native dialogs in blank and srcdoc frames use authenticated private documents (4.093125ms)\n\u2714 P2 native frame identity distinguishes two documents with the same HTTP address (0.714167ms)\n\u2139 tests 12\n\u2139 suites 0\n\u2139 pass 11\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 588.063666\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/background.test.mjs:640:1\n\u2716 P2 inherited blank and srcdoc frames need authenticated origin and enter binding (3.02325ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:\n  + actual - expected\n  \n    [\n      0,\n  -   1,\n  -   2\n    ]\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:642:47)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: [ 0 ],\n    expected: [ 0, 1, 2 ],\n    operator: 'deepStrictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P3-inherit",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P3 startup",
+      "control/chrome_tests/background.test.mjs"
+    ],
+    "output": "\u2716 P3 startup inherits an active hold before activation without any approval allowance (5.769208ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 42.751917\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/background.test.mjs:722:1\n\u2716 P3 startup inherits an active hold before activation without any approval allowance (5.769208ms)\n  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:\n  \n    assert.ok(armed>=0)\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:726:10)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: false,\n    expected: true,\n    operator: '==',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P3-paused-task",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P3 a remaining hold",
+      "control/chrome_tests/background.test.mjs"
+    ],
+    "output": "\u2716 P3 a remaining hold never awaits a browser task while startup is paused (1002.055709ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 0\n\u2139 cancelled 1\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 1038.178458\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/background.test.mjs:741:1\n\u2716 P3 a remaining hold never awaits a browser task while startup is paused (1002.055709ms)\n  'test timed out after 1000ms'\n"
+  },
+  {
+    "item": "P3-coverage",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P3 a frame",
+      "control/chrome_tests/background.test.mjs"
+    ],
+    "output": "\u2716 P3 a frame appearing on the final snapshot is armed without an allowance before input (3.380625ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 39.894\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/background.test.mjs:729:1\n\u2716 P3 a frame appearing on the final snapshot is armed without an allowance before input (3.380625ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:\n  + actual - expected\n  \n    [\n      0,\n  -   2\n    ]\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:732:10)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: [ 0 ],\n    expected: [ 0, 2 ],\n    operator: 'deepStrictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P4",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P4",
+      "control/chrome_tests/page.test.mjs"
+    ],
+    "output": "\u2716 P4 borrowed wrappers route to another controlled document guard (3.099125ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 39.83725\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/page.test.mjs:536:1\n\u2716 P4 borrowed wrappers route to another controlled document guard (3.099125ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n  \n  1 !== 0\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/page.test.mjs:538:61)\n      at Test.runInAsyncScope (node:async_hooks:226:14)\n      at Test.run (node:internal/test_runner/test:1382:25)\n      at Test.start (node:internal/test_runner/test:1242:17)\n      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: 1,\n    expected: 0,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P5",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P5 new roots",
+      "control/chrome_tests/page.test.mjs"
+    ],
+    "output": "\u2716 P5 new roots install capture before a borrowed native dispatch can activate a control (2.774958ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 40.245833\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/page.test.mjs:548:1\n\u2716 P5 new roots install capture before a borrowed native dispatch can activate a control (2.774958ms)\n  AssertionError [ERR_ASSERTION]: wrapped creation synchronously installs capture\n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/page.test.mjs:551:58)\n      at Test.runInAsyncScope (node:async_hooks:226:14)\n      at Test.run (node:internal/test_runner/test:1382:25)\n      at Test.start (node:internal/test_runner/test:1242:17)\n      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {\n    generatedMessage: false,\n    code: 'ERR_ASSERTION',\n    actual: undefined,\n    expected: true,\n    operator: '==',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P5-composed",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P5 composed root",
+      "control/chrome_tests/page.test.mjs"
+    ],
+    "output": "\u2716 P5 composed root keeps asking controls inside shadow DOM held (2.762083ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 45.031125\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/page.test.mjs:542:1\n\u2716 P5 composed root keeps asking controls inside shadow DOM held (2.762083ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n  \n  1 !== 0\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/page.test.mjs:544:24)\n      at Test.runInAsyncScope (node:async_hooks:226:14)\n      at Test.run (node:internal/test_runner/test:1382:25)\n      at Test.start (node:internal/test_runner/test:1242:17)\n      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: 1,\n    expected: 0,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P5-native-shadow-identity",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P5 native shadow identity",
+      "control/chrome_tests/page.test.mjs"
+    ],
+    "output": "\u2716 P5 native shadow identity survives InputEvent range retargeting without touching page getters (2.985375ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 40.304042\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/page.test.mjs:556:1\n\u2716 P5 native shadow identity survives InputEvent range retargeting without touching page getters (2.985375ms)\n  AssertionError [ERR_ASSERTION]: native\n  \n  0 !== 1\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/page.test.mjs:563:46)\n      at Test.runInAsyncScope (node:async_hooks:226:14)\n      at Test.run (node:internal/test_runner/test:1382:25)\n      at Test.start (node:internal/test_runner/test:1242:17)\n      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {\n    generatedMessage: false,\n    code: 'ERR_ASSERTION',\n    actual: 0,\n    expected: 1,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P5-isolated-node",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P5 native shadow identity",
+      "control/chrome_tests/page.test.mjs"
+    ],
+    "output": "\u2716 P5 native shadow identity survives InputEvent range retargeting without touching page getters (2.951958ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 39.959083\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/page.test.mjs:556:1\n\u2716 P5 native shadow identity survives InputEvent range retargeting without touching page getters (2.951958ms)\n  AssertionError [ERR_ASSERTION]: native\n  \n  0 !== 1\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/page.test.mjs:563:46)\n      at Test.runInAsyncScope (node:async_hooks:226:14)\n      at Test.run (node:internal/test_runner/test:1382:25)\n      at Test.start (node:internal/test_runner/test:1242:17)\n      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {\n    generatedMessage: false,\n    code: 'ERR_ASSERTION',\n    actual: 0,\n    expected: 1,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P6",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "python3",
+      "-B",
+      "-m",
+      "unittest",
+      "test_policy.ReviewClassification.test_p6_equivalent_keys_classify_the_dispatched_tuple",
+      "-v"
+    ],
+    "output": "test_p6_equivalent_keys_classify_the_dispatched_tuple (test_policy.ReviewClassification.test_p6_equivalent_keys_classify_the_dispatched_tuple) ... FAIL\n\n======================================================================\nFAIL: test_p6_equivalent_keys_classify_the_dispatched_tuple (test_policy.ReviewClassification.test_p6_equivalent_keys_classify_the_dispatched_tuple)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"<mutation-worktree>/control/chrome_tests/test_policy.py\", line 100, in test_p6_equivalent_keys_classify_the_dispatched_tuple\n    self.assertEqual(classify('press', {'key':modifier+base}, {'target':{}}), 'delete')\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: None != 'delete'\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nFAILED (failures=1)\n"
+  },
+  {
+    "item": "P6-adapter",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "python3",
+      "-B",
+      "-m",
+      "unittest",
+      "test_sites.SiteSemantics.test_p6_gmail_hash_shortcut_canonicalizes_modifiers_before_classification",
+      "-v"
+    ],
+    "output": "test_p6_gmail_hash_shortcut_canonicalizes_modifiers_before_classification (test_sites.SiteSemantics.test_p6_gmail_hash_shortcut_canonicalizes_modifiers_before_classification) ... FAIL\n\n======================================================================\nFAIL: test_p6_gmail_hash_shortcut_canonicalizes_modifiers_before_classification (test_sites.SiteSemantics.test_p6_gmail_hash_shortcut_canonicalizes_modifiers_before_classification)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"<mutation-worktree>/control/chrome_tests/test_sites.py\", line 39, in test_p6_gmail_hash_shortcut_canonicalizes_modifiers_before_classification\n    self.assertIsNotNone(adapter,key)\n    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^\nAssertionError: unexpectedly None : Ctrl+#\n\n----------------------------------------------------------------------\nRan 1 test in 0.001s\n\nFAILED (failures=1)\n"
+  },
+  {
+    "item": "P7",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P7",
+      "control/chrome_tests/page.test.mjs"
+    ],
+    "output": "\u2716 P7 malformed escapes and invalid UTF-8 keep script activation asking (3.060917ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 40.053708\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/page.test.mjs:494:1\n\u2716 P7 malformed escapes and invalid UTF-8 keep script activation asking (3.060917ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n  \n  1 !== 0\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/page.test.mjs:499:12)\n      at Test.runInAsyncScope (node:async_hooks:226:14)\n      at Test.run (node:internal/test_runner/test:1382:25)\n      at Test.start (node:internal/test_runner/test:1242:17)\n      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: 1,\n    expected: 0,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P8",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "python3",
+      "-B",
+      "-m",
+      "unittest",
+      "test_policy.ReviewClassification.test_p7_tolerant_url_decoding_and_p8_canonical_unicode",
+      "-v"
+    ],
+    "output": "test_p7_tolerant_url_decoding_and_p8_canonical_unicode (test_policy.ReviewClassification.test_p7_tolerant_url_decoding_and_p8_canonical_unicode) ... FAIL\n\n======================================================================\nFAIL: test_p7_tolerant_url_decoding_and_p8_canonical_unicode (test_policy.ReviewClassification.test_p7_tolerant_url_decoding_and_p8_canonical_unicode)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"<mutation-worktree>/control/chrome_tests/test_policy.py\", line 109, in test_p7_tolerant_url_decoding_and_p8_canonical_unicode\n    self.assertEqual(classify('click', {}, {'target':{'name':word}}), expected)\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: None != 'delete'\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nFAILED (failures=1)\n"
+  },
+  {
+    "item": "P8-guard",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P8",
+      "control/chrome_tests/page.test.mjs"
+    ],
+    "output": "\u2716 P8 decomposed canonical list words ask before delivery (2.817042ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 40.084375\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/page.test.mjs:502:1\n\u2716 P8 decomposed canonical list words ask before delivery (2.817042ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n  \n  1 !== 0\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/page.test.mjs:506:12)\n      at Test.runInAsyncScope (node:async_hooks:226:14)\n      at Test.run (node:internal/test_runner/test:1382:25)\n      at Test.start (node:internal/test_runner/test:1242:17)\n      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: 1,\n    expected: 0,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P9-classification",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "python3",
+      "-B",
+      "-m",
+      "unittest",
+      "test_policy.ReviewClassification.test_p9_explicit_payment_and_deletion_override_adapter",
+      "-v"
+    ],
+    "output": "test_p9_explicit_payment_and_deletion_override_adapter (test_policy.ReviewClassification.test_p9_explicit_payment_and_deletion_override_adapter) ... FAIL\n\n======================================================================\nFAIL: test_p9_explicit_payment_and_deletion_override_adapter (test_policy.ReviewClassification.test_p9_explicit_payment_and_deletion_override_adapter)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"<mutation-worktree>/control/chrome_tests/test_policy.py\", line 115, in test_p9_explicit_payment_and_deletion_override_adapter\n    self.assertEqual(classify('click', {}, {'target':{channel:cue}}, adapter=adapter), cue.lower())\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 'send' != 'pay'\n- send\n+ pay\n\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nFAILED (failures=1)\n"
+  },
+  {
+    "item": "P9-trusted",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "python3",
+      "-B",
+      "-m",
+      "unittest",
+      "test_questions.Questions.test_p9_trusted_predicate_independently_forbids_explicit_deletion_payment_and_whatsapp",
+      "-v"
+    ],
+    "output": "test_p9_trusted_predicate_independently_forbids_explicit_deletion_payment_and_whatsapp (test_questions.Questions.test_p9_trusted_predicate_independently_forbids_explicit_deletion_payment_and_whatsapp) ... FAIL\n\n======================================================================\nFAIL: test_p9_trusted_predicate_independently_forbids_explicit_deletion_payment_and_whatsapp (test_questions.Questions.test_p9_trusted_predicate_independently_forbids_explicit_deletion_payment_and_whatsapp)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"<mutation-worktree>/control/chrome_tests/test_questions.py\", line 178, in test_p9_trusted_predicate_independently_forbids_explicit_deletion_payment_and_whatsapp\n    self.assertFalse(self.chrome.trusted(changed))\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: True is not false\n\n----------------------------------------------------------------------\nRan 1 test in 0.018s\n\nFAILED (failures=1)\n"
+  },
+  {
+    "item": "P10",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P10",
+      "control/chrome_tests/reader.test.mjs"
+    ],
+    "output": "\u2716 P10 affected item includes every ARIA item and named section (2.378209ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 39.45475\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/reader.test.mjs:184:1\n\u2716 P10 affected item includes every ARIA item and named section (2.378209ms)\n  AssertionError [ERR_ASSERTION]: [role=listitem]\n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/reader.test.mjs:191:55)\n      at Test.runInAsyncScope (node:async_hooks:226:14)\n      at Test.run (node:internal/test_runner/test:1382:25)\n      at Test.start (node:internal/test_runner/test:1242:17)\n      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {\n    generatedMessage: false,\n    code: 'ERR_ASSERTION',\n    actual: '',\n    expected: '',\n    operator: 'notStrictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P11",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "python3",
+      "-B",
+      "-m",
+      "unittest",
+      "test_questions.Questions.test_p11_confirmation_binds_a_sibling_draft",
+      "-v"
+    ],
+    "output": "test_p11_confirmation_binds_a_sibling_draft (test_questions.Questions.test_p11_confirmation_binds_a_sibling_draft) ... FAIL\n\n======================================================================\nFAIL: test_p11_confirmation_binds_a_sibling_draft (test_questions.Questions.test_p11_confirmation_binds_a_sibling_draft)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"<mutation-worktree>/control/chrome_tests/test_questions.py\", line 77, in test_p11_confirmation_binds_a_sibling_draft\n    self.assertIsNotNone(state['editable'])\n    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^\nAssertionError: unexpectedly None\n\n----------------------------------------------------------------------\nRan 1 test in 0.020s\n\nFAILED (failures=1)\n"
+  },
+  {
+    "item": "P12",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P12",
+      "control/chrome_tests/reader.test.mjs"
+    ],
+    "output": "\u2716 P12 owner selected bytes are hashed privately and identical metadata cannot substitute content (4.095416ms)\n\u2714 P12 HTTP selected-file hashing matches SHA-256 across padding and multi-block boundaries (23.783667ms)\n\u2714 P12 every binding rehashes the selected native File even when its object and metadata survive (1.36875ms)\n\u2714 P12 a selection changed during asynchronous hashing refuses before snapshot extraction (0.586417ms)\n\u2139 tests 4\n\u2139 suites 0\n\u2139 pass 3\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 68.46975\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/reader.test.mjs:147:1\n\u2716 P12 owner selected bytes are hashed privately and identical metadata cannot substitute content (4.095416ms)\n  AssertionError [ERR_ASSERTION]: Expected \"actual\" to be strictly unequal to:\n  \n  'proof.txt'\n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/reader.test.mjs:154:161)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: 'proof.txt',\n    expected: 'proof.txt',\n    operator: 'notStrictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P12-hash",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P12 HTTP",
+      "control/chrome_tests/reader.test.mjs"
+    ],
+    "output": "\u2716 P12 HTTP selected-file hashing matches SHA-256 across padding and multi-block boundaries (2.943834ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 38.57325\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/reader.test.mjs:157:1\n\u2716 P12 HTTP selected-file hashing matches SHA-256 across padding and multi-block boundaries (2.943834ms)\n  AssertionError [ERR_ASSERTION]: 0\n  + actual - expected\n  \n  + '0000000000000000000000000000000000000000000000000000000000000000'\n  - 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/reader.test.mjs:162:12)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: false,\n    code: 'ERR_ASSERTION',\n    actual: '0000000000000000000000000000000000000000000000000000000000000000',\n    expected: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P12-rehash",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P12 every binding rehashes",
+      "control/chrome_tests/reader.test.mjs"
+    ],
+    "output": "\u2716 P12 every binding rehashes the selected native File even when its object and metadata survive (3.406917ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 39.07925\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/reader.test.mjs:165:1\n\u2716 P12 every binding rehashes the selected native File even when its object and metadata survive (3.406917ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n  \n  1 !== 2\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/reader.test.mjs:172:10)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: 1,\n    expected: 2,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P12-race",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P12 a selection changed",
+      "control/chrome_tests/reader.test.mjs"
+    ],
+    "output": "\u2716 P12 a selection changed during asynchronous hashing refuses before snapshot extraction (2.966542ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 38.753584\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/reader.test.mjs:175:1\n\u2716 P12 a selection changed during asynchronous hashing refuses before snapshot extraction (2.966542ms)\n  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /selection changed/. Input:\n  \n  'refused: selected file digest is not ready; read the page again'\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/reader.test.mjs:179:69)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: 'refused: selected file digest is not ready; read the page again',\n    expected: /selection changed/,\n    operator: 'match',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P12-binding",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "python3",
+      "-B",
+      "-m",
+      "unittest",
+      "test_questions.Questions.test_p12_owner_selected_file_question_shows_name_size_and_bound_digest",
+      "-v"
+    ],
+    "output": "test_p12_owner_selected_file_question_shows_name_size_and_bound_digest (test_questions.Questions.test_p12_owner_selected_file_question_shows_name_size_and_bound_digest) ... FAIL\n\n======================================================================\nFAIL: test_p12_owner_selected_file_question_shows_name_size_and_bound_digest (test_questions.Questions.test_p12_owner_selected_file_question_shows_name_size_and_bound_digest)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"<mutation-worktree>/control/chrome_tests/test_questions.py\", line 114, in test_p12_owner_selected_file_question_shows_name_size_and_bound_digest\n    for value in ['owner-picked.txt','4 bytes','sha256 '+('a'*64)]:self.assertIn(value,approval['question'])\n                                                                   ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 'owner-picked.txt' not found in \"On https://fixture.test/, page 'Fixture', as the page shows it, send 'Send'; where the page sends this isn't visible to the tool?\"\n\n----------------------------------------------------------------------\nRan 1 test in 0.016s\n\nFAILED (failures=1)\n"
+  },
+  {
+    "item": "P13",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P13",
+      "control/chrome_tests/reader.test.mjs"
+    ],
+    "output": "\u2716 P13 rich text keeps block boundaries and explicit breaks distinct from spaces (2.83825ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 38.185417\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/reader.test.mjs:139:1\n\u2716 P13 rich text keeps block boundaries and explicit breaks distinct from spaces (2.83825ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n  + actual - expected\n  \n  + 'Line one Line two'\n  - 'Line one\\nLine two'\n             ^\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/reader.test.mjs:143:58)\n      at Test.runInAsyncScope (node:async_hooks:226:14)\n      at Test.run (node:internal/test_runner/test:1382:25)\n      at Test.start (node:internal/test_runner/test:1242:17)\n      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: 'Line one Line two',\n    expected: 'Line one\\nLine two',\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P14",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "python3",
+      "-B",
+      "-m",
+      "unittest",
+      "test_policy.ReviewClassification.test_p14_unsubscribe_binds_item_without_a_draft",
+      "-v"
+    ],
+    "output": "test_p14_unsubscribe_binds_item_without_a_draft (test_policy.ReviewClassification.test_p14_unsubscribe_binds_item_without_a_draft) ... FAIL\n\n======================================================================\nFAIL: test_p14_unsubscribe_binds_item_without_a_draft (test_policy.ReviewClassification.test_p14_unsubscribe_binds_item_without_a_draft)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"<mutation-worktree>/control/chrome_tests/test_policy.py\", line 121, in test_p14_unsubscribe_binds_item_without_a_draft\n    self.assertEqual(classify('click', {}, {'target':{'name':label}}), 'item')\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 'send' != 'item'\n- send\n+ item\n\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nFAILED (failures=1)\n"
+  },
+  {
+    "item": "P15",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P15",
+      "control/chrome_tests/reader.test.mjs"
+    ],
+    "output": "\u2716 P15 visible button contents precede a conflicting title (2.617459ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 38.995042\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/reader.test.mjs:119:1\n\u2716 P15 visible button contents precede a conflicting title (2.617459ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n  + actual - expected\n  \n  + 'More information'\n  - 'Delete'\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/reader.test.mjs:121:32)\n      at Test.runInAsyncScope (node:async_hooks:226:14)\n      at Test.run (node:internal/test_runner/test:1382:25)\n      at Test.start (node:internal/test_runner/test:1242:17)\n      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: 'More information',\n    expected: 'Delete',\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P16",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P16",
+      "control/chrome_tests/reader.test.mjs"
+    ],
+    "output": "\u2716 P16 iframe address reads srcdoc presence without collecting its HTML (2.423667ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 39.3565\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/reader.test.mjs:123:1\n\u2716 P16 iframe address reads srcdoc presence without collecting its HTML (2.423667ms)\n  AssertionError [ERR_ASSERTION]: {\"ok\":false,\"error\":\"raw srcdoc was collected\"}\n  \n  false !== true\n  \n      at Object.read (file://<mutation-worktree>/control/chrome_tests/reader.test.mjs:39:99)\n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/reader.test.mjs:126:18)\n      at Test.runInAsyncScope (node:async_hooks:226:14)\n      at Test.run (node:internal/test_runner/test:1382:25)\n      at Test.start (node:internal/test_runner/test:1242:17)\n      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {\n    generatedMessage: false,\n    code: 'ERR_ASSERTION',\n    actual: false,\n    expected: true,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P17",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P17",
+      "control/chrome_tests/reader.test.mjs"
+    ],
+    "output": "\u2716 P17 sticky password identity survives reader disposal and reinjection (2.635208ms)\n\u2714 P17 lost-history identity refuses before collecting any field value (0.436125ms)\n\u2139 tests 2\n\u2139 suites 0\n\u2139 pass 1\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 40.887125\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/reader.test.mjs:128:1\n\u2716 P17 sticky password identity survives reader disposal and reinjection (2.635208ms)\n  AssertionError [ERR_ASSERTION]: {\"ok\":false,\"error\":\"PASSWORD VALUE WAS READ\"}\n  \n  false !== true\n  \n      at Object.read (file://<mutation-worktree>/control/chrome_tests/reader.test.mjs:39:99)\n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/reader.test.mjs:129:102)\n      at Test.runInAsyncScope (node:async_hooks:226:14)\n      at Test.run (node:internal/test_runner/test:1382:25)\n      at Test.start (node:internal/test_runner/test:1242:17)\n      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {\n    generatedMessage: false,\n    code: 'ERR_ASSERTION',\n    actual: false,\n    expected: true,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P17-before-getter",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P17 lost-history identity",
+      "control/chrome_tests/reader.test.mjs"
+    ],
+    "output": "\u2716 P17 lost-history identity refuses before collecting any field value (2.27725ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 38.23525\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/reader.test.mjs:196:1\n\u2716 P17 lost-history identity refuses before collecting any field value (2.27725ms)\n  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /password history was lost/. Input:\n  \n  'PASSWORD VALUE WAS READ'\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/reader.test.mjs:198:118)\n      at Test.runInAsyncScope (node:async_hooks:226:14)\n      at Test.run (node:internal/test_runner/test:1382:25)\n      at Test.start (node:internal/test_runner/test:1242:17)\n      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: 'PASSWORD VALUE WAS READ',\n    expected: /password history was lost/,\n    operator: 'match',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P17-private-expectation",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P17 expected privacy identity",
+      "control/chrome_tests/background.test.mjs"
+    ],
+    "output": "\u2716 P17 expected privacy identity is enforced inside the reader before a lost-history snapshot (2.849ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 40.582875\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/background.test.mjs:749:1\n\u2716 P17 expected privacy identity is enforced inside the reader before a lost-history snapshot (2.849ms)\n  AssertionError [ERR_ASSERTION]: the second snapshot must never collect values\n  \n  2 !== 1\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:751:134)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: false,\n    code: 'ERR_ASSERTION',\n    actual: 2,\n    expected: 1,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "popup-late-reader",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "a popup committing after admission",
+      "control/chrome_tests/background.test.mjs"
+    ],
+    "output": "\u2716 a popup committing after admission acquires a reader without reloading its document (3.071458ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 41.06425\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/background.test.mjs:656:1\n\u2716 a popup committing after admission acquires a reader without reloading its document (3.071458ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n  \n  0 !== 1\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:658:69)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: 0,\n    expected: 1,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "popup-reader-document",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "document replaced between frame enumeration",
+      "control/chrome_tests/background.test.mjs"
+    ],
+    "output": "\u2716 a document replaced between frame enumeration and read cannot inherit its successor privacy identity (2.867667ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 39.503375\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/background.test.mjs:664:1\n\u2716 a document replaced between frame enumeration and read cannot inherit its successor privacy identity (2.867667ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n  \n  1 !== 0\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:666:46)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: 1,\n    expected: 0,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "popup-install-document",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "a popup committing after admission",
+      "control/chrome_tests/background.test.mjs"
+    ],
+    "output": "\u2716 a popup committing after admission acquires a reader without reloading its document (3.43425ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 40.33\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/background.test.mjs:656:1\n\u2716 a popup committing after admission acquires a reader without reloading its document (3.43425ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:\n  + actual - expected\n  \n    {\n  +   frameIds: [\n  +     0\n  -   documentIds: [\n  -     'popup-document'\n      ],\n      tabId: 7\n    }\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:659:53)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: { tabId: 7, frameIds: [ 0 ] },\n    expected: { tabId: 7, documentIds: [ 'popup-document' ] },\n    operator: 'deepStrictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P2-native-frame",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P2 native",
+      "control/chrome_tests/background.test.mjs"
+    ],
+    "output": "\u2716 P2 native dialogs in blank and srcdoc frames use authenticated private documents (9.536917ms)\n\u2716 P2 native frame identity distinguishes two documents with the same HTTP address (0.851583ms)\n\u2139 tests 2\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 2\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 47.41875\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/background.test.mjs:905:1\n\u2716 P2 native dialogs in blank and srcdoc frames use authenticated private documents (9.536917ms)\n  AssertionError [ERR_ASSERTION]: no text retained before inherited opener authentication\n  + actual - expected\n  \n  + 'Inline native prompt'\n  - undefined\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:918:14)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: false,\n    code: 'ERR_ASSERTION',\n    actual: 'Inline native prompt',\n    expected: undefined,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n\ntest at control/chrome_tests/background.test.mjs:923:1\n\u2716 P2 native frame identity distinguishes two documents with the same HTTP address (0.851583ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n  \n  undefined !== 2\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:927:165)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: undefined,\n    expected: 2,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P2-native-readonly",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "python3",
+      "-B",
+      "-m",
+      "unittest",
+      "test_questions.Questions.test_p2_inline_native_dialog_uses_authenticated_inherited_readonly_host",
+      "-v"
+    ],
+    "output": "test_p2_inline_native_dialog_uses_authenticated_inherited_readonly_host (test_questions.Questions.test_p2_inline_native_dialog_uses_authenticated_inherited_readonly_host) ... FAIL\n\n======================================================================\nFAIL: test_p2_inline_native_dialog_uses_authenticated_inherited_readonly_host (test_questions.Questions.test_p2_inline_native_dialog_uses_authenticated_inherited_readonly_host)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"<mutation-worktree>/control/chrome_tests/test_questions.py\", line 125, in test_p2_inline_native_dialog_uses_authenticated_inherited_readonly_host\n    refused=self.call('dialog',{'tab':1,'expected':native['dialog'],'accept':True});self.assertFalse(refused['ok'],refused);self.assertEqual(refused['error']['code'],'readonly_site')\n                                                                                    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: True is not false : {'ok': True, 'data': {'approval': {'question': \"On https://fixture.test/, page '', as the page shows it, accept confirm 'Send this message?' from frame 2?\", 'operation_id': 'e00165b39aab4c538f51b4d5aabd198a:439397cb644b401a9f3bbf4d90906bd6', 'description': {'action': 'chrome_submit', 'untrusted_content': {'page_state': {'session': 'fixture-session', 'tab': 1, 'url': 'https://fixture.test/', 'effective_url': 'https://editor.test/', 'dialog': {'kind': 'confirm', 'text': 'Send this message?', 'frame': 2, 'frame_url': 'about:srcdoc', 'effective_url': 'https://editor.test/', 'button': 'OK'}}, 'input': {'verb': 'dialog', 'tab': 1, 'expected': {'kind': 'confirm', 'text': 'Send this message?', 'frame': 2, 'frame_url': 'about:srcdoc', 'effective_url': 'https://editor.test/', 'button': 'OK'}, 'accept': True}, 'kind': 'confirmation', 'resume_kind': None, 'file': None, 'confirmation': None}, 'adapter_action': None, 'expires_at': 1794441585.306447}}, 'state': 'reserved'}, 'pending': {'items': [{'operation_id': 'e00165b39aab4c538f51b4d5aabd198a:84aa1e14d5194ccfaa70d0e219d79333', 'app': 'chrome', 'state': 'reserved', 'reason': 'This site is now read-only; the prepared action was refused before dispatch.', 'validity': 'refused', 'refusal_code': 'readonly_site'}, {'operation_id': 'e00165b39aab4c538f51b4d5aabd198a:439397cb644b401a9f3bbf4d90906bd6', 'app': 'chrome', 'state': 'reserved', 'reason': 'This site is now read-only; the prepared action was refused before dispatch.', 'validity': 'refused', 'refusal_code': 'readonly_site'}], 'total': 2, 'cursor': None, 'restore_required': False}}\n\n----------------------------------------------------------------------\nRan 1 test in 0.019s\n\nFAILED (failures=1)\n"
+  },
+  {
+    "item": "P2-before-getter",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P2 inherited origin",
+      "control/chrome_tests/reader.test.mjs"
+    ],
+    "output": "\u2716 P2 inherited origin is checked before any field getter (2.118542ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 39.740208\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/reader.test.mjs:200:1\n\u2716 P2 inherited origin is checked before any field getter (2.118542ms)\n  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /origin cannot be authenticated/. Input:\n  \n  'PASSWORD VALUE WAS READ'\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/reader.test.mjs:202:41)\n      at Test.runInAsyncScope (node:async_hooks:226:14)\n      at Test.run (node:internal/test_runner/test:1382:25)\n      at Test.start (node:internal/test_runner/test:1242:17)\n      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: 'PASSWORD VALUE WAS READ',\n    expected: /origin cannot be authenticated/,\n    operator: 'match',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P18-descendants",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P18",
+      "control/chrome_tests/reader.test.mjs"
+    ],
+    "output": "\u2716 P18 protected descendants and a formerly editable field never expose content (2.652041ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 39.901916\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/reader.test.mjs:131:1\n\u2716 P18 protected descendants and a formerly editable field never expose content (2.652041ms)\n  AssertionError [ERR_ASSERTION]: {\"ok\":false,\"error\":\"protected descendant text getter was read\"}\n  \n  false !== true\n  \n      at Object.read (file://<mutation-worktree>/control/chrome_tests/reader.test.mjs:39:99)\n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/reader.test.mjs:136:31)\n      at Test.runInAsyncScope (node:async_hooks:226:14)\n      at Test.run (node:internal/test_runner/test:1382:25)\n      at Test.start (node:internal/test_runner/test:1242:17)\n      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {\n    generatedMessage: false,\n    code: 'ERR_ASSERTION',\n    actual: false,\n    expected: true,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P18-sticky",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P18",
+      "control/chrome_tests/reader.test.mjs"
+    ],
+    "output": "\u2716 P18 protected descendants and a formerly editable field never expose content (2.469583ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 38.727375\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/reader.test.mjs:131:1\n\u2716 P18 protected descendants and a formerly editable field never expose content (2.469583ms)\n  AssertionError [ERR_ASSERTION]: {\"ok\":false,\"error\":\"protected descendant text getter was read\"}\n  \n  false !== true\n  \n      at Object.read (file://<mutation-worktree>/control/chrome_tests/reader.test.mjs:39:99)\n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/reader.test.mjs:136:87)\n      at Test.runInAsyncScope (node:async_hooks:226:14)\n      at Test.run (node:internal/test_runner/test:1382:25)\n      at Test.start (node:internal/test_runner/test:1242:17)\n      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {\n    generatedMessage: false,\n    code: 'ERR_ASSERTION',\n    actual: false,\n    expected: true,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P19",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "startup evaluates only fixed bundles",
+      "control/chrome_tests/background.test.mjs"
+    ],
+    "output": "\u2716 startup evaluates only fixed bundles in authenticated private contexts before resuming (3.408375ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 42.079334\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/background.test.mjs:207:1\n\u2716 startup evaluates only fixed bundles in authenticated private contexts before resuming (3.408375ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n  \n  true !== false\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:216:10)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: true,\n    expected: false,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P19-root-context",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P19 root navigation",
+      "control/chrome_tests/background.test.mjs"
+    ],
+    "output": "\u2716 P19 root navigation retires descendant records before a renderer reuses context numbers (3.6275ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 40.509208\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/background.test.mjs:937:1\n\u2716 P19 root navigation retires descendant records before a renderer reuses context numbers (3.6275ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n  \n  1 !== 0\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:942:10)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: 1,\n    expected: 0,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P19-context-generation",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P19 a cancelled startup",
+      "control/chrome_tests/background.test.mjs"
+    ],
+    "output": "\u2716 P19 a cancelled startup cannot evaluate or resume a reused native context (3.4045ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 39.625125\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/background.test.mjs:949:1\n\u2716 P19 a cancelled startup cannot evaluate or resume a reused native context (3.4045ms)\n  AssertionError [ERR_ASSERTION]: old setup cannot run in the replacement context\n  \n  3 !== 0\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:957:10)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: false,\n    code: 'ERR_ASSERTION',\n    actual: 3,\n    expected: 0,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P19-context-check",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P19 a cancelled startup",
+      "control/chrome_tests/background.test.mjs"
+    ],
+    "output": "\u2716 P19 a cancelled startup cannot evaluate or resume a reused native context (3.551708ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 41.357\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/background.test.mjs:949:1\n\u2716 P19 a cancelled startup cannot evaluate or resume a reused native context (3.551708ms)\n  AssertionError [ERR_ASSERTION]: old setup cannot run in the replacement context\n  \n  3 !== 0\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:957:10)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: false,\n    code: 'ERR_ASSERTION',\n    actual: 3,\n    expected: 0,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P20-form",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P20 synchronous",
+      "control/chrome_tests/page.test.mjs"
+    ],
+    "output": "\u2716 P20 synchronous owner Enter pins the exact form and exact submitter independently (3.640625ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 39.597875\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/page.test.mjs:511:1\n\u2716 P20 synchronous owner Enter pins the exact form and exact submitter independently (3.640625ms)\n  AssertionError [ERR_ASSERTION]: other-form must stay held during owner dispatch\n  \n  1 !== 0\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/page.test.mjs:517:12)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: false,\n    code: 'ERR_ASSERTION',\n    actual: 1,\n    expected: 0,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P20-submitter",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P20 synchronous",
+      "control/chrome_tests/page.test.mjs"
+    ],
+    "output": "\u2716 P20 synchronous owner Enter pins the exact form and exact submitter independently (5.543ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 41.61475\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/page.test.mjs:511:1\n\u2716 P20 synchronous owner Enter pins the exact form and exact submitter independently (5.543ms)\n  AssertionError [ERR_ASSERTION]: other-submitter must stay held during owner dispatch\n  \n  1 !== 0\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/page.test.mjs:517:12)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: false,\n    code: 'ERR_ASSERTION',\n    actual: 1,\n    expected: 0,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P20-trust",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P20 an untrusted",
+      "control/chrome_tests/page.test.mjs"
+    ],
+    "output": "\u2716 P20 an untrusted Enter on the exact field never establishes owner authority (3.441791ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 41.339791\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/page.test.mjs:520:1\n\u2716 P20 an untrusted Enter on the exact field never establishes owner authority (3.441791ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n  \n  1 !== 0\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/page.test.mjs:523:10)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: 1,\n    expected: 0,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P20-clear",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P20 an unconsumed",
+      "control/chrome_tests/page.test.mjs"
+    ],
+    "output": "\u2716 P20 an unconsumed owner mark expires before a delayed trusted native default (3.271666ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 39.49975\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/page.test.mjs:525:1\n\u2716 P20 an unconsumed owner mark expires before a delayed trusted native default (3.271666ms)\n  AssertionError [ERR_ASSERTION]: clearing is required even without consumption or cancellation\n  \n  1 !== 0\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/page.test.mjs:529:10)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: false,\n    code: 'ERR_ASSERTION',\n    actual: 1,\n    expected: 0,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P21",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "python3",
+      "-B",
+      "-m",
+      "unittest",
+      "test_policy.ReviewClassification.test_p21_get_search_form_enter_in_ordinary_input",
+      "-v"
+    ],
+    "output": "test_p21_get_search_form_enter_in_ordinary_input (test_policy.ReviewClassification.test_p21_get_search_form_enter_in_ordinary_input) ... FAIL\n\n======================================================================\nFAIL: test_p21_get_search_form_enter_in_ordinary_input (test_policy.ReviewClassification.test_p21_get_search_form_enter_in_ordinary_input)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"<mutation-worktree>/control/chrome_tests/test_policy.py\", line 125, in test_p21_get_search_form_enter_in_ordinary_input\n    self.assertIsNone(classify('press', {'key':'Enter'}, facts))\n    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 'send' is not None\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nFAILED (failures=1)\n"
+  },
+  {
+    "item": "P22-title-action",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "python3",
+      "-B",
+      "-m",
+      "unittest",
+      "test_questions.Questions.test_p22_delete_question_names_the_action_key_item_and_bound_title",
+      "-v"
+    ],
+    "output": "test_p22_delete_question_names_the_action_key_item_and_bound_title (test_questions.Questions.test_p22_delete_question_names_the_action_key_item_and_bound_title) ... FAIL\n\n======================================================================\nFAIL: test_p22_delete_question_names_the_action_key_item_and_bound_title (test_questions.Questions.test_p22_delete_question_names_the_action_key_item_and_bound_title)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"<mutation-worktree>/control/chrome_tests/test_questions.py\", line 55, in test_p22_delete_question_names_the_action_key_item_and_bound_title\n    self.assertIn(value, approval['question'])\n    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 'Document library' not found in \"On https://fixture.test/, page '', as the page shows it, delete 'Quarterly report' using Shift+Delete; where the page sends this isn't visible to the tool?\"\n\n----------------------------------------------------------------------\nRan 1 test in 0.016s\n\nFAILED (failures=1)\n"
+  },
+  {
+    "item": "P22-action",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "python3",
+      "-B",
+      "-m",
+      "unittest",
+      "test_questions.Questions.test_p22_delete_question_names_the_action_key_item_and_bound_title",
+      "-v"
+    ],
+    "output": "test_p22_delete_question_names_the_action_key_item_and_bound_title (test_questions.Questions.test_p22_delete_question_names_the_action_key_item_and_bound_title) ... FAIL\n\n======================================================================\nFAIL: test_p22_delete_question_names_the_action_key_item_and_bound_title (test_questions.Questions.test_p22_delete_question_names_the_action_key_item_and_bound_title)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"<mutation-worktree>/control/chrome_tests/test_questions.py\", line 55, in test_p22_delete_question_names_the_action_key_item_and_bound_title\n    self.assertIn(value, approval['question'])\n    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: \"delete 'Quarterly report'\" not found in \"On https://fixture.test/, page 'Document library', as the page shows it, activate 'Quarterly report' using Shift+Delete; where the page sends this isn't visible to the tool?\"\n\n----------------------------------------------------------------------\nRan 1 test in 0.016s\n\nFAILED (failures=1)\n"
+  },
+  {
+    "item": "P22-bounds",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "python3",
+      "-B",
+      "-m",
+      "unittest",
+      "test_questions.Questions.test_p22_many_recipients_and_long_names_are_bounded_without_losing_full_values",
+      "-v"
+    ],
+    "output": "test_p22_many_recipients_and_long_names_are_bounded_without_losing_full_values (test_questions.Questions.test_p22_many_recipients_and_long_names_are_bounded_without_losing_full_values) ... FAIL\n\n======================================================================\nFAIL: test_p22_many_recipients_and_long_names_are_bounded_without_losing_full_values (test_questions.Questions.test_p22_many_recipients_and_long_names_are_bounded_without_losing_full_values)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"<mutation-worktree>/control/chrome_tests/test_questions.py\", line 67, in test_p22_many_recipients_and_long_names_are_bounded_without_losing_full_values\n    self.assertIn('attachment 1, a 240-character name',approval['question'])\n    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 'attachment 1, a 240-character name' not found in \"On https://gmail.test/, page 'Fixture', as the page shows it, Gmail: send a mail (control 'Send') ('Send') for 'fixture-repository / branch-1' as 'Synthetic account' in chat 'Synthetic chat' to 'person00@mail.test,person01@mail.test,person02@mail.test,person03@mail.test,person04@mail.test,person05@mail.test,person06@mail.test,person07@mail.test,person08@mail.test and 21 more', Cc 'copy@mail.test', hidden Bcc 'hidden00@mail.test,hidden01@mail.test,hidden02@mail.test,hidden03@mail.test,hidden04@mail.test,hidden05@mail.test,hidden06@mail.test,hidden07@mail.test,hidden08@mail.test and 16 more', subject 'Synthetic subject' with 34 characters, 1 attachment: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA' (3 bytes); where the page sends this isn't visible to the tool?\"\n\n----------------------------------------------------------------------\nRan 1 test in 0.018s\n\nFAILED (failures=1)\n"
+  },
+  {
+    "item": "P23",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P23",
+      "control/chrome_tests/background.test.mjs"
+    ],
+    "output": "\u2716 P23 input page evidence contains the bounded post-input notice (2.799042ms)\n\u2714 P23 a borrowed dialog result observes the actual page after its native answer (532.505ms)\n\u2139 tests 2\n\u2139 suites 0\n\u2139 pass 1\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 572.030334\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/background.test.mjs:716:1\n\u2716 P23 input page evidence contains the bounded post-input notice (2.799042ms)\n  TypeError: Cannot read properties of undefined (reading '0')\n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:718:149)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)\n"
+  },
+  {
+    "item": "P23-borrowed-dialog",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P23 a borrowed dialog result",
+      "control/chrome_tests/background.test.mjs"
+    ],
+    "output": "\u2716 P23 a borrowed dialog result observes the actual page after its native answer (535.02975ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 571.930125\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/background.test.mjs:900:1\n\u2716 P23 a borrowed dialog result observes the actual page after its native answer (535.02975ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n  + actual - expected\n  \n  + 'http://fixture.test/'\n  - 'http://fixture.test/after-native'\n                         ^\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:902:97)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: 'http://fixture.test/',\n    expected: 'http://fixture.test/after-native',\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P24-last-check",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P24",
+      "control/chrome_tests/background.test.mjs"
+    ],
+    "output": "\u2716 P24 final identity query finishes before the last dirty and audible check (7.674958ms)\n\u2716 P24 uncovered and unreadable frames count as possibly unsaved before both reload boundaries (0.919709ms)\n\u2139 tests 2\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 2\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 45.715958\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/background.test.mjs:689:1\n\u2716 P24 final identity query finishes before the last dirty and audible check (7.674958ms)\n  AssertionError [ERR_ASSERTION]: Missing expected rejection.\n      at async TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:691:3)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: false,\n    code: 'ERR_ASSERTION',\n    actual: undefined,\n    expected: /reload_required/,\n    operator: 'rejects',\n    diff: 'simple'\n  }\n\ntest at control/chrome_tests/background.test.mjs:694:1\n\u2716 P24 uncovered and unreadable frames count as possibly unsaved before both reload boundaries (0.919709ms)\n  AssertionError [ERR_ASSERTION]: Missing expected rejection.\n      at async TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:698:3)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {\n    generatedMessage: false,\n    code: 'ERR_ASSERTION',\n    actual: undefined,\n    expected: /possibly|unsaved/,\n    operator: 'rejects',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P24-audible",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P24",
+      "control/chrome_tests/background.test.mjs"
+    ],
+    "output": "\u2716 P24 final identity query finishes before the last dirty and audible check (8.021667ms)\n\u2714 P24 uncovered and unreadable frames count as possibly unsaved before both reload boundaries (0.897041ms)\n\u2139 tests 2\n\u2139 suites 0\n\u2139 pass 1\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 46.629\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/background.test.mjs:689:1\n\u2716 P24 final identity query finishes before the last dirty and audible check (8.021667ms)\n  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /playing media/. Input:\n  \n  'Error: reload_required: this taken tab may have unsaved text or editable content; tell the owner, then repeat with reload_taken_tab=true only when the reload is wanted'\n  \n      at async TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:692:82)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: Error: reload_required: this taken tab may have unsaved text or editable content; tell the owner, then repeat with reload_taken_tab=true only when the reload is wanted\n        at reloadChecked (evalmachine.<anonymous>:534:31)\n        at async dispatch (evalmachine.<anonymous>:818:5)\n        at async waitForActual (node:assert:615:5)\n        at async strict.rejects (node:assert:738:25)\n        at async TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:692:82)\n        at async Test.run (node:internal/test_runner/test:1389:7)\n        at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3),\n    expected: /playing media/,\n    operator: 'rejects',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P24-uncovered",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P24 uncovered",
+      "control/chrome_tests/background.test.mjs"
+    ],
+    "output": "\u2716 P24 uncovered and unreadable frames count as possibly unsaved before both reload boundaries (7.740042ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 46.567083\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/background.test.mjs:694:1\n\u2716 P24 uncovered and unreadable frames count as possibly unsaved before both reload boundaries (7.740042ms)\n  AssertionError [ERR_ASSERTION]: Missing expected rejection.\n      at async TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:696:3)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: false,\n    code: 'ERR_ASSERTION',\n    actual: undefined,\n    expected: /possibly|unsaved/,\n    operator: 'rejects',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P24-unreadable",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P24 uncovered",
+      "control/chrome_tests/background.test.mjs"
+    ],
+    "output": "\u2716 P24 uncovered and unreadable frames count as possibly unsaved before both reload boundaries (2.97975ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 40.271167\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/background.test.mjs:694:1\n\u2716 P24 uncovered and unreadable frames count as possibly unsaved before both reload boundaries (2.97975ms)\n  AssertionError [ERR_ASSERTION]: Missing expected rejection.\n      at async TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:698:3)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: false,\n    code: 'ERR_ASSERTION',\n    actual: undefined,\n    expected: /possibly|unsaved/,\n    operator: 'rejects',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P24-designmode",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P24 document",
+      "control/chrome_tests/reader.test.mjs"
+    ],
+    "output": "\u2716 P24 document designMode counts as an unsaved editor without a contenteditable attribute (1.841083ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 38.960167\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/reader.test.mjs:181:1\n\u2716 P24 document designMode counts as an unsaved editor without a contenteditable attribute (1.841083ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n  \n  false !== true\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/reader.test.mjs:182:118)\n      at Test.runInAsyncScope (node:async_hooks:226:14)\n      at Test.run (node:internal/test_runner/test:1382:25)\n      at Test.start (node:internal/test_runner/test:1242:17)\n      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: false,\n    expected: true,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P25",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P25",
+      "control/chrome_tests/background.test.mjs"
+    ],
+    "output": "\u2716 P25 satisfied checks and isolated selections do not activate an inactive tab (3.200792ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 41.0605\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/background.test.mjs:702:1\n\u2716 P25 satisfied checks and isolated selections do not activate an inactive tab (3.200792ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n  \n  1 !== 0\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:705:130)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: 1,\n    expected: 0,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P25-report",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P25",
+      "control/chrome_tests/background.test.mjs"
+    ],
+    "output": "\u2716 P25 satisfied checks and isolated selections do not activate an inactive tab (3.143416ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 39.808042\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/background.test.mjs:702:1\n\u2716 P25 satisfied checks and isolated selections do not activate an inactive tab (3.143416ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n  \n  true !== false\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:705:165)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: true,\n    expected: false,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P26",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P26",
+      "control/chrome_tests/page.test.mjs"
+    ],
+    "output": "\u2716 P26 wrappers have native nonconstructible method shapes (2.282583ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 40.202459\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/page.test.mjs:531:1\n\u2716 P26 wrappers have native nonconstructible method shapes (2.282583ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n  \n  true !== false\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/page.test.mjs:533:12)\n      at Test.runInAsyncScope (node:async_hooks:226:14)\n      at Test.run (node:internal/test_runner/test:1382:25)\n      at Test.start (node:internal/test_runner/test:1242:17)\n      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: true,\n    expected: false,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P27",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P27",
+      "control/chrome_tests/background.test.mjs"
+    ],
+    "output": "\u2716 P27 Stop lifts navigation blocks before deferred native restoration (2.838333ms)\n\u2714 P27 native missing-context proof retires stale cleanup handles without a Runtime subscription (2.15775ms)\n\u2139 tests 2\n\u2139 suites 0\n\u2139 pass 1\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 45.441083\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/background.test.mjs:708:1\n\u2716 P27 Stop lifts navigation blocks before deferred native restoration (2.838333ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n  \n  1 !== 0\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:710:120)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: 1,\n    expected: 0,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P27-missing-context",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P27 native missing-context",
+      "control/chrome_tests/background.test.mjs"
+    ],
+    "output": "\u2716 P27 native missing-context proof retires stale cleanup handles without a Runtime subscription (1004.305333ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 1040.784917\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/background.test.mjs:799:1\n\u2716 P27 native missing-context proof retires stale cleanup handles without a Runtime subscription (1004.305333ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n  \n  true !== false\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:805:39)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: true,\n    expected: false,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P27-unknown-context",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P27 native missing-context",
+      "control/chrome_tests/background.test.mjs"
+    ],
+    "output": "\u2716 P27 native missing-context proof retires stale cleanup handles without a Runtime subscription (4.592875ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 41.626209\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/background.test.mjs:799:1\n\u2716 P27 native missing-context proof retires stale cleanup handles without a Runtime subscription (4.592875ms)\n  AssertionError [ERR_ASSERTION]: an arbitrary object/protocol error is not realm destruction\n  \n  true !== false\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:804:120)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: false,\n    code: 'ERR_ASSERTION',\n    actual: true,\n    expected: false,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P28",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P28",
+      "control/chrome_tests/background.test.mjs"
+    ],
+    "output": "\u2716 P28 final binding refusal finishes every armed frame (8.182083ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 47.51875\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/background.test.mjs:712:1\n\u2716 P28 final binding refusal finishes every armed frame (8.182083ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:\n  + actual - expected\n  \n  + []\n  - [\n  -   0\n  - ]\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:714:159)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: [],\n    expected: [ 0 ],\n    operator: 'deepStrictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P29",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P29",
+      "control/chrome_tests/verdicts.test.mjs"
+    ],
+    "output": "\u2716 P29 runtime acceptance rejects missing duplicate failed or unknown named rows and false verdicts (0.947667ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 37.084083\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/verdicts.test.mjs:94:1\n\u2716 P29 runtime acceptance rejects missing duplicate failed or unknown named rows and false verdicts (0.947667ms)\n  AssertionError [ERR_ASSERTION]: Missing expected exception.\n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/verdicts.test.mjs:96:168)\n      at Test.runInAsyncScope (node:async_hooks:226:14)\n      at Test.run (node:internal/test_runner/test:1382:25)\n      at Test.start (node:internal/test_runner/test:1242:17)\n      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {\n    generatedMessage: false,\n    code: 'ERR_ASSERTION',\n    actual: undefined,\n    expected: undefined,\n    operator: 'throws',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P30",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P30",
+      "control/chrome_tests/ingress-scan.test.mjs"
+    ],
+    "output": "\u2716 P30 password scans reassemble boundaries and refuse missing or reordered fragments (0.591584ms)\n\u2714 P30 protocol scanning retains forbidden events after legitimate null results (0.354958ms)\n\u2139 tests 2\n\u2139 suites 0\n\u2139 pass 1\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 35.032417\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/ingress-scan.test.mjs:5:1\n\u2716 P30 password scans reassemble boundaries and refuse missing or reordered fragments (0.591584ms)\n  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /SENTINEL_PRIVATE_PASSWORD_20/. Input:\n  \n  '[{\"json_fragment\":\"{\\\\\"value\\\\\":\\\\\"SENTINEL_P\",\"offset\":0,\"total\":40},{\"json_fragment\":\"RIVATE_PASSWORD_20\\\\\"}\",\"offset\":20,\"total\":40}]'\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/ingress-scan.test.mjs:8:10)\n      at Test.runInAsyncScope (node:async_hooks:226:14)\n      at Test.run (node:internal/test_runner/test:1382:25)\n      at Test.start (node:internal/test_runner/test:1242:17)\n      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: '[{\"json_fragment\":\"{\\\\\"value\\\\\":\\\\\"SENTINEL_P\",\"offset\":0,\"total\":40},{\"json_fragment\":\"RIVATE_PASSWORD_20\\\\\"}\",\"offset\":20,\"total\":40}]',\n    expected: /SENTINEL_PRIVATE_PASSWORD_20/,\n    operator: 'match',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P30-getters",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P30",
+      "control/chrome_tests/password-ingress.test.mjs"
+    ],
+    "output": "\u2716 P30 ingress instrumentation records native values and raw source before any filtering (0.982042ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 36.3015\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/password-ingress.test.mjs:6:1\n\u2716 P30 ingress instrumentation records native values and raw source before any filtering (0.982042ms)\n  AssertionError [ERR_ASSERTION]: value ingress must retain the raw sensitive string so a forbidden getter cannot hide\n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/password-ingress.test.mjs:19:65)\n      at Test.runInAsyncScope (node:async_hooks:226:14)\n      at Test.run (node:internal/test_runner/test:1382:25)\n      at Test.start (node:internal/test_runner/test:1242:17)\n      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {\n    generatedMessage: false,\n    code: 'ERR_ASSERTION',\n    actual: false,\n    expected: true,\n    operator: '==',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P30-null-ingress",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P30 protocol",
+      "control/chrome_tests/ingress-scan.test.mjs"
+    ],
+    "output": "\u2716 P30 protocol scanning retains forbidden events after legitimate null results (0.400417ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 34.246875\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/ingress-scan.test.mjs:13:1\n\u2716 P30 protocol scanning retains forbidden events after legitimate null results (0.400417ms)\n  TypeError: Cannot read properties of null (reading 'protocol_event')\n      at file://<mutation-worktree>/control/chrome/ci/ingress-scan.mjs:18:66\n      at Array.filter (<anonymous>)\n      at protocolEvents (file://<mutation-worktree>/control/chrome/ci/ingress-scan.mjs:18:50)\n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/ingress-scan.test.mjs:16:16)\n      at Test.runInAsyncScope (node:async_hooks:226:14)\n      at Test.run (node:internal/test_runner/test:1382:25)\n      at Test.start (node:internal/test_runner/test:1242:17)\n      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17)\n"
+  },
+  {
+    "item": "P31-popup",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P31",
+      "control/chrome_tests/background.test.mjs"
+    ],
+    "output": "\u2716 P31 a preloaded popup still crosses its mandatory first-act reload (3.875167ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 55.669709\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/background.test.mjs:734:1\n\u2716 P31 a preloaded popup still crosses its mandatory first-act reload (3.875167ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n  \n  false !== true\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:737:10)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: false,\n    expected: true,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "combined-S12-review-dialog",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "combined S12 native-dialog",
+      "control/chrome_tests/fixture.test.mjs"
+    ],
+    "output": "\u2716 combined S12 native-dialog review fixtures consume only untrusted dialog data (1.631625ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 49.492625\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/fixture.test.mjs:74:1\n\u2716 combined S12 native-dialog review fixtures consume only untrusted dialog data (1.631625ms)\n  Error: The fixture read page data outside untrusted_content\n      at get dialog (file://<mutation-worktree>/control/chrome_tests/fixture.test.mjs:89:63)\n      at evalmachine.<anonymous>:27:82\n      at async eventually (file://<mutation-worktree>/control/chrome_tests/fixture.test.mjs:97:46)\n      at async evalmachine.<anonymous>:27:20\n      at async check (file://<mutation-worktree>/control/chrome_tests/fixture.test.mjs:83:16)\n      at async Object.reviewMatrices (evalmachine.<anonymous>:22:3)\n      at async TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/fixture.test.mjs:79:3)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)\n"
+  },
+  {
+    "item": "P31-http",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "review pages reach",
+      "control/chrome_tests/fixture.test.mjs"
+    ],
+    "output": "\u2716 review pages reach the HTTP response without falling through to the default 404 (14.156333ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 56.891792\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/fixture.test.mjs:65:1\n\u2716 review pages reach the HTTP response without falling through to the default 404 (14.156333ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n  \n  404 !== 200\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/fixture.test.mjs:69:114)\n      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: 404,\n    expected: 200,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P31-head",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P31 first script",
+      "control/chrome_tests/fixture.test.mjs"
+    ],
+    "output": "\u2716 P31 first script captures natives inside head and excluded GET carries the receiver identity (14.1065ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 56.474\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/fixture.test.mjs:47:1\n\u2716 P31 first script captures natives inside head and excluded GET carries the receiver identity (14.1065ms)\n  AssertionError [ERR_ASSERTION]: capture must exist\n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/fixture.test.mjs:51:12)\n      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: false,\n    code: 'ERR_ASSERTION',\n    actual: false,\n    expected: true,\n    operator: '==',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "P31-get-case",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "P31 first script",
+      "control/chrome_tests/fixture.test.mjs"
+    ],
+    "output": "\u2716 P31 first script captures natives inside head and excluded GET carries the receiver identity (15.676083ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 70.209959\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/fixture.test.mjs:47:1\n\u2716 P31 first script captures natives inside head and excluded GET carries the receiver identity (15.676083ms)\n  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /<input type=\"hidden\" name=\"case\" value=\"excluded-get\">/. Input:\n  \n  `<!doctype html><html><head><meta charset=\"utf-8\"><title>Synthetic fixture</title><script>globalThis.firstScriptSubmit=HTMLFormElement.prototype.submit;globalThis.firstScriptDialogs={alert,confirm,prompt};</script><style>body{font:16px sans-serif;margin:20px}button,input,textarea{margin:8px}</style></head><body><form role=\"search\" action=\"http://approval.test:8765/receive?case=excluded-get\" method=\"get\" target=\"_blank\"><input type=\"search\" name=\"q\" value=\"Synthetic query\" aria-label=\"Search\"><button type=\"submit\">Continue</button></form><script>document.querySelector('button').onclick=()=>fetch('/receive?case=handler-'+\"excluded-get\",{method:'POST'});</script>`\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/fixture.test.mjs:52:109)\n      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: `<!doctype html><html><head><meta charset=\"utf-8\"><title>Synthetic fixture</title><script>globalThis.firstScriptSubmit=HTMLFormElement.prototype.submit;globalThis.firstScriptDialogs={alert,confirm,prompt};</script><style>body{font:16px sans-serif;margin:20px}button,input,textarea{margin:8px}</style></head><body><form role=\"search\" action=\"http://approval.test:8765/receive?case=excluded-get\" method=\"get\" target=\"_blank\"><input type=\"search\" name=\"q\" value=\"Synthetic query\" aria-label=\"Search\"><button type=\"submit\">Continue</button></form><script>document.querySelector('button').onclick=()=>fetch('/receive?case=handler-'+\"excluded-get\",{method:'POST'});</script>`,\n    expected: /<input type=\"hidden\" name=\"case\" value=\"excluded-get\">/,\n    operator: 'match',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "recheck-search-activation",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "recheck search labels",
+      "control/chrome_tests/page.test.mjs"
+    ],
+    "output": "\u2716 recheck search labels win in activation and every submission route (2.984541ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 39.23575\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/page.test.mjs:615:1\n\u2716 recheck search labels win in activation and every submission route (2.984541ms)\n  AssertionError [ERR_ASSERTION]: Pay click\n  \n  1 !== 0\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/page.test.mjs:628:12)\n      at Test.runInAsyncScope (node:async_hooks:226:14)\n      at Test.run (node:internal/test_runner/test:1382:25)\n      at Test.start (node:internal/test_runner/test:1242:17)\n      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {\n    generatedMessage: false,\n    code: 'ERR_ASSERTION',\n    actual: 1,\n    expected: 0,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "recheck-search-submissions",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "recheck search labels",
+      "control/chrome_tests/page.test.mjs"
+    ],
+    "output": "\u2716 recheck search labels win in activation and every submission route (4.939958ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 44.29525\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/page.test.mjs:615:1\n\u2716 recheck search labels win in activation and every submission route (4.939958ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n  \n  1 !== 0\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/page.test.mjs:628:53)\n      at Test.runInAsyncScope (node:async_hooks:226:14)\n      at Test.run (node:internal/test_runner/test:1382:25)\n      at Test.start (node:internal/test_runner/test:1242:17)\n      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: 1,\n    expected: 0,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "recheck-item-shadow",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "recheck affected items",
+      "control/chrome_tests/reader.test.mjs"
+    ],
+    "output": "\u2716 recheck affected items cross open closed nested and slotted shadow ancestry (2.366416ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 38.869833\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/reader.test.mjs:205:1\n\u2716 recheck affected items cross open closed nested and slotted shadow ancestry (2.366416ms)\n  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /Invoice A/. Input:\n  \n  ''\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/reader.test.mjs:213:86)\n      at Test.runInAsyncScope (node:async_hooks:226:14)\n      at Test.run (node:internal/test_runner/test:1382:25)\n      at Test.start (node:internal/test_runner/test:1242:17)\n      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: '',\n    expected: /Invoice A/,\n    operator: 'match',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "recheck-item-composed-text",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "recheck affected items",
+      "control/chrome_tests/reader.test.mjs"
+    ],
+    "output": "\u2716 recheck affected items cross open closed nested and slotted shadow ancestry (2.545ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 40.784542\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/reader.test.mjs:205:1\n\u2716 recheck affected items cross open closed nested and slotted shadow ancestry (2.545ms)\n  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /Shadow invoice C/. Input:\n  \n  ''\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/reader.test.mjs:217:12)\n      at Test.runInAsyncScope (node:async_hooks:226:14)\n      at Test.run (node:internal/test_runner/test:1382:25)\n      at Test.start (node:internal/test_runner/test:1242:17)\n      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: '',\n    expected: /Shadow invoice C/,\n    operator: 'match',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "recheck-confirmation-service",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "python3",
+      "-B",
+      "-m",
+      "unittest",
+      "test_questions.Questions.test_recheck_confirmation_form_binds_changed_outside_draft_and_complete_coverage",
+      "-v"
+    ],
+    "output": "test_recheck_confirmation_form_binds_changed_outside_draft_and_complete_coverage (test_questions.Questions.test_recheck_confirmation_form_binds_changed_outside_draft_and_complete_coverage) ... \n  test_recheck_confirmation_form_binds_changed_outside_draft_and_complete_coverage (test_questions.Questions.test_recheck_confirmation_form_binds_changed_outside_draft_and_complete_coverage) (submit=False, label='OK') ... FAIL\n  test_recheck_confirmation_form_binds_changed_outside_draft_and_complete_coverage (test_questions.Questions.test_recheck_confirmation_form_binds_changed_outside_draft_and_complete_coverage) (submit=False, label='Send') ... FAIL\n  test_recheck_confirmation_form_binds_changed_outside_draft_and_complete_coverage (test_questions.Questions.test_recheck_confirmation_form_binds_changed_outside_draft_and_complete_coverage) (submit=True, label='OK') ... FAIL\n  test_recheck_confirmation_form_binds_changed_outside_draft_and_complete_coverage (test_questions.Questions.test_recheck_confirmation_form_binds_changed_outside_draft_and_complete_coverage) (submit=True, label='Send') ... FAIL\n\n======================================================================\nFAIL: test_recheck_confirmation_form_binds_changed_outside_draft_and_complete_coverage (test_questions.Questions.test_recheck_confirmation_form_binds_changed_outside_draft_and_complete_coverage) (submit=False, label='OK')\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"<mutation-worktree>/control/chrome_tests/test_questions.py\", line 91, in test_recheck_confirmation_form_binds_changed_outside_draft_and_complete_coverage\n    self.assertIsNotNone(state['editable'])\n    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^\nAssertionError: unexpectedly None\n\n======================================================================\nFAIL: test_recheck_confirmation_form_binds_changed_outside_draft_and_complete_coverage (test_questions.Questions.test_recheck_confirmation_form_binds_changed_outside_draft_and_complete_coverage) (submit=False, label='Send')\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"<mutation-worktree>/control/chrome_tests/test_questions.py\", line 91, in test_recheck_confirmation_form_binds_changed_outside_draft_and_complete_coverage\n    self.assertIsNotNone(state['editable'])\n    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^\nAssertionError: unexpectedly None\n\n======================================================================\nFAIL: test_recheck_confirmation_form_binds_changed_outside_draft_and_complete_coverage (test_questions.Questions.test_recheck_confirmation_form_binds_changed_outside_draft_and_complete_coverage) (submit=True, label='OK')\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"<mutation-worktree>/control/chrome_tests/test_questions.py\", line 91, in test_recheck_confirmation_form_binds_changed_outside_draft_and_complete_coverage\n    self.assertIsNotNone(state['editable'])\n    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^\nAssertionError: unexpectedly None\n\n======================================================================\nFAIL: test_recheck_confirmation_form_binds_changed_outside_draft_and_complete_coverage (test_questions.Questions.test_recheck_confirmation_form_binds_changed_outside_draft_and_complete_coverage) (submit=True, label='Send')\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"<mutation-worktree>/control/chrome_tests/test_questions.py\", line 91, in test_recheck_confirmation_form_binds_changed_outside_draft_and_complete_coverage\n    self.assertIsNotNone(state['editable'])\n    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^\nAssertionError: unexpectedly None\n\n----------------------------------------------------------------------\nRan 1 test in 0.061s\n\nFAILED (failures=4)\n"
+  },
+  {
+    "item": "recheck-confirmation-submitter",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "python3",
+      "-B",
+      "-m",
+      "unittest",
+      "test_questions.Questions.test_recheck_confirmation_form_binds_changed_outside_draft_and_complete_coverage",
+      "-v"
+    ],
+    "output": "test_recheck_confirmation_form_binds_changed_outside_draft_and_complete_coverage (test_questions.Questions.test_recheck_confirmation_form_binds_changed_outside_draft_and_complete_coverage) ... \n  test_recheck_confirmation_form_binds_changed_outside_draft_and_complete_coverage (test_questions.Questions.test_recheck_confirmation_form_binds_changed_outside_draft_and_complete_coverage) (submit=False, label='OK') ... FAIL\n  test_recheck_confirmation_form_binds_changed_outside_draft_and_complete_coverage (test_questions.Questions.test_recheck_confirmation_form_binds_changed_outside_draft_and_complete_coverage) (submit=False, label='Send') ... FAIL\n  test_recheck_confirmation_form_binds_changed_outside_draft_and_complete_coverage (test_questions.Questions.test_recheck_confirmation_form_binds_changed_outside_draft_and_complete_coverage) (submit=True, label='OK') ... FAIL\n  test_recheck_confirmation_form_binds_changed_outside_draft_and_complete_coverage (test_questions.Questions.test_recheck_confirmation_form_binds_changed_outside_draft_and_complete_coverage) (submit=True, label='Send') ... FAIL\n\n======================================================================\nFAIL: test_recheck_confirmation_form_binds_changed_outside_draft_and_complete_coverage (test_questions.Questions.test_recheck_confirmation_form_binds_changed_outside_draft_and_complete_coverage) (submit=False, label='OK')\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"<mutation-worktree>/control/chrome_tests/test_questions.py\", line 91, in test_recheck_confirmation_form_binds_changed_outside_draft_and_complete_coverage\n    self.assertIsNotNone(state['editable'])\n    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^\nAssertionError: unexpectedly None\n\n======================================================================\nFAIL: test_recheck_confirmation_form_binds_changed_outside_draft_and_complete_coverage (test_questions.Questions.test_recheck_confirmation_form_binds_changed_outside_draft_and_complete_coverage) (submit=False, label='Send')\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"<mutation-worktree>/control/chrome_tests/test_questions.py\", line 91, in test_recheck_confirmation_form_binds_changed_outside_draft_and_complete_coverage\n    self.assertIsNotNone(state['editable'])\n    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^\nAssertionError: unexpectedly None\n\n======================================================================\nFAIL: test_recheck_confirmation_form_binds_changed_outside_draft_and_complete_coverage (test_questions.Questions.test_recheck_confirmation_form_binds_changed_outside_draft_and_complete_coverage) (submit=True, label='OK')\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"<mutation-worktree>/control/chrome_tests/test_questions.py\", line 91, in test_recheck_confirmation_form_binds_changed_outside_draft_and_complete_coverage\n    self.assertIsNotNone(state['editable'])\n    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^\nAssertionError: unexpectedly None\n\n======================================================================\nFAIL: test_recheck_confirmation_form_binds_changed_outside_draft_and_complete_coverage (test_questions.Questions.test_recheck_confirmation_form_binds_changed_outside_draft_and_complete_coverage) (submit=True, label='Send')\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"<mutation-worktree>/control/chrome_tests/test_questions.py\", line 91, in test_recheck_confirmation_form_binds_changed_outside_draft_and_complete_coverage\n    self.assertIsNotNone(state['editable'])\n    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^\nAssertionError: unexpectedly None\n\n----------------------------------------------------------------------\nRan 1 test in 0.026s\n\nFAILED (failures=4)\n"
+  },
+  {
+    "item": "recheck-confirmation-extension",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "recheck confirmation form",
+      "control/chrome_tests/background.test.mjs"
+    ],
+    "output": "\u2716 recheck confirmation form binds outside drafts at final dispatch and requires complete coverage (3.84425ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 41.134959\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/background.test.mjs:1019:1\n\u2716 recheck confirmation form binds outside drafts at final dispatch and requires complete coverage (3.84425ms)\n  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:\n  \n    assert.ok(f.run('approved.editable'))\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:1022:10)\n      at Test.runInAsyncScope (node:async_hooks:226:14)\n      at Test.run (node:internal/test_runner/test:1382:25)\n      at Test.start (node:internal/test_runner/test:1242:17)\n      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: null,\n    expected: true,\n    operator: '==',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "recheck-shadow-composed",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "recheck composed native roots",
+      "control/chrome_tests/page.test.mjs"
+    ],
+    "output": "\u2716 recheck composed native roots discover capture without prior registration (2.623667ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 39.35525\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/page.test.mjs:631:1\n\u2716 recheck composed native roots discover capture without prior registration (2.623667ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n  \n  1 !== 0\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/page.test.mjs:637:12)\n      at Test.runInAsyncScope (node:async_hooks:226:14)\n      at Test.run (node:internal/test_runner/test:1382:25)\n      at Test.start (node:internal/test_runner/test:1242:17)\n      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: 1,\n    expected: 0,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "recheck-shadow-native-insertion",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "recheck native roots",
+      "control/chrome_tests/page.test.mjs"
+    ],
+    "output": "\u2716 recheck native roots register before noncomposed content or listeners (2.551375ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 39.0805\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/page.test.mjs:640:1\n\u2716 recheck native roots register before noncomposed content or listeners (2.551375ms)\n  AssertionError [ERR_ASSERTION]: open append\n  \n  1 !== 0\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/page.test.mjs:648:12)\n      at Test.runInAsyncScope (node:async_hooks:226:14)\n      at Test.run (node:internal/test_runner/test:1382:25)\n      at Test.start (node:internal/test_runner/test:1242:17)\n      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {\n    generatedMessage: false,\n    code: 'ERR_ASSERTION',\n    actual: 1,\n    expected: 0,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "recheck-shadow-native-listener",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "recheck native roots",
+      "control/chrome_tests/page.test.mjs"
+    ],
+    "output": "\u2716 recheck native roots register before noncomposed content or listeners (6.038333ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 42.614958\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/page.test.mjs:640:1\n\u2716 recheck native roots register before noncomposed content or listeners (6.038333ms)\n  AssertionError [ERR_ASSERTION]: open listener\n  \n  1 !== 0\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/page.test.mjs:648:12)\n      at Test.runInAsyncScope (node:async_hooks:226:14)\n      at Test.run (node:internal/test_runner/test:1382:25)\n      at Test.start (node:internal/test_runner/test:1242:17)\n      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {\n    generatedMessage: false,\n    code: 'ERR_ASSERTION',\n    actual: 1,\n    expected: 0,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "recheck-shadow-native-markup",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "recheck native roots",
+      "control/chrome_tests/page.test.mjs"
+    ],
+    "output": "\u2716 recheck native roots register before noncomposed content or listeners (7.792667ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 45.024375\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/page.test.mjs:640:1\n\u2716 recheck native roots register before noncomposed content or listeners (7.792667ms)\n  AssertionError [ERR_ASSERTION]: open markup\n  \n  1 !== 0\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/page.test.mjs:648:12)\n      at Test.runInAsyncScope (node:async_hooks:226:14)\n      at Test.run (node:internal/test_runner/test:1382:25)\n      at Test.start (node:internal/test_runner/test:1242:17)\n      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {\n    generatedMessage: false,\n    code: 'ERR_ASSERTION',\n    actual: 1,\n    expected: 0,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "recheck-shadow-host",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "recheck a shadow host",
+      "control/chrome_tests/page.test.mjs"
+    ],
+    "output": "\u2716 recheck a shadow host itself still meets window activation capture (2.975625ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 40.780333\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/page.test.mjs:653:1\n\u2716 recheck a shadow host itself still meets window activation capture (2.975625ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n  \n  1 !== 0\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/page.test.mjs:657:10)\n      at Test.runInAsyncScope (node:async_hooks:226:14)\n      at Test.run (node:internal/test_runner/test:1382:25)\n      at Test.start (node:internal/test_runner/test:1242:17)\n      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: 1,\n    expected: 0,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "recheck-search-service",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "python3",
+      "-B",
+      "-m",
+      "unittest",
+      "test_policy.RecheckSearch.test_explicit_search_submitters_ask_and_ordinary_search_stays_free",
+      "-v"
+    ],
+    "output": "test_explicit_search_submitters_ask_and_ordinary_search_stays_free (test_policy.RecheckSearch.test_explicit_search_submitters_ask_and_ordinary_search_stays_free) ... FAIL\n\n======================================================================\nFAIL: test_explicit_search_submitters_ask_and_ordinary_search_stays_free (test_policy.RecheckSearch.test_explicit_search_submitters_ask_and_ordinary_search_stays_free)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"<mutation-worktree>/control/chrome_tests/test_policy.py\", line 135, in test_explicit_search_submitters_ask_and_ordinary_search_stays_free\n    self.assertEqual(classify(verb,args,facts),expected,(label,verb))\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: None != 'form' : ('Send', 'click')\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nFAILED (failures=1)\n"
+  },
+  {
+    "item": "recheck-shadow-setter-cleanup",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "recheck native roots",
+      "control/chrome_tests/page.test.mjs"
+    ],
+    "output": "\u2716 recheck native roots register before noncomposed content or listeners (3.384292ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 40.523708\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/page.test.mjs:640:1\n\u2716 recheck native roots register before noncomposed content or listeners (3.384292ms)\n  AssertionError [ERR_ASSERTION]: Expected \"actual\" to be reference-equal to \"expected\":\n  + actual - expected\n  \n  + [Function: set innerHTML]\n  - [Function: nativeHTMLSetter]\n               ^\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/page.test.mjs:650:246)\n      at Test.runInAsyncScope (node:async_hooks:226:14)\n      at Test.run (node:internal/test_runner/test:1382:25)\n      at Test.start (node:internal/test_runner/test:1242:17)\n      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "recheck-shadow-page-getter",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "recheck native roots",
+      "control/chrome_tests/page.test.mjs"
+    ],
+    "output": "\u2716 recheck native roots register before noncomposed content or listeners (8.183334ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 46.537042\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/page.test.mjs:640:1\n\u2716 recheck native roots register before noncomposed content or listeners (8.183334ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n  + actual - expected\n  \n  + 'native setter still runs'\n  - 'page replacement getter'\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/page.test.mjs:650:63)\n      at Test.runInAsyncScope (node:async_hooks:226:14)\n      at Test.run (node:internal/test_runner/test:1382:25)\n      at Test.start (node:internal/test_runner/test:1242:17)\n      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: 'native setter still runs',\n    expected: 'page replacement getter',\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "recheck-owner-overlap-oracle",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "recheck owner evidence",
+      "control/chrome_tests/owner-evidence.test.mjs"
+    ],
+    "output": "\u2716 recheck owner evidence requires a real timer inside independently timestamped mark endpoints (1.19225ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 35.339917\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/owner-evidence.test.mjs:11:1\n\u2716 recheck owner evidence requires a real timer inside independently timestamped mark endpoints (1.19225ms)\n  AssertionError [ERR_ASSERTION]: Missing expected exception.\n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/owner-evidence.test.mjs:16:293)\n      at Test.runInAsyncScope (node:async_hooks:226:14)\n      at Test.run (node:internal/test_runner/test:1382:25)\n      at Test.start (node:internal/test_runner/test:1242:17)\n      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {\n    generatedMessage: false,\n    code: 'ERR_ASSERTION',\n    actual: undefined,\n    expected: undefined,\n    operator: 'throws',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "recheck-owner-pass-oracle",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "recheck owner evidence",
+      "control/chrome_tests/owner-evidence.test.mjs"
+    ],
+    "output": "\u2716 recheck owner evidence requires a real timer inside independently timestamped mark endpoints (0.814291ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 35.9645\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/owner-evidence.test.mjs:11:1\n\u2716 recheck owner evidence requires a real timer inside independently timestamped mark endpoints (0.814291ms)\n  AssertionError [ERR_ASSERTION]: Missing expected exception.\n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/owner-evidence.test.mjs:16:293)\n      at Test.runInAsyncScope (node:async_hooks:226:14)\n      at Test.run (node:internal/test_runner/test:1382:25)\n      at Test.start (node:internal/test_runner/test:1242:17)\n      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {\n    generatedMessage: false,\n    code: 'ERR_ASSERTION',\n    actual: undefined,\n    expected: undefined,\n    operator: 'throws',\n    diff: 'simple'\n  }\n"
+  }
+]

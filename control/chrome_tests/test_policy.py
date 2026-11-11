@@ -126,3 +126,10 @@ class ReviewClassification(unittest.TestCase):
         self.assertEqual(classify('press', {'key':'Enter'}, facts, conservative=True), 'form')
         facts['form']['method']='post'
         self.assertEqual(classify('press', {'key':'Enter'}, facts), 'send')
+
+class RecheckSearch(unittest.TestCase):
+    def test_explicit_search_submitters_ask_and_ordinary_search_stays_free(self):
+        for label,expected in [('Pay','pay'),('Delete','delete'),('Send','form'),('Search',None)]:
+            facts={'target':{'name':label,'submit':True},'form':{'search':True,'method':'get','action':'https://fixture.test/query'}}
+            for verb,args in [('click',{}),('press',{'key':'Enter'}),('press',{'key':'Space'})]:
+                self.assertEqual(classify(verb,args,facts),expected,(label,verb))

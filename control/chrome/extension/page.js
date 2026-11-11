@@ -161,7 +161,7 @@
   }
   // Runtime.evaluate retains this return value as a private remote handle. It is
   // never a global or a DOM capability the page can invoke to end its hold.
-  function cleanup(){closed=true;enabled=false;let restored=true;for(let index=0;index<installed.length;index++){const item=installed[index],current=descriptor(item.prototype,item.name),key=item.setter?'set':'value';if(current&&descriptor(current,key)&&current[key]===item.value){try{define(item.prototype,item.name,item.previous);}catch{try{define(item.prototype,item.name,options({[key]:item.previous[key]}));}catch{restored=false;}}}}return restored;}
+  function cleanup(){closed=true;enabled=false;let restored=true;for(let index=0;index<installed.length;index++){const item=installed[index],current=descriptor(item.prototype,item.name),key=item.setter?'set':'value';if(current&&descriptor(current,key)&&current[key]===item.value){try{define(item.prototype,item.name,item.setter?options({...current,set:item.previous.set}):item.previous);}catch{try{define(item.prototype,item.name,options({[key]:item.previous[key]}));}catch{restored=false;}}}}return restored;}
   if(privateControl)privateControl.addEventListener('aresos-relay-cleanup',event=>{if(cleanup())event.preventDefault();});
   if(privateRelay)return {activate,cleanup,relay:privateRelay};
   activate();return cleanup;

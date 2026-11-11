@@ -83,9 +83,9 @@ class Questions(unittest.TestCase):
         from aresos_control.chrome.adapter import binding
         from aresos_control.common import Refused
         frame=self.browser.facts['frames'][0]
-        for submit in (False, True):
-            with self.subTest(submit=submit):
-                frame['target'].update(name='OK', submit=submit, page_dialog={'kind':'dialog','text':'Send this message?'})
+        for submit, label in ((submit,label) for submit in (False,True) for label in ('OK','Send')):
+            with self.subTest(submit=submit,label=label):
+                frame['target'].update(name=label, submit=submit, page_dialog={'kind':'dialog','text':'Send this message?'})
                 frame['form']={'element':'confirmation-form','action':'https://fixture.test/','method':'dialog','encoding':'application/x-www-form-urlencoded','target':'','fields':[]}
                 approval=self.prepare();state=approval['description']['untrusted_content']['page_state']
                 self.assertIsNotNone(state['editable'])

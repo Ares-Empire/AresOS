@@ -646,7 +646,8 @@ test('recheck native roots register before noncomposed content or listeners',()=
     else{f.nativeListen.call(button,'click',()=>handlers++);root[route](button);}
     f.arm(host,null);f.originalDispatch.call(button,new f.Event('click',{composed:false,cancelable}));
     assert.equal(handlers,0,mode+' '+route);assert.equal(f.reports.length,1);assert.equal(f.reports[0].kind,cancelable?'activation':'activation_unknown');
-    assert.equal(f.cleanup(),true);assert.equal(f.Node.prototype.appendChild,f.nativeAppend);assert.equal(f.EventTarget.prototype.addEventListener,f.nativeListen);assert.equal(Object.getOwnPropertyDescriptor(f.Node.prototype,'innerHTML').set,f.nativeHTMLSetter);
+    if(route==='markup')Object.defineProperty(f.Node.prototype,'innerHTML',{...Object.getOwnPropertyDescriptor(f.Node.prototype,'innerHTML'),get(){return 'page replacement getter';}});
+    assert.equal(f.cleanup(),true);if(route==='markup')assert.equal(root.innerHTML,'page replacement getter');assert.equal(f.Node.prototype.appendChild,f.nativeAppend);assert.equal(f.EventTarget.prototype.addEventListener,f.nativeListen);assert.equal(Object.getOwnPropertyDescriptor(f.Node.prototype,'innerHTML').set,f.nativeHTMLSetter);
   }
 });
 test('recheck a shadow host itself still meets window activation capture',()=>{

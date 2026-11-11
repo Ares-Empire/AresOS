@@ -135,7 +135,8 @@ def classify(verb, arguments, facts, *, conservative=False, readonly=False, adap
         return evidence
     if adapter and adapter.get('kind') and activation or adapter and adapter.get('shortcut') == key:
         return adapter['effect'] if adapter['effect'] != 'change' else None
-    if evidence and target.get('page_dialog') and target.get('name', '').casefold() in {'ok', 'yes', 'confirm', 'continue', 'ja', 'bestätigen', 'weiter'}:
+    # A confirmation can send a draft outside the button's own form.
+    if evidence and target.get('page_dialog'):
         return 'confirmation'
     form = facts.get('form')
     if verb == 'press' and base_key == 'Enter' and editable:
@@ -150,11 +151,9 @@ def classify(verb, arguments, facts, *, conservative=False, readonly=False, adap
     form = facts.get('form')
     submit = target.get('submit') or verb == 'press' and base_key == 'Enter' and editable and form
     if submit:
-        if form and form.get('search') and form.get('method','').lower()=='get':
+        if form and form.get('search') and form.get('method','').lower()=='get' and not evidence:
             return 'form' if conservative else None
         return 'form'
     words = listed(' '.join(str(target.get(k, '')) for k in ('name', 'label', 'title', 'value', 'role')) +
                    ' ' + unquote((form or {}).get('action', '')) + ' ' + (target.get('page_dialog') or {}).get('text',''))
-    if target.get('page_dialog') and target.get('name','').casefold() in {'ok','yes','confirm','continue','ja','bestätigen','weiter'} and words:
-        return 'delete' if words & DELETE else 'pay' if words & PAY else 'confirmation'
     return 'delete' if words & DELETE else 'pay' if words & PAY else 'send' if words else 'activation' if conservative else None

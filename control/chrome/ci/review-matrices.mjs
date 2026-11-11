@@ -7,6 +7,26 @@ import {createHash} from 'node:crypto';
 import fs from 'node:fs';
 
 export async function reviewMatrices({check,nav,call,rpc,target,read,counts,eventually,approval,receiverEvidence,fixture,getTab,ownerKey,ownerChooseFile,admin,ownerNavigate,ownerDismiss,nativeDonor,closeNativeDonor,setTab,lifecycle}){
+  await check('GROUP 2 RECHECK Claude timer fires inside the owner Enter mark',async()=>{
+    const id='recheck-owner-overlap';await nav('review-page&mode=owner-overlap&id='+id);
+    const pending=call('click',await target('Continue'));
+    const start=await eventually(()=>fixture.arrivals.find(row=>row.url.includes('case=task-start')&&row.body===id),'Claude timer started');
+    await delay(Math.max(0,start.time+130-Date.now()));ownerKey();const result=await pending;
+    await eventually(()=>counts('owner-'+id)===1,'his immediate Enter arrival');
+    assert.equal(receiverEvidence(id,'timer held during owner mark').count,0);
+    const traces=completeIngress(fs.readFileSync('/out/browser-boundary.jsonl','utf8')).filter(row=>row?.owner_trace).map(row=>row.owner_trace);
+    const evidence=assertOwnerOverlap(id,fixture.arrivals,traces);fs.writeFileSync('/out/owner-overlap.json',JSON.stringify(evidence,null,2));
+    console.log('OWNER ENTER TIMER OVERLAP',JSON.stringify(evidence));
+    await approval(result,id);assert.equal(receiverEvidence('owner-'+id,'owner Enter remains once').count,1);
+  });
+  await check('GROUP 2 RECHECK explicit payment and delete labels override GET search',async()=>{
+    for(const variant of ['pay','delete']){
+      const id='recheck-search-'+variant;await nav('review-page&mode=search-label&variant='+variant+'&id='+id);
+      const result=await call('click',await target('Continue'));
+      assert.equal(receiverEvidence(id,'script handler stopped').count,0);assert.ok(result.followups?.some(row=>row.stopped));
+      await approval(await call('click',await target(variant==='pay'?'Pay':'Delete')),id);
+    }
+  });
   await check('GROUP 4 REVIEW ordinary native dialogs from Claude owner and page tasks keep working',async()=>{
     for(const kind of ['alert','confirm','prompt'])for(const origin of ['claude','owner','task'])for(const accept of kind==='alert'?[true]:[false,true]){
       const id='review-dialog-'+kind+'-'+origin+'-'+accept;await nav('review-page&mode=native-dialog&dialog='+kind+'&id='+id);await delay(600);
@@ -117,14 +137,6 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
     try{for(const word of ['Pay','Delete']){const id='review-mixed-'+word;await nav('review-page&mode=mixed-adapter&variant='+word+'&id='+id,'gemini');const prepared=await call('click',await target('Send'));assert.ok(prepared.approval);assert.match(prepared.approval.question,new RegExp(word==='Pay'?'pay for':'delete'));assert.equal((await rpc('submit_trusted',prepared.approval)).ok,false);assert.equal(counts(id),0);await approval(prepared,id);}}
     finally{admin('chrome_sites',{command:'revoke',id:entry.id});}
   });
-  await check('GROUP 2 RECHECK explicit payment and delete labels override GET search',async()=>{
-    for(const variant of ['pay','delete']){
-      const id='recheck-search-'+variant;await nav('review-page&mode=search-label&variant='+variant+'&id='+id);
-      const result=await call('click',await target('Continue'));
-      assert.equal(receiverEvidence(id,'script handler stopped').count,0);assert.ok(result.followups?.some(row=>row.stopped));
-      await approval(await call('click',await target(variant==='pay'?'Pay':'Delete')),id);
-    }
-  });
   await check('GROUP 2 REVIEW synchronous new shadow roots keep all submission kinds held',async()=>{
     for(const mode of ['open','closed'])for(const kind of ['native','event','click']){
       const id='review-shadow-'+mode+'-'+kind;await nav('review-page&mode=shadow&variant='+mode+'-'+kind+'&id='+id);
@@ -176,18 +188,6 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
       await delay(Math.max(0,start.time+130-Date.now()));ownerKey();await approval(await pending,id);
       console.log('REVIEW P20 RECEIVER0/1/1',id);
     }
-  });
-  await check('GROUP 2 RECHECK Claude timer fires inside the owner Enter mark',async()=>{
-    const id='recheck-owner-overlap';await nav('review-page&mode=owner-overlap&id='+id);
-    const pending=call('click',await target('Continue'));
-    const start=await eventually(()=>fixture.arrivals.find(row=>row.url.includes('case=task-start')&&row.body===id),'Claude timer started');
-    await delay(Math.max(0,start.time+130-Date.now()));ownerKey();const result=await pending;
-    await eventually(()=>counts('owner-'+id)===1,'his immediate Enter arrival');
-    assert.equal(receiverEvidence(id,'timer held during owner mark').count,0);
-    const traces=completeIngress(fs.readFileSync('/out/browser-boundary.jsonl','utf8')).filter(row=>row?.owner_trace).map(row=>row.owner_trace);
-    const evidence=assertOwnerOverlap(id,fixture.arrivals,traces);fs.writeFileSync('/out/owner-overlap.json',JSON.stringify(evidence,null,2));
-    console.log('OWNER ENTER TIMER OVERLAP',JSON.stringify(evidence));
-    await approval(result,id);assert.equal(receiverEvidence('owner-'+id,'owner Enter remains once').count,1);
   });
   await check('GROUP 8 REVIEW iframe drafts and detached or Web Audio report before reload',async()=>{
     for(const mode of ['blank-editor','detached-media','web-audio']){
