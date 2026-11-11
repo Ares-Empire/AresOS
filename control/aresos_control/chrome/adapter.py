@@ -49,7 +49,7 @@ class Chrome:
     def __init__(self, engine, build=None, record=None):
         self.engine, self.store, self.blobs = engine, engine.store, engine.blobs
         self.process_session = uuid.uuid4().hex
-        self.committed = Projection(self.store)
+        self.committed = self.store.chrome_state
         self.bridge = Bridge()
         self.bridge.on_event = self.event
         self.trusted_context = False
@@ -154,21 +154,21 @@ class Chrome:
         self.committed.sync()
         for key,notice,created in self.committed.rows('notice:'):
             if not notice.get('ack'):
-                yield (created,notice['id']),notice
+                yield (notice.get('created_at',int(created*1_000_000_000)),notice['id']),notice
         for key,source,created in self.committed.rows('intent:chrome:',{'started','unknown'}):
             existing=self.committed.get('notice:'+source['id'])
             if existing and not existing.get('ack'):continue
             identifier=('check-'+digest(key)[:32]) if existing else source['id']
-            yield (created,identifier),{'id':identifier,'app':'chrome','state':'unknown','ack':False,'check_only':True,
+            yield (int(created*1_000_000_000),identifier),{'id':identifier,'app':'chrome','state':'unknown','ack':False,'check_only':True,
                 'untrusted_content':{'reason':'A page-step check has no committed result; inspect the page before repeating.','intent_key':key,'check_open':True}}
         for key,operation,created in self.committed.rows('op:',{'submitting','unknown','partial','failed'}):
             if operation['state']=='failed':
                 if operation.get('notice') and not operation.get('ack'):
-                    yield (created,operation['id']),{'id':operation['id'],'app':'chrome','state':'failed','ack':False,'untrusted_content':{'reason':operation['reason']}}
+                    yield (int(created*1_000_000_000),operation['id']),{'id':operation['id'],'app':'chrome','state':'failed','ack':False,'untrusted_content':{'reason':operation['reason']}}
                 continue
             identifier='recovery-'+operation['id']
             if self.committed.get('notice:'+identifier) is not None:continue
-            yield (created,identifier),{'id':identifier,'app':'chrome','state':'unknown','ack':False,
+            yield (int(created*1_000_000_000),identifier),{'id':identifier,'app':'chrome','state':'unknown','ack':False,
                 'untrusted_content':{'reason':'Chrome input has an unfinished committed outcome; it may have run. Never replay it.','operation_id':operation['id']}}
         if self.committed.legacy:
             identifier='chrome-legacy-owner-state'
@@ -181,14 +181,15 @@ class Chrome:
         page['items']=[public_notice(self.store,notice) for notice in page['items']]
         return page
 
+    def pending_rows(self):
+        for _,operation,created in self.committed.rows('op:',{'reserved','submitting','unknown','partial','failed'}):
+            if operation['state']=='failed' and not (operation.get('notice') and not operation.get('ack')):continue
+            row={'operation_id':operation['id'],'app':'chrome','state':operation['state'],'reason':operation['reason']}
+            if operation['state']=='reserved':row.update(self.pending_state(operation,projection=True))
+            yield (created,operation['id']),row
+
     def pending_projection(self,args=None):
-        def rows():
-            for _,operation,created in self.committed.rows('op:',{'reserved','submitting','unknown','partial','failed'}):
-                if operation['state']=='failed' and not (operation.get('notice') and not operation.get('ack')):continue
-                row={'operation_id':operation['id'],'app':'chrome','state':operation['state'],'reason':operation['reason']}
-                if operation['state']=='reserved':row.update(self.pending_state(operation,projection=True))
-                yield (created,operation['id']),row
-        return ordered_page(rows,args,['chrome','committed_pending'])
+        return ordered_page(self.pending_rows,args,['chrome','committed_pending'])
 
     def allowed_url(self, address):
         return allowed_url(address, self.read_owner_hosts())
@@ -210,8 +211,10 @@ class Chrome:
         mode = self.mode()
         facts = self.bridge.call('read', tab=args['tab'])
         self.allowed_url(facts['url'])
-        if not facts.get('dialog') and isinstance(self.bridge,Bridge):
-            self.steps(self.bridge.call('queued_steps',tab=args['tab']),args['tab'])
+        if not facts.get('dialog'):
+            queued=self.bridge.call('queued_steps',tab=args['tab'])
+            self.reconcile_checks(facts,queued)
+            self.steps(queued,args['tab'])
         token = view_identity(facts)
         condition_met=True
         if verb == 'wait':
@@ -256,8 +259,8 @@ class Chrome:
         if status:
             raise Refused('stale_reference', 'Page changed; read again without the cursor.')
         return {'tab':facts['tab'],'document':[(frame['frame'],frame['document']) for frame in facts['frames']],
-                'untrusted_content':{'url':visible(facts['url']),'title':visible(facts['title']),'tree':tree[offset:end]},
-                'dialog':visible(facts.get('dialog')),'view':token,'characters':len(tree),'offset':offset,'cursor':cursor,'version_notice':mode['notice'],**({'condition_met':condition_met} if verb=='wait' else {})}
+                'untrusted_content':{'url':visible(facts['url']),'title':visible(facts['title']),'tree':tree[offset:end],'dialog':visible(facts.get('dialog'))},
+                'view':token,'characters':len(tree),'offset':offset,'cursor':cursor,'version_notice':mode['notice'],**({'condition_met':condition_met} if verb=='wait' else {})}
 
     def prepare(self, verb, payload):
         state = payload['binding']
@@ -364,7 +367,7 @@ class Chrome:
         self.check_readonly(operation['payload'])
 
     def check_readonly(self, payload, get=None):
-        get = get or self.store.get
+        get = get or self.committed.get
         state = payload['binding']
         addresses = [state['url'], state.get('effective_url') or state.get('frame_url') or state.get('dialog', {}).get('frame_url', state['url'])]
         for address in addresses:
@@ -381,8 +384,8 @@ class Chrome:
         return False
 
     def evidence(self, operation_id):
-        operation = self.store.get('op:' + operation_id)
-        return {'stages':operation.get('stages', {}) if operation else {},
+        operation = self.committed.get('op:' + operation_id)
+        return {'untrusted_content':{'stages':visible(operation.get('stages', {}) if operation else {})},
                 'meaning':'Only dispatched input and page observations; no network-delivery claim.'}
 
     def drop(self, operation):
@@ -526,17 +529,57 @@ class Chrome:
 
     def observe_step(self,step,tab):
         source_id=digest([self.bridge.session,tab,step]);key='intent:chrome:'+source_id
-        source=self.store.get(key)
+        source=self.committed.get(key)
+        if source is None:source=self.committed.historical(key)
         if source is None:
-            source={'id':source_id,'app':'chrome','state':'started','step':step,'tab':tab}
+            from .. import retention
+            count=self.store.db.execute("SELECT count(*) FROM kv WHERE substr(k,1,7)='intent:'").fetchone()[0]
+            if count>=retention.FILING_COUNT-32:retention.retire_chrome(self.store)
+            source={'id':source_id,'app':'chrome','state':'started','step':step,'tab':tab,'session':self.bridge.session}
             self.store.write({key:source},'chrome_page_step','Page step check open',outcome='started')
         return key,source
+
+    def reconcile_checks(self, facts, queued):
+        # A lost extension queue cannot drive steps(). Resolve from committed
+        # identity plus live facts instead; this path has no input command.
+        for key,source,_ in self.committed.rows('intent:chrome:',{'started','unknown'}):
+            session_changed=source.get('session')!=self.bridge.session
+            if not session_changed and source['tab']!=facts['tab']:continue
+            if not session_changed and any(step==source['step'] for step in queued):continue
+            source.update(state='done',result='stale',resumable=False,
+                reason='Stopped step is absent from the live session or queue; no resumption is possible.')
+            changes={}
+            if source['step']['kind']=='activation_unknown':
+                text='An activation in the lost page context may have happened. Inspect the page with the owner; never replay.'
+                changes,_=check_result(self.store,source,key,'page_activation',source['step'],{'reason':text,'warning':text})
+            self.store.write({key:source,**changes},'chrome_page_step','Lost page step resolved without dispatch',recovery=True)
+
+    def reconcile_open_checks(self):
+        if not self.bridge.session:return
+        queues={}
+        for _,source,_ in self.committed.rows('intent:chrome:',{'started','unknown'}):
+            tab=source['tab']
+            if source.get('session')!=self.bridge.session:
+                self.reconcile_checks({'tab':None},[])
+                continue
+            if tab not in queues:
+                try:queues[tab]=self.bridge.call('queued_steps',tab=tab)
+                except Refused as exc:
+                    if exc.code not in {'chrome_unavailable','transport_error'}:raise
+                    # Losing contact proves neither a clean result nor a lost
+                    # hold. Keep the committed open check readable offline.
+                    continue
+                # Queue identity is enough to prove that a stopped step cannot
+                # resume, even after its tab was released or reading is gated.
+                self.reconcile_checks({'tab':tab},queues[tab])
 
     def steps(self, steps, tab):
         followups=[]
         for step in steps:
             key,source=self.observe_step(step,tab)
             if source['state']=='done':
+                if source.get('resumable') is False:
+                    self.bridge.call('ack_steps',tab=tab,steps=[step]);continue
                 if step['kind'] in {'native_submit','submit_event'} and source.get('prepared_operation'):
                     self.bridge.call('ack_steps',tab=tab,steps=[step]);continue
                 source.update(state='started',step=step,tab=tab)
@@ -547,7 +590,7 @@ class Chrome:
                 continue
             frame = next((item for item in facts['frames'] if item['frame'] == step['frame']),None)
             if not frame or not step.get('document') or frame['document']!=step['document']:
-                source.update(state='done',reason='The stopped step document changed; no resumption is possible.')
+                source.update(state='done',result='stale',resumable=False,reason='The stopped step document changed; no resumption is possible.')
                 changes={}
                 if step['kind']=='activation_unknown':
                     text='An activation in the previous document may have happened. Never resume it; inspect the page with the owner.'
@@ -570,7 +613,7 @@ class Chrome:
                 changes, _ = check_result(self.store,source,key,'page_activation',step,{'reason':text,'warning':text,'reference':reference})
                 source['state'] = 'done'
                 self.store.write({key:source,**changes},'chrome_page_step','Page activation result committed',untrusted_content={'warning':text})
-                followups.append({'stopped':step['kind']!='activation_unknown','unknown':step['kind']=='activation_unknown','reason':text})
+                followups.append({'stopped':step['kind']!='activation_unknown','unknown':step['kind']=='activation_unknown','untrusted_content':{'reason':text}})
             self.bridge.call('ack_steps',tab=tab,steps=[step])
         return followups
 
@@ -584,7 +627,7 @@ class Chrome:
         forbidden = payload.get('kind') in {'delete', 'pay'} or explicit_effect({'target':state.get('target', {}), 'form':state.get('form')}) in {'delete', 'pay'} or adapter and (adapter.get('site') == 'whatsapp' or adapter.get('effect') in {'delete', 'pay'})
         if forbidden or mode['conservative'] or not adapter or not adapter.get('trusted') or not mode['adapters'].get(adapter['site']):
             return False
-        entry = self.store.get('chrome:allow:' + self.allow_id(operation), {})
+        entry = self.committed.get('chrome:allow:' + self.allow_id(operation), {})
         return bool(entry and entry.get('kind_hash') == digest(KINDS.get(adapter['kind'])) and not entry.get('revoked'))
 
     def allow_id(self, operation):
@@ -596,9 +639,9 @@ class Chrome:
         if command == 'list':
             def rows():
                 for prefix,kind in [('chrome:readonly:','readonly'),('chrome:allow:','allowed')]:
-                    for key,value in self.store.iter_items(prefix):
+                    for key,value,_ in self.committed.rows(prefix):
                         yield ((0,key), {'kind':kind,'id':key[len(prefix):],'value':visible(value)})
-                for key,op in self.store.iter_items('op:'):
+                for key,op,_ in self.committed.rows('op:'):
                     if op['app']=='chrome' and op['state']=='done' and op['action']=='chrome_submit':
                         yield ((1,key),{'kind':'recent','operation_id':op['id'],'question':op['approval'].get('question'),
                             'eligible':bool((op['payload'].get('adapter') or {}).get('trusted'))})
@@ -608,7 +651,7 @@ class Chrome:
             self.store.write({'chrome:readonly:' + host:args.get('enabled',True)},'chrome_sites','Owner changed read-only site')
             return {'readonly':host,'enabled':args.get('enabled',True)}
         if command == 'revoke':
-            key = 'chrome:allow:' + args['id']; entry = self.store.get(key)
+            key = 'chrome:allow:' + args['id']; entry = self.committed.get(key)
             if not entry: raise Refused('stale_reference','Entry not found; list allowed kinds.')
             entry['revoked'] = True
             self.store.write({key:entry},'chrome_sites','Owner revoked Chrome permission')
@@ -637,6 +680,7 @@ class Chrome:
             finally:
                 self.trusted_context=False
         if verb == 'notices':
+            self.reconcile_open_checks()
             return self.notice_page(args)
         if verb in {'read','read_form','find','wait'}: return self.read(verb,args)
         if verb in {'tabs','downloads','bookmarks','history'}:

@@ -59,16 +59,18 @@ def unfinished(store, cutoff=None, keys=None):
 def recovery_notices(store, include_checks=True):
     candidates = getattr(store, 'startup_intents', set())
     keys = {key for key, _ in candidates if not key.startswith('legacy-intent:')}
-    chrome_checks = {key for key,value in store.iter_items('intent:chrome:') if value.get('state') in {'started','unknown'}}
-    keys.update(chrome_checks)
     if include_checks:
         keys.update(open_filings(store))
         keys.update(key for key, value in store.iter_items('mail:account:')
                     if not value.get('onboarded', value.get('ready', False)))
     for key, notice_id, app, reason in unfinished(store, keys=keys):
+        # Chrome's committed open check is disclosed directly. Only its result
+        # can establish a durable activation occurrence; a live check is not
+        # evidence of a service interruption.
+        if key.startswith('intent:chrome:'):continue
         filing = key.startswith(('mail:filing:', 'mail:rename:'))
         account = key.startswith('mail:account:')
-        if (key, notice_id) not in candidates and key not in chrome_checks and not (include_checks and (filing or account)):
+        if (key, notice_id) not in candidates and not (include_checks and (filing or account)):
             continue
         if filing:
             reason = ('Filing roles and locations are not yet checked. The interrupted check has no committed result. '
@@ -100,12 +102,26 @@ def recover_intents(store, persist=True):
     # full disk nor 10,000 restored operations need an unbounded RAM queue.
     from itertools import islice
     store._open_filings = None
+    for identifier,(changes,action,_) in list(store.deferred_notices.items()):
+        notice=changes.get('notice:'+identifier,{})
+        key=notice.get('untrusted_content',{}).get('intent_key','')
+        if action=='control_intent_recovery' and notice.get('app')=='chrome' and key.startswith('op:'):
+            current=store.chrome_state.historical(key,{})
+            if current.get('state') in {'done','failed'}:
+                # Only an uncommitted proposal is discarded. A committed
+                # occurrence remains visible until its own acknowledgement.
+                del store.deferred_notices[identifier]
     # Capture identities in their actual unfinished state, before and after
     # prepared replay. A reservation that starts later was never interrupted.
     store.startup_intents = getattr(store, 'startup_intents', set()) | {
         (key, notice_id) for key, notice_id, _, _ in unfinished(store)}
     for notice in islice(recovery_notices(store), 3):
         if notice.get('check_only'):
+            continue
+        if not persist and notice.get('app')=='chrome':
+            # Startup has not replayed prepared local completions yet. The
+            # committed projection discloses uncertainty in the meantime;
+            # materializing it now would outlive an immediately recovered result.
             continue
         store.defer_notice(notice['id'], {'notice:' + notice['id']: notice},
                            'control_intent_recovery', 'Unfinished durable intent needs owner inspection')

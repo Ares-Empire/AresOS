@@ -5,6 +5,7 @@ append-only journal, including acknowledgement updates, is the authority.
 """
 import copy
 import json
+from contextlib import contextmanager
 
 from ..common import Refused, digest
 
@@ -34,8 +35,20 @@ class Projection:
     def mark_ack(self,key):
         bit=self.bit(key);self.ack_filter[bit//8] |= 1<<(bit%8)
 
+    @contextmanager
+    def journal_reader(self):
+        stream=open(self.store.evidence_dir/'operations.jsonl','rb')
+        try:yield stream
+        finally:
+            try:stream.close()
+            except OSError as exc:
+                # Closing a read-only descriptor cannot invalidate the bytes
+                # already read and hash-verified. Report storage trouble without
+                # replacing those owner facts with an unavailable disclosure.
+                self.store.observations.storage(exc,generic=True)
+
     def committed_records(self, offset=0):
-        with open(self.store.evidence_dir/'operations.jsonl','rb') as stream:
+        with self.journal_reader() as stream:
             stream.seek(offset)
             pending=None
             while True:
@@ -129,7 +142,7 @@ class Projection:
                 previous=self.entries.get(key)
                 ack=isinstance(value,dict) and value.get('ack',False)
                 if ack:self.mark_ack(key)
-                if key.startswith('notice:') and not ack:
+                if key.startswith(('notice:','op:')) and not ack:
                     ack=previous['ack'] if previous else self.was_acknowledged(key)
                 self.entries[key]={'offset':start,'time':previous['time'] if previous else record['time'],
                     'ack':bool(ack),'state':value.get('state') if isinstance(value,dict) else None}
@@ -144,7 +157,7 @@ class Projection:
         if entry is None:return copy.deepcopy(default)
         record=self.record_cache.get(entry['offset'])
         if record is None:
-            with open(self.store.evidence_dir/'operations.jsonl','rb') as stream:
+            with self.journal_reader() as stream:
                 stream.seek(entry['offset']);record=json.loads(stream.readline())
             if len(json.dumps(record))<=4*1024*1024:
                 if len(self.record_cache)>=5:self.record_cache.pop(next(iter(self.record_cache)))
@@ -155,8 +168,57 @@ class Projection:
             known=next(item for item in record['operations'] if item['id']==entry['legacy'])
             return {'id':known['id'],'app':'chrome','state':'unknown','reason':'Older Chrome record lacks a complete owner-state projection; inspect before any further action.','payload':{},'stages':{},'approval':{'description':known['description']}}
         value=copy.deepcopy(record['chrome'][key])
-        if key.startswith('notice:') and isinstance(value,dict):value['ack']=entry['ack']
+        if key.startswith(('notice:','op:')) and isinstance(value,dict) and entry['ack']:value['ack']=True
         return value
+
+    def historical(self, key, default=None):
+        """Last committed value, including retired checks; no side index or file.
+
+        Tombstones retire working data, not an occurrence's identity or ack.
+        This slow path is used only when a retired identity is seen again.
+        """
+        value=default;ack=False;sequence=0;previous=''
+        for _,_,record in self.committed_records():
+            if record['seq']!=sequence+1 or record['previous']!=previous or digest({k:v for k,v in record.items() if k!='hash'})!=record['hash']:
+                raise Refused('evidence_corrupt','Chrome historical receipt failed its hash chain.')
+            sequence=record['seq'];previous=record['hash']
+            update=record.get('chrome',{}).get(key)
+            if update is not None:
+                value=copy.deepcopy(update)
+                ack |= isinstance(update,dict) and bool(update.get('ack'))
+        if ack and isinstance(value,dict):value['ack']=True
+        return copy.deepcopy(value)
+
+    def restore_rows(self):
+        """Bounded windows over all current Chrome keys, even above MAX_KEYS.
+
+        Restore and archival must remain possible when the fast read index is
+        unavailable. Values and tombstones come only from committed history.
+        """
+        cursor='';sequence=0;previous=''
+        for _,_,record in self.committed_records():
+            if record['seq']!=sequence+1 or record['previous']!=previous or digest({k:v for k,v in record.items() if k!='hash'})!=record['hash']:
+                raise Refused('evidence_corrupt','Chrome restore history failed its hash chain.')
+            sequence=record['seq'];previous=record['hash']
+        while True:
+            batch={}
+            for _,_,record in self.committed_records():
+                if record['seq']>sequence:break
+                for key,value in record.get('chrome',{}).items():
+                    if key<=cursor:continue
+                    if key not in batch and len(batch)==32:
+                        largest=max(batch)
+                        if key>largest:continue
+                        del batch[largest]
+                    old,ack=batch.get(key,(None,False))
+                    ack |= isinstance(value,dict) and bool(value.get('ack'))
+                    batch[key]=(value,ack)
+            if not batch:return
+            for key,(value,ack) in sorted(batch.items()):
+                value=copy.deepcopy(value)
+                if ack and isinstance(value,dict):value['ack']=True
+                yield key,value
+            cursor=max(batch)
 
     def rows(self,prefix,state=None):
         self.sync()

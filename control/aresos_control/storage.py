@@ -367,6 +367,10 @@ class Store:
                         self.ledger.holds.update(self.ledger.right(op, self.get('op:' + (op.get('repair_of') or ''))))
         if self.locked:
             budget = 256 * 1024
+            for key,value in self._restore_chrome():
+                budget += len(canonical(value).encode())*16+65536
+                if key.startswith('op:') and value is not None:
+                    self.ledger.holds.update(self.ledger.right(value))
             for restored in self._restore_operations():
                 budget += record_budget(restored)
                 self.ledger.holds.update(self.ledger.right(restored, self.get('op:' + (restored.get('repair_of') or ''))))
@@ -415,6 +419,8 @@ class Store:
         # Admission and confirmation must enumerate exactly the same work.
         # Unchanged closed history costs no reconstruction space.
         for op_id, seq, known in self.iter_latest(through):
+            if known['description'].get('action','').startswith('chrome_') and self.chrome_state.historical('op:'+op_id) is not None:
+                continue
             old = self.get('op:' + op_id)
             if old is None and self.get('archived:' + op_id) == {'seq': seq}:
                 continue
@@ -428,6 +434,28 @@ class Store:
             else:
                 continue
             yield old
+
+    @property
+    def chrome_state(self):
+        if not hasattr(self, '_chrome_state'):
+            from .chrome.committed import Projection
+            self._chrome_state = Projection(self)
+        return self._chrome_state
+
+    def _restore_chrome(self):
+        for key, value in self.chrome_state.restore_rows():
+            if key=='chrome:qualification':
+                # Qualification reads already use this complete committed
+                # value. Its multi-year history can exceed a restore batch;
+                # copying it into disposable SQLite would add no authority.
+                continue
+            if key.startswith('op:') and value is not None:
+                if value['state']=='reserved':
+                    value.update(state='failed',notice=True,reason='Restore invalidated this generation\'s approval; nothing resumed.')
+                elif value['state']=='submitting':
+                    value.update(state='unknown',reason='Restored committed input has no completion; inspect the page, never replay.')
+            if self.get(key)!=value:
+                yield key,value
 
     def require_index(self):
         # An admission refusal is only a diagnostic. Reconstruct disposable
@@ -514,7 +542,7 @@ class Store:
         if any(key.startswith(('mail:filing:', 'mail:rename:')) for key in changes):
             self._open_filings = None
         self.ensure_writable()
-        cancellation = action.endswith('_operation_cancel')
+        cancellation = action.endswith('_operation_cancel') or action == 'chrome_drop'
         if not (restoring or self.archiving or cancellation or recovery or self.recovering):
             self.require_index()
         if self.locked and not restoring:
@@ -743,6 +771,15 @@ class Store:
         through = self.sequence
         changes = {}
         batch_bytes = 0
+        # Reconcile policy, qualification, outcomes and acknowledgements before
+        # the final generation marker can release the restore lock.
+        for key,value in self._restore_chrome():
+            amount=len(canonical(value).encode())*2+1024
+            if changes and (len(changes)>=RESTORE_BATCH_COUNT or batch_bytes+amount>RESTORE_BATCH_BYTES):
+                changes['restore_pending']=True
+                self.write(changes,'control_restore_confirm','Committed Chrome restore batch',restoring=True)
+                changes={};batch_bytes=0
+            changes[key]=value;batch_bytes+=amount
         for old in self._restore_operations(through):
             key = 'op:' + old['id']
             amount = len(canonical(old).encode()) + len(canonical(short_description(old)).encode()) + 1024

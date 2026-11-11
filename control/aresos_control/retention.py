@@ -24,7 +24,7 @@ NOTICE_RESERVE = 16 * 1024
 REQUEST_RESERVE = 128 * 1024 * 1024
 RECOVERY_RESERVE = 64 * 1024 * 1024
 RECOVERY_REQUEST = 1024 * 1024
-RECOVERY_ACTIONS = {'control_restore_confirm', 'control_archive'}
+RECOVERY_ACTIONS = {'control_restore_confirm', 'control_archive', 'chrome_drop'}
 OPEN = {'reserved', 'submitting', 'partial', 'unknown'}
 
 
@@ -66,11 +66,32 @@ def hashes(value):
             yield from hashes(v)
 
 
+def retire_chrome(store):
+    """Retire resolved checks in bounded commits; journal keeps their receipts.
+
+    Retired identities are looked up in the committed journal on recurrence.
+    Open checks and unacknowledged occurrences can never leave the working set.
+    """
+    from .warnings import source_notices
+    changes={}
+    for key,source in store.iter_items('intent:chrome:'):
+        if source.get('state')!='done':continue
+        notices=list(source_notices(store,key))
+        if any(not notice.get('ack') for notice in notices):continue
+        changes[key]=None
+        changes.update({'notice:'+notice['id']:None for notice in notices})
+        if len(changes)>=32:
+            store.write(changes,'control_expire','Retired finished Chrome checks; committed identities retained',recovery=True)
+            changes={}
+    if changes:store.write(changes,'control_expire','Retired finished Chrome checks; committed identities retained',recovery=True)
+
+
 def expire(engine):
     from .warnings import source_notices
     store = engine.store
     if store.locked or store.write_failed:
         return
+    retire_chrome(store)
     now = time.time()
     operations = [op for _, op in store.items('op:')]
     pinned_comps = {op.get('payload', {}).get('composition', {}).get('id')

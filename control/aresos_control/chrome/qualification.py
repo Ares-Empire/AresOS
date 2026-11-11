@@ -125,7 +125,7 @@ class Qualification:
         self.store, self.build, self.shipped = store, build, validate_record(shipped)
 
     def record(self):
-        held = validate_record(self.store.get('chrome:qualification', self.shipped))
+        held = validate_record(self.store.chrome_state.get('chrome:qualification', self.shipped))
         # Image updates can advance the trusted shipped baseline beyond a
         # previously fetched record. Neither trusted history may be rewritten.
         if len(held['entries']) <= len(self.shipped['entries']):
