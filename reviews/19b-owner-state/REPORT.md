@@ -2907,7 +2907,7 @@ check. Full actual lists remain ignored downloadable CI artifacts.
 | Area | Required selection |
 | --- | --- |
 | Base | Every existing `control/tests/test_*.py` suite, except the installed-channel pinned case and real-ledger ownership method named above. Includes `test_owner_state_oracle` self-tests (synthetic ledger tests included), its import-independence test, `test_owner_state_fixes_s2`, and `test_mail_ci_selection`. |
-| Mail suites | Every pre-19b Mail suite: `test_adapter`, `test_composition`, `test_delete`, `test_fixture`, `test_onboarding`, `test_proxy`, `test_roles`, `test_send`, `test_unsubscribe`, and all `test_review*` modules except the separately sharded inherited sweep/IO pair. |
+| Mail suites | Every pre-19b Mail suite: `test_admin`, `test_changes`, `test_compose`, `test_crash`, `test_dkim`, `test_outcomes`, `test_proxy`, `test_read`, `test_unsubscribe`, and all `test_review*` modules except the separately sharded inherited sweep/IO pair. |
 | Inherited fault sweep | `test_review23_sweep` and `test_review24_io`, unchanged assertions and full modes, over four shards. |
 | Targeted 19b regressions | `test_action_context`, `test_owner_state_s2_effects`, and the passing review-20 refused-reopen/archive and review-21 acknowledged-rename/expiry and changed-warning/paging methods in `test_owner_state_regressions`. |
 | Normal use | `test_owner_state_quiet`: point zero for all 34 flows; no warnings when none are owed, no warning over-count or duplicate, exact R2 pre-command context and approval disclosure. The ten existing clean-operation fixtures separately assert done, no passive notices, and no lifecycle/completion errors, including send, move/copy/rename and both delete kinds. |
@@ -2972,6 +2972,65 @@ Linux CI runs with the installed managed policy. Shell syntax checks and
 `git diff --check` passed. No system software or settings were changed.
 
 **Verification / run count:** remote run IDs, attempts, results, output lines and
-job durations are recorded below after the blocking watches. The intended
-acceptance is one manual optional dispatch and two passes of each required
-workflow on the completed implementation; prior package runs above are historical.
+job durations are recorded below after the blocking watches. The acceptance is one manual optional dispatch and two passes of each required
+workflow on the finished head; prior package runs above are historical.
+
+
+**PLAN-GAP / run and read — dispatch registration:** the first CLI dispatch
+and direct REST POST both returned HTTP 404: GitHub had not registered this new
+workflow, which was absent from its default branch. GitHub documents the
+[default-branch prerequisite](https://docs.github.com/actions/managing-workflow-runs/manually-running-a-workflow).
+To make the requested manual run possible without touching a base/default
+branch, temporary commit `5399e961` added a push event restricted to this branch
+and this one workflow file. Only a registration marker could execute on that
+event; all 61 oracle jobs remained gated to manual dispatch. Registration run
+[43118533248](https://github.com/Ares-Empire/AresOS/actions/runs/43118533248)
+completed successfully; its marker explicitly says this is not a test run.
+It supplies **no oracle acceptance evidence**. GitHub now exposes workflow ID
+415263652 at the intended path. The closing commit removes that push event,
+marker and temporary job gates, restoring the exact dispatch-only file before
+acceptance. No immutable history, production code, test assertion, default
+branch, repository setting or unrelated workflow was changed to register it.
+The two failed dispatch requests created zero workflow runs/attempts.
+
+**Run — initial CI, superseded source `28b708f8`:** base
+[43117634360](https://github.com/Ares-Empire/AresOS/actions/runs/43117634360)
+passes, `Ran 289 tests in 236.230s` and `Control base suite PASS` at downloaded
+log lines 579/588. Boundary
+[43117650597](https://github.com/Ares-Empire/AresOS/actions/runs/43117650597)
+passes. Mail
+[43117634334](https://github.com/Ares-Empire/AresOS/actions/runs/43117634334)
+was cancelled: inherited sweep shard 3 passed, seven jobs were cancelled, and
+no assertion failure is reported. This is **not** a required-CI pass. The shell
+loop watched all three runs once each with `--exit-status --interval 60` and
+returned failure for the cancelled Mail run. No status was polled turn by turn.
+
+**Read — final-head evidence and run accounting:** the final documentation and
+dispatch-only workflow commit is the head used for the one manual oracle run
+and both complete required-CI passes. Their exact IDs, attempts, source SHA,
+results, log lines and job durations are retained in the final verification
+manifest under `.work/19b-rescope/` and the [PR #26 description](https://github.com/Ares-Empire/AresOS/pull/26),
+updated after the watches so the evidence update does not change the tested
+Git tree. The committed report records source/read/local-run claims above;
+remote acceptance is established by those finished-head runs, not by this
+initial cancelled run or by historical package runs. The intended closing
+account is **8 workflow IDs / 11 attempts** in this run: three initial CI runs,
+one registration marker, three final required runs each twice, and one final
+manual optional run. The registration marker and cancelled CI are excluded
+from acceptance. If an extra diagnosis/rerun is necessary its actual count is
+reported with the final evidence. No own package/security review is run, PR #26
+stays draft against `pkg/19-mail`, and no merge is performed.
+
+**Run — focused local confirmation:** with the same worktree-only synthetic
+policy fixture, `PYTHONDONTWRITEBYTECODE=1
+PYTHONPATH=control:control/mail_tests:control/tests .work/venv/bin/python
+.work/run-owner-tests.py test_owner_state_quiet test_owner_state_contracts
+test_owner_state_regressions test_owner_state_s2_effects` printed
+`Ran 23 tests in 10.218s` / `OK`
+(`.work/19b-rescope-focused.txt`, final summary). This confirms both new required
+quiet tests, the retained strict named/matrix contracts and stage-2 effect
+regressions locally; it does not claim Linux installed-channel or full-matrix
+acceptance. `python3 control/generate.py --check` printed
+`Generated artifacts match definitions`; the final six selector tests also
+printed `OK`. No Gradle process was started; `.work/` files larger than
+500,000,000 bytes: **[]**.
