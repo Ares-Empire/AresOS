@@ -6,7 +6,7 @@ import copy
 import hashlib
 import json
 import re
-from .records import canonical, fingerprint, visible, restore_intervals, consistency_errors
+from .records import canonical, fingerprint, visible, restore_intervals, consistency_errors, pending_reason
 from .resolutions import RESOLUTIONS, permitted
 from .context import bind as bind_context, differences as context_differences, special_roles, special_delimiters, missing_flag_commands, rename_destination, MUTATIONS
 from .local import errors as local_errors
@@ -483,13 +483,13 @@ class Oracle:
                 if app is None or row['app'] == app:
                     if row['state'] in {'reserved', 'submitting', 'partial', 'unknown'} or (
                             key in self.operation_notices and 'operation:' + row['id'] not in self.acknowledged):
-                        facts.add(Fact(key, 'pending', detail=canonical({'state': row['state'], 'reason': 'RESTORED_EVIDENCE' if 'restored' in row.get('reason', '').lower() and any(word in row.get('reason', '').lower() for word in ('newer', 'missing')) else row.get('reason')})))
+                        facts.add(Fact(key, 'pending', detail=canonical({'state': row['state'], 'reason': pending_reason(row.get('reason'))})))
                 if (row['state'] in {'submitting', 'unknown', 'partial'} or row['state'] == 'reserved' and key in self.legacy_sources) and (app is None or row['app'] == app):
                     facts.add(Fact(key, 'recovery'))
                 check = row.get('sent_copy_check', {})
                 if row['app'] == 'mail' and (app is None or app == 'mail'):
-                    failed_recheck = live and bool(check) and self.script and bool(self.script[-1].get('faults', {}).get('trace'))
-                    if (check.get('state') == 'open' or failed_recheck) and not any(f.source == key and f.kind == 'sent_copies' and f.occurrence not in self.acknowledged for f in self.detected):
+                    failed_recheck = bool(check) and (bool(record.prepared) or len(record.fences) > max(record.committed, default=0) or live and self.script and bool(self.script[-1].get('faults', {}).get('trace')))
+                    if check.get('state') == 'open' or failed_recheck and not any(f.source == key and f.kind == 'sent_copies' and f.occurrence not in self.acknowledged for f in self.detected):
                         facts.add(Fact(key, 'unchecked'))
             elif key.startswith(('mail:filing:', 'mail:rename:', 'intent:', 'export:', 'mail:account:')):
                 row_app = row.get('app', 'mail')
@@ -500,6 +500,24 @@ class Oracle:
                     key.startswith('mail:account:') and not row.get('onboarded', row.get('ready', False)))
                 if unfinished:
                     facts.add(Fact(key, 'recovery'))
+        # Independently decoded owner facts survive a rolled-back or unreadable
+        # SQLite view. They add obligations; ending one still needs the scripted
+        # acknowledgement or result proof below.
+        for source, row in record.owner_rows.items():
+            if not isinstance(row, dict):
+                continue
+            if source.startswith('notice:') and row.get('ack'):
+                seq = record.owner_sequences[source]
+                proof = {'seq': seq, 'time': next(f['time'] for f in record.fences if f['seq'] == seq)}
+                if self.scripted_transition(proof, '_notice_ack', row['id']):
+                    self.acknowledged.add(row['id'])
+            if source.startswith('op:') and row.get('sent_copy_check', {}).get('state') == 'open' and row.get('app') == 'mail':
+                facts.add(Fact(source, 'unchecked'))
+            if source not in record.rows and source.startswith(('intent:', 'export:', 'mail:filing:', 'mail:rename:', 'mail:account:')):
+                opened = (source.startswith(('intent:', 'export:')) or row.get('state') == 'started' or
+                          row.get('check_open') or source.startswith('mail:account:') and not row.get('onboarded', row.get('ready', False)))
+                if opened and (app is None or row.get('app', 'mail') == app):
+                    facts.add(Fact(source, 'recovery'))
         if record.locked:
             latest, local = {}, {}
             for fence in record.fences:
@@ -669,7 +687,8 @@ class Oracle:
             source, kind, encoded, epoch = key
             evidence = json.loads(encoded)
             wanted = fingerprint(sorted({canonical(ref) for ref in evidence}) if kind == 'sent_copies' else evidence)
-            matches = [n for k, n in record.rows.items() if k.startswith('notice:') and
+            notice_sources = {**record.owner_rows, **record.rows}
+            matches = [n for k, n in notice_sources.items() if k.startswith('notice:') and
                 n.get('source_key') == source and n.get('check_kind') == kind and
                 (n.get('evidence_fingerprint') == wanted or 'evidence_fingerprint' not in n) and
                 n['id'] not in self.occurrences.values()]
@@ -771,6 +790,9 @@ class Oracle:
             kind, proofs = 'submission', dict(scripted_approval=proof, commit_order=ordered or not self.script)
         elif before == 'reserved' and after == 'submitting':
             kind, proofs = 'submission', dict(scripted_approval=bool(own), commit_order=ordered)
+        elif event['action'] == 'control_restore_confirm' and before == 'reserved' and after == 'failed':
+            kind, proofs = 'restore_invalidation', dict(scripted_confirmation=self.restore_proof(event),
+                prior_reserved=True, no_effect=not commands, commit_order=ordered)
         elif before == 'reserved' and after == 'failed' and any(c['clock'] >= old.get('expires', float('inf')) for c in calls):
             kind, proofs = 'expiry', dict(scripted_clock=any(c['clock'] >= old.get('expires', float('inf')) for c in calls), reserved=True, commit_order=ordered)
         elif before == 'reserved' and after == 'failed' and self.scripted_transition(event, '_operation_cancel', identity):
@@ -1464,7 +1486,13 @@ class Oracle:
         # Status is checked even when every catalogue is empty. A handled raw
         # failure may still yield success; only injected causes permit errors.
         if record.locked:
-            return {'restore_required'}
+            permitted = {'restore_required'}
+            faults = call.get('faults', {})
+            if faults.get('trace') or faults.get('active_exhaustion'):
+                permitted.add('storage_limit')
+                if any(f[2] == 'EIO' for f in faults.get('trace', [])):
+                    permitted.add('storage_error')
+            return permitted
         allowed = {'allowed'}
         faults = call.get('faults', {})
         if faults.get('admission') == 'full':
@@ -1730,6 +1758,8 @@ class Oracle:
     def hold_facts(self, record):
         keys = set()
         for key, row in record.rows.items():
+            if key.startswith(('op:', 'intent:', 'mail:filing:', 'mail:rename:')) and (row.get('check_open') or row.get('sent_copy_check', {}).get('state') == 'open' or key.startswith(('mail:filing:', 'mail:rename:')) and row.get('state') == 'started'):
+                keys.add('check:' + key)
             if key.startswith('export:'):
                 keys.add(key)
             if key.startswith('op:'):
@@ -1739,6 +1769,10 @@ class Oracle:
                     keys.add('cancel:' + row['id'])
         if record.locked:
             keys.add('restore')
+            for fence in record.fences:
+                for op in fence['operations']:
+                    if 'op:' + op['id'] not in record.rows and 'archived:' + op['id'] not in record.rows and 'archived:' + op['id'] not in record.owner_rows and op.get('description', {}).get('action', '').endswith('_operation_repair'):
+                        keys.add('settle:' + op['id'])
         return {Fact(key, 'held') for key in keys}
 
     def completion_errors(self, record):

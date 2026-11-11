@@ -2,7 +2,7 @@
 import json
 import re
 from .model import Fact
-from .records import canonical, fingerprint, visible
+from .records import canonical, fingerprint, visible, pending_reason
 
 
 def compare_proofs(oracle, record, check, after_sequence=0, context=True):
@@ -33,7 +33,7 @@ def notice_facts(notice, record, oracle):
         reason = content.get('reason', '')
         cause = 'storage_limit' if 'Disk full or storage quota exhausted' in reason else 'storage_error' if 'Storage I/O failed' in reason else 'unknown'
         return {Fact('background:storage', 'background-storage', occurrence, cause)}
-    saved = record.rows.get('notice:' + occurrence, {})
+    saved = record.rows.get('notice:' + occurrence, record.owner_rows.get('notice:' + occurrence, {}))
     source = saved.get('source_key') or content.get('intent_key')
     if content.get('check') == 'sent_copies':
         return {Fact('op:' + content['operation_id'], 'unchecked-handle', occurrence), Fact('op:' + content['operation_id'], 'unchecked'), Fact('op:' + content['operation_id'], 'unchecked-context', detail=canonical({'app': notice.get('app'), 'state': notice.get('state'), 'operation_identity': content.get('operation_id') == content['operation_id'], 'check': content.get('check'), 'not_yet_checked': 'not yet checked' in content.get('reason', '')}))}
@@ -92,7 +92,7 @@ def notice_facts(notice, record, oracle):
 
 
 def pending_facts(page):
-    result = {Fact('op:' + row['operation_id'], 'pending', detail=canonical({'state': row['state'], 'reason': 'RESTORED_EVIDENCE' if 'restored' in row.get('reason', '').lower() and any(word in row.get('reason', '').lower() for word in ('newer', 'missing')) else row.get('reason')})) for row in page.get('items', [])}
+    result = {Fact('op:' + row['operation_id'], 'pending', detail=canonical({'state': row['state'], 'reason': pending_reason(row.get('reason'))})) for row in page.get('items', [])}
     for row in page.get('items', []):
         for kind in ('expired', 'cancelled'):
             if kind + ':' in row.get('reason', '').lower():
@@ -336,6 +336,18 @@ def compare_views(read, oracle, snapshot, check, ordinary='mail_accounts'):
                 import time
                 day = time.strftime('%Y-%m-%d', time.localtime())
                 audit = sorted((e for e in record.events if e['seq'] in record.working_sequences and time.strftime('%Y-%m-%d', time.localtime(e['time'])) == day), key=lambda e: (e['time'], e['seq']))
+                fallback = any(e.get('action') == 'control_owner_state' for e in page.get('items', []))
+                if fallback:
+                    call = oracle.script[-1] if oracle.script else {}
+                    allowed = call.get('faults', {}).get('mode') == 'persistent' and bool(call.get('faults', {}).get('trace'))
+                    check('aresos log.fallback-cause', set(), set() if allowed else {Fact('audit', 'unjustified-fallback')})
+                    audit = [{'seq': f['seq'], 'time': f['time'], 'action': 'control_owner_state',
+                              'summary': 'Committed owner facts; SQLite audit detail is unavailable.',
+                              'outcome': 'done', 'operation_id': None,
+                              'untrusted_content': visible({'operations': [op['id'] for op in f['operations']],
+                                                    'sources': record.owner_versions.get(f['seq'], {})})}
+                             for f in record.fences if f['seq'] in record.committed and
+                             time.strftime('%Y-%m-%d', time.localtime(f['time'])) == day]
                 wanted = [audit_fact(e, expected=True) for e in audit]
                 actual = [audit_fact(e) for e in page.get('items', [])]
                 check(view + '.page', set(wanted[offset:offset + 5]), set(actual))
