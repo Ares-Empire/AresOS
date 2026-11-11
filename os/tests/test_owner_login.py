@@ -1,6 +1,7 @@
 """No hardware: actual login driver, prepared protocol, clocks and /proc models."""
 import contextlib
 import copy
+import inspect
 import json
 import pathlib
 import re
@@ -194,6 +195,77 @@ class LoginTest(unittest.TestCase):
             with self.assertRaises(AssertionError):login.login_root(root)
         root.lstat.return_value=SimpleNamespace(st_uid=0,st_mode=0o40700);root.is_symlink.return_value=False
         login.login_root(root)
+
+
+class UtilLinuxVersionTest(unittest.TestCase):
+    """The observer relies on login.c's timeout default and agetty's CTRL-U and CTRL-D.
+    Release 13 ships util-linux 2.41.5 and release 27 ships 2.41.6 (package 21 JUDGMENT-CALL 4);
+    package 27 compared both upstream and in Fedora, so exactly these two are accepted."""
+    AGETTY=' (flow control, hints, issue, issue.d, keyboard mode, plymouth, reload, syslog, systemd, widechar)'
+
+    class Started(Exception):
+        pass
+
+    def initialize(self,outputs):
+        def version(argv,**kw):
+            self.assertEqual(argv[1:],['--version'])
+            return outputs[argv[0]]+'\n'
+        with patch('subprocess.check_output',side_effect=version),patch.object(login.pathlib.Path,'exists',return_value=False), \
+                patch.object(login,'start',side_effect=self.Started) as start,patch.object(login,'publish') as publish:
+            try:login.login_initialize(pathlib.Path('/run/ares-login-'+'a'*16),'tty4')
+            except self.Started:pass
+        return start,publish
+
+    def test_accepts_exactly_util_linux_2_41_5_and_2_41_6(self):
+        for version in ('2.41.5','2.41.6'):
+            self.assertEqual(login.login_version('login','login from util-linux '+version),version)
+            self.assertEqual(login.login_version('agetty','agetty from util-linux '+version+self.AGETTY),version)
+        for tool,text in (('login','login from util-linux 2.41.7'),('login','login from util-linux 2.41.4'),
+                          ('login','login from util-linux 2.42.0'),('login','login from util-linux 2.41.50'),
+                          ('login','login from util-linux 2.41.5.1'),('login','login from util-linux 12.41.5'),
+                          ('agetty','agetty from util-linux 2.41.7'+self.AGETTY),('login','login from util-linux'),
+                          ('login','login from shadow-utils 2.41.6'),('login','agetty from util-linux 2.41.6'),
+                          ('agetty','login from util-linux 2.41.6'),('login','')):
+            with self.subTest(text=text),self.assertRaisesRegex(AssertionError,'Unverified login/getty version'):
+                login.login_version(tool,text)
+
+    def test_initialization_accepts_both_and_refuses_a_third_before_any_observer(self):
+        for version in ('2.41.5','2.41.6'):
+            with self.subTest(version=version):
+                start,_=self.initialize({'/usr/bin/login':'login from util-linux '+version,
+                                         '/usr/bin/agetty':'agetty from util-linux '+version+self.AGETTY})
+                start.assert_called_once()
+        for login_text,agetty_text in (('login from util-linux 2.41.6','agetty from util-linux 2.41.7'+self.AGETTY),
+                                       ('login from util-linux 2.41.7','agetty from util-linux 2.41.6'+self.AGETTY)):
+            with self.subTest(login=login_text,agetty=agetty_text),self.assertRaisesRegex(AssertionError,'Unverified login/getty version'):
+                self.initialize({'/usr/bin/login':login_text,'/usr/bin/agetty':agetty_text})
+        with patch.object(login,'start') as start,patch.object(login,'publish') as publish, \
+                patch('subprocess.check_output',return_value='login from util-linux 2.41.7\n'),self.assertRaises(AssertionError):
+            login.login_initialize(pathlib.Path('/run/ares-login-'+'a'*16),'tty4')
+        start.assert_not_called();publish.assert_not_called()
+
+    def test_prepared_guest_program_carries_the_version_rule(self):
+        source=login.guest_source()
+        self.assertIn(inspect.getsource(login.login_version),source)
+        self.assertIn('login_version(tool, value)',inspect.getsource(login.login_initialize))
+        self.assertNotIn(r'\b2\.41\.5\b',source)
+
+    def test_no_other_harness_pin_on_a_version_package21_replaced(self):
+        # Every version package 21 removed from the image (releases/27.json's package diff).
+        release=json.loads((ROOT/'os/manifest/releases/27.json').read_text())
+        removed=[row['nevra'] for row in release['image_diff']['packages'] if row['change']=='removed']
+        versions=sorted({nevra.rsplit('.',1)[0].rsplit('-',2)[1].split(':')[-1] for nevra in removed})
+        self.assertEqual(versions,['0.8.4','2.41.5'])
+        harness=[p for p in (ROOT/'os/ci').rglob('*') if p.is_file() and '__pycache__' not in p.parts]
+        harness.append(ROOT/'.github/workflows/os-image.yml')
+        hits={}
+        for path in harness:
+            text=path.read_bytes().decode('utf-8','replace')
+            for version in versions:
+                if re.search(r'(?<![0-9.])'+re.escape(version)+r'(?![0-9])',text):
+                    hits.setdefault(path.relative_to(ROOT).as_posix(),set()).add(version)
+        # The observer's reviewed pair, and the release diff's reason text for the replaced packages.
+        self.assertEqual(hits,{'os/ci/owner_login.py':{'2.41.5'},'os/ci/release_diff.py':{'0.8.4','2.41.5'}})
 
 
 if __name__=='__main__':unittest.main()

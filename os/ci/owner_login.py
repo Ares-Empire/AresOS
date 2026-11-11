@@ -29,9 +29,18 @@ def login_timeout(text):
             assert len(line) == 2 and re.fullmatch('[0-9]+', line[1]), 'Invalid LOGIN_TIMEOUT'
             rows.append(int(line[1]))
     assert len(rows) <= 1, 'Duplicate LOGIN_TIMEOUT'
-    value = rows[0] if rows else 60  # Verified util-linux2.41.5 login.c default.
+    value = rows[0] if rows else 60  # Verified util-linux 2.41.5 and 2.41.6 login.c default.
     assert 0 < value <= 600, 'Unbounded or unsupported LOGIN_TIMEOUT'
     return value
+
+
+def login_version(tool, text):
+    # Exactly the reviewed releases. login.c and agetty.c are byte-identical in
+    # util-linux v2.41.5 and v2.41.6, and Fedora's login patches are unchanged
+    # (package 27), so the timeout default, CTRL-U and CTRL-D hold for both.
+    found = re.match(re.escape(tool) + r' from util-linux ([0-9]+(?:\.[0-9]+)+)(?![0-9.])', text)
+    assert found and found.group(1) in ('2.41.5', '2.41.6'), 'Unverified login/getty version'
+    return found.group(1)
 
 
 def login_foreground(tty, proc=pathlib.Path('/proc')):
@@ -57,10 +66,10 @@ def login_public(tty, fresh=False):
     finally: os.close(fd)
     kill = attrs[6][termios.VKILL]
     kill = kill if isinstance(kill, int) else ord(kill)
-    # agetty2.41.5 handles CTRL-U itself even with ICANON/ECHO off.
+    # agetty 2.41.5 and 2.41.6 handle CTRL-U themselves even with ICANON/ECHO off.
     assert row['comm'] == 'agetty' or bool(attrs[3] & termios.ICANON) and kill == 21, 'Line kill is not proved'
     return dict(reader=identity(row), canonical=bool(attrs[3] & termios.ICANON), vkill=21,
-        kill_semantics='agetty2.41.5 CTRL-U handler' if row['comm'] == 'agetty' else 'canonical VKILL')
+        kill_semantics='agetty 2.41.5/2.41.6 CTRL-U handler' if row['comm'] == 'agetty' else 'canonical VKILL')
 
 
 def login_remaining(state):
@@ -145,7 +154,7 @@ def login_initialize(root, tty):
     versions = {}
     for tool in ('login','agetty'):
         value = subprocess.check_output(['/usr/bin/'+tool, '--version'], text=True, timeout=5).strip()
-        assert re.search(r'\b2\.41\.5\b', value), 'Unverified login/getty version'
+        login_version(tool, value)
         versions[tool] = value
     config = pathlib.Path('/etc/login.defs')
     timeout = login_timeout(config.read_text() if config.exists() else '')
@@ -263,7 +272,7 @@ def login_action(root, action, argument=0):
         public=login_public(tty,fresh=True)
         assert public['reader']==state['clear_reader'], 'Public reader changed during line kill'
         return dict(ready=True,vkill=21,reader=public['reader'],line_kill_events=4,
-            eof_semantics='agetty2.41.5 CTRL-D exits without authenticating')
+            eof_semantics='agetty 2.41.5/2.41.6 CTRL-D exits without authenticating')
     if action == 'fresh':
         result=finish(state['clear_ticket'])
         assert compare(result,dict(key_event_count=8))['matches'], 'Line kill/public EOF events not verified'
@@ -303,7 +312,7 @@ def guest_source(health=None):
         owner_hidden.hidden_snapshot,owner_hidden.reader_matches,owner_hidden.reader_chain,owner_hidden.redacted_chain,
         owner_hidden.identity,owner_hidden.same_process,owner_hidden.device_number,owner_hidden.reader_tty,
         owner_hidden.echo_at,owner_hidden.return_shells,owner_hidden.hidden_observation,owner_hidden.input_guard)
-    functions=(*counter,*hidden,login_timeout,login_foreground,login_public,login_remaining,login_guard,
+    functions=(*counter,*hidden,login_timeout,login_version,login_foreground,login_public,login_remaining,login_guard,
         login_visibility,login_audit_batch,login_exposure,login_audit,login_initialize,login_action,login_root)
     return owner_xhci.guard(('import base64,hashlib,json,os,pathlib,re,sys,time,termios\n'
         +''.join(inspect.getsource(f) for f in functions)+'''
