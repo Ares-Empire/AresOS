@@ -89,6 +89,14 @@ class Engine:
 
     def _pending(self, app=None, args=None, resolve_checks=True):
         from .owner_state import owner_view
+        args = dict(args or {})
+        cursor = args.get('cursor')
+        if isinstance(cursor, str) and cursor.startswith('pending/'):
+            _, scope, cursor = cursor.split('/', 2)
+            if scope not in self.adapters or app is not None and app != scope:
+                raise Refused('stale_reference', 'Pending cursor belongs to another app; read again without it.')
+            app = scope
+            args['cursor'] = cursor
         self.store.refresh_restore(clear_transient=not getattr(self.store, 'in_request', False))
         view = owner_view(self.store)
         notices = self.notices(resolve_checks=resolve_checks)
@@ -101,7 +109,12 @@ class Engine:
                 created = view.retained_at(key)
                 yield ((created, op['id']),
                        {'operation_id': op['id'], 'app': op['app'], 'state': op['state'], 'reason': op['reason']})
-        return ordered_page(rows, args, ['pending', app]) | {'restore_required': self.store.locked} | notices
+        page = ordered_page(rows, args, ['pending', app])
+        if app is not None and page['cursor']:
+            # Passive app envelopes advertise control_pending as their reader.
+            # Carry that app scope across the handoff without changing paging.
+            page['cursor'] = 'pending/' + app + '/' + page['cursor']
+        return page | {'restore_required': self.store.locked} | notices
 
     def page(self, values, args, scope):
         token, offset = digest([scope, values]), 0

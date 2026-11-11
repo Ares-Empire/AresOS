@@ -488,3 +488,26 @@ and do not perturb audit cursors. Due expiry, blob cleanup or deferred records
 still require the committed D3 gate before any body write. A prepared restore's
 saved space plan replaces its already-spent holds before replay admission;
 rollback and check holds are not counted a second time.
+
+An applied prepared head is an unfinished write, not an older restored backup.
+The decoder verifies the matching prepared fence before allowing that distinction.
+Only the unfinished sequence's correlated first disk fault can remain a refusal;
+an earlier unrelated admission failure cannot. Exact readable commits release
+their holds even when a failed sync left the live writer behind.
+
+A deferred positive filing result may close only its original mutation's episode,
+using the matching delivered post-command evidence and no intervening check-open.
+It cannot supply a new or clean check's result. Read-only recovery keeps the exact
+destination that survived in the committed source; it cannot reconstruct a lost
+COPYUID reply from the test recorder. Retained destination claims still require
+the independently recorded remote reply. Oracle-only uncommitted observations
+have no public location handle: D3's generic obligation remains mandatory, and
+delivered rich detail is checked separately. Committed occurrence handles and
+every one of their location pages remain strict comparisons.
+
+Passive pending cursors carry `pending/<app>/` before the existing opaque cursor.
+`control_pending` preserves that advertised app scope across the handoff; ordinary
+all-app cursors remain unchanged. Unknown or conflicting scopes refuse. Catalogue
+changes still restart with `page_changed`. `paging.py` itself is unchanged.
+The daemon's final error path reports owner-source unavailability explicitly;
+it no longer references the removed RAM-only pending snapshot.

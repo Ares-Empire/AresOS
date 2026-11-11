@@ -9,6 +9,21 @@ from support import EngineCase
 
 
 class Paging29(EngineCase):
+    def test_passive_app_cursor_keeps_its_scope_in_control_pending(self):
+        ids = [self.reserve()['operation_id'] for _ in range(7)]
+        first = self.call('testapp_list')['pending']
+        self.assertEqual([item['operation_id'] for item in first['items']], ids[:5])
+        tail = self.data('control_pending', {'cursor': first['cursor']})
+        self.assertEqual([item['operation_id'] for item in tail['items']], ids[5:])
+        self.assertEqual(tail['total'], 7)
+        self.assertIsNone(tail['cursor'])
+        self.assertNotIn('page_changed', tail)
+        # A real membership/state change must still invalidate that cursor.
+        self.data('testapp_operation_cancel', {'operation_id': ids[0]})
+        changed = self.data('control_pending', {'cursor': first['cursor']})
+        self.assertIn('page_changed', changed)
+        self.assertEqual([item['operation_id'] for item in changed['items']], ids[:5])
+
     def seed_notices(self):
         changes = {'notice:' + str(i): {'id': str(i), 'app': 'mail', 'state': 'partial',
             'ack': False, 'created_at': i, 'untrusted_content': {'reason': 'Synthetic warning ' + str(i)}}
