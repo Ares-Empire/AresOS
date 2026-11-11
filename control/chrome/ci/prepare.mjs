@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import {instrumentOwnerGuard} from './owner-evidence.mjs';
 import {generateKeyPairSync} from 'node:crypto';
 import {packageExtension} from '../packaging/pack.mjs';
 if(process.platform !== 'linux' || process.env.GITHUB_ACTIONS !== 'true' || !fs.existsSync('/.dockerenv'))throw Error('CI Linux container only');
@@ -13,8 +14,8 @@ if(process.env.INJECTION_PROBE==='true'){
 }
 if(process.env.INJECTION_PROBE!=='true'){
   const instrumented='/workspace/.work/20-instrumented-extension';fs.cpSync(extension,instrumented,{recursive:true});extension=instrumented;
-  fs.writeFileSync(extension+'/guard.js',fs.readFileSync('/workspace/control/chrome/ci/password-ingress.js','utf8')+'\n'+fs.readFileSync(extension+'/guard.js','utf8'));
-  const background=fs.readFileSync(extension+'/background.js','utf8').replace("chrome.runtime.onMessage.addListener((message,sender,reply)=>{", "chrome.runtime.onMessage.addListener((message,sender,reply)=>{if(sender.id===chrome.runtime.id&&message?.event==='reader_ingress'){audit({reader_ingress:message});reply({received:true});return;}");
+  fs.writeFileSync(extension+'/guard.js',fs.readFileSync('/workspace/control/chrome/ci/password-ingress.js','utf8')+'\n'+instrumentOwnerGuard(fs.readFileSync(extension+'/guard.js','utf8')));
+  const background=fs.readFileSync(extension+'/background.js','utf8').replace("chrome.runtime.onMessage.addListener((message,sender,reply)=>{", "chrome.runtime.onMessage.addListener((message,sender,reply)=>{if(sender.id===chrome.runtime.id&&['reader_ingress','owner_trace'].includes(message?.event)){audit({[message.event]:message});reply({received:true});return;}");
   fs.writeFileSync(extension+'/background.js',background);
 }
 const result=packageExtension(extension,'/workspace/.work/20-package',pair.privateKey.export({type:'pkcs8',format:'pem'}));

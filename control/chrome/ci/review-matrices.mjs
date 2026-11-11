@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import {assertOwnerOverlap} from './owner-evidence.mjs';
+import {completeIngress} from './ingress-scan.mjs';
 import {setTimeout as delay} from 'node:timers/promises';
 import {allTabs} from './tabs.mjs';
 import {createHash} from 'node:crypto';
@@ -115,6 +117,14 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
     try{for(const word of ['Pay','Delete']){const id='review-mixed-'+word;await nav('review-page&mode=mixed-adapter&variant='+word+'&id='+id,'gemini');const prepared=await call('click',await target('Send'));assert.ok(prepared.approval);assert.match(prepared.approval.question,new RegExp(word==='Pay'?'pay for':'delete'));assert.equal((await rpc('submit_trusted',prepared.approval)).ok,false);assert.equal(counts(id),0);await approval(prepared,id);}}
     finally{admin('chrome_sites',{command:'revoke',id:entry.id});}
   });
+  await check('GROUP 2 RECHECK explicit payment and delete labels override GET search',async()=>{
+    for(const variant of ['pay','delete']){
+      const id='recheck-search-'+variant;await nav('review-page&mode=search-label&variant='+variant+'&id='+id);
+      const result=await call('click',await target('Continue'));
+      assert.equal(receiverEvidence(id,'script handler stopped').count,0);assert.ok(result.followups?.some(row=>row.stopped));
+      await approval(await call('click',await target(variant==='pay'?'Pay':'Delete')),id);
+    }
+  });
   await check('GROUP 2 REVIEW synchronous new shadow roots keep all submission kinds held',async()=>{
     for(const mode of ['open','closed'])for(const kind of ['native','event','click']){
       const id='review-shadow-'+mode+'-'+kind;await nav('review-page&mode=shadow&variant='+mode+'-'+kind+'&id='+id);
@@ -127,9 +137,9 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
     }
   });
   await check('GROUP 2 REVIEW new shadow roots capture borrowed native events including noncomposed ones',async()=>{
-    for(const mode of ['open','closed'])for(const composed of [false,true])for(const cancel of [false,true]){
+    for(const native of [false,true])for(const mode of ['open','closed'])for(const composed of [false,true])for(const cancel of [false,true]){
       setTab(await nativeDonor(getTab()));
-      const id='review-fallback-'+mode+'-'+composed+'-'+cancel;await nav('review-page&mode=shadow-fallback&variant='+mode+'&composed='+composed+'&cancel='+cancel+'&id='+id);
+      const id='review-fallback-'+native+'-'+mode+'-'+composed+'-'+cancel;await nav('review-page&mode=shadow-fallback&variant='+mode+'&composed='+composed+'&cancel='+cancel+'&native='+native+'&id='+id);
       const result=await call('click',await target('Continue'));assert.equal(receiverEvidence('handler-'+id,'borrowed native handler held').count,0,'borrowed native event never reaches the asking handler');
       if(cancel){assert.equal(counts(id),0);assert.ok(result.followups.some(row=>row.stopped));await approval(await call('click',await target('Delete')),id);}
       else{assert.ok(receiverEvidence(id,'uncancellable native default is unknown').count<=1);assert.ok(result.untrusted_content.steps.some(step=>step.kind==='activation_unknown'));assert.ok(!result.followups.some(row=>row.approval),'unknown activation never resumes');assert.equal((await call('operation_status',{operation_id:result.operation_id})).operation.state,'unknown');}
@@ -148,9 +158,11 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
     }
   });
   await check('GROUP 3 REVIEW item confirmation file rich text and title mutations refuse',async()=>{
-    for(const [mode,variant,label]of [['binding','listitem','Delete'],['binding','row','Delete'],['binding','article','Delete'],['binding','region','Delete'],['binding','section','Delete'],['binding','unsubscribe','Unsubscribe'],['binding','abbestellen','Abbestellen'],['confirmation','','OK'],['file','','Submit'],['rich','','Send'],['title','','Send']]){
+    for(const [mode,variant,label]of [['binding','listitem','Delete'],['binding','row','Delete'],['binding','article','Delete'],['binding','region','Delete'],['binding','section','Delete'],['binding','unsubscribe','Unsubscribe'],['binding','abbestellen','Abbestellen'],['confirmation','','OK'],['confirmation','form','OK'],['confirmation','submit','OK'],...['li-open','li-closed','row-open','row-closed'].map(variant=>['shadow-binding',variant,'Delete']),['file','','Submit'],['rich','','Send'],['title','','Send']]){
       const id='review-bind-'+mode+'-'+variant;await nav('review-page&mode='+mode+'&variant='+variant+'&id='+id);
       const prepared=await call('click',await target(label));assert.ok(prepared.approval,JSON.stringify(prepared));
+      if(mode==='shadow-binding')assert.match(JSON.stringify(prepared.approval),/Invoice A/);
+      if(mode==='confirmation')assert.match(JSON.stringify(prepared.approval),/Approved draft/);
       await fixture.mutate(id,'review-change');const result=await rpc('submit',prepared.approval);
       assert.ok(!result.ok||result.data.operation.state==='failed',JSON.stringify(result));assert.equal(receiverEvidence(id,'changed approval refused').count,0);
       await approval(await call('click',await target(label)),id);console.log('REVIEW P10 P11 P12 P13 P14 P22 RECEIVER0/1/1',id);
@@ -164,6 +176,18 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
       await delay(Math.max(0,start.time+130-Date.now()));ownerKey();await approval(await pending,id);
       console.log('REVIEW P20 RECEIVER0/1/1',id);
     }
+  });
+  await check('GROUP 2 RECHECK Claude timer fires inside the owner Enter mark',async()=>{
+    const id='recheck-owner-overlap';await nav('review-page&mode=owner-overlap&id='+id);
+    const pending=call('click',await target('Continue'));
+    const start=await eventually(()=>fixture.arrivals.find(row=>row.url.includes('case=task-start')&&row.body===id),'Claude timer started');
+    await delay(Math.max(0,start.time+130-Date.now()));ownerKey();const result=await pending;
+    await eventually(()=>counts('owner-'+id)===1,'his immediate Enter arrival');
+    assert.equal(receiverEvidence(id,'timer held during owner mark').count,0);
+    const traces=completeIngress(fs.readFileSync('/out/browser-boundary.jsonl','utf8')).filter(row=>row?.owner_trace).map(row=>row.owner_trace);
+    const evidence=assertOwnerOverlap(id,fixture.arrivals,traces);fs.writeFileSync('/out/owner-overlap.json',JSON.stringify(evidence,null,2));
+    console.log('OWNER ENTER TIMER OVERLAP',JSON.stringify(evidence));
+    await approval(result,id);assert.equal(receiverEvidence('owner-'+id,'owner Enter remains once').count,1);
   });
   await check('GROUP 8 REVIEW iframe drafts and detached or Web Audio report before reload',async()=>{
     for(const mode of ['blank-editor','detached-media','web-audio']){

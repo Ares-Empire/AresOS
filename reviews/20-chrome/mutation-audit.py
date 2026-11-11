@@ -78,7 +78,7 @@ case('P8-guard',G,"value.normalize('NFC')",'value',node('page','P8'))
 case('P9-classification',P,"if evidence in {'delete', 'pay', 'item'}:","if False:",'test_policy.ReviewClassification.test_p9_explicit_payment_and_deletion_override_adapter',True)
 case('P9-trusted',A,"if forbidden or mode['conservative']","if mode['conservative']",'test_questions.Questions.test_p9_trusted_predicate_independently_forbids_explicit_deletion_payment_and_whatsapp',True)
 case('P10',R,'[role=listitem],[role=row],[role=article],section[aria-label],section[aria-labelledby],','',node('reader','P10'))
-case('P11',A,"if kind in {'send', 'confirmation'} and not frame.get('form') and not adapter else None","if kind == 'send' and not frame.get('form') and not adapter else None",'test_questions.Questions.test_p11_confirmation_binds_a_sibling_draft',True)
+case('P11',A,"if generic_draft else None","if kind == 'send' and not frame.get('form') and not adapter else None",'test_questions.Questions.test_p11_confirmation_binds_a_sibling_draft',True)
 case('P12',R,"fileIdentities.set(file,{identity:randomToken()})","fileIdentities.set(file,{identity:file.name})",node('reader','P12'))
 case('P12-hash',R,"return hash.map(value=>value.toString(16).padStart(8,'0')).join('');","return '0'.repeat(64);",node('reader','P12 HTTP'))
 case('P12-rehash',R,'const identity=fileIdentity(file);','const identity=fileIdentity(file);if(identity.sha256)continue;',node('reader','P12 every binding rehashes'))
@@ -136,6 +136,19 @@ case('combined-S12-review-dialog','control/chrome/ci/review-matrices.mjs',"(awai
 case('P31-http',F,"else if(kind==='adapter-sites')","if(kind==='adapter-sites')",node('fixture','review pages reach'))
 case('P31-head',F,'globalThis.firstScriptSubmit=HTMLFormElement.prototype.submit;','',node('fixture','P31 first script'))
 case('P31-get-case',F,'target="_blank"><input type="hidden" name="case" value="\'+id+\'"><input type="search"','target="_blank"><input type="search"',node('fixture','P31 first script'))
+
+case('recheck-search-activation',G,"if (!target.editable && explicit(target,form)) return true;","if(form&&target.submit)return false;",node('page','recheck search labels'))
+case('recheck-search-submissions',G,"if(explicit(element?facts(element):null,form)||(form.fields||[]).some(field=>['submit','image'].includes(field.type)&&explicit(field,null)))return false;",'',node('page','recheck search labels'))
+case('recheck-item-shadow',R,'node.assignedSlot || node.parentElement || node.getRootNode().host','node.assignedSlot || node.parentElement',node('reader','recheck affected items'))
+case('recheck-item-composed-text',R,'text(node,false,true)','text(node)',node('reader','recheck affected items'))
+case('recheck-confirmation-service',A,"kind == 'confirmation' or kind == 'send' and not frame.get('form')","kind in {'confirmation','send'} and not frame.get('form')",'test_questions.Questions.test_recheck_confirmation_form_binds_changed_outside_draft_and_complete_coverage',True)
+case('recheck-confirmation-submitter',P,"if evidence and target.get('page_dialog')","if False and evidence and target.get('page_dialog')",'test_questions.Questions.test_recheck_confirmation_form_binds_changed_outside_draft_and_complete_coverage',True)
+case('recheck-confirmation-extension',B,"kind==='confirmation'||kind==='send'&&!frame.form","['confirmation','send'].includes(kind)&&!frame.form",node('background','recheck confirmation form'))
+case('recheck-shadow-composed',G,'if(nodeRoot!==document){watch(nodeRoot);return;}','if(nodeRoot!==document)return;',node('page','recheck composed native roots'))
+case('recheck-shadow-native-insertion',M,"[globalThis.DocumentFragment?.prototype,['append','prepend','replaceChildren']]","[globalThis.DocumentFragment?.prototype,[]]",node('page','recheck native roots'),extra=[(M,"[globalThis.Node?.prototype,['appendChild','insertBefore','replaceChild']]","[globalThis.Node?.prototype,[]]")])
+case('recheck-shadow-native-listener',M,"[EventTarget.prototype,['addEventListener']]","[EventTarget.prototype,[]]",node('page','recheck native roots'))
+case('recheck-shadow-native-markup',M,'set innerHTML(html){watchReceiver(this);invoke(method,this,[html]);}','set innerHTML(html){invoke(method,this,[html]);}',node('page','recheck native roots'))
+case('recheck-shadow-host',G,'if(shadow)watch(shadow);','if(shadow){watch(shadow);return;}',node('page','recheck a shadow host'))
 
 def command(row):
     if row['python']:return ['python3','-B','-m','unittest',row['test'],'-v']

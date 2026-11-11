@@ -54,9 +54,9 @@ for(const root of process.argv.slice(2))for(const matrix of walk(root).filter(fi
   for(const name of ['tool.jsonl','service.txt'])assert(!await containsText(path.join(folder,name),'SENTINEL_PRIVATE_PASSWORD_20'),`Password sentinel reached ${name}`);
   const python=read(path.join(folder,'python.txt')),py=/^Ran (\d+) tests in ([0-9.]+)s$/m.exec(python);
   assert(py&&/^OK$/m.test(python),'Full Python suite missing or failed');
-  assert.equal(Number(py[1]),220);
+  assert.equal(Number(py[1]),221);
   const node=Object.fromEntries([...read(path.join(folder,'node.txt')).matchAll(/^(?:# |ℹ )?(tests|pass|fail|cancelled|skipped)\s+(\d+)/gm)].map(match=>[match[1],Number(match[2])]));
-  assert.deepEqual(node,{tests:243,pass:243,fail:0,cancelled:0,skipped:0});
+  assert.deepEqual(node,{tests:251,pass:251,fail:0,cancelled:0,skipped:0});
   const hashes={};for(const name of ['browser.txt','matrices.json','receiver.jsonl','page-receiver.jsonl','adapters-receiver.jsonl','browser-boundary.jsonl','tool.jsonl','service.txt','python.txt','node.txt'])hashes[name]=await digestFile(path.join(folder,name));
   results.push({artifact:path.basename(folder),chrome:read(path.join(folder,'chrome-version.txt')).trim(),named_passes:rows.length,test_index:testIndex,verdicts:verdict,receiver_audit:receiverAudits,password_audit:{rows:ingress,null_rows:nullRows,protocol_events:events,forbidden_runtime_value_events:0,sensitive_getters:getters,getter_kinds:Object.fromEntries(getterKinds),password_sentinel_absent:true},python:{tests:Number(py[1]),seconds:Number(py[2])},node,sha256:hashes});
 }

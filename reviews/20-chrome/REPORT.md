@@ -1,3 +1,60 @@
+# Recheck fixes — 2026-11-12
+
+**In progress; no new Linux acceptance claimed yet.** This section supersedes the historical acceptance below
+for the changes requested by `briefs/20-recheck-fixes.md`. PR #27 stays draft and unmerged on `pkg/20-chrome`.
+
+## Done (read)
+
+- `guard.js`: explicit asking cues precede GET-search exemptions in script activation, native form calls,
+  submit-event capture and private relay/foreign-document dispatch. Submitter labels also prevent a form-level
+  exemption. Ordinary GET searches retain their positive regression.
+- `reader.js`: the smallest affected container is resolved through composed ancestry, including shadow hosts
+  and assigned slots. Its identifying text includes open/closed component content while retaining password exclusion.
+- `adapter.py`, `policy.py`, `background.js`: generic send confirmations bind every eligible document's draft set
+  even when the confirmation belongs to a form. OK submit buttons keep confirmation semantics; incomplete
+  eligible frame coverage refuses in both binding implementations.
+- `page.js`, `guard.js`: composed events discover previously unregistered roots during window capture. Native-created
+  roots register synchronously before insertion, markup setters or listener registration, so a borrowed native
+  dispatcher cannot reach non-composed handlers through those paths. A host's own event still meets capture.
+  Cleanup restores the saved method/accessor descriptors. No new DevTools method or feature-removing refusal.
+- Linux fixtures add Pay/Delete search handlers, four native/ARIA open/closed changed-item cases, both form-containing
+  confirmation variants, and borrowed native attachShadow with composed/non-composed cancellable/uncancellable events.
+  Composed native-root variants also borrow native insertion, proving window discovery independently.
+- `owner-evidence.mjs`: test-build-only observations record private mark set/pass/hold/end timestamps without changing
+  any mark, allowance or scheduling. A Claude-started overdue timer competes with genuine owner Enter; the Linux case
+  requires the timer's page timestamp inside an observed Enter-mark interval, an immediate owner receiver arrival,
+  zero timer arrivals before its approval and exact-once approval/repeat evidence. No claimed overlap is inferred
+  from synchronous handler submissions. All four existing owner removal probes remain strict.
+- [KNOWN-LIMITS.md](KNOWN-LIMITS.md) collects the remaining review and section 6 residuals, each with harm and acceptance.
+  The fixed findings are not treated as accepted limits. Existing feature/tool maps, dialog decisions, image handoffs
+  and group 12's explicit 18d deferral remain in the historical report below.
+
+## Verified / still running
+
+**Run:** Node's full browser-free suite passes 251 tests, zero failures/cancellations/skips. The focused Python
+question suite passes 16 tests. Generated artifacts were regenerated and checked without drift. The previous
+completed page removal audit rejected 125 mutations with passing baselines; the final host-capture probe is now
+included in a fresh audit. Full local Python (including state removals, sweeps and process cuts) is running.
+Linux browser acceptance and the independent receiver audit are pending; this is not a green report.
+
+## Not verified / boundaries
+
+Owner Enter remains **passes in CI, panel to confirm** until the required new overlap evidence exists and the
+panel has reviewed it. No local browser/profile or container was started or inspected. Real accounts/live sites,
+the installed image and group 12's 18d permission-precedence harness remain unverified here. The tests preserve
+all asking, stale-content, receiver, password and replay assertions. No new owner judgment or feature removal.
+
+## Runs
+
+The API ledger before this build has 175 distinct Chrome run IDs and no incomplete runs. The brief's baseline is
+175 used of about 215; the prior report separately accounts for one full rerun attempt. This build will track both
+IDs and executions, batch runtime pushes, mark report-only pushes `[skip ci]`, and wait on each run in one blocking
+shell invocation. No other build's run will be cancelled.
+
+---
+
+# Historical combined acceptance (before this recheck)
+
 # 20 — combined page/state fixes and capped catalogue snapshots
 
 **Read — integrate-3 and the user's 2026-11-11 resume instructions govern.** The lead already merged Part P (`df9b3fc5`) and Part S

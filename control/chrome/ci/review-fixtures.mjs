@@ -27,6 +27,13 @@ export function reviewPage(url){
   }else if(mode==='script-popup'){
     body='<button type="button">Open window</button>';
     script=`document.querySelector('button').onclick=()=>window.open('/?case=review-page&mode=script-post&id='+${JSON.stringify(id)},'_blank','popup,width=620,height=480');`;
+  }else if(mode==='search-label'){
+    const label=variant==='delete'?'Delete':'Pay';
+    body='<button type="button" id="continue">Continue</button><form role="search" method="get" action="/query" target="sink"><input type="search" name="q"><button type="submit" id="asking">'+label+'</button></form>'+sink;
+    script=`document.querySelector('#asking').onclick=event=>{event.preventDefault();${send};};document.querySelector('#continue').onclick=()=>document.querySelector('#asking').click();`;
+  }else if(mode==='owner-overlap'){
+    body='<button type="button" id="continue">Continue</button><form id="owner-form" method="post" action="/receive?case=owner-'+id+'" target="sink"><input id="owner" name="draft" value="Saved"><button>Submit</button><button id="second">Submit another</button></form><form id="other-form" method="post" action="'+receive+'" target="sink"><input name="draft" value="Other"></form>'+sink;
+    script=`const trace=phase=>fetch('/receive?case=trace-'+${JSON.stringify(id)},{method:'POST',body:JSON.stringify({phase,time:performance.timeOrigin+performance.now()})});document.querySelector('#continue').onclick=()=>{fetch('/receive?case=task-start',{method:'POST',body:${JSON.stringify(id)}});setTimeout(()=>{trace('busy-begin');const end=performance.now()+240;while(performance.now()<end){}trace('busy-end');},70);setTimeout(()=>{trace('timer-fire');document.querySelector('#other-form').submit();},150);};document.querySelector('#owner').onkeydown=event=>{if(event.key==='Enter')trace('owner-enter');};document.querySelector('#owner-form').onsubmit=()=>trace('owner-submit');`;
   }else if(mode==='owner-mark'){
     body='<button type="button" id="continue">Continue</button><form id="owner-form" method="post" action="'+receive+'" target="sink"><input id="owner" name="draft" value="Saved"><button id="first">Submit</button><button id="second">Submit another</button></form><form id="other-form" method="post" action="'+receive+'" target="sink"><input name="draft" value="Other"></form>'+sink;
     script=`document.querySelector('#continue').onclick=()=>fetch('/receive?case=task-start',{method:'POST',body:${JSON.stringify(id)}});document.querySelector('#owner').onkeydown=event=>{if(event.key!=='Enter')return;event.preventDefault();${variant==='other-form'?"document.querySelector('#other-form').submit()":variant==='other-submitter'?"document.querySelector('#owner-form').requestSubmit(document.querySelector('#second'))":"setTimeout(()=>document.querySelector('#owner-form').submit(),100)"};};`;
@@ -40,9 +47,9 @@ export function reviewPage(url){
     const markup=form('<button type="submit">Submit</button>');
     script=`document.querySelector('#continue').onclick=()=>{const root=document.querySelector('#host').attachShadow({mode:${JSON.stringify(variant.startsWith('closed')?'closed':'open')}});root.innerHTML=${JSON.stringify(markup)};const form=root.querySelector('form');${variant.endsWith('click')?"form.querySelector('button').click()":variant.endsWith('event')?'form.requestSubmit()':'form.submit()'};};`;
   }else if(mode==='shadow-fallback'){
-    const composed=url.searchParams.get('composed')==='true',cancel=url.searchParams.get('cancel')==='true';
+    const composed=url.searchParams.get('composed')==='true',cancel=url.searchParams.get('cancel')==='true',native=url.searchParams.get('native')==='true';
     body='<button type="button" id="continue">Continue</button><div id="host"></div>'+sink;
-    script=`document.querySelector('#continue').onclick=()=>{const root=document.querySelector('#host').attachShadow({mode:${JSON.stringify(variant)}}),link=document.createElement('a');link.textContent='Delete';link.href=${JSON.stringify(receive)};link.target='sink';link.onclick=()=>fetch('/receive?case=handler-'+${JSON.stringify(id)},{method:'POST'});root.append(link);opener.EventTarget.prototype.dispatchEvent.call(link,new MouseEvent('click',{bubbles:true,composed:${composed},cancelable:${cancel}}));};`;
+    script=`document.querySelector('#continue').onclick=()=>{const host=document.querySelector('#host'),root=${native?'opener.Element.prototype.attachShadow.call(host,':'host.attachShadow('}{mode:${JSON.stringify(variant)}}),link=document.createElement('a');link.textContent='Delete';link.href=${JSON.stringify(receive)};link.target='sink';link.onclick=()=>fetch('/receive?case=handler-'+${JSON.stringify(id)},{method:'POST'});${native&&composed?'opener.Node.prototype.appendChild.call(root,link)':'root.append(link)'};opener.EventTarget.prototype.dispatchEvent.call(link,new MouseEvent('click',{bubbles:true,composed:${composed},cancelable:${cancel}}));};`;
   }else if(mode==='label'){
     const word=variant==='nfc-delete'?'lo\u0308schen':variant==='nfc-send'?'vero\u0308ffentlichen':variant==='title'?'Delete':'Continue';
     body='<textarea aria-label="Draft">Saved</textarea><form action="https://fixture.test/%73end?bad='+variant+'"><button type="button"'+(variant==='title'?' title="More information"':'')+'>'+word+'</button></form>';
@@ -51,9 +58,13 @@ export function reviewPage(url){
     const container=['unsubscribe','abbestellen'].includes(variant)?'div role="listitem"':variant==='region'?'section aria-label="Selected region"':variant==='section'?'section aria-labelledby="item-label"':'div role="'+variant+'"';
     body='<'+container+'><span id="item-label">Quarterly report</span><button type="button">'+(variant==='unsubscribe'?'Unsubscribe':variant==='abbestellen'?'Abbestellen':'Delete')+'</button></'+container.split(' ')[0]+'>';
     script=`document.querySelector('button').onclick=()=>${send};globalThis.reviewChange=()=>document.querySelector('#item-label').textContent='Different report';`;
+  }else if(mode==='shadow-binding'){
+    const native=variant.startsWith('li-'),tag=native?'li':'div role="row"';
+    body='<'+tag+'><span id="item-label">Invoice A</span><div id="host"></div></'+tag.split(' ')[0]+'>';
+    script=`const root=document.querySelector('#host').attachShadow({mode:${JSON.stringify(variant.endsWith('closed')?'closed':'open')}});root.innerHTML='<button type="button">Delete</button>';root.querySelector('button').onclick=()=>${send};globalThis.reviewChange=()=>document.querySelector('#item-label').textContent='Invoice B';`;
   }else if(mode==='confirmation'){
-    body='<textarea aria-label="Draft">Approved draft</textarea><div role="dialog" aria-modal="true"><p>Send this message?</p><button type="button">OK</button></div>';
-    script=`document.querySelector('button').onclick=()=>${send};globalThis.reviewChange=()=>document.querySelector('textarea').value='Different draft';`;
+    body='<textarea aria-label="Draft">Approved draft</textarea><div role="dialog" aria-modal="true">'+(variant?' <form method="dialog">':'')+'<p>Send this message?</p><button type="'+(variant==='submit'?'submit':'button')+'">OK</button>'+(variant?'</form>':'')+'</div>';
+    script=`document.querySelector('button').onclick=event=>{event.preventDefault();${send};};globalThis.reviewChange=()=>document.querySelector('textarea').value='Different draft';`;
   }else if(mode==='file'||mode==='owner-file'){
     body=form('<input type="file" name="attachment" aria-label="File"><button type="submit">Submit</button>').replace('method="post"','method="post" enctype="multipart/form-data"')+sink;
     script="const field=document.querySelector('[type=file]');const install=bytes=>{const old=field.files[0],transfer=new DataTransfer();transfer.items.add(new File([bytes],old?.name||'proof.txt',{lastModified:old?.lastModified||0}));field.files=transfer.files;};"+(mode==='file'?"install('GOOD');":"")+"globalThis.reviewChange=()=>install('EVIL');"+(mode==='owner-file'?`for(const type of ['input','change','cancel'])field.addEventListener(type,()=>fetch('/compat-report',{method:'POST',body:JSON.stringify({id:${JSON.stringify(id)},phase:'owner-file-'+type,files:[...field.files].map(file=>({name:file.name,size:file.size,lastModified:file.lastModified}))})}));`:'');
