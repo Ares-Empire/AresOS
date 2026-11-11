@@ -63,7 +63,7 @@
       "path": "os/ci/registry_auth.py"
     },
     {
-      "sha256": "74657992a26c3d2a4c7aa3912072938adddf7633c8f222733e89ed5407369352",
+      "sha256": "f9ecccb1400c3b0b254b2da75e26824681bf9f7ddff142eaab2e44178f302ff5",
       "path": "os/ci/rehearsal-packages.json"
     },
     {
