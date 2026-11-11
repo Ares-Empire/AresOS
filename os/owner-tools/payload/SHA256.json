@@ -52,7 +52,7 @@
     "path": "release/system-keyboard.sh"
   },
   {
-    "sha256": "5221aed155bfb856de622407ff505b54a3f58129233ad5273e0cbffebcf7f517",
+    "sha256": "e154ac4bf7cb55571d027e3a6b892c6b5b79474110c07a1a12796e62703e59a6",
     "path": "release/update.sh"
   },
   {

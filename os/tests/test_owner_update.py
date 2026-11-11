@@ -229,6 +229,9 @@ class Machine(owner.Host):
             self.interrupt = None
             raise owner.Stop('Shared step failed: ' + name + '; injected before the change')
         rows = self.state['rpm']['deployments']
+        # The one transaction after the shell checks (update.sh first unmasks
+        # the staging finalizers; test_release27.UpdateFinalizerTest runs that part).
+        tail, = [line for line in tail.splitlines() if line.startswith(('bootc switch --retain ', 'bootc rollback'))]
         if tail.startswith('bootc switch --retain '):
             reference = tail.split()[-1]
             self.state = machine([release_row(reference, staged=True), *rows])

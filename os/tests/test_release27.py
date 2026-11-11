@@ -1166,5 +1166,298 @@ class UpdateJobGatesTest(unittest.TestCase):
         self.assertEqual([line.strip() for line in shell_lines(run, dict(REHEARSAL_PACKAGE='16'))], ['a', 'd', 'e', 'f'])
 
 
+FINALIZERS = ('ostree-finalize-staged.service', 'bootc-finalize-staged.service')
+# The shell the shell fixtures run; a Linux bash in the suites (on Windows the
+# System32 `bash` would start WSL, so those tests skip there).
+BASH = 'bash'
+
+
+def shell(*argv, **kwargs):
+    return subprocess.run([BASH, *argv], capture_output=True, text=True, **kwargs)
+
+
+def make_link(target, path):
+    """A symlink as bash makes it (the scripts under test read links with bash)."""
+    assert shell('-c', 'ln -s -- "$1" "$2"', '_', target, path.as_posix()).returncode == 0
+
+
+def link_target(path):
+    result = shell('-c', 'readlink -- "$1"', '_', path.as_posix())
+    return result.stdout.strip() if result.returncode == 0 else None
+
+
+UPDATE_STUBS = {
+    'bootc': r'''#!/bin/bash
+printf 'bootc %s\n' "$*" >> "$FIXTURE_CALLS"
+case "$*" in
+    'status --json') cat "$FIXTURE_ROOT/state.json" ;;
+    'switch --retain '*) if [[ -e $FIXTURE_ROOT/switch-fails ]]; then echo INJECTED_SWITCH_FAILURE >&2; exit 42; fi ;;
+    *) echo UNEXPECTED_BOOTC_COMMAND >&2; exit 97 ;;
+esac
+''',
+    # is-enabled as systemd answers it from the fixture's /etc/systemd/system:
+    # masked while a /dev/null link is there, static for the finalizers
+    # otherwise. Every other listed updater is masked unless the fixture says not.
+    'systemctl': r'''#!/bin/bash
+printf 'systemctl %s\n' "$*" >> "$FIXTURE_CALLS"
+global=no
+if [[ $1 == --global ]]; then global=yes; shift; fi
+case $1 in
+    daemon-reload) exit 0 ;;
+    is-enabled) unit=$2 ;;
+    *) echo UNEXPECTED_SYSTEMCTL_COMMAND >&2; exit 97 ;;
+esac
+if [[ $global == yes ]]; then
+    if grep -qxF -- "$unit" "$FIXTURE_ROOT/user-unmasked"; then echo enabled; exit 0; fi
+    echo masked; exit 1
+fi
+if [[ -e $FIXTURE_ROOT/mask-survives-reload && $unit == ostree-finalize-staged.service ]] \
+        && grep -qx 'systemctl daemon-reload' "$FIXTURE_CALLS"; then
+    echo masked; exit 1
+fi
+if [[ $(readlink -- "$FIXTURE_ROOT/units/$unit") == /dev/null ]]; then echo masked; exit 1; fi
+case $unit in ostree-finalize-staged.service|bootc-finalize-staged.service) echo static; exit 0 ;; esac
+if grep -qxF -- "$unit" "$FIXTURE_ROOT/system-unmasked"; then echo disabled; exit 1; fi
+echo masked; exit 1
+''',
+}
+
+
+@unittest.skipIf(os.name == 'nt', 'needs a Linux bash')
+class UpdateFinalizerTest(unittest.TestCase):
+    """update.sh unmasks exactly the two staging finalizers, all or nothing.
+
+    Rehearsal run 42940741765 stopped at `at update`: every AresOS image masks
+    ostree-finalize-staged.service and bootc-finalize-staged.service, and bootc
+    cannot stage while they are masked. The exact script runs here, its real
+    Python pending-state check included, over a fixture /etc/systemd/system,
+    the image's own policy lists and stubbed systemctl and bootc.
+    """
+    CURRENT = 'ghcr.io/ares-empire/aresos@sha256:' + '1' * 64
+    TARGET = 'ghcr.io/ares-empire/aresos@sha256:' + '2' * 64
+
+    def render(self, root):
+        text = (ROOT / 'os/release/update.sh').read_text()
+        self.assertEqual((ROOT / 'os/owner-tools/payload/release/update.sh').read_text(), text)
+        for old, new in (('@REFERENCE@', self.TARGET), ('@CURRENT_DIGEST@', 'sha256:' + '1' * 64),
+                         ('@CURRENT@', self.CURRENT)):
+            text = text.replace(old, new)
+        for old, new in (('test -r /etc/ostree/auth.json', 'test -r "$FIXTURE_ROOT/auth.json"'),
+                         ('policy=/usr/share/aresos/policy\n', 'policy="$FIXTURE_ROOT/policy"\n'),
+                         ('units=/etc/systemd/system\n', 'units="$FIXTURE_ROOT/units"\n')):
+            self.assertEqual(text.count(old), 1, old)
+            text = text.replace(old, new)
+        return 'PATH="$FIXTURE_ROOT/bin:$PATH"\n' + text
+
+    def run_update(self, masked=FINALIZERS, staged=None, switch_fails=False, system_unmasked=(), user_unmasked=(),
+                   mask_survives_reload=False, prepare=None):
+        with tempfile.TemporaryDirectory(dir=ROOT / 'os/tests') as directory:
+            root = pathlib.Path(directory)
+            for name in ('units', 'policy', 'bin'):
+                (root / name).mkdir()
+            for name in ('masked-system-units.txt', 'masked-user-units.txt'):
+                shutil.copyfile(ROOT / 'os/policy' / name, root / 'policy' / name)
+            (root / 'auth.json').write_text('{}\n')
+            (root / 'calls').write_text('')
+            (root / 'system-unmasked').write_text(''.join(u + '\n' for u in system_unmasked))
+            (root / 'user-unmasked').write_text(''.join(u + '\n' for u in user_unmasked))
+            (root / 'state.json').write_text(json.dumps(dict(status=dict(staged=staged, rollbackQueued=False, booted=dict(
+                image=dict(image=dict(image=self.CURRENT), imageDigest='sha256:' + '1' * 64))))))
+            if switch_fails:
+                (root / 'switch-fails').write_text('')
+            if mask_survives_reload:
+                (root / 'mask-survives-reload').write_text('')
+            for unit in masked:
+                make_link('/dev/null', root / 'units' / unit)
+            if prepare:
+                prepare(root / 'units')
+            stubs = dict(UPDATE_STUBS, python3='#!/bin/bash\nexec ' + shlex.quote(sys.executable) + ' "$@"\n')
+            for name, source in stubs.items():
+                (root / 'bin' / name).write_text(source)
+                (root / 'bin' / name).chmod(0o755)
+            env = dict(os.environ, FIXTURE_ROOT=root.as_posix(), FIXTURE_CALLS=(root / 'calls').as_posix())
+            # As owner.py runs it: bash -seu with the script on standard input.
+            result = shell('-seu', input=self.render(root), env=env)
+            links = {path.name: link_target(path) for path in sorted((root / 'units').iterdir())}
+            calls = (root / 'calls').read_text().splitlines()
+        return result, links, calls
+
+    def test_the_first_update_unmasks_both_then_stages(self):
+        result, links, calls = self.run_update()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(links, {})
+        reload, switch = calls.index('systemctl daemon-reload'), calls.index('bootc switch --retain ' + self.TARGET)
+        self.assertLess(reload, switch)
+        self.assertEqual(calls[-1], 'bootc switch --retain ' + self.TARGET)
+        # Both are proved static after the reload, before the switch.
+        self.assertEqual(calls[reload + 1:switch], ['systemctl is-enabled ' + unit for unit in FINALIZERS])
+        # Every other updater the image masks was read, system and user.
+        system = (ROOT / 'os/policy/masked-system-units.txt').read_text().split()
+        user = (ROOT / 'os/policy/masked-user-units.txt').read_text().split()
+        for unit in system:
+            self.assertIn('systemctl is-enabled ' + unit, calls)
+        for unit in user:
+            self.assertIn('systemctl --global is-enabled ' + unit, calls)
+        self.assertLessEqual(set(FINALIZERS), set(system))
+
+    def test_a_failed_switch_restores_both_masks(self):
+        result, links, calls = self.run_update(switch_fails=True)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(links, dict.fromkeys(sorted(FINALIZERS), '/dev/null'))
+        self.assertEqual(calls.count('systemctl daemon-reload'), 2)
+        for unit in FINALIZERS:
+            self.assertIn("Staging failed; restored the image's mask of " + unit, result.stderr)
+
+    def test_a_mask_that_survives_the_reload_stops_before_staging_and_restores(self):
+        result, links, calls = self.run_update(mask_survives_reload=True)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertFalse(any(call.startswith('bootc switch') for call in calls))
+        self.assertEqual(links, dict.fromkeys(sorted(FINALIZERS), '/dev/null'))
+
+    def test_a_later_update_finds_them_unmasked_and_changes_nothing_else(self):
+        for fails in (False, True):
+            with self.subTest(switch_fails=fails):
+                result, links, calls = self.run_update(masked=(), switch_fails=fails)
+                self.assertEqual(result.returncode != 0, fails, result.stderr)
+                self.assertEqual(links, {})
+                self.assertIn('bootc switch --retain ' + self.TARGET, calls)
+                self.assertNotIn('restored', result.stderr)
+        # One still masked, one already unmasked: only the masked one is changed and restored.
+        result, links, _ = self.run_update(masked=FINALIZERS[1:], switch_fails=True)
+        self.assertEqual(links, {FINALIZERS[1]: '/dev/null'})
+        self.assertNotIn('mask of ' + FINALIZERS[0], result.stderr)
+
+    def test_anything_else_stops_before_any_change(self):
+        def regular(units):
+            os.remove(units / FINALIZERS[0])
+            (units / FINALIZERS[0]).write_text('[Service]\n')
+
+        def elsewhere(units):
+            os.remove(units / FINALIZERS[1])
+            make_link('/dev/zero', units / FINALIZERS[1])
+        for name, options, message in (
+                ('regular file', dict(prepare=regular), 'neither the image'),
+                ('link elsewhere', dict(prepare=elsewhere), 'neither the image'),
+                ('system updater', dict(system_unmasked=['uupd.timer']), 'updater uupd.timer is not masked'),
+                ('user updater', dict(user_unmasked=['flatpak-update.timer']), 'user updater flatpak-update.timer'),
+                ('pending deployment', dict(staged={'image': 'fixture'}), 'pending deployment before update')):
+            with self.subTest(name):
+                result, links, calls = self.run_update(**options)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn(message, result.stderr)
+                self.assertNotIn('systemctl daemon-reload', calls)
+                self.assertFalse(any(call.startswith('bootc switch') for call in calls))
+                if name == 'regular file':
+                    self.assertEqual(links, {FINALIZERS[0]: None, FINALIZERS[1]: '/dev/null'})
+                elif name == 'link elsewhere':
+                    self.assertEqual(links, {FINALIZERS[0]: '/dev/null', FINALIZERS[1]: '/dev/zero'})
+                else:
+                    self.assertEqual(links, dict.fromkeys(sorted(FINALIZERS), '/dev/null'))
+
+    def test_the_transaction_stays_the_last_line_and_the_pair_is_exact(self):
+        text = (ROOT / 'os/release/update.sh').read_text()
+        self.assertEqual(text.rstrip('\n').splitlines()[-1], 'bootc switch --retain @REFERENCE@')
+        self.assertEqual(text.count('bootc switch'), 1)
+        self.assertIn('finalizers=(' + ' '.join(FINALIZERS) + ')\n', text)
+        self.assertIn('trap restore EXIT\n', text)
+
+
+class GuestFinalizerTest(unittest.TestCase):
+    """guest.sh (package 21's policy check) accepts exactly the finalizers that `at update` unmasked."""
+
+    def fixture(self, root, image_masks=FINALIZERS, etc_masks=(), states=None, active=None):
+        for name in ('usr-etc', 'etc', 'bin'):
+            (root / name).mkdir()
+        for unit in image_masks:
+            make_link('/dev/null', root / 'usr-etc' / unit)
+        for unit in etc_masks:
+            make_link('/dev/null', root / 'etc' / unit)
+        states = states or {}
+        (root / 'bin' / 'systemctl').write_text('#!/bin/bash\n' + ''.join(
+            f'[[ "$*" == "is-enabled {unit}" ]] && {{ echo {state}; exit 0; }}\n' for unit, state in states.items())
+            + ''.join(f'[[ "$*" == "show -P ActiveState {unit}" ]] && {{ echo {value}; exit 0; }}\n'
+                      for unit, value in (active or {}).items())
+            + '[[ $1 == show ]] && { echo inactive; exit 0; }\necho masked; exit 1\n')
+        (root / 'bin' / 'systemctl').chmod(0o755)
+
+    def loops(self, root):
+        text = (ROOT / 'os/tests/guest.sh').read_text()
+        start = text.index('finalizer_unmasked_by_update() {')
+        end = text.index('done < /usr/share/aresos/policy/masked-user-units.txt\n') + len('done < /usr/share/aresos/policy/masked-user-units.txt\n')
+        block = text[start:end]
+        for old, new in (('/usr/etc/systemd/system/', '$FIXTURE_ROOT/usr-etc/'), ('/etc/systemd/system/', '$FIXTURE_ROOT/etc/'),
+                         ('/usr/share/aresos/policy/', (ROOT / 'os/policy').as_posix() + '/')):
+            self.assertIn(old, block)
+            block = block.replace(old, new)
+        return 'set -euo pipefail\nPATH="$FIXTURE_ROOT/bin:$PATH"\n' + block
+
+    def check(self, **options):
+        with tempfile.TemporaryDirectory(dir=ROOT / 'os/tests') as directory:
+            root = pathlib.Path(directory)
+            self.fixture(root, **options)
+            return shell('-s', input=self.loops(root), env=dict(os.environ, FIXTURE_ROOT=root.as_posix())).returncode
+
+    @unittest.skipIf(os.name == 'nt', 'needs a Linux bash')
+    def test_the_mask_loop_accepts_only_the_update_routes_unmasked_finalizers(self):
+        static = dict.fromkeys(FINALIZERS, 'static')
+        self.assertEqual(self.check(), 0)  # every unit masked, as in a fresh image
+        self.assertEqual(self.check(states=static), 0)
+        # Another unit static, a finalizer still linked in /etc, no image mask, or running: refused.
+        self.assertNotEqual(self.check(states=dict(static, **{'uupd.timer': 'static'})), 0)
+        self.assertNotEqual(self.check(states=static, etc_masks=FINALIZERS[:1]), 0)
+        self.assertNotEqual(self.check(states=static, image_masks=FINALIZERS[1:]), 0)
+        self.assertNotEqual(self.check(states=static, active={FINALIZERS[0]: 'active'}), 0)
+
+    @unittest.skipIf(os.name == 'nt', 'needs Linux symlinks')
+    def test_the_audit_accepts_besides_its_allowlist_only_those_finalizers(self):
+        text = (ROOT / 'os/tests/guest.sh').read_text()
+        body = text.split("python3 - <<'PY'\nimport importlib.machinery", 1)[1].split('\nPY\n', 1)[0]
+        body = 'import importlib.machinery' + body
+        allowlist = json.loads((ROOT / 'os/policy/updater-allowlist.json').read_text())
+        allowed = next(iter(allowlist))
+
+        def unit(name, state, **values):
+            return dict(dict(scope='system', name=name, state=state, suspicious=True, commands=[], sources=[],
+                             active_state='inactive', load_state='loaded', sub_state='dead'), **values)
+
+        def run(units, image_masks=FINALIZERS, etc_masks=()):
+            with tempfile.TemporaryDirectory(dir=ROOT / 'os/tests') as directory:
+                root = pathlib.Path(directory)
+                for name in ('usr-etc', 'etc'):
+                    (root / name).mkdir()
+                for name in image_masks:
+                    os.symlink('/dev/null', root / 'usr-etc' / name)
+                for name in etc_masks:
+                    os.symlink('/dev/null', root / 'etc' / name)
+                (root / 'audit.py').write_text((ROOT / 'os/tests/audit.py').read_text()
+                    + '\n\ndef inventory(root=None, live=False):\n    assert live\n    return ' + repr(units) + '\n')
+                (root / 'allowlist.json').write_text(json.dumps(allowlist))
+                source = body
+                for old, new in (('/usr/libexec/aresos-audit', (root / 'audit.py').as_posix()),
+                                 ('/usr/share/aresos/policy/updater-allowlist.json', (root / 'allowlist.json').as_posix()),
+                                 ('/run/aresos-updaters.json', (root / 'updaters.json').as_posix()),
+                                 ('/usr/etc/systemd/system/', (root / 'usr-etc').as_posix() + '/'),
+                                 ("'/etc/systemd/system/'", repr((root / 'etc').as_posix() + '/'))):
+                    self.assertIn(old, source)
+                    source = source.replace(old, new)
+                result = subprocess.run([sys.executable, '-'], input=source, capture_output=True, text=True)
+                self.assertTrue((root / 'updaters.json').exists() or result.returncode != 0)
+                return result
+        finalizers = [unit(name, 'static', load_state=None, active_state=None, sub_state=None) for name in FINALIZERS]
+        masked = [unit('uupd.timer', 'masked'), unit(allowed, 'static')]
+        self.assertEqual(run(masked + [unit(n, 'masked') for n in FINALIZERS]).returncode, 0)
+        self.assertEqual(run(masked + finalizers).returncode, 0, 'unmasked by the update route')
+        for name, units, options in (
+                ('another updater', masked + finalizers + [unit('uupd.service', 'static')], {}),
+                ('a running finalizer', masked + [unit(FINALIZERS[0], 'static', active_state='active', sub_state='exited')], {}),
+                ('no image mask', masked + finalizers, dict(image_masks=FINALIZERS[1:])),
+                ('still linked in /etc', masked + finalizers, dict(etc_masks=FINALIZERS[:1])),
+                ('a user unit of that name', masked + [unit(FINALIZERS[0], 'static', scope='user')], {})):
+            with self.subTest(name):
+                result = run(units, **options)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn('Unreviewed unmasked updater(s)', result.stderr)
+
+
 if __name__ == '__main__':
     unittest.main()

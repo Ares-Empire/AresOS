@@ -52,13 +52,51 @@ if pgrep -x 'kwin_wayland|plasmashell|gnome-shell|powerdevil|gsd-power'; then
     echo 'Competing desktop or power process is running'
     exit 1
 fi
+# `at update` unmasks exactly ostree's and bootc's staging finalizers: the
+# image masks them and bootc cannot stage a release while they are masked
+# (os/release/update.sh, package 27). Either may therefore be the image's mask
+# or unmasked by that route: the image's /usr/etc mask with this deployment's
+# /etc link removed, static and inactive. Every other listed unit stays masked.
+finalizer_unmasked_by_update() {
+    [[ $1 == ostree-finalize-staged.service || $1 == bootc-finalize-staged.service ]] &&
+        [[ $(readlink "/usr/etc/systemd/system/$1") == /dev/null ]] &&
+        [[ ! -e /etc/systemd/system/$1 && ! -L /etc/systemd/system/$1 ]] &&
+        [[ $(systemctl is-enabled "$1" 2>/dev/null || true) == static ]] &&
+        [[ $(systemctl show -P ActiveState "$1") == inactive ]]
+}
 while read -r unit; do
-    test "$(systemctl is-enabled "$unit" 2>/dev/null || true)" = masked
+    finalizer_unmasked_by_update "$unit" || test "$(systemctl is-enabled "$unit" 2>/dev/null || true)" = masked
 done < /usr/share/aresos/policy/masked-system-units.txt
 while read -r unit; do
     test "$(systemctl --global is-enabled "$unit" 2>/dev/null || true)" = masked
 done < /usr/share/aresos/policy/masked-user-units.txt
-python3 /usr/libexec/aresos-audit --live --output /run/aresos-updaters.json
+# The image's own updater audit (aresos-audit --live), which accepts besides
+# its allowlist only the finalizers unmasked by the update route, as above.
+python3 - <<'PY'
+import importlib.machinery, importlib.util, json, os, pathlib
+loader = importlib.machinery.SourceFileLoader('aresos_audit', '/usr/libexec/aresos-audit')
+audit = importlib.util.module_from_spec(importlib.util.spec_from_loader('aresos_audit', loader))
+loader.exec_module(audit)
+allowlist = json.loads(pathlib.Path('/usr/share/aresos/policy/updater-allowlist.json').read_text())
+units = audit.inventory(live=True)
+pathlib.Path('/run/aresos-updaters.json').write_text(json.dumps(units, indent=2) + '\n')
+
+
+def unmasked_by_update(unit):
+    name = unit['name']
+    image_mask = '/usr/etc/systemd/system/' + name
+    return (unit['scope'] == 'system' and name in ('ostree-finalize-staged.service', 'bootc-finalize-staged.service')
+            and unit['state'] == 'static' and unit.get('active_state') in (None, 'inactive')
+            and unit.get('sub_state') in (None, 'dead')
+            and os.path.islink(image_mask) and os.readlink(image_mask) == '/dev/null'
+            and not os.path.lexists('/etc/systemd/system/' + name))
+
+
+rejected = [unit for unit in audit.offenders(units, allowlist) if not unmasked_by_update(unit)]
+if rejected:
+    raise SystemExit('Unreviewed unmasked updater(s): ' + json.dumps(rejected))
+print(f'Updater audit passed: {len(units)} system/user units inspected')
+PY
 for target in sleep suspend hibernate hybrid-sleep suspend-then-hibernate; do
     if systemctl start "$target.target"; then
         echo "Unexpectedly started $target.target"
