@@ -24,8 +24,7 @@ No browser, Chromium, profile or container was started on this Mac. The scratch 
 
 Counts: **1 blocking, 5 should-fix, 6 nit.**
 
-CI check: PR run **42773249076** (head `ab7aba92`): **61/61** named cases have exactly one `<name> PASS` line in **both** jobs, with zero `FAIL` lines. Python `Ran 171 tests … OK` (560.114 s external, 712.744 s policy). Node `# tests 148 / pass 148 / fail 0 / cancelled 0 / skipped 0`. The preliminary smoke, owner input and three page-forgery PASS lines are present in both jobs. This matches the report.
-Run **42786714089** (head `60b94384`): see the last section.
+CI check: **61/61** named cases in all four jobs of push run **42773242428** and PR run **42773249076**, on `ab7aba92`, whose runtime and harness are identical to `60b94384`. The report's claim holds. `60b94384`'s own pair (42786706317 and 42786714089) was **cancelled** before any job finished. Details in the last section.
 
 ---
 
@@ -223,10 +222,25 @@ In `matrices.mjs:297-300` (`excluded-form`, method `get`), a GET submission repl
   - native window lists and focus are unchanged across Stop.
 - **Badges** are read from `chrome.action.getBadgeText`, Chrome's own state, not the extension's map.
 - **Receiver independence:** apart from F12, the asking cases end in `approval()` (0, then 1, then 1 on the fixture's own log) or explicit `counts` checks. `audit-evidence.py` cross-checks 135 adapter sequences against raw `receiver.jsonl`.
-- **CI run 42773249076:** both jobs carry exactly 61/61 named PASS lines, no FAIL lines, Python 171 OK, Node 148 with 0 skipped. Both install modes really used their install path (`prepare.mjs`; different extension IDs per job). This matches the report's figures.
+- **CI runs 42773242428 and 42773249076:** all four jobs carry exactly 61/61 named PASS lines, with no FAIL lines, Python 171 OK and Node 148 with 0 skipped. Both install modes really used their install path (`prepare.mjs`; different extension IDs per job). This matches the report's figures. Details below.
 
-## CI on the real head, run 42786714089
+## CI evidence
 
-PENDING_HEAD_RUN
+**`60b94384`'s own pair was cancelled.** Push run 42786706317 and PR run 42786714089 both ended `cancelled` at about 09:59Z, both jobs of each, before any job finished. They were superseded by the fix build. So there is **no completed Chrome run on `60b94384` itself**.
+
+The evidence therefore comes from the identical runtime at `ab7aba92`. `git diff ab7aba92 60b94384 -- control .github docs` is empty: only reports and retained evidence changed. The named-case inventory (`control/chrome/ci/verdicts.mjs`) is byte-identical at both commits.
+
+I counted each job's log (`gh run view <id> --log`) against the `ab7aba92` inventory: `REQUIRED` plus `SUPPORT`, 61 names. A name counts only if exactly one line reads `<name> PASS`.
+
+| Run | Event | Job | Named PASS | Missing | FAIL / recovery lines | Python | Node |
+|---|---|---|---|---|---|---|---|
+| 42773242428 | push | external | **61/61** | none | 0 | 171 OK (720.207 s) | 148/148, 0 skipped or cancelled |
+| 42773242428 | push | policy | **61/61** | none | 0 | 171 OK (682.283 s) | 148/148, 0 skipped or cancelled |
+| 42773249076 | PR | external | **61/61** | none | 0 | 171 OK (560.114 s) | 148/148, 0 skipped or cancelled |
+| 42773249076 | PR | policy | **61/61** | none | 0 | 171 OK (712.744 s) | 148/148, 0 skipped or cancelled |
+
+Each job also has one `GROUP 8 owner input PASS`, three `GROUP 7 page forgery PASS` lines (page-forgery, hostile, relay-hostile) and the preliminary-smoke line. Those feed `baseline.owner`, `baseline.forgery` and `baseline.residual`. Both runs concluded `success`, with both jobs `success`.
+
+The lead's 61/61 claim is confirmed. **The count changes no finding.** In particular, F5 still stands: these four jobs happen to be complete, but CI would have stayed green had any named case not run. Their completeness is established only by this kind of out-of-band count, or by `audit-evidence.py`.
 
 CHANGES-NEEDED
