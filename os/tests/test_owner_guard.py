@@ -207,7 +207,9 @@ class GuardTest(unittest.TestCase):
         self.assertEqual(native['run'].count(retry),1)
         self.assertLess(native['run'].index(retry),native['run'].index(browser))
         self.assertIn('.work/browser-env/bin/pip --retries 5 --timeout 60 install playwright==1.58.0',native['run'])
-        self.assertEqual(steps['Install pinned rehearsal tools on disposable runner']['timeout-minutes'],'20')
+        # Package 27's update rehearsal waits as long as its release job (test_release27.AptPatienceTest).
+        self.assertEqual(steps['Install pinned rehearsal tools on disposable runner']['timeout-minutes'],
+            "${{ inputs.rehearsal == 'update' && 40 || 20 }}")
         self.assertEqual(steps['Prepare disposable file disks and qualify the real live environment']['timeout-minutes'],
             "${{ inputs.rehearsal == 'update' && 270 || inputs.rehearsal == 'owner-tools' && 200 || (inputs.rehearsal == 'part-b' || inputs.rehearsal == 'keyboard') && 106 || 80 }}")
         reservation=limits.replace('&& 70','&& 72').replace('|| 40','|| 42')
