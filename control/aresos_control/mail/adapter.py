@@ -735,21 +735,41 @@ class Mail:
                 self.composition({"composition_id": comp["id"], "composition_hash": comp["hash"]})
 
     def sent_matches(self, account, message_id):
-        folder = account["special"].get("sent")
-        if not folder:
-            raise Refused("unsupported_server", "SPECIAL-USE Sent missing; sending cannot safely check Message-ID evidence.")
-        with self.transport.imap(account) as client:
-            # Transport.imap creates and logs out a new connection per call.
-            # In particular, settlement never searches on the APPEND session.
-            self.fresh_roles(account, client)
-            validity = select(client, folder)
-            ids = ok(client.uid("SEARCH", None, "HEADER", "Message-ID", quote(message_id)), "Search Sent evidence")[0]
-            result = []
-            for uid in (ids or b"").split():
-                raw, flags, _ = fetch_headers(client, int(uid))
-                if str(codec.parse(raw, {"account": account["id"], "folder": folder, "uid": int(uid)}).get("Message-ID", "")) == message_id:
-                    result.append({"account": account["id"], "folder": folder, "uidvalidity": validity, "uid": int(uid), "message_id": message_id})
-            return result
+        reading_sent = False
+        try:
+            folder = account["special"].get("sent")
+            if not folder:
+                raise Refused("unsupported_server", "SPECIAL-USE Sent missing; sending cannot safely check Message-ID evidence.")
+            with self.transport.imap(account) as client:
+                # Transport.imap creates and logs out a new connection per call.
+                # In particular, settlement never searches on the APPEND session.
+                self.fresh_roles(account, client)
+                validity = select(client, folder)
+                reading_sent = True
+                ids = ok(client.uid("SEARCH", None, "HEADER", "Message-ID", quote(message_id)), "Search Sent evidence")[0]
+                result = []
+                for uid in (ids or b"").split():
+                    raw, flags, _ = fetch_headers(client, int(uid))
+                    if str(codec.parse(raw, {"account": account["id"], "folder": folder, "uid": int(uid)}).get("Message-ID", "")) == message_id:
+                        result.append({"account": account["id"], "folder": folder, "uidvalidity": validity, "uid": int(uid), "message_id": message_id})
+                return result
+        except (Refused, OSError, imaplib.IMAP4.error) as exc:
+            if not reading_sent:
+                exc.sent_evidence_unread = True
+            raise
+
+    def unavailable_sent_check(self, operation, error):
+        if not getattr(error, 'sent_evidence_unread', False):
+            return
+        op = self.store.get('op:' + operation['id'])
+        if op.get('sent_copy_check', {}).get('state') != 'open':
+            return
+        op['sent_copy_check'] = {'state': 'open', 'unavailable': True}
+        try:
+            self.store.write({'op:' + op['id']: op}, 'mail_sent_copy_check',
+                             'Sent evidence unavailable before its search; check remains open', op['id'], recovery=True)
+        except (Refused, OSError, sqlite3.Error) as exc:
+            self.store.observations.storage(exc)
 
     def register_sent_check(self, operation):
         key = 'op:' + operation['id']
@@ -831,7 +851,8 @@ class Mail:
                     if active:
                         self.store.observations.observe(op['id'], {'sent': matches})
                 self.sent_copy_count(op, matches, commit_clean=True)
-            except (Refused, OSError, sqlite3.Error, imaplib.IMAP4.error, Uncertain, KeyError, TypeError, ValueError):
+            except (Refused, OSError, sqlite3.Error, imaplib.IMAP4.error, Uncertain, KeyError, TypeError, ValueError) as exc:
+                self.unavailable_sent_check(op, exc)
                 unresolved.append(self.unchecked_sent_notice(op))
         return unresolved
 
@@ -853,7 +874,7 @@ class Mail:
         for key, op in view.iter_items('op:'):
             check = op.get('sent_copy_check', {})
             if op['app'] == 'mail' and (check.get('state') == 'open' or
-                    check and (self.store.write_failed or self.store.locked) and key not in warnings):
+                    check and (self.store.write_failed or self.store.locked or getattr(self.store, 'owner_read_failed', False)) and key not in warnings):
                 yield self.unchecked_sent_notice(op)
 
     def evidence(self, operation_id):
@@ -876,7 +897,7 @@ class Mail:
             result['sent_copy_warning'] = op['stages']['sent_copy_warning']
         self.store.observations.observe(op['id'], result)
         try:
-            self.sent_copy_count(op, matches, commit_clean=op['state'] in {'done', 'failed', 'refused'})
+            self.sent_copy_count(op, matches, commit_clean=op['state'] not in {'reserved', 'submitting'})
         except (Refused, OSError, sqlite3.Error) as exc:
             storage = storage_refusal(exc)
             if storage is None and isinstance(exc, (OSError, sqlite3.Error)):
@@ -1296,7 +1317,15 @@ class Mail:
             return location_page(self.store, args)
         if verb == "filing_notices":
             from .filing import notice_page
-            return notice_page(self.store, args, app="mail", checks=self.resolve_sent_checks())
+            try:
+                checks = self.resolve_sent_checks()
+            except (OSError, sqlite3.Error) as exc:
+                if storage_refusal(exc) is None:
+                    raise
+                self.store.observations.storage(exc)
+                self.store.owner_read_failed = True
+                checks = tuple(self.unresolved_sent_checks())
+            return notice_page(self.store, args, app="mail", checks=checks)
         if verb == "account_folders":
             account = self.account(args["id"], ready=False)
             with self.transport.imap(account) as client:
@@ -1346,7 +1375,8 @@ class Mail:
             self.store.write({"mail:account:" + args["id"]: account}, "mail_account_settings", "owner set Mail habits/Sent policy")
             return {"account": self.public_account(account)}
         if verb == "accounts":
-            return {"accounts": [self.public_account(a) for _, a in self.store.items("mail:account:")]}
+            from ..owner_state import owner_view
+            return {"accounts": [self.public_account(a) for _, a in owner_view(self.store).iter_items("mail:account:")]}
         if verb == "search":
             return self.search(args)
         if verb == "read":

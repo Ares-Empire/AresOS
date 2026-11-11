@@ -11,6 +11,7 @@ import hashlib
 import json
 import os
 import re
+import sqlite3
 from pathlib import Path
 import struct
 import zlib
@@ -55,7 +56,7 @@ def facts(value, field=''):
 
 
 def fact(key, value):
-    if value is None or key in KEYS:
+    if value is None or key in KEYS or key.startswith('archived:'):
         return copy.deepcopy(value)
     row = {k: facts(v, k) for k, v in value.items() if k in FIELDS and k not in TEXT}
     if 'context' in row:
@@ -67,6 +68,14 @@ def fact(key, value):
     if 'reason' in value:
         row['reason_code'] = digest(value['reason'])
         reason = value['reason']
+        if reason.startswith('Restored log:'):
+            row['reason_kind'] = 'restored'
+        for code, text in (
+                ('expired', 'expired: nothing submitted'),
+                ('cancelled', 'cancelled: nothing submitted'),
+                ('repair_uncertain', 'Local repair uncertain; inspect far-side stage evidence. Never submit.')):
+            if reason == text:
+                row['reason_kind'] = code
         if reason.endswith(' Missing local stages; repair without SMTP.'):
             row['reason_kind'] = 'smtp_partial_local' if reason.startswith('Some recipients refused;') else 'smtp_local'
     if 'folder_delete_reason' in value:
@@ -151,6 +160,8 @@ def unpack_identity(data, offset=0):
 
 
 def record_kind(event, key, value):
+    if event['action'] == 'control_maintenance_check_open' and key == 'notice:background-storage':
+        return 'check-open'
     if value is None or not isinstance(value, dict):
         return 'resolution'
     action = event['action']
@@ -227,6 +238,19 @@ class OwnerProjection:
 
     def fence(self, seq):
         return next(r for r in self.journal_records() if r['seq'] == seq)
+
+    def committed_head(self):
+        # A failed fsync/cleanup may leave a complete commit marker on disk.
+        # Read disclosures use those verified bytes, not the writer's latch.
+        head = 0
+        with self.read(self.store.journal.name) as stream:
+            for line in stream:
+                if not line.endswith(b'\n'):
+                    break
+                row = json.loads(line)
+                if 'commit' in row:
+                    head = row['commit']
+        return head
 
     def _fences(self):
         for record in self.journal_records():
@@ -353,7 +377,7 @@ class OwnerProjection:
             old = self.store.get(key)
             new = fact(key, value)
             previous = previous_rows.get(key) if event.get('restoring') else fact(key, old)
-            if new == previous and not (event['action'] in {'mail_sent_copy_check_open', 'mail_filing_check_open'} and key.startswith(('op:', 'mail:filing:', 'mail:rename:'))):
+            if new == previous and not (event['action'] in {'mail_sent_copy_check_open', 'mail_filing_check_open', 'mail_filing_check', 'mail_sent_copy_check'} and key.startswith(('op:', 'mail:filing:', 'mail:rename:'))):
                 continue
             kind = record_kind(event, key, value)
             data[key] = {'kind': kind, 'facts': new}
@@ -379,15 +403,16 @@ class OwnerProjection:
                 self.previous = self._append(self.path, self.store.committed, data, self.previous)
 
     def records(self):
+        committed = self.committed_head()
         seen = set()
         for seq, data, _, _ in self._records(self.path):
-            if seq <= self.store.committed:
+            if seq <= committed:
                 seen.add(seq)
                 yield seq, {key: row['facts'] for key, row in data.items()}
         runs = {}
         for run, _, _, _ in self.stones():
             runs[run['name']] = run
-        missing = {r['seq'] for r in self.journal_records() if r.get('owner') and r['seq'] <= self.store.committed} - seen
+        missing = {r['seq'] for r in self.journal_records() if r.get('owner') and r['seq'] <= committed} - seen
         for run in runs.values():
             missing.discard(run['seq'])
             for entry in self._export(run['name'], run['sha256']):
@@ -403,6 +428,53 @@ class OwnerProjection:
 
     def iter_items(self, prefix=''):
         cursor = ''
+        paths = (self.path, self.tombstones, self.store.evidence_dir / 'operations.jsonl')
+        signature = tuple((p.stat().st_size, p.stat().st_mtime_ns) if p.exists() else None for p in paths)
+        if signature != getattr(self, '_small_signature', None):
+            small, sizes = {}, {}
+            for _, changes in self.records():
+                for key, value in changes.items():
+                    if value is None:
+                        small.pop(key, None)
+                        sizes.pop(key, None)
+                    else:
+                        small[key] = value
+                        sizes[key] = len(canonical(value).encode())
+                if len(small) > 32 or sum(sizes.values()) > 65536:
+                    small = None
+                    break
+            if small is not None:
+                # A fixed-size read cache avoids reopening the same evidence
+                # for every prefix during an unreadable-database response.
+                # Every file change invalidates it; it carries no authority.
+                self._small_signature, self._small_rows = signature, small
+        if signature == getattr(self, '_small_signature', None):
+            for key, value in sorted(self._small_rows.items()):
+                if key.startswith(prefix):
+                    yield key, copy.deepcopy(value)
+            return
+        index = self.store.index
+        if index is not None and not self.store.write_failed:
+            try:
+                if signature != getattr(self, '_index_signature', None):
+                    self.store.ledger.admit(self.path.stat().st_size * 3 + 65536)
+                    with index:
+                        index.execute('DELETE FROM owner_rows')
+                        for _, changes in self.records():
+                            for key, value in changes.items():
+                                if value is None:
+                                    index.execute('DELETE FROM owner_rows WHERE k=?', (key,))
+                                else:
+                                    index.execute('INSERT OR REPLACE INTO owner_rows VALUES (?,?)', (key, canonical(value)))
+                    self._index_signature = signature
+                for key, value in index.execute('SELECT k,v FROM owner_rows WHERE substr(k,1,?)=? ORDER BY k', (len(prefix), prefix)):
+                    cursor = key
+                    yield key, json.loads(value)
+                return
+            except (OSError, sqlite3.Error, Refused) as exc:
+                if not isinstance(exc, sqlite3.Error) and storage_refusal(exc) is None:
+                    raise
+                self.store.observations.storage(exc)
         while True:
             batch = {}
             for _, changes in self.records():
@@ -424,8 +496,9 @@ class OwnerProjection:
 
     def open_epoch(self, key):
         epoch = None
+        committed = self.committed_head()
         for seq, data, _, _ in self._records(self.path):
-            if seq > self.store.committed or key not in data:
+            if seq > committed or key not in data:
                 continue
             row = data[key]
             value = row['facts'] or {}
@@ -441,9 +514,10 @@ class OwnerProjection:
         # SQLite-only audit prose is explicitly replaced by generated wording.
         active = iter(self._records(self.path))
         current = next(active, None)
+        committed = self.committed_head()
         for fence in self.journal_records():
             seq = fence['seq']
-            if seq > self.store.committed:
+            if seq > committed:
                 break
             while current and current[0] < seq:
                 current = next(active, None)
@@ -509,6 +583,7 @@ class OwnerProjection:
         fence = self.fence(run['seq'])
         if fence.get('owner') and fence['owner'] != self.publication_hash(data):
             raise Refused('evidence_corrupt', 'Archive publication has uncovered owner facts.')
+        return {k: row['facts'] for k, row in data.items()}
 
     def stones(self, path=None):
         path = path or self.tombstones
@@ -568,6 +643,7 @@ class OwnerProjection:
     def retired(self, full=False):
         for run, stone, _, _ in self.stones():
             if stone is None:
+                yield run['seq'], self.verify_publication(run)
                 continue
             key, value = stone['key'], stone['value']
             changes = {key: None if key.startswith('op:') else value}
@@ -622,8 +698,10 @@ class OwnerProjection:
                 retired_keys.add('archived:' + source[3:])
         groups = {}
         for source, record in available.items():
-            if source not in existing and not source.startswith('intent:archive-'):
-                groups.setdefault(record[0], []).append(source)
+            if source not in existing:
+                group = groups.setdefault(record[0], [])
+                if not source.startswith('intent:archive-'):
+                    group.append(source)
         temporary = self.path.with_suffix('.partial')
         stone_temp = self.tombstones.with_suffix('.partial')
         self.store.ledger.admit(self.path.stat().st_size * 3 + (self.tombstones.stat().st_size if self.tombstones.exists() else 0) + 65536)
@@ -644,7 +722,7 @@ class OwnerProjection:
                     if stream.write(encoded) != len(encoded):
                         raise OSError(28, 'Short owner tombstone write')
                 for name, sources in groups.items():
-                    _, manifest, rows, entries = available[sources[0]]
+                    _, manifest, rows, entries = next(value for value in available.values() if value[0] == name)
                     run = {'name': name, 'sha256': manifest['sha256'], 'seq': self.store.committed}
                     emit(b'\1' + canonical(run).encode(), bytes.fromhex(self.fence(self.store.committed)['hash']))
                     associated = {}

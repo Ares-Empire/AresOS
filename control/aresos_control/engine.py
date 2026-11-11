@@ -59,7 +59,15 @@ class Engine:
     def notices(self, app=None, resolve_checks=True):
         from .mail.filing import notice_page
         mail = self.adapters['mail']
-        page = notice_page(self.store, app=app, checks=mail.resolve_sent_checks() if resolve_checks else mail.unresolved_sent_checks())
+        try:
+            checks = mail.resolve_sent_checks() if resolve_checks else tuple(mail.unresolved_sent_checks())
+        except (OSError, sqlite3.Error) as exc:
+            if storage_refusal(exc) is None:
+                raise
+            self.store.observations.storage(exc)
+            self.store.owner_read_failed = True
+            checks = tuple(mail.unresolved_sent_checks())
+        page = notice_page(self.store, app=app, checks=checks)
         if not page['items']:
             return {}
         result = {'notices': page['items']}
@@ -81,6 +89,7 @@ class Engine:
 
     def _pending(self, app=None, args=None, resolve_checks=True):
         from .owner_state import owner_view
+        self.store.refresh_restore()
         view = owner_view(self.store)
         notices = self.notices(resolve_checks=resolve_checks)
         def rows():
@@ -114,7 +123,9 @@ class Engine:
             # Store.write/_append latch once a transaction may have started.
             # A ledger refusal before any write needs only the owner notice.
             notice_id = 'background-storage'
-            notice = {'id': notice_id, 'app': 'mail', 'state': 'partial', 'ack': False,
+            from .owner_state import owner_view
+            old = owner_view(self.store).get('notice:' + notice_id)
+            notice = old or {'id': notice_id, 'app': 'mail', 'state': 'partial', 'ack': False,
                       'created_at': time.time_ns(), 'untrusted_content': {'reason': str(error)}}
             self.store.defer_notice(notice_id, {'notice:' + notice_id: notice},
                                     'control_maintenance', 'Background storage failure')
@@ -123,9 +134,34 @@ class Engine:
             logging.getLogger(__name__).error('Background maintenance failed; inspect service state.')
 
     def expire(self):
+        if self.store.locked or self.store.write_failed:
+            return
+        # Admit the whole maintenance attempt before its first journal write.
+        # The open check is the durable generic warning if the disk then fails;
+        # no cleanup/expiry work is allowed to precede that commitment.
+        from .storage import CHECK_RESULT_BYTES
+        key = 'notice:background-storage'
+        self.store.ledger.admit(CHECK_RESULT_BYTES * 2)
+        previous = self.store.get(key)
+        notice = previous or {'id': 'background-storage', 'app': 'mail',
+            'state': 'partial', 'ack': False, 'created_at': time.time_ns(),
+            'check_kind': 'maintenance', 'check_open': True,
+            'untrusted_content': {'maintenance_check': True, 'reason':
+                'Background maintenance has no committed result. Storage may have failed; inspect the log and disk before continuing.'}}
+        self.store.write({key: notice}, 'control_maintenance_check_open',
+            'Maintenance result is not yet committed', recovery=True)
+        completed = False
         try:
             self._expire()
+            completed = True
+            self.store.write({key: previous}, 'control_maintenance_check_result',
+                             'Maintenance finished', recovery=True)
         except Exception as exc:
+            if completed and not any(k == key for k, _ in self.store.owner_projection.iter_items(key)):
+                # The resolving marker can be confirmed from the independent
+                # bytes even when its fsync/close reported an error (D4).
+                self.store.observations.storage(exc)
+                raise
             self.background_error(exc)
             raise
 
@@ -285,6 +321,8 @@ class Engine:
                                     + time.strftime('%Y-%m-%d %H:%M:%S UTC', time.gmtime(retry))
                                     + f' (Unix {retry:.3f}); the earlier APPEND may still land.')
         warning = op.get('stages', {}).get('sent_copy_warning')
+        if isinstance(warning, dict) and warning.get('code') == 'sent_copies':
+            warning = f"Sent contains {warning.get('count')} copies. Nothing was deleted. Check your mail program."
         if warning:
             result['reason'] += ' ' + warning
         return approval_order(result)
@@ -487,13 +525,14 @@ class Engine:
         if action.effect in {"send", "delete"}:
             return self.submit(action, args)
         if verb == "operation_status":
-            if self.store.locked or self.store.write_failed:
-                from .owner_state import owner_view
-                op = owner_view(self.store).get('op:' + args['operation_id'])
+            from .owner_state import owner_view
+            op = owner_view(self.store).get('op:' + args['operation_id'])
+            if self.store.locked or self.store.write_failed or op and op.get('approval') == {'unavailable': True}:
                 if op is None or op['app'] != app:
                     raise Refused('stale_reference', 'Operation is not in the committed owner state.')
                 return {'operation': self.public_operation(op), 'evidence': {'absence_is_not_proof': True, 'unavailable': True}}
-            op = self.operation(args["operation_id"], app)
+            if op is None or op['app'] != app:
+                raise Refused('stale_reference', 'Operation is not in the committed owner state.')
             result = {}
             try:
                 result["evidence"] = adapter.evidence(op["id"])
@@ -506,6 +545,8 @@ class Engine:
                     op['stages']['sent_copy_warning'] = warning
             except (Refused, OSError, sqlite3.Error, imaplib.IMAP4.error, Uncertain) as exc:
                 storage = self.store.observations.error or storage_refusal(exc)
+                if storage is not None:
+                    self.store.observations.storage(storage)
                 result["evidence_error"] = {"code": getattr(storage or exc, "code", "transport_error"),
                     "message": "Live evidence is not yet checked. " + (str(storage) if storage else
                                "Server evidence is unavailable; inspect the recorded operation and your mail program.")}
@@ -613,6 +654,7 @@ class Engine:
         self.store.check_sessions = set()
         try:
             self.store.observations = Observations()
+            self.store.owner_read_failed = False
             self.pending(resolve_checks=False)
             try:
                 if not isinstance(request, dict) or request.get('action') not in {'control_archive', 'control_restore_confirm'}:
@@ -621,6 +663,11 @@ class Engine:
                 self.store.remember_storage(exc)
                 self.store.observations.storage(exc)
             result = self._admitted_request(request, admin)
+            if isinstance(request, dict) and request.get('method') == 'mail_account_add' and not result['ok']:
+                from .owner_state import owner_view
+                account = owner_view(self.store).get('mail:account:' + request.get('arguments', {}).get('id', ''))
+                if account is not None and account.get('onboarded'):
+                    result.setdefault('data', {})['account'] = self.adapters['mail'].public_account(account)
             if self.store.observations.error is not None or result.get('error', {}).get('code') in {'storage_limit', 'storage_error', 'journal_incomplete'}:
                 result['pending'] = self.pending(resolve_checks=False)
             return self.store.observations.finish(result, self.store)

@@ -419,7 +419,12 @@ def file_messages(mail, account, client, verb, refs, target, names, needed):
     reason = warning(verb, listed, observed, changed)
     intent.update(reason=reason, locations=observed, roles_after=listed,
                   observed_role=folder_role(target, listed))
+    intent['reason'] += ' The target ' + short_name(target) + ' is now ' + intent['observed_role'] + '.'
+    if any(not item['scan_complete'] for item in observed):
+        intent['check_open'] = True
     content = summary(intent)
+    if intent.get('check_open'):
+        content['scan_complete'] = False
     notice = {'id': intent_id, 'app': 'mail', 'state': 'partial', 'untrusted_content': content,
               'ack': False, 'created_at': time.time_ns()}
     pages = location_pages(observed)

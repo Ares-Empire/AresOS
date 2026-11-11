@@ -70,8 +70,6 @@ def recovery_notices(store, include_checks=True):
     for key, notice_id, app, reason in sources:
         filing = key.startswith(('mail:filing:', 'mail:rename:'))
         account = key.startswith('mail:account:')
-        operation = store.get(key) if key.startswith('op:') else None
-        legacy = operation is not None and not operation.get('context_version')
         if filing:
             reason = ('Filing roles and locations are not yet checked. The interrupted check has no committed result. '
                       'Messages or folders may have moved into a special folder, including Trash. '

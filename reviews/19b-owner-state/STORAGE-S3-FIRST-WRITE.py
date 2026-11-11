@@ -35,6 +35,11 @@ with SourceFileLoader('local_policy','reviews/19b-owner-state/STORAGE-S3-LOCAL-P
   g=Gaps(recording=True);d.reply(reply,delivered=False);d.compare(g.checker('maintenance/persistent/1/0/crash-restart'))
   result['gap_count']=len(g.entries)
   result['background_gap_count']=sum('background-storage' in json.dumps(e) for e in g.entries.values())
+  result['maintenance_started']=d.oracle.script[d.call_index].get('maintenance_started', False)
   Path('.work/19b-s3-final/first-write-proof.json').write_text(json.dumps(result,indent=2)+'\n')
   print(json.dumps({k:result[k] for k in ('same_bytes_before_and_after','changed_paths','faults','deferred_notices','after_restart_pending','gap_count','background_gap_count')},indent=2))
+  assert not result['maintenance_started'], 'Maintenance ran without its committed warning gate'
+  assert 'journal.write' not in fault.points, 'The first maintenance journal write started on an unadmitted disk'
+  assert not g.entries, ('First-write recovery lost owner facts', g.entries)
+  print('PASS: first-write failure prevents maintenance; restart loses no owner facts')
  finally:s.close()

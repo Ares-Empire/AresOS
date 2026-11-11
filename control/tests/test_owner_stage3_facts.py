@@ -85,3 +85,21 @@ class OwnerStageThreeFacts(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+class PreparedRestoreProof(unittest.TestCase):
+    def test_prepared_boundary_explains_only_the_recorded_backup_holes(self):
+        from owner_state_oracle.model import Oracle
+        from owner_state_oracle.records import Record
+        oracle = Oracle()
+        oracle.call('control_restore_confirm', {'confirm': 'invalidate earlier approvals'}, 1000)
+        oracle.script[-1].update(start_seq=5, end_seq=6, restore_precondition=True, restore_working_head=3)
+        event = {'seq': 6, 'action': 'control_restore_confirm', 'restore_range': [4, 5]}
+        record = Record(committed=set(range(1, 6)), prepared=[event])
+        self.assertEqual({4, 5}, oracle.prepared_restore_sequences(record))
+        event['restore_range'] = [2, 5]
+        self.assertFalse(oracle.prepared_restore_sequences(record))
+        event['restore_range'] = [4, 6]
+        self.assertFalse(oracle.prepared_restore_sequences(record))
+        event['restore_range'] = [4, 5]
+        oracle.script[-1]['restore_precondition'] = False
+        self.assertFalse(oracle.prepared_restore_sequences(record))

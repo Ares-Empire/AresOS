@@ -20,7 +20,16 @@ class OwnerView:
                 if storage_refusal(exc) is None:
                     raise
                 self.store.observations.storage(exc)
+                self.store.owner_read_failed = True
         if selected(key):
+            if key.startswith('notice:'):
+                from itertools import islice
+                from .retention import NOTICE_COUNT
+                if not hasattr(self, '_notice_rows'):
+                    rows = dict(islice(self.iter_items('notice:'), NOTICE_COUNT + 1))
+                    self._notice_rows = rows if len(rows) <= NOTICE_COUNT else None
+                if self._notice_rows is not None:
+                    return self._notice_rows.get(key, default)
             return next((v for k,v in self.iter_items(key) if k == key), default)
         return self.store.get(key, default)
 
@@ -37,6 +46,7 @@ class OwnerView:
                 if storage_refusal(exc) is None:
                     raise
                 self.store.observations.storage(exc)
+                self.store.owner_read_failed = True
         for key, projected in self.store.owner_projection.iter_items(prefix):
             if key <= last:
                 continue
@@ -46,9 +56,18 @@ class OwnerView:
                 if storage_refusal(exc) is None:
                     raise
                 self.store.observations.storage(exc)
+                self.store.owner_read_failed = True
                 detailed = None
             value = detailed if fact(key, detailed) == projected else self.inflate(key, projected)
-            latest = max((f['seq'] for f in self.store.owner_projection.journal_records() if any(op['id'] == key[3:] for op in f['operations'])), default=0) if key.startswith('op:') and self.store.locked else 0
+            latest = 0
+            if key.startswith('op:') and self.store.locked:
+                try:
+                    found = self.store.index.execute('SELECT seq FROM latest WHERE id=?', (key[3:],)).fetchone() if self.store.index else None
+                    latest = found[0] if found else max((f['seq'] for f in self.store.owner_projection.journal_records() if any(op['id'] == key[3:] for op in f['operations'])), default=0)
+                except (OSError, sqlite3.Error) as exc:
+                    if not isinstance(exc, sqlite3.Error) and storage_refusal(exc) is None:
+                        raise
+                    latest = max((f['seq'] for f in self.store.owner_projection.journal_records() if any(op['id'] == key[3:] for op in f['operations'])), default=0)
             if key.startswith('op:') and self.store.locked and (latest > self.store.restore_head or value.get('state') == 'submitting'):
                 value = {**value, 'state': 'unknown', 'reason': 'Restored log: independent record has newer or missing evidence. Owner must check.'}
             yield key, value
@@ -57,32 +76,30 @@ class OwnerView:
 
     def missing_operations(self, prefix):
         from .storage import missing_operation
-        cursor = ''
         projection = self.store.owner_projection
-        while True:
-            batch = {}
-            for fence in projection.journal_records():
-                for op in fence['operations']:
-                    identity = op['id']
-                    if identity <= cursor or not ('op:' + identity).startswith(prefix):
-                        continue
-                    if identity not in batch and len(batch) == 32:
-                        largest = max(batch)
-                        if identity > largest:
-                            continue
-                        del batch[largest]
-                    batch[identity] = op
-            if not batch:
-                return
-            for identity, known in sorted(batch.items()):
-                if any(k == 'op:' + identity for k,_ in projection.iter_items('op:' + identity)):
-                    continue
-                if any(k == 'archived:' + identity for k,_ in projection.iter_items('archived:' + identity)):
-                    continue
-                yield 'op:' + identity, missing_operation(known)
-            cursor = max(batch)
+        projected = iter(projection.iter_items('op:'))
+        archived = iter(projection.iter_items('archived:'))
+        current = next(projected, None)
+        retired = next(archived, None)
+        # All three streams are sorted by identity. A bounded merge avoids a
+        # complete projection/journal rescan for every restored operation.
+        for identity, _, known in self.store.iter_latest():
+            key = 'op:' + identity
+            if not key.startswith(prefix):
+                continue
+            while current and current[0] < key:
+                current = next(projected, None)
+            archive_key = 'archived:' + identity
+            while retired and retired[0] < archive_key:
+                retired = next(archived, None)
+            if current and current[0] == key or retired and retired[0] == archive_key:
+                continue
+            yield key, missing_operation(known)
 
     def iter_audit(self):
+        if self.store.write_failed or self.store.locked:
+            yield from self.store.owner_projection.audit()
+            return
         try:
             yield from self.store.iter_audit()
         except (OSError, sqlite3.Error) as exc:
@@ -104,6 +121,13 @@ class OwnerView:
                 raise
             self.store.observations.storage(exc)
         if key.startswith('op:'):
+            try:
+                row = self.store.index.execute('SELECT created FROM births WHERE id=?', (key[3:],)).fetchone() if self.store.index else None
+                if row is not None:
+                    return row[0]
+            except (OSError, sqlite3.Error) as exc:
+                if storage_refusal(exc) is None:
+                    raise
             for fence in self.store.owner_projection.journal_records():
                 if any(op['id'] == key[3:] for op in fence['operations']):
                     return fence['time']
@@ -144,12 +168,20 @@ class OwnerView:
                 row['reason'] = 'Delivery evidence is recorded. Missing local stages; repair without SMTP.'
             elif reason_kind == 'smtp_partial_local':
                 row['reason'] = 'Some recipients refused; accepted recipients must never be sent again. Missing local stages; repair without SMTP.'
+            elif reason_kind in {'expired', 'cancelled'}:
+                row['reason'] = reason_kind + ': nothing submitted'
+            elif reason_kind == 'repair_uncertain':
+                row['reason'] = 'Local repair uncertain; inspect far-side stage evidence. Never submit.'
+            elif reason_kind == 'restored':
+                row['reason'] = 'Restored log: independent record has newer or missing evidence. Owner must check.'
         if key.startswith(('mail:filing:', 'mail:rename:')):
             role = row.get('observed_role', 'an unverified role').lstrip('\\')
             row['reason'] = 'Filing needs inspection. Its current location is ' + str(row.get('target', 'unknown')) + ', inside ' + role + '. Nothing was deleted. Check your mail program.'
         if key.startswith('notice:'):
             content = dict(row.get('untrusted_content', {}))
             content['reason'] = 'Evidence needs inspection. Nothing was deleted automatically. Check your mail program.'
+            if row.get('check_kind') == 'maintenance':
+                content['reason'] = 'Background maintenance has no committed result. Storage may have failed; inspect the log and disk before continuing.'
             if row.get('check_kind') in {'rename', 'filing'}:
                 source = self.get(row.get('source_key', '')) or {}
                 role = source.get('observed_role', 'an unverified role').lstrip('\\')

@@ -272,6 +272,7 @@ class Store:
             for op in record['operations']:
                 self.index.execute('INSERT OR REPLACE INTO latest VALUES (?,?,?)',
                                    (op['id'], record['seq'], canonical(op)))
+                self.index.execute('INSERT OR IGNORE INTO births VALUES (?,?)', (op['id'], record['time']))
             self.index.commit()
         self.sequence, self.head_hash = record['seq'], record['hash']
 
@@ -281,6 +282,7 @@ class Store:
         if indexing:
             self.index.execute('DELETE FROM records')
             self.index.execute('DELETE FROM latest')
+            self.index.execute('DELETE FROM births')
         with storage_stream(open(self.journal.name, 'rb')) as stream:
             for raw in stream:
                 if not raw.endswith(b'\n'):
@@ -328,16 +330,20 @@ class Store:
         Keep the next 32 IDs in sort order, rescan for the next window. It is
         slower than an index but needs neither writable disk nor history RAM.
         """
+        cursor = ''
         if self.index is not None:
             through = self.sequence if through is None else through
-            for op_id, seq, encoded in self.index.execute('SELECT id,seq,value FROM latest WHERE seq<=? ORDER BY id', (through,)):
-                yield op_id, seq, json.loads(encoded)
-            return
-        cursor = ''
+            try:
+                for op_id, seq, encoded in self.index.execute('SELECT id,seq,value FROM latest WHERE seq<=? ORDER BY id', (through,)):
+                    cursor = op_id
+                    yield op_id, seq, json.loads(encoded)
+                return
+            except sqlite3.Error as exc:
+                self.observations.storage(exc)
         through = self.sequence if through is None else through
         while True:
             batch = {}
-            for record in self.events:
+            for record in self.owner_projection.journal_records() if self.owner_projection else self.events:
                 if record['seq'] > through:
                     break
                 for op in record['operations']:
@@ -382,7 +388,7 @@ class Store:
                 if key.startswith(('intent:', 'notice:', 'mail:filing:', 'mail:rename:', 'mail:account:')) and not self.owner_projection.same(key, self.get(key), value):
                     budget += record_budget(value)
             self.ledger.holds['restore'] = budget
-        for prefix in ('op:', 'intent:', 'mail:filing:', 'mail:rename:'):
+        for prefix in ('op:', 'intent:', 'mail:filing:', 'mail:rename:', 'notice:'):
             for key, value in self.iter_items(prefix):
                 if (value.get('check_open') or value.get('sent_copy_check', {}).get('state') == 'open' or
                         prefix in {'mail:filing:', 'mail:rename:'} and value.get('state') == 'started'):
@@ -464,7 +470,9 @@ class Store:
                 index.execute('PRAGMA synchronous=OFF')
                 index.execute('PRAGMA cache_size=-1024')
                 index.executescript('CREATE TABLE records (seq INTEGER PRIMARY KEY, hash TEXT NOT NULL, offset INTEGER NOT NULL);'
-                                    'CREATE TABLE latest (id TEXT PRIMARY KEY, seq INTEGER NOT NULL, value TEXT NOT NULL);')
+                                    'CREATE TABLE latest (id TEXT PRIMARY KEY, seq INTEGER NOT NULL, value TEXT NOT NULL);'
+                                    'CREATE TABLE births (id TEXT PRIMARY KEY, created REAL NOT NULL);'
+                                    'CREATE TABLE owner_rows (k TEXT PRIMARY KEY, v TEXT NOT NULL);')
                 self.index = index
                 self._read_journal(indexing=True)
             except BaseException as exc:
@@ -528,6 +536,9 @@ class Store:
         record = event["record"]
         self._append({"commit": record["seq"], "hash": record["hash"]})
         self.committed = record["seq"]
+        if event['action'] == 'control_restore_confirm' and event['set'].get('generation') and event['set'].get('restore_pending') is None:
+            self.locked = False
+            self.ledger.holds.pop('restore', None)
         self.checkpoint("journal_committed")
 
     @recorded_write
@@ -542,6 +553,11 @@ class Store:
                     for field in ('context', 'context_version'):
                         if field not in value and field in previous:
                             value = {**value, field: previous[field]}
+                    if (key.startswith('op:') and previous.get('sent_copy_check', {}).get('state') == 'checked' and
+                            value.get('sent_copy_check', {}).get('state') == 'open' and
+                            action != 'mail_sent_copy_check_open' and (untrusted_content or {}).get('stage') != 'smtp_data'):
+                        value = {**value, 'sent_copy_check': previous['sent_copy_check'],
+                                 'warning_checks': previous.get('warning_checks', {})}
                     changes[key] = value
         if any(key.startswith(('mail:filing:', 'mail:rename:')) for key in changes):
             self._open_filings = None
@@ -590,7 +606,7 @@ class Store:
         # A warning-producing read owns its result space before the remote
         # evidence is requested. A failed result leaves this right and source.
         for key, value in changes.items():
-            if not key.startswith(('op:', 'intent:', 'mail:filing:', 'mail:rename:')):
+            if not key.startswith(('op:', 'intent:', 'mail:filing:', 'mail:rename:', 'notice:')):
                 continue
             held_key = 'check:' + key
             opened = isinstance(value, dict) and (value.get('check_open') or
@@ -648,7 +664,7 @@ class Store:
             remaining = self.ledger.holds.get('restore', 0) - cost
             if remaining < 0:
                 raise Refused('storage_limit', 'Restore confirmation exceeds its held reservation; free storage before confirming.')
-            updates['restore'] = remaining
+            updates['restore'] = 0 if changes.get('generation') and changes.get('restore_pending') is None else remaining
             consume = []
             event['space'] = {'updates': updates, 'consume': consume, 'restoring': True}
             encoded = canonical(json_value(event))
@@ -767,6 +783,30 @@ class Store:
     def generation(self):
         from .owner_state import owner_view
         return owner_view(self).get("generation")
+
+    def refresh_restore(self):
+        if not self.locked:
+            return
+        try:
+            seq, claimed = self.db.execute('SELECT seq,hash FROM head WHERE id=1').fetchone()
+            if seq <= self.restore_head or seq != self.owner_projection.committed_head():
+                return
+            event = self._prepared(seq)
+            if (event is None or event['action'] != 'control_restore_confirm' or
+                    not event['set'].get('generation') or event['set'].get('restore_pending') is not None or
+                    event['record'] != self.owner_projection.fence(seq) or claimed != event['record']['hash']):
+                return
+            # A failed marker fsync followed by failed truncation may still
+            # leave both exact commits readable. Confirm them before clearing
+            # the live latch, just as restart recovery does; replay no effects.
+            self.committed = seq
+            self.locked = self.write_failed = False
+            self.ledger.finish(event['space']['updates'], event['space']['consume'])
+            self.ledger.holds.pop('restore', None)
+        except (OSError, sqlite3.Error) as exc:
+            if storage_refusal(exc) is None:
+                raise
+            self.observations.storage(exc)
 
     def confirm_restore(self):
         self.ensure_writable()
