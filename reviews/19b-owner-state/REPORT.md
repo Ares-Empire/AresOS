@@ -2751,7 +2751,7 @@ verification, compact export-bound tombstones, independent decoding/alterations,
 read fallback and restore reconciliation. No readable full-event source copy
 or kept owner-history directory was added. The candidate's source and tests are
 preserved in [STORAGE-S3-FINAL.patch](STORAGE-S3-FINAL.patch), SHA-256
-`a67685e54aca1fbac31da67f6a9d8a4628670084750cc43baf99e74b77c77839`.
+`9686b6d812321dfaa3a5a1065cb200ee33d7fb50c2c50b06dd4c4f55bd578c96`.
 The withdrawal restores all production/oracle/test/catalogue files to
 `50d14a07` / accepted stage 2; it does not rewrite the candidate commits.
 
