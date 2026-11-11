@@ -791,6 +791,48 @@ test('P1 native opening metadata makes borrowed functions ask without downgradin
   await f.run("nativeEvent({tabId:7},'Page.javascriptDialogOpening',{url:'http://fixture.test/',type:'prompt',message:'Already open'})");assert.equal(f.run('dialogs.get(7).unguarded'),true);
   f.run("controlled.get(7).admitting=false;privacyDocuments.set('native','private');nativeDialogStarts.set('[7,\"native\"]',[{kind:'confirm',document:'private',token:'d1'}]);");await f.run("nativeEvent({tabId:7},'Page.javascriptDialogOpening',{url:'http://fixture.test/',type:'confirm',message:'Guarded dialog'})");assert.equal(f.run('dialogs.get(7).unguarded'),undefined);
 });
+
+function pendingDialogFixture(){
+  const f=fixture();f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({url:'http://fixture.test/',title:'Fixture'});chrome.webNavigation={getAllFrames:()=>new Promise(resolve=>{globalThis.finishOpeningFrames=resolve})};chrome.debugger={onEvent:{addListener:callback=>{globalThis.nativeEvent=callback}}};");
+  const source=fs.readFileSync('control/chrome/extension/background.js','utf8');
+  f.run(source.slice(source.indexOf('chrome.debugger.onEvent.addListener('),source.indexOf('chrome.debugger.onDetach.addListener(')));
+  return f;
+}
+const openingPrompt=f=>f.run("nativeEvent({tabId:7},'Page.javascriptDialogOpening',{url:'http://fixture.test/',type:'prompt',message:'Borrowed native'})");
+const finishOpening=f=>f.run("finishOpeningFrames([{frameId:0,documentId:'native',url:'http://fixture.test/'}])");
+
+test('P1 native dialog metadata waits for classification across every read path',async()=>{
+  for(const guarded of [false,true])for(const command of ['facts(7)',"dispatch({name:'dialog_facts',tab:7})",'observation(7)']){
+    const f=pendingDialogFixture();
+    if(guarded)f.run("privacyDocuments.set('native','private');nativeDialogStarts.set('[7,\"native\"]',[{kind:'prompt',document:'private',token:'return'}]);");
+    const opening=openingPrompt(f);let settled=false;
+    const read=f.run(command).then(value=>{settled=true;return {value}},error=>{settled=true;return {error}});
+    for(let turn=0;turn<20;turn++)await Promise.resolve();
+    assert.equal(settled,false,'no partial dialog or transient refusal before private classification');
+    finishOpening(f);await opening;const result=await read;
+    assert.equal(result.error,undefined);assert.equal(result.value.dialog.frame,0);assert.equal(result.value.dialog.browser_document,'native');
+    assert.equal(result.value.dialog.unguarded,guarded?undefined:true);
+  }
+});
+
+test('P1 a dialog opening during the final reader reply cannot escape unclassified',async()=>{
+  const f=pendingDialogFixture();
+  f.run("const openingFrames=chrome.webNavigation.getAllFrames;globalThis.frameReads=0;chrome.webNavigation.getAllFrames=()=>++frameReads===1?Promise.resolve([{frameId:0,documentId:'native',url:'http://fixture.test/'}]):openingFrames();content=()=>new Promise(resolve=>{globalThis.finishReader=resolve});");
+  let settled=false;const read=f.run('facts(7)').then(value=>{settled=true;return {value}},error=>{settled=true;return {error}});
+  await spin(f,"typeof finishReader==='function'");const opening=openingPrompt(f);
+  f.run("finishReader({document:'private',url:'http://fixture.test/',rows:[]})");
+  for(let turn=0;turn<20;turn++)await Promise.resolve();
+  assert.equal(settled,false,'the last reader reply must not publish a pending dialog');
+  finishOpening(f);await opening;const result=await read;
+  assert.equal(result.error,undefined);assert.equal(result.value.dialog.unguarded,true);assert.equal(result.value.dialog.frame,0);assert.equal(result.value.frames.length,0);
+});
+
+test('P1 dialog classification waits are bounded and a later completed lookup recovers',async()=>{
+  const f=pendingDialogFixture();f.run("globalThis.timers=[];setTimeout=(fn,ms)=>{const timer={fn,ms};timers.push(timer);return timer};clearTimeout=()=>{};");
+  const opening=openingPrompt(f),read=assert.rejects(f.run('facts(7)'),/dialog opener is still being established; read again/);
+  await spin(f,'timers.length===1');assert.equal(f.run('timers[0].ms'),5000);f.run('timers[0].fn()');await read;
+  finishOpening(f);await opening;const current=await f.run('facts(7)');assert.equal(current.dialog.unguarded,true);assert.equal(current.dialog.frame,0);
+});
 test('P1 the owner may close a borrowed dialog before approval without any tool answer',async()=>{
   const f=unguardedDialogFixture();f.run("chrome.debugger.onEvent={addListener:callback=>{globalThis.nativeEvent=callback}};");
   const source=fs.readFileSync('control/chrome/extension/background.js','utf8');f.run(source.slice(source.indexOf('chrome.debugger.onEvent.addListener('),source.indexOf('chrome.debugger.onDetach.addListener(')));

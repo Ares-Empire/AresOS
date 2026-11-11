@@ -10,6 +10,7 @@ let excludedHosts = null;
 const listSnapshots = new Map(), fixtureBarriers = new Map();
 const ownerRequests = new Map(), stagedUploads = new Map(), confirmationPlans = new Map(), dialogWake = new Map();
 const dialogInputs=new WeakMap();
+const dialogOpenings=new WeakMap();
 const nativeDialogStarts=new Map(),nativeDialogEnds=new Map();
 const preloadTargets=new Map();
 const releasing=new Map(),admissions=new Map();
@@ -585,12 +586,25 @@ async function release(tab) {
 }
 async function boundedRelease(tab,promise){return Promise.race([promise,new Promise(resolve=>setTimeout(()=>resolve({stopped:tab,cleanup_pending:true,message:'Stopped. Close its dialog, or close the tab if returning it remains pending.'}),1000))]);}
 async function stop() { stopGeneration++;await Promise.all([...controlled.keys()].map(tab=>release(tab)));await badge();return {stopped:true,cleanup_pending:releasing.size+admissions.size}; }
+async function readyDialog(tab){
+  const dialog=dialogs.get(tab);if(!dialog)return null;
+  const opening=dialogOpenings.get(dialog);
+  if(opening){
+    let timer;
+    try{await Promise.race([opening,new Promise((resolve,reject)=>{timer=setTimeout(()=>reject(Error('refused: dialog opener is still being established; read again before answering')),5000);})]);}
+    finally{clearTimeout(timer);}
+  }
+  if(dialogs.get(tab)!==dialog)return readyDialog(tab);
+  if(dialog.frame===undefined)throw Error('refused: dialog opener is not yet established; inspect with the owner');
+  return dialog;
+}
 async function facts(tab, reference) {
   const current = await requireTab(tab);
   if([...preloadTargets.values()].some(state=>state.tab===tab&&state.failures?.size))throw Error('refused: this tab could not install its document-start guard; open its address fresh in a Claude tab');
   if (reference && (reference.session !== session || reference.tab !== tab)) throw Error('stale_reference: browser session changed; read again');
-  if(dialogs.has(tab)){
-    const dialog=dialogs.get(tab);safeURL(dialog.effective_url||dialog.frame_url);
+  const dialog=await readyDialog(tab);
+  if(dialog){
+    safeURL(dialog.effective_url||dialog.frame_url);
     if(dialog.frame===undefined)throw Error('refused: dialog opener is not yet established; inspect with the owner');
     if(reference)throw Error('stale_reference: a native dialog is open; inspect and answer it first');
     return {session,tab,group:groupId,control:controlled.get(tab).epoch,url:current.url,title:current.title,frames:[],frame_tree:[],...(dialog.effective_url?{effective_url:dialog.effective_url}:{}),dialog};
@@ -607,7 +621,10 @@ async function facts(tab, reference) {
     result.push({frame:frame.frameId,parent:frame.parentFrameId,browser_document:frame.documentId,...snapshot,effective_url:effective});
   }
   if (reference && !result.some(frame=>frame.frame === reference.frame)) throw Error('stale_reference: frame is gone');
-  return {session,tab,group:groupId,control:controlled.get(tab).epoch,url:current.url,title:current.title,needs_reload:controlled.get(tab).popupNeedsReload||result.some(frame=>!isPreloaded(tab,frame.document)),frames:result,uncovered,frame_tree:frames.map(frame=>({frame:frame.frameId,parent:frame.parentFrameId,url:frame.url})),dialog:dialogs.get(tab) || null};
+  // A modal can open while the last reader reply is completing. Re-enter the
+  // modal path so its private frame/guard decision is complete before exposure.
+  if(dialogs.has(tab))return facts(tab,reference);
+  return {session,tab,group:groupId,control:controlled.get(tab).epoch,url:current.url,title:current.title,needs_reload:controlled.get(tab).popupNeedsReload||result.some(frame=>!isPreloaded(tab,frame.document)),frames:result,uncovered,frame_tree:frames.map(frame=>({frame:frame.frameId,parent:frame.parentFrameId,url:frame.url})),dialog:null};
 }
 function binding(facts, reference, kind, adapter) {
   const frame = facts.frames.find(frame=>frame.frame === reference.frame);
@@ -643,7 +660,7 @@ async function pointer(tab,snapshot,reference,target){
   return {x,y};
 }
 async function observation(tab,reference){
-  if(dialogs.has(tab))return {available:true,dialog:dialogs.get(tab)};
+  const dialog=await readyDialog(tab);if(dialog)return {available:true,dialog};
   try{return {available:true,...await content(tab,reference?.frame??0,'observe',{element:reference?.element})};}
   catch{try{const current=await chrome.tabs.get(tab);return {available:false,url:current.url,title:current.title,reason:'Post-input page details are unavailable; read the current page.'};}catch{return {available:false,reason:'Post-input observation is unavailable; inspect the tab with the owner.'};}}
 }
@@ -707,12 +724,12 @@ async function dispatch(command) {
     return {tab:created.id,session,group:groupId};
   }
   if (command.name === 'dialog_facts') {
-    const current=await requireTab(tab), dialog=dialogs.get(tab);dispatchEpoch=controlled.get(tab).epoch;
+    const current=await requireTab(tab), dialog=await readyDialog(tab);dispatchEpoch=controlled.get(tab).epoch;
     if(!dialog || dialog.frame === undefined)throw Error('refused: dialog opener is not yet established; inspect with the owner');
     safeURL(dialog.effective_url||dialog.frame_url);return {session,tab,control:controlled.get(tab).epoch,url:current.url,...(typeof current.title==='string'?{title:current.title}:{}),...(dialog.effective_url?{effective_url:dialog.effective_url}:{}),dialog};
   }
   if (command.name === 'dialog') {
-    const current=await requireTab(tab), dialog=dialogs.get(tab);dispatchEpoch=controlled.get(tab).epoch;
+    const current=await requireTab(tab), dialog=await readyDialog(tab);dispatchEpoch=controlled.get(tab).epoch;
     const expected={session,tab,control:controlled.get(tab).epoch,url:current.url,...(typeof current.title==='string'?{title:current.title}:{}),...(dialog?.effective_url?{effective_url:dialog.effective_url}:{}),dialog,...(dialog?.unguarded?{answer:{accept:command.input.accept,...(command.input.text===undefined?{}:{text:command.input.text})}}:{})};
     if(!dialog || dialog.frame === undefined || stable(expected)!==stable(command.binding))throw Error('stale_approval: dialog or its opener changed');
     safeURL(dialog.effective_url||dialog.frame_url);
@@ -728,7 +745,7 @@ async function dispatch(command) {
         if(completion){const result=await Promise.race([completion,wake.promise]);if(result?.interrupted)throw Error('unknown: dialog answer interrupted by Stop; inspect and never replay');}
       }finally{wake.dispose();}
       const steps=await collectSteps(tab,dispatchEpoch);
-      return {checked:true,dispatched:true,unguarded_continuation:true,needs_reload:!!owner.popupNeedsReload,steps,dialog:dialogs.get(tab)||null,notice:"This dialog used a native function outside the page guard; its continuation isn't held. Existing private holds still apply.",page:await observation(tab)};
+      return {checked:true,dispatched:true,unguarded_continuation:true,needs_reload:!!owner.popupNeedsReload,steps,dialog:await readyDialog(tab),notice:"This dialog used a native function outside the page guard; its continuation isn't held. Existing private holds still apply.",page:await observation(tab)};
     }
     const armed=await armDialog(tab,command.conservative);dialogInputs.set(dialog,{epoch:dispatchEpoch,nonce:armed.nonce,managed:true});
     let uncertain_finish;
@@ -736,7 +753,7 @@ async function dispatch(command) {
     try{await cdp(tab,'Page.handleJavaScriptDialog',{accept:command.input.accept,...(command.input.text === undefined ? {}:{promptText:command.input.text})});await armed.ready;
     }finally{uncertain_finish=await finishFrames(tab,armed.frames,dispatchEpoch,armed.nonce);if(armed.owner.hold?.nonce===armed.nonce){armed.owner.hold.inFlight=uncertain_finish;armed.owner.hold.until=Date.now()+POLICY.holdMs;}}
     const steps=await collectSteps(tab,dispatchEpoch);
-    return {checked:true,dispatched:true,page:await observation(tab),steps,dialog:dialogs.get(tab)||null,uncertain_finish};
+    return {checked:true,dispatched:true,page:await observation(tab),steps,dialog:await readyDialog(tab),uncertain_finish};
   }
   if(command.name==='tab_context'){const current=await chrome.tabs.get(tab);safeURL(current.url);return {session,tab,url:current.url,title:current.title,control:controlled.get(tab)?.epoch||null,frames:(await chrome.webNavigation.getAllFrames({tabId:tab})||[]).map(frame=>({frame:frame.frameId,url:frame.url,document:frame.documentId}))};}
   if (command.name === 'validity') {
@@ -883,7 +900,7 @@ async function dispatch(command) {
     await new Promise((resolve,reject)=>{fixtureBarriers.set(command.operation,{tab,resolve,reject});port?.postMessage({event:'fixture_after_input',operation:command.operation});});
   }
   const confirmation=confirmationPlans.get(tab);confirmationPlans.delete(tab);
-  return {checked:!!command.binding,dispatched:!noChange,no_change:noChange,steps,dialog:dialogs.get(tab)||null,uncertain_finish,confirmations:confirmation?.matched || [],page:await observation(tab,reference)};
+  return {checked:!!command.binding,dispatched:!noChange,no_change:noChange,steps,dialog:await readyDialog(tab),uncertain_finish,confirmations:confirmation?.matched || [],page:await observation(tab,reference)};
 }
 async function connect() {
   port=chrome.runtime.connectNative('org.aresos.chrome');
@@ -998,14 +1015,17 @@ chrome.debugger.onEvent.addListener(async(source,method,params)=>{
     const dialog={id:crypto.randomUUID(),...(!inherited?{kind:params.type,text:params.message}:{}),frame_url:params.url,button:'OK'};
     const input=controlled.get(tab),nonce=input?.inputNonce,plan=confirmationPlans.get(tab);
     if(nonce)dialogInputs.set(dialog,{epoch:input.epoch,nonce});
+    let finishOpening;dialogOpenings.set(dialog,new Promise(resolve=>{finishOpening=resolve;}));
     dialogs.set(tab,dialog);
+    let origins;
+    try{
     const frames=await chrome.webNavigation.getAllFrames({tabId:tab}) || [];
     if(dialogs.get(tab)!==dialog||controlled.get(tab)!==input||input?.inputNonce!==nonce)return;
     // CDP and webNavigation use different frame identifiers. Join them only
     // through the private document identity authenticated by reader_ready.
     const documents=[...preloadTargets.values()].filter(state=>state.tab===tab).flatMap(state=>[...state.documents.values()]).filter(doc=>doc.ready&&doc.frameId===params.frameId);
     const authenticated=frames.filter(frame=>documents.some(doc=>privacyDocuments.get(frame.documentId)===doc.document));
-    const origins=authenticated.length===1?authenticated:inherited?[]:frames.filter(frame=>frame.url===params.url);
+    origins=authenticated.length===1?authenticated:inherited?[]:frames.filter(frame=>frame.url===params.url);
     if(origins.length===1){
       if(inherited){try{dialog.effective_url=frameAddress(origins[0],frames);}catch{dialog.blocked=true;wakeDialog(tab);return;}dialog.kind=params.type;dialog.text=params.message;}
       dialog.frame=origins[0].frameId;dialog.browser_document=origins[0].documentId;
@@ -1014,6 +1034,7 @@ chrome.debugger.onEvent.addListener(async(source,method,params)=>{
     const native=nativeDialogStarts.get(JSON.stringify([tab,dialog.browser_document]))?.at(-1);
     if(!native||native.dialog||native.kind!==dialog.kind||native.document!==privacyDocuments.get(dialog.browser_document))dialog.unguarded=true;
     else native.dialog=dialog.id;
+    }finally{dialogOpenings.delete(dialog);finishOpening();}
     const expected=plan?.expected;
     const matched=!dialog.unguarded&&confirmationPlans.get(tab)===plan && expected && origins.length===1 && plan.browser_document===dialog.browser_document &&
       ['kind','text','frame_url','button','frame'].every(key=>expected[key]===dialog[key]);
