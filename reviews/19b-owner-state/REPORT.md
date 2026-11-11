@@ -2139,3 +2139,145 @@ Validation prints `Validated all 64 Mail job logs: strict ; all strict green`; h
 **PLAN-GAP:** the single capture encountered a Fedora mirror setup failure on alteration shard 6; complete gap data was available without another capture, and both strict passes later complete that shard. Diagnostic counter observations are reported per platform/pass instead of being presented as identical expectations. No additional product or stage-3 work was introduced. **Open questions:** none for this round.
 
 **Run / read — closing scope and housekeeping:** no changes to `warnings.py` or `paging.py`; no production-code changes in this round. Code, tests, selection and compact pin remain identical to the twice-tested source `31988927`. The closing commit changes report/coverage/known-gap/proof documentation only, with `[skip ci]` and the normal privacy pre-push hook. `.work/` files over 500,000,000 bytes: **[]**. No system software, real account, reviewer probe or other worktree was modified. No Gradle daemon was started. PR #26 remains a draft against `pkg/19-mail`. No own stage review was run, nothing was merged, and stage 3 was not started.
+
+
+## Stage 3 — storage gate stop (2026-11-11)
+
+**Status: STOP; stage 3 is incomplete.** **Read:** `briefs/19b-s3-start.md`
+(at starting head `e3ad4bf6`) requires: “If either grows by more than about 1 KB
+per operation, stop and report the table with the reason per record.” The
+separate-log candidate exceeds that limit for all five samples, even with
+recursive deltas and zlib compression. No storage-budget exception is assumed.
+The production candidate was withdrawn after measuring it. This closing change
+contains review evidence only; it does not enable a partial storage protocol.
+
+**Done / read:** inspected the requested briefs in order, ending with the stage-3
+steering; checked the current storage/recovery/envelope paths and existing
+STORAGE-S2 harness. `git diff 7b0e9a05 HEAD -- control .github/workflows` printed
+nothing at the starting head, so the stage-2 baseline production/test tree is
+also the stage-3 starting tree. PR #26 is still a draft against `pkg/19-mail`.
+
+**Done / run (local; no workflow ID):** built and measured a candidate in which
+`owner-state.jsonl` is beside the existing independent journal. One projection
+frame precedes each existing journal fence; it adds no operation transactions
+or permanent-journal bytes. A frame links to the existing fence hash and its
+projection predecessor, carries compressed recursive owner-row deltas and
+public audit metadata, and publishes only on the existing commit marker.
+Projection lookup uses a two-stream scan and 32-identity windows, without SQLite
+or its index. Generic intents, resolutions, acknowledgements, tombstones,
+filing/rename/check rows, notices, account qualification and export identities
+are represented; operation bodies/approval prose are excluded. These describe
+the candidate's code, **not verified lifecycle or fallback guarantees**.
+
+The exact candidate is saved as `STORAGE-S3-CANDIDATE.patch`; it is **not applied**
+on this branch. `STORAGE-S3-HARNESS.py` is the existing five-operation STORAGE-S2
+harness extended with projection bytes/records and per-record accounting.
+`STORAGE-S3-LOCAL-POLICY.py` preserves the existing worktree-only synthetic policy
+fixture for local measurement. Neither script is an acceptance test or a tool
+for a real account. `STORAGE-S3.json` pins their hashes and all measured figures,
+including the complete 41-record breakdown and command-output hashes.
+
+**Verified / run (local):** every sample below printed `outcome: done`. The
+measurement includes composition/preparation and execution, excludes the caller
+import, uses one Sent copy, and uses a 25 MiB binary attachment for the large
+sample. Journal bytes include fence and commit marker. Journal record counts
+count fences/transactions; marker counts are the same. Projection counts count
+its physical JSONL frames. The table uses the final archived-harness replay:
+
+| Operation | Journal before → candidate, bytes | Journal records before → candidate | Projection before → candidate, bytes | Projection records before → candidate | Gate |
+| --- | ---: | ---: | ---: | ---: | --- |
+| Send | 9,506 → 9,506 | 14 → 14 | 0 → 7,944 | 0 → 14 | STOP |
+| Move | 2,064 → 2,064 | 6 → 6 | 0 → 3,901 | 0 → 6 | STOP |
+| Permanent delete | 3,942 → 3,942 | 5 → 5 | 0 → 3,212 | 0 → 5 | STOP |
+| Free CREATE | 688 → 688 | 2 → 2 | 0 → 1,125 | 0 → 2 | STOP |
+| Send with 25 MiB attachment | 9,508 → 9,508 | 14 → 14 | 0 → 7,943 | 0 → 14 | STOP |
+
+The first measurement was 7,940 bytes for the large send, the detailed repeat
+7,946, and the archived-harness replay 7,943; the other four projection totals
+were identical in all three. Exact compressed-byte reproducibility for the
+large send is **not verified**. Every observation independently exceeds both
+1,000 and 1,024 bytes. No rounded value or timing assumption decides this stop.
+SQLite event/file and disposable-index measurements remain equal to the
+baseline; full numbers are in the manifest. In particular the 25 MiB attachment
+is not copied into either permanent source.
+
+**Read / run — reason per record:** frames are folded into the existing commits,
+but the separate JSONL framing costs 259 bytes per ordinary record (format,
+sequence, current fence hash, predecessor hash, integrity hash and delimiters).
+For send, framing totals 3,634 bytes and encoded compressed payload 4,310 bytes.
+That framing alone exceeds the budget. The following ordered lists explain
+all 41 frames; the JSON manifest contains their exact action/summary, changed
+source keys, payload/framing sizes and stage evidence:
+
+| Operation | Records in commit order: role (projection bytes) |
+| --- | --- |
+| Send | 1 composition audit (424); 2 reserved owner state (747); 3 submitting state (504); 4 Message-ID (551); 5 wire hash (573); 6 RCPT result (539); 7 DATA attempting with dispatch context (813); 8 DATA accepted (525); 9 recipient result (539); 10 Sent APPEND start with context (593); 11 APPEND end (520); 12 Sent-copy/clean-check result (583); 13 answered stage (528); 14 terminal outcome (505). |
+| Move | 1 generic intent (654); 2 filing preparation/roles/identities (869); 3 per-command context before MOVE (718); 4 observed destination (682); 5 filing completion (511); 6 generic intent resolution (467). |
+| Permanent delete | 1 reservation (719); 2 submitting with STORE context (773); 3 marked result with EXPUNGE context (627); 4 target result (576); 5 final outcome (517). |
+| Free CREATE | 1 generic intent with CREATE context (653); 2 completion tombstone (472). |
+| Send with 25 MiB attachment | Same fourteen commit roles as send. Final replay bytes in order: 424, 747, 504, 551, 572, 540, 812, 525, 539, 593, 520, 583, 528, 505. |
+
+This is a failed candidate measurement, **not proof that every possible
+projection representation exceeds the budget**. In particular, folding data
+into the existing journal representation could avoid the separate frame's
+repeated hashes. That redesign was not pursued after the explicit stop fired.
+No existing immutable history was rewritten, and no additional state or stage
+transactions were added to the five operations.
+
+**Verified / run — commands and outputs:**
+
+- Baseline: `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/mail_tests .work/venv/bin/python .work/19b-s2/storage-figures.py .work/19b-s3/storage-before.json` → `measuring send`, `move`, `delete`, `free_change`, `send_25mib`, then the JSON baseline above; exit 0.
+- Candidate: the extended `.work/19b-s3/storage-figures.py` to `storage-after.json`, then `storage-detail.json` → the same five `measuring` lines and complete JSON; exit 0 in each run. These are storage observations, not fault tests.
+- Archived-harness baseline and candidate reproductions below → all five outcomes `done`, journal growth zero, projection totals above; exit 0 in each run. After the candidate replay the patch was reversed by the shell's EXIT trap.
+- Candidate codec smoke → `Projection codec smoke: 5 recursive delta/replay cases passed; candidate syntax valid`. This checks nested dictionary/list/null/removal encoding only.
+- `git apply --check --reverse .../STORAGE-S3-CANDIDATE.patch` while applied, and `git apply --check .../STORAGE-S3-CANDIDATE.patch` after withdrawal → no output, exit 0. `git diff -- control/aresos_control` after withdrawal → no output.
+- `python3 control/generate.py --check` → `Generated artifacts match definitions`; `git diff --check` → no output.
+- Final evidence validator → `Storage evidence validation PASS: hashes, syntax, baseline reproduction, all 41 records, five done outcomes, five budget failures`; exit 0. Production/workflows/compact ledger compare unchanged, and the archived patch still applies cleanly.
+
+Reproduce the baseline in this worktree (on Linux with the installed test policy,
+omit `--local-policy`):
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/mail_tests .work/venv/bin/python reviews/19b-owner-state/STORAGE-S3-HARNESS.py .work/19b-s3/storage-baseline-reproduced.json --local-policy
+```
+
+Reproduce the candidate in this worktree, restoring the unchanged production
+files when the measurement exits:
+
+```sh
+set -e
+git apply reviews/19b-owner-state/STORAGE-S3-CANDIDATE.patch
+trap 'git apply --reverse reviews/19b-owner-state/STORAGE-S3-CANDIDATE.patch' EXIT
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/mail_tests .work/venv/bin/python reviews/19b-owner-state/STORAGE-S3-HARNESS.py .work/19b-s3/storage-candidate-reproduced.json --local-policy
+```
+
+**Not verified / not done:** stage 3's shared read-path routing and production
+SQLite-read fallback; removal of memory-only carriers/refusals/startup snapshots;
+D3 evidence reservations and generic durable warnings; D4 own-reply commit
+semantics; archive/restore/expiry lifecycle integration; legacy migration under
+fault; the lifecycle/oracle/fault suites; archive-out storage demonstration;
+normal-use closure; and two complete Control workflow passes on a finished
+stage-3 head. The candidate's crash handling, migration, publication and bounded
+reads were **not acceptance-tested**. No claim of green or complete is made.
+The known-gap list is **unchanged: 1,968,467 stage-3 assertion keys in 2,011
+groups**, not empty. No oracle expectation, test, pin, coverage row or generated
+artifact was relaxed, removed or relabelled as passing. Removed-test mapping:
+none. `warnings.py` and `paging.py`: no changes; Chrome has no new API to follow.
+
+**JUDGMENT-CALL:** no owner-facing decision was made. Choosing the separate
+projection log was a reversible candidate choice to keep the existing compact
+journal contract; it failed the stated budget and is inactive. Changing the
+storage allowance or accepting this candidate requires a new lead instruction.
+
+**PLAN-GAP:** the candidate's repeated independent framing is too expensive at
+existing stage granularity. The stop is about this implementation's measured
+cost, not a change in the brief's requirements. **Open questions:** which revised
+representation or budget the package lead authorizes for resuming stage 3.
+
+**Run / read — closing scope:** zero new workflow requests/attempts for this
+storage-stop batch; no CI watch or run-status polling. Prior stage-2 runs above
+are historical evidence, not stage-3 acceptance. No own stage review, no merge,
+no force-push, no other branch/worktree or system settings changed. Only the
+stop report/evidence is committed and pushed to `pkg/19b-owner-state`; PR #26
+remains draft against `pkg/19-mail`. No Gradle process was started. `.work/`
+files over 500,000,000 bytes: **[]**. Candidate temporary fixtures were cleaned.
