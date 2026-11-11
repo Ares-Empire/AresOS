@@ -5,6 +5,81 @@ Branch `pkg/23-minecraft-starts`, PR #36. Review: Codex gpt-6-astra (high), fres
 
 Nothing was pushed to a registry, signed or published. The release pin is unchanged.
 
+## Review fixes 4 (REVIEW-4, 2026-11-11)
+
+REVIEW-4 (Codex gpt-6.1-sol, high, on `8420eba2`): 1 blocking, 2 should-fix, all at the hand-off between the
+supervisor and the Java wrapper, the place rounds 2 and 3 also patched. This round settles the hand-off by
+construction and checks it over every order of events at the race points. No image build input or VM check
+changed, so no CI run.
+
+**Status at hand-back:** code, tests, the model and the revert proof are pushed. Not yet run: the full suite from a
+fresh clone, because C: had only about 0.35 GB free and a clone is about 500 MB in WSL's disk image. The desktop and
+helper modules ran (below).
+
+1. **Each end is classified from facts (blocking finding 1).**
+   - The wrapper's `stop(child, sent)` records every signal before it sends it. "Stopped by the wrapper" holds only
+     when Java's real end matches a signal it sent: Java died of it, or exited 143 after its SIGTERM
+     (`stopped_by_wrapper`, the same rule in both programs; a test keeps them equal over every status and signal
+     set). The report and the exit record carry Java's real status, the signals sent and the derived flag, and the
+     supervisor derives the flag again from those facts.
+   - One `conclude()` decides every end, before or after the hand-off: stopped by the wrapper or a failed start
+     (counted once), a SIGKILL nobody sent (`killed`, latched, never counted or restarted), exit 0 after acceptance
+     (his quit), any other end (a crash, counted once), or no explanation at all (`killed`, saved as unresolved).
+   - So a kill or an exit between the wrapper's check and its signal (REVIEW-4's case), or at any other point, is
+     classified by what happened.
+2. **Unresolved ends are persisted (finding 2).** An unexplained end is saved as `unresolved` (launch, PID, start
+   time, whether it was accepted) in the same write as the accounting. A restarted supervisor restores it; a
+   matching late `jvm_failed`, a late `jvm_exited`, or the exit record (checked every 5 s while unresolved) settles
+   it exactly once: an explained end replaces the latch with its real outcome, and a kill confirms it. The wrapper
+   also retries `jvm_exited` on a new connection when the first one is gone.
+3. **One deadline rule (finding 3).** Once a lost hand-off is seen (the wrapper's connection closed, or a restarted
+   supervisor finds a start in flight), the wrapper gets its whole stop-and-report window (`LOST_HANDOFF_WAIT`,
+   20 s) from that moment, past the 30 s authorization limit. Without a seen loss the 30 s limit stands.
+
+**The model test** (`HandOffModelTest.test_every_order_keeps_the_invariants`) drives the real supervisor (fake
+clock and runner) and the wrapper's real `stop()` and `stopped_by_wrapper()` through every order of every subset of
+these events: the supervisor handles `jvm_started`, the wrapper gets the answer, the connection breaks, Java ends
+by itself (exit 0, crash, SIGKILL), the supervisor restarts, the wrapper stops Java and reports (Java exits after
+SIGTERM or ignores it and is SIGKILLed after the window), the wrapper dies, time passes in 5 s steps. Java may also
+end right after the wrapper's own check. Losses come early or late (25 s) in the authorization window. That is about
+6,000 runs, in a few seconds. For every run it asserts, against the model's own record of what happened:
+- a kill the wrapper did not send never restarts and counts nothing;
+- his quit never restarts;
+- a crash or failed start counts exactly once, and nothing is counted twice at any point;
+- nothing stays latched when a full explanation exists;
+- no supervisor latches a start while its wrapper is still inside the stop-and-report window after a seen loss;
+- after a normal reboot (a new session) the hub starts, unless a kill latch holds.
+Building it found one more gap, fixed above: a game's own exit report or record arriving after its end had been
+latched as unexplained (for example across a supervisor restart) was never read.
+
+**Targeted tests:** `RestartPolicyTest.test_a_kill_after_the_wrappers_check_is_not_its_stop` (the real `stop()` with
+Java ending right after its check, then the accepted-JVM case: latched, nothing counted, no restart),
+`test_both_programs_decide_stopped_by_the_same_rule`, `test_an_unresolved_end_survives_a_supervisor_restart`
+(report, record, kill; exactly once over a third start), `test_a_loss_late_in_the_authorization_window_gets_the_
+whole_wait`. With the real wrapper, run in the test process so a hook acts at the exact point, no sleeps:
+`WrapperTest.test_a_kill_between_the_wrappers_check_and_its_signal_is_reported_as_a_kill`; through the real loop
+and real wrapper: `LoopTest.test_a_kill_between_the_wrappers_check_and_its_signal_latches` and
+`test_an_unexplained_end_is_settled_after_a_supervisor_restart` (events gate each step).
+
+### Regression proof (each fix reverted alone)
+
+| Fix reverted | Model | Its own tests |
+|---|---|---|
+| 1: "stopped" again means "the wrapper's stop() ran" (both programs) | 232 failing orders, e.g. Java exits 0 right after the wrapper's check: `(1, 2) != (0, 1)` (a quit counted as a failure, and restarted) | the real `stop()` cases `True is not False`; the accepted-JVM kill `('STARTING', 'restarting', False) != ('RECOVERY', 'killed', True)`; the real wrapper reports `stopped True` for a kill; the real loop does not latch |
+| 2: nothing restored after a supervisor restart | 536 failing orders, e.g. `TRW` (a crash left latched) | all three restart cases; the real loop stays in `RECOVERY killed` |
+| 3: both deadlines, the earliest wins | 138 failing orders, e.g. a loss 25 s after authorization: `latched while the wrapper may still be stopping Java` | `('RECOVERY', True) != ('STARTING', False)` |
+
+Output: `runs/wsl-review-fixes-4/revert-proof.txt`. Each run used a copy of the tree without `os/manifest` (400 MB,
+not read by these tests), removed right after.
+
+### Checks of this round
+
+- WSL (Ubuntu 24.04, Python 3.12), never in parallel with another suite, at 4.5 GB or more available, under
+  `setsid` with stdin from `/dev/null`: `test_aresos_desktop` 132 tests OK (the model test about 10 s),
+  `test_aresos_shell` 74 OK.
+- **Not run yet: the full suite from a fresh clone** (disk, see the status above).
+- CI: none.
+
 ## Review fixes 3 (REVIEW-3, 2026-11-10)
 
 REVIEW-3 (Codex gpt-6-astra, high, on `e69b16a0`) found all 9 REVIEW-2 findings fixed and three problems left at
