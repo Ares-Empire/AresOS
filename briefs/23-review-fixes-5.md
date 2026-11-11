@@ -25,3 +25,14 @@ The owner already chose this direction: board #170, an unexplained death latches
 - The full suite at `d6aab7ab` ran: 995 tests, plain and `-B`, only the 13 known WSL-only failures.
 - No CI unless the image build or a VM check changes.
 - Write a "Review fixes 5" section first in `REPORT.md`. Commits end with `Co-Authored-By: Claude Fable 5.2 <noreply@anthropic.com>`. `AGENTS.md` applies.
+
+## Review bar (owner, 2026-11-11)
+
+Patrik set the bar for AresOS tools: "reasonably safe", like any existing CLI or MCP, not "nothing could ever go wrong". Extra care applies where AresOS adds its own risk.
+
+For this package, that extra care covers:
+- a restart loop under memory pressure that could freeze the laptop;
+- a lost or damaged world;
+- recovery that can't be reached.
+
+Brief the next reviewer with this bar. A narrow timing race that only costs an extra `retry`, or one crash too many in the count, is a known limit for the report, not a blocking finding. The conservative rule above is meant to make most such races land on the safe side.
