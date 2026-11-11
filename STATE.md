@@ -130,7 +130,7 @@ Updated 2026-11-10. The live truth is `git log`, `gh pr list` and `git worktree 
     - Run 3 of 3 (42940741765 at `fb06ccde`) reached the owner walk. Everything passed up to `at update`, with every protected-disk audit unchanged.
     - Then `at update` failed: "Failed to start ostree-finalize-staged.service". Every image since #3 masks `ostree-finalize-staged` and `bootc-finalize-staged` (`os/policy/masked-system-units.txt`), so nothing can be staged from a running AresOS. The earlier switch ran from stock. On the laptop it would have stopped safely ("do not reboot").
     - Fix (option 1, tools only, no new image): `update.sh` unmasks exactly those two right before the switch, all-or-nothing. Automatic updaters stay masked.
-    - JUDGMENT-CALL to the owner: board #175. Then a 4th rehearsal (approved, free runners) once the disk is freed.
+    - The owner accepted it (board #175, 2026-11-11: "yes to 175"; JUDGMENT-CALL 11). Built as `329c7479`, new tools fingerprint `daa31228…`. Rehearsal run 4 is next.
     - PLAN-GAP for the next release: stop masking the two units in the image.
     - Also found: the owner tools' `main()` sets umask 077 and three test modules never restored it, which made a later test flaky. Fixed in 27 (`common.kept_umask`).
   - Its JUDGMENT-CALL 2: package 22's tools can't go forward again after `at previous`, so the rehearsal ends on 13 with 27 beside it; going forward after a rollback belongs in 22c.

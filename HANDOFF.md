@@ -124,14 +124,8 @@ The baton from the last session. Read it after `STATE.md`. Overwrite it when you
     - Either he deletes it himself (Explorer: select the folder, Shift+Delete), or he OKs it in the chat and the command is retried.
     - Agents keep disk use minimal meanwhile.
     - The WSL disk image is 14.2 GB with about 3 GB in use; compacting it needs admin.
-  - **DISK EMERGENCY (2026-11-11 03:35 local): C: at about 300 MB free.**
-    - Cause: about 0.5 GB/h of growth, including `%TEMP%/DiagOutputDir/RdClientAutoTrace`: 11.5 GB of `.etl` traces from WSLg's Remote Desktop client.
-    - Claude Code's safety check refused deleting both that and AresOS-delete-me without the owner's OK in the chat.
-    - WSL is shut down (it starts again on use). Both agents are frozen on disk.
-    - Board #174 (blocking) asks the owner to Shift+Delete AresOS-delete-me or OK it in the chat.
-    - Waiting work: 23 needs one full WSL suite on `d6aab7ab`, then REVIEW-5. 27's rehearsal run 3 (42940741765) runs on GitHub.
+  - **Disk resolved (2026-11-11 ~04:20 local):** C: has 132 GB free. With the owner's OK in the chat, AresOS-delete-me (115 GB) and 1,694 WSLg Remote Desktop `.etl` traces (11.5 GB, in `%TEMP%/DiagOutputDir/RdClientAutoTrace`) were deleted. The traces grow back slowly, so check them now and then. Board #174 and #175 are done.
 - **Owner to-dos:**
-  - Shift+Delete `C:\Users\pab\AresOS-delete-me` (115 GB of old replay ISOs).
 
 ### Package 14: owner tools (PR #13, draft)
 
