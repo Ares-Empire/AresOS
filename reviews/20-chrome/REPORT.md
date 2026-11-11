@@ -1,4 +1,124 @@
-# 20 — Part P review fixes: implementation acceptance green
+# 20 — combined page/state fixes and capped catalogue snapshots
+
+**Read — integrate-3 is the governing brief.** The lead already merged Part P (`df9b3fc5`) and Part S
+(`1418fcde`, merge `3b37bd57`). This run adds the decided catalogue cap and verifies their combined head.
+[STATE-FIXES-REPORT.md](STATE-FIXES-REPORT.md) maps S1–S12 and records the accepted lifetime decision;
+[BUILD-P-1.md](BUILD-P-1.md) and [BUILD-P-5.md](BUILD-P-5.md) map P1–P31. PR [#27](https://github.com/Ares-Empire/AresOS/pull/27)
+remains draft and unmerged. **Owner Enter: passes in CI, panel to confirm. Group 12 remains deferred to 18d.**
+
+## Done / scope (read)
+
+`collection()` in `control/chrome/extension/background.js` records a separate, immutable creation time.
+Downloads, history and bookmarks expire at the earlier of **five minutes since the last valid page request**
+and **thirty minutes since creation**, including the exact deadline. Valid cursors renew only idle time.
+Expired cursors refuse with **“list snapshot changed or expired; start the list again without a cursor”**;
+they never restart a query silently. New lists prune both expired kinds before the existing two-snapshot eviction.
+The 10,000-item / 8 MiB bounds are unchanged. Shared `control/aresos_control/paging.py`, `results.py` and `mail/`
+are untouched by this cap; Mail behaviour and merge order are unchanged. Part S's one-line renewal in this
+Part P-owned file was merged into Part P's equivalent renewal; this run keeps that merged version.
+
+`state-catalogues.test.mjs` preserves the complete 80-row immutable walk, with 40-second page intervals
+(26 minutes total) to stay inside the new absolute limit. Its former four-minute intervals implied a
+156-minute walk, now explicitly disallowed by the brief. No row/count/source-immutability assertion was removed.
+It additionally checks all three catalogues immediately before and at idle/absolute expiry, repeated refusal,
+fresh restart, pruning an actively used expired snapshot, invalid-cursor nonrenewal and two retained snapshots.
+The page removal audit adds absolute-cap, idle-deadline, absolute-pruning and actionable-error mutations.
+The independent receiver auditor now requires the combined **220 Python / 234 Node** inventory, with no failure,
+cancellation or skip accepted, and retains the existing exact browser inventory and receiver/ingress assertions.
+
+`python3 control/generate.py` regenerated every artifact; its check found no drift. No shared runtime,
+classification, binding, approval, site-adapter or fixture behavior changes in this round. Runtime build hash:
+`15c46f6cb2e585b8abbcc6e6454e3000e3fb6cc016d4c226ec9c932735f1746e`.
+Specification was fetched with `git fetch origin main` and read using `git show origin/main:<path>`; local
+integration/review briefs take precedence. Nothing outside this worktree, no browser/profile on this Mac,
+and no system software or Gradle daemon was used.
+
+## Decided rules carried by the combined head (read)
+
+- **Catalogue lifetime:** the lead accepted Part S's idle renewal on 2026-11-10 with the thirty-minute absolute
+  cap. This is a decided rule, needs no owner decision, and does not change Mail.
+- **Popups:** only children of a currently controlled native opener gain private control; opener membership/epoch
+  is rechecked. No extension window opens or takes focus. Existing popup windows stay in their original window/type.
+  The opener's **POP** badge and its existing toolbar action list each popup with an individual **Stop**.
+  Stop ends authority immediately without moving, closing, reloading or resizing the page popup; opener loss revokes
+  its children. Manual popup admission requires the same controlled native opener.
+- **Reload on first act:** taking/reading an owner tab or popup preserves its page. The first act makes one guarded
+  GET reload and invalidates old references. Unsaved text, possible uninspectable edits or playing/audible media
+  report `reload_required`; only a repeated explicit `reload_taken_tab=true` permits it. POST/non-GET/unknown-method
+  documents refuse and suggest opening the address fresh; form-target popups also refuse, including GET.
+- **A dialog already open:** the initial Page-enable wait is bounded at five seconds. If blocked, detach the pending
+  debugger target while retaining control/session state and tell Claude **“Please answer the dialog yourself.”**
+  After the owner answers, read reattaches and completes setup without a browser restart; first-act reload still
+  applies. Responsive slower Page-domain setup must not produce a false handoff. Native-UI answering is out of scope.
+- **Borrowed-realm native dialogs:** authenticated alert/confirm/prompt events without the private return token
+  always ask. The service question binds tab/control, type/text and exact answer/prompt and states that its
+  continuation is not held. Approval is consumed before one answer; changed bindings/repeats refuse. No adapter
+  confirmation or owner allowance exempts it. A prior hold remains until the resumed handler finishes. Drop leaves
+  the dialog to the owner.
+- **Owner's own Enter:** **passes in CI, panel to confirm**. Exact form, submitter, trusted input and mark clearing
+  each have a removal regression. In-flight, while-mark-set wrong-form/wrong-submitter, delayed and unconsumed-mark
+  cases remain held. No panel acceptance is inferred from CI.
+
+**Fixed DevTools additions for controlled-only injection:** `Runtime.evaluate`, `Runtime.callFunctionOn`,
+`Runtime.runIfWaitingForDebugger`, `Debugger.enable`, `Debugger.disable`, `Debugger.setBreakpointByUrl`,
+`Debugger.resume`, `Target.setAutoAttach`, `Target.detachFromTarget`, `DOM.describeNode`, `DOM.resolveNode`,
+and `Page.getFrameTree`. `Page.enable` and `Page.handleJavaScriptDialog` support native dialog observation/answers;
+ordinary input/navigation methods remain the original fixed list. `Runtime.enable` is absent (the earlier
+integration report's list below is historical). No `Page.createIsolatedWorld` or generic script tool is added.
+The inert ISOLATED bootstrap pauses only controlled documents; private bundles install before page code, using
+authenticated contexts and recursive iframe-only auto-attach. No MAIN script or cancelling listener is installed
+in ordinary owner tabs. This cap adds no DevTools command.
+
+## Verified (run) / exact-head CI evidence
+
+`PYTHONPATH=control:control/chrome_tests PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s control/chrome_tests -v`
+passed **220 tests, OK, 571.272 s** ([complete output](records/integrate3/local-python.txt), result lines 273/275).
+This includes both parts' regressions, **24 state removal mutations** (lines 216–239), **nine actual process cuts**
+(line 192), writer sweeps **1,862 single / 1,862 persistent / 7,127 cleanup pairs** (line 82), and dispatch sweeps
+**448 / 448 / 2,128** (line 253). Every public view is checked under exhaustion, after space returns without restart,
+and after restart. `node --test control/chrome_tests/*.test.mjs` passed **234/234**, zero failures/cancellations/skips
+([complete output](records/integrate3/local-node.txt)). The page [removal audit](records/integrate3/page-mutations.json)
+rejects **106 mutations**, every baseline passing ([output](records/integrate3/page-mutations.txt)); its command,
+the state mutation names, output hashes and exact result lines are in [local-summary.json](records/integrate3/local-summary.json).
+Regeneration/check printed `Generated tools, help, reference and ask rules` then `Generated artifacts match definitions`;
+`git diff --check` passed. These commands started no browser.
+
+Browser acceptance is collected only by `control-chrome.yml` in GitHub Linux containers, twice in both external
+and policy install modes.
+The **exact final pushed head**, completed run links, every named PASS line, independent receiver audit,
+password-ingress audit and base/Mail/boundary/qualification repeats are recorded in the closing evidence comment
+in the closing build response and [PR #27's checks](https://github.com/Ares-Empire/AresOS/pull/27/checks).
+This report is committed in the single implementation
+batch before those runs; it does not claim a future pass. No subsequent evidence-only commit changes that head.
+Raw artifacts stay with their named runs; the local audit/index outputs are retained in `.work/20-integrate3/`.
+The current auditor is `node reviews/20-chrome/audit-review-evidence.mjs <downloaded-artifacts>`.
+
+## Not verified / PLAN-GAP / JUDGMENT-CALL / open questions
+
+Group **12** stays false until 18d's real normal/skip-permissions precedence harness. Owner Enter keeps the panel
+boundary above. Synthetic fixtures do not verify real accounts, live signed-in sites, the installed image or the
+owner's desktop; native-UI answering of a preexisting modal remains out of scope. The feature → tool → test and
+group maps, measured views and image/18d/19b handoffs in the historical integration section below still describe
+the retained implementation; historical run IDs are not acceptance for this combined head.
+No new feature-removing refusal or open JUDGMENT-CALL is introduced by this cap. The snapshot decision belongs
+to the lead and is settled. No new implementation question remains; the stated staged/panel boundaries remain.
+
+## Runs / disk ledger
+
+GitHub lists **168** Chrome run IDs on `pkg/20-chrome` before this push, including the lead's two cancelled
+brief-only runs (`42953990307`, `42953996489`). One batched push should add the push/PR pair: **170 / about 175**.
+`pkg/20-chrome-state` has **16 run IDs, 17 executions including its failed-runner retry**, within its separate
+about-25 allowance. No run belonging to another build is cancelled here. Each CI run is awaited using one
+blocking `gh run watch <id> --exit-status --interval 60` call; failure logs are read only after completion.
+The closing PR evidence records the actual counts; exceeding 175 stops this build and is reported.
+The [pre-push disk inventory](records/integrate3/work-inventory.json) has **4,956 regular files, 3,424,122,971 bytes**
+under `.work/`; **no file over 500 MB**, no ISO/extracted image/browser profile and no local browser download.
+The closing build response records the final post-download inventory. No local test process or Gradle daemon
+started by this build remains after verification.
+
+---
+
+# Historical Part P review fixes: implementation acceptance green
 
 **P1–P31 implemented.** Source `2488d2420f5c39f54e3503e1746992e028ebf145` passed the complete
 **80-name suite twice in both install modes**, full P30 and all later cases included. Base, Mail, boundary and

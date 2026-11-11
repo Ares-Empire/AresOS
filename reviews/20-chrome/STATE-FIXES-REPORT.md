@@ -1,5 +1,21 @@
 # Part S — state review fixes
 
+## Combined-head rule (lead, 2026-11-10; integrate-3)
+
+Part S is merged into `pkg/20-chrome` by the lead's `3b37bd57`. The catalogue JUDGMENT-CALL below is
+**accepted by the lead with an absolute cap**, and is now a decided rule, not an owner question: a snapshot
+expires five minutes after its last valid page request or thirty minutes after creation, whichever comes first.
+Invalid cursors never renew it; at most two snapshots remain retained. An expired cursor explicitly says
+“start the list again without a cursor”. The combined-head tests exercise all three catalogues at both
+deadlines, an active walk, a full immutable 26-minute walk, pruning and restart.
+
+The cap changes only Chrome's `control/chrome/extension/background.js`. The shared
+`control/aresos_control/paging.py`, `results.py` and `mail/` are untouched by this integration change;
+Mail's behaviour is unchanged and the 18d/19b merge order is unaffected. `background.js` belongs to Part P:
+Part S's one-line renewal was merged into Part P's equivalent renewal, and the merge kept Part P's version.
+Combined verification and the exact-head CI evidence route are in [REPORT.md](REPORT.md); earlier results below
+remain Part S's own source evidence.
+
 **Status: Part S complete; final-source suites green twice.** Draft PR [#34](https://github.com/Ares-Empire/AresOS/pull/34) targets `pkg/20-chrome`. Runtime and fixture source `e5f3d8c5`; runtime hash `7d84b3d1223caff2b40d9feb68ffba285fc6819eac89eca711494a692e576edc`.
 
 ## Done (read)
@@ -63,15 +79,23 @@ Synthetic tests do not establish real accounts, live sites, an installed image o
 
 ## JUDGMENT-CALL
 
-Catalogue lifetime is five minutes of inactivity rather than five absolute minutes. A valid page request keeps the captured immutable list available, so an active walk can finish on a slower runner. Rejected alternatives: retaining absolute expiry (the observed failure), retrying/reducing the fixture (would hide the case), or removing expiry (would retain idle snapshots). There are still at most two snapshots with the existing size bounds, and these reads authorize no input. Reverting costs one assignment and its regression expectations. The owner should review this visible snapshot-lifetime choice before merge.
+**Decided by the lead, 2026-11-10, with integrate-3's absolute cap.** Catalogue lifetime is five minutes of
+inactivity, bounded by thirty minutes from creation. A valid page request keeps the captured immutable list
+available until the earlier deadline. Rejected alternatives were five absolute minutes (the observed slow-walk
+failure), reducing the fixture (would hide that failure), no expiry (would retain idle snapshots), and unlimited
+active renewal (would keep a stale walk alive forever). The existing two-snapshot and size bounds remain.
+These reads authorize no input. Changing the rule later changes only Chrome's deadlines and its clock-controlled
+regression expectations. This decision does not go to the owner.
 
 ## PLAN-GAP
 
-Specification was fetched from `origin/main` before reading it with `git show`; continuation/integration briefs absent there were read on this branch, with `20-review-fixes.md` taking precedence. The long-catalogue lifetime case was missing from the brief and surfaced in CI; its change is the judgment call above. Integration must retain S12's dialog location, the committed stored-entry read, and the valid-cursor timestamp renewal when combining Part P edits. No committed identity or acknowledgement migration is introduced. The historical combined-ref P27 failure belongs to Part P's separate build.
+Specification was fetched from `origin/main` before reading it with `git show`; continuation/integration briefs absent there were read on this branch. `20-integrate-3.md` now takes precedence. The long-catalogue lifetime case surfaced in CI and is settled by the lead's capped-lifetime rule above. Integration retains S12's dialog location, the committed stored-entry read, and Part P's valid-cursor timestamp renewal. No committed identity or acknowledgement migration is introduced. The historical combined-ref P27 failure belongs to Part P's earlier build.
 
 ## Open questions / run and disk ledger
 
-No implementation question remains. The catalogue-lifetime judgment call goes to the owner before merge. The PR remains a draft into `pkg/20-chrome`; nothing was merged, force-pushed, or pushed to `main` or Part P's branch.
+No implementation question remains. The catalogue-lifetime decision is accepted by the lead and needs no owner
+decision. Part S's original draft PR was into `pkg/20-chrome`; the lead subsequently merged it. This integration
+works only on `pkg/20-chrome`, keeps PR #27 draft and never merges or pushes to `main`.
 
 The lead's 2026-11-10 16:10 direction raised the state branch allowance to about 25 Chrome runs and required blocking shell waits instead of per-turn CI polling. Closing [ledger](records/state-fixes/run-ledger.json): **16 GitHub run IDs, 17 executions including the failed-runner retry**, within that allowance. This includes twelve cancelled/superseded diagnostics, the 105-minute timeout, the catalogue-expiry failure, the final first run with its infrastructure retry, and the full repeat. The earlier cancelled/superseded runs were started by this build. No other build's workflow was cancelled. After the lead's direction, each run/batch was awaited with one blocking `gh run watch --exit-status --interval 60` shell call; failed-job logs were examined after completion. Successful records were retained and indexed programmatically for this report.
 

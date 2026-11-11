@@ -5,6 +5,7 @@ from pathlib import Path
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 
 ROOT=Path(__file__).resolve().parents[2]
@@ -29,6 +30,10 @@ case('P1-dialog-fresh',B,"if(dialogs.get(tab)!==expectedDialog)throw Error('stal
 case('P1-end-lifetime',B,"retireNativeDialog(state.tab,document.document,boundary.result.value.token);",'void 0;',node('background','P1 a private end pause'))
 case('P1-end-late-begin',B,"!nativeDialogEnds.has(JSON.stringify([sender.tab.id,message.document,message.token]))&&",'',node('background','P1 a private end pause'))
 case('catalogue-active-lifetime',B,'record.time=Date.now();listSnapshots.delete(record.id);listSnapshots.set(record.id,record);','',node('background','catalogue snapshots survive'))
+case('catalogue-absolute-lifetime',B,' || Date.now()-record.created>=1800000','',node('state-catalogues','active catalogue walks expire'))
+case('catalogue-idle-deadline',B,'Date.now()-record.time>=300000','Date.now()-record.time>300000',node('state-catalogues','idle catalogue'))
+case('catalogue-absolute-pruning',B,' || now-value.created>=1800000','',node('state-catalogues','new catalogues prune'))
+case('catalogue-restart-message',B,'start the list again without a cursor','try later',node('state-catalogues','active catalogue walks expire'))
 case('P1-end-pause-fresh',B,"if(current())await targetCommand(state,'Debugger.resume');","await targetCommand(state,'Debugger.resume');",node('background','P1 an old private end query'))
 case('P1-return-no-poison',B,'if(owner&&pauseCurrent())owner.dialogPauseFailed=true;','if(owner)owner.dialogPauseFailed=true;',node('background','P1 an old dialog return query'))
 case('P1-auth',B,"if(boundary.result.value.token!==barrier.token)",'if(false)',node('background','P1 only the authenticated'))
@@ -157,7 +162,8 @@ def run():
                 if not killed:raise RuntimeError('Mutation survived '+row['item']+'\n'+changed.stdout)
             finally:
                 for path,source in originals.items():path.write_text(source)
-        output=ROOT/'reviews/20-chrome/records/review-fixes-mutations.json';output.write_text(json.dumps(records,indent=2)+'\n')
+        output=ROOT/(sys.argv[1] if len(sys.argv)>1 else 'reviews/20-chrome/records/review-fixes-mutations.json')
+        output.parent.mkdir(parents=True,exist_ok=True);output.write_text(json.dumps(records,indent=2)+'\n')
     print(f'{len(records)} mutations rejected; every baseline passed',flush=True)
 
 if __name__=='__main__':run()
