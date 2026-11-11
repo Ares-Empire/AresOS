@@ -23,7 +23,7 @@ Part P-owned file was merged into Part P's equivalent renewal; this run keeps th
 It additionally checks all three catalogues immediately before and at idle/absolute expiry, repeated refusal,
 fresh restart, pruning an actively used expired snapshot, invalid-cursor nonrenewal and two retained snapshots.
 The page removal audit adds absolute-cap, idle-deadline, absolute-pruning and actionable-error mutations.
-The independent receiver auditor now requires the combined **220 Python / 235 Node** inventory, with no failure,
+The independent receiver auditor now requires the combined **220 Python / 238 Node** inventory, with no failure,
 cancellation or skip accepted, and retains the existing exact browser inventory and receiver/ingress assertions.
 
 `python3 control/generate.py` regenerated every artifact; its check found no drift. No shared runtime,
@@ -31,8 +31,9 @@ classification, binding, approval or site-adapter behavior changes in this round
 six reads in Part P's newer `review-matrices.mjs` that still expected top-level `dialog`; they now consume
 Part S's `untrusted_content.dialog`, like the other fixture consumers. Receiver/approval assertions are unchanged.
 The browser-free contract regression executes the actual 15 ordinary and six inline dialog review variants with
-a read result that rejects top-level dialog access; its removal mutation fails. Runtime build hash:
-`15c46f6cb2e585b8abbcc6e6454e3000e3fb6cc016d4c226ec9c932735f1746e`.
+a read result that rejects top-level dialog access; its removal mutation fails. A later combined run exposed the
+native-dialog publication race described below; its fix also stays in `background.js`. Final runtime build hash:
+`6580a966bf3da06179a43ae251a9b6efd39fa712dcf41ba2a932256bc1f26abc`.
 Specification was fetched with `git fetch origin main` and read using `git show origin/main:<path>`; local
 integration/review briefs take precedence. Nothing outside this worktree, no browser/profile on this Mac,
 and no system software or Gradle daemon was used.
@@ -133,6 +134,40 @@ The first local attempt omitted jsonschema's path and failed import; the correct
 with `PYTHONDONTWRITEBYTECODE=1`. No software was installed. Full Linux base/Mail repeats remain mandatory on the
 next head; the one earlier Mail pass is not substituted for them.
 
+**Second combined head / native-dialog publication race (run/read):** source `318b0815` passes base,
+Mail, boundary and qualification twice ([all eight completed results, exact lines and artifact hashes](records/integrate3/second-shared-workflows.json)).
+Chrome [42959080697](https://github.com/Ares-Empire/AresOS/actions/runs/42959080697) external passed all 15
+ordinary native answers at receiver 0/1/1, six inline native dialogs and three bounded handoff/recovery cases.
+It then read the first prompt-default-conversion borrowed dialog while the opening handler was awaiting native
+frame lookup. The returned object had its text but **no frame, browser document or `unguarded` decision**;
+the strict borrowed-dialog assertion failed. [Exact partial object, failure lines and artifact hashes](records/integrate3/dialog-readiness-failure.json)
+retain this race, not a qualification pass. After the failed job was complete, this build cancelled only its own
+failed push run so the existing blocking watch could finish before its logs were read. Its separate
+[PR run 42959087676](https://github.com/Ares-Empire/AresOS/actions/runs/42959087676) was subsequently cancelled
+as superseded by the tested fix. Neither run is acceptance evidence.
+
+`background.js` now keeps a private promise for each native opening until frame identity and native-return
+provenance have been classified. Reads, dialog facts, observations and acting-result dialogs await that promise.
+A dialog opening during the final frame-reader reply re-enters the modal read path instead of exposing a partial
+object or page rows behind it. A stalled lookup is bounded at five seconds and says to read again; completing it
+recovers normal reads. Existing unestablished/excluded-frame refusals remain, and normal supported dialogs retain
+their decided asking/holding behaviour. No page can resolve the private gate. Three clock/ordering regressions
+cover every read path (guarded and borrowed), the final-reader race and bounded recovery; four new removal
+mutations cover waiting, final-reader routing, completion and the deadline. The standalone confirmation-handler
+VM fixture adds the new private WeakMap; its original match/consumption assertions are unchanged. The existing
+native-frame mutation targets the same origin-authentication expression after its new `try/finally` scope.
+
+**Final-source local verification (run):** the complete Python command above passes **220 tests, OK,
+905.895 s**, with the full writer/dispatch sweeps, all **nine process cuts** and **24 state removal mutations**.
+Node passes **238/238**, zero failures/cancellations/skips. The full page removal audit rejects **111 mutations**,
+every baseline passing. [Exact commands, source, runtime hash, result lines and output hashes](records/integrate3/local-dialog-ready-summary.json)
+index [Python](records/integrate3/local-python-dialog-ready.txt), [Node](records/integrate3/local-node-dialog-ready.txt),
+[page audit output](records/integrate3/page-mutations-dialog-ready.txt) and [mutated assertions](records/integrate3/page-mutations-dialog-ready.json).
+All generated files were regenerated and checked again; syntax/diff checks pass. The report/evidence commit
+changes no runtime or test after these checks. The final exact-head Chrome pair and every shared-workflow repeat
+must finish before the closing response reports green, and their four full browser artifacts must pass the
+independent receiver/ingress audit. Superseded partial passes are not substitutes.
+
 ## Not verified / PLAN-GAP / JUDGMENT-CALL / open questions
 
 Group **12** stays false until 18d's real normal/skip-permissions precedence harness. Owner Enter keeps the panel
@@ -147,7 +182,9 @@ to the lead and is settled. No new implementation question remains; the stated s
 
 GitHub listed **168** Chrome run IDs on `pkg/20-chrome` before this run, including the lead's two cancelled
 brief-only runs (`42953990307`, `42953996489`). The initial batched push added two failed combined runs (**170**).
-The S12 fixture-consumer correction requires one follow-up push/PR pair: **172 / about 175**.
+The S12 fixture-consumer/base-test correction added another pair (**172**). The native-dialog readiness fix
+requires the final push/PR pair: **174 / about 175**. If another full pair is needed, it would exceed the cap;
+that must be reported and stopped rather than silently spending extra runs.
 `pkg/20-chrome-state` has **16 run IDs, 17 executions including its failed-runner retry**, within its separate
 about-25 allowance. No run belonging to another build is cancelled here. Each CI run is awaited using one
 blocking `gh run watch <id> --exit-status --interval 60` call; failure logs are read only after completion.

@@ -28,6 +28,13 @@ focused repetitions and all three socket timeout cases pass. This is a test-fixt
 paging, results, engine, storage and Mail code are unchanged by the integration run. See the combined report for
 the failed run and the required exact-head repeats.
 
+A later combined browser run exposed a Part P publication race: a read could finish during native-dialog
+frame lookup and return text before frame/guard provenance was known. `background.js` now waits on a private,
+bounded readiness promise across read/result paths and re-enters modal reading after a final-frame race.
+This preserves the decided borrowed-dialog question instead of exposing incomplete metadata. Ordering/deadline
+regressions and removal mutations cover the fix; the combined report retains the failed raw object and final
+verification. No shared production paging, results, state or Mail file changes for this fix.
+
 **Status: Part S complete; final-source suites green twice.** Draft PR [#34](https://github.com/Ares-Empire/AresOS/pull/34) targets `pkg/20-chrome`. Runtime and fixture source `e5f3d8c5`; runtime hash `7d84b3d1223caff2b40d9feb68ffba285fc6819eac89eca711494a692e576edc`.
 
 ## Done (read)
