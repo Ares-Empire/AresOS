@@ -42,3 +42,10 @@ one loop over the named runs), never polling run status one turn at a time; no o
 run" of `briefs/19b-s3-start.md` apply, except that the storage stop rule is replaced by item 1 above for this round
 (re-measure and report; don't stop). The other stop rules (immutable history rewrite, any change to what a tool asks
 or does) still apply. Stop after stage 3.
+
+## Owner decision, 2026-11-11 (board #176)
+
+The owner accepted the storage figures of `STORAGE-S3-FINAL.md` ("Yes, accept"): about 0.95 KB per sent mail kept
+permanently, +0.19 KB per extra recipient, 0.6 KB per permanent delete, 0.9 KB per move. The candidate stands. If a
+later fix pushes any figure clearly above this table (more than about 10%), report it; otherwise there is no further
+storage stop. Record this answer with its date in the stage-3 report.
