@@ -16,6 +16,11 @@ Part S's one-line renewal was merged into Part P's equivalent renewal, and the m
 Combined verification and the exact-head CI evidence route are in [REPORT.md](REPORT.md); earlier results below
 remain Part S's own source evidence.
 
+The first combined CI run also found six legacy `dialog` reads in Part P's newer `ci/review-matrices.mjs`.
+They now use S12's `untrusted_content.dialog`, as `ci/matrices.mjs` and `ci/sites/matrices.mjs` already did.
+This is a fixture-consumer correction only, with a browser-free contract regression/removal mutation; no service
+result shape, page behavior, receiver assertion or approval assertion changed.
+
 **Status: Part S complete; final-source suites green twice.** Draft PR [#34](https://github.com/Ares-Empire/AresOS/pull/34) targets `pkg/20-chrome`. Runtime and fixture source `e5f3d8c5`; runtime hash `7d84b3d1223caff2b40d9feb68ffba285fc6819eac89eca711494a692e576edc`.
 
 ## Done (read)

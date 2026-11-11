@@ -23,11 +23,15 @@ Part P-owned file was merged into Part P's equivalent renewal; this run keeps th
 It additionally checks all three catalogues immediately before and at idle/absolute expiry, repeated refusal,
 fresh restart, pruning an actively used expired snapshot, invalid-cursor nonrenewal and two retained snapshots.
 The page removal audit adds absolute-cap, idle-deadline, absolute-pruning and actionable-error mutations.
-The independent receiver auditor now requires the combined **220 Python / 234 Node** inventory, with no failure,
+The independent receiver auditor now requires the combined **220 Python / 235 Node** inventory, with no failure,
 cancellation or skip accepted, and retains the existing exact browser inventory and receiver/ingress assertions.
 
 `python3 control/generate.py` regenerated every artifact; its check found no drift. No shared runtime,
-classification, binding, approval, site-adapter or fixture behavior changes in this round. Runtime build hash:
+classification, binding, approval or site-adapter behavior changes in this round. The combined CI run exposed
+six reads in Part P's newer `review-matrices.mjs` that still expected top-level `dialog`; they now consume
+Part S's `untrusted_content.dialog`, like the other fixture consumers. Receiver/approval assertions are unchanged.
+The browser-free contract regression executes the actual 15 ordinary and six inline dialog review variants with
+a read result that rejects top-level dialog access; its removal mutation fails. Runtime build hash:
 `15c46f6cb2e585b8abbcc6e6454e3000e3fb6cc016d4c226ec9c932735f1746e`.
 Specification was fetched with `git fetch origin main` and read using `git show origin/main:<path>`; local
 integration/review briefs take precedence. Nothing outside this worktree, no browser/profile on this Mac,
@@ -86,12 +90,30 @@ Regeneration/check printed `Generated tools, help, reference and ask rules` then
 Browser acceptance is collected only by `control-chrome.yml` in GitHub Linux containers, twice in both external
 and policy install modes.
 The **exact final pushed head**, completed run links, every named PASS line, independent receiver audit,
-password-ingress audit and base/Mail/boundary/qualification repeats are recorded in the closing evidence comment
-in the closing build response and [PR #27's checks](https://github.com/Ares-Empire/AresOS/pull/27/checks).
+password-ingress audit and base/Mail/boundary/qualification repeats are recorded in the closing build response
+and [PR #27's checks](https://github.com/Ares-Empire/AresOS/pull/27/checks).
 This report is committed in the single implementation
 batch before those runs; it does not claim a future pass. No subsequent evidence-only commit changes that head.
 Raw artifacts stay with their named runs; the local audit/index outputs are retained in `.work/20-integrate3/`.
 The current auditor is `node reviews/20-chrome/audit-review-evidence.mjs <downloaded-artifacts>`.
+
+**Initial combined CI failed, not acceptance:** [42955378005](https://github.com/Ares-Empire/AresOS/actions/runs/42955378005)
+and [42955382845](https://github.com/Ares-Empire/AresOS/actions/runs/42955382845), both install modes, source
+`4340939a`. Each passed its 49 focused Python and 234 Node tests and the preliminary browser checks, then failed
+the first native-dialog review case at the obsolete selector. The service correctly returned the authenticated
+native alert inside `untrusted_content`; [four-job diagnosis with exact failure lines](records/integrate3/first-combined-failure.json)
+retains this evidence; the inspected [Linux-container screenshot](screenshots/integrate3/native-dialog-contract-failure.png)
+shows the actual alert still open. Full Python/browser acceptance was not reached. This integration defect required the
+follow-up fixture/contract-test batch; no assertion or feature was weakened and no browser ran locally.
+
+**After the consumer correction (run):** full local Python again passed **220 tests, OK, 742.060 s**, including
+the complete storage sweeps, nine process cuts and all **24 state removal mutations**. Node passed **235/235**,
+zero failures/cancellations/skips. The complete page audit rejects **107 mutations**, every baseline passing,
+including the new S12 consumer-contract removal. [Exact commands, result lines and hashes](records/integrate3/local-recovery-summary.json)
+index the retained [Python](records/integrate3/local-python-recovery.txt), [Node](records/integrate3/local-node-recovery.txt),
+[page audit output](records/integrate3/page-mutations-recovery.txt) and [mutated assertions](records/integrate3/page-mutations-recovery.json).
+Generated artifacts still match and the runtime hash is unchanged. The next push repeats every named CI workflow
+on the corrected exact head; the failed browser pair is never counted as acceptance.
 
 ## Not verified / PLAN-GAP / JUDGMENT-CALL / open questions
 
@@ -105,8 +127,9 @@ to the lead and is settled. No new implementation question remains; the stated s
 
 ## Runs / disk ledger
 
-GitHub lists **168** Chrome run IDs on `pkg/20-chrome` before this push, including the lead's two cancelled
-brief-only runs (`42953990307`, `42953996489`). One batched push should add the push/PR pair: **170 / about 175**.
+GitHub listed **168** Chrome run IDs on `pkg/20-chrome` before this run, including the lead's two cancelled
+brief-only runs (`42953990307`, `42953996489`). The initial batched push added two failed combined runs (**170**).
+The S12 fixture-consumer correction requires one follow-up push/PR pair: **172 / about 175**.
 `pkg/20-chrome-state` has **16 run IDs, 17 executions including its failed-runner retry**, within its separate
 about-25 allowance. No run belonging to another build is cancelled here. Each CI run is awaited using one
 blocking `gh run watch <id> --exit-status --interval 60` call; failure logs are read only after completion.
