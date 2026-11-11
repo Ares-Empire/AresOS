@@ -58,11 +58,11 @@ fi
 # or unmasked by that route: the image's /usr/etc mask with this deployment's
 # /etc link removed, static and inactive. Every other listed unit stays masked.
 finalizer_unmasked_by_update() {
-    [[ $1 == ostree-finalize-staged.service || $1 == bootc-finalize-staged.service ]] &&
-        [[ $(readlink "/usr/etc/systemd/system/$1") == /dev/null ]] &&
-        [[ ! -e /etc/systemd/system/$1 && ! -L /etc/systemd/system/$1 ]] &&
-        [[ $(systemctl is-enabled "$1" 2>/dev/null || true) == static ]] &&
-        [[ $(systemctl show -P ActiveState "$1") == inactive ]]
+    [[ $1 == ostree-finalize-staged.service || $1 == bootc-finalize-staged.service ]] || return 1
+    [[ $(readlink "/usr/etc/systemd/system/$1") == /dev/null ]] || return 1
+    if [[ -e /etc/systemd/system/$1 || -L /etc/systemd/system/$1 ]]; then return 1; fi
+    [[ $(systemctl is-enabled "$1" 2>/dev/null || true) == static ]] || return 1
+    [[ $(systemctl show -P ActiveState "$1") == inactive ]]
 }
 while read -r unit; do
     finalizer_unmasked_by_update "$unit" || test "$(systemctl is-enabled "$unit" 2>/dev/null || true)" = masked
