@@ -1831,7 +1831,10 @@ class Oracle:
                 submitting = [e['seq'] for e, candidate, value in candidates[:-1]
                               if candidate == key and value.get('state') == 'submitting']
                 for call in self.calls_at(commit['seq']):
-                    before = self.commit_fault_points.get((call['call'], max(submitting)), float('inf')) if submitting else float('inf')
+                    # A later stage row can first be observed during recovery
+                    # after its own fsync failed. Bind the attempt's start, not
+                    # that later observation of the same submitting state.
+                    before = self.commit_fault_points.get((call['call'], min(submitting)), float('inf')) if submitting else float('inf')
                     after = self.commit_fault_points.get((call['call'], commit['seq']), -1)
                     if any(before <= fault[0] <= after for fault in call.get('faults', {}).get('trace', [])):
                         # Context/flag storage can fail before EXPUNGE/DELETE.

@@ -543,5 +543,9 @@ when that cleanup has its own independently correlated fault; a successful
 cleanup cannot turn an unverified initial probe into qualification. If EXPUNGE
 was never reached, an unknown result requires a fault between that operation's
 own submitting and outcome observations. Earlier unrelated faults supply no
-authority. Native `marked:` receipts use the documented detail hash: proof needs
+authority. A recovered intermediate stage does not move that start boundary:
+the first submitting commit identifies the attempt even if a later stage is
+first observed after its failed fsync has been recovered. Faults after the
+outcome observation still supply no authority.
+Native `marked:` receipts use the documented detail hash: proof needs
 both the exact hash of `deleted flag set` and the matching acknowledged UID STORE.

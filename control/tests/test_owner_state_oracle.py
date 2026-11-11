@@ -1741,6 +1741,21 @@ class StageOneRoundThree(unittest.TestCase):
 
 
 class StageTwoPartA(unittest.TestCase):
+    def test_recovered_cleanup_stage_does_not_move_the_attempts_fault_boundary(self):
+        for fault in (9, 21, 51):
+            with self.subTest(fault=fault):
+                oracle = Oracle()
+                oracle.call('mail_account_add', {'id': 'box'}, 1, {'trace': [(fault, 'file.fsync', 'ENOSPC')]})
+                oracle.script[-1].update(start_seq=0, end_seq=4)
+                oracle.commit_fault_points.update({(1, 1): 20, (1, 2): 40, (1, 3): 50})
+                row = {'action': 'mail_delete', 'payload': {}, 'state': 'submitting'}
+                record = Record(events=[{'seq': 1, 'set': {'op:g:c': row}},
+                    {'seq': 2, 'set': {'op:g:c': {**row, 'stages': {'marked': 'observed'}}}},
+                    {'seq': 3, 'set': {'op:g:c': {**row, 'state': 'unknown'}}}])
+                result = oracle.probe_outcome([], record, 4, 'mail_delete', lambda payload: True, [], 'done')
+                self.assertEqual('unknown' if fault == 21 else None, result)
+                self.assertEqual(bool(oracle.lifecycle_errors), fault != 21)
+
     def test_later_fault_cannot_excuse_a_false_completed_probe_result(self):
         oracle = Oracle()
         oracle.call('mail_account_add', {'id': 'box'}, 1, {'trace': [(21, 'file.fsync', 'ENOSPC')]})
