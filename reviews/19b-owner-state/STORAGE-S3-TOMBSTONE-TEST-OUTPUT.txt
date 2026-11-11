@@ -1,0 +1,15 @@
+test_compact_without_confirmed_export_keeps_every_record (test_owner_tombstones.OwnerTombstones.test_compact_without_confirmed_export_keeps_every_record) ... ok
+test_newer_unexported_check_keeps_full_projection_history (test_owner_tombstones.OwnerTombstones.test_newer_unexported_check_keeps_full_projection_history) ... ok
+test_older_backup_cannot_resurrect_acknowledged_warning_or_finished_work (test_owner_tombstones.OwnerTombstones.test_older_backup_cannot_resurrect_acknowledged_warning_or_finished_work) ... ok
+test_one_and_1001_archived_sends_have_same_live_size (test_owner_tombstones.OwnerTombstones.test_one_and_1001_archived_sends_have_same_live_size) ... ok
+test_re_read_export_precedes_retirement_and_failure_keeps_live_history (test_owner_tombstones.OwnerTombstones.test_re_read_export_precedes_retirement_and_failure_keeps_live_history) ... ok
+test_source_and_projection_read_every_fixture_fact_without_sqlite_or_index (test_owner_tombstones.OwnerTombstones.test_source_and_projection_read_every_fixture_fact_without_sqlite_or_index) ... ok
+test_tampered_missing_or_substituted_export_fails_loudly (test_owner_tombstones.OwnerTombstones.test_tampered_missing_or_substituted_export_fails_loudly) ... ok
+test_tombstone_publication_failure_does_not_drop_live_history (test_owner_tombstones.OwnerTombstones.test_tombstone_publication_failure_does_not_drop_live_history) ... ok
+test_unacknowledged_warning_open_check_and_unresolved_work_stay_live (test_owner_tombstones.OwnerTombstones.test_unacknowledged_warning_open_check_and_unresolved_work_stay_live) ... ok
+
+----------------------------------------------------------------------
+Ran 9 tests in 0.455s
+
+OK
+TOMBSTONE live bound: 115 bytes after 1 and 1001 archived synthetic sends

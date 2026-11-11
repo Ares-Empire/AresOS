@@ -1,0 +1,3139 @@
+{
+  "accounting": {
+    "net_inventory": "Unadjusted before/after retained-file deltas, also preserved; fixture reclamation makes some negative.",
+    "open": "Matched pre-operation to committed-open peak retained-file inventory delta, candidate minus baseline.",
+    "permanent": "Matched net inventory delta, with pre-existing fixture-source reclamation credited back. Every newly retained source frame and file header counts.",
+    "source": "Full readable working journal; separate from the compact reference projection; all copies counted, not claimed bounded or publicly routed."
+  },
+  "baseline": {
+    "delete": {
+      "archive": {
+        "events": 8,
+        "independent_record_retained": true,
+        "operations": 1
+      },
+      "before": {
+        "all_kept_file_bytes": 86984,
+        "archive_bytes": 0,
+        "index_bytes": 16384,
+        "journal_bytes": 968,
+        "journal_records": 3,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 0,
+        "projection_records": 0,
+        "source_bytes": 0,
+        "source_records": 0,
+        "sqlite_event_bytes": 5787,
+        "sqlite_file_bytes": 49152,
+        "tombstone_bytes": 0,
+        "tombstone_records": 0
+      },
+      "finished": {
+        "all_kept_file_bytes": 112616,
+        "archive_bytes": 25002,
+        "index_bytes": 16384,
+        "journal_bytes": 5694,
+        "journal_records": 9,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 0,
+        "projection_records": 0,
+        "source_bytes": 0,
+        "source_records": 0,
+        "sqlite_event_bytes": 1478,
+        "sqlite_file_bytes": 45056,
+        "tombstone_bytes": 0,
+        "tombstone_records": 0
+      },
+      "finished_delta": {
+        "all_kept_file_bytes": 25632,
+        "archive_bytes": 25002,
+        "index_bytes": 0,
+        "journal_bytes": 4726,
+        "journal_records": 6,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 0,
+        "projection_records": 0,
+        "source_bytes": 0,
+        "source_records": 0,
+        "sqlite_event_bytes": -4309,
+        "sqlite_file_bytes": -4096,
+        "tombstone_bytes": 0,
+        "tombstone_records": 0
+      },
+      "kept_files": [
+        {
+          "bytes": 45056,
+          "path": "state/control.sqlite"
+        },
+        {
+          "bytes": 25002,
+          "path": "evidence/archives/history-402d50241cd44005a0cabc31894520bc.jsonl"
+        },
+        {
+          "bytes": 16384,
+          "path": "evidence/journal-index.sqlite"
+        },
+        {
+          "bytes": 5694,
+          "path": "evidence/operations.jsonl"
+        },
+        {
+          "bytes": 20480,
+          "path": "evidence/receiver.sqlite"
+        }
+      ],
+      "open": {
+        "all_kept_file_bytes": 115502,
+        "archive_bytes": 0,
+        "index_bytes": 16384,
+        "journal_bytes": 4910,
+        "journal_records": 8,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 0,
+        "projection_records": 0,
+        "source_bytes": 0,
+        "source_records": 0,
+        "sqlite_event_bytes": 22241,
+        "sqlite_file_bytes": 73728,
+        "tombstone_bytes": 0,
+        "tombstone_records": 0
+      },
+      "open_delta": {
+        "all_kept_file_bytes": 28518,
+        "archive_bytes": 0,
+        "index_bytes": 0,
+        "journal_bytes": 3942,
+        "journal_records": 5,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 0,
+        "projection_records": 0,
+        "source_bytes": 0,
+        "source_records": 0,
+        "sqlite_event_bytes": 16454,
+        "sqlite_file_bytes": 24576,
+        "tombstone_bytes": 0,
+        "tombstone_records": 0
+      },
+      "outcome": "done",
+      "projection_detail": [],
+      "retained_live_projection_detail": [],
+      "retained_source_detail": [],
+      "source_detail": [],
+      "tombstone_detail": [],
+      "while_open_peak": {
+        "all_kept_file_bytes": 115415,
+        "archive_bytes": 0,
+        "index_bytes": 16384,
+        "journal_bytes": 4823,
+        "journal_records": 8,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 0,
+        "projection_records": 0,
+        "source_bytes": 0,
+        "source_records": 0,
+        "sqlite_event_bytes": 18790,
+        "sqlite_file_bytes": 73728,
+        "tombstone_bytes": 0,
+        "tombstone_records": 0
+      },
+      "while_open_peak_delta": {
+        "all_kept_file_bytes": 28431,
+        "archive_bytes": 0,
+        "index_bytes": 0,
+        "journal_bytes": 3855,
+        "journal_records": 5,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 0,
+        "projection_records": 0,
+        "source_bytes": 0,
+        "source_records": 0,
+        "sqlite_event_bytes": 13003,
+        "sqlite_file_bytes": 24576,
+        "tombstone_bytes": 0,
+        "tombstone_records": 0
+      }
+    },
+    "free_change": {
+      "archive": {
+        "events": 5,
+        "independent_record_retained": true,
+        "operations": 0
+      },
+      "before": {
+        "all_kept_file_bytes": 86984,
+        "archive_bytes": 0,
+        "index_bytes": 16384,
+        "journal_bytes": 968,
+        "journal_records": 3,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 0,
+        "projection_records": 0,
+        "source_bytes": 0,
+        "source_records": 0,
+        "sqlite_event_bytes": 5787,
+        "sqlite_file_bytes": 49152,
+        "tombstone_bytes": 0,
+        "tombstone_records": 0
+      },
+      "finished": {
+        "all_kept_file_bytes": 91497,
+        "archive_bytes": 7577,
+        "index_bytes": 16384,
+        "journal_bytes": 2000,
+        "journal_records": 6,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 0,
+        "projection_records": 0,
+        "source_bytes": 0,
+        "source_records": 0,
+        "sqlite_event_bytes": 871,
+        "sqlite_file_bytes": 45056,
+        "tombstone_bytes": 0,
+        "tombstone_records": 0
+      },
+      "finished_delta": {
+        "all_kept_file_bytes": 4513,
+        "archive_bytes": 7577,
+        "index_bytes": 0,
+        "journal_bytes": 1032,
+        "journal_records": 3,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 0,
+        "projection_records": 0,
+        "source_bytes": 0,
+        "source_records": 0,
+        "sqlite_event_bytes": -4916,
+        "sqlite_file_bytes": -4096,
+        "tombstone_bytes": 0,
+        "tombstone_records": 0
+      },
+      "kept_files": [
+        {
+          "bytes": 45056,
+          "path": "state/control.sqlite"
+        },
+        {
+          "bytes": 7577,
+          "path": "evidence/archives/history-402d50241cd44005a0cabc31894520bc.jsonl"
+        },
+        {
+          "bytes": 16384,
+          "path": "evidence/journal-index.sqlite"
+        },
+        {
+          "bytes": 2000,
+          "path": "evidence/operations.jsonl"
+        },
+        {
+          "bytes": 20480,
+          "path": "evidence/receiver.sqlite"
+        }
+      ],
+      "open": {
+        "all_kept_file_bytes": 87672,
+        "archive_bytes": 0,
+        "index_bytes": 16384,
+        "journal_bytes": 1656,
+        "journal_records": 5,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 0,
+        "projection_records": 0,
+        "source_bytes": 0,
+        "source_records": 0,
+        "sqlite_event_bytes": 7379,
+        "sqlite_file_bytes": 49152,
+        "tombstone_bytes": 0,
+        "tombstone_records": 0
+      },
+      "open_delta": {
+        "all_kept_file_bytes": 688,
+        "archive_bytes": 0,
+        "index_bytes": 0,
+        "journal_bytes": 688,
+        "journal_records": 2,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 0,
+        "projection_records": 0,
+        "source_bytes": 0,
+        "source_records": 0,
+        "sqlite_event_bytes": 1592,
+        "sqlite_file_bytes": 0,
+        "tombstone_bytes": 0,
+        "tombstone_records": 0
+      },
+      "outcome": "done",
+      "projection_detail": [],
+      "retained_live_projection_detail": [],
+      "retained_source_detail": [],
+      "source_detail": [],
+      "tombstone_detail": [],
+      "while_open_peak": {
+        "all_kept_file_bytes": 87585,
+        "archive_bytes": 0,
+        "index_bytes": 16384,
+        "journal_bytes": 1569,
+        "journal_records": 5,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 0,
+        "projection_records": 0,
+        "source_bytes": 0,
+        "source_records": 0,
+        "sqlite_event_bytes": 6819,
+        "sqlite_file_bytes": 49152,
+        "tombstone_bytes": 0,
+        "tombstone_records": 0
+      },
+      "while_open_peak_delta": {
+        "all_kept_file_bytes": 601,
+        "archive_bytes": 0,
+        "index_bytes": 0,
+        "journal_bytes": 601,
+        "journal_records": 2,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 0,
+        "projection_records": 0,
+        "source_bytes": 0,
+        "source_records": 0,
+        "sqlite_event_bytes": 1032,
+        "sqlite_file_bytes": 0,
+        "tombstone_bytes": 0,
+        "tombstone_records": 0
+      }
+    },
+    "move": {
+      "archive": {
+        "events": 9,
+        "independent_record_retained": true,
+        "operations": 0
+      },
+      "before": {
+        "all_kept_file_bytes": 86984,
+        "archive_bytes": 0,
+        "index_bytes": 16384,
+        "journal_bytes": 968,
+        "journal_records": 3,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 0,
+        "projection_records": 0,
+        "source_bytes": 0,
+        "source_records": 0,
+        "sqlite_event_bytes": 5787,
+        "sqlite_file_bytes": 49152,
+        "tombstone_bytes": 0,
+        "tombstone_records": 0
+      },
+      "finished": {
+        "all_kept_file_bytes": 100704,
+        "archive_bytes": 15406,
+        "index_bytes": 16384,
+        "journal_bytes": 3378,
+        "journal_records": 10,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 0,
+        "projection_records": 0,
+        "source_bytes": 0,
+        "source_records": 0,
+        "sqlite_event_bytes": 873,
+        "sqlite_file_bytes": 45056,
+        "tombstone_bytes": 0,
+        "tombstone_records": 0
+      },
+      "finished_delta": {
+        "all_kept_file_bytes": 13720,
+        "archive_bytes": 15406,
+        "index_bytes": 0,
+        "journal_bytes": 2410,
+        "journal_records": 7,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 0,
+        "projection_records": 0,
+        "source_bytes": 0,
+        "source_records": 0,
+        "sqlite_event_bytes": -4914,
+        "sqlite_file_bytes": -4096,
+        "tombstone_bytes": 0,
+        "tombstone_records": 0
+      },
+      "kept_files": [
+        {
+          "bytes": 45056,
+          "path": "state/control.sqlite"
+        },
+        {
+          "bytes": 15406,
+          "path": "evidence/archives/history-1d5d76125e024a6b9d68941e85373333.jsonl"
+        },
+        {
+          "bytes": 16384,
+          "path": "evidence/journal-index.sqlite"
+        },
+        {
+          "bytes": 3378,
+          "path": "evidence/operations.jsonl"
+        },
+        {
+          "bytes": 20480,
+          "path": "evidence/receiver.sqlite"
+        }
+      ],
+      "open": {
+        "all_kept_file_bytes": 105432,
+        "archive_bytes": 0,
+        "index_bytes": 16384,
+        "journal_bytes": 3032,
+        "journal_records": 9,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 0,
+        "projection_records": 0,
+        "source_bytes": 0,
+        "source_records": 0,
+        "sqlite_event_bytes": 15164,
+        "sqlite_file_bytes": 65536,
+        "tombstone_bytes": 0,
+        "tombstone_records": 0
+      },
+      "open_delta": {
+        "all_kept_file_bytes": 18448,
+        "archive_bytes": 0,
+        "index_bytes": 0,
+        "journal_bytes": 2064,
+        "journal_records": 6,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 0,
+        "projection_records": 0,
+        "source_bytes": 0,
+        "source_records": 0,
+        "sqlite_event_bytes": 9377,
+        "sqlite_file_bytes": 16384,
+        "tombstone_bytes": 0,
+        "tombstone_records": 0
+      },
+      "outcome": "done",
+      "projection_detail": [],
+      "retained_live_projection_detail": [],
+      "retained_source_detail": [],
+      "source_detail": [],
+      "tombstone_detail": [],
+      "while_open_peak": {
+        "all_kept_file_bytes": 105345,
+        "archive_bytes": 0,
+        "index_bytes": 16384,
+        "journal_bytes": 2945,
+        "journal_records": 9,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 0,
+        "projection_records": 0,
+        "source_bytes": 0,
+        "source_records": 0,
+        "sqlite_event_bytes": 14610,
+        "sqlite_file_bytes": 65536,
+        "tombstone_bytes": 0,
+        "tombstone_records": 0
+      },
+      "while_open_peak_delta": {
+        "all_kept_file_bytes": 18361,
+        "archive_bytes": 0,
+        "index_bytes": 0,
+        "journal_bytes": 1977,
+        "journal_records": 6,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 0,
+        "projection_records": 0,
+        "source_bytes": 0,
+        "source_records": 0,
+        "sqlite_event_bytes": 8823,
+        "sqlite_file_bytes": 16384,
+        "tombstone_bytes": 0,
+        "tombstone_records": 0
+      }
+    },
+    "send": {
+      "archive": {
+        "events": 17,
+        "independent_record_retained": true,
+        "operations": 1
+      },
+      "before": {
+        "all_kept_file_bytes": 86984,
+        "archive_bytes": 0,
+        "index_bytes": 16384,
+        "journal_bytes": 968,
+        "journal_records": 3,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 0,
+        "projection_records": 0,
+        "source_bytes": 0,
+        "source_records": 0,
+        "sqlite_event_bytes": 5787,
+        "sqlite_file_bytes": 49152,
+        "tombstone_bytes": 0,
+        "tombstone_records": 0
+      },
+      "finished": {
+        "all_kept_file_bytes": 163046,
+        "archive_bytes": 60040,
+        "index_bytes": 16384,
+        "journal_bytes": 12574,
+        "journal_records": 20,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 0,
+        "projection_records": 0,
+        "source_bytes": 0,
+        "source_records": 0,
+        "sqlite_event_bytes": 10274,
+        "sqlite_file_bytes": 53248,
+        "tombstone_bytes": 0,
+        "tombstone_records": 0
+      },
+      "finished_delta": {
+        "all_kept_file_bytes": 76062,
+        "archive_bytes": 60040,
+        "index_bytes": 0,
+        "journal_bytes": 11606,
+        "journal_records": 17,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 0,
+        "projection_records": 0,
+        "source_bytes": 0,
+        "source_records": 0,
+        "sqlite_event_bytes": 4487,
+        "sqlite_file_bytes": 4096,
+        "tombstone_bytes": 0,
+        "tombstone_records": 0
+      },
+      "kept_files": [
+        {
+          "bytes": 53248,
+          "path": "state/control.sqlite"
+        },
+        {
+          "bytes": 8,
+          "path": "state/mail-wire/.origins-ec11120489cef443b3903b162d3a59570f8ce12b2f906946747de26dd8aa64d0"
+        },
+        {
+          "bytes": 312,
+          "path": "state/mail-wire/ec11120489cef443b3903b162d3a59570f8ce12b2f906946747de26dd8aa64d0"
+        },
+        {
+          "bytes": 60040,
+          "path": "evidence/archives/history-1d5d76125e024a6b9d68941e85373333.jsonl"
+        },
+        {
+          "bytes": 16384,
+          "path": "evidence/journal-index.sqlite"
+        },
+        {
+          "bytes": 12574,
+          "path": "evidence/operations.jsonl"
+        },
+        {
+          "bytes": 20480,
+          "path": "evidence/receiver.sqlite"
+        }
+      ],
+      "open": {
+        "all_kept_file_bytes": 162346,
+        "archive_bytes": 0,
+        "index_bytes": 16384,
+        "journal_bytes": 10474,
+        "journal_records": 17,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 0,
+        "projection_records": 0,
+        "source_bytes": 0,
+        "source_records": 0,
+        "sqlite_event_bytes": 56148,
+        "sqlite_file_bytes": 114688,
+        "tombstone_bytes": 0,
+        "tombstone_records": 0
+      },
+      "open_delta": {
+        "all_kept_file_bytes": 75362,
+        "archive_bytes": 0,
+        "index_bytes": 0,
+        "journal_bytes": 9506,
+        "journal_records": 14,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 0,
+        "projection_records": 0,
+        "source_bytes": 0,
+        "source_records": 0,
+        "sqlite_event_bytes": 50361,
+        "sqlite_file_bytes": 65536,
+        "tombstone_bytes": 0,
+        "tombstone_records": 0
+      },
+      "outcome": "done",
+      "projection_detail": [],
+      "retained_live_projection_detail": [],
+      "retained_source_detail": [],
+      "source_detail": [],
+      "tombstone_detail": [],
+      "while_open_peak": {
+        "all_kept_file_bytes": 162258,
+        "archive_bytes": 0,
+        "index_bytes": 16384,
+        "journal_bytes": 10386,
+        "journal_records": 17,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 0,
+        "projection_records": 0,
+        "source_bytes": 0,
+        "source_records": 0,
+        "sqlite_event_bytes": 51762,
+        "sqlite_file_bytes": 114688,
+        "tombstone_bytes": 0,
+        "tombstone_records": 0
+      },
+      "while_open_peak_delta": {
+        "all_kept_file_bytes": 75274,
+        "archive_bytes": 0,
+        "index_bytes": 0,
+        "journal_bytes": 9418,
+        "journal_records": 14,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 0,
+        "projection_records": 0,
+        "source_bytes": 0,
+        "source_records": 0,
+        "sqlite_event_bytes": 45975,
+        "sqlite_file_bytes": 65536,
+        "tombstone_bytes": 0,
+        "tombstone_records": 0
+      }
+    },
+    "send_25mib": {
+      "archive": {
+        "events": 18,
+        "independent_record_retained": true,
+        "operations": 1
+      },
+      "before": {
+        "all_kept_file_bytes": 26301745,
+        "archive_bytes": 0,
+        "index_bytes": 16384,
+        "journal_bytes": 1312,
+        "journal_records": 4,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 0,
+        "projection_records": 0,
+        "source_bytes": 0,
+        "source_records": 0,
+        "sqlite_event_bytes": 6503,
+        "sqlite_file_bytes": 49152,
+        "tombstone_bytes": 0,
+        "tombstone_records": 0
+      },
+      "finished": {
+        "all_kept_file_bytes": 62260179,
+        "archive_bytes": 69709,
+        "index_bytes": 16384,
+        "journal_bytes": 12920,
+        "journal_records": 21,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 0,
+        "projection_records": 0,
+        "source_bytes": 0,
+        "source_records": 0,
+        "sqlite_event_bytes": 11690,
+        "sqlite_file_bytes": 53248,
+        "tombstone_bytes": 0,
+        "tombstone_records": 0
+      },
+      "finished_delta": {
+        "all_kept_file_bytes": 35958434,
+        "archive_bytes": 69709,
+        "index_bytes": 0,
+        "journal_bytes": 11608,
+        "journal_records": 17,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 0,
+        "projection_records": 0,
+        "source_bytes": 0,
+        "source_records": 0,
+        "sqlite_event_bytes": 5187,
+        "sqlite_file_bytes": 4096,
+        "tombstone_bytes": 0,
+        "tombstone_records": 0
+      },
+      "kept_files": [
+        {
+          "bytes": 17,
+          "path": "state/blobs/.origins-46dcc780385019675f4634933190c1e6defd60eebb7543eb4a28875aac4fcb06"
+        },
+        {
+          "bytes": 26214400,
+          "path": "state/blobs/46dcc780385019675f4634933190c1e6defd60eebb7543eb4a28875aac4fcb06"
+        },
+        {
+          "bytes": 53248,
+          "path": "state/control.sqlite"
+        },
+        {
+          "bytes": 8,
+          "path": "state/mail-wire/.origins-1d9263ddf2630839b6038f144643eab72bf09e05ddc24670407fcadabd32d7e4"
+        },
+        {
+          "bytes": 35873013,
+          "path": "state/mail-wire/1d9263ddf2630839b6038f144643eab72bf09e05ddc24670407fcadabd32d7e4"
+        },
+        {
+          "bytes": 69709,
+          "path": "evidence/archives/history-1d5d76125e024a6b9d68941e85373333.jsonl"
+        },
+        {
+          "bytes": 16384,
+          "path": "evidence/journal-index.sqlite"
+        },
+        {
+          "bytes": 12920,
+          "path": "evidence/operations.jsonl"
+        },
+        {
+          "bytes": 20480,
+          "path": "evidence/receiver.sqlite"
+        }
+      ],
+      "open": {
+        "all_kept_file_bytes": 62258002,
+        "archive_bytes": 0,
+        "index_bytes": 16384,
+        "journal_bytes": 10820,
+        "journal_records": 18,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 0,
+        "projection_records": 0,
+        "source_bytes": 0,
+        "source_records": 0,
+        "sqlite_event_bytes": 65098,
+        "sqlite_file_bytes": 122880,
+        "tombstone_bytes": 0,
+        "tombstone_records": 0
+      },
+      "open_delta": {
+        "all_kept_file_bytes": 35956257,
+        "archive_bytes": 0,
+        "index_bytes": 0,
+        "journal_bytes": 9508,
+        "journal_records": 14,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 0,
+        "projection_records": 0,
+        "source_bytes": 0,
+        "source_records": 0,
+        "sqlite_event_bytes": 58595,
+        "sqlite_file_bytes": 73728,
+        "tombstone_bytes": 0,
+        "tombstone_records": 0
+      },
+      "outcome": "done",
+      "projection_detail": [],
+      "retained_live_projection_detail": [],
+      "retained_source_detail": [],
+      "source_detail": [],
+      "tombstone_detail": [],
+      "while_open_peak": {
+        "all_kept_file_bytes": 62257914,
+        "archive_bytes": 0,
+        "index_bytes": 16384,
+        "journal_bytes": 10732,
+        "journal_records": 18,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 0,
+        "projection_records": 0,
+        "source_bytes": 0,
+        "source_records": 0,
+        "sqlite_event_bytes": 60004,
+        "sqlite_file_bytes": 122880,
+        "tombstone_bytes": 0,
+        "tombstone_records": 0
+      },
+      "while_open_peak_delta": {
+        "all_kept_file_bytes": 35956169,
+        "archive_bytes": 0,
+        "index_bytes": 0,
+        "journal_bytes": 9420,
+        "journal_records": 14,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 0,
+        "projection_records": 0,
+        "source_bytes": 0,
+        "source_records": 0,
+        "sqlite_event_bytes": 53501,
+        "sqlite_file_bytes": 73728,
+        "tombstone_bytes": 0,
+        "tombstone_records": 0
+      }
+    }
+  },
+  "baseline_commit": "7b0e9a052a94981283332ed18a9017ecd1636636",
+  "candidate": {
+    "delete": {
+      "archive": {
+        "events": 8,
+        "independent_record_retained": true,
+        "operations": 1
+      },
+      "before": {
+        "all_kept_file_bytes": 88938,
+        "archive_bytes": 0,
+        "index_bytes": 16384,
+        "journal_bytes": 968,
+        "journal_records": 3,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 261,
+        "projection_records": 2,
+        "source_bytes": 1693,
+        "source_records": 3,
+        "sqlite_event_bytes": 5787,
+        "sqlite_file_bytes": 49152,
+        "tombstone_bytes": 0,
+        "tombstone_records": 0
+      },
+      "finished": {
+        "all_kept_file_bytes": 114064,
+        "archive_bytes": 25002,
+        "index_bytes": 16384,
+        "journal_bytes": 5694,
+        "journal_records": 9,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 261,
+        "projection_records": 2,
+        "source_bytes": 781,
+        "source_records": 1,
+        "sqlite_event_bytes": 1478,
+        "sqlite_file_bytes": 45056,
+        "tombstone_bytes": 406,
+        "tombstone_records": 1
+      },
+      "finished_delta": {
+        "all_kept_file_bytes": 25126,
+        "archive_bytes": 25002,
+        "index_bytes": 0,
+        "journal_bytes": 4726,
+        "journal_records": 6,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 0,
+        "projection_records": 0,
+        "source_bytes": -912,
+        "source_records": -2,
+        "sqlite_event_bytes": -4309,
+        "sqlite_file_bytes": -4096,
+        "tombstone_bytes": 406,
+        "tombstone_records": 1
+      },
+      "kept_files": [
+        {
+          "bytes": 45056,
+          "path": "state/control.sqlite"
+        },
+        {
+          "bytes": 25002,
+          "path": "evidence/archives/history-402d50241cd44005a0cabc31894520bc.jsonl"
+        },
+        {
+          "bytes": 16384,
+          "path": "evidence/journal-index.sqlite"
+        },
+        {
+          "bytes": 5694,
+          "path": "evidence/operations.jsonl"
+        },
+        {
+          "bytes": 781,
+          "path": "evidence/owner-source.bin"
+        },
+        {
+          "bytes": 261,
+          "path": "evidence/owner-state.bin"
+        },
+        {
+          "bytes": 406,
+          "path": "evidence/owner-tombstones.bin"
+        },
+        {
+          "bytes": 20480,
+          "path": "evidence/receiver.sqlite"
+        }
+      ],
+      "open": {
+        "all_kept_file_bytes": 123486,
+        "archive_bytes": 0,
+        "index_bytes": 16384,
+        "journal_bytes": 4910,
+        "journal_records": 8,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 1249,
+        "projection_records": 7,
+        "source_bytes": 6735,
+        "source_records": 8,
+        "sqlite_event_bytes": 22241,
+        "sqlite_file_bytes": 73728,
+        "tombstone_bytes": 0,
+        "tombstone_records": 0
+      },
+      "open_delta": {
+        "all_kept_file_bytes": 34548,
+        "archive_bytes": 0,
+        "index_bytes": 0,
+        "journal_bytes": 3942,
+        "journal_records": 5,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 988,
+        "projection_records": 5,
+        "source_bytes": 5042,
+        "source_records": 5,
+        "sqlite_event_bytes": 16454,
+        "sqlite_file_bytes": 24576,
+        "tombstone_bytes": 0,
+        "tombstone_records": 0
+      },
+      "outcome": "done",
+      "projection_detail": [
+        {
+          "action": "mail_delete",
+          "bytes": 274,
+          "compressed_delta_bytes": 230,
+          "fields": {
+            "op:67ecb5f03e244558b02ab00502ee339b:34b61a3b7d874eeeb4add48b03d4b07b": [
+              "a",
+              "e",
+              "i",
+              "l",
+              "q",
+              "s",
+              "t",
+              "v"
+            ]
+          },
+          "framing_bytes": 44,
+          "seq": 4,
+          "summary": "reserved mail_delete"
+        },
+        {
+          "action": "mail_delete",
+          "bytes": 200,
+          "compressed_delta_bytes": 156,
+          "fields": {
+            "op:67ecb5f03e244558b02ab00502ee339b:34b61a3b7d874eeeb4add48b03d4b07b": [
+              "c",
+              "q",
+              "s"
+            ]
+          },
+          "framing_bytes": 44,
+          "seq": 5,
+          "summary": "submitting"
+        },
+        {
+          "action": "mail_delete",
+          "bytes": 197,
+          "compressed_delta_bytes": 153,
+          "fields": {
+            "op:67ecb5f03e244558b02ab00502ee339b:34b61a3b7d874eeeb4add48b03d4b07b": [
+              "c",
+              "t"
+            ]
+          },
+          "framing_bytes": 44,
+          "seq": 6,
+          "summary": "Mail operation stage recorded"
+        },
+        {
+          "action": "mail_delete",
+          "bytes": 156,
+          "compressed_delta_bytes": 112,
+          "fields": {
+            "op:67ecb5f03e244558b02ab00502ee339b:34b61a3b7d874eeeb4add48b03d4b07b": [
+              "t"
+            ]
+          },
+          "framing_bytes": 44,
+          "seq": 7,
+          "summary": "Mail operation stage recorded"
+        },
+        {
+          "action": "mail_delete",
+          "bytes": 161,
+          "compressed_delta_bytes": 117,
+          "fields": {
+            "op:67ecb5f03e244558b02ab00502ee339b:34b61a3b7d874eeeb4add48b03d4b07b": [
+              "q",
+              "s"
+            ]
+          },
+          "framing_bytes": 44,
+          "seq": 8,
+          "summary": "done"
+        }
+      ],
+      "retained_live_projection_detail": [],
+      "retained_projection_detail": [],
+      "retained_source_detail": [
+        {
+          "action": "control_archive",
+          "bytes": 773,
+          "keys": [
+            "archive:history-402d50241cd44005a0cabc31894520bc.jsonl",
+            "archived:67ecb5f03e244558b02ab00502ee339b:34b61a3b7d874eeeb4add48b03d4b07b",
+            "op:67ecb5f03e244558b02ab00502ee339b:34b61a3b7d874eeeb4add48b03d4b07b"
+          ],
+          "seq": 9,
+          "summary": "owner exported finished history before compaction"
+        }
+      ],
+      "source_detail": [
+        {
+          "action": "mail_delete",
+          "bytes": 872,
+          "keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:34b61a3b7d874eeeb4add48b03d4b07b"
+          ],
+          "seq": 4,
+          "summary": "reserved mail_delete"
+        },
+        {
+          "action": "mail_delete",
+          "bytes": 1001,
+          "keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:34b61a3b7d874eeeb4add48b03d4b07b"
+          ],
+          "seq": 5,
+          "summary": "submitting"
+        },
+        {
+          "action": "mail_delete",
+          "bytes": 1058,
+          "keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:34b61a3b7d874eeeb4add48b03d4b07b"
+          ],
+          "seq": 6,
+          "summary": "Mail operation stage recorded"
+        },
+        {
+          "action": "mail_delete",
+          "bytes": 1070,
+          "keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:34b61a3b7d874eeeb4add48b03d4b07b"
+          ],
+          "seq": 7,
+          "summary": "Mail operation stage recorded"
+        },
+        {
+          "action": "mail_delete",
+          "bytes": 1041,
+          "keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:34b61a3b7d874eeeb4add48b03d4b07b"
+          ],
+          "seq": 8,
+          "summary": "done"
+        }
+      ],
+      "tombstone_detail": [
+        {
+          "archive": "history-402d50241cd44005a0cabc31894520bc.jsonl",
+          "bytes": 398,
+          "records": [
+            [
+              "op:67ecb5f03e244558b02ab00502ee339b:34b61a3b7d874eeeb4add48b03d4b07b",
+              5,
+              [],
+              "7515a301a14d222833ac4420b7ff10384bf2709bcc1ceb87c6a0fcf9353bdaa9"
+            ]
+          ],
+          "seq": 9
+        }
+      ],
+      "while_open_peak": {
+        "all_kept_file_bytes": 123399,
+        "archive_bytes": 0,
+        "index_bytes": 16384,
+        "journal_bytes": 4823,
+        "journal_records": 8,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 1249,
+        "projection_records": 7,
+        "source_bytes": 6735,
+        "source_records": 8,
+        "sqlite_event_bytes": 18790,
+        "sqlite_file_bytes": 73728,
+        "tombstone_bytes": 0,
+        "tombstone_records": 0
+      },
+      "while_open_peak_delta": {
+        "all_kept_file_bytes": 34461,
+        "archive_bytes": 0,
+        "index_bytes": 0,
+        "journal_bytes": 3855,
+        "journal_records": 5,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 988,
+        "projection_records": 5,
+        "source_bytes": 5042,
+        "source_records": 5,
+        "sqlite_event_bytes": 13003,
+        "sqlite_file_bytes": 24576,
+        "tombstone_bytes": 0,
+        "tombstone_records": 0
+      }
+    },
+    "free_change": {
+      "archive": {
+        "events": 5,
+        "independent_record_retained": true,
+        "operations": 0
+      },
+      "before": {
+        "all_kept_file_bytes": 88938,
+        "archive_bytes": 0,
+        "index_bytes": 16384,
+        "journal_bytes": 968,
+        "journal_records": 3,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 261,
+        "projection_records": 2,
+        "source_bytes": 1693,
+        "source_records": 3,
+        "sqlite_event_bytes": 5787,
+        "sqlite_file_bytes": 49152,
+        "tombstone_bytes": 0,
+        "tombstone_records": 0
+      },
+      "finished": {
+        "all_kept_file_bytes": 92700,
+        "archive_bytes": 7577,
+        "index_bytes": 16384,
+        "journal_bytes": 2000,
+        "journal_records": 6,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 261,
+        "projection_records": 2,
+        "source_bytes": 550,
+        "source_records": 1,
+        "sqlite_event_bytes": 871,
+        "sqlite_file_bytes": 45056,
+        "tombstone_bytes": 392,
+        "tombstone_records": 1
+      },
+      "finished_delta": {
+        "all_kept_file_bytes": 3762,
+        "archive_bytes": 7577,
+        "index_bytes": 0,
+        "journal_bytes": 1032,
+        "journal_records": 3,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 0,
+        "projection_records": 0,
+        "source_bytes": -1143,
+        "source_records": -2,
+        "sqlite_event_bytes": -4916,
+        "sqlite_file_bytes": -4096,
+        "tombstone_bytes": 392,
+        "tombstone_records": 1
+      },
+      "kept_files": [
+        {
+          "bytes": 45056,
+          "path": "state/control.sqlite"
+        },
+        {
+          "bytes": 7577,
+          "path": "evidence/archives/history-402d50241cd44005a0cabc31894520bc.jsonl"
+        },
+        {
+          "bytes": 16384,
+          "path": "evidence/journal-index.sqlite"
+        },
+        {
+          "bytes": 2000,
+          "path": "evidence/operations.jsonl"
+        },
+        {
+          "bytes": 550,
+          "path": "evidence/owner-source.bin"
+        },
+        {
+          "bytes": 261,
+          "path": "evidence/owner-state.bin"
+        },
+        {
+          "bytes": 392,
+          "path": "evidence/owner-tombstones.bin"
+        },
+        {
+          "bytes": 20480,
+          "path": "evidence/receiver.sqlite"
+        }
+      ],
+      "open": {
+        "all_kept_file_bytes": 90883,
+        "archive_bytes": 0,
+        "index_bytes": 16384,
+        "journal_bytes": 1656,
+        "journal_records": 5,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 538,
+        "projection_records": 4,
+        "source_bytes": 2673,
+        "source_records": 5,
+        "sqlite_event_bytes": 7379,
+        "sqlite_file_bytes": 49152,
+        "tombstone_bytes": 0,
+        "tombstone_records": 0
+      },
+      "open_delta": {
+        "all_kept_file_bytes": 1945,
+        "archive_bytes": 0,
+        "index_bytes": 0,
+        "journal_bytes": 688,
+        "journal_records": 2,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 277,
+        "projection_records": 2,
+        "source_bytes": 980,
+        "source_records": 2,
+        "sqlite_event_bytes": 1592,
+        "sqlite_file_bytes": 0,
+        "tombstone_bytes": 0,
+        "tombstone_records": 0
+      },
+      "outcome": "done",
+      "projection_detail": [
+        {
+          "action": "mail_folder_create",
+          "bytes": 177,
+          "compressed_delta_bytes": 133,
+          "fields": {
+            "intent:34b61a3b7d874eeeb4add48b03d4b07b": [
+              "a",
+              "c",
+              "i",
+              "s",
+              "v"
+            ]
+          },
+          "framing_bytes": 44,
+          "seq": 4,
+          "summary": "starting Mail change"
+        },
+        {
+          "action": "mail_folder_create",
+          "bytes": 100,
+          "compressed_delta_bytes": 56,
+          "fields": {
+            "intent:34b61a3b7d874eeeb4add48b03d4b07b": null
+          },
+          "framing_bytes": 44,
+          "seq": 5,
+          "summary": "Mail change completed"
+        }
+      ],
+      "retained_live_projection_detail": [],
+      "retained_projection_detail": [],
+      "retained_source_detail": [
+        {
+          "action": "control_archive",
+          "bytes": 542,
+          "keys": [
+            "archive:history-402d50241cd44005a0cabc31894520bc.jsonl"
+          ],
+          "seq": 6,
+          "summary": "owner exported finished history before compaction"
+        }
+      ],
+      "source_detail": [
+        {
+          "action": "mail_folder_create",
+          "bytes": 566,
+          "keys": [
+            "intent:34b61a3b7d874eeeb4add48b03d4b07b"
+          ],
+          "seq": 4,
+          "summary": "starting Mail change"
+        },
+        {
+          "action": "mail_folder_create",
+          "bytes": 414,
+          "keys": [
+            "intent:34b61a3b7d874eeeb4add48b03d4b07b"
+          ],
+          "seq": 5,
+          "summary": "Mail change completed"
+        }
+      ],
+      "tombstone_detail": [
+        {
+          "archive": "history-402d50241cd44005a0cabc31894520bc.jsonl",
+          "bytes": 384,
+          "records": [
+            [
+              "intent:34b61a3b7d874eeeb4add48b03d4b07b",
+              null,
+              [],
+              "21146e32062ec148b6cfe068aa8d870e07a1f5234137cea65a9749090fd07764"
+            ]
+          ],
+          "seq": 6
+        }
+      ],
+      "while_open_peak": {
+        "all_kept_file_bytes": 90796,
+        "archive_bytes": 0,
+        "index_bytes": 16384,
+        "journal_bytes": 1569,
+        "journal_records": 5,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 538,
+        "projection_records": 4,
+        "source_bytes": 2673,
+        "source_records": 5,
+        "sqlite_event_bytes": 6819,
+        "sqlite_file_bytes": 49152,
+        "tombstone_bytes": 0,
+        "tombstone_records": 0
+      },
+      "while_open_peak_delta": {
+        "all_kept_file_bytes": 1858,
+        "archive_bytes": 0,
+        "index_bytes": 0,
+        "journal_bytes": 601,
+        "journal_records": 2,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 277,
+        "projection_records": 2,
+        "source_bytes": 980,
+        "source_records": 2,
+        "sqlite_event_bytes": 1032,
+        "sqlite_file_bytes": 0,
+        "tombstone_bytes": 0,
+        "tombstone_records": 0
+      }
+    },
+    "move": {
+      "archive": {
+        "events": 9,
+        "independent_record_retained": true,
+        "operations": 0
+      },
+      "before": {
+        "all_kept_file_bytes": 88938,
+        "archive_bytes": 0,
+        "index_bytes": 16384,
+        "journal_bytes": 968,
+        "journal_records": 3,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 261,
+        "projection_records": 2,
+        "source_bytes": 1693,
+        "source_records": 3,
+        "sqlite_event_bytes": 5787,
+        "sqlite_file_bytes": 49152,
+        "tombstone_bytes": 0,
+        "tombstone_records": 0
+      },
+      "finished": {
+        "all_kept_file_bytes": 101982,
+        "archive_bytes": 15406,
+        "index_bytes": 16384,
+        "journal_bytes": 3378,
+        "journal_records": 10,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 261,
+        "projection_records": 2,
+        "source_bytes": 550,
+        "source_records": 1,
+        "sqlite_event_bytes": 873,
+        "sqlite_file_bytes": 45056,
+        "tombstone_bytes": 467,
+        "tombstone_records": 1
+      },
+      "finished_delta": {
+        "all_kept_file_bytes": 13044,
+        "archive_bytes": 15406,
+        "index_bytes": 0,
+        "journal_bytes": 2410,
+        "journal_records": 7,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 0,
+        "projection_records": 0,
+        "source_bytes": -1143,
+        "source_records": -2,
+        "sqlite_event_bytes": -4914,
+        "sqlite_file_bytes": -4096,
+        "tombstone_bytes": 467,
+        "tombstone_records": 1
+      },
+      "kept_files": [
+        {
+          "bytes": 45056,
+          "path": "state/control.sqlite"
+        },
+        {
+          "bytes": 15406,
+          "path": "evidence/archives/history-1d5d76125e024a6b9d68941e85373333.jsonl"
+        },
+        {
+          "bytes": 16384,
+          "path": "evidence/journal-index.sqlite"
+        },
+        {
+          "bytes": 3378,
+          "path": "evidence/operations.jsonl"
+        },
+        {
+          "bytes": 550,
+          "path": "evidence/owner-source.bin"
+        },
+        {
+          "bytes": 261,
+          "path": "evidence/owner-state.bin"
+        },
+        {
+          "bytes": 467,
+          "path": "evidence/owner-tombstones.bin"
+        },
+        {
+          "bytes": 20480,
+          "path": "evidence/receiver.sqlite"
+        }
+      ],
+      "open": {
+        "all_kept_file_bytes": 112614,
+        "archive_bytes": 0,
+        "index_bytes": 16384,
+        "journal_bytes": 3032,
+        "journal_records": 9,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 1229,
+        "projection_records": 8,
+        "source_bytes": 5953,
+        "source_records": 9,
+        "sqlite_event_bytes": 15164,
+        "sqlite_file_bytes": 65536,
+        "tombstone_bytes": 0,
+        "tombstone_records": 0
+      },
+      "open_delta": {
+        "all_kept_file_bytes": 23676,
+        "archive_bytes": 0,
+        "index_bytes": 0,
+        "journal_bytes": 2064,
+        "journal_records": 6,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 968,
+        "projection_records": 6,
+        "source_bytes": 4260,
+        "source_records": 6,
+        "sqlite_event_bytes": 9377,
+        "sqlite_file_bytes": 16384,
+        "tombstone_bytes": 0,
+        "tombstone_records": 0
+      },
+      "outcome": "done",
+      "projection_detail": [
+        {
+          "action": "mail_move",
+          "bytes": 178,
+          "compressed_delta_bytes": 134,
+          "fields": {
+            "intent:34b61a3b7d874eeeb4add48b03d4b07b": [
+              "a",
+              "c",
+              "i",
+              "s",
+              "v"
+            ]
+          },
+          "framing_bytes": 44,
+          "seq": 4,
+          "summary": "starting Mail change"
+        },
+        {
+          "action": "mail_move",
+          "bytes": 201,
+          "compressed_delta_bytes": 157,
+          "fields": {
+            "mail:filing:402d50241cd44005a0cabc31894520bc": [
+              "h",
+              "i",
+              "l",
+              "s"
+            ]
+          },
+          "framing_bytes": 44,
+          "seq": 5,
+          "summary": "Filing intent 402d50241cd44005a0cabc31894520bc"
+        },
+        {
+          "action": "mail_move",
+          "bytes": 193,
+          "compressed_delta_bytes": 149,
+          "fields": {
+            "mail:filing:402d50241cd44005a0cabc31894520bc": [
+              "c",
+              "h",
+              "v"
+            ]
+          },
+          "framing_bytes": 44,
+          "seq": 6,
+          "summary": "Filing intent 402d50241cd44005a0cabc31894520bc"
+        },
+        {
+          "action": "mail_move",
+          "bytes": 145,
+          "compressed_delta_bytes": 101,
+          "fields": {
+            "mail:filing:402d50241cd44005a0cabc31894520bc": [
+              "h"
+            ]
+          },
+          "framing_bytes": 44,
+          "seq": 7,
+          "summary": "Filing intent 402d50241cd44005a0cabc31894520bc"
+        },
+        {
+          "action": "mail_move",
+          "bytes": 151,
+          "compressed_delta_bytes": 107,
+          "fields": {
+            "mail:filing:402d50241cd44005a0cabc31894520bc": [
+              "h",
+              "s"
+            ]
+          },
+          "framing_bytes": 44,
+          "seq": 8,
+          "summary": "Filing intent 402d50241cd44005a0cabc31894520bc"
+        },
+        {
+          "action": "mail_move",
+          "bytes": 100,
+          "compressed_delta_bytes": 56,
+          "fields": {
+            "intent:34b61a3b7d874eeeb4add48b03d4b07b": null
+          },
+          "framing_bytes": 44,
+          "seq": 9,
+          "summary": "Mail change completed"
+        }
+      ],
+      "retained_live_projection_detail": [],
+      "retained_projection_detail": [],
+      "retained_source_detail": [
+        {
+          "action": "control_archive",
+          "bytes": 542,
+          "keys": [
+            "archive:history-1d5d76125e024a6b9d68941e85373333.jsonl"
+          ],
+          "seq": 10,
+          "summary": "owner exported finished history before compaction"
+        }
+      ],
+      "source_detail": [
+        {
+          "action": "mail_move",
+          "bytes": 630,
+          "keys": [
+            "intent:34b61a3b7d874eeeb4add48b03d4b07b"
+          ],
+          "seq": 4,
+          "summary": "starting Mail change"
+        },
+        {
+          "action": "mail_move",
+          "bytes": 712,
+          "keys": [
+            "mail:filing:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 5,
+          "summary": "Filing intent 402d50241cd44005a0cabc31894520bc"
+        },
+        {
+          "action": "mail_move",
+          "bytes": 831,
+          "keys": [
+            "mail:filing:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 6,
+          "summary": "Filing intent 402d50241cd44005a0cabc31894520bc"
+        },
+        {
+          "action": "mail_move",
+          "bytes": 840,
+          "keys": [
+            "mail:filing:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 7,
+          "summary": "Filing intent 402d50241cd44005a0cabc31894520bc"
+        },
+        {
+          "action": "mail_move",
+          "bytes": 839,
+          "keys": [
+            "mail:filing:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 8,
+          "summary": "Filing intent 402d50241cd44005a0cabc31894520bc"
+        },
+        {
+          "action": "mail_move",
+          "bytes": 408,
+          "keys": [
+            "intent:34b61a3b7d874eeeb4add48b03d4b07b"
+          ],
+          "seq": 9,
+          "summary": "Mail change completed"
+        }
+      ],
+      "tombstone_detail": [
+        {
+          "archive": "history-1d5d76125e024a6b9d68941e85373333.jsonl",
+          "bytes": 459,
+          "records": [
+            [
+              "intent:34b61a3b7d874eeeb4add48b03d4b07b",
+              null,
+              [],
+              "36a347ae311aae5cec3bed526ee06107fde751aebf9a5c4d26618fe34e7fe663"
+            ],
+            [
+              "mail:filing:402d50241cd44005a0cabc31894520bc",
+              5,
+              [],
+              "d472fbffea49bef64419b53a6405176f83740ae6ec2d8962eb783b32829054de"
+            ]
+          ],
+          "seq": 10
+        }
+      ],
+      "while_open_peak": {
+        "all_kept_file_bytes": 112527,
+        "archive_bytes": 0,
+        "index_bytes": 16384,
+        "journal_bytes": 2945,
+        "journal_records": 9,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 1229,
+        "projection_records": 8,
+        "source_bytes": 5953,
+        "source_records": 9,
+        "sqlite_event_bytes": 14610,
+        "sqlite_file_bytes": 65536,
+        "tombstone_bytes": 0,
+        "tombstone_records": 0
+      },
+      "while_open_peak_delta": {
+        "all_kept_file_bytes": 23589,
+        "archive_bytes": 0,
+        "index_bytes": 0,
+        "journal_bytes": 1977,
+        "journal_records": 6,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 968,
+        "projection_records": 6,
+        "source_bytes": 4260,
+        "source_records": 6,
+        "sqlite_event_bytes": 8823,
+        "sqlite_file_bytes": 16384,
+        "tombstone_bytes": 0,
+        "tombstone_records": 0
+      }
+    },
+    "send": {
+      "archive": {
+        "events": 17,
+        "independent_record_retained": true,
+        "operations": 1
+      },
+      "before": {
+        "all_kept_file_bytes": 88938,
+        "archive_bytes": 0,
+        "index_bytes": 16384,
+        "journal_bytes": 968,
+        "journal_records": 3,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 261,
+        "projection_records": 2,
+        "source_bytes": 1693,
+        "source_records": 3,
+        "sqlite_event_bytes": 5787,
+        "sqlite_file_bytes": 49152,
+        "tombstone_bytes": 0,
+        "tombstone_records": 0
+      },
+      "finished": {
+        "all_kept_file_bytes": 169468,
+        "archive_bytes": 60040,
+        "index_bytes": 16384,
+        "journal_bytes": 12574,
+        "journal_records": 20,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 3004,
+        "projection_records": 17,
+        "source_bytes": 3418,
+        "source_records": 3,
+        "sqlite_event_bytes": 10274,
+        "sqlite_file_bytes": 53248,
+        "tombstone_bytes": 0,
+        "tombstone_records": 0
+      },
+      "finished_delta": {
+        "all_kept_file_bytes": 80530,
+        "archive_bytes": 60040,
+        "index_bytes": 0,
+        "journal_bytes": 11606,
+        "journal_records": 17,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 2743,
+        "projection_records": 15,
+        "source_bytes": 1725,
+        "source_records": 0,
+        "sqlite_event_bytes": 4487,
+        "sqlite_file_bytes": 4096,
+        "tombstone_bytes": 0,
+        "tombstone_records": 0
+      },
+      "kept_files": [
+        {
+          "bytes": 53248,
+          "path": "state/control.sqlite"
+        },
+        {
+          "bytes": 8,
+          "path": "state/mail-wire/.origins-ec11120489cef443b3903b162d3a59570f8ce12b2f906946747de26dd8aa64d0"
+        },
+        {
+          "bytes": 312,
+          "path": "state/mail-wire/ec11120489cef443b3903b162d3a59570f8ce12b2f906946747de26dd8aa64d0"
+        },
+        {
+          "bytes": 60040,
+          "path": "evidence/archives/history-1d5d76125e024a6b9d68941e85373333.jsonl"
+        },
+        {
+          "bytes": 16384,
+          "path": "evidence/journal-index.sqlite"
+        },
+        {
+          "bytes": 12574,
+          "path": "evidence/operations.jsonl"
+        },
+        {
+          "bytes": 3418,
+          "path": "evidence/owner-source.bin"
+        },
+        {
+          "bytes": 3004,
+          "path": "evidence/owner-state.bin"
+        },
+        {
+          "bytes": 20480,
+          "path": "evidence/receiver.sqlite"
+        }
+      ],
+      "open": {
+        "all_kept_file_bytes": 182827,
+        "archive_bytes": 0,
+        "index_bytes": 16384,
+        "journal_bytes": 10474,
+        "journal_records": 17,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 2436,
+        "projection_records": 14,
+        "source_bytes": 18045,
+        "source_records": 17,
+        "sqlite_event_bytes": 56148,
+        "sqlite_file_bytes": 114688,
+        "tombstone_bytes": 0,
+        "tombstone_records": 0
+      },
+      "open_delta": {
+        "all_kept_file_bytes": 93889,
+        "archive_bytes": 0,
+        "index_bytes": 0,
+        "journal_bytes": 9506,
+        "journal_records": 14,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 2175,
+        "projection_records": 12,
+        "source_bytes": 16352,
+        "source_records": 14,
+        "sqlite_event_bytes": 50361,
+        "sqlite_file_bytes": 65536,
+        "tombstone_bytes": 0,
+        "tombstone_records": 0
+      },
+      "outcome": "done",
+      "projection_detail": [
+        {
+          "action": "mail_send",
+          "bytes": 317,
+          "compressed_delta_bytes": 273,
+          "fields": {
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc": [
+              "a",
+              "e",
+              "i",
+              "j",
+              "l",
+              "q",
+              "s",
+              "t",
+              "v"
+            ]
+          },
+          "framing_bytes": 44,
+          "seq": 5,
+          "summary": "reserved mail_send"
+        },
+        {
+          "action": "mail_send",
+          "bytes": 162,
+          "compressed_delta_bytes": 118,
+          "fields": {
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc": [
+              "q",
+              "s"
+            ]
+          },
+          "framing_bytes": 44,
+          "seq": 6,
+          "summary": "submitting"
+        },
+        {
+          "action": "mail_send",
+          "bytes": 157,
+          "compressed_delta_bytes": 113,
+          "fields": {
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc": [
+              "t"
+            ]
+          },
+          "framing_bytes": 44,
+          "seq": 7,
+          "summary": "Mail operation stage recorded"
+        },
+        {
+          "action": "mail_send",
+          "bytes": 158,
+          "compressed_delta_bytes": 114,
+          "fields": {
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc": [
+              "t"
+            ]
+          },
+          "framing_bytes": 44,
+          "seq": 8,
+          "summary": "Mail operation stage recorded"
+        },
+        {
+          "action": "mail_send",
+          "bytes": 158,
+          "compressed_delta_bytes": 114,
+          "fields": {
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc": [
+              "t"
+            ]
+          },
+          "framing_bytes": 44,
+          "seq": 9,
+          "summary": "Mail operation stage recorded"
+        },
+        {
+          "action": "mail_send",
+          "bytes": 197,
+          "compressed_delta_bytes": 153,
+          "fields": {
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc": [
+              "c",
+              "t"
+            ]
+          },
+          "framing_bytes": 44,
+          "seq": 10,
+          "summary": "Mail operation stage recorded"
+        },
+        {
+          "action": "mail_send",
+          "bytes": 154,
+          "compressed_delta_bytes": 110,
+          "fields": {
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc": [
+              "t"
+            ]
+          },
+          "framing_bytes": 44,
+          "seq": 11,
+          "summary": "Mail operation stage recorded"
+        },
+        {
+          "action": "mail_send",
+          "bytes": 156,
+          "compressed_delta_bytes": 112,
+          "fields": {
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc": [
+              "t"
+            ]
+          },
+          "framing_bytes": 44,
+          "seq": 12,
+          "summary": "Mail operation stage recorded"
+        },
+        {
+          "action": "mail_sent_copy_attempt",
+          "bytes": 156,
+          "compressed_delta_bytes": 112,
+          "fields": {
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc": [
+              "c"
+            ]
+          },
+          "framing_bytes": 44,
+          "seq": 13,
+          "summary": "Sent APPEND attempt started"
+        },
+        {
+          "action": "mail_send",
+          "bytes": 239,
+          "compressed_delta_bytes": 195,
+          "fields": {
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc": [
+              "j",
+              "t",
+              "w"
+            ]
+          },
+          "framing_bytes": 44,
+          "seq": 15,
+          "summary": "Mail operation stage recorded"
+        },
+        {
+          "action": "mail_send",
+          "bytes": 158,
+          "compressed_delta_bytes": 114,
+          "fields": {
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc": [
+              "t"
+            ]
+          },
+          "framing_bytes": 44,
+          "seq": 16,
+          "summary": "Mail operation stage recorded"
+        },
+        {
+          "action": "mail_send",
+          "bytes": 163,
+          "compressed_delta_bytes": 119,
+          "fields": {
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc": [
+              "q",
+              "s"
+            ]
+          },
+          "framing_bytes": 44,
+          "seq": 17,
+          "summary": "done"
+        }
+      ],
+      "retained_live_projection_detail": [
+        {
+          "action": "mail_send",
+          "bytes": 317,
+          "fields": {
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc": [
+              "a",
+              "e",
+              "i",
+              "j",
+              "l",
+              "q",
+              "s",
+              "t",
+              "v"
+            ]
+          },
+          "seq": 5,
+          "summary": "reserved mail_send"
+        },
+        {
+          "action": "mail_send",
+          "bytes": 162,
+          "fields": {
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc": [
+              "q",
+              "s"
+            ]
+          },
+          "seq": 6,
+          "summary": "submitting"
+        },
+        {
+          "action": "mail_send",
+          "bytes": 157,
+          "fields": {
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc": [
+              "t"
+            ]
+          },
+          "seq": 7,
+          "summary": "Mail operation stage recorded"
+        },
+        {
+          "action": "mail_send",
+          "bytes": 158,
+          "fields": {
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc": [
+              "t"
+            ]
+          },
+          "seq": 8,
+          "summary": "Mail operation stage recorded"
+        },
+        {
+          "action": "mail_send",
+          "bytes": 158,
+          "fields": {
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc": [
+              "t"
+            ]
+          },
+          "seq": 9,
+          "summary": "Mail operation stage recorded"
+        },
+        {
+          "action": "mail_send",
+          "bytes": 197,
+          "fields": {
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc": [
+              "c",
+              "t"
+            ]
+          },
+          "seq": 10,
+          "summary": "Mail operation stage recorded"
+        },
+        {
+          "action": "mail_send",
+          "bytes": 154,
+          "fields": {
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc": [
+              "t"
+            ]
+          },
+          "seq": 11,
+          "summary": "Mail operation stage recorded"
+        },
+        {
+          "action": "mail_send",
+          "bytes": 156,
+          "fields": {
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc": [
+              "t"
+            ]
+          },
+          "seq": 12,
+          "summary": "Mail operation stage recorded"
+        },
+        {
+          "action": "mail_sent_copy_attempt",
+          "bytes": 156,
+          "fields": {
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc": [
+              "c"
+            ]
+          },
+          "seq": 13,
+          "summary": "Sent APPEND attempt started"
+        },
+        {
+          "action": "mail_send",
+          "bytes": 239,
+          "fields": {
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc": [
+              "j",
+              "t",
+              "w"
+            ]
+          },
+          "seq": 15,
+          "summary": "Mail operation stage recorded"
+        },
+        {
+          "action": "mail_send",
+          "bytes": 158,
+          "fields": {
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc": [
+              "t"
+            ]
+          },
+          "seq": 16,
+          "summary": "Mail operation stage recorded"
+        },
+        {
+          "action": "mail_send",
+          "bytes": 163,
+          "fields": {
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc": [
+              "q",
+              "s"
+            ]
+          },
+          "seq": 17,
+          "summary": "done"
+        },
+        {
+          "action": "mail_sent_copy_check_open",
+          "bytes": 157,
+          "fields": {
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc": [
+              "j"
+            ]
+          },
+          "seq": 18,
+          "summary": "Sent-copy check opened before reading evidence"
+        },
+        {
+          "action": "mail_sent_copy_check",
+          "bytes": 157,
+          "fields": {
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc": [
+              "j"
+            ]
+          },
+          "seq": 19,
+          "summary": "Sent-copy result committed"
+        },
+        {
+          "action": "control_archive",
+          "bytes": 254,
+          "fields": {
+            "archive:history-1d5d76125e024a6b9d68941e85373333.jsonl": [
+              "h"
+            ],
+            "archived:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc": [
+              "h"
+            ],
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc": null
+          },
+          "seq": 20,
+          "summary": "owner exported finished history before compaction"
+        }
+      ],
+      "retained_projection_detail": [],
+      "retained_source_detail": [
+        {
+          "action": "mail_sent_copy_check_open",
+          "bytes": 1348,
+          "keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 18,
+          "summary": "Sent-copy check opened before reading evidence"
+        },
+        {
+          "action": "mail_sent_copy_check",
+          "bytes": 1340,
+          "keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 19,
+          "summary": "Sent-copy result committed"
+        },
+        {
+          "action": "control_archive",
+          "bytes": 722,
+          "keys": [
+            "archive:history-1d5d76125e024a6b9d68941e85373333.jsonl",
+            "archived:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc",
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 20,
+          "summary": "owner exported finished history before compaction"
+        }
+      ],
+      "source_detail": [
+        {
+          "action": "mail_compose",
+          "bytes": 587,
+          "keys": [
+            "mail:composition:34b61a3b7d874eeeb4add48b03d4b07b"
+          ],
+          "seq": 4,
+          "summary": "stored immutable composition 34b61a3b7d874eeeb4add48b03d4b07b"
+        },
+        {
+          "action": "mail_send",
+          "bytes": 1019,
+          "keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 5,
+          "summary": "reserved mail_send"
+        },
+        {
+          "action": "mail_send",
+          "bytes": 1015,
+          "keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 6,
+          "summary": "submitting"
+        },
+        {
+          "action": "mail_send",
+          "bytes": 1062,
+          "keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 7,
+          "summary": "Mail operation stage recorded"
+        },
+        {
+          "action": "mail_send",
+          "bytes": 1115,
+          "keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 8,
+          "summary": "Mail operation stage recorded"
+        },
+        {
+          "action": "mail_send",
+          "bytes": 1132,
+          "keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 9,
+          "summary": "Mail operation stage recorded"
+        },
+        {
+          "action": "mail_send",
+          "bytes": 1271,
+          "keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 10,
+          "summary": "Mail operation stage recorded"
+        },
+        {
+          "action": "mail_send",
+          "bytes": 1263,
+          "keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 11,
+          "summary": "Mail operation stage recorded"
+        },
+        {
+          "action": "mail_send",
+          "bytes": 1270,
+          "keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 12,
+          "summary": "Mail operation stage recorded"
+        },
+        {
+          "action": "mail_sent_copy_attempt",
+          "bytes": 1298,
+          "keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 13,
+          "summary": "Sent APPEND attempt started"
+        },
+        {
+          "action": "mail_sent_copy_attempt",
+          "bytes": 1304,
+          "keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 14,
+          "summary": "Sent APPEND attempt ended"
+        },
+        {
+          "action": "mail_send",
+          "bytes": 1342,
+          "keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 15,
+          "summary": "Mail operation stage recorded"
+        },
+        {
+          "action": "mail_send",
+          "bytes": 1359,
+          "keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 16,
+          "summary": "Mail operation stage recorded"
+        },
+        {
+          "action": "mail_send",
+          "bytes": 1315,
+          "keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 17,
+          "summary": "done"
+        }
+      ],
+      "tombstone_detail": [],
+      "while_open_peak": {
+        "all_kept_file_bytes": 182739,
+        "archive_bytes": 0,
+        "index_bytes": 16384,
+        "journal_bytes": 10386,
+        "journal_records": 17,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 2436,
+        "projection_records": 14,
+        "source_bytes": 18045,
+        "source_records": 17,
+        "sqlite_event_bytes": 51762,
+        "sqlite_file_bytes": 114688,
+        "tombstone_bytes": 0,
+        "tombstone_records": 0
+      },
+      "while_open_peak_delta": {
+        "all_kept_file_bytes": 93801,
+        "archive_bytes": 0,
+        "index_bytes": 0,
+        "journal_bytes": 9418,
+        "journal_records": 14,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 2175,
+        "projection_records": 12,
+        "source_bytes": 16352,
+        "source_records": 14,
+        "sqlite_event_bytes": 45975,
+        "sqlite_file_bytes": 65536,
+        "tombstone_bytes": 0,
+        "tombstone_records": 0
+      }
+    },
+    "send_25mib": {
+      "archive": {
+        "events": 18,
+        "independent_record_retained": true,
+        "operations": 1
+      },
+      "before": {
+        "all_kept_file_bytes": 26304200,
+        "archive_bytes": 0,
+        "index_bytes": 16384,
+        "journal_bytes": 1312,
+        "journal_records": 4,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 261,
+        "projection_records": 2,
+        "source_bytes": 2194,
+        "source_records": 4,
+        "sqlite_event_bytes": 6503,
+        "sqlite_file_bytes": 49152,
+        "tombstone_bytes": 0,
+        "tombstone_records": 0
+      },
+      "finished": {
+        "all_kept_file_bytes": 62266898,
+        "archive_bytes": 69709,
+        "index_bytes": 16384,
+        "journal_bytes": 12920,
+        "journal_records": 21,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 3007,
+        "projection_records": 17,
+        "source_bytes": 3712,
+        "source_records": 3,
+        "sqlite_event_bytes": 11690,
+        "sqlite_file_bytes": 53248,
+        "tombstone_bytes": 0,
+        "tombstone_records": 0
+      },
+      "finished_delta": {
+        "all_kept_file_bytes": 35962698,
+        "archive_bytes": 69709,
+        "index_bytes": 0,
+        "journal_bytes": 11608,
+        "journal_records": 17,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 2746,
+        "projection_records": 15,
+        "source_bytes": 1518,
+        "source_records": -1,
+        "sqlite_event_bytes": 5187,
+        "sqlite_file_bytes": 4096,
+        "tombstone_bytes": 0,
+        "tombstone_records": 0
+      },
+      "kept_files": [
+        {
+          "bytes": 17,
+          "path": "state/blobs/.origins-46dcc780385019675f4634933190c1e6defd60eebb7543eb4a28875aac4fcb06"
+        },
+        {
+          "bytes": 26214400,
+          "path": "state/blobs/46dcc780385019675f4634933190c1e6defd60eebb7543eb4a28875aac4fcb06"
+        },
+        {
+          "bytes": 53248,
+          "path": "state/control.sqlite"
+        },
+        {
+          "bytes": 8,
+          "path": "state/mail-wire/.origins-ebdcf43fe03b0a64b35bd1b61e62bf6110ef7c2405b297ccb6aee2e04285cf9a"
+        },
+        {
+          "bytes": 35873013,
+          "path": "state/mail-wire/ebdcf43fe03b0a64b35bd1b61e62bf6110ef7c2405b297ccb6aee2e04285cf9a"
+        },
+        {
+          "bytes": 69709,
+          "path": "evidence/archives/history-1d5d76125e024a6b9d68941e85373333.jsonl"
+        },
+        {
+          "bytes": 16384,
+          "path": "evidence/journal-index.sqlite"
+        },
+        {
+          "bytes": 12920,
+          "path": "evidence/operations.jsonl"
+        },
+        {
+          "bytes": 3712,
+          "path": "evidence/owner-source.bin"
+        },
+        {
+          "bytes": 3007,
+          "path": "evidence/owner-state.bin"
+        },
+        {
+          "bytes": 20480,
+          "path": "evidence/receiver.sqlite"
+        }
+      ],
+      "open": {
+        "all_kept_file_bytes": 62280990,
+        "archive_bytes": 0,
+        "index_bytes": 16384,
+        "journal_bytes": 10820,
+        "journal_records": 18,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 2438,
+        "projection_records": 14,
+        "source_bytes": 20550,
+        "source_records": 18,
+        "sqlite_event_bytes": 65098,
+        "sqlite_file_bytes": 122880,
+        "tombstone_bytes": 0,
+        "tombstone_records": 0
+      },
+      "open_delta": {
+        "all_kept_file_bytes": 35976790,
+        "archive_bytes": 0,
+        "index_bytes": 0,
+        "journal_bytes": 9508,
+        "journal_records": 14,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 2177,
+        "projection_records": 12,
+        "source_bytes": 18356,
+        "source_records": 14,
+        "sqlite_event_bytes": 58595,
+        "sqlite_file_bytes": 73728,
+        "tombstone_bytes": 0,
+        "tombstone_records": 0
+      },
+      "outcome": "done",
+      "projection_detail": [
+        {
+          "action": "mail_send",
+          "bytes": 317,
+          "compressed_delta_bytes": 273,
+          "fields": {
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc": [
+              "a",
+              "e",
+              "i",
+              "j",
+              "l",
+              "q",
+              "s",
+              "t",
+              "v"
+            ]
+          },
+          "framing_bytes": 44,
+          "seq": 6,
+          "summary": "reserved mail_send"
+        },
+        {
+          "action": "mail_send",
+          "bytes": 162,
+          "compressed_delta_bytes": 118,
+          "fields": {
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc": [
+              "q",
+              "s"
+            ]
+          },
+          "framing_bytes": 44,
+          "seq": 7,
+          "summary": "submitting"
+        },
+        {
+          "action": "mail_send",
+          "bytes": 157,
+          "compressed_delta_bytes": 113,
+          "fields": {
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc": [
+              "t"
+            ]
+          },
+          "framing_bytes": 44,
+          "seq": 8,
+          "summary": "Mail operation stage recorded"
+        },
+        {
+          "action": "mail_send",
+          "bytes": 156,
+          "compressed_delta_bytes": 112,
+          "fields": {
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc": [
+              "t"
+            ]
+          },
+          "framing_bytes": 44,
+          "seq": 9,
+          "summary": "Mail operation stage recorded"
+        },
+        {
+          "action": "mail_send",
+          "bytes": 158,
+          "compressed_delta_bytes": 114,
+          "fields": {
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc": [
+              "t"
+            ]
+          },
+          "framing_bytes": 44,
+          "seq": 10,
+          "summary": "Mail operation stage recorded"
+        },
+        {
+          "action": "mail_send",
+          "bytes": 197,
+          "compressed_delta_bytes": 153,
+          "fields": {
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc": [
+              "c",
+              "t"
+            ]
+          },
+          "framing_bytes": 44,
+          "seq": 11,
+          "summary": "Mail operation stage recorded"
+        },
+        {
+          "action": "mail_send",
+          "bytes": 156,
+          "compressed_delta_bytes": 112,
+          "fields": {
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc": [
+              "t"
+            ]
+          },
+          "framing_bytes": 44,
+          "seq": 12,
+          "summary": "Mail operation stage recorded"
+        },
+        {
+          "action": "mail_send",
+          "bytes": 157,
+          "compressed_delta_bytes": 113,
+          "fields": {
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc": [
+              "t"
+            ]
+          },
+          "framing_bytes": 44,
+          "seq": 13,
+          "summary": "Mail operation stage recorded"
+        },
+        {
+          "action": "mail_sent_copy_attempt",
+          "bytes": 157,
+          "compressed_delta_bytes": 113,
+          "fields": {
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc": [
+              "c"
+            ]
+          },
+          "framing_bytes": 44,
+          "seq": 14,
+          "summary": "Sent APPEND attempt started"
+        },
+        {
+          "action": "mail_send",
+          "bytes": 239,
+          "compressed_delta_bytes": 195,
+          "fields": {
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc": [
+              "j",
+              "t",
+              "w"
+            ]
+          },
+          "framing_bytes": 44,
+          "seq": 16,
+          "summary": "Mail operation stage recorded"
+        },
+        {
+          "action": "mail_send",
+          "bytes": 158,
+          "compressed_delta_bytes": 114,
+          "fields": {
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc": [
+              "t"
+            ]
+          },
+          "framing_bytes": 44,
+          "seq": 17,
+          "summary": "Mail operation stage recorded"
+        },
+        {
+          "action": "mail_send",
+          "bytes": 163,
+          "compressed_delta_bytes": 119,
+          "fields": {
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc": [
+              "q",
+              "s"
+            ]
+          },
+          "framing_bytes": 44,
+          "seq": 18,
+          "summary": "done"
+        }
+      ],
+      "retained_live_projection_detail": [
+        {
+          "action": "mail_send",
+          "bytes": 317,
+          "fields": {
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc": [
+              "a",
+              "e",
+              "i",
+              "j",
+              "l",
+              "q",
+              "s",
+              "t",
+              "v"
+            ]
+          },
+          "seq": 6,
+          "summary": "reserved mail_send"
+        },
+        {
+          "action": "mail_send",
+          "bytes": 162,
+          "fields": {
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc": [
+              "q",
+              "s"
+            ]
+          },
+          "seq": 7,
+          "summary": "submitting"
+        },
+        {
+          "action": "mail_send",
+          "bytes": 157,
+          "fields": {
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc": [
+              "t"
+            ]
+          },
+          "seq": 8,
+          "summary": "Mail operation stage recorded"
+        },
+        {
+          "action": "mail_send",
+          "bytes": 156,
+          "fields": {
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc": [
+              "t"
+            ]
+          },
+          "seq": 9,
+          "summary": "Mail operation stage recorded"
+        },
+        {
+          "action": "mail_send",
+          "bytes": 158,
+          "fields": {
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc": [
+              "t"
+            ]
+          },
+          "seq": 10,
+          "summary": "Mail operation stage recorded"
+        },
+        {
+          "action": "mail_send",
+          "bytes": 197,
+          "fields": {
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc": [
+              "c",
+              "t"
+            ]
+          },
+          "seq": 11,
+          "summary": "Mail operation stage recorded"
+        },
+        {
+          "action": "mail_send",
+          "bytes": 156,
+          "fields": {
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc": [
+              "t"
+            ]
+          },
+          "seq": 12,
+          "summary": "Mail operation stage recorded"
+        },
+        {
+          "action": "mail_send",
+          "bytes": 157,
+          "fields": {
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc": [
+              "t"
+            ]
+          },
+          "seq": 13,
+          "summary": "Mail operation stage recorded"
+        },
+        {
+          "action": "mail_sent_copy_attempt",
+          "bytes": 157,
+          "fields": {
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc": [
+              "c"
+            ]
+          },
+          "seq": 14,
+          "summary": "Sent APPEND attempt started"
+        },
+        {
+          "action": "mail_send",
+          "bytes": 239,
+          "fields": {
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc": [
+              "j",
+              "t",
+              "w"
+            ]
+          },
+          "seq": 16,
+          "summary": "Mail operation stage recorded"
+        },
+        {
+          "action": "mail_send",
+          "bytes": 158,
+          "fields": {
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc": [
+              "t"
+            ]
+          },
+          "seq": 17,
+          "summary": "Mail operation stage recorded"
+        },
+        {
+          "action": "mail_send",
+          "bytes": 163,
+          "fields": {
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc": [
+              "q",
+              "s"
+            ]
+          },
+          "seq": 18,
+          "summary": "done"
+        },
+        {
+          "action": "mail_sent_copy_check_open",
+          "bytes": 157,
+          "fields": {
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc": [
+              "j"
+            ]
+          },
+          "seq": 19,
+          "summary": "Sent-copy check opened before reading evidence"
+        },
+        {
+          "action": "mail_sent_copy_check",
+          "bytes": 157,
+          "fields": {
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc": [
+              "j"
+            ]
+          },
+          "seq": 20,
+          "summary": "Sent-copy result committed"
+        },
+        {
+          "action": "control_archive",
+          "bytes": 255,
+          "fields": {
+            "archive:history-1d5d76125e024a6b9d68941e85373333.jsonl": [
+              "h"
+            ],
+            "archived:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc": [
+              "h"
+            ],
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc": null
+          },
+          "seq": 21,
+          "summary": "owner exported finished history before compaction"
+        }
+      ],
+      "retained_projection_detail": [],
+      "retained_source_detail": [
+        {
+          "action": "mail_sent_copy_check_open",
+          "bytes": 1494,
+          "keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 19,
+          "summary": "Sent-copy check opened before reading evidence"
+        },
+        {
+          "action": "mail_sent_copy_check",
+          "bytes": 1487,
+          "keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 20,
+          "summary": "Sent-copy result committed"
+        },
+        {
+          "action": "control_archive",
+          "bytes": 723,
+          "keys": [
+            "archive:history-1d5d76125e024a6b9d68941e85373333.jsonl",
+            "archived:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc",
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 21,
+          "summary": "owner exported finished history before compaction"
+        }
+      ],
+      "source_detail": [
+        {
+          "action": "mail_compose",
+          "bytes": 728,
+          "keys": [
+            "mail:composition:34b61a3b7d874eeeb4add48b03d4b07b"
+          ],
+          "seq": 5,
+          "summary": "stored immutable composition 34b61a3b7d874eeeb4add48b03d4b07b"
+        },
+        {
+          "action": "mail_send",
+          "bytes": 1165,
+          "keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 6,
+          "summary": "reserved mail_send"
+        },
+        {
+          "action": "mail_send",
+          "bytes": 1158,
+          "keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 7,
+          "summary": "submitting"
+        },
+        {
+          "action": "mail_send",
+          "bytes": 1212,
+          "keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 8,
+          "summary": "Mail operation stage recorded"
+        },
+        {
+          "action": "mail_send",
+          "bytes": 1260,
+          "keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 9,
+          "summary": "Mail operation stage recorded"
+        },
+        {
+          "action": "mail_send",
+          "bytes": 1276,
+          "keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 10,
+          "summary": "Mail operation stage recorded"
+        },
+        {
+          "action": "mail_send",
+          "bytes": 1414,
+          "keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 11,
+          "summary": "Mail operation stage recorded"
+        },
+        {
+          "action": "mail_send",
+          "bytes": 1408,
+          "keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 12,
+          "summary": "Mail operation stage recorded"
+        },
+        {
+          "action": "mail_send",
+          "bytes": 1411,
+          "keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 13,
+          "summary": "Mail operation stage recorded"
+        },
+        {
+          "action": "mail_sent_copy_attempt",
+          "bytes": 1438,
+          "keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 14,
+          "summary": "Sent APPEND attempt started"
+        },
+        {
+          "action": "mail_sent_copy_attempt",
+          "bytes": 1444,
+          "keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 15,
+          "summary": "Sent APPEND attempt ended"
+        },
+        {
+          "action": "mail_send",
+          "bytes": 1484,
+          "keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 16,
+          "summary": "Mail operation stage recorded"
+        },
+        {
+          "action": "mail_send",
+          "bytes": 1501,
+          "keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 17,
+          "summary": "Mail operation stage recorded"
+        },
+        {
+          "action": "mail_send",
+          "bytes": 1457,
+          "keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 18,
+          "summary": "done"
+        }
+      ],
+      "tombstone_detail": [],
+      "while_open_peak": {
+        "all_kept_file_bytes": 62280902,
+        "archive_bytes": 0,
+        "index_bytes": 16384,
+        "journal_bytes": 10732,
+        "journal_records": 18,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 2438,
+        "projection_records": 14,
+        "source_bytes": 20550,
+        "source_records": 18,
+        "sqlite_event_bytes": 60004,
+        "sqlite_file_bytes": 122880,
+        "tombstone_bytes": 0,
+        "tombstone_records": 0
+      },
+      "while_open_peak_delta": {
+        "all_kept_file_bytes": 35976702,
+        "archive_bytes": 0,
+        "index_bytes": 0,
+        "journal_bytes": 9420,
+        "journal_records": 14,
+        "owner_history_bytes": 0,
+        "owner_history_records": 0,
+        "projection_bytes": 2177,
+        "projection_records": 12,
+        "source_bytes": 18356,
+        "source_records": 14,
+        "sqlite_event_bytes": 53501,
+        "sqlite_file_bytes": 73728,
+        "tombstone_bytes": 0,
+        "tombstone_records": 0
+      }
+    }
+  },
+  "candidate_is_active": false,
+  "candidate_source_hashes": {
+    "control/aresos_control/archive.py": "06059dba1f4fb49d6c0c29b0b30c8c2d0364d220e0555502dc773a1021bb80ca",
+    "control/aresos_control/owner_projection.py": "6dd89081a9ef32acb1b9c4357ad4d9f93a9a36d1e58ce672347465f61c4d0aee",
+    "control/aresos_control/owner_source.py": "3983dd3af3314325804555d8e0cf788619c100b45f1cd7913c2c87fe935e7cdd",
+    "control/aresos_control/storage.py": "624f28519e092fb0f3780e875acf1d0bcdc1af9485f02eef4b57b2b0e0c5136e",
+    "control/tests/test_owner_tombstones.py": "fa4c81d7cdedb1a36ddcddff571b7082ab3b5dcbc5ad7d49cf18c523be493852"
+  },
+  "format": 1,
+  "gate": "STOP",
+  "hashes": {
+    "reviews/19b-owner-state/STORAGE-S3-LOCAL-POLICY.py": "7555d0b96335c476149741a092d23770bb54ce5e924094f7c513df51405cb060",
+    "reviews/19b-owner-state/STORAGE-S3-TOMBSTONE-ARCHIVE-OUTPUT.txt": "6276d24b4bb37d05027f31bd0b42704ccffeecb943028e3884e514e13f9644b7",
+    "reviews/19b-owner-state/STORAGE-S3-TOMBSTONE-HARNESS.py": "ba9e4b2c808b1baf2bb94d1e9602c68c168e7ce3fbc9774a35c8efe774b28bb9",
+    "reviews/19b-owner-state/STORAGE-S3-TOMBSTONE-TEST-OUTPUT.txt": "79635aeba948568aa4c87462633b3acab1ade8569d93e737a7a0a3c4f7603026",
+    "reviews/19b-owner-state/STORAGE-S3-TOMBSTONE-VERIFY.py": "b29c446fd05859219b5a042f01f42484044f4fe2d914c8d729f50df5dff433bf",
+    "reviews/19b-owner-state/STORAGE-S3-TOMBSTONE.patch": "ccc583eda3f8abc7797fc07d29af9ea2ee8f03fa1c02acd5474c3a97166ca875"
+  },
+  "operations": {
+    "delete": {
+      "extra_live_projection_after_archive_bytes": 0,
+      "extra_permanent_bytes": 1187,
+      "extra_while_open_bytes": 6030,
+      "net_inventory_extra_permanent_bytes": -506,
+      "readable_source_after_archive_bytes": 781,
+      "reclaimed_fixture_source_bytes": 1693,
+      "tombstone_after_archive_bytes": 406
+    },
+    "free_change": {
+      "extra_live_projection_after_archive_bytes": 0,
+      "extra_permanent_bytes": 942,
+      "extra_while_open_bytes": 1257,
+      "net_inventory_extra_permanent_bytes": -751,
+      "readable_source_after_archive_bytes": 550,
+      "reclaimed_fixture_source_bytes": 1693,
+      "tombstone_after_archive_bytes": 392
+    },
+    "move": {
+      "extra_live_projection_after_archive_bytes": 0,
+      "extra_permanent_bytes": 1017,
+      "extra_while_open_bytes": 5228,
+      "net_inventory_extra_permanent_bytes": -676,
+      "readable_source_after_archive_bytes": 550,
+      "reclaimed_fixture_source_bytes": 1693,
+      "tombstone_after_archive_bytes": 467
+    },
+    "send": {
+      "extra_live_projection_after_archive_bytes": 2743,
+      "extra_permanent_bytes": 6161,
+      "extra_while_open_bytes": 18527,
+      "net_inventory_extra_permanent_bytes": 4468,
+      "readable_source_after_archive_bytes": 3418,
+      "reclaimed_fixture_source_bytes": 1693,
+      "tombstone_after_archive_bytes": 0
+    },
+    "send_25mib": {
+      "extra_live_projection_after_archive_bytes": 2746,
+      "extra_permanent_bytes": 6458,
+      "extra_while_open_bytes": 20533,
+      "net_inventory_extra_permanent_bytes": 4264,
+      "readable_source_after_archive_bytes": 3712,
+      "reclaimed_fixture_source_bytes": 2194,
+      "tombstone_after_archive_bytes": 0
+    }
+  },
+  "stage_3_complete": false,
+  "starting_head": "4743b09552038c0efeb8af04df6e5a48022f35aa",
+  "workflow_attempts_added": 0
+}
