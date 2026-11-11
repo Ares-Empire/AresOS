@@ -669,13 +669,14 @@ tasks at any time.
   more efficient process helps, since many tools are coming. On Chrome: "I don't just wanna rebuild Claude in
   Chrome. I wanna make a better tool for AresOS that's more efficient with readings, navigation, free tab navigation
   etc."
-  What this means: the baseline is what a good MCP or CLI does. Every send, delete, payment and unsubscribe made
-  through a tool asks, with the exact content shown and bound to the action, and that guarantee stays whole; inputs
-  are checked; each tool has the least access it needs; the app passwords and sign-in data the tool service holds
-  never reach Claude, and the Chrome reader never reads a password field; untrusted content is marked. What becomes a
-  documented known limit is narrower: a hostile page or message turning an ordinary step (a click, a key) into an
-  action the tool didn't see as one, through hidden frames, shadow roots, key spellings or look-alike characters.
-  Such a limit is fixed where that is reasonable ("in a reasonably safe way"), and always when the action carries a
-  risk of its own to AresOS: system settings, disks, credentials, anything hard to undo. Reviewers are briefed with
-  this bar. It applies from the reset on 2026-11-12, 00:00 (his timing, relayed with it); what it changes in Mail,
-  19b and Chrome goes to the owner first.
+  What this means: the baseline is what a good MCP or CLI does. Every send, delete, payment and unsubscribe a tool
+  recognises asks, and the question stays whole: it shows the exact content, is bound to it, can't be answered by
+  Claude and can't be replayed. Inputs are checked; each tool has the least access it needs; the app passwords and
+  sign-in data the tool service holds never reach Claude, and the Chrome reader never reads a password field;
+  untrusted content is marked. What becomes a documented known limit, as in normal MCP tools and Claude in Chrome
+  (decision 25): a hostile page or message making a step look ordinary (a click, a key), so that no question comes,
+  through hidden frames, shadow roots, key spellings or look-alike characters. Such a limit is fixed where that is
+  reasonable ("in a reasonably safe way"), and always when the action carries a risk of its own to AresOS: system
+  settings, disks, credentials, anything hard to undo. Reviewers are briefed with this bar. It applies from the
+  reset on 2026-11-12, 00:00 (the timing came with his words in mac-capacity's relay); what it changes in Mail, 19b
+  and Chrome goes to the owner first.
