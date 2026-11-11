@@ -661,3 +661,22 @@ tasks at any time.
   with no input of the extension's in flight, is his and isn't held; a submission his input starts after a delay
   inside that limit is held and asks, since the tool can't tell whose input started it. `CONTROL.md` section 6 says
   so; the extension's in-flight mark never passes through anything the page can reach.
+- **2026-11-11, 08:10:** the owner clarified decision 24 (relayed by mac-capacity with his words; also in `HANDOFF.md`):
+  "I did not mean it as 'nothing could ever go wrong', I meant it like a normal tool. We are basically making MCPs
+  rn and so like normal MCPs they should be safe like teams mcp." "Baseline is basically MCPs or CLIs like any other
+  mcp or cli that already exists." Extra care where Claude Code, as the system operator, adds a risk of its own to
+  AresOS, "if we realize it in an action". "If it takes long to get it right, it takes long, we accept that", but a
+  more efficient process helps, since many tools are coming. On Chrome: "I don't just wanna rebuild Claude in
+  Chrome. I wanna make a better tool for AresOS that's more efficient with readings, navigation, free tab navigation
+  etc."
+  What this means: the baseline is what a good MCP or CLI does. Every send, delete, payment and unsubscribe a tool
+  recognises asks, and the question stays whole: it shows the exact content, is bound to it, can't be answered by
+  Claude and can't be replayed. Inputs are checked; each tool has the least access it needs; the app passwords and
+  sign-in data the tool service holds never reach Claude, and the Chrome reader never reads a password field;
+  untrusted content is marked. What becomes a documented known limit, as in normal MCP tools and Claude in Chrome
+  (decision 25): a hostile page or message making a step look ordinary (a click, a key), so that no question comes,
+  through hidden frames, shadow roots, key spellings or look-alike characters. Such a limit is fixed where that is
+  reasonable ("in a reasonably safe way"), and always when the action carries a risk of its own to AresOS: system
+  settings, disks, credentials, anything hard to undo. Reviewers are briefed with this bar. It applies from the
+  reset on 2026-11-12, 00:00 (the timing came with his words in mac-capacity's relay); what it changes in Mail, 19b
+  and Chrome goes to the owner first.
