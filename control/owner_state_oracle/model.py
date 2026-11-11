@@ -1067,6 +1067,11 @@ class Oracle:
                 if (not old and event['action'] == 'control_restore_confirm' and self.restore_proof(event) and
                         self.lifecycle_known_sequences.get(key, 0) < event['seq']):
                     old = self.lifecycle_known.get(key, {})
+                if not old and event['action'] == 'control_restore_confirm' and self.restore_proof(event):
+                    prior = [(seq, publication[key]) for seq, publication in record.owner_versions.items()
+                             if seq < event['seq'] and isinstance(publication.get(key), dict)]
+                    if prior:
+                        old = max(prior, key=lambda item: item[0])[1]
                 input_source = key in inputs and not old
                 if key.startswith(('intent:', 'mail:filing:', 'mail:rename:')) and value:
                     identity = key.split(':', 2)[-1] if key.startswith('mail:') else key[7:]
