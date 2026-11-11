@@ -1,5 +1,8 @@
 name: Control owner oracle (optional)
 on:
+  push:
+    branches: [pkg/19b-owner-state]
+    paths: [.github/workflows/control-owner-oracle.yml]
   workflow_dispatch:
 permissions:
   contents: read
@@ -7,7 +10,14 @@ concurrency:
   group: control-owner-oracle-${{ github.ref }}
   cancel-in-progress: false
 jobs:
+  register:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - run: echo 'Register dispatch workflow; this is not a test run.'
   ledger:
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -23,6 +33,7 @@ jobs:
           name: control-owner-ledger-${{ github.run_id }}-${{ github.run_attempt }}
           path: .work/control-ci/
   alterations:
+    if: github.event_name == 'workflow_dispatch'
     strategy:
       fail-fast: false
       matrix:
@@ -49,6 +60,7 @@ jobs:
             .work/mail-ci/greenmail.txt
             .work/mail-ci/dovecot.txt
   sweep:
+    if: github.event_name == 'workflow_dispatch'
     strategy:
       fail-fast: false
       matrix:
@@ -79,6 +91,7 @@ jobs:
             .work/mail-ci/greenmail.txt
             .work/mail-ci/dovecot.txt
   onboarding:
+    if: github.event_name == 'workflow_dispatch'
     strategy:
       fail-fast: false
       matrix:
