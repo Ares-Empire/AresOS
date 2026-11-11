@@ -1071,6 +1071,7 @@
   "classification": "Single diagnostic Linux capture. All 53 actual gap lists complete and strict re-pin verified. Superseded-pin comparisons fail as expected; alteration shard 6 failed Fedora mirror setup before tests. This is not green acceptance. No second capture requested.",
   "expected_complete_matrix": {
     "alterations": 2081423,
+    "classification": "Local diagnostic reference counts. Linux repeats must run every discovered field and all 110 tasks; raw-field totals/proof observations may differ from local recording shape. Both strict Linux totals/kinds/coherent counts and exact published ledger are verified independently.",
     "kinds": {
       "boolean": 48316,
       "effect": 659196,

@@ -246,3 +246,13 @@ Measured runtime partitioning executes the entire 98-recording corpus in 110
 disjoint parts. Local proof: 2,081,423 alterations, zero slips. The current exact
 compact pin and two strict repetitions are documented in the round-3 report and
 manifests; R1/R3/projection work remains stage 3.
+
+
+Finished strict source `31988927`: base 42915009215, Mail 42915014744 and boundary
+42915020026 pass attempts 1 and 2. All 128 Mail jobs pass below 35 minutes
+(maxima 19m02s and 19m57s). Each Linux matrix completes every one of 98 recordings /
+110 disjoint tasks / 2,080,065 alterations / 267,100 coherent variants with zero
+slips, including both filing-result row/state controls and independent healthy
+plant baselines. Both 53-list merges reproduce the exact current compact pin
+with zero R2; provenance observations are per-pass in the round-3 report.
+Stage 3 is not started. The package lead owns the scoped re-checks.

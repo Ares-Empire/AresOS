@@ -2068,3 +2068,74 @@ PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/mail_tests OWNER_BASE_RUN=4
 ```
 
 The validator permits only the named pre-test mirror setup failure, plus exact superseded-pin comparison failures. Harvest requires all 53 full lists, correct flow ownership and shared equality, zero R2, and strict verification of every input after packing.
+
+
+**Run — finished strict pair:** source **`3198892719cd86c0e10e49b588de3ca6400d9ad3`**. Base, Mail and boundary each pass attempts **1 and 2** below. The first full proof and artifacts were saved and strictly checked before requesting the second. No production, test, workflow, selection or compact pin changes occur between these passes.
+
+| Workflow | Run ID | Attempt 1 | Attempt 2 |
+| --- | --- | --- | --- |
+| Control base | [42915009215](https://github.com/Ares-Empire/AresOS/actions/runs/42915009215) | 290 tests / OK / Control base suite PASS; 217.745s | 290 tests / OK / Control base suite PASS; 246.291s |
+| Control Mail | [42915014744](https://github.com/Ares-Empire/AresOS/actions/runs/42915014744) | All 64 jobs PASS; maximum 19m02s | All 64 jobs PASS; maximum 19m57s |
+| Control boundary | [42915020026](https://github.com/Ares-Empire/AresOS/actions/runs/42915020026) | Exact source; SETTINGS_OK with and without seccomp; PASS | Exact source; SETTINGS_OK with and without seccomp; PASS |
+
+Base results.txt lines 419/421/428 contain the summaries in both passes. Boundary's identity/present-console/absent-console logs and every relevant Mail output line are hashed and recorded with line numbers in LEDGER-STRICT-S2-FIXES-3.json. All **128 strict Mail jobs** are below the approximately 35-minute aim and unchanged 45-minute cap.
+
+| Mail group | Attempt 1 maximum | Attempt 2 maximum |
+| --- | ---: | ---: |
+| Suite | 12m57s | 14m51s |
+| Alterations | 19m02s | 19m57s |
+| Ordinary sweep | 17m11s | 16m27s |
+| Onboarding | 17m04s | 8m32s |
+
+| Alteration shard | Attempt 1 duration | Attempt 2 duration |
+| --- | ---: | ---: |
+| 0 | 14m17s | 19m57s |
+| 1 | 16m54s | 8m00s |
+| 2 | 7m45s | 14m54s |
+| 3 | 17m58s | 17m10s |
+| 4 | 16m10s | 8m22s |
+| 5 | 18m55s | 9m54s |
+| 6 | 11m11s | 15m42s |
+| 7 | 19m02s | 15m14s |
+| 8 | 17m28s | 9m17s |
+| 9 | 9m08s | 9m25s |
+| 10 | 9m02s | 19m03s |
+| 11 | 17m02s | 8m05s |
+
+**Run — full matrices and per-validator observations:** both Linux passes complete **98 recordings / 110 disjoint tasks / 2,080,065 alterations / 267,100 coherent variants / zero slipped**, including every original case, field audit and real production plant/control. The 99 parts from the eleven completed capture jobs have exactly the same part counts as strict pass 1; strict also completes the capture's setup-failed shard. All 110 part counts and the alteration-kind totals agree between strict repetitions. Proof counters and owner-set-change counts are observations per run:
+
+| Validator | Own catches, pass 1 | Owner set changes, pass 1 | Own catches, pass 2 | Owner set changes, pass 2 |
+| --- | ---: | ---: | ---: | ---: |
+| script_differences | 5,669 | 681 | 5,669 | 681 |
+| stage_claims | 55,381 | 2,378 | 55,382 | 2,381 |
+| completion_errors | 2,738 | 1,399 | 2,741 | 1,402 |
+| payload_claims | 62,172 | 26 | 62,172 | 26 |
+| filing_claims | 1,200 | 162 | 1,200 | 162 |
+| transition | 12,187 | 3,798 | 12,186 | 3,801 |
+| local.errors | 1,552 | 1,170 | 1,552 | 1,170 |
+
+Every shard also runs the same 13 production field-kind controls and seven single-validator comparisons. The explicit redundancy/sole-validator limitations above remain; these counters do not claim indispensability.
+
+**Run / read — diagnostic counter differences:** one local cleanup-pair crash recording (`sweep/send/cleanup-pair/crash/70`) has 3,104 raw candidates locally and 1,746 on Linux: the local total exceeds Linux by 1,358 (511 effect, 52 boolean, 655 nested-deletion and 140 state candidates). Every other part count agrees; both platforms cover all fields they actually decode. The local and Linux coherent counts remain 267,100. The precise underlying record-shape cause is **not verified**; no platform-specific exception or field exclusion is added. The two Linux passes also have small differences in proof-route/owner-set-change counters (15,936 versus 15,942 total owner-set changes), while every changed set is caught and the complete candidate corpus and exact published gap ledger agree. An initial scratch proof assembler assumed identical provenance counters and failed that extra bookkeeping assertion. It now preserves the actual per-pass counters, while retaining equality of complete candidate/kind/coherent counts and the full exact ledger verification. The repository tests and source are unchanged throughout.
+
+**Run — exact strict re-pin reproduction twice:** each pass independently merges **53 fresh complete actual lists**, validates unique/shared ownership and exact shared values, strictly checks every list, then reproduces **1,968,467 exact stage-3 keys / zero R2 / 2,011 groups / 924,737 bytes**, SHA-256 `356e8960830c6d46ee375462192ab7333593175ce8bd756ee5fe9e408b7982fc`, byte-for-byte. All **106** input hashes are in LEDGER-STRICT-S2-FIXES-3.json. No capture list or first-pass list supplies data to the second pass. Full lists remain ignored artifacts.
+
+Commands after each blocking watch (use attempt 1 or 2):
+
+```sh
+python3 .work/19b-s2-fixes-3/ci/validate.py 42915014744 2 strict
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/mail_tests OWNER_BASE_RUN=42915009215 .work/venv/bin/python .work/19b-s2-fixes-3/ci/harvest.py 42915014744 2 strict
+python3 .work/19b-s2-fixes-3/ci/proof.py 42915014744 42915009215 42915020026 2
+```
+
+Validation prints `Validated all 64 Mail job logs: strict ; all strict green`; harvest reproduces the exact compact pin above; proof checks exact source, every job result, runtime below 35 minutes, boundary evidence, all 12 alteration jobs and every actual-list hash. The standalone full-list regeneration/diff command in KNOWN-GAPS.md was also run and prints `Documented full-list regeneration and compact diff PASS`. Local strict focused contracts/regressions after the re-pin print **8 tests in 6.676s / OK**.
+
+**Run — waiting and workflow accounting:** every wait used one blocking `gh run watch ID --exit-status --interval 60` per run, in one shell loop per phase. No per-turn run-status polling occurred. Mail's attempt-2 rerun request returned HTTP 502; one immediate confirmation showed attempt 2 already queued on the exact source, so the request was not repeated. This round adds **5 workflow IDs / 8 attempts / 197 jobs**: two single capture workflows and three strict workflows twice. The capture includes 49 superseded-pin comparison failures and one pre-test mirror failure; all 132 strict jobs pass. Branch totals are **107 workflow IDs / 132 attempts**, up from 102 / 124. No duplicate automatic PR replay was created at either pushed head. The strict manifest records this accounting.
+
+**Not verified:** real accounts, provider behaviour, owner hardware and stage-3 R1/R3/projection work remain outside this round. The nine named point-zero production behaviours and all retained exact stage-3 gaps remain for the next stage.
+
+**JUDGMENT-CALL:** none beyond the listed fixes. Runtime partitions and the compact re-pin preserve every discovered field/candidate and exact gap delta. No approval input, question, binding or action changes.
+
+**PLAN-GAP:** the single capture encountered a Fedora mirror setup failure on alteration shard 6; complete gap data was available without another capture, and both strict passes later complete that shard. Diagnostic counter observations are reported per platform/pass instead of being presented as identical expectations. No additional product or stage-3 work was introduced. **Open questions:** none for this round.
+
+**Run / read — closing scope and housekeeping:** no changes to `warnings.py` or `paging.py`; no production-code changes in this round. Code, tests, selection and compact pin remain identical to the twice-tested source `31988927`. The closing commit changes report/coverage/known-gap/proof documentation only, with `[skip ci]` and the normal privacy pre-push hook. `.work/` files over 500,000,000 bytes: **[]**. No system software, real account, reviewer probe or other worktree was modified. No Gradle daemon was started. PR #26 remains a draft against `pkg/19-mail`. No own stage review was run, nothing was merged, and stage 3 was not started.

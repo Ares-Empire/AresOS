@@ -445,3 +445,6 @@ diff -u reviews/19b-owner-state/KNOWN-GAPS.json .work/19b-s2-fixes-3/compact.jso
 ```
 
 No full gap list is committed. The final strict evidence is LEDGER-STRICT-S2-FIXES-3.json; both passes independently reassemble and check 53 fresh actual lists.
+
+
+**Run — finished strict pair:** source `3198892719cd86c0e10e49b588de3ca6400d9ad3`; base 42915009215, Mail 42915014744 and boundary 42915020026 each pass attempts 1 and 2. Both independent 53-list merges strictly reproduce all 1,968,467 keys and the 924,737-byte pin byte-for-byte. All 128 Mail jobs are green; maxima 19m02s / 19m57s. Both complete Linux matrices cover 98 recordings, 110 tasks, 2,080,065 alterations and 267,100 coherent variants, zero slipped. Provenance counters are reported separately per pass in REPORT.md. The full fresh-list/source/output proof is LEDGER-STRICT-S2-FIXES-3.json.
