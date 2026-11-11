@@ -105,7 +105,8 @@ Updated 2026-11-10. The live truth is `git log`, `gh pr list` and `git worktree 
     - Check build with VM: run 42865819198 passed. The image's own jar equals the pin `8b04c511`.
     - VM evidence: the real JVM ran in its 5 GiB scope; a whole-scope SIGKILL latched recovery; under real memory pressure the kernel OOM killer hit only the hog's scope while the supervisor kept answering.
     - Still unproven: an oomd kill and focus hand-back with a real game; both wait for the laptop trial.
-    - REVIEW-3 (Astra): CHANGES-NEEDED. All 9 REVIEW-2 findings are fixed. Left: 1 blocking (a SIGKILL after PID acceptance with a lost answer still restarts) and 2 should-fix (hand-off deadline vs the wrapper's stop window; pressure-sampling gaps). Review fixes 3 is in progress (brief `23-review-fixes-3.md`).
+    - REVIEW-3 (Astra): CHANGES-NEEDED. All 9 REVIEW-2 findings are fixed. Left: 1 blocking (a SIGKILL after PID acceptance with a lost answer still restarts) and 2 should-fix (hand-off deadline vs the wrapper's stop window; pressure-sampling gaps). Review fixes 3 is pushed (`8420eba2`). All three are fixed, each with revert proof. WSL suites show only the known failures (run at ≥ 4.5 GB free; WSL's page cache kept Windows below 5 GB).
+    - REVIEW-4 (gpt-6.1-sol high, narrow) is running.
     - Updated JUDGMENT-CALL 10 (a memory kill or unexplained whole-scope death latches recovery, no automatic restart) was accepted by the owner (board #170, 2026-11-10: "Yes").
   - Merges after 27.
 - **Package 27, the first update release, started 2026-11-10** (brief `27-first-update-release.md`, empire brief 266; Claude agent, Opus; branch `pkg/27-first-update-release`):
@@ -122,7 +123,9 @@ Updated 2026-11-10. The live truth is `git log`, `gh pr list` and `git worktree 
     - private: an anonymous pull gets 401;
     - keyless-signed by `os-image.yml@refs/heads/pkg/27-first-update-release`;
     - image diff: 0 unexplained of 915 changed paths, and `/etc/sudoers.d` equals release 13 again.
-    - Not pinned yet. Next: records with this digest, then the update rehearsal (up to 3 runs).
+    - Not pinned yet. Records with this digest are on the branch (tools fingerprint `167f587c…`).
+    - Update rehearsal run 1 (42924871252) failed after 11 minutes, before the VM: two scripts didn't accept the update mode. A new test (`UpdateJobGatesTest`) checks every gate of the job's steps.
+    - Run 2 (42933781975 at `35e58911`) is running.
     - Also found: the owner tools' `main()` sets umask 077 and three test modules never restored it, which made a later test flaky. Fixed in 27 (`common.kept_umask`).
   - Its JUDGMENT-CALL 2: package 22's tools can't go forward again after `at previous`, so the rehearsal ends on 13 with 27 beside it; going forward after a rollback belongs in 22c.
   - Also for 22c (PR #37 REVIEW-1 should-fix, older than that fix): the refusal invariant in `test_owner_update` tries a persistent refusal twice but never asserts that it refused. Assert the refusal on both attempts wherever the check applies.
