@@ -79,6 +79,26 @@ class Questions(unittest.TestCase):
         frame['editable'][0]['value']='Changed draft'
         self.assertNotEqual(before,binding(self.browser.facts,{'frame':0},'confirmation',None))
 
+    def test_recheck_confirmation_form_binds_changed_outside_draft_and_complete_coverage(self):
+        from aresos_control.chrome.adapter import binding
+        from aresos_control.common import Refused
+        frame=self.browser.facts['frames'][0]
+        for submit in (False, True):
+            with self.subTest(submit=submit):
+                frame['target'].update(name='OK', submit=submit, page_dialog={'kind':'dialog','text':'Send this message?'})
+                frame['form']={'element':'confirmation-form','action':'https://fixture.test/','method':'dialog','encoding':'application/x-www-form-urlencoded','target':'','fields':[]}
+                approval=self.prepare();state=approval['description']['untrusted_content']['page_state']
+                self.assertIsNotNone(state['editable'])
+                self.assertIn('Existing draft', str(state['editable']))
+                before=copy.deepcopy(binding(self.browser.facts,{'frame':0},'confirmation',None))
+                frame['editable'][0]['value']='Different draft'
+                self.assertNotEqual(before,binding(self.browser.facts,{'frame':0},'confirmation',None))
+                self.assertEqual(self.browser.dispatched,[])
+                frame['editable'][0]['value']='Existing draft'
+                self.browser.facts['uncovered']=[{'eligible':True}]
+                with self.assertRaises(Refused):binding(self.browser.facts,{'frame':0},'confirmation',None)
+                self.browser.facts.pop('uncovered')
+
     def test_p11_confirmation_without_a_draft_keeps_the_feature_and_binds_absence(self):
         frame=self.browser.facts['frames'][0]
         frame['target'].update(name='OK',page_dialog={'kind':'dialog','text':'Send this message?'})

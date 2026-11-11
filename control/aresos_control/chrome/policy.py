@@ -135,6 +135,8 @@ def classify(verb, arguments, facts, *, conservative=False, readonly=False, adap
         return evidence
     if adapter and adapter.get('kind') and activation or adapter and adapter.get('shortcut') == key:
         return adapter['effect'] if adapter['effect'] != 'change' else None
+    if evidence and target.get('page_dialog') and target.get('name', '').casefold() in {'ok', 'yes', 'confirm', 'continue', 'ja', 'bestätigen', 'weiter'}:
+        return 'confirmation'
     form = facts.get('form')
     if verb == 'press' and base_key == 'Enter' and editable:
         if form and form.get('search') and form.get('method', '').lower() == 'get':

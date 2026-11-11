@@ -1015,3 +1015,11 @@ test('P1 an old dialog return query cannot poison a replacement document',async(
   await assert.rejects(f.run('barrierReady'),/source changed|context disappeared/);assert.equal(f.run('controlled.get(7).dialogPauseFailed'),undefined,'the old failure cannot disable the replacement control');assert.equal(f.run("startup.filter(row=>row.method==='Debugger.resume').length"),1);
   f.run("replacementBundle(['// guard fixture','// reader fixture','// wrapper fixture'])");await next;assert.equal(f.run("preloadTargets.get('[7,null]').documents.get('isolated-2-navigation-1').ready"),true);
 });
+
+test('recheck confirmation form binds outside drafts at final dispatch and requires complete coverage',async()=>{
+  const f=fixture();
+  f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({});globalThis.effects=[];globalThis.snapshot={tab:7,frames:[{frame:0,document:'doc',target:{element:'e1',name:'OK',page_dialog:{text:'Send this message?'}},form:{element:'f1',method:'dialog',fields:[]},editable:[{element:'draft',value:'Approved draft'}]}]};facts=async()=>snapshot;content=async()=>({});chrome.tabs={get:async()=>({active:true})};chrome.webNavigation={getAllFrames:async()=>[{frameId:0}]};chrome.debugger={sendCommand:async()=>effects.push('input')};globalThis.approved=JSON.parse(JSON.stringify(binding(snapshot,{frame:0},'confirmation',false)));snapshot.frames[0].editable[0].value='Different draft';");
+  assert.ok(f.run('approved.editable'));
+  await assert.rejects(f.run("dispatch({name:'input',tab:7,reference:{frame:0,element:'e1'},input:{verb:'click'},kind:'confirmation',binding:approved})"),/page changed/);assert.equal(f.run('effects.length'),0);
+  f.run('snapshot.uncovered=[{eligible:true}]');assert.throws(()=>f.run("binding(snapshot,{frame:0},'confirmation',false)"),/complete draft/);
+});

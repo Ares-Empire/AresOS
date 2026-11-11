@@ -27,7 +27,7 @@ function fixture(fields,{subtle=true,NativeBlob=Blob}={}) {
   const document={title:'Fixture',childNodes:[],getElementById(){return null;},
     querySelectorAll(selector){return nodes;},addEventListener(){},dispatchEvent(){}};
   let listener,observer,readerAPI;const observationOptions=[];
-  const chrome={dom:{openOrClosedShadowRoot:()=>null},runtime:{id:'fixture',sendMessage:async()=>({}),onMessage:{addListener(fn){listener=fn;},removeListener(){}}}};
+  const chrome={dom:{openOrClosedShadowRoot:element=>element.fixtureShadow||null},runtime:{id:'fixture',sendMessage:async()=>({}),onMessage:{addListener(fn){listener=fn;},removeListener(){}}}};
   class MutationObserver {constructor(fn){this.fn=fn;this.records=[];observer=this;}observe(root,options){observationOptions.push(options);}takeRecords(){return this.records.splice(0);}disconnect(){}}
   const context=vm.createContext({document,chrome,Blob:NativeBlob,crypto:{subtle:subtle?webcrypto.subtle:undefined,getRandomValues:array=>array.fill(++fileSequence)},MutationObserver,
     Element,HTMLElement:Element,HTMLInputElement,HTMLTextAreaElement,HTMLSelectElement,HTMLButtonElement,Node:{TEXT_NODE:3},CustomEvent:class{},
@@ -185,7 +185,7 @@ test('P10 affected item includes every ARIA item and named section',()=>{
   for(const selector of ['[role=listitem]','[role=row]','[role=article]','section[aria-label]','section[aria-labelledby]']){
     const f=fixture([{tagName:'BUTTON',type:'button'}]),button=f.nodes[0];f.generic(button);
     const item=new f.Element({tagName:'DIV',childNodes:[{nodeType:3,textContent:'Invoice A'}]});
-    button.closest=selectors=>selectors==='dialog,[role=dialog],[role=alertdialog]'?null:selectors.includes(selector)?item:button;
+    button.parentElement=item;item.matches=selectors=>selectors.split(',').includes(selector);button.matches=()=>false;
     assert.equal(f.read().data.item,''); // target-free reads have no affected item
     const before=f.command({command:'facts',element:'e1'}).data.item;
     item.childNodes[0].textContent='Invoice B';assert.notEqual(f.command({command:'facts',element:'e1'}).data.item,before,selector);
@@ -200,4 +200,22 @@ test('P17 lost-history identity refuses before collecting any field value',()=>{
 test('P2 inherited origin is checked before any field getter',()=>{
   const f=fixture([{forbidden:true}]);const refused=f.command({command:'read',expected_origin:'https://different.test'});
   assert.equal(refused.ok,false);assert.match(refused.error,/origin cannot be authenticated/);assert.equal(f.calls(),0);
+});
+
+test('recheck affected items cross open closed nested and slotted shadow ancestry',()=>{
+  for(const kind of ['li','[role=row]'])for(const mode of ['open','closed'])for(const nested of [false,true]){
+    const f=fixture([{tagName:'BUTTON',type:'button'}]),button=f.nodes[0];f.generic(button);button.matches=()=>false;
+    const label={nodeType:3,textContent:'Invoice A'},item=new f.Element({tagName:kind==='li'?'LI':'DIV',childNodes:[label]}),host=new f.Element({tagName:'DIV',parentElement:item});
+    item.matches=selector=>selector.split(',').includes(kind);item.childNodes.push(host);
+    let root={host,mode,childNodes:[],querySelectorAll:()=>[]};host.fixtureShadow=root;
+    if(nested){const inner=new f.Element({tagName:'DIV'});inner.getRootNode=()=>root;root.childNodes=[inner];const outer=root;root={host:inner,mode,childNodes:[],querySelectorAll:()=>[]};inner.fixtureShadow=root;inner.getRootNode=()=>outer;}
+    button.getRootNode=()=>root;root.childNodes=[button];
+    f.read();const before=f.command({command:'facts',element:'e1'}).data.item;assert.match(before,/Invoice A/);
+    label.textContent='Invoice B';const after=f.command({command:'facts',element:'e1'}).data.item;assert.match(after,/Invoice B/);assert.notEqual(before,after);
+    // Identifying text inside a closed component also belongs to the item.
+    label.textContent='';root.childNodes=[{nodeType:3,textContent:'Shadow invoice C'},button];
+    assert.match(f.command({command:'facts',element:'e1'}).data.item,/Shadow invoice C/);
+    const slot=new f.Element({tagName:'SLOT',parentElement:item});slot.matches=()=>false;button.assignedSlot=slot;
+    assert.match(f.command({command:'facts',element:'e1'}).data.item,/Shadow invoice C/);
+  }
 });

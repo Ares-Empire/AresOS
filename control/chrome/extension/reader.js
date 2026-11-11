@@ -79,12 +79,14 @@
     if (!ids.has(element)) { const key = 'e' + (++sequence); ids.set(element, key); elements.set(key, element); }
     return ids.get(element);
   };
-  function text(node, includeHidden=false) {
+  function text(node, includeHidden=false, composed=false) {
     if(node.nodeType===Node.TEXT_NODE)return node.parentElement&&password(node.parentElement)?'':node.textContent;
     if (!(node instanceof Element) || ['SCRIPT','STYLE','NOSCRIPT','INPUT','TEXTAREA','SELECT'].includes(node.tagName) || password(node)) return '';
     if (!includeHidden && (node.hidden || getComputedStyle(node).display === 'none' || getComputedStyle(node).visibility === 'hidden')) return '';
     if(node.tagName==='IMG')return node.getAttribute('alt')||'';
-    return [...node.childNodes].map(child=>text(child,includeHidden)).join(' ');
+    const assigned=composed&&node.tagName==='SLOT'?node.assignedNodes?.():null;
+    const children=composed?(assigned?.length?assigned:shadow(node)?.childNodes||node.childNodes):node.childNodes;
+    return [...children].map(child=>text(child,includeHidden,composed)).join(' ');
   }
   function name(element) {
     const root = element.getRootNode();
@@ -214,7 +216,12 @@
       box: {x:box.x,y:box.y,width:box.width,height:box.height}, onscreen: box.bottom > 0 && box.right > 0 && box.top < innerHeight && box.left < innerWidth && box.width > 0 && box.height > 0};
   }
   function itemText(element) {
-    return text(element.closest('li,tr,article,[role=listitem],[role=row],[role=article],section[aria-label],section[aria-labelledby],form,dialog,[role=dialog],[role=alertdialog],[role=region]') || element).replace(/\s+/g, ' ').trim();
+    const selector='li,tr,article,[role=listitem],[role=row],[role=article],section[aria-label],section[aria-labelledby],form,dialog,[role=dialog],[role=alertdialog],[role=region]';
+    // closest() stops at a shadow root; a component can act on its outer row.
+    for(let node=element;node;node=node.assignedSlot || node.parentElement || node.getRootNode().host){
+      if(node.matches(selector))return text(node,false,true).replace(/\s+/g, ' ').trim();
+    }
+    return text(element).replace(/\s+/g, ' ').trim();
   }
   function embedding(element) {
     const box=element.getBoundingClientRect();let aligned=true;

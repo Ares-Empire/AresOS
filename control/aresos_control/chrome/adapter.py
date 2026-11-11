@@ -30,7 +30,8 @@ def view_identity(facts):
 def binding(facts, reference, kind, adapter):
     frame = next(frame for frame in facts['frames'] if frame['frame'] == reference['frame'])
     target = frame['target']
-    if kind in {'send', 'confirmation'} and not frame.get('form') and not adapter and any(item.get('eligible',True) for item in facts.get('uncovered', [])):
+    generic_draft = not adapter and (kind == 'confirmation' or kind == 'send' and not frame.get('form'))
+    if generic_draft and any(item.get('eligible',True) for item in facts.get('uncovered', [])):
         raise Refused('refused', 'A complete draft binding needs every frame; a frame could not be inspected.')
     keys = ['element','role','name','label','title','href','value','rich','password','states','editable','search','submit','page_dialog','options','implicit_submitter']
     return {'session':facts['session'],'tab':facts['tab'],'control':facts.get('control'),'url':facts['url'],'title':facts.get('title', ''),'document':frame['document'],
@@ -38,7 +39,7 @@ def binding(facts, reference, kind, adapter):
             'form':frame.get('form'),
             'selected_files':[{'frame':item['frame'],'document':item['document'],'fields':item.get('selected_files',[])} for item in facts['frames']],
             'editable':[{'frame':item['frame'],'document':item['document'],'url':item['url'],'fields':item['editable']} for item in facts['frames']]
-                if kind in {'send', 'confirmation'} and not frame.get('form') and not adapter else None,
+                if generic_draft else None,
             'item':frame['item'] if kind in {'delete','pay','item','activation','confirmation'} else None,
             'adapter':frame['adapter'] if adapter else None,'dialog':facts.get('dialog')}
 

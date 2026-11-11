@@ -645,12 +645,13 @@ function binding(facts, reference, kind, adapter) {
   const frame = facts.frames.find(frame=>frame.frame === reference.frame);
   if (!frame?.target) throw Error('stale_reference: target not found');
   const target = frame.target;
-  if(['send','confirmation'].includes(kind)&&!frame.form&&!adapter&&facts.uncovered?.some(frame=>frame.eligible!==false))throw Error('refused: a complete draft binding needs every frame; a frame could not be inspected');
+  const genericDraft=!adapter&&(kind==='confirmation'||kind==='send'&&!frame.form);
+  if(genericDraft&&facts.uncovered?.some(frame=>frame.eligible!==false))throw Error('refused: a complete draft binding needs every frame; a frame could not be inspected');
   return {session,tab:facts.tab,control:facts.control,url:facts.url,title:facts.title||'',document:frame.document,frame:frame.frame,frame_url:frame.url,frame_title:frame.title||'',effective_url:frame.effective_url||frame.url,
     target:Object.fromEntries(['element','role','name','label','title','href','value','rich','password','states','editable','search','submit','page_dialog','options','implicit_submitter'].filter(key=>key in target).map(key=>[key,target[key]])),
     form:frame.form,
     selected_files:facts.frames.map(frame=>({frame:frame.frame,document:frame.document,fields:frame.selected_files||[]})),
-    editable:['send','confirmation'].includes(kind) && !frame.form && !adapter ? facts.frames.map(frame=>({frame:frame.frame,document:frame.document,url:frame.url,fields:frame.editable})) : null,
+    editable:genericDraft ? facts.frames.map(frame=>({frame:frame.frame,document:frame.document,url:frame.url,fields:frame.editable})) : null,
     item:['delete','pay','item','activation','confirmation'].includes(kind) ? frame.item : null,
     adapter:adapter ? frame.adapter:null,dialog:facts.dialog};
 }
