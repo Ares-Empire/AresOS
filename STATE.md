@@ -106,7 +106,7 @@ Updated 2026-11-10. The live truth is `git log`, `gh pr list` and `git worktree 
     - VM evidence: the real JVM ran in its 5 GiB scope; a whole-scope SIGKILL latched recovery; under real memory pressure the kernel OOM killer hit only the hog's scope while the supervisor kept answering.
     - Still unproven: an oomd kill and focus hand-back with a real game; both wait for the laptop trial.
     - REVIEW-3 (Astra): CHANGES-NEEDED. All 9 REVIEW-2 findings are fixed. Left: 1 blocking (a SIGKILL after PID acceptance with a lost answer still restarts) and 2 should-fix (hand-off deadline vs the wrapper's stop window; pressure-sampling gaps). Review fixes 3 is pushed (`8420eba2`). All three are fixed, each with revert proof. WSL suites show only the known failures (run at ≥ 4.5 GB free; WSL's page cache kept Windows below 5 GB).
-    - REVIEW-4 (gpt-6.1-sol high, narrow) is running.
+    - REVIEW-4 (Sol): CHANGES-NEEDED, a third round of hand-off races (a kill between `poll()` and `stop()` reported as wrapper-stopped; the unresolved latch not persisted; the 30 s vs 20 s deadline). Review fixes 4 (brief `23-review-fixes-4.md`) settles the hand-off by construction: classification from facts, persisted unresolved state, one deadline rule, and a model-based test over every order of events. If REVIEW-5 still finds blocking races, move the builder to Fable 5.2.
     - Updated JUDGMENT-CALL 10 (a memory kill or unexplained whole-scope death latches recovery, no automatic restart) was accepted by the owner (board #170, 2026-11-10: "Yes").
   - Merges after 27.
 - **Package 27, the first update release, started 2026-11-10** (brief `27-first-update-release.md`, empire brief 266; Claude agent, Opus; branch `pkg/27-first-update-release`):
@@ -125,7 +125,9 @@ Updated 2026-11-10. The live truth is `git log`, `gh pr list` and `git worktree 
     - image diff: 0 unexplained of 915 changed paths, and `/etc/sudoers.d` equals release 13 again.
     - Not pinned yet. Records with this digest are on the branch (tools fingerprint `167f587c…`).
     - Update rehearsal run 1 (42924871252) failed after 11 minutes, before the VM: two scripts didn't accept the update mode. A new test (`UpdateJobGatesTest`) checks every gate of the job's steps.
-    - Run 2 (42933781975 at `35e58911`) is running.
+    - Run 2 (42933781975) failed 3 minutes into the VM: the installer WebUI transport didn't know package 27 (six package sets in `installer_webui.py`). New tests: `OwnerHarnessPackagesTest` and `VmStepDecisionsTest` (40 decisions, each either equal to package 14's or reviewed).
+    - The rehearsal job's install step now has apt retries and a 40-minute limit, for update only.
+    - Run 3 of 3 (42940741765 at `fb06ccde`) is running.
     - Also found: the owner tools' `main()` sets umask 077 and three test modules never restored it, which made a later test flaky. Fixed in 27 (`common.kept_umask`).
   - Its JUDGMENT-CALL 2: package 22's tools can't go forward again after `at previous`, so the rehearsal ends on 13 with 27 beside it; going forward after a rollback belongs in 22c.
   - Also for 22c (PR #37 REVIEW-1 should-fix, older than that fix): the refusal invariant in `test_owner_update` tries a persistent refusal twice but never asserts that it refused. Assert the refusal on both attempts wherever the check applies.
