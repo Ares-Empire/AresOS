@@ -151,6 +151,7 @@ The baton from the last session. Read it after `STATE.md`. Overwrite it when you
     4. **The next release's update path**: stop masking the finalize units in the image, review the updater allowlist, and a second-update rehearsal (R27 to the next release). Use Fable only if run 4 shows more surprises; otherwise Opus.
     - The WSL disk image is 14.2 GB with about 3 GB in use; compacting it needs admin.
   - **Disk resolved (2026-11-11 ~04:20 local):** C: has 132 GB free. With the owner's OK in the chat, AresOS-delete-me (115 GB) and 1,694 WSLg Remote Desktop `.etl` traces (11.5 GB, in `%TEMP%/DiagOutputDir/RdClientAutoTrace`) were deleted. The traces grow back slowly, so check them now and then. Board #174 and #175 are done.
+  - **Trace logs, 2026-11-12 (board #179 "Yes, do both"):** they had regrown to 19 GB (about 1 GB/h) and were cleared again. `C:/Users/pab/.wslconfig` now has `[wsl2] guiApplications=false` (turns off WSLg, the likely writer); it applies from the next WSL start. Delete that file to undo. Check `%TEMP%/DiagOutputDir` size after a day.
 - **Owner to-dos:**
 
 ### Package 14: owner tools (PR #13, draft)
