@@ -74,6 +74,7 @@ class OwnerScenario(Scenario):
         def scripted(engine, envelope, *args, **kwargs):
             from storage_faults import ACTIVE
             fault = ACTIVE
+            failure_start = len(fault.failures) if fault else 0
             self.test_clock += 0.001
             clock = time.time()
             self.owner_oracle.call(envelope.get('action', envelope.get('method')), envelope.get('arguments', {key: value for key, value in envelope.items() if key not in {'v', 'password'}}), clock,
@@ -100,7 +101,7 @@ class OwnerScenario(Scenario):
                 record = observer.__self__.snapshot()
                 self.owner_oracle.script[index]['end_seq'] = max((f['seq'] for f in record.fences), default=0)
                 if fault:
-                    self.owner_oracle.script[index]['faults']['trace'] = list(fault.failures)
+                    self.owner_oracle.script[index]['faults']['trace'] = list(fault.failures[failure_start:])
                     self.owner_oracle.script[index]['faults']['active_exhaustion'] = fault.mode == 'persistent' and fault.failed
                 observer(index, reply)
             return reply

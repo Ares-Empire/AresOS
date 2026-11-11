@@ -105,6 +105,7 @@ class Driver:
         s, f, oracle = self.scenario, self.scenario.fixture, self.oracle
         from storage_faults import ACTIVE
         faults = faults or ACTIVE
+        failure_start = len(faults.failures) if faults else 0
         previous_call = getattr(oracle, 'active_call', None)
         previous_start = getattr(oracle, 'active_start_seq', 0)
         before = self.snapshot()
@@ -361,7 +362,7 @@ class Driver:
             yield
         oracle.script[self.call_index]['end_seq'] = max((f['seq'] for f in self.snapshot().fences), default=0)
         if faults:
-            oracle.script[self.call_index]['faults']['trace'] = list(faults.failures)
+            oracle.script[self.call_index]['faults']['trace'] = list(faults.failures[failure_start:])
             oracle.script[self.call_index]['faults']['active_exhaustion'] = faults.mode == 'persistent' and faults.failed
         oracle.active_call = previous_call
         oracle.active_start_seq = previous_start
