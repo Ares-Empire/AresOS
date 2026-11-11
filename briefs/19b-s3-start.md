@@ -11,13 +11,17 @@ decisions and notes stage 3 needs.
   If it still fails (a failing disk, not a full one), the check stays open (round 27) and carries a durable generic
   warning, already committed or computed from the open check ("evidence was seen but couldn't be recorded; check
   Trash"). A less specific warning is acceptable; a lost one is not. The oracle accepts exactly that.
-- **D4, a call's own in-flight intent (default; JUDGMENT-CALL, the lead may change it).** R2 says an intent left
-  `started` is a warning until resolved, and the brief says normal use is quiet. A normal save commits its export
-  intent, builds its reply, then commits `saved`, so a literal reading would put a recovery notice in every normal
-  save's own reply. Rule: a call's own in-flight intent is **not** a warning in that call's own reply; it **is** one
-  in every other view, and as soon as the call has returned (or crashed) without resolving it. Production and the
-  oracle both follow this; record it as a JUDGMENT-CALL in the report. The `attachment_export`, `testapp_export` and
-  `export_rollback` point-0 gaps close this way, not by a notice in normal replies.
+- **D4, a call's own in-flight intent (lead decision, 2026-11-11).** R2 says an intent left `started` is a warning
+  until resolved, and the brief says normal use is quiet. A normal save commits its export intent, builds its reply,
+  then commits `saved`, so a literal reading would put a recovery notice in every normal save's own reply. Rule: a
+  call's own in-flight intent is **not** a warning in that call's own reply **only if the resolving commit (for
+  example `saved`) succeeded before the reply is returned**. If that commit fails or can't be confirmed, the same
+  reply carries the warning, not a quiet success (round 27's rule). A crash before returning leaves the intent to
+  every later view as a warning. In every other view the unresolved intent is a warning as usual. Production and the
+  oracle both follow this. Pin both cases in tests: a fault on the resolving commit gives a warning in that call's
+  own reply; a crash after the reply is built but before the resolving commit gives a warning in the next view. The
+  `attachment_export`, `testapp_export` and `export_rollback` point-0 gaps close this way, not by a notice in normal
+  replies.
 
 ## Notes for the build
 
