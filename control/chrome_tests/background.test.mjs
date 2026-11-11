@@ -648,6 +648,44 @@ test('P17 losing password history in a surviving browser document refuses reads'
   const f=fixture();f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({url:'http://fixture.test/'});chrome.webNavigation={getAllFrames:async()=>[{frameId:0,documentId:'same-native-document',url:'http://fixture.test/'}]};globalThis.privateDocument='first';content=async()=>({document:privateDocument,url:'http://fixture.test/'});");
   await f.run('facts(7)');f.run("privateDocument='replacement'");await assert.rejects(f.run('facts(7)'),/password history was lost/);
 });
+
+function latePopupFixture(){
+  const f=fixture();f.run("excludedHosts=[];controlled.set(7,{epoch:'popup',popupNeedsReload:true});requireTab=async()=>({url:'http://popup.test/'});globalThis.committed=false;globalThis.installed=false;globalThis.injections=[];globalThis.messages=[];chrome.webNavigation={getAllFrames:async()=>[{frameId:0,parentFrameId:-1,documentId:committed?'popup-document':'initial-blank',url:committed?'http://popup.test/':'about:blank'}]};chrome.scripting.executeScript=async request=>{injections.push(request);installed=true;};chrome.tabs.sendMessage=async(tab,message,options)=>{messages.push({message,options});if(!installed)throw Error('Could not establish connection. Receiving end does not exist.');return {ok:true,data:message.command==='set_control'?{controlled:true}:{document:'private-popup',origin:'http://popup.test',url:'http://popup.test/',rows:[{name:'Continue'}]}};};");return f;
+}
+
+test('a popup committing after admission acquires a reader without reloading its document',async()=>{
+  const f=latePopupFixture();await f.run('lateReader(7)');assert.equal(f.run('injections.length'),0);
+  f.run('committed=true');const page=await f.run('facts(7)');assert.equal(page.frames.length,1);assert.equal(page.frames[0].rows[0].name,'Continue');assert.equal(page.needs_reload,true,'first act still requires the normal guarded reload');
+  assert.equal(f.run('injections.length'),1);assert.deepEqual(JSON.parse(f.run('JSON.stringify(injections[0].target)')),{tabId:7,documentIds:['popup-document']});
+  assert.equal(f.run("messages.every(value=>value.options.documentId==='popup-document'&&!('frameId'in value.options))"),true);
+  await f.run('facts(7)');assert.equal(f.run('injections.length'),1,'a healthy reader is never reinstalled');
+});
+
+test('a document replaced between frame enumeration and read cannot inherit its successor privacy identity',async()=>{
+  const f=latePopupFixture();f.run("committed=true;globalThis.nativeDocument='old';chrome.webNavigation.getAllFrames=async()=>[{frameId:0,parentFrameId:-1,documentId:nativeDocument,url:'http://popup.test/'}];chrome.tabs.sendMessage=async(tab,message,options)=>{if(options.documentId==='old')throw Error('No document with id old');return {ok:true,data:{document:'private-new',url:'http://popup.test/'}};};");
+  const stale=await f.run('facts(7)');assert.equal(stale.frames.length,0);assert.equal(f.run("privacyDocuments.has('old')"),false,'a frame-ID reply from the replacement cannot poison the old document');assert.equal(f.run('injections.length'),0);
+  f.run("nativeDocument='new'");const current=await f.run('facts(7)');assert.equal(current.frames[0].document,'private-new');assert.equal(f.run("privacyDocuments.get('new')"),'private-new');
+});
+
+test('missing-reader recovery never clears or retries a surviving document password-history refusal',async()=>{
+  const f=latePopupFixture();f.run("committed=true;privacyDocuments.set('popup-document','original');chrome.tabs.sendMessage=async(tab,message,options)=>{messages.push({message,options});return {ok:false,error:'refused: private password history was lost for this surviving document; ask the owner to reload'};};");
+  await assert.rejects(f.run('facts(7)'),/password history was lost/);assert.equal(f.run('injections.length'),0);assert.equal(f.run("privacyDocuments.get('popup-document')"),'original');assert.equal(f.run("messages[0].message.expected_document"),'original');
+});
+
+test('a dialog opening during missing-reader recovery is readable while injection is blocked',async()=>{
+  const f=latePopupFixture();f.run("committed=true;chrome.scripting.executeScript=request=>{injections.push(request);return new Promise(resolve=>{globalThis.finishInjection=resolve;});};");
+  const reading=f.run('facts(7)');await spin(f,"typeof finishInjection==='function'");f.run("dialogs.set(7,{frame:0,frame_url:'http://popup.test/',kind:'alert',text:'Popup alert'});wakeDialog(7)");
+  const page=await reading;assert.equal(page.dialog.text,'Popup alert');assert.equal(page.frames.length,0);
+  f.run('finishInjection()');await spin(f,'controlled.get(7).settingUp.size===0');
+});
+
+test('ending control during missing-reader installation cannot publish a snapshot or set control',async()=>{
+  for(const retake of [false,true]){
+    const f=latePopupFixture();f.run("committed=true;chrome.scripting.executeScript=()=>new Promise(resolve=>{globalThis.finishInjection=resolve;});");
+    const reading=f.run('facts(7)');await spin(f,"typeof finishInjection==='function'");f.run('controlled.delete(7);'+(retake?"controlled.set(7,{epoch:'replacement'});":'')+'installed=true;finishInjection()');
+    await assert.rejects(reading,/control ended/);assert.equal(f.run("messages.some(value=>value.message.command==='set_control')"),false);
+  }
+});
 test('P24 final identity query finishes before the last dirty and audible check',async()=>{
   const f=fixture();f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({});facts=async()=>({needs_reload:true,frames:[{frame:0}]});globalThis.identityCalls=0;globalThis.dirty=false;globalThis.reloads=0;chrome.webNavigation={getAllFrames:async()=>[{frameId:0,documentId:'doc',url:'http://fixture.test/'}]};documentMethods.set('[7,0]',{document:'doc',method:'GET'});cdp=async(tab,method)=>{if(method==='Page.getFrameTree'){if(++identityCalls===2)dirty=true;return {frameTree:{frame:{url:'http://fixture.test/',loaderId:'loader'}}};}reloads++;};content=async()=>({unsaved:dirty,playing:false});");
   await assert.rejects(f.run("dispatch({name:'prepare_control',tab:7})"),/reload_required/);assert.equal(f.run('reloads'),0);

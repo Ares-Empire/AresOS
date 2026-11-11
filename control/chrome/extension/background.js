@@ -198,15 +198,16 @@ function frameAddress(frame,frames,seen=new Set()){
   if(inlineFrame(frame.url)&&frame.parentFrameId>=0)return frameAddress(frames.find(value=>value.frameId===frame.parentFrameId),frames,seen);
   safeURL(frame.url);return frame.url;
 }
-async function lateReader(tab){
+async function lateReader(tab,browserDocument=null){
   const owner=controlled.get(tab);if(!owner)throw Error('stale_reference: control ended');
   let complete;const settingUp=new Promise(resolve=>{complete=resolve;});owner.settingUp??=new Set();owner.settingUp.add(settingUp);
   try{const frames=await chrome.webNavigation.getAllFrames({tabId:tab})||[];for(const frame of frames){
+    if(browserDocument&&frame.documentId!==browserDocument)continue;
     assertControl(tab,owner.epoch);
     try{frameAddress(frame,frames);}catch{continue;}
     if(frame.parentFrameId<0&&inlineFrame(frame.url))continue;
-    await chrome.scripting.executeScript({target:{tabId:tab,frameIds:[frame.frameId]},files:['guard.js','reader.js'],world:'ISOLATED',injectImmediately:true});assertControl(tab,owner.epoch);
-    await content(tab,frame.frameId,'set_control',{generation:owner.epoch});
+    await chrome.scripting.executeScript({target:{tabId:tab,...(frame.documentId?{documentIds:[frame.documentId]}:{frameIds:[frame.frameId]})},files:['guard.js','reader.js'],world:'ISOLATED',injectImmediately:true});assertControl(tab,owner.epoch);
+    await content(tab,frame.frameId,'set_control',{generation:owner.epoch},frame.documentId);
   }}finally{owner.settingUp.delete(settingUp);complete();}
 }
 function waitDialog(tab){
@@ -396,7 +397,7 @@ async function createdTarget({sourceTabId,tabId}){
   try{await take(tabId,{tab:sourceTabId,epoch:parent.epoch});}
   catch(error){port?.postMessage({event:'reader_error',error:String(error),tab:tabId});}
 }
-async function content(tab, frame, command, parameters={}) {
+async function content(tab, frame, command, parameters={},browserDocument=null) {
   const effectful=['focus','select','check','install_file'].includes(command);
   const modalError=()=>Error(effectful?'unknown: a page dialog interrupted input handling; inspect the dialog and operation status, never retry the input':'refused: a native dialog blocks this frame query; inspect and answer the dialog before checking prepared elements');
   if(dialogs.has(tab))throw modalError();
@@ -404,7 +405,10 @@ async function content(tab, frame, command, parameters={}) {
   // Release already bounds best-effort clear; it must leave no modal waiter.
   const wake=command==='clear'?null:waitDialog(tab);
   let reply;
-  try{const pending=chrome.tabs.sendMessage(tab,{command,...parameters},{frameId:frame});reply=audit(await (wake?Promise.race([pending,wake.promise]):pending));}
+  try{const pending=chrome.tabs.sendMessage(tab,{command,...parameters},browserDocument?{documentId:browserDocument}:{frameId:frame}).catch(error=>{
+    if(error.message==='Could not establish connection. Receiving end does not exist.')error.readerUnavailable=true;
+    throw error;
+  });reply=audit(await (wake?Promise.race([pending,wake.promise]):pending));}
   finally{wake?.dispose();}
   if(reply?.dialog)throw modalError();
   if(reply?.interrupted)throw Error(effectful?'unknown: control ended during input handling; inspect status and never retry the input':'stale_reference: control ended during the frame query');
@@ -600,6 +604,7 @@ async function readyDialog(tab){
 }
 async function facts(tab, reference) {
   const current = await requireTab(tab);
+  const epoch=controlled.get(tab)?.epoch;assertControl(tab,epoch);
   if([...preloadTargets.values()].some(state=>state.tab===tab&&state.failures?.size))throw Error('refused: this tab could not install its document-start guard; open its address fresh in a Claude tab');
   if (reference && (reference.session !== session || reference.tab !== tab)) throw Error('stale_reference: browser session changed; read again');
   const dialog=await readyDialog(tab);
@@ -613,14 +618,24 @@ async function facts(tab, reference) {
   const result=[],uncovered=[];
   for (const frame of frames) {
     let effective;try { effective=frameAddress(frame,frames); } catch { if (reference?.frame === frame.frameId) throw Error('refused: excluded frame');uncovered.push({frame:frame.frameId,eligible:false,reason:'excluded origin or scheme'});continue; }
-    let snapshot;try{snapshot = await content(tab,frame.frameId,reference?.frame === frame.frameId ? 'facts':'read',{...(reference?.frame===frame.frameId?{element:reference.element}:{}),...(privacyDocuments.has(frame.documentId)?{expected_document:privacyDocuments.get(frame.documentId)}:{}),...(inlineFrame(frame.url)&&frame.parentFrameId>=0?{expected_origin:new URL(effective).origin}:{})});
+    let snapshot;try{
+    const query=()=>content(tab,frame.frameId,reference?.frame === frame.frameId ? 'facts':'read',{...(reference?.frame===frame.frameId?{element:reference.element}:{}),...(privacyDocuments.has(frame.documentId)?{expected_document:privacyDocuments.get(frame.documentId)}:{}),...(inlineFrame(frame.url)&&frame.parentFrameId>=0?{expected_origin:new URL(effective).origin}:{})},frame.documentId);
+    try{snapshot=await query();}catch(error){
+      if(!error.readerUnavailable||!frame.documentId)throw error;
+      // Admission can finish on a popup's initial blank document. Recover only
+      // a missing receiver, on this exact committed document, without navigation.
+      const wake=waitDialog(tab);
+      try{await Promise.race([lateReader(tab,frame.documentId),wake.promise]);}finally{wake.dispose();}
+      snapshot=await query();
+    }
     if(inlineFrame(frame.url)&&frame.parentFrameId>=0&&(!frame.documentId||snapshot.origin!==new URL(effective).origin))throw Error('refused: inherited frame origin cannot be authenticated');
-    }catch(error){if(reference?.frame===frame.frameId||String(error.message).includes('password history was lost'))throw error;uncovered.push({frame:frame.frameId,eligible:true,reason:'reader or inherited origin unavailable'});continue;}
+    }catch(error){assertControl(tab,epoch);if(reference?.frame===frame.frameId||String(error.message).includes('password history was lost'))throw error;uncovered.push({frame:frame.frameId,eligible:true,reason:'reader or inherited origin unavailable'});continue;}
     if(frame.documentId){const known=privacyDocuments.get(frame.documentId);if(known&&known!==snapshot.document)throw Error('refused: private password history was lost for this surviving document; ask the owner to reload');privacyDocuments.set(frame.documentId,snapshot.document);}
     if (reference?.frame === frame.frameId && snapshot.document !== reference.document) throw Error('stale_reference: document changed');
     result.push({frame:frame.frameId,parent:frame.parentFrameId,browser_document:frame.documentId,...snapshot,effective_url:effective});
   }
   if (reference && !result.some(frame=>frame.frame === reference.frame)) throw Error('stale_reference: frame is gone');
+  assertControl(tab,epoch);
   // A modal can open while the last reader reply is completing. Re-enter the
   // modal path so its private frame/guard decision is complete before exposure.
   if(dialogs.has(tab))return facts(tab,reference);
