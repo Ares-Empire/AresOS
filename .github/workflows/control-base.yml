@@ -30,4 +30,3 @@ jobs:
           name: control-base-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             .work/control-ci/results.txt
-            .work/control-ci/owner-gaps-*.json.gz

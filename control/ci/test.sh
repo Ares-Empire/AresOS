@@ -3,5 +3,5 @@
 set -euo pipefail
 source control/ci/setup.sh
 python3 control/generate.py --check
-python3 -m unittest discover -s control/tests -v
+python3 control/ci/base.py
 printf 'Control base suite PASS\n'

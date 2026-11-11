@@ -3,7 +3,8 @@ from pathlib import Path
 import unittest
 import ast
 
-from ci.mail.tests import select_names, flow_partition, inherited_names
+from ci.mail.tests import select_names, select_cases, flow_partition, OPTIONAL_CASES
+from ci.base import select as base_select, OPTIONAL as BASE_OPTIONAL
 from owner_state_oracle.gaps import owned, BUCKETS, SUITE_BUCKETS
 
 
@@ -13,11 +14,37 @@ class MailSelections(unittest.TestCase):
         suite = [select_names('suite', modules, shard, 4) for shard in range(4)]
         sweep = select_names('sweep', modules)
         alterations = select_names('perturb', modules)
-        executed = [name for part in suite + [sweep, alterations] for name in part]
+        owner = select_names('owner', modules)
+        executed = [name for part in suite + [sweep, alterations, owner] for name in part]
         self.assertEqual(set(executed), modules)
-        self.assertEqual(len(executed), len(modules))
+        self.assertEqual(len(executed), len(modules) + 1)
+        self.assertEqual([m for m in modules if executed.count(m) == 2], ['test_owner_state_regressions'])
+        self.assertEqual(set(sweep), {'test_review23_sweep', 'test_review24_io'})
+        self.assertNotIn('test_owner_state_sweep', {n for part in suite for n in part})
+        self.assertIn('test_owner_state_quiet', {n for part in suite for n in part})
         self.assertTrue(all(suite))
         self.assertEqual(select_names('all', modules), sorted(modules))
+
+    def test_required_and_optional_cases_are_disjoint_and_complete(self):
+        ids = OPTIONAL_CASES | {
+            'test_owner_state_regressions.ReviewRegressions.test_review20_refused_reopen_then_archive',
+            'test_owner_state_regressions.ReviewRegressions.test_review21_acknowledged_rename_expiry',
+            'test_owner_state_regressions.ReviewRegressions.test_review21_paging_changed_warnings'}
+        def suite(names):
+            values = []
+            for name in names:
+                case = unittest.FunctionTestCase(lambda: None)
+                case.id = lambda name=name: name
+                values.append(case)
+            return unittest.TestSuite(values)
+        required = {c.id() for c in select_cases(suite(ids), 'suite')}
+        optional = {c.id() for c in select_cases(suite(ids), 'owner')}
+        self.assertEqual(optional, OPTIONAL_CASES)
+        self.assertFalse(required & optional)
+        self.assertEqual(required | optional, ids)
+        base_ids = BASE_OPTIONAL | {'test_owner_state_oracle.OwnerOracle.test_expectation_imports_are_standard_library_only'}
+        self.assertEqual({c.id() for c in base_select(suite(base_ids))}, base_ids - BASE_OPTIONAL)
+        self.assertEqual({c.id() for c in base_select(suite(base_ids), True)}, BASE_OPTIONAL)
 
     def test_twelve_sweep_jobs_own_each_bucket_exactly_once(self):
         for bucket in range(BUCKETS):
@@ -44,11 +71,9 @@ class MailSelections(unittest.TestCase):
                 self.assertEqual(sum(flow in groups[group] and owned({'owner': str(bucket), 'suite': flow}, shard, count, 0, 1)
                     for group in range(3) for count in [24 if group == 2 else 12] for shard in range(count)), 1)
         for index, flow in enumerate(assignments['FLOWS']):
-            self.assertEqual(sum(index % count == shard and 'test_review23_sweep' in inherited_names(
-                ['test_review23_sweep', 'test_review24_io'], 'sweep', group)
-                for group in range(3) for count in [24 if group == 2 else 12] for shard in range(count)), 1)
-        self.assertTrue(all(any(index % 12 == shard for index in range(len(assignments['FLOWS'])))
-                            for shard in range(12)))
+            self.assertEqual(sum(index % 4 == shard for shard in range(4)), 1)
+        self.assertTrue(all(any(index % 4 == shard for index in range(len(assignments['FLOWS'])))
+                            for shard in range(4)))
         for group, count in ((-1, 2), (2, 2), (0, 0)):
             with self.assertRaises(ValueError):
                 flow_partition(flows, group, count)

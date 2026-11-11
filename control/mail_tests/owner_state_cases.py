@@ -17,7 +17,7 @@ from owner_state_oracle.records import canonical
 from test_owner_state_sweep import OwnerScenario
 
 
-def run(gaps):
+def run_quiet(gaps):
     def compare(scenario, driver, name):
         driver.alias_callback = gaps.bind
         gaps.bind(driver.snapshot())
@@ -87,6 +87,16 @@ def run(gaps):
                 assert not [fact for fact in d.oracle.expected(d.snapshot()) if fact.kind != 'pending']
         finally:
             s.close()
+
+
+
+def run(gaps):
+    run_quiet(gaps)
+
+    def compare(scenario, driver, name):
+        driver.alias_callback = gaps.bind
+        gaps.bind(driver.snapshot())
+        driver.compare(gaps.checker('contract/' + name))
 
     # Changed sets, acknowledgement, committed clean and recurrence. Compare
     # every view before a second status call can recreate any missing warning.

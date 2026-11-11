@@ -54,24 +54,39 @@ def flow_partition(flows, group=0, groups=1, isolated=()):
     return tuple(flows[group::groups])
 
 
+INHERITED = {'test_review23_sweep', 'test_review24_io'}
+OPTIONAL_MODULES = {'test_owner_state_sweep', 'test_owner_state_contracts'}
+ALTERATIONS = {'test_owner_state_perturb', 'test_owner_state_plants'}
+OPTIONAL_CASES = {
+    'test_owner_state_regressions.ReviewRegressions.' + name for name in (
+        'test_review22_live_rename_trash_with_unresolved_drafts_M03_C03',
+        'test_review22_refused_recovery_result_keeps_changed_evidence_M03_C03',
+        'test_review22_zero_byte_journal_enospc_recovers_without_restart_M10_M13')
+}
+
+
 def select_names(selection, modules, shard=0, shards=1):
-    if selection not in {'all', 'suite', 'sweep', 'perturb'}:
-        raise ValueError('Choose all, suite, sweep or perturb')
+    if selection not in {'all', 'suite', 'sweep', 'owner', 'perturb'}:
+        raise ValueError('Choose all, suite, sweep, owner or perturb')
     if shards < 1 or shard not in range(shards):
         raise ValueError('Invalid suite shard')
-    sweep = {'test_review23_sweep', 'test_review24_io', 'test_owner_state_sweep'}
     names = [name for name in sorted(modules) if selection == 'all' or
-        selection == 'sweep' and name in sweep or
-        selection == 'perturb' and name == 'test_owner_state_perturb' or
-        selection == 'suite' and name not in sweep | {'test_owner_state_perturb'}]
+        selection == 'sweep' and name in INHERITED or
+        selection == 'owner' and name in OPTIONAL_MODULES | {'test_owner_state_regressions'} or
+        selection == 'perturb' and name in ALTERATIONS or
+        selection == 'suite' and name not in INHERITED | OPTIONAL_MODULES | ALTERATIONS]
     return [name for index, name in enumerate(names) if index % shards == shard] if selection == 'suite' else names
 
 
-def inherited_names(names, selection, group):
-    # The inherited sweep assigns whole flows, so its 22 cases use only the
-    # first group's 12 workers. Other groups own the independent oracle sweep.
-    return [name for name in names if selection != 'sweep' or group == 0 or
-            name not in {'test_review23_sweep', 'test_review24_io'}]
+def select_cases(suite, selection):
+    from ci.base import cases
+    def include(case):
+        if selection == 'suite':
+            return case.id() not in OPTIONAL_CASES
+        if selection == 'owner' and case.id().startswith('test_owner_state_regressions.'):
+            return case.id() in OPTIONAL_CASES
+        return True
+    return unittest.TestSuite(case for case in cases(suite) if include(case))
 
 
 def alteration_label(name):
@@ -113,10 +128,12 @@ def main(selection):
     parallel = 'test_owner_state_sweep' in names
     if parallel:
         names.remove('test_owner_state_sweep')
-    names = inherited_names(names, selection, int(os.environ.get('MAIL_FLOW_GROUP', '0')))
+    if selection == 'owner' and (int(os.environ.get('MAIL_FLOW_GROUP', '0')) != 0 or
+                                 int(os.environ.get('MAIL_SWEEP_SHARD', '0')) != 0):
+        names = []
     started = time.monotonic()
     def run():
-        return unittest.TextTestRunner(verbosity=2).run(unittest.defaultTestLoader.loadTestsFromNames(names))
+        return unittest.TextTestRunner(verbosity=2).run(select_cases(unittest.defaultTestLoader.loadTestsFromNames(names), selection))
     if parallel:
         environment = {**os.environ, 'PYTHONPATH': str(root) + os.pathsep + os.environ.get('PYTHONPATH', '')}
         result, good = run_workers([sys.executable, '-m', 'unittest', '-v', 'test_owner_state_sweep'], environment, run, count=int(os.environ.get('OWNER_SWEEP_WORKERS', '3')))
