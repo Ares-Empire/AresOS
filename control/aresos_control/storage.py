@@ -374,7 +374,8 @@ class Store:
         for key, transfer in view.iter_items('export:'):
             self.ledger.holds[key] = export_budget(transfer)
         for _, op in view.iter_items('op:', restore_outcomes=False):
-            self.ledger.holds.update(self.ledger.right(op, view.get('op:' + (op.get('repair_of') or ''))))
+            original = view.get('op:' + op['repair_of']) if op.get('repair_of') else None
+            self.ledger.holds.update(self.ledger.right(op, original))
         if self.sequence > self.committed and not self.locked:
             prepared = self._prepared(self.sequence)
             if prepared is not None:
