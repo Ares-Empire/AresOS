@@ -779,6 +779,8 @@ class Mail:
     def resolve_sent_checks(self, operation_ids=None):
         """Read-only remote checks; never APPEND, repair or resubmit."""
         from .filing import resolve_checks
+        if self.store.locked or self.store.write_failed:
+            return list(self.unresolved_sent_checks())
         if operation_ids is None:
             resolve_checks(self)
         unresolved = []
@@ -806,17 +808,24 @@ class Mail:
         return unresolved
 
     def unchecked_sent_notice(self, operation):
+        from ..owner_state import owner_view
         return {'id': 'sent-check-' + digest(operation['id'])[:32], 'app': 'mail',
             'state': 'unknown', 'ack': False,
-            'created_at': int(self.store.retained_at('op:' + operation['id']) * 1_000_000_000),
+            'created_at': int(owner_view(self.store).retained_at('op:' + operation['id']) * 1_000_000_000),
             'untrusted_content': {'operation_id': operation['id'], 'check': 'sent_copies',
                 'reason': 'Sent-copy count is not yet checked. Its live evidence and result still need committing. Nothing is appended or sent automatically.'}}
 
     def unresolved_sent_checks(self):
-        # Pure snapshots keep refusals/replays out of IMAP. The committed open
-        # row is enough to disclose the check without another server read.
-        for _, op in self.store.iter_items('op:'):
-            if op['app'] == 'mail' and op.get('sent_copy_check', {}).get('state') == 'open':
+        # A committed open check, or a currently incomplete journal which
+        # prevents a fresh check, is enough to derive this disclosure.
+        from ..owner_state import owner_view
+        view = owner_view(self.store)
+        warnings = {n.get('source_key') for _,n in view.iter_items('notice:')
+                    if n.get('check_kind') == 'sent_copies' and not n.get('ack')}
+        for key, op in view.iter_items('op:'):
+            check = op.get('sent_copy_check', {})
+            if op['app'] == 'mail' and (check.get('state') == 'open' or
+                    check and self.store.write_failed and key not in warnings):
                 yield self.unchecked_sent_notice(op)
 
     def evidence(self, operation_id):

@@ -90,7 +90,7 @@ def rename_folder(mail, account, client, source, target, roles_before):
             '\\all', '\\archive', '\\drafts', '\\flagged', '\\junk', '\\sent', '\\trash', '\\important'}})
         role = ', '.join(roles) if roles else folder_role(target, listed)
         needs_notice = bool(roles) or role != 'an ordinary folder'
-        intent['roles_after'] = resolve(listed)
+        intent['roles_after'] = resolve(listed, allow_incomplete=True)
     except (Refused, OSError, imaplib.IMAP4.error, Uncertain):
         role, needs_notice = 'an unverified role', True
     intent.update(state='partial' if needs_notice else 'done', observed_role=role)
@@ -98,7 +98,7 @@ def rename_folder(mail, account, client, source, target, roles_before):
     result = {'account': account['id'], 'folder': target, 'state': intent['state']}
     if needs_notice:
         reason = ('The special folders changed while Claude was moving this folder. '
-                  'Nothing was deleted. It is now ' + short_name(target) + ', inside ' + role +
+                  'Nothing was deleted. It is now ' + short_name(target) + ', inside ' + role.lstrip('\\') +
                   '. Check it in your mail program.')
         content = {'filing_id': filing_id, 'message_count': intent['message_count'], 'reason': reason,
                    'folders': [short_name(source['folder']), short_name(target)], 'folders_more': 0,
@@ -258,6 +258,8 @@ def public_notice(store, notice):
 
 def notice_page(store, args=None, app=None, checks=()):
     from ..recovery import recovery_notices
+    from ..owner_state import owner_view
+    store = owner_view(store)
     args = args or {}
     checks = tuple(checks)
     deferred = {}
