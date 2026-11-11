@@ -127,7 +127,11 @@ Updated 2026-11-10. The live truth is `git log`, `gh pr list` and `git worktree 
     - Update rehearsal run 1 (42924871252) failed after 11 minutes, before the VM: two scripts didn't accept the update mode. A new test (`UpdateJobGatesTest`) checks every gate of the job's steps.
     - Run 2 (42933781975) failed 3 minutes into the VM: the installer WebUI transport didn't know package 27 (six package sets in `installer_webui.py`). New tests: `OwnerHarnessPackagesTest` and `VmStepDecisionsTest` (40 decisions, each either equal to package 14's or reviewed).
     - The rehearsal job's install step now has apt retries and a 40-minute limit, for update only.
-    - Run 3 of 3 (42940741765 at `fb06ccde`) is running.
+    - Run 3 of 3 (42940741765 at `fb06ccde`) reached the owner walk. Everything passed up to `at update`, with every protected-disk audit unchanged.
+    - Then `at update` failed: "Failed to start ostree-finalize-staged.service". Every image since #3 masks `ostree-finalize-staged` and `bootc-finalize-staged` (`os/policy/masked-system-units.txt`), so nothing can be staged from a running AresOS. The earlier switch ran from stock. On the laptop it would have stopped safely ("do not reboot").
+    - Fix (option 1, tools only, no new image): `update.sh` unmasks exactly those two right before the switch, all-or-nothing. Automatic updaters stay masked.
+    - JUDGMENT-CALL to the owner: board #175. Then a 4th rehearsal (approved, free runners) once the disk is freed.
+    - PLAN-GAP for the next release: stop masking the two units in the image.
     - Also found: the owner tools' `main()` sets umask 077 and three test modules never restored it, which made a later test flaky. Fixed in 27 (`common.kept_umask`).
   - Its JUDGMENT-CALL 2: package 22's tools can't go forward again after `at previous`, so the rehearsal ends on 13 with 27 beside it; going forward after a rollback belongs in 22c.
   - Also for 22c (PR #37 REVIEW-1 should-fix, older than that fix): the refusal invariant in `test_owner_update` tries a persistent refusal twice but never asserts that it refused. Assert the refusal on both attempts wherever the check applies.
