@@ -127,6 +127,20 @@ The baton from the last session. Read it after `STATE.md`. Overwrite it when you
     - "baseline is basically MCPs or CLIs like any other mcp or cli that already exists", "reasonably safe", not "nothing could ever go wrong". It is a judgment that "cannot be taken too literally".
     - Extra care only where AresOS adds its own risk (Claude Code as system operator). Disks, boot, updates and rollback are already in that group.
     - For later tools (23's next round, 22c, the 25 guardian, desktop shortcuts), brief reviewers with this bar: adversarial edge cases come back as known limits, not blocking rounds, unless they touch those AresOS-specific risks.
+  - **Fable week plan (Patrik via mac-capacity, 2026-11-11 ~11:00; the week runs Thu 11-12 00:00 to Wed 11-18 23:59):**
+    - **Thursday, in order:**
+      1. 27's last round overnight (fresh Opus agent at about 00:05), then guide Patrik through `at update`. Then he switches to AresOS.
+      2. First job on AresOS: Lunar Client and a working Minecraft with his own Microsoft login, which he types himself, so he can stay on AresOS in the evenings. He asks for this, so hard rule 3 allows it.
+      3. Then everything else.
+    - **How to run the work** ("Fable on AresOS early with all work"):
+      - a Fable session as orchestrator;
+      - Fable agents for work that is new, heavy, important, quality-critical or design;
+      - Opus or Sonnet agents where Fable isn't needed.
+    - **Fable budget:** use Fable early, to fill the Fable half of the weekly by about Sat/Sun. Patrik then presses the Fable reset, which returns that usage. After the press, be selective with Fable.
+    - **Keep the orchestrator lean:** hand reading to agents, and start fresh when the context gets long (each turn re-reads it at about 2× Opus cost).
+    - **Home screen (the Minecraft hub):** ask Patrik for his pointers first. Don't design it before.
+    - **Reviews:** Codex is out from about Sat until Tue 10:53 and ends for good on 11-21. Meanwhile, reviews run as fresh Fable or Opus agents (never the builder), or as Codex from the Mac on Tue–Fri. CLAUDE.md still says "a fresh Codex context reviews", so get Patrik's OK in the chat before changing that line.
+    - **Safety bar:** normal MCP/CLI level, with extra care for AresOS-specific risks (decision 24 clarification, PR #38).
   - **Fable 5.2 next week (about 2× Opus per token; Patrik plans a Fable-heavy week). Where it helps most:**
     1. **Package 23's hand-off** (`briefs/23-review-fixes-5.md`): five Codex reviews in a row found supervisor/wrapper races. It needs a simpler, conservative design: only certain crashes restart, anything uncertain waits for `retry`. A fresh Fable builder.
     2. **Package 22c** (rollback, then forward again, keep-stock and layout trials after an update; plus the refusal-invariant test gap from PR #37). It is the owner tools' state machine on his real disks, where mistakes are costly.
