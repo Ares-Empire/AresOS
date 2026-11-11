@@ -661,3 +661,18 @@ tasks at any time.
   with no input of the extension's in flight, is his and isn't held; a submission his input starts after a delay
   inside that limit is held and asks, since the tool can't tell whose input started it. `CONTROL.md` section 6 says
   so; the extension's in-flight mark never passes through anything the page can reach.
+- **2026-11-11, 08:10:** the owner clarified decision 24 (relayed by mac-capacity with his words; also in `HANDOFF.md`):
+  "I did not mean it as 'nothing could ever go wrong', I meant it like a normal tool. We are basically making MCPs
+  rn and so like normal MCPs they should be safe like teams mcp." "Baseline is basically MCPs or CLIs like any other
+  mcp or cli that already exists." Extra care where Claude Code, as the system operator, adds a risk of its own to
+  AresOS, "if we realize it in an action". "If it takes long to get it right, it takes long, we accept that", but a
+  more efficient process helps, since many tools are coming. On Chrome: "I don't just wanna rebuild Claude in
+  Chrome. I wanna make a better tool for AresOS that's more efficient with readings, navigation, free tab navigation
+  etc."
+  What this means: the baseline is what a good MCP or CLI does. Sends, deletes, payments and unsubscribes ask, with
+  the exact content shown and bound to the action; inputs are checked; each tool has the least access it needs;
+  passwords and sign-in data never reach Claude; untrusted content is marked. A bypass that needs a hostile page or
+  message to get an action past its question (hidden frames, shadow roots, key spellings, look-alike characters) is
+  a documented known limit, fixed when the fix is cheap or when the action carries a risk of its own to AresOS:
+  system settings, disks, credentials, anything hard to undo. Reviewers are briefed with this bar. It applies from
+  2026-11-12, 00:00; what it changes in Mail, 19b and Chrome goes to the owner first.
