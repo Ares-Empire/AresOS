@@ -113,11 +113,16 @@ The baton from the last session. Read it after `STATE.md`. Overwrite it when you
     - A watcher (`mirror-watch.log` in the scratchpad) waits for two healthy checks. Then approve one 23 `check_build=build` and the next 27 release dispatch.
     - If the mirror stays slow, add apt retries and a longer step timeout in `os-image.yml`. It is bound, so do it inside package 27.
   - 23's REVIEW-2 (Astra) runs on `7ec26b84`, log `../AresOS-23-review2.log`. The owner answered #168, #169 and #170, so all of 23's calls are decided.
-  - **Claude allowance (mac-capacity, 2026-11-10 23:40, from Patrik; the original plan):**
-    - Work normally tonight. Pause on Wed 11-11 between about 09:00 and 12:00 at a clean point: a round or stage finished, nothing half-done, STATE and HANDOFF current.
-    - Then send mac-capacity one line: where it stopped and what's left. Patrik reads the real usage, and mac-capacity shares out the rest until the Thu 00:00 reset.
-    - A "pause now" from mac-capacity before 09:00 means pause early.
-    - Package 27 stays first.
+  - **Claude allowance (mac-capacity, 2026-11-11 07:05):** about 3.5% of the weekly is left for finishing 27 through merge. Work straight through; the 09:00–12:00 pause doesn't apply to 27.
+    - Use one blocking wait per CI run, never polling: each wake of a ~1M-token agent is expensive.
+    - If run 4 needs another real round, or Patrik's meter shows ~96%, stop at a clean point. The rest continues after the Thu 00:00 reset.
+    - Guide Patrik through `at update` today only if 27 merges in time; otherwise after the reset.
+    - **After the reset, start fresh agents.** Don't resume `afc79d03d9f22e06d` (about 1M tokens) or `af1524c06373de3ac` (about 0.9M).
+  - **Fable 5.2 next week (about 2× Opus per token; Patrik plans a Fable-heavy week). Where it helps most:**
+    1. **Package 23's hand-off** (`briefs/23-review-fixes-5.md`): five Codex reviews in a row found supervisor/wrapper races. It needs a simpler, conservative design: only certain crashes restart, anything uncertain waits for `retry`. A fresh Fable builder.
+    2. **Package 22c** (rollback, then forward again, keep-stock and layout trials after an update; plus the refusal-invariant test gap from PR #37). It is the owner tools' state machine on his real disks, where mistakes are costly.
+    3. **Package 25 (guardian) design**: B2's focus, stop and shutdown states and a clean world save at logout. It is design-heavy and touches 23's supervisor.
+    4. **The next release's update path**: stop masking the finalize units in the image, review the updater allowlist, and a second-update rehearsal (R27 to the next release). Use Fable only if run 4 shows more surprises; otherwise Opus.
     - The WSL disk image is 14.2 GB with about 3 GB in use; compacting it needs admin.
   - **Disk resolved (2026-11-11 ~04:20 local):** C: has 132 GB free. With the owner's OK in the chat, AresOS-delete-me (115 GB) and 1,694 WSLg Remote Desktop `.etl` traces (11.5 GB, in `%TEMP%/DiagOutputDir/RdClientAutoTrace`) were deleted. The traces grow back slowly, so check them now and then. Board #174 and #175 are done.
 - **Owner to-dos:**
