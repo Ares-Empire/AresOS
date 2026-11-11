@@ -22,6 +22,30 @@ codex exec -m "$REVIEW_MODEL" -c model_reasoning_effort="high" -s read-only \
 - The reviewer then checks only those fixes plus anything they touched. It doesn't start a fresh hunt.
 - Claude commits `REVIEW.md` on the branch (the reviewer can't, since it's read-only), so it reaches `main` with the package.
 
+## Tools for Claude (control layer)
+
+Every tool package (Mail, Chrome and the ones to come) uses the owner's bar from 2026-11-11
+(`docs/control/PLAN.md`): safe the way a good MCP or CLI is, not "nothing could ever go wrong". "If it takes long
+to get it right, it takes long", but a round needs findings worth a round.
+
+1. A brief, then one build.
+2. Two fresh reviewers at the same time, both read-only: the package review above, and a security review. The
+   security review's prompt states the bar:
+   - every send, delete, payment and unsubscribe the tool recognises asks, with the exact content shown and bound,
+     and Claude can't answer or replay the question;
+   - inputs are checked, and each tool has the least access it needs;
+   - the app passwords and sign-in data the tool service holds never reach Claude;
+   - untrusted content is marked.
+   It sorts each finding as **fix** or **known limit**:
+   - **fix:** real harm, such as an action without its question, credentials, installs or system changes, data
+     loss, or breaking the owner's normal use;
+   - **known limit:** a hostile page or message making a step look ordinary, with low harm.
+3. One fix round for the "fix" findings. The same reviewers then check only those fixes, and CI passes twice.
+4. The tool's design keeps a list of its known limits: what it is, the harm, and why it is accepted.
+5. More care where the tool acts as the system's operator: updates and rollback, disks, software installs,
+   credentials and system settings, and the final review before something reaches his laptop. Use a Fable reviewer
+   or an extra angle there.
+
 ## Councils (every now and again)
 
 A council is several fresh Codex reviewers. Each has a different role, and they review the **plan or design** (not a diff) without seeing each other's answers. A chair then merges their findings into one ranked list. It's the only review allowed to say "the plan itself is wrong".

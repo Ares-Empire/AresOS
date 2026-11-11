@@ -680,3 +680,26 @@ tasks at any time.
   settings, disks, credentials, anything hard to undo. Reviewers are briefed with this bar. It applies from the
   reset on 2026-11-12, 00:00 (the timing came with his words in mac-capacity's relay); what it changes in Mail, 19b
   and Chrome goes to the owner first.
+- **2026-11-11, 09:45 and 10:05:** the owner's answers on what the clarified decision 24 changes (relayed by
+  mac-capacity with his words):
+  1. **19b stops at stage 2.** "Database crash recovery is not needed haha." Stage 3 (a warning copy readable without
+     the database, every fault mode in every flow, the restore sweep) is dropped. No double-send after a crash stays.
+  2. **The exhaustive proof leaves required CI.** "I agree to drop the exhaustive proof although it's very cool it
+     exists so I wouldn't throw it away since it's small. Maybe we keep it and eventually rerun it once or smth but
+     not necessary." The strict gap ledger and the full fault-matrix oracle stay in the repo as an optional check;
+     the normal-use checks and targeted regression tests stay required.
+  3. **Flaws worth fixing are fixed.** "If a found flaw / vulnerability is worth fixing we should do it, not just
+     accept the possible failure. Only in actually important cases … maybe like preventing Claude doing an obv
+     malware install or stuff like that." A flaw with real harm (an action without its question, credentials,
+     installs or system changes, data loss) is fixed; known limits are for low-harm edge cases.
+  4. **Decision 25 changes: Claude may work in his open tabs.** "Claude can make group tabs but he can also work in
+     my open tabs basically as if I was working in them … Claude sees everything once I need it or ask a question
+     or smth, then that's automatically given. Eg 2 tabs open, one 'Car', the other 'Uni website' and I ask Claude
+     to check my lectures he goes to uni website. Although the permission interpretation on this needs to be good."
+     Claude sees the titles and addresses of his tabs and takes the tab his request clearly needs, without a
+     separate question, never an unrelated one, and it shows which of his tabs it took. The take rules stay (reload
+     before the first act, report unsaved typing or playing media first), and so do the questions for sends,
+     deletes and payments. The Chrome capability brief builds it and updates `CONTROL.md` section 6.
+  5. **A lighter review process for each tool** (`docs/REVIEW.md`, "Tools for Claude").
+  On Chrome he also asked for capability over more hardening: "a better tool for AresOS that's more efficient with
+  readings, navigation, free tab navigation etc." (entry above).
