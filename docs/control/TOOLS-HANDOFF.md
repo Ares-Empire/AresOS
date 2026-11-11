@@ -45,7 +45,8 @@ These were taken while brief 20 was built and are in its reports, not yet in the
 - **Editors in `about:blank` and `srcdoc` frames** are covered by the guard and send after approval.
 - **Paging snapshots** of downloads, history and bookmarks expire after 5 minutes without a page request, or 30 minutes
   after they were made.
-- **Known limits** from the Chrome re-check, in `reviews/20-chrome/KNOWN-LIMITS.md` on the Chrome branch.
+- **Known limits** from the Chrome re-check: `reviews/20-chrome/KNOWN-LIMITS.md` on the Chrome branch. The re-check
+  that writes it is still running; it must exist before the handover.
 - **The owner's change to decision 25:** Claude works in his open tabs (below).
 
 ## New work (Fable)

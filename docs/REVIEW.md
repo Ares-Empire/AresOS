@@ -40,7 +40,8 @@ to get it right, it takes long", but a round needs findings worth a round.
    - **fix:** real harm, such as an action without its question, credentials, installs or system changes, data
      loss, or breaking the owner's normal use;
    - **known limit:** a hostile page or message making a step look ordinary, with low harm.
-3. One fix round for the "fix" findings. The same reviewers then check only those fixes, and CI passes twice.
+3. A fix round for the "fix" findings. The same reviewers then check only those fixes and what they touched. Repeat
+   until no "fix" finding is open, then CI passes twice.
 4. The tool's design keeps a list of its known limits: what it is, the harm, and why it is accepted.
 5. More care where the tool acts as the system's operator: updates and rollback, disks, software installs,
    credentials and system settings, and the final review before something reaches his laptop. Use a Fable reviewer
