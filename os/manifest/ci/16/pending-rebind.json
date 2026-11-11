@@ -15,7 +15,7 @@
   "rule": "The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
     {
-      "sha256": "1a71a5b16bd27a610d218d932c4a829838d3743c883eb4d3d73a0aecf53c9c33",
+      "sha256": "224b02b7e54e0bc631ad96e333843669241959af0aa8a995e193bd13e7a1a025",
       "path": ".github/workflows/os-image.yml"
     },
     {
@@ -29,6 +29,10 @@
     {
       "sha256": "6566f2efc06e79d3190ded48cdb119c4fc79f4ed5fc6ef784babc52438fb8223",
       "path": "os/ci/checkout_sources.py"
+    },
+    {
+      "sha256": "87aa4eef5ec4fe80dc691889f42d92eab8c6ce708ab15c5b4dfa3db244a065ee",
+      "path": "os/ci/installer_webui.py"
     },
     {
       "sha256": "d7bc9cce46bf7f37f6e725ab625a92dd0ec73524d5760ee068dba6b4c51df5d1",
@@ -155,7 +159,7 @@
       "path": "os/tests/test_owner_firmware.py"
     },
     {
-      "sha256": "743d851911d57c84afe19afbee55f28f94be87300929c16bb7f3b834f55a6220",
+      "sha256": "c9ff355febcc2aa6445c658b19b619c9cc2d459f4b1f24f2d16916ac5eb322a7",
       "path": "os/tests/test_owner_guard.py"
     },
     {
