@@ -1741,6 +1741,73 @@ class StageOneRoundThree(unittest.TestCase):
 
 
 class StageTwoPartA(unittest.TestCase):
+    def test_later_fault_cannot_excuse_a_false_completed_probe_result(self):
+        oracle = Oracle()
+        oracle.call('mail_account_add', {'id': 'box'}, 1, {'trace': [(21, 'file.fsync', 'ENOSPC')]})
+        oracle.script[-1].update(start_seq=0, end_seq=3)
+        oracle.commit_fault_points.update({(1, 2): 20, (1, 3): 30})
+        row = {'action': 'mail_onboarding_folder_probe', 'payload': {}, 'state': 'submitting'}
+        command = {'call': 1, 'account': 'box', 'before_seq': 1, 'fault_point': 10,
+                   'accepted': False, 'reply': 'delivered'}
+        oracle.probe_outcome([command], Record(events=[{'seq': 2, 'set': {'op:g:p': row}}]), 3,
+            row['action'], lambda payload: True, [command], 'refused')
+        self.assertTrue(any(f.kind == 'unjustified-probe-result' for f in oracle.lifecycle_errors))
+
+    def test_native_deleted_flag_receipt_requires_its_exact_code_and_store(self):
+        ref = dict(account='box', folder='Source', uidvalidity=1, uid=1, message_id='<synthetic@mail.invalid>')
+        for correct_hash, observed in ((True, True), (False, True), (True, False)):
+            with self.subTest(correct_hash=correct_hash, observed=observed):
+                oracle = Oracle()
+                if observed:
+                    oracle.server('STORE', 'box', 'Source', [ref], source='op:g:c', before_seq=1,
+                                  arguments=['1', '+FLAGS.SILENT', '(\\Deleted)'])
+                marker = 'marked:' + fingerprint(ref)
+                row = {'id': 'g:c', 'app': 'mail', 'action': 'mail_delete', 'state': 'unknown',
+                    '_owner_encoded': True, 'payload': {'items': [{'reference': ref}]},
+                    'stages': {marker: {'code': 'detail', 'hash': fingerprint('deleted flag set' if correct_hash else 'wrong')}}}
+                oracle.stage_claims({'seq': 2, 'action': 'mail_delete', 'set': {'op:g:c': row}}, 'op:g:c', {}, row)
+                failure = Fact('op:g:c', 'unjustified-stage', detail=marker)
+                self.assertEqual(failure not in oracle.lifecycle_errors, correct_hash and observed)
+
+    def test_cleanup_without_expunge_needs_its_own_fault_and_never_proves_done(self):
+        for fault, state in ((9, 'unknown'), (21, 'unknown'), (21, 'done')):
+            with self.subTest(fault=fault, state=state):
+                oracle = Oracle()
+                oracle.call('mail_account_add', {'id': 'box'}, 1, {'trace': [(fault, 'file.fsync', 'ENOSPC')]})
+                oracle.script[-1].update(start_seq=0, end_seq=3)
+                oracle.commit_fault_points.update({(1, 2): 20, (1, 3): 30})
+                row = {'action': 'mail_delete', 'payload': {}, 'state': 'submitting'}
+                record = Record(events=[{'seq': 2, 'set': {'op:g:c': row}},
+                    {'seq': 3, 'set': {'op:g:c': {**row, 'state': state}}}])
+                result = oracle.probe_outcome([], record, 3, 'mail_delete', lambda payload: True, [], 'done')
+                if fault == 21 and state == 'unknown':
+                    self.assertEqual('unknown', result)
+                    self.assertFalse(oracle.lifecycle_errors)
+                else:
+                    self.assertIsNone(result)
+                    self.assertTrue(any(f.kind == 'unjustified-probe-result' for f in oracle.lifecycle_errors))
+
+    def test_unverified_initial_probe_keeps_the_more_specific_failed_cleanup(self):
+        for cleaned in (False, True):
+            with self.subTest(cleaned=cleaned):
+                oracle = Oracle()
+                oracle.call('mail_account_add', {'id': 'box'}, 1,
+                            {'trace': [(12, 'file.fsync', 'ENOSPC'), (32, 'file.fsync', 'ENOSPC')]})
+                oracle.script[-1].update(start_seq=0, end_seq=4)
+                oracle.commit_fault_points.update({(1, 1): 20, (1, 3): 40})
+                ref = dict(account='box', folder='Probe', uidvalidity=1, uid=1, message_id='<probe@mail.invalid>')
+                oracle.server('APPEND', 'box', 'Probe', arrived=[ref])
+                oracle.server('DELETE', 'box', arguments=['Probe'], before_seq=0, fault_point=10,
+                    accepted=False, response_code='NO', response_text=['[CANNOT] Folder is nonempty'])
+                oracle.server('FETCH', 'box', 'Probe', [ref])
+                oracle.server('EXPUNGE', 'box', 'Probe', arguments=['1'], before_seq=2, fault_point=30, accepted=cleaned)
+                record = Record(events=[{'seq': 1, 'set': {'op:g:p': {'action': 'mail_onboarding_folder_probe',
+                    'payload': {'folder': 'Probe', 'empty': False}, 'state': 'unknown'}}},
+                    {'seq': 3, 'set': {'op:g:c': {'action': 'mail_delete', 'payload': {'items': [{'reference': ref}]},
+                                                'state': 'done' if cleaned else 'unknown'}}}])
+                self.assertEqual((False, 'survival-unverified' if cleaned else 'exact-cleanup-failed'),
+                                 oracle.probe_qualification(oracle.servers, record, 4))
+
     def test_probe_keeps_its_precommand_state_only_for_a_later_result_fault(self):
         for fault in (9, 11):
             with self.subTest(fault=fault):

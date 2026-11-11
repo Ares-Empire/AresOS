@@ -1510,7 +1510,9 @@ class Oracle:
                              any(e.get('stage') == name for e in accepted('LOCAL_STAGE')))
             elif name.startswith('marked:'):
                 ref = next((ref for ref in refs if fingerprint(ref) == name[7:]), None)
-                proof = bool(ref and outcome == 'deleted flag set' and any(exact_uid(e, ref, 'STORE', ['+FLAGS.SILENT', '(\\Deleted)']) for e in accepted('STORE')))
+                recorded = ({'code': 'detail', 'hash': fingerprint('deleted flag set')}
+                            if row.get('_owner_encoded') else 'deleted flag set')
+                proof = bool(ref and outcome == recorded and any(exact_uid(e, ref, 'STORE', ['+FLAGS.SILENT', '(\\Deleted)']) for e in accepted('STORE')))
             elif name == 'folder_probe':
                 commands = [e for e in events if e['command'] == 'DELETE']
                 text = ' '.join(commands[-1].get('response_text', [])) if commands else ''
@@ -1787,8 +1789,6 @@ class Oracle:
         def outcome(action, predicate, commands, success):
             return self.probe_outcome(events, record, completed_at, action, predicate, commands, success)
         initial = outcome('mail_onboarding_folder_probe', lambda p: p.get('folder') == folder and not p.get('empty'), [probe], 'refused')
-        if initial != 'refused':
-            return False, 'survival-unverified'
         refs = [ref for e in events if e['command'] == 'APPEND' and e['accepted'] and e.get('folder') == folder for ref in e.get('arrived', [])]
         survived = any(e['command'] == 'FETCH' and e['accepted'] and e['reply'] == 'delivered' and any(ref in e['identities'] for ref in refs) for e in events)
         expunges = [e for e in events if e['command'] == 'EXPUNGE' and any(
@@ -1799,6 +1799,8 @@ class Oracle:
         expunged = bool(expunges) and all(e['accepted'] and e['reply'] == 'delivered' for e in expunges)
         if cleanup != 'done' or not expunged:
             return False, 'exact-cleanup-failed'
+        if initial != 'refused':
+            return False, 'survival-unverified'
         if not nonempty:
             return False, 'generic-cleaned'
         empty_commands = probes[1:]
@@ -1825,13 +1827,25 @@ class Oracle:
         commit, key, row = candidates[-1]
         state = row.get('state')
         if not commands:
+            if state in {'unknown', 'failed'}:
+                submitting = [e['seq'] for e, candidate, value in candidates[:-1]
+                              if candidate == key and value.get('state') == 'submitting']
+                for call in self.calls_at(commit['seq']):
+                    before = self.commit_fault_points.get((call['call'], max(submitting)), float('inf')) if submitting else float('inf')
+                    after = self.commit_fault_points.get((call['call'], commit['seq']), -1)
+                    if any(before <= fault[0] <= after for fault in call.get('faults', {}).get('trace', [])):
+                        # Context/flag storage can fail before EXPUNGE/DELETE.
+                        # This proves only an unfinished attempt, never cleanup.
+                        return state
             if state not in {None, 'reserved', 'submitting'}:
                 self.lifecycle_errors.add(Fact(key, 'unjustified-probe-result', detail=action))
             return state if state in {None, 'reserved', 'submitting'} else None
         last = commands[-1]
         call = next((c for c in self.script if c['call'] == last['call']), {})
         unfinished = state in {'reserved', 'submitting'}
-        observed_by = self.commit_fault_points.get((last['call'], completed_at if unfinished else commit['seq']), float('inf'))
+        intermediate = (commit['seq'] <= last.get('before_seq', -1) or
+                        bool(commit.get('untrusted_content', {}).get('stage')))
+        observed_by = self.commit_fault_points.get((last['call'], completed_at if unfinished and intermediate else commit['seq']), float('inf'))
         faults = [f for f in call.get('faults', {}).get('trace', []) if last.get('fault_point', 0) < f[0] <= observed_by]
         ordered = last.get('before_seq', -1) < commit['seq'] <= call.get('end_seq', completed_at)
         if unfinished and faults:

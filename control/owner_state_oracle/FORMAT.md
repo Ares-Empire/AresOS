@@ -537,3 +537,11 @@ Onboarding may retain a pre-command submitting row only when a correlated later
 result fault explains the absence of its delivered outcome; this never proves
 qualification or completion. Applied prepared restore events retain their
 original restore lock until their confirmation commits.
+
+An interrupted onboarding result keeps the more specific exact-cleanup failure
+when that cleanup has its own independently correlated fault; a successful
+cleanup cannot turn an unverified initial probe into qualification. If EXPUNGE
+was never reached, an unknown result requires a fault between that operation's
+own submitting and outcome observations. Earlier unrelated faults supply no
+authority. Native `marked:` receipts use the documented detail hash: proof needs
+both the exact hash of `deleted flag set` and the matching acknowledged UID STORE.
