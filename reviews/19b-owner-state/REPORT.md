@@ -1,11 +1,19 @@
 # 19b — owner state
 
-**Current status — stage 2 fixes round 2 complete:**
+**Current status — stage 3 archive-tombstone storage STOP (2026-11-11):**
+The candidate and its focused tests were built and measured, then withdrawn.
+Send retains 2,743 extra compact-reference bytes alone; counting the readable
+source gives 6,161 bytes without credit for retiring pre-existing fixture data.
+The gate failed. The final section and `STORAGE-S3-TOMBSTONE.json` contain the
+measurements. Stage 3 is incomplete; production and the known-gap ledger remain
+at the stage-2 baseline. No merge or stage-3 acceptance claim.
+
+**Historical status — stage 2 fixes round 2 complete:**
 The scoped oracle, scan-evidence and RENAME fixes are complete. Control base,
 Mail (all 64 jobs) and boundary passed twice on `b8b2df32`. Both fresh
 53-list merges reproduce the strict pin with zero R2 gaps; journal growth is
 zero. The round-2 section below includes all diagnostics and final evidence.
-Stage 3 has not been started.
+Stage 3 had not been started at that head.
 
 ## Done
 
@@ -2490,3 +2498,239 @@ normal privacy hook runs on push without `--no-verify`. No own stage review,
 merge, force-push, other branch/worktree mutation, system change or Gradle
 daemon. `.work/` files over 500,000,000 bytes: **[]**. The candidate is withdrawn
 and PR #26 remains draft. Work stops here under the stage-3 storage rule.
+
+## Stage 3 — archive tombstones: storage stop (2026-11-11)
+
+**Status: STOP; stage 3 is incomplete. Read:** `briefs/19b-s3-tombstone.md`
+at starting head `4743b095` requires stopping if permanent growth is at or over
+1 KB for either send or permanent delete. The final candidate exceeds that
+limit. Even its compact send references alone exceed both 1,000 and 1,024
+bytes. This decision does not depend on the additional readable-source
+prototype, rounding, or how fixture cleanup is accounted for. The candidate
+was withdrawn after measurement; only reproducible evidence is committed.
+
+**Read — scope:** AGENTS, `19b-owner-state`, `19b-on-mail`, every stage brief,
+ending with stage-3 start, redesign and tombstone; README, workflow/review
+instructions, both previous stage-3 stop sections and the redesign patch.
+The tombstone brief takes precedence over the redesign where it changes
+retirement. No own stage review was run. PR #26 remains draft against
+`pkg/19-mail`; no merge, force-push or change to another branch/worktree.
+
+**Done / run — candidate:** `STORAGE-S3-TOMBSTONE.patch` preserves the exact
+candidate, including its nine tests in `control/tests/test_owner_tombstones.py`.
+It is **not applied**. The changed areas are:
+
+- `owner_projection.py`: the redesign's compact, commit-marked references,
+  plus a separate `owner-tombstones.bin`. A tombstone carries the source
+  identity, terminal state code, associated acknowledged-warning identities
+  and the digest of its full archive entry. Its single chain hash binds that
+  data, the archive manifest/hash and the existing transaction fence. No new
+  operation transaction or permanent-journal record is added. Tombstones are
+  published by an atomic file replacement, verified before the live stream
+  is replaced. All previous tombstones remain in the chain.
+- Retirement re-reads the complete hash-qualified export and requires coverage
+  of **every live reference sequence for that source**, plus its verified
+  archive deletion. A final operation row by itself is insufficient evidence
+  that its intermediate check history was exported. An unconfirmed export,
+  an uncovered newer check, open work/checks or an unacknowledged occurrence
+  retains the live history. No retired full reference chains are kept in
+  `owner-history/`.
+- `storage.py`: folds the candidate writes before the existing fences and
+  reconciles verified archive tombstones/acknowledgements in bounded restore
+  batches. An older backup cannot make a retired operation unknown again.
+  This is tombstone reconciliation, **not** the complete restore-flow work
+  required after passing the gate.
+- `owner_source.py`: an additional readable working journal, also folded into
+  the existing commits and retired only when byte-equivalent full events are
+  re-read from the existing qualified export. Compact hashes alone cannot
+  reconstruct arbitrary public evidence when SQLite is unreadable. This
+  prototype supplies readable records without SQLite/index access; its full
+  records stay outside the compact reference file. **Every retained copy is
+  counted below.** It is not installed as the public fallback or claimed to
+  satisfy the final bounded-reader contract. Its additional retention cost
+  is a failed candidate choice, not an approved exception to the redesign.
+- `archive.py`: after the existing export/compaction, performs qualified
+  reference retirement and readable-source retirement. The permanent
+  `operations.jsonl` remains unchanged in bytes/transactions for the five
+  samples. No engine/proxy/hooks/warnings/paging change is enabled or saved
+  as part of this candidate.
+
+**Run — important correction:** the early compact-only probe appeared to
+leave roughly 400 bytes per send. That probe accepted the final exported
+operation row without proving all of its projection history was exported.
+It is not the gate result. The final coverage check found two newer Sent
+check commits outside the export cutoff and correctly refused to retire
+that source. A named regression pins this refusal; no assertion was relaxed
+to keep the early figure.
+
+**Verified / run — both numbers, bytes relative to `7b0e9a05`:** the same
+five-operation STORAGE-S2 fixture, extended to include every file under state
+and evidence, real owner archive/export and SQLite VACUUM. All ten operation
+outcomes (baseline and candidate) were `done`. Caller import precedes the
+initial sample; the large case uses a 25 MiB binary attachment. The open
+number is the matched pre-operation-to-committed-open peak inventory delta.
+The permanent number counts all newly retained copies and does **not** credit
+this operation for retiring readable copies of older fixture setup records.
+
+| Operation | (a) Extra bytes while open | (b) Extra bytes retained after finish/archive |
+| --- | ---: | ---: |
+| Send | 18,527 | 6,161 |
+| Move | 5,228 | 1,017 |
+| Permanent delete | 6,030 | 1,187 |
+| Free CREATE | 1,257 | 942 |
+| Send with 25 MiB attachment | 20,533 | 6,458 |
+
+**Run — no hidden cleanup credit:** the full matched before/after inventories
+are also saved in the JSON. Their unadjusted net differences are 4,468, -676,
+-506, -751 and 4,264 bytes respectively. Archive also removes 1,693 bytes of
+pre-existing fixture source copies in the first four cases, and 2,194 in the
+large case. Those old copies are not the measured operation; subtracting them
+would make some apparent permanent costs negative. Adding that reclamation
+back gives the table above. This accounting is conservative and explicit.
+Send still fails on the unadjusted net count, and on compact references alone.
+Existing archive/export, journal, SQLite file/event and disposable-index
+increases are identical to baseline in all three measured phases. No attachment
+copy is excluded from the physical inventories or counted a second time as
+logical SQLite event bytes.
+
+**Run — attribution of every retained byte:** the initial fixed compact
+projection remains shared setup; the table counts its increase, all readable
+source bytes retained after archive, and every tombstone byte/header.
+
+| Operation | Extra live compact references | Readable source retained | Tombstones retained | Retired reference-history files |
+| --- | ---: | ---: | ---: | ---: |
+| Send | 2,743 | 3,418 | 0 | 0 |
+| Move | 0 | 550 | 467 | 0 |
+| Permanent delete | 0 | 781 | 406 | 0 |
+| Free CREATE | 0 | 550 | 392 | 0 |
+| 25 MiB send | 2,746 | 3,712 | 0 | 0 |
+
+**Read / run — reason per record:** the JSON lists every sequence, action,
+summary, changed compact field or source key and physical byte count. There
+are **37 compact operation records** and **41 readable operation records**.
+Both use the redesign's eight-byte file header, four-byte compressed length,
+eight-byte existing sequence and one 32-byte chain hash (44 bytes per frame).
+The complete ordered roles, including archive, are:
+
+| Operation | Compact records during operation | Through archive / retained reason |
+| --- | --- | --- |
+| Send | reservation; submitting; Message-ID; wire hash; RCPT; DATA attempting/context; DATA accepted; recipient result; APPEND context; Sent result/fingerprint; answered stage; terminal outcome | Sent check reopened; clean result; operation deletion/archive identity. All 15 compact frames remain because the two check events are newer than the cutoff. Readable check-open/result/archive frames are 1,348 / 1,340 / 722 bytes, plus an eight-byte header. No tombstone is permitted. |
+| Move | generic intent/context; filing preparation; MOVE context; destination result; filing resolution; generic intent resolution | One archive transaction; two per-source tombstones in one 459-byte frame plus eight-byte header. The readable archive frame is 542 bytes plus header. |
+| Permanent delete | reservation; submitting/STORE context; marked result/EXPUNGE context; target result; final outcome | One operation tombstone in a 398-byte frame plus header; readable archive transaction 773 bytes plus header. |
+| Free CREATE | intent/context; completion | One source tombstone in a 384-byte frame plus header; readable archive transaction 542 bytes plus header. |
+| 25 MiB send | same twelve compact roles as send | Same three archive roles retained; readable frames 1,494 / 1,487 / 723 bytes, plus header. No tombstone is permitted. |
+
+The readable journal copies each of the corresponding existing event records;
+its two additional send records during composition/execution are composition
+audit and APPEND-end audit, which do not change compact owner references.
+Its archive record stays readable because that newly created publication
+transaction is not inside its own preceding export. No second journal
+transaction was introduced to hold it.
+
+| Operation | Journal bytes / transactions during operation, baseline = candidate | Including archive, baseline = candidate | Compact / readable operation frames |
+| --- | --- | --- | --- |
+| Send | 9,506 / 14 | 11,606 / 17 | 12 / 14 |
+| Move | 2,064 / 6 | 2,410 / 7 | 6 / 6 |
+| Permanent delete | 3,942 / 5 | 4,726 / 6 | 5 / 5 |
+| Free CREATE | 688 / 2 | 1,032 / 3 | 2 / 2 |
+| 25 MiB send | 9,508 / 14 | 11,608 / 17 | 12 / 14 |
+
+**Verified / run — local tests, not full stage-3 acceptance:**
+
+- Nine new tombstone test methods: **PASS**, `Ran 9 tests ... OK`.
+  They cover an unconfirmed export preserving full history; tampered, missing
+  and substituted exports refusing reads; a newer unexported check preserving
+  full history; source/reference reads with both SQLite/index readers failing,
+  then restart; unacknowledged warnings/open checks/unresolved work staying live;
+  no retirement without any export; failed tombstone publication preserving live
+  history; and older-backup reconciliation keeping the warning acknowledged and
+  the retired operation absent. The latter also requires the operation's
+  tombstone to contain the warning identity.
+- The size test writes **synthetic terminal acknowledged test-app send records**,
+  not 1,001 SMTP deliveries. One and 1,001 leave the compact live file at exactly
+  **115 bytes**. This does not prove the whole readable journal is bounded by
+  open work, nor that the actual Mail-send sample retires; that sample did not.
+- Five existing owner archive regressions: **PASS**, `Ran 5 tests ... OK`:
+  owner-only admission, export/compaction/restart, archive over quota plus old
+  backup restore, export-write failure preserving sources, and open filing/
+  repair dependencies surviving archive. The subprocess/SIGKILL archive test
+  was not run in this batch.
+- The complete outputs are `STORAGE-S3-TOMBSTONE-TEST-OUTPUT.txt` and
+  `STORAGE-S3-TOMBSTONE-ARCHIVE-OUTPUT.txt`. No original test or oracle was
+  changed, deleted, weakened or skipped. Removed-test mapping: none.
+
+**Run — reproduction and exact outputs:** the frozen baseline's **37 files**
+were compared byte-for-byte with `git archive 7b0e9a05 control/aresos_control`.
+The measured baseline is `7b0e9a052a94981283332ed18a9017ecd1636636`, not a newer
+checkout. The following measurement commands each print `measuring send`,
+`move`, `delete`, `free_change`, `send_25mib`, then their full JSON; exit 0.
+Use the local policy option only for the synthetic descriptor-walk fixture;
+on the Linux test environment with installed test policy, omit it.
+
+```sh
+mkdir -p .work/19b-s3-redesign/baseline
+git archive 7b0e9a05 control/aresos_control | tar -x -C .work/19b-s3-redesign/baseline
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=.work/19b-s3-redesign/baseline/control:control:control/mail_tests .work/venv/bin/python reviews/19b-owner-state/STORAGE-S3-TOMBSTONE-HARNESS.py .work/19b-s3-tombstone/before.json --local-policy
+# Apply only for reproducing the inactive candidate; always withdraw afterwards.
+set -e
+git apply reviews/19b-owner-state/STORAGE-S3-TOMBSTONE.patch
+trap 'git apply --reverse reviews/19b-owner-state/STORAGE-S3-TOMBSTONE.patch' EXIT
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/mail_tests .work/venv/bin/python reviews/19b-owner-state/STORAGE-S3-TOMBSTONE-HARNESS.py .work/19b-s3-tombstone/after.json --local-policy
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/tests .work/venv/bin/python -m unittest -v test_owner_tombstones
+python3 reviews/19b-owner-state/STORAGE-S3-TOMBSTONE-VERIFY.py --candidate-applied
+```
+
+The five existing archive methods were selected explicitly with
+`unittest.defaultTestLoader.loadTestsFromNames`, under
+`STORAGE-S3-LOCAL-POLICY.py`'s `local_policy()` context; their full method names
+and results are in the archive transcript. No container or workflow run is
+claimed for these local tests. Source/patch/harness/transcript hashes and all
+per-record accounting are pinned in `STORAGE-S3-TOMBSTONE.json`.
+
+**Run — closing verification:** `git apply --check --reverse` succeeded while
+applied. The patch was reversed, then `git apply --check` succeeded.
+`python3 control/generate.py --check` printed `Generated artifacts match
+definitions`; `git diff --check` was empty; `git diff -- control
+.github/workflows` was empty. The evidence validator printed
+`Tombstone storage evidence PASS ... Stage 3 STOP.` It checks both accounting
+forms, every retained file/frame, five done outcomes, the focused test
+transcripts, hashes and the failed gate. Its success validates this stopped
+measurement, **not** production acceptance or a completed stage.
+
+**Not verified / not done:** public shared read-path routing and SQLite-read
+fallback, exhaustive per-flow/per-mode owner-set equality, full warning
+lifecycle/expiry integration, D3 reservations and generic evidence warnings,
+D4 own-reply resolution, legacy migration under faults, bounded complete
+fallback reads, and the six restore-flow comparisons from the previous round.
+The focused tombstone restore test is not a substitute for those comparisons.
+The gate did not permit continuing to them. No empty known-gap list or two
+Control workflow passes are claimed. The compact ledger remains unchanged at
+**1,968,467 stage-3 keys / 2,011 groups**. `warnings.py` and `paging.py` have no
+changes; Chrome has no new API to follow.
+
+**JUDGMENT-CALL / read:** the candidate keeps all uncovered history, even when
+the final archived row says the check was clean. The rejected shortcut is to
+retire based on that final row alone. That would breach the tombstone brief's
+full-history-before-retirement condition. The readable-source prototype is
+also a reversible candidate choice, fully charged, not an enabled owner-facing
+policy. Changing either representation would require code/tests; neither
+choice rewrites old immutable history or changes approvals/questions/tools.
+
+**PLAN-GAP / read and run:** archive's required fresh Sent check happens after
+its requested historical cutoff. Its final operation row is exported, but the
+two newly committed check events are not. A tombstone cannot honestly replace
+that unexported projection history. A future design would need to qualify all
+required closure history in the existing export, and avoid retaining another
+readable copy of every publication/check. No such archive-policy redesign or
+storage exception was assumed after this gate fired.
+
+**Open questions:** none requiring a mid-run answer. This is a failed candidate,
+not a lower bound on every tombstone design. The lead has the exact evidence.
+
+**Run / read — closing scope:** zero new workflow requests/attempts; no CI run
+was polled or watched. Earlier stage-2 CI results are historical only. The
+closing evidence/report commits use `[skip ci]`, with the normal pre-push
+privacy hook and no `--no-verify`. No system software/settings change, other
+worktree mutation, real account, model call, Gradle process or merge. `.work/`
+files above 500,000,000 bytes: **[]**. Candidate fixtures were removed by their
+cleanup paths. PR #26 stays draft, and work stops at this stage-3 storage gate.

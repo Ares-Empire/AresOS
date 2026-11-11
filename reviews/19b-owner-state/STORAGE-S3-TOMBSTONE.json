@@ -3084,7 +3084,7 @@
     "reviews/19b-owner-state/STORAGE-S3-TOMBSTONE-HARNESS.py": "ba9e4b2c808b1baf2bb94d1e9602c68c168e7ce3fbc9774a35c8efe774b28bb9",
     "reviews/19b-owner-state/STORAGE-S3-TOMBSTONE-TEST-OUTPUT.txt": "79635aeba948568aa4c87462633b3acab1ade8569d93e737a7a0a3c4f7603026",
     "reviews/19b-owner-state/STORAGE-S3-TOMBSTONE-VERIFY.py": "b29c446fd05859219b5a042f01f42484044f4fe2d914c8d729f50df5dff433bf",
-    "reviews/19b-owner-state/STORAGE-S3-TOMBSTONE.patch": "ccc583eda3f8abc7797fc07d29af9ea2ee8f03fa1c02acd5474c3a97166ca875"
+    "reviews/19b-owner-state/STORAGE-S3-TOMBSTONE.patch": "e885b16ce3732cdbff09b624cde592384e0652d5c4146a2406605718db571160"
   },
   "operations": {
     "delete": {

@@ -21,11 +21,11 @@ index 1a4e404a..f722b08a 100644
  from .space import SpaceLedger, record_budget
 +from .owner_projection import OwnerProjection
 +from .owner_source import OwnerSource
- 
+
  RESTORE_BATCH_BYTES = 64 * 1024
  RESTORE_BATCH_COUNT = 32
 @@ -130,7 +132,7 @@ class JournalRecords:
- 
+
  class Store:
      def __init__(self, state_dir, evidence_dir, checkpoint=lambda _: None):
 -        self.db = self.index = self.journal = None
