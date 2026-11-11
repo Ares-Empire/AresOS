@@ -486,7 +486,8 @@ class Driver:
                     faults = self.oracle.script[-1].get('faults', {})
                     restored = any(e['action'] == 'control_restore_confirm' and self.oracle.restore_proof(e) and
                                    (e['set'].get(key) or {}).get('approval') == {'unavailable': True} for e in status_record.events)
-                    checker('operation-fallback-cause', set(), set() if faults.get('trace') or status_record.locked or restored else {Fact(key, 'unjustified-fallback')})
+                    checker('operation-fallback-cause', set(), set() if faults.get('trace') or status_record.locked or
+                            status_record.prepared or status_record.unprepared_fences or restored else {Fact(key, 'unjustified-fallback')})
                     if field == 'approval':
                         wanted = {'unavailable': True}
                     elif field == 'stages':
@@ -504,6 +505,11 @@ class Driver:
                     {Fact(key, field, detail='committed')} if actual and wanted == got else
                     {Fact(key, field + '.mismatch', detail=canonical(differences(wanted, got)))} if actual else set())
         for occurrence, (source, expected) in self.oracle.location_evidence.items():
+            if occurrence.startswith('uncommitted:'):
+                # This is an oracle-only observation identity, never an
+                # advertised location handle. D3 retains its durable generic
+                # obligation; any delivered rich detail is checked separately.
+                continue
             actual, fragments, available = [], {}, True
             for page in pages(read, 'mail_filing_locations', {'filing_id': occurrence}):
                 if page.get('unavailable'):

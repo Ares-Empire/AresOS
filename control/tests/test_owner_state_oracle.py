@@ -1741,6 +1741,64 @@ class StageOneRoundThree(unittest.TestCase):
 
 
 class StageTwoPartA(unittest.TestCase):
+    def test_recovery_location_does_not_reinvent_an_uncommitted_copyuid(self):
+        oracle = Oracle()
+        source = dict(account='box', folder='Source', uidvalidity=1, uid=1, message_id='<synthetic@mail.invalid>')
+        destination = {**source, 'folder': 'Target', 'uid': 9}
+        context = {'id': 'f', 'records': [{'source': source, 'sha256': 'synthetic', 'destination': None}]}
+        mutation = {'call': 1, 'identities': [{**source, 'sha256': 'synthetic'}], 'destination': destination}
+        listing = {'call': 1, 'mailboxes': {}}
+        self.assertEqual(destination, oracle.locations(context, listing, mutation)[0]['last_known_destination'])
+        listing['call'] = 2
+        self.assertIsNone(oracle.locations(context, listing, mutation)[0]['last_known_destination'])
+        context['records'][0]['destination'] = destination
+        self.assertEqual(destination, oracle.locations(context, listing, mutation)[0]['last_known_destination'])
+
+    def test_fault_trace_cannot_excuse_reopening_a_proven_filing_result(self):
+        source = dict(account='box', folder='Source', uidvalidity=1, uid=1, message_id='<synthetic@mail.invalid>')
+        roles = {'Sent': ['\\Sent'], 'Drafts': ['\\Drafts'], 'Trash': ['\\Trash'], 'Target': []}
+        for state in ('started', 'unknown', 'failed'):
+            with self.subTest(state=state):
+                oracle = Oracle()
+                oracle.call('mail_move', {'references': [source], 'target': 'Target'}, 1,
+                            {'trace': [(9, 'file.write', 'ENOSPC')]})
+                oracle.script[-1].update(start_seq=0, end_seq=2)
+                row = dict(id='f', account='box', verb='move', sources=[source], target='Target', state='started')
+                oracle.server('MOVE', 'box', 'Source', [source], roles, arguments=['1', 'Target'], before_seq=1,
+                    call_start_seq=0, created_before={'mail:filing:f': 1}, committed_before={'mail:filing:f': row}, copyuid_delivered=False)
+                listing = oracle.server('LIST', 'box', roles=roles, before_seq=1)
+                empty_scan(oracle, listing, ['mail:filing:f'])
+                record = Record(events=[{'seq': 1, 'time': 1, 'action': 'mail_move', 'set': {'mail:filing:f': row}},
+                    {'seq': 2, 'time': 1, 'action': 'mail_move', 'set': {'mail:filing:f': {**row, 'state': state}}}])
+                oracle.expected(record)
+                self.assertIn(Fact('mail:filing:f', 'uncommitted-check-result', detail='2'), oracle.lifecycle_errors)
+
+    def test_deferred_positive_filing_result_cannot_fund_a_new_or_clean_check(self):
+        source = dict(account='box', folder='Source', uidvalidity=1, uid=1, message_id='<synthetic@mail.invalid>')
+        roles = {'Sent': ['\\Sent'], 'Drafts': ['\\Drafts'], 'Trash': ['\\Trash'], 'Target': []}
+        for new_check, warning, action in ((False, True, 'mail_move'), (True, True, 'mail_move'),
+                                          (False, False, 'mail_move'), (False, True, 'mail_copy')):
+            with self.subTest(new_check=new_check, warning=warning, action=action):
+                oracle = Oracle()
+                oracle.call('mail_move', {'references': [source], 'target': 'Target'}, 1)
+                oracle.script[-1].update(start_seq=0, end_seq=1)
+                row = dict(id='f', account='box', verb='move', sources=[source], target='Target', state='started')
+                oracle.server('MOVE', 'box', 'Source', [source], roles, arguments=['1', 'Target'], before_seq=1,
+                    call_start_seq=0, created_before={'mail:filing:f': 1}, committed_before={'mail:filing:f': row}, copyuid_delivered=False)
+                listing = oracle.server('LIST', 'box', roles=roles, before_seq=1)
+                empty_scan(oracle, listing, ['mail:filing:f'])
+                oracle.reply({'ok': False}, delivered=False)
+                oracle.call('mail_accounts', {}, 2)
+                oracle.script[-1].update(start_seq=1, end_seq=3)
+                events = [{'seq': 1, 'time': 1, 'action': 'mail_move', 'set': {'mail:filing:f': row}}]
+                if new_check:
+                    events.append({'seq': 2, 'time': 2, 'action': 'mail_filing_check_open', 'set': {'mail:filing:f': row}})
+                events.append({'seq': 3, 'time': 2, 'action': action, 'set': {'mail:filing:f':
+                    {**row, 'state': 'partial', 'warning_checks': {'filing': {'warning': warning}}}}})
+                oracle.expected(Record(events=events))
+                self.assertEqual(oracle.result_proof('mail:filing:f', 'filing', 3),
+                                 not new_check and warning and action == 'mail_move')
+
     def test_pre_move_list_and_undelivered_results_never_close_filing(self):
         source = dict(account='box', folder='Source', uidvalidity=1, uid=1, message_id='<synthetic@mail.invalid>')
         roles = {'Sent': ['\\Sent'], 'Drafts': ['\\Drafts'], 'Trash': ['\\Trash'], 'Target': []}

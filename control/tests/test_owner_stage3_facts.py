@@ -102,6 +102,34 @@ class OwnerStageThreeFacts(unittest.TestCase):
 
 
 class PreparedRestoreProof(unittest.TestCase):
+    def test_only_the_unfinished_transactions_own_fault_can_remain_a_refusal(self):
+        from owner_state_oracle.model import Oracle
+        from owner_state_oracle.records import Record
+        oracle = Oracle()
+        oracle.call('mail_move', {}, 1000, {'trace': [(5, 'file.write', 'ENOSPC')]})
+        oracle.script[-1].update(start_seq=1, end_seq=2)
+        oracle.call('mail_accounts', {}, 1001)
+        oracle.script[-1].update(start_seq=2, end_seq=2)
+        record = Record(committed={1}, prepared=[{'seq': 2}])
+        self.assertIn('storage_limit', oracle.permitted_status(record, oracle.script[-1]))
+        record.prepared = [{'seq': 3}]
+        self.assertNotIn('storage_limit', oracle.permitted_status(record, oracle.script[-1]))
+        record.prepared.clear()
+        self.assertNotIn('storage_limit', oracle.permitted_status(record, oracle.script[-1]))
+
+    def test_applied_prepared_head_is_not_a_restored_backup(self):
+        from owner_state_oracle.records import Record, restore_lock
+        fence = {'seq': 2, 'hash': 'prepared'}
+        record = Record(fences=[{'seq': 1, 'hash': 'committed'}, fence], committed={1},
+            prepared=[{'seq': 2, 'record': fence}], head=(2, 'prepared'))
+        self.assertFalse(restore_lock(record))
+        record.prepared.clear()
+        self.assertTrue(restore_lock(record))
+        record.head = (0, '')
+        self.assertTrue(restore_lock(record))
+        record.head = (1, 'changed')
+        self.assertTrue(restore_lock(record))
+
     def test_prepared_boundary_explains_only_the_recorded_backup_holes(self):
         from owner_state_oracle.model import Oracle
         from owner_state_oracle.records import Record
@@ -118,6 +146,24 @@ class PreparedRestoreProof(unittest.TestCase):
         event['restore_range'] = [4, 5]
         oracle.script[-1]['restore_precondition'] = False
         self.assertFalse(oracle.prepared_restore_sequences(record))
+
+class FailedOwnerRead(unittest.TestCase):
+    setUp = OwnerStageThreeFacts.setUp
+    tearDown = OwnerStageThreeFacts.tearDown
+
+    def test_daemon_error_survives_unavailable_sources_without_a_ram_snapshot(self):
+        from types import SimpleNamespace
+        from unittest.mock import Mock
+        from aresos_control.common import Refused
+        from aresos_control.daemon import Daemon
+        engine = SimpleNamespace(store=self.store,
+            pending=Mock(side_effect=Refused('storage_error', 'Synthetic unavailable owner sources')))
+        result = Daemon.error_result(SimpleNamespace(engine=engine),
+            Refused('storage_error', 'Synthetic request failure'), True)
+        self.assertFalse(result['ok'])
+        self.assertEqual(result['error']['code'], 'storage_error')
+        self.assertIn('Committed owner facts could not be read', result['pending']['unavailable'])
+        self.assertFalse(hasattr(engine, '_last_pending'))
 
 class RestoredNativeFacts(unittest.TestCase):
     setUp = OwnerStageThreeFacts.setUp

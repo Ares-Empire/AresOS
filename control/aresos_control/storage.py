@@ -856,7 +856,8 @@ class Store:
                     pass
                 # A post-commit checkpoint exception retains the restart latch.
                 # Recheck a refused unpublished tail after its request returns.
-                if (clear_transient and not (self.write_sequence == committed == self.committed) and
+                if ((clear_transient or committed > self.committed) and
+                        not (self.write_sequence == committed == self.committed) and
                         seq == committed and (last['seq'] if last else 0) == committed and
                         claimed == (last['hash'] if last else '') and self._prepared(committed + 1) is None):
                     # A refused fence may have left only an unpublished owner

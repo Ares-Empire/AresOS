@@ -491,11 +491,8 @@ def coherent_change(oracle, record, key, path=(), kind='row', replacement=None, 
     changed.generation = changed.rows.get('generation')
     changed.restore_intervals = restore_intervals(changed.events)
     if changed.head is not None:
-        sequence, head_hash = changed.head
-        fence = next((value for value in changed.fences if value['seq'] == sequence), {})
-        expected_hash = fence.get('hash', '' if sequence == 0 else None)
-        changed.locked = bool(changed.rows.get('restore_pending')) or bool(changed.fences and (
-            sequence != max(changed.committed, default=0) or head_hash != expected_hash)) or any(
+        from .records import restore_lock
+        changed.locked = restore_lock(changed) or any(
             seq <= changed.startup_sequence for seq in changed.unprepared_fences)
     replay.validated_input = replay.validated_record = None
     return replay, changed

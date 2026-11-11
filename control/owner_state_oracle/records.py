@@ -95,15 +95,30 @@ def unexplained_sequences(record):
     return record.committed - present - explained
 
 
+def restore_lock(record):
+    if record.rows.get('restore_pending'):
+        return True
+    if not record.fences:
+        return False
+    if record.head is None:
+        return True
+    seq, claimed = record.head
+    expected = next((f['hash'] for f in record.fences if f['seq'] == seq), '' if seq == 0 else None)
+    committed = max(record.committed, default=0)
+    # SQLite may have applied the current prepared event before its independent
+    # marker failed. That is an unfinished write, not an older restored backup.
+    prepared = any(e['seq'] == seq and e.get('record') == next(
+        (f for f in record.fences if f['seq'] == seq), None) for e in record.prepared)
+    return claimed != expected or seq < committed or (seq > committed and not prepared)
+
+
 def consistency_errors(record, prepared_restore_sequences=()):
     """Compare the decoded projection to its commits, including compact fences."""
     errors, rows = [], {}
     fences = {f['seq']: f for f in record.fences}
     if record.head is not None:
         seq, claimed_hash = record.head
-        expected_hash = fences.get(seq, {}).get('hash', '' if seq == 0 else None)
-        locked = bool(record.rows.get('restore_pending')) or bool(record.fences and (
-            seq != max(record.committed, default=0) or claimed_hash != expected_hash))
+        locked = restore_lock(record)
         startup_lock = any(seq <= record.startup_sequence for seq in record.unprepared_fences)
         if (locked or startup_lock) != record.locked:
             errors.append(('restore', 'unjustified-lock', ''))
@@ -268,7 +283,5 @@ def decode(state, evidence):
     result.unprepared_fences = set(fences) - result.committed - {event['seq'] for event in result.prepared}
     for first, last, _ in result.restore_intervals:
         result.unprepared_fences.difference_update(range(first, last + 1))
-    expected_head = fences[head[0]]['hash'] if head and head[0] in fences else '' if head and head[0] == 0 else None
-    result.locked = bool(result.rows.get('restore_pending')) or bool(fences and
-        (head is None or head[0] != max(result.committed, default=0) or head[1] != expected_head))
+    result.locked = restore_lock(result)
     return result

@@ -280,10 +280,10 @@ class Oracle:
         calls = self.calls_at(event['seq'])
         final_write = bool(calls) and all(getattr(self, '_last_source_writes', {}).get((call['call'], key), event['seq']) == event['seq'] for call in calls)
         result_commit = event['action'] == 'mail_filing_check' or (
-            event['action'] in {'mail_move', 'mail_copy', 'mail_folder_rename'} and final_write and
-            not any(call.get('faults', {}).get('trace') for call in calls))
+            event['action'] in {'mail_move', 'mail_copy', 'mail_folder_rename'} and final_write)
         unavailable = self.unavailable_filing_result(key, row, event)
-        if result_commit and not unavailable and (row.get('state') == 'started' or row.get('check_open')):
+        if not unavailable and (result_commit and (row.get('state') == 'started' or row.get('check_open')) or
+                                row.get('state') in {'unknown', 'failed'}):
             kind = 'rename' if key.startswith('mail:rename:') else 'filing'
             if self.result_proof(key, kind, event['seq']):
                 self.proof('filing_claims', Fact(key, 'uncommitted-check-result', detail=str(event['seq'])))
@@ -325,7 +325,14 @@ class Oracle:
                        e.get('before_seq', -1) < event['seq'] and e.get('folder') == source['folder'] and
                        str(e.get('arguments', [''])[0]) == str(source['uid'])]
             if effects and item.get('destination') != effects[-1].get('destination'):
-                self.proof('filing_claims', Fact(key, 'unverified-destination', detail=canonical(source)))
+                prior = [e['set'][key] for e in getattr(getattr(self, '_effect_record', None), 'events', [])
+                         if e['seq'] < event['seq'] and isinstance(e['set'].get(key), dict)]
+                retained = next((r for r in (prior[-1].get('records', []) if prior else [])
+                                 if r.get('source') == source), {})
+                missing = (event['action'] in {'mail_filing_check_open', 'mail_filing_check', 'control_restore_confirm'} and
+                           item.get('destination') is None and 'destination' in retained and retained['destination'] is None)
+                if not missing:
+                    self.proof('filing_claims', Fact(key, 'unverified-destination', detail=canonical(source)))
         return {**row, **wanted}
 
     @staticmethod
@@ -1696,6 +1703,16 @@ class Oracle:
                 allowed.add('storage_error')
         if record.prepared or len(record.fences) > max(record.committed, default=0):
             allowed.add('journal_incomplete')
+            unfinished = record.unprepared_fences | {e['seq'] for e in record.prepared}
+            unfinished = {seq for seq in unfinished if seq > max(record.committed, default=0)}
+            for prior in reversed(self.script):
+                trace = prior.get('faults', {}).get('trace', [])
+                if trace and any(prior.get('start_seq', -1) < seq <= prior.get('end_seq', -1)
+                                 for seq in unfinished):
+                    # A still-unfinished transaction may retain its first
+                    # causal disk error. An unrelated earlier refusal cannot.
+                    allowed.add('storage_error' if trace[0][2] == 'EIO' else 'storage_limit')
+                    break
         if any(e['call'] == call.get('call') and not e['accepted'] and e['command'] in {'CONNECT', 'FETCH', 'LIST', 'SEARCH'} for e in self.servers):
             allowed.add('transport_error')
         return allowed
@@ -1871,7 +1888,11 @@ class Oracle:
                 observed = {(e['folder'], int(e['arguments'][0])) for e in self.servers[start + 1:]
                             if e['call'] == listing['call'] and e['command'] == 'FETCH' and e['accepted']}
                 found = [ref for ref in found if (ref['folder'], ref['uid']) in observed]
-            destination = origin.get('destination') if origin else None
+            # A later recovery read knows only the destination that survived
+            # in the committed source. The original reply may have been lost
+            # with its result write; raw history still validates any retained ID.
+            destination = (origin.get('destination') if origin and origin['call'] == listing['call']
+                           else item.get('destination'))
             result.append({'source': item['source'], 'last_known_destination': destination,
                            'observed_locations': sorted(found, key=canonical), 'scan_complete': complete})
         return sorted(result, key=canonical)
@@ -1896,7 +1917,21 @@ class Oracle:
         for index, evidence in reversed(candidates):
             call = calls.get(evidence['call'], {})
             before = evidence.get('before_seq')
-            if (not isinstance(before, int) or not before < sequence <= call.get('end_seq', -1) or
+            deferred = False
+            if kind in {'filing', 'rename'} and isinstance(before, int) and sequence > call.get('end_seq', -1):
+                history = getattr(getattr(self, '_effect_record', None), 'events', [])
+                result = next((e for e in history if e['seq'] == sequence), {})
+                row = result.get('set', {}).get(source) or {}
+                # A failed positive result can be committed on a later request.
+                # Bind it to the original mutation and its still-open episode;
+                # old reads cannot supply a new or clean check's result.
+                deferred = (result.get('action') == call.get('action') and
+                    call.get('action') in {'mail_move', 'mail_copy', 'mail_folder_rename'} and
+                    row.get('warning_checks', {}).get(kind, {}).get('warning') is True and
+                    not any(before < e['seq'] < sequence and e['action'] == 'mail_filing_check_open' and
+                            source in e['set'] for e in history))
+            if (not isinstance(before, int) or not before < sequence or
+                    not (sequence <= call.get('end_seq', -1) or deferred) or
                     not evidence.get('accepted') or evidence.get('reply') != 'delivered'):
                 continue
             if kind == 'sent_copies' and evidence['command'] == 'SENT' and evidence.get('source') == source:
