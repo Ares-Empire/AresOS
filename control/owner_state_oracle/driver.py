@@ -104,7 +104,7 @@ class Driver:
         previous_call = getattr(oracle, 'active_call', None)
         previous_start = getattr(oracle, 'active_start_seq', 0)
         before = self.snapshot()
-        oracle.active_start_seq = max((f['seq'] for f in before.fences), default=0)
+        oracle.active_start_seq = max(before.committed, default=0)
         oracle.call(s.action, s.args, time.time(), {'mode': faults.mode, 'at': faults.fail_at,
                     'cleanup': faults.cleanup_at, 'background': getattr(s, 'flow', '') in {'expiry', 'maintenance'}} if faults else {})
         self.call_index = len(oracle.script) - 1
@@ -338,7 +338,7 @@ class Driver:
         with extra, patch.object(f.imap, 'response', side_effect=responded), patch.object(f.imap, 'rename', side_effect=renamed, create=True), patch.object(f.imap, 'uid', side_effect=command), patch.object(f.imap, 'list', side_effect=listed), \
              patch.object(f.imap, 'select', side_effect=selected), patch.object(f.mail, 'append', side_effect=appended):
             yield
-        oracle.script[self.call_index]['end_seq'] = max((f['seq'] for f in self.snapshot().fences), default=0)
+        oracle.script[self.call_index]['end_seq'] = max(self.snapshot().committed, default=0)
         if faults:
             oracle.script[self.call_index]['faults']['trace'] = list(faults.failures)
             oracle.script[self.call_index]['faults']['active_exhaustion'] = faults.mode == 'persistent' and faults.failed
@@ -361,7 +361,7 @@ class Driver:
         active = getattr(self.oracle, 'active_call', None)
         for pending in self.oracle.script:
             if pending['call'] == active:
-                pending['end_seq'] = max((f['seq'] for f in record.fences), default=0)
+                pending['end_seq'] = max(record.committed, default=0)
         expected = self.oracle.expected(record)
         self.envelopes.append((copy.deepcopy(call), copy.deepcopy(reply), record, expected))
 
@@ -431,26 +431,11 @@ class Driver:
             if not key.startswith('op:'):
                 continue
             result = read(operation['app'] + '_operation_status', {'operation_id': operation['id']})
-            status_record = self.snapshot()
-            committed = self.oracle.projection(status_record).rows.get(key, operation)
-            if status_record.locked:
-                latest = max((f['seq'] for f in status_record.fences if any(op['id'] == operation['id'] for op in f['operations'])), default=0)
-                local = max((e['seq'] for e in status_record.events if key in e['set']), default=0)
-                if latest != local or committed.get('state') == 'submitting':
-                    committed = {**committed, 'state': 'unknown'}
+            committed = self.snapshot().rows.get(key, operation)
             actual = result.get('data', {}).get('operation', {})
             for field in ('approval', 'stages', 'state'):
                 wanted = committed.get(field)
                 got = actual.get(field)
-                fallback = actual.get('approval') == {'unavailable': True}
-                if fallback:
-                    faults = self.oracle.script[-1].get('faults', {})
-                    checker('operation-fallback-cause', set(), set() if faults.get('trace') or status_record.locked else {Fact(key, 'unjustified-fallback')})
-                    if field == 'approval':
-                        wanted = {'unavailable': True}
-                    elif field == 'stages':
-                        from .projection import stage_codes
-                        wanted = stage_codes(wanted or {})
                 def differences(left, right, path=''):
                     if isinstance(left, dict) and isinstance(right, dict):
                         return [child for name in sorted(left.keys() | right.keys()) for child in

@@ -1,5 +1,4 @@
 import json
-import base64
 import sqlite3
 from unittest.mock import patch
 
@@ -53,13 +52,7 @@ class Record(EngineCase):
         for line in raw.splitlines():
             row = json.loads(line)
             if "operations" in row:
-                expected = {"format", "seq", "previous", "time", "generation", "operations", "hash"}
-                if row['operations']:
-                    self.assertIn('owner', row)
-                if 'owner' in row:
-                    expected.add('owner')
-                    self.assertEqual(len(base64.b64decode(row['owner'], validate=True)), 32)
-                self.assertEqual(set(row), expected)
+                self.assertEqual(set(row), {"format", "seq", "previous", "time", "generation", "operations", "hash"})
                 for op in row["operations"]:
                     self.assertEqual(set(op), {"id", "generation", "input_hash", "description", "state"})
                     self.assertLessEqual(op["description"].keys(), {"action", "account", "to", "cc", "bcc", "subject", "title", "targets"})

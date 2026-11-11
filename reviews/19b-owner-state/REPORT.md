@@ -2734,3 +2734,135 @@ privacy hook and no `--no-verify`. No system software/settings change, other
 worktree mutation, real account, model call, Gradle process or merge. `.work/`
 files above 500,000,000 bytes: **[]**. Candidate fixtures were removed by their
 cleanup paths. PR #26 stays draft, and work stops at this stage-3 storage gate.
+
+## Stage 3 — fixed final storage round: measurement stop (2026-11-11)
+
+**Status: STOP; stage 3 remains incomplete.** Read: `briefs/19b-s3-final-storage.md`
+last, with the earlier briefs and all three withdrawn candidates. Built and
+measured the fixed six-kind design. The one-recipient reference passes, but a
+normal three-recipient send exceeds the permanent-source budget. No further
+redesign is proposed. PR #26 remains draft; nothing is merged.
+
+### Done
+
+Candidate commits `db95ef2b`, `da104c8f`, `3c8958ed` built selected owner facts,
+warning-producing checks and their held result space, one-run archive
+verification, compact export-bound tombstones, independent decoding/alterations,
+read fallback and restore reconciliation. No readable full-event source copy
+or kept owner-history directory was added. The candidate's source and tests are
+preserved in [STORAGE-S3-FINAL.patch](STORAGE-S3-FINAL.patch), SHA-256
+`a67685e54aca1fbac31da67f6a9d8a4628670084750cc43baf99e74b77c77839`.
+The withdrawal restores all production/oracle/test/catalogue files to
+`50d14a07` / accepted stage 2; it does not rewrite the candidate commits.
+
+[STORAGE-S3-FINAL.md](STORAGE-S3-FINAL.md) gives the full before/after table,
+every record's reason, shared-run costs, limitations and reproduction details.
+[STORAGE-S3-FINAL.json](STORAGE-S3-FINAL.json) inventories all kept files and
+retains independent single-operation samples. The same frozen baseline code
+was checked against all 37 tracked source files at `7b0e9a05`: zero differences.
+
+### Verified
+
+Run locally with the existing Python environment, only synthetic accounts and
+worktree-local managed-policy fixtures. The measured candidate source head was
+`3c8958ed`. Extra bytes per operation against `7b0e9a05`, 100-operation batches,
+**one archive run**:
+
+| Workload | While open, all kept files | Permanent sources | Permanent all kept files |
+| --- | ---: | ---: | ---: |
+| One-recipient send | 9,115.10 | 952.22 | -8,386.66 |
+| Three-recipient send | 13,076.06 | **1,334.22** | -8,660.02 |
+| MOVE | 6,899.57 | 940.51 | 940.51 |
+| Permanent delete | 3,306.70 | 624.51 | 624.51 |
+| CREATE | 543.15 | 278.51 | 278.51 |
+| One 25 MiB send + 99 ordinary sends, average | 9,115.19 | 952.22 | -8,427.62 |
+
+Permanent sources include the immutable journal, projection, tombstones and all
+retained exports/history. The last column also counts the working SQLite view,
+index, blobs/wires, receiver and sidecars. SQLite savings are shown explicitly;
+they are not credited against the added permanent-source budget. The marginal
+25 MiB send, with its hundredth of the shared run, adds 9,124.10 open bytes and
+952.22 permanent-source bytes; the full batch and standalone raw figures are
+retained. All measured sends/deletes retire in the **first** archive, asserted
+by the harness.
+
+A clean send/delete tombstone is **71 bytes**, a tombstone with two Sent
+warning occurrences **89 bytes including framing**. The compact shared
+resolution is **178–179 bytes per run**, not the entire run cost. Send
+verification additionally retains **37,348 export bytes + 822 journal bytes
+per 100-operation run**; those and the final archive publication are counted.
+There is zero additional live projection growth after each measured archive.
+
+The exact targeted commands were `PYTHONDONTWRITEBYTECODE=1
+PYTHONPATH=control:control/tests:control/mail_tests .work/venv/bin/python -m
+unittest -v test_owner_state_oracle test_owner_tombstones
+test_owner_projection_decoder` (**134 tests, OK**) and the same invocation with
+`test_owner_stage3_facts` (**2 tests, OK**). The tombstone suite checks section 5's
+export re-read, uncovered-history refusal, loud integrity failures, preservation
+of open work/warnings, rollback protection and the equal live size after 1 and
+1,001 archived synthetic sends. The SQLite/index reader-failure fixture and
+restart pass, but this is not all-flow fallback acceptance.
+
+`PYTHONPATH=control:control/mail_tests:control/tests .work/venv/bin/python
+reviews/19b-owner-state/STORAGE-S3-QUIET.py` printed **PASS: 34 fault-free flows;
+no owner-state differences**. The restore point-zero comparisons pass. Counts
+are in [STORAGE-S3-QUIET.json](STORAGE-S3-QUIET.json). First/last SQLite-write
+samples still fail in six flows; [STORAGE-S3-SAMPLES.json](STORAGE-S3-SAMPLES.json)
+contains counts only, never the full gap list.
+
+The first-maintenance-write reproduction prints
+`same_bytes_before_and_after: true`, `changed_paths: []`, an ENOSPC journal
+write and cleanup truncate, a deferred `background-storage` notice, then an
+empty pending view after restart. The small exact inventory is in
+[STORAGE-S3-FIRST-WRITE.json](STORAGE-S3-FIRST-WRITE.json); the script is supplied.
+The historical first-cause oracle remains strict and still fails this case.
+
+Final withdrawal checks: production/oracle/tests/generated catalogue match
+`50d14a07`; `git apply --check` accepts the preserved candidate; `git diff
+--check` passes. No Gradle daemon was started. Closing `.work/` inventory over
+500,000,000 bytes: **[]**.
+
+### Not verified
+
+Stage 3 is not green. Full restore faults/cleanup and the 1k/10k restore batch
+regression were interrupted at the storage stop; neither has a completed pass.
+An earlier broad macOS run also failed Linux policy/environment checks and was
+interrupted. These are not CI evidence. Full every-flow/every-mode projection
+agreement, D3/D4 at all sites, all alteration controls, an empty known-gap list,
+and twice-passing Control base/Mail/boundary workflows are not achieved. The
+unchanged stage-2 ledger has **2,011 groups / 1,968,467 keys / 924,737 bytes**.
+No candidate CI was started; the closing withdrawn-candidate documentation
+commit skips CI because the storage continuation condition failed. No CI status
+was polled and no own stage review was run.
+
+### JUDGMENT-CALL
+
+Applied the permanent-source limit to the existing base test's typical
+three-recipient count as well as the one-recipient reference fixture. Four more
+selected recipient-stage publications remain committed in both journal and
+export; the send bound is therefore not permanently at most 1 KB. The all-files
+SQLite savings are disclosed separately. Kept the integrity commitments during
+measurement so a removed committed source cannot silently become an empty
+view. Withdrew the unaccepted candidate when the broader send measurement
+failed. The original stage-2 behavior is active; restoring the candidate would
+be an explicit subsequent code change, not a hidden enabled feature.
+
+### PLAN-GAP
+
+The small tombstone/shared-descriptor figures do not alone bound all permanent
+bytes: the independently bound per-stage publications remain in the journal
+and existing exports. The recipient count exposes that retained cost. The
+background first-cause requirement also remains unmet when all writes fail
+before changing any persisted byte; the supplied counterexample records the
+actual failure without weakening the oracle. No replacement design is proposed.
+
+Candidate-only public changes: `warnings.py` adds a durable generic interrupted-
+evidence occurrence and stable episode-based identity; the log gains
+`restore_required`; generated fallback wording changes; `paging.py` is
+unchanged. These are withdrawn, so Chrome inherits no active behavior change.
+Tool actions, approval inputs, question text and binding were not changed.
+
+### Open questions
+
+No mid-run answer or approval is requested. The lead has the measured table and
+counterexample. The run ends at the storage stop, with stage 3 incomplete.

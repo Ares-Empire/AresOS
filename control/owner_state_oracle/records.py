@@ -28,20 +28,6 @@ def visible(value):
     return value
 
 
-def pending_reason(reason):
-    value = str(reason or '')
-    if 'restored' in value.lower() and any(word in value.lower() for word in ('newer', 'missing')):
-        return 'RESTORED_EVIDENCE'
-    marker = ' Missing local stages; repair without SMTP.'
-    if value.endswith(marker):
-        prefix = value[:-len(marker)]
-        if prefix.startswith('Some recipients refused;'):
-            return 'RECIPIENT_REFUSALS_AND_LOCAL_STAGES'
-        if prefix in {'SMTP accepted delivery to every recipient.', 'Synthetic DATA accepted', 'Delivery evidence is recorded.'}:
-            return 'ACCEPTED_DELIVERY_AND_LOCAL_STAGES'
-    return reason
-
-
 @dataclass
 class Record:
     rows: dict = field(default_factory=dict)
@@ -56,11 +42,6 @@ class Record:
     restore_intervals: list = field(default_factory=list)
     head: tuple = None
     startup_sequence: int = 0
-    owner_rows: dict = field(default_factory=dict)
-    owner_sequences: dict = field(default_factory=dict)
-    owner_versions: dict = field(default_factory=dict)
-    owner_retired: list = field(default_factory=list)
-    owner_kinds: dict = field(default_factory=dict)
 
 
 def restore_intervals(events):
@@ -75,10 +56,7 @@ def restore_intervals(events):
         if event['action'] == 'control_restore_confirm' and (
                 event['set'].get('generation') or event['set'].get('restore_pending')):
             lower = max(present, default=0)
-            first, last = event.get('restore_range', (lower + 1, event['seq'] - 1))
-            if not 1 <= first <= last + 1 <= event['seq']:
-                raise ValueError('Invalid restore interval')
-            intervals.append((first, last, event['seq']))
+            intervals.append((lower + 1, event['seq'] - 1, event['seq']))
         present.append(event['seq'])
     return intervals
 
@@ -87,11 +65,6 @@ def unexplained_sequences(record):
     present = {event['seq'] for event in record.events}
     explained = {seq for first, last, _ in restore_intervals(record.events)
                  for seq in record.committed if first <= seq <= last}
-    if record.locked and record.head is not None:
-        head, claimed = record.head
-        known = next((f['hash'] for f in record.fences if f['seq'] == head), '' if head == 0 else None)
-        if claimed == known:
-            explained.update(seq for seq in record.committed if seq > head)
     return record.committed - present - explained
 
 
@@ -128,32 +101,6 @@ def consistency_errors(record):
                 rows.pop(key, None)
             else:
                 rows[key] = value
-    if record.owner_versions or record.owner_retired:
-        from .projection import fact, selected, publication, record_kind
-        owner_rows, owner_sequences = {}, {}
-        for sequence, changes in sorted([*record.owner_versions.items(), *record.owner_retired], key=lambda item: item[0]):
-            for key,value in changes.items():
-                if value is None:
-                    owner_rows.pop(key, None)
-                else:
-                    owner_rows[key] = value
-                owner_sequences[key] = sequence
-        if owner_rows != record.owner_rows:
-            errors.append(('owner', 'changed-owner-rows', ''))
-        if owner_sequences != record.owner_sequences:
-            errors.append(('owner', 'changed-owner-sequences', ''))
-        events = {event['seq']: event for event in record.events}
-        for sequence, changes in record.owner_versions.items():
-            fence = fences.get(sequence, {})
-            if fence.get('owner') in (None, publication(changes, record.owner_kinds.get(sequence, {}))):
-                continue
-            event = events.get(sequence)
-            original = {k: fact(k,v) for k,v in event['set'].items() if selected(k)} if event else {}
-            if (not event or publication(original, {k:record_kind(event,k,v) for k,v in event['set'].items() if selected(k)}) != fence.get('owner') or
-                    any(k not in original or value != original[k] or
-                        record.owner_kinds.get(sequence, {}).get(k) != record_kind(event,k,event['set'][k])
-                        for k,value in changes.items())):
-                errors.append(('owner', 'changed-owner-publication', str(sequence)))
     if record.fences:
         for key in rows.keys() | record.rows.keys():
             if rows.get(key) != record.rows.get(key):
@@ -203,8 +150,6 @@ def decode(state, evidence):
             events = [json.loads(v) for (v,) in db.execute('SELECT value FROM events ORDER BY seq')]
             head = db.execute('SELECT seq,hash FROM head WHERE id=1').fetchone()
     result.head = head
-    from .projection import decode as decode_owner
-    result.owner_rows, result.owner_sequences, owner_history, owner_full, result.owner_versions, result.owner_retired, result.owner_kinds = decode_owner(evidence, result.fences, result.committed)
     result.working_sequences = {event['seq'] for event in events}
     def valid_event(event):
         fence = fences.get(event['seq'])
@@ -223,7 +168,7 @@ def decode(state, evidence):
             result.events.append(event)
     # Pruned working history lives in a hash-qualified archive. Discover only
     # manifests in committed events, never by trusting the directory listing.
-    archived, queue, visited = dict(owner_history), list(result.events) + list(owner_history.values()), set()
+    archived, queue, visited = {}, list(result.events), set()
     while queue:
         event = queue.pop()
         for key, manifest in event['set'].items():

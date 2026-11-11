@@ -1,14 +1,11 @@
 """Owner-requested export and SQLite compaction; never rewrites the restore fence."""
 import hashlib
-import imaplib
-import sqlite3
 import os
 import time
 import uuid
 
 from . import retention
-from .adapters import Uncertain
-from .common import storage_stream, Refused, canonical, cleanup, digest
+from .common import storage_stream, Refused, canonical, cleanup
 from .storage import sync_directory
 
 
@@ -22,67 +19,24 @@ def archive(store, before, mail=None):
     # A refused reopening leaves yesterday's clean result intact. After a
     # crash it cannot certify today's mailbox: recheck before removing it.
     operations = store.items('op:')
-    dependencies = {op.get('repair_of') for _, op in operations if op['state'] in retention.OPEN}
     candidates = {op['id'] for key, op in operations if op['state'] in {'done', 'failed', 'refused'}
-                  and store.retained_at(key) < before and op['id'] not in dependencies
-                  and (not op.get('notice') or op.get('ack'))}
-    candidates = set(sorted(candidates)[:100])
+                  and store.retained_at(key) < before}
     unchecked = None
-    verified_ids = set()
-    name = 'history-' + uuid.uuid4().hex + '.jsonl'
-    verification_key = 'intent:archive-' + name[8:-6]
-    verification_sequences = set()
     if mail:
-        sends = [op for _, op in operations if op['id'] in candidates and op['app'] == 'mail'
-                 and op.get('payload', {}).get('composition') and
-                 not (op['state'] in {'reserved', 'failed', 'refused'} and 'sent_copy_check' not in op)]
-        unchecked = set()
-        if sends:
-            # One archive owns its verification. No newer per-operation event
-            # can fall outside the export cutoff and require a second archive.
-            run = {'id': 'recovery-' + verification_key[7:], 'app': 'mail', 'action': 'control_archive', 'state': 'started', 'check_open': True,
-                   'checks': {op['id']: {'state': 'open'} for op in sends}}
-            store.archiving = True
-            try:
-                store.write({verification_key: run}, 'control_archive', 'Archive verification opened')
-                verification_sequences.add(store.sequence)
-                updates = {}
-                for op in sends:
-                    try:
-                        account = mail.account(op['payload']['composition']['mail']['account'], ready=False)
-                        matches = mail.sent_matches(account, mail.message_id(op['id']))
-                        run['checks'][op['id']] = {'state': 'checked', 'count': len(matches),
-                                                  'matches': matches}
-                        if len(matches) <= 1:
-                            verified_ids.add(op['id'])
-                        if len(matches) > 1:
-                            from .warnings import check_result
-                            content = {'operation_id': op['id'], 'message_count': len(matches),
-                                       'reason': f'Sent contains {len(matches)} copies with this Message-ID. Check them in your mail program; nothing was deleted.'}
-                            notices, _ = check_result(store, op, 'op:' + op['id'], 'sent_copies',
-                                sorted(canonical(m) for m in matches), content, 'sent-' + digest(op['id'])[:32])
-                            op['sent_copy_check'] = {'state': 'checked', 'count': len(matches), 'clean': False}
-                            op['stages']['sent_copy_warning'] = content['reason']
-                            updates.update(notices)
-                            updates['op:' + op['id']] = op
-                    except (Refused, OSError, sqlite3.Error, imaplib.IMAP4.error, Uncertain, KeyError, TypeError, ValueError):
-                        unchecked.add(op['id'])
-                if updates:
-                    # These sources have a new unacknowledged occurrence and
-                    # cannot retire. Their results never join the run's own
-                    # export-eligible verification record.
-                    store.write(updates, 'mail_sent_copy_check', 'Archive found changed Sent evidence')
-                run.update(state='done', check_open=bool(unchecked))
-                store.write({verification_key: run}, 'control_archive', 'Archive verification result')
-                verification_sequences.add(store.sequence)
-            finally:
-                store.archiving = False
+        # These commits are part of owner compaction, which must still work
+        # when ordinary retained-history admission is already full.
+        store.archiving = True
+        try:
+            unchecked = {n['untrusted_content']['operation_id'] for n in mail.resolve_sent_checks(candidates)}
+        finally:
+            store.archiving = False
     operations = store.items('op:')
     dependencies = {op.get('repair_of') for _, op in operations if op['state'] in retention.OPEN}
     for key, op in operations:
         if (op['id'] not in dependencies and op['state'] in {'done', 'failed', 'refused'} and
                 (not op.get('sent_copy_check') and not op.get('payload', {}).get('composition') or
-                 unchecked is not None and op['id'] in verified_ids) and
+                 unchecked is not None and op['id'] not in unchecked and
+                 op.get('sent_copy_check', {}).get('state') == 'checked') and
                 (not op.get('notice') or op.get('ack'))):
             if store.retained_at(key) < before and len(closed) < 100:
                 closed[key] = op
@@ -112,7 +66,7 @@ def archive(store, before, mail=None):
 
     def eligible(event):
         keys = set(event['set']) | {'op:' + op['id'] for op in event['record']['operations']}
-        return ((event['time'] < before or event['seq'] in verification_sequences) and event['seq'] not in legacy_sources and
+        return (event['time'] < before and event['seq'] not in legacy_sources and
                 not any(key.startswith(p) for key in keys for p in protected))
 
     # Calculate space before making an export. Recovery can use the physical
@@ -129,9 +83,9 @@ def archive(store, before, mail=None):
                       not (store.get('notice:' + notice_id) or {}).get('ack')}
     directory = store.evidence_dir / 'archives'
     directory.mkdir(mode=0o700, exist_ok=True)
+    name = 'history-' + uuid.uuid4().hex + '.jsonl'
     temporary, destination = directory / (name + '.partial'), directory / name
     checksum, sequences = hashlib.sha256(), []
-    exported_count = 0
     head = store.events[-1]
     try:
         fd = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
@@ -142,13 +96,9 @@ def archive(store, before, mail=None):
                 checksum.update(encoded)
             emit({'format': 'aresos-history-1', 'before': before, 'head': {'seq': head['seq'], 'hash': head['hash']}})
             for event in store.iter_audit():
-                can_prune = eligible(event)
-                shared_closed = event['time'] < before and any(key in closed for key in event['set'])
-                if can_prune or shared_closed:
+                if eligible(event):
                     emit({'event': event})
-                    exported_count += 1
-                    if can_prune:
-                        sequences.append(event['seq'])
+                    sequences.append(event['seq'])
             for key, value in closed.items():
                 emit({'key': key, 'value': value})
             stream.flush()
@@ -163,10 +113,8 @@ def archive(store, before, mail=None):
         changes = {key: None for key in closed}
         changes.update({'archived:' + key[3:]: {'seq': next_seq} for key in closed})
         manifest = {'path': str(destination), 'sha256': checksum.hexdigest(), 'before': before,
-                    'events': exported_count, 'operations': len(closed), 'head': head['hash']}
+                    'events': len(sequences), 'operations': len(closed), 'head': head['hash']}
         changes['archive:' + name] = manifest
-        if verification_sequences and not unchecked:
-            changes[verification_key] = None
         # Export is durable before any source row is removed. Permit temporary
         # quota excess here so a pre-upgrade full store can also be compacted.
         store.archiving = True
@@ -184,7 +132,6 @@ def archive(store, before, mail=None):
         store.db.execute('VACUUM')
         sync_directory(store.state_dir)
         store.checkpoint('archive_compacted')
-        store.owner_projection.compact()
         return {**manifest, 'history_bytes': store.history_size(), 'independent_record_retained': True,
                 'read_with': 'sudo cat ' + str(destination)}
     finally:

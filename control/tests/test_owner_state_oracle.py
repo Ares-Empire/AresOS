@@ -27,7 +27,7 @@ def empty_scan(oracle, listing, sources):
 class OwnerOracle(unittest.TestCase):
     def test_expectation_imports_are_standard_library_only(self):
         root = Path(__file__).resolve().parents[1] / 'owner_state_oracle'
-        modules = {'__init__', 'records', 'model', 'compare', 'context', 'gaps', 'local', 'identity', 'caller_capture', 'resolutions', 'perturb', 'effects', 'projection'}
+        modules = {'__init__', 'records', 'model', 'compare', 'context', 'gaps', 'local', 'identity', 'caller_capture', 'resolutions', 'perturb', 'effects'}
         def validate(source):
             for node in ast.walk(ast.parse(source)):
                 if isinstance(node, ast.Import):

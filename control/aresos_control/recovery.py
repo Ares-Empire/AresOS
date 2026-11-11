@@ -64,14 +64,25 @@ def unfinished(store, cutoff=None, keys=None, rows=None):
 
 
 def recovery_notices(store, include_checks=True):
-    from .owner_state import owner_view
-    store = owner_view(store)
-    sources = unfinished(store)
+    candidates = getattr(store, 'startup_intents', set())
+    keys = {key for key, _ in candidates if not key.startswith('legacy-intent:')}
+    if include_checks:
+        keys.update(open_filings(store))
+        keys.update(key for key, value in store.iter_items('mail:account:')
+                    if not value.get('onboarded', value.get('ready', False)))
+    sources = unfinished(store, keys=keys)
+    if include_checks:
+        from itertools import chain
+        legacy = ((key, value) for key, value in store.iter_items('op:') if key not in keys and
+            not value.get('context_version') and value.get('state') in {'reserved', 'submitting', 'unknown', 'partial'})
+        sources = chain(sources, unfinished(store, rows=legacy))
     for key, notice_id, app, reason in sources:
         filing = key.startswith(('mail:filing:', 'mail:rename:'))
         account = key.startswith('mail:account:')
         operation = store.get(key) if key.startswith('op:') else None
         legacy = operation is not None and not operation.get('context_version')
+        if (key, notice_id) not in candidates and not (include_checks and (filing or account or legacy)):
+            continue
         if filing:
             reason = ('Filing roles and locations are not yet checked. The interrupted check has no committed result. '
                       'Messages or folders may have moved into a special folder, including Trash. '
@@ -80,7 +91,8 @@ def recovery_notices(store, include_checks=True):
             reason = ('Owner account setup is unfinished; its qualification is not yet checked. '
                       'Probes may already have sent mail or changed folders. Inspect the setup log and server; '
                       'no probes are repeated automatically.')
-        created = store.retained_at(key)
+        row = store.db.execute('SELECT created FROM retained WHERE k=?', (key,)).fetchone()
+        created = row[0] if row is not None else 0
         existing = store.get('notice:' + notice_id)
         if filing and include_checks and existing and existing.get('ack'):
             # Acknowledging an occurrence cannot certify its unfinished check.
@@ -96,6 +108,25 @@ def recovery_notices(store, include_checks=True):
 
 
 def recover_intents(store, persist=True):
-    # Generic recovery is derived on every read. Its acknowledgement is the
-    # only extra durable record; startup no longer chooses which work exists.
+    # A durable intent is also the source of its notice until the notice's own
+    # bounded batch fits. Reads synthesize every remaining notice, so neither a
+    # full disk nor 10,000 restored operations need an unbounded RAM queue.
+    from itertools import islice
     store._open_filings = None
+    # Capture identities in their actual unfinished state, before and after
+    # prepared replay. A reservation that starts later was never interrupted.
+    store.startup_intents = getattr(store, 'startup_intents', set()) | {
+        (key, notice_id) for key, notice_id, _, _ in unfinished(store)}
+    for notice in islice(recovery_notices(store), 3):
+        if notice.get('check_only'):
+            continue
+        store.defer_notice(notice['id'], {'notice:' + notice['id']: notice},
+                           'control_intent_recovery', 'Unfinished durable intent needs owner inspection')
+    if persist:
+        try:
+            store.flush_notices()
+        except Exception as exc:
+            if storage_refusal(exc) is None:
+                raise
+            store.observations.storage(exc)
+            store.remember_storage(exc)

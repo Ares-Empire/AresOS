@@ -84,7 +84,7 @@ class OwnerScenario(Scenario):
             observer = getattr(self.owner_oracle, 'response_observer', None)
             if observer:
                 before = observer.__self__.snapshot()
-                self.owner_oracle.script[index]['start_seq'] = max((f['seq'] for f in before.fences), default=0)
+                self.owner_oracle.script[index]['start_seq'] = max(before.committed, default=0)
                 self.owner_oracle.script[index]['restore_precondition'] = before.locked
             try:
                 with recorded_samples(self.owner_oracle, index):
@@ -96,7 +96,7 @@ class OwnerScenario(Scenario):
             observer = getattr(self.owner_oracle, 'response_observer', None)
             if observer:
                 record = observer.__self__.snapshot()
-                self.owner_oracle.script[index]['end_seq'] = max((f['seq'] for f in record.fences), default=0)
+                self.owner_oracle.script[index]['end_seq'] = max(record.committed, default=0)
                 if fault:
                     self.owner_oracle.script[index]['faults']['trace'] = list(fault.failures)
                     self.owner_oracle.script[index]['faults']['active_exhaustion'] = fault.mode == 'persistent' and fault.failed
