@@ -322,6 +322,29 @@ class AptPatienceTest(unittest.TestCase):
         self.assertIn('options+=(-o Acquire::http::Timeout="$ARESOS_APT_TIMEOUT" -o Acquire::https::Timeout="$ARESOS_APT_TIMEOUT")', script)
         self.assertNotIn('Acquire::Retries=3', script)
 
+    def test_the_update_rehearsal_waits_as_long_and_other_rehearsals_keep_theirs(self):
+        import yaml
+        job = yaml.load((ROOT / '.github/workflows/os-image.yml').read_text(), Loader=yaml.BaseLoader)['jobs']['rehearsal']
+        install, = [s for s in job['steps'] if s.get('name') == 'Install pinned rehearsal tools on disposable runner']
+        self.assertEqual(sorted(install['env']), ['ARESOS_APT_RETRIES', 'ARESOS_APT_TIMEOUT'])
+        self.assertIn('bash os/ci/install-tools.sh', install['run'])
+
+        def value(text, mode):
+            expression = re.fullmatch(r'\$\{\{(.*)\}\}', text.strip()).group(1)
+            return eval(expression.replace('inputs.rehearsal', repr(mode)).replace('&&', ' and ').replace('||', ' or '),
+                        {'__builtins__': {}}, {})
+        # The same patience as the release job for package 27's update rehearsal...
+        self.assertEqual([value(install[k], 'update') for k in ('timeout-minutes',)] +
+                         [value(install['env'][k], 'update') for k in ('ARESOS_APT_RETRIES', 'ARESOS_APT_TIMEOUT')],
+                         [40, '5', '60'])
+        # ...and every other rehearsal keeps 20 minutes, three retries and apt's own timeouts.
+        for mode in ('inspect', 'fixture', 'probe', 'part-b', 'keyboard', 'owner-tools'):
+            self.assertEqual([value(install['timeout-minutes'], mode), value(install['env']['ARESOS_APT_RETRIES'], mode),
+                              value(install['env']['ARESOS_APT_TIMEOUT'], mode)], [20, '', ''])
+        script = (ROOT / 'os/ci/install-tools.sh').read_text()
+        self.assertIn('retries=${ARESOS_APT_RETRIES:-3}', script)
+        self.assertIn('if [[ -n ${ARESOS_APT_TIMEOUT:-} ]]; then', script)
+
     @unittest.skipIf(os.name == 'nt' or shutil.which('bash') is None, 'needs a Linux bash')
     def test_apt_patience_values_must_be_numbers(self):
         script = (ROOT / 'os/ci/install-tools.sh').read_text().split('sudo apt-get', 1)[0]
@@ -332,6 +355,11 @@ class AptPatienceTest(unittest.TestCase):
             run = lambda **env: subprocess.run(['bash', '-c', script], cwd=directory, capture_output=True, text=True,
                                                env=dict(os.environ, **env))
             self.assertIn('Acquire::Retries=3', run().stdout)
+            # Other rehearsals get the variables empty: the shared defaults stay.
+            empty = run(ARESOS_APT_RETRIES='', ARESOS_APT_TIMEOUT='')
+            self.assertEqual(empty.returncode, 0)
+            self.assertIn('Acquire::Retries=3', empty.stdout)
+            self.assertNotIn('Timeout', empty.stdout)
             good = run(ARESOS_APT_RETRIES='5', ARESOS_APT_TIMEOUT='60').stdout
             self.assertIn('Acquire::Retries=5', good)
             self.assertIn('Acquire::https::Timeout=60', good)
@@ -827,6 +855,61 @@ def step_runs(step, environment):
                     break
                 argv.append(word)
             yield match.group(0), argv, re.findall(r'\benv -u (\w+)', line[:match.start()])
+
+
+def package_sets(path):
+    """Each `REHEARSAL_PACKAGE in <set>` comparison in a module, with the set's value (or None)."""
+    tree = ast.parse((ROOT / path).read_text(encoding='utf-8'))
+    constants = {}
+    for statement in tree.body:
+        if isinstance(statement, ast.Assign) and len(statement.targets) == 1 and isinstance(statement.targets[0], ast.Name):
+            try:
+                constants[statement.targets[0].id] = eval(compile(ast.Expression(statement.value), path, 'eval'),
+                                                          {'__builtins__': {}}, dict(constants))
+            except Exception:
+                pass
+    for node in ast.walk(tree):
+        if (isinstance(node, ast.Compare) and len(node.ops) == 1 and isinstance(node.ops[0], (ast.In, ast.NotIn))
+                and re.fullmatch(r"os\.environ(\.get\('REHEARSAL_PACKAGE'.*\)|\['REHEARSAL_PACKAGE'\])", ast.unparse(node.left))):
+            try:
+                value = eval(compile(ast.Expression(node.comparators[0]), path, 'eval'), {'__builtins__': {}}, dict(constants))
+            except Exception:
+                value = None
+            yield node.lineno, value
+
+
+class OwnerHarnessPackagesTest(unittest.TestCase):
+    """Package 27's update rehearsal runs in package 14's owner VM harness, so it takes the harness's branches.
+
+    Run 42933781975 stopped at the installer: installer_webui.start() opened
+    the virtio-serial WebUI transport only for packages 14 and 16, so nothing
+    answered on host port 18080.
+    """
+
+    def test_every_package_set_naming_14_or_16_also_names_27(self):
+        checked = []
+        for path in sorted(p.relative_to(ROOT).as_posix() for p in (ROOT / 'os/ci').glob('*.py')):
+            for line, value in package_sets(path):
+                self.assertIsNotNone(value, f'{path}:{line}: package set not readable')
+                if {'14', '16'} & set(value):
+                    checked.append(f'{path}:{line}')
+                    self.assertIn('27', value, f'{path}:{line}: {value}')
+        self.assertGreaterEqual(len(checked), 7, checked)
+
+    def run_as(self, package, call):
+        import installer_webui
+        guest = Mock()
+        with patch.dict(os.environ, REHEARSAL_PACKAGE=package), patch.object(installer_webui, 'read_keyboard'):
+            call(installer_webui, guest)
+        return guest.mock_calls
+
+    def test_the_installer_drives_package_27_exactly_like_package_14(self):
+        for call in (lambda module, guest: module.start(guest, 'install'),
+                     lambda module, guest: module.readback(guest, 'install', '/dev/vda', '/dev/vdb')):
+            self.assertEqual(self.run_as('27', call), self.run_as('14', call))
+        # The WebUI transport is what run 42933781975 lacked.
+        self.assertIn(unittest.mock.call.start_offline_webui_transport(),
+                      self.run_as('27', lambda module, guest: module.start(guest, 'install')))
 
 
 class UpdateJobGatesTest(unittest.TestCase):

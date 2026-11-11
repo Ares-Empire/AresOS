@@ -512,7 +512,13 @@ jobs:
         with:
           extra-squeeze: 'true'
       - name: Install pinned rehearsal tools on disposable runner
-        timeout-minutes: 20
+        # Package 27's update rehearsal (run 42933781975 took 16 of 20 minutes
+        # here) gets the release job's patience with the snapshot mirror; every
+        # other rehearsal keeps three retries, apt's own timeouts and 20 minutes.
+        timeout-minutes: ${{ inputs.rehearsal == 'update' && 40 || 20 }}
+        env:
+          ARESOS_APT_RETRIES: ${{ inputs.rehearsal == 'update' && '5' || '' }}
+          ARESOS_APT_TIMEOUT: ${{ inputs.rehearsal == 'update' && '60' || '' }}
         run: |
           set -euo pipefail
           mkdir -p evidence .work/installer
