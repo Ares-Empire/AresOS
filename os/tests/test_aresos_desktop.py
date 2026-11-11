@@ -1573,8 +1573,10 @@ class FakeJava:
             return  # like Popen.send_signal: nothing reaches a process that has ended
         if sig == signal.SIGKILL:
             run.java_end(-9)
+            run.ended_by_wrapper = True
         elif sig == signal.SIGTERM and run.term == 'exits':
             run.java_end(128 + signal.SIGTERM)  # the JVM's exit status after SIGTERM
+            run.ended_by_wrapper = True
 
     def wait(self, timeout=None):
         if self.run.java_alive:
@@ -1609,7 +1611,7 @@ class HandOffRun:
         self.java_alive, self.java_status = True, None
         self.conn, self.conn_sup = 'open', self.sup
         self.processed = self.answer = self.loss_at = None
-        self.latched_before_loss = False
+        self.latched_before_loss = self.ended_by_wrapper = False
         self.wrapper, self.sent, self.accepted, self.raced, self.wrapper_died = 'waiting', [], False, False, False
         self.lock()
         if delay:
@@ -1713,12 +1715,12 @@ class HandOffRun:
             self.T()
 
     def truth(self):
-        """How Java really ended, from the model's facts."""
+        """How Java really ended, from the model's own facts (not the code under test): who ended it, and how."""
         if self.java_alive:
             return 'running'
         if self.wrapper_died:
             return 'killed'
-        if wrapper.stopped_by_wrapper(self.java_status, self.sent):
+        if self.ended_by_wrapper:
             return 'counted'
         if self.java_status == -9:
             return 'killed'
