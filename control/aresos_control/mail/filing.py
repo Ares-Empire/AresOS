@@ -96,7 +96,10 @@ def rename_folder(mail, account, client, source, target, roles_before):
     intent.update(state='partial' if needs_notice else 'done', observed_role=role)
     changes = {key: intent}
     result = {'account': account['id'], 'folder': target, 'state': intent['state']}
-    if needs_notice:
+    if role == 'an unverified role':
+        intent.update(state='started', check_open=True, role_check_unavailable=True)
+        result.update(state='partial', reason='Folder role is not yet checked; it may be in Trash. Inspect your mail program.')
+    elif needs_notice:
         reason = ('The special folders changed while Claude was moving this folder. '
                   'Nothing was deleted. It is now ' + short_name(target) + ', inside ' + role.lstrip('\\') +
                   '. Check it in your mail program.')
@@ -108,6 +111,9 @@ def rename_folder(mail, account, client, source, target, roles_before):
         changes.update(notices)
         result.update(state='partial', reason=visible(reason), untrusted_content=visible(content))
     mail.store.observations.observe(filing_id, visible({'rename': intent, 'result': result}))
+    if role == 'an unverified role':
+        mail.store.write(changes, 'mail_filing_check', 'Rename role is unavailable; check stays open', outcome='started')
+        return result
     if needs_notice:
         mail.store.defer_notice(filing_id, changes, 'mail_folder_rename', 'folder rename checked')
         mail.store.flush_notices()
@@ -179,6 +185,7 @@ def resolve_checks(mail):
             with mail.transport.imap(account) as client:
                 listed = folders(client)
             current = resolve(listed, allow_incomplete=True)
+            intent.pop('role_check_unavailable', None)
             unresolved = current.pop('unresolved_roles')
             incomplete = False
             if prefix == 'mail:filing:':
@@ -357,7 +364,7 @@ def file_messages(mail, account, client, verb, refs, target, names, needed):
     intent = {'id': intent_id, 'account': account['id'], 'verb': verb, 'sources': refs,
               'target': target, 'state': 'started', 'records': records}
 
-    def record(state, notice=None, pages=None):
+    def record(state, notice=None, pages=None, evidence_result=False):
         intent['state'] = state
         changes = {key: intent}
         if notice:
@@ -373,7 +380,7 @@ def file_messages(mail, account, client, verb, refs, target, names, needed):
             mail.store.defer_notice(intent_id, changes, 'mail_' + verb, 'Filing intent ' + intent_id)
             mail.store.flush_notices()
         else:
-            mail.store.write(changes, 'mail_' + verb, 'Filing intent ' + intent_id,
+            mail.store.write(changes, 'mail_filing_check' if evidence_result else 'mail_' + verb, 'Filing intent ' + intent_id,
                              outcome=state, untrusted_content={'filing': {'filing_id': intent_id, 'state': state,
                                  'message_count': len(records), 'locations_action': 'mail_filing_locations'}})
 
@@ -423,6 +430,8 @@ def file_messages(mail, account, client, verb, refs, target, names, needed):
     intent.update(reason=reason, locations=observed, roles_after=listed,
                   observed_role=folder_role(target, listed))
     intent['reason'] += ' The target ' + short_name(target) + ' is now ' + intent['observed_role'] + '.'
+    if listed is None:
+        intent['reason'] += ' Its role is not verified; messages may have moved into Trash.'
     if any(not item['scan_complete'] for item in observed):
         intent['check_open'] = True
     content = summary(intent)
@@ -436,7 +445,11 @@ def file_messages(mail, account, client, verb, refs, target, names, needed):
         'filing_id': intent_id, 'count': sum(len(item['observed_locations']) for item in observed),
         'total_messages': len(observed), 'locations_action': 'mail_filing_locations',
         'cursor': f'{sequence_token(intent_id, pages)}:1' if len(pages) > 1 else None})
-    record('partial', notice, pages)
+    if listed is None:
+        intent.update(check_open=True, role_check_unavailable=True)
+        record('started', pages=pages, evidence_result=True)
+    else:
+        record('partial', notice, pages)
     first = location_page(mail.store, {'filing_id': intent_id})
     return {'state': 'partial', 'items': [], 'reason': visible(reason),
             'untrusted_content': {**visible(content), **first['untrusted_content'], 'cursor': first['cursor']}}

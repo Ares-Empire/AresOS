@@ -398,7 +398,7 @@ class Store:
                 budget += record_budget({key: value})
             self.ledger.holds['restore'] = budget
         for prefix in ('op:', 'intent:', 'mail:filing:', 'mail:rename:', 'notice:'):
-            for key, value in view.iter_items(prefix):
+            for key, value in view.iter_items(prefix, restore_outcomes=False):
                 if (value.get('check_open') or value.get('sent_copy_check', {}).get('state') == 'open' or
                         prefix in {'mail:filing:', 'mail:rename:'} and value.get('state') == 'started'):
                     self.ledger.holds['check:' + key] = CHECK_RESULT_BYTES
@@ -446,7 +446,12 @@ class Store:
     def _restore_operations(self, through=None):
         # Admission and confirmation must enumerate exactly the same work.
         # Unchanged closed history costs no reconstruction space.
+        projected_rows = iter(self.owner_projection.iter_items('op:'))
+        current = next(projected_rows, None)
         for op_id, seq, known in self.iter_latest(through):
+            key = 'op:' + op_id
+            while current and current[0] < key:
+                current = next(projected_rows, None)
             if any('archived:' + op_id in changes for _, changes in self.owner_projection.retired()):
                 continue
             old = self.get('op:' + op_id)
@@ -456,7 +461,7 @@ class Store:
             if old is None or version != (seq,) or old['state'] == 'submitting':
                 if old is None:
                     old = missing_operation(known)
-                projected = next((v for k, v in self.owner_projection.iter_items('op:' + op_id) if k == 'op:' + op_id), None)
+                projected = current[1] if current and current[0] == key else None
                 if projected is not None:
                     from .owner_state import owner_view
                     detail = {k: old[k] for k in ('approval', 'payload', 'input_hash') if k in old}
@@ -475,6 +480,18 @@ class Store:
                         if source_seq < seq and 'op:' + op_id in data:
                             prior = data['op:' + op_id]['facts'] or {}
                     old['sent_copy_check'] = prior.get('sent_copy_check', {'state': 'open'})
+                    # Retaining a positive warning also retains its occurrence
+                    # binding. Confirmation grants no clean result or action
+                    # completion from the abandoned publication.
+                    for source_seq, data, _, _ in self.owner_projection._records(self.owner_projection.path):
+                        if source_seq not in self.restore_unprepared:
+                            continue
+                        incoming = (data.get(key) or {}).get('facts') or {}
+                        for kind, check in incoming.get('warning_checks', {}).items():
+                            notice = (data.get('notice:' + str(check.get('occurrence_id'))) or {}).get('facts') or {}
+                            if (check.get('warning') and notice.get('source_key') == key and notice.get('check_kind') == kind and
+                                    notice.get('evidence_fingerprint') == check.get('fingerprint')):
+                                old.setdefault('warning_checks', {})[kind] = check
             elif old['state'] == 'reserved':
                 old.update(state='failed', reason="Restore invalidated this generation's approval; nothing resumed.")
             else:
@@ -542,7 +559,11 @@ class Store:
 
     def _prepared(self, seq):
         row = self.db.execute("SELECT value FROM events WHERE seq=?", (seq,)).fetchone()
-        return json.loads(row[0]) if row else None
+        event = json.loads(row[0]) if row else None
+        if event and event['record'].get('format') == 3 and (
+                event['action'] != 'control_restore_confirm' or not event.get('space', {}).get('restoring')):
+            raise Refused('evidence_corrupt', 'A recovery fence has no matching restore event.')
+        return event
 
     def _apply(self, event):
         record = event["record"]
@@ -882,8 +903,13 @@ class Store:
                         unresolved.setdefault(key, row['facts'])
         # A fence-only publication has no prepared result to replay. Owner
         # confirmation cannot turn its deletion/completion into evidence.
+        previously_committed = set()
         for _, changes in self.owner_projection.records():
+            previously_committed.update(key for key in changes if key in unresolved)
             unresolved.update((key, value) for key, value in changes.items() if key in unresolved)
+        for key, value in unresolved.items():
+            if key.startswith('notice:') and value is not None and key not in previously_committed:
+                unresolved[key] = {**value, 'created_at': time.time_ns()}
         # Keep the lock durable across every batch and crash. Only the final
         # marker advances generation; nothing is resumed in an intermediate DB.
         through = self.sequence

@@ -34,7 +34,7 @@ def stage_codes(stages):
     return result
 
 
-FIELDS = set("id generation app action state expires notice ack context_version repair_of context roles_before check_open sent_copy_check warning_checks source_key check_kind evidence_fingerprint created_at onboarded ready qualification account source destination target references identities message_count locations roles special stage stages attempt_ended_at sent_append_started_at sent_append_ended_at repair_identity_missing untrusted_content reason path sha256 before events operations head checks size created_blob verb sources records observed_role roles_after unresolved_roles pages total_messages fragments sent_policy safe_folder_delete".split())
+FIELDS = set("id generation app action state expires notice ack context_version repair_of context roles_before check_open sent_copy_check warning_checks source_key check_kind evidence_fingerprint created_at onboarded ready qualification account source destination target references identities message_count locations roles special stage stages attempt_ended_at sent_append_started_at sent_append_ended_at repair_identity_missing untrusted_content reason path sha256 before events operations head checks size created_blob verb sources records observed_role roles_after unresolved_roles pages total_messages fragments sent_policy safe_folder_delete role_check_unavailable".split())
 OMIT = {'reason', 'question', 'text', 'html', 'subject', 'title', 'password', 'arguments', 'approval', 'payload', 'summary', 'body', 'raw'}
 PREFIX = ('op:', 'intent:', 'export:', 'notice:', 'mail:filing:', 'mail:rename:', 'mail:filing-locations:', 'mail:account:', 'archived:', 'archive:')
 
@@ -67,7 +67,8 @@ def fact(key, value):
         if value['reason'].startswith('Restored log:'):
             row['reason_kind'] = 'restored'
         codes = {'expired: nothing submitted': 'expired', 'cancelled: nothing submitted': 'cancelled',
-                 'Local repair uncertain; inspect far-side stage evidence. Never submit.': 'repair_uncertain'}
+                 'Local repair uncertain; inspect far-side stage evidence. Never submit.': 'repair_uncertain',
+                 'Local repair storage failed; inspect evidence, never submit.': 'repair_storage'}
         if value['reason'] in codes:
             row['reason_kind'] = codes[value['reason']]
         if value['reason'].endswith(' Missing local stages; repair without SMTP.'):

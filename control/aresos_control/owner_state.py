@@ -165,6 +165,8 @@ class OwnerView:
                 'done': 'Operation finished.', 'failed': 'Operation did not finish.'}.get(row.get('state'), 'Inspect operation status.')
             if row.get('repair_of') and row.get('state') == 'submitting':
                 row['reason'] = 'Repairing local stage only.'
+            if row.get('repair_of') and row.get('state') == 'reserved':
+                row['reason'] = 'Reserved local repair only.'
             if reason_kind == 'smtp_local':
                 row['reason'] = 'Delivery evidence is recorded. Missing local stages; repair without SMTP.'
             elif reason_kind == 'smtp_partial_local':
@@ -173,6 +175,8 @@ class OwnerView:
                 row['reason'] = reason_kind + ': nothing submitted'
             elif reason_kind == 'repair_uncertain':
                 row['reason'] = 'Local repair uncertain; inspect far-side stage evidence. Never submit.'
+            elif reason_kind == 'repair_storage':
+                row['reason'] = 'Local repair storage failed; inspect evidence, never submit.'
             elif reason_kind == 'restored':
                 row['reason'] = 'Restored log: independent record has newer or missing evidence. Owner must check.'
         if key.startswith(('mail:filing:', 'mail:rename:')):

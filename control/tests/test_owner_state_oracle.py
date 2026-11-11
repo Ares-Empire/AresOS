@@ -215,6 +215,50 @@ class OwnerOracle(unittest.TestCase):
                       identities=[{'message_id': '<g.s@mail.aresos.invalid>'}], source='op:g:s')
         self.assertFalse(oracle.completion_errors(Record(rows={'op:g:s': row})))
 
+    def test_preflight_reason_uses_evidence_before_this_calls_data(self):
+        for prior_data, wanted in ((False, 'Far-side submission evidence already exists; inspect evidence, never submit again.'),
+                                   (True, 'Submission outcome uncertain; inspect evidence, never retry.')):
+            oracle = Oracle()
+            oracle.call('mail_send', {'operation_id': 'g:s'}, 1)
+            oracle.script[-1].update(start_seq=0, end_seq=3)
+            if prior_data:
+                oracle.server('DATA', source='op:g:s', before_seq=1,
+                    identities=[{'message_id': '<g.s@mail.aresos.invalid>'}],
+                    committed_before={'op:g:s': {'id': 'g:s', 'state': 'submitting', 'action': 'mail_send'}})
+            oracle.server('SENT', source='op:g:s', before_seq=2,
+                identities=[{'message_id': '<g.s@mail.aresos.invalid>'}])
+            state, reason = oracle.outcome({'id': 'g:s', 'state': 'unknown'}, {'seq': 3, 'action': 'mail_send'})
+            self.assertEqual(('unknown', wanted), (state, reason))
+
+    def test_onboarding_rcpt_without_data_needs_one_current_account_bound_probe(self):
+        oracle = Oracle()
+        oracle.call('mail_account_add', {'id': 'new'}, 1)
+        key = 'op:g:probe'
+        row = {'action': 'mail_send', 'state': 'submitting',
+               'payload': {'composition': {'mail': {'account': 'new'}}}}
+        event = oracle.server('RCPT', account='new', recipients=['owner@mail.invalid'],
+            smtp_transaction=1, before_seq=3, call_start_seq=1,
+            committed_before={key: row}, created_before={key: 2})
+        self.assertIn(event, oracle.operation_events(key, 4))
+        event['created_before'][key] = 1
+        self.assertNotIn(event, oracle.operation_events(key, 4))
+        event['created_before'][key] = 2
+        event['committed_before']['op:g:other'] = row
+        event['created_before']['op:g:other'] = 2
+        self.assertNotIn(event, oracle.operation_events(key, 4))
+
+    def test_unavailable_filing_result_needs_independent_failure_and_an_open_check(self):
+        oracle = Oracle()
+        oracle.call('mail_move', {}, 1, {'trace': [(1, 'file.write', 'ENOSPC')]})
+        oracle.script[-1].update(start_seq=0, end_seq=2)
+        row = {'state': 'started', 'check_open': True, 'role_check_unavailable': True,
+               'observed_role': 'an unverified role'}
+        event = {'seq': 2, 'action': 'mail_filing_check'}
+        self.assertTrue(oracle.unavailable_filing_result('mail:filing:f', row, event))
+        oracle.script[-1]['faults'] = {}
+        self.assertFalse(oracle.unavailable_filing_result('mail:filing:f', row, event))
+        self.assertTrue(any(f.kind == 'false-unavailable-result' for f in oracle.lifecycle_errors))
+
     def test_filing_clean_ack_recurrence_uses_a_new_occurrence(self):
         for kind in ('rename', 'filing'):
             oracle = Oracle()

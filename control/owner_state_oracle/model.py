@@ -133,6 +133,17 @@ class Oracle:
                 if data and self.bound(data)[0] == key and any(i.get('message_id') == mid for i in data.get('identities', [])):
                     events.append(event)
                     continue
+                if data is None:
+                    call = next((c for c in self.script if c['call'] == event['call']), {})
+                    enrolled = [source for source, candidate in event.get('committed_before', {}).items()
+                        if source.startswith('op:') and candidate.get('state') == 'submitting' and
+                        candidate.get('action') == 'mail_send' and
+                        candidate.get('payload', {}).get('composition', {}).get('mail', {}).get('account') ==
+                            event.get('account') == call.get('arguments', {}).get('id') and
+                        event.get('created_before', {}).get(source, -1) > event.get('call_start_seq', -1)]
+                    if call.get('action') == 'mail_account_add' and enrolled == [key]:
+                        events.append(event)
+                        continue
             if source == key or event.get('source') == key:
                 events.append(event)
                 continue
@@ -250,6 +261,18 @@ class Oracle:
                 self.proof('payload_claims', Fact(key, 'unapproved-composition', detail=field))
         cache[signature] = self.lifecycle_errors - before
 
+    def unavailable_filing_result(self, key, row, event):
+        if not row.get('role_check_unavailable') or event['action'] != 'mail_filing_check':
+            return False
+        calls = self.calls_at(event['seq'])
+        failed = any(c.get('faults', {}).get('trace') for c in calls) or any(
+            e['command'] in {'LIST', 'SELECT'} and e['call'] in {c['call'] for c in calls} and
+            not delivered(e) for e in self.servers)
+        valid = failed and row.get('check_open') and row.get('state') == 'started' and row.get('observed_role') == 'an unverified role'
+        if not valid:
+            self.proof('filing_claims', Fact(key, 'false-unavailable-result'))
+        return bool(valid)
+
     def filing_claims(self, key, row, event):
         if row is None:
             self.proof('filing_claims', Fact(key, 'missing-check-result', detail=str(event['seq'])))
@@ -259,7 +282,8 @@ class Oracle:
         result_commit = event['action'] == 'mail_filing_check' or (
             event['action'] in {'mail_move', 'mail_copy', 'mail_folder_rename'} and final_write and
             not any(call.get('faults', {}).get('trace') for call in calls))
-        if result_commit and (row.get('state') == 'started' or row.get('check_open')):
+        unavailable = self.unavailable_filing_result(key, row, event)
+        if result_commit and not unavailable and (row.get('state') == 'started' or row.get('check_open')):
             kind = 'rename' if key.startswith('mail:rename:') else 'filing'
             if self.result_proof(key, kind, event['seq']):
                 self.proof('filing_claims', Fact(key, 'uncommitted-check-result', detail=str(event['seq'])))
@@ -479,7 +503,8 @@ class Oracle:
                     result_commit = event['action'] == 'mail_filing_check' or (
                         kind == 'sent_copies' and self.sent_result_commit(event, source)) or (
                         kind in {'filing', 'rename'} and event['action'] in {'mail_move', 'mail_copy', 'mail_folder_rename'})
-                    clean = result_commit and self.clean_evidence(source, kind, evidence)
+                    clean = (result_commit and self.clean_evidence(source, kind, evidence) and
+                             not self.unavailable_filing_result(source, value, event))
                     claimed = value.get('warning_checks', {}).get(kind, {}).get('warning')
                     prior = previous.get(source, {})
                     new_clean_claim = claimed is False and prior.get('warning_checks', {}).get(kind, {}).get('warning') is not False
@@ -1570,7 +1595,10 @@ class Oracle:
             if not calls and row.get('state') == 'unknown':
                 return 'unknown', 'Service restarted during submission; inspect evidence, never resubmit.'
             if any(e['command'] == 'SENT' and e.get('source') == key and e.get('identities') and delivered(e) and
-                   e.get('before_seq', float('inf')) < commit['seq'] for e in self.servers):
+                   e.get('before_seq', float('inf')) < commit['seq'] and e['call'] in {c['call'] for c in calls} and
+                   not any(prior['command'] == 'DATA' and prior['call'] == e['call'] and
+                           self.bound(prior)[0] == key for prior in self.servers[:index])
+                   for index, e in enumerate(self.servers)):
                 return 'unknown', 'Far-side submission evidence already exists; inspect evidence, never submit again.'
             return 'unknown', 'Submission outcome uncertain; inspect evidence, never retry.'
         approved = self.approved(row) or row.get('payload', {}).get('composition', {}).get('mail', {})

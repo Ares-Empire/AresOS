@@ -456,8 +456,10 @@ class Engine:
                 repair["state"], repair["reason"] = "failed", "Local repair refused before acting; inspect operation status." if app == "mail" else "Local repair refused before acting: " + str(exc)
             changes = {"op:" + op_id: repair}
         except Exception as exc:
-            self.store.observations.storage(exc)
-            repair["state"], repair["reason"] = "unknown", "Local repair uncertain; inspect far-side stage evidence. Never submit."
+            storage = self.store.observations.storage(exc)
+            repair["state"], repair["reason"] = "unknown", (
+                'Local repair storage failed; inspect evidence, never submit.' if storage else
+                'Local repair uncertain; inspect far-side stage evidence. Never submit.')
             changes = {"op:" + op_id: repair}
         repair['attempt_ended_at'] = time.time()
         self.store.write(changes, repair["action"], repair["state"], op_id)

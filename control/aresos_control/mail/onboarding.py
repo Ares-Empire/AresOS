@@ -18,6 +18,7 @@ def qualify_folder_delete(engine, account, probe_folder, ref):
         approval = engine.reserve("mail", "onboarding_folder_probe", {"account": account["id"], "folder": probe_folder})["approval"]
         result = engine.submit(BY_NAME["mail_onboarding_folder_probe"], approval)["operation"]
         candidate = result["state"] == "refused" and result["stages"].get("folder_probe") == "nonempty_refusal"
+        unverified = result['state'] not in {'refused', 'done'}
         with mail.transport.imap(account) as client:
             exists = probe_folder in [f["name"] for f in folders(client)]
         if not exists:
@@ -32,7 +33,11 @@ def qualify_folder_delete(engine, account, probe_folder, ref):
             return
         mail.safe_folder(account, probe_folder, empty=True)
         if not candidate:
-            account["folder_delete_reason"] += " Exact probe removed; empty folder retained for owner cleanup."
+            if unverified:
+                account['folder_delete_reason'] = ('Probe DELETE outcome could not be verified. Cleanup of the exact probe completed; '
+                    'empty folder retained for owner cleanup. Folder deletion stays disabled.')
+            else:
+                account["folder_delete_reason"] += " Exact probe removed; empty folder retained for owner cleanup."
             return
         cleanup = engine.reserve("mail", "onboarding_folder_probe", {"account": account["id"], "folder": probe_folder, "empty": True})["approval"]
         result = engine.submit(BY_NAME["mail_onboarding_folder_probe"], cleanup)["operation"]

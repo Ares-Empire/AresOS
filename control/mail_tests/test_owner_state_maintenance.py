@@ -96,6 +96,37 @@ class MaintenanceAdmission(unittest.TestCase):
 
 
 
+class FilingAvailability(unittest.TestCase):
+    def test_failed_context_write_keeps_a_durable_role_check_without_inventing_an_occurrence(self):
+        scenario = OwnerScenario('filing_move')
+        try:
+            driver, fault = Driver(scenario), OSWrites()
+            store = scenario.fixture.engine.store
+            write, calls = store.write, []
+            def fail_before_command(changes, *args, **kwargs):
+                if args and args[0] == 'mail_move' and kwargs.get('outcome') == 'started' and any(
+                        key.startswith('mail:filing:') for key in changes):
+                    calls.append(True)
+                    if len(calls) == 2:
+                        fault.fail_at = len(fault.points) + 1
+                return write(changes, *args, **kwargs)
+            with driver.observe(fault), fault.wrap(store), patch.object(store, 'write', side_effect=fail_before_command):
+                result = scenario.call()
+            self.assertTrue(fault.failed)
+            self.assertEqual(0, scenario.remote['MOVE'])
+            source = store.items('mail:filing:')[0][1]
+            self.assertTrue(source['check_open'])
+            self.assertTrue(source['role_check_unavailable'])
+            self.assertFalse(store.items('notice:'))
+            driver.reply(result, delivered=False)
+            crash_restart(scenario)
+            gaps = Gaps(recording=True)
+            driver.compare(gaps.checker('filing-role-unavailable'))
+            self.assertFalse(gaps.entries, gaps.entries)
+        finally:
+            scenario.close()
+
+
 class ExportResolution(unittest.TestCase):
     def test_failed_resolving_commit_warns_in_the_calls_own_reply_D4(self):
         scenario = OwnerScenario('testapp_export')

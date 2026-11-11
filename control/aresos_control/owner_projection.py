@@ -36,7 +36,7 @@ FIELDS = {'id', 'generation', 'app', 'action', 'state', 'expires', 'notice', 'ac
           'repair_identity_missing', 'untrusted_content', 'reason', 'path', 'sha256',
           'before', 'events', 'operations', 'head', 'checks', 'size', 'created_blob',
           'verb', 'sources', 'records', 'observed_role', 'roles_after', 'unresolved_roles',
-          'pages', 'total_messages', 'fragments', 'sent_policy', 'safe_folder_delete'}
+          'pages', 'total_messages', 'fragments', 'sent_policy', 'safe_folder_delete', 'role_check_unavailable'}
 TEXT = {'reason', 'question', 'text', 'html', 'subject', 'title', 'password',
         'arguments', 'approval', 'payload', 'summary', 'body', 'raw'}
 
@@ -76,7 +76,8 @@ def fact(key, value):
         for code, text in (
                 ('expired', 'expired: nothing submitted'),
                 ('cancelled', 'cancelled: nothing submitted'),
-                ('repair_uncertain', 'Local repair uncertain; inspect far-side stage evidence. Never submit.')):
+                ('repair_uncertain', 'Local repair uncertain; inspect far-side stage evidence. Never submit.'),
+                ('repair_storage', 'Local repair storage failed; inspect evidence, never submit.')):
             if reason == text:
                 row['reason_kind'] = code
         if reason.endswith(' Missing local stages; repair without SMTP.'):
@@ -495,10 +496,14 @@ class OwnerProjection:
                                 else:
                                     index.execute('INSERT OR REPLACE INTO owner_rows VALUES (?,?)', (key, canonical(value)))
                     self._index_signature = signature
-                for key, value in index.execute('SELECT k,v FROM owner_rows WHERE substr(k,1,?)=? ORDER BY k', (len(prefix), prefix)):
-                    cursor = key
-                    yield key, json.loads(value)
-                return
+                while True:
+                    rows = index.execute('SELECT k,v FROM owner_rows WHERE k>? AND substr(k,1,?)=? ORDER BY k LIMIT 32',
+                                         (cursor, len(prefix), prefix)).fetchall()
+                    if not rows:
+                        return
+                    for key, value in rows:
+                        cursor = key
+                        yield key, json.loads(value)
             except (OSError, sqlite3.Error, Refused) as exc:
                 if not isinstance(exc, sqlite3.Error) and storage_refusal(exc) is None:
                     raise

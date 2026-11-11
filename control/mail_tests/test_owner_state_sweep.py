@@ -318,7 +318,7 @@ class OwnerStateSweep(unittest.TestCase):
         self.assertEqual(results[0], results[1])
 
     def test_shards_cover_every_fault_and_keep_its_cleanup_and_crash_cases(self):
-        for shards in (1, 2, 4, 12, 24):
+        for shards in (1, 2, 4, 8, 12, 24, 48):
             for workers in ((1,) if shards >= 12 else (1, 2, 3)):
                 for point in range(1, 102):
                     owners = []

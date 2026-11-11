@@ -226,6 +226,42 @@ class RestoredNativeFacts(unittest.TestCase):
         self.assertIsNone(self.store.get(key))
         self.assertNotIn(key, dict(self.store.owner_projection.iter_items()))
 
+    def test_retained_positive_warning_keeps_its_binding_after_fence_only_restore(self):
+        from aresos_control.common import digest
+        class Crash(BaseException):
+            pass
+        identity = self.store.generation + ':' + 'c' * 32
+        key = 'op:' + identity
+        op = {'id': identity, 'generation': self.store.generation, 'input_hash': digest(identity),
+              'app': 'mail', 'action': 'mail_send', 'state': 'done', 'expires': 0, 'stages': {},
+              'approval': {'description': {'action': 'mail_send'}}, 'payload': {}, 'reason': 'Synthetic completion'}
+        self.store.write({key: op}, 'fixture', 'Synthetic operation')
+        self.mail.register_sent_check(op)
+        def crash(point):
+            if point == 'journal_appended':
+                raise Crash()
+        self.store.checkpoint = crash
+        matches = [{'uid': 1}, {'uid': 2}]
+        with self.assertRaises(Crash):
+            self.mail.sent_copy_count(op, matches, commit_clean=True)
+        self.store.close()
+        self.store = Store(self.root / 'state', self.root / 'evidence')
+        self.store.confirm_restore()
+        self.mail = Mail(self.store, None)
+        op = self.store.get(key)
+        self.mail.register_sent_check(op)
+        self.mail.sent_copy_count(op, matches, commit_clean=True)
+        warnings = [(key, value) for key, value in self.store.items('notice:') if value.get('check_kind') == 'sent_copies']
+        self.assertEqual(1, len(warnings))
+        notice_key, notice = warnings[0]
+        self.assertEqual('sent-' + digest(identity)[:32], notice['id'])
+        notice['ack'] = True
+        self.store.write({notice_key: notice}, 'mail_notice_ack', 'Synthetic acknowledgement')
+        self.mail.register_sent_check(op)
+        self.mail.sent_copy_count(op, matches, commit_clean=True)
+        self.assertTrue(self.store.get(notice_key)['ack'])
+        self.assertEqual(1, sum(value.get('check_kind') == 'sent_copies' for _, value in self.store.items('notice:')))
+
 
 if __name__ == '__main__':
     unittest.main()
