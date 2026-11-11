@@ -22,6 +22,6 @@ The owner already chose this direction: board #170, an unexplained death latches
 ## Proof and rules
 
 - Revert proof per fix, as before. Run the full WSL suite (plain and `-B`) from a fresh clone, one suite at a time: `pgrep` first, ≥ 4.5 GB available, `setsid`, `pkg23-` names, remove the clone after.
-- The `d6aab7ab` full suite never ran (the disk was full, then the round was parked).
+- The full suite at `d6aab7ab` ran: 995 tests, plain and `-B`, only the 13 known WSL-only failures.
 - No CI unless the image build or a VM check changes.
 - Write a "Review fixes 5" section first in `REPORT.md`. Commits end with `Co-Authored-By: Claude Fable 5.2 <noreply@anthropic.com>`. `AGENTS.md` applies.
