@@ -139,7 +139,9 @@ The baton from the last session. Read it after `STATE.md`. Overwrite it when you
     - **Fable budget:** use Fable early, to fill the Fable half of the weekly by about Sat/Sun. Patrik then presses the Fable reset, which returns that usage. After the press, be selective with Fable.
     - **Keep the orchestrator lean:** hand reading to agents, and start fresh when the context gets long (each turn re-reads it at about 2× Opus cost).
     - **Home screen (the Minecraft hub):** ask Patrik for his pointers first. Don't design it before.
-    - **Reviews:** Codex is out from about Sat until Tue 10:53 and ends for good on 11-21. Meanwhile, reviews run as fresh Fable or Opus agents (never the builder), or as Codex from the Mac on Tue–Fri. CLAUDE.md still says "a fresh Codex context reviews", so get Patrik's OK in the chat before changing that line.
+    - **Reviews:** Codex is out from about Sat until Tue 10:53 and ends for good on 11-21. Meanwhile, reviews run as a fresh Claude agent that isn't the builder, or as Codex from the Mac on Tue–Fri.
+      - **Reviewer model (Patrik via mac-capacity, 2026-11-11):** Opus by default, this week too. Fable only for high-stakes reviews: AresOS-specific risks (updates and rollback, disks, software installs, credentials, system settings) and the final review before something reaches his laptop. Fable's cap is for building.
+      - CLAUDE.md still says "a fresh Codex context reviews". Patrik agreed to the change through mac-capacity; laptop-aresos asked him to confirm in its chat before editing CLAUDE.md.
     - **Safety bar:** normal MCP/CLI level, with extra care for AresOS-specific risks (decision 24 clarification, PR #38).
   - **Fable 5.2 next week (about 2× Opus per token; Patrik plans a Fable-heavy week). Where it helps most:**
     1. **Package 23's hand-off** (`briefs/23-review-fixes-5.md`): five Codex reviews in a row found supervisor/wrapper races. It needs a simpler, conservative design: only certain crashes restart, anything uncertain waits for `retry`. A fresh Fable builder.
