@@ -189,8 +189,11 @@ def decode(state, evidence):
                 raise ValueError('Commit marker without its matching fence')
             result.committed.add(seq)
             continue
-        if value.get('format') not in (1, 2):
+        if value.get('format') not in (1, 2, 3):
             raise ValueError('Unsupported independent record format')
+        if value['format'] == 3 and (not fences or max(fences) <= max(result.committed, default=0) or
+                value.get('restore_from') != max(result.committed, default=0) + 1):
+            raise ValueError('Invalid restore recovery fence')
         body = {k: v for k, v in value.items() if k != 'hash'}
         if value['previous'] != previous or value['hash'] != fingerprint(body):
             raise ValueError('Independent record hash chain mismatch')
@@ -218,6 +221,8 @@ def decode(state, evidence):
         fence = fences.get(event['seq'])
         if fence is None or event['record'] != fence or event['time'] != fence['time']:
             raise ValueError('Working event does not match independent fence')
+        if fence.get('format') == 3 and (event.get('action') != 'control_restore_confirm' or not event.get('space', {}).get('restoring')):
+            raise ValueError('Recovery fence used outside restore')
         for operation in fence['operations']:
             full = event['set'].get('op:' + operation['id'])
             if full is not None and any(full.get(name) != operation[name] for name in ('id', 'generation', 'input_hash', 'state')):
@@ -261,6 +266,8 @@ def decode(state, evidence):
                 result.rows[key] = value
     result.generation = result.rows.get('generation')
     result.unprepared_fences = set(fences) - result.committed - {event['seq'] for event in result.prepared}
+    for first, last, _ in result.restore_intervals:
+        result.unprepared_fences.difference_update(range(first, last + 1))
     expected_head = fences[head[0]]['hash'] if head and head[0] in fences else '' if head and head[0] == 0 else None
     result.locked = bool(result.rows.get('restore_pending')) or bool(fences and
         (head is None or head[0] != max(result.committed, default=0) or head[1] != expected_head))

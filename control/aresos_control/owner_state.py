@@ -33,7 +33,7 @@ class OwnerView:
             return next((v for k,v in self.iter_items(key) if k == key), default)
         return self.store.get(key, default)
 
-    def iter_items(self, prefix=''):
+    def iter_items(self, prefix='', restore_outcomes=True):
         from .owner_projection import fact
         last = ''
         if not (self.store.locked or self.store.write_failed):
@@ -60,7 +60,7 @@ class OwnerView:
                 detailed = None
             value = detailed if fact(key, detailed) == projected else self.inflate(key, projected)
             latest = 0
-            if key.startswith('op:') and self.store.locked:
+            if restore_outcomes and key.startswith('op:') and self.store.locked:
                 try:
                     found = self.store.index.execute('SELECT seq FROM latest WHERE id=?', (key[3:],)).fetchone() if self.store.index else None
                     latest = found[0] if found else max((f['seq'] for f in self.store.owner_projection.journal_records() if any(op['id'] == key[3:] for op in f['operations'])), default=0)
@@ -68,10 +68,10 @@ class OwnerView:
                     if not isinstance(exc, sqlite3.Error) and storage_refusal(exc) is None:
                         raise
                     latest = max((f['seq'] for f in self.store.owner_projection.journal_records() if any(op['id'] == key[3:] for op in f['operations'])), default=0)
-            if key.startswith('op:') and self.store.locked and (latest > self.store.restore_head or value.get('state') == 'submitting'):
+            if restore_outcomes and key.startswith('op:') and self.store.locked and (latest > self.store.restore_head or value.get('state') == 'submitting'):
                 value = {**value, 'state': 'unknown', 'reason': 'Restored log: independent record has newer or missing evidence. Owner must check.'}
             yield key, value
-        if self.store.locked and (not prefix or prefix.startswith('op:')):
+        if restore_outcomes and self.store.locked and (not prefix or prefix.startswith('op:')):
             yield from self.missing_operations(prefix)
 
     def missing_operations(self, prefix):

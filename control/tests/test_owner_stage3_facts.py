@@ -1,4 +1,5 @@
 """Owner facts keep interrupted evidence separate from a later clean result."""
+import errno
 import tempfile
 import sqlite3
 from pathlib import Path
@@ -82,6 +83,21 @@ class OwnerStageThreeFacts(unittest.TestCase):
         self.assertTrue(public['safe_folder_delete'])
         self.assertTrue(public['folder_delete_reason'].startswith('Qualified:'))
 
+    def test_unpublished_owner_fsync_failure_can_recover_without_reusing_its_chain(self):
+        before = dict(self.store.owner_projection.iter_items())
+        failure = OSError(errno.ENOSPC, 'Synthetic owner publication failure')
+        with patch('os.fsync', side_effect=failure), self.assertRaises(OSError):
+            self.store.write({'intent:unpublished': {'id': 'unpublished', 'app': 'mail',
+                'action': 'mail_flag', 'state': 'started'}}, 'fixture', 'Synthetic unpublished facts')
+        self.assertEqual(before, dict(self.store.owner_projection.iter_items()))
+        self.store.refresh_restore()
+        self.assertFalse(self.store.write_failed)
+        self.store.write({'intent:next': {'id': 'next', 'app': 'mail',
+            'action': 'mail_flag', 'state': 'started'}}, 'fixture', 'Synthetic next facts')
+        record = decode(self.root / 'state', self.root / 'evidence')
+        self.assertNotIn('intent:unpublished', record.owner_rows)
+        self.assertIn('intent:next', record.owner_rows)
+
 
 
 
@@ -153,7 +169,62 @@ class RestoredNativeFacts(unittest.TestCase):
         self.assertEqual(expected['context'], actual['context'])
         self.assertEqual(expected['stages'], actual['stages'])
         self.assertEqual('unknown', actual['state'])
-        self.assertEqual({'unavailable': True}, self.store.get(key)['approval'])
+        from aresos_control.engine import Engine
+        restored = self.store.get(key)
+        self.assertNotIn('question', restored['approval'])
+        public = Engine.public_operation(None, restored)
+        self.assertEqual('mail_send', public['approval']['description']['action'])
+        self.assertNotIn('_owner_encoded', public)
+        self.assertNotIn('text', public['approval']['description'])
+
+    def test_second_crash_during_fence_only_restore_cannot_publish_export_completion(self):
+        class Crash(BaseException):
+            pass
+        key = 'export:interrupted'
+        transfer = {'app': 'testapp', 'sha256': 'a' * 64, 'size': 24, 'created_blob': False}
+        self.store.write({key: transfer}, 'fixture', 'Synthetic open export')
+        def crash_after_fence(point):
+            if point == 'journal_appended':
+                raise Crash()
+        self.store.checkpoint = crash_after_fence
+        with self.assertRaises(Crash):
+            self.store.write({key: None}, 'fixture', 'Synthetic unresolved publication')
+        original = (self.root / 'evidence/operations.jsonl').read_bytes()
+        abandoned = self.store.sequence
+        self.store.close()
+        self.store = Store(self.root / 'state', self.root / 'evidence')
+        self.assertTrue(self.store.locked)
+        self.store.checkpoint = crash_after_fence
+        with self.assertRaises(Crash):
+            self.store.confirm_restore()
+        self.assertTrue((self.root / 'evidence/operations.jsonl').read_bytes().startswith(original))
+        self.store.close()
+        self.store = Store(self.root / 'state', self.root / 'evidence')
+        self.assertTrue(self.store.locked)
+        self.assertEqual(transfer, dict(self.store.owner_projection.iter_items())[key])
+        self.store.confirm_restore()
+        record = decode(self.root / 'state', self.root / 'evidence')
+        self.assertNotIn(abandoned, record.committed)
+        self.assertFalse(record.locked)
+        self.assertEqual(transfer, record.owner_rows[key])
+        self.assertIn(key, self.store.ledger.holds)
+        self.store.close()
+        self.store = Store(self.root / 'state', self.root / 'evidence')
+        self.assertFalse(self.store.locked)
+        self.assertEqual(transfer, dict(self.store.owner_projection.iter_items())[key])
+
+    def test_committed_export_removal_survives_an_older_backup(self):
+        from contextlib import closing
+        key = 'export:finished'
+        self.store.write({key: {'app': 'testapp', 'sha256': 'b' * 64, 'size': 24,
+                               'created_blob': False}}, 'fixture', 'Synthetic open export')
+        backup = self.root / 'with-export.sqlite'
+        with closing(sqlite3.connect(backup)) as db:
+            self.store.db.backup(db)
+        self.store.write({key: None}, 'fixture', 'Synthetic committed publication')
+        self.restore_backup(backup)
+        self.assertIsNone(self.store.get(key))
+        self.assertNotIn(key, dict(self.store.owner_projection.iter_items()))
 
 
 if __name__ == '__main__':

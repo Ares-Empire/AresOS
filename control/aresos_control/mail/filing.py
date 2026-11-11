@@ -195,6 +195,9 @@ def resolve_checks(mail):
                 changes = {}
             else:
                 if not any(folder['name'] == intent['target'] for folder in listed):
+                    intent.update(roles_after=current, observed_role='not present')
+                    mail.store.write({key: intent}, 'mail_filing_check',
+                        'Rename target remains absent; check stays open', outcome='started')
                     continue
                 intent.update(roles_after=current, observed_role=folder_role(intent['target'], listed))
                 content = {'filing_id': intent['id'], 'message_count': intent['message_count'],

@@ -170,6 +170,9 @@ def recorded_write(method):
         except Exception as exc:
             store.observations.storage(exc, generic=True)
             store.remember_storage(exc)
+            from .common import cleanup
+            with cleanup('owner state after failed write', exc):
+                store.refresh_restore()
             raise
         store.storage_cause = None
         if not store.flushing_notices:

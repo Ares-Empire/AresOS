@@ -174,6 +174,8 @@ def record_kind(event, key, value):
         return 'check-open'
     if action == 'mail_filing_check_open' and key.startswith(('mail:filing:', 'mail:rename:')):
         return 'check-open'
+    if action == 'mail_filing_check' and key.startswith(('mail:filing:', 'mail:rename:')):
+        return 'check-result'
     if key.startswith(('mail:filing:', 'mail:rename:')) and value.get('state') == 'started' and value.get('context'):
         if key.startswith('mail:rename:') or not any(r.get('destination') for r in value.get('records', [])):
             return 'check-open'
@@ -219,7 +221,12 @@ class OwnerProjection:
                 self.store.observations.storage(exc)
 
     def journal_records(self):
+        for record, _ in self.publications():
+            yield record
+
+    def publications(self):
         previous, count, committed = '', 0, 0
+        pending, confirmed = None, False
         with self.read(self.store.journal.name) as stream:
             for line in stream:
                 if not line.endswith(b'\n'):
@@ -229,13 +236,22 @@ class OwnerProjection:
                     if record != {'commit': count, 'hash': previous}:
                         raise Refused('evidence_corrupt', 'Independent owner commit marker is damaged.')
                     committed = count
+                    confirmed = True
                     continue
+                if pending is not None:
+                    yield pending, confirmed
+                recovery = (record.get('format') == 3 and count > committed and
+                            record.get('restore_from') == committed + 1)
+                if not recovery and (record.get('format') != 2 or count != committed):
+                    raise Refused('evidence_corrupt', 'Independent owner recovery fence is damaged.')
                 count += 1
                 body = {k:v for k,v in record.items() if k != 'hash'}
                 if record['seq'] != count or record['previous'] != previous or digest(body) != record['hash']:
                     raise Refused('evidence_corrupt', 'Independent owner publication chain is damaged.')
                 previous = record['hash']
-                yield record
+                pending, confirmed = record, False
+        if pending is not None:
+            yield pending, confirmed
         if committed < self.store.committed:
             raise Refused('evidence_corrupt', 'Independent owner publication history is missing.')
 
@@ -256,10 +272,10 @@ class OwnerProjection:
         return head
 
     def _fences(self):
-        for record in self.journal_records():
-            yield record['seq'], bytes.fromhex(record['hash']), record
+        for record, confirmed in self.publications():
+            yield record['seq'], bytes.fromhex(record['hash']), record, confirmed
 
-    def _records(self, path, repair=False):
+    def _records(self, path, repair=False, committed_only=False):
         with (storage_stream(open(path, 'r+b')) if repair else self.read(path)) as stream:
             if stream.read(len(MAGIC)) != MAGIC:
                 raise Refused('evidence_corrupt', 'Owner projection format is damaged.')
@@ -307,7 +323,8 @@ class OwnerProjection:
                 except (ValueError, KeyError, TypeError, zlib.error) as exc:
                     raise Refused('evidence_corrupt', 'Owner projection payload is damaged.') from exc
                 previous, last = claimed, seq
-                yield seq, data, claimed, HEADER.size + length + 32
+                if not committed_only or fence[3]:
+                    yield seq, data, claimed, HEADER.size + length + 32
 
     def _recover_tail(self):
         self.previous = bytes(32)
@@ -406,16 +423,14 @@ class OwnerProjection:
                 self.previous = self._append(self.path, self.store.committed, data, self.previous)
 
     def records(self):
-        committed = self.committed_head()
         seen = set()
-        for seq, data, _, _ in self._records(self.path):
-            if seq <= committed:
-                seen.add(seq)
-                yield seq, {key: row['facts'] for key, row in data.items()}
+        for seq, data, _, _ in self._records(self.path, committed_only=True):
+            seen.add(seq)
+            yield seq, {key: row['facts'] for key, row in data.items()}
         runs = {}
         for run, _, _, _ in self.stones():
             runs[run['name']] = run
-        missing = {r['seq'] for r in self.journal_records() if r.get('owner') and r['seq'] <= committed} - seen
+        missing = {r['seq'] for r, confirmed in self.publications() if r.get('owner') and confirmed} - seen
         for run in runs.values():
             missing.discard(run['seq'])
             for entry in self._export(run['name'], run['sha256']):
@@ -507,11 +522,30 @@ class OwnerProjection:
                     yield key, batch[key]
             cursor = max(batch)
 
+    def restored_deletions(self):
+        """Reconcile explicit native removals with rows in an older backup."""
+        prefixes = ('intent:', 'export:', 'notice:', 'mail:filing:', 'mail:rename:', 'mail:account:')
+        cursor = ''
+        while True:
+            where = ' OR '.join('substr(k,1,?)=?' for _ in prefixes)
+            arguments = [cursor, *(v for prefix in prefixes for v in (len(prefix), prefix))]
+            keys = [row[0] for row in self.store.db.execute(
+                'SELECT k FROM kv WHERE k>? AND (' + where + ') ORDER BY k LIMIT 32', arguments)]
+            if not keys:
+                return
+            absent = object()
+            latest = dict.fromkeys(keys, absent)
+            for _, changes in self.records():
+                latest.update((k, v) for k, v in changes.items() if k in latest)
+            for key in keys:
+                if latest[key] is None:
+                    yield key, None
+            cursor = keys[-1]
+
     def open_epoch(self, key):
         epoch = None
-        committed = self.committed_head()
-        for seq, data, _, _ in self._records(self.path):
-            if seq > committed or key not in data:
+        for seq, data, _, _ in self._records(self.path, committed_only=True):
+            if key not in data:
                 continue
             row = data[key]
             value = row['facts'] or {}
@@ -525,13 +559,12 @@ class OwnerProjection:
         # The independent fence still proves each commit's existence and exact
         # operation identities. Owner facts supply its structured source data;
         # SQLite-only audit prose is explicitly replaced by generated wording.
-        active = iter(self._records(self.path))
+        active = iter(self._records(self.path, committed_only=True))
         current = next(active, None)
-        committed = self.committed_head()
-        for fence in self.journal_records():
+        for fence, confirmed in self.publications():
             seq = fence['seq']
-            if seq > committed:
-                break
+            if not confirmed:
+                continue
             while current and current[0] < seq:
                 current = next(active, None)
             sources = {k: row['facts'] for k,row in current[1].items()} if current and current[0] == seq else {}
@@ -668,7 +701,7 @@ class OwnerProjection:
             yield run['seq'], changes if full else {k: fact(k, v) for k, v in changes.items()}
 
     def compact(self):
-        active = list(self._records(self.path))
+        active = list(self._records(self.path, committed_only=True))
         required = {}
         for seq, data, _, _ in active:
             if seq > self.store.committed:

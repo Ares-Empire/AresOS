@@ -828,7 +828,7 @@ class Mail:
         """Read-only remote checks; never APPEND, repair or resubmit."""
         from .filing import resolve_checks
         if self.store.locked or self.store.write_failed:
-            return list(self.unresolved_sent_checks())
+            return list(self.unresolved_sent_checks(recheck=True))
         if operation_ids is None:
             resolve_checks(self)
         unresolved = []
@@ -866,17 +866,21 @@ class Mail:
             'untrusted_content': {'operation_id': operation['id'], 'check': 'sent_copies',
                 'reason': 'Sent-copy count is not yet checked. Its live evidence and result still need committing. Nothing is appended or sent automatically.'}}
 
-    def unresolved_sent_checks(self):
+    def unresolved_sent_checks(self, recheck=False):
         # A committed open check, or a currently incomplete journal which
         # prevents a fresh check, is enough to derive this disclosure.
         from ..owner_state import owner_view
         view = owner_view(self.store)
         warnings = {n.get('source_key') for _,n in view.iter_items('notice:')
                     if n.get('check_kind') == 'sent_copies' and not n.get('ack')}
+        unfinished = False
+        if self.store.write_failed:
+            committed = self.store.owner_projection.committed_head()
+            unfinished = any(row['seq'] > committed for row in self.store.owner_projection.journal_records())
         for key, op in view.iter_items('op:'):
             check = op.get('sent_copy_check', {})
             if op['app'] == 'mail' and (check.get('state') == 'open' or
-                    check and (self.store.write_failed or self.store.locked or getattr(self.store, 'owner_read_failed', False)) and key not in warnings):
+                    check and (recheck or unfinished or self.store.locked or getattr(self.store, 'owner_read_failed', False)) and key not in warnings):
                 yield self.unchecked_sent_notice(op)
 
     def evidence(self, operation_id):

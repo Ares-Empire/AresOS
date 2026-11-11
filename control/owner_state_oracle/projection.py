@@ -95,6 +95,8 @@ def record_kind(event, key, value):
         return 'acknowledgement'
     explicit = (action == 'mail_sent_copy_check_open' and family == 'op' or
                 action == 'mail_filing_check_open' and family in {'filing', 'rename'})
+    if action == 'mail_filing_check' and family in {'filing', 'rename'}:
+        return 'check-result'
     mutation_check = family in {'filing', 'rename'} and state == 'started' and bool(value.get('context')) and (
         family == 'rename' or all(not row.get('destination') for row in value.get('records', [])))
     if explicit or mutation_check:
