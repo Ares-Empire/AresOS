@@ -1,6 +1,8 @@
 # Reviews and councils
 
-There are two kinds of review. Both use a **fresh Codex context**: never the agent that wrote the thing, and never Claude for something Claude wrote. Independence comes from the fresh context, not from a different vendor.
+There are two kinds of review. Both use a **fresh reviewer that isn't the builder**: a fresh Codex context while Codex is available, otherwise a fresh Claude agent (owner, 2026-11-11). Independence comes from the fresh context, not from a different vendor. Nobody reviews their own work.
+
+A Claude reviewer runs on Opus by default, and on Fable 5.2 only for high-stakes reviews (`CLAUDE.md`, "Reviews"). It gets the same prompt as below, a read-only instruction (never modify files), and writes its answer to the same `REVIEW-N.md`.
 
 A review covers exactly the commit it looked at. Anything pushed later isn't covered.
 

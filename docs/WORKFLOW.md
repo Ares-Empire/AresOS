@@ -1,6 +1,6 @@
 # Workflow: how a change gets built
 
-This is the same shape as nametbd's Codex-era workflow, scaled down: Claude plans and integrates, Codex builds, and fresh Codex contexts review. Roles and owner decisions are in `CLAUDE.md`. Codex's rules are in `AGENTS.md`.
+This is the same shape as nametbd's Codex-era workflow, scaled down: Claude plans and integrates, Codex or Claude agents build, and a fresh reviewer that isn't the builder reviews (Codex while available, otherwise a fresh Claude agent). Roles and owner decisions are in `CLAUDE.md`. Codex's rules are in `AGENTS.md`.
 
 ## The loop
 
@@ -21,7 +21,7 @@ Work one package at a time. Run up to about three at once only when they touch d
      > ../AresOS-NN-slug.log 2>&1
    ```
    `$BUILD_MODEL` is the model picked for this package (`CLAUDE.md`, "Codex models").
-4. **Review (fresh Codex).** A reviewer that didn't write the code checks the PR against the brief. See "Package review" in `docs/REVIEW.md`.
+4. **Review (fresh reviewer).** A reviewer that didn't write the code checks the PR against the brief: Codex while available, otherwise a fresh Claude agent (Opus by default). See "Package review" in `docs/REVIEW.md`.
 5. **Integrate (Claude).** This is not a second full review. Claude:
    - confirms the PR head is the commit that was reviewed
    - reruns the build and tests on it
