@@ -1741,6 +1741,24 @@ class StageOneRoundThree(unittest.TestCase):
 
 
 class StageTwoPartA(unittest.TestCase):
+    def test_probe_keeps_its_precommand_state_only_for_a_later_result_fault(self):
+        for fault in (9, 11):
+            with self.subTest(fault=fault):
+                oracle = Oracle()
+                oracle.call('mail_account_add', {'id': 'box'}, 1, {'trace': [(fault, 'file.fsync', 'ENOSPC')]})
+                oracle.script[-1].update(start_seq=0, end_seq=2)
+                oracle.commit_fault_points.update({(1, 1): 10, (1, 2): 20})
+                row = {'action': 'mail_onboarding_folder_probe', 'state': 'submitting', 'payload': {}}
+                record = Record(events=[{'seq': 1, 'set': {'op:g:p': row}}])
+                command = {'call': 1, 'account': 'box', 'before_seq': 1, 'fault_point': 10,
+                           'accepted': False, 'reply': 'delivered'}
+                result = oracle.probe_outcome([command], record, 2, row['action'], lambda payload: True, [command], 'refused')
+                if fault == 11:
+                    self.assertEqual('submitting', result)
+                    self.assertFalse(oracle.lifecycle_errors)
+                else:
+                    self.assertTrue(any(f.kind == 'unjustified-probe-result' for f in oracle.lifecycle_errors))
+
     def test_recovery_location_does_not_reinvent_an_uncommitted_copyuid(self):
         oracle = Oracle()
         source = dict(account='box', folder='Source', uidvalidity=1, uid=1, message_id='<synthetic@mail.invalid>')
@@ -1769,7 +1787,9 @@ class StageTwoPartA(unittest.TestCase):
                 listing = oracle.server('LIST', 'box', roles=roles, before_seq=1)
                 empty_scan(oracle, listing, ['mail:filing:f'])
                 record = Record(events=[{'seq': 1, 'time': 1, 'action': 'mail_move', 'set': {'mail:filing:f': row}},
-                    {'seq': 2, 'time': 1, 'action': 'mail_move', 'set': {'mail:filing:f': {**row, 'state': state}}}])
+                    {'seq': 2, 'time': 1, 'action': 'mail_move',
+                     'untrusted_content': {'filing': {'filing_id': 'f', 'state': 'done'}},
+                     'set': {'mail:filing:f': {**row, 'state': state}}}])
                 oracle.expected(record)
                 self.assertIn(Fact('mail:filing:f', 'uncommitted-check-result', detail='2'), oracle.lifecycle_errors)
 

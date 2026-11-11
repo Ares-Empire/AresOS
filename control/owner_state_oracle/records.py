@@ -105,6 +105,9 @@ def restore_lock(record):
     seq, claimed = record.head
     expected = next((f['hash'] for f in record.fences if f['seq'] == seq), '' if seq == 0 else None)
     committed = max(record.committed, default=0)
+    if any(e['seq'] > committed and e.get('action') == 'control_restore_confirm' and
+           e.get('space', {}).get('restoring') for e in record.prepared):
+        return True
     # SQLite may have applied the current prepared event before its independent
     # marker failed. That is an unfinished write, not an older restored backup.
     prepared = any(e['seq'] == seq and e.get('record') == next(

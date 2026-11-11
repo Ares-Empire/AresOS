@@ -500,7 +500,7 @@ class Engine:
         validate(args, action.input)
         if action.effect != 'read':
             self.store.ensure_writable()
-        if self.store.locked and name not in {"control_restore_confirm", "control_pending", "control_log", "mail_filing_notices"} and not name.endswith('_operation_status'):
+        if self.store.locked and name not in {"control_restore_confirm", "control_pending", "control_log", "mail_filing_notices", "mail_filing_locations"} and not name.endswith('_operation_status'):
             raise Refused("restore_required", "Older log refused; owner must confirm restore before any app access.")
         if name == "control_restore_confirm":
             from .definitions import RESTORE_WARNING

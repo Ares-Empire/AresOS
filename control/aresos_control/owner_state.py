@@ -140,6 +140,8 @@ class OwnerView:
         if not isinstance(row, dict):
             return row
         row = dict(row)
+        if key.startswith('mail:filing-locations:'):
+            return row
         row['_owner_encoded'] = True
         row.pop('reason_code', None)
         reason_kind = row.pop('reason_kind', None)
@@ -189,7 +191,19 @@ class OwnerView:
                 content['reason'] = 'Background maintenance has no committed result. Storage may have failed; inspect the log and disk before continuing.'
             if row.get('check_kind') in {'rename', 'filing'}:
                 source = self.get(row.get('source_key', '')) or {}
-                role = source.get('observed_role', 'an unverified role').lstrip('\\')
+                role = row.get('observed_role')
+                if role is None:
+                    # A source may have newer evidence than this occurrence.
+                    # Its original publication binds the occurrence's own role.
+                    for _, changes in self.store.owner_projection.records():
+                        notice = changes.get(key) or {}
+                        original = changes.get(row.get('source_key')) or {}
+                        binding = original.get('warning_checks', {}).get(row['check_kind'], {})
+                        if (notice.get('evidence_fingerprint') == row.get('evidence_fingerprint') and
+                                binding.get('occurrence_id') == row.get('id') and original.get('observed_role')):
+                            role = original['observed_role']
+                            break
+                role = (role or source.get('observed_role', 'an unverified role')).lstrip('\\')
                 location = ('inside ' + role if row['check_kind'] == 'rename' else
                             'The target ' + str(source.get('target', 'unknown'))[:64] + ' is now ' + role)
                 content['reason'] = 'Filing needs inspection. ' + location + '. Nothing was deleted. Check your mail program.'

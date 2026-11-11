@@ -80,8 +80,12 @@ def recovery_notices(store, include_checks=True):
                       'no probes are repeated automatically.')
         created = store.retained_at(key)
         existing = store.get('notice:' + notice_id)
-        if filing and include_checks and existing and existing.get('ack'):
-            # Acknowledging an occurrence cannot certify its unfinished check.
+        content = (existing or {}).get('untrusted_content', {})
+        represented = content.get('unresolved_roles') or content.get('scan_complete') is False
+        if (filing and include_checks and existing and (existing.get('ack') or
+                existing.get('check_kind') in {'filing', 'rename'} and not represented)):
+            # A specific occurrence cannot certify its unfinished check, even
+            # before acknowledgement. Keep a distinct handle for that check.
             yield {'id': 'check-' + digest(key)[:32], 'app': app, 'state': 'unknown', 'ack': False,
                    'created_at': int(created * 1_000_000_000), 'check_only': True,
                    'untrusted_content': {'reason': reason, 'intent_key': key, 'check_open': True}}

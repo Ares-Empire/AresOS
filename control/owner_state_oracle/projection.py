@@ -91,6 +91,8 @@ def record_kind(event, key, value):
     if not isinstance(value, dict):
         return 'resolution'
     action, state = event['action'], value.get('state')
+    if action == 'control_restore_confirm' and event.get('owner_restore_context'):
+        return 'context'
     family = 'op' if key.startswith('op:') else 'filing' if key.startswith('mail:filing:') else 'rename' if key.startswith('mail:rename:') else ''
     if action.endswith('_notice_ack') and value.get('ack'):
         return 'acknowledgement'

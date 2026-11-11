@@ -511,3 +511,29 @@ all-app cursors remain unchanged. Unknown or conflicting scopes refuse. Catalogu
 changes still restart with `page_changed`. `paging.py` itself is unchanged.
 The daemon's final error path reports owner-source unavailability explicitly;
 it no longer references the removed RAM-only pending snapshot.
+
+New restore events set `owner_restore_context: true`. Their non-deletion owner
+publications are context, preserving the existing check epoch instead of
+pretending owner confirmation started a new evidence read. Older unflagged
+restore publications retain their original kind rules and hash commitments.
+No existing journal bytes or owner commitments change.
+
+When confirmation conservatively adopts a positive filing warning from an
+abandoned publication, it retains the matching role and exact location pages,
+but never the abandoned action completion or check closure. Restore admission
+includes those selected facts. A warning and an open check have distinct handles
+when the warning itself does not already disclose its incomplete check. Native
+fallback reconstructs each occurrence's role from its original matching source
+publication, rather than borrowing a newer source role. Normal-operation owner
+frames and permanent-byte figures are unchanged.
+
+Filing result proof distinguishes an intermediate started context from a
+declared result: explicit check results, result payloads and matching warning
+publications must agree with delivered evidence. A later failed result write
+does not retroactively complete its preceding context write. Deferred warning
+creation times remain bound to their original evidence call and occurrence
+fingerprint, rather than the request which eventually flushes them.
+Onboarding may retain a pre-command submitting row only when a correlated later
+result fault explains the absence of its delivered outcome; this never proves
+qualification or completion. Applied prepared restore events retain their
+original restore lock until their confirmation commits.

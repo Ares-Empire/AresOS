@@ -397,6 +397,8 @@ class Store:
                     budget += record_budget(value)
             for key, value in self.owner_projection.restored_deletions():
                 budget += record_budget({key: value})
+            for value in self._unprepared_owner_facts().values():
+                budget += record_budget(value)
             self.ledger.holds['restore'] = budget
         for prefix in ('op:', 'intent:', 'mail:filing:', 'mail:rename:', 'notice:'):
             for key, value in view.iter_items(prefix, restore_outcomes=False):
@@ -692,6 +694,7 @@ class Store:
                  "set": changes, "record": record}
         if restoring:
             event['restore_range'] = [self.restore_head + 1, self.sequence]
+            event['owner_restore_context'] = True
         if untrusted_content is not None:
             json_value(untrusted_content)
             event["untrusted_content"] = visible(untrusted_content)
@@ -898,25 +901,54 @@ class Store:
                 raise
             self.observations.storage(exc)
 
+    def _unprepared_owner_facts(self):
+        unresolved = {}
+        if not self.restore_unprepared:
+            return unresolved
+        for seq, data, _, _ in self.owner_projection._records(self.owner_projection.path):
+            if seq in self.restore_unprepared:
+                for key, row in data.items():
+                    if key.startswith(('intent:', 'export:', 'notice:', 'mail:filing:', 'mail:filing-locations:', 'mail:rename:', 'mail:account:')):
+                        unresolved.setdefault(key, row['facts'])
+        return unresolved
+
     def confirm_restore(self):
         self.ensure_writable()
         if not self.locked:
             raise Refused("refused", "No older log is awaiting confirmation.")
-        unresolved = {}
-        for seq, data, _, _ in self.owner_projection._records(self.owner_projection.path):
-            if seq in self.restore_unprepared:
-                for key, row in data.items():
-                    if key.startswith(('intent:', 'export:', 'notice:', 'mail:filing:', 'mail:rename:', 'mail:account:')):
-                        unresolved.setdefault(key, row['facts'])
+        unresolved = self._unprepared_owner_facts()
         # A fence-only publication has no prepared result to replay. Owner
         # confirmation cannot turn its deletion/completion into evidence.
         previously_committed = set()
+        unpublished = dict(unresolved)
         for _, changes in self.owner_projection.records():
             previously_committed.update(key for key in changes if key in unresolved)
             unresolved.update((key, value) for key, value in changes.items() if key in unresolved)
+        adopted_filings = set()
         for key, value in unresolved.items():
             if key.startswith('notice:') and value is not None and key not in previously_committed:
                 unresolved[key] = {**value, 'created_at': time.time_ns()}
+                source = unpublished.get(value.get('source_key')) or {}
+                binding = source.get('warning_checks', {}).get(value.get('check_kind'), {})
+                if (value.get('check_kind') in {'filing', 'rename'} and binding.get('warning') and
+                        binding.get('occurrence_id') == value.get('id') and
+                        binding.get('fingerprint') == value.get('evidence_fingerprint') and source.get('observed_role')):
+                    # Retain the observed warning, without promoting the
+                    # abandoned action/check result or its source state.
+                    unresolved[key]['observed_role'] = source['observed_role']
+                    source_key = value['source_key']
+                    previous = unresolved.get(source_key)
+                    if (isinstance(previous, dict) and
+                            (previous.get('state') == 'started' or previous.get('check_open'))):
+                        previous = copy.deepcopy(previous)
+                        previous.setdefault('warning_checks', {})[value['check_kind']] = binding
+                        unresolved[source_key] = previous
+                    if value['check_kind'] == 'filing':
+                        adopted_filings.add(value['id'])
+        for key in list(unresolved):
+            if (key.startswith('mail:filing-locations:') and key not in previously_committed and
+                    not any(key.startswith('mail:filing-locations:' + identity + ':') for identity in adopted_filings)):
+                del unresolved[key]
         # Keep the lock durable across every batch and crash. Only the final
         # marker advances generation; nothing is resumed in an intermediate DB.
         through = self.sequence
@@ -941,7 +973,7 @@ class Store:
         current = chain(self.owner_projection.iter_items(), self.owner_projection.restored_deletions())
         reconciliation = chain(((k, v) for k, v in current if k not in unresolved), unresolved.items())
         for key, value in reconciliation:
-            if not key.startswith(('intent:', 'export:', 'notice:', 'mail:filing:', 'mail:rename:', 'mail:account:')):
+            if not key.startswith(('intent:', 'export:', 'notice:', 'mail:filing:', 'mail:filing-locations:', 'mail:rename:', 'mail:account:')):
                 continue
             old = self.get(key)
             if key not in unresolved and (old == value or old is not None and self.owner_projection.same(key, old, value)):

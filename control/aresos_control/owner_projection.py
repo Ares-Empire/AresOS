@@ -169,6 +169,8 @@ def record_kind(event, key, value):
     if value is None or not isinstance(value, dict):
         return 'resolution'
     action = event['action']
+    if action == 'control_restore_confirm' and event.get('owner_restore_context'):
+        return 'context'
     if action.endswith('_notice_ack') and value.get('ack'):
         return 'acknowledgement'
     if action == 'mail_sent_copy_check_open' and key.startswith('op:'):

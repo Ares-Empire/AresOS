@@ -102,6 +102,25 @@ class OwnerStageThreeFacts(unittest.TestCase):
 
 
 class PreparedRestoreProof(unittest.TestCase):
+    def test_restore_confirmation_cannot_leave_a_reserved_approval_in_the_old_generation(self):
+        from owner_state_oracle.model import Oracle, Fact
+        from owner_state_oracle.records import Record
+        oracle = Oracle()
+        oracle.seed_sequence = 1
+        row = {'id': 'old:p', 'app': 'testapp', 'action': 'testapp_send', 'generation': 'old',
+               'state': 'reserved', 'reason': 'Awaiting exact approval; nothing submitted.'}
+        record = Record(events=[{'seq': 1, 'action': 'fixture', 'set': {'op:old:p': row}},
+            {'seq': 2, 'action': 'control_restore_confirm', 'set': {'generation': 'new'}}])
+        oracle.call('control_restore_confirm', {}, 2)
+        oracle.script[-1].update(start_seq=1, end_seq=2, restore_precondition=True)
+        oracle.expected(record)
+        proof = Fact('op:old:p', 'missing-restore-operation-result', detail='2')
+        self.assertIn(proof, oracle.lifecycle_errors)
+        record.events[-1]['set']['op:old:p'] = {**row, 'state': 'failed'}
+        oracle.lifecycle_errors.clear()
+        oracle.expected(record)
+        self.assertNotIn(proof, oracle.lifecycle_errors)
+
     def test_only_the_unfinished_transactions_own_fault_can_remain_a_refusal(self):
         from owner_state_oracle.model import Oracle
         from owner_state_oracle.records import Record
@@ -123,6 +142,8 @@ class PreparedRestoreProof(unittest.TestCase):
         record = Record(fences=[{'seq': 1, 'hash': 'committed'}, fence], committed={1},
             prepared=[{'seq': 2, 'record': fence}], head=(2, 'prepared'))
         self.assertFalse(restore_lock(record))
+        record.prepared[0].update(action='control_restore_confirm', space={'restoring': True})
+        self.assertTrue(restore_lock(record))
         record.prepared.clear()
         self.assertTrue(restore_lock(record))
         record.head = (0, '')
@@ -168,6 +189,67 @@ class FailedOwnerRead(unittest.TestCase):
 class RestoredNativeFacts(unittest.TestCase):
     setUp = OwnerStageThreeFacts.setUp
     tearDown = OwnerStageThreeFacts.tearDown
+
+    def test_fence_only_filing_retains_warning_role_pages_and_original_open_epoch(self):
+        from aresos_control.warnings import check_result
+        from aresos_control.recovery import recovery_notices
+        class Crash(BaseException):
+            pass
+        key = 'mail:filing:retained'
+        source = {'id': 'retained', 'account': 'box', 'state': 'started', 'target': 'Target',
+                  'context': {'command': 'MOVE', 'account': 'box'}, 'records': [], 'sources': []}
+        self.store.write({key: source}, 'fixture', 'Synthetic open filing')
+        epoch = self.store.owner_projection.open_epoch(key)
+        result = {**source, 'state': 'partial', 'observed_role': 'Trash'}
+        notices, identity = check_result(self.store, result, key, 'filing',
+            {'target': 'Target', 'role': 'Trash'}, {'reason': 'The target Target is now Trash. Nothing was deleted.',
+                'filing_id': 'retained', 'folders': ['Target'], 'message_count': 0})
+        pages = {'mail:filing-locations:' + identity + ':meta': {'pages': 1, 'total_messages': 0},
+                 'mail:filing-locations:' + identity + ':0': {'locations': [], 'fragments': []}}
+        def crash(point):
+            if point == 'journal_appended':
+                raise Crash()
+        self.store.checkpoint = crash
+        with self.assertRaises(Crash):
+            self.store.write({key: result, **notices, **pages}, 'mail_move', 'Synthetic observed warning')
+        self.store.close()
+        self.store = Store(self.root / 'state', self.root / 'evidence')
+        self.store.checkpoint = crash
+        with self.assertRaises(Crash):
+            self.store.confirm_restore()
+        self.store.close()
+        self.store = Store(self.root / 'state', self.root / 'evidence')
+        self.store.confirm_restore()
+        self.assertEqual('started', self.store.get(key)['state'])
+        self.assertEqual(epoch, self.store.owner_projection.open_epoch(key))
+        self.assertIn('Trash', self.store.get('notice:' + identity)['untrusted_content']['reason'])
+        self.assertTrue(any(n.get('check_only') for n in recovery_notices(self.store)))
+        repeated, same_identity = check_result(self.store, self.store.get(key), key, 'filing',
+            {'target': 'Target', 'role': 'Trash'}, {'reason': 'Repeated unchanged warning'})
+        self.assertEqual(identity, same_identity)
+        self.assertFalse(repeated)
+        for page, value in pages.items():
+            self.assertEqual(value, self.store.get(page))
+        record = decode(self.root / 'state', self.root / 'evidence')
+        self.assertEqual('Trash', record.owner_rows['notice:' + identity]['observed_role'])
+
+    def test_each_native_occurrence_uses_its_own_original_role(self):
+        from aresos_control.warnings import check_result
+        key = 'mail:filing:roles'
+        source = {'id': 'roles', 'account': 'box', 'state': 'partial', 'target': 'Target'}
+        identities = []
+        for role in ('Trash', 'Sent'):
+            source['observed_role'] = role
+            changes, identity = check_result(self.store, source, key, 'filing', {'role': role},
+                {'reason': 'The target Target is now ' + role + '. Nothing was deleted.', 'filing_id': 'roles'})
+            self.store.write({key: source, **changes}, 'fixture', 'Synthetic changed warning evidence')
+            identities.append((identity, role))
+        from aresos_control.owner_projection import fact
+        view = owner_view(self.store)
+        for identity, role in identities:
+            row = self.store.get('notice:' + identity)
+            inflated = view.inflate('notice:' + identity, fact('notice:' + identity, row))
+            self.assertIn('now ' + role, inflated['untrusted_content']['reason'])
 
     def restore_backup(self, backup):
         self.store.close()
