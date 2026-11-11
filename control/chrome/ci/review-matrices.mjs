@@ -11,7 +11,7 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
     const id='recheck-owner-overlap';await nav('review-page&mode=owner-overlap&id='+id);
     const pending=call('click',await target('Continue'));
     const start=await eventually(()=>fixture.arrivals.find(row=>row.url.includes('case=task-start')&&row.body===id),'Claude timer started');
-    await delay(Math.max(0,start.time+130-Date.now()));ownerKey();const result=await pending;
+    await delay(Math.max(0,start.time+130-Date.now()));ownerKey(true);const result=await pending;
     await eventually(()=>counts('owner-'+id)===1,'his immediate Enter arrival');
     assert.equal(receiverEvidence(id,'timer held during owner mark').count,0);
     const traces=completeIngress(fs.readFileSync('/out/browser-boundary.jsonl','utf8')).filter(row=>row?.owner_trace).map(row=>row.owner_trace);
