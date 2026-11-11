@@ -58,7 +58,7 @@
       "path": ".gitattributes"
     },
     {
-      "sha256": "1a71a5b16bd27a610d218d932c4a829838d3743c883eb4d3d73a0aecf53c9c33",
+      "sha256": "224b02b7e54e0bc631ad96e333843669241959af0aa8a995e193bd13e7a1a025",
       "path": ".github/workflows/os-image.yml"
     },
     {
@@ -90,7 +90,7 @@
       "path": "os/ci/installer_inspect.py"
     },
     {
-      "sha256": "b306e8141d4a9da2d968e90b75b0ee2b51049ef50d1c526f3f12f5f54d65230b",
+      "sha256": "87aa4eef5ec4fe80dc691889f42d92eab8c6ce708ab15c5b4dfa3db244a065ee",
       "path": "os/ci/installer_webui.py"
     },
     {
@@ -922,7 +922,7 @@
       "path": "os/tests/test_owner_format_audit.py"
     },
     {
-      "sha256": "743d851911d57c84afe19afbee55f28f94be87300929c16bb7f3b834f55a6220",
+      "sha256": "c9ff355febcc2aa6445c658b19b619c9cc2d459f4b1f24f2d16916ac5eb322a7",
       "path": "os/tests/test_owner_guard.py"
     },
     {
