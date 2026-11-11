@@ -118,6 +118,10 @@ The baton from the last session. Read it after `STATE.md`. Overwrite it when you
     - If run 4 needs another real round, or Patrik's meter shows ~96%, stop at a clean point. The rest continues after the Thu 00:00 reset.
     - Guide Patrik through `at update` today only if 27 merges in time; otherwise after the reset.
     - **After the reset, start fresh agents.** Don't resume `afc79d03d9f22e06d` (about 1M tokens) or `af1524c06373de3ac` (about 0.9M).
+  - **Safety bar for AresOS tools (Patrik via mac-capacity, 2026-11-11 ~08:10; the control lead records it for decision 24):**
+    - "baseline is basically MCPs or CLIs like any other mcp or cli that already exists", "reasonably safe", not "nothing could ever go wrong". It is a judgment that "cannot be taken too literally".
+    - Extra care only where AresOS adds its own risk (Claude Code as system operator). Disks, boot, updates and rollback are already in that group.
+    - For later tools (23's next round, 22c, the 25 guardian, desktop shortcuts), brief reviewers with this bar: adversarial edge cases come back as known limits, not blocking rounds, unless they touch those AresOS-specific risks.
   - **Fable 5.2 next week (about 2× Opus per token; Patrik plans a Fable-heavy week). Where it helps most:**
     1. **Package 23's hand-off** (`briefs/23-review-fixes-5.md`): five Codex reviews in a row found supervisor/wrapper races. It needs a simpler, conservative design: only certain crashes restart, anything uncertain waits for `retry`. A fresh Fable builder.
     2. **Package 22c** (rollback, then forward again, keep-stock and layout trials after an update; plus the refusal-invariant test gap from PR #37). It is the owner tools' state machine on his real disks, where mistakes are costly.
