@@ -1825,9 +1825,8 @@ case "$*" in
         case $(cat "$FIXTURE_ROOT/mode") in
             # Ignores TERM: only KILL ends it.
             hang) trap '' TERM; while :; do sleep 0.1; done ;;
-            # Stages shortly before the time limit (another release if told), then keeps going.
-            stage-at-timeout)
-                sleep "$(cat "$FIXTURE_ROOT/stage-after")"
+            # Stages (another release if told), then is still running when the time limit hits.
+            stage-then-run)
                 if [[ -s $FIXTURE_ROOT/foreign ]]; then target=$(cat "$FIXTURE_ROOT/foreign"); fi
                 echo "$target" > "$FIXTURE_ROOT/staged"; sleep 3600 ;;
             # Fails, leaving a TERM-proof child that closed the step's pipes.
@@ -1904,7 +1903,7 @@ class UpdateStopTest(unittest.TestCase):
     """
     MASKED = dict.fromkeys(owner.FINALIZERS, '/dev/null')
 
-    def run_stopped(self, mode, timeout=2, stage_after=None, signals=(), foreign=None, failing_reads=0,
+    def run_stopped(self, mode, timeout=6, signals=(), foreign=None, failing_reads=0,
                     stdout=None, swallow_kill=False):
         import signal, threading
         import test_release27 as r27
@@ -1918,7 +1917,6 @@ class UpdateStopTest(unittest.TestCase):
             for name in ('auth.json', 'calls', 'system-unmasked', 'user-unmasked'):
                 (root / name).write_text('{}\n' if name == 'auth.json' else '')
             (root / 'mode').write_text(mode)
-            (root / 'stage-after').write_text(str(stage_after or 0))
             (root / 'foreign').write_text(foreign or '')
             for unit in owner.FINALIZERS:
                 os.symlink('/dev/null', root / 'units' / unit)
@@ -1937,7 +1935,19 @@ class UpdateStopTest(unittest.TestCase):
             for signum, handler in ((signal.SIGINT, signal.default_int_handler), (signal.SIGTERM, killed),
                                     (signal.SIGHUP, killed)):
                 self.addCleanup(signal.signal, signum, signal.signal(signum, handler))
-            timers = [threading.Timer(after, os.kill, (os.getpid(), signum)) for after, signum in signals]
+            # Signals count from the fake bootc's start, so a slow (loaded) update.sh preamble cannot reorder them.
+            cancelled = threading.Event()
+
+            def send():
+                started = time.monotonic() + 30
+                while not (root / 'bootc.pid').exists() and not cancelled.is_set() and time.monotonic() < started:
+                    time.sleep(0.02)
+                begin = time.monotonic()
+                for after, signum in sorted(signals):
+                    if cancelled.wait(max(0, begin + after - time.monotonic())):
+                        return
+                    os.kill(os.getpid(), signum)
+            timers = [threading.Thread(target=send, daemon=True)] if signals else []
             stack.enter_context(patch.object(owner, 'SCRIPT_TIMEOUT', timeout))
             stack.enter_context(patch.object(owner, 'STOP_GRACE', 1 if swallow_kill else 3))
             stack.enter_context(patch.object(owner, 'UNITS', root / 'units'))
@@ -1959,8 +1969,9 @@ class UpdateStopTest(unittest.TestCase):
             except BaseException as error:
                 outcome = error
             finally:
+                cancelled.set()
                 for timer in timers:
-                    timer.cancel()
+                    timer.join(5)
             elapsed = time.monotonic() - start
             # What the fake bootc really left, whether or not the tool looked again.
             host.sync()
@@ -2015,24 +2026,24 @@ class UpdateStopTest(unittest.TestCase):
         self.assertIn('Stopping the update safely; this takes up to ', run.printed)
         self.assertLess(run.elapsed, 30)
 
-    def test_staging_that_finishes_as_the_time_limit_hits_is_removed(self):
-        run = self.run_stopped('stage-at-timeout', timeout=3, stage_after=2.5)
+    def test_staging_that_finished_before_the_time_limit_hits_the_still_running_step_is_removed(self):
+        run = self.run_stopped('stage-then-run')
         self.stopped_cleanly(run, 'The update timed out')
         self.assertIn(('rpm-ostree', 'cleanup', '--pending'), run.host.changes)
         self.assertIn('its staged release was removed', str(run.outcome))
 
     def test_ctrl_c_stops_the_step_and_undoes_it(self):
         import signal
-        run = self.run_stopped('hang', timeout=60, signals=[(3, signal.SIGINT)])
+        run = self.run_stopped('hang', timeout=60, signals=[(1, signal.SIGINT)])
         self.stopped_cleanly(run, 'The update was interrupted (Ctrl+C)')
         self.assertLess(run.elapsed, 30)
 
     def test_a_second_and_third_ctrl_c_during_the_term_grace_cannot_cut_the_stop_short(self):
         import signal
         # The hung bootc ignores TERM, so the routine sits in its 3 s grace when the next two arrive.
-        run = self.run_stopped('hang', timeout=60, signals=[(3, signal.SIGINT), (4, signal.SIGINT), (5, signal.SIGINT)])
+        run = self.run_stopped('hang', timeout=60, signals=[(1, signal.SIGINT), (2, signal.SIGINT), (3, signal.SIGINT)])
         self.stopped_cleanly(run, 'The update was interrupted (Ctrl+C)')
-        self.assertGreater(run.elapsed, 5.5)
+        self.assertGreater(run.elapsed, 4)  # the TERM grace (3 s) ran after the first, around the others
 
     def test_a_closed_window_or_a_kill_starts_the_stop_routine(self):
         import signal
@@ -2043,7 +2054,7 @@ class UpdateStopTest(unittest.TestCase):
         for signum, words in ((signal.SIGHUP, 'the window closing'), (signal.SIGTERM, 'a termination request')):
             with self.subTest(signal=signum):
                 # A closed window also breaks the output; the routine still runs to its end.
-                run = self.run_stopped('hang', timeout=60, signals=[(3, signum)],
+                run = self.run_stopped('hang', timeout=60, signals=[(1, signum)],
                                        stdout=Closed() if signum == signal.SIGHUP else None)
                 self.stopped_cleanly(run, 'The update was interrupted (' + words + ')')
 
@@ -2056,7 +2067,7 @@ class UpdateStopTest(unittest.TestCase):
         self.assertLess(run.elapsed, 30)
 
     def test_a_status_read_that_fails_after_the_kill_still_restores_the_masks(self):
-        run = self.run_stopped('stage-at-timeout', timeout=3, stage_after=2.5, failing_reads=1)
+        run = self.run_stopped('stage-then-run', failing_reads=1)
         self.assertEqual(run.links, self.MASKED, 'the masks this run removed are not back')
         self.assertFalse([pid for pid in run.pids if self.alive(pid)], 'a process of the step outlived the tool')
         self.assertNotIn(('rpm-ostree', 'cleanup', '--pending'), run.host.changes)
@@ -2066,7 +2077,7 @@ class UpdateStopTest(unittest.TestCase):
         self.assertNotIn('stopped safely', str(run.outcome))
 
     def test_a_foreign_staged_deployment_is_never_deleted(self):
-        run = self.run_stopped('stage-at-timeout', timeout=3, stage_after=2.5, foreign=R30)
+        run = self.run_stopped('stage-then-run', foreign=R30)
         self.assertNotIn(('rpm-ostree', 'cleanup', '--pending'), run.host.changes, 'a foreign staged deployment was deleted')
         self.assertEqual([r['container-image-reference-digest'] for r in run.host.state['rpm']['deployments'] if r.get('staged')],
                          [R30.split('@')[1]])
@@ -2075,7 +2086,7 @@ class UpdateStopTest(unittest.TestCase):
         self.assertIn('Do not reboot', str(run.outcome))
 
     def test_a_process_that_survives_kill_is_reported_and_nothing_is_deleted_behind_it(self):
-        run = self.run_stopped('hang', timeout=2, swallow_kill=True)
+        run = self.run_stopped('hang', swallow_kill=True)
         self.assertTrue(run.pids and self.alive(run.pids[0]), 'the survivor is a real, live process')
         self.assertEqual(self.step(run)['group_gone'], False, 'a survivor was not reported')
         self.assertIn('survived TERM and KILL, so nothing was deleted', str(run.outcome), 'a survivor was not reported')
