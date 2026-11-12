@@ -2,8 +2,11 @@
 
 This is brief 18's shared Python service, caller-side MCP/CLI and fake adapter,
 plus brief 19's IMAP/SMTP Mail adapter. Mail tests use isolated synthetic servers.
-Chrome, Claude Code's sandbox and image integration belong to separate briefs. Packaging and managed settings are drafts,
-not a deployment or a claim that a Claude session is confined.
+Brief 18d implements decision 24: run `claude` normally, as the owner, with his own
+settings, login, projects, MCP servers, plugins and skills. Nothing here confines
+Claude. Managed ask rules protect calls through Claude Code's permission prompt;
+the owner user's direct CLI/socket access remains an accepted route around it.
+Packaging remains an image-setup draft; `os/` integration is a separate package.
 
 The current Fedora container is **Fedora 45 x86_64**, pinned by manifest digest in
 the workflow; CI tested **Python 3.15.0** and prints its version. The lock supports CPython
@@ -52,8 +55,9 @@ contains up to five compact references, a total and a cursor. Full operation
 descriptions remain available through operation status, with no approval truncation.
 `control_pending` and `control_log` page across all apps. The log includes time,
 action, input summary, outcome and operation id. Log dates use the service's
-local timezone. Returned app text is marked `untrusted_content`; descriptions
-instruct the caller to treat it as data.
+local timezone. Returned app text is marked `untrusted_content`; each MCP server sends the shared
+untrusted-data and recovery rules once as initialization `instructions`. Descriptions
+keep action-specific guidance and the instruction to copy approvals unchanged.
 
 Three private methods implement file movement for public file actions. Both sides
 use raw-byte offsets and chunks of at most **1 MiB**, base64 encoded inside bounded
@@ -226,7 +230,8 @@ and current pinned folder; empty entries remain, and other alias locations canno
 be enumerated. If truncation or sync fails, `save_incomplete` explicitly warns that
 bytes may remain or survive a storage failure. An unsupported filesystem fails closed. A process running as the
 owner can still move or modify a completed download afterward, as it can any owner
-file; the hostile-program confinement is brief 18b.
+file. Decision 24 imposes no confinement; the optional sandbox fixture is tested
+separately in `control/boundary/`.
 
 Installed entry points use a fixed `/usr/bin/python3 -I -S`, `/usr/bin/env -i`, a
 fixed PATH/LANG, and root-owned code under `/usr/libexec/aresos-control`, vendor
@@ -262,6 +267,63 @@ Contract **read**: [Anthropic hooks reference](https://code.claude.com/docs/en/h
 `reviews/control-checks/2026-11-07-permission-prompt.md`. No Claude binary or model
 is run by this package. MCP contract **read**:
 [official SDK v2.3.0](https://github.com/modelcontextprotocol/python-sdk/tree/v2.3.0).
+
+## Slim Claude Code setup (decision 24)
+
+`boundary_policy.py` is the single definition for the generated managed settings:
+`permissions.ask` for every served asking tool and the existing `Stop` and
+`UserPromptSubmit` notification hooks. No sandbox, deny list, source lock, plugin
+lock or forced permission mode is shipped. The generated `settings/CLAUDE.md`
+states that only the owner in the session gives instructions; it enforces nothing.
+Image setup installs these files root-owned under `/etc/claude-code/` (the draft
+settings file becomes `managed-settings.json`). Remove the former exclusive
+`managed-mcp.json` during migration; it is no longer an artifact of this package.
+
+Our MCP servers install under the owner's user scope like any other server.
+`settings/user-mcp.json` maps each server name to the complete JSON argument for
+`claude mcp add-json --scope user`. Image setup, **as the owner**, can run:
+
+```sh
+python3 - <<'INSTALL'
+import json, subprocess
+from pathlib import Path
+for name, server in json.loads(Path('control/settings/user-mcp.json').read_text()).items():
+    subprocess.run(['claude', 'mcp', 'add-json', '--scope', 'user', name,
+                    json.dumps(server)], check=True)
+INSTALL
+```
+
+The checkout path above is an example for image setup, not a host installer.
+Existing unrelated MCP entries are retained. Server names must stay stable:
+`mcp__mail__send` names the `send` tool on the installed `mail` server.
+`testapp` is served by the service, so its send/delete asks are shipped and
+required too. Only its MCP entry is omitted from `user-mcp.json`; the harness
+installs it at user scope under the name `testapp`. A generator check rejects an
+ask that does not name an exposed tool of a served app under its installed server
+name. Testapp is the sole exception to requiring a shipped user-scope entry.
+
+Before preparing or submitting asking work, the service reads only the installed
+managed settings through root-owned, non-writable, non-symlink path components.
+Every generated ask must be present, exactly named. Additional settings, rules,
+hooks, drop-ins, caches and plugins are allowed and are never inspected by this
+check. This is an installation precondition, not proof a prompt was answered.
+`PermissionRequest` hooks and direct service access remain the decision-24
+residuals. Broad owner auto-approval hooks must exclude our asking tools. The
+native harness records print-mode behavior; interactive hooks remain an 18c gate.
+
+### Adding Chrome or another app
+
+Add definitions to `ACTIONS` and register its adapter; `installed_apps()`,
+`user_mcp()`, `asking_rules()` and `managed_settings()` discover it automatically.
+Run `python3 control/generate.py` and commit all generated files. App-wide guidance
+belongs in `instructions_for(app)`; descriptions retain only action-specific rules.
+Every public send/delete asks unless **explicitly** marked `trusted_send=True`.
+A trusted send must implement `adapter.require_trusted_send(verb, operation)`:
+return exactly `True` only when a current matching owner-only entry authorizes the
+entire payload, and recheck on every submission. Missing, false or empty decisions refuse. No existing Mail action is a trusted send on this
+branch. The base refuses a marked send without an installed checker. Do not mark
+a preparation, read, change, delete or owner-only action trusted. Chrome's future
+trusted submit must also preserve its own exact-state binding at execution.
 
 ## Adding Mail or Chrome
 
@@ -309,8 +371,8 @@ is run by this package. MCP contract **read**:
 ## Mail
 
 The generated [tool reference](../docs/control/TOOLS.md) and
-[Mail MCP catalogue](generated/mail-tools.json) are authoritative. The draft managed
-MCP file starts `aresos-mcp mail` through the same protected launch chain as the base.
+[Mail MCP catalogue](generated/mail-tools.json) are authoritative. The generated user-scope
+MCP entry starts the Mail proxy through the same protected Python launch chain as the base.
 No account, endpoint or credential is shipped. Public account results expose aliases,
 capabilities and SPECIAL-USE folders, never host/login details or passwords.
 
@@ -508,7 +570,7 @@ are private even when their hashes appear in results. Caller imports alone do no
 grant download rights, and attachment hashes still require caller-import provenance
 and metadata. Ordinary non-draft attachment_save explicitly exports original bytes.
 Missing legacy origin metadata grants no export/import permission. The testapp
-fixture is absent from shipped managed MCP settings; its explicit imported-file
+fixture is absent from shipped user-scope MCP entries; its explicit imported-file
 export action exists for test configurations only.
 
 Historical operation status always returns the saved approval and stages; a failed

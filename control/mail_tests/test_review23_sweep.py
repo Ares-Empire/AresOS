@@ -1,6 +1,6 @@
 """Automatically discover and fail every durable write in each approved flow."""
 from collections import Counter
-from contextlib import closing, contextmanager, ExitStack
+from contextlib import closing, contextmanager, ExitStack, nullcontext
 from itertools import islice
 import copy
 import errno
@@ -22,26 +22,58 @@ import test_review_fixes_23 as results23
 
 
 from storage_faults import OSWrites as DurableWrites
+from sweep_scripts import AmbientRead, reject_ambient_sources, SweepScripts
+
+
+FLOWS = ('send', 'repair', 'delete_trash', 'delete_permanent', 'unsubscribe_mailto', 'unsubscribe_https',
+         'status', 'settlement', 'cancel', 'restore', 'attachment_export', 'testapp_export',
+         'password', 'filing_move', 'filing_copy', 'filing_rename', 'expiry', 'maintenance',
+         'restart_index', 'restart_tail', 'export_rollback', 'archive', 'send_duplicate')
 
 
 class Scenario:
-    def __init__(self, flow):
+    def __init__(self, flow, *, clock=None):
         self.fixture_clock = ExitStack()
-        if type(self) is Scenario and flow == 'archive':
-            from owner_state_oracle.identity import scripted_ids
-            from owner_state_oracle.clock import scripted_calendar
-            self.archive_time = 1794225600.0
-            self.fixture_clock.enter_context(patch('time.time', side_effect=lambda: self.archive_time))
-            self.fixture_clock.enter_context(scripted_calendar())
-            self.fixture_clock.enter_context(scripted_ids('inherited-archive'))
         try:
+            # The owner-oracle subclass supplies its own clock/identity script.
+            if type(self) is Scenario:
+                self.fixture_clock.enter_context(reject_ambient_sources())
+                # Keep realistic float precision: shorter JSON timestamps can
+                # move SQLite pages before the selected fault is reached.
+                self.fixture_time = (1794225600.0 if flow == 'archive' else 1794225600.1234567) if clock is None else clock
+                self.scripts = SweepScripts(self, flow)
+                self.fixture_clock.enter_context(self.scripts.install())
             self._prepare_fixture(flow)
         except BaseException:
-            self.fixture_clock.close()
+            try:
+                if hasattr(self, 'stack'):
+                    self.stack.close()
+                if hasattr(self, 'fixture'):
+                    self.fixture.doCleanups()
+            finally:
+                self.fixture_clock.close()
             raise
 
     def advance_archive_clock(self):
-        self.archive_time += 2
+        self.scripts.chronology.advance(2)
+
+    def clock_jump(self, *, seconds=0, until=0):
+        if hasattr(self, 'scripts'):
+            return self.scripts.chronology.jump(seconds=seconds, until=until)
+        # The independent owner-oracle subclass keeps its own recorded clock.
+        return patch('time.time', return_value=max(time.time() + seconds, until))
+
+    @contextmanager
+    def phase(self, name, missing=None):
+        if not hasattr(self, 'scripts'):
+            yield
+            return
+        previous, self.scripts.phase = self.scripts.phase, name
+        try:
+            with self.scripts.omit(missing[0]) if missing and missing[1] == name else nullcontext():
+                yield
+        finally:
+            self.scripts.phase = previous
 
     def _prepare_fixture(self, flow):
         self.fixture = f = results23.Results23()
@@ -146,11 +178,10 @@ class Scenario:
             if flow == 'expiry':
                 self.approval = f.approval('send', f.compose())
                 self.operation_id = self.approval['operation_id']
-                self.stack.enter_context(patch('aresos_control.engine.time.time',
-                                             return_value=self.approval['description']['expires_at'] + 1))
+                self.stack.enter_context(self.clock_jump(until=self.approval['description']['expires_at'] + 1))
             elif flow == 'maintenance':
                 f.compose()
-                self.stack.enter_context(patch('aresos_control.retention.time.time', return_value=time.time() + 86401))
+                self.stack.enter_context(self.clock_jump(seconds=86401))
             else:
                 from aresos_control.recovery import unfinished
                 self.restart_warnings = ({n for _, n, _, _ in unfinished(f.engine.store)},
@@ -590,6 +621,274 @@ class Scenario:
 
 
 class FaultSweep23(unittest.TestCase):
+    def test_timestamp_precision_changes_sqlite_write_trace(self):
+        traces = []
+        for clock in (1794225600.0, 1794225600.1234567):
+            # Deliberately freeze only this mechanism counterexample. Ordinary
+            # scenarios always advance their single chronology.
+            frozen = patch.object(SweepScripts, 'clock',
+                return_value=patch.object(time, 'time', return_value=clock))
+            frozen.start()
+            self.addCleanup(frozen.stop)
+            scenario = Scenario('send_duplicate', clock=clock)
+            try:
+                fault = DurableWrites()
+                with scenario.observed(), fault.wrap(scenario.fixture.engine.store):
+                    self.assertTrue(scenario.call()['ok'])
+                self.assertTrue(all(event['time'] == clock for event in scenario.fixture.engine.store.events))
+                traces.append([point for point in fault.points if point.startswith('sqlite.main.')])
+                scenario.recover()
+            finally:
+                scenario.close()
+                frozen.stop()
+        self.assertTrue(traces[0])
+        self.assertNotEqual(traces[0], traces[1], 'Timestamp precision must demonstrate the SQLite page-boundary mechanism')
+        first = next(i for i, (a, b) in enumerate(zip(*traces)) if a != b)
+        print(f'Clock precision changes SQLite trace at index {first}: '
+              f'{traces[0][first]} vs {traces[1][first]}; points={list(map(len, traces))}', flush=True)
+
+    def test_inherited_replays_have_identical_write_traces(self):
+        for flow in FLOWS:
+            with self.subTest(flow=flow):
+                traces = []
+                for _ in range(3):
+                    points, _ = self.guarded_replay(flow)
+                    traces.append(points)
+                self.assertTrue(traces[0])
+                self.assertEqual(traces[0], traces[1])
+                self.assertEqual(traces[0], traces[2])
+                print(f'Inherited deterministic traces: {flow}={len(traces[0])}, replays=3', flush=True)
+
+    def guarded_replay(self, flow, fail_at=None, missing=None):
+        with reject_ambient_sources():
+            scenario = Scenario(flow)
+            try:
+                fault = DurableWrites(fail_at)
+                with scenario.phase('call', missing), scenario.observed(), fault.wrap(None if flow.startswith('restart_') else scenario.fixture.engine.store):
+                    result = scenario.call()
+                if fail_at is None:
+                    transport_response(result)
+                    self.assertTrue(result['ok'] or flow == 'password' and result['error']['code'] == 'server_refused'
+                                    or flow == 'export_rollback' and result['error']['code'] == 'storage_limit', result)
+                else:
+                    with scenario.phase('call', missing):
+                        self.assert_result(scenario, fault, result)
+                with scenario.phase('recovery', missing):
+                    scenario.recover(failed=fail_at is not None)
+                return fault.points, {phase: reads.copy() for phase, reads in scenario.scripts.phase_reads.items()}
+            finally:
+                scenario.close()
+
+    def test_inherited_guard_rejects_each_missing_script(self):
+        consumers = {component: [] for component in SweepScripts.COMPONENTS}
+        for flow in FLOWS:
+            _, phases = self.guarded_replay(flow)
+            for phase, reads in phases.items():
+                for component in sorted(reads):
+                    with self.subTest(flow=flow, missing=component, phase=phase):
+                        with self.assertRaisesRegex(AmbientRead, SweepScripts.SOURCES[component]):
+                            if phase == 'setup':
+                                with patch.object(SweepScripts, component, return_value=nullcontext()):
+                                    self.guarded_replay(flow)
+                            else:
+                                self.guarded_replay(flow, missing=(component, phase))
+                    consumers[component].append((flow, phase))
+        for component, flows in consumers.items():
+            print(f'Inherited missing-script guard: {component} rejected={len(flows)} flows={flows}', flush=True)
+        # Fault-only consumers are checked at their actual single, persistent
+        # and cleanup-pair witnesses by the complete sweep below.
+
+    def test_inherited_guard_rejects_ambient_sources(self):
+        import datetime
+        import email.utils
+        import random
+        import secrets
+        import uuid
+        from aresos_control.mail import adapter
+        from aresos_control import files
+        # Resolve attributes inside each fresh guard, including preimported
+        # aliases. A latched rejection must never replace a later assertion.
+        reads = [lambda: time.time(), lambda: time.time_ns(),
+                 lambda: time.localtime(), lambda: time.gmtime(), lambda: time.ctime(), lambda: time.asctime(),
+                 lambda: time.localtime(None), lambda: time.gmtime(None),
+                 lambda: time.strftime('%Y'), lambda: time.strftime('%Y', None),
+                 lambda: datetime.datetime.now(), lambda: datetime.datetime.utcnow(),
+                 lambda: datetime.datetime.today(), lambda: datetime.date.today(),
+                 lambda: files.datetime.now(), lambda: adapter.date.today(),
+                 lambda: uuid.uuid1(), lambda: uuid.uuid4(), lambda: random.random(), lambda: random.randrange(100),
+                 lambda: random.Random(), lambda: random.SystemRandom().getrandbits(64),
+                 lambda: secrets.randbelow(100), lambda: secrets.token_bytes(), lambda: os.urandom(16),
+                 lambda: email.utils.make_msgid(), lambda: email.utils.formatdate(), lambda: adapter.formatdate(),
+                 lambda: tempfile.TemporaryDirectory(),
+                 lambda: Path(__file__).stat().st_mtime,
+                 lambda: os.stat(__file__).st_ctime_ns,
+                 lambda: os.lstat(__file__)[8],
+                 lambda: os.path.getmtime(__file__), lambda: os.path.getctime(__file__)]
+        if hasattr(time, 'clock_gettime'):
+            reads += [lambda: time.clock_gettime(time.CLOCK_REALTIME),
+                      lambda: time.clock_gettime_ns(time.CLOCK_REALTIME)]
+        for index, read in enumerate(reads):
+            with self.subTest(source=index), self.assertRaises(AmbientRead), reject_ambient_sources():
+                read()
+        with open(__file__, 'rb') as stream:
+            with self.assertRaises(AmbientRead), reject_ambient_sources():
+                os.fstat(stream.fileno()).st_mtime_ns
+        with reject_ambient_sources():
+            self.assertTrue(time.gmtime(1794225600))
+        with reject_ambient_sources():
+            stamp = (2026, 11, 9, 12, 0, 0, 0, 313, 0)
+            self.assertTrue(time.strftime('%Y', stamp))
+        with reject_ambient_sources():
+            self.assertTrue(time.localtime(1794225600))
+        with reject_ambient_sources():
+            self.assertTrue(email.utils.formatdate(1794225600))
+        with reject_ambient_sources():
+            self.assertEqual(random.Random(7).getrandbits(64), random.Random(7).getrandbits(64))
+
+    def test_inherited_guard_positive_assertions_fail_when_explicit_forms_break(self):
+        import email.utils
+        import random
+        mutations = [(time, 'gmtime', {'return_value': ()}),
+                     (time, 'strftime', {'return_value': ''}),
+                     (time, 'localtime', {'return_value': ()}),
+                     (email.utils, 'formatdate', {'return_value': ''}),
+                     (random.Random, 'getrandbits', {'side_effect': (1, 2)})]
+        for target, name, broken in mutations:
+            with self.subTest(explicit=name):
+                result = unittest.TestResult()
+                with patch.object(target, name, **broken):
+                    FaultSweep23('test_inherited_guard_rejects_ambient_sources').run(result)
+                self.assertEqual(result.testsRun, 1)
+                self.assertEqual(len(result.failures), 1, result.failures)
+                self.assertEqual(result.errors, [])
+                self.assertEqual(result.skipped, [])
+                print(f'Explicit guard assertion mutation: {name} -> 1 failure, 0 errors', flush=True)
+
+    def test_inherited_guard_remembers_reads_displaced_by_cleanup(self):
+        with self.assertRaisesRegex(AmbientRead, r'^time\.time_ns$'), reject_ambient_sources():
+            try:
+                try:
+                    time.time_ns()
+                finally:
+                    raise OSError(errno.ENOSPC, 'Synthetic prior storage error wins cleanup')
+            except OSError:
+                pass
+
+    def test_inherited_notice_clock_preserves_occurrence_order(self):
+        from aresos_control.warnings import check_result
+        from aresos_control.recovery import recover_intents
+        from aresos_control.mail.filing import notice_page
+        for flow in FLOWS:
+            with self.subTest(flow=flow), reject_ambient_sources():
+                scenario = Scenario(flow)
+                try:
+                    scenario.call()
+                    store = scenario.fixture.engine.store
+                    expected, created = [], []
+                    def checked(label):
+                        key = 'mail:rename:chronology-' + label
+                        source = {'id': 'chronology-' + label, 'state': 'done'}
+                        changes, notice_id = check_result(store, source, key, 'chronology', label,
+                            {'reason': label})
+                        store.write({key: source, **changes}, 'fixture', label)
+                        expected.append(notice_id)
+                        created.append(store.get('notice:' + notice_id)['created_at'])
+                    def recovery(label):
+                        key = 'intent:chronology-' + label
+                        source = {'id': 'chronology-' + label, 'app': 'mail', 'state': 'started', 'context_version': 1}
+                        store.write({key: source}, 'fixture', label)
+                        recover_intents(store)
+                        expected.append(source['id'])
+                        created.append(store.get('notice:' + source['id'])['created_at'])
+                    checked('before')
+                    recovery('later')
+                    checked('after')
+                    with scenario.clock_jump(seconds=90000):
+                        checked('jump-before')
+                        recovery('jump-later')
+                        checked('jump-after')
+                    recovery('restored-later')
+                    checked('restored-after')
+                    self.assertTrue(all(a < b for a, b in zip(created, created[1:])), created)
+                    items, cursor = [], None
+                    while True:
+                        page = notice_page(store, {'cursor': cursor} if cursor else {})
+                        items.extend(n['operation_id'] for n in page['items'] if n['operation_id'] in expected)
+                        cursor = page['cursor']
+                        if cursor is None:
+                            break
+                    self.assertEqual(items, list(reversed(expected)))
+                finally:
+                    scenario.close()
+
+    def test_inherited_chronology_covers_every_view_and_rejects_unknown_timestamps(self):
+        import datetime
+        import email.utils
+        from aresos_control import retention
+        for flow in FLOWS:
+            with self.subTest(flow=flow):
+                scenario = Scenario(flow)
+                try:
+                    scripts = scenario.scripts
+                    reads = {'clock': time.time, 'nanoseconds': time.time_ns,
+                        'localtime': time.localtime, 'gmtime': time.gmtime,
+                        'strftime': lambda: time.strftime('%Y'), 'formatdate': email.utils.formatdate,
+                        'datetime': datetime.datetime.now, 'date': datetime.date.today}
+                    for component, read in reads.items():
+                        before = scripts.chronology.nanos
+                        value = read()
+                        self.assertEqual(scripts.chronology.nanos, before + scripts.chronology.STEP)
+                        if component == 'clock':
+                            self.assertEqual(value, scripts.chronology.nanos / 1_000_000_000)
+                        elif component == 'nanoseconds':
+                            self.assertEqual(value, scripts.chronology.nanos)
+                        with scripts.omit(component), self.assertRaises(AmbientRead):
+                            # Fetch attributes again after omission.
+                            if component == 'datetime':
+                                datetime.datetime.now()
+                            elif component == 'date':
+                                datetime.date.today()
+                            elif component == 'formatdate':
+                                email.utils.formatdate()
+                            elif component == 'strftime':
+                                time.strftime('%Y')
+                            else:
+                                getattr(time, {'clock': 'time', 'nanoseconds': 'time_ns'}.get(component, component))()
+                    blobs = scenario.fixture.engine.blobs
+                    key = blobs.put(b'Synthetic unpinned chronology expiry probe')
+                    path = blobs.directory / key
+                    stamp = path.stat().st_mtime
+                    self.assertLess(stamp, time.time())
+                    self.assertEqual(os.path.getmtime(path), stamp)
+                    self.assertEqual(os.lstat(path)[8], stamp)
+                    with path.open('rb') as stream:
+                        self.assertEqual(os.fstat(stream.fileno()).st_mtime, stamp)
+                    self.assertEqual(path.stat().st_ctime_ns, path.stat().st_mtime_ns)
+                    with scripts.omit('timestamps'), self.assertRaises(AmbientRead):
+                        blobs.expire(set(), time.time(), retention.TTL)
+                    with scenario.clock_jump(seconds=retention.TTL + 1):
+                        fault = DurableWrites()
+                        with fault.wrap():
+                            blobs.expire(set(), time.time(), retention.TTL)
+                        self.assertFalse(path.exists())
+                        self.assertGreaterEqual(fault.points.count('file.unlink'), 2)
+                        self.assertIn('file.fsync', fault.points)
+                    self.assertGreater(time.time(), stamp + retention.TTL)
+                    unknown = scenario.fixture.root / 'unscripted-timestamp'
+                    unknown.write_bytes(b'synthetic')
+                    with self.assertRaises(AmbientRead):
+                        unknown.stat().st_mtime
+                    key = blobs.put(b'Synthetic changed timestamp probe')
+                    path = blobs.directory / key
+                    os.utime(path, (1, 1))
+                    with self.assertRaises(AmbientRead):
+                        path.stat().st_mtime
+                finally:
+                    # Deliberate negative probes must remain latched through
+                    # teardown, just like a rejection displaced by cleanup.
+                    with self.assertRaises(AmbientRead):
+                        scenario.close()
+
     def test_archive_replays_have_identical_write_traces(self):
         traces = []
         for _ in range(3):
@@ -653,31 +952,43 @@ class FaultSweep23(unittest.TestCase):
             if op:
                 scenario.assert_completion(op['id'], op['state'])
 
-    def fault(self, flow, number, mode='single', cleanup_at=None):
+    def fault(self, flow, number, mode='single', cleanup_at=None, *, missing=None):
         scenario = Scenario(flow)
         try:
             sweep = DurableWrites(number, mode=mode, cleanup_at=cleanup_at)
-            with scenario.observed(), sweep.wrap(None if flow.startswith('restart_') else scenario.fixture.engine.store):
+            with scenario.phase('call', missing), scenario.observed(), sweep.wrap(None if flow.startswith('restart_') else scenario.fixture.engine.store):
                 result = scenario.call()
-            self.assert_result(scenario, sweep, result)
+            with scenario.phase('call', missing):
+                self.assert_result(scenario, sweep, result)
             cleanups = sweep.cleanup_points[:]
             if cleanup_at is not None:
                 self.assertIn((cleanup_at, sweep.points[cleanup_at - 1], 'EIO'), sweep.failures)
-            scenario.recover(failed=True)
-            return sweep.points, cleanups
+            with scenario.phase('recovery', missing):
+                scenario.recover(failed=True)
+            phases = {phase: reads.copy() for phase, reads in scenario.scripts.phase_reads.items()}
+            result = sweep.points, cleanups
         finally:
             scenario.close()
+        if missing is None and hasattr(self, 'omissions'):
+            for phase, reads in phases.items():
+                if phase not in {'call', 'recovery'}:
+                    continue
+                for component in sorted(reads):
+                    witness = (flow, mode, cleanup_at is not None, phase, component)
+                    if witness in self.omissions:
+                        continue
+                    with self.subTest(omitted=witness), self.assertRaisesRegex(AmbientRead, SweepScripts.SOURCES[component]):
+                        self.fault(flow, number, mode, cleanup_at, missing=(component, phase))
+                    self.omissions.add(witness)
+        return result
 
     def test_review23_enospc_at_every_discovered_durable_write(self):
-        flows = ('send', 'repair', 'delete_trash', 'delete_permanent', 'unsubscribe_mailto', 'unsubscribe_https',
-                 'status', 'settlement', 'cancel', 'restore', 'attachment_export', 'testapp_export',
-                 'password', 'filing_move', 'filing_copy', 'filing_rename', 'expiry', 'maintenance',
-                 'restart_index', 'restart_tail', 'export_rollback', 'archive', 'send_duplicate')
+        self.omissions = set()
         mechanisms, counts = Counter(), Counter()
         started = time.monotonic()
         shard = int(os.environ.get('MAIL_SWEEP_SHARD', '0'))
         shards = int(os.environ.get('MAIL_SWEEP_SHARDS', '1'))
-        for flow_index, flow in enumerate(flows):
+        for flow_index, flow in enumerate(FLOWS):
             flow_started = time.monotonic()
             flow_counts = Counter()
             clean = Scenario(flow)
@@ -717,6 +1028,7 @@ class FaultSweep23(unittest.TestCase):
                         flow_counts['pairs'] += 1
             counts.update(flow_counts)
             print(f'Review26 modes: {flow} {dict(flow_counts)}; elapsed={time.monotonic() - flow_started:.3f}s', flush=True)
+        print(f'Inherited fault/recovery omissions: {len(self.omissions)} witnesses={sorted(self.omissions)}', flush=True)
         for mechanism in ('journal.write', 'journal.truncate', 'sqlite.main.write', 'sqlite.index.write',
                           'sqlite.main.create', 'sqlite.index.create', 'file.create', 'file.write',
                           'file.link', 'file.rename', 'file.truncate', 'file.fsync', 'file.close', 'sqlite.main.close'):

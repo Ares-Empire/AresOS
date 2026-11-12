@@ -3,8 +3,8 @@ import json
 from pathlib import Path
 import sys
 
-from aresos_control.definitions import ACTIONS, tools_for
-from aresos_control.boundary_policy import asking_rules, managed_settings, managed_mcp
+from aresos_control.definitions import ACTIONS, tools_for, instructions_for, APPS
+from aresos_control.boundary_policy import asking_rules, managed_settings, user_mcp, OWNER_INSTRUCTIONS
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -32,12 +32,32 @@ def generated():
     files = {}
     for app in apps:
         files[f"control/generated/{app}-tools.json"] = json.dumps(tools_for(app), indent=2) + "\n"
+        files[f"control/generated/{app}-instructions.txt"] = instructions_for(app) + "\n"
+    servers = user_mcp()
+    missing_apps = APPS - servers.keys() - {'testapp'}
+    if missing_apps:
+        raise ValueError("Served apps missing user-scope MCP entries: " + ', '.join(sorted(missing_apps)))
+    # testapp is served too; only its MCP installation belongs to the harness.
+    installed = {f"mcp__{app}__{tool['name']}" for app in APPS
+                 if app in servers or app == 'testapp' for tool in tools_for(app)}
     ask = asking_rules()
+    if not set(ask) <= installed:
+        raise ValueError("Asking rule must name an exposed tool of an installed served app (or harness testapp)")
+    expected = {f"mcp__{a.app}__{a.verb}" for a in ACTIONS
+                if a.effect in {'send', 'delete'} and not a.owner_only and not a.trusted_send}
+    settings = managed_settings()
+    # Validate both artifacts against the actions, independently of the policy helper.
+    if set(ask) != expected or set(settings['permissions']['ask']) != expected:
+        raise ValueError("Both policy artifacts must cover every asking action and only asking actions")
     files["control/settings/ask-rules.json"] = json.dumps({"permissions": {"ask": ask}}, indent=2) + "\n"
-    files['control/settings/managed-settings.draft.json'] = json.dumps(managed_settings(), indent=2) + '\n'
-    files['control/settings/managed-mcp.json'] = json.dumps(managed_mcp(), indent=2) + '\n'
+    files['control/settings/managed-settings.draft.json'] = json.dumps(settings, indent=2) + '\n'
+    files['control/settings/user-mcp.json'] = json.dumps(servers, indent=2) + '\n'
+    files['control/settings/CLAUDE.md'] = OWNER_INSTRUCTIONS
+    files['control/settings/managed-hooks.json'] = json.dumps({'hooks': settings['hooks']}, indent=2) + '\n'
     help_text = "Usage: aresos [admin] <app> <action> [--input JSON] [--json]\n       aresos log [--input JSON]\n\nActions (input is the definition's JSON object; --help on any action shows its schema):\n"
     doc = "# Control tools (generated; do not edit)\n\nSettings and packaging are drafts. Run `python3 control/generate.py` after editing the catalogue.\n\n"
+    for app in apps:
+        doc += f"## `{app}` server instructions (sent once at initialization)\n\n{instructions_for(app)}\n\n"
     for a in ACTIONS:
         command = f"aresos {'admin ' if a.owner_only else ''}{a.app} {a.verb}"
         help_text += f"  {command} [{a.effect}]\n"

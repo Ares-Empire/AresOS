@@ -1,0 +1,18 @@
+{
+  "normal-permission-user": {
+    "send_arrivals": 1,
+    "hook_calls": 1
+  },
+  "normal-permission-managed": {
+    "send_arrivals": 1,
+    "hook_calls": 1
+  },
+  "skip-permission-user": {
+    "send_arrivals": 1,
+    "hook_calls": 1
+  },
+  "skip-permission-managed": {
+    "send_arrivals": 1,
+    "hook_calls": 1
+  }
+}

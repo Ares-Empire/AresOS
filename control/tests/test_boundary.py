@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 from unittest.mock import patch
 
-from aresos_control.boundary import Boundary, asking_rules, managed_servers
+from aresos_control.boundary import Boundary, asking_rules
 from boundary_test_support import fixture_boundary as install_boundary
 from support import EngineCase, ROOT, message
 
@@ -15,12 +15,11 @@ class InstalledBoundary(EngineCase):
         super().setUp()
         self.approval = self.reserve()
         self.config = install_boundary(self.root / 'boundary')
-        boundary_patch = patch.multiple('aresos_control.boundary', DEFAULT_SETTINGS=self.config['managed_settings'], DEFAULT_MCP=self.config['managed_mcp'])
+        boundary_patch = patch.multiple('aresos_control.boundary', DEFAULT_SETTINGS=self.config['managed_settings'])
         boundary_patch.start()
         self.addCleanup(boundary_patch.stop)
         self.engine.boundary = Boundary()
         self.settings = Path(self.config['managed_settings'])
-        self.mcp = Path(self.config['managed_mcp'])
         self.original = json.loads(self.settings.read_text())
 
     def assert_refuses_only_asking(self, reason):
@@ -33,48 +32,54 @@ class InstalledBoundary(EngineCase):
         self.data('testapp_list')
         self.configure()
 
-    def test_each_required_setting_missing_and_wrong_refuses_preparation_and_submission(self):
-        required = {'sandbox.enabled': True, 'sandbox.failIfUnavailable': True,
-                    'sandbox.allowUnsandboxedCommands': False, 'sandbox.network.allowAllUnixSockets': False,
-                    'permissions.disableBypassPermissionsMode': 'disable',
-                    'allowManagedPermissionRulesOnly': True, 'allowManagedHooksOnly': True,
-                    'sandbox.filesystem.denyRead': ['/run/aresos-tools']}
-        for path, expected in required.items():
-            for missing in (True, False):
-                with self.subTest(path=path, missing=missing):
+    def test_each_generated_ask_rule_missing_or_misnamed_refuses(self):
+        for rule in asking_rules():
+            for replacement in (None, rule + '_wrong'):
+                with self.subTest(rule=rule, replacement=replacement):
                     settings = copy.deepcopy(self.original)
-                    parent = settings
-                    parts = path.split('.')
-                    for part in parts[:-1]:
-                        parent = parent[part]
-                    if missing:
-                        del parent[parts[-1]]
-                    else:
-                        parent[parts[-1]] = not expected if type(expected) is bool else [] if type(expected) is list else 'enable'
+                    settings['permissions']['ask'].remove(rule)
+                    if replacement:
+                        settings['permissions']['ask'].append(replacement)
                     self.settings.write_text(json.dumps(settings))
-                    self.assert_refuses_only_asking(path)
+                    self.assert_refuses_only_asking(rule)
         self.settings.write_text(json.dumps(self.original))
         self.engine.boundary.require()
 
-    def test_all_generated_asking_rules_required_and_never_allowed_even_wildcards(self):
-        for rule in asking_rules():
-            for allowed in (False, True):
-                with self.subTest(rule=rule, allowed=allowed):
-                    settings = copy.deepcopy(self.original)
-                    if allowed:
-                        settings['permissions']['allow'].append(rule)
-                    else:
-                        settings['permissions']['ask'].remove(rule)
-                    self.settings.write_text(json.dumps(settings))
-                    self.assert_refuses_only_asking(rule)
+    def require_testapp_rule(self, verb):
+        reference = self.data('testapp_list')['items'][0]['reference']
+        approval = (self.approval if verb == 'send' else
+                    self.data('testapp_prepare_delete', {'references': [reference]})['approval'])
         settings = copy.deepcopy(self.original)
-        settings['permissions']['allow'] = ['mcp__mail__*']
+        missing = f'mcp__testapp__{verb}'
+        settings['permissions']['ask'].remove(missing)
+        self.assertTrue(set(asking_rules({'mail'})) <= set(settings['permissions']['ask']))
         self.settings.write_text(json.dumps(settings))
-        self.assert_refuses_only_asking('permissions.allow')
+        before = self.engine.store.get('testapp')
+        with patch.object(self.engine.adapters['testapp'], 'execute', wraps=self.engine.adapters['testapp'].execute) as execute:
+            result = self.call(f'testapp_{verb}', approval)
+            self.assertEqual(result['error']['code'], 'boundary_not_installed', result)
+            self.assertIn(missing, result['error']['message'])
+            execute.assert_not_called()
+        self.assertEqual(self.engine.operation(approval['operation_id'])['state'], 'reserved')
+        self.assertEqual(self.engine.store.get('testapp'), before)
+        self.assertEqual(self.engine.receiver.evidence(approval['operation_id'])['arrivals'], [])
 
-    def test_both_files_require_root_regular_nonwritable_nonsymlink(self):
+    def test_testapp_send_requires_its_rule_even_with_every_mail_rule(self):
+        self.require_testapp_rule('send')
+
+    def test_testapp_delete_requires_its_rule_even_with_every_mail_rule(self):
+        self.require_testapp_rule('delete')
+
+    def test_invalid_ask_shapes_refuse_without_dispatch(self):
+        for settings in ([], {}, {'permissions': None}, {'permissions': {'ask': '*'}},
+                         {'permissions': {'ask': [None]}}):
+            with self.subTest(settings=settings):
+                self.settings.write_text(json.dumps(settings))
+                self.assert_refuses_only_asking('permissions.ask')
+
+    def test_settings_require_root_regular_nonwritable_nonsymlink(self):
         real_fstat = os.fstat
-        for path in (self.settings, self.mcp):
+        for path in (self.settings,):
             for fault in ('missing', 'owner', 'group', 'world', 'symlink', 'directory'):
                 with self.subTest(file=path.name, fault=fault):
                     content = path.read_bytes()
@@ -111,34 +116,15 @@ class InstalledBoundary(EngineCase):
                         path.write_bytes(content)
                         path.chmod(0o644)
 
-    def test_exact_managed_servers_and_commands_and_default_paths(self):
-        original = json.loads(self.mcp.read_text())
-        for fault in ('missing', 'extra', 'command', 'args', 'extra_config'):
-            data = copy.deepcopy(original)
-            if fault == 'missing':
-                del data['mcpServers']['mail']
-            elif fault == 'extra':
-                data['mcpServers']['rogue'] = data['mcpServers']['mail']
-            elif fault == 'command':
-                data['mcpServers']['mail']['command'] = '/bin/false'
-            elif fault == 'args':
-                data['mcpServers']['mail']['args'].append('--other')
-            else:
-                data['mcpServers']['mail']['env'] = {'EXTRA': '1'}
-            with self.subTest(fault=fault):
-                self.mcp.write_text(json.dumps(data))
-                self.assert_refuses_only_asking('mcpServers')
+    def test_default_paths_cannot_be_configured_by_a_client(self):
         from aresos_control import boundary
-        defaults = Boundary()
-        self.assertEqual(defaults.settings, boundary.DEFAULT_SETTINGS)
-        self.assertEqual(defaults.mcp, boundary.DEFAULT_MCP)
+        self.assertEqual(Boundary().settings, boundary.DEFAULT_SETTINGS)
         with self.assertRaises(TypeError):
-            Boundary({'managed_settings': '/missing', 'managed_mcp': '/missing'})
+            Boundary({'managed_settings': '/missing'})
 
     def test_boundary_image_generated_files_pass_and_restored_policy_enables_submission(self):
         # Match Dockerfile's COPY settings/ and cp of the managed draft verbatim.
         self.assertEqual(self.original, json.loads((ROOT / 'control/settings/managed-settings.draft.json').read_text()))
-        self.assertEqual(json.loads(self.mcp.read_text())['mcpServers'], managed_servers())
         self.engine.boundary.require()
         self.settings.unlink()
         self.assert_refuses_only_asking('managed-settings.json')
