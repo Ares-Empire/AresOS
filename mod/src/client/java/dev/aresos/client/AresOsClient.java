@@ -25,9 +25,13 @@ public final class AresOsClient implements ClientModInitializer {
     public static final FocusReturn FOCUS_RETURN = new FocusReturn();
     private static long zoneFocusToken;
     private static long zoneVisit;
+    // Focus tokens of launches that may still fail later, by request ID; bounded, client thread only.
+    private static final java.util.Map<String, Long> LATE_TOKENS = new java.util.LinkedHashMap<>() {
+        @Override protected boolean removeEldestEntry(java.util.Map.Entry<String, Long> eldest) { return size() > 32; }
+    };
     private static KeyMapping modeToggle;
     private static AppLauncher launcher = System.getProperty("os.name").toLowerCase(Locale.ROOT).startsWith("windows")
-            ? new WindowsAppLauncher() : new LinuxAppLauncher();
+            ? new WindowsAppLauncher() : new LinuxAppLauncher(AresOs::shell);
 
     /** Allows client game tests to substitute a launcher without ever starting a real app. */
     public static AppLauncher replaceLauncher(AppLauncher replacement) {
@@ -40,6 +44,7 @@ public final class AresOsClient implements ClientModInitializer {
     public void onInitializeClient() {
         HomeButton.register();
         AppsScreen.register();
+        if (AresOs.shell() != null) ShellFocusClient.register(AresOs.shell());
         ClientPlayNetworking.registerGlobalReceiver(dev.aresos.mode.ModeSwitchStatePayload.TYPE,
                 (payload, context) -> ModeSwitchClient.receive(payload));
         ClientPlayNetworking.registerGlobalReceiver(ZoneLaunchPayload.TYPE, (payload, context) -> {
@@ -92,6 +97,11 @@ public final class AresOsClient implements ClientModInitializer {
         return close;
     }
 
+    /** The app helper gave the hub its focus back (AresOS); the GLFW focus path may already have done this. */
+    static void returnedFromApp() {
+        if (zoneVisit != 0) finishZone(true);
+    }
+
     private static void finishZone(boolean returned) {
         if (zoneVisit != 0 && ClientPlayNetworking.canSend(ZoneReturnPayload.TYPE))
             ClientPlayNetworking.send(new ZoneReturnPayload(zoneVisit, returned));
@@ -112,12 +122,13 @@ public final class AresOsClient implements ClientModInitializer {
         zoneFocusToken = visit == 0 ? 0 : token;
         zoneVisit = visit;
         try {
-            launcher.launch(app).whenComplete((ignored, error) -> {
+            launcher.launchTracked(app).whenComplete((requestId, error) -> {
+                if (error == null && requestId != null) client.execute(() -> LATE_TOKENS.put(requestId, token));
                 if (error != null) {
                     client.execute(() -> {
                         FOCUS_RETURN.cancel(token);
                         if (zoneFocusToken == token) finishZone(false);
-                        message(client, "Couldn't open " + app.name() + (launcher instanceof LinuxAppLauncher ? ": app helper unavailable" : ""));
+                        message(client, "Couldn't open " + app.name() + failureDetail(error));
                     });
                     AresOs.LOGGER.warn("Could not launch app {}", id, error);
                 }
@@ -125,9 +136,29 @@ public final class AresOsClient implements ClientModInitializer {
         } catch (RuntimeException error) {
             FOCUS_RETURN.cancel(token);
             if (zoneFocusToken == token) finishZone(false);
-            message(client, "Couldn't open " + app.name() + (launcher instanceof LinuxAppLauncher ? ": app helper unavailable" : ""));
+            message(client, "Couldn't open " + app.name() + failureDetail(error));
             AresOs.LOGGER.warn("Could not launch app {}", id, error);
         }
+    }
+
+    /**
+     * AresOS without window tracking: a launch that already counted as opened failed after all. Only that launch's
+     * focus return and logo visit end; another launch of the same app is left alone.
+     */
+    public static void launchFailedLater(String requestId, String id, String reason) {
+        var client = Minecraft.getInstance();
+        Long token = requestId == null ? null : LATE_TOKENS.remove(requestId);
+        if (token != null) {
+            FOCUS_RETURN.cancel(token);
+            if (zoneFocusToken == token) finishZone(false);
+        }
+        var app = AresOs.app(id);
+        message(client, "Couldn't open " + (app == null ? id : app.name()) + ": " + reason);
+    }
+
+    /** Windows keeps its plain message; on AresOS the helper's reason says what to fix. */
+    private static String failureDetail(Throwable error) {
+        return launcher instanceof LinuxAppLauncher ? ": " + LinuxAppLauncher.reason(error) : "";
     }
 
     private static void message(Minecraft client, String text) {

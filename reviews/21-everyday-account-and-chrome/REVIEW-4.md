@@ -1,0 +1,7 @@
+- **Medium — [os/build.sh:182](/C:/Users/pab/AresOS-21-everyday-account/os/build.sh:182):** Upstream-change refusal is incomplete. The guard accepts any implication list containing `runtime-install`, then preserves every other target—including an unexpected privileged action. The separate audit could catch this, but the build guard itself would succeed. **Fix:** require exactly the reviewed `runtime-install` and `runtime-update` targets, verify the resulting annotation, and test added/removed targets.
+
+- **Medium — [os/ci/vm.py:137](/C:/Users/pab/AresOS-21-everyday-account/os/ci/vm.py:137):** The readiness fallback accepts incomplete lines and false messages. I reproduced matches for `FAILED ARESOS_JOURNAL_READY`, `ARESOS_JOURNAL_READY_NOT`, and an unterminated record. This bypasses the incomplete-record refusal and can falsely satisfy the readiness gate. **Fix:** require the exact message with a terminating newline; add chunked-input and false-marker regressions, then regenerate the pending hash.
+
+The current Flatpak bypass is closed in the supplied CI evidence. The implication model matches [polkitd’s one-level evaluation](https://github.com/polkit-org/polkit/blob/master/src/polkitbackend/polkitbackendinteractiveauthority.c); the active-session check is sound, and `vm.py`’s pending hash matches. The whole-PR pass found no additional current passwordless root/image/boot/kernel-argument/firmware bypass. I did not rerun the image.
+
+CHANGES-NEEDED

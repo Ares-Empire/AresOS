@@ -4652,7 +4652,7 @@
   },
   {
     "name": "filing_notices",
-    "description": "Page all unacknowledged compact Mail filing and interrupted-intent recovery warnings, newest first, at most three per page. Each names operation_id and a plain-language reason. Normal filing warnings also have message_count, bounded folder names and folders_more (and N more folders); recovery warnings instead name the durable intent_key and never authorize replay. No per-message locations are repeated: use mail_filing_locations with filing_id. Cursor binds the outstanding-notice set; on stale_reference start again. Every result repeats only the newest three warnings and a count of the rest. mail_notice_ack acknowledges one warning without changing mail. Effect: read.",
+    "description": "Page all unacknowledged compact Mail filing and interrupted-intent recovery warnings, newest first, at most three per page. Each names operation_id and a plain-language reason. Normal filing warnings also have message_count, bounded folder names and folders_more (and N more folders); recovery warnings instead name the durable intent_key and never authorize replay. No per-message locations are repeated: use mail_filing_locations with filing_id. Cursor binds the outstanding-notice set; a changed catalogue returns page_changed with a restarted first page. Invalid cursors return stale_reference. Every result repeats only the newest three warnings and a count of the rest. mail_notice_ack acknowledges one warning without changing mail. Effect: read.",
     "inputSchema": {
       "type": "object",
       "properties": {

@@ -1,0 +1,244 @@
+{
+  "artifacts": [
+    {
+      "assertions": 2,
+      "bytes": 346,
+      "file": "base/control-base-42728213032-1/owner-gaps-channel-0-0.json.gz",
+      "sha256": "a0acd1baad5a6130c340d60b733581301e68eb2c8eb2c28bed5bf7183774687d"
+    },
+    {
+      "assertions": 1,
+      "bytes": 224,
+      "file": "mail/control-mail-42728213029-1/owner-gaps-G22-evidence-0-0.json.gz",
+      "sha256": "8ac33d27a6f336f5f407f7b86395f864b9c8554287f48082f23333a2b5ef6554"
+    },
+    {
+      "assertions": 1,
+      "bytes": 221,
+      "file": "mail/control-mail-42728213029-1/owner-gaps-G22-latch-0-0.json.gz",
+      "sha256": "5ec276a4d9a5f49e58c29842dca74d464ca2bb44cfc20e8e1ebe63399246e0c9"
+    },
+    {
+      "assertions": 1,
+      "bytes": 215,
+      "file": "mail/control-mail-42728213029-1/owner-gaps-G22-rename-0-0.json.gz",
+      "sha256": "caea79f71b560f1f1994731ac189facbfd0b11f3152766031c5c6a4e1f840da2"
+    },
+    {
+      "assertions": 501,
+      "bytes": 8484,
+      "file": "mail/control-mail-42728213029-1/owner-gaps-contract-0-0.json.gz",
+      "sha256": "aec1825a9fb19bea2517824d7eaa2a3c0d1d53b1e4c50cfcca7d0168f36923a5"
+    },
+    {
+      "assertions": 142502,
+      "bytes": 675582,
+      "file": "mail/control-mail-sweep-0-42728213029-1/owner-gaps-sweep-0-0.json.gz",
+      "sha256": "fd5bd36906ed00f5b3e85f366660c890278e36d98944c9635db32a8e7aebd486"
+    },
+    {
+      "assertions": 157105,
+      "bytes": 728531,
+      "file": "mail/control-mail-sweep-0-42728213029-1/owner-gaps-sweep-0-1.json.gz",
+      "sha256": "a9b6ee0e5046240732bebda44c4d330336d9b6b84f9be61eccaa8bf7712cb1d3"
+    },
+    {
+      "assertions": 154822,
+      "bytes": 725712,
+      "file": "mail/control-mail-sweep-0-42728213029-1/owner-gaps-sweep-0-2.json.gz",
+      "sha256": "f40d455ca0075b509d56164c36cc1689136c93380cefd8d28125fc5a7d565a28"
+    },
+    {
+      "assertions": 140689,
+      "bytes": 671011,
+      "file": "mail/control-mail-sweep-1-42728213029-1/owner-gaps-sweep-1-0.json.gz",
+      "sha256": "4c9b5044e02174ddc9267ac2346db4c5c8d957e5912556bc577855e384e34705"
+    },
+    {
+      "assertions": 153856,
+      "bytes": 720229,
+      "file": "mail/control-mail-sweep-1-42728213029-1/owner-gaps-sweep-1-1.json.gz",
+      "sha256": "917d15e26901258bf58c6aa865363681cfada18c57262c36d1d3ad8e1fc9e8ff"
+    },
+    {
+      "assertions": 145551,
+      "bytes": 694208,
+      "file": "mail/control-mail-sweep-1-42728213029-1/owner-gaps-sweep-1-2.json.gz",
+      "sha256": "32e7109606b496cfaba369d6266981f0b9cacb5aa6155bcfe4fc37b88fdb679f"
+    },
+    {
+      "assertions": 164024,
+      "bytes": 771379,
+      "file": "mail/control-mail-sweep-2-42728213029-1/owner-gaps-sweep-2-0.json.gz",
+      "sha256": "456591cfdf2d52c3a70882e7e94aa003544c67be7e1f2c0e5e020d689e06465b"
+    },
+    {
+      "assertions": 147280,
+      "bytes": 687528,
+      "file": "mail/control-mail-sweep-2-42728213029-1/owner-gaps-sweep-2-1.json.gz",
+      "sha256": "89f44a0cb0b39aa0c60db2b5f4f899eed3a6e1c348222afd04ce890b5812e1f1"
+    },
+    {
+      "assertions": 145758,
+      "bytes": 679512,
+      "file": "mail/control-mail-sweep-2-42728213029-1/owner-gaps-sweep-2-2.json.gz",
+      "sha256": "05dc6cf56504fcfbc134b21d7f6fb40dc10adb0a210252474bee58bec21cd732"
+    },
+    {
+      "assertions": 149880,
+      "bytes": 698290,
+      "file": "mail/control-mail-sweep-3-42728213029-1/owner-gaps-sweep-3-0.json.gz",
+      "sha256": "37163543195ab2462c516653d5d04969ec754d919af83fc0736a3b5c81102533"
+    },
+    {
+      "assertions": 160857,
+      "bytes": 745274,
+      "file": "mail/control-mail-sweep-3-42728213029-1/owner-gaps-sweep-3-1.json.gz",
+      "sha256": "ee4b3b8935eab63a5228b8f3124b1fee631744a77b6ecafffaf65462fb483c36"
+    },
+    {
+      "assertions": 148930,
+      "bytes": 706361,
+      "file": "mail/control-mail-sweep-3-42728213029-1/owner-gaps-sweep-3-2.json.gz",
+      "sha256": "bc0eef20c82a38436d3d6be6993fb92a03426c3171514002b1cec6b75aa970d2"
+    }
+  ],
+  "assertions": 1810440,
+  "bytes": 976806,
+  "capture": {
+    "base": "42728213032",
+    "mail": "42728213029"
+  },
+  "groups": 2115,
+  "json_indent": 1,
+  "per_suite": {
+    "G22-evidence": {
+      "3": 1
+    },
+    "G22-latch": {
+      "3": 1
+    },
+    "G22-rename": {
+      "3": 1
+    },
+    "archive": {
+      "3": 56152
+    },
+    "attachment_export": {
+      "3": 67394
+    },
+    "cancel": {
+      "3": 9909
+    },
+    "channel": {
+      "3": 2
+    },
+    "contract": {
+      "2": 16,
+      "3": 485
+    },
+    "delete_permanent": {
+      "2": 3131,
+      "3": 77001
+    },
+    "delete_trash": {
+      "2": 1879,
+      "3": 51433
+    },
+    "draft_append": {
+      "2": 629,
+      "3": 8137
+    },
+    "expiry": {
+      "3": 11998
+    },
+    "export_rollback": {
+      "3": 75238
+    },
+    "filing_copy": {
+      "3": 66495
+    },
+    "filing_move": {
+      "3": 66495
+    },
+    "filing_rename": {
+      "2": 1134,
+      "3": 32508
+    },
+    "flag": {
+      "2": 594,
+      "3": 7721
+    },
+    "folder_create": {
+      "2": 594,
+      "3": 7721
+    },
+    "folder_delete": {
+      "2": 1234,
+      "3": 38645
+    },
+    "folder_review": {
+      "2": 889,
+      "3": 34653
+    },
+    "maintenance": {
+      "3": 6303
+    },
+    "onboarding": {
+      "2": 19883,
+      "3": 394589
+    },
+    "password": {
+      "2": 1,
+      "3": 1961
+    },
+    "repair": {
+      "2": 1908,
+      "3": 95567
+    },
+    "restore": {
+      "3": 18822
+    },
+    "send": {
+      "2": 4865,
+      "3": 175195
+    },
+    "settings": {
+      "2": 924,
+      "3": 14281
+    },
+    "settlement": {
+      "3": 34216
+    },
+    "status": {
+      "3": 22587
+    },
+    "testapp_config": {
+      "2": 721,
+      "3": 7844
+    },
+    "testapp_delete": {
+      "3": 48279
+    },
+    "testapp_export": {
+      "3": 20227
+    },
+    "testapp_send": {
+      "3": 67287
+    },
+    "unsubscribe_https": {
+      "2": 1253,
+      "3": 64217
+    },
+    "unsubscribe_mailto": {
+      "2": 5202,
+      "3": 182218
+    }
+  },
+  "sha256": "a5cd7a55288aeb958e4f8420c1ca68e62f62c7c883197fb0fc239ec045809759",
+  "source": "745e9d11f97f591d37e8ffb98253ba9ccc8117b1",
+  "stages": {
+    "2": 44857,
+    "3": 1765583
+  }
+}

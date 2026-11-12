@@ -1,0 +1,7 @@
+- **Medium — [owner.py:1629](C:/Users/pab/AresOS-22-update-route/os/owner-tools/owner.py:1629): live-thread handoff can escape detection.** Static race: after `task` enumeration and worker A’s `stat` read, A creates worker B and exits. A’s `cwd` returns ENOENT; B is absent from the [enumerated snapshot](https://github.com/python/cpython/blob/3.12/Lib/pathlib.py#L959-L966). With an exited leader, `process_absent()` returns true despite B surviving. **Fix:** independently confirm whole-group termination before returning true; add a synchronized worker-handoff regression.
+
+- **Medium — [test_owner_update.py:912](C:/Users/pab/AresOS-22-update-route/os/tests/test_owner_update.py:912): a hung entry counts as working.** `reached()` treats any timeout as successful execution of the legacy tools, allowing recovery tests to pass without output or a rerun instruction. **Fix:** fail on timeout; require an explicit marker or exact expected refusal. Keep intentional sleeper fixtures separate.
+
+Payload hashes, fingerprint pins, both bootstrap blocks and the exact 17 pending bindings match. No additional whole-PR recovery blocker found. Linux tests unavailable: Python absent; WSL access denied. No files edited.
+
+CHANGES-NEEDED

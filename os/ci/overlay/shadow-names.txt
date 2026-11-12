@@ -1,0 +1,17 @@
+sh
+bash
+dash
+dbus-run-session
+dbus-daemon
+dbus-broker-launch
+labwc
+busctl
+foot
+id
+python3
+env
+xdg-open
+Xwayland
+polkit-kde-authentication-agent-1
+aresos-terminal
+aresos-session

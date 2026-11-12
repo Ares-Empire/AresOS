@@ -1,4 +1,5 @@
 """Owner-only, explicit terminal onboarding. Interrupted probes never resume."""
+from ..action_context import action_scope, mutation
 from email.message import EmailMessage
 import time
 import uuid
@@ -47,6 +48,11 @@ def qualify_folder_delete(engine, account, probe_folder, ref):
 
 
 def onboard(engine, args, password):
+    with action_scope(engine.store, 'mail_account_add', args):
+        return _onboard(engine, args, password)
+
+
+def _onboard(engine, args, password):
     engine.boundary.require()
     engine.store.ensure_writable()
     mail = engine.adapters["mail"]
@@ -81,10 +87,11 @@ def onboard(engine, args, password):
         raise Refused("unsupported_server", "Server lacks identified SPECIAL-USE Sent or UIDPLUS; onboarding stops without sending. Owner must configure special-use folders on server.")
     mail.onboarding_id = account_id  # In-memory only; a crash leaves persisted readiness false.
     account["sent_policy"] = "server"
-    engine.store.write({"mail:account:" + account_id: account}, "mail_account_add", "record probe configuration", outcome="started")
     probe_folder = "AresOS-probe-" + uuid.uuid4().hex
-    with mail.transport.imap(account) as client:
-        ok(client.create(quote(probe_folder)), "Create disposable onboarding folder")
+    value = mail.mutation_context(account, 'CREATE', destination=probe_folder)
+    with mutation(engine.store, value, changes={'mail:account:' + account_id: account}):
+        with mail.transport.imap(account) as client:
+            ok(client.create(quote(probe_folder)), "Create disposable onboarding folder")
     message = EmailMessage()
     message["From"] = account["addresses"][0]
     message["To"] = account["addresses"][0]
@@ -92,7 +99,7 @@ def onboard(engine, args, password):
     message["Message-ID"] = "<probe." + uuid.uuid4().hex + "@mail.aresos.invalid>"
     message.set_content("Synthetic onboarding data only.")
     from .codec import SMTP_POLICY
-    ref = mail.append(account, probe_folder, message.as_bytes(policy=SMTP_POLICY))
+    ref = mail.append_with_context(account, probe_folder, message.as_bytes(policy=SMTP_POLICY))
     # These owner-only probes and their exact cleanup use the same durable engine.
     qualify_folder_delete(engine, account, probe_folder, ref)
     engine.store.write({"mail:account:" + account_id: account}, "mail_account_add", "folder probe recorded; SMTP self-probe follows", outcome="started")

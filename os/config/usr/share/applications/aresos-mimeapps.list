@@ -1,0 +1,7 @@
+# AresOS image default: Google Chrome opens links (owner, 2026-11-09).
+# A user's own ~/.config/mimeapps.list wins over this file.
+[Default Applications]
+x-scheme-handler/http=google-chrome.desktop
+x-scheme-handler/https=google-chrome.desktop
+text/html=google-chrome.desktop
+application/xhtml+xml=google-chrome.desktop

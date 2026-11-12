@@ -96,9 +96,64 @@ The baton from the last session. Read it after `STATE.md`. Overwrite it when you
   - Every step 1–2 record passed: cloud backups opened online, recovery stick booted, UEFI/Secure Boot off/decrypted/hibernation off, record A in OneDrive, writer cancel trial, "erfolgreich geschrieben", live desktop boot.
   - Afterwards the Windows disk and its four partitions matched record A (read-only check).
   - Private records stay out of the public repo.
-- **Stage B is released.** The owner plans fitting on **2026-11-06**, guided step by step in chat. Claude checks the photos (battery, seating, Crucial label: private, never committed), the F2 screen showing both drives, and record B after-fit.
+- **Stage B (fitting) DONE and CHECKED 2026-11-07,** guided step by step (recorded in INSTALL-STATUS by PR #13, merged `f5bc2d4d`). Battery, seating and Crucial-label photos PASSED (checked by a Claude session on the Mac; the photos stay private). The F2 screen listed both drives (owner-reported: an "M…" and a long "C…" name; no photo). By owner decision, the maintainer's read of Windows' disk inventory (Micron GPT, Crucial `CT500P310SSD8` 466 GB RAW) stands in for checking that screen. The expendable fitting trial and the damaged-battery photograph trial stay OPEN; they are not Stage C conditions. Record B after-fit PASSED: Windows disk identity, all partition GUIDs/types/boundaries and the original Windows boot target match record A. A broken bottom-cover screw post (front corner, likely the old rattle) was removed, so that one screw stays out. The stage record is `after-fit-20261107-191942-745.json` beside record A in the owner's OneDrive.
+- **Stage C RELEASED 2026-11-07** (PR #13 merged `f5bc2d4d`; REVIEW.md CHANGES-NEEDED fixed, REVIEW-2.md SAFE; Linux tests OK). **Next:** step 4 with the owner, each step's record checked before the next. Linux-side steps: the owner sends screens to a Mac session (no serials or GUIDs in any message or repo). Windows-side steps: here.
+- **2026-11-08: step 4 DONE, step 5's Windows half PASSED** (see STATE). Linux-side steps run with `mac-aresos-install` (PASS/FAIL reports, no values). Next: step 5's Linux half when the owner reboots into Bazzite, then step 6. Records live in the owner's OneDrive `Dokumente/AresOS-own-ssd-record` (record A, after-fit, three after-bazzite, and `record-C-compare-card.txt` with the printed serials). The elevated record-B runner is the guide's block with its answers filled in; it waits up to 3 minutes for USB sticks to be pulled.
+- **2026-11-09: install-night guide fixes merged** (PR #23, `a1052cf0`; see STATE). The owner pages now match what step 4 needed; the ten-minute hung-shutdown rule is owner-approved. Nothing is running; no open PR. Step 5's Linux half waits for the owner.
+- **2026-11-10 ~13:00: packages 21, 22 and 24 are MERGED** (`25ef5cd1`, `002dcc09`, `7cf0541b`); see STATE. Two Claude agents (Opus) are building in their own worktrees; each round gets a fresh Codex review:
+  - **23 (Minecraft starts)**: `../AresOS-23-minecraft-starts`, agent `af1524c06373de3ac`. It started from `25ef5cd1`, before 22 merged, so it needs a merge of main if it touches a bound file.
+  - **27 (the first update release)**: `../AresOS-27-first-update-release`, agent `afc79d03d9f22e06d`. Build, publish (owner OK), VM rehearsal, then pin. After it merges, tell the owner to run `at update` and `sudo passwd ares` (guided).
+  - **~15:00 update:** 23 reported. PR #36 is in review: REVIEW-1 (Astra) in `../AresOS-23-minecraft-starts/reviews/23-minecraft-starts/REVIEW-1.md`, log `../AresOS-23-review1.log`. Owner asks #168/#169 are open. 27's first release run failed before publish; the second (last) dispatch is approved. The test-leak fix is PR #37 in `../AresOS-fix-update-test-leak`; REVIEW-1 (Sol) is there, log `../AresOS-fixleak-review1.log`. A WSL proof (`pkg22d-leak.sh` in the scratchpad) is running.
+  - **Codex allowance:** reset 2026-11-10 10:54 and must last until 11-17 (mac-capacity). Use gpt-6.1-sol for narrow review rounds and keep gpt-6-astra for first reviews of big packages and for the release.
+  - **Memory:** Claude Code stops background wrappers when RAM runs low, but `codex.exe` keeps running and writes its review, so check for `REVIEW-N.md` before restarting anything. Restarting stopped work once memory allows is OK (owner, board #160). Only one full WSL suite at a time, and two agents share the laptop.
+  - **~15:00 UTC: Ubuntu's snapshot mirror (`snapshot.ubuntu.com`, pinned 2026-10-21) is down or very slow.** Every CI run that installs tools fails in "Install pinned tools" (502/503/504, or the 20-minute timeout):
+    - 23's three `check_build=build` runs: 42827288649, 42829696745, 42834907206;
+    - 27's release runs 3 and 4: 42831158090, 42835704653.
+    - Nothing was built or published. Both agents wait.
+    - A watcher (`mirror-watch.log` in the scratchpad) waits for two healthy checks. Then approve one 23 `check_build=build` and the next 27 release dispatch.
+    - If the mirror stays slow, add apt retries and a longer step timeout in `os-image.yml`. It is bound, so do it inside package 27.
+  - 23's REVIEW-2 (Astra) runs on `7ec26b84`, log `../AresOS-23-review2.log`. The owner answered #168, #169 and #170, so all of 23's calls are decided.
+  - **Claude allowance (mac-capacity, 2026-11-11 07:05):** about 3.5% of the weekly is left for finishing 27 through merge. Work straight through; the 09:00–12:00 pause doesn't apply to 27.
+    - Use one blocking wait per CI run, never polling: each wake of a ~1M-token agent is expensive.
+    - If run 4 needs another real round, or Patrik's meter shows ~96%, stop at a clean point. The rest continues after the Thu 00:00 reset.
+    - Guide Patrik through `at update` today only if 27 merges in time; otherwise after the reset.
+    - **After the reset, start fresh agents.** Don't resume `afc79d03d9f22e06d` (about 1M tokens) or `af1524c06373de3ac` (about 0.9M).
+  - **Stopped 2026-11-11 ~09:35 local for the Claude allowance (both packages at clean points):**
+    - **27:** `pkg/27-first-update-release` at `8f28ca0b` or later, everything pushed. Rehearsal run 4 proved `at update`; the harness's util-linux pin stopped it after the R27 boot. After the reset, start a **fresh** Opus agent in `../AresOS-27-first-update-release` with `briefs/27-rehearsal-fixes-1.md`. Then the Codex review (Astra high), merge, and guide the owner through `at update` and `sudo passwd ares`.
+    - **23:** parked at `b32af2e2`. After the reset, start a fresh Fable 5.2 agent in `../AresOS-23-minecraft-starts` with `briefs/23-review-fixes-5.md`.
+    - Old agents `afc79d03d9f22e06d` and `af1524c06373de3ac` are stopped; don't resume them.
+    - **Thu 11-12 00:08: the fresh 27 agent `acc21f0f24d7065a0` (Opus) started** with `briefs/27-rehearsal-fixes-1.md`.
+    - **Thu 11-12 02:25: run 5 (43120759117, head `9ee933d9`) passed the util-linux fix, `at update`, the R27 boot and login,** then failed at `terminal_path` (`os/ci/owner_vm.py:1206`, "No terminal PATH probe"): the harness typed into foot right after Ctrl+Alt+F1, before labwc had resumed input. util-linux 2.41.5→2.41.6: login.c and agetty.c byte-identical upstream; the observer accepts exactly both.
+    - **02:30: approved the fix** (probe prepared after the switch, wait for an Active logind session, one guarded retry with Ctrl+U, screenshots, the same check on every step that is new on a VM, update cap 7) and resumed `acc21f0f24d7065a0` for run 6. mac-capacity has the timing: at the earliest 07:00–08:00 if run 6 passes.
+  - **Safety bar for AresOS tools (Patrik via mac-capacity, 2026-11-11 ~08:10; the control lead records it for decision 24):**
+    - "baseline is basically MCPs or CLIs like any other mcp or cli that already exists", "reasonably safe", not "nothing could ever go wrong". It is a judgment that "cannot be taken too literally".
+    - Extra care only where AresOS adds its own risk (Claude Code as system operator). Disks, boot, updates and rollback are already in that group.
+    - For later tools (23's next round, 22c, the 25 guardian, desktop shortcuts), brief reviewers with this bar: adversarial edge cases come back as known limits, not blocking rounds, unless they touch those AresOS-specific risks.
+  - **Fable week plan (Patrik via mac-capacity, 2026-11-11 ~11:00; the week runs Thu 11-12 00:00 to Wed 11-18 23:59):**
+    - **Thursday, in order:**
+      1. 27's last round overnight (fresh Opus agent at about 00:05), then guide Patrik through `at update`. Then he switches to AresOS.
+      2. First job on AresOS: Lunar Client and a working Minecraft with his own Microsoft login, which he types himself, so he can stay on AresOS in the evenings. He asks for this, so hard rule 3 allows it.
+      3. Then everything else.
+    - **How to run the work** ("Fable on AresOS early with all work"):
+      - a Fable session as orchestrator;
+      - Fable agents for work that is new, heavy, important, quality-critical or design;
+      - Opus or Sonnet agents where Fable isn't needed.
+    - **Fable budget:** use Fable early, to fill the Fable half of the weekly by about Sat/Sun. Patrik then presses the Fable reset, which returns that usage. After the press, be selective with Fable.
+    - **Keep the orchestrator lean:** hand reading to agents, and start fresh when the context gets long (each turn re-reads it at about 2× Opus cost).
+    - **Home screen (the Minecraft hub):** ask Patrik for his pointers first. Don't design it before.
+    - **Reviews:** Codex is out from about Sat until Tue 10:53 and ends for good on 11-21. Meanwhile, reviews run as a fresh Claude agent that isn't the builder, or as Codex from the Mac on Tue–Fri.
+      - **Reviewer model (Patrik via mac-capacity, 2026-11-11):** Opus by default, this week too. Fable only for high-stakes reviews: AresOS-specific risks (updates and rollback, disks, software installs, credentials, system settings) and the final review before something reaches his laptop. Fable's cap is for building.
+      - Done: CLAUDE.md, docs/REVIEW.md and docs/WORKFLOW.md carry the new rule (owner in the chat, 2026-11-11: "Yes change it"; b19a4cf1).
+    - **Safety bar:** normal MCP/CLI level, with extra care for AresOS-specific risks (decision 24 clarification, PR #38).
+  - **Fable 5.2 next week (about 2× Opus per token; Patrik plans a Fable-heavy week). Where it helps most:**
+    1. **Package 23's hand-off** (`briefs/23-review-fixes-5.md`): five Codex reviews in a row found supervisor/wrapper races. It needs a simpler, conservative design: only certain crashes restart, anything uncertain waits for `retry`. A fresh Fable builder.
+    2. **Package 22c** (rollback, then forward again, keep-stock and layout trials after an update; plus the refusal-invariant test gap from PR #37). It is the owner tools' state machine on his real disks, where mistakes are costly.
+    3. **Package 25 (guardian) design**: B2's focus, stop and shutdown states and a clean world save at logout. It is design-heavy and touches 23's supervisor.
+    4. **The next release's update path**: stop masking the finalize units in the image, review the updater allowlist, and a second-update rehearsal (R27 to the next release). Use Fable only if run 4 shows more surprises; otherwise Opus.
+    - The WSL disk image is 14.2 GB with about 3 GB in use; compacting it needs admin.
+  - **Disk resolved (2026-11-11 ~04:20 local):** C: has 132 GB free. With the owner's OK in the chat, AresOS-delete-me (115 GB) and 1,694 WSLg Remote Desktop `.etl` traces (11.5 GB, in `%TEMP%/DiagOutputDir/RdClientAutoTrace`) were deleted. The traces grow back slowly, so check them now and then. Board #174 and #175 are done.
+  - **Trace logs, 2026-11-12 (board #179 "Yes, do both"):** they had regrown to 19 GB (about 1 GB/h) and were cleared again. `C:/Users/pab/.wslconfig` now has `[wsl2] guiApplications=false` (turns off WSLg, the likely writer); it applies from the next WSL start. Delete that file to undo. Check `%TEMP%/DiagOutputDir` size after a day.
 - **Owner to-dos:**
-  - Shift+Delete `C:\Users\pab\AresOS-delete-me` (115 GB of old replay ISOs).
 
 ### Package 14: owner tools (PR #13, draft)
 
@@ -148,9 +203,9 @@ The baton from the last session. Read it after `STATE.md`. Overwrite it when you
 
 ### Other
 
-- **Hardware arrived 2026-10-26** (SSD, 2 sticks, screwdrivers). Keep it boxed until the guide is released: record A must come before fitting. The SSD return deadline is about **2026-11-09**.
+- **Hardware:** the SSD is fitted (2026-11-07); the two Kingston sticks are the recovery and installer sticks from Stage A.
 - **Package 12** (the companion in the hub): the brief is drafted, waiting for the owner's go (scratchpad draft path in the transcript). Companions live in the private repo `Ares-Empire/companions`.
-- **The CI secret `GHCR_READ_TOKEN`** expires about 2026-11-22.
+- **The CI secret `GHCR_READ_TOKEN`** was renewed on 2026-11-07 and is valid until about 2026-12-07.
 
 ## Watch out
 

@@ -1,7 +1,7 @@
 name: Control boundary
 on:
   push:
-    branches: [main, pkg/18d-base-slim]
+    branches: [main]
     paths:
       - 'control/**'
       - 'reviews/18b-control-boundary/**'
@@ -16,7 +16,7 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
-# Main keeps its check after each merge. Drop the package push trigger when PR checks resume.
+# A newer push to the same pull request cancels the older run. Main keeps its check after each merge.
 concurrency:
   group: control-boundary-${{ github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}

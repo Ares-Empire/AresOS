@@ -56,7 +56,6 @@ brew-upgrade.timer
 dnf-makecache.service
 dnf5-offline-transaction.service
 dnf5-offline-transaction-cleanup.service
-flatpak-system-helper.service
 fwupd.service
 foomaticrip-upgrade.service
 mariadb.service

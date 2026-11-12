@@ -1,0 +1,1790 @@
+{
+  "baseline_source": "7b0e9a05",
+  "before": {
+    "delete": {
+      "index_bytes": 0,
+      "journal_bytes": 3942,
+      "journal_records": 5,
+      "outcome": "done",
+      "projection_bytes": 0,
+      "projection_detail": [],
+      "projection_records": 0,
+      "sqlite_event_bytes": 16454,
+      "sqlite_file_bytes": 24576
+    },
+    "free_change": {
+      "index_bytes": 0,
+      "journal_bytes": 688,
+      "journal_records": 2,
+      "outcome": "done",
+      "projection_bytes": 0,
+      "projection_detail": [],
+      "projection_records": 0,
+      "sqlite_event_bytes": 1592,
+      "sqlite_file_bytes": 0
+    },
+    "move": {
+      "index_bytes": 0,
+      "journal_bytes": 2064,
+      "journal_records": 6,
+      "outcome": "done",
+      "projection_bytes": 0,
+      "projection_detail": [],
+      "projection_records": 0,
+      "sqlite_event_bytes": 9377,
+      "sqlite_file_bytes": 16384
+    },
+    "send": {
+      "index_bytes": 0,
+      "journal_bytes": 9506,
+      "journal_records": 14,
+      "outcome": "done",
+      "projection_bytes": 0,
+      "projection_detail": [],
+      "projection_records": 0,
+      "sqlite_event_bytes": 50361,
+      "sqlite_file_bytes": 65536
+    },
+    "send_25mib": {
+      "index_bytes": 0,
+      "journal_bytes": 9508,
+      "journal_records": 14,
+      "outcome": "done",
+      "projection_bytes": 0,
+      "projection_detail": [],
+      "projection_records": 0,
+      "sqlite_event_bytes": 58595,
+      "sqlite_file_bytes": 73728
+    }
+  },
+  "candidate": "Separate hash-chained JSONL projection, one frame before each existing journal transaction; zlib/base85 recursive owner-row deltas and audit fields. Permanent journal unchanged. Candidate withdrawn from production after the stop.",
+  "candidate_first_measurement": {
+    "delete": {
+      "index_bytes": 0,
+      "journal_bytes": 3942,
+      "journal_records": 5,
+      "outcome": "done",
+      "projection_bytes": 3212,
+      "projection_records": 5,
+      "sqlite_event_bytes": 16454,
+      "sqlite_file_bytes": 24576
+    },
+    "free_change": {
+      "index_bytes": 0,
+      "journal_bytes": 688,
+      "journal_records": 2,
+      "outcome": "done",
+      "projection_bytes": 1125,
+      "projection_records": 2,
+      "sqlite_event_bytes": 1592,
+      "sqlite_file_bytes": 0
+    },
+    "move": {
+      "index_bytes": 0,
+      "journal_bytes": 2064,
+      "journal_records": 6,
+      "outcome": "done",
+      "projection_bytes": 3901,
+      "projection_records": 6,
+      "sqlite_event_bytes": 9377,
+      "sqlite_file_bytes": 16384
+    },
+    "send": {
+      "index_bytes": 0,
+      "journal_bytes": 9506,
+      "journal_records": 14,
+      "outcome": "done",
+      "projection_bytes": 7944,
+      "projection_records": 14,
+      "sqlite_event_bytes": 50361,
+      "sqlite_file_bytes": 65536
+    },
+    "send_25mib": {
+      "index_bytes": 0,
+      "journal_bytes": 9508,
+      "journal_records": 14,
+      "outcome": "done",
+      "projection_bytes": 7940,
+      "projection_records": 14,
+      "sqlite_event_bytes": 58595,
+      "sqlite_file_bytes": 73728
+    }
+  },
+  "candidate_record_detail": {
+    "delete": {
+      "index_bytes": 0,
+      "journal_bytes": 3942,
+      "journal_records": 5,
+      "outcome": "done",
+      "projection_bytes": 3212,
+      "projection_detail": [
+        {
+          "audit": {
+            "action": "mail_delete",
+            "operation_id": "67ecb5f03e244558b02ab00502ee339b:34b61a3b7d874eeeb4add48b03d4b07b",
+            "outcome": "reserved",
+            "summary": "reserved mail_delete"
+          },
+          "bytes": 719,
+          "compressed_delta_bytes": 460,
+          "framing_bytes": 259,
+          "patch_keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:34b61a3b7d874eeeb4add48b03d4b07b"
+          ],
+          "seq": 4
+        },
+        {
+          "audit": {
+            "action": "mail_delete",
+            "operation_id": "67ecb5f03e244558b02ab00502ee339b:34b61a3b7d874eeeb4add48b03d4b07b",
+            "outcome": "submitting",
+            "summary": "submitting"
+          },
+          "bytes": 773,
+          "compressed_delta_bytes": 514,
+          "framing_bytes": 259,
+          "patch_keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:34b61a3b7d874eeeb4add48b03d4b07b"
+          ],
+          "seq": 5
+        },
+        {
+          "audit": {
+            "action": "mail_delete",
+            "operation_id": "67ecb5f03e244558b02ab00502ee339b:34b61a3b7d874eeeb4add48b03d4b07b",
+            "outcome": "submitting",
+            "summary": "Mail operation stage recorded",
+            "untrusted_content": {
+              "outcome": "deleted flag set",
+              "stage": "marked:2d782c56103a21730d6677b11b59cd9868d130ae8c0e1c326b3ba6bff07b6075"
+            }
+          },
+          "bytes": 627,
+          "compressed_delta_bytes": 368,
+          "framing_bytes": 259,
+          "patch_keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:34b61a3b7d874eeeb4add48b03d4b07b"
+          ],
+          "seq": 6
+        },
+        {
+          "audit": {
+            "action": "mail_delete",
+            "operation_id": "67ecb5f03e244558b02ab00502ee339b:34b61a3b7d874eeeb4add48b03d4b07b",
+            "outcome": "submitting",
+            "summary": "Mail operation stage recorded",
+            "untrusted_content": {
+              "outcome": "expunged",
+              "stage": "target:2d782c56103a21730d6677b11b59cd9868d130ae8c0e1c326b3ba6bff07b6075"
+            }
+          },
+          "bytes": 576,
+          "compressed_delta_bytes": 317,
+          "framing_bytes": 259,
+          "patch_keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:34b61a3b7d874eeeb4add48b03d4b07b"
+          ],
+          "seq": 7
+        },
+        {
+          "audit": {
+            "action": "mail_delete",
+            "operation_id": "67ecb5f03e244558b02ab00502ee339b:34b61a3b7d874eeeb4add48b03d4b07b",
+            "outcome": "done",
+            "summary": "done"
+          },
+          "bytes": 517,
+          "compressed_delta_bytes": 258,
+          "framing_bytes": 259,
+          "patch_keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:34b61a3b7d874eeeb4add48b03d4b07b"
+          ],
+          "seq": 8
+        }
+      ],
+      "projection_records": 5,
+      "sqlite_event_bytes": 16454,
+      "sqlite_file_bytes": 24576
+    },
+    "free_change": {
+      "index_bytes": 0,
+      "journal_bytes": 688,
+      "journal_records": 2,
+      "outcome": "done",
+      "projection_bytes": 1125,
+      "projection_detail": [
+        {
+          "audit": {
+            "action": "mail_folder_create",
+            "operation_id": null,
+            "outcome": "started",
+            "summary": "starting Mail change",
+            "untrusted_content": {
+              "account": "box",
+              "name": "Created"
+            }
+          },
+          "bytes": 653,
+          "compressed_delta_bytes": 394,
+          "framing_bytes": 259,
+          "patch_keys": [
+            "intent:34b61a3b7d874eeeb4add48b03d4b07b"
+          ],
+          "seq": 4
+        },
+        {
+          "audit": {
+            "action": "mail_folder_create",
+            "operation_id": null,
+            "outcome": "done",
+            "summary": "Mail change completed",
+            "untrusted_content": {
+              "account": "box",
+              "name": "Created"
+            }
+          },
+          "bytes": 472,
+          "compressed_delta_bytes": 213,
+          "framing_bytes": 259,
+          "patch_keys": [
+            "intent:34b61a3b7d874eeeb4add48b03d4b07b"
+          ],
+          "seq": 5
+        }
+      ],
+      "projection_records": 2,
+      "sqlite_event_bytes": 1592,
+      "sqlite_file_bytes": 0
+    },
+    "move": {
+      "index_bytes": 0,
+      "journal_bytes": 2064,
+      "journal_records": 6,
+      "outcome": "done",
+      "projection_bytes": 3901,
+      "projection_detail": [
+        {
+          "audit": {
+            "action": "mail_move",
+            "operation_id": null,
+            "outcome": "started",
+            "summary": "starting Mail change",
+            "untrusted_content": {
+              "message_count": 1,
+              "target": "Target"
+            }
+          },
+          "bytes": 654,
+          "compressed_delta_bytes": 395,
+          "framing_bytes": 259,
+          "patch_keys": [
+            "intent:34b61a3b7d874eeeb4add48b03d4b07b"
+          ],
+          "seq": 4
+        },
+        {
+          "audit": {
+            "action": "mail_move",
+            "operation_id": null,
+            "outcome": "started",
+            "summary": "Filing intent 402d50241cd44005a0cabc31894520bc",
+            "untrusted_content": {
+              "filing": {
+                "filing_id": "402d50241cd44005a0cabc31894520bc",
+                "locations_action": "mail_filing_locations",
+                "message_count": 1,
+                "state": "started"
+              }
+            }
+          },
+          "bytes": 869,
+          "compressed_delta_bytes": 610,
+          "framing_bytes": 259,
+          "patch_keys": [
+            "mail:filing:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 5
+        },
+        {
+          "audit": {
+            "action": "mail_move",
+            "operation_id": null,
+            "outcome": "started",
+            "summary": "Filing intent 402d50241cd44005a0cabc31894520bc",
+            "untrusted_content": {
+              "filing": {
+                "filing_id": "402d50241cd44005a0cabc31894520bc",
+                "locations_action": "mail_filing_locations",
+                "message_count": 1,
+                "state": "started"
+              }
+            }
+          },
+          "bytes": 718,
+          "compressed_delta_bytes": 459,
+          "framing_bytes": 259,
+          "patch_keys": [
+            "mail:filing:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 6
+        },
+        {
+          "audit": {
+            "action": "mail_move",
+            "operation_id": null,
+            "outcome": "started",
+            "summary": "Filing intent 402d50241cd44005a0cabc31894520bc",
+            "untrusted_content": {
+              "filing": {
+                "filing_id": "402d50241cd44005a0cabc31894520bc",
+                "locations_action": "mail_filing_locations",
+                "message_count": 1,
+                "state": "started"
+              }
+            }
+          },
+          "bytes": 682,
+          "compressed_delta_bytes": 423,
+          "framing_bytes": 259,
+          "patch_keys": [
+            "mail:filing:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 7
+        },
+        {
+          "audit": {
+            "action": "mail_move",
+            "operation_id": null,
+            "outcome": "done",
+            "summary": "Filing intent 402d50241cd44005a0cabc31894520bc",
+            "untrusted_content": {
+              "filing": {
+                "filing_id": "402d50241cd44005a0cabc31894520bc",
+                "locations_action": "mail_filing_locations",
+                "message_count": 1,
+                "state": "done"
+              }
+            }
+          },
+          "bytes": 511,
+          "compressed_delta_bytes": 252,
+          "framing_bytes": 259,
+          "patch_keys": [
+            "mail:filing:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 8
+        },
+        {
+          "audit": {
+            "action": "mail_move",
+            "operation_id": null,
+            "outcome": "done",
+            "summary": "Mail change completed",
+            "untrusted_content": {
+              "message_count": 1,
+              "target": "Target"
+            }
+          },
+          "bytes": 467,
+          "compressed_delta_bytes": 208,
+          "framing_bytes": 259,
+          "patch_keys": [
+            "intent:34b61a3b7d874eeeb4add48b03d4b07b"
+          ],
+          "seq": 9
+        }
+      ],
+      "projection_records": 6,
+      "sqlite_event_bytes": 9377,
+      "sqlite_file_bytes": 16384
+    },
+    "send": {
+      "index_bytes": 0,
+      "journal_bytes": 9506,
+      "journal_records": 14,
+      "outcome": "done",
+      "projection_bytes": 7944,
+      "projection_detail": [
+        {
+          "audit": {
+            "action": "mail_compose",
+            "operation_id": null,
+            "outcome": "done",
+            "summary": "stored immutable composition 34b61a3b7d874eeeb4add48b03d4b07b"
+          },
+          "bytes": 424,
+          "compressed_delta_bytes": 165,
+          "framing_bytes": 259,
+          "patch_keys": [],
+          "seq": 4
+        },
+        {
+          "audit": {
+            "action": "mail_send",
+            "operation_id": "67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc",
+            "outcome": "reserved",
+            "summary": "reserved mail_send"
+          },
+          "bytes": 747,
+          "compressed_delta_bytes": 488,
+          "framing_bytes": 259,
+          "patch_keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 5
+        },
+        {
+          "audit": {
+            "action": "mail_send",
+            "operation_id": "67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc",
+            "outcome": "submitting",
+            "summary": "submitting"
+          },
+          "bytes": 504,
+          "compressed_delta_bytes": 245,
+          "framing_bytes": 259,
+          "patch_keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 6
+        },
+        {
+          "audit": {
+            "action": "mail_send",
+            "operation_id": "67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc",
+            "outcome": "submitting",
+            "summary": "Mail operation stage recorded",
+            "untrusted_content": {
+              "outcome": "<67ecb5f03e244558b02ab00502ee339b.402d50241cd44005a0cabc31894520bc@mail.aresos.invalid>",
+              "stage": "message_id"
+            }
+          },
+          "bytes": 551,
+          "compressed_delta_bytes": 292,
+          "framing_bytes": 259,
+          "patch_keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 7
+        },
+        {
+          "audit": {
+            "action": "mail_send",
+            "operation_id": "67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc",
+            "outcome": "submitting",
+            "summary": "Mail operation stage recorded",
+            "untrusted_content": {
+              "outcome": "ec11120489cef443b3903b162d3a59570f8ce12b2f906946747de26dd8aa64d0",
+              "stage": "wire_sha256"
+            }
+          },
+          "bytes": 573,
+          "compressed_delta_bytes": 314,
+          "framing_bytes": 259,
+          "patch_keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 8
+        },
+        {
+          "audit": {
+            "action": "mail_send",
+            "operation_id": "67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc",
+            "outcome": "submitting",
+            "summary": "Mail operation stage recorded",
+            "untrusted_content": {
+              "outcome": "accepted:250",
+              "stage": "rcpt:one@mail.invalid"
+            }
+          },
+          "bytes": 539,
+          "compressed_delta_bytes": 280,
+          "framing_bytes": 259,
+          "patch_keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 9
+        },
+        {
+          "audit": {
+            "action": "mail_send",
+            "operation_id": "67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc",
+            "outcome": "submitting",
+            "summary": "Mail operation stage recorded",
+            "untrusted_content": {
+              "outcome": "attempting",
+              "stage": "smtp_data"
+            }
+          },
+          "bytes": 813,
+          "compressed_delta_bytes": 553,
+          "framing_bytes": 260,
+          "patch_keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 10
+        },
+        {
+          "audit": {
+            "action": "mail_send",
+            "operation_id": "67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc",
+            "outcome": "submitting",
+            "summary": "Mail operation stage recorded",
+            "untrusted_content": {
+              "outcome": "accepted:250",
+              "stage": "smtp_data"
+            }
+          },
+          "bytes": 525,
+          "compressed_delta_bytes": 265,
+          "framing_bytes": 260,
+          "patch_keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 11
+        },
+        {
+          "audit": {
+            "action": "mail_send",
+            "operation_id": "67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc",
+            "outcome": "submitting",
+            "summary": "Mail operation stage recorded",
+            "untrusted_content": {
+              "outcome": "accepted",
+              "stage": "recipient:one@mail.invalid"
+            }
+          },
+          "bytes": 539,
+          "compressed_delta_bytes": 279,
+          "framing_bytes": 260,
+          "patch_keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 12
+        },
+        {
+          "audit": {
+            "action": "mail_sent_copy_attempt",
+            "operation_id": "67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc",
+            "outcome": "submitting",
+            "summary": "Sent APPEND attempt started"
+          },
+          "bytes": 593,
+          "compressed_delta_bytes": 333,
+          "framing_bytes": 260,
+          "patch_keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 13
+        },
+        {
+          "audit": {
+            "action": "mail_sent_copy_attempt",
+            "operation_id": "67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc",
+            "outcome": "submitting",
+            "summary": "Sent APPEND attempt ended"
+          },
+          "bytes": 520,
+          "compressed_delta_bytes": 260,
+          "framing_bytes": 260,
+          "patch_keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 14
+        },
+        {
+          "audit": {
+            "action": "mail_send",
+            "operation_id": "67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc",
+            "outcome": "submitting",
+            "summary": "Mail operation stage recorded",
+            "untrusted_content": {
+              "outcome": "done",
+              "stage": "sent_copy"
+            }
+          },
+          "bytes": 583,
+          "compressed_delta_bytes": 323,
+          "framing_bytes": 260,
+          "patch_keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 15
+        },
+        {
+          "audit": {
+            "action": "mail_send",
+            "operation_id": "67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc",
+            "outcome": "submitting",
+            "summary": "Mail operation stage recorded",
+            "untrusted_content": {
+              "outcome": "not_needed",
+              "stage": "answered_flag"
+            }
+          },
+          "bytes": 528,
+          "compressed_delta_bytes": 268,
+          "framing_bytes": 260,
+          "patch_keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 16
+        },
+        {
+          "audit": {
+            "action": "mail_send",
+            "operation_id": "67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc",
+            "outcome": "done",
+            "summary": "done"
+          },
+          "bytes": 505,
+          "compressed_delta_bytes": 245,
+          "framing_bytes": 260,
+          "patch_keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 17
+        }
+      ],
+      "projection_records": 14,
+      "sqlite_event_bytes": 50361,
+      "sqlite_file_bytes": 65536
+    },
+    "send_25mib": {
+      "index_bytes": 0,
+      "journal_bytes": 9508,
+      "journal_records": 14,
+      "outcome": "done",
+      "projection_bytes": 7946,
+      "projection_detail": [
+        {
+          "audit": {
+            "action": "mail_compose",
+            "operation_id": null,
+            "outcome": "done",
+            "summary": "stored immutable composition 34b61a3b7d874eeeb4add48b03d4b07b"
+          },
+          "bytes": 424,
+          "compressed_delta_bytes": 165,
+          "framing_bytes": 259,
+          "patch_keys": [],
+          "seq": 5
+        },
+        {
+          "audit": {
+            "action": "mail_send",
+            "operation_id": "67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc",
+            "outcome": "reserved",
+            "summary": "reserved mail_send"
+          },
+          "bytes": 747,
+          "compressed_delta_bytes": 488,
+          "framing_bytes": 259,
+          "patch_keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 6
+        },
+        {
+          "audit": {
+            "action": "mail_send",
+            "operation_id": "67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc",
+            "outcome": "submitting",
+            "summary": "submitting"
+          },
+          "bytes": 504,
+          "compressed_delta_bytes": 245,
+          "framing_bytes": 259,
+          "patch_keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 7
+        },
+        {
+          "audit": {
+            "action": "mail_send",
+            "operation_id": "67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc",
+            "outcome": "submitting",
+            "summary": "Mail operation stage recorded",
+            "untrusted_content": {
+              "outcome": "<67ecb5f03e244558b02ab00502ee339b.402d50241cd44005a0cabc31894520bc@mail.aresos.invalid>",
+              "stage": "message_id"
+            }
+          },
+          "bytes": 551,
+          "compressed_delta_bytes": 292,
+          "framing_bytes": 259,
+          "patch_keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 8
+        },
+        {
+          "audit": {
+            "action": "mail_send",
+            "operation_id": "67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc",
+            "outcome": "submitting",
+            "summary": "Mail operation stage recorded",
+            "untrusted_content": {
+              "outcome": "9131ff075593236c6b635363d73614734f86bb44e72951397743efb0a79b5c87",
+              "stage": "wire_sha256"
+            }
+          },
+          "bytes": 573,
+          "compressed_delta_bytes": 314,
+          "framing_bytes": 259,
+          "patch_keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 9
+        },
+        {
+          "audit": {
+            "action": "mail_send",
+            "operation_id": "67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc",
+            "outcome": "submitting",
+            "summary": "Mail operation stage recorded",
+            "untrusted_content": {
+              "outcome": "accepted:250",
+              "stage": "rcpt:one@mail.invalid"
+            }
+          },
+          "bytes": 540,
+          "compressed_delta_bytes": 280,
+          "framing_bytes": 260,
+          "patch_keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 10
+        },
+        {
+          "audit": {
+            "action": "mail_send",
+            "operation_id": "67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc",
+            "outcome": "submitting",
+            "summary": "Mail operation stage recorded",
+            "untrusted_content": {
+              "outcome": "attempting",
+              "stage": "smtp_data"
+            }
+          },
+          "bytes": 814,
+          "compressed_delta_bytes": 554,
+          "framing_bytes": 260,
+          "patch_keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 11
+        },
+        {
+          "audit": {
+            "action": "mail_send",
+            "operation_id": "67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc",
+            "outcome": "submitting",
+            "summary": "Mail operation stage recorded",
+            "untrusted_content": {
+              "outcome": "accepted:250",
+              "stage": "smtp_data"
+            }
+          },
+          "bytes": 525,
+          "compressed_delta_bytes": 265,
+          "framing_bytes": 260,
+          "patch_keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 12
+        },
+        {
+          "audit": {
+            "action": "mail_send",
+            "operation_id": "67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc",
+            "outcome": "submitting",
+            "summary": "Mail operation stage recorded",
+            "untrusted_content": {
+              "outcome": "accepted",
+              "stage": "recipient:one@mail.invalid"
+            }
+          },
+          "bytes": 539,
+          "compressed_delta_bytes": 279,
+          "framing_bytes": 260,
+          "patch_keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 13
+        },
+        {
+          "audit": {
+            "action": "mail_sent_copy_attempt",
+            "operation_id": "67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc",
+            "outcome": "submitting",
+            "summary": "Sent APPEND attempt started"
+          },
+          "bytes": 593,
+          "compressed_delta_bytes": 333,
+          "framing_bytes": 260,
+          "patch_keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 14
+        },
+        {
+          "audit": {
+            "action": "mail_sent_copy_attempt",
+            "operation_id": "67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc",
+            "outcome": "submitting",
+            "summary": "Sent APPEND attempt ended"
+          },
+          "bytes": 520,
+          "compressed_delta_bytes": 260,
+          "framing_bytes": 260,
+          "patch_keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 15
+        },
+        {
+          "audit": {
+            "action": "mail_send",
+            "operation_id": "67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc",
+            "outcome": "submitting",
+            "summary": "Mail operation stage recorded",
+            "untrusted_content": {
+              "outcome": "done",
+              "stage": "sent_copy"
+            }
+          },
+          "bytes": 583,
+          "compressed_delta_bytes": 323,
+          "framing_bytes": 260,
+          "patch_keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 16
+        },
+        {
+          "audit": {
+            "action": "mail_send",
+            "operation_id": "67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc",
+            "outcome": "submitting",
+            "summary": "Mail operation stage recorded",
+            "untrusted_content": {
+              "outcome": "not_needed",
+              "stage": "answered_flag"
+            }
+          },
+          "bytes": 528,
+          "compressed_delta_bytes": 268,
+          "framing_bytes": 260,
+          "patch_keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 17
+        },
+        {
+          "audit": {
+            "action": "mail_send",
+            "operation_id": "67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc",
+            "outcome": "done",
+            "summary": "done"
+          },
+          "bytes": 505,
+          "compressed_delta_bytes": 245,
+          "framing_bytes": 260,
+          "patch_keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 18
+        }
+      ],
+      "projection_records": 14,
+      "sqlite_event_bytes": 58595,
+      "sqlite_file_bytes": 73728
+    }
+  },
+  "evidence_sha256": {
+    "STORAGE-S3-CANDIDATE.patch": "40ffbbcb0ac3cad6967d8a26966c58f2fdcee6469f1b2b64f508822bfa523dcf",
+    "STORAGE-S3-HARNESS.py": "0e026e8418557729849367d4927de6c3aaeb257222ac2a7d247bc70854e76569",
+    "STORAGE-S3-LOCAL-POLICY.py": "7555d0b96335c476149741a092d23770bb54ce5e924094f7c513df51405cb060"
+  },
+  "gate": {
+    "journal_growth": {
+      "delete": 0,
+      "free_change": 0,
+      "move": 0,
+      "send": 0,
+      "send_25mib": 0
+    },
+    "limit_bytes": 1000,
+    "projection_growth": {
+      "delete": 3212,
+      "free_change": 1125,
+      "move": 3901,
+      "send": 7944,
+      "send_25mib": 7946
+    },
+    "result": "STOP"
+  },
+  "logs": {
+    ".work/19b-s3/storage-after.txt": "e9342bf5d4aa70ee56173714ecca660f466dfca955a6f7d5f2b240e2bf62249b",
+    ".work/19b-s3/storage-baseline-reproduced.txt": "9f8ff58932da0dee4d34995ed14e65efe055a1b08b670eeac95947aa17b341b5",
+    ".work/19b-s3/storage-before.txt": "d115662b1a98024c1da0c9699221f4960e03f3dfeff83106bf6d5b271c232230",
+    ".work/19b-s3/storage-candidate-reproduced.txt": "c53eb749805f1033d6648fa70f05f1304fa9980e99545e23554fb0cc3117fccf",
+    ".work/19b-s3/storage-detail.txt": "d08074305985c3853aac7c1099697bea5a514c7d881a501ae788894840c62d32"
+  },
+  "measurement": "STORAGE-S2 synthetic operations including compose/prepare, excluding caller import; direct Engine.dispatch; one Sent copy; 25 MiB binary attachment. Local fixture policy only; no CI acceptance.",
+  "remaining_work_files_over_500000000_bytes": [],
+  "reproduced_baseline": {
+    "delete": {
+      "index_bytes": 0,
+      "journal_bytes": 3942,
+      "journal_records": 5,
+      "outcome": "done",
+      "projection_bytes": 0,
+      "projection_detail": [],
+      "projection_records": 0,
+      "sqlite_event_bytes": 16454,
+      "sqlite_file_bytes": 24576
+    },
+    "free_change": {
+      "index_bytes": 0,
+      "journal_bytes": 688,
+      "journal_records": 2,
+      "outcome": "done",
+      "projection_bytes": 0,
+      "projection_detail": [],
+      "projection_records": 0,
+      "sqlite_event_bytes": 1592,
+      "sqlite_file_bytes": 0
+    },
+    "move": {
+      "index_bytes": 0,
+      "journal_bytes": 2064,
+      "journal_records": 6,
+      "outcome": "done",
+      "projection_bytes": 0,
+      "projection_detail": [],
+      "projection_records": 0,
+      "sqlite_event_bytes": 9377,
+      "sqlite_file_bytes": 16384
+    },
+    "send": {
+      "index_bytes": 0,
+      "journal_bytes": 9506,
+      "journal_records": 14,
+      "outcome": "done",
+      "projection_bytes": 0,
+      "projection_detail": [],
+      "projection_records": 0,
+      "sqlite_event_bytes": 50361,
+      "sqlite_file_bytes": 65536
+    },
+    "send_25mib": {
+      "index_bytes": 0,
+      "journal_bytes": 9508,
+      "journal_records": 14,
+      "outcome": "done",
+      "projection_bytes": 0,
+      "projection_detail": [],
+      "projection_records": 0,
+      "sqlite_event_bytes": 58595,
+      "sqlite_file_bytes": 73728
+    }
+  },
+  "reproduced_candidate": {
+    "delete": {
+      "index_bytes": 0,
+      "journal_bytes": 3942,
+      "journal_records": 5,
+      "outcome": "done",
+      "projection_bytes": 3212,
+      "projection_detail": [
+        {
+          "audit": {
+            "action": "mail_delete",
+            "operation_id": "67ecb5f03e244558b02ab00502ee339b:34b61a3b7d874eeeb4add48b03d4b07b",
+            "outcome": "reserved",
+            "summary": "reserved mail_delete"
+          },
+          "bytes": 719,
+          "compressed_delta_bytes": 460,
+          "framing_bytes": 259,
+          "patch_keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:34b61a3b7d874eeeb4add48b03d4b07b"
+          ],
+          "seq": 4
+        },
+        {
+          "audit": {
+            "action": "mail_delete",
+            "operation_id": "67ecb5f03e244558b02ab00502ee339b:34b61a3b7d874eeeb4add48b03d4b07b",
+            "outcome": "submitting",
+            "summary": "submitting"
+          },
+          "bytes": 773,
+          "compressed_delta_bytes": 514,
+          "framing_bytes": 259,
+          "patch_keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:34b61a3b7d874eeeb4add48b03d4b07b"
+          ],
+          "seq": 5
+        },
+        {
+          "audit": {
+            "action": "mail_delete",
+            "operation_id": "67ecb5f03e244558b02ab00502ee339b:34b61a3b7d874eeeb4add48b03d4b07b",
+            "outcome": "submitting",
+            "summary": "Mail operation stage recorded",
+            "untrusted_content": {
+              "outcome": "deleted flag set",
+              "stage": "marked:2d782c56103a21730d6677b11b59cd9868d130ae8c0e1c326b3ba6bff07b6075"
+            }
+          },
+          "bytes": 627,
+          "compressed_delta_bytes": 368,
+          "framing_bytes": 259,
+          "patch_keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:34b61a3b7d874eeeb4add48b03d4b07b"
+          ],
+          "seq": 6
+        },
+        {
+          "audit": {
+            "action": "mail_delete",
+            "operation_id": "67ecb5f03e244558b02ab00502ee339b:34b61a3b7d874eeeb4add48b03d4b07b",
+            "outcome": "submitting",
+            "summary": "Mail operation stage recorded",
+            "untrusted_content": {
+              "outcome": "expunged",
+              "stage": "target:2d782c56103a21730d6677b11b59cd9868d130ae8c0e1c326b3ba6bff07b6075"
+            }
+          },
+          "bytes": 576,
+          "compressed_delta_bytes": 317,
+          "framing_bytes": 259,
+          "patch_keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:34b61a3b7d874eeeb4add48b03d4b07b"
+          ],
+          "seq": 7
+        },
+        {
+          "audit": {
+            "action": "mail_delete",
+            "operation_id": "67ecb5f03e244558b02ab00502ee339b:34b61a3b7d874eeeb4add48b03d4b07b",
+            "outcome": "done",
+            "summary": "done"
+          },
+          "bytes": 517,
+          "compressed_delta_bytes": 258,
+          "framing_bytes": 259,
+          "patch_keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:34b61a3b7d874eeeb4add48b03d4b07b"
+          ],
+          "seq": 8
+        }
+      ],
+      "projection_records": 5,
+      "sqlite_event_bytes": 16454,
+      "sqlite_file_bytes": 24576
+    },
+    "free_change": {
+      "index_bytes": 0,
+      "journal_bytes": 688,
+      "journal_records": 2,
+      "outcome": "done",
+      "projection_bytes": 1125,
+      "projection_detail": [
+        {
+          "audit": {
+            "action": "mail_folder_create",
+            "operation_id": null,
+            "outcome": "started",
+            "summary": "starting Mail change",
+            "untrusted_content": {
+              "account": "box",
+              "name": "Created"
+            }
+          },
+          "bytes": 653,
+          "compressed_delta_bytes": 394,
+          "framing_bytes": 259,
+          "patch_keys": [
+            "intent:34b61a3b7d874eeeb4add48b03d4b07b"
+          ],
+          "seq": 4
+        },
+        {
+          "audit": {
+            "action": "mail_folder_create",
+            "operation_id": null,
+            "outcome": "done",
+            "summary": "Mail change completed",
+            "untrusted_content": {
+              "account": "box",
+              "name": "Created"
+            }
+          },
+          "bytes": 472,
+          "compressed_delta_bytes": 213,
+          "framing_bytes": 259,
+          "patch_keys": [
+            "intent:34b61a3b7d874eeeb4add48b03d4b07b"
+          ],
+          "seq": 5
+        }
+      ],
+      "projection_records": 2,
+      "sqlite_event_bytes": 1592,
+      "sqlite_file_bytes": 0
+    },
+    "move": {
+      "index_bytes": 0,
+      "journal_bytes": 2064,
+      "journal_records": 6,
+      "outcome": "done",
+      "projection_bytes": 3901,
+      "projection_detail": [
+        {
+          "audit": {
+            "action": "mail_move",
+            "operation_id": null,
+            "outcome": "started",
+            "summary": "starting Mail change",
+            "untrusted_content": {
+              "message_count": 1,
+              "target": "Target"
+            }
+          },
+          "bytes": 654,
+          "compressed_delta_bytes": 395,
+          "framing_bytes": 259,
+          "patch_keys": [
+            "intent:34b61a3b7d874eeeb4add48b03d4b07b"
+          ],
+          "seq": 4
+        },
+        {
+          "audit": {
+            "action": "mail_move",
+            "operation_id": null,
+            "outcome": "started",
+            "summary": "Filing intent 402d50241cd44005a0cabc31894520bc",
+            "untrusted_content": {
+              "filing": {
+                "filing_id": "402d50241cd44005a0cabc31894520bc",
+                "locations_action": "mail_filing_locations",
+                "message_count": 1,
+                "state": "started"
+              }
+            }
+          },
+          "bytes": 869,
+          "compressed_delta_bytes": 610,
+          "framing_bytes": 259,
+          "patch_keys": [
+            "mail:filing:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 5
+        },
+        {
+          "audit": {
+            "action": "mail_move",
+            "operation_id": null,
+            "outcome": "started",
+            "summary": "Filing intent 402d50241cd44005a0cabc31894520bc",
+            "untrusted_content": {
+              "filing": {
+                "filing_id": "402d50241cd44005a0cabc31894520bc",
+                "locations_action": "mail_filing_locations",
+                "message_count": 1,
+                "state": "started"
+              }
+            }
+          },
+          "bytes": 718,
+          "compressed_delta_bytes": 459,
+          "framing_bytes": 259,
+          "patch_keys": [
+            "mail:filing:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 6
+        },
+        {
+          "audit": {
+            "action": "mail_move",
+            "operation_id": null,
+            "outcome": "started",
+            "summary": "Filing intent 402d50241cd44005a0cabc31894520bc",
+            "untrusted_content": {
+              "filing": {
+                "filing_id": "402d50241cd44005a0cabc31894520bc",
+                "locations_action": "mail_filing_locations",
+                "message_count": 1,
+                "state": "started"
+              }
+            }
+          },
+          "bytes": 682,
+          "compressed_delta_bytes": 423,
+          "framing_bytes": 259,
+          "patch_keys": [
+            "mail:filing:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 7
+        },
+        {
+          "audit": {
+            "action": "mail_move",
+            "operation_id": null,
+            "outcome": "done",
+            "summary": "Filing intent 402d50241cd44005a0cabc31894520bc",
+            "untrusted_content": {
+              "filing": {
+                "filing_id": "402d50241cd44005a0cabc31894520bc",
+                "locations_action": "mail_filing_locations",
+                "message_count": 1,
+                "state": "done"
+              }
+            }
+          },
+          "bytes": 511,
+          "compressed_delta_bytes": 252,
+          "framing_bytes": 259,
+          "patch_keys": [
+            "mail:filing:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 8
+        },
+        {
+          "audit": {
+            "action": "mail_move",
+            "operation_id": null,
+            "outcome": "done",
+            "summary": "Mail change completed",
+            "untrusted_content": {
+              "message_count": 1,
+              "target": "Target"
+            }
+          },
+          "bytes": 467,
+          "compressed_delta_bytes": 208,
+          "framing_bytes": 259,
+          "patch_keys": [
+            "intent:34b61a3b7d874eeeb4add48b03d4b07b"
+          ],
+          "seq": 9
+        }
+      ],
+      "projection_records": 6,
+      "sqlite_event_bytes": 9377,
+      "sqlite_file_bytes": 16384
+    },
+    "send": {
+      "index_bytes": 0,
+      "journal_bytes": 9506,
+      "journal_records": 14,
+      "outcome": "done",
+      "projection_bytes": 7944,
+      "projection_detail": [
+        {
+          "audit": {
+            "action": "mail_compose",
+            "operation_id": null,
+            "outcome": "done",
+            "summary": "stored immutable composition 34b61a3b7d874eeeb4add48b03d4b07b"
+          },
+          "bytes": 424,
+          "compressed_delta_bytes": 165,
+          "framing_bytes": 259,
+          "patch_keys": [],
+          "seq": 4
+        },
+        {
+          "audit": {
+            "action": "mail_send",
+            "operation_id": "67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc",
+            "outcome": "reserved",
+            "summary": "reserved mail_send"
+          },
+          "bytes": 747,
+          "compressed_delta_bytes": 488,
+          "framing_bytes": 259,
+          "patch_keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 5
+        },
+        {
+          "audit": {
+            "action": "mail_send",
+            "operation_id": "67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc",
+            "outcome": "submitting",
+            "summary": "submitting"
+          },
+          "bytes": 504,
+          "compressed_delta_bytes": 245,
+          "framing_bytes": 259,
+          "patch_keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 6
+        },
+        {
+          "audit": {
+            "action": "mail_send",
+            "operation_id": "67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc",
+            "outcome": "submitting",
+            "summary": "Mail operation stage recorded",
+            "untrusted_content": {
+              "outcome": "<67ecb5f03e244558b02ab00502ee339b.402d50241cd44005a0cabc31894520bc@mail.aresos.invalid>",
+              "stage": "message_id"
+            }
+          },
+          "bytes": 551,
+          "compressed_delta_bytes": 292,
+          "framing_bytes": 259,
+          "patch_keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 7
+        },
+        {
+          "audit": {
+            "action": "mail_send",
+            "operation_id": "67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc",
+            "outcome": "submitting",
+            "summary": "Mail operation stage recorded",
+            "untrusted_content": {
+              "outcome": "ec11120489cef443b3903b162d3a59570f8ce12b2f906946747de26dd8aa64d0",
+              "stage": "wire_sha256"
+            }
+          },
+          "bytes": 573,
+          "compressed_delta_bytes": 314,
+          "framing_bytes": 259,
+          "patch_keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 8
+        },
+        {
+          "audit": {
+            "action": "mail_send",
+            "operation_id": "67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc",
+            "outcome": "submitting",
+            "summary": "Mail operation stage recorded",
+            "untrusted_content": {
+              "outcome": "accepted:250",
+              "stage": "rcpt:one@mail.invalid"
+            }
+          },
+          "bytes": 539,
+          "compressed_delta_bytes": 280,
+          "framing_bytes": 259,
+          "patch_keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 9
+        },
+        {
+          "audit": {
+            "action": "mail_send",
+            "operation_id": "67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc",
+            "outcome": "submitting",
+            "summary": "Mail operation stage recorded",
+            "untrusted_content": {
+              "outcome": "attempting",
+              "stage": "smtp_data"
+            }
+          },
+          "bytes": 813,
+          "compressed_delta_bytes": 553,
+          "framing_bytes": 260,
+          "patch_keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 10
+        },
+        {
+          "audit": {
+            "action": "mail_send",
+            "operation_id": "67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc",
+            "outcome": "submitting",
+            "summary": "Mail operation stage recorded",
+            "untrusted_content": {
+              "outcome": "accepted:250",
+              "stage": "smtp_data"
+            }
+          },
+          "bytes": 525,
+          "compressed_delta_bytes": 265,
+          "framing_bytes": 260,
+          "patch_keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 11
+        },
+        {
+          "audit": {
+            "action": "mail_send",
+            "operation_id": "67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc",
+            "outcome": "submitting",
+            "summary": "Mail operation stage recorded",
+            "untrusted_content": {
+              "outcome": "accepted",
+              "stage": "recipient:one@mail.invalid"
+            }
+          },
+          "bytes": 539,
+          "compressed_delta_bytes": 279,
+          "framing_bytes": 260,
+          "patch_keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 12
+        },
+        {
+          "audit": {
+            "action": "mail_sent_copy_attempt",
+            "operation_id": "67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc",
+            "outcome": "submitting",
+            "summary": "Sent APPEND attempt started"
+          },
+          "bytes": 593,
+          "compressed_delta_bytes": 333,
+          "framing_bytes": 260,
+          "patch_keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 13
+        },
+        {
+          "audit": {
+            "action": "mail_sent_copy_attempt",
+            "operation_id": "67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc",
+            "outcome": "submitting",
+            "summary": "Sent APPEND attempt ended"
+          },
+          "bytes": 520,
+          "compressed_delta_bytes": 260,
+          "framing_bytes": 260,
+          "patch_keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 14
+        },
+        {
+          "audit": {
+            "action": "mail_send",
+            "operation_id": "67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc",
+            "outcome": "submitting",
+            "summary": "Mail operation stage recorded",
+            "untrusted_content": {
+              "outcome": "done",
+              "stage": "sent_copy"
+            }
+          },
+          "bytes": 583,
+          "compressed_delta_bytes": 323,
+          "framing_bytes": 260,
+          "patch_keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 15
+        },
+        {
+          "audit": {
+            "action": "mail_send",
+            "operation_id": "67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc",
+            "outcome": "submitting",
+            "summary": "Mail operation stage recorded",
+            "untrusted_content": {
+              "outcome": "not_needed",
+              "stage": "answered_flag"
+            }
+          },
+          "bytes": 528,
+          "compressed_delta_bytes": 268,
+          "framing_bytes": 260,
+          "patch_keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 16
+        },
+        {
+          "audit": {
+            "action": "mail_send",
+            "operation_id": "67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc",
+            "outcome": "done",
+            "summary": "done"
+          },
+          "bytes": 505,
+          "compressed_delta_bytes": 245,
+          "framing_bytes": 260,
+          "patch_keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 17
+        }
+      ],
+      "projection_records": 14,
+      "sqlite_event_bytes": 50361,
+      "sqlite_file_bytes": 65536
+    },
+    "send_25mib": {
+      "index_bytes": 0,
+      "journal_bytes": 9508,
+      "journal_records": 14,
+      "outcome": "done",
+      "projection_bytes": 7943,
+      "projection_detail": [
+        {
+          "audit": {
+            "action": "mail_compose",
+            "operation_id": null,
+            "outcome": "done",
+            "summary": "stored immutable composition 34b61a3b7d874eeeb4add48b03d4b07b"
+          },
+          "bytes": 424,
+          "compressed_delta_bytes": 165,
+          "framing_bytes": 259,
+          "patch_keys": [],
+          "seq": 5
+        },
+        {
+          "audit": {
+            "action": "mail_send",
+            "operation_id": "67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc",
+            "outcome": "reserved",
+            "summary": "reserved mail_send"
+          },
+          "bytes": 747,
+          "compressed_delta_bytes": 488,
+          "framing_bytes": 259,
+          "patch_keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 6
+        },
+        {
+          "audit": {
+            "action": "mail_send",
+            "operation_id": "67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc",
+            "outcome": "submitting",
+            "summary": "submitting"
+          },
+          "bytes": 504,
+          "compressed_delta_bytes": 245,
+          "framing_bytes": 259,
+          "patch_keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 7
+        },
+        {
+          "audit": {
+            "action": "mail_send",
+            "operation_id": "67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc",
+            "outcome": "submitting",
+            "summary": "Mail operation stage recorded",
+            "untrusted_content": {
+              "outcome": "<67ecb5f03e244558b02ab00502ee339b.402d50241cd44005a0cabc31894520bc@mail.aresos.invalid>",
+              "stage": "message_id"
+            }
+          },
+          "bytes": 551,
+          "compressed_delta_bytes": 292,
+          "framing_bytes": 259,
+          "patch_keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 8
+        },
+        {
+          "audit": {
+            "action": "mail_send",
+            "operation_id": "67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc",
+            "outcome": "submitting",
+            "summary": "Mail operation stage recorded",
+            "untrusted_content": {
+              "outcome": "b90e4b3173262213288333e835d30ea54c5bbd4335a466b989b8edb4bc718c38",
+              "stage": "wire_sha256"
+            }
+          },
+          "bytes": 572,
+          "compressed_delta_bytes": 313,
+          "framing_bytes": 259,
+          "patch_keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 9
+        },
+        {
+          "audit": {
+            "action": "mail_send",
+            "operation_id": "67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc",
+            "outcome": "submitting",
+            "summary": "Mail operation stage recorded",
+            "untrusted_content": {
+              "outcome": "accepted:250",
+              "stage": "rcpt:one@mail.invalid"
+            }
+          },
+          "bytes": 540,
+          "compressed_delta_bytes": 280,
+          "framing_bytes": 260,
+          "patch_keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 10
+        },
+        {
+          "audit": {
+            "action": "mail_send",
+            "operation_id": "67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc",
+            "outcome": "submitting",
+            "summary": "Mail operation stage recorded",
+            "untrusted_content": {
+              "outcome": "attempting",
+              "stage": "smtp_data"
+            }
+          },
+          "bytes": 812,
+          "compressed_delta_bytes": 552,
+          "framing_bytes": 260,
+          "patch_keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 11
+        },
+        {
+          "audit": {
+            "action": "mail_send",
+            "operation_id": "67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc",
+            "outcome": "submitting",
+            "summary": "Mail operation stage recorded",
+            "untrusted_content": {
+              "outcome": "accepted:250",
+              "stage": "smtp_data"
+            }
+          },
+          "bytes": 525,
+          "compressed_delta_bytes": 265,
+          "framing_bytes": 260,
+          "patch_keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 12
+        },
+        {
+          "audit": {
+            "action": "mail_send",
+            "operation_id": "67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc",
+            "outcome": "submitting",
+            "summary": "Mail operation stage recorded",
+            "untrusted_content": {
+              "outcome": "accepted",
+              "stage": "recipient:one@mail.invalid"
+            }
+          },
+          "bytes": 539,
+          "compressed_delta_bytes": 279,
+          "framing_bytes": 260,
+          "patch_keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 13
+        },
+        {
+          "audit": {
+            "action": "mail_sent_copy_attempt",
+            "operation_id": "67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc",
+            "outcome": "submitting",
+            "summary": "Sent APPEND attempt started"
+          },
+          "bytes": 593,
+          "compressed_delta_bytes": 333,
+          "framing_bytes": 260,
+          "patch_keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 14
+        },
+        {
+          "audit": {
+            "action": "mail_sent_copy_attempt",
+            "operation_id": "67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc",
+            "outcome": "submitting",
+            "summary": "Sent APPEND attempt ended"
+          },
+          "bytes": 520,
+          "compressed_delta_bytes": 260,
+          "framing_bytes": 260,
+          "patch_keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 15
+        },
+        {
+          "audit": {
+            "action": "mail_send",
+            "operation_id": "67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc",
+            "outcome": "submitting",
+            "summary": "Mail operation stage recorded",
+            "untrusted_content": {
+              "outcome": "done",
+              "stage": "sent_copy"
+            }
+          },
+          "bytes": 583,
+          "compressed_delta_bytes": 323,
+          "framing_bytes": 260,
+          "patch_keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 16
+        },
+        {
+          "audit": {
+            "action": "mail_send",
+            "operation_id": "67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc",
+            "outcome": "submitting",
+            "summary": "Mail operation stage recorded",
+            "untrusted_content": {
+              "outcome": "not_needed",
+              "stage": "answered_flag"
+            }
+          },
+          "bytes": 528,
+          "compressed_delta_bytes": 268,
+          "framing_bytes": 260,
+          "patch_keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 17
+        },
+        {
+          "audit": {
+            "action": "mail_send",
+            "operation_id": "67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc",
+            "outcome": "done",
+            "summary": "done"
+          },
+          "bytes": 505,
+          "compressed_delta_bytes": 245,
+          "framing_bytes": 260,
+          "patch_keys": [
+            "op:67ecb5f03e244558b02ab00502ee339b:402d50241cd44005a0cabc31894520bc"
+          ],
+          "seq": 18
+        }
+      ],
+      "projection_records": 14,
+      "sqlite_event_bytes": 58595,
+      "sqlite_file_bytes": 73728
+    }
+  },
+  "sampled_branch_head": "e3ad4bf6",
+  "status": "STOP_STORAGE_GATE_STAGE_3_INCOMPLETE"
+}

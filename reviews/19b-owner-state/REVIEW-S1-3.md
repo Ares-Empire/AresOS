@@ -1,0 +1,22 @@
+The four specific REVIEW-S1-2 cases are now caught. The field audit and obligation rule remain incomplete: production-written values can still justify missing disclosures.
+
+1. **Blocking — completion trusts the initial production payload.**  
+   [model.py:420](/Users/pab/AresOS-19b-state/control/owner_state_oracle/model.py:420), [model.py:877](/Users/pab/AresOS-19b-state/control/owner_state_oracle/model.py:877). The payload is checked for later changes, but its initial targets are not validated against the script. I reproduced approval for two deletion targets, a committed payload containing only one, and only that target’s EXPUNGE. Context, completion and lifecycle checks all return empty errors; expected owner state is empty. This contradicts the audit’s payload-validation claim. **Fix:** derive the complete required effects from the scripted approval and validate the initial payload against it. Add this coherent omission mutation.
+
+2. **Blocking — unsupported state transitions still erase obligations.**  
+   [model.py:454](/Users/pab/AresOS-19b-state/control/owner_state_oracle/model.py:454). `reserved → refused` bypasses both resolution-validation branches. With no fault, cancellation or acknowledgement, that transition plus `notice=False` produces empty expectations, empty holds and no lifecycle error. Separately, `unknown → reserved` silently removes recovery. The finite-state check does not provide the transition validation claimed in the audit. **Fix:** validate every transition that removes an obligation, retaining the previous obligation unless independent evidence supports its resolution.
+
+3. **Blocking — any restore disables missing-history validation indefinitely.**  
+   [records.py:111](/Users/pab/AresOS-19b-state/control/owner_state_oracle/records.py:111). `restored` means merely that some decoded event contains a restore action and generation. I reproduced committed sequences `{1,2,3}`, a legitimate restore at sequence 1, an interrupted intent at sequence 2, and working history containing only sequences 1 and 3. The decoder accepts the current head, reports no lock, and the oracle expects nothing without a lifecycle error. The earlier restore cannot explain losing a later commit. **Fix:** establish which missing sequences each validated restore actually explains; reject unexplained omissions after it.
+
+4. **Blocking — incomplete-account recovery disappears through restore.**  
+   [model.py:504](/Users/pab/AresOS-19b-state/control/owner_state_oracle/model.py:504). The retention predicate includes operation states, checks, intents and exports, but omits incomplete accounts. I first established recovery for `onboarded=False`, then supplied history rolled back before that account with a scripted, committed restore. All account recovery facts disappear without an error. This contradicts the audit’s retention claim. **Fix:** retain the independently established incomplete-account obligation until supported onboarding completion; test rollback as well as explicit row deletion.
+
+5. **Should-fix — filing hashes remain their own justification.**  
+   [model.py:797](/Users/pab/AresOS-19b-state/control/owner_state_oracle/model.py:797). `locations()` selects expected matches using production’s `records[*].sha256`, without validating that hash against the exact source message’s independently logged bytes. Changing only that hash yields empty observed locations with `scan_complete=True`; context and lifecycle validation still pass. A public response repeating those false locations therefore agrees with the oracle. **Fix:** bind each recorded source/hash to independent pre-command message evidence, and add a coherent false-hash/false-disclosure mutation.
+
+The compact ledger remains equally strict in representation and checking: **868,337 bytes**, **1,716 groups**, **1,629,889 keys**. I recomputed groups from all 17 saved actual-list artifacts for each strict repetition; both matched every committed group, with correct ownership and shared-group multiplicity. The expectation import-independence test passes.
+
+Of 90 self-tests, **81 passed**; nine were blocked by sandbox restrictions on temporary-file creation. The mutation probes above ran successfully. `git diff --check d1290e13..HEAD` passed. I did not rerun the Linux fault sweep.
+
+CHANGES-NEEDED

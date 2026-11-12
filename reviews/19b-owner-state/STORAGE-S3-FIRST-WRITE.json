@@ -1,0 +1,78 @@
+{
+  "same_bytes_before_and_after": true,
+  "changed_paths": [],
+  "before": {
+    "state/control.sqlite": {
+      "bytes": 49152,
+      "sha256": "d068e4f04616864b999e3956966eee4aef4190bc4a8058cd54e7c412192e463d"
+    },
+    "evidence/journal-index.sqlite": {
+      "bytes": 16384,
+      "sha256": "a2ad07fda8134313117456ac38dfcb850f0c94c8b9e39268d521694314f038d7"
+    },
+    "evidence/operations.jsonl": {
+      "bytes": 1424,
+      "sha256": "acf21be83c55fcaf71cc6dc10453b48cc0fa4cfe8d7713aefbe3768ce9f82f30"
+    },
+    "evidence/owner-state.bin": {
+      "bytes": 340,
+      "sha256": "4e8622b52adda650d854066f548093e0bb2ae7e4b9c73fbd1ff69a2bdd573e2f"
+    },
+    "evidence/receiver.sqlite": {
+      "bytes": 20480,
+      "sha256": "8f7737cbda17d801b1879698265eb06b3f4f3859c5321440b81cac92158a6bd9"
+    }
+  },
+  "after": {
+    "state/control.sqlite": {
+      "bytes": 49152,
+      "sha256": "d068e4f04616864b999e3956966eee4aef4190bc4a8058cd54e7c412192e463d"
+    },
+    "evidence/journal-index.sqlite": {
+      "bytes": 16384,
+      "sha256": "a2ad07fda8134313117456ac38dfcb850f0c94c8b9e39268d521694314f038d7"
+    },
+    "evidence/operations.jsonl": {
+      "bytes": 1424,
+      "sha256": "acf21be83c55fcaf71cc6dc10453b48cc0fa4cfe8d7713aefbe3768ce9f82f30"
+    },
+    "evidence/owner-state.bin": {
+      "bytes": 340,
+      "sha256": "4e8622b52adda650d854066f548093e0bb2ae7e4b9c73fbd1ff69a2bdd573e2f"
+    },
+    "evidence/receiver.sqlite": {
+      "bytes": 20480,
+      "sha256": "8f7737cbda17d801b1879698265eb06b3f4f3859c5321440b81cac92158a6bd9"
+    }
+  },
+  "faults": [
+    [
+      1,
+      "journal.write",
+      "ENOSPC"
+    ],
+    [
+      2,
+      "journal.truncate",
+      "ENOSPC"
+    ]
+  ],
+  "reply": {
+    "ok": false,
+    "error": {
+      "code": "storage_limit",
+      "message": "Disk full or storage quota exhausted; free storage and check the recorded request or operation before retrying."
+    }
+  },
+  "deferred_notices": [
+    "background-storage"
+  ],
+  "after_restart_pending": {
+    "items": [],
+    "total": 0,
+    "cursor": null,
+    "restore_required": false
+  },
+  "gap_count": 17,
+  "background_gap_count": 9
+}

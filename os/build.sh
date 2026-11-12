@@ -2,7 +2,7 @@
 set -euo pipefail
 
 if [[ $1 == packages ]]; then
-    mkdir -p /usr/share/aresos/manifest /tmp/ares-rpms
+    mkdir -p /usr/share/aresos/manifest /tmp/ares-rpms /tmp/ares-chrome
     rpm -qa --qf '%{NEVRA}\n' | sort > /tmp/base-packages.txt
     mapfile -t packages < <(python3 - <<'PY'
 import json
@@ -23,17 +23,66 @@ for path in sorted(pathlib.Path('/tmp/ares-rpms').glob('*.rpm')):
 actual = {'packages': packages}
 lock = json.loads(pathlib.Path('/tmp/aresos/packages.lock.json').read_text())
 if actual != lock:
+    print(json.dumps(actual, indent=2))
     raise SystemExit('Package resolution differs from reviewed packages.lock.json')
 pathlib.Path('/usr/share/aresos/manifest/packages.lock.json').write_text(json.dumps(actual, indent=2) + '\n')
 PY
-    dnf5 --disable-repo='*' --setopt=install_weak_deps=False --setopt=localpkg_gpgcheck=True install -y /tmp/ares-rpms/*.rpm
+    # Google Chrome is not in Fedora's repositories. Take Google's exact RPM
+    # from its pin and accept it only when the bytes, the name and Google's
+    # pinned signing key all match. No repository is added for it.
+    chrome_url=$(python3 -c 'import json; print(json.load(open("/tmp/aresos/google-chrome.lock.json"))["url"])')
+    curl -fsSL --proto '=https' --tlsv1.2 --retry 3 -o /tmp/ares-chrome/google-chrome.rpm "$chrome_url"
+    python3 - <<'PY'
+import hashlib, json, pathlib, subprocess
+pin = json.loads(pathlib.Path('/tmp/aresos/google-chrome.lock.json').read_text())
+key = pathlib.Path('/tmp/aresos') / pin['signing_key']['file']
+assert hashlib.sha256(key.read_bytes()).hexdigest() == pin['signing_key']['sha256'], 'Google signing key differs from its pin'
+package = pathlib.Path('/tmp/ares-chrome/google-chrome.rpm')
+assert hashlib.sha256(package.read_bytes()).hexdigest() == pin['sha256'], 'Google Chrome RPM differs from its pin'
+nevra = subprocess.check_output(['rpm', '-qp', '--nosignature', '--qf', '%{NEVRA}', str(package)], text=True)
+assert nevra == pin['nevra'], f'Google Chrome RPM is {nevra}, pinned {pin["nevra"]}'
+PY
+    rpmkeys --import /tmp/aresos/keys/google-linux-signing-key.pub
+    chrome_key=$(python3 -c 'import json; print(json.load(open("/tmp/aresos/google-chrome.lock.json"))["signing_key"]["fingerprint"])')
+    rpmkeys --checksig --verbose /tmp/ares-chrome/google-chrome.rpm | tee /tmp/ares-chrome/checksig.txt
+    grep -Eq "^[[:space:]]+Header OpenPGP .*signature, key fingerprint: $chrome_key: OK$" /tmp/ares-chrome/checksig.txt
+    if grep -Eqv '^/tmp/ares-chrome/google-chrome\.rpm:$|: OK$' /tmp/ares-chrome/checksig.txt; then
+        echo 'Google Chrome signature check reported a line that is not OK' >&2
+        exit 1
+    fi
+    # Its install script adds Google's repository unless this file says not to.
+    printf '# AresOS: Chrome updates arrive with AresOS releases, not from a repository.\nrepo_add_once="false"\nrepo_reenable_on_distupgrade="false"\n' \
+        > /etc/default/google-chrome
+    mkdir -p /var/opt
+    dnf5 --disable-repo='*' --setopt=install_weak_deps=False --setopt=localpkg_gpgcheck=True install -y \
+        /tmp/ares-rpms/*.rpm /tmp/ares-chrome/google-chrome.rpm
+    # The key was needed only to verify this RPM; the image trusts no new key.
+    rpmkeys --delete "$chrome_key"
+    # /opt is /var/opt on bootc and is not replaced by an image update. Keep
+    # Chrome in the image under /usr/lib/opt, as rpm-ostree does, with direct
+    # commands; tmpfiles links /opt/google there at boot for anything else.
+    test ! -e /usr/lib/opt/google
+    mkdir -p /usr/lib/opt
+    mv /var/opt/google /usr/lib/opt/google
+    rmdir /var/opt
+    update-alternatives --remove-all google-chrome
+    ln -sfn /usr/lib/opt/google/chrome/google-chrome /usr/bin/google-chrome-stable
+    ln -sfn google-chrome-stable /usr/bin/google-chrome
+    # No side updater: Google's daily job re-adds its repository and key.
+    rm -f /etc/cron.daily/google-chrome
+    rmdir --ignore-fail-on-non-empty /etc/cron.daily
+    if compgen -G '/etc/yum.repos.d/*google*' > /dev/null; then
+        echo 'Google Chrome added a package repository' >&2
+        exit 1
+    fi
+    cp /tmp/aresos/google-chrome.lock.json /usr/share/aresos/manifest/google-chrome.lock.json
     rpm -qa --qf '%{NEVRA}\n' | sort > /usr/share/aresos/manifest/packages.txt
     grep -E '^(kernel|kmod-nvidia|akmod-nvidia|nvidia|libnvidia|xorg-x11-drv-nvidia)' /tmp/base-packages.txt > /tmp/drivers-before
     grep -E '^(kernel|kmod-nvidia|akmod-nvidia|nvidia|libnvidia|xorg-x11-drv-nvidia)' /usr/share/aresos/manifest/packages.txt > /tmp/drivers-after
     diff -u /tmp/drivers-before /tmp/drivers-after
     cp /tmp/drivers-after /usr/share/aresos/manifest/kernel-nvidia.txt
     dnf5 clean all
-    rm -rf /tmp/ares-rpms
+    rm -rf /tmp/ares-rpms /tmp/ares-chrome
     exit 0
 fi
 
@@ -42,7 +91,11 @@ fi
 systemd-sysusers /usr/lib/sysusers.d/aresos.conf
 passwd --lock ares
 passwd --lock root
-chmod 0755 /usr/bin/aresos-session /usr/bin/aresos-terminal /usr/libexec/aresos-audit /usr/libexec/aresos-keyboard
+chmod 0755 /usr/bin/aresos-session /usr/bin/aresos-terminal /usr/bin/brew /usr/libexec/aresos-audit \
+    /usr/libexec/aresos-keyboard /usr/libexec/aresos-shell /usr/libexec/aresos-subids
+chmod 0440 /etc/sudoers.d/aresos-everyday
+/usr/libexec/aresos-subids
+systemctl enable aresos-subids.service
 
 while read -r unit; do
     systemctl disable "$unit" 2>/dev/null || true
@@ -79,26 +132,75 @@ for dir in /etc/xdg/autostart /usr/etc/xdg/autostart /usr/share/autostart /etc/s
 done
 rm -rf /etc/skel/Desktop /etc/skel/.config/autostart
 
-# Ares never belongs to wheel. Also remove upstream NOPASSWD update grants.
+# Ares is in wheel behind its own password (owner, 2026-11-09). Remove the
+# upstream NOPASSWD update grants as before, then refuse any passwordless rule
+# that is left: admin rights need his password.
 python3 - <<'PY'
 import pathlib, re
-for path in [pathlib.Path('/etc/sudoers'), *pathlib.Path('/etc/sudoers.d').glob('*')]:
+paths = [pathlib.Path('/etc/sudoers'), *sorted(pathlib.Path('/etc/sudoers.d').glob('*'))]
+for path in paths:
     if path.is_file():
         lines = path.read_text().splitlines(keepends=True)
         if any('NOPASSWD' in line and re.search(r'uupd|update|upgrade|bootc|ostree|topgrade|flatpak|brew', line, re.I) for line in lines):
             if path.name == 'sudoers':
                 raise SystemExit('Unexpected updater grant in main sudoers; review required')
             path.unlink()
+left = [f'{path}: {line.strip()}' for path in paths if path.is_file()
+        for line in path.read_text().splitlines()
+        if not line.lstrip().startswith('#') and re.search(r'NOPASSWD|!\s*authenticate', line)]
+if left:
+    raise SystemExit('Passwordless sudo rule needs review: ' + '; '.join(left))
 PY
-for command in uupd ujust topgrade bazzite-updater bazzite-portal bazaar plasma-discover gnome-software flatpak brew; do
+visudo --check
+# No cached admin authorization (review 2): polkit lets the same process reuse
+# an auth_*_keep authorization for a while, even with other parameters. Make
+# every installed default uncached, for every account, and refuse leftovers.
+python3 - <<'PY'
+import pathlib, re
+actions = pathlib.Path('/usr/share/polkit-1/actions')
+cached = re.compile(r'(<allow_(?:any|inactive|active)>\s*)auth_(admin|self)_keep(\s*</allow_)')
+changed = 0
+for path in sorted(actions.glob('*.policy')):
+    text = path.read_text()
+    new, count = cached.subn(r'\1auth_\2\3', text)
+    if count:
+        path.write_text(new)
+        changed += count
+left = [path.name for path in actions.glob('*.policy') if re.search(r'_keep\s*</allow_', path.read_text())]
+if left or not changed:
+    raise SystemExit(f'polkit defaults still cached in {left} (changed {changed})')
+print(f'polkit: {changed} cached defaults made uncached')
+# Flatpak's passwordless app-update implies runtime-install, so an app update
+# could install any system-wide runtime without the password (review 3). Keep
+# the implied runtime-update: updates of installed apps stay passwordless and
+# a new runtime asks for the password like any other system-wide install.
+flatpak = actions / 'org.freedesktop.Flatpak.policy'
+text = flatpak.read_text()
+update = re.search(r'<action id="org\.freedesktop\.Flatpak\.app-update">.*?</action>', text, re.S)
+imply = re.compile(r'(<annotate key="org\.freedesktop\.policykit\.imply">)([^<]*)(</annotate>)')
+found = imply.findall(update.group(0)) if update else []
+# Exactly the reviewed targets (Flatpak 1.18.4), or the build stops for review.
+reviewed = ['org.freedesktop.Flatpak.runtime-install', 'org.freedesktop.Flatpak.runtime-update']
+if len(found) != 1 or found[0][1].split() != reviewed:
+    raise SystemExit(f'Flatpak app-update implication changed upstream; review required: {found}')
+kept = 'org.freedesktop.Flatpak.runtime-update'
+edited = text.replace(update.group(0), imply.sub(lambda m: m.group(1) + kept + m.group(3), update.group(0)))
+after = re.search(r'<action id="org\.freedesktop\.Flatpak\.app-update">.*?</action>', edited, re.S)
+if ([targets for _, targets, _ in imply.findall(after.group(0))] != [kept]
+        or edited.replace(after.group(0), '') != text.replace(update.group(0), '')):
+    raise SystemExit('Flatpak app-update implication edit did not leave exactly runtime-update')
+flatpak.write_text(edited)
+print(f'polkit: Flatpak app-update now implies only: {kept}')
+PY
+# The OS image, firmware and app store stay out of the daily account's reach.
+# Flatpak and Homebrew are his apps now and stay executable.
+for command in uupd ujust topgrade bazzite-updater bazzite-portal bazaar plasma-discover gnome-software; do
     path=$(command -v "$command" || true)
     [[ -z $path ]] || chmod 0700 "$(readlink -f "$path")"
 done
-# Upstream's interactive setup appends brew to PATH even when shellenv fails.
-# Keep it for the recovery owner, but never evaluate it as the daily account.
-for script in /etc/profile.d/brew.sh /etc/profile.d/brew-bash-completion.sh; do
-    sed -i '1a if [ "$(id -u)" = 1001 ]; then return 0; fi' "$script"
-done
+# aresos.sh sets the daily account's PATH, Homebrew's included. Upstream's
+# interactive setup would append Homebrew a second time.
+sed -i '1a if [ "$(id -u)" = 1001 ]; then return 0; fi' /etc/profile.d/brew.sh
 for entry in /usr/share/applications/*.desktop; do
     if grep -Eiq '(^Exec=.*(uupd|ujust|topgrade|bazzite-(updater|portal)|bazaar|plasma-discover|gnome-software)|update|upgrade|rebase)' "$entry"; then
         rm -f "$entry"

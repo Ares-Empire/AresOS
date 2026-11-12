@@ -1,0 +1,71 @@
+#!/usr/bin/python3
+"""Give the daily account subordinate UID/GID ranges for rootless containers.
+
+systemd-sysusers creates `ares` without the ranges useradd would add, and the
+installer's /etc/subuid and /etc/subgid are local files the image cannot
+replace. Add one free range to whichever file lacks an entry for `ares`, once.
+Existing entries are never changed, so reruns at every boot do nothing.
+"""
+import pathlib
+import subprocess
+import sys
+
+USER = 'ares'
+UID = 1001
+COUNT = 65536
+FIRST = 524288  # Fedora's SUB_UID_MIN and SUB_GID_MIN in /etc/login.defs
+
+
+def entries(path):
+    rows = []
+    if path.exists():
+        for line in path.read_text().splitlines():
+            parts = line.strip().split(':')
+            if len(parts) == 3 and parts[1].isdigit() and parts[2].isdigit():
+                rows.append((parts[0], int(parts[1]), int(parts[2])))
+    return rows
+
+
+def has_entry(rows):
+    return any(name in (USER, str(UID)) for name, _, _ in rows)
+
+
+def free_start(rows):
+    """Lowest start at or above FIRST whose COUNT IDs overlap no listed range."""
+    start = FIRST
+    for _, begin, count in sorted(rows, key=lambda row: row[1]):
+        if begin < start + COUNT and start < begin + count:
+            start = begin + count
+    return start
+
+
+def plan(subuid, subgid):
+    """Return usermod arguments, or [] when both files already have an entry."""
+    uids, gids = entries(subuid), entries(subgid)
+    # One start that is free in both files keeps the two ranges identical.
+    start = free_start(uids + gids)
+    span = f'{start}-{start + COUNT - 1}'
+    arguments = []
+    if not has_entry(uids):
+        arguments += ['--add-subuids', span]
+    if not has_entry(gids):
+        arguments += ['--add-subgids', span]
+    return arguments
+
+
+def main(root='/'):
+    etc = pathlib.Path(root) / 'etc'
+    arguments = plan(etc / 'subuid', etc / 'subgid')
+    if not arguments:
+        print(f'{USER} already has subordinate ID ranges')
+        return 0
+    command = ['/usr/sbin/usermod', *arguments, USER]
+    if root != '/':
+        command[1:1] = ['--prefix', str(root)]
+    subprocess.run(command, check=True)
+    print(f'Added subordinate ID ranges for {USER}: {" ".join(arguments)}')
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())

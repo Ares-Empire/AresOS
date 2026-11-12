@@ -1,5 +1,6 @@
 from email.message import EmailMessage
 import os
+import copy
 from pathlib import Path
 import tempfile
 import unittest
@@ -9,6 +10,7 @@ from aresos_control.engine import Engine
 from aresos_control.common import canonical
 from aresos_control.definitions import BY_NAME
 from response_checks import check_responses
+from owner_state_oracle.transcript import TRACE
 from aresos_control.mail import codec
 from aresos_control.mail.transport import folders, select, uids, fetch, ok, quote
 
@@ -59,7 +61,10 @@ class MailCase(unittest.TestCase):
         return account
 
     def call(self, name, args=None, admin=False):
-        return self.engine.request({'v':1, 'method':'call', 'action':'mail_' + name, 'arguments': args or {}}, admin)
+        TRACE.begin('mail_' + name, args or {})
+        result = self.engine.request({'v':1, 'method':'call', 'action':'mail_' + name, 'arguments': args or {}}, admin)
+        TRACE.script[-1].update(reply='delivered', result=copy.deepcopy(result))
+        return result
 
     def data(self, name, args=None, admin=False):
         result = self.call(name, args, admin)

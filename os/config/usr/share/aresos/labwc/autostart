@@ -1,1 +1,3 @@
+# Asks for the everyday account's password when an app needs admin rights.
+/usr/libexec/kf6/polkit-kde-authentication-agent-1 &
 /usr/bin/aresos-terminal &

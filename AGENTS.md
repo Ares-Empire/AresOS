@@ -2,17 +2,20 @@
 
 ## What this is
 
-AresOS is a personal operating system whose desktop is the real Minecraft Java. It has two layers:
-- **The shell mod** (`mod/`): a Fabric mod for Minecraft 26.2 that turns the game into the desktop. Apps are items in the hotbar and inventory, sign doors open apps, and closing an app returns you to the world.
-- **The OS base** (`os/`, later): a Linux system, defined as code in this repo, that boots straight into a Minecraft world.
+AresOS is a personal operating system whose desktop is the real Minecraft Java. It has three parts:
+- **The shell mod** (`mod/`): a Fabric mod for Minecraft 26.2 that turns the game into the desktop. Apps are items in the hotbar and inventory, walking into a block logo opens its app, and closing an app returns you to the world.
+- **The OS image** (`os/`): a Bazzite derivative, defined as code in this repo and built and tested in CI, for a second SSD next to an untouched Windows drive. It is meant to boot straight into a Minecraft world; today it starts a minimal session with a terminal.
+- **The control layer** (`control/`, in progress): his apps (Mail first, then Chrome) as tools for a normal Claude Code session, which ask him before anything is sent or deleted. The base service is built and tested with a made-up app; Mail is in review and Chrome is designed. Design: `docs/design/CONTROL.md`.
 
-Design: `README.md`. Workflow: `docs/WORKFLOW.md`. Reviews: `docs/REVIEW.md`.
+What is built and what isn't: the Status section of `README.md`.
+
+Design: `docs/design/DESIGN.md`. Workflow: `docs/WORKFLOW.md`. Reviews: `docs/REVIEW.md`.
 
 ## Your job in one run
 
 You get one **brief** (`briefs/NN-slug.md`), your own worktree and your own branch.
 
-1. Read the brief, `README.md` and this file. Read existing code before you change it.
+1. Read the brief, `docs/design/DESIGN.md` and this file. Read existing code before you change it.
 2. Build exactly what the brief asks. Ideas outside its scope go in your report, not into the code.
 3. Verify (see below) and fix until green.
 4. Commit in small logical commits. Push your branch and open a PR against `main` with `gh pr create`. Never merge, never push to `main`.
@@ -57,7 +60,7 @@ Nobody can answer questions mid-run. If the brief doesn't settle something, take
   - Fabric API 0.161.0+26.2
   - Sodium mc26.2-0.9.2
   - Iris 1.11.4+26.2
-- Remote: `github.com/carlsenares/AresOS` (private). `gh` is logged in.
+- Remote: `github.com/Ares-Empire/AresOS` (public since 2026-11-02). `gh` is logged in.
 
 ## Code style
 

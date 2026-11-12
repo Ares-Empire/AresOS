@@ -8,10 +8,12 @@ import ssl
 import threading
 
 from support import CERT
+from owner_state_oracle.transcript import TRACE, Transcript
 
 
 class SMTPFixture:
     def __init__(self, root, mode='normal', on_data=None, starttls=False, advertise_starttls=True, error_text=b'Synthetic failure'):
+        self.trace = TRACE
         self.database = root / 'smtp.sqlite'
         with closing(sqlite3.connect(self.database)) as db:
             db.execute('CREATE TABLE IF NOT EXISTS arrivals(id INTEGER PRIMARY KEY, recipients TEXT, raw BLOB)')
@@ -25,9 +27,12 @@ class SMTPFixture:
 
         class Handler(socketserver.StreamRequestHandler):
             def handle(self):
+                event = None
                 def send(value):
                     self.wfile.write(value + b'\r\n')
                     self.wfile.flush()
+                    if event is not None:
+                        event.update(accepted=value.startswith((b'2', b'3')), reply='delivered')
                 send(b'220 synthetic SMTP')
                 recipients = []
                 encrypted = not fixture.starttls
@@ -36,6 +41,7 @@ class SMTPFixture:
                     if not line:
                         return
                     verb = line.split(b' ',1)[0].upper().strip()
+                    event = fixture.trace.command(verb.decode(), recipients=list(recipients))
                     if verb in {b'EHLO', b'HELO'}:
                         send(b'250-localhost')
                         if fixture.starttls and not encrypted and fixture.advertise_starttls:
@@ -73,12 +79,14 @@ class SMTPFixture:
                                 break
                             chunks.append(data[1:] if data.startswith(b'..') else data)
                         raw = b''.join(chunks)
+                        event.update(identities=[Transcript.message(raw)], raw_hex=raw.hex(), recipients=list(recipients), accepted=True, reply='lost')
                         with closing(sqlite3.connect(fixture.database)) as db:
                             db.execute('INSERT INTO arrivals(recipients,raw) VALUES (?,?)', (json.dumps(recipients),raw))
                             db.commit()
                         if fixture.on_data:
                             fixture.on_data(raw)
                         if fixture.mode == 'lost_answer':
+                            event['reply'] = 'lost'
                             return
                         send(b'554 ' + fixture.error_text if fixture.mode == 'echo_data' else b'250 accepted')
                     elif verb == b'QUIT':

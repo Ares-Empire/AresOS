@@ -1,12 +1,12 @@
 # Workflow: how a change gets built
 
-This is the same shape as nametbd's Codex-era workflow, scaled down: Claude plans and integrates, Codex builds, and fresh Codex contexts review. Roles and owner decisions are in `CLAUDE.md`. Codex's rules are in `AGENTS.md`.
+This is the same shape as nametbd's Codex-era workflow, scaled down: Claude plans and integrates, Codex or Claude agents build, and a fresh reviewer that isn't the builder reviews (Codex while available, otherwise a fresh Claude agent). Roles and owner decisions are in `CLAUDE.md`. Codex's rules are in `AGENTS.md`.
 
 ## The loop
 
 Work one package at a time. Run up to about three at once only when they touch different files.
 
-1. **Plan (Claude).** Pick the next small package from the README phases and write `briefs/NN-slug.md` (template below). A package is one sitting for Codex, roughly one feature you can see in the game.
+1. **Plan (Claude).** Pick the next small package from the phases in `docs/design/DESIGN.md` and write `briefs/NN-slug.md` (template below). A package is one sitting for Codex, roughly one feature you can see in the game.
 2. **Check the brief (Claude).** Read it against itself with two questions:
    - Does anything it asks for contradict anything it forbids?
    - Can what it hands Codex actually produce the result it promises?
@@ -21,7 +21,7 @@ Work one package at a time. Run up to about three at once only when they touch d
      > ../AresOS-NN-slug.log 2>&1
    ```
    `$BUILD_MODEL` is the model picked for this package (`CLAUDE.md`, "Codex models").
-4. **Review (fresh Codex).** A reviewer that didn't write the code checks the PR against the brief. See "Package review" in `docs/REVIEW.md`.
+4. **Review (fresh reviewer).** A reviewer that didn't write the code checks the PR against the brief: Codex while available, otherwise a fresh Claude agent (Opus by default). See "Package review" in `docs/REVIEW.md`.
 5. **Integrate (Claude).** This is not a second full review. Claude:
    - confirms the PR head is the commit that was reviewed
    - reruns the build and tests on it
@@ -29,7 +29,7 @@ Work one package at a time. Run up to about three at once only when they touch d
    - looks at the screenshots, and opens the dev client when it's visual
 
    Every `JUDGMENT-CALL` goes to the owner. Fixes go back to Codex as a short follow-up brief on the same branch, and the reviewer then checks only those fixes.
-6. **Merge (Claude)** with `gh pr merge --squash`, once checks pass and the owner has answered any judgment calls. Remove the worktree, and update the README if the design moved.
+6. **Merge (Claude)** with `gh pr merge --squash`, once checks pass and the owner has answered any judgment calls. Remove the worktree, and update `docs/design/DESIGN.md` if the design moved (and the README's status if what works changed).
 7. **Owner test.** Anything that matters in the game gets a short "try this" note for the owner. Their feedback becomes the next brief.
 
 ## Brief template

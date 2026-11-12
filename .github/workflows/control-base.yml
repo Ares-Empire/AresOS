@@ -1,11 +1,7 @@
 name: Control base
-# The branch push check is needed while conflicts prevent pull-request checks.
-# Drop the branch push trigger when main is integrated and PR checks resume.
+# One run per pull-request push: no separate push trigger (it doubled every run and every failure email).
 # For "passes twice", rerun the same run (gh run rerun <id>) instead of pushing again.
 on:
-  push:
-    branches: [pkg/18d-base-slim]
-    paths: ['control/**', 'docs/control/TOOLS.md', 'reviews/18-control-base/**', 'reviews/18d-base-slim/**', '.github/workflows/control-base.yml']
   pull_request:
     branches: [main]
     paths: ['control/**', 'docs/control/TOOLS.md', 'reviews/18-control-base/**', 'reviews/18d-base-slim/**', '.github/workflows/control-base.yml']
@@ -31,4 +27,5 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: control-base-${{ github.run_id }}-${{ github.run_attempt }}
-          path: .work/control-ci/results.txt
+          path: |
+            .work/control-ci/results.txt

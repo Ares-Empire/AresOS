@@ -3,5 +3,13 @@ set -euo pipefail
 export XDG_SESSION_TYPE=wayland
 export XDG_CURRENT_DESKTOP=AresOS
 export XDG_SESSION_DESKTOP=aresos
-. /etc/profile.d/aresos.sh
-exec /usr/libexec/aresos-keyboard dbus-run-session -- labwc --config-dir /usr/share/aresos/labwc
+export HOMEBREW_NO_AUTO_UPDATE=1
+# The session starts by absolute paths only, and the compositor and everything
+# it starts get the system PATH: labwc runs its autostart with `sh` and
+# dbus-run-session looks up dbus-daemon through PATH. A broken program of his
+# in ~/.local/bin, which heads his shells' PATH, must never take away the
+# desktop or its recovery terminal. His terminals add his own directories
+# (/usr/share/aresos/bashrc); login shells get them from /etc/profile.d.
+export PATH=/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin
+exec /usr/libexec/aresos-keyboard /usr/bin/dbus-run-session --dbus-daemon=/usr/bin/dbus-daemon -- \
+    /usr/bin/labwc --config-dir /usr/share/aresos/labwc

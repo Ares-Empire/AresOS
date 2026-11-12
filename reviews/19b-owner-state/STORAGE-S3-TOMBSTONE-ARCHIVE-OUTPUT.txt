@@ -1,0 +1,10 @@
+test_review17_archive_is_owner_only_explicit_and_not_offered_to_claude (test_archive.Archive.test_review17_archive_is_owner_only_explicit_and_not_offered_to_claude) ... ok
+test_review17_archive_exports_then_compacts_keeps_open_notices_and_journal_valid_after_restart (test_archive.Archive.test_review17_archive_exports_then_compacts_keeps_open_notices_and_journal_valid_after_restart) ... ok
+test_review17_archive_remains_available_over_old_quota_and_restore_stays_detectable (test_archive.Archive.test_review17_archive_remains_available_over_old_quota_and_restore_stays_detectable) ... ok
+test_review17_archive_export_failure_never_removes_source_rows (test_archive.Archive.test_review17_archive_export_failure_never_removes_source_rows) ... ok
+test_review17_archive_preserves_unresolved_filing_and_open_repair_dependencies (test_archive.Archive.test_review17_archive_preserves_unresolved_filing_and_open_repair_dependencies) ... ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.154s
+
+OK
