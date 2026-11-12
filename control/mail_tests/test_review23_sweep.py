@@ -68,9 +68,12 @@ class Scenario:
         if not hasattr(self, 'scripts'):
             yield
             return
-        self.scripts.phase = name
-        with self.scripts.omit(missing[0]) if missing and missing[1] == name else nullcontext():
-            yield
+        previous, self.scripts.phase = self.scripts.phase, name
+        try:
+            with self.scripts.omit(missing[0]) if missing and missing[1] == name else nullcontext():
+                yield
+        finally:
+            self.scripts.phase = previous
 
     def _prepare_fixture(self, flow):
         self.fixture = f = results23.Results23()
@@ -668,7 +671,8 @@ class FaultSweep23(unittest.TestCase):
                     self.assertTrue(result['ok'] or flow == 'password' and result['error']['code'] == 'server_refused'
                                     or flow == 'export_rollback' and result['error']['code'] == 'storage_limit', result)
                 else:
-                    self.assert_result(scenario, fault, result)
+                    with scenario.phase('call', missing):
+                        self.assert_result(scenario, fault, result)
                 with scenario.phase('recovery', missing):
                     scenario.recover(failed=fail_at is not None)
                 return fault.points, {phase: reads.copy() for phase, reads in scenario.scripts.phase_reads.items()}
@@ -704,7 +708,7 @@ class FaultSweep23(unittest.TestCase):
         from aresos_control import files
         # Capture module attributes inside the guard, including aliases that
         # production imported before it was installed.
-        with reject_ambient_sources():
+        with self.assertRaises(AmbientRead), reject_ambient_sources():
             reads = [time.time, time.time_ns, time.localtime, time.gmtime, time.ctime, time.asctime,
                      lambda: time.localtime(None), lambda: time.gmtime(None),
                      lambda: time.strftime('%Y'), lambda: time.strftime('%Y', None),
@@ -734,6 +738,16 @@ class FaultSweep23(unittest.TestCase):
             self.assertTrue(time.localtime(1794225600))
             self.assertTrue(email.utils.formatdate(1794225600))
             self.assertEqual(random.Random(7).getrandbits(64), random.Random(7).getrandbits(64))
+
+    def test_inherited_guard_remembers_reads_displaced_by_cleanup(self):
+        with self.assertRaisesRegex(AmbientRead, r'^time\.time_ns$'), reject_ambient_sources():
+            try:
+                try:
+                    time.time_ns()
+                finally:
+                    raise OSError(errno.ENOSPC, 'Synthetic prior storage error wins cleanup')
+            except OSError:
+                pass
 
     def test_inherited_notice_clock_preserves_occurrence_order(self):
         from aresos_control.warnings import check_result
@@ -845,7 +859,10 @@ class FaultSweep23(unittest.TestCase):
                     with self.assertRaises(AmbientRead):
                         path.stat().st_mtime
                 finally:
-                    scenario.close()
+                    # Deliberate negative probes must remain latched through
+                    # teardown, just like a rejection displaced by cleanup.
+                    with self.assertRaises(AmbientRead):
+                        scenario.close()
 
     def test_archive_replays_have_identical_write_traces(self):
         traces = []
@@ -916,7 +933,8 @@ class FaultSweep23(unittest.TestCase):
             sweep = DurableWrites(number, mode=mode, cleanup_at=cleanup_at)
             with scenario.phase('call', missing), scenario.observed(), sweep.wrap(None if flow.startswith('restart_') else scenario.fixture.engine.store):
                 result = scenario.call()
-            self.assert_result(scenario, sweep, result)
+            with scenario.phase('call', missing):
+                self.assert_result(scenario, sweep, result)
             cleanups = sweep.cleanup_points[:]
             if cleanup_at is not None:
                 self.assertIn((cleanup_at, sweep.points[cleanup_at - 1], 'EIO'), sweep.failures)

@@ -1,5 +1,6 @@
 """Replay inputs and an independent guard against ambient sweep values."""
 from contextlib import contextmanager, ExitStack
+from contextvars import ContextVar
 import datetime
 import email.utils
 import os
@@ -17,10 +18,14 @@ from aresos_control.blobs import Blobs
 from owner_state_oracle.identity import scripted_ids
 
 
+LEAKS = ContextVar('sweep_ambient_reads', default=())
+
+
 class AmbientRead(BaseException):
-    # Production catches Exception to return transport errors. A fixture leak
-    # must escape those handlers, including paths that otherwise recover.
-    pass
+    def __init__(self, source):
+        super().__init__(source)
+        for leaks in LEAKS.get():
+            leaks.append(source)
 
 
 TIME_FIELDS = {'st_atime', 'st_mtime', 'st_ctime', 'st_birthtime',
@@ -78,6 +83,21 @@ class Chronology:
 
 @contextmanager
 def reject_ambient_sources():
+    leaks = []
+    token = LEAKS.set((*LEAKS.get(), leaks))
+    try:
+        with _reject_ambient_sources():
+            yield
+    finally:
+        LEAKS.reset(token)
+        # A production finally may preserve a prior storage error over even a
+        # BaseException. Remember the read independently and reject on exit.
+        if leaks:
+            raise AmbientRead(leaks[0])
+
+
+@contextmanager
+def _reject_ambient_sources():
     def reject(source):
         def fail(*args, **kwargs):
             raise AmbientRead(source)
