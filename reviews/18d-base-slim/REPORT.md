@@ -1111,3 +1111,176 @@ recording them cannot invalidate the sole final push's tested head. No merge,
 force-push, hook bypass, system installation, host-setting or disk changes;
 no Gradle ran. The closing storage audit printed
 `Remaining .work files over 500 MB: []`.
+
+## Main merge fixes, round 4
+
+**Done:** fixes `PACKAGE-REVIEW-6.md` finding 1 entirely in
+`control/mail_tests/test_review23_sweep.py`. Every ambient-source rejection
+now has its own fresh guard and `assertRaises`; each positive explicit-form
+assertion has a separate fresh guard without an intentional rejection or
+surrounding `assertRaises`. Attributes, including preimported aliases, are
+resolved inside each guard. The explicit strftime tuple is fixed independently
+of gmtime, which also has its own positive assertion. The guard implementation,
+production code, scripts, flows, fault modes, cleanup enumeration and existing
+recovery/completion assertions are unchanged.
+
+The new required regression runs the actual guard self-test through an
+independent `unittest.TestResult` for each broken explicit form: gmtime and
+localtime return empty tuples, strftime and email formatdate return empty
+strings, and identically seeded private RNGs return different values. Each
+must produce exactly one assertion failure, zero errors and zero skips. An
+`AmbientRead` replacing an assertion would be an error or a false pass, and
+cannot satisfy this regression.
+
+**Other guard/mutation tests checked for the same pattern:**
+
+- `test_inherited_guard_rejects_each_missing_script` and `guarded_replay`:
+  each setup/call/recovery omission owns a fresh Scenario/guard and requires
+  the matching source rejection; no positive assertion follows an intentional
+  caught rejection in that scope.
+- `test_inherited_guard_remembers_reads_displaced_by_cleanup`: only the
+  intentional read and simulated storage-error cleanup share its one scope;
+  there is no positive assertion for a rejection to replace.
+- `test_inherited_notice_clock_preserves_occurrence_order`, the three-replay
+  tests and the precision counterexample: no intentional guard rejections.
+- `test_inherited_chronology_covers_every_view_and_rejects_unknown_timestamps`:
+  intentional omissions and unknown/modified timestamps are caught inside
+  the body, but the teardown `assertRaises` covers only `scenario.close()`.
+  It cannot consume a body assertion that resumes after the finally. A local
+  mutation of the late post-expiry assertion confirms **23 assertion failures,
+  zero errors**, one per flow. No change needed.
+- `fault` and `test_review23_enospc_at_every_discovered_durable_write`:
+  every single/persistent/cleanup-pair omission recursively creates its own
+  Scenario; the expected rejection wraps only that witness. Later trace-prefix,
+  failure, cleanup, recovery and coverage assertions are outside that handler.
+- Source search found no other ambient guard/mutation consumer outside
+  `sweep_scripts.py` and this test module. AST comparison to `7e774183`
+  confirms only the ambient-source self-test changed and the one regression
+  was added; all other existing methods remain identical.
+
+**Verified / local:** exact logs and diagnostic wrappers are in
+`.work/18d-main-merge-fixes-4/`. Python is **3.14.6**. Commands using the
+pre-existing `.work/18d-review/venv/bin/python` use `-B` and
+`PYTHONPATH=control:control/mail_tests` (plus `control/tests` for selection).
+
+- `python3 control/generate.py --check`: **Generated artifacts match
+  definitions**, `local-generator.txt`.
+- An initial global `python3 -m unittest` guard invocation could not import
+  `jsonschema` (**3 import errors**); no tests executed. Reused the existing
+  worktree virtual environment; no system software installed.
+- `python -B -m unittest -v` with the ambient-source self-test, all five
+  explicit-form mutation cases, and the displaced-cleanup ledger regression:
+  **3 tests / OK, 0.022s**, `local-guard.txt`. Every explicit-form mutation
+  prints **1 failure, 0 errors** for its inner self-test.
+- `regression_before.py`, loading the original self-test from `7e774183`:
+  **all five mutations falsely pass the old test**, so the new regression
+  reports five failures against it. The reproducer verifies those exact five
+  failures and exits successfully, `local-regression-before.txt`.
+- `audit_scopes.py`: **AST PASS** and the chronology late-assertion mutation
+  gives **23 failures, zero errors**, `local-scope-audit.txt`.
+- Prior round's unchanged `local_focused.py`: **12 tests / OK, 4.149s**,
+  `local-focused.txt`. Includes the new regression, all other guard tests,
+  all 23 flows' three guarded replays, clean script omissions, chronology/file
+  age and production notice order, precision mechanism, recovery/completion
+  counterexamples and real main/index SQLite VFS faults. Precision still
+  differs at **index 300**, fsync versus write, **788 / 788** SQLite points.
+- `PYTHONPATH=control:control/mail_tests:control/tests python -B -m unittest
+  -v test_mail_ci_selection`: **6 tests / OK, 0.090s**,
+  `local-selection.txt`. No CI selection or workflow changed; required Linux
+  sweep shards now execute **13 tests** apiece.
+- Prior round's unchanged `local_consumers.py`: **41 tests / OK, 4.088s**,
+  `local-consumers.txt`. Required cases from `test_review26_sweep`,
+  `test_review27_checks`, `test_review28_filing`, `test_review29_lifecycle`,
+  `test_owner_state_regressions`, `test_owner_state_sweep`.
+- `MAIL_SWEEP_SHARDS=4 MAIL_SWEEP_SHARD=3 ... local_tests.py
+  test_review23_sweep.FaultSweep23.test_review23_enospc_at_every_discovered_durable_write`:
+  **1 test / OK, 85.201s**, `local-sweep-3.txt`. All five assigned flows,
+  every discovered primary point, **882 single / 882 persistent / 2,071
+  cleanup-pair cases**, and **57** fault/recovery script-omission witnesses.
+  The macOS fixture/publication differences are those recorded in round 3;
+  these diagnostics substitute only `Boundary.read` with generated settings.
+  Actual installed-policy behavior and full Linux coverage require CI.
+- `git diff --check`: passed. Closing storage audit:
+  **Remaining .work files over 500 MB: []** (`storage-audit.txt`).
+
+**Linux counts / known limit (finding 2):** baseline is run `43153748879`
+attempt 2 (real clock) and round-1 run `43162099390`, independently parsed in
+rounds 2 and 3: **6,642 points; 6,302 single / 6,302 persistent / 15,915
+cleanup-pair cases** over 23 flows. S/P/C below means those three case counts.
+The round-3 column is only observed completed output from `43175779056`
+attempt 1 on `f9bce2ad` at this pre-push capture; a dash is unavailable, not
+zero or a passing claim. All available rows match baseline.
+
+| Flow | Baseline points; S / P / C | Round-3 observed |
+| --- | --- | --- |
+| delete_permanent | 395; 379 / 379 / 711 | 395; 379 / 379 / 711 |
+| settlement | 148; 144 / 144 / 275 | 148; 144 / 144 / 275 |
+| testapp_export | 144; 117 / 117 / 534 | 144; 117 / 117 / 534 |
+| filing_rename | 227; 219 / 219 / 419 | 227; 219 / 219 / 419 |
+| restart_tail | 33; 22 / 22 / 68 | 33; 22 / 22 / 68 |
+| delete_trash | 265; 253 / 253 / 475 | 265; 253 / 253 / 475 |
+| status | 147; 143 / 143 / 272 | 147; 143 / 143 / 272 |
+| attachment_export | 277; 242 / 242 / 1593 | 277; 242 / 242 / 1593 |
+| filing_copy | 351; 339 / 339 / 654 | 351; 339 / 339 / 654 |
+| restart_index | 31; 20 / 20 / 62 | 31; 20 / 20 / 62 |
+| send_duplicate | 912; 877 / 877 / 1720 | 912; 877 / 877 / 1720 |
+| send | 830; 797 / 797 / 1567 | — |
+| unsubscribe_mailto | 832; 799 / 799 / 1573 | — |
+| cancel | 65; 63 / 63 / 118 | — |
+| password | 129; 119 / 119 / 226 | — |
+| expiry | 65; 63 / 63 / 111 | — |
+| export_rollback | 277; 246 / 246 / 1765 | — |
+| repair | 345; 334 / 334 / 632 | — |
+| unsubscribe_https | 329; 315 / 315 / 590 | — |
+| restore | 68; 66 / 66 / 122 | — |
+| filing_move | 350; 338 / 338 / 650 | — |
+| maintenance | 62; 60 / 60 / 108 | — |
+| archive | 360; 347 / 347 / 1670 | — |
+| **Total / observed subset** | **6,642; 6,302 / 6,302 / 15,915** | **2,930; 2,755 / 2,755 / 6,783** |
+
+**Every required Mail job / 35-minute limit:** pre-push round-3 snapshot:
+
+| Job | Round-3 attempt 1 | Whole-job duration | Limit |
+| --- | --- | ---: | ---: |
+| containers (0) | in_progress | in progress | 35:00 |
+| containers (1) | success | 6:07 | 35:00 |
+| containers (2) | success | 6:36 | 35:00 |
+| containers (3) | success | 12:32 | 35:00 |
+| sweep (0) | in_progress | in progress | 35:00 |
+| sweep (1) | in_progress | in progress | 35:00 |
+| sweep (2) | success | 15:08 | 35:00 |
+| sweep (3) | success | 5:40 | 35:00 |
+
+**Final-head CI / acceptance addendum:** commit this report, then push once,
+including local brief/review commit `7e774183` and the test fix. The automatic
+PR runs must pass Control base, all eight Control Mail jobs and Control
+boundary, followed by exactly one `gh run rerun <id>` for each same run.
+No optional oracle run. That is **three IDs / six executions** for round 4.
+
+The final run IDs/attempts, exact head SHA, all **23 per-flow observed rows
+for each final Mail attempt**, the final round-3 output as far as it ran,
+and **all eight whole-job durations per attempt against 35:00** are the
+post-push acceptance addendum in the [PR #25 description](https://github.com/Ares-Empire/AresOS/pull/25).
+The final verifier checks every per-flow point and S/P/C count against the
+baseline independently in both attempts, exact equality across attempts,
+all eight Mail jobs passing per attempt, and all three workflows on the
+same final source head. Exact logs, job JSON, count tables and the manifest
+are saved under `.work/18d-main-merge-fixes-4/FINAL-VERIFICATION.json`.
+The PR addendum supplies the observed final counts/durations so recording
+post-push results cannot invalidate the single push's tested head. No source
+or report push follows CI. An incomplete/cancelled round-3 job is explicitly
+identified there and is never promoted to passing evidence.
+
+**Not verified:** real accounts, interactive owner use and laptop installation
+are outside this test-only run. macOS's real managed-settings path remains
+unavailable; the required Linux workflows supply that acceptance evidence.
+
+**JUDGMENT-CALL:** none affecting product behavior or an owner decision.
+
+**PLAN-GAP / open questions:** no new production defect or blocking question.
+The earlier optional owner-oracle strict-pin migration limit remains unchanged;
+no oracle, pin, expectation, production, design/plan, OS/mod, install, owner-state
+or reviewer-authored file changed. Final observed CI evidence is recorded in
+the linked PR addendum because only one push is authorized. No merge,
+force-push, hook bypass, system installation, host-setting or disk changes;
+no Gradle ran.
