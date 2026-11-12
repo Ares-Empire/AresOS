@@ -1,3 +1,4 @@
+import {dismissNativePicker} from '../chrome/ci/compatibility.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -14,4 +15,14 @@ test('a failed fixture click is recorded without an unhandled rejection aborting
     throw last||Error('Native picker never opened');
   };
   await assert.rejects(context.measureCompatibility({id:'fixture',fixture:{compatibility:[{id:'fixture',phase:'ready'}]},eventually,start:async()=>{throw failure;}}),error=>error===failure);
+});
+
+test('native picker dismissal waits for chooser cancellation and Chrome focus',async()=>{
+  const visited=[],calls=[];let active='picker';
+  const exec=(command,args)=>{calls.push(args);if(args[0]==='getactivewindow')return active;if(args[0]==='search')return 'picker\nbrowser\n';return '';};
+  await dismissNativePicker({picker:{window:'picker'},exec,eventually:async check=>{
+    for(const window of ['picker','unrelated','browser']){active=window;visited.push(window);if(await check())break;}
+  }});
+  assert.deepEqual(visited,['picker','unrelated','browser']);assert.deepEqual(calls[0],['key','--clearmodifiers','Escape']);
+  assert.equal(calls.filter(args=>args[0]==='key').length,1,'dismissal is not replayed');
 });

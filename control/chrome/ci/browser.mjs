@@ -43,9 +43,8 @@ try {
   execFileSync('xdotool',['key','--clearmodifiers','ctrl+l']);
   execFileSync('xdotool',['type','--clearmodifiers','--delay','1','http://fixture.test:8765/?case=compose']);
   execFileSync('xdotool',['key','--clearmodifiers','Return']);
-  await delay(1000);
-  const current=await call('tabs');
-  tab=current.items.find(item=>item.url?.includes('fixture.test'))?.tab;assert.ok(tab !== undefined);
+  const current=await eventually(async()=>{const current=await call('tabs');return current.items.some(item=>item.url==='http://fixture.test:8765/?case=compose'&&item.active&&item.focused)&&current;},'native owner GET committed before take');
+  tab=current.items.find(item=>item.url==='http://fixture.test:8765/?case=compose'&&item.active&&item.focused)?.tab;assert.ok(tab !== undefined);
   await call('take_tab',{tab});
   const takenRead=await target('Send');
   const firstInput=await rpc('click',takenRead);assert.equal(firstInput.ok,false);assert.equal(firstInput.error.code,'stale_reference');assert.equal(counts('compose'),0);

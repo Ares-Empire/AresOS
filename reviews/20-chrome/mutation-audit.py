@@ -205,6 +205,9 @@ case('recheck2b-activation-receipt','control/chrome/ci/activation-evidence.mjs',
 
 case('recheck2b-pending-clipboard','control/chrome/ci/activation-evidence.mjs',"outcome:'pending browser permission',error:null","outcome:'write accepted',error:null",node('activation-evidence','capability measurement'))
 
+case('recheck2b-picker-leave-chooser','control/chrome/ci/compatibility.mjs','if(active===picker.window)return false;','',node('compatibility','native picker dismissal'))
+case('recheck2b-picker-browser-focus','control/chrome/ci/compatibility.mjs','return windows.includes(active);','return true;',node('compatibility','native picker dismissal'))
+
 def command(row):
     if row['python']:return ['python3','-B','-m','unittest',row['test'],'-v']
     file,pattern=row['test']

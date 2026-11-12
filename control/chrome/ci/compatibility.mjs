@@ -5,7 +5,7 @@ import {setTimeout as delay} from 'node:timers/promises';
 import assert from 'node:assert/strict';
 
 export function compatibilityScript(id){return `
-const fixtureId=${JSON.stringify(id)};
+const fixtureId=${JSON.stringify(id)};const pendingPickers=new Set();
 const send=value=>fetch('/compat-report',{method:'POST',body:JSON.stringify({id:fixtureId,...value})});
 send({phase:'ready'});
 document.querySelector('#continue').onclick=()=>{
@@ -29,7 +29,7 @@ document.querySelector('#continue').onclick=()=>{
   const original=HTMLElement.prototype.click;let replacements=0;Object.defineProperty(HTMLElement.prototype,'click',{configurable:true,writable:true,value:function(){replacements++;return Reflect.apply(original,this,arguments);}});
   const detached=document.createElement('button');detached.click();result.replacements=replacements;Object.defineProperty(HTMLElement.prototype,'click',{configurable:true,writable:true,value:original});
   const link=document.createElement('a');link.href='/download?id='+fixtureId;link.download=fixtureId+'.txt';result.downloadReturn=typeof link.click();
-  const file=document.createElement('input');file.type='file';result.fileReturn=typeof file.click();
+  const file=document.createElement('input');file.type='file';pendingPickers.add(file);file.addEventListener('cancel',()=>{send({phase:'picker-closed'});pendingPickers.delete(file);},{once:true});result.fileReturn=typeof file.click();
   send({phase:'result',result});
 };`;
 }
@@ -43,22 +43,32 @@ export function nativeCompatibilityClick(){
   execFileSync('xdotool',['mousemove','--window',window,String(Math.floor(width/2)),String(Math.floor(height/2)),'click','1']);
 }
 export function nativeNavigate(url){key('ctrl+l');execFileSync('xdotool',['type','--clearmodifiers','--delay','1',url]);key('Return');}
+export async function dismissNativePicker({picker,eventually,exec=execFileSync}){
+  exec('xdotool',['key','--clearmodifiers','Escape']);
+  await eventually(()=>{
+    const active=exec('xdotool',['getactivewindow'],{encoding:'utf8'}).trim();
+    if(active===picker.window)return false;
+    const windows=exec('xdotool',['search','--onlyvisible','--class','[Gg]oogle-chrome'],{encoding:'utf8'}).trim().split('\n');
+    return windows.includes(active);
+  },'native picker closed and browser focus restored');
+}
 export async function measureCompatibility({id,fixture,eventually,start}){
   await eventually(()=>fixture.compatibility.some(value=>value.id===id&&value.phase==='ready'),'native compatibility page ready');
   // Keep a failed asynchronous click attached while polling the native picker.
   // The case still fails, but its rejection must not abort later matrices.
   let startFailed=false,startError;
   const pending=Promise.resolve().then(start).catch(error=>{startFailed=true;startError=error;});
-  const title=await eventually(()=>{
+  const picker=await eventually(()=>{
     if(startFailed)throw startError;
     const active=execFileSync('xdotool',['getactivewindow'],{encoding:'utf8'}).trim();
     const title=execFileSync('xdotool',['getwindowname',active],{encoding:'utf8'}).trim();
-    return /^(?:Open|Choose|Select)(?:\s|$)/.test(title)?title:false;
+    return /^(?:Open|Choose|Select)(?:\s|$)/.test(title)?{window:active,title}:false;
   },'native detached file picker opens');
-  key('Escape');await pending;if(startFailed)throw startError;
+  await dismissNativePicker({picker,eventually});await pending;if(startFailed)throw startError;
+  await eventually(()=>fixture.compatibility.some(value=>value.id===id&&value.phase==='picker-closed'),'native chooser cancellation reached its input');
   const record=await eventually(()=>fixture.compatibility.find(value=>value.id===id&&value.phase==='result'),'compatibility result');
   await eventually(()=>fixture.compatibilityDownloads.filter(value=>value===id).length===1,'detached anchor downloaded exactly once');
-  return {...record.result,filePicker:title};
+  return {...record.result,filePicker:picker.title};
 }
 
 export async function withoutExtension({fixture,eventually,descriptor}){

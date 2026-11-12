@@ -2,18 +2,6 @@
   "build": "698a875de6b7d35bf229c4e690e788d007f3dfc98bf61087ecea923c181eff3e",
   "checks": [
     {
-      "command": "node --test control/chrome_tests/*.test.mjs",
-      "exit_code": 0,
-      "sha256": "ae0fe6d73d7f6a095b454f7649e0e28f55b9953feec02026c791aec449e193a9",
-      "output_tail": "\u2139 tests 276\n\u2139 suites 0\n\u2139 pass 276\n\u2139 fail 0\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 7322.993416"
-    },
-    {
-      "command": "python3 -B reviews/20-chrome/mutation-audit.py reviews/20-chrome/records/recheck2b/mutations.json",
-      "exit_code": 0,
-      "sha256": "607c641b8e3aa4ac38196f194f9db0a640440985414c5434bc4d00995143a246",
-      "output_tail": "recheck2-event-reuse MUTATION REJECTED\nrecheck2-slot-dedup-scope MUTATION REJECTED\nrecheck2-clone-native-kinds MUTATION REJECTED\nrecheck2-cached-factory MUTATION REJECTED\nrecheck2b-activation-baseline MUTATION REJECTED\nrecheck2b-activation-receipt MUTATION REJECTED\nrecheck2b-pending-clipboard MUTATION REJECTED\n173 mutations rejected; every baseline passed"
-    },
-    {
       "command": "PYTHONPATH=control:control/chrome_tests PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s control/chrome_tests -v",
       "exit_code": 0,
       "sha256": "77afc0ddfd53314f70ffbe62d9396d35560213f881278496938f35547826e738",
@@ -24,6 +12,18 @@
       "exit_code": 0,
       "sha256": "d04178c88d4920b728ae4d463a828df65897d111f2154b92164a32e41abdd225",
       "output_tail": "test_another_socket_cannot_use_the_vsock_transport_classification (test_boundary_host_transport.HostTransport.test_another_socket_cannot_use_the_vsock_transport_classification) ... ok\ntest_policy_denials_remain_blocked_without_transport_excuses (test_boundary_host_transport.HostTransport.test_policy_denials_remain_blocked_without_transport_excuses) ... ok\ntest_reset_and_timeout_are_unqualified_not_policy_denials (test_boundary_host_transport.HostTransport.test_reset_and_timeout_are_unqualified_not_policy_denials) ... ok\n\n----------------------------------------------------------------------\nRan 4 tests in 0.004s\n\nOK"
+    },
+    {
+      "command": "node --test control/chrome_tests/*.test.mjs",
+      "exit_code": 0,
+      "sha256": "c09f2c2f8fa529d0bf02b74277ad92f1182325d6d2b272a026f02aace8ed64e1",
+      "output_tail": "\u2139 tests 277\n\u2139 suites 0\n\u2139 pass 277\n\u2139 fail 0\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 7331.284292"
+    },
+    {
+      "command": "python3 -B reviews/20-chrome/mutation-audit.py reviews/20-chrome/records/recheck2b/mutations.json",
+      "exit_code": 0,
+      "sha256": "05589e167339ca4bc02df3245986eb26dea36b8a71a9e35b32c0b9c86d40bf7e",
+      "output_tail": "recheck2-clone-native-kinds MUTATION REJECTED\nrecheck2-cached-factory MUTATION REJECTED\nrecheck2b-activation-baseline MUTATION REJECTED\nrecheck2b-activation-receipt MUTATION REJECTED\nrecheck2b-pending-clipboard MUTATION REJECTED\nrecheck2b-picker-leave-chooser MUTATION REJECTED\nrecheck2b-picker-browser-focus MUTATION REJECTED\n175 mutations rejected; every baseline passed"
     }
   ],
   "python": "229 tests in 585.805s; OK",
@@ -32,7 +32,8 @@
     "The new browser probe originally expected a plain dispatched stage. It now reads the actual public-operation untrusted_content wrapper; the negative fixtures preserve that API shape. No behavior/assertion was relaxed.",
     "Clipboard writes can await a native browser permission indefinitely. The probe now reports pending separately from accepted/rejected; it never grants the permission.",
     "Boundary absent-filter mutation encountered ECONNRESET at an unqualified host VSOCK endpoint. It remains unqualified, not blocked; successful connects still fail. Four regression tests cover that distinction.",
-    "Full local base discovery was attempted but could not import jsonschema (32 loader/test entries, 23 errors). No dependency/system software was installed; focused new tests pass and complete base verification remains in Linux CI."
+    "Full local base discovery was attempted but could not import jsonschema (32 loader/test entries, 23 errors). No dependency/system software was installed; focused new tests pass and complete base verification remains in Linux CI.",
+    "An external-install bootstrap still showed the compatibility URL after the owner GET keys. The driver now waits for chooser cancellation and Chrome focus, then exact committed compose URL before take. Both focus removals fail the new regression."
   ],
   "generated": "Generated artifacts match definitions",
   "diff_check": "passed",
@@ -68,6 +69,32 @@
       "exit_code": 0,
       "sha256": "77afc0ddfd53314f70ffbe62d9396d35560213f881278496938f35547826e738",
       "output_tail": "\n----------------------------------------------------------------------\nRan 229 tests in 585.805s\n\nOK"
+    }
+  ],
+  "previous_permission_checks": [
+    {
+      "command": "node --test control/chrome_tests/*.test.mjs",
+      "exit_code": 0,
+      "sha256": "ae0fe6d73d7f6a095b454f7649e0e28f55b9953feec02026c791aec449e193a9",
+      "output_tail": "\u2139 tests 276\n\u2139 suites 0\n\u2139 pass 276\n\u2139 fail 0\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 7322.993416"
+    },
+    {
+      "command": "python3 -B reviews/20-chrome/mutation-audit.py reviews/20-chrome/records/recheck2b/mutations.json",
+      "exit_code": 0,
+      "sha256": "607c641b8e3aa4ac38196f194f9db0a640440985414c5434bc4d00995143a246",
+      "output_tail": "recheck2-event-reuse MUTATION REJECTED\nrecheck2-slot-dedup-scope MUTATION REJECTED\nrecheck2-clone-native-kinds MUTATION REJECTED\nrecheck2-cached-factory MUTATION REJECTED\nrecheck2b-activation-baseline MUTATION REJECTED\nrecheck2b-activation-receipt MUTATION REJECTED\nrecheck2b-pending-clipboard MUTATION REJECTED\n173 mutations rejected; every baseline passed"
+    },
+    {
+      "command": "PYTHONPATH=control:control/chrome_tests PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s control/chrome_tests -v",
+      "exit_code": 0,
+      "sha256": "77afc0ddfd53314f70ffbe62d9396d35560213f881278496938f35547826e738",
+      "output_tail": "test_taken_reload_warning_requires_explicit_repeat_and_readonly_never_reloads (test_storage.Storage.test_taken_reload_warning_requires_explicit_repeat_and_readonly_never_reloads) ... ok\ntest_warning_occurrences_bind_source_document_and_do_not_inherit_old_acknowledgement (test_storage.Storage.test_warning_occurrences_bind_source_document_and_do_not_inherit_old_acknowledgement) ... ok\ntest_service_sandbox_and_launch_are_exact (test_unit.InstalledUnit.test_service_sandbox_and_launch_are_exact) ... ok\n\n----------------------------------------------------------------------\nRan 229 tests in 585.805s\n\nOK"
+    },
+    {
+      "command": "PYTHONPATH=control PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s control/tests -p test_boundary_host_transport.py -v",
+      "exit_code": 0,
+      "sha256": "d04178c88d4920b728ae4d463a828df65897d111f2154b92164a32e41abdd225",
+      "output_tail": "test_another_socket_cannot_use_the_vsock_transport_classification (test_boundary_host_transport.HostTransport.test_another_socket_cannot_use_the_vsock_transport_classification) ... ok\ntest_policy_denials_remain_blocked_without_transport_excuses (test_boundary_host_transport.HostTransport.test_policy_denials_remain_blocked_without_transport_excuses) ... ok\ntest_reset_and_timeout_are_unqualified_not_policy_denials (test_boundary_host_transport.HostTransport.test_reset_and_timeout_are_unqualified_not_policy_denials) ... ok\n\n----------------------------------------------------------------------\nRan 4 tests in 0.004s\n\nOK"
     }
   ]
 }

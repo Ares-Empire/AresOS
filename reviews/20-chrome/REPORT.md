@@ -29,7 +29,7 @@ running. **No unconditional “adds no harm” claim is made.**
 
 ## Verified / Not verified
 
-Local checks passed: **276 Node tests**, zero failures/cancellations/skips, and **173 removal mutations rejected;
+Local checks passed: **277 Node tests**, zero failures/cancellations/skips, and **175 removal mutations rejected;
 every baseline passed**. The browser-free full Python suite passed **229 tests in 585.805 s / OK**. [Exact local summaries](records/recheck2b/local-summary.json).
 An initial evidence-removal probe survived because another consistency assertion masked it; its negative test now
 keeps the receiver record consistent, and removing the baseline check fails as intended. Browser results will come only from `control-chrome.yml` Linux
@@ -51,6 +51,11 @@ A boundary run failed on an absent-filter VSOCK connection reset. A reset is now
 not a policy denial. Successful connects remain open-route failures, and genuine policy denials remain strict. Four
 plain-Python regressions pass. Full local base discovery lacks `jsonschema` (23 import/test errors); Linux CI will
 run the complete base suite with its pinned dependencies. No local software was installed.
+
+One external-install bootstrap read the previous compatibility URL after its owner navigation keys. The driver now
+waits for the chooser’s native cancellation event and browser focus, then requires the exact committed compose URL
+before taking the tab. It does not retry navigation or take the wrong document. The two independent focus removals
+fail its browser-free regression. This is a harness synchronization fix; the installed runtime is unchanged.
 
 The earlier native-entry/DOM/ordinary-tab analysis remains below. The lead classifies the all-native network action
 with autonomous page sends. Claude's click may additionally supply transient activation; the new comparison checks
