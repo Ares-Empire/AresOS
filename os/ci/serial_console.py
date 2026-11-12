@@ -60,8 +60,11 @@ def decode_export(transcript):
 
 
 class TerminalReplies:
-    # xterm DSR and OSC dynamic-color queries can span socket reads.
-    query = re.compile(rb'\x1b\[6n|\x1b\](10|11|12);\?(?:\x07|\x1b\\)')
+    # xterm DSR, OSC dynamic-color and XTGETTCAP queries can span socket reads.
+    # systemd 259 asks the serial console for its terminfo name with XTGETTCAP
+    # (DCS + q 6E616D65 ST); "0+r" is its own "not supported" answer, so it never
+    # waits for one (rehearsal runs 6 and 12 stalled right after that probe).
+    query = re.compile(rb'\x1b\[6n|\x1b\](10|11|12);\?(?:\x07|\x1b\\)|(\x1bP\+q[0-9A-Fa-f;]*\x1b\\)')
 
     def __init__(self):
         self.pending = b''
@@ -73,7 +76,10 @@ class TerminalReplies:
         consumed = 0
         for match in self.query.finditer(self.pending):
             color = match.group(1)
-            if color is None:
+            if match.group(2) is not None:
+                name = 'terminfo'
+                replies.append(b'\x1bP0+r\x1b\\')
+            elif color is None:
                 name = 'cursor-position'
                 replies.append(b'\x1b[24;80R')
             else:

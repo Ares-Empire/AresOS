@@ -268,6 +268,14 @@ PY'''))
 
     def close(self, stage):
         try:
+            # Evidence only, never a check: the kernel command line this boot logged and the terminal
+            # queries the harness answered on the serial console (rehearsal runs 6 and 12).
+            lines = re.findall(r'Command line: ([^\r\n]*)', getattr(self, 'boot_transcript', '') or '')
+            td.save(stage + '-serial-terminal', dict(kernel_command_line=lines[0] if lines else None,
+                    terminal_replies=dict(getattr(getattr(self, 'replies', None), 'counts', {}) or {})))
+        except Exception:
+            pass
+        try:
             if self.webui_server:
                 self.webui_server.shutdown()
                 self.webui_server.server_close()
