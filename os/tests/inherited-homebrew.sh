@@ -1,5 +1,8 @@
 #!/usr/bin/bash
 set -euxo pipefail
+# From a directory every account can read: brew refuses to run in one its user
+# cannot read, and the VM's root shell sits in a home ares cannot enter (rehearsal run 7).
+cd /
 stage=@STAGE@
 prefix=/var/home/linuxbrew/.linuxbrew
 brew="$prefix/bin/brew"
