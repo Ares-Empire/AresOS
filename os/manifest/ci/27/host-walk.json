@@ -146,7 +146,7 @@
       "path": "os/ci/owner_read_diagnostics.py"
     },
     {
-      "sha256": "bf651fef34c314d09cec7c260348df88911b540ef0e8eca4a6131ce4f91b20f0",
+      "sha256": "64d68eb101df4cb401280c1ffda7ff61b64a29acd9dc0215f0c9f515ae07df52",
       "path": "os/ci/owner_vm.py"
     },
     {
@@ -166,7 +166,7 @@
       "path": "os/ci/registry_auth.py"
     },
     {
-      "sha256": "87b034efdd5d76af21e2a1ead0cbef238e48045ee89870fd4d84127d39a600ee",
+      "sha256": "21406bff2840efae2e91275b8de22dd67d03be3548dcb3863b616f8914ee61e5",
       "path": "os/ci/rehearsal-packages.json"
     },
     {
@@ -846,7 +846,7 @@
       "path": "os/tests/test_keyboard_walk.py"
     },
     {
-      "sha256": "d4b098f65b7b45bff2e71fea3ed0522f109da0181593b24c172d8298d46dd792",
+      "sha256": "8b3e8c52e4139a61a831c1235b62e6b1f7ee5ee28cceca1d48f3bcb2e3826f6b",
       "path": "os/tests/test_loop_nodes.py"
     },
     {
@@ -1006,7 +1006,7 @@
       "path": "os/tests/test_owner_transport.py"
     },
     {
-      "sha256": "53ec60f0ff890fb7898058e8a85503a609a58c11c3971a5ee86c9dd8dbdc2048",
+      "sha256": "d1f85dcea136d989a78c250a1b90f27f2f494697dcb3aef166c06d50f72fc13d",
       "path": "os/tests/test_owner_walk.py"
     },
     {

@@ -55,7 +55,7 @@
       "path": "os/ci/owner_media.py"
     },
     {
-      "sha256": "bf651fef34c314d09cec7c260348df88911b540ef0e8eca4a6131ce4f91b20f0",
+      "sha256": "64d68eb101df4cb401280c1ffda7ff61b64a29acd9dc0215f0c9f515ae07df52",
       "path": "os/ci/owner_vm.py"
     },
     {
@@ -63,7 +63,7 @@
       "path": "os/ci/registry_auth.py"
     },
     {
-      "sha256": "87b034efdd5d76af21e2a1ead0cbef238e48045ee89870fd4d84127d39a600ee",
+      "sha256": "21406bff2840efae2e91275b8de22dd67d03be3548dcb3863b616f8914ee61e5",
       "path": "os/ci/rehearsal-packages.json"
     },
     {
@@ -135,6 +135,10 @@
       "path": "os/tests/test_checkout_sources.py"
     },
     {
+      "sha256": "8b3e8c52e4139a61a831c1235b62e6b1f7ee5ee28cceca1d48f3bcb2e3826f6b",
+      "path": "os/tests/test_loop_nodes.py"
+    },
+    {
       "sha256": "72ffb82ad583fe91558340e18926e1c2e5e83e9636b7601657b5f7621d442cc3",
       "path": "os/tests/test_owner_capabilities.py"
     },
@@ -191,7 +195,7 @@
       "path": "os/tests/test_owner_tools.py"
     },
     {
-      "sha256": "53ec60f0ff890fb7898058e8a85503a609a58c11c3971a5ee86c9dd8dbdc2048",
+      "sha256": "d1f85dcea136d989a78c250a1b90f27f2f494697dcb3aef166c06d50f72fc13d",
       "path": "os/tests/test_owner_walk.py"
     },
     {
