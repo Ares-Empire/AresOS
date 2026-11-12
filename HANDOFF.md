@@ -123,7 +123,8 @@ The baton from the last session. Read it after `STATE.md`. Overwrite it when you
     - **23:** parked at `b32af2e2`. After the reset, start a fresh Fable 5.2 agent in `../AresOS-23-minecraft-starts` with `briefs/23-review-fixes-5.md`.
     - Old agents `afc79d03d9f22e06d` and `af1524c06373de3ac` are stopped; don't resume them.
     - **Thu 11-12 00:08: the fresh 27 agent `acc21f0f24d7065a0` (Opus) started** with `briefs/27-rehearsal-fixes-1.md`.
-    - A one-shot wake-up in this Claude session (job 68e0c5f0) fires Thu 11-12 00:07 to start 27's fresh agent, so run 5 runs overnight. It is session-only: if this session has ended, start 27 by hand from this note.
+    - **Thu 11-12 02:25: run 5 (43120759117, head `9ee933d9`) passed the util-linux fix, `at update`, the R27 boot and login,** then failed at `terminal_path` (`os/ci/owner_vm.py:1206`, "No terminal PATH probe"): the harness typed into foot right after Ctrl+Alt+F1, before labwc had resumed input. util-linux 2.41.5→2.41.6: login.c and agetty.c byte-identical upstream; the observer accepts exactly both.
+    - **02:30: approved the fix** (probe prepared after the switch, wait for an Active logind session, one guarded retry with Ctrl+U, screenshots, the same check on every step that is new on a VM, update cap 7) and resumed `acc21f0f24d7065a0` for run 6. mac-capacity has the timing: at the earliest 07:00–08:00 if run 6 passes.
   - **Safety bar for AresOS tools (Patrik via mac-capacity, 2026-11-11 ~08:10; the control lead records it for decision 24):**
     - "baseline is basically MCPs or CLIs like any other mcp or cli that already exists", "reasonably safe", not "nothing could ever go wrong". It is a judgment that "cannot be taken too literally".
     - Extra care only where AresOS adds its own risk (Claude Code as system operator). Disks, boot, updates and rollback are already in that group.
