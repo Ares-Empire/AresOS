@@ -86,7 +86,7 @@
   if(saved.attachShadow)install(Element.prototype,'attachShadow',function(){const result=invoke(saved.attachShadow,this,arguments);report(result,{kind:'watch_root'});return result;});
   // Capture travels with the node even when a borrowed native inserts it into
   // a new closed root and dispatches a non-composed event in the same stack.
-  function watchCreated(node){report(node,{kind:'watch_node'});return node;}
+  function watchCreated(node){if(!enabled)return node;if(nodeType){const kind=invoke(nodeType,node,[]);if(kind===2||kind===10)return node;}report(node,{kind:'watch_node'});return node;}
   for(const [prototype,names] of [[globalThis.Document?.prototype,['createElement','createElementNS','importNode']],
     [globalThis.Node?.prototype,['cloneNode']]])for(const name of names){
     const method=prototype&&descriptor(prototype,name)?.value;

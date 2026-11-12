@@ -172,7 +172,7 @@ case('recheck-post-page-barrier','control/chrome/ci/review-fixtures.mjs',"script
 case('recheck-post-driver-barrier','control/chrome/ci/review-matrices.mjs',"await fixture.mutate(id,'review-change');await eventually(()=>counts(id)===1,'script POST');","await eventually(()=>counts(id)===1,'script POST');",node('fixture','recheck script POST observes'))
 case('recheck-post-document-commit','control/chrome/ci/review-matrices.mjs',"await eventually(async()=>(await allTabs(call)).items.some(row=>row.tab===tab&&row.url==='http://fixture.test:8765/post-document?case='+id),'script POST committed in the exact owner tab');",'',node('fixture','recheck script POST observes'))
 
-case('recheck2-native-created-capture',M,"function watchCreated(node){report(node,{kind:'watch_node'});return node;}","function watchCreated(node){return node;}",node('page','recheck2 native insertion'))
+case('recheck2-native-created-capture',M,"report(node,{kind:'watch_node'});return node;}","return node;}",node('page','recheck2 native insertion'))
 case('recheck2-native-target-capture',G,'nodeRoot!==root&&root!==element','nodeRoot!==root',node('page','recheck2 native insertion'))
 case('recheck2-default-neutralization',G,'event.cancelable||stopDefault(element)','event.cancelable',node('page','recheck2 uncancellable defaults'))
 case('recheck2-owner-navigation',G,'if(!inFlight&&event.isTrusted&&owner?.event===event&&!owner.consumed)return;','',node('page','recheck2 the owners trusted click'))
@@ -197,6 +197,9 @@ case('recheck2-engine-boundary-reask','control/aresos_control/engine.py',"replac
 case('recheck2-event-reuse',G,'if(capturedBefore(event,root))return;','if(captured.has(event))return;',node('page','recheck2 reusing a native Event'))
 
 case('recheck2-slot-dedup-scope',G,'    if(capturedBefore(event,root))return;','',node('page','recheck2 irrelevant slot capture'),extra=[(G,'  function captureInput(event,root) {','  function captureInput(event,root) {\n    if(capturedBefore(event,root))return;')])
+
+case('recheck2-clone-native-kinds',M,'if(kind===2||kind===10)return node;','',node('page','recheck2 clone hooks'))
+case('recheck2-cached-factory',M,'function watchCreated(node){if(!enabled)return node;','function watchCreated(node){',node('page','recheck2 cached creation'))
 
 def command(row):
     if row['python']:return ['python3','-B','-m','unittest',row['test'],'-v']

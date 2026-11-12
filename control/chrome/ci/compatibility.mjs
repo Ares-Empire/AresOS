@@ -21,6 +21,7 @@ document.querySelector('#continue').onclick=()=>{
     customElements.define('compat-'+mode,class extends HTMLElement{constructor(){super();const root=this.attachShadow({mode}),node=document.createElement('button');node.textContent='Ordinary control';root.append(node);let count=0,data=null;node.addEventListener('compat-shadow',event=>{count++;data=event.detail;event.preventDefault();});const dispatched=node.dispatchEvent(new CustomEvent('compat-shadow',{cancelable:true,detail:7}));result.shadows.push({mode,count,data,dispatched});}});
     document.body.append(document.createElement('compat-'+mode));
   }
+  result.cloneKinds=[document.doctype.cloneNode().nodeType,document.createAttribute('title').cloneNode().nodeType];
   result.inert=[];
   for(const source of [new DOMParser().parseFromString('<button>Ordinary control</button>','text/html'),document.implementation.createHTMLDocument(),document.createElement('template').content]){
     const node=source.querySelector('button')||(source.body||source).appendChild(document.createElement('button'));let count=0;node.addEventListener('click',event=>{count++;event.preventDefault();});const dispatched=node.dispatchEvent(new MouseEvent('click',{cancelable:true}));const clicked=typeof node.click();result.inert.push({count,dispatched,clicked});

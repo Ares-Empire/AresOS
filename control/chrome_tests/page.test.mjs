@@ -6,7 +6,7 @@ import {execFileSync} from 'node:child_process';
 
 const policy=JSON.parse(fs.readFileSync('control/chrome/extension/policy.js','utf8').match(/\{[\s\S]*\}/)[0]);
 
-function fixture({relay=false,activate=true,link=true,browserDOM=false,nativeShadows=false,retarget=false,dialogs=false,onDialogBoundary=()=>{}}={}) {
+function fixture({relay=false,activate=true,link=true,browserDOM=false,nativeShadows=false,retarget=false,dialogs=false,nativeNodeKinds=false,onDialogBoundary=()=>{}}={}) {
   const windowListeners=new Map(),reports=[],arrivals=[],nodes=[],bridgeDetails=[];let now=0;
   class Event {
     constructor(type,options={}) {Object.assign(this,{type,cancelable:true,defaultPrevented:false,stopped:false,eventPhase:0,isTrusted:false,...options});}
@@ -67,12 +67,13 @@ function fixture({relay=false,activate=true,link=true,browserDOM=false,nativeSha
   }
   const originalRequestSubmit=HTMLFormElement.prototype.requestSubmit,nativeAttach=Element.prototype.attachShadow,nativeListen=EventTarget.prototype.addEventListener;
   class Document extends EventTarget {createElement(){const node=new HTMLElement();node.root=node;node.isConnected=false;node.parentNode=null;return node;}}
+  if(nativeNodeKinds){Object.defineProperty(Node.prototype,'nodeType',{get(){return this.fixtureKind??1;}});Node.prototype.cloneNode=function(){const clone=new Node();clone.fixtureKind=this.fixtureKind??1;clone.ownerDocument=document;clone.root=clone;return clone;};}
   const document=new Document();document.getElementById=key=>document.labels?.[key];
   if(!relay)document.createElement=undefined;
   const window={addEventListener(type,fn){if(!windowListeners.has(type))windowListeners.set(type,[]);windowListeners.get(type).push(fn);},removeEventListener(type,fn){windowListeners.set(type,(windowListeners.get(type)||[]).filter(value=>value!==fn));}};
   class MessageChannel {port1={close(){}};port2={postMessage:token=>setImmediate(()=>this.port1.onmessage?.({data:token})),close(){}};}
   class AbstractRange {}
-  const rangeNodes=new WeakMap();class StaticRange extends AbstractRange {constructor(options){super();rangeNodes.set(this,options.startContainer);}get startContainer(){if(!rangeNodes.has(this))throw TypeError('Invalid StaticRange');return rangeNodes.get(this);}}
+  const rangeNodes=new WeakMap();class StaticRange extends AbstractRange {constructor(options){super();if([2,10].includes(options.startContainer.fixtureKind))throw new DOMException('Invalid range node','InvalidNodeTypeError');rangeNodes.set(this,options.startContainer);}get startContainer(){if(!rangeNodes.has(this))throw TypeError('Invalid StaticRange');return rangeNodes.get(this);}}
   class InputEvent extends Event {constructor(type,options={}){super(type,options);this.ranges=options.targetRanges?Array.from(options.targetRanges):[];}getTargetRanges(){return retarget?this.ranges.filter(range=>!range.startContainer.getRootNode().host):this.ranges;}}
   const globals={window,document,performance:{now:()=>now},setTimeout,MessageChannel,Symbol,Event,CustomEvent,EventTarget,Node,DocumentFragment:Node,Element,HTMLElement,HTMLInputElement,HTMLFormElement,DOMException,URL,TextDecoder,Uint8Array,...(relay?{AbstractRange,StaticRange,InputEvent}:{}),...(nativeShadows?{Document,ShadowRoot:Node,chrome:{dom:{openOrClosedShadowRoot:host=>hostShadows.get(host)}}}:browserDOM?{Document}:{})};
   const dialogCalls=[],dialogReports=[],dialogValues=[],dialogValue=value=>value===undefined?'':`${value}`;if(dialogs)Object.assign(globals,{alert:({alert(value){dialogValues.push([dialogValue(value)]);dialogCalls.push('alert');}}).alert,confirm:({confirm(value){dialogValues.push([dialogValue(value)]);dialogCalls.push('confirm');return true;}}).confirm,prompt:({prompt(value,initial){dialogValues.push([dialogValue(value),dialogValue(initial)]);dialogCalls.push('prompt');return 'native response';}}).prompt});const nativeDialogs=dialogs?{alert:globals.alert,confirm:globals.confirm,prompt:globals.prompt}:{};
@@ -728,4 +729,14 @@ test('recheck2 irrelevant slot capture cannot erase the light-DOM approval decis
   const original=button.listeners.get('click'),capture=original[0];
   button.listeners.set('click',[event=>{event.visibleTarget=slotRoot.host;for(const listener of listeners)listener(event);event.visibleTarget=null;capture(event);},...original.slice(1)]);
   f.originalDispatch.call(button,new f.Event('click',{isTrusted:true,composed:true}));assert.equal(handlers,1);assert.equal(f.reports.length,0);
+});
+
+test('recheck2 clone hooks preserve native Attr and DocumentType results',()=>{
+  const f=fixture({relay:true,nativeShadows:true,nativeNodeKinds:true});
+  for(const kind of [2,10]){const node=new f.Node();node.fixtureKind=kind;node.ownerDocument=f.document;let clone;assert.doesNotThrow(()=>clone=node.cloneNode());assert.equal(clone.fixtureKind,kind);}
+});
+test('recheck2 cached creation hooks issue no private reports after release',()=>{
+  const f=fixture({relay:true,nativeShadows:true,nativeNodeKinds:true}),node=new f.HTMLElement(),cached=node.cloneNode;let reports=0;
+  f.nativeListen.call(f.factory.relay.firstElementChild,'aresos-relay-meta',()=>reports++);
+  f.cleanup();cached.call(node);assert.equal(reports,0);f.guard.dispose();
 });

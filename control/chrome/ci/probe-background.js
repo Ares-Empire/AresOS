@@ -1,7 +1,7 @@
 // Disposable runner experiment, never included in the installed extension.
 const report=value=>fetch('http://fixture.test:8765/report',{method:'POST',body:JSON.stringify(value)});
 const command=(tabId,method,parameters={})=>chrome.debugger.sendCommand({tabId},method,parameters);
-const privateTabs=new Set();
+const privateTabs=new Set(),nativeBreaks=new Map();
 const contexts=new Map(),contextWaiters=new Map(),installed=new Set();
 chrome.debugger.onEvent.addListener(async(source,method,params)=>{
   if(method==='Target.attachedToTarget'){
@@ -15,6 +15,14 @@ chrome.debugger.onEvent.addListener(async(source,method,params)=>{
     }
   }
   if(method!=='Debugger.paused'||!privateTabs.has(source.tabId))return;
+  if(params.hitBreakpoints?.includes(nativeBreaks.get(source.tabId))){
+    try{
+      const context=contexts.get(source.tabId);
+      const result=await command(source.tabId,'Runtime.evaluate',{contextId:context.id,disableBreaks:true,returnByValue:true,expression:`(()=>{const seen=globalThis.probeNativeRoots??=new WeakSet();let roots=0;const visit=tree=>{for(const host of tree.querySelectorAll('*')){const root=chrome.dom.openOrClosedShadowRoot(host);if(!root)continue;if(!seen.has(root)){seen.add(root);roots++;root.addEventListener('click',event=>{event.preventDefault();event.stopImmediatePropagation();},true);}visit(root);}};visit(document);return roots;})()`});
+      await report({phase:'native-dispatch-entry',tab:source.tabId,roots:result.result?.value,error:result.exceptionDetails?.text});
+    }finally{await command(source.tabId,'Debugger.resume');}
+    return;
+  }
   const started=Date.now();let timeout;
   try{
     if(installed.has(source.tabId))return;
@@ -31,7 +39,7 @@ chrome.debugger.onEvent.addListener(async(source,method,params)=>{
     await report({phase:'private-extension-evaluation-before-resume',evaluated});
     const relay=await command(source.tabId,'Runtime.evaluate',{disableBreaks:true,expression:`(()=>{
       const relay=document.createElement('aresos-private-probe'),dispatch=EventTarget.prototype.dispatchEvent,type=Object.getOwnPropertyDescriptor(Event.prototype,'type').get;
-      EventTarget.prototype.dispatchEvent=function(event){if(type.call(event)!=='probe-relayed')return dispatch.call(this,event);dispatch.call(relay,new InputEvent('probe-target',{targetRanges:[new StaticRange({startContainer:this,startOffset:0,endContainer:this,endOffset:0})]}));dispatch.call(relay,event);return dispatch.call(relay,new Event('probe-deliver',{cancelable:true}));};return relay;
+      relay.probeNativeDispatch=dispatch;EventTarget.prototype.dispatchEvent=function(event){if(type.call(event)!=='probe-relayed')return dispatch.call(this,event);dispatch.call(relay,new InputEvent('probe-target',{targetRanges:[new StaticRange({startContainer:this,startOffset:0,endContainer:this,endOffset:0})]}));dispatch.call(relay,event);return dispatch.call(relay,new Event('probe-deliver',{cancelable:true}));};return relay;
     })()`});
     const described=await command(source.tabId,'DOM.describeNode',{objectId:relay.result.objectId,depth:0});
     const resolved=await command(source.tabId,'DOM.resolveNode',{backendNodeId:described.node.backendNodeId,executionContextId:context.id});
@@ -41,6 +49,9 @@ chrome.debugger.onEvent.addListener(async(source,method,params)=>{
       this.addEventListener('probe-relayed',event=>{original=event;event.stopImmediatePropagation();},true);
       this.addEventListener('probe-deliver',event=>{try{const result=dispatch.call(target,original);if(!result)event.preventDefault();fetch('/report',{method:'POST',body:JSON.stringify({phase:'native-relay-delivery',result})});}catch(error){fetch('/report',{method:'POST',body:JSON.stringify({phase:'native-relay-error',error:String(error)})});}},true);
     }`});
+    const native=await command(source.tabId,'Runtime.callFunctionOn',{objectId:relay.result.objectId,functionDeclaration:'function(){return this.probeNativeDispatch;}'});
+    const entry=await command(source.tabId,'Debugger.setBreakpointOnFunctionCall',{objectId:native.result.objectId});nativeBreaks.set(source.tabId,entry.breakpointId);
+    await report({phase:'native-entry-installed',breakpoint:entry.breakpointId});
     installed.add(source.tabId);
     const result='Extension world installed before page scripts';
     await report({phase:'isolated-before-resume',elapsed:Date.now()-started,result});
@@ -68,6 +79,7 @@ chrome.debugger.onEvent.addListener(async(source,method,params)=>{
   if(!installed.has(tab.id))throw Error('Root injection did not finish; popup comparison is unproven');
   await command(tab.id,'Runtime.evaluate',{expression:"window.open('http://popup.test:8765/popup','_blank')",userGesture:true});
   await new Promise(resolve=>setTimeout(resolve,1000));
+  await command(tab.id,'Runtime.evaluate',{awaitPromise:true,userGesture:true,expression:`(async()=>{const donor=window.open('http://fixture.test:8765/native-donor','_blank');for(let index=0;index<100&&(!donor.document||donor.location.pathname!=='/native-donor');index++)await new Promise(resolve=>setTimeout(resolve,20));for(const mode of ['open','closed']){let handlers=0;const host=document.createElement('div');document.body.appendChild(host);const root=donor.Element.prototype.attachShadow.call(host,{mode}),button=donor.Document.prototype.createElement.call(document,'button');button.textContent='Delete';donor.EventTarget.prototype.addEventListener.call(button,'click',()=>handlers++);donor.Node.prototype.appendChild.call(root,button);donor.EventTarget.prototype.dispatchEvent.call(button,new MouseEvent('click',{bubbles:true,cancelable:true,composed:false}));await fetch('/report',{method:'POST',body:JSON.stringify({phase:'native-borrowed-'+mode,handlers})});}donor.close();})()`});
   const tabs=await chrome.tabs.query({});
   await report({phase:'popup-observation',root:tab.id,popups:tabs.filter(value=>value.openerTabId===tab.id).map(value=>({tab:value.id,url:value.url,opener:value.openerTabId,controlled:privateTabs.has(value.id)}))});
 })().catch(error=>report({phase:'error',error:String(error)}));

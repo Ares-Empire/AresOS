@@ -7,6 +7,7 @@ const reports=[];
 const server=http.createServer((request,response)=>{
   if(request.url==='/report'){
     let body='';request.on('data',chunk=>body+=chunk);request.on('end',()=>{const value=JSON.parse(body);reports.push(value);console.log(JSON.stringify(value));fs.writeFileSync('/out/injection-probe.json',JSON.stringify(reports,null,2));response.end('ok');});
+  }else if(request.url==='/native-donor'){response.end('<!doctype html><title>Native donor</title>');
   }else if(request.url==='/popup'){
     response.end(`<script>fetch('http://fixture.test:8765/report',{method:'POST',body:JSON.stringify({phase:'popup-first-script',preloadMarker:typeof probeNewDocumentMarker,privateVisible:typeof probePrivate})});</script>`);
   }else if(request.url.startsWith('/update.xml')){
@@ -20,10 +21,11 @@ const profile=fs.mkdtempSync('/tmp/aresos-injection-probe-');
 const descriptor=fs.openSync('/out/chrome.txt','a');
 const browser=spawn('qualification-chrome',[`--user-data-dir=${profile}`,'--no-first-run','--no-default-browser-check','--password-store=basic','--gtk-version=3','--host-resolver-rules=MAP *.test 127.0.0.1','about:blank'],{stdio:['ignore',descriptor,descriptor]});
 try{
-  const complete=()=>['first-page-script','popup-first-script','popup-observation'].every(phase=>reports.some(value=>value.phase===phase));
+  const complete=()=>['first-page-script','popup-first-script','popup-observation','native-borrowed-open','native-borrowed-closed'].every(phase=>reports.some(value=>value.phase===phase));
   const until=Date.now()+60000;while(Date.now()<until&&!complete())await delay(100);
   if(!reports.some(value=>value.phase==='first-page-script'))throw Error('No first-script result; injection mechanism unproven');
   if(reports.find(value=>value.phase==='first-page-script').preloadMarker!=='boolean')throw Error('Root document preload marker did not run');
   if(!reports.some(value=>value.phase==='popup-first-script')||!reports.some(value=>value.phase==='popup-observation'))throw Error('No popup diagnostic result');
+  for(const mode of ['open','closed']){const row=reports.find(value=>value.phase==='native-borrowed-'+mode);if(!row||row.handlers!==0)throw Error('Native entry did not capture borrowed '+mode+' dispatch: '+JSON.stringify(row));}
   console.log('DIAGNOSTIC ONLY: no acceptance result is produced.');
 }finally{browser.kill('SIGTERM');await delay(500);if(browser.exitCode===null)browser.kill('SIGKILL');server.close();fs.rmSync(profile,{recursive:true,force:true});}

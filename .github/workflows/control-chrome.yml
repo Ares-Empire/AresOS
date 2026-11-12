@@ -17,7 +17,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: control-chrome-${{ github.ref }}
+  group: control-chrome-${{ github.ref }}${{ inputs.injection_probe && '-probe' || '' }}
   cancel-in-progress: false
 jobs:
   fixtures:
