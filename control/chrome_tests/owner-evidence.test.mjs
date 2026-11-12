@@ -15,5 +15,12 @@ test('recheck owner evidence requires a real timer inside independently timestam
   assert.equal(assertOwnerOverlap(id,arrivals,traces).mark.held.token,7);
   const implicit=[traces[0],{id,phase:'set',token:8,time:2.2,input:'click',key:null,in_flight:false},{id,phase:'pass',token:8,time:2.5,input:'click',key:null,consumed:true,in_flight:false},{id,phase:'set',token:9,time:3.3,key:'Enter',input:'keyup',in_flight:false},{id,phase:'held',token:9,time:4.2,key:'Enter',input:'keyup',in_flight:false},{id,phase:'clear',token:9,time:5}];
   assert.equal(assertOwnerOverlap(id,arrivals,implicit).owner_pass.input,'click');
-  for(const mutation of [rows=>rows.filter(row=>row.phase!=='set'||row.key!=='Enter'),rows=>rows.map(row=>row.phase==='pass'?{...row,consumed:false}:row),rows=>rows.map(row=>row.phase==='pass'?{...row,time:4.5}:row),rows=>rows.filter(row=>row.phase!=='pass'),rows=>rows.filter(row=>row.phase!=='held'),rows=>rows.map(row=>row.phase==='held'?{...row,in_flight:true}:row),rows=>rows.map(row=>row.phase==='set'?{...row,time:4.5}:row),rows=>rows.filter(row=>row.phase!=='clear')])assert.throws(()=>assertOwnerOverlap(id,arrivals,mutation(traces)));
+  // Keep temporal rejection independent of the earlier native admission proof.
+  for(const change of [
+    rows=>rows.map(row=>row.phase==='set'&&row.token===9?{...row,time:4.1}:row),
+    rows=>rows.filter(row=>!(row.phase==='set'&&row.token===7)),
+    rows=>rows.filter(row=>!(row.phase==='set'&&row.token===8)),
+    rows=>rows.map(row=>row.phase==='set'&&row.token===8?{...row,token:88}:row),
+  ])assert.throws(()=>assertOwnerOverlap(id,arrivals,change(implicit)));
+  for(const mutation of [rows=>rows.map(row=>row.phase==='held'?{...row,key:'Space'}:row),rows=>rows.filter(row=>row.phase!=='set'||row.key!=='Enter'),rows=>rows.map(row=>row.phase==='pass'?{...row,consumed:false}:row),rows=>rows.map(row=>row.phase==='pass'?{...row,time:4.5}:row),rows=>rows.filter(row=>row.phase!=='pass'),rows=>rows.filter(row=>row.phase!=='held'),rows=>rows.map(row=>row.phase==='held'?{...row,in_flight:true}:row),rows=>rows.map(row=>row.phase==='set'?{...row,time:4.5}:row),rows=>rows.filter(row=>row.phase!=='clear')])assert.throws(()=>assertOwnerOverlap(id,arrivals,mutation(traces)));
 });

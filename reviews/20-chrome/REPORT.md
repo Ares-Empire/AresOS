@@ -34,8 +34,8 @@ for the changes requested by `briefs/20-recheck-fixes.md`. PR #27 stays draft an
 **Run, before source freeze:** the two full Python runs passed **221 tests / 590.744 s** and
 **222 tests / 546.167 s** (the second adds explicit-search service coverage). These are not final-source acceptance:
 classification/observation checks were completed while they ran. Node passes **251/251**, zero failures/cancellations/
-skips. The page audit rejects **131 mutations**, every baseline passing, including all four owner checks and both
-new overlap-oracle checks. [Retained local outputs and hashes](records/recheck/local-summary.json) identify them.
+skips. The page audit rejects **137 mutations**, every baseline passing, including all four owner checks and the
+independent overlap/admission oracle checks. [Retained local outputs and hashes](records/recheck/local-summary.json) identify them.
 Generated artifacts were regenerated and checked without drift. A new complete local run begins on the frozen
 commit before its Linux acceptance runs; browser/receiver acceptance is pending.
 

@@ -13,9 +13,9 @@
     "skipped": 0
   },
   "page_removal_audit": {
-    "mutations": 131,
+    "mutations": 137,
     "baselines": "all pass",
-    "mutations_rejected": 131,
+    "mutations_rejected": 137,
     "owner_checks": [
       "P20-form",
       "P20-submitter",
@@ -27,7 +27,7 @@
   "logs": {
     "local-python-initial.txt": "f7678ffc2c850137cc5b049d5108adb2cba4feb8e2c9b0a111a174498623cda0",
     "local-node.txt": "66a5f7d3310d723e189d8d13f055c03af34b9b846a10b580d541fd97c9be7ef5",
-    "page-mutations.txt": "b9ddb571e14f26ec575132ba09d8eb1accd719435576198c83638fd45d43380d",
+    "page-mutations.txt": "078f42da60d8cb4ceb68bfc74763dafbb2f1a355255dffe1f0bf33b8dedbf104",
     "audit-streams.txt": "ba0afb1b007804de98ffc86a8acd423bcd243616ad81a6a9b91ea91fe7a2b36a",
     "local-python-prefreeze.txt": "cac1ef28168ae149853c7cd6c30c77b12937cc075afa2d5038ab07d79ad62518"
   },
@@ -36,5 +36,6 @@
     "seconds": 546.167,
     "result": "OK",
     "final_source": false
-  }
+  },
+  "runtime_build_hash": "bbb2d9d57f95f319ccc0d31ca6bf65dc7a156f5b0e6a48b7d80d29ef29d23efd"
 }

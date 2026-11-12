@@ -154,6 +154,13 @@ case('recheck-shadow-setter-cleanup',M,"key=item.setter?'set':'value'","key='val
 case('recheck-shadow-page-getter',M,'item.setter?options({...current,set:item.previous.set}):item.previous','item.previous',node('page','recheck native roots'))
 case('recheck-owner-overlap-oracle','control/chrome/ci/owner-evidence.mjs',"assert(set.time<=timer.time&&timer.time<=held.time&&held.time<=ended.time,'the real timer fires inside the private mark interval');",'',node('owner-evidence','recheck owner evidence'))
 case('recheck-owner-pass-oracle','control/chrome/ci/owner-evidence.mjs',"assert(entering&&pass&&passSet,'the immediate native owner submission must consume its private input allowance');",'',node('owner-evidence','recheck owner evidence'))
+O='control/chrome/ci/owner-evidence.mjs'
+case('recheck-owner-enter-observation',O,'assert(entering&&pass&&passSet,','assert(pass&&passSet,',node('owner-evidence','recheck owner evidence'))
+case('recheck-owner-pass-observation',O,'assert(entering&&pass&&passSet,','assert(entering&&pass,',node('owner-evidence','recheck owner evidence'))
+case('recheck-owner-held-key',O,"row.phase==='held'&&row.key==='Enter'&&!row.in_flight","row.phase==='held'&&!row.in_flight",node('owner-evidence','recheck owner evidence'))
+case('recheck-owner-held-flight',O,"row.phase==='held'&&row.key==='Enter'&&!row.in_flight","row.phase==='held'&&row.key==='Enter'",node('owner-evidence','recheck owner evidence'))
+case('recheck-owner-consumed',O,"row.phase==='pass'&&row.consumed===true","row.phase==='pass'",node('owner-evidence','recheck owner evidence'))
+case('recheck-owner-pass-token',O,"row.token===pass.token&&row.input===pass.input","row.input===pass.input",node('owner-evidence','recheck owner evidence'))
 
 def command(row):
     if row['python']:return ['python3','-B','-m','unittest',row['test'],'-v']

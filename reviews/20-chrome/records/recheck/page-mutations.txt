@@ -129,4 +129,10 @@ recheck-shadow-setter-cleanup MUTATION REJECTED
 recheck-shadow-page-getter MUTATION REJECTED
 recheck-owner-overlap-oracle MUTATION REJECTED
 recheck-owner-pass-oracle MUTATION REJECTED
-131 mutations rejected; every baseline passed
+recheck-owner-enter-observation MUTATION REJECTED
+recheck-owner-pass-observation MUTATION REJECTED
+recheck-owner-held-key MUTATION REJECTED
+recheck-owner-held-flight MUTATION REJECTED
+recheck-owner-consumed MUTATION REJECTED
+recheck-owner-pass-token MUTATION REJECTED
+137 mutations rejected; every baseline passed
