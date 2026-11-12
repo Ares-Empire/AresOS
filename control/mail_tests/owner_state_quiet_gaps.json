@@ -47,24 +47,6 @@
       "envelope.mail_attachment_save.notice-head"
     ]
   },
-  "filing_rename": {
-    "count": 10,
-    "production_behavior": "Retained rename warning discloses ordinary although the independently observed destination role is Trash.",
-    "sha256": "8e3ef00b22dbce041289c788dd7bdacd41807403c142798db64805ee5293bcb5",
-    "stage": 3,
-    "views": [
-      "aresos log.notice-head",
-      "control_pending.notice-head",
-      "envelope.control_log.notice-head",
-      "envelope.control_pending.notice-head",
-      "envelope.mail_accounts.notice-head",
-      "envelope.mail_filing_notices.notice-head",
-      "envelope.mail_folder_rename.notice-head",
-      "mail catalogue.complete",
-      "mail catalogue.page",
-      "passive.notice-head"
-    ]
-  },
   "password": {
     "count": 19,
     "production_behavior": "Failed account setup leaves the committed password-publication intent undisclosed.",

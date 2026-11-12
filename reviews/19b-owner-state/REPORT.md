@@ -2915,7 +2915,7 @@ check. Full actual lists remain ignored downloadable CI artifacts.
 
 Required tests consult neither `KNOWN-GAPS.json` nor
 `owner_state_quiet_gaps.json`. The original full point-zero equality test still
-runs unchanged in the optional check: its nine pinned production failures are
+runs unchanged in the optional check: its eight pinned production failures are
 known limits, rather than a condition for passing required CI. Required quiet
 checks assert absence of spurious warnings; exhaustive missing-disclosure and
 warning-detail equality belongs to the retained optional oracle. Base/Mail
@@ -2939,7 +2939,6 @@ case. `pkg/19-mail` remains an allowed PR base.
 | Qualification/protected roles and legacy context-free unfinished work | Warnings can be incomplete or require another explicit check; stage 2 commits context for new mutations but does not build stage 3's durable disclosure source. |
 | Point-zero attachment export, export rollback and test-app export | Export/download envelopes omit an unfinished publication notice. |
 | Point-zero cancellation and expiry | Passive pending envelopes omit the cancellation/expiry notice and resolved work. |
-| Point-zero rename | A retained warning says ordinary although the independently observed destination role is Trash. |
 | Point-zero failed password publication | Failed account setup can leave its committed password-publication intent undisclosed; this is a missing warning, not a new credential channel. |
 | Point-zero restore | Committed sequences outside the declared rollback interval and restored pending work can be absent from passive views. |
 | Point-zero settlement | The duplicate-case public `sent_copy_warning` stage can differ from its committed parent stage. |
@@ -2950,10 +2949,27 @@ inventory. These are disclosure, availability and lifecycle limitations for the
 lead's security review; ★3 still requires fixing flaws with real harm potential.
 This run adds no production workaround or new replay path.
 
+**Read — accepted late Sent-copy limit:** after the 15-minute quiet period, an
+explicit new repair can create a second identical Sent copy if the first APPEND
+appears late: one SMTP delivery, two Sent copies. This is owner-accepted.
+Replaying the same operation stays inert; this exception concerns separate,
+explicit repair attempts.
+
+**Run / read — corrected point-zero rename:** the public warning names Trash.
+The former “ordinary” result was the optional oracle misreading the escaped
+SPECIAL-USE backslash, not production losing that role. With that parser fixed,
+point-zero rename has no gaps and is removed from the quiet-gap pin. The
+separate `G22-rename` case remains: unresolved Drafts can still produce an
+unverified-role result.
+
 **Read — storage decision:** the owner's 2026-11-11 board #176 storage decision
-applied to the dropped stage-3 candidate and is moot now. Stage 2 adds **zero
-permanent journal bytes**; no projection is enabled. Prior candidate storage
-figures above remain historical measurements, not an active storage policy.
+applied to the dropped stage-3 candidate and is moot now. Stage 2 showed **zero
+permanent-journal growth for the five measured samples** (send, move, permanent
+delete, free CREATE and 25 MiB send), not for every path. Draft APPEND,
+onboarding probe CREATE/APPEND, and commands whose live context differs from
+their folded preparation can add context transactions. No projection is
+enabled. Prior candidate storage figures above remain historical measurements,
+not an active storage policy.
 
 **Read — Chrome compatibility:** `git diff d3babf1f --
 control/aresos_control/warnings.py control/aresos_control/mail/warnings.py

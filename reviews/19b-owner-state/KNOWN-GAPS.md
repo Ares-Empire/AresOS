@@ -3,10 +3,13 @@
 **Optional check (owner re-scope, 2026-11-12):** this strict ledger is checked only by
 `Control owner oracle (optional)` / `control-owner-oracle.yml`, started with
 `workflow_dispatch`. It is not required PR CI. Stage 3 is dropped; these are
-known limits of the accepted stage-2 implementation. The exact stage-2 pin from
-`7b0e9a05` is restored (1,968,467 keys / 2,011 groups); no gap is removed or relaxed.
+known limits of the accepted stage-2 implementation. The stage-2 pin from
+`7b0e9a05` was restored, then corrected for the escaped-role comparison bug in
+the final fix round: **1,966,234 keys / 2,010 groups**. Correctly disclosed Trash
+roles no longer count as missing; the separate `G22-rename` pin is unchanged.
 
-The current executable pin is the stage-2 fixes-round-3 pin described in the final section; earlier sections retain their historical conversion and verification evidence.
+The current executable pin includes the final escaped-role correction below;
+earlier sections retain their historical conversion and verification evidence.
 
 The list starts with Mail review 22's three blocking cases. They remain failures in production; stage 1 exposes them without changing their assertions.
 
