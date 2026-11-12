@@ -149,8 +149,8 @@ acting):
     that is accepted. Claude Code runs as his normal user in his home and projects, with his own `gh` login and his own
     MCP servers, skills and plugins, added as in normal Claude Code. The tools: send, delete and submit ask in Claude
     Code's prompt through managed ask rules (which no user allow rule, `PreToolUse` hook, mod or mode turns off, so
-    the switches that locked everything else go; whether a `PermissionRequest` hook can approve one is tested in brief
-    18c); the app passwords AresOS holds with the tool service's own user; the `question`, approval binding and
+    the switches that locked everything else go; a `PermissionRequest` hook that returns allow does approve one, as
+    brief 18d measured, and that is accepted); the app passwords AresOS holds with the tool service's own user; the `question`, approval binding and
     untrusted-content marking as built; the instruction-source line in the managed `CLAUDE.md`. Gone: the SELinux
     domains, set-group-id relays and registration, the program allowlist and the gates as hard switches, project
     snapshots, the GitHub App, rulesets and mirror, the git wrapper and project-folder ownership, the separate
@@ -198,21 +198,22 @@ the settings):
   its apps) belong to a separate system user. Only the tool service uses them; his account, and so Claude, can't read
   them. His own `gh` login and other credentials stay with him, as in normal Claude Code.
 - The ask rules for every asking tool live in a system-wide file only the admin account can change. A user or project
-  allow rule, a `PreToolUse` hook, a mod or skip-permissions mode doesn't turn a managed ask off. Whether a
-  `PermissionRequest` hook (one that answers prompts on his behalf) can approve a managed ask is unknown until brief
-  18c tests it; his own such hooks must not match our asking tools. The managed `CLAUDE.md` says instructions come
+  allow rule, a `PreToolUse` hook, a mod or skip-permissions mode doesn't turn a managed ask off. A
+  `PermissionRequest` hook (one that answers prompts on his behalf) that returns allow does approve a managed ask:
+  brief 18d measured it at user and managed scope, in normal and skip-permissions mode (Claude Code 2.1.319), and a
+  test fails if that changes. So his own such hooks must not match our asking tools. The managed `CLAUDE.md` says instructions come
   only from him in the session.
 - Everything else is normal Claude Code: it runs as his user with his own `gh` login, MCP servers, skills and plugins.
   Chrome is his normal Chrome, reached through the light tool (decision 25, `CONTROL.md` section 6); a page that
   sends on its own after an ordinary action isn't held.
 - Not guaranteed, said plainly: Claude's terminal commands run as his user, and a tricked Claude could call the tool
-  service directly with a prepared approval, skipping the question; if brief 18c shows a `PermissionRequest` hook can
-  approve a managed ask, a hook could do the same. That is the same level as normal Claude Code on any OS. Claude
+  service directly with a prepared approval, skipping the question, and a `PermissionRequest` hook that returns allow
+  approves a managed ask (brief 18d). That is the same level as normal Claude Code on any OS. Claude
   Code's sandbox, an option he can turn on, keeps terminal commands away from the service only with
   `allowUnsandboxedCommands: false`, no excluded commands, Unix sockets not allowed and the service's socket folder
   denied for reads, and even then best-effort (`CONTROL.md` section 7).
 - The tests check the tools themselves: the asks hold in normal and in skip-permissions mode and against user allow
-  rules and `PreToolUse` hooks, the `PermissionRequest` hook case is measured, the question and the approval binding
+  rules and `PreToolUse` hooks, the `PermissionRequest` hook case is measured and pinned, the question and the approval binding
   match what really happens, untrusted content is marked, and the app passwords stay with the tool service's user.
 
 ## Order of work
@@ -703,3 +704,11 @@ tasks at any time.
   5. **A lighter review process for each tool** (`docs/REVIEW.md`, "Tools for Claude").
   On Chrome he also asked for capability over more hardening: "a better tool for AresOS that's more efficient with
   readings, navigation, free tab navigation etc." (entry above).
+- **2026-11-12:** Mail with 19b (PR #9, `25528195`) and the slim base 18d (PR #25, `9b27a2fe`) are on main. 18d
+  measured the open `PermissionRequest` case: a hook that returns allow approves a managed ask, at user and managed
+  scope, in normal and skip-permissions mode. That is decision 24's accepted residual, at the level of normal Claude
+  Code; the test pins it. Image setup installs the slim managed settings and his user-scope MCP entries
+  (`control/README.md`), and his own auto-approving hooks must not match our asking tools. Chrome (PR #27) merges
+  next, onto the slim generator. The optional owner oracle's strict pins hash exact fault positions, which 18d's
+  slimmer check shifts; every capture keeps zero stage-2 gaps and the same stage-3 total, and the pins are redone
+  once after Chrome merges.
