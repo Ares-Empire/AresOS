@@ -244,7 +244,7 @@ def walk(ps2=False, route='qualification'):
                 return dict(status='stopped' if 'refus' in name or '-dummy-' in name else 'passed', trace=[],
                     error='Private release read failed; check read:packages permission/expiry and network; no credential was written')
             if name.endswith('-path-result'):
-                return dict(uid=1001, owner_uid=1001, path=vm.DAILY_PATH + ':/home/linuxbrew/.linuxbrew/bin')
+                return dict(found=True, uid=1001, owner_uid=1001, path=vm.DAILY_PATH + ':/home/linuxbrew/.linuxbrew/bin')
             if name.endswith('-polkit'):
                 reviewed = sorted(json.loads((ROOT / 'os/ci/polkit-review.json').read_text())['passwordless'])
                 return dict(session_active='yes', session_remote='no', session_scope=True, actions=len(reviewed) + 2,
@@ -623,6 +623,96 @@ class OwnerWalkTest(unittest.TestCase):
         old=next(e for e in bls if e['identity']!=prepared['stock_identity'])
         old['content']+='\noptions evil=changed\n'
         with self.assertRaises(common.owner.Stop):common.owner.keyboard_entries(prepared['state'],prepared,bls)
+
+
+class TerminalPathTest(unittest.TestCase):
+    """Rehearsal run 5 (43120759117) typed the PATH probe right after Ctrl+Alt+F1 and it never ran."""
+    PATH = vm.DAILY_PATH + ':/home/linuxbrew/.linuxbrew/bin'
+
+    def run_path(self, answers):
+        events, saved = [], {}
+
+        class Guest:
+            owner_layout = 'de'
+            def keys(self, names): events.append(('keys', tuple(names)))
+            def command(self, name, source, **kw):
+                syntax(name, source); events.append(('command', name, source)); return ''
+            def capture_json(self, name, source):
+                syntax(name, source); events.append(('capture', name, source))
+                answer = answers.pop(0)
+                if isinstance(answer, BaseException): raise answer
+                return answer
+            def screenshot(self, name): events.append(('screenshot', name))
+        with patch.object(vm.time, 'sleep', side_effect=lambda s: events.append(('sleep', s))), \
+                patch.object(vm.td, 'save', side_effect=lambda name, value: saved.__setitem__(name, value)):
+            try: result = vm.terminal_path(Guest(), 'release-27')
+            except AssertionError as error: result = error
+        return events, saved, result
+
+    def typed(self, events):
+        """The text typed in foot, read back from its physical German keys."""
+        german = {tuple(vm.physical_keys(c, 'de')): c for c in set('python3 /run/aresos-path.py\n')}
+        return ''.join(german[e[1]] for e in events if e[0] == 'keys' and e[1] not in (('ctrl', 'alt', 'f1'), ('ctrl', 'u')))
+
+    def test_types_only_after_switch_foot_round_trip_active_session_and_settle(self):
+        events, saved, result = self.run_path([dict(found=True, uid=1001, owner_uid=1001, path=self.PATH)])
+        self.assertNotIsInstance(result, AssertionError)
+        steps = [e[:2] for e in events if e[0] != 'keys']
+        first_key = next(i for i, e in enumerate(events) if e[0] == 'keys' and e[1] != ('ctrl', 'alt', 'f1'))
+        self.assertEqual(events[0], ('keys', ('ctrl', 'alt', 'f1')))
+        self.assertEqual([e[:2] for e in events[1:first_key]],
+                         [('command', 'release-27-path-foot'), ('command', 'release-27-path-prepare'),
+                          ('command', 'release-27-path-session'), ('sleep', 1)])
+        self.assertEqual(steps[-2:], [('capture', 'release-27-path-result'), ('screenshot', 'release-27-path')])
+        self.assertEqual(self.typed(events), 'python3 /run/aresos-path.py\n')
+        session = dict((e[1], e[2]) for e in events if e[0] == 'command')['release-27-path-session']
+        self.assertEqual(session, vm.ACTIVE_DESKTOP)
+        for needle in ('$3 == "ares" && $4 == "seat0"', '-p Active --value)" = yes', '-p State --value)" = active'):
+            self.assertIn(needle, session)
+        self.assertFalse(saved['release-27-terminal-path']['retried'])
+        self.assertNotIn(('screenshot', 'release-27-path-miss'), [e[:2] for e in events])
+
+    def test_one_miss_is_retried_once_after_a_screenshot_and_line_clear(self):
+        events, saved, result = self.run_path([dict(found=False),
+                                               dict(found=True, uid=1001, owner_uid=1001, path=self.PATH)])
+        self.assertNotIsInstance(result, AssertionError)
+        names = [e[:2] for e in events if e[0] != 'keys' or e[1] == ('ctrl', 'u')]
+        miss = names.index(('capture', 'release-27-path-result'))
+        self.assertEqual(names[miss + 1:], [('screenshot', 'release-27-path-miss'), ('keys', ('ctrl', 'u')),
+                                            ('capture', 'release-27-path-retry-result'), ('screenshot', 'release-27-path')])
+        self.assertEqual(self.typed(events), 'python3 /run/aresos-path.py\n' * 2)
+        self.assertTrue(saved['release-27-terminal-path']['retried'])
+        sources = {e[1]: e[2] for e in events if e[0] == 'capture'}
+        self.assertIn('range(20)', sources['release-27-path-result'])
+        self.assertNotIn('SystemExit', sources['release-27-path-result'])
+        self.assertIn('range(60)', sources['release-27-path-retry-result'])
+        self.assertIn("raise SystemExit('No terminal PATH probe')", sources['release-27-path-retry-result'])
+
+    def test_a_second_miss_stops_without_a_third_attempt(self):
+        failed = AssertionError('Guest command failed: release-27-path-retry-result, exit 1')
+        events, saved, result = self.run_path([dict(found=False), failed])
+        self.assertIs(result, failed)
+        self.assertEqual(self.typed(events), 'python3 /run/aresos-path.py\n' * 2)
+        self.assertNotIn('release-27-terminal-path', saved)
+        self.assertNotIn(('screenshot', 'release-27-path'), [e[:2] for e in events])
+
+    def test_the_guest_probe_reports_a_first_miss_and_reads_a_hit(self):
+        import subprocess
+        with tempfile.TemporaryDirectory() as folder:
+            target = str(pathlib.Path(folder) / 'probe')
+            def program(required):
+                source = vm.path_probe(target, 1, required)
+                return source.split("python3 - <<'PY'\n", 1)[1].split('\nPY', 1)[0]
+            miss = subprocess.run([sys.executable, '-c', program(False)], capture_output=True, text=True)
+            self.assertEqual((miss.returncode, json.loads(miss.stdout)), (0, dict(found=False)))
+            stop = subprocess.run([sys.executable, '-c', program(True)], capture_output=True, text=True)
+            self.assertNotEqual(stop.returncode, 0)
+            self.assertIn('No terminal PATH probe', stop.stderr)
+            pathlib.Path(target).write_text(json.dumps(dict(uid=1001, path=self.PATH)))
+            hit = subprocess.run([sys.executable, '-c', program(False)], capture_output=True, text=True)
+            value = json.loads(hit.stdout)
+            self.assertEqual((value['found'], value['uid'], value['path']), (True, 1001, self.PATH))
+            self.assertEqual(value['owner_uid'], os.stat(target).st_uid)
 
 
 if __name__=='__main__': unittest.main()

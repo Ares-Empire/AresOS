@@ -1193,26 +1193,57 @@ def result_lines(*results):
     return [line for result in results for line in result.get('result', [])]
 
 
+# His graphical session on seat0 (guest.sh's lookup) is active again after a VT switch.
+ACTIVE_DESKTOP = ('set -e; for n in {1..60}; do '
+                  'session=$(loginctl list-sessions --no-legend | awk \'$3 == "ares" && $4 == "seat0" {print $1; exit}\'); '
+                  'if test -n "$session" && test "$(loginctl show-session "$session" -p Active --value)" = yes '
+                  '&& test "$(loginctl show-session "$session" -p State --value)" = active; then '
+                  'loginctl show-session "$session" -p Id -p Active -p State -p Seat -p VTNr; exit 0; fi; '
+                  'sleep 1; done; exit 1')
+
+
+def path_probe(target, seconds, required):
+    """Wait in the guest for the terminal's PATH probe; only the last attempt fails on a miss."""
+    miss = "raise SystemExit('No terminal PATH probe')" if required else 'print(json.dumps(dict(found=False)))'
+    return sw.framed('''python3 - <<'PY'
+import json,pathlib,time
+p=pathlib.Path(@TARGET@)
+for n in range(@SECONDS@):
+    if p.exists() and p.stat().st_size:
+        value=json.loads(p.read_text()); value.update(found=True,owner_uid=p.stat().st_uid); print(json.dumps(value)); break
+    time.sleep(1)
+else: @MISS@
+PY'''.replace('@TARGET@', repr(target)).replace('@SECONDS@', str(seconds)).replace('@MISS@', miss))
+
+
 def terminal_path(guest, stage):
     """The PATH his AresOS terminal really exports, typed in foot like any command."""
     target = '/tmp/aresos-path-' + stage
     program = ('import json,os,pathlib\npathlib.Path(' + repr(target) + ').write_text(json.dumps('
                'dict(uid=os.getuid(),path=os.environ["PATH"])))\n')
-    guest.command(stage + '-path-prepare', 'set -e; rm -f ' + target + '; printf %s ' + shlex.quote(
-        base64.b64encode(program.encode()).decode()) + ' | base64 -d > /run/aresos-path.py; chmod 0644 /run/aresos-path.py')
     guest.keys(['ctrl', 'alt', 'f1'])
     guest.command(stage + '-path-foot', 'set -e; for n in {1..120}; do if test "$(cat /sys/class/tty/tty0/active)" = tty1 && pgrep -u ares -x foot; then exit 0; fi; sleep 1; done; exit 1')
-    type_text(guest, 'python3 /run/aresos-path.py\n', 'de')
-    value = guest.capture_json(stage + '-path-result', sw.framed('''python3 - <<'PY'
-import json,pathlib,time
-p=pathlib.Path(@TARGET@)
-for n in range(60):
-    if p.exists() and p.stat().st_size:
-        value=json.loads(p.read_text()); value['owner_uid']=p.stat().st_uid; print(json.dumps(value)); break
+    # Run 5 (43120759117) typed right after the switch and the probe never ran. As in
+    # kb.foot, a serial round trip comes first, then his session must be active again,
+    # then labwc gets a moment to take its input devices back (as tty3's sudo does).
+    guest.command(stage + '-path-prepare', 'set -e; rm -f ' + target + '; printf %s ' + shlex.quote(
+        base64.b64encode(program.encode()).decode()) + ' | base64 -d > /run/aresos-path.py; chmod 0644 /run/aresos-path.py')
+    guest.command(stage + '-path-session', ACTIVE_DESKTOP)
     time.sleep(1)
-else: raise SystemExit('No terminal PATH probe')
-PY'''.replace('@TARGET@', repr(target))))
+    type_text(guest, 'python3 /run/aresos-path.py\n', 'de')
+    value = guest.capture_json(stage + '-path-result', path_probe(target, 20, required=False))
+    retried = value.get('found') is not True
+    if retried:
+        # This step proves his PATH; kb.foot already proved typing in foot on this boot.
+        # One retry: clear whatever reached the line, then type the idempotent probe again.
+        guest.screenshot(stage + '-path-miss')
+        guest.keys(['ctrl', 'u'])
+        type_text(guest, 'python3 /run/aresos-path.py\n', 'de')
+        value = guest.capture_json(stage + '-path-retry-result', path_probe(target, 60, required=True))
+    assert value.get('found') is True, 'STOP: no terminal PATH probe'
+    value['retried'] = retried
     td.save(stage + '-terminal-path', value)
+    guest.screenshot(stage + '-path')
     assert value['uid'] == value['owner_uid'] == 1001, 'STOP: the AresOS terminal does not run as ares'
     assert value['path'] == DAILY_PATH or value['path'].startswith(DAILY_PATH + ':'), 'STOP: the AresOS terminal lacks his PATH'
     return value
@@ -1417,7 +1448,8 @@ def update_rehearsal(audit, media, password, hashed, ares_password):
         bundle_manifest=media.fingerprint, tools_updated_from_version=1, tools_updated_to_version=2,
         update_staged=True, update_confirmed=True, previous_confirmed=True, forward_after_previous='refused (no route)',
         ares_password_set_by_typing=True, ares_sudo_password_accepted=True, ares_sudo_no_ticket=True,
-        package21_rules=rules, terminal_path=terminal['path'], stock_pinned_throughout=True,
+        package21_rules=rules, terminal_path=terminal['path'], terminal_path_retried=terminal['retried'],
+        stock_pinned_throughout=True,
         polkit_sweep=dict(actions=polkit['actions'], answers=polkit['answers'], passwordless=len(polkit['passwordless'])),
         deployments=dict(release_13=list(first[old_digest]), release_27=list(updated), stock=list(ke.key(stock))),
         owner_commands_physically_typed=True, protected_disk_audits=True, nvram_rule_unchanged=True, bootnext_audits=True))
