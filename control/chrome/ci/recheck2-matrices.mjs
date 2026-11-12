@@ -12,6 +12,16 @@ export async function recheck2Matrices({check,nav,call,target,approval,receiverE
       assert.equal(receiverEvidence(id,'native insertion default held').count,0);assert.ok(result.followups.some(row=>row.stopped));
       await approval(await call('click',await target('Delete')),id);await closeNativeDonor();
     }
+    for(const mode of ['open','closed'])for(const variant of ['same','other','root']){
+      setTab(await nativeDonor(getTab()));const id='recheck2-event-'+mode+'-'+variant;
+      await nav('review-page&mode=event-reuse&variant='+variant+'&root='+mode+'&id='+id);
+      const result=await call('click',await target('Continue'));
+      assert.equal(receiverEvidence('handler-'+id,'reused event first handler held').count,0);
+      assert.equal(receiverEvidence('other-handler-'+id,'reused event other handler held').count,0);
+      assert.equal(receiverEvidence(id,'reused event defaults held').count,0);
+      assert.equal(result.untrusted_content.steps.length,2,'both borrowed-native dispatches are reported');
+      await approval(await call('click',await target('Delete one')),id);await closeNativeDonor();
+    }
   });
   await check('GROUP 2 RECHECK2 native defaults cover new tabs frames ping forms and downloads',async()=>{
     setTab(await nativeDonor(getTab()));await nav('review-page&mode=network-fence&id=recheck2-fence-page');

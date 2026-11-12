@@ -12,7 +12,7 @@ function fixture({relay=false,activate=true,link=true,browserDOM=false,nativeSha
     constructor(type,options={}) {Object.assign(this,{type,cancelable:true,defaultPrevented:false,stopped:false,eventPhase:0,isTrusted:false,...options});}
     preventDefault(){if(this.cancelable)this.defaultPrevented=true;}
     stopImmediatePropagation(){this.stopped=true;}
-    composedPath(){return [this.visibleTarget||this.target];}
+    composedPath(){const target=this.visibleTarget||this.target,root=target?.getRootNode?.();return root&&root!==target?[target,root]:[target];}
   }
   class CustomEvent extends Event {constructor(type,options={}){super(type,options);this.detail=nativeShadows&&type==='aresos-relay-meta'?structuredClone(options.detail):options.detail;if(type==='aresos-page-call-v2')bridgeDetails.push(options.detail);}}
   class EventTarget {
@@ -20,7 +20,7 @@ function fixture({relay=false,activate=true,link=true,browserDOM=false,nativeSha
     addEventListener(type,fn){if(!this.listeners.has(type))this.listeners.set(type,[]);this.listeners.get(type).push(fn);}
     removeEventListener(type,fn){this.listeners.set(type,(this.listeners.get(type)||[]).filter(value=>value!==fn));}
     dispatchEvent(event){
-      event.target=this;event.eventPhase=1;
+      event.target=this;event.eventPhase=1;event.stopped=false;
       try {
         const localRoot=this.getRootNode?.();
         event.visibleTarget=localRoot?.mode==='closed'?localRoot.host:null;
@@ -705,4 +705,27 @@ test('recheck2 native markup nodes meet capture when their click handler is inst
   const root=f.nativeAttach.call(host,{mode:'closed'});button.tagName='A';button.textContent='Delete';f.nativeAppend.call(root,button);
   let handlers=0;button.onclick=()=>handlers++;
   f.originalDispatch.call(button,new f.Event('click',{composed:false}));assert.equal(handlers,0);assert.equal(f.reports.length,1);
+});
+
+test('recheck2 reusing a native Event never inherits a prior dispatch capture decision',()=>{
+  for(const move of ['same','other','root'])for(const composed of [false,true]){
+    const f=fixture({relay:true,nativeShadows:true}),host=new f.HTMLElement(),first=f.document.createElement('button'),second=f.document.createElement('button');
+    for(const button of [first,second]){button.root=f.document;button.tagName='BUTTON';button.textContent='Delete';}
+    let handlers=0;f.nativeListen.call(first,'click',()=>handlers++);f.nativeListen.call(second,'click',()=>handlers++);f.arm(host,null);
+    const event=new f.Event('click',{composed});f.originalDispatch.call(first,event);
+    if(move==='root'){const root=f.nativeAttach.call(host,{mode:'closed'});f.nativeAppend.call(root,first);}
+    f.originalDispatch.call(move==='other'?second:first,event);
+    assert.equal(handlers,0,move+' '+composed);assert.equal(f.reports.length,2,move+' '+composed);
+  }
+});
+
+test('recheck2 irrelevant slot capture cannot erase the light-DOM approval decision',()=>{
+  const f=fixture({relay:true,nativeShadows:true}),button=f.document.createElement('button');button.root=f.document;button.tagName='BUTTON';button.textContent='Delete';f.arm(button,null,'approved');
+  // A slotted node keeps its light-DOM root; the slot root sees a different
+  // closed-tree path but is not this node's activation-capture root.
+  const slotRoot=f.nativeAttach.call(new f.HTMLElement(),{mode:'closed'});f.guard.watch(slotRoot);
+  const listeners=slotRoot.listeners.get('click');let handlers=0;f.nativeListen.call(button,'click',()=>handlers++);
+  const original=button.listeners.get('click'),capture=original[0];
+  button.listeners.set('click',[event=>{event.visibleTarget=slotRoot.host;for(const listener of listeners)listener(event);event.visibleTarget=null;capture(event);},...original.slice(1)]);
+  f.originalDispatch.call(button,new f.Event('click',{isTrusted:true,composed:true}));assert.equal(handlers,1);assert.equal(f.reports.length,0);
 });

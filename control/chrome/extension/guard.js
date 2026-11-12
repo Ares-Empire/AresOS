@@ -8,7 +8,18 @@
   };
   const getAttribute=Element.prototype.getAttribute,setAttribute=Element.prototype.setAttribute,removeAttribute=Element.prototype.removeAttribute;
   const quarantined=new WeakMap();
-  const captured=new WeakSet();
+  const captured=new WeakMap();
+  function capturedBefore(event,root){
+    const previous=captured.get(event);if(!previous)return false;
+    const path=event.composedPath();
+    // A native dispatch visits each capture root once. Seeing its first root
+    // again, or a different path, is a new dispatch of the same page-owned Event.
+    if(previous.path.length===path.length&&previous.path.every((node,index)=>node===path[index])&&!previous.roots.has(root)){
+      previous.roots.add(root);return true;
+    }
+    captured.delete(event);return false;
+  }
+  function capturedHere(event,root){captured.set(event,{path:event.composedPath(),roots:new Set([root])});}
   function stopDefault(element){
     // A non-cancellable native activation still runs its default after capture.
     // Strip hyperlink/submitter authority synchronously; remaining defaults
@@ -168,11 +179,8 @@
     }
   }
   function captureInput(event,root) {
-    if(captured.has(event))return;
     let element=eventElement(event.composedPath()[0]);
     if(element&&nativeRoot&&nativeRoot.call(element,{composed:true})!==ownDocument)return;
-    if(type(event)==='invalid'&&owner)owner.changed=true;
-    if(['pointerdown','pointerup','pointermove','mousedown','mouseup','click','keydown','keypress','keyup'].includes(type(event)))ownerInput(event,element);
     if (!active()) return;
     if (!(element instanceof Element)) return;
     const nodeRoot=element.getRootNode();
@@ -183,6 +191,9 @@
       const shadow=globalThis.chrome?.dom?.openOrClosedShadowRoot(element);
       if(shadow)watch(shadow);
     }else if(nodeRoot!==root&&root!==element)return;
+    if(capturedBefore(event,root))return;
+    if(type(event)==='invalid'&&owner)owner.changed=true;
+    if(['pointerdown','pointerup','pointermove','mousedown','mouseup','click','keydown','keypress','keyup'].includes(type(event)))ownerInput(event,element);
     if(type(event)==='click')element=control(element);
     if (inFlight && event.isTrusted && mark && element === mark.target) {
       if(['keydown','input','change'].includes(type(event)))mark.input=true;
@@ -190,11 +201,11 @@
       if(type(event)==='keydown'&&expected&&event.key===expected.key&&!!event.ctrlKey===!!(expected.modifiers&2)&&!!event.metaKey===!!(expected.modifiers&4)&&!!event.altKey===!!(expected.modifiers&1)&&!!event.shiftKey===!!(expected.modifiers&8))mark.keydown=true;
     }
     if (type(event) === 'submit') {
-      captured.add(event);
+      capturedHere(event,root);
       if (ownerSubmission(element,event.submitter,event) || search(reader.form(element,event.submitter),event.submitter||element) || allowance(element,event,event.submitter)) return;
       event.preventDefault();event.stopImmediatePropagation();report('submit_event',element,event.submitter);
     } else if (type(event) === 'click' && asks(element)) {
-      captured.add(event);
+      capturedHere(event,root);
       if(!inFlight&&event.isTrusted&&owner?.event===event&&!owner.consumed)return;
       // Only the browser's trusted event for this private, approved dispatch consumes the mark.
       if (inFlight && event.isTrusted && mark && !mark.activation && (element === mark.target || mark.implicit===element&&mark.keydown&&element.form===mark.form)) { mark.input=true;mark.activation=true;return; }

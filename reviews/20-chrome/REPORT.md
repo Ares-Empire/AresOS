@@ -6,8 +6,7 @@ read-only preview. `briefs/20-recheck-fixes-2.md` controls this run. No design d
 ## Done
 
 - MAIN wrappers register native capture on created/cloned/imported nodes and click-handler installation, so borrowed
-  insertion into a native-created open/closed root cannot outrun capture. Per-event deduplication keeps a single
-  approved activation from being consumed at both the ancestor and the target. Listener bookkeeping uses weak roots.
+  insertion into a native-created open/closed root cannot outrun capture. Dispatch-path tracking distinguishes visits at multiple capture roots from a later reuse of the same page-owned Event. Ignored slot roots do not erase a light-DOM approval decision; a fresh dispatch always meets capture again. Listener bookkeeping uses weak roots.
 - During the private hold, a tab-scoped session DNR rule fences a content-free quarantine destination for
   `main_frame`, `sub_frame`, `ping` and `other`. Non-cancellable hyperlinks lose `href` through their default
   activation and submitters become disabled through theirs, then native attributes are restored in a later task.
@@ -30,7 +29,7 @@ read-only preview. `briefs/20-recheck-fixes-2.md` controls this run. No design d
 
 ## Verified
 
-Local verification passed: **229 Python tests / OK**, **267 Node tests / zero failures**, and **166 removal mutations rejected; every baseline passed**. Generated artifacts and `git diff --check` pass. [Exact command summaries and hashes](records/recheck2/local-summary.json). Linux verification is pending; no green claim for this head yet. All local execution is browser-free
+Local verification passed: **229 Python tests / OK**, **269 Node tests / zero failures**, and **168 removal mutations rejected; every baseline passed**. Generated artifacts and `git diff --check` pass. [Exact command summaries and hashes](records/recheck2/local-summary.json). Linux verification is pending; no green claim for this head yet. All local execution is browser-free
 Python/Node. No browser, profile, container, Java or Gradle process was started on this Mac.
 Opening ledger: 186 distinct Chrome runs / 187 executions, cap about 215. PR #27 stays draft and unmerged.
 
@@ -43,8 +42,7 @@ waits for 18d. Browser evidence will come only from GitHub Linux containers, in 
 
 The network fence is deliberately limited to a content-free destination; synchronous native-default neutralization
 prevents a new browsing context from escaping a source-tab-only rule. A catch-all source-tab network block would
-also block approved native submissions and the owner's Enter/navigation. Temporary attributes are restored without
-replacing later page edits. This combined design and its compatibility cost require lead review; no feature was
+also block approved native submissions and the owner's Enter/navigation. Temporary attributes are restored only while they retain the guard-written value. This combined design and its compatibility cost require lead review; no feature was
 removed. Changing it later requires the default/owner matrices and their removal probes to remain strict.
 
 The existing sibling-editor fixture's smallest common area is the whole body: all visible body text is bound there,
@@ -56,7 +54,7 @@ live body text it encloses and can reach the bounded owner-send fallback.
 
 The branch remains separate from main, as instructed. Restart evidence deliberately strands a session rule after
 cleaning the old MAIN wrappers, then reloads the extension; it tests startup reconciliation without presenting an
-extension reload as proof that arbitrary old wrapper closures can be recovered. Push run [43233245069](https://github.com/Ares-Empire/AresOS/actions/runs/43233245069) on `375a12fd` stopped before browser execution: the new release test awaited an unreferenced fixture timer, so Linux Node cancelled that and the following test. It now advances the explicit fixture clock and retains every rule-removal/cleanup assertion. No runtime behavior or assertion was weakened. That run is excluded from acceptance. The final run links and inventory will be appended below before completion.
+extension reload as proof that arbitrary old wrapper closures can be recovered. Push run [43233245069](https://github.com/Ares-Empire/AresOS/actions/runs/43233245069) on `375a12fd` stopped before browser execution: the new release test awaited an unreferenced fixture timer, so Linux Node cancelled that and the following test. It now advances the explicit fixture clock and retains every rule-removal/cleanup assertion. No runtime behavior or assertion was weakened. That run is excluded from acceptance. A further browser-free regression found that the first deduplication cache could exempt a reused Event. It now tracks native paths and visited capture roots per dispatch; same-node, other-node, moved-root and closed-slot cases and their removal probes pass. The superseded Chrome run [43234399794](https://github.com/Ares-Empire/AresOS/actions/runs/43234399794) was cancelled by this run, which started it. No other person's run was cancelled. Both superseded heads are excluded from acceptance. The final run links and inventory will be appended below before completion.
 
 ---
 

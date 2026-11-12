@@ -1,0 +1,7 @@
+{
+  "head": "60f96a3cc8691e38913de431d3e9fadccce0cda2",
+  "chrome_run": 43234399794,
+  "conclusion": "cancelled",
+  "cancelled_by_this_run": true,
+  "reason": "Permanent Event deduplication could skip a later native dispatch of the same page-owned Event. Browser-free handler-counter regression and removal probe added; this source is excluded from acceptance."
+}

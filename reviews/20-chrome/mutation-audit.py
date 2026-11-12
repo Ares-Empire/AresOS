@@ -187,12 +187,16 @@ case('recheck2-compose-bounded',A,"if payload.get('compose_reasked'):return resu
 case('recheck2-compose-change-shown',A,"summary += f\"; text next to Send changed from '{changed['before']}' to '{changed['after']}'\"","summary += '; text changed'",'test_questions.Questions.test_recheck2_changed_compose_reasks_with_exact_change_once_then_sends_once',True)
 
 case('recheck2-markup-handler',M,'set onclick(handler){watchCreated(this);invoke(method,this,[handler]);}','set onclick(handler){invoke(method,this,[handler]);}',node('page','recheck2 native markup'))
-case('recheck2-single-capture',G,'if(captured.has(event))return;','',node('page','recheck2 node and ancestor'))
+case('recheck2-single-capture',G,'if(capturedBefore(event,root))return;','',node('page','recheck2 node and ancestor'))
 case('recheck2-compose-extension',B,"compose:!adapter&&['send','confirmation','form'].includes(kind)?frame.compose||null:null,",'compose:null,',node('background','recheck2 final extension binding'))
 case('recheck2-compose-final-boundary',A,"if exc.code=='stale_approval' and payload['binding'].get('compose') is not None:",'if False:','test_questions.Questions.test_recheck2_preview_changed_at_extension_boundary_reasks_without_dispatch',True)
 
 case('recheck2-engine-reask','control/aresos_control/engine.py','if isinstance(replacement, dict):','if False:','test_questions.Questions.test_recheck2_changed_compose_reasks_with_exact_change_once_then_sends_once',True)
 case('recheck2-engine-boundary-reask','control/aresos_control/engine.py',"replacement = getattr(exc, 'replacement', None)",'replacement = None','test_questions.Questions.test_recheck2_preview_changed_at_extension_boundary_reasks_without_dispatch',True)
+
+case('recheck2-event-reuse',G,'if(capturedBefore(event,root))return;','if(captured.has(event))return;',node('page','recheck2 reusing a native Event'))
+
+case('recheck2-slot-dedup-scope',G,'    if(capturedBefore(event,root))return;','',node('page','recheck2 irrelevant slot capture'),extra=[(G,'  function captureInput(event,root) {','  function captureInput(event,root) {\n    if(capturedBefore(event,root))return;')])
 
 def command(row):
     if row['python']:return ['python3','-B','-m','unittest',row['test'],'-v']
