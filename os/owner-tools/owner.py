@@ -268,14 +268,20 @@ class Host:
             reason = step.wait(SCRIPT_TIMEOUT)
         except KeyboardInterrupt:
             with Deferred():
-                gone = step.stop()
+                try:
+                    gone = step.stop()
+                except Exception:
+                    gone = False
             self.trace.append(step.record(mutation, 'interrupted', gone))
             raise
         if reason == 'done':
             self.trace.append(step.record(mutation))
             return step.stdout
         with Deferred():
-            gone = step.stop()
+            try:
+                gone = step.stop()
+            except Exception:
+                gone = False
         self.trace.append(step.record(mutation, reason, gone))
         if not gone:
             raise Unstoppable('Shared step ' + name + ' could not be stopped; do not reboot; get help')
@@ -318,44 +324,72 @@ class Step:
                 break  # the shell ended; a survivor may still hold its pipes
             if time.monotonic() >= deadline:
                 return 'timed out'
-        if self.process.returncode != 0 or self.members():
+        alive, unknown = self.members()
+        if self.process.returncode != 0 or alive or unknown:
             return 'failed'
         return 'done'
 
     def members(self):
-        """Live processes of the step's session or process group (zombies cannot act)."""
-        alive = []
-        for entry in pathlib.Path('/proc').iterdir():
-            if not entry.name.isdigit():
+        """(live processes of the step's session or process group, /proc entries the scan could not read).
+
+        /proc/PID/stat is parsed as bytes after the last ')': a process name is 15 raw bytes
+        and may cut a multibyte character (package 27, review 3). A process that vanished
+        during the scan is gone; zombies cannot act; anything else unreadable is reported,
+        so the caller cannot take an incomplete scan for proof. This never raises.
+        """
+        alive, unknown = [], []
+        try:
+            names = [name for name in os.listdir('/proc') if name.isdigit()]
+        except Exception:
+            return alive, ['/proc']
+        for name in names:
+            try:
+                raw = pathlib.Path('/proc', name, 'stat').read_bytes()
+            except (FileNotFoundError, ProcessLookupError):
+                continue
+            except Exception:
+                unknown.append(name)
+                continue
+            if not raw:
                 continue
             try:
-                fields = (entry / 'stat').read_text().rsplit(')', 1)[1].split()
-            except (OSError, IndexError):
+                fields = raw.rsplit(b')', 1)[1].split()
+                state, group, session = fields[0], int(fields[2]), int(fields[3])
+            except Exception:
+                unknown.append(name)
                 continue
-            if fields[0] != 'Z' and self.session in (int(fields[2]), int(fields[3])):
-                alive.append(int(entry.name))
-        return alive
+            if state != b'Z' and self.session in (group, session):
+                alive.append(int(name))
+        return alive, unknown
 
     def stop(self):
-        """TERM, then KILL, every live process of the step; True once a /proc scan finds none."""
+        """TERM, then KILL: the step's process group first, then every other member a scan finds.
+
+        True only once a complete scan finds none. self.left keeps what was still there.
+        """
+        alive, unknown = [], []
         for signum in (signal.SIGTERM, signal.SIGKILL):
-            for target in (lambda: os.killpg(self.session, signum),
-                           *[(lambda pid=pid: os.kill(pid, signum)) for pid in self.members()]):
+            try:
+                os.killpg(self.session, signum)
+            except (ProcessLookupError, PermissionError):
+                pass
+            alive, unknown = self.members()
+            for pid in alive:
                 try:
-                    target()
+                    os.kill(pid, signum)
                 except (ProcessLookupError, PermissionError):
                     pass
             deadline = time.monotonic() + STOP_GRACE
             while True:
                 self.process.poll()
-                if not self.members():
-                    break
-                if time.monotonic() >= deadline:
+                alive, unknown = self.members()
+                if (not alive and not unknown) or time.monotonic() >= deadline:
                     break
                 time.sleep(0.05)
-            if not self.members():
+            if not alive and not unknown:
                 break
-        gone = not self.members()
+        self.left = dict(alive=alive, unreadable=unknown)
+        gone = not alive and not unknown
         if gone:
             try:
                 out, err = self.process.communicate(timeout=2)
@@ -365,7 +399,7 @@ class Step:
         else:
             for stream in (self.process.stdin, self.process.stdout, self.process.stderr):
                 try:
-                    stream.close()  # the survivor keeps its own ends
+                    stream.close()  # a survivor keeps its own ends
                 except (OSError, ValueError, AttributeError):
                     pass
         return gone
@@ -1492,12 +1526,13 @@ class Tools:
         """The one stop routine for every unsuccessful end of the update step: a failed
         shell, the time limit, Ctrl+C, a closed window or a kill (signals stay deferred).
 
-        It ends every process of the step and proves none is left; removes a staged
-        deployment only when it is exactly this update's (reconcile_update); masks
-        again the finalizers this run removed in any case, as the last line of defence;
-        and claims a clean stop only when every one of those checks passed. update.sh's
-        EXIT trap covers its ordinary failures; this runs after it and is idempotent.
-        Every wait has a bound, so the printed limit holds.
+        It ends every process of the step and proves none is left; only then removes a
+        staged deployment, and only when it is exactly this update's (reconcile_update);
+        in every case tries to mask again the finalizers this run removed and checks it,
+        as the last line of defence; and claims a clean stop only when every one of those
+        checks passed. Each part is protected, so an error in one never skips the next.
+        update.sh's EXIT trap covers its ordinary failures; this runs after it and is
+        idempotent. Its waits are bounded (the printed limit is their sum).
         """
         if reason == 'interrupted':
             cause = {signal.SIGINT: 'Ctrl+C', signal.SIGTERM: 'a termination request',
@@ -1505,18 +1540,32 @@ class Tools:
             reason = 'was interrupted (' + cause + ')'
         say('Stopping the update safely; this takes up to ' + str(-(-stop_bound() // 60))
             + ' minutes. Do not close this window or restart.')
-        errors, removed_staging = [], False
-        gone = step.stop() if step is not None else True
+        # Each part is protected on its own (review 3): no error in one may skip the next.
+        errors, removed_staging, gone = [], False, step is None
         if step is not None:
-            self.host.trace.append(step.record(True, reason, gone))
-        try:
-            require(gone, 'a process of the update step survived TERM and KILL, so nothing was deleted')
-            removed_staging = self.reconcile_update(before, booted, target)
-        except (Stop, OSError, ValueError, KeyError, TypeError, IndexError, subprocess.SubprocessError) as error:
-            errors.append('deployments: ' + str(error))
+            try:
+                gone = step.stop()
+                if not gone:
+                    left = getattr(step, 'left', {})
+                    errors.append('a process of the update step survived TERM and KILL, so nothing was deleted'
+                                  if left.get('alive') or not left.get('unreadable') else
+                                  'the end of the update step could not be proved (unreadable /proc entries), '
+                                  'so nothing was deleted')
+            except Exception as error:
+                errors.append('stopping the update step failed (' + type(error).__name__ + ': ' + str(error)
+                              + '), so nothing was deleted')
+            try:
+                self.host.trace.append(step.record(True, reason, gone))
+            except Exception as error:
+                errors.append('diagnostics: ' + type(error).__name__ + ': ' + str(error))
+        if gone:
+            try:
+                removed_staging = self.reconcile_update(before, booted, target)
+            except Exception as error:
+                errors.append('deployments: ' + str(error))
         try:
             restore_masks(self.host, removed)
-        except (Stop, OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError) as error:
+        except Exception as error:
             errors.append('finalizer masks: ' + str(error))
         if errors:
             return ('The update ' + reason + ', and stopping it did not finish: ' + ' | '.join(errors)

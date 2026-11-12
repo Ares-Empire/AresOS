@@ -1820,7 +1820,8 @@ printf 'bootc %s\n' "$*" >> "$FIXTURE_CALLS"
 case "$*" in
     'status --json') cat "$FIXTURE_ROOT/state.json" ;;
     'switch --retain '*)
-        echo $$ > "$FIXTURE_ROOT/bootc.pid"
+        echo $$ > "$FIXTURE_ROOT/bootc.pid"; echo $PPID > "$FIXTURE_ROOT/step.pid"
+        if [[ -e $FIXTURE_ROOT/weird-name ]]; then printf '\xff\xfe\xfdbootc' > /proc/$BASHPID/comm; fi
         target=${*: -1}
         case $(cat "$FIXTURE_ROOT/mode") in
             # Ignores TERM: only KILL ends it.
@@ -1831,7 +1832,9 @@ case "$*" in
                 echo "$target" > "$FIXTURE_ROOT/staged"; sleep 3600 ;;
             # Fails, leaving a TERM-proof child that closed the step's pipes.
             fail-with-child)
-                ( trap '' TERM; exec > /dev/null 2>&1 < /dev/null; while :; do sleep 0.1; done ) &
+                ( trap '' TERM; exec > /dev/null 2>&1 < /dev/null
+                  if [[ -e $FIXTURE_ROOT/weird-name ]]; then printf '\xc3' > /proc/$BASHPID/comm; fi
+                  while :; do sleep 0.1; done ) &
                 echo $! > "$FIXTURE_ROOT/child.pid"; exit 42 ;;
             stage-ok) echo "$target" > "$FIXTURE_ROOT/staged" ;;
         esac ;;
@@ -1846,6 +1849,7 @@ class StopRunner(Machine):
     Status reads, cleanup and the stop routine's systemctl calls go to the same model."""
     root = None
     failing_reads = 0
+    broken_masks = False
 
     def start(self, text, name):
         if name != 'update':
@@ -1883,7 +1887,8 @@ class StopRunner(Machine):
         if command[:2] == ('systemctl', 'is-enabled'):
             self.trace.append(dict(command=list(command), mutation=False))
             path = self.root / 'units' / command[2]
-            return 'masked\n' if path.is_symlink() and os.readlink(path) == '/dev/null' else 'static\n'
+            masked = path.is_symlink() and os.readlink(path) == '/dev/null' and not self.broken_masks
+            return 'masked\n' if masked else 'static\n'
         return super().read(*command)
 
 
@@ -1903,8 +1908,18 @@ class UpdateStopTest(unittest.TestCase):
     """
     MASKED = dict.fromkeys(owner.FINALIZERS, '/dev/null')
 
+    spawned = []
+
+    @classmethod
+    def tearDownClass(cls):
+        # Review 3: no test may leave a process behind; the survivor case kills its own after its checks.
+        left = [(pid, start) for pid, start in cls.spawned if start is not None and cls.started(pid) == start]
+        for pid, start in left:
+            cls.kill(pid, start)
+        assert not left, 'UpdateStopTest left processes behind: ' + repr(left)
+
     def run_stopped(self, mode, timeout=6, signals=(), foreign=None, failing_reads=0,
-                    stdout=None, swallow_kill=False):
+                    stdout=None, swallow_kill=False, weird_name=False, outsider=False, patches=(), broken_masks=False):
         import signal, threading
         import test_release27 as r27
         with tempfile.TemporaryDirectory(dir=ROOT / 'os/tests') as directory, \
@@ -1925,9 +1940,21 @@ class UpdateStopTest(unittest.TestCase):
             for name, source in stubs.items():
                 (root / 'bin' / name).write_text(source)
                 (root / 'bin' / name).chmod(0o755)
-            host.root, host.failing_reads = root, failing_reads
-            for name in ('bootc.pid', 'child.pid'):
-                self.addCleanup(self.kill_leftover, root / name)
+            host.root, host.failing_reads, host.broken_masks = root, failing_reads, broken_masks
+            if weird_name:
+                (root / 'weird-name').write_text('')
+            if outsider:
+                # A process outside the step whose /proc name is not UTF-8 (15 raw bytes may cut a character).
+                other = subprocess.Popen([sys.executable, '-c', "open('/proc/self/comm', 'wb').write(b'\\xe2\\x82'); "
+                                          "import time; time.sleep(120)"], start_new_session=True)
+                self.addCleanup(other.wait, 5)
+                self.addCleanup(other.kill)
+                deadline = time.monotonic() + 10
+                while pathlib.Path('/proc', str(other.pid), 'comm').read_bytes() != b'\xe2\x82\n':
+                    self.assertLess(time.monotonic(), deadline, 'the outsider never took its name')
+                    time.sleep(0.02)
+            for target, replacement in patches:
+                stack.enter_context(patch.object(owner.Step, target, replacement))
             # As at a terminal: Ctrl+C raises KeyboardInterrupt, and TERM or HUP would end the
             # tool where it stands (modelled by ToolKilled, so a failure cannot kill the test run).
             def killed(signum, frame):
@@ -1977,6 +2004,13 @@ class UpdateStopTest(unittest.TestCase):
             host.sync()
             links = {path.name: os.readlink(path) if path.is_symlink() else None for path in (root / 'units').iterdir()}
             pids = [int((root / name).read_text()) for name in ('bootc.pid', 'child.pid') if (root / name).exists()]
+            # Captured before the fixture directory goes (review 3: a path-based cleanup came too late);
+            # the step's own shell too, for the case whose stop() is broken on purpose.
+            shell = [int((root / 'step.pid').read_text())] if (root / 'step.pid').exists() else []
+            for pid in pids + shell:
+                # By start time too, so a reused PID is never killed.
+                self.spawned.append((pid, self.started(pid)))
+                self.addCleanup(self.kill, pid, self.started(pid))
             intent = tools.load(owner.OUTCOME)
             settled = None if host.state != pair() else tools.qualified(host.state, tools.load('prepared'), retry='update')
             return SimpleNamespace(outcome=outcome, links=links, pids=pids, host=host, intent=intent, settled=settled,
@@ -1984,18 +2018,32 @@ class UpdateStopTest(unittest.TestCase):
                                    calls=(root / 'calls').read_text().splitlines())
 
     @staticmethod
-    def kill_leftover(path):
+    def started(pid):
+        """The live process's start time (stat field 22), or None once it is gone or a zombie."""
+        try:
+            raw = pathlib.Path('/proc', str(pid), 'stat').read_bytes()
+        except (FileNotFoundError, ProcessLookupError):
+            return None
+        fields = raw.rsplit(b')', 1)[1].split() if raw else []
+        return fields[19] if len(fields) > 19 and fields[0] != b'Z' else None
+
+    @classmethod
+    def kill(cls, pid, start):
         # Only a reverted fix (or the survivor case) leaves a fake process running; never leave it behind.
         import signal
-        if path.exists():
+        if start is not None and cls.started(pid) == start:
             try:
-                os.kill(int(path.read_text()), signal.SIGKILL)
-            except (ProcessLookupError, ValueError):
+                os.kill(pid, signal.SIGKILL)
+            except ProcessLookupError:
                 pass
 
-    def alive(self, pid):
-        stat = pathlib.Path('/proc', str(pid), 'stat')
-        return stat.exists() and stat.read_text().rsplit(')', 1)[1].split()[0] != 'Z'
+    @staticmethod
+    def alive(pid):
+        try:
+            raw = pathlib.Path('/proc', str(pid), 'stat').read_bytes()
+        except (FileNotFoundError, ProcessLookupError):
+            return False
+        return bool(raw) and raw.rsplit(b')', 1)[1].split()[0] != b'Z'
 
     def stopped_cleanly(self, run, words):
         # The named assertions (revert proofs): no staged deployment, the masks back, no
@@ -2088,10 +2136,47 @@ class UpdateStopTest(unittest.TestCase):
     def test_a_process_that_survives_kill_is_reported_and_nothing_is_deleted_behind_it(self):
         run = self.run_stopped('hang', swallow_kill=True)
         self.assertTrue(run.pids and self.alive(run.pids[0]), 'the survivor is a real, live process')
+        self.kill(run.pids[0], self.started(run.pids[0]))
         self.assertEqual(self.step(run)['group_gone'], False, 'a survivor was not reported')
         self.assertIn('survived TERM and KILL, so nothing was deleted', str(run.outcome), 'a survivor was not reported')
         self.assertNotIn(('rpm-ostree', 'cleanup', '--pending'), run.host.changes)
         self.assertEqual(run.links, self.MASKED, 'the masks this run removed are not back')
+        self.assertIn('Do not reboot', str(run.outcome))
+
+    def test_names_that_are_not_utf8_inside_and_outside_the_step_do_not_stop_the_stop(self):
+        import signal
+        # Review 3: one such name anywhere made the scan raise before the first signal.
+        for name, options, words in (
+                ('time limit', dict(mode='hang'), 'The update timed out'),
+                ('Ctrl+C', dict(mode='hang', timeout=60, signals=[(1, signal.SIGINT)]), 'The update was interrupted (Ctrl+C)'),
+                ('failed shell', dict(mode='fail-with-child', timeout=60), 'The update failed')):
+            with self.subTest(name):
+                run = self.run_stopped(weird_name=True, outsider=True, **options)
+                self.stopped_cleanly(run, words)
+
+    def test_an_exception_in_the_scan_deletes_nothing_and_still_restores_the_masks(self):
+        def broken(step):
+            raise RuntimeError('injected scan failure')
+        run = self.run_stopped('stage-then-run', patches=[('members', broken)])
+        self.assertNotIn(('rpm-ostree', 'cleanup', '--pending'), run.host.changes, 'something was deleted behind an unproved stop')
+        self.assertEqual([r['container-image-reference-digest'] for r in run.host.state['rpm']['deployments'] if r.get('staged')],
+                         [R21.split('@')[1]])
+        self.assertEqual(run.links, self.MASKED, 'the masks this run removed are not back')
+        self.assertIsInstance(run.outcome, owner.Stop)
+        self.assertIn('stopping the update step failed (RuntimeError: injected scan failure), so nothing was deleted',
+                      str(run.outcome))
+        self.assertIn('Do not reboot', str(run.outcome))
+        self.assertNotIn('stopped safely', str(run.outcome))
+
+    def test_an_exception_in_stop_and_a_failed_mask_check_are_both_reported(self):
+        def broken(step):
+            raise RuntimeError('injected stop failure')
+        run = self.run_stopped('stage-then-run', patches=[('stop', broken)], broken_masks=True)
+        self.assertNotIn(('rpm-ostree', 'cleanup', '--pending'), run.host.changes, 'something was deleted behind an unproved stop')
+        self.assertEqual(run.links, self.MASKED, 'the masks this run removed are not back')
+        self.assertIn('stopping the update step failed (RuntimeError: injected stop failure), so nothing was deleted',
+                      str(run.outcome))
+        self.assertIn('finalizer masks: The mask of ', str(run.outcome))
         self.assertIn('Do not reboot', str(run.outcome))
 
     def test_a_successful_step_through_the_real_runner_stages_and_keeps_the_finalizers_unmasked(self):
