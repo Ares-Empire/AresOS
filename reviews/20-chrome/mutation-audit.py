@@ -203,6 +203,8 @@ case('recheck2-cached-factory',M,'function watchCreated(node){if(!enabled)return
 case('recheck2b-activation-baseline','control/chrome/ci/activation-evidence.mjs',"assert.equal(row.alone.before.active,false,'baseline must have no transient activation');",'',node('activation-evidence','activated baseline'))
 case('recheck2b-activation-receipt','control/chrome/ci/activation-evidence.mjs','assert.deepEqual(JSON.parse(receipt[0].body),{cause,before:observation.before,atHandler:observation.atHandler,trusted:false});','',node('activation-evidence','forged receipt'))
 
+case('recheck2b-pending-clipboard','control/chrome/ci/activation-evidence.mjs',"outcome:'pending browser permission',error:null","outcome:'write accepted',error:null",node('activation-evidence','capability measurement'))
+
 def command(row):
     if row['python']:return ['python3','-B','-m','unittest',row['test'],'-v']
     file,pattern=row['test']

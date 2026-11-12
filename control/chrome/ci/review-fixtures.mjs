@@ -1,3 +1,4 @@
+import {settleClipboard} from './activation-evidence.mjs';
 // Every address and identity here belongs to the disposable receiver.
 export function reviewPage(url){
   const id=url.searchParams.get('id'),mode=url.searchParams.get('mode'),variant=url.searchParams.get('variant')||'';
@@ -65,7 +66,7 @@ export function reviewPage(url){
     script=`document.querySelector('#continue').onclick=()=>{const host=document.querySelector('#host'),root=${native?'opener.Element.prototype.attachShadow.call(host,':'host.attachShadow('}{mode:${JSON.stringify(variant)}});let link=document.createElement('a');${route==='markup'?insertion:''}link.textContent='Delete';link.href=${JSON.stringify(receive)};link.target='sink';link.onclick=()=>fetch('/receive?case=handler-'+${JSON.stringify(id)},{method:'POST'});${route==='markup'?'':insertion};opener.EventTarget.prototype.dispatchEvent.call(link,new MouseEvent('click',{bubbles:true,composed:${composed},cancelable:${cancel}}));};`;
   }else if(mode==='all-native-limit'){
     body='<button type="button" id="continue">Continue</button><div id="host"></div><p id="notice" role="status">Waiting</p>';
-    script=`const capability=${JSON.stringify(variant||'network')},fixtureId=${JSON.stringify(id)},mode=${JSON.stringify(url.searchParams.get('root')||'closed')};
+    script=`const settleClipboard=${settleClipboard.toString()};const capability=${JSON.stringify(variant||'network')},fixtureId=${JSON.stringify(id)},mode=${JSON.stringify(url.searchParams.get('root')||'closed')};
       const observe=value=>fetch('/compat-report',{method:'POST',body:JSON.stringify({id:fixtureId,phase:'all-native-limit',...value})});
       const state=()=>({active:navigator.userActivation.isActive,ever:navigator.userActivation.hasBeenActive});
       async function attempt(cause){
@@ -86,7 +87,7 @@ export function reviewPage(url){
                 donor.Element.prototype.setAttribute.call(link,'href','/activation-download?id='+encodeURIComponent(fixtureId+'-'+cause));donor.Element.prototype.setAttribute.call(link,'download','synthetic.txt');
                 donor.Node.prototype.appendChild.call(root,link);donor.EventTarget.prototype.dispatchEvent.call(link,new donor.MouseEvent('click',{bubbles:true,composed:false,cancelable:false}));outcome='dispatched; receiver decides';
               }else if(capability==='clipboard'){
-                if(!navigator.clipboard){outcome='unavailable';}else{await donor.Clipboard.prototype.writeText.call(navigator.clipboard,'Synthetic AresOS fixture');outcome='write accepted';}
+                if(!navigator.clipboard){outcome='unavailable';}else{({outcome,error}=await settleClipboard(donor.Clipboard.prototype.writeText.call(navigator.clipboard,'Synthetic AresOS fixture')));}
               }else if(capability==='payment'){
                 if(!window.PaymentRequest){outcome='unavailable';}else{
                   const request=new donor.PaymentRequest([{supportedMethods:'https://fixture.test/synthetic-payment'}],{total:{label:'Synthetic fixture only',amount:{currency:'EUR',value:'1.00'}}});

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {assertNativeLimit,nativeLimitModes,nativeLimitCapabilities} from '../chrome/ci/activation-evidence.mjs';
+import {assertNativeLimit,nativeLimitModes,nativeLimitCapabilities,settleClipboard} from '../chrome/ci/activation-evidence.mjs';
 function evidence(active=true){
   const rows=[],arrivals=[];
   for(const mode of nativeLimitModes)for(const capability of nativeLimitCapabilities){
@@ -27,4 +27,12 @@ test('native limit audit never accepts an activated baseline or a concealed acti
 });
 test('native limit audit refuses a false stopped or no-effect description',()=>{
   for(const change of [e=>{e.rows[0].result.followups=[{stopped:true}];},e=>{e.rows[0].status.operation.reason='Nothing happened';},e=>{e.rows[0].status.operation.stages.dispatched.untrusted_content='No delivery claim';}]){const e=evidence();change(e);assert.throws(()=>assertNativeLimit(e.rows,e.arrivals));}
+});
+
+test('capability measurement keeps pending permission separate from an accepted or rejected write',{timeout:1000},async()=>{
+  assert.deepEqual(await settleClipboard(Promise.resolve()),{outcome:'write accepted',error:null});
+  assert.deepEqual(await settleClipboard(Promise.reject({name:'NotAllowedError',message:'Permission denied'})),{outcome:'rejected',error:{name:'NotAllowedError',message:'Permission denied'}});
+  let complete;const pending=new Promise(resolve=>{complete=resolve;});const result=await settleClipboard(pending,10);
+  assert.deepEqual(result,{outcome:'pending browser permission',error:null});complete();await pending;await Promise.resolve();
+  assert.equal(result.outcome,'pending browser permission','a later permission outcome cannot rewrite the measurement');
 });

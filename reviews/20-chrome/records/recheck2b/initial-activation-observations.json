@@ -1,0 +1,108 @@
+{
+  "source": "97b786002f10c066ac673e1b17b3144c23f3d4bf",
+  "run": 43253386438,
+  "status": "Failed schema assertion; these actual measurements are retained, not acceptance",
+  "added_activation_observed_in_both_installs": true,
+  "artifacts": [
+    {
+      "artifact": "control-chrome-43253386438-1-policy",
+      "sha256": "103ea15e1c761baef58dea0604885dc147b5deb9a324ab6c2edbaf805b8780ed",
+      "observations": [
+        {
+          "id": "recheck2b-limit-open-network",
+          "phase": "all-native-limit",
+          "cause": "alone",
+          "capability": "network",
+          "before": {
+            "active": false,
+            "ever": false
+          },
+          "atHandler": {
+            "active": false,
+            "ever": false
+          },
+          "trusted": false,
+          "after": {
+            "active": false,
+            "ever": false
+          },
+          "secure": true,
+          "outcome": "not requested",
+          "error": null
+        },
+        {
+          "id": "recheck2b-limit-open-network",
+          "phase": "all-native-limit",
+          "cause": "claude",
+          "capability": "network",
+          "before": {
+            "active": true,
+            "ever": true
+          },
+          "atHandler": {
+            "active": true,
+            "ever": true
+          },
+          "trusted": false,
+          "after": {
+            "active": true,
+            "ever": true
+          },
+          "secure": true,
+          "outcome": "not requested",
+          "error": null
+        }
+      ]
+    },
+    {
+      "artifact": "control-chrome-43253386438-1-external",
+      "sha256": "89c628179045b49df49bb576a5b6a29c8093ecaa94973a89f3042747ae09b5fe",
+      "observations": [
+        {
+          "id": "recheck2b-limit-open-network",
+          "phase": "all-native-limit",
+          "cause": "alone",
+          "capability": "network",
+          "before": {
+            "active": false,
+            "ever": false
+          },
+          "atHandler": {
+            "active": false,
+            "ever": false
+          },
+          "trusted": false,
+          "after": {
+            "active": false,
+            "ever": false
+          },
+          "secure": true,
+          "outcome": "not requested",
+          "error": null
+        },
+        {
+          "id": "recheck2b-limit-open-network",
+          "phase": "all-native-limit",
+          "cause": "claude",
+          "capability": "network",
+          "before": {
+            "active": true,
+            "ever": true
+          },
+          "atHandler": {
+            "active": true,
+            "ever": true
+          },
+          "trusted": false,
+          "after": {
+            "active": true,
+            "ever": true
+          },
+          "secure": true,
+          "outcome": "not requested",
+          "error": null
+        }
+      ]
+    }
+  ]
+}

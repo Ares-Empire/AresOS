@@ -29,3 +29,11 @@ export function assertNativeLimit(rows,arrivals){
   return {cases:rows.length,added_transient_activation:added,activation_review_required:added.length>0,
     reporting:'The original input is reported as dispatched; the hidden native step has no held/unknown report. The page notice is untrusted.'};
 }
+
+export async function settleClipboard(promise,timeoutMs=2500){
+  let timer;
+  try{return await Promise.race([
+    Promise.resolve(promise).then(()=>({outcome:'write accepted',error:null}),error=>({outcome:'rejected',error:{name:error?.name??typeof error,message:String(error?.message??error)}})),
+    new Promise(resolve=>{timer=setTimeout(()=>resolve({outcome:'pending browser permission',error:null}),timeoutMs);}),
+  ]);}finally{clearTimeout(timer);}
+}

@@ -1,7 +1,10 @@
 # Recheck fixes 2b — resumed, browser verification pending
 
 The lead lifted the stop in `briefs/20-recheck-fixes-2b.md`. The all-borrowed-native shadow path is a known limit,
-subject to an independent user-activation check and truthful after-click reporting. The narrow DNR fence plus
+subject to an independent user-activation check and truthful after-click reporting.
+**That check finds added authority:** autonomous dispatch has no activation; Claude’s click gives the nested event
+activation and opens a popup that is blocked autonomously, in both installs. This is named for the lead under 2b,
+not dismissed as harmless. Clipboard/payment details and complete final-head browser verification are still pending. The narrow DNR fence plus
 synchronous default neutralization and the whole-body compose binding are accepted with the browser conditions
 in that brief. No design document was edited. The historical stop and its PLAN-GAP below remain as evidence,
 marked as decided by the lead.
@@ -18,12 +21,16 @@ the receiver's raw rows and refuses an activated baseline, a concealed activatio
 
 `KNOWN-LIMITS.md` states the required donor/native route, the unasked Delete, the autonomous-network equivalence,
 all three rejected fixes, the missing step report, and the whole-body/live-text owner-send cost. User-activation
-results remain pending: **no unconditional “adds no harm” claim is made before those results**.
+measurements from the initial run already show **new transient and sticky activation in both installs**: autonomous
+dispatch has neither; the same untrusted nested event inside Claude’s click has both.
+[Actual retained observations](records/recheck2b/initial-activation-observations.json). The first run fails only the new
+probe’s public-stage schema assertion, corrected without changing the assertion. Full capability comparisons are still
+running. **No unconditional “adds no harm” claim is made.**
 
 ## Verified / Not verified
 
-Local checks passed: **275 Node tests**, zero failures/cancellations/skips, and **172 removal mutations rejected;
-every baseline passed**. The browser-free full Python suite is still running. [Exact local summaries](records/recheck2b/local-summary.json).
+Local checks passed: **276 Node tests**, zero failures/cancellations/skips, and **173 removal mutations rejected;
+every baseline passed**. The browser-free full Python suite passed **229 tests in 585.805 s / OK**. [Exact local summaries](records/recheck2b/local-summary.json).
 An initial evidence-removal probe survived because another consistency assertion masked it; its negative test now
 keeps the receiver record consistent, and removing the baseline check fails as intended. Browser results will come only from `control-chrome.yml` Linux
 containers in both install modes. No local browser/profile or container is used. This head has no accepted final
@@ -35,6 +42,15 @@ restart cases in both installs, then continued through the word matrix. It was c
 not stalled and did not finish. The corrected progress record will retain these rows. No assertion was weakened.
 
 ## PLAN-GAP / JUDGMENT-CALL — lead decision
+
+The clipboard comparison originally waited for a permission promise without a bound. The exported failure PNG
+shows Chrome’s permission prompt. The probe now records “pending browser permission” after a bounded wait; it never
+clicks Allow and never describes pending as a successful write. Its new regression/removal check enforces that.
+
+A boundary run failed on an absent-filter VSOCK connection reset. A reset is now recorded as unqualified transport,
+not a policy denial. Successful connects remain open-route failures, and genuine policy denials remain strict. Four
+plain-Python regressions pass. Full local base discovery lacks `jsonschema` (23 import/test errors); Linux CI will
+run the complete base suite with its pinned dependencies. No local software was installed.
 
 The earlier native-entry/DOM/ordinary-tab analysis remains below. The lead classifies the all-native network action
 with autonomous page sends. Claude's click may additionally supply transient activation; the new comparison checks
