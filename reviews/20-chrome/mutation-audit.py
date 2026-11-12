@@ -168,6 +168,9 @@ case('recheck-editable-controls',R,'editable: !clickControl && (','editable: (',
 case('recheck-item-fields-reader',R,'item_fields:element?itemFields(element,nodes):[]','item_fields:[]',node('reader','recheck item quantities'))
 case('recheck-item-fields-extension',B,"item_fields:['delete','pay','item','activation','confirmation'].includes(kind) ? frame.item_fields||[] : null,",'',node('background','recheck payment dispatch'))
 case('recheck-item-fields-service',A,"'item_fields':frame.get('item_fields',[]) if kind in {'delete','pay','item','activation','confirmation'} else None,",'','test_questions.Questions.test_recheck_payment_quantity_is_shown_and_bound',True)
+case('recheck-post-page-barrier','control/chrome/ci/review-fixtures.mjs',"script=variant==='after-owner-navigation'?","script=false?",node('fixture','recheck script POST timer'))
+case('recheck-post-driver-barrier','control/chrome/ci/review-matrices.mjs',"await fixture.mutate(id,'review-change');await eventually(()=>counts(id)===1,'script POST');","await eventually(()=>counts(id)===1,'script POST');",node('fixture','recheck script POST observes'))
+case('recheck-post-document-commit','control/chrome/ci/review-matrices.mjs',"await eventually(async()=>(await allTabs(call)).items.some(row=>row.tab===tab&&row.url==='http://fixture.test:8765/post-document?case='+id),'script POST committed in the exact owner tab');",'',node('fixture','recheck script POST observes'))
 
 def command(row):
     if row['python']:return ['python3','-B','-m','unittest',row['test'],'-v']

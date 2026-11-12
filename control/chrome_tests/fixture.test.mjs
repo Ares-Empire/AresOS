@@ -104,3 +104,40 @@ test('combined S12 native-dialog review fixtures consume only untrusted dialog d
   });
   assert.equal(checks,2);assert.equal(reads,21);assert.equal(arrivals.length,21);
 });
+
+test('recheck script POST timer waits for the owner navigation barrier',async()=>{
+  const {reviewPage}=await import('../chrome/ci/review-fixtures.mjs');
+  for(const variant of ['', 'after-owner-navigation']){
+    const page=reviewPage(new URL('http://fixture.test/?mode=script-post&variant='+variant+'&id=post'));
+    const timers=[];let submissions=0;
+    const context=vm.createContext({document:{querySelector:()=>({submit(){submissions++;}})},setTimeout:(run,ms)=>{timers.push({run,ms});}});
+    vm.runInContext(page.script,context);
+    if(variant){assert.equal(timers.length,0,'the initial GET must remain observable');context.reviewChange();}
+    assert.equal(timers.length,1);assert.equal(timers[0].ms,100);assert.equal(submissions,0);
+    timers[0].run();assert.equal(submissions,1,'the delayed page script still calls native form submit');
+  }
+});
+
+test('recheck script POST observes both exact document commits before takeover',async()=>{
+  const source=fs.readFileSync('control/chrome/ci/review-matrices.mjs','utf8');
+  let ownerCommitted=false,posted=false,postCommitted=false,popupPosted=false,checks=0;
+  const context=vm.createContext({assert,URL,URLSearchParams,console:{log(){}},allTabs:async()=>({items:[...(posted?[{tab:7,url:'http://fixture.test:8765/post-document?case=review-script-post'}]:[]),...(popupPosted?[{tab:8,url:'http://fixture.test:8765/post-document?case=review-script-popup'}]:[])]})});
+  vm.runInContext(source.slice(source.indexOf('export async function reviewMatrices')).replace('export ',''),context);
+  await context.reviewMatrices({
+    check:async(name,run)=>{if(name==='GROUP 8 REVIEW script-started POST documents in tabs and popups never reload'){checks++;await run();}},
+    getTab:()=>7,
+    ownerNavigate:async url=>{assert.match(url,/variant=after-owner-navigation/);assert.equal(posted,false);ownerCommitted=true;},
+    fixture:{mutate:async(id,change)=>{assert.equal(id,'review-script-post');assert.equal(change,'review-change');assert.equal(ownerCommitted,true);posted=true;}},
+    counts:id=>id==='review-script-post'?Number(posted):id==='review-script-popup'?Number(popupPosted):0,
+    eventually:async(predicate,label)=>{const result=await predicate();assert.ok(result,label);if(label==='script POST committed in the exact owner tab')postCommitted=true;return result;},
+    target:async()=>({}),nav:async()=>{},
+    call:async(name)=>{
+      if(name==='take_tab'){assert.equal(posted,true);assert.equal(postCommitted,true,'take waits for the exact POST document');}
+      if(name==='click')popupPosted=true;
+      if(name==='read')return {untrusted_content:{tree:JSON.stringify({reference:{element:'e1'},expected:{name:'Continue'}})}};
+      return {};
+    },
+    rpc:async()=>({ok:false,error:{message:'request method is POST'}}),
+  });
+  assert.equal(checks,1);assert.equal(postCommitted,true);assert.equal(popupPosted,true);
+});

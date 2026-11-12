@@ -23,7 +23,10 @@ export function reviewPage(url){
     script=`const child=document.querySelector('#child');${variant==='srcdoc'?`child.srcdoc=${JSON.stringify(markup)};`:`child.contentDocument.body.innerHTML=${JSON.stringify(markup)};`}document.querySelector('button').onclick=()=>fetch(${JSON.stringify(receive)},{method:'POST',body:child.contentDocument.querySelector('[contenteditable]').innerText});globalThis.reviewChange=()=>child.contentDocument.querySelector('[contenteditable]').textContent='Changed inline draft';`;
   }else if(mode==='script-post'){
     body='<form method="post" action="/post-document?case='+id+'"><input name="draft" value="Script-started"></form>';
-    script="setTimeout(()=>document.querySelector('form').submit(),100);";
+    const schedule="setTimeout(()=>document.querySelector('form').submit(),100);";
+    // Let the native owner-navigation probe observe the GET before this page
+    // replaces it. The POST still starts in a real page timer, outside input.
+    script=variant==='after-owner-navigation'?"globalThis.reviewChange=()=>{"+schedule+"};":schedule;
   }else if(mode==='script-popup'){
     body='<button type="button">Open window</button>';
     script=`document.querySelector('button').onclick=()=>window.open('/?case=review-page&mode=script-post&id='+${JSON.stringify(id)},'_blank','popup,width=620,height=480');`;
