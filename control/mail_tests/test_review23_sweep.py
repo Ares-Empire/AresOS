@@ -706,38 +706,63 @@ class FaultSweep23(unittest.TestCase):
         import uuid
         from aresos_control.mail import adapter
         from aresos_control import files
-        # Capture module attributes inside the guard, including aliases that
-        # production imported before it was installed.
-        with self.assertRaises(AmbientRead), reject_ambient_sources():
-            reads = [time.time, time.time_ns, time.localtime, time.gmtime, time.ctime, time.asctime,
-                     lambda: time.localtime(None), lambda: time.gmtime(None),
-                     lambda: time.strftime('%Y'), lambda: time.strftime('%Y', None),
-                     datetime.datetime.now, datetime.datetime.utcnow,
-                     datetime.datetime.today, datetime.date.today,
-                     files.datetime.now, adapter.date.today,
-                     uuid.uuid1, uuid.uuid4, random.random, lambda: random.randrange(100),
-                     random.Random, lambda: random.SystemRandom().getrandbits(64),
-                     lambda: secrets.randbelow(100), secrets.token_bytes, lambda: os.urandom(16),
-                     email.utils.make_msgid, email.utils.formatdate, adapter.formatdate,
-                     tempfile.TemporaryDirectory,
-                     lambda: Path(__file__).stat().st_mtime,
-                     lambda: os.stat(__file__).st_ctime_ns,
-                     lambda: os.lstat(__file__)[8],
-                     lambda: os.path.getmtime(__file__), lambda: os.path.getctime(__file__)]
-            if hasattr(time, 'clock_gettime'):
-                reads += [lambda: time.clock_gettime(time.CLOCK_REALTIME),
-                          lambda: time.clock_gettime_ns(time.CLOCK_REALTIME)]
-            for index, read in enumerate(reads):
-                with self.subTest(source=index), self.assertRaises(AmbientRead):
-                    read()
-            with open(__file__, 'rb') as stream:
-                with self.assertRaises(AmbientRead):
-                    os.fstat(stream.fileno()).st_mtime_ns
-            stamp = time.gmtime(1794225600)
+        # Resolve attributes inside each fresh guard, including preimported
+        # aliases. A latched rejection must never replace a later assertion.
+        reads = [lambda: time.time(), lambda: time.time_ns(),
+                 lambda: time.localtime(), lambda: time.gmtime(), lambda: time.ctime(), lambda: time.asctime(),
+                 lambda: time.localtime(None), lambda: time.gmtime(None),
+                 lambda: time.strftime('%Y'), lambda: time.strftime('%Y', None),
+                 lambda: datetime.datetime.now(), lambda: datetime.datetime.utcnow(),
+                 lambda: datetime.datetime.today(), lambda: datetime.date.today(),
+                 lambda: files.datetime.now(), lambda: adapter.date.today(),
+                 lambda: uuid.uuid1(), lambda: uuid.uuid4(), lambda: random.random(), lambda: random.randrange(100),
+                 lambda: random.Random(), lambda: random.SystemRandom().getrandbits(64),
+                 lambda: secrets.randbelow(100), lambda: secrets.token_bytes(), lambda: os.urandom(16),
+                 lambda: email.utils.make_msgid(), lambda: email.utils.formatdate(), lambda: adapter.formatdate(),
+                 lambda: tempfile.TemporaryDirectory(),
+                 lambda: Path(__file__).stat().st_mtime,
+                 lambda: os.stat(__file__).st_ctime_ns,
+                 lambda: os.lstat(__file__)[8],
+                 lambda: os.path.getmtime(__file__), lambda: os.path.getctime(__file__)]
+        if hasattr(time, 'clock_gettime'):
+            reads += [lambda: time.clock_gettime(time.CLOCK_REALTIME),
+                      lambda: time.clock_gettime_ns(time.CLOCK_REALTIME)]
+        for index, read in enumerate(reads):
+            with self.subTest(source=index), self.assertRaises(AmbientRead), reject_ambient_sources():
+                read()
+        with open(__file__, 'rb') as stream:
+            with self.assertRaises(AmbientRead), reject_ambient_sources():
+                os.fstat(stream.fileno()).st_mtime_ns
+        with reject_ambient_sources():
+            self.assertTrue(time.gmtime(1794225600))
+        with reject_ambient_sources():
+            stamp = (2026, 11, 9, 12, 0, 0, 0, 313, 0)
             self.assertTrue(time.strftime('%Y', stamp))
+        with reject_ambient_sources():
             self.assertTrue(time.localtime(1794225600))
+        with reject_ambient_sources():
             self.assertTrue(email.utils.formatdate(1794225600))
+        with reject_ambient_sources():
             self.assertEqual(random.Random(7).getrandbits(64), random.Random(7).getrandbits(64))
+
+    def test_inherited_guard_positive_assertions_fail_when_explicit_forms_break(self):
+        import email.utils
+        import random
+        mutations = [(time, 'gmtime', {'return_value': ()}),
+                     (time, 'strftime', {'return_value': ''}),
+                     (time, 'localtime', {'return_value': ()}),
+                     (email.utils, 'formatdate', {'return_value': ''}),
+                     (random.Random, 'getrandbits', {'side_effect': (1, 2)})]
+        for target, name, broken in mutations:
+            with self.subTest(explicit=name):
+                result = unittest.TestResult()
+                with patch.object(target, name, **broken):
+                    FaultSweep23('test_inherited_guard_rejects_ambient_sources').run(result)
+                self.assertEqual(result.testsRun, 1)
+                self.assertEqual(len(result.failures), 1, result.failures)
+                self.assertEqual(result.errors, [])
+                self.assertEqual(result.skipped, [])
+                print(f'Explicit guard assertion mutation: {name} -> 1 failure, 0 errors', flush=True)
 
     def test_inherited_guard_remembers_reads_displaced_by_cleanup(self):
         with self.assertRaisesRegex(AmbientRead, r'^time\.time_ns$'), reject_ambient_sources():
