@@ -4,9 +4,10 @@ AresOS is an operating system being built around Minecraft Java: Linux, based on
 Minecraft world instead of a normal desktop. A Fabric mod turns that world into the app launcher. Apps open over the
 game, and closing one puts you back where you stood.
 
-## Status (2026-11-08)
+## Status (2026-11-12)
 
-The parts are built and tested on their own. AresOS is not installed on real hardware yet.
+AresOS is installed on the owner's laptop, on its own SSD next to Windows. It starts into a minimal desktop with a
+terminal; the game and the apps aren't in it yet.
 
 - **The mod** works in Minecraft's development client on Windows. Right-click an app item and the installed Windows app
   or website opens. Walk into a block logo and its app opens. The Nether home, Live mode (you can't die) and Build mode
@@ -15,14 +16,15 @@ The parts are built and tested on their own. AresOS is not installed on real har
 - **The OS image** is a Bazzite derivative (`bazzite-nvidia-open`) that starts into a minimal labwc session with a
   terminal. GitHub Actions builds it, boots it in virtual machines, and tests the recovery login, the switch from stock
   Bazzite and the rollback. A signed release exists; it is private for now.
-- **The install** onto a second SSD, next to a Windows drive that is never written, is rehearsed in CI virtual
-  machines with the real Bazzite installer. The install guide, an emergency card and the install tools are written and
-  checked.
+- **The install** onto a second SSD, next to a Windows drive that is never written, was rehearsed in CI virtual
+  machines with the real Bazzite installer, then done on the owner's laptop on 2026-11-08/09 with the install guide,
+  the emergency card and the install tools. Graphics, the network, sound and the touchpad work there; brightness and
+  the power button don't yet.
 - **The control layer** (apps as tools for a Claude Code session): the base service is merged and tested with a
   made-up test app. Mail is in review. The Chrome tool is designed, not built.
 
 Not done yet: Minecraft inside the image, opening apps on Linux (the mod waits for a helper in the OS), and the first
-install on real hardware, which is the next step.
+update of the installed laptop to a new release, which is the next step.
 
 ## How it works
 
