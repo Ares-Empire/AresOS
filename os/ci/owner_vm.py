@@ -1250,6 +1250,8 @@ def terminal_path(guest, stage):
 
 
 RULES = r'''import grp,json,os,pathlib,re,subprocess
+# His commands below start from / , not from the root shell's home he cannot read (rehearsal run 7).
+os.chdir('/')
 env={'LC_ALL':'C','PATH':'/usr/sbin:/usr/bin'}
 out={}
 out['ares_in_wheel']='ares' in grp.getgrnam('wheel').gr_mem
