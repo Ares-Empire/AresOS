@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {assertComplete} from '../../control/chrome/ci/verdicts.mjs';
 import {assertOwnerOverlap} from '../../control/chrome/ci/owner-evidence.mjs';
+import {assertNativeLimit} from '../../control/chrome/ci/activation-evidence.mjs';
 import {jsonLines,completeIngressStream,containsText,digestFile} from './audit-streams.mjs';
 
 const walk=directory=>fs.readdirSync(directory,{withFileTypes:true}).flatMap(entry=>entry.isDirectory()?walk(path.join(directory,entry.name)):[path.join(directory,entry.name)]);
@@ -20,8 +21,8 @@ for(const root of process.argv.slice(2))for(const matrix of walk(root).filter(fi
     assert.equal(matches.length,1,row.name);
     return {name:row.name,line:matches[0]};
   });
-  const rawIdentities=new Set(),counts=new Map(),ownerRows=[],ownerTraces=[],queryRows=[],bindingRows=[];
-  for await(const row of jsonLines(path.join(folder,'receiver.jsonl'))){rawIdentities.add(JSON.stringify(row));const id=caseId(row);if(/^recheck-query-[0-2]$/.test(id))queryRows.push(row);if(/^review-bind-(quantity|confirmation|shadow-binding|compose-key)-/.test(id))bindingRows.push(row);counts.set(id,(counts.get(id)||0)+1);if(['owner-recheck-owner-overlap','trace-recheck-owner-overlap'].includes(id))ownerRows.push(row);}
+  const rawIdentities=new Set(),counts=new Map(),ownerRows=[],ownerTraces=[],queryRows=[],bindingRows=[],limitRows=[];
+  for await(const row of jsonLines(path.join(folder,'receiver.jsonl'))){rawIdentities.add(JSON.stringify(row));const id=caseId(row);if(id?.startsWith('recheck2b-limit-'))limitRows.push(row);if(/^recheck-query-[0-2]$/.test(id))queryRows.push(row);if(/^review-bind-(quantity|confirmation|shadow-binding|compose-key)-/.test(id))bindingRows.push(row);counts.set(id,(counts.get(id)||0)+1);if(['owner-recheck-owner-overlap','trace-recheck-owner-overlap'].includes(id))ownerRows.push(row);}
   for(const row of bindingRows)assert.equal(row.body,caseId(row).startsWith('review-bind-quantity-')?'2':caseId(row).startsWith('review-bind-shadow-binding-')?'Invoice B':'Different draft');
   assert.equal(queryRows.length,3,'all ordinary GET query regressions must arrive once');
   for(const [index,query]of ['Pay for lunch','Delete old notes','Send a letter'].entries()){const rows=queryRows.filter(row=>caseId(row)==='recheck-query-'+index);assert.equal(rows.length,1);assert.equal(rows[0].method,'GET');assert.equal(new URL(rows[0].url,'http://fixture.test').searchParams.get('q'),query);}
@@ -61,6 +62,7 @@ for(const root of process.argv.slice(2))for(const matrix of walk(root).filter(fi
   assert.equal(counts.get('recheck2-compose-inside')||0,0,'bounded live preview never sent');
   assert.equal(counts.get('recheck2-compose-outside'),1,'outside live text never reasks');
   assert.equal(counts.get('recheck2-owner-navigation'),1,'owner navigation');
+  const nativeLimit=assertNativeLimit(json(path.join(folder,'all-native-limit.json')),limitRows);assert.deepEqual(nativeLimit,json(path.join(folder,'all-native-limit-audit.json')));
   const restart=json(path.join(folder,'network-restart-audit.json'));assert.notEqual(restart.before.session,restart.after.session);assert(restart.before.rules.some(rule=>rule.id===2));assert(!restart.after.network_rules.some(rule=>rule.id===2));
   let ingress=0,nullRows=0,events=0,getters=0;const getterKinds=new Map();
   for await(const row of completeIngressStream(path.join(folder,'browser-boundary.jsonl'))){
@@ -77,9 +79,9 @@ for(const root of process.argv.slice(2))for(const matrix of walk(root).filter(fi
   assert(py&&/^OK$/m.test(python),'Full Python suite missing or failed');
   assert.equal(Number(py[1]),229);
   const node=Object.fromEntries([...read(path.join(folder,'node.txt')).matchAll(/^(?:# |ℹ )?(tests|pass|fail|cancelled|skipped)\s+(\d+)/gm)].map(match=>[match[1],Number(match[2])]));
-  assert.deepEqual(node,{tests:271,pass:271,fail:0,cancelled:0,skipped:0});
+  assert.deepEqual(node,{tests:275,pass:275,fail:0,cancelled:0,skipped:0});
   const hashes={};for(const name of ['browser.txt','matrices.json','receiver.jsonl','page-receiver.jsonl','adapters-receiver.jsonl','browser-boundary.jsonl','tool.jsonl','service.txt','python.txt','node.txt','owner-overlap.json'])hashes[name]=await digestFile(path.join(folder,name));
-  results.push({artifact:path.basename(folder),chrome:read(path.join(folder,'chrome-version.txt')).trim(),named_passes:rows.length,test_index:testIndex,verdicts:verdict,receiver_audit:receiverAudits,ordinary_get_queries:queryRows,owner_overlap:ownerOverlap,password_audit:{rows:ingress,null_rows:nullRows,protocol_events:events,forbidden_runtime_value_events:0,sensitive_getters:getters,getter_kinds:Object.fromEntries(getterKinds),password_sentinel_absent:true},python:{tests:Number(py[1]),seconds:Number(py[2])},node,sha256:hashes});
+  results.push({artifact:path.basename(folder),chrome:read(path.join(folder,'chrome-version.txt')).trim(),named_passes:rows.length,test_index:testIndex,verdicts:verdict,receiver_audit:receiverAudits,native_limit:nativeLimit,ordinary_get_queries:queryRows,owner_overlap:ownerOverlap,password_audit:{rows:ingress,null_rows:nullRows,protocol_events:events,forbidden_runtime_value_events:0,sensitive_getters:getters,getter_kinds:Object.fromEntries(getterKinds),password_sentinel_absent:true},python:{tests:Number(py[1]),seconds:Number(py[2])},node,sha256:hashes});
 }
 assert(results.length>0,'No artifacts found');
 console.log(JSON.stringify(results,null,2));

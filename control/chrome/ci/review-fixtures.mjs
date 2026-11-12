@@ -63,6 +63,47 @@ export function reviewPage(url){
     const route=url.searchParams.get('route')||'appendChild';
     const insertion=!native?'root.append(link)':route==='markup'?`Object.getOwnPropertyDescriptor(opener.ShadowRoot.prototype,'innerHTML').set.call(root,'<a>Delete</a>');link=root.querySelector('a');`:route==='replaceChild'?`const placeholder=document.createElement('span');opener.Node.prototype.appendChild.call(root,placeholder);opener.Node.prototype.replaceChild.call(root,link,placeholder)`:route==='insertBefore'?'opener.Node.prototype.insertBefore.call(root,link,null)':['append','prepend','replaceChildren'].includes(route)?`opener.DocumentFragment.prototype.${route}.call(root,link)`:'opener.Node.prototype.appendChild.call(root,link)';
     script=`document.querySelector('#continue').onclick=()=>{const host=document.querySelector('#host'),root=${native?'opener.Element.prototype.attachShadow.call(host,':'host.attachShadow('}{mode:${JSON.stringify(variant)}});let link=document.createElement('a');${route==='markup'?insertion:''}link.textContent='Delete';link.href=${JSON.stringify(receive)};link.target='sink';link.onclick=()=>fetch('/receive?case=handler-'+${JSON.stringify(id)},{method:'POST'});${route==='markup'?'':insertion};opener.EventTarget.prototype.dispatchEvent.call(link,new MouseEvent('click',{bubbles:true,composed:${composed},cancelable:${cancel}}));};`;
+  }else if(mode==='all-native-limit'){
+    body='<button type="button" id="continue">Continue</button><div id="host"></div><p id="notice" role="status">Waiting</p>';
+    script=`const capability=${JSON.stringify(variant||'network')},fixtureId=${JSON.stringify(id)},mode=${JSON.stringify(url.searchParams.get('root')||'closed')};
+      const observe=value=>fetch('/compat-report',{method:'POST',body:JSON.stringify({id:fixtureId,phase:'all-native-limit',...value})});
+      const state=()=>({active:navigator.userActivation.isActive,ever:navigator.userActivation.hasBeenActive});
+      async function attempt(cause){
+        const before=state(),donor=opener,host=donor.Document.prototype.createElement.call(document,'div');
+        donor.Node.prototype.appendChild.call(document.querySelector('#host'),host);
+        const root=donor.Element.prototype.attachShadow.call(host,{mode}),button=donor.Document.prototype.createElement.call(document,'button');
+        donor.Element.prototype.setAttribute.call(button,'type','button');button.textContent='Delete';
+        donor.EventTarget.prototype.addEventListener.call(button,'click',event=>{
+          const atHandler=state(),trusted=event.isTrusted;document.querySelector('#notice').textContent='Hostile native Delete handler ran';
+          fetch('/receive?case='+encodeURIComponent(fixtureId+'-'+cause),{method:'POST',body:JSON.stringify({cause,before,atHandler,trusted})});
+          (async()=>{
+            let outcome='not requested',error=null;
+            try{
+              if(capability==='popup'){
+                const popup=donor.open.call(window,'/?case=review-page&mode=activation-popup&id='+encodeURIComponent(fixtureId+'-'+cause),'_blank','popup,width=620,height=480');outcome=popup?'opened':'blocked';
+              }else if(capability==='download'){
+                const link=donor.Document.prototype.createElement.call(document,'a');link.textContent='Delete download';
+                donor.Element.prototype.setAttribute.call(link,'href','/activation-download?id='+encodeURIComponent(fixtureId+'-'+cause));donor.Element.prototype.setAttribute.call(link,'download','synthetic.txt');
+                donor.Node.prototype.appendChild.call(root,link);donor.EventTarget.prototype.dispatchEvent.call(link,new donor.MouseEvent('click',{bubbles:true,composed:false,cancelable:false}));outcome='dispatched; receiver decides';
+              }else if(capability==='clipboard'){
+                if(!navigator.clipboard){outcome='unavailable';}else{await donor.Clipboard.prototype.writeText.call(navigator.clipboard,'Synthetic AresOS fixture');outcome='write accepted';}
+              }else if(capability==='payment'){
+                if(!window.PaymentRequest){outcome='unavailable';}else{
+                  const request=new donor.PaymentRequest([{supportedMethods:'https://fixture.test/synthetic-payment'}],{total:{label:'Synthetic fixture only',amount:{currency:'EUR',value:'1.00'}}});
+                  await Promise.race([request.show().then(async response=>{outcome='sheet response';await response.complete('fail');}),new Promise(resolve=>setTimeout(()=>{outcome='pending sheet; no transaction';request.abort().catch(()=>{});resolve();},2500))]);
+                }
+              }
+            }catch(value){outcome='rejected';error={name:value.name,message:value.message};}
+            await observe({cause,capability,before,atHandler,trusted,after:state(),secure:isSecureContext,outcome,error});
+          })();
+        });
+        donor.Node.prototype.appendChild.call(root,button);
+        donor.EventTarget.prototype.dispatchEvent.call(button,new donor.MouseEvent('click',{bubbles:true,composed:false,cancelable:true}));
+      }
+      document.querySelector('#continue').onclick=()=>attempt('claude');globalThis.reviewChange=()=>attempt('alone');`;
+  }else if(mode==='activation-popup'){
+    body='<p>Activation fixture popup</p>';
+    script=`fetch('/receive?case='+${JSON.stringify(id)}+'-popup',{method:'POST',body:'Synthetic popup opened'});`;
   }else if(mode==='event-reuse'){
     const rootMode=url.searchParams.get('root')||'closed';
     body='<button type="button">Continue</button><div id="first"></div><div id="second"></div>'+sink;

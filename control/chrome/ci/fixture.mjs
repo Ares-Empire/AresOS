@@ -16,6 +16,10 @@ export async function fixtures(options={}) {
       res.setHeader('Content-Type','application/xml');res.end(`<?xml version="1.0"?><gupdate xmlns="http://www.google.com/update2/response" protocol="2.0"><app appid="${id}"><updatecheck codebase="http://127.0.0.1:8765/extension.crx" version="${version}"/></app></gupdate>`);return;
     }
     if(url.pathname === '/extension.crx'){res.end(fs.readFileSync('/workspace/.work/20-package/own-extension.crx'));return;}
+    if(url.pathname==='/activation-download'){
+      const record={time:Date.now(),url:'/receive?case='+encodeURIComponent(url.searchParams.get('id')+'-download'),method:req.method,body:'Synthetic download request',host:req.headers.host};arrivals.push(record);fs.appendFileSync('/out/receiver.jsonl',JSON.stringify(record)+'\n');
+      res.setHeader('Content-Disposition','attachment; filename="activation-fixture.txt"');res.setHeader('Content-Type','text/plain');res.end('Synthetic activation fixture bytes');return;
+    }
     if(url.pathname === '/download'){compatibilityDownloads.push(url.searchParams.get('id'));res.setHeader('Content-Disposition','attachment; filename="synthetic-'+url.searchParams.get('id')+'.txt"');res.setHeader('Content-Type','text/plain');res.end('Synthetic downloadable bytes');return;}
     if(url.pathname==='/compat-report'){let body='';for await(const part of req)body+=part;const value=JSON.parse(body);compatibility.push(value);fs.appendFileSync('/out/native-compatibility.jsonl',JSON.stringify(value)+'\n');res.end('ok');return;}
     if(url.pathname==='/tone.wav'){

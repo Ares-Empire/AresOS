@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {allTabs} from './tabs.mjs';
+import {assertNativeLimit} from './activation-evidence.mjs';
 import {setTimeout as delay} from 'node:timers/promises';
 export async function recheck2Matrices({check,nav,call,target,approval,receiverEvidence,fixture,eventually,getTab,setTab,nativeDonor,closeNativeDonor,ownerKey,lifecycle,restoreControl}){
   await check('GROUP 2 RECHECK2 every borrowed native insertion route captures noncomposed shadow events',async()=>{
@@ -64,6 +65,38 @@ export async function recheck2Matrices({check,nav,call,target,approval,receiverE
     const stopped=await call('submit',reasked.approval);assert.equal(stopped.operation.state,'failed');assert.ok(!stopped.approval);
     assert.match(stopped.operation.reason,/text next to Send keeps changing.*owner/);assert.equal(receiverEvidence(inside,'second live change held').count,0);
     await call('submit',reasked.approval);assert.equal(receiverEvidence(inside,'repeat bounded stop').count,0);
+  });
+  await check('GROUP 13 RECHECK2B all-native limit records user activation and honest after-click reporting',async()=>{
+    const observations=[];
+    for(const mode of ['open','closed'])for(const capability of ['network','popup','download','clipboard','payment']){
+      setTab(await nativeDonor(getTab(),'http://localhost:8765'));
+      const id='recheck2b-limit-'+mode+'-'+capability;
+      await nav('review-page&mode=all-native-limit&root='+mode+'&variant='+capability+'&id='+id,'localhost');
+      // Autonomous SSE delivery grants no input. Let any prior owner-created
+      // popup's transient activation expire before measuring the fresh document.
+      await delay(5500);await fixture.mutate(id,'review-change');
+      const alone=await eventually(()=>fixture.compatibility.find(row=>row.id===id&&row.phase==='all-native-limit'&&row.cause==='alone'),'autonomous native result');
+      assert.equal(alone.before.active,false);assert.equal(alone.atHandler.active,false);assert.equal(alone.trusted,false);assert.equal(alone.secure,true);
+      assert.equal(receiverEvidence(id+'-alone','known limit autonomous handler').count,1);
+      assert.equal(receiverEvidence(id+'-claude','known limit before Claude input').count,0);
+      const result=await call('click',await target('Continue'));
+      const clicked=await eventually(()=>fixture.compatibility.find(row=>row.id===id&&row.phase==='all-native-limit'&&row.cause==='claude'),'Claude native result');
+      assert.equal(clicked.trusted,false);assert.equal(clicked.secure,true);assert.equal(receiverEvidence(id+'-claude','known limit after Claude input').count,1);
+      // The invisible native step is not falsely described as stopped. The
+      // response observes only the dispatched input and untrusted page notice.
+      assert.equal(result.followups.length,0);assert.equal(result.untrusted_content.dispatched,true);assert.equal(result.untrusted_content.steps.length,0);
+      assert.ok(result.untrusted_content.page.notices.includes('Hostile native Delete handler ran'));
+      const status=await call('operation_status',{operation_id:result.operation_id});
+      assert.match(status.operation.stages.dispatched,/delivery not proven/);assert.match(status.operation.reason,/Free input dispatched once/);
+      assert.doesNotMatch(status.operation.reason,/nothing|stopped|no input/i);
+      const row={id,mode,capability,alone,clicked,added_transient_activation:!alone.atHandler.active&&clicked.atHandler.active,result,status};observations.push(row);
+      console.log('RECHECK2B LIMIT',JSON.stringify({id,added_transient_activation:row.added_transient_activation,alone:alone.outcome,clicked:clicked.outcome}));
+      await delay(150);
+      for(const child of (await allTabs(call)).items.filter(row=>row.tab!==getTab()&&row.url?.includes('mode=activation-popup&id='+id))){assert.equal(child.controlled,true);await call('close_tab',{tab:child.tab});}
+      await closeNativeDonor();
+    }
+    fs.writeFileSync('/out/all-native-limit.json',JSON.stringify(observations,null,2));
+    const audit=assertNativeLimit(observations,fixture.arrivals);fs.writeFileSync('/out/all-native-limit-audit.json',JSON.stringify(audit,null,2));
   });
   await check('GROUP 8 RECHECK2 extension restart reconciles leftover session network rules',async()=>{
     // Reproduce a lost worker timer: a session rule survives but all its private

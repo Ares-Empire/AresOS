@@ -30,7 +30,7 @@ async function eventually(fn,label,timeout=15000){const until=Date.now()+timeout
 let tab;const baseline={};
 async function read(){let tree='',cursor;do{const result=await call('read',{tab,...(cursor?{cursor}:{})});tree+=result.untrusted_content.tree;cursor=result.cursor;}while(cursor);return tree.split('\n').filter(line=>line.startsWith('{')).map(JSON.parse);}
 async function target(label){const row=await eventually(async()=>{const rows=(await read()).filter(row=>row.expected.name===label);return rows.find(row=>['button','link','textbox','searchbox','combobox','checkbox','radio','option'].includes(row.expected.role))||rows[0];},label);return {reference:row.reference,expected:row.expected};}
-async function nav(kind,host='fixture'){const url='http://'+host+'.test:8765/?case='+kind;await call('navigate',{tab,url});await eventually(async()=>{const page=await call('read',{tab});return page.untrusted_content.url===url&&page.characters>0;},'fixture document committed');await delay(250);}
+async function nav(kind,host='fixture'){const url=(host==='localhost'?'http://localhost':'http://'+host+'.test')+':8765/?case='+kind;await call('navigate',{tab,url});await eventually(async()=>{const page=await call('read',{tab});return page.untrusted_content.url===url&&page.characters>0;},'fixture document committed');await delay(250);}
 const counts=kind=>fixture.arrivals.filter(row=>new URL(row.url,'http://fixture.test').searchParams.get('case')===kind).length;
 try {
   baseline.native=JSON.parse(fs.readFileSync('/out/native-baseline.json','utf8'));
@@ -119,9 +119,9 @@ try {
     const child=await eventually(async()=>(await call('tabs')).items.find(item=>item.url?.includes('case=popup-child&id=popup-outside')),'ordinary opener popup');ordinaryPopup=child.tab;return child;
   };
   let donorTab,donorMarker;
-  const nativeDonor=async(currentTab)=>{
+  const nativeDonor=async(currentTab,origin='http://fixture.test:8765')=>{
     await call('release_tab',{tab:currentTab});await eventually(async()=>(await call('tabs')).items.some(row=>row.tab===currentTab&&!row.controlled&&!row.cleanup_pending),'native donor parent must be fully released');
-    const marker='native-donor-'+Date.now();donorTab=currentTab;donorMarker=marker;await ownerNavigate('http://fixture.test:8765/?case=native-donor&id='+marker);
+    const marker='native-donor-'+Date.now();donorTab=currentTab;donorMarker=marker;await ownerNavigate(origin+'/?case=native-donor&id='+marker);
     await eventually(async()=>{const tabs=await call('tabs');return tabs.items.some(item=>item.tab===currentTab&&item.url?.includes(marker)&&item.controlled===false);},'ordinary donor parent');
     await eventually(()=>fixture.compatibility.some(value=>value.id===marker&&value.phase==='donor-ready'),'ordinary native donor handler ready');
     nativeCompatibilityClick();

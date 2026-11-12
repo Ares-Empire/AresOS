@@ -1,4 +1,53 @@
-# Recheck fixes 2 — BLOCKED, NOT GREEN — 2026-11-12
+# Recheck fixes 2b — resumed, browser verification pending
+
+The lead lifted the stop in `briefs/20-recheck-fixes-2b.md`. The all-borrowed-native shadow path is a known limit,
+subject to an independent user-activation check and truthful after-click reporting. The narrow DNR fence plus
+synchronous default neutralization and the whole-body compose binding are accepted with the browser conditions
+in that brief. No design document was edited. The historical stop and its PLAN-GAP below remain as evidence,
+marked as decided by the lead.
+
+## Done
+
+The existing default/compose implementations and strict receiver 0/1/1 cases remain. Added a named Linux case that
+compares autonomous native dispatch with the same all-native path inside Claude's click, in open and closed roots.
+It records transient/sticky activation, an untrusted nested event, real popup/download/clipboard API outcomes and
+a synthetic unsupported payment-method probe. It uses a secure loopback fixture and no real accounts or payments.
+The result checks require the original input's dispatch-only description and untrusted after-click notice; the
+unseen native step gets no false stopped/no-effect description. An independent audit checks all ten cases against
+the receiver's raw rows and refuses an activated baseline, a concealed activation increase or misleading results.
+
+`KNOWN-LIMITS.md` states the required donor/native route, the unasked Delete, the autonomous-network equivalence,
+all three rejected fixes, the missing step report, and the whole-body/live-text owner-send cost. User-activation
+results remain pending: **no unconditional “adds no harm” claim is made before those results**.
+
+## Verified / Not verified
+
+Local checks passed: **275 Node tests**, zero failures/cancellations/skips, and **172 removal mutations rejected;
+every baseline passed**. The browser-free full Python suite is still running. [Exact local summaries](records/recheck2b/local-summary.json).
+An initial evidence-removal probe survived because another consistency assertion masked it; its negative test now
+keeps the receiver record consistent, and removing the baseline check fails as intended. Browser results will come only from `control-chrome.yml` Linux
+containers in both install modes. No local browser/profile or container is used. This head has no accepted final
+pair yet. Group 12 still waits for 18d. PR #27 stays draft; nothing is merged.
+
+A correction to the previous report: its cancelled-log parser looked for `PASS `, missing named cases ending in
+`PASS`. The cancelled run `43237751838` did reach and pass the new default-action, owner-navigation, compose and
+restart cases in both installs, then continued through the word matrix. It was cancelled for the A-3 stop; it was
+not stalled and did not finish. The corrected progress record will retain these rows. No assertion was weakened.
+
+## PLAN-GAP / JUDGMENT-CALL — lead decision
+
+The earlier native-entry/DOM/ordinary-tab analysis remains below. The lead classifies the all-native network action
+with autonomous page sends. Claude's click may additionally supply transient activation; the new comparison checks
+that rather than inferring safety from a callable `fetch`. Any additional capability will be named for the lead as
+required by 2b. No feature-removing refusal or broader ordinary-tab attachment was added.
+
+Opening Chrome ledger: **195 IDs / 196 executions**. Budget is now about **235**, with a mandatory report before
+passing **245**. One code push is planned; report-only pushes use `[skip ci]`. One blocking watcher waits on each
+CI run. Owner live-site behavior and whole-body compose frequency remain for the owner's later tests.
+
+---
+
+# Recheck fixes 2 — historical stop — 2026-11-12
 
 **A-3 remains open. Do not merge this package.** The implementation is on `pkg/20-chrome`, source
 `482eb7e728cdbdc46c5c05e75853bdb5caeed2d9`, installed runtime hash
@@ -75,9 +124,9 @@ shared-workflow result are retained in [the CI attempt ledger](records/recheck2/
 Base, boundary and qualification passed twice on the superseded `92892318` source; Mail passed once there.
 [Shared artifact audit](records/recheck2/shared-audit.json) independently checks base **142 / OK**, boundary
 **127 blocked / 42 protected files / zero hostile connections** per mode, and qualification **47 Python + 269 Node**
-plus verifier evidence. These are historical results, not final-head acceptance. The full Chrome suite did not finish: the cancelled
-run printed five early browser PASS rows per install and did not reach the new matrices
-([exact retained rows](records/recheck2/cancelled-browser-progress.json)). There is no accepted four-artifact pair,
+plus verifier evidence. These are historical results, not final-head acceptance. The full Chrome suite did not finish. Corrected in 2b: the cancelled run did reach and pass the new default/compose
+matrices in both installs; its original log filter missed named PASS markers at line ends
+([corrected retained rows](records/recheck2/cancelled-browser-progress.json)). There is no accepted four-artifact pair,
 and no final receiver/privacy audit is claimed.
 
 Opening ledger: **186 distinct Chrome workflow runs / 187 executions**. This run added **nine IDs**, including failed,
@@ -108,7 +157,7 @@ including recipients, editor and preview. A smaller compose ancestor excludes th
 line and counter. When the compose area is the body, live body text is included and can reach the bounded owner-send
 fallback. Changing that boundary later requires matching questions and bindings in reader, service and extension.
 
-## PLAN-GAP — stop-rule blocker
+## PLAN-GAP — historical stop, decided by the lead in 20-recheck-fixes-2b
 
 `briefs/20-continue-2.md` says to stop only after a real attempt when the section 6 guarantee cannot be met by a design
 on the fixtures. The remaining case needs a synchronous browser hook **before native dispatch** that is scoped to

@@ -200,6 +200,8 @@ case('recheck2-slot-dedup-scope',G,'    if(capturedBefore(event,root))return;','
 
 case('recheck2-clone-native-kinds',M,'if(kind===2||kind===10)return node;','',node('page','recheck2 clone hooks'))
 case('recheck2-cached-factory',M,'function watchCreated(node){if(!enabled)return node;','function watchCreated(node){',node('page','recheck2 cached creation'))
+case('recheck2b-activation-baseline','control/chrome/ci/activation-evidence.mjs',"assert.equal(row.alone.before.active,false,'baseline must have no transient activation');",'',node('activation-evidence','activated baseline'))
+case('recheck2b-activation-receipt','control/chrome/ci/activation-evidence.mjs','assert.deepEqual(JSON.parse(receipt[0].body),{cause,before:observation.before,atHandler:observation.atHandler,trusted:false});','',node('activation-evidence','forged receipt'))
 
 def command(row):
     if row['python']:return ['python3','-B','-m','unittest',row['test'],'-v']
