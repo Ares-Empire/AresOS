@@ -43,11 +43,17 @@ def generated():
     ask = asking_rules()
     if not set(ask) <= installed:
         raise ValueError("Asking rule must name an exposed tool of an installed served app (or harness testapp)")
+    expected = {f"mcp__{a.app}__{a.verb}" for a in ACTIONS
+                if a.effect in {'send', 'delete'} and not a.owner_only and not a.trusted_send}
+    settings = managed_settings()
+    # Validate both artifacts against the actions, independently of the policy helper.
+    if set(ask) != expected or set(settings['permissions']['ask']) != expected:
+        raise ValueError("Both policy artifacts must cover every asking action and only asking actions")
     files["control/settings/ask-rules.json"] = json.dumps({"permissions": {"ask": ask}}, indent=2) + "\n"
-    files['control/settings/managed-settings.draft.json'] = json.dumps(managed_settings(), indent=2) + '\n'
+    files['control/settings/managed-settings.draft.json'] = json.dumps(settings, indent=2) + '\n'
     files['control/settings/user-mcp.json'] = json.dumps(servers, indent=2) + '\n'
     files['control/settings/CLAUDE.md'] = OWNER_INSTRUCTIONS
-    files['control/settings/managed-hooks.json'] = json.dumps({'hooks': managed_settings()['hooks']}, indent=2) + '\n'
+    files['control/settings/managed-hooks.json'] = json.dumps({'hooks': settings['hooks']}, indent=2) + '\n'
     help_text = "Usage: aresos [admin] <app> <action> [--input JSON] [--json]\n       aresos log [--input JSON]\n\nActions (input is the definition's JSON object; --help on any action shows its schema):\n"
     doc = "# Control tools (generated; do not edit)\n\nSettings and packaging are drafts. Run `python3 control/generate.py` after editing the catalogue.\n\n"
     for app in apps:

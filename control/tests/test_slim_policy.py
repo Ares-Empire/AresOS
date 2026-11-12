@@ -58,6 +58,23 @@ class SlimPolicy(EngineCase):
                     generate.generated()
         generate.generated()
 
+    def test_generator_rejects_missing_rules_in_either_policy_artifact(self):
+        for rule in asking_rules():
+            rules = [other for other in asking_rules() if other != rule]
+            settings = managed_settings()
+            settings['permissions']['ask'] = rules
+            for target, value in (('asking_rules', rules), ('managed_settings', settings)):
+                with self.subTest(rule=rule, artifact=target), patch('generate.' + target, return_value=value):
+                    with self.assertRaisesRegex(ValueError, 'every asking action'):
+                        generate.generated()
+
+    def test_generator_rejects_a_rule_renamed_to_an_exposed_nonasking_tool(self):
+        rules = asking_rules()
+        rules[rules.index('mcp__mail__send')] = 'mcp__mail__accounts'
+        with patch('generate.asking_rules', return_value=rules):
+            with self.assertRaisesRegex(ValueError, 'every asking action'):
+                generate.generated()
+
     def test_shared_instructions_generated_once_and_approval_text_stays_at_use(self):
         from aresos_control.mail.definitions import MAIL_INSTRUCTIONS
         for app in APPS:
@@ -71,6 +88,11 @@ class SlimPolicy(EngineCase):
                 self.assertNotIn(MAIL_INSTRUCTIONS, action.description)
                 if action.effect in {'send', 'delete'} or action.verb.startswith('prepare_'):
                     self.assertIn('never write or amend the question yourself', action.description)
+        notices = BY_NAME['mail_filing_notices'].description
+        self.assertIn('page_changed with a restarted first page', notices)
+        self.assertIn('Invalid cursors return stale_reference', notices)
+        from aresos_control.definitions import RESTORE_WARNING
+        self.assertIn(RESTORE_WARNING, BY_NAME['control_restore_confirm'].description)
 
     def test_trusted_send_explicit_marker_and_missing_or_revoked_entry_refuse(self):
         action = replace(BY_NAME['testapp_send'], trusted_send=True)
