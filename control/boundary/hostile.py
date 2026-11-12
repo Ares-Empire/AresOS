@@ -24,7 +24,9 @@ def attempt(name, operation):
                'classification': 'hidden' if error.errno == errno.ENOENT else 'refused'}
     else:
         row = {'name': name, 'blocked': False}
-    if name == 'connect:vsock' and 'errno' in row and row.get('errno') in (None, errno.ETIMEDOUT) and not row['blocked']:
+    # A host reset proves neither a sandbox denial nor a qualified listener.
+    # Keep it unqualified; a successful connect still fails the harness.
+    if name == 'connect:vsock' and 'errno' in row and row.get('errno') in (None, errno.ETIMEDOUT, errno.ECONNRESET) and not row['blocked']:
         row['unqualified'] = True
         row['classification'] = 'no-qualified-host-endpoint'
     results.append(row)
