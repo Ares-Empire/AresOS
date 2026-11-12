@@ -2036,6 +2036,10 @@ class UpdateStopTest(unittest.TestCase):
                 os.kill(pid, signal.SIGKILL)
             except ProcessLookupError:
                 pass
+            # SIGKILL lands asynchronously: wait until it is gone or a zombie, so the class check sees the result.
+            deadline = time.monotonic() + 5
+            while cls.started(pid) == start and time.monotonic() < deadline:
+                time.sleep(0.02)
 
     @staticmethod
     def alive(pid):
