@@ -26,6 +26,24 @@ from storage_faults import OSWrites as DurableWrites
 
 class Scenario:
     def __init__(self, flow):
+        self.fixture_clock = ExitStack()
+        if type(self) is Scenario and flow == 'archive':
+            from owner_state_oracle.identity import scripted_ids
+            from owner_state_oracle.clock import scripted_calendar
+            self.archive_time = 1794225600.0
+            self.fixture_clock.enter_context(patch('time.time', side_effect=lambda: self.archive_time))
+            self.fixture_clock.enter_context(scripted_calendar())
+            self.fixture_clock.enter_context(scripted_ids('inherited-archive'))
+        try:
+            self._prepare_fixture(flow)
+        except BaseException:
+            self.fixture_clock.close()
+            raise
+
+    def advance_archive_clock(self):
+        self.archive_time += 2
+
+    def _prepare_fixture(self, flow):
         self.fixture = f = results23.Results23()
         f.setUp()
         self.stack = ExitStack()
@@ -38,7 +56,9 @@ class Scenario:
         self.approval = None
         self.operation_id = None
         self.admin = False
-        if flow in {'send', 'cancel', 'restore'}:
+        if flow == 'fixture':
+            self.action, self.args = 'mail_accounts', {}
+        elif flow in {'send', 'send_duplicate', 'cancel', 'restore'}:
             if flow == 'restore':
                 with closing(sqlite3.connect(f.root / 'backup.sqlite')) as backup:
                     f.engine.store.db.backup(backup)
@@ -108,15 +128,19 @@ class Scenario:
                 self.stack.enter_context(patch.object(f.imap, 'rename', side_effect=rename, create=True))
         elif flow == 'archive':
             self.seed_send(None)
+            advance = getattr(self, 'advance_archive_clock', None)
+            if advance:
+                advance()
             cutoff = time.time() - 1
             # Archive real closed rows and events, including VACUUM, rather
             # than an empty no-op export. The restore fence remains intact.
             with f.engine.store.db as db:
                 db.execute('UPDATE retained SET created=?', (cutoff - 1,))
-                for seq, value in db.execute('SELECT seq,value FROM events').fetchall():
-                    event = json.loads(value)
-                    event['time'] = cutoff - 1
-                    db.execute('UPDATE events SET value=? WHERE seq=?', (json.dumps(event), seq))
+                if not advance:
+                    for seq, value in db.execute('SELECT seq,value FROM events').fetchall():
+                        event = json.loads(value)
+                        event['time'] = cutoff - 1
+                        db.execute('UPDATE events SET value=? WHERE seq=?', (json.dumps(event), seq))
             self.action, self.args, self.admin = 'control_archive', {'before': cutoff, 'confirm': 'archive finished history'}, True
         elif flow in {'expiry', 'maintenance', 'restart_index', 'restart_tail'}:
             if flow == 'expiry':
@@ -162,7 +186,7 @@ class Scenario:
             self.operation_id = self.approval['operation_id']
             self.action, self.args = 'mail_unsubscribe', self.approval
         self.remote.clear()
-        if self.approval and self.flow in {'send', 'delete_trash', 'delete_permanent', 'unsubscribe_mailto', 'unsubscribe_https'}:
+        if self.approval and self.flow in {'send', 'send_duplicate', 'delete_trash', 'delete_permanent', 'unsubscribe_mailto', 'unsubscribe_https'}:
             self.replay_requests[self.operation_id] = (self.action, copy.deepcopy(self.approval))
         # The torn-tail flow deliberately appends invalid, uncommitted bytes.
         self.committed_before = list(islice(f.engine.store.events, f.engine.store.committed))
@@ -174,6 +198,13 @@ class Scenario:
         def smtp(operation, composition, raw, stage):
             self.prior_commands['DATA'] += 1
             self.delivered.append(raw)
+            if hasattr(self, 'owner_oracle'):
+                from email.utils import getaddresses
+                from owner_state_oracle.transcript import Transcript
+                mail = composition['mail']
+                recipients = [address for _, address in getaddresses(mail['to'] + mail['cc'] + mail['bcc'])]
+                self.owner_oracle.server('DATA', 'box', identities=[Transcript.message(raw)], recipients=recipients,
+                                         raw_hex=raw.hex(), accepted=True, fixture_seed=True)
             self.attempted_ids.add(operation['id'])
             stage('smtp_data', 'accepted:250')
             return 'done', 'Synthetic DATA accepted'
@@ -185,6 +216,10 @@ class Scenario:
         def seed_append(account, folder, raw, flags):
             self.prior_commands['APPEND'] += 1
             f.imap.boxes[folder][1] = raw
+            if hasattr(self, 'owner_oracle'):
+                from owner_state_oracle.transcript import Transcript
+                self.owner_oracle.server('APPEND', account['id'], folder, [Transcript.message(raw)], f.imap.roles,
+                                         append_flags=flags, raw_hex=raw.hex(), accepted=True, fixture_seed=True)
             return {'uid': 1}
         with patch.object(f.mail, 'send_smtp', side_effect=smtp), patch.object(f.mail, 'local_stage', side_effect=local), \
              patch.object(f.mail, 'append', side_effect=seed_append):
@@ -202,7 +237,7 @@ class Scenario:
         f.imap.boxes['Source'][1] = message.as_bytes(policy=SMTP)
         caller_root = Path(__file__).resolve().parents[1] / 'test-work'
         caller_root.mkdir(exist_ok=True)
-        caller = tempfile.TemporaryDirectory(dir=caller_root)
+        caller = getattr(self, 'caller_directory', tempfile.TemporaryDirectory)(dir=caller_root)
         f.addCleanup(caller.cleanup)
         home = Path(caller.name)
         folder = home / 'Downloads'
@@ -286,10 +321,14 @@ class Scenario:
         def append(account, folder, raw, flags):
             attempted()
             remote['APPEND'] += 1
-            # The new APPEND and a delayed earlier copy become visible together.
-            f.imap.boxes[folder].update({1: raw, 2: raw})
+            uid = max(f.imap.boxes[folder], default=0) + 1
+            f.imap.boxes[folder][uid] = raw
+            if self.flow == 'send_duplicate':
+                # A separate race scenario retains the inherited delayed-copy
+                # warning coverage. Ordinary APPEND has exactly one effect.
+                f.imap.boxes[folder][uid + 1] = raw
             self.stages.setdefault(self.operation_id, {})['sent_copy'] = 'done'
-            return {'uid': 2}
+            return {'uid': uid}
         class HTTPS:
             def __init__(self, *args, **kwargs):
                 pass
@@ -311,9 +350,17 @@ class Scenario:
                 if command == 'MOVE':
                     f.imap.boxes['Trash'][number] = f.imap.boxes[box].pop(number)
                 elif command == 'EXPUNGE':
-                    f.imap.boxes[box].pop(number)
+                    if '\\Deleted' in flags.get((box, number), set()):
+                        f.imap.boxes[box].pop(number, None)
                 else:
-                    flags.setdefault((box, number), set()).add(args[2].strip('()'))
+                    values = set(args[2].strip('()').split())
+                    current = flags.setdefault((box, number), set())
+                    if args[1].startswith('+'):
+                        current.update(values)
+                    elif args[1].startswith('-'):
+                        current.difference_update(values)
+                    else:
+                        flags[box, number] = values
                 return 'OK', [b'Synthetic mutation']
             answer = original_uid(command, *args)
             if command == 'FETCH' and flags.get((box, number)):
@@ -366,9 +413,9 @@ class Scenario:
     def observed(self):
         f = self.fixture
         stage, observation = f.engine.stage, f.mail.sent_observation
-        def seen_stage(operation_id, name, outcome):
+        def seen_stage(operation_id, name, outcome, **kwargs):
             self.stages.setdefault(operation_id, {})[name] = outcome
-            return stage(operation_id, name, outcome)
+            return stage(operation_id, name, outcome, **kwargs)
         def seen_copies(op, matches):
             copies = self.copies.setdefault(op['id'], [])
             copies.extend(copy.deepcopy(item) for item in matches if item not in copies)
@@ -444,7 +491,7 @@ class Scenario:
                         f.assertIn(repair['state'], {'unknown', 'done'}, repair)
             if not failed:
                 expected = {'cancel': 'failed', 'expiry': 'failed', 'restore': 'unknown',
-                            'send': 'done', 'repair': 'done', 'settlement': 'done', 'status': 'done',
+                            'send': 'done', 'send_duplicate': 'done', 'repair': 'done', 'settlement': 'done', 'status': 'done',
                             'delete_trash': 'done', 'delete_permanent': 'done',
                             'unsubscribe_mailto': 'done', 'unsubscribe_https': 'done'}
                 f.assertEqual(state, expected[self.flow], (self.flow, status))
@@ -461,7 +508,8 @@ class Scenario:
         if remote.get('MOVE:1') or remote.get('EXPUNGE:1'):
             f.assertNotIn(1, f.imap.boxes['Source'])
         if remote.get('APPEND'):
-            f.assertEqual(len(f.imap.boxes['Sent']), 2, 'Observed duplicates must survive')
+            f.assertEqual(len(f.imap.boxes['Sent']), 2 if self.flow == 'send_duplicate' else 1,
+                          'Every independently observed Sent copy must survive')
         if self.flow in {'filing_move', 'filing_copy'} and remote:
             f.assertEqual(f.imap.boxes['Target'][1], f.imap.raw)
             f.assertEqual(1 in f.imap.boxes['Source'], self.flow == 'filing_copy')
@@ -503,7 +551,7 @@ class Scenario:
                 f.assertEqual(commands[command + ':' + str(uid)], 1, ('false done', uid, commands))
                 if self.flow == 'delete_trash':
                     f.assertEqual(f.imap.boxes['Trash'].get(uid), f.imap.raw)
-        elif self.flow in {'send', 'repair', 'status', 'settlement', 'unsubscribe_mailto'}:
+        elif self.flow in {'send', 'send_duplicate', 'repair', 'status', 'settlement', 'unsubscribe_mailto'}:
             f.assertEqual(commands['DATA'], 1, ('false done', self.flow, commands))
             from aresos_control.mail.codec import parse
             # The receiver and Sent must identify THIS delivery, independently
@@ -534,11 +582,30 @@ class Scenario:
                          for row in exported), ('Missing committed archived operation', operation_id))
 
     def close(self):
-        self.stack.close()
-        self.fixture.doCleanups()
+        try:
+            self.stack.close()
+            self.fixture.doCleanups()
+        finally:
+            self.fixture_clock.close()
 
 
 class FaultSweep23(unittest.TestCase):
+    def test_archive_replays_have_identical_write_traces(self):
+        traces = []
+        for _ in range(3):
+            scenario = Scenario('archive')
+            try:
+                fault = DurableWrites()
+                with scenario.observed(), fault.wrap(scenario.fixture.engine.store):
+                    self.assertTrue(scenario.call()['ok'])
+                scenario.recover()
+                traces.append(fault.points)
+            finally:
+                scenario.close()
+        self.assertTrue(traces[0])
+        self.assertEqual(traces[0], traces[1])
+        self.assertEqual(traces[0], traces[2])
+
     def test_review24_recovery_oracle_rejects_attempted_send_returning_to_reserved(self):
         scenario = Scenario('send')
         try:
@@ -605,7 +672,7 @@ class FaultSweep23(unittest.TestCase):
         flows = ('send', 'repair', 'delete_trash', 'delete_permanent', 'unsubscribe_mailto', 'unsubscribe_https',
                  'status', 'settlement', 'cancel', 'restore', 'attachment_export', 'testapp_export',
                  'password', 'filing_move', 'filing_copy', 'filing_rename', 'expiry', 'maintenance',
-                 'restart_index', 'restart_tail', 'export_rollback', 'archive')
+                 'restart_index', 'restart_tail', 'export_rollback', 'archive', 'send_duplicate')
         mechanisms, counts = Counter(), Counter()
         started = time.monotonic()
         shard = int(os.environ.get('MAIL_SWEEP_SHARD', '0'))

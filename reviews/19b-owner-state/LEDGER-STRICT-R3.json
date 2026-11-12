@@ -1,0 +1,307 @@
+{
+  "format": 1,
+  "ledger_sha256": "a5cd7a55288aeb958e4f8420c1ca68e62f62c7c883197fb0fc239ec045809759",
+  "repetitions": [
+    {
+      "artifacts": [
+        {
+          "assertions": 2,
+          "bytes": 346,
+          "file": "base/control-base-42733231891-1/owner-gaps-channel-0-0.json.gz",
+          "sha256": "6b7f96009cb1dd78fce8ddacabdb7480a3514a411f2831a671a007c94d5cdcb1"
+        },
+        {
+          "assertions": 1,
+          "bytes": 224,
+          "file": "mail/control-mail-42733235634-1/owner-gaps-G22-evidence-0-0.json.gz",
+          "sha256": "07e73eee7ce04aa8bb663053404cd148fec27845d95d4ec381c41ce6c7e3a778"
+        },
+        {
+          "assertions": 1,
+          "bytes": 221,
+          "file": "mail/control-mail-42733235634-1/owner-gaps-G22-latch-0-0.json.gz",
+          "sha256": "be3b923dba9930e21fbfb5f7b8cb0ef6f13584d86fe3541888748fd616cdcaea"
+        },
+        {
+          "assertions": 1,
+          "bytes": 215,
+          "file": "mail/control-mail-42733235634-1/owner-gaps-G22-rename-0-0.json.gz",
+          "sha256": "97a73d86ac36e531f08804358407ae02e36153be7ec35ffa7f42e462a291bb00"
+        },
+        {
+          "assertions": 501,
+          "bytes": 8484,
+          "file": "mail/control-mail-42733235634-1/owner-gaps-contract-0-0.json.gz",
+          "sha256": "15b34da6f452d51885096eb8e19ad0b71310a5378dc8bf98bb06a789b457c483"
+        },
+        {
+          "assertions": 142502,
+          "bytes": 675582,
+          "file": "mail/control-mail-sweep-0-42733235634-1/owner-gaps-sweep-0-0.json.gz",
+          "sha256": "95ebbf7a9490006345950a5c6cb0c160fd4f72fca0fdd994a96e60853bcb5275"
+        },
+        {
+          "assertions": 157105,
+          "bytes": 728531,
+          "file": "mail/control-mail-sweep-0-42733235634-1/owner-gaps-sweep-0-1.json.gz",
+          "sha256": "3acec425d6388f823382b7532965aeab1e29b1263c1aa21da628cb0a35ee1e27"
+        },
+        {
+          "assertions": 154822,
+          "bytes": 725712,
+          "file": "mail/control-mail-sweep-0-42733235634-1/owner-gaps-sweep-0-2.json.gz",
+          "sha256": "4f84613e6260dc3cff8ff58052e14bb2f0dc147a9077eb09c7352a5e4914f7bd"
+        },
+        {
+          "assertions": 140689,
+          "bytes": 671011,
+          "file": "mail/control-mail-sweep-1-42733235634-1/owner-gaps-sweep-1-0.json.gz",
+          "sha256": "c6ca1443c43830a94f8e584ff8d24dd4627e7ab76d53f6d552bf293809768f4a"
+        },
+        {
+          "assertions": 153856,
+          "bytes": 720229,
+          "file": "mail/control-mail-sweep-1-42733235634-1/owner-gaps-sweep-1-1.json.gz",
+          "sha256": "d3b753d996936c62618a412e2ac5f35fd21e083551d256ecc026eb3170a20b4f"
+        },
+        {
+          "assertions": 145551,
+          "bytes": 694208,
+          "file": "mail/control-mail-sweep-1-42733235634-1/owner-gaps-sweep-1-2.json.gz",
+          "sha256": "c0a826e1a3533b678569f8d8e38e346bc9750c0d463910b1cd0b73389c47a2c0"
+        },
+        {
+          "assertions": 164024,
+          "bytes": 771379,
+          "file": "mail/control-mail-sweep-2-42733235634-1/owner-gaps-sweep-2-0.json.gz",
+          "sha256": "e5ee8084002b66b6cd40bbb3ac3e1475831aa1bd5620f18f341b5cca92888a4d"
+        },
+        {
+          "assertions": 147280,
+          "bytes": 687528,
+          "file": "mail/control-mail-sweep-2-42733235634-1/owner-gaps-sweep-2-1.json.gz",
+          "sha256": "e4486a24007623c343bf05bd0cbc99b34df99e1544d384818cdd2b47d8e17ee6"
+        },
+        {
+          "assertions": 145758,
+          "bytes": 679512,
+          "file": "mail/control-mail-sweep-2-42733235634-1/owner-gaps-sweep-2-2.json.gz",
+          "sha256": "4445f94eba25031b114e04bc422b9c75b05b4b0627aac64471617996bd5dc7b4"
+        },
+        {
+          "assertions": 149880,
+          "bytes": 698290,
+          "file": "mail/control-mail-sweep-3-42733235634-1/owner-gaps-sweep-3-0.json.gz",
+          "sha256": "54899210b77b0f07802146a2f445d2815a6c89f8343dc967bcea2e95989e9747"
+        },
+        {
+          "assertions": 160857,
+          "bytes": 745274,
+          "file": "mail/control-mail-sweep-3-42733235634-1/owner-gaps-sweep-3-1.json.gz",
+          "sha256": "dda567381bd9f2d27924363ac078140f2de74c218264c70d58e49b0301bda45c"
+        },
+        {
+          "assertions": 148930,
+          "bytes": 706361,
+          "file": "mail/control-mail-sweep-3-42733235634-1/owner-gaps-sweep-3-2.json.gz",
+          "sha256": "9256d0cb375280ccd26bd55ac3b7b4cb8020dcdc0dac2b497454a76fc3c92882"
+        }
+      ],
+      "assertions": 1810440,
+      "base_attempt": 1,
+      "base_run": 42733231891,
+      "boundary_attempt": 1,
+      "boundary_evidence": [
+        {
+          "bytes": 467900,
+          "file": "boundary/boundary-actions.txt",
+          "sha256": "20ad960ea887ea6b35e3f55549853cbfd30fe3f00eb34a75a855600c04657b4e"
+        }
+      ],
+      "boundary_run": 42733240406,
+      "bytes": 976806,
+      "groups": 2115,
+      "mail_attempt": 1,
+      "mail_run": 42733235634,
+      "repetition": 1,
+      "sha256": "a5cd7a55288aeb958e4f8420c1ca68e62f62c7c883197fb0fc239ec045809759",
+      "stages": {
+        "2": 44857,
+        "3": 1765583
+      }
+    },
+    {
+      "artifacts": [
+        {
+          "assertions": 2,
+          "bytes": 346,
+          "file": "base/control-base-42733232348-1/owner-gaps-channel-0-0.json.gz",
+          "sha256": "6c028f0785323353c4c20791fc4a03a4f0558446d3aa16689d3ab0059518e474"
+        },
+        {
+          "assertions": 1,
+          "bytes": 224,
+          "file": "mail/control-mail-42733232393-1/owner-gaps-G22-evidence-0-0.json.gz",
+          "sha256": "a788649d41d62bbe25ef2acaa2d0986aa5a87d88431e1d4aba86fd77026fd03c"
+        },
+        {
+          "assertions": 1,
+          "bytes": 221,
+          "file": "mail/control-mail-42733232393-1/owner-gaps-G22-latch-0-0.json.gz",
+          "sha256": "5ffdd00685166885665c022934f78d4374c4d65746156ca247383e004b697e23"
+        },
+        {
+          "assertions": 1,
+          "bytes": 215,
+          "file": "mail/control-mail-42733232393-1/owner-gaps-G22-rename-0-0.json.gz",
+          "sha256": "1fa743b660de2a2e73bc413f5a73f151837e63022af1fd2ba06899c8d9a1cf5b"
+        },
+        {
+          "assertions": 501,
+          "bytes": 8484,
+          "file": "mail/control-mail-42733232393-1/owner-gaps-contract-0-0.json.gz",
+          "sha256": "d9526df60270bf81cfbaf2aac64a5cd92f30f03eca7d9eae7377bc93e343acac"
+        },
+        {
+          "assertions": 142502,
+          "bytes": 675582,
+          "file": "mail/control-mail-sweep-0-42733232393-1/owner-gaps-sweep-0-0.json.gz",
+          "sha256": "3a436cf69f05dec9bad73286c18cf8143f23ec7685981343947fbfda1664046f"
+        },
+        {
+          "assertions": 157105,
+          "bytes": 728531,
+          "file": "mail/control-mail-sweep-0-42733232393-1/owner-gaps-sweep-0-1.json.gz",
+          "sha256": "8685972fccb9667f3ec340041358045e77afd104ab8946b729d496116c7b6b1f"
+        },
+        {
+          "assertions": 154822,
+          "bytes": 725712,
+          "file": "mail/control-mail-sweep-0-42733232393-1/owner-gaps-sweep-0-2.json.gz",
+          "sha256": "dceb716a354017f07bdcbff943afc40af8dc6b384acf39f4223f4e23e2069254"
+        },
+        {
+          "assertions": 140689,
+          "bytes": 671011,
+          "file": "mail/control-mail-sweep-1-42733232393-1/owner-gaps-sweep-1-0.json.gz",
+          "sha256": "414f6c6fc30801c79a500c8d69fb0e786d0dff302ea4e2a2daec4eebb24894a3"
+        },
+        {
+          "assertions": 153856,
+          "bytes": 720229,
+          "file": "mail/control-mail-sweep-1-42733232393-1/owner-gaps-sweep-1-1.json.gz",
+          "sha256": "b6d357418d768b72600d1466c28cf0c1d04b3de59fbb2cf8dfcd79d53231355f"
+        },
+        {
+          "assertions": 145551,
+          "bytes": 694208,
+          "file": "mail/control-mail-sweep-1-42733232393-1/owner-gaps-sweep-1-2.json.gz",
+          "sha256": "cdd4348321a2fc1ba236adbffb995e24d456479ad848972139f8c13fa4e1ffff"
+        },
+        {
+          "assertions": 164024,
+          "bytes": 771379,
+          "file": "mail/control-mail-sweep-2-42733232393-1/owner-gaps-sweep-2-0.json.gz",
+          "sha256": "79a6f9b56f53c90e299b721b87375dae5ea4bc46947bee62ff3a3dda4244b3c3"
+        },
+        {
+          "assertions": 147280,
+          "bytes": 687528,
+          "file": "mail/control-mail-sweep-2-42733232393-1/owner-gaps-sweep-2-1.json.gz",
+          "sha256": "1c722dcfcd81eece2156cf70ecf7f920e8e0ffd5a9bf0f8217f23ba8cc3ff8e6"
+        },
+        {
+          "assertions": 145758,
+          "bytes": 679512,
+          "file": "mail/control-mail-sweep-2-42733232393-1/owner-gaps-sweep-2-2.json.gz",
+          "sha256": "5c7fa39636aa9ec1636053b2db2949dbae07d60ac6a7b32ea3d7b64a7f70269b"
+        },
+        {
+          "assertions": 149880,
+          "bytes": 698290,
+          "file": "mail/control-mail-sweep-3-42733232393-1/owner-gaps-sweep-3-0.json.gz",
+          "sha256": "c5ba7e7eaf76c00cb6a474ec9cf25ffaf2b09b303e849f72d44f3a9a95a87270"
+        },
+        {
+          "assertions": 160857,
+          "bytes": 745274,
+          "file": "mail/control-mail-sweep-3-42733232393-1/owner-gaps-sweep-3-1.json.gz",
+          "sha256": "23e9b59d597500f58f2cae02fffd1f0dd40c6aa698526fd0d0739ea4b3afd718"
+        },
+        {
+          "assertions": 148930,
+          "bytes": 706361,
+          "file": "mail/control-mail-sweep-3-42733232393-1/owner-gaps-sweep-3-2.json.gz",
+          "sha256": "3fdcc78d1a5d9e3086aa67e8ff374f4844027b20d943a80cfb5fedd3628178fd"
+        }
+      ],
+      "assertions": 1810440,
+      "base_attempt": 1,
+      "base_run": 42733232348,
+      "boundary_attempt": 2,
+      "boundary_evidence": [
+        {
+          "bytes": 115326,
+          "file": "boundary/control-boundary-42733240406-2/absent-console.txt",
+          "sha256": "338bdbcbca9151fa9062289a295f1326591f7e3784e24ab1caa8d2f2b2023755"
+        },
+        {
+          "bytes": 72,
+          "file": "boundary/control-boundary-42733240406-2/identity.txt",
+          "sha256": "71bb709559c1f8f5c127d11af2dcae7b68c5b80dcd763ed18ee36bd2e73045f0"
+        },
+        {
+          "bytes": 118949,
+          "file": "boundary/control-boundary-42733240406-2/present-console.txt",
+          "sha256": "eddf18757f8d2492cadd1852118be5df3e765682c55f6d09f01ab41173e0081d"
+        }
+      ],
+      "boundary_run": 42733240406,
+      "bytes": 976806,
+      "groups": 2115,
+      "mail_attempt": 1,
+      "mail_run": 42733232393,
+      "repetition": 2,
+      "sha256": "a5cd7a55288aeb958e4f8420c1ca68e62f62c7c883197fb0fc239ec045809759",
+      "stages": {
+        "2": 44857,
+        "3": 1765583
+      }
+    }
+  ],
+  "source_trees": {
+    "automatic_pr_checkout": "1fa89d5a308ba1af1892528a8870f8fa25dc2906",
+    "automatic_pr_tree": "88384027eb242f7b4dcee45a3edf8b7e751b78d0",
+    "base_checkout_log_line": 157,
+    "branch_head": "e8d269ad1aa848b0de74392edfb14d817dd0c0ca",
+    "mail_checkout_log_lines": [
+      {
+        "commit": "1fa89d5a308ba1af1892528a8870f8fa25dc2906",
+        "job": "sweep (2)",
+        "line": 156
+      },
+      {
+        "commit": "1fa89d5a308ba1af1892528a8870f8fa25dc2906",
+        "job": "sweep (0)",
+        "line": 911
+      },
+      {
+        "commit": "1fa89d5a308ba1af1892528a8870f8fa25dc2906",
+        "job": "sweep (3)",
+        "line": 1955
+      },
+      {
+        "commit": "1fa89d5a308ba1af1892528a8870f8fa25dc2906",
+        "job": "sweep (1)",
+        "line": 2743
+      },
+      {
+        "commit": "1fa89d5a308ba1af1892528a8870f8fa25dc2906",
+        "job": "containers",
+        "line": 3722
+      }
+    ],
+    "tree": "88384027eb242f7b4dcee45a3edf8b7e751b78d0"
+  },
+  "tested_source": "e8d269ad1aa848b0de74392edfb14d817dd0c0ca"
+}

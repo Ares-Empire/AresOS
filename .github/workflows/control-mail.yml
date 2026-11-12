@@ -1,7 +1,7 @@
 name: Control Mail
 on:
   pull_request:
-    branches: [main]
+    branches: [main, pkg/19-mail]
     paths: ['control/**', 'docs/control/TOOLS.md', 'reviews/19-mail/**', '.github/workflows/control-mail.yml']
   workflow_dispatch:
 permissions:
@@ -11,17 +11,24 @@ concurrency:
   cancel-in-progress: true
 jobs:
   containers:
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3]
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Real isolated mail servers and shared base (no model or real account)
+        env:
+          MAIL_SUITE_SHARD: ${{ matrix.shard }}
+          MAIL_SUITE_SHARDS: 4
         run: bash control/ci/mail/run.sh suite
       - name: Upload exact output (no credentials or private keys)
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: control-mail-${{ github.run_id }}-${{ github.run_attempt }}
+          name: control-mail-suite-${{ matrix.shard }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             .work/mail-ci/base.txt
             .work/mail-ci/mail.txt
@@ -34,7 +41,7 @@ jobs:
       matrix:
         shard: [0, 1, 2, 3]
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: OS and SQLite fault sweep in isolated mail containers

@@ -1,0 +1,4462 @@
+{
+  "artifacts": [
+    {
+      "assertions": 61088,
+      "bytes": 279291,
+      "file": ".work/19b-fold/ci/42760159138-1/control-mail-sweep-0-0-42760159138-1/owner-gaps-sweep-0-0.json.gz",
+      "sha256": "078fca349ffb741a18978f3ff299bffa0aa49b31e8e0ac715358616c20ceb810",
+      "shard": 0,
+      "shards": 12,
+      "suites": [
+        "attachment_export",
+        "cancel",
+        "delete_trash",
+        "draft_append",
+        "expiry",
+        "export_rollback",
+        "filing_copy",
+        "folder_delete",
+        "password",
+        "restart_index",
+        "send",
+        "settings",
+        "status",
+        "testapp_config",
+        "testapp_send",
+        "unsubscribe_mailto"
+      ]
+    },
+    {
+      "assertions": 57969,
+      "bytes": 266529,
+      "file": ".work/19b-fold/ci/42760159138-1/control-mail-sweep-0-1-42760159138-1/owner-gaps-sweep-1-0.json.gz",
+      "sha256": "7ca947b50c192ad26e9510619e07bb32875aac5f2f63a5a0eac32c9864c3f692",
+      "shard": 1,
+      "shards": 12,
+      "suites": [
+        "attachment_export",
+        "cancel",
+        "delete_trash",
+        "draft_append",
+        "expiry",
+        "export_rollback",
+        "filing_copy",
+        "folder_delete",
+        "password",
+        "restart_index",
+        "send",
+        "settings",
+        "status",
+        "testapp_config",
+        "testapp_send",
+        "unsubscribe_mailto"
+      ]
+    },
+    {
+      "assertions": 73048,
+      "bytes": 331932,
+      "file": ".work/19b-fold/ci/42760159138-1/control-mail-sweep-0-2-42760159138-1/owner-gaps-sweep-2-0.json.gz",
+      "sha256": "8f47dbdf96ff60a5e1f9459381b59a7ac8a0fef2a6a52ef3bbf2e9b0c8994ec8",
+      "shard": 2,
+      "shards": 12,
+      "suites": [
+        "attachment_export",
+        "cancel",
+        "delete_trash",
+        "draft_append",
+        "expiry",
+        "export_rollback",
+        "filing_copy",
+        "folder_delete",
+        "password",
+        "restart_index",
+        "send",
+        "settings",
+        "status",
+        "testapp_config",
+        "testapp_send",
+        "unsubscribe_mailto"
+      ]
+    },
+    {
+      "assertions": 77052,
+      "bytes": 343873,
+      "file": ".work/19b-fold/ci/42760159138-1/control-mail-sweep-0-3-42760159138-1/owner-gaps-sweep-3-0.json.gz",
+      "sha256": "d0aa0bda6f93320fb3b71b4cd9f87feb955c35a13a633cf1f2f5e59a2498bc41",
+      "shard": 3,
+      "shards": 12,
+      "suites": [
+        "attachment_export",
+        "cancel",
+        "delete_trash",
+        "draft_append",
+        "expiry",
+        "export_rollback",
+        "filing_copy",
+        "folder_delete",
+        "password",
+        "restart_index",
+        "send",
+        "settings",
+        "status",
+        "testapp_config",
+        "testapp_send",
+        "unsubscribe_mailto"
+      ]
+    },
+    {
+      "assertions": 73138,
+      "bytes": 326070,
+      "file": ".work/19b-fold/ci/42760159138-1/control-mail-sweep-0-4-42760159138-1/owner-gaps-sweep-4-0.json.gz",
+      "sha256": "64aef5a197d36064217f392d72191cc32f45a061f038dbb369d79b5afb27ed32",
+      "shard": 4,
+      "shards": 12,
+      "suites": [
+        "attachment_export",
+        "cancel",
+        "delete_trash",
+        "draft_append",
+        "expiry",
+        "export_rollback",
+        "filing_copy",
+        "folder_delete",
+        "password",
+        "restart_index",
+        "send",
+        "settings",
+        "status",
+        "testapp_config",
+        "testapp_send",
+        "unsubscribe_mailto"
+      ]
+    },
+    {
+      "assertions": 65171,
+      "bytes": 291378,
+      "file": ".work/19b-fold/ci/42760159138-1/control-mail-sweep-0-5-42760159138-1/owner-gaps-sweep-5-0.json.gz",
+      "sha256": "43a9041f78e0631927f0d95c965e7fecd816b9fa5d8261d055f56cfddce2712e",
+      "shard": 5,
+      "shards": 12,
+      "suites": [
+        "attachment_export",
+        "cancel",
+        "delete_trash",
+        "draft_append",
+        "expiry",
+        "export_rollback",
+        "filing_copy",
+        "folder_delete",
+        "password",
+        "restart_index",
+        "send",
+        "settings",
+        "status",
+        "testapp_config",
+        "testapp_send",
+        "unsubscribe_mailto"
+      ]
+    },
+    {
+      "assertions": 67679,
+      "bytes": 307451,
+      "file": ".work/19b-fold/ci/42760159138-1/control-mail-sweep-0-6-42760159138-1/owner-gaps-sweep-6-0.json.gz",
+      "sha256": "722941519e137409f891cfd66a091afa5de0c052a047a5d17ba5921de23bcae8",
+      "shard": 6,
+      "shards": 12,
+      "suites": [
+        "attachment_export",
+        "cancel",
+        "delete_trash",
+        "draft_append",
+        "expiry",
+        "export_rollback",
+        "filing_copy",
+        "folder_delete",
+        "password",
+        "restart_index",
+        "send",
+        "settings",
+        "status",
+        "testapp_config",
+        "testapp_send",
+        "unsubscribe_mailto"
+      ]
+    },
+    {
+      "assertions": 74350,
+      "bytes": 332535,
+      "file": ".work/19b-fold/ci/42760159138-1/control-mail-sweep-0-7-42760159138-1/owner-gaps-sweep-7-0.json.gz",
+      "sha256": "1c1932b6e90da6f9ebccd3e6f92be49df7c7edc67dae26ca84fcedeb311d35fb",
+      "shard": 7,
+      "shards": 12,
+      "suites": [
+        "attachment_export",
+        "cancel",
+        "delete_trash",
+        "draft_append",
+        "expiry",
+        "export_rollback",
+        "filing_copy",
+        "folder_delete",
+        "password",
+        "restart_index",
+        "send",
+        "settings",
+        "status",
+        "testapp_config",
+        "testapp_send",
+        "unsubscribe_mailto"
+      ]
+    },
+    {
+      "assertions": 67546,
+      "bytes": 306217,
+      "file": ".work/19b-fold/ci/42760159138-1/control-mail-sweep-0-8-42760159138-1/owner-gaps-sweep-8-0.json.gz",
+      "sha256": "a0ad7804b8d8a0f4d5cf9faad332da751bf90b1aa53dc0fb5326b1a3c6e383a9",
+      "shard": 8,
+      "shards": 12,
+      "suites": [
+        "attachment_export",
+        "cancel",
+        "delete_trash",
+        "draft_append",
+        "expiry",
+        "export_rollback",
+        "filing_copy",
+        "folder_delete",
+        "password",
+        "restart_index",
+        "send",
+        "settings",
+        "status",
+        "testapp_config",
+        "testapp_send",
+        "unsubscribe_mailto"
+      ]
+    },
+    {
+      "assertions": 74438,
+      "bytes": 334445,
+      "file": ".work/19b-fold/ci/42760159138-1/control-mail-sweep-0-9-42760159138-1/owner-gaps-sweep-9-0.json.gz",
+      "sha256": "c9ae345b70dabc48753dbacdde1e74cf81a5e17bd75b479ba23c6491fe6e92e2",
+      "shard": 9,
+      "shards": 12,
+      "suites": [
+        "attachment_export",
+        "cancel",
+        "delete_trash",
+        "draft_append",
+        "expiry",
+        "export_rollback",
+        "filing_copy",
+        "folder_delete",
+        "password",
+        "restart_index",
+        "send",
+        "settings",
+        "status",
+        "testapp_config",
+        "testapp_send",
+        "unsubscribe_mailto"
+      ]
+    },
+    {
+      "assertions": 68554,
+      "bytes": 305367,
+      "file": ".work/19b-fold/ci/42760159138-1/control-mail-sweep-0-10-42760159138-1/owner-gaps-sweep-10-0.json.gz",
+      "sha256": "55bb2902e8990f3b55cf0f80e1396c9e457d2ac290d9a3ca21830c0e2a49ebc8",
+      "shard": 10,
+      "shards": 12,
+      "suites": [
+        "attachment_export",
+        "cancel",
+        "delete_trash",
+        "draft_append",
+        "expiry",
+        "export_rollback",
+        "filing_copy",
+        "folder_delete",
+        "password",
+        "restart_index",
+        "send",
+        "settings",
+        "status",
+        "testapp_config",
+        "testapp_send",
+        "unsubscribe_mailto"
+      ]
+    },
+    {
+      "assertions": 62820,
+      "bytes": 286604,
+      "file": ".work/19b-fold/ci/42760159138-1/control-mail-sweep-0-11-42760159138-1/owner-gaps-sweep-11-0.json.gz",
+      "sha256": "17528a8679f96374ab3d2f196da4e107704f7fd5afd739776a3ea18c4e503f85",
+      "shard": 11,
+      "shards": 12,
+      "suites": [
+        "attachment_export",
+        "cancel",
+        "delete_trash",
+        "draft_append",
+        "expiry",
+        "export_rollback",
+        "filing_copy",
+        "folder_delete",
+        "password",
+        "restart_index",
+        "send",
+        "settings",
+        "status",
+        "testapp_config",
+        "testapp_send",
+        "unsubscribe_mailto"
+      ]
+    },
+    {
+      "assertions": 49368,
+      "bytes": 230851,
+      "file": ".work/19b-fold/ci/42760159138-1/control-mail-sweep-1-0-42760159138-1/owner-gaps-sweep-0-0.json.gz",
+      "sha256": "c9d10178655fc4f52157f2f104c1d92255f363d50c22faf33f49ce5f4f4b6b13",
+      "shard": 0,
+      "shards": 12,
+      "suites": [
+        "archive",
+        "delete_permanent",
+        "filing_move",
+        "filing_rename",
+        "flag",
+        "folder_create",
+        "folder_review",
+        "maintenance",
+        "repair",
+        "restart_tail",
+        "restore",
+        "settlement",
+        "testapp_delete",
+        "testapp_export",
+        "unsubscribe_https"
+      ]
+    },
+    {
+      "assertions": 46130,
+      "bytes": 216652,
+      "file": ".work/19b-fold/ci/42760159138-1/control-mail-sweep-1-1-42760159138-1/owner-gaps-sweep-1-0.json.gz",
+      "sha256": "5b80b975556c529e32f3756dc38d702da7cc9d80e2662737d64bd2189ef72622",
+      "shard": 1,
+      "shards": 12,
+      "suites": [
+        "archive",
+        "delete_permanent",
+        "filing_move",
+        "filing_rename",
+        "flag",
+        "folder_create",
+        "folder_review",
+        "maintenance",
+        "repair",
+        "restart_tail",
+        "restore",
+        "settlement",
+        "testapp_delete",
+        "testapp_export",
+        "unsubscribe_https"
+      ]
+    },
+    {
+      "assertions": 53087,
+      "bytes": 246077,
+      "file": ".work/19b-fold/ci/42760159138-1/control-mail-sweep-1-2-42760159138-1/owner-gaps-sweep-2-0.json.gz",
+      "sha256": "43df7ccb398db32cc4a6deccf344e18c80c1c277cc2f74da7a54ebb1e4e9cf4c",
+      "shard": 2,
+      "shards": 12,
+      "suites": [
+        "archive",
+        "delete_permanent",
+        "filing_move",
+        "filing_rename",
+        "flag",
+        "folder_create",
+        "folder_review",
+        "maintenance",
+        "repair",
+        "restart_tail",
+        "restore",
+        "settlement",
+        "testapp_delete",
+        "testapp_export",
+        "unsubscribe_https"
+      ]
+    },
+    {
+      "assertions": 43935,
+      "bytes": 206996,
+      "file": ".work/19b-fold/ci/42760159138-1/control-mail-sweep-1-3-42760159138-1/owner-gaps-sweep-3-0.json.gz",
+      "sha256": "7e1383fac2cd84d2842529179a7913fa6f8158ab62114bf801f31f668209af73",
+      "shard": 3,
+      "shards": 12,
+      "suites": [
+        "archive",
+        "delete_permanent",
+        "filing_move",
+        "filing_rename",
+        "flag",
+        "folder_create",
+        "folder_review",
+        "maintenance",
+        "repair",
+        "restart_tail",
+        "restore",
+        "settlement",
+        "testapp_delete",
+        "testapp_export",
+        "unsubscribe_https"
+      ]
+    },
+    {
+      "assertions": 49899,
+      "bytes": 233224,
+      "file": ".work/19b-fold/ci/42760159138-1/control-mail-sweep-1-4-42760159138-1/owner-gaps-sweep-4-0.json.gz",
+      "sha256": "a20d25f86f38c6cb52303c1b4b85cf78adc2eb838eac337fabd49fa4d7a66d09",
+      "shard": 4,
+      "shards": 12,
+      "suites": [
+        "archive",
+        "delete_permanent",
+        "filing_move",
+        "filing_rename",
+        "flag",
+        "folder_create",
+        "folder_review",
+        "maintenance",
+        "repair",
+        "restart_tail",
+        "restore",
+        "settlement",
+        "testapp_delete",
+        "testapp_export",
+        "unsubscribe_https"
+      ]
+    },
+    {
+      "assertions": 50647,
+      "bytes": 238098,
+      "file": ".work/19b-fold/ci/42760159138-1/control-mail-sweep-1-5-42760159138-1/owner-gaps-sweep-5-0.json.gz",
+      "sha256": "88c2db8fb6627d27319a5eda4d528104d209ced0a04760a429deb2da5fc80ad0",
+      "shard": 5,
+      "shards": 12,
+      "suites": [
+        "archive",
+        "delete_permanent",
+        "filing_move",
+        "filing_rename",
+        "flag",
+        "folder_create",
+        "folder_review",
+        "maintenance",
+        "repair",
+        "restart_tail",
+        "restore",
+        "settlement",
+        "testapp_delete",
+        "testapp_export",
+        "unsubscribe_https"
+      ]
+    },
+    {
+      "assertions": 49539,
+      "bytes": 233238,
+      "file": ".work/19b-fold/ci/42760159138-1/control-mail-sweep-1-6-42760159138-1/owner-gaps-sweep-6-0.json.gz",
+      "sha256": "ac20fbae59ede0e4310fd6eda667da6e7cc404c630f81512b85227d372dcffa2",
+      "shard": 6,
+      "shards": 12,
+      "suites": [
+        "archive",
+        "delete_permanent",
+        "filing_move",
+        "filing_rename",
+        "flag",
+        "folder_create",
+        "folder_review",
+        "maintenance",
+        "repair",
+        "restart_tail",
+        "restore",
+        "settlement",
+        "testapp_delete",
+        "testapp_export",
+        "unsubscribe_https"
+      ]
+    },
+    {
+      "assertions": 48623,
+      "bytes": 229501,
+      "file": ".work/19b-fold/ci/42760159138-1/control-mail-sweep-1-7-42760159138-1/owner-gaps-sweep-7-0.json.gz",
+      "sha256": "323e22e420a226d148d851d79086f4215e3ac06fdb96032f9cd485416c230dd0",
+      "shard": 7,
+      "shards": 12,
+      "suites": [
+        "archive",
+        "delete_permanent",
+        "filing_move",
+        "filing_rename",
+        "flag",
+        "folder_create",
+        "folder_review",
+        "maintenance",
+        "repair",
+        "restart_tail",
+        "restore",
+        "settlement",
+        "testapp_delete",
+        "testapp_export",
+        "unsubscribe_https"
+      ]
+    },
+    {
+      "assertions": 53744,
+      "bytes": 248805,
+      "file": ".work/19b-fold/ci/42760159138-1/control-mail-sweep-1-8-42760159138-1/owner-gaps-sweep-8-0.json.gz",
+      "sha256": "0021338d174aaa58c88beb67246e72d92632305fc52bdb627383da93808a0d84",
+      "shard": 8,
+      "shards": 12,
+      "suites": [
+        "archive",
+        "delete_permanent",
+        "filing_move",
+        "filing_rename",
+        "flag",
+        "folder_create",
+        "folder_review",
+        "maintenance",
+        "repair",
+        "restart_tail",
+        "restore",
+        "settlement",
+        "testapp_delete",
+        "testapp_export",
+        "unsubscribe_https"
+      ]
+    },
+    {
+      "assertions": 39770,
+      "bytes": 190607,
+      "file": ".work/19b-fold/ci/42760159138-1/control-mail-sweep-1-9-42760159138-1/owner-gaps-sweep-9-0.json.gz",
+      "sha256": "8cc91ea5e7f6fa5de95d99956ac895725163ca0cda4032fcd5b82906471ed84c",
+      "shard": 9,
+      "shards": 12,
+      "suites": [
+        "archive",
+        "delete_permanent",
+        "filing_move",
+        "filing_rename",
+        "flag",
+        "folder_create",
+        "folder_review",
+        "maintenance",
+        "repair",
+        "restart_tail",
+        "restore",
+        "settlement",
+        "testapp_delete",
+        "testapp_export",
+        "unsubscribe_https"
+      ]
+    },
+    {
+      "assertions": 49766,
+      "bytes": 234918,
+      "file": ".work/19b-fold/ci/42760159138-1/control-mail-sweep-1-10-42760159138-1/owner-gaps-sweep-10-0.json.gz",
+      "sha256": "e8e37f708e3abc00c11e8eafacb03d3b303902aa45f7a28ab662211fade06729",
+      "shard": 10,
+      "shards": 12,
+      "suites": [
+        "archive",
+        "delete_permanent",
+        "filing_move",
+        "filing_rename",
+        "flag",
+        "folder_create",
+        "folder_review",
+        "maintenance",
+        "repair",
+        "restart_tail",
+        "restore",
+        "settlement",
+        "testapp_delete",
+        "testapp_export",
+        "unsubscribe_https"
+      ]
+    },
+    {
+      "assertions": 53611,
+      "bytes": 249981,
+      "file": ".work/19b-fold/ci/42760159138-1/control-mail-sweep-1-11-42760159138-1/owner-gaps-sweep-11-0.json.gz",
+      "sha256": "a986d96f03379906d2a9b11af8606e9f9f7c6705da0f7e877277843d91158e08",
+      "shard": 11,
+      "shards": 12,
+      "suites": [
+        "archive",
+        "delete_permanent",
+        "filing_move",
+        "filing_rename",
+        "flag",
+        "folder_create",
+        "folder_review",
+        "maintenance",
+        "repair",
+        "restart_tail",
+        "restore",
+        "settlement",
+        "testapp_delete",
+        "testapp_export",
+        "unsubscribe_https"
+      ]
+    },
+    {
+      "assertions": 20404,
+      "bytes": 116697,
+      "file": ".work/19b-fold/ci/42760159138-1/control-mail-onboarding-0-42760159138-1/owner-gaps-onboarding-0-0.json.gz",
+      "sha256": "c1b23d59d5758a8d66be32858899e6acf1775bd48d7d68702c1ba7fd198b1736",
+      "shard": 0,
+      "shards": 24,
+      "suites": [
+        "onboarding"
+      ]
+    },
+    {
+      "assertions": 18830,
+      "bytes": 105221,
+      "file": ".work/19b-fold/ci/42760159138-1/control-mail-onboarding-1-42760159138-1/owner-gaps-onboarding-1-0.json.gz",
+      "sha256": "782e7a7c9c0d690a90649f790fc41e0fb3702da9efa9e971ea6a3f9cde9b473a",
+      "shard": 1,
+      "shards": 24,
+      "suites": [
+        "onboarding"
+      ]
+    },
+    {
+      "assertions": 19235,
+      "bytes": 107656,
+      "file": ".work/19b-fold/ci/42760159138-1/control-mail-onboarding-2-42760159138-1/owner-gaps-onboarding-2-0.json.gz",
+      "sha256": "bef21a7b16ae5564137863c27bb9cefbb31f1e1c9b4766deb7a049e44da0f12e",
+      "shard": 2,
+      "shards": 24,
+      "suites": [
+        "onboarding"
+      ]
+    },
+    {
+      "assertions": 17978,
+      "bytes": 101883,
+      "file": ".work/19b-fold/ci/42760159138-1/control-mail-onboarding-3-42760159138-1/owner-gaps-onboarding-3-0.json.gz",
+      "sha256": "9ca6d02dc71a0f45dbd71129945a02c2a1ef67c2a3ea37540d5c055f6b558058",
+      "shard": 3,
+      "shards": 24,
+      "suites": [
+        "onboarding"
+      ]
+    },
+    {
+      "assertions": 16246,
+      "bytes": 94920,
+      "file": ".work/19b-fold/ci/42760159138-1/control-mail-onboarding-4-42760159138-1/owner-gaps-onboarding-4-0.json.gz",
+      "sha256": "6e9f27aca19f9f58a1abf04c738e42ed2177c94d4d0a37af396a27ec5c3ee331",
+      "shard": 4,
+      "shards": 24,
+      "suites": [
+        "onboarding"
+      ]
+    },
+    {
+      "assertions": 17929,
+      "bytes": 102466,
+      "file": ".work/19b-fold/ci/42760159138-1/control-mail-onboarding-5-42760159138-1/owner-gaps-onboarding-5-0.json.gz",
+      "sha256": "2f4d0ec0af7f43a975d49450d8e2c101cfceae866a8de7bab667504e6cd7b324",
+      "shard": 5,
+      "shards": 24,
+      "suites": [
+        "onboarding"
+      ]
+    },
+    {
+      "assertions": 16948,
+      "bytes": 95485,
+      "file": ".work/19b-fold/ci/42760159138-1/control-mail-onboarding-6-42760159138-1/owner-gaps-onboarding-6-0.json.gz",
+      "sha256": "a1642d55c83692d048c36cd58d685cb0a4229866269670053dae3ca5855b8172",
+      "shard": 6,
+      "shards": 24,
+      "suites": [
+        "onboarding"
+      ]
+    },
+    {
+      "assertions": 21003,
+      "bytes": 121285,
+      "file": ".work/19b-fold/ci/42760159138-1/control-mail-onboarding-7-42760159138-1/owner-gaps-onboarding-7-0.json.gz",
+      "sha256": "738fe8a5ae000a24bc30f50027c845eab077a6c6053c6db4f1f2f8bcfdb6bd5a",
+      "shard": 7,
+      "shards": 24,
+      "suites": [
+        "onboarding"
+      ]
+    },
+    {
+      "assertions": 19865,
+      "bytes": 110531,
+      "file": ".work/19b-fold/ci/42760159138-1/control-mail-onboarding-8-42760159138-1/owner-gaps-onboarding-8-0.json.gz",
+      "sha256": "f31e0286e4f441d0b8ceb82653bf28e39a0366d7fa6d247f8712549cd1cb12f8",
+      "shard": 8,
+      "shards": 24,
+      "suites": [
+        "onboarding"
+      ]
+    },
+    {
+      "assertions": 16862,
+      "bytes": 95261,
+      "file": ".work/19b-fold/ci/42760159138-1/control-mail-onboarding-9-42760159138-1/owner-gaps-onboarding-9-0.json.gz",
+      "sha256": "b2a2f57042c7cc5162cebdaf798f6ea8e92a15733ab55ea5c304b7e14ca3c299",
+      "shard": 9,
+      "shards": 24,
+      "suites": [
+        "onboarding"
+      ]
+    },
+    {
+      "assertions": 18614,
+      "bytes": 107456,
+      "file": ".work/19b-fold/ci/42760159138-1/control-mail-onboarding-10-42760159138-1/owner-gaps-onboarding-10-0.json.gz",
+      "sha256": "149511cba81060ec8507d94d33b5dee761eaaa03e2e4b5f3690ab16514f6c640",
+      "shard": 10,
+      "shards": 24,
+      "suites": [
+        "onboarding"
+      ]
+    },
+    {
+      "assertions": 17641,
+      "bytes": 96629,
+      "file": ".work/19b-fold/ci/42760159138-1/control-mail-onboarding-11-42760159138-1/owner-gaps-onboarding-11-0.json.gz",
+      "sha256": "6ba79fb045da064e918d0cfa4e266239c1e792791a75ae613266886edb208a00",
+      "shard": 11,
+      "shards": 24,
+      "suites": [
+        "onboarding"
+      ]
+    },
+    {
+      "assertions": 20181,
+      "bytes": 116430,
+      "file": ".work/19b-fold/ci/42760159138-1/control-mail-onboarding-12-42760159138-1/owner-gaps-onboarding-12-0.json.gz",
+      "sha256": "a5c6025c674f03c4dd49c600e8314e6b682c7655d2a4494a6c6b5ec37d0a1a5d",
+      "shard": 12,
+      "shards": 24,
+      "suites": [
+        "onboarding"
+      ]
+    },
+    {
+      "assertions": 16936,
+      "bytes": 99324,
+      "file": ".work/19b-fold/ci/42760159138-1/control-mail-onboarding-13-42760159138-1/owner-gaps-onboarding-13-0.json.gz",
+      "sha256": "5871849be444e00477070ed65ff165e3f0bee932ecea9709fc710af28144cdf0",
+      "shard": 13,
+      "shards": 24,
+      "suites": [
+        "onboarding"
+      ]
+    },
+    {
+      "assertions": 18683,
+      "bytes": 105618,
+      "file": ".work/19b-fold/ci/42760159138-1/control-mail-onboarding-14-42760159138-1/owner-gaps-onboarding-14-0.json.gz",
+      "sha256": "00c5fa3f7338517380214782f12b3428b483ad4ea81e6ea1b1e28ab14ca95379",
+      "shard": 14,
+      "shards": 24,
+      "suites": [
+        "onboarding"
+      ]
+    },
+    {
+      "assertions": 17787,
+      "bytes": 106470,
+      "file": ".work/19b-fold/ci/42760159138-1/control-mail-onboarding-15-42760159138-1/owner-gaps-onboarding-15-0.json.gz",
+      "sha256": "9a6364df60b40cae404d47b6eedc88856ab2606349a0782275a7a44a4f9d6abd",
+      "shard": 15,
+      "shards": 24,
+      "suites": [
+        "onboarding"
+      ]
+    },
+    {
+      "assertions": 19084,
+      "bytes": 106362,
+      "file": ".work/19b-fold/ci/42760159138-1/control-mail-onboarding-16-42760159138-1/owner-gaps-onboarding-16-0.json.gz",
+      "sha256": "b501e26d02beb98c5d2fa45a9d3c404d4aba257145f355c61c63fd0d90a847b5",
+      "shard": 16,
+      "shards": 24,
+      "suites": [
+        "onboarding"
+      ]
+    },
+    {
+      "assertions": 19454,
+      "bytes": 113264,
+      "file": ".work/19b-fold/ci/42760159138-1/control-mail-onboarding-17-42760159138-1/owner-gaps-onboarding-17-0.json.gz",
+      "sha256": "b5ae6390287afa0ee8f35674e0490614ea21489a6c81de46addbb535e81b8386",
+      "shard": 17,
+      "shards": 24,
+      "suites": [
+        "onboarding"
+      ]
+    },
+    {
+      "assertions": 16069,
+      "bytes": 95063,
+      "file": ".work/19b-fold/ci/42760159138-1/control-mail-onboarding-18-42760159138-1/owner-gaps-onboarding-18-0.json.gz",
+      "sha256": "f1425bf9d5bdab0306f45eb6337113850b97fe756ddece340e5c558dcd66b248",
+      "shard": 18,
+      "shards": 24,
+      "suites": [
+        "onboarding"
+      ]
+    },
+    {
+      "assertions": 20517,
+      "bytes": 113911,
+      "file": ".work/19b-fold/ci/42760159138-1/control-mail-onboarding-19-42760159138-1/owner-gaps-onboarding-19-0.json.gz",
+      "sha256": "aa1478f80212318875ad84b57ee75fe412bf747e55d63a20b847c36cff5c5f10",
+      "shard": 19,
+      "shards": 24,
+      "suites": [
+        "onboarding"
+      ]
+    },
+    {
+      "assertions": 18195,
+      "bytes": 104132,
+      "file": ".work/19b-fold/ci/42760159138-1/control-mail-onboarding-20-42760159138-1/owner-gaps-onboarding-20-0.json.gz",
+      "sha256": "88d8dc177e4d2de271fea805c637793e673bdccb5569d8ae35dc4cc4d3aacbee",
+      "shard": 20,
+      "shards": 24,
+      "suites": [
+        "onboarding"
+      ]
+    },
+    {
+      "assertions": 18384,
+      "bytes": 108161,
+      "file": ".work/19b-fold/ci/42760159138-1/control-mail-onboarding-21-42760159138-1/owner-gaps-onboarding-21-0.json.gz",
+      "sha256": "f3ce876123d16173e8563aaa3b1e051563b083a2d0d35148d144b818695dd7ac",
+      "shard": 21,
+      "shards": 24,
+      "suites": [
+        "onboarding"
+      ]
+    },
+    {
+      "assertions": 16995,
+      "bytes": 98740,
+      "file": ".work/19b-fold/ci/42760159138-1/control-mail-onboarding-22-42760159138-1/owner-gaps-onboarding-22-0.json.gz",
+      "sha256": "10ceccdb3778af070c1c0219970ce9bcf17d07cda7e8eea139256433873cc2b4",
+      "shard": 22,
+      "shards": 24,
+      "suites": [
+        "onboarding"
+      ]
+    },
+    {
+      "assertions": 15804,
+      "bytes": 96489,
+      "file": ".work/19b-fold/ci/42760159138-1/control-mail-onboarding-23-42760159138-1/owner-gaps-onboarding-23-0.json.gz",
+      "sha256": "5384dea4a91ad1c5833ce9f798cfeb968b6a0d3ee4e4b196801a1588e2deb6b6",
+      "shard": 23,
+      "shards": 24,
+      "suites": [
+        "onboarding"
+      ]
+    },
+    {
+      "assertions": 486,
+      "bytes": 8702,
+      "file": ".work/19b-fold/ci/42760159138-1/control-mail-suite-3-42760159138-1/owner-gaps-contract-0-0.json.gz",
+      "sha256": "9fe7428a61588724a9d7a2212a186c63c63fe0770874baf7aee6197ea8c8f221",
+      "shard": 0,
+      "shards": 1,
+      "suites": [
+        "contract"
+      ]
+    },
+    {
+      "assertions": 1,
+      "bytes": 215,
+      "file": ".work/19b-fold/ci/42760159138-1/control-mail-suite-0-42760159138-1/owner-gaps-G22-rename-0-0.json.gz",
+      "sha256": "0975beef6e4d65ba29d4711b0e0c965e8e5c331d41af6f1050d1a352678a75e6",
+      "shard": 0,
+      "shards": 1,
+      "suites": [
+        "G22-rename"
+      ]
+    },
+    {
+      "assertions": 1,
+      "bytes": 224,
+      "file": ".work/19b-fold/ci/42760159138-1/control-mail-suite-0-42760159138-1/owner-gaps-G22-evidence-0-0.json.gz",
+      "sha256": "42de7582cc9d588c5a7dd3a61989ba0aae64fcd13b33dec7c54c050b000d0321",
+      "shard": 0,
+      "shards": 1,
+      "suites": [
+        "G22-evidence"
+      ]
+    },
+    {
+      "assertions": 1,
+      "bytes": 221,
+      "file": ".work/19b-fold/ci/42760159138-1/control-mail-suite-0-42760159138-1/owner-gaps-G22-latch-0-0.json.gz",
+      "sha256": "3e5482bdaeadef088d881924e0a5ce93cfdf6b08618b6f75fefd44b11e790470",
+      "shard": 0,
+      "shards": 1,
+      "suites": [
+        "G22-latch"
+      ]
+    },
+    {
+      "assertions": 2,
+      "bytes": 346,
+      "file": ".work/19b-fold/ci/42760159138-1/fresh-base/owner-gaps-channel-0-0.json.gz",
+      "sha256": "6cfb29ca514f3425bf84c7fd15d2ea4a6ba252fe2536aa45ac4362d626230252",
+      "shard": 0,
+      "shards": 1,
+      "suites": [
+        "channel"
+      ]
+    }
+  ],
+  "assertions": 1849228,
+  "attempt": 1,
+  "base": {
+    "attempt": 1,
+    "results_lines": {
+      "OK": 394,
+      "PASS": 401,
+      "summary": 392
+    },
+    "run": 42760159041,
+    "seconds": 207.068,
+    "source": "a1859a6969911e3d38866807e0812e6088d4fa7c",
+    "tests": 263
+  },
+  "bytes": 890087,
+  "capture_scope": "One complete Linux owner-state capture: all 48 sweep/onboarding owners, 32 flows in every mode/site/pair/crash/restart, four focused/named lists and the fresh independent base-channel list. All 53 complete inputs strictly verify against the new pin. No R2 differences accepted.",
+  "diagnostic_failures": {
+    "inherited_archive_fixture": "Eight prefix-equality failures from random layout/timestamp rewriting in direct Scenario archive setup. 8915955b makes only that direct fixture deterministic and retains all faults/assertions. OwnerScenario already uses its own fixed clock/IDs, so its capture is unchanged.",
+    "old_compact_pin": "Expected changed exact stage-3 digests after folding and Linux syscall numbering; capture is not green acceptance.",
+    "real_HTTPS_fixture": "One standalone test omitted URL, committed-before rows and caller sequence interval. a70e02ab adds receiver/script evidence without changing its completion assertion. This fixture supplies none of the 53 capture lists."
+  },
+  "groups": 1936,
+  "job_seconds": {
+    "alterations (0)": 548,
+    "alterations (1)": 749,
+    "alterations (2)": 892,
+    "alterations (3)": 382,
+    "containers (0)": 1127,
+    "containers (1)": 739,
+    "containers (2)": 488,
+    "containers (3)": 381,
+    "onboarding (0)": 440,
+    "onboarding (1)": 302,
+    "onboarding (10)": 400,
+    "onboarding (11)": 416,
+    "onboarding (12)": 353,
+    "onboarding (13)": 375,
+    "onboarding (14)": 295,
+    "onboarding (15)": 321,
+    "onboarding (16)": 397,
+    "onboarding (17)": 443,
+    "onboarding (18)": 364,
+    "onboarding (19)": 362,
+    "onboarding (2)": 354,
+    "onboarding (20)": 390,
+    "onboarding (21)": 318,
+    "onboarding (22)": 352,
+    "onboarding (23)": 304,
+    "onboarding (3)": 362,
+    "onboarding (4)": 341,
+    "onboarding (5)": 316,
+    "onboarding (6)": 274,
+    "onboarding (7)": 476,
+    "onboarding (8)": 404,
+    "onboarding (9)": 347,
+    "sweep (0, 0)": 632,
+    "sweep (0, 1)": 623,
+    "sweep (0, 10)": 519,
+    "sweep (0, 11)": 484,
+    "sweep (0, 2)": 528,
+    "sweep (0, 3)": 676,
+    "sweep (0, 4)": 540,
+    "sweep (0, 5)": 554,
+    "sweep (0, 6)": 501,
+    "sweep (0, 7)": 487,
+    "sweep (0, 8)": 585,
+    "sweep (0, 9)": 689,
+    "sweep (1, 0)": 387,
+    "sweep (1, 1)": 340,
+    "sweep (1, 10)": 462,
+    "sweep (1, 11)": 457,
+    "sweep (1, 2)": 336,
+    "sweep (1, 3)": 401,
+    "sweep (1, 4)": 467,
+    "sweep (1, 5)": 444,
+    "sweep (1, 6)": 372,
+    "sweep (1, 7)": 434,
+    "sweep (1, 8)": 400,
+    "sweep (1, 9)": 385
+  },
+  "jobs": [
+    {
+      "flows": [
+        "attachment_export",
+        "cancel",
+        "delete_trash",
+        "draft_append",
+        "expiry",
+        "export_rollback",
+        "filing_copy",
+        "folder_delete",
+        "password",
+        "restart_index",
+        "send",
+        "settings",
+        "status",
+        "testapp_config",
+        "testapp_send",
+        "unsubscribe_mailto"
+      ],
+      "group": 0,
+      "shard": 0,
+      "shards": 12
+    },
+    {
+      "flows": [
+        "attachment_export",
+        "cancel",
+        "delete_trash",
+        "draft_append",
+        "expiry",
+        "export_rollback",
+        "filing_copy",
+        "folder_delete",
+        "password",
+        "restart_index",
+        "send",
+        "settings",
+        "status",
+        "testapp_config",
+        "testapp_send",
+        "unsubscribe_mailto"
+      ],
+      "group": 0,
+      "shard": 1,
+      "shards": 12
+    },
+    {
+      "flows": [
+        "attachment_export",
+        "cancel",
+        "delete_trash",
+        "draft_append",
+        "expiry",
+        "export_rollback",
+        "filing_copy",
+        "folder_delete",
+        "password",
+        "restart_index",
+        "send",
+        "settings",
+        "status",
+        "testapp_config",
+        "testapp_send",
+        "unsubscribe_mailto"
+      ],
+      "group": 0,
+      "shard": 2,
+      "shards": 12
+    },
+    {
+      "flows": [
+        "attachment_export",
+        "cancel",
+        "delete_trash",
+        "draft_append",
+        "expiry",
+        "export_rollback",
+        "filing_copy",
+        "folder_delete",
+        "password",
+        "restart_index",
+        "send",
+        "settings",
+        "status",
+        "testapp_config",
+        "testapp_send",
+        "unsubscribe_mailto"
+      ],
+      "group": 0,
+      "shard": 3,
+      "shards": 12
+    },
+    {
+      "flows": [
+        "attachment_export",
+        "cancel",
+        "delete_trash",
+        "draft_append",
+        "expiry",
+        "export_rollback",
+        "filing_copy",
+        "folder_delete",
+        "password",
+        "restart_index",
+        "send",
+        "settings",
+        "status",
+        "testapp_config",
+        "testapp_send",
+        "unsubscribe_mailto"
+      ],
+      "group": 0,
+      "shard": 4,
+      "shards": 12
+    },
+    {
+      "flows": [
+        "attachment_export",
+        "cancel",
+        "delete_trash",
+        "draft_append",
+        "expiry",
+        "export_rollback",
+        "filing_copy",
+        "folder_delete",
+        "password",
+        "restart_index",
+        "send",
+        "settings",
+        "status",
+        "testapp_config",
+        "testapp_send",
+        "unsubscribe_mailto"
+      ],
+      "group": 0,
+      "shard": 5,
+      "shards": 12
+    },
+    {
+      "flows": [
+        "attachment_export",
+        "cancel",
+        "delete_trash",
+        "draft_append",
+        "expiry",
+        "export_rollback",
+        "filing_copy",
+        "folder_delete",
+        "password",
+        "restart_index",
+        "send",
+        "settings",
+        "status",
+        "testapp_config",
+        "testapp_send",
+        "unsubscribe_mailto"
+      ],
+      "group": 0,
+      "shard": 6,
+      "shards": 12
+    },
+    {
+      "flows": [
+        "attachment_export",
+        "cancel",
+        "delete_trash",
+        "draft_append",
+        "expiry",
+        "export_rollback",
+        "filing_copy",
+        "folder_delete",
+        "password",
+        "restart_index",
+        "send",
+        "settings",
+        "status",
+        "testapp_config",
+        "testapp_send",
+        "unsubscribe_mailto"
+      ],
+      "group": 0,
+      "shard": 7,
+      "shards": 12
+    },
+    {
+      "flows": [
+        "attachment_export",
+        "cancel",
+        "delete_trash",
+        "draft_append",
+        "expiry",
+        "export_rollback",
+        "filing_copy",
+        "folder_delete",
+        "password",
+        "restart_index",
+        "send",
+        "settings",
+        "status",
+        "testapp_config",
+        "testapp_send",
+        "unsubscribe_mailto"
+      ],
+      "group": 0,
+      "shard": 8,
+      "shards": 12
+    },
+    {
+      "flows": [
+        "attachment_export",
+        "cancel",
+        "delete_trash",
+        "draft_append",
+        "expiry",
+        "export_rollback",
+        "filing_copy",
+        "folder_delete",
+        "password",
+        "restart_index",
+        "send",
+        "settings",
+        "status",
+        "testapp_config",
+        "testapp_send",
+        "unsubscribe_mailto"
+      ],
+      "group": 0,
+      "shard": 9,
+      "shards": 12
+    },
+    {
+      "flows": [
+        "attachment_export",
+        "cancel",
+        "delete_trash",
+        "draft_append",
+        "expiry",
+        "export_rollback",
+        "filing_copy",
+        "folder_delete",
+        "password",
+        "restart_index",
+        "send",
+        "settings",
+        "status",
+        "testapp_config",
+        "testapp_send",
+        "unsubscribe_mailto"
+      ],
+      "group": 0,
+      "shard": 10,
+      "shards": 12
+    },
+    {
+      "flows": [
+        "attachment_export",
+        "cancel",
+        "delete_trash",
+        "draft_append",
+        "expiry",
+        "export_rollback",
+        "filing_copy",
+        "folder_delete",
+        "password",
+        "restart_index",
+        "send",
+        "settings",
+        "status",
+        "testapp_config",
+        "testapp_send",
+        "unsubscribe_mailto"
+      ],
+      "group": 0,
+      "shard": 11,
+      "shards": 12
+    },
+    {
+      "flows": [
+        "archive",
+        "delete_permanent",
+        "filing_move",
+        "filing_rename",
+        "flag",
+        "folder_create",
+        "folder_review",
+        "maintenance",
+        "repair",
+        "restart_tail",
+        "restore",
+        "settlement",
+        "testapp_delete",
+        "testapp_export",
+        "unsubscribe_https"
+      ],
+      "group": 1,
+      "shard": 0,
+      "shards": 12
+    },
+    {
+      "flows": [
+        "archive",
+        "delete_permanent",
+        "filing_move",
+        "filing_rename",
+        "flag",
+        "folder_create",
+        "folder_review",
+        "maintenance",
+        "repair",
+        "restart_tail",
+        "restore",
+        "settlement",
+        "testapp_delete",
+        "testapp_export",
+        "unsubscribe_https"
+      ],
+      "group": 1,
+      "shard": 1,
+      "shards": 12
+    },
+    {
+      "flows": [
+        "archive",
+        "delete_permanent",
+        "filing_move",
+        "filing_rename",
+        "flag",
+        "folder_create",
+        "folder_review",
+        "maintenance",
+        "repair",
+        "restart_tail",
+        "restore",
+        "settlement",
+        "testapp_delete",
+        "testapp_export",
+        "unsubscribe_https"
+      ],
+      "group": 1,
+      "shard": 2,
+      "shards": 12
+    },
+    {
+      "flows": [
+        "archive",
+        "delete_permanent",
+        "filing_move",
+        "filing_rename",
+        "flag",
+        "folder_create",
+        "folder_review",
+        "maintenance",
+        "repair",
+        "restart_tail",
+        "restore",
+        "settlement",
+        "testapp_delete",
+        "testapp_export",
+        "unsubscribe_https"
+      ],
+      "group": 1,
+      "shard": 3,
+      "shards": 12
+    },
+    {
+      "flows": [
+        "archive",
+        "delete_permanent",
+        "filing_move",
+        "filing_rename",
+        "flag",
+        "folder_create",
+        "folder_review",
+        "maintenance",
+        "repair",
+        "restart_tail",
+        "restore",
+        "settlement",
+        "testapp_delete",
+        "testapp_export",
+        "unsubscribe_https"
+      ],
+      "group": 1,
+      "shard": 4,
+      "shards": 12
+    },
+    {
+      "flows": [
+        "archive",
+        "delete_permanent",
+        "filing_move",
+        "filing_rename",
+        "flag",
+        "folder_create",
+        "folder_review",
+        "maintenance",
+        "repair",
+        "restart_tail",
+        "restore",
+        "settlement",
+        "testapp_delete",
+        "testapp_export",
+        "unsubscribe_https"
+      ],
+      "group": 1,
+      "shard": 5,
+      "shards": 12
+    },
+    {
+      "flows": [
+        "archive",
+        "delete_permanent",
+        "filing_move",
+        "filing_rename",
+        "flag",
+        "folder_create",
+        "folder_review",
+        "maintenance",
+        "repair",
+        "restart_tail",
+        "restore",
+        "settlement",
+        "testapp_delete",
+        "testapp_export",
+        "unsubscribe_https"
+      ],
+      "group": 1,
+      "shard": 6,
+      "shards": 12
+    },
+    {
+      "flows": [
+        "archive",
+        "delete_permanent",
+        "filing_move",
+        "filing_rename",
+        "flag",
+        "folder_create",
+        "folder_review",
+        "maintenance",
+        "repair",
+        "restart_tail",
+        "restore",
+        "settlement",
+        "testapp_delete",
+        "testapp_export",
+        "unsubscribe_https"
+      ],
+      "group": 1,
+      "shard": 7,
+      "shards": 12
+    },
+    {
+      "flows": [
+        "archive",
+        "delete_permanent",
+        "filing_move",
+        "filing_rename",
+        "flag",
+        "folder_create",
+        "folder_review",
+        "maintenance",
+        "repair",
+        "restart_tail",
+        "restore",
+        "settlement",
+        "testapp_delete",
+        "testapp_export",
+        "unsubscribe_https"
+      ],
+      "group": 1,
+      "shard": 8,
+      "shards": 12
+    },
+    {
+      "flows": [
+        "archive",
+        "delete_permanent",
+        "filing_move",
+        "filing_rename",
+        "flag",
+        "folder_create",
+        "folder_review",
+        "maintenance",
+        "repair",
+        "restart_tail",
+        "restore",
+        "settlement",
+        "testapp_delete",
+        "testapp_export",
+        "unsubscribe_https"
+      ],
+      "group": 1,
+      "shard": 9,
+      "shards": 12
+    },
+    {
+      "flows": [
+        "archive",
+        "delete_permanent",
+        "filing_move",
+        "filing_rename",
+        "flag",
+        "folder_create",
+        "folder_review",
+        "maintenance",
+        "repair",
+        "restart_tail",
+        "restore",
+        "settlement",
+        "testapp_delete",
+        "testapp_export",
+        "unsubscribe_https"
+      ],
+      "group": 1,
+      "shard": 10,
+      "shards": 12
+    },
+    {
+      "flows": [
+        "archive",
+        "delete_permanent",
+        "filing_move",
+        "filing_rename",
+        "flag",
+        "folder_create",
+        "folder_review",
+        "maintenance",
+        "repair",
+        "restart_tail",
+        "restore",
+        "settlement",
+        "testapp_delete",
+        "testapp_export",
+        "unsubscribe_https"
+      ],
+      "group": 1,
+      "shard": 11,
+      "shards": 12
+    },
+    {
+      "flows": [
+        "onboarding"
+      ],
+      "group": 2,
+      "shard": 0,
+      "shards": 24
+    },
+    {
+      "flows": [
+        "onboarding"
+      ],
+      "group": 2,
+      "shard": 1,
+      "shards": 24
+    },
+    {
+      "flows": [
+        "onboarding"
+      ],
+      "group": 2,
+      "shard": 2,
+      "shards": 24
+    },
+    {
+      "flows": [
+        "onboarding"
+      ],
+      "group": 2,
+      "shard": 3,
+      "shards": 24
+    },
+    {
+      "flows": [
+        "onboarding"
+      ],
+      "group": 2,
+      "shard": 4,
+      "shards": 24
+    },
+    {
+      "flows": [
+        "onboarding"
+      ],
+      "group": 2,
+      "shard": 5,
+      "shards": 24
+    },
+    {
+      "flows": [
+        "onboarding"
+      ],
+      "group": 2,
+      "shard": 6,
+      "shards": 24
+    },
+    {
+      "flows": [
+        "onboarding"
+      ],
+      "group": 2,
+      "shard": 7,
+      "shards": 24
+    },
+    {
+      "flows": [
+        "onboarding"
+      ],
+      "group": 2,
+      "shard": 8,
+      "shards": 24
+    },
+    {
+      "flows": [
+        "onboarding"
+      ],
+      "group": 2,
+      "shard": 9,
+      "shards": 24
+    },
+    {
+      "flows": [
+        "onboarding"
+      ],
+      "group": 2,
+      "shard": 10,
+      "shards": 24
+    },
+    {
+      "flows": [
+        "onboarding"
+      ],
+      "group": 2,
+      "shard": 11,
+      "shards": 24
+    },
+    {
+      "flows": [
+        "onboarding"
+      ],
+      "group": 2,
+      "shard": 12,
+      "shards": 24
+    },
+    {
+      "flows": [
+        "onboarding"
+      ],
+      "group": 2,
+      "shard": 13,
+      "shards": 24
+    },
+    {
+      "flows": [
+        "onboarding"
+      ],
+      "group": 2,
+      "shard": 14,
+      "shards": 24
+    },
+    {
+      "flows": [
+        "onboarding"
+      ],
+      "group": 2,
+      "shard": 15,
+      "shards": 24
+    },
+    {
+      "flows": [
+        "onboarding"
+      ],
+      "group": 2,
+      "shard": 16,
+      "shards": 24
+    },
+    {
+      "flows": [
+        "onboarding"
+      ],
+      "group": 2,
+      "shard": 17,
+      "shards": 24
+    },
+    {
+      "flows": [
+        "onboarding"
+      ],
+      "group": 2,
+      "shard": 18,
+      "shards": 24
+    },
+    {
+      "flows": [
+        "onboarding"
+      ],
+      "group": 2,
+      "shard": 19,
+      "shards": 24
+    },
+    {
+      "flows": [
+        "onboarding"
+      ],
+      "group": 2,
+      "shard": 20,
+      "shards": 24
+    },
+    {
+      "flows": [
+        "onboarding"
+      ],
+      "group": 2,
+      "shard": 21,
+      "shards": 24
+    },
+    {
+      "flows": [
+        "onboarding"
+      ],
+      "group": 2,
+      "shard": 22,
+      "shards": 24
+    },
+    {
+      "flows": [
+        "onboarding"
+      ],
+      "group": 2,
+      "shard": 23,
+      "shards": 24
+    }
+  ],
+  "log_validation": [
+    {
+      "artifact": "control-mail-alterations-0-42760159138-1",
+      "expected_old_pin_failures": [],
+      "flows": [],
+      "log": ".work/19b-fold/ci/42760159138-1/control-mail-alterations-0-42760159138-1/mail.txt",
+      "sha256": "0343e9521d263dfbfb6eaddcf2b6d7f93452473394f33c9f453000a5ef216acf",
+      "test_summaries": [
+        [
+          "1",
+          "508.448"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-alterations-1-42760159138-1",
+      "expected_old_pin_failures": [],
+      "flows": [],
+      "log": ".work/19b-fold/ci/42760159138-1/control-mail-alterations-1-42760159138-1/mail.txt",
+      "sha256": "d2b7054405286cfb39e982a9e93e23efcbea0d67c3f65ef37658c805ef24bcaf",
+      "test_summaries": [
+        [
+          "1",
+          "710.018"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-alterations-2-42760159138-1",
+      "expected_old_pin_failures": [],
+      "flows": [],
+      "log": ".work/19b-fold/ci/42760159138-1/control-mail-alterations-2-42760159138-1/mail.txt",
+      "sha256": "0277be151eee104f438dc1b01146693745e43871c3d5bf1aede2f1d41d4010ce",
+      "test_summaries": [
+        [
+          "1",
+          "854.494"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-alterations-3-42760159138-1",
+      "expected_old_pin_failures": [],
+      "flows": [],
+      "log": ".work/19b-fold/ci/42760159138-1/control-mail-alterations-3-42760159138-1/mail.txt",
+      "sha256": "bd542a7fe710d6dc722e8c4695127e1eb409bb99b4839030c391a1b39188dcd7",
+      "test_summaries": [
+        [
+          "1",
+          "338.379"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-onboarding-0-42760159138-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "onboarding",
+          "2561"
+        ]
+      ],
+      "log": ".work/19b-fold/ci/42760159138-1/control-mail-onboarding-0-42760159138-1/mail.txt",
+      "sha256": "6fc3650bd7d70bf81b33f39dd2739ec422045d3a6d51b24830e2d5f583cf896f",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "396.920"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-onboarding-1-42760159138-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "onboarding",
+          "2561"
+        ]
+      ],
+      "log": ".work/19b-fold/ci/42760159138-1/control-mail-onboarding-1-42760159138-1/mail.txt",
+      "sha256": "fea793922e2139f8a86a8b235686fbcef855f92739c1d5c1926d0fa75805136b",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "259.726"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-onboarding-10-42760159138-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "onboarding",
+          "2561"
+        ]
+      ],
+      "log": ".work/19b-fold/ci/42760159138-1/control-mail-onboarding-10-42760159138-1/mail.txt",
+      "sha256": "3cb9dc1cd2ee7f8248cdeb5bdc2dd82de4ff6a40d1a6444f8aea51b786e63428",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "354.083"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-onboarding-11-42760159138-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "onboarding",
+          "2561"
+        ]
+      ],
+      "log": ".work/19b-fold/ci/42760159138-1/control-mail-onboarding-11-42760159138-1/mail.txt",
+      "sha256": "1660642f511c10615aeef0e73c5758d0c3059f67eca186aa70241ab814858ffa",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "364.102"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-onboarding-12-42760159138-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "onboarding",
+          "2561"
+        ]
+      ],
+      "log": ".work/19b-fold/ci/42760159138-1/control-mail-onboarding-12-42760159138-1/mail.txt",
+      "sha256": "d7a3c9af3f332ff018c7f62f22ed0a912e972a334f5aa4ca00c6035e8fb227c5",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "309.589"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-onboarding-13-42760159138-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "onboarding",
+          "2561"
+        ]
+      ],
+      "log": ".work/19b-fold/ci/42760159138-1/control-mail-onboarding-13-42760159138-1/mail.txt",
+      "sha256": "93bd25c07220d6b1e06c0afa296a748cc7eea8b4475c85b3b6265abba259543d",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "317.623"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-onboarding-14-42760159138-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "onboarding",
+          "2561"
+        ]
+      ],
+      "log": ".work/19b-fold/ci/42760159138-1/control-mail-onboarding-14-42760159138-1/mail.txt",
+      "sha256": "47148eaa4548b06f79be2d441baee1fe5a8d6db979e6bd78604d443a94a5877a",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "251.054"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-onboarding-15-42760159138-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "onboarding",
+          "2561"
+        ]
+      ],
+      "log": ".work/19b-fold/ci/42760159138-1/control-mail-onboarding-15-42760159138-1/mail.txt",
+      "sha256": "d24ee3f8392d70e98254fb3dee44b4f730a800c9c12f28dfd14a960cda71b560",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "278.273"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-onboarding-16-42760159138-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "onboarding",
+          "2561"
+        ]
+      ],
+      "log": ".work/19b-fold/ci/42760159138-1/control-mail-onboarding-16-42760159138-1/mail.txt",
+      "sha256": "ad6dc17a81fe3650e54feaf523f11cf421a21870bd77a9787d30184182b639d1",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "351.089"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-onboarding-17-42760159138-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "onboarding",
+          "2561"
+        ]
+      ],
+      "log": ".work/19b-fold/ci/42760159138-1/control-mail-onboarding-17-42760159138-1/mail.txt",
+      "sha256": "a78b19fa30523d2b7c982f511286659d0e9e64a032b615e98564fa5c0c4af434",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "398.778"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-onboarding-18-42760159138-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "onboarding",
+          "2561"
+        ]
+      ],
+      "log": ".work/19b-fold/ci/42760159138-1/control-mail-onboarding-18-42760159138-1/mail.txt",
+      "sha256": "e775ddf42a65bd72fd66c3a64e7afc58be99b01bbc3558e8a82d9b4f18bb9d3e",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "322.913"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-onboarding-19-42760159138-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "onboarding",
+          "2561"
+        ]
+      ],
+      "log": ".work/19b-fold/ci/42760159138-1/control-mail-onboarding-19-42760159138-1/mail.txt",
+      "sha256": "4326c9e82a1ae78504a3c7251d13603f03ef7388dc7692aaa9167724c7f751a6",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "316.723"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-onboarding-2-42760159138-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "onboarding",
+          "2561"
+        ]
+      ],
+      "log": ".work/19b-fold/ci/42760159138-1/control-mail-onboarding-2-42760159138-1/mail.txt",
+      "sha256": "f4dfb33a974a4be2dabd6857499716625d54d8443b2246119edbaf5b39942c5e",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "307.550"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-onboarding-20-42760159138-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "onboarding",
+          "2561"
+        ]
+      ],
+      "log": ".work/19b-fold/ci/42760159138-1/control-mail-onboarding-20-42760159138-1/mail.txt",
+      "sha256": "5999a3338e18bbb05c6a66922a01636e454cb4a11c9130866def5b894f31543e",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "344.269"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-onboarding-21-42760159138-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "onboarding",
+          "2561"
+        ]
+      ],
+      "log": ".work/19b-fold/ci/42760159138-1/control-mail-onboarding-21-42760159138-1/mail.txt",
+      "sha256": "051e509b2789dc978fc162fa0dfc1519c000311db3766fdf8f00c1d20f975b91",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "270.532"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-onboarding-22-42760159138-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "onboarding",
+          "2561"
+        ]
+      ],
+      "log": ".work/19b-fold/ci/42760159138-1/control-mail-onboarding-22-42760159138-1/mail.txt",
+      "sha256": "8569d089625a2df22950d5b5340bf8ea09b85324dca5b429c17dc0f3f2978628",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "310.835"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-onboarding-23-42760159138-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "onboarding",
+          "2561"
+        ]
+      ],
+      "log": ".work/19b-fold/ci/42760159138-1/control-mail-onboarding-23-42760159138-1/mail.txt",
+      "sha256": "38cf70eee8ae30447557a38e55f5582ee379d180b22430aa7cc4d4c7e263c7f8",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "254.022"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-onboarding-3-42760159138-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "onboarding",
+          "2561"
+        ]
+      ],
+      "log": ".work/19b-fold/ci/42760159138-1/control-mail-onboarding-3-42760159138-1/mail.txt",
+      "sha256": "b07031aa8bc653398912ace7c08fbcddd9fa065885fa6e59e4c510a42a6b8a8c",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "323.558"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-onboarding-4-42760159138-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "onboarding",
+          "2561"
+        ]
+      ],
+      "log": ".work/19b-fold/ci/42760159138-1/control-mail-onboarding-4-42760159138-1/mail.txt",
+      "sha256": "3edb67a1f3161095409db01e5c6e3a5b6faba2fe55084f86765cb2a94e01e604",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "300.909"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-onboarding-5-42760159138-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "onboarding",
+          "2561"
+        ]
+      ],
+      "log": ".work/19b-fold/ci/42760159138-1/control-mail-onboarding-5-42760159138-1/mail.txt",
+      "sha256": "2a77aac5736c828634473959ee51d3ee98899b5c10c096da437166abe2ed3d0b",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "270.290"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-onboarding-6-42760159138-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "onboarding",
+          "2561"
+        ]
+      ],
+      "log": ".work/19b-fold/ci/42760159138-1/control-mail-onboarding-6-42760159138-1/mail.txt",
+      "sha256": "0b4558d37d22094a47dd0ef8786b82194a820cb6545fdd8a6daad4725639b9e2",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "235.053"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-onboarding-7-42760159138-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "onboarding",
+          "2561"
+        ]
+      ],
+      "log": ".work/19b-fold/ci/42760159138-1/control-mail-onboarding-7-42760159138-1/mail.txt",
+      "sha256": "4b9d73ce15cfecb8386ea2f26796ef25b4e8981d32ba371e82f7e8bdfd89154d",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "362.582"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-onboarding-8-42760159138-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "onboarding",
+          "2561"
+        ]
+      ],
+      "log": ".work/19b-fold/ci/42760159138-1/control-mail-onboarding-8-42760159138-1/mail.txt",
+      "sha256": "be2175fbe018adba83a45af1777d343e5e8bb4a95c5dc62c5e6258f83fcb5bfc",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "354.869"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-onboarding-9-42760159138-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "onboarding",
+          "2561"
+        ]
+      ],
+      "log": ".work/19b-fold/ci/42760159138-1/control-mail-onboarding-9-42760159138-1/mail.txt",
+      "sha256": "c25ddd839558dd8759efe38799c53abcd2b645a64dfd07aa051326a722d4fe31",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "302.692"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-suite-0-42760159138-1",
+      "expected_old_pin_failures": [],
+      "flows": [],
+      "log": ".work/19b-fold/ci/42760159138-1/control-mail-suite-0-42760159138-1/mail.txt",
+      "sha256": "a999748f7934169654f81ffaf76e4412daeb6bdb6a048542dd0918b635437597",
+      "test_summaries": [
+        [
+          "103",
+          "846.478"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-suite-1-42760159138-1",
+      "expected_old_pin_failures": [],
+      "flows": [],
+      "log": ".work/19b-fold/ci/42760159138-1/control-mail-suite-1-42760159138-1/mail.txt",
+      "sha256": "6e9629c934d2988a0858e19045c2441a370bfe7c837a7ef600dea8eff865953b",
+      "test_summaries": [
+        [
+          "71",
+          "454.966"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-suite-2-42760159138-1",
+      "expected_old_pin_failures": [
+        "test_https_one_click_post_exact_no_cookies_no_redirect_no_get"
+      ],
+      "flows": [],
+      "log": ".work/19b-fold/ci/42760159138-1/control-mail-suite-2-42760159138-1/mail.txt",
+      "sha256": "001ecde47183259b915cdcf5b04e4d92f5e8ab5188cea1617a40290fec1d2a01",
+      "test_summaries": [
+        [
+          "76",
+          "198.849"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-suite-3-42760159138-1",
+      "expected_old_pin_failures": [
+        "test_matrix_contracts"
+      ],
+      "flows": [],
+      "log": ".work/19b-fold/ci/42760159138-1/control-mail-suite-3-42760159138-1/mail.txt",
+      "sha256": "a8494876d93f3ec33924fa9ef09f8b01234b77e56bdd76d020250ef3145d6714",
+      "test_summaries": [
+        [
+          "77",
+          "107.758"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-sweep-0-0-42760159138-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "send",
+          "919"
+        ],
+        [
+          "delete_trash",
+          "272"
+        ],
+        [
+          "unsubscribe_mailto",
+          "893"
+        ],
+        [
+          "status",
+          "147"
+        ],
+        [
+          "cancel",
+          "65"
+        ],
+        [
+          "attachment_export",
+          "277"
+        ],
+        [
+          "password",
+          "136"
+        ],
+        [
+          "filing_copy",
+          "351"
+        ],
+        [
+          "expiry",
+          "65"
+        ],
+        [
+          "restart_index",
+          "37"
+        ],
+        [
+          "export_rollback",
+          "277"
+        ],
+        [
+          "draft_append",
+          "172"
+        ],
+        [
+          "folder_delete",
+          "207"
+        ],
+        [
+          "settings",
+          "172"
+        ],
+        [
+          "testapp_send",
+          "377"
+        ],
+        [
+          "testapp_config",
+          "132"
+        ]
+      ],
+      "log": ".work/19b-fold/ci/42760159138-1/control-mail-sweep-0-0-42760159138-1/mail.txt",
+      "sha256": "997f39ad353c451f9b75adb9bcdc663fb98e559c5b6f12e6133d52fcabcc6016",
+      "test_summaries": [
+        [
+          "4",
+          "575.191"
+        ],
+        [
+          "6",
+          "528.200"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-sweep-0-1-42760159138-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "send",
+          "919"
+        ],
+        [
+          "delete_trash",
+          "272"
+        ],
+        [
+          "unsubscribe_mailto",
+          "893"
+        ],
+        [
+          "status",
+          "147"
+        ],
+        [
+          "cancel",
+          "65"
+        ],
+        [
+          "attachment_export",
+          "277"
+        ],
+        [
+          "password",
+          "136"
+        ],
+        [
+          "filing_copy",
+          "351"
+        ],
+        [
+          "expiry",
+          "65"
+        ],
+        [
+          "restart_index",
+          "37"
+        ],
+        [
+          "export_rollback",
+          "277"
+        ],
+        [
+          "draft_append",
+          "172"
+        ],
+        [
+          "folder_delete",
+          "207"
+        ],
+        [
+          "settings",
+          "172"
+        ],
+        [
+          "testapp_send",
+          "377"
+        ],
+        [
+          "testapp_config",
+          "132"
+        ]
+      ],
+      "log": ".work/19b-fold/ci/42760159138-1/control-mail-sweep-0-1-42760159138-1/mail.txt",
+      "sha256": "21b520d693fd8f4aaca1b6570af345299a42a734b230bd714a5dc7f2529ed5f8",
+      "test_summaries": [
+        [
+          "4",
+          "514.545"
+        ],
+        [
+          "6",
+          "576.536"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-sweep-0-10-42760159138-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "send",
+          "919"
+        ],
+        [
+          "delete_trash",
+          "272"
+        ],
+        [
+          "unsubscribe_mailto",
+          "893"
+        ],
+        [
+          "status",
+          "147"
+        ],
+        [
+          "cancel",
+          "65"
+        ],
+        [
+          "attachment_export",
+          "277"
+        ],
+        [
+          "password",
+          "136"
+        ],
+        [
+          "filing_copy",
+          "351"
+        ],
+        [
+          "expiry",
+          "65"
+        ],
+        [
+          "restart_index",
+          "37"
+        ],
+        [
+          "export_rollback",
+          "277"
+        ],
+        [
+          "draft_append",
+          "172"
+        ],
+        [
+          "folder_delete",
+          "207"
+        ],
+        [
+          "settings",
+          "172"
+        ],
+        [
+          "testapp_send",
+          "377"
+        ],
+        [
+          "testapp_config",
+          "132"
+        ]
+      ],
+      "log": ".work/19b-fold/ci/42760159138-1/control-mail-sweep-0-10-42760159138-1/mail.txt",
+      "sha256": "4c79bfbac499670874e27423b380c65f6ce4fb33f6e23de7f0de9b6e97f95049",
+      "test_summaries": [
+        [
+          "4",
+          "135.096"
+        ],
+        [
+          "6",
+          "463.873"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-sweep-0-11-42760159138-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "send",
+          "919"
+        ],
+        [
+          "delete_trash",
+          "272"
+        ],
+        [
+          "unsubscribe_mailto",
+          "893"
+        ],
+        [
+          "status",
+          "147"
+        ],
+        [
+          "cancel",
+          "65"
+        ],
+        [
+          "attachment_export",
+          "277"
+        ],
+        [
+          "password",
+          "136"
+        ],
+        [
+          "filing_copy",
+          "351"
+        ],
+        [
+          "expiry",
+          "65"
+        ],
+        [
+          "restart_index",
+          "37"
+        ],
+        [
+          "export_rollback",
+          "277"
+        ],
+        [
+          "draft_append",
+          "172"
+        ],
+        [
+          "folder_delete",
+          "207"
+        ],
+        [
+          "settings",
+          "172"
+        ],
+        [
+          "testapp_send",
+          "377"
+        ],
+        [
+          "testapp_config",
+          "132"
+        ]
+      ],
+      "log": ".work/19b-fold/ci/42760159138-1/control-mail-sweep-0-11-42760159138-1/mail.txt",
+      "sha256": "105df64098ab29d65786c8fc8a00993619ce0426d17fe9785fbf7e53c73a2717",
+      "test_summaries": [
+        [
+          "4",
+          "38.314"
+        ],
+        [
+          "6",
+          "444.369"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-sweep-0-2-42760159138-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "send",
+          "919"
+        ],
+        [
+          "delete_trash",
+          "272"
+        ],
+        [
+          "unsubscribe_mailto",
+          "893"
+        ],
+        [
+          "status",
+          "147"
+        ],
+        [
+          "cancel",
+          "65"
+        ],
+        [
+          "attachment_export",
+          "277"
+        ],
+        [
+          "password",
+          "136"
+        ],
+        [
+          "filing_copy",
+          "351"
+        ],
+        [
+          "expiry",
+          "65"
+        ],
+        [
+          "restart_index",
+          "37"
+        ],
+        [
+          "export_rollback",
+          "277"
+        ],
+        [
+          "draft_append",
+          "172"
+        ],
+        [
+          "folder_delete",
+          "207"
+        ],
+        [
+          "settings",
+          "172"
+        ],
+        [
+          "testapp_send",
+          "377"
+        ],
+        [
+          "testapp_config",
+          "132"
+        ]
+      ],
+      "log": ".work/19b-fold/ci/42760159138-1/control-mail-sweep-0-2-42760159138-1/mail.txt",
+      "sha256": "5bb395b4a3f8917f087bab93eeeda6bcaddf9aa4cc602caf3e05cc70d5e7d8be",
+      "test_summaries": [
+        [
+          "4",
+          "168.308"
+        ],
+        [
+          "6",
+          "481.932"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-sweep-0-3-42760159138-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "send",
+          "919"
+        ],
+        [
+          "delete_trash",
+          "272"
+        ],
+        [
+          "unsubscribe_mailto",
+          "893"
+        ],
+        [
+          "status",
+          "147"
+        ],
+        [
+          "cancel",
+          "65"
+        ],
+        [
+          "attachment_export",
+          "277"
+        ],
+        [
+          "password",
+          "136"
+        ],
+        [
+          "filing_copy",
+          "351"
+        ],
+        [
+          "expiry",
+          "65"
+        ],
+        [
+          "restart_index",
+          "37"
+        ],
+        [
+          "export_rollback",
+          "277"
+        ],
+        [
+          "draft_append",
+          "172"
+        ],
+        [
+          "folder_delete",
+          "207"
+        ],
+        [
+          "settings",
+          "172"
+        ],
+        [
+          "testapp_send",
+          "377"
+        ],
+        [
+          "testapp_config",
+          "132"
+        ]
+      ],
+      "log": ".work/19b-fold/ci/42760159138-1/control-mail-sweep-0-3-42760159138-1/mail.txt",
+      "sha256": "cc5940446573a0d5e2f1f0dcf9b9ad3788dcc4905408253980efffeb1e7dbf81",
+      "test_summaries": [
+        [
+          "4",
+          "204.023"
+        ],
+        [
+          "6",
+          "634.021"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-sweep-0-4-42760159138-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "send",
+          "919"
+        ],
+        [
+          "delete_trash",
+          "272"
+        ],
+        [
+          "unsubscribe_mailto",
+          "893"
+        ],
+        [
+          "status",
+          "147"
+        ],
+        [
+          "cancel",
+          "65"
+        ],
+        [
+          "attachment_export",
+          "277"
+        ],
+        [
+          "password",
+          "136"
+        ],
+        [
+          "filing_copy",
+          "351"
+        ],
+        [
+          "expiry",
+          "65"
+        ],
+        [
+          "restart_index",
+          "37"
+        ],
+        [
+          "export_rollback",
+          "277"
+        ],
+        [
+          "draft_append",
+          "172"
+        ],
+        [
+          "folder_delete",
+          "207"
+        ],
+        [
+          "settings",
+          "172"
+        ],
+        [
+          "testapp_send",
+          "377"
+        ],
+        [
+          "testapp_config",
+          "132"
+        ]
+      ],
+      "log": ".work/19b-fold/ci/42760159138-1/control-mail-sweep-0-4-42760159138-1/mail.txt",
+      "sha256": "dcfd1ef4eddcdc0e0be7fe3d3940481ebcfc321e4a0e011eb19cab1b9c4445f2",
+      "test_summaries": [
+        [
+          "4",
+          "489.267"
+        ],
+        [
+          "6",
+          "497.243"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-sweep-0-5-42760159138-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "send",
+          "919"
+        ],
+        [
+          "delete_trash",
+          "272"
+        ],
+        [
+          "unsubscribe_mailto",
+          "893"
+        ],
+        [
+          "status",
+          "147"
+        ],
+        [
+          "cancel",
+          "65"
+        ],
+        [
+          "attachment_export",
+          "277"
+        ],
+        [
+          "password",
+          "136"
+        ],
+        [
+          "filing_copy",
+          "351"
+        ],
+        [
+          "expiry",
+          "65"
+        ],
+        [
+          "restart_index",
+          "37"
+        ],
+        [
+          "export_rollback",
+          "277"
+        ],
+        [
+          "draft_append",
+          "172"
+        ],
+        [
+          "folder_delete",
+          "207"
+        ],
+        [
+          "settings",
+          "172"
+        ],
+        [
+          "testapp_send",
+          "377"
+        ],
+        [
+          "testapp_config",
+          "132"
+        ]
+      ],
+      "log": ".work/19b-fold/ci/42760159138-1/control-mail-sweep-0-5-42760159138-1/mail.txt",
+      "sha256": "251804411db7c60bc5ef46ab69f24846d2dccfd0c7da87577ee53946f3a860a8",
+      "test_summaries": [
+        [
+          "4",
+          "117.747"
+        ],
+        [
+          "6",
+          "515.077"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-sweep-0-6-42760159138-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "send",
+          "919"
+        ],
+        [
+          "delete_trash",
+          "272"
+        ],
+        [
+          "unsubscribe_mailto",
+          "893"
+        ],
+        [
+          "status",
+          "147"
+        ],
+        [
+          "cancel",
+          "65"
+        ],
+        [
+          "attachment_export",
+          "277"
+        ],
+        [
+          "password",
+          "136"
+        ],
+        [
+          "filing_copy",
+          "351"
+        ],
+        [
+          "expiry",
+          "65"
+        ],
+        [
+          "restart_index",
+          "37"
+        ],
+        [
+          "export_rollback",
+          "277"
+        ],
+        [
+          "draft_append",
+          "172"
+        ],
+        [
+          "folder_delete",
+          "207"
+        ],
+        [
+          "settings",
+          "172"
+        ],
+        [
+          "testapp_send",
+          "377"
+        ],
+        [
+          "testapp_config",
+          "132"
+        ]
+      ],
+      "log": ".work/19b-fold/ci/42760159138-1/control-mail-sweep-0-6-42760159138-1/mail.txt",
+      "sha256": "1dc5e257afc5e6cb332ad001c0c2f693e36357cf89fa3a8fd850e9388ce2aa00",
+      "test_summaries": [
+        [
+          "4",
+          "82.526"
+        ],
+        [
+          "6",
+          "462.331"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-sweep-0-7-42760159138-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "send",
+          "919"
+        ],
+        [
+          "delete_trash",
+          "272"
+        ],
+        [
+          "unsubscribe_mailto",
+          "893"
+        ],
+        [
+          "status",
+          "147"
+        ],
+        [
+          "cancel",
+          "65"
+        ],
+        [
+          "attachment_export",
+          "277"
+        ],
+        [
+          "password",
+          "136"
+        ],
+        [
+          "filing_copy",
+          "351"
+        ],
+        [
+          "expiry",
+          "65"
+        ],
+        [
+          "restart_index",
+          "37"
+        ],
+        [
+          "export_rollback",
+          "277"
+        ],
+        [
+          "draft_append",
+          "172"
+        ],
+        [
+          "folder_delete",
+          "207"
+        ],
+        [
+          "settings",
+          "172"
+        ],
+        [
+          "testapp_send",
+          "377"
+        ],
+        [
+          "testapp_config",
+          "132"
+        ]
+      ],
+      "log": ".work/19b-fold/ci/42760159138-1/control-mail-sweep-0-7-42760159138-1/mail.txt",
+      "sha256": "6db7cc050744a9476886da33c0fae3ef2ccd32e9475b0a08a67035a650ce083b",
+      "test_summaries": [
+        [
+          "4",
+          "113.617"
+        ],
+        [
+          "6",
+          "445.975"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-sweep-0-8-42760159138-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "send",
+          "919"
+        ],
+        [
+          "delete_trash",
+          "272"
+        ],
+        [
+          "unsubscribe_mailto",
+          "893"
+        ],
+        [
+          "status",
+          "147"
+        ],
+        [
+          "cancel",
+          "65"
+        ],
+        [
+          "attachment_export",
+          "277"
+        ],
+        [
+          "password",
+          "136"
+        ],
+        [
+          "filing_copy",
+          "351"
+        ],
+        [
+          "expiry",
+          "65"
+        ],
+        [
+          "restart_index",
+          "37"
+        ],
+        [
+          "export_rollback",
+          "277"
+        ],
+        [
+          "draft_append",
+          "172"
+        ],
+        [
+          "folder_delete",
+          "207"
+        ],
+        [
+          "settings",
+          "172"
+        ],
+        [
+          "testapp_send",
+          "377"
+        ],
+        [
+          "testapp_config",
+          "132"
+        ]
+      ],
+      "log": ".work/19b-fold/ci/42760159138-1/control-mail-sweep-0-8-42760159138-1/mail.txt",
+      "sha256": "a6084ecfe11d5bcdcc353167915452ab9785f661da02b94bac22e50899827153",
+      "test_summaries": [
+        [
+          "4",
+          "187.427"
+        ],
+        [
+          "6",
+          "548.112"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-sweep-0-9-42760159138-1",
+      "expected_old_pin_failures": [
+        "test_review23_enospc_at_every_discovered_durable_write",
+        "test_review23_enospc_at_every_discovered_durable_write",
+        "test_review23_enospc_at_every_discovered_durable_write",
+        "test_review23_enospc_at_every_discovered_durable_write",
+        "test_review23_enospc_at_every_discovered_durable_write",
+        "test_review23_enospc_at_every_discovered_durable_write",
+        "test_review23_enospc_at_every_discovered_durable_write",
+        "test_review23_enospc_at_every_discovered_durable_write",
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "send",
+          "919"
+        ],
+        [
+          "delete_trash",
+          "272"
+        ],
+        [
+          "unsubscribe_mailto",
+          "893"
+        ],
+        [
+          "status",
+          "147"
+        ],
+        [
+          "cancel",
+          "65"
+        ],
+        [
+          "attachment_export",
+          "277"
+        ],
+        [
+          "password",
+          "136"
+        ],
+        [
+          "filing_copy",
+          "351"
+        ],
+        [
+          "expiry",
+          "65"
+        ],
+        [
+          "restart_index",
+          "37"
+        ],
+        [
+          "export_rollback",
+          "277"
+        ],
+        [
+          "draft_append",
+          "172"
+        ],
+        [
+          "folder_delete",
+          "207"
+        ],
+        [
+          "settings",
+          "172"
+        ],
+        [
+          "testapp_send",
+          "377"
+        ],
+        [
+          "testapp_config",
+          "132"
+        ]
+      ],
+      "log": ".work/19b-fold/ci/42760159138-1/control-mail-sweep-0-9-42760159138-1/mail.txt",
+      "sha256": "5bf24ba7178954eb3d21d694cc2ded387815ea7a1660b365eff950adee35e7db",
+      "test_summaries": [
+        [
+          "4",
+          "379.613"
+        ],
+        [
+          "6",
+          "648.515"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-sweep-1-0-42760159138-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "repair",
+          "422"
+        ],
+        [
+          "delete_permanent",
+          "402"
+        ],
+        [
+          "unsubscribe_https",
+          "336"
+        ],
+        [
+          "settlement",
+          "148"
+        ],
+        [
+          "restore",
+          "68"
+        ],
+        [
+          "testapp_export",
+          "144"
+        ],
+        [
+          "filing_move",
+          "350"
+        ],
+        [
+          "filing_rename",
+          "227"
+        ],
+        [
+          "maintenance",
+          "62"
+        ],
+        [
+          "restart_tail",
+          "39"
+        ],
+        [
+          "archive",
+          "360"
+        ],
+        [
+          "folder_create",
+          "116"
+        ],
+        [
+          "flag",
+          "118"
+        ],
+        [
+          "folder_review",
+          "172"
+        ],
+        [
+          "testapp_delete",
+          "276"
+        ]
+      ],
+      "log": ".work/19b-fold/ci/42760159138-1/control-mail-sweep-1-0-42760159138-1/mail.txt",
+      "sha256": "baf0fec2e3c8117a3597f58b843fb6fd6099369f10fa320f20e85f596813da1e",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "347.671"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-sweep-1-1-42760159138-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "repair",
+          "422"
+        ],
+        [
+          "delete_permanent",
+          "402"
+        ],
+        [
+          "unsubscribe_https",
+          "336"
+        ],
+        [
+          "settlement",
+          "148"
+        ],
+        [
+          "restore",
+          "68"
+        ],
+        [
+          "testapp_export",
+          "144"
+        ],
+        [
+          "filing_move",
+          "350"
+        ],
+        [
+          "filing_rename",
+          "227"
+        ],
+        [
+          "maintenance",
+          "62"
+        ],
+        [
+          "restart_tail",
+          "39"
+        ],
+        [
+          "archive",
+          "360"
+        ],
+        [
+          "folder_create",
+          "116"
+        ],
+        [
+          "flag",
+          "118"
+        ],
+        [
+          "folder_review",
+          "172"
+        ],
+        [
+          "testapp_delete",
+          "276"
+        ]
+      ],
+      "log": ".work/19b-fold/ci/42760159138-1/control-mail-sweep-1-1-42760159138-1/mail.txt",
+      "sha256": "908024d0172b25200a2ff091c65ade0a9ef388bb3c88ce6244a887a3885815ce",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "297.096"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-sweep-1-10-42760159138-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "repair",
+          "422"
+        ],
+        [
+          "delete_permanent",
+          "402"
+        ],
+        [
+          "unsubscribe_https",
+          "336"
+        ],
+        [
+          "settlement",
+          "148"
+        ],
+        [
+          "restore",
+          "68"
+        ],
+        [
+          "testapp_export",
+          "144"
+        ],
+        [
+          "filing_move",
+          "350"
+        ],
+        [
+          "filing_rename",
+          "227"
+        ],
+        [
+          "maintenance",
+          "62"
+        ],
+        [
+          "restart_tail",
+          "39"
+        ],
+        [
+          "archive",
+          "360"
+        ],
+        [
+          "folder_create",
+          "116"
+        ],
+        [
+          "flag",
+          "118"
+        ],
+        [
+          "folder_review",
+          "172"
+        ],
+        [
+          "testapp_delete",
+          "276"
+        ]
+      ],
+      "log": ".work/19b-fold/ci/42760159138-1/control-mail-sweep-1-10-42760159138-1/mail.txt",
+      "sha256": "9b56e829342f22ec0563b20a0e1903faaa37099fe0f7da481632165f8d39456e",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "421.103"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-sweep-1-11-42760159138-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "repair",
+          "422"
+        ],
+        [
+          "delete_permanent",
+          "402"
+        ],
+        [
+          "unsubscribe_https",
+          "336"
+        ],
+        [
+          "settlement",
+          "148"
+        ],
+        [
+          "restore",
+          "68"
+        ],
+        [
+          "testapp_export",
+          "144"
+        ],
+        [
+          "filing_move",
+          "350"
+        ],
+        [
+          "filing_rename",
+          "227"
+        ],
+        [
+          "maintenance",
+          "62"
+        ],
+        [
+          "restart_tail",
+          "39"
+        ],
+        [
+          "archive",
+          "360"
+        ],
+        [
+          "folder_create",
+          "116"
+        ],
+        [
+          "flag",
+          "118"
+        ],
+        [
+          "folder_review",
+          "172"
+        ],
+        [
+          "testapp_delete",
+          "276"
+        ]
+      ],
+      "log": ".work/19b-fold/ci/42760159138-1/control-mail-sweep-1-11-42760159138-1/mail.txt",
+      "sha256": "89b399d18d2b8ccfbb45543352f0fd9d5effea051573f318c1165f61c6dbc76a",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "418.735"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-sweep-1-2-42760159138-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "repair",
+          "422"
+        ],
+        [
+          "delete_permanent",
+          "402"
+        ],
+        [
+          "unsubscribe_https",
+          "336"
+        ],
+        [
+          "settlement",
+          "148"
+        ],
+        [
+          "restore",
+          "68"
+        ],
+        [
+          "testapp_export",
+          "144"
+        ],
+        [
+          "filing_move",
+          "350"
+        ],
+        [
+          "filing_rename",
+          "227"
+        ],
+        [
+          "maintenance",
+          "62"
+        ],
+        [
+          "restart_tail",
+          "39"
+        ],
+        [
+          "archive",
+          "360"
+        ],
+        [
+          "folder_create",
+          "116"
+        ],
+        [
+          "flag",
+          "118"
+        ],
+        [
+          "folder_review",
+          "172"
+        ],
+        [
+          "testapp_delete",
+          "276"
+        ]
+      ],
+      "log": ".work/19b-fold/ci/42760159138-1/control-mail-sweep-1-2-42760159138-1/mail.txt",
+      "sha256": "560b154151faa6054d516b22a476af492a2d1a237365cbb01709a84205802f94",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "295.774"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-sweep-1-3-42760159138-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "repair",
+          "422"
+        ],
+        [
+          "delete_permanent",
+          "402"
+        ],
+        [
+          "unsubscribe_https",
+          "336"
+        ],
+        [
+          "settlement",
+          "148"
+        ],
+        [
+          "restore",
+          "68"
+        ],
+        [
+          "testapp_export",
+          "144"
+        ],
+        [
+          "filing_move",
+          "350"
+        ],
+        [
+          "filing_rename",
+          "227"
+        ],
+        [
+          "maintenance",
+          "62"
+        ],
+        [
+          "restart_tail",
+          "39"
+        ],
+        [
+          "archive",
+          "360"
+        ],
+        [
+          "folder_create",
+          "116"
+        ],
+        [
+          "flag",
+          "118"
+        ],
+        [
+          "folder_review",
+          "172"
+        ],
+        [
+          "testapp_delete",
+          "276"
+        ]
+      ],
+      "log": ".work/19b-fold/ci/42760159138-1/control-mail-sweep-1-3-42760159138-1/mail.txt",
+      "sha256": "87b87eeefb9c080be6ab80b860e332cdc193eea156714416110d0875a043ec8e",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "356.979"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-sweep-1-4-42760159138-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "repair",
+          "422"
+        ],
+        [
+          "delete_permanent",
+          "402"
+        ],
+        [
+          "unsubscribe_https",
+          "336"
+        ],
+        [
+          "settlement",
+          "148"
+        ],
+        [
+          "restore",
+          "68"
+        ],
+        [
+          "testapp_export",
+          "144"
+        ],
+        [
+          "filing_move",
+          "350"
+        ],
+        [
+          "filing_rename",
+          "227"
+        ],
+        [
+          "maintenance",
+          "62"
+        ],
+        [
+          "restart_tail",
+          "39"
+        ],
+        [
+          "archive",
+          "360"
+        ],
+        [
+          "folder_create",
+          "116"
+        ],
+        [
+          "flag",
+          "118"
+        ],
+        [
+          "folder_review",
+          "172"
+        ],
+        [
+          "testapp_delete",
+          "276"
+        ]
+      ],
+      "log": ".work/19b-fold/ci/42760159138-1/control-mail-sweep-1-4-42760159138-1/mail.txt",
+      "sha256": "9c3cf31e12bf46ec25b655626a7e94534275fea98fa1211cb34335103d4dfd12",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "429.904"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-sweep-1-5-42760159138-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "repair",
+          "422"
+        ],
+        [
+          "delete_permanent",
+          "402"
+        ],
+        [
+          "unsubscribe_https",
+          "336"
+        ],
+        [
+          "settlement",
+          "148"
+        ],
+        [
+          "restore",
+          "68"
+        ],
+        [
+          "testapp_export",
+          "144"
+        ],
+        [
+          "filing_move",
+          "350"
+        ],
+        [
+          "filing_rename",
+          "227"
+        ],
+        [
+          "maintenance",
+          "62"
+        ],
+        [
+          "restart_tail",
+          "39"
+        ],
+        [
+          "archive",
+          "360"
+        ],
+        [
+          "folder_create",
+          "116"
+        ],
+        [
+          "flag",
+          "118"
+        ],
+        [
+          "folder_review",
+          "172"
+        ],
+        [
+          "testapp_delete",
+          "276"
+        ]
+      ],
+      "log": ".work/19b-fold/ci/42760159138-1/control-mail-sweep-1-5-42760159138-1/mail.txt",
+      "sha256": "efaf04cc6036715a225633525cd713a6a780adcbbe40df72861099f99ec13416",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "402.661"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-sweep-1-6-42760159138-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "repair",
+          "422"
+        ],
+        [
+          "delete_permanent",
+          "402"
+        ],
+        [
+          "unsubscribe_https",
+          "336"
+        ],
+        [
+          "settlement",
+          "148"
+        ],
+        [
+          "restore",
+          "68"
+        ],
+        [
+          "testapp_export",
+          "144"
+        ],
+        [
+          "filing_move",
+          "350"
+        ],
+        [
+          "filing_rename",
+          "227"
+        ],
+        [
+          "maintenance",
+          "62"
+        ],
+        [
+          "restart_tail",
+          "39"
+        ],
+        [
+          "archive",
+          "360"
+        ],
+        [
+          "folder_create",
+          "116"
+        ],
+        [
+          "flag",
+          "118"
+        ],
+        [
+          "folder_review",
+          "172"
+        ],
+        [
+          "testapp_delete",
+          "276"
+        ]
+      ],
+      "log": ".work/19b-fold/ci/42760159138-1/control-mail-sweep-1-6-42760159138-1/mail.txt",
+      "sha256": "b97535d0651d1b1b5c16bfb6a8695838658235abb69f7a0e33eb76e87426b0b1",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "332.237"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-sweep-1-7-42760159138-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "repair",
+          "422"
+        ],
+        [
+          "delete_permanent",
+          "402"
+        ],
+        [
+          "unsubscribe_https",
+          "336"
+        ],
+        [
+          "settlement",
+          "148"
+        ],
+        [
+          "restore",
+          "68"
+        ],
+        [
+          "testapp_export",
+          "144"
+        ],
+        [
+          "filing_move",
+          "350"
+        ],
+        [
+          "filing_rename",
+          "227"
+        ],
+        [
+          "maintenance",
+          "62"
+        ],
+        [
+          "restart_tail",
+          "39"
+        ],
+        [
+          "archive",
+          "360"
+        ],
+        [
+          "folder_create",
+          "116"
+        ],
+        [
+          "flag",
+          "118"
+        ],
+        [
+          "folder_review",
+          "172"
+        ],
+        [
+          "testapp_delete",
+          "276"
+        ]
+      ],
+      "log": ".work/19b-fold/ci/42760159138-1/control-mail-sweep-1-7-42760159138-1/mail.txt",
+      "sha256": "18447a17fbd1aefcdbc0e8a08f9c8c811667c98606c4c4f9b7c3337c7c902c42",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "380.035"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-sweep-1-8-42760159138-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "repair",
+          "422"
+        ],
+        [
+          "delete_permanent",
+          "402"
+        ],
+        [
+          "unsubscribe_https",
+          "336"
+        ],
+        [
+          "settlement",
+          "148"
+        ],
+        [
+          "restore",
+          "68"
+        ],
+        [
+          "testapp_export",
+          "144"
+        ],
+        [
+          "filing_move",
+          "350"
+        ],
+        [
+          "filing_rename",
+          "227"
+        ],
+        [
+          "maintenance",
+          "62"
+        ],
+        [
+          "restart_tail",
+          "39"
+        ],
+        [
+          "archive",
+          "360"
+        ],
+        [
+          "folder_create",
+          "116"
+        ],
+        [
+          "flag",
+          "118"
+        ],
+        [
+          "folder_review",
+          "172"
+        ],
+        [
+          "testapp_delete",
+          "276"
+        ]
+      ],
+      "log": ".work/19b-fold/ci/42760159138-1/control-mail-sweep-1-8-42760159138-1/mail.txt",
+      "sha256": "1be3a979421a3ee113e43f205866a7cbc56640e66b44555fffebd1579c8d1d9c",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "361.545"
+        ]
+      ]
+    },
+    {
+      "artifact": "control-mail-sweep-1-9-42760159138-1",
+      "expected_old_pin_failures": [
+        "test_all_flows_all_storage_modes_independent_views"
+      ],
+      "flows": [
+        [
+          "repair",
+          "422"
+        ],
+        [
+          "delete_permanent",
+          "402"
+        ],
+        [
+          "unsubscribe_https",
+          "336"
+        ],
+        [
+          "settlement",
+          "148"
+        ],
+        [
+          "restore",
+          "68"
+        ],
+        [
+          "testapp_export",
+          "144"
+        ],
+        [
+          "filing_move",
+          "350"
+        ],
+        [
+          "filing_rename",
+          "227"
+        ],
+        [
+          "maintenance",
+          "62"
+        ],
+        [
+          "restart_tail",
+          "39"
+        ],
+        [
+          "archive",
+          "360"
+        ],
+        [
+          "folder_create",
+          "116"
+        ],
+        [
+          "flag",
+          "118"
+        ],
+        [
+          "folder_review",
+          "172"
+        ],
+        [
+          "testapp_delete",
+          "276"
+        ]
+      ],
+      "log": ".work/19b-fold/ci/42760159138-1/control-mail-sweep-1-9-42760159138-1/mail.txt",
+      "sha256": "b68652daee158426104344b226214b16eb0c271d9410330201754d8b8c8ded84",
+      "test_summaries": [
+        [
+          "0",
+          "0.000"
+        ],
+        [
+          "6",
+          "336.620"
+        ]
+      ]
+    }
+  ],
+  "max_job_seconds": 1127,
+  "mode": "repin",
+  "per_suite": {
+    "G22-evidence": 1,
+    "G22-latch": 1,
+    "G22-rename": 1,
+    "archive": 57405,
+    "attachment_export": 66558,
+    "cancel": 9909,
+    "channel": 2,
+    "contract": 486,
+    "delete_permanent": 77337,
+    "delete_trash": 51769,
+    "draft_append": 13928,
+    "expiry": 11998,
+    "export_rollback": 74402,
+    "filing_copy": 68592,
+    "filing_move": 68333,
+    "filing_rename": 32701,
+    "flag": 8137,
+    "folder_create": 7721,
+    "folder_delete": 39041,
+    "folder_review": 34653,
+    "maintenance": 6303,
+    "onboarding": 438678,
+    "password": 2286,
+    "repair": 107161,
+    "restore": 18684,
+    "send": 187473,
+    "settings": 14281,
+    "settlement": 36294,
+    "status": 23612,
+    "testapp_config": 7844,
+    "testapp_delete": 48279,
+    "testapp_export": 20227,
+    "testapp_send": 67989,
+    "unsubscribe_https": 64378,
+    "unsubscribe_mailto": 182764
+  },
+  "reduction_from_part_b": {
+    "assertions": 350781,
+    "bytes": 8242,
+    "groups": 16
+  },
+  "run": 42760159138,
+  "sha256": "ff3de0ad2c95e7892ad09f46878ee9ba77e5aad7d6490ac369c3bc66297ad988",
+  "source": "a1859a6969911e3d38866807e0812e6088d4fa7c",
+  "stages": {
+    "2": 0,
+    "3": 1849228
+  }
+}

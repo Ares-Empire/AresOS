@@ -1,0 +1,21 @@
+Reviewed `55700bb2..9e6cc9e4`. Findings **1, 2, 5 and 6 remain partially unfixed**.
+
+1. **Blocking — expiry warnings still depend on production flags (finding 1).**  
+   [model.py:132](/Users/pab/AresOS-19b-state/control/owner_state_oracle/model.py:132), [model.py:397](/Users/pab/AresOS-19b-state/control/owner_state_oracle/model.py:397). A legitimately expired reservation with `notice=False` produces empty expectations and no lifecycle error. Starting with `notice=True`, then archiving that unacknowledged expired operation, also erases its expectation without an error. Thus production can still suppress a required disclosure by changing its own flags or removing its row. **Fix:** derive and retain the expiry-notice obligation from the validated transition until a matching scripted, committed acknowledgement. Protect that obligation during archive removal. Add both mutations as tests.
+
+2. **Blocking — coherent context and command can still violate the script (finding 2).**  
+   [context.py:239](/Users/pab/AresOS-19b-state/control/owner_state_oracle/context.py:239). A scripted trash deletion, with Trash independently identified as `Trash`, passes when both context and actual MOVE instead target `Other`: `differences()` returns no errors, and completion validation also passes. Separately, requesting `add=["\\Seen"], remove=[]` passes when context and command perform an empty removal, because the attempted command selects which scripted flag branch gets checked. **Fix:** independently derive the permitted destination and complete flag operations from the script and role evidence, then validate context and commands against those requirements. Test the wrong destination and omitted requested flag addition.
+
+3. **Should-fix — missing original envelopes escape comparison (finding 5).**  
+   [driver.py:269](/Users/pab/AresOS-19b-state/control/owner_state_oracle/driver.py:269). `capture_response()` silently ignores replies without `pending`. Removing the entire envelope from an original onboarding error reply queues zero comparisons, even with an expected live warning. The special `mail_account_add` request method also bypasses the action-schema validation that could otherwise catch this. Later healthy reads can therefore mask the original omission. **Fix:** identify public responses from their scripted request type, require their envelopes, and compare missing envelopes as failures. Exclude synthetic maintenance results explicitly.
+
+4. **Should-fix — qualification reasons still justify themselves through production state (finding 6).**  
+   [model.py:512](/Users/pab/AresOS-19b-state/control/owner_state_oracle/model.py:512), [model.py:525](/Users/pab/AresOS-19b-state/control/owner_state_oracle/model.py:525). With no injected fault, delivered successful exact EXPUNGE and empty-folder DELETE, changing the committed cleanup operation to `state="failed"` makes the oracle expect `exact-cleanup-failed`. A public account repeating that false explanation passes; completion validation reports no contradiction. **Fix:** validate committed probe outcomes against the correlated commands, replies, faults and commits before using them to derive qualification. Add a coherent false-state/false-disclosure mutation.
+
+Original findings **3, 4, 7, 8 and 9 are addressed** within this review’s scope.
+
+**L1’s compact representation is equally strict for the recorded deltas.** I reproduced the old ledger’s conversion hash and counts exactly. Digests include each key, row, stage and complete delta. Missing/extra groups, unexpected passes, unlisted failures, changed deltas, moved keys and unexecuted owned groups fail verification. The current ledger is **858,685 bytes**. Recomputing its groups from the 17 saved final CI artifacts matched all **1,697 groups**: each had exactly one verifier, except shared groups verified identically by all twelve workers.
+
+I ran **61 oracle self-tests successfully**, including the import-independence check, plus the probes above. I did not rerun the Linux fault sweep. L1’s strictness does not resolve the remaining expectation-validation holes.
+
+CHANGES-NEEDED

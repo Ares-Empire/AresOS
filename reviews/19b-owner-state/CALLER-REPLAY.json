@@ -1,0 +1,30 @@
+{
+  "changed_assertions": 2380,
+  "changed_input": "Only the literal caller directory component in attachment/save audit folder and saved-path fields; deterministic fixed-width caller_name tuple encoding.",
+  "conversion_only": true,
+  "files": {
+    "owner-gaps-G22-evidence-0-0.json.gz": 1,
+    "owner-gaps-G22-latch-0-0.json.gz": 1,
+    "owner-gaps-G22-rename-0-0.json.gz": 1,
+    "owner-gaps-channel-0-0.json.gz": 2,
+    "owner-gaps-contract-0-0.json.gz": 364,
+    "owner-gaps-sweep-0-0.json.gz": 127957,
+    "owner-gaps-sweep-0-1.json.gz": 143732,
+    "owner-gaps-sweep-0-2.json.gz": 142578,
+    "owner-gaps-sweep-1-0.json.gz": 127011,
+    "owner-gaps-sweep-1-1.json.gz": 141020,
+    "owner-gaps-sweep-1-2.json.gz": 131414,
+    "owner-gaps-sweep-2-0.json.gz": 148684,
+    "owner-gaps-sweep-2-1.json.gz": 132511,
+    "owner-gaps-sweep-2-2.json.gz": 133555,
+    "owner-gaps-sweep-3-0.json.gz": 139583,
+    "owner-gaps-sweep-3-1.json.gz": 148063,
+    "owner-gaps-sweep-3-2.json.gz": 133037
+  },
+  "original_run": 42657094358,
+  "original_source": "0b6cfec6b2439b1141ad08addc2fc4913e2a960c",
+  "replay_run": 42662867171,
+  "replay_source": "92f587de1a0ba50f17f4e5133b02b2d56d9d4553",
+  "runtime_comparison": "Unchanged, exact full literal audit projection; no path normalization in expectations or comparator.",
+  "same_exact_entries_after_declared_input_replay": true
+}

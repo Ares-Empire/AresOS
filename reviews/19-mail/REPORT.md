@@ -24,8 +24,21 @@ Review records: [REVIEW.md](REVIEW.md), [REVIEW-2.md](REVIEW-2.md),
 [SECURITY-REVIEW-17.md](SECURITY-REVIEW-17.md),
 [SECURITY-REVIEW-18.md](SECURITY-REVIEW-18.md),
 [SECURITY-REVIEW-19.md](SECURITY-REVIEW-19.md),
-[SECURITY-REVIEW-20.md](SECURITY-REVIEW-20.md), and
-[SECURITY-REVIEW-21.md](SECURITY-REVIEW-21.md).
+[SECURITY-REVIEW-20.md](SECURITY-REVIEW-20.md),
+[SECURITY-REVIEW-21.md](SECURITY-REVIEW-21.md),
+[SECURITY-REVIEW-22.md](SECURITY-REVIEW-22.md), and the description check after round 29,
+[DESCRIPTION-CHECK-29.md](DESCRIPTION-CHECK-29.md).
+
+**Lead decision, 2026-11-09: the Mail review loop stops after round 29.** Security
+review 22 found three more blocking points: a live RENAME dropping an observed Trash
+role, a refused recovery write discarding new warning evidence, and a transient
+journal failure refusing until restart. They belong to the classes brief 19b closes
+by construction (warnings read from the committed record, refusals recomputed, an
+independent oracle). Following the rule agreed with `mac-capacity` and the owner's
+approval of 19b (board #126), 19b is now built on top of this branch, on
+`pkg/19b-owner-state`, with every blocking case of reviews 20 to 22 among its
+acceptance tests. When 19b's reviews say SAFE, it merges into this branch, and this
+PR merges to `main` after a final security review of the combined head.
 
 ## For the owner: decisions before merge
 

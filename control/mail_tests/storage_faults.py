@@ -16,6 +16,17 @@ from aresos_control.common import CLEANUP
 
 
 ACTIVE = None
+EXCLUDED = 0
+
+
+@contextmanager
+def outside_faults():
+    global EXCLUDED
+    EXCLUDED += 1
+    try:
+        yield
+    finally:
+        EXCLUDED -= 1
 
 
 class Methods(C.Structure):
@@ -126,6 +137,8 @@ class OSWrites:
         self.cleanup_points, self.failures = [], []
 
     def hit(self, label, sqlite=False):
+        if EXCLUDED:
+            return 0
         self.points.append(label)
         number = len(self.points)
         if CLEANUP.get() is not None or (self.failed and label.rsplit('.', 1)[-1] in {'close', 'unlink', 'rename', 'truncate'}):

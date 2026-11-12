@@ -11,12 +11,14 @@ import ssl
 import threading
 
 from support import CERT
+from owner_state_oracle.transcript import TRACE, Transcript
 
 
 class GuardedIMAPFixture:
     def __init__(self, host='greenmail', port=3993, mode='guard', error_text=b'Synthetic failure', backend_password=None):
         fixture = self
         self.mode, self.error_text = mode, error_text
+        self.trace = TRACE
         # Optional raw received-message literals: preserve binary octets that a
         # real backend may canonicalize during BODY[] retrieval. Test-only.
         self.exact_sources = {}
@@ -38,6 +40,7 @@ class GuardedIMAPFixture:
                     with fixture.client_context.wrap_socket(raw,server_hostname=host) as conn:
                         backend = conn.makefile('rwb',buffering=0)
                         self.wfile.write(backend.readline())
+                        selected, account, event = None, None, None
                         def exact(stream, count):
                             data = b''
                             while len(data) < count:
@@ -70,6 +73,9 @@ class GuardedIMAPFixture:
                                 literal = re.search(rb'\{(\d+)\}\r\n$',line)
                                 if literal:
                                     data = exact(backend,int(literal[1]))
+                                    if event is not None:
+                                        uid = re.search(rb'UID (\d+)', line)
+                                        event['identities'].append(Transcript.message(data, account=account, folder=selected, uid=int(uid[1]) if uid else None))
                                     if destination:
                                         mid = re.search(rb'(?im)^Message-ID: ([^\r\n]+)', data)
                                         if b'BODY[]' in line and mid and mid[1] in fixture.exact_sources:
@@ -80,6 +86,8 @@ class GuardedIMAPFixture:
                                 elif destination:
                                     self.wfile.write(line)
                                 if line.startswith(tag + b' '):
+                                    if event is not None:
+                                        event.update(accepted=line.split(b' ', 2)[1] == b'OK', reply='delivered' if destination else 'lost')
                                     return b''.join(collected)
                         while True:
                             try:
@@ -92,12 +100,20 @@ class GuardedIMAPFixture:
                             with fixture.lock:
                                 arguments = rest[0].strip() if rest else b''
                                 fixture.commands.append((command.upper(), arguments))
+                                if command.upper() == b'LOGIN':
+                                    account = arguments.split(b' ', 1)[0].strip(b'"').decode()
+                                if command.upper() in {b'SELECT', b'EXAMINE'}:
+                                    selected = arguments.strip(b'"').decode()
+                                event = fixture.trace.command(command.decode().upper(), None, selected,
+                                    dict(fixture.role_map or fixture.special_roles), principal=account, delimiters=dict(fixture.separators),
+                                    arguments=arguments.decode(errors='replace') if command.upper() != b'LOGIN' else '[credentials omitted]')
                                 if fixture.disconnect_before_command(command.upper(), arguments):
                                     self.wfile.write(b'* BYE Scripted connection loss during reporting\r\n')
                                     return
                                 refusal = fixture.before_command(command.upper(), arguments)
                                 if refusal:
                                     self.wfile.write(tag + b' NO ' + refusal + b'\r\n')
+                                    event.update(accepted=False, reply='delivered')
                                     continue
                                 if fixture.mode == 'echo_disconnect_expunge' and command.upper() == b'UID' and rest and rest[0].upper().startswith(b'EXPUNGE '):
                                     backend.write(line)
@@ -108,9 +124,11 @@ class GuardedIMAPFixture:
                                     or (fixture.mode == 'echo_store' and command.upper() == b'UID' and rest and rest[0].upper().startswith(b'STORE '))
                                     or (fixture.mode == 'echo_expunge' and command.upper() == b'UID' and rest and rest[0].upper().startswith(b'EXPUNGE '))):
                                     self.wfile.write(tag + b' BAD ' + fixture.error_text + b'\r\n')
+                                    event.update(accepted=False, reply='delivered')
                                     continue
                                 if fixture.mode == 'expunge_failure' and command.upper() == b'UID' and rest and rest[0].upper().startswith(b'EXPUNGE '):
                                     self.wfile.write(tag + b' NO [UNAVAILABLE] Synthetic cleanup failure\r\n')
+                                    event.update(accepted=False, reply='delivered')
                                     continue
                                 if command.upper() == b'LOGIN' and backend_password is not None:
                                     # Accept the test's distinct secret while the real backend uses its fixed fixture password.
@@ -124,6 +142,7 @@ class GuardedIMAPFixture:
                                         if fixture.mode in {'inuse','permission','generic'}:
                                             reason = {'inuse':b'[INUSE] Temporary refusal', 'permission':b'[NOPERM] Nonempty folder inaccessible', 'generic':b'Permission denied'}[fixture.mode]
                                             self.wfile.write(tag + b' NO ' + reason + b'\r\n')
+                                            event.update(accepted=False, reply='delivered')
                                             continue
                                         if fixture.mode == 'missing_probe':
                                             backend.write(b'ERASE SELECT ' + name + b'\r\n')
@@ -133,9 +152,11 @@ class GuardedIMAPFixture:
                                             backend.write(b'EXPUNGE UID EXPUNGE 1:*\r\n')
                                             response(b'EXPUNGE',False)
                                         self.wfile.write(tag + b' NO [CANNOT] Nonempty DELETE forbidden by fixture policy\r\n')
+                                        event.update(accepted=False, reply='delivered')
                                         continue
                                     if fixture.mode == 'empty_delete_failure':
                                         self.wfile.write(tag + b' NO [UNAVAILABLE] Empty cleanup failed\r\n')
+                                        event.update(accepted=False, reply='delivered')
                                         continue
                                 backend.write(line)
                                 literal = re.search(rb'\{(\d+)(\+)?\}\r\n$',line)
@@ -144,8 +165,10 @@ class GuardedIMAPFixture:
                                         continuation = backend.readline()
                                         self.wfile.write(continuation)
                                         if not continuation.startswith(b'+'):
+                                            event.update(accepted=False, reply='delivered')
                                             continue
                                     data = exact(self.rfile,int(literal[1]) + 2)
+                                    event['identities'].append(Transcript.message(data[:-2], account=account, folder=arguments.split(b' ',1)[0].strip(b'"').decode()))
                                     backend.write(data)
                                 response(tag,True)
                                 fixture.after_command(command.upper(), arguments)

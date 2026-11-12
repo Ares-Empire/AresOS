@@ -1,0 +1,113 @@
+{
+  "added": 161,
+  "artifacts": [
+    {
+      "assertions": 1,
+      "bytes": 218,
+      "file": ".work/19b-s2/capture-a/lists/owner-gaps-G22-evidence-0-0.json.gz",
+      "sha256": "5cf09465fa5f5565efafee95958a592251e994a3a28d609c86d85cd5077d1bf1"
+    },
+    {
+      "assertions": 15109,
+      "bytes": 70376,
+      "file": ".work/19b-s2/capture-a/lists/owner-gaps-sweep-3-0.json.gz",
+      "sha256": "e52b4d6f0e3de40a3787b1c30220e21b1606f602096a7d896b5be94a023fa768"
+    },
+    {
+      "assertions": 20652,
+      "bytes": 94243,
+      "file": ".work/19b-s2/capture-a/lists/owner-gaps-sweep-2-2.json.gz",
+      "sha256": "b9cf4d3ab5a60d4030a535bd80bb2c155400b84d83f679abc5cdbb1a03ed06bf"
+    },
+    {
+      "assertions": 1,
+      "bytes": 212,
+      "file": ".work/19b-s2/capture-a/lists/owner-gaps-G22-rename-0-0.json.gz",
+      "sha256": "ba0e35cd9e79770c65dfe1ef44eb987768ce07b1044271cd5256cfb1a782463f"
+    },
+    {
+      "assertions": 19144,
+      "bytes": 87583,
+      "file": ".work/19b-s2/capture-a/lists/owner-gaps-sweep-3-1.json.gz",
+      "sha256": "390d30a68a1385c50768f83b56770fe970dc1ba5a4a93edfb00073a864413ca4"
+    },
+    {
+      "assertions": 19004,
+      "bytes": 87178,
+      "file": ".work/19b-s2/capture-a/lists/owner-gaps-sweep-2-0.json.gz",
+      "sha256": "b8528f5de74ad2abdb90593b2932fed5b0f44cb2bdd30d94d24977c7c3f26ae0"
+    },
+    {
+      "assertions": 18741,
+      "bytes": 87068,
+      "file": ".work/19b-s2/capture-a/lists/owner-gaps-sweep-3-2.json.gz",
+      "sha256": "131a799f2b9d01c615ffe455c1ea57d899e87fc537fb7accd5761c41f4516d47"
+    },
+    {
+      "assertions": 23223,
+      "bytes": 103026,
+      "file": ".work/19b-s2/capture-a/lists/owner-gaps-sweep-2-1.json.gz",
+      "sha256": "62efc714e8d7aa10460102050b3537785eaf54a1e11f9969bd7a4057e553e982"
+    },
+    {
+      "assertions": 18024,
+      "bytes": 83315,
+      "file": ".work/19b-s2/capture-a/lists/owner-gaps-sweep-1-0.json.gz",
+      "sha256": "3c39a7deaaee76b6ea3bbfb5b5c999269d0a21ddf023bdac8ae64c27405e1d33"
+    },
+    {
+      "assertions": 22188,
+      "bytes": 99845,
+      "file": ".work/19b-s2/capture-a/lists/owner-gaps-sweep-0-2.json.gz",
+      "sha256": "a045c514257eeed00ea48df8ecbe84639bbaefc5a372509e859167ef8c150e3e"
+    },
+    {
+      "assertions": 18015,
+      "bytes": 81600,
+      "file": ".work/19b-s2/capture-a/lists/owner-gaps-sweep-1-1.json.gz",
+      "sha256": "256094ab500c4573ea7c54e94c62fbc667b458074d4a19e294fd94fea53c64cf"
+    },
+    {
+      "assertions": 20125,
+      "bytes": 90377,
+      "file": ".work/19b-s2/capture-a/lists/owner-gaps-sweep-0-0.json.gz",
+      "sha256": "eda1771275dc6c8b7a159534d99025d46fde900e9f6fc799855c7009adefa0c1"
+    },
+    {
+      "assertions": 1,
+      "bytes": 216,
+      "file": ".work/19b-s2/capture-a/lists/owner-gaps-G22-latch-0-0.json.gz",
+      "sha256": "2b42b8838f318fb574ae5e1fea153bccc2b65c1aedc12016fab77ade5bcdcfe0"
+    },
+    {
+      "assertions": 21065,
+      "bytes": 96702,
+      "file": ".work/19b-s2/capture-a/lists/owner-gaps-sweep-1-2.json.gz",
+      "sha256": "3f2c3c4c094b1c49848e8a6d5ec89d68df43f21bf6b8c85e3be49c88f6f0afd4"
+    },
+    {
+      "assertions": 501,
+      "bytes": 8275,
+      "file": ".work/19b-s2/capture-a/lists/owner-gaps-contract-0-0.json.gz",
+      "sha256": "49fa4b266884935f98ec7f41628e6312d7ad729600f39f84feb79c7c705a9600"
+    },
+    {
+      "assertions": 17127,
+      "bytes": 80233,
+      "file": ".work/19b-s2/capture-a/lists/owner-gaps-sweep-0-1.json.gz",
+      "sha256": "83c66e70f9e3f36698e3311d5339c324f46b7c9441b36a9204d0a86fd877dc89"
+    }
+  ],
+  "assertions": 1810601,
+  "bytes": 976806,
+  "changed": 1253,
+  "groups": 2115,
+  "input_baseline": "LEDGER-STRICT-R3.json strict repetition 1",
+  "part": "stage 2 part A",
+  "removed": 0,
+  "sha256": "341e4b3c31d1deb30deff1394514b003f4bdd88bf24fb3b5155c06bd54ca0a42",
+  "stages": {
+    "2": 44857,
+    "3": 1765744
+  }
+}

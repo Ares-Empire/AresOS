@@ -1,0 +1,180 @@
+{
+  "alterations": 2080065,
+  "checks": [
+    {
+      "file": ".work/19b-s2-fixes-2/unit.txt",
+      "sha256": "caac9daf3023141c8cb985d887186630b26fe80bf7ce778c0bd66dde23fbb41c",
+      "test_summary": [
+        "Ran 146 tests in 0.391s"
+      ]
+    },
+    {
+      "file": ".work/19b-s2-fixes-2/oracle-focused-final.txt",
+      "sha256": "66be50beb20e939721b475ebca383dfff55ee0f1766abb496544352761f43998",
+      "test_summary": [
+        "Ran 13 tests in 12.555s"
+      ]
+    },
+    {
+      "file": ".work/19b-s2-fixes-2/base-final.txt",
+      "sha256": "c34eec262d1a9b11674dba553cc80f8158f7a72d7a7aa7efb9fb495aafdeb53d",
+      "test_summary": [
+        "Ran 19 tests in 27.738s"
+      ]
+    },
+    {
+      "file": ".work/19b-s2-fixes-2/regressions-final.txt",
+      "sha256": "fc7b0bdaa9f0754de8b86516b020800d685f35ac1cf40d6994d768f3614fe636",
+      "test_summary": [
+        "Ran 6 tests in 0.319s"
+      ]
+    },
+    {
+      "file": ".work/19b-s2-fixes-2/action-context.txt",
+      "sha256": "5e562c3116e602d8b1cfd894b1675a0b8e9f9148369e5e92931ee6e8256f459d",
+      "test_summary": [
+        "Ran 13 tests in 303.824s"
+      ]
+    },
+    {
+      "file": ".work/19b-s2-fixes-2/storage-final.txt",
+      "sha256": "d115662b1a98024c1da0c9699221f4960e03f3dfeff83106bf6d5b271c232230",
+      "test_summary": []
+    },
+    {
+      "file": ".work/19b-s2-fixes-2/check-scans.txt",
+      "sha256": "ed91e7be60d481916360655b2801a9a996e4eb43704ffb2ffd06e965fab9e1d1",
+      "test_summary": []
+    }
+  ],
+  "classification": "Local diagnostics use the worktree-only Linux-policy fixture and candidate gap recording. Installed-policy and strict-pin acceptance comes from Linux.",
+  "kinds": {
+    "boolean": 48264,
+    "effect": 658685,
+    "key-deletion": 821644,
+    "restore": 1512,
+    "row": 3043,
+    "sequence": 1512,
+    "state": 545405
+  },
+  "logs": [
+    {
+      "file": ".work/19b-s2-fixes-2/alteration-0.txt",
+      "sha256": "5506390dbfabb7e7300d6e87c3e2554db9113b387e73545e55dad9622198fbdf",
+      "summary": "Owner perturbations scenarios=9 kinds={'boolean': 1887, 'effect': 25868, 'key-deletion': 32000, 'restore': 79, 'row': 159, 'sequence': 79, 'state': 22575} total=82647 slipped=0",
+      "test_summary": [
+        "Ran 1 test in 238.855s"
+      ]
+    },
+    {
+      "file": ".work/19b-s2-fixes-2/alteration-1.txt",
+      "sha256": "fb8fcad503a78252aae39f9b508c280b5a6cc386ad58b8f50da0c42be5f88f2e",
+      "summary": "Owner perturbations scenarios=9 kinds={'boolean': 4051, 'effect': 53181, 'key-deletion': 65908, 'restore': 116, 'row': 248, 'sequence': 116, 'state': 43960} total=167580 slipped=0",
+      "test_summary": [
+        "Ran 1 test in 549.410s"
+      ]
+    },
+    {
+      "file": ".work/19b-s2-fixes-2/alteration-2.txt",
+      "sha256": "ac0025553e2409e05d11e3f0bbe2639d8fc003c569e82ff401f93a9cb146325e",
+      "summary": "Owner perturbations scenarios=8 kinds={'boolean': 3532, 'effect': 46731, 'key-deletion': 58129, 'restore': 115, 'row': 218, 'sequence': 115, 'state': 40810} total=149650 slipped=0",
+      "test_summary": [
+        "Ran 1 test in 554.844s"
+      ]
+    },
+    {
+      "file": ".work/19b-s2-fixes-2/alteration-3.txt",
+      "sha256": "43f4d884cba9448e3ce80d228633d483b72e5011f941bc95e3aa5ed93b2f3f81",
+      "summary": "Owner perturbations scenarios=8 kinds={'boolean': 4162, 'effect': 55158, 'key-deletion': 68614, 'restore': 125, 'row': 250, 'sequence': 125, 'state': 48020} total=176454 slipped=0",
+      "test_summary": [
+        "Ran 1 test in 775.186s"
+      ]
+    },
+    {
+      "file": ".work/19b-s2-fixes-2/alteration-4.txt",
+      "sha256": "bcc55c93d5809b4cb7d9f858c48e2736498ba956c63de07c42a13e37bd6ad75f",
+      "summary": "Owner perturbations scenarios=8 kinds={'boolean': 5083, 'effect': 70655, 'key-deletion': 87681, 'restore': 163, 'row': 313, 'sequence': 163, 'state': 65275} total=229333 slipped=0",
+      "test_summary": [
+        "Ran 1 test in 1030.529s"
+      ]
+    },
+    {
+      "file": ".work/19b-s2-fixes-2/alteration-5.txt",
+      "sha256": "a1d4248c94db4ed0bb06ed441fcb950e8f8b0242b15ab2906ca7165c01a275be",
+      "summary": "Owner perturbations scenarios=8 kinds={'boolean': 6136, 'effect': 84298, 'key-deletion': 105044, 'restore': 169, 'row': 329, 'sequence': 169, 'state': 74865} total=271010 slipped=0",
+      "test_summary": [
+        "Ran 1 test in 1261.387s"
+      ]
+    },
+    {
+      "file": ".work/19b-s2-fixes-2/alteration-6.txt",
+      "sha256": "0ab1b27d25110c744f3dc5a0044d09567b1ba19d3892421f61966d6255995248",
+      "summary": "Owner perturbations scenarios=8 kinds={'boolean': 7722, 'effect': 104028, 'key-deletion': 129747, 'restore': 185, 'row': 372, 'sequence': 185, 'state': 85610} total=327849 slipped=0",
+      "test_summary": [
+        "Ran 1 test in 1489.295s"
+      ]
+    },
+    {
+      "file": ".work/19b-s2-fixes-2/alteration-7.txt",
+      "sha256": "e4d3a9ef7769ff552a21807140342f54c01ed27bb9669eabd68a6d3400ee8eb0",
+      "summary": "Owner perturbations scenarios=8 kinds={'boolean': 2683, 'effect': 34096, 'key-deletion': 42852, 'restore': 87, 'row': 188, 'sequence': 87, 'state': 20580} total=100573 slipped=0",
+      "test_summary": [
+        "Ran 1 test in 459.566s"
+      ]
+    },
+    {
+      "file": ".work/19b-s2-fixes-2/alteration-8.txt",
+      "sha256": "d8aada31167a844611db0882037fdc526e6fdd3cea3bde1e41bcd2b6856097f3",
+      "summary": "Owner perturbations scenarios=8 kinds={'boolean': 4738, 'effect': 69681, 'key-deletion': 87398, 'restore': 141, 'row': 292, 'sequence': 141, 'state': 50785} total=213176 slipped=0",
+      "test_summary": [
+        "Ran 1 test in 1310.328s"
+      ]
+    },
+    {
+      "file": ".work/19b-s2-fixes-2/alteration-9.txt",
+      "sha256": "3ab7e7893f6eb33cae5295f435192eae7de23d001a36fa44c0c069841919dfca",
+      "summary": "Owner perturbations scenarios=8 kinds={'boolean': 5534, 'effect': 81115, 'key-deletion': 101326, 'restore': 159, 'row': 325, 'sequence': 159, 'state': 63735} total=252353 slipped=0",
+      "test_summary": [
+        "Ran 1 test in 1624.275s"
+      ]
+    },
+    {
+      "file": ".work/19b-s2-fixes-2/alteration-10.txt",
+      "sha256": "ee809880fc485685f9676b25eb829ebb299d80892aa51157d4f8f3d56985900e",
+      "summary": "Owner perturbations scenarios=8 kinds={'boolean': 2001, 'effect': 25035, 'key-deletion': 31824, 'restore': 95, 'row': 183, 'sequence': 95, 'state': 19425} total=78658 slipped=0",
+      "test_summary": [
+        "Ran 1 test in 325.881s"
+      ]
+    },
+    {
+      "file": ".work/19b-s2-fixes-2/alteration-11.txt",
+      "sha256": "e3fa0a9ccc432b5317e29b83fbd154b8d6da393a8b5f62599ff88e91c628b5ce",
+      "summary": "Owner perturbations scenarios=8 kinds={'boolean': 735, 'effect': 8839, 'key-deletion': 11121, 'restore': 78, 'row': 166, 'sequence': 78, 'state': 9765} total=30782 slipped=0",
+      "test_summary": [
+        "Ran 1 test in 106.343s"
+      ]
+    }
+  ],
+  "scenarios": 98,
+  "slipped": 0,
+  "source": "9b1966f717773447bed025318cf02b56f43f2ff6",
+  "statistics": {
+    "alterations": 2080065,
+    "changed": 15899,
+    "coherent": 267100,
+    "completion_errors.changed": 1284,
+    "completion_errors.own_catches": 2601,
+    "filing_claims.changed": 90,
+    "filing_claims.own_catches": 1054,
+    "local.errors.changed": 1170,
+    "local.errors.own_catches": 1552,
+    "payload_claims.changed": 24,
+    "payload_claims.own_catches": 61520,
+    "script_differences.changed": 681,
+    "script_differences.own_catches": 5669,
+    "stage_claims.changed": 2361,
+    "stage_claims.own_catches": 54941,
+    "transition.changed": 3914,
+    "transition.own_catches": 12155
+  }
+}
