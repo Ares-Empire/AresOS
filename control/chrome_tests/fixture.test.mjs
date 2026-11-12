@@ -56,7 +56,7 @@ test('P31 first script captures natives inside head and excluded GET carries the
 test('review fixtures compile without starting a browser',async()=>{
   const {reviewPage}=await import('../chrome/ci/review-fixtures.mjs');
   const {passwordPage}=await import('../chrome/ci/password-fixtures.mjs');
-  for(const mode of ['search-label','owner-overlap','shadow-binding','shadow-fallback','inline-editor','owner-file','native-dialog','inline-dialog','preexisting-dialog','borrowed-dialog','inline-hold','new-frame','new-frame-inner','shadow','label','binding','confirmation','file','rich','title','notice','owner-mark','independent-dialog'])for(const variant of ['blank','srcdoc','borrowed','conversion-message','conversion-default','changed-dialog','other-form','other-submitter','closed-event']){
+  for(const mode of ['search-label','owner-overlap','shadow-binding','shadow-fallback','inline-editor','owner-file','native-dialog','inline-dialog','preexisting-dialog','borrowed-dialog','inline-hold','new-frame','new-frame-inner','shadow','label','binding','confirmation','file','rich','title','notice','owner-mark','independent-dialog'])for(const variant of ['blank','srcdoc','borrowed','conversion-message','conversion-default','changed-dialog','other-form','other-submitter','closed-event','form','submit','submit-send','li-open','li-closed','row-open','row-closed']){
     const page=reviewPage(new URL('http://fixture.test/?mode='+mode+'&variant='+variant+'&id=fixture'));new vm.Script(page.script);assert.ok(page.body);
   }
   for(const cross of [false,true])new vm.Script(passwordPage(cross).script);

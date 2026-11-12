@@ -170,14 +170,19 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
     }
   });
   await check('GROUP 3 REVIEW item confirmation file rich text and title mutations refuse',async()=>{
-    for(const [mode,variant,label]of [['binding','listitem','Delete'],['binding','row','Delete'],['binding','article','Delete'],['binding','region','Delete'],['binding','section','Delete'],['binding','unsubscribe','Unsubscribe'],['binding','abbestellen','Abbestellen'],['confirmation','','OK'],['confirmation','form','OK'],['confirmation','submit','OK'],...['li-open','li-closed','row-open','row-closed'].map(variant=>['shadow-binding',variant,'Delete']),['file','','Submit'],['rich','','Send'],['title','','Send']]){
+    for(const [mode,variant,label]of [['binding','listitem','Delete'],['binding','row','Delete'],['binding','article','Delete'],['binding','region','Delete'],['binding','section','Delete'],['binding','unsubscribe','Unsubscribe'],['binding','abbestellen','Abbestellen'],['confirmation','','OK'],['confirmation','form','OK'],['confirmation','submit','OK'],['confirmation','submit-send','Send'],...['li-open','li-closed','row-open','row-closed'].map(variant=>['shadow-binding',variant,'Delete']),['file','','Submit'],['rich','','Send'],['title','','Send']]){
       const id='review-bind-'+mode+'-'+variant;await nav('review-page&mode='+mode+'&variant='+variant+'&id='+id);
       const prepared=await call('click',await target(label));assert.ok(prepared.approval,JSON.stringify(prepared));
       if(mode==='shadow-binding')assert.match(JSON.stringify(prepared.approval),/Invoice A/);
       if(mode==='confirmation')assert.match(JSON.stringify(prepared.approval),/Approved draft/);
       await fixture.mutate(id,'review-change');const result=await rpc('submit',prepared.approval);
       assert.ok(!result.ok||result.data.operation.state==='failed',JSON.stringify(result));assert.equal(receiverEvidence(id,'changed approval refused').count,0);
-      await approval(await call('click',await target(label)),id);console.log('REVIEW P10 P11 P12 P13 P14 P22 RECEIVER0/1/1',id);
+      const fresh=await call('click',await target(label));
+      if(mode==='shadow-binding')assert.match(JSON.stringify(fresh.approval),/Invoice B/);
+      if(mode==='confirmation')assert.match(JSON.stringify(fresh.approval),/Different draft/);
+      await approval(fresh,id);
+      if(['shadow-binding','confirmation'].includes(mode))assert.equal(fixture.arrivals.find(row=>new URL(row.url,'http://fixture.test').searchParams.get('case')===id).body,mode==='confirmation'?'Different draft':'Invoice B');
+      console.log('REVIEW P10 P11 P12 P13 P14 P22 RECEIVER0/1/1',id);
     }
   });
   await check('GROUP 2 REVIEW owner mark exact form submitter and unconsumed delayed work',async()=>{
