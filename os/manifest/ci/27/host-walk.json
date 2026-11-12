@@ -25,8 +25,8 @@
     ]
   },
   "checks": {
-    "qualification": 200,
-    "update": 147
+    "qualification": 201,
+    "update": 148
   },
   "markers": {
     "qualification": [
@@ -146,7 +146,7 @@
       "path": "os/ci/owner_read_diagnostics.py"
     },
     {
-      "sha256": "143316a579587725f4829e3e38a86a9f376e5b1041143da7e6c74e987ca6413d",
+      "sha256": "bf651fef34c314d09cec7c260348df88911b540ef0e8eca4a6131ce4f91b20f0",
       "path": "os/ci/owner_vm.py"
     },
     {
@@ -166,7 +166,7 @@
       "path": "os/ci/registry_auth.py"
     },
     {
-      "sha256": "e07185bd75196301ec5c696fdb6e3acbd855f92e5f030af1d0998a381f10862f",
+      "sha256": "87b034efdd5d76af21e2a1ead0cbef238e48045ee89870fd4d84127d39a600ee",
       "path": "os/ci/rehearsal-packages.json"
     },
     {
@@ -174,7 +174,7 @@
       "path": "os/ci/rehearsal_guard.py"
     },
     {
-      "sha256": "eedcecf9b547b7c77ee8c77db2d47b648bdbe474c291ae2354b6c8221b668f17",
+      "sha256": "aab8e9c939449d0feb02e693e6ed9ffa832f4ff1c52f746d0a11496629e7b23c",
       "path": "os/ci/serial_console.py"
     },
     {
@@ -1006,7 +1006,7 @@
       "path": "os/tests/test_owner_transport.py"
     },
     {
-      "sha256": "97484e6f2228f6995c9a38933726504f8d05b923eae1faef20e832e4b5abe549",
+      "sha256": "53ec60f0ff890fb7898058e8a85503a609a58c11c3971a5ee86c9dd8dbdc2048",
       "path": "os/tests/test_owner_walk.py"
     },
     {
@@ -1030,7 +1030,7 @@
       "path": "os/tests/test_serial_ack.py"
     },
     {
-      "sha256": "ebe9f9cd8712b5d89ec5a9fe371c15b3b6bef6b69fa056c60117d68af6345872",
+      "sha256": "6a5bab671de1bd32458280ed9df648bb79e6caf3ab25512f603a4f74b92a9b2f",
       "path": "os/tests/test_serial_console.py"
     },
     {

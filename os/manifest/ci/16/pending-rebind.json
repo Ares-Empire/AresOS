@@ -55,7 +55,7 @@
       "path": "os/ci/owner_media.py"
     },
     {
-      "sha256": "143316a579587725f4829e3e38a86a9f376e5b1041143da7e6c74e987ca6413d",
+      "sha256": "bf651fef34c314d09cec7c260348df88911b540ef0e8eca4a6131ce4f91b20f0",
       "path": "os/ci/owner_vm.py"
     },
     {
@@ -63,12 +63,16 @@
       "path": "os/ci/registry_auth.py"
     },
     {
-      "sha256": "e07185bd75196301ec5c696fdb6e3acbd855f92e5f030af1d0998a381f10862f",
+      "sha256": "87b034efdd5d76af21e2a1ead0cbef238e48045ee89870fd4d84127d39a600ee",
       "path": "os/ci/rehearsal-packages.json"
     },
     {
       "sha256": "68181f57eaffea2e72e3099fb4e87d5b64ca6f880c4da46a9d9029eb5d97b0af",
       "path": "os/ci/rehearsal_guard.py"
+    },
+    {
+      "sha256": "aab8e9c939449d0feb02e693e6ed9ffa832f4ff1c52f746d0a11496629e7b23c",
+      "path": "os/ci/serial_console.py"
     },
     {
       "sha256": "8a5105eb862546c83ae0baa4c0c037e9c7f289d376ed39e739c0055f73af1ae0",
@@ -187,7 +191,7 @@
       "path": "os/tests/test_owner_tools.py"
     },
     {
-      "sha256": "97484e6f2228f6995c9a38933726504f8d05b923eae1faef20e832e4b5abe549",
+      "sha256": "53ec60f0ff890fb7898058e8a85503a609a58c11c3971a5ee86c9dd8dbdc2048",
       "path": "os/tests/test_owner_walk.py"
     },
     {
@@ -197,6 +201,10 @@
     {
       "sha256": "cddfb200bc20187784db2fc311305a0ea383c8eb3ac7e4af53817c696a786404",
       "path": "os/tests/test_release_squash_binding.py"
+    },
+    {
+      "sha256": "6a5bab671de1bd32458280ed9df648bb79e6caf3ab25512f603a4f74b92a9b2f",
+      "path": "os/tests/test_serial_console.py"
     }
   ],
   "unwalked_commands": [],
