@@ -276,7 +276,7 @@ the settings):
      asking through the managed ask rule in normal and in skip-permissions mode, also with a user allow rule for it and
      after "Yes, and don't ask again"; a `PermissionRequest` hook returning allow for the fake send, at user and at
      managed level, in both modes, with the result recorded (if it approves, that joins the accepted residual; brief
-     18d measured print mode on 2026-11-12, it approves, so 18c keeps the interactive case); no
+     18d measured print mode (merged 2026-11-12) and it approves, so 18c keeps the interactive case); no
      separate session or coding user, no launcher containment.
    - *The next base brief:* the managed settings reduced to the ask rules for every asking tool (generated), the
      managed `Stop` and `UserPromptSubmit` notification hooks (`CONTROL.md` rule 4.10) and the managed `CLAUDE.md`;
