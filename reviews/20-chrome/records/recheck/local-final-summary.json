@@ -1,23 +1,23 @@
 {
-  "source": "bd126db705a4aa6113d33fb6549fbe83a4f13987",
-  "runtime_build_hash": "ae40ca236eaa152613e768119676841bb9f858c3fdc738eccb9b492cff00d783",
+  "source": "495c0b3477e7496134028f5244b767b3f4bc7896",
+  "runtime_build_hash": "ad6a5daaebdb04d6d68c1ced88e7d0305136139208d73a21e9e8424a643ea70e",
   "python": {
     "command": "PYTHONPATH=control:control/chrome_tests PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s control/chrome_tests -v",
-    "tests": 223,
-    "seconds": 562.812,
+    "tests": 224,
+    "seconds": 658.232,
     "result": "OK"
   },
   "node": {
     "command": "node --test control/chrome_tests/*.test.mjs",
-    "tests": 251,
-    "pass": 251,
+    "tests": 257,
+    "pass": 257,
     "fail": 0,
     "cancelled": 0,
     "skipped": 0
   },
   "page_mutations": {
     "command": "python3 -B reviews/20-chrome/mutation-audit.py reviews/20-chrome/records/recheck/page-mutations.json",
-    "count": 139,
+    "count": 147,
     "all_baselines_pass": true,
     "all_mutations_rejected": true
   },
@@ -48,9 +48,9 @@
     "STATE MUTATION KILLED S12 stages test_state_fixes.StateFixes.test_s12_every_page_text_copy_is_inside_untrusted_content"
   ],
   "output_sha256": {
-    "local-python-final.txt": "418eaea17cbd93a4e0a7be42e638ebf8e2ca4ff1e0d12b4a9a175a16cc05a261",
-    "local-node-final.txt": "f7c7974a361497074b2a459b869484c2df607a7b5c0ff5fa61d9076fa97a1de0",
-    "page-mutations-final.txt": "06388af6ec3d272c8633d9fb87bfba1f42ceff1b3d2b81c02d5f0f6bc5d7a13b",
-    "audit-streams-final.txt": "6cbae3d6889866a416c5b42daa80772edde0c3f9ab5ee6e558bf726ed25b45bb"
+    "local-python-final.txt": "e3c60eaeb63045482a64bfbe89c20eedc76d8648bb03849dd3a5c36ad32169bc",
+    "local-node-final.txt": "788d81a115f9dabf8086a0f75c24eec5d8d837053776def3191f20973ccf516f",
+    "page-mutations-final.txt": "af8a37493145f0c2c05a9b984f3f4d87ff221e997379a2f6069a2a6d0ea53931",
+    "audit-streams-final.txt": "099e9dccdf1fbfa076e1fba78602233d0662a3e9158c7ff6ca0ba511553cb2b1"
   }
 }

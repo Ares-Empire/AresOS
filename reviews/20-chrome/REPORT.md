@@ -1,93 +1,170 @@
 # Recheck fixes — 2026-11-12
 
-**In progress; no new Linux acceptance claimed yet.** This section supersedes the historical acceptance below
-for the changes requested by `briefs/20-recheck-fixes.md`. PR #27 stays draft and unmerged on `pkg/20-chrome`.
+**Green twice on `495c0b3477e7496134028f5244b767b3f4bc7896`.** Runtime build hash:
+`ad6a5daaebdb04d6d68c1ced88e7d0305136139208d73a21e9e8424a643ea70e`. PR [#27](https://github.com/Ares-Empire/AresOS/pull/27)
+remains draft and unmerged on `pkg/20-chrome`. The PR currently conflicts with `main`; no branch was merged. The closing commit changes reports/evidence only and uses `[skip ci]`.
+This section supersedes the historical acceptance below for `briefs/20-recheck-fixes.md`.
 
-## Done (read)
+## Done
 
-- `guard.js`: explicit asking cues precede GET-search exemptions in script activation, native form calls,
-  submit-event capture and private relay/foreign-document dispatch. Submitter labels also prevent a form-level
-  exemption. Editable query/message values are content rather than activation labels: listed words in a query stay
-  free, and compose Enter still binds every generic draft. Ordinary GET searches have independent receiver regressions.
-- `reader.js`: the smallest affected container is resolved through composed ancestry, including shadow hosts
-  and assigned slots. Its identifying text includes open/closed component content while retaining password exclusion.
-- `adapter.py`, `policy.py`, `background.js`: generic send confirmations bind every eligible document's draft set
-  even when the confirmation belongs to a form. OK submit buttons keep confirmation semantics; incomplete
-  eligible frame coverage refuses in both binding implementations.
-- `page.js`, `guard.js`: composed events discover previously unregistered roots during window capture. Native-created
-  roots register synchronously before insertion, markup setters or listener registration, so a borrowed native
-  dispatcher cannot reach non-composed handlers through those paths. A host's own event still meets capture.
-  Cleanup restores the saved method/accessor descriptors. No new DevTools method or feature-removing refusal.
-- Linux fixtures add Pay/Delete search handlers, four native/ARIA open/closed changed-item cases, both form-containing
-  confirmation variants, and borrowed native attachShadow with composed/non-composed cancellable/uncancellable events.
-  Composed native-root variants also borrow native insertion, proving window discovery independently.
-- `owner-evidence.mjs`: test-build-only observations record private mark set/pass/hold/end timestamps without changing
-  any mark, allowance or scheduling. A Claude-started overdue timer competes with genuine owner Enter; the Linux case
-  requires the timer's page timestamp inside an observed Enter-mark interval, an immediate owner receiver arrival,
-  zero timer arrivals before its approval and exact-once approval/repeat evidence. No claimed overlap is inferred
-  from synchronous handler submissions. All four existing owner removal probes remain strict.
-- [KNOWN-LIMITS.md](KNOWN-LIMITS.md) collects the remaining review and section 6 residuals, each with harm and acceptance.
-  The fixed findings are not treated as accepted limits. Existing feature/tool maps, dialog decisions, image handoffs
-  and group 12's explicit 18d deferral remain in the historical report below.
+- `guard.js`, `policy.py`: explicit asking cues precede GET-search exemptions in activation, native form calls,
+  submit capture and private/foreign-document relay. Actual submitter labels also prevent a form-level exemption.
+  Editable query/message values are data: “Pay for lunch”, “Delete old notes” and “Send a letter” stay ordinary GET
+  queries; compose Enter still binds every generic draft. Native/ARIA action controls retain their control semantics.
+- `reader.js`: resolve the smallest affected container through composed ancestry, including shadow hosts and native
+  slot assignment when a closed root hides the public `assignedSlot`. Bind identifying text from open/closed component
+  content. Visible item fields, including quantity, are bound separately; protected fields retain presence without values.
+- `adapter.py`, `policy.py`, `background.js`: generic send confirmations bind every eligible frame's complete draft set,
+  including outside drafts when the confirmation belongs to a form. Both OK and Send submit buttons keep confirmation
+  semantics. Incomplete eligible-frame coverage refuses in both service and extension bindings.
+- `page.js`, `guard.js`: composed events discover unregistered native-created roots during window capture. Synchronous
+  insertion, markup-setter and listener hooks register borrowed-native roots before non-composed activation can reach
+  handlers. A shadow host's own activation also meets capture. Release restores saved descriptors without overwriting
+  a page's later unrelated getter. No DevTools method, tool authority or ordinary-tab MAIN wrapper was added.
+- Linux fixtures exercise Pay/Delete search handlers (also editable native/ARIA controls), ordinary GET query receipts,
+  eight open/closed native-list/ARIA-row shadow and slot item variants, form-contained confirmations, compose Enter,
+  changed quantity, and borrowed-native composed/non-composed cancellable/non-cancellable events. The receivers get
+  the actual changed draft, invoice name or quantity. Stale approvals deliver zero; fresh approval delivers once;
+  repeating it adds nothing. Non-cancellable defaults retain the documented honest `unknown` outcome, with handlers
+  stopped and no resumption.
+- `owner-evidence.mjs`: test-package-only observations record private mark set/pass/held/end times without changing
+  marks, allowances or scheduling. A real Claude-started timer fires while the private Enter mark exists; genuine
+  owner Enter submits immediately and that timer's other form stays held. The four production removal probes remain.
+- [KNOWN-LIMITS.md](KNOWN-LIMITS.md) lists every surviving review/section 6 limit with harm and acceptance. Fixed defects
+  and closed evidence gaps are excluded. Historical tool/feature maps, dialog decisions and group 12's 18d deferral
+  remain below.
 
-## Verified / still running
+## Verified
 
-**Run, before source freeze:** the two full Python runs passed **221 tests / 590.744 s** and
-**222 tests / 546.167 s** (the second adds explicit-search service coverage). These are not final-source acceptance:
-classification/observation checks were completed while they ran. Node passes **251/251**, zero failures/cancellations/
-skips. The page audit rejects **139 mutations**, every baseline passing, including all four owner checks and the
-independent overlap/admission oracle checks. [Retained local outputs and hashes](records/recheck/local-summary.json) identify them.
-Generated artifacts were regenerated and checked without drift. A new complete local run begins on the frozen
-commit before its Linux acceptance runs; browser/receiver acceptance is pending.
+Specification: `git fetch origin main`, then the requested `git show origin/main:<path>` reads; local recheck briefs
+win where they differ. No Mac browser, browser profile or container was started or accessed. Browser tests
+ran only in the GitHub Linux containers; their exported failure PNG was inspected as a static artifact. No local Gradle/Java process was started, so there is no Gradle daemon to stop.
 
-**Run — partial Linux diagnostic, not acceptance:** the superseded PR run
-[43120293929](https://github.com/Ares-Empire/AresOS/actions/runs/43120293929), source `9c47556f`, was cancelled
-by this build after the final-source corrections. External retained 46 named passes and policy 39, including all
-four requested fix matrices (browser PASS lines 46, 53/70 and 95) and the new owner timer (line 101). Neither
-incomplete artifact qualifies. [Independent raw owner audit](records/recheck/initial-owner-diagnostic.json) matches
-the page/receiver rows and private ingress observations, including Chrome's implicit trusted submitter click.
-The stricter observer initially expected that default click to carry a keyboard key; the real trace established
-its native click mark instead. The corrected oracle requires a private Enter start, the consumed native input
-mark within the Enter/submit interval, the complete timer/mark interval, and the immediate receiver arrival;
-missing/changed observations still fail. The four production owner-check removals remain unchanged.
+[Exact local commands, outputs and SHA-256 hashes](records/recheck/local-final-summary.json):
 
-| Diagnostic install | Private Enter-mark interval (epoch ms) | Timer fired (epoch ms) | Owner receiver delay |
-|---|---|---|---|
-| External | 1794440451776.5999–1794440451779.4 | 1794440451777.5 | 6.9 ms |
-| Policy | 1794440848192.1–1794440848194.7002 | 1794440848193 | 5.3 ms |
+- `PYTHONPATH=control:control/chrome_tests PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s control/chrome_tests -v`:
+  **224 tests, 658.232 s, OK**, including all 24 explicit state-removal kills and child-failure propagation.
+- `node --test control/chrome_tests/*.test.mjs`: **257 passed**, zero failed/cancelled/skipped.
+- `python3 -B reviews/20-chrome/mutation-audit.py reviews/20-chrome/records/recheck/page-mutations.json`:
+  **147 mutations rejected; every baseline passed**. Includes P20-form, P20-submitter, P20-trust, P20-clear and the
+  independent owner-overlap oracle removals, plus removals of all four fixes, closed slots, editable-data distinction
+  and item fields in reader/service/extension. New field checks compare the whole field list; no existing assertion
+  was weakened or skipped.
+- `node --test reviews/20-chrome/audit-streams.test.mjs`: **5 passed**. Generated artifacts were regenerated and checked
+  with `python3 control/generate.py --check`: **Generated artifacts match definitions**. `git diff --check` passes.
 
-The owner receiver body is `draft=Saved`; the timer's other form stays at zero until its own approval. The final
-fixture focuses the draft first and dispatches only native Enter, preserving the mark lifetime. Confirmation
-fixtures now use real HTML dialogs containing forms, cover both OK and Send submit buttons, and deliver the exact
-current textarea text to the receiver. Shadow item fixtures deliver the current invoice name. Stale approvals
-must arrive zero times; fresh questions and actual receiver bodies must match the changed draft/item.
-Base `43120293916`, qualification `43120293941`, boundary `43120293892` and Mail `43120294032` completed successfully
-on the diagnostic source. They do not replace the mandatory double acceptance on the final source.
+Each workflow below passed twice on the acceptance source; Chrome covers **both external and policy installs in
+both runs**, for four complete artifacts. One blocking watcher per run waited to completion; no turn-by-turn Actions
+status queries were used.
 
-**Run/read — related search/content reproduction:** production classification returned `pay` for both a plain GET
-query and a generic compose Enter whose text was “Pay for lunch”. That misclassified data as a control label and
-could omit the other generic editors from a send binding. `explicit_effect()` now excludes editable values and the
-final classification uses that same evidence. Actual Pay/Delete submitter labels still win. The service tests require
-free focus/GET searches for Pay/Delete/Send query text and a complete changed-second-editor binding for compose Enter.
-Linux's same named search matrix additionally requires three real GET query receipts with their exact query text;
-the changed-draft matrix adds compose Enter whose stale approval must deliver zero and whose fresh receiver body
-must equal the approved second draft. The independent auditor requires all three query receipts. Removing the
-editable-value distinction fails both the search and complete-draft regressions. This supports the requested
-ordinary-search behaviour and whole-question bar; no feature is removed.
+| Workflow | First run | Second run |
+|---|---|---|
+| Control Chrome | [43166895797](https://github.com/Ares-Empire/AresOS/actions/runs/43166895797) | [43167000276](https://github.com/Ares-Empire/AresOS/actions/runs/43167000276) |
+| Control base | [43168120985](https://github.com/Ares-Empire/AresOS/actions/runs/43168120985) | [43168126665](https://github.com/Ares-Empire/AresOS/actions/runs/43168126665) |
+| Control Mail | [43168132614](https://github.com/Ares-Empire/AresOS/actions/runs/43168132614) | [43170615949](https://github.com/Ares-Empire/AresOS/actions/runs/43170615949) |
+| Control boundary | [43168138683](https://github.com/Ares-Empire/AresOS/actions/runs/43168138683) | [43168144172](https://github.com/Ares-Empire/AresOS/actions/runs/43168144172) |
+| Control Chrome qualification | [43168149635](https://github.com/Ares-Empire/AresOS/actions/runs/43168149635) | [43168155392](https://github.com/Ares-Empire/AresOS/actions/runs/43168155392) |
 
-## Not verified / boundaries
+[Completed workflow metadata](records/recheck/closing/completed.json),
+[all 328 named browser PASS locations](records/recheck/closing/INDEX.md), and
+[shared artifact hashes/checks](records/recheck/closing/shared-audit.json) retain the evidence.
+Base prints **142 tests / OK** per run. Mail prints **142 base + 309 Mail / OK**, with **four 4-test fault shards / OK**
+and fixture-isolation PASS per run. Boundary records **127 blocked attacks per filter mode**, **42 unchanged protected
+files**, **zero hostile connections**, with the expected unqualified result when the filter is absent. Qualification
+prints **47 Python + 257 Node** passes per run; its branch-only behavior leaves main-only publishing jobs skipped.
+Manual qualification runs retain real Sigstore and altered/retained-bundle verifier output.
 
-Owner Enter remains **passes in CI, panel to confirm** until the required new overlap evidence exists and the
-panel has reviewed it. No local browser/profile or container was started or inspected. Real accounts/live sites,
-the installed image and group 12's 18d permission-precedence harness remain unverified here. The tests preserve
-all asking, stale-content, receiver, password and replay assertions. No new owner judgment or feature removal.
+[Audit program sources and hashes](records/recheck/closing/audit-sources.json) accompany the outputs.
+The artifact-only command `node --max-old-space-size=192 reviews/20-chrome/audit-review-evidence.mjs <artifact>` ran
+separately for every Chrome artifact. [Independent receiver/privacy results](records/recheck/closing/receiver-audit.json)
+require the exact **82-case inventory**, **224 Python / 257 Node**, complete raw receiver membership and final **0/1/1**
+sequences. They also require all three exact ordinary GET queries, editable Pay controls, all changed-item/form/draft
+variants, the fresh quantity **2**, fresh invoice **Invoice B**, and fresh draft **Different draft**. The raw private
+owner observations and independently timestamped receiver rows must reproduce `owner-overlap.json` exactly.
+[Additional raw fixed-case checks](records/recheck/closing/fixed-case-audit.json) verify stopped handlers, changed-content zeroes and exact receiver bodies independently.
+No password sentinel appears in reconstructed ingress, tool or service output, and no forbidden Runtime console or
+exception value event appears. Protocol and sensitive-getter observations must be present.
 
-## Runs
+Browser version across all four artifacts: **Google Chrome 157.0.8103.78**.
 
-The API ledger before this build has 175 distinct Chrome run IDs and no incomplete runs. The brief's baseline is
-175 used of about 215; the prior report separately accounts for one full rerun attempt. This build will track both
-IDs and executions, batch runtime pushes, mark report-only pushes `[skip ci]`, and wait on each run in one blocking
-shell invocation. No other build's run will be cancelled.
+| Run / install | Page 0/1/1 sequences | Adapter 0/1/1 sequences | Ingress rows | Sensitive-getter observations |
+|---|---:|---:|---:|---:|
+| 43166895797 / external | 1241 | 139 | 146964 | 3507 |
+| 43166895797 / policy | 1241 | 139 | 146418 | 3507 |
+| 43167000276 / external | 1241 | 139 | 148149 | 3505 |
+| 43167000276 / policy | 1241 | 139 | 146504 | 3507 |
+
+### Owner Enter evidence
+
+[Raw-derived proof](records/recheck/closing/receiver-audit.json) includes the page Enter, submit and timer timestamps,
+the receiver's arrival timestamp/body, the consumed private input mark, and both endpoints of the Enter-mark interval.
+Chrome's implicit Enter submission produces a trusted submitter **click** with its own exact mark; the observer now
+checks that actual native sequence rather than expecting a keyboard key on that click. Removing any required
+observation, interval, token, consumed state or in-flight condition fails its independent probe.
+
+| Run / install | Private mark event | Enter-mark interval (epoch ms) | Page timer fired (epoch ms) | Owner receiver delay after page submit |
+|---|---|---|---|---|
+| 43166895797 / external | keyup / Enter | 1794464248090.1–1794464248093.5 | 1794464248091 | 9.400 ms |
+| 43166895797 / policy | keyup / Enter | 1794464247805.8–1794464247808.4 | 1794464247806.6 | 8.600 ms |
+| 43167000276 / external | keyup / Enter | 1794477365110–1794477365114.4 | 1794477365111.3 | 8.600 ms |
+| 43167000276 / policy | keyup / Enter | 1794477383559.5–1794477383562.2 | 1794477383560.2998 | 7.900 ms |
+
+In all four artifacts, the owner reaches the receiver once with `draft=Saved`, without approval and within 200 ms.
+The timer fires inside the observed mark interval, is held at zero arrivals, and reaches one only after its own
+approval; repeat remains one. **The required overlap evidence is now present. Owner Enter remains “passes in CI,
+panel to confirm”; CI does not grant panel acceptance.**
+
+Earlier failed, cancelled or partial diagnostics are excluded from acceptance.
+[Completed superseded-run metadata](records/recheck/superseded-chrome-runs.json) and the separately named superseded
+local records retain that history. Only this build's superseded Chrome runs were cancelled.
+[Final ledger](records/recheck/closing/run-ledger.json): **186 distinct Chrome IDs,
+187 executions including the historical rerun**, against the budget of about 215;
+the opening ledger had 175 IDs / 176 executions. Report-only pushes use `[skip ci]`.
+
+### Worktree storage
+
+During this run, no ISO, image layer, extracted image or browser package was downloaded locally. Each retained CI artifact has one
+local copy. [Inventory of `.work/` files over 500 MB](records/recheck/closing/work-inventory.json):
+
+None.
+
+## Not verified
+
+The owner's panel acceptance and real-machine feel; integration with current `main`; real accounts/live-site bot checks; the installed OS image and
+Windows/Minecraft experience; group 12's deferred 18d permission-precedence harness; main-only qualification publishing.
+Linux screenshots remain in the linked CI artifacts. No Mac browser/profile was used for verification.
+
+## JUDGMENT-CALL
+
+**Editable action controls:** native/ARIA click controls are treated as controls even when `contenteditable` is set.
+This closes the explicit-Pay bypass and also makes tool `type` into those controls refuse. Ordinary textareas,
+textboxes and query/message editors remain editable. The rejected alternative was a separate editor/action flag,
+which preserves rare editable-button-label workflows but changes the private classification/binding contract.
+Changing this later needs a small reader/policy/both-bindings update and regressions; pending approvals must be prepared
+again. This refusal is explicitly for lead/owner review before merge.
+
+**Whole item questions:** visible item fields now participate in the existing complete-question size cap. A large
+item editor set can therefore require a smaller item or owner action; values are never silently omitted or truncated.
+The rejected alternative was approving an item while omitting a quantity or other editable field. Changing the cap
+requires reviewing question rendering and bounds, rather than weakening stale-approval checks.
+
+Existing owner-policy decisions, including borrowed dialogs, first-act reload, catalogue lifetimes and honest
+unknown outcomes, are unchanged. No new owner policy or system authority was introduced.
+
+## PLAN-GAP
+
+GitHub reports PR #27 as `CONFLICTING` / `DIRTY` ([final metadata](records/recheck/closing/pr-state.json)); no automatic PR workflows appeared for this head. The [run rules](../../briefs/20-continue.md) say “Don't merge other branches” and prohibit merging or force-pushing. No integration was attempted. Required workflows were dispatched manually on the exact branch head instead. Integration with current `main` remains unverified and requires the lead's separate resolution. The existing Chrome dispatch 43167000276 initially returned a metadata 404; its receipt was retained and adopted without redispatch.
+
+The superseded `6c91e209` attempt exposed a fixture race: a 100 ms on-load script POST replaced the initial GET before the strict native owner-navigation probe observed it. The [Linux failure screenshot](screenshots/recheck-script-post-race.png) and [receiver diagnostic](records/recheck/superseded-6c91e209/failure-diagnostic.json) show the POST had already completed. The fixture now waits for the native GET probe before scheduling its real page timer; takeover also waits for the exact POST URL. Navigation, POST-refusal and exact-once assertions remain strict. Three removal probes independently remove those barriers. That source is excluded from double acceptance.
+
+The simple “editable” flag also covered action controls, while editable message/query values could look like action
+labels. The fixes separate those meanings conservatively, with the refusal above disclosed. Affected-item text alone
+also omitted native quantity values; those fields are now explicit bound content. The actual trusted-click sequence
+of native Enter needed observation-based evidence; it did not need a production mark-lifetime change.
+
+## Open questions
+
+Panel confirmation of owner Enter and lead/owner review of the two refusal surfaces above. The current PR/main integration status is recorded above; branch merging is outside this run's permission. No implementation blocker within this brief remains. PR #27 stays draft; nothing was merged.
 
 ---
 

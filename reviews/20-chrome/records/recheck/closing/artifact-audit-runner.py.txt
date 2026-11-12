@@ -1,0 +1,59 @@
+import hashlib,json,pathlib,subprocess,sys
+root=pathlib.Path('.work/recheck-final-evidence')
+output=pathlib.Path('reviews/20-chrome/records/recheck/closing');output.mkdir(exist_ok=True)
+pointer=json.loads(pathlib.Path('.work/recheck-active-ci.json').read_text())
+work=pathlib.Path(pointer['directory'])
+partial='--partial' in sys.argv
+if partial:
+ manifest={'head':pointer['head'],'runs':[json.loads(p.read_text()) for p in work.glob('completed-*.json')]}
+ manifest['runs']=[run for run in manifest['runs'] if run['workflowName']!='Control Chrome' or (root/str(run['databaseId'])/'.download-complete').exists()]
+else:manifest=json.loads((work/'completed.json').read_text())
+def digest(path):
+ value=hashlib.sha256()
+ with path.open('rb') as source:
+  for block in iter(lambda:source.read(1024*1024),b''):value.update(block)
+ return value.hexdigest()
+audit_sources={name:digest(pathlib.Path(name)) for name in ['reviews/20-chrome/audit-review-evidence.mjs','reviews/20-chrome/audit-streams.mjs','control/chrome/ci/owner-evidence.mjs','control/chrome/ci/verdicts.mjs']}
+results=[]
+for run in manifest['runs']:
+ if run['workflowName']!='Control Chrome':continue
+ assert run['conclusion']=='success' and run['headSha']==manifest['head']
+ folder=root/str(run['databaseId'])
+ assert (folder/'.download-complete').read_text().strip()==manifest['head']
+ for matrix in sorted(folder.rglob('matrices.json')):
+  artifact=matrix.parent;name=artifact.name
+  destination=output/(name+'-audit.json');cache=output/(name+'-audit-proof.json')
+  identity={'source':manifest['head'],'run_id':run['databaseId'],'artifact':name,'audit_sources':audit_sources}
+  reused=False
+  if destination.exists() and cache.exists():
+   proof=json.loads(cache.read_text())
+   if proof['identity']==identity and proof['output_sha256']==digest(destination) and all(digest(artifact/file)==sha for file,sha in proof['input_sha256'].items()):
+    reused=True
+  if not reused:
+   with destination.open('w') as stdout, (output/(name+'-audit-stderr.txt')).open('w') as stderr:
+    subprocess.run(['node','--max-old-space-size=192','reviews/20-chrome/audit-review-evidence.mjs',str(artifact)],check=True,stdout=stdout,stderr=stderr)
+  rows=json.loads(destination.read_text());assert len(rows)==1
+  row=rows[0]
+  if not reused:
+   inputs={**row['sha256'],**{file:digest(artifact/file) for file in ['qualification-result.json','chrome-version.txt']}}
+   cache.write_text(json.dumps({'identity':identity,'input_sha256':inputs,'output_sha256':digest(destination)},indent=2)+'\n')
+  row['run_id']=run['databaseId'];row['source_head']=run['headSha'];results.append(row)
+  print(name,row['named_passes'],'named passes;',row['python']['tests'],'Python;',row['node']['pass'],'Node; independent audit '+('already passed; every input/source/output hash reverified' if reused else 'passed'),flush=True)
+coverage={}
+for row in results:coverage.setdefault(row['run_id'],set()).add(row['artifact'].rsplit('-',1)[-1])
+assert all(modes=={'external','policy'} for modes in coverage.values()),coverage
+assert len(coverage)==sum(run['workflowName']=='Control Chrome' for run in manifest['runs'])
+assert {row['source_head'] for row in results}=={manifest['head']}
+if partial:
+ assert len(results)>=2
+ (output/'receiver-audit-partial.json').write_text(json.dumps(results,indent=2)+'\n')
+ print('Completed artifacts audited; full double acceptance is still pending',flush=True)
+ sys.exit()
+assert len(coverage)>=2 and len(results)>=4
+(output/'receiver-audit.json').write_text(json.dumps(results,indent=2)+'\n')
+(output/'completed.json').write_text(json.dumps(manifest,indent=2)+'\n')
+index=['# Final-source named browser cases','',f"Source: `{manifest['head']}`.",'','| Run / install | Case | browser.txt line |','|---|---|---:|']
+for row in results:
+ for case in row['test_index']:index.append(f"| {row['artifact']} | {case['name']} | {case['line']} |")
+(output/'INDEX.md').write_text('\n'.join(index)+'\n')
+print('All final artifacts pass receiver, exact inventory, query, owner and privacy audits',flush=True)

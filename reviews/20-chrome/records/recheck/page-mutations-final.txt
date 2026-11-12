@@ -137,4 +137,12 @@ recheck-owner-consumed MUTATION REJECTED
 recheck-owner-pass-token MUTATION REJECTED
 recheck-search-query-content MUTATION REJECTED
 recheck-compose-draft-content MUTATION REJECTED
-139 mutations rejected; every baseline passed
+recheck-item-closed-slots MUTATION REJECTED
+recheck-editable-controls MUTATION REJECTED
+recheck-item-fields-reader MUTATION REJECTED
+recheck-item-fields-extension MUTATION REJECTED
+recheck-item-fields-service MUTATION REJECTED
+recheck-post-page-barrier MUTATION REJECTED
+recheck-post-driver-barrier MUTATION REJECTED
+recheck-post-document-commit MUTATION REJECTED
+147 mutations rejected; every baseline passed

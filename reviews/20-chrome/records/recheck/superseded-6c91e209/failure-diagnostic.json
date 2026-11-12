@@ -1,0 +1,20 @@
+{
+  "source": "6c91e209021ff64e00e2d05e4b8ef50e1d738dc1",
+  "run": 43140145509,
+  "install": "external",
+  "error": "owner navigation committed in the exact tab: undefined",
+  "cause": "100 ms on-load POST timer replaced the initial GET before the strict native navigation probe observed it",
+  "receiver": [
+    {
+      "time": 1794450761655,
+      "url": "/post-document?case=review-script-post",
+      "method": "POST",
+      "body": "draft=Script-started",
+      "host": "fixture.test:8765"
+    }
+  ],
+  "fix": "start the real page timer only after the native GET navigation probe succeeds, and observe the exact POST commit before takeover",
+  "acceptance": false,
+  "linux_screenshot": "reviews/20-chrome/screenshots/recheck-script-post-race.png",
+  "screenshot_sha256": "5e9ef4376395e400336d4e136af85cba7ce5b79e07febc4bce4dd938c793ce38"
+}

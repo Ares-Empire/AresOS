@@ -1,6 +1,6 @@
 - A page can send on its own after an ordinary action (including autosave, typing indicators, read receipts and work after the 500 ms hold); data can leave without a question; accepted by decision 25 because this tool recognises actions rather than intercepting network traffic.
 - Navigation and GET searches can carry data in addresses; text can leave without a send question; accepted as ordinary browser navigation under decision 25.
-- The English/German word list is a rule of thumb; disguised/unlabelled actions can stay free and harmless controls can ask unnecessarily; accepted under decision 25, with explicit asking cues taking precedence over search exemptions.
+- The English/German word list is a rule of thumb; disguised/unlabelled actions can stay free and harmless controls can ask unnecessarily; accepted under decision 25 as a recognition heuristic rather than a proof of page intent.
 - A page can change between the final binding check and input; the page can act on a last-instant change; accepted under decision 25 because the local check narrows but cannot eliminate that interval.
 - A fresh-frame native function can dispatch a non-cancellable activation around the wrappers; its default action may happen despite stopped handlers; accepted only with an honest `unknown` report and no resumption.
 - A generic send does not bind read-only previews or quoted text outside its editors; that text can change during approval; accepted under decision 25, with site adapters providing exact bindings where available.

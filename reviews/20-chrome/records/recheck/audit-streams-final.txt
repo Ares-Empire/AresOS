@@ -1,8 +1,8 @@
-✔ streaming ingress retains nulls and matches completeIngress across UTF-8 and fragment boundaries (4.949166ms)
-✔ streaming JSON lines preserve the original empty-line and trailing-line semantics (4.323459ms)
-✔ every malformed fragment fails with the unchanged completeIngress reason (5.754709ms)
-✔ sentinel scans find an ASCII sentinel split across stream chunks without retaining the file (3.638417ms)
-✔ streamed SHA-256 equals the complete byte digest including multibyte chunk boundaries (2.368416ms)
+✔ streaming ingress retains nulls and matches completeIngress across UTF-8 and fragment boundaries (4.190459ms)
+✔ streaming JSON lines preserve the original empty-line and trailing-line semantics (2.789459ms)
+✔ every malformed fragment fails with the unchanged completeIngress reason (3.260834ms)
+✔ sentinel scans find an ASCII sentinel split across stream chunks without retaining the file (2.144792ms)
+✔ streamed SHA-256 equals the complete byte digest including multibyte chunk boundaries (1.131833ms)
 ℹ tests 5
 ℹ suites 0
 ℹ pass 5
@@ -10,4 +10,4 @@
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 71.734209
+ℹ duration_ms 49.612333
