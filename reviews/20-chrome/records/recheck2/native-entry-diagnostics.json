@@ -1,0 +1,880 @@
+{
+  "status": "FAILURE EVIDENCE, NOT ACCEPTANCE",
+  "chrome": "157.0.8103.78",
+  "runs": [
+    {
+      "run": 43246493921,
+      "source": "4d533e44ba0ca68f775262de81600a9ca3032583",
+      "workflow": "control-chrome.yml",
+      "diagnostic_only": true,
+      "conclusion": "failure",
+      "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43246493921",
+      "raw_log": "native-entry/43246493921.txt",
+      "raw_log_sha256": "a7a88bc44d7d63afd26f69eb9e16c5752ccf90d26eaccad129b2bff91772ea89",
+      "reports": {
+        "external": [
+          {
+            "phase": "ready"
+          },
+          {
+            "phase": "context",
+            "context": {
+              "auxData": {
+                "frameId": "6002A13C9EEFE2811082FFE1CB27C1E6",
+                "isDefault": true,
+                "type": "default"
+              },
+              "id": 1,
+              "name": "",
+              "origin": "://",
+              "uniqueId": "2567771591484412122.-165780816523201482"
+            }
+          },
+          {
+            "phase": "browser-capability",
+            "method": "Target.attachToBrowserTarget",
+            "error": "Error: {\"code\":-32000,\"message\":\"Not allowed\"}"
+          },
+          {
+            "phase": "browser-capability",
+            "method": "Target.autoAttachRelated",
+            "error": "Error: {\"code\":-32000,\"message\":\"Target.autoAttachRelated is only supported on the Browser target\"}"
+          },
+          {
+            "phase": "browser-attach",
+            "error": "Error: No target with given id browser."
+          },
+          {
+            "phase": "context",
+            "context": {
+              "auxData": {
+                "frameId": "6002A13C9EEFE2811082FFE1CB27C1E6",
+                "isDefault": true,
+                "type": "default"
+              },
+              "id": 2,
+              "name": "",
+              "origin": "http://fixture.test:8765",
+              "uniqueId": "-552691697792973092.6530030993857171851"
+            }
+          },
+          {
+            "phase": "context",
+            "context": {
+              "auxData": {
+                "frameId": "6002A13C9EEFE2811082FFE1CB27C1E6",
+                "isDefault": false,
+                "type": "isolated"
+              },
+              "id": 3,
+              "name": "Controlled injection experiment",
+              "origin": "chrome-extension://edcemihoeogiehegmjcbkekenfbnmppc",
+              "uniqueId": "-5292644940435604210.-7627334630313549552"
+            }
+          },
+          {
+            "phase": "private-extension-evaluation-before-resume",
+            "evaluated": {
+              "result": {
+                "type": "string",
+                "value": "{\"runtime\":\"edcemihoeogiehegmjcbkekenfbnmppc\",\"closedShadowAPI\":\"function\"}"
+              }
+            }
+          },
+          {
+            "phase": "native-entry-installed",
+            "breakpoint": "7:1"
+          },
+          {
+            "phase": "isolated-before-resume",
+            "elapsed": 28,
+            "result": "Extension world installed before page scripts"
+          },
+          {
+            "phase": "native-dispatch-entry",
+            "tab": 1690872196,
+            "roots": 0
+          },
+          {
+            "phase": "native-dispatch-entry",
+            "tab": 1690872196,
+            "roots": 0
+          },
+          {
+            "phase": "original-event-native-delivery",
+            "error": "TypeError: Cannot read properties of null (reading 'event')"
+          },
+          {
+            "phase": "native-dispatch-entry",
+            "tab": 1690872196,
+            "roots": 0
+          },
+          {
+            "phase": "native-dispatch-entry",
+            "tab": 1690872196,
+            "roots": 0
+          },
+          {
+            "phase": "native-dispatch-entry",
+            "tab": 1690872196,
+            "roots": 0
+          },
+          {
+            "phase": "native-relay-delivery",
+            "result": false
+          },
+          {
+            "phase": "first-page-script",
+            "preloadMarker": "boolean",
+            "result": false,
+            "handlers": 0,
+            "same": false,
+            "relaySame": true,
+            "relayDetail": {
+              "fixture": 9
+            },
+            "relayReturn": false,
+            "relayPrevented": true,
+            "originalPrevented": false,
+            "privateVisible": "undefined"
+          },
+          {
+            "phase": "native-borrowed-open",
+            "handlers": 1
+          },
+          {
+            "phase": "native-borrowed-closed",
+            "handlers": 1
+          },
+          {
+            "phase": "popup-observation",
+            "root": 1690872196,
+            "popups": []
+          }
+        ],
+        "policy": [
+          {
+            "phase": "ready"
+          },
+          {
+            "phase": "context",
+            "context": {
+              "auxData": {
+                "frameId": "B6313037A02F6868AC266BE53F997092",
+                "isDefault": true,
+                "type": "default"
+              },
+              "id": 1,
+              "name": "",
+              "origin": "://",
+              "uniqueId": "-6567071314580033250.-4140235017579642995"
+            }
+          },
+          {
+            "phase": "browser-capability",
+            "method": "Target.attachToBrowserTarget",
+            "error": "Error: {\"code\":-32000,\"message\":\"Not allowed\"}"
+          },
+          {
+            "phase": "browser-capability",
+            "method": "Target.autoAttachRelated",
+            "error": "Error: {\"code\":-32000,\"message\":\"Target.autoAttachRelated is only supported on the Browser target\"}"
+          },
+          {
+            "phase": "browser-attach",
+            "error": "Error: No target with given id browser."
+          },
+          {
+            "phase": "context",
+            "context": {
+              "auxData": {
+                "frameId": "B6313037A02F6868AC266BE53F997092",
+                "isDefault": true,
+                "type": "default"
+              },
+              "id": 2,
+              "name": "",
+              "origin": "http://fixture.test:8765",
+              "uniqueId": "5172258643649477714.6700390851581828427"
+            }
+          },
+          {
+            "phase": "context",
+            "context": {
+              "auxData": {
+                "frameId": "B6313037A02F6868AC266BE53F997092",
+                "isDefault": false,
+                "type": "isolated"
+              },
+              "id": 3,
+              "name": "Controlled injection experiment",
+              "origin": "chrome-extension://ppejcpfahbcgcpkneldcllklklohfpbb",
+              "uniqueId": "-8892655418401493112.2863149512769196774"
+            }
+          },
+          {
+            "phase": "private-extension-evaluation-before-resume",
+            "evaluated": {
+              "result": {
+                "type": "string",
+                "value": "{\"runtime\":\"ppejcpfahbcgcpkneldcllklklohfpbb\",\"closedShadowAPI\":\"function\"}"
+              }
+            }
+          },
+          {
+            "phase": "native-entry-installed",
+            "breakpoint": "7:1"
+          },
+          {
+            "phase": "isolated-before-resume",
+            "elapsed": 19,
+            "result": "Extension world installed before page scripts"
+          },
+          {
+            "phase": "native-dispatch-entry",
+            "tab": 1357172746,
+            "roots": 0
+          },
+          {
+            "phase": "native-dispatch-entry",
+            "tab": 1357172746,
+            "roots": 0
+          },
+          {
+            "phase": "original-event-native-delivery",
+            "error": "TypeError: Cannot read properties of null (reading 'event')"
+          },
+          {
+            "phase": "native-dispatch-entry",
+            "tab": 1357172746,
+            "roots": 0
+          },
+          {
+            "phase": "native-dispatch-entry",
+            "tab": 1357172746,
+            "roots": 0
+          },
+          {
+            "phase": "native-dispatch-entry",
+            "tab": 1357172746,
+            "roots": 0
+          },
+          {
+            "phase": "native-relay-delivery",
+            "result": false
+          },
+          {
+            "phase": "first-page-script",
+            "preloadMarker": "boolean",
+            "result": false,
+            "handlers": 0,
+            "same": false,
+            "relaySame": true,
+            "relayDetail": {
+              "fixture": 9
+            },
+            "relayReturn": false,
+            "relayPrevented": true,
+            "originalPrevented": false,
+            "privateVisible": "undefined"
+          },
+          {
+            "phase": "native-borrowed-open",
+            "handlers": 1
+          },
+          {
+            "phase": "native-borrowed-closed",
+            "handlers": 1
+          },
+          {
+            "phase": "popup-observation",
+            "root": 1357172746,
+            "popups": []
+          }
+        ]
+      }
+    },
+    {
+      "run": 43248197704,
+      "source": "5fcfb397db094584ae001715e177f72d330bd03b",
+      "workflow": "control-chrome.yml",
+      "diagnostic_only": true,
+      "conclusion": "failure",
+      "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43248197704",
+      "raw_log": "native-entry/43248197704.txt",
+      "raw_log_sha256": "fb39800f1e05629895f39ecbad7a658c6a51d51c28847427b1f109f5d075bb69",
+      "reports": {
+        "external": [
+          {
+            "phase": "ready"
+          },
+          {
+            "phase": "context",
+            "context": {
+              "auxData": {
+                "frameId": "B60BDDE22DBEA053142224EA39131E25",
+                "isDefault": true,
+                "type": "default"
+              },
+              "id": 1,
+              "name": "",
+              "origin": "://",
+              "uniqueId": "6290421238398351696.6664684443751528666"
+            }
+          },
+          {
+            "phase": "browser-capability",
+            "method": "Target.attachToBrowserTarget",
+            "error": "Error: {\"code\":-32000,\"message\":\"Not allowed\"}"
+          },
+          {
+            "phase": "browser-capability",
+            "method": "Target.autoAttachRelated",
+            "error": "Error: {\"code\":-32000,\"message\":\"Target.autoAttachRelated is only supported on the Browser target\"}"
+          },
+          {
+            "phase": "browser-attach",
+            "error": "Error: No target with given id browser."
+          },
+          {
+            "phase": "context",
+            "context": {
+              "auxData": {
+                "frameId": "B60BDDE22DBEA053142224EA39131E25",
+                "isDefault": true,
+                "type": "default"
+              },
+              "id": 2,
+              "name": "",
+              "origin": "http://fixture.test:8765",
+              "uniqueId": "2129630710259386977.8324439258286633964"
+            }
+          },
+          {
+            "phase": "context",
+            "context": {
+              "auxData": {
+                "frameId": "B60BDDE22DBEA053142224EA39131E25",
+                "isDefault": false,
+                "type": "isolated"
+              },
+              "id": 3,
+              "name": "Controlled injection experiment",
+              "origin": "chrome-extension://jckjjcnpljebmanphcajdomiloimknfl",
+              "uniqueId": "-9101686124047762687.1908789262956492532"
+            }
+          },
+          {
+            "phase": "private-extension-evaluation-before-resume",
+            "evaluated": {
+              "result": {
+                "type": "string",
+                "value": "{\"runtime\":\"jckjjcnpljebmanphcajdomiloimknfl\",\"closedShadowAPI\":\"function\"}"
+              }
+            }
+          },
+          {
+            "phase": "native-entry-installed",
+            "breakpoint": "7:1"
+          },
+          {
+            "phase": "isolated-before-resume",
+            "elapsed": 25,
+            "result": "Extension world installed before page scripts"
+          },
+          {
+            "phase": "native-dispatch-entry",
+            "tab": 1075466198,
+            "roots": 0
+          },
+          {
+            "phase": "native-dispatch-entry",
+            "tab": 1075466198,
+            "roots": 0
+          },
+          {
+            "phase": "original-event-native-delivery",
+            "error": "TypeError: Cannot read properties of null (reading 'event')"
+          },
+          {
+            "phase": "native-dispatch-entry",
+            "tab": 1075466198,
+            "roots": 0
+          },
+          {
+            "phase": "native-dispatch-entry",
+            "tab": 1075466198,
+            "roots": 0
+          },
+          {
+            "phase": "native-dispatch-entry",
+            "tab": 1075466198,
+            "roots": 0
+          },
+          {
+            "phase": "native-relay-delivery",
+            "result": false
+          },
+          {
+            "phase": "first-page-script",
+            "preloadMarker": "boolean",
+            "result": false,
+            "handlers": 0,
+            "same": false,
+            "relaySame": true,
+            "relayDetail": {
+              "fixture": 9
+            },
+            "relayReturn": false,
+            "relayPrevented": true,
+            "originalPrevented": false,
+            "privateVisible": "undefined"
+          },
+          {
+            "phase": "error",
+            "error": "Error: {\"code\":-32000,\"message\":\"Breakpoint at specified location already exists.\"}"
+          }
+        ],
+        "policy": [
+          {
+            "phase": "ready"
+          },
+          {
+            "phase": "context",
+            "context": {
+              "auxData": {
+                "frameId": "5A4EE9797E1A5038ABCD46178D4E9878",
+                "isDefault": true,
+                "type": "default"
+              },
+              "id": 1,
+              "name": "",
+              "origin": "://",
+              "uniqueId": "1709893980032094875.-907313663138430816"
+            }
+          },
+          {
+            "phase": "browser-capability",
+            "method": "Target.attachToBrowserTarget",
+            "error": "Error: {\"code\":-32000,\"message\":\"Not allowed\"}"
+          },
+          {
+            "phase": "browser-capability",
+            "method": "Target.autoAttachRelated",
+            "error": "Error: {\"code\":-32000,\"message\":\"Target.autoAttachRelated is only supported on the Browser target\"}"
+          },
+          {
+            "phase": "browser-attach",
+            "error": "Error: No target with given id browser."
+          },
+          {
+            "phase": "context",
+            "context": {
+              "auxData": {
+                "frameId": "5A4EE9797E1A5038ABCD46178D4E9878",
+                "isDefault": true,
+                "type": "default"
+              },
+              "id": 2,
+              "name": "",
+              "origin": "http://fixture.test:8765",
+              "uniqueId": "829260744136116818.-1963056075495487197"
+            }
+          },
+          {
+            "phase": "context",
+            "context": {
+              "auxData": {
+                "frameId": "5A4EE9797E1A5038ABCD46178D4E9878",
+                "isDefault": false,
+                "type": "isolated"
+              },
+              "id": 3,
+              "name": "Controlled injection experiment",
+              "origin": "chrome-extension://gaemmjdgdbjdbindlhfgnplgpiekhajk",
+              "uniqueId": "-7270280331059811291.2705654330650918074"
+            }
+          },
+          {
+            "phase": "private-extension-evaluation-before-resume",
+            "evaluated": {
+              "result": {
+                "type": "string",
+                "value": "{\"runtime\":\"gaemmjdgdbjdbindlhfgnplgpiekhajk\",\"closedShadowAPI\":\"function\"}"
+              }
+            }
+          },
+          {
+            "phase": "native-entry-installed",
+            "breakpoint": "7:1"
+          },
+          {
+            "phase": "isolated-before-resume",
+            "elapsed": 19,
+            "result": "Extension world installed before page scripts"
+          },
+          {
+            "phase": "native-dispatch-entry",
+            "tab": 547846185,
+            "roots": 0
+          },
+          {
+            "phase": "native-dispatch-entry",
+            "tab": 547846185,
+            "roots": 0
+          },
+          {
+            "phase": "original-event-native-delivery",
+            "error": "TypeError: Cannot read properties of null (reading 'event')"
+          },
+          {
+            "phase": "native-dispatch-entry",
+            "tab": 547846185,
+            "roots": 0
+          },
+          {
+            "phase": "native-dispatch-entry",
+            "tab": 547846185,
+            "roots": 0
+          },
+          {
+            "phase": "native-dispatch-entry",
+            "tab": 547846185,
+            "roots": 0
+          },
+          {
+            "phase": "native-relay-delivery",
+            "result": false
+          },
+          {
+            "phase": "first-page-script",
+            "preloadMarker": "boolean",
+            "result": false,
+            "handlers": 0,
+            "same": false,
+            "relaySame": true,
+            "relayDetail": {
+              "fixture": 9
+            },
+            "relayReturn": false,
+            "relayPrevented": true,
+            "originalPrevented": false,
+            "privateVisible": "undefined"
+          },
+          {
+            "phase": "error",
+            "error": "Error: {\"code\":-32000,\"message\":\"Breakpoint at specified location already exists.\"}"
+          }
+        ]
+      }
+    },
+    {
+      "run": 43248868183,
+      "source": "482eb7e728cdbdc46c5c05e75853bdb5caeed2d9",
+      "workflow": "control-chrome.yml",
+      "diagnostic_only": true,
+      "conclusion": "failure",
+      "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43248868183",
+      "raw_log": "native-entry/43248868183.txt",
+      "raw_log_sha256": "b69c4e7fc1208db4c3779d925241981f0c1deddbec75c2aec67e3b7362d3de0f",
+      "reports": {
+        "external": [
+          {
+            "phase": "ready"
+          },
+          {
+            "phase": "context",
+            "context": {
+              "auxData": {
+                "frameId": "59AA30EDF8069D039F546E25FDEB0EA3",
+                "isDefault": true,
+                "type": "default"
+              },
+              "id": 1,
+              "name": "",
+              "origin": "://",
+              "uniqueId": "-1428111671984074869.-5394011543157336107"
+            }
+          },
+          {
+            "phase": "browser-capability",
+            "method": "Target.attachToBrowserTarget",
+            "error": "Error: {\"code\":-32000,\"message\":\"Not allowed\"}"
+          },
+          {
+            "phase": "browser-capability",
+            "method": "Target.autoAttachRelated",
+            "error": "Error: {\"code\":-32000,\"message\":\"Target.autoAttachRelated is only supported on the Browser target\"}"
+          },
+          {
+            "phase": "browser-attach",
+            "error": "Error: No target with given id browser."
+          },
+          {
+            "phase": "context",
+            "context": {
+              "auxData": {
+                "frameId": "59AA30EDF8069D039F546E25FDEB0EA3",
+                "isDefault": true,
+                "type": "default"
+              },
+              "id": 2,
+              "name": "",
+              "origin": "http://fixture.test:8765",
+              "uniqueId": "177749976249526533.6020132597795754705"
+            }
+          },
+          {
+            "phase": "context",
+            "context": {
+              "auxData": {
+                "frameId": "59AA30EDF8069D039F546E25FDEB0EA3",
+                "isDefault": false,
+                "type": "isolated"
+              },
+              "id": 3,
+              "name": "Controlled injection experiment",
+              "origin": "chrome-extension://kbhcgjbndlbakdohleigpdadalfanajl",
+              "uniqueId": "8635023665741933970.3270672815643409505"
+            }
+          },
+          {
+            "phase": "private-extension-evaluation-before-resume",
+            "evaluated": {
+              "result": {
+                "type": "string",
+                "value": "{\"runtime\":\"kbhcgjbndlbakdohleigpdadalfanajl\",\"closedShadowAPI\":\"function\"}"
+              }
+            }
+          },
+          {
+            "phase": "native-entry-installed",
+            "breakpoint": "7:1"
+          },
+          {
+            "phase": "isolated-before-resume",
+            "elapsed": 17,
+            "result": "Extension world installed before page scripts"
+          },
+          {
+            "phase": "native-dispatch-entry",
+            "tab": 1416804654,
+            "roots": 0
+          },
+          {
+            "phase": "native-dispatch-entry",
+            "tab": 1416804654,
+            "roots": 0
+          },
+          {
+            "phase": "original-event-native-delivery",
+            "error": "TypeError: Cannot read properties of null (reading 'event')"
+          },
+          {
+            "phase": "native-dispatch-entry",
+            "tab": 1416804654,
+            "roots": 0
+          },
+          {
+            "phase": "native-dispatch-entry",
+            "tab": 1416804654,
+            "roots": 0
+          },
+          {
+            "phase": "native-dispatch-entry",
+            "tab": 1416804654,
+            "roots": 0
+          },
+          {
+            "phase": "native-relay-delivery",
+            "result": false
+          },
+          {
+            "phase": "first-page-script",
+            "preloadMarker": "boolean",
+            "result": false,
+            "handlers": 0,
+            "same": false,
+            "relaySame": true,
+            "relayDetail": {
+              "fixture": 9
+            },
+            "relayReturn": false,
+            "relayPrevented": true,
+            "originalPrevented": false,
+            "privateVisible": "undefined"
+          },
+          {
+            "phase": "borrowed-native-entry-installed",
+            "breakpoint": "7:1"
+          },
+          {
+            "phase": "native-borrowed-open",
+            "handlers": 1
+          },
+          {
+            "phase": "native-borrowed-closed",
+            "handlers": 1
+          },
+          {
+            "phase": "popup-observation",
+            "root": 1416804654,
+            "popups": []
+          },
+          {
+            "phase": "native-borrowed-open",
+            "handlers": 1
+          }
+        ],
+        "policy": [
+          {
+            "phase": "ready"
+          },
+          {
+            "phase": "context",
+            "context": {
+              "auxData": {
+                "frameId": "90F959483D08D7B531F6C62BCC3D8AC9",
+                "isDefault": true,
+                "type": "default"
+              },
+              "id": 1,
+              "name": "",
+              "origin": "://",
+              "uniqueId": "4426916764892397124.-7360020093148625101"
+            }
+          },
+          {
+            "phase": "browser-capability",
+            "method": "Target.attachToBrowserTarget",
+            "error": "Error: {\"code\":-32000,\"message\":\"Not allowed\"}"
+          },
+          {
+            "phase": "browser-capability",
+            "method": "Target.autoAttachRelated",
+            "error": "Error: {\"code\":-32000,\"message\":\"Target.autoAttachRelated is only supported on the Browser target\"}"
+          },
+          {
+            "phase": "browser-attach",
+            "error": "Error: No target with given id browser."
+          },
+          {
+            "phase": "context",
+            "context": {
+              "auxData": {
+                "frameId": "90F959483D08D7B531F6C62BCC3D8AC9",
+                "isDefault": true,
+                "type": "default"
+              },
+              "id": 2,
+              "name": "",
+              "origin": "http://fixture.test:8765",
+              "uniqueId": "-1589003507386667326.6725416696725798038"
+            }
+          },
+          {
+            "phase": "context",
+            "context": {
+              "auxData": {
+                "frameId": "90F959483D08D7B531F6C62BCC3D8AC9",
+                "isDefault": false,
+                "type": "isolated"
+              },
+              "id": 3,
+              "name": "Controlled injection experiment",
+              "origin": "chrome-extension://mlkggiggbmlkhkhlkfapigmaemlknnjp",
+              "uniqueId": "-3213904504063134966.-1942210880318779339"
+            }
+          },
+          {
+            "phase": "private-extension-evaluation-before-resume",
+            "evaluated": {
+              "result": {
+                "type": "string",
+                "value": "{\"runtime\":\"mlkggiggbmlkhkhlkfapigmaemlknnjp\",\"closedShadowAPI\":\"function\"}"
+              }
+            }
+          },
+          {
+            "phase": "native-entry-installed",
+            "breakpoint": "7:1"
+          },
+          {
+            "phase": "isolated-before-resume",
+            "elapsed": 21,
+            "result": "Extension world installed before page scripts"
+          },
+          {
+            "phase": "native-dispatch-entry",
+            "tab": 469293436,
+            "roots": 0
+          },
+          {
+            "phase": "native-dispatch-entry",
+            "tab": 469293436,
+            "roots": 0
+          },
+          {
+            "phase": "original-event-native-delivery",
+            "error": "TypeError: Cannot read properties of null (reading 'event')"
+          },
+          {
+            "phase": "native-dispatch-entry",
+            "tab": 469293436,
+            "roots": 0
+          },
+          {
+            "phase": "native-dispatch-entry",
+            "tab": 469293436,
+            "roots": 0
+          },
+          {
+            "phase": "native-dispatch-entry",
+            "tab": 469293436,
+            "roots": 0
+          },
+          {
+            "phase": "native-relay-delivery",
+            "result": false
+          },
+          {
+            "phase": "first-page-script",
+            "preloadMarker": "boolean",
+            "result": false,
+            "handlers": 0,
+            "same": false,
+            "relaySame": true,
+            "relayDetail": {
+              "fixture": 9
+            },
+            "relayReturn": false,
+            "relayPrevented": true,
+            "originalPrevented": false,
+            "privateVisible": "undefined"
+          },
+          {
+            "phase": "borrowed-native-entry-installed",
+            "breakpoint": "7:1"
+          },
+          {
+            "phase": "native-borrowed-open",
+            "handlers": 1
+          },
+          {
+            "phase": "native-borrowed-closed",
+            "handlers": 1
+          },
+          {
+            "phase": "popup-observation",
+            "root": 469293436,
+            "popups": []
+          },
+          {
+            "phase": "native-borrowed-open",
+            "handlers": 1
+          }
+        ]
+      }
+    }
+  ]
+}

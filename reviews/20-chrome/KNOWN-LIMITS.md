@@ -1,3 +1,5 @@
+This list covers accepted costs only. The unresolved A-3 blocker is in [REPORT.md](REPORT.md); it is not an accepted limit.
+
 - A page can send on its own after an ordinary action (including autosave, typing indicators, read receipts and work after the 500 ms hold); data can leave without a question; accepted by decision 25 because this tool recognises actions rather than intercepting network traffic.
 - Navigation and GET searches can carry data in addresses; text can leave without a send question; accepted as ordinary browser navigation under decision 25.
 - The English/German word list is a rule of thumb; disguised/unlabelled actions can stay free and harmless controls can ask unnecessarily; accepted under decision 25 as a recognition heuristic rather than a proof of page intent.

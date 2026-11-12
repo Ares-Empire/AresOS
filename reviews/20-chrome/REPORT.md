@@ -1,60 +1,154 @@
-# Recheck fixes 2 — implementation and verification in progress
+# Recheck fixes 2 — BLOCKED, NOT GREEN — 2026-11-12
 
-This section supersedes earlier acceptance of the borrowed-native non-cancellable default and changed generic
-read-only preview. `briefs/20-recheck-fixes-2.md` controls this run. No design document was edited.
+**A-3 remains open. Do not merge this package.** The implementation is on `pkg/20-chrome`, source
+`482eb7e728cdbdc46c5c05e75853bdb5caeed2d9`, installed runtime hash
+`698a875de6b7d35bf229c4e690e788d007f3dfc98bf61087ecea923c181eff3e`. PR
+[#27](https://github.com/Ares-Empire/AresOS/pull/27) remains draft and unmerged. No branch was merged into this one.
+The historical green reports below do **not** satisfy `briefs/20-recheck-fixes-2.md`.
 
 ## Done
 
-- MAIN wrappers register native capture on created/cloned/imported nodes and click-handler installation, so borrowed
-  insertion into a native-created open/closed root cannot outrun capture. Dispatch-path tracking distinguishes visits at multiple capture roots from a later reuse of the same page-owned Event. Ignored slot roots do not erase a light-DOM approval decision; a fresh dispatch always meets capture again. Listener bookkeeping uses weak roots.
-- During the private hold, a tab-scoped session DNR rule fences a content-free quarantine destination for
-  `main_frame`, `sub_frame`, `ping` and `other`. Non-cancellable hyperlinks lose `href` through their default
-  activation and submitters become disabled through theirs, then native attributes are restored in a later task.
-  This prevents `_blank`, named frames, ping, form defaults and downloads from escaping the source-tab rule or
-  replacing the source document. Approved input and the owner's own marked input keep normal native destinations.
-  Rules are installed before arming, retired after the hold/Stop/close, and reconciled before a restarted worker's
-  native handshake. No stopped activation resumes.
-- The reader binds visible text in the smallest ancestor containing Send and its body editor; body editors take
-  precedence over nearby recipient inputs. Without editors it binds the smallest ancestor holding additional visible
-  draft/preview text. Generic sends and confirmations include that binding in both service and extension checks.
-  A change retires the old approval and prepares one exact new question with before/after text. A further change
-  stops with the owner's-send message. The final extension check also returns that bounded re-ask after drift during
-  frame setup. The shared engine only carries that adapter result; it grants no dispatch authorization.
-- New browser cases exercise every native insertion route, both root modes, every default escape route, a real native
-  request blocked by the session fence, owner navigation during the hold, live text inside/outside compose, and
-  extension restart with a deliberately stranded session rule. Existing unknown/residual tests now require stopped
-  defaults or exact changed-content re-approval with independent receiver 0/1/1 evidence.
-- KNOWN-LIMITS removes the two harmful residuals and records the bounded question/owner-send cost. Storage fault
-  sweeps include both compose re-ask and bounded-stop writes; the independent oracle includes their explicit cause.
+- `page.js` / `guard.js`: created, imported and cloned nodes, and click-handler installation, acquire private capture
+  before borrowed native insertion. Weak listener bookkeeping avoids retaining every created node. Native attributes
+  and doctypes keep their clone semantics; cached factory wrappers stop reporting after release. Capture decisions
+  distinguish roots within one dispatch from a later reuse of the same page-owned Event, including slot traversal.
+  **This is a partial A-3 fix:** a native factory plus native listener registration still bypasses these hooks.
+- `guard.js` / `background.js`: the hold installs a tab-scoped session DNR fence for a content-free quarantine address
+  and `main_frame`, `sub_frame`, `ping`, `other`. Isolated capture removes a non-cancellable link's `href` through its
+  default, rewrites ping, or disables a submitter; form fallback uses the quarantined address and `_self`. A later task
+  restores only attributes that retain the guard-written value. Approved input and private owner-marked navigation
+  retain normal native destinations. Expiry, Stop/close and startup reconciliation remove session rules. Stopped
+  activations are never replayed. This still depends on capture actually seeing the event; the A-3 bypass is not safe.
+- `reader.js`, service adapter, `background.js`, shared engine: generic sends and confirmations bind the visible text
+  of the smallest composed ancestor containing Send and the body editor, or additional visible draft/preview text
+  when no editor exists. A change retires the first operation and prepares one question showing before/after text.
+  Another change stops with “the text next to Send keeps changing” and tells Claude to ask the owner to send it
+  himself. The final extension check carries the same bounded re-ask when drift happens during frame setup.
+- Browser regressions now define borrowed native insertion routes, reused Events, `_blank`, named frames, ping,
+  form defaults and downloads; owner navigation during the hold; live compose text inside/outside its area; and
+  restart reconciliation of a stranded session rule. Existing residual cases require stopped defaults or changed-text
+  re-approval with receiver 0/1/1. These definitions are not a completed acceptance run.
+- `KNOWN-LIMITS.md` removes the two harmful residuals and records the bounded re-ask/owner-send cost. The remaining
+  A-3 defect is a blocker, not an accepted limit. No design document or production CDP allowlist was changed.
 
 ## Verified
 
-Local verification passed: **229 Python tests / OK**, **269 Node tests / zero failures**, and **168 removal mutations rejected; every baseline passed**. Generated artifacts and `git diff --check` pass. [Exact command summaries and hashes](records/recheck2/local-summary.json). Linux verification is pending; no green claim for this head yet. All local execution is browser-free
-Python/Node. No browser, profile, container, Java or Gradle process was started on this Mac.
-Opening ledger: 186 distinct Chrome runs / 187 executions, cap about 215. PR #27 stays draft and unmerged.
+The requested specification was fetched and read from `origin/main`; the newer brief absent from that remote was
+read locally. **No Chrome/Chromium app or browser profile was started, read or touched on this Mac.** All local tests
+were plain Python/Node; every browser experiment ran through `control-chrome.yml` in GitHub Linux containers.
+No local Java/Gradle process or container was started, so no Gradle daemon needs stopping.
+
+[Commands, output tails, hashes and the failed additional probe](records/recheck2/local-summary.json):
+
+- `PYTHONPATH=control:control/chrome_tests PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s control/chrome_tests -v`:
+  **229 tests in 625.526 s; OK**.
+- `node --test control/chrome_tests/*.test.mjs`: **271 passed; zero failed, cancelled or skipped**.
+- `python3 -B reviews/20-chrome/mutation-audit.py reviews/20-chrome/records/recheck2/mutations.json`:
+  **170 mutations rejected; every baseline passed**. Includes the new default/owner/rule, compose binding/re-ask,
+  native capture/reuse and clone compatibility removals. This proves only those tested routes.
+- `node --test reviews/20-chrome/audit-streams.test.mjs`: **5 passed**, zero failures.
+- `python3 control/generate.py --check`: **Generated artifacts match definitions**. `git diff --check` passed.
+- **Additional strict probe failed:**
+  `node reviews/20-chrome/records/recheck2/native-production-gap.mjs` exits **1**. It loads the existing shadow-aware
+  DOM double and unmodified production guard/page code, saves a native factory before activation, then uses native
+  creation, root creation, listener registration, insertion and non-composed dispatch. Both open and closed roots
+  record **one Delete handler / zero held steps**, where the assertions require **zero / one**.
+  [Reproduction](records/recheck2/native-production-gap.mjs), [actual results](records/recheck2/native-production-gap.json).
+  No passing suite overrides this failure.
+
+Three Linux diagnostic runs tested an alternative native-entry interlock, in **both external and policy installs**
+on Chrome **157.0.8103.78**. They are separate disposable experiments, not production acceptance or receiver proof.
+[Retained raw logs, metadata and observations](records/recheck2/native-entry-diagnostics.json):
+
+| Run | Result |
+|---|---|
+| [43246493921](https://github.com/Ares-Empire/AresOS/actions/runs/43246493921) | Native `dispatchEvent` entry pauses for the controlled realm; borrowed native open/closed handlers each run once. The older popup diagnostic also lacks its result. Failed. |
+| [43248197704](https://github.com/Ares-Empire/AresOS/actions/runs/43248197704) | Registering the borrowed function handle is rejected as a duplicate native breakpoint location. Its shadow experiment does not run. Failed; not evidence of that experiment's outcome. |
+| [43248868183](https://github.com/Ares-Empire/AresOS/actions/runs/43248868183) | Remove the original breakpoint, register the borrowed handle successfully, repeat: **one handler in each root mode in both installs**. The strict zero-handler assertion fails. |
+
+The uncompleted acceptance runs [43237751838](https://github.com/Ares-Empire/AresOS/actions/runs/43237751838) and
+[43248850718](https://github.com/Ares-Empire/AresOS/actions/runs/43248850718) were cancelled by this run after the
+blocker was confirmed. They were both started by this run. No other person's run was cancelled. GitHub superseded
+pending push runs `43246458316` and `43247784103`; neither ran fixtures. Earlier failed/cancelled attempts and every
+shared-workflow result are retained in [the CI attempt ledger](records/recheck2/ci-attempts.json).
+
+Base, boundary and qualification passed twice on the superseded `92892318` source; Mail passed once there.
+[Shared artifact audit](records/recheck2/shared-audit.json) independently checks base **142 / OK**, boundary
+**127 blocked / 42 protected files / zero hostile connections** per mode, and qualification **47 Python + 269 Node**
+plus verifier evidence. These are historical results, not final-head acceptance. The full Chrome suite did not finish: the cancelled
+run printed five early browser PASS rows per install and did not reach the new matrices
+([exact retained rows](records/recheck2/cancelled-browser-progress.json)). There is no accepted four-artifact pair,
+and no final receiver/privacy audit is claimed.
+
+Opening ledger: **186 distinct Chrome workflow runs / 187 executions**. This run added **nine IDs**, including failed,
+queued/cancelled and diagnostic runs: closing **195 IDs / 196 executions**, below the approximate 215 cap. One blocking
+`gh run watch --exit-status --interval 60` process waited on each run; shell-session continuations did not create new
+watchers or turn-by-turn Actions polling. The closing push contains reports/reproduction evidence only, with `[skip ci]`.
+[Closing `.work/` inventory](records/recheck2/work-inventory.json): **no file over 500 MB**; no ISO/image/browser download
+was made locally.
 
 ## Not verified
 
-Owner panel acceptance, live accounts/sites, installed OS image, and integration with current main. Group 12 still
-waits for 18d. Browser evidence will come only from GitHub Linux containers, in both install modes twice.
+All three fixes are **not accepted as complete**. A-3 still violates the required no-handler/no-unreported-action
+condition. The new default and preview matrices have not supplied final-head browser receiver 0/1/1 proof, and the
+required complete suites twice on one accepted source are unfinished. Owner-panel acceptance, live accounts/sites,
+the installed OS image and integration with current main remain unverified. Group 12 still waits for 18d.
 
 ## JUDGMENT-CALL
 
-The network fence is deliberately limited to a content-free destination; synchronous native-default neutralization
-prevents a new browsing context from escaping a source-tab-only rule. A catch-all source-tab network block would
-also block approved native submissions and the owner's Enter/navigation. Temporary attributes are restored only while they retain the guard-written value. This combined design and its compatibility cost require lead review; no feature was
-removed. Changing it later requires the default/owner matrices and their removal probes to remain strict.
+The network design combines a narrowly scoped quarantine-address DNR rule with synchronous native-default
+neutralization. A catch-all tab block would also block approved native submissions and the owner's navigation; a
+source-tab-only rule cannot itself cover a new `_blank` context. The combined design is implemented and locally
+covered but **not approved as satisfying the brief**, especially while capture can be bypassed. Replacing it requires
+retaining the strict default-route, owner-input and rule-lifetime matrices and removal probes. No feature-removing
+refusal was introduced to obtain green.
 
-The existing sibling-editor fixture's smallest common area is the whole body: all visible body text is bound there,
-including the recipient region, editor and preview. Pages with a smaller enclosing compose area bind that area;
-live timestamp/autosave/counter text outside it does not participate. A whole-body compose therefore also binds any
-live body text it encloses and can reach the bounded owner-send fallback.
+The sibling-editor fixture's smallest common area is the whole body: the binding includes all its visible body text,
+including recipients, editor and preview. A smaller compose ancestor excludes the surrounding timestamp, autosave
+line and counter. When the compose area is the body, live body text is included and can reach the bounded owner-send
+fallback. Changing that boundary later requires matching questions and bindings in reader, service and extension.
 
-## PLAN-GAP / Open questions
+## PLAN-GAP — stop-rule blocker
 
-The branch remains separate from main, as instructed. Restart evidence deliberately strands a session rule after
-cleaning the old MAIN wrappers, then reloads the extension; it tests startup reconciliation without presenting an
-extension reload as proof that arbitrary old wrapper closures can be recovered. Push run [43233245069](https://github.com/Ares-Empire/AresOS/actions/runs/43233245069) on `375a12fd` stopped before browser execution: the new release test awaited an unreferenced fixture timer, so Linux Node cancelled that and the following test. It now advances the explicit fixture clock and retains every rule-removal/cleanup assertion. No runtime behavior or assertion was weakened. That run is excluded from acceptance. A further browser-free regression found that the first deduplication cache could exempt a reused Event. It now tracks native paths and visited capture roots per dispatch; same-node, other-node, moved-root and closed-slot cases and their removal probes pass. The superseded Chrome run [43234399794](https://github.com/Ares-Empire/AresOS/actions/runs/43234399794) was cancelled by this run, which started it. No other person's run was cancelled. Both superseded heads are excluded from acceptance. The final run links and inventory will be appended below before completion.
+`briefs/20-continue-2.md` says to stop only after a real attempt when the section 6 guarantee cannot be met by a design
+on the fixtures. The remaining case needs a synchronous browser hook **before native dispatch** that is scoped to
+the controlled receiver document, even when the called native function belongs to an ordinary outside tab. The
+available wrapper/capture design cannot provide that hook:
+
+- A native factory, native `attachShadow`, native insertion and native listener registration bypass every MAIN hook.
+  A non-composed event never reaches the pre-existing window listener. Mutation observers run after that synchronous
+  stack, too late to stop its handler. The production DOM probe above demonstrates the gap in both root modes.
+- A real attempt to add `Debugger.setBreakpointOnFunctionCall` reaches native API entry for the controlled realm,
+  but not the borrowed call. Registering the borrowed handle itself does not change the outcome. V8 routes pauses
+  through the paused context's inspector group; attaching only the controlled tab cannot receive the outside realm's
+  native-entry pause. This explains the Linux observations; it is not a claim that the candidate was implemented
+  in production. [V8 primary source](https://chromium.googlesource.com/v8/v8/+/refs/heads/main/src/inspector/v8-debugger.cc).
+- Attaching the ordinary donor tab or every possible fresh realm would cross section 6's group boundary. The
+  diagnostic confirms that the extension cannot attach to the Browser target or use browser-only auto-attachment.
+  No ordinary-tab attachment was attempted.
+- DOM mutation breakpoints require the DOM agent and push node paths/attributes before the extension can redact
+  them. That conflicts with the password-ingress requirement. Listener breakpoints are already inside event
+  delivery; their metadata has the event name and target tag, not a private original-event handle. The native
+  `window.event` path deliberately does not replace the current event for shadow-tree invocations. Arbitrary page
+  scope inspection or broad script stepping would expose values outside the password-safe reader. These alternatives
+  were rejected from source/API analysis, not falsely reported as passing browser tests.
+  [DOM debugger source](https://chromium.googlesource.com/chromium/src/+/refs/heads/main/third_party/blink/renderer/core/inspector/inspector_dom_debugger_agent.cc),
+  [event invocation source](https://chromium.googlesource.com/chromium/src/+/refs/heads/main/third_party/blink/renderer/bindings/core/v8/js_based_event_listener.cc).
+
+Meeting this case needs a browser-level dispatch hook or broader authority than the current Chrome-extension,
+password-ingress and ordinary-tab constraints permit. Disabling page behavior, severing the donor relationship or
+accepting the harmful bypass would remove a feature or weaken the requirement; none was done. This is recorded as a
+**stop-rule blocker**, not a safe known limit or a green package. The attempted interlock remains diagnostic-only.
+
+Earlier implementation defects were fixed rather than treated as blockers: the fixture's unreferenced timer was
+replaced by explicit clock advancement, and the per-Event cache was changed to per-dispatch path/root tracking.
+No assertion was weakened. The remaining architectural case is reproduced separately and kept strict.
+
+## Open questions
+
+The package lead needs a browser mechanism that can enforce the native-dispatch boundary while preserving the
+password and tab-scope rules. Until that exists, A-3 and this brief stay open; the draft PR is not ready to merge.
+
 
 ---
 

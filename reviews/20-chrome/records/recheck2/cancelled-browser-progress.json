@@ -1,0 +1,24 @@
+{
+  "status": "CANCELLED, NOT ACCEPTANCE",
+  "run": 43237751838,
+  "source": "928923183425c238f81b1c3e7d4ebf08ae0dd119",
+  "command": "gh run view 43237751838 --log",
+  "log_sha256": "f7e616976d543ac7a99fbe85335bbea9d7d9f48a12a9fa6aee3f3e6e59002fe8",
+  "log_bytes": 1313044,
+  "printed_browser_rows": {
+    "external": [
+      "fixtures (external)\tBrowser fixtures only inside Linux container, sandbox on\t2026-11-12T14:31:10.0494463Z GROUP 2 stopped page steps PASS native",
+      "fixtures (external)\tBrowser fixtures only inside Linux container, sandbox on\t2026-11-12T14:31:11.6092360Z GROUP 2 stopped page steps PASS event",
+      "fixtures (external)\tBrowser fixtures only inside Linux container, sandbox on\t2026-11-12T14:31:17.5988247Z GROUP 7 page forgery PASS page-forgery receiver: 0 before, 1 after, 1 after replay",
+      "fixtures (external)\tBrowser fixtures only inside Linux container, sandbox on\t2026-11-12T14:31:19.4630576Z GROUP 7 page forgery PASS hostile receiver: 0 before, 1 after, 1 after replay",
+      "fixtures (external)\tBrowser fixtures only inside Linux container, sandbox on\t2026-11-12T14:31:21.2528325Z GROUP 7 page forgery PASS relay-hostile receiver: 0 before, 1 after, 1 after replay"
+    ],
+    "policy": [
+      "fixtures (policy)\tBrowser fixtures only inside Linux container, sandbox on\t2026-11-12T14:31:06.2973799Z GROUP 2 stopped page steps PASS native",
+      "fixtures (policy)\tBrowser fixtures only inside Linux container, sandbox on\t2026-11-12T14:31:07.8387851Z GROUP 2 stopped page steps PASS event",
+      "fixtures (policy)\tBrowser fixtures only inside Linux container, sandbox on\t2026-11-12T14:31:13.5333315Z GROUP 7 page forgery PASS page-forgery receiver: 0 before, 1 after, 1 after replay",
+      "fixtures (policy)\tBrowser fixtures only inside Linux container, sandbox on\t2026-11-12T14:31:15.4687216Z GROUP 7 page forgery PASS hostile receiver: 0 before, 1 after, 1 after replay",
+      "fixtures (policy)\tBrowser fixtures only inside Linux container, sandbox on\t2026-11-12T14:31:17.2664625Z GROUP 7 page forgery PASS relay-hostile receiver: 0 before, 1 after, 1 after replay"
+    ]
+  }
+}
