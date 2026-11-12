@@ -1,6 +1,6 @@
 """Automatically discover and fail every durable write in each approved flow."""
 from collections import Counter
-from contextlib import closing, contextmanager, ExitStack
+from contextlib import closing, contextmanager, ExitStack, nullcontext
 from itertools import islice
 import copy
 import errno
@@ -22,6 +22,7 @@ import test_review_fixes_23 as results23
 
 
 from storage_faults import OSWrites as DurableWrites
+from sweep_scripts import AmbientRead, reject_ambient_sources, SweepScripts
 
 
 FLOWS = ('send', 'repair', 'delete_trash', 'delete_permanent', 'unsubscribe_mailto', 'unsubscribe_https',
@@ -33,20 +34,25 @@ FLOWS = ('send', 'repair', 'delete_trash', 'delete_permanent', 'unsubscribe_mail
 class Scenario:
     def __init__(self, flow, *, clock=None):
         self.fixture_clock = ExitStack()
-        # The owner-oracle subclass supplies its own clock/identity script.
-        if type(self) is Scenario:
-            from owner_state_oracle.identity import scripted_ids
-            from owner_state_oracle.clock import scripted_calendar
-            # Keep realistic float precision: shorter JSON timestamps can move
-            # SQLite page boundaries before the selected fault is reached.
-            self.fixture_time = (1794225600.0 if flow == 'archive' else 1794225600.1234567) if clock is None else clock
-            self.fixture_clock.enter_context(patch('time.time', side_effect=lambda: self.fixture_time))
-            self.fixture_clock.enter_context(scripted_calendar())
-            self.fixture_clock.enter_context(scripted_ids('inherited-' + flow))
         try:
+            # The owner-oracle subclass supplies its own clock/identity script.
+            if type(self) is Scenario:
+                self.fixture_clock.enter_context(reject_ambient_sources())
+                # Keep realistic float precision: shorter JSON timestamps can
+                # move SQLite pages before the selected fault is reached.
+                self.fixture_time = (1794225600.0 if flow == 'archive' else 1794225600.1234567) if clock is None else clock
+                self.scripts = SweepScripts(self, flow)
+                for component in self.scripts.COMPONENTS:
+                    self.fixture_clock.enter_context(getattr(self.scripts, component)())
             self._prepare_fixture(flow)
         except BaseException:
-            self.fixture_clock.close()
+            try:
+                if hasattr(self, 'stack'):
+                    self.stack.close()
+                if hasattr(self, 'fixture'):
+                    self.fixture.doCleanups()
+            finally:
+                self.fixture_clock.close()
             raise
 
     def advance_archive_clock(self):
@@ -623,26 +629,109 @@ class FaultSweep23(unittest.TestCase):
             with self.subTest(flow=flow):
                 traces = []
                 for _ in range(3):
-                    # Losing either script must fail on every run, even when
-                    # ambient timestamps happen to have equal JSON lengths.
-                    with patch('time.time', side_effect=AssertionError('Ambient sweep clock')), \
-                            patch('uuid.uuid4', side_effect=AssertionError('Ambient sweep identity')):
-                        scenario = Scenario(flow)
-                        try:
-                            fault = DurableWrites()
-                            with scenario.observed(), fault.wrap(None if flow.startswith('restart_') else scenario.fixture.engine.store):
-                                result = scenario.call()
-                            transport_response(result)
-                            self.assertTrue(result['ok'] or flow == 'password' and result['error']['code'] == 'server_refused'
-                                            or flow == 'export_rollback' and result['error']['code'] == 'storage_limit', result)
-                            scenario.recover()
-                            traces.append(fault.points)
-                        finally:
-                            scenario.close()
+                    points, _ = self.guarded_replay(flow)
+                    traces.append(points)
                 self.assertTrue(traces[0])
                 self.assertEqual(traces[0], traces[1])
                 self.assertEqual(traces[0], traces[2])
                 print(f'Inherited deterministic traces: {flow}={len(traces[0])}, replays=3', flush=True)
+
+    def guarded_replay(self, flow, fail_at=None):
+        with reject_ambient_sources():
+            scenario = Scenario(flow)
+            try:
+                fault = DurableWrites(fail_at)
+                with scenario.observed(), fault.wrap(None if flow.startswith('restart_') else scenario.fixture.engine.store):
+                    result = scenario.call()
+                if fail_at is None:
+                    transport_response(result)
+                    self.assertTrue(result['ok'] or flow == 'password' and result['error']['code'] == 'server_refused'
+                                    or flow == 'export_rollback' and result['error']['code'] == 'storage_limit', result)
+                else:
+                    self.assert_result(scenario, fault, result)
+                scenario.recover(failed=fail_at is not None)
+                return fault.points, scenario.scripts.reads.copy()
+            finally:
+                scenario.close()
+
+    def test_inherited_guard_rejects_each_missing_script(self):
+        sources = {'clock': r'^time\.time$', 'calendar': r'^email\.formatdate$',
+                   'nanoseconds': r'^time\.time_ns$', 'ids': r'^uuid\.uuid4$',
+                   'mime': r'^random\.randrange$', 'paths': r'^tempfile names$'}
+        consumers = {component: [] for component in SweepScripts.COMPONENTS}
+        for flow in FLOWS:
+            points, reads = self.guarded_replay(flow)
+            witnesses = {component: None for component in reads}
+            if 'nanoseconds' not in reads:
+                # Most notices only exist after interruption. Find a real fault
+                # witness rather than probing the clock artificially. Journal
+                # faults usually find it fastest; inspect every other primary
+                # point too before declaring a flow never reads nanoseconds.
+                primary = [i for i, label in enumerate(points, 1) if not label.endswith('.close')]
+                ordered = sorted(primary, key=lambda i: points[i - 1] != 'journal.write')
+                for number in ordered:
+                    _, fault_reads = self.guarded_replay(flow, number)
+                    for component in fault_reads:
+                        witnesses.setdefault(component, number)
+                    if 'nanoseconds' in fault_reads:
+                        break
+            for component in SweepScripts.COMPONENTS:
+                if component not in witnesses:
+                    continue
+                with self.subTest(flow=flow, missing=component):
+                    with patch.object(SweepScripts, component, return_value=nullcontext()):
+                        with self.assertRaisesRegex(AmbientRead, sources[component]):
+                            self.guarded_replay(flow, witnesses[component])
+                    consumers[component].append((flow, witnesses[component]))
+        for component, flows in consumers.items():
+            self.assertTrue(flows, ('Unused script component', component))
+            print(f'Inherited missing-script guard: {component} rejected={len(flows)} flows={flows}', flush=True)
+
+    def test_inherited_guard_rejects_ambient_sources(self):
+        import datetime
+        import email.utils
+        import random
+        import secrets
+        import uuid
+        from aresos_control.mail import adapter
+        from aresos_control import files
+        # Capture module attributes inside the guard, including aliases that
+        # production imported before it was installed.
+        with reject_ambient_sources():
+            reads = [time.time, time.time_ns, time.localtime, time.gmtime,
+                     lambda: time.localtime(None), lambda: time.gmtime(None),
+                     lambda: time.strftime('%Y'), lambda: time.strftime('%Y', None),
+                     datetime.datetime.now, datetime.datetime.utcnow,
+                     datetime.datetime.today, datetime.date.today,
+                     files.datetime.now, adapter.date.today,
+                     uuid.uuid1, uuid.uuid4, random.random, lambda: random.randrange(100),
+                     random.Random, lambda: random.SystemRandom().getrandbits(64),
+                     lambda: secrets.randbelow(100), secrets.token_bytes, lambda: os.urandom(16),
+                     email.utils.make_msgid, email.utils.formatdate, adapter.formatdate,
+                     tempfile.TemporaryDirectory]
+            for index, read in enumerate(reads):
+                with self.subTest(source=index), self.assertRaises(AmbientRead):
+                    read()
+            stamp = time.gmtime(1794225600)
+            self.assertTrue(time.strftime('%Y', stamp))
+            self.assertTrue(time.localtime(1794225600))
+            self.assertTrue(email.utils.formatdate(1794225600))
+            self.assertEqual(random.Random(7).getrandbits(64), random.Random(7).getrandbits(64))
+
+    def test_inherited_notice_clock_preserves_occurrence_order(self):
+        for flow in FLOWS:
+            with self.subTest(flow=flow), reject_ambient_sources():
+                scenario = Scenario(flow)
+                try:
+                    before = time.time_ns()
+                    with patch('time.time', return_value=time.time() + 90000):
+                        expired = time.time_ns()
+                    after = time.time_ns()
+                    self.assertLess(before, expired)
+                    self.assertLess(expired, after)
+                    self.assertLess(after, time.time_ns())
+                finally:
+                    scenario.close()
 
     def test_archive_replays_have_identical_write_traces(self):
         traces = []
