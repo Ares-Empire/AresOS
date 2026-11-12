@@ -643,17 +643,17 @@ class TerminalPathTest(unittest.TestCase):
                 if isinstance(answer, BaseException): raise answer
                 return answer
             def screenshot(self, name): events.append(('screenshot', name))
-        import threading
-        real_sleep, main = vm.time.sleep, threading.main_thread()
+        real_sleep = vm.time.sleep
 
         def sleep(seconds):
-            # time.sleep is the time module's: a thread left by another test (rehearsal run 8's
-            # hosted runner) keeps its real sleep and stays out of this step's order.
-            if threading.current_thread() is main:
+            # time.sleep is the time module's. Only terminal_path's own sleep belongs to the order;
+            # subprocess waits (the guest syntax check's bash -n, other tests' threads) keep the
+            # real one. On rehearsal run 8's runner and under load such waits slept 1 ms here.
+            if sys._getframe(1).f_code is vm.terminal_path.__code__:
                 events.append(('sleep', seconds))
             else:
                 real_sleep(seconds)
-        with patch.object(vm.time, 'sleep', side_effect=sleep), \
+        with patch.object(vm.time, 'sleep', new=sleep), \
                 patch.object(vm.td, 'save', side_effect=lambda name, value: saved.__setitem__(name, value)):
             try: result = vm.terminal_path(Guest(), 'release-27')
             except AssertionError as error: result = error
