@@ -751,4 +751,86 @@ class TerminalPathTest(unittest.TestCase):
             self.assertEqual(value['owner_uid'], os.stat(target).st_uid)
 
 
+class BootStallTest(unittest.TestCase):
+    """Rehearsal run 6 (43136407300): release 27's boot never showed `login:` and both consoles froze."""
+
+    @staticmethod
+    def stat(tid, utime, stime):
+        # A command name with a space and a parenthesis, as /proc allows.
+        return f'{tid} (CPU 0/KVM) x) S 1 1 1 0 -1 4194624 0 0 0 0 {utime} {stime} 0 0 20 0 1 0 100 0 0\n'
+
+    def monitor(self, folder, status=None):
+        calls = []
+        def command(name, arguments=None):
+            calls.append((name, arguments))
+            if name == 'query-status':
+                if isinstance(status, BaseException): raise status
+                return status or dict(running=True, status='running')
+            if name == 'query-cpus-fast': return [{'cpu-index': 0, 'thread-id': 101}, {'cpu-index': 1, 'thread-id': 102}]
+            if name == 'send-key': return {}
+            raise AssertionError(name)
+        return SimpleNamespace(command=command), calls
+
+    def test_vcpu_ticks_read_utime_and_stime_after_the_command_name(self):
+        with tempfile.TemporaryDirectory() as folder:
+            proc = pathlib.Path(folder)
+            for tid, (u, s) in ((101, (700, 50)), (102, (3, 4))):
+                (proc / str(tid)).mkdir(); (proc / str(tid) / 'stat').write_text(self.stat(tid, u, s))
+            monitor, _ = self.monitor(folder)
+            self.assertEqual(vm.vcpu_ticks(monitor, proc), {0: dict(thread_id=101, ticks=750), 1: dict(thread_id=102, ticks=7)})
+
+    def run_stall(self, status=None):
+        saved, events = {}, []
+        with tempfile.TemporaryDirectory() as folder:
+            proc = pathlib.Path(folder)
+            def write(ticks):
+                for tid, value in ticks.items():
+                    (proc / str(tid)).mkdir(exist_ok=True)
+                    (proc / str(tid) / 'stat').write_text(self.stat(tid, value, 0))
+            write({101: 100, 102: 200})
+            monitor, calls = self.monitor(folder, status)
+            def wait(pattern, timeout):
+                events.append(('wait', pattern, timeout))
+                raise TimeoutError('Guest console did not reach ' + pattern)
+            guest = SimpleNamespace(monitor=monitor, boot_number=11, wait=wait,
+                                    screenshot=lambda name: events.append(('screenshot', name)))
+            original = vm.vcpu_ticks
+            with patch.object(vm, 'vcpu_ticks', side_effect=lambda m: original(m, proc)), \
+                    patch.object(vm.time, 'sleep', side_effect=lambda s: (events.append(('sleep', s)), write({101: 100, 102: 690}))), \
+                    patch.object(vm.td, 'save', side_effect=lambda name, value: saved.__setitem__(name, value)):
+                value = vm.boot_stall(guest, 'release-27')
+        return value, saved, calls, events
+
+    def test_records_state_vcpu_time_and_a_sysrq_w_dump_then_a_screenshot(self):
+        value, saved, calls, events = self.run_stall()
+        self.assertIs(saved['release-27-boot-stall'], value)
+        self.assertEqual(value['status'], dict(running=True, status='running'))
+        self.assertEqual([(row['cpu'], row['thread_id'], row['ticks_used']) for row in value['vcpus']], [(0, 101, 0), (1, 102, 490)])
+        self.assertEqual([name for name, _ in calls], ['query-status', 'query-cpus-fast', 'query-cpus-fast', 'send-key'])
+        self.assertEqual([k['data'] for k in calls[-1][1]['keys']], ['alt', 'sysrq', 'w'])
+        self.assertTrue(value['sysrq_w_sent'])
+        self.assertEqual(events, [('sleep', 5), ('wait', '(?!)', 10), ('screenshot', 'release-27-boot-stall')])
+
+    def test_a_failed_probe_is_recorded_and_the_others_still_run(self):
+        value, saved, calls, events = self.run_stall(status=RuntimeError('QMP gone'))
+        self.assertIn('QMP gone', value['status_error'])
+        self.assertIn('vcpus', value)
+        self.assertTrue(value['sysrq_w_sent'])
+        self.assertIn(('screenshot', 'release-27-boot-stall'), events)
+
+    def test_login_runs_the_diagnostics_only_for_a_boot_that_never_showed_login(self):
+        timeout = TimeoutError('Guest console did not reach \\blogin: *')
+        for started, expected in ((False, 1), (True, 0)):
+            with self.subTest(authentication_started=started):
+                guest = object.__new__(vm.Guest)
+                guest.authentication_started, guest.mode, guest.boot_purpose = started, 'installed', 'release-27'
+                with patch.object(vm.td.Guest, 'login', side_effect=timeout), \
+                        patch.object(vm, 'boot_stall') as stall, self.assertRaises(TimeoutError) as raised:
+                    guest.login()
+                self.assertIs(raised.exception, timeout)
+                self.assertEqual(stall.call_count, expected)
+                if expected:
+                    stall.assert_called_once_with(guest, 'release-27')
+
+
 if __name__=='__main__': unittest.main()

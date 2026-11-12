@@ -178,7 +178,13 @@ class Guest(td.Guest):
         pass
 
     def login(self):
-        super().login()
+        try:
+            super().login()
+        except TimeoutError:
+            # Only a boot that never showed `login:`; later prompts have their own evidence.
+            if not self.authentication_started:
+                boot_stall(self, getattr(self, 'boot_purpose', self.mode))
+            raise
         self.owner_signed_in = True
         self.keyboard_device()
         owner_xhci.checkpoint(self, 'boot-' + str(self.boot_number) + '-begin')
@@ -285,6 +291,58 @@ PY'''))
                 self.webui_socket = None
         finally:
             super().close(stage)
+
+
+def vcpu_ticks(monitor, proc=pathlib.Path('/proc')):
+    """CPU time (utime + stime, in clock ticks) of each vCPU thread QEMU reports."""
+    rows = {}
+    for cpu in monitor.command('query-cpus-fast'):
+        # Fields after the command name's closing parenthesis start at field 3 (state);
+        # utime and stime are fields 14 and 15.
+        fields = (proc / str(cpu['thread-id']) / 'stat').read_text().rsplit(')', 1)[1].split()
+        rows[cpu['cpu-index']] = dict(thread_id=cpu['thread-id'], ticks=int(fields[11]) + int(fields[12]))
+    return rows
+
+
+def boot_stall(guest, stage, seconds=5, settle=10):
+    """A boot that never reached `login:` (rehearsal run 6, 43136407300): tell a frozen guest
+    from an idle or busy one whose consoles stopped, before close() pauses and ends it.
+
+    Each probe is best effort and records its own error; the caller re-raises the timeout.
+    sysrq-w prints blocked tasks only if kernel.sysrq allows it; otherwise the kernel says so.
+    """
+    value = dict(stage=stage, boot=getattr(guest, 'boot_number', None), seconds=seconds,
+                 clock_ticks_per_second=os.sysconf('SC_CLK_TCK'))
+    try:
+        value['status'] = guest.monitor.command('query-status')
+    except Exception as error:
+        value['status_error'] = repr(error)[:200]
+    try:
+        before = vcpu_ticks(guest.monitor)
+        time.sleep(seconds)
+        after = vcpu_ticks(guest.monitor)
+        value['vcpus'] = [dict(cpu=cpu, thread_id=row['thread_id'], ticks_before=row['ticks'],
+                               ticks_after=after[cpu]['ticks'], ticks_used=after[cpu]['ticks'] - row['ticks'])
+                          for cpu, row in sorted(before.items()) if cpu in after]
+    except Exception as error:
+        value['vcpu_error'] = repr(error)[:200]
+    try:
+        guest.monitor.command('send-key', {'keys': [{'type': 'qcode', 'data': name} for name in ('alt', 'sysrq', 'w')],
+                                           'hold-time': 100})
+        value['sysrq_w_sent'] = True
+        try:
+            # Keep reading the UART so the kernel's answer lands in the boot console transcript.
+            guest.wait(r'(?!)', timeout=settle)
+        except (TimeoutError, EOFError):
+            pass
+    except Exception as error:
+        value.update(sysrq_w_sent=False, sysrq_error=repr(error)[:200])
+    td.save(stage + '-boot-stall', value)
+    try:
+        guest.screenshot(stage + '-boot-stall')
+    except Exception as error:
+        td.save(stage + '-boot-stall-screenshot', dict(error=repr(error)[:200]))
+    return value
 
 
 def retain_vcsa(tty, stage, phase, raw):
