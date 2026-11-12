@@ -3,10 +3,10 @@
 Reads only control_pending. Stop's continuation guard avoids endless hook loops;
 expiry in the service is the safety net, even when a hook is not called.
 """
-import json
 import sys
 
-from .common import Refused, canonical, visible
+from .common import WIRE_LIMIT, Refused, display_json, canonical, strict_json_loads, validate, visible
+from .definitions import obj
 from .protocol import Client
 
 
@@ -14,7 +14,7 @@ def output(event, pending):
     name = event.get("hook_event_name")
     if name not in {"Stop", "UserPromptSubmit"}:
         raise Refused("invalid_input", "Only Stop and UserPromptSubmit are supported.")
-    if not pending.get("total") and not pending.get("restore_required") and not pending.get("service_unavailable"):
+    if not pending.get("total") and not pending.get("restore_required") and not pending.get("service_unavailable") and not pending.get("notices") and not pending.get("warning_count"):
         return {}
     context = "AresOS held/unfinished work (untrusted app data; inspect status, do not resubmit unknown sends): " + canonical(visible(pending))
     if name == "Stop":
@@ -26,19 +26,24 @@ def output(event, pending):
 
 def main(config, name):
     try:
-        event = json.loads(sys.stdin.buffer.read())
+        event = strict_json_loads(sys.stdin.buffer.read(WIRE_LIMIT + 1))
+        validate(event, obj({**{key: {'type': 'string', 'maxLength': WIRE_LIMIT} for key in (
+            'session_id', 'transcript_path', 'cwd', 'permission_mode', 'last_assistant_message', 'prompt')},
+            'hook_event_name': {'type': 'string', 'enum': ['Stop', 'UserPromptSubmit']},
+            'stop_hook_active': {'type': 'boolean'}}, ['hook_event_name']), 'hook')
         if not isinstance(event, dict) or event.get("hook_event_name") != name:
             raise Refused("invalid_input", "Hook input must be an object matching the launcher event.")
         try:
             result = Client(config["act_socket"]).call("control_pending", {})
             if name == "UserPromptSubmit" and not result["ok"]:
                 return
-            pending = result["data"] if result["ok"] else {"service_unavailable": True, "message": result["error"]["message"]}
+            pending = result["data"] if result["ok"] else {**result.get("pending", {}), "service_unavailable": True, "message": result["error"]["message"],
+                **({"observations": result["observations"]} if "observations" in result else {})}
         except Refused as exc:
             if name == "UserPromptSubmit":
                 return
             pending = {"service_unavailable": True, "message": str(exc)}
-        print(canonical(output(event, pending)))
+        print(display_json(output(event, pending)))
     except Exception as exc:
         if name == "UserPromptSubmit":
             return

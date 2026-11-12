@@ -3,7 +3,6 @@
 -S prevents sitecustomize AND .pth execution, including .pth in vendor. -I blocks
 the current directory, user site and PYTHONPATH before this script starts.
 """
-import json
 import os
 from pathlib import Path
 import stat
@@ -33,13 +32,14 @@ def main():
     os.environ.update({"PATH": "/usr/bin:/bin", "LANG": "C.UTF-8"})
     sys.dont_write_bytecode = True
     sys.path.extend([str(PREFIX), str(VENDOR)])
+    from aresos_control.common import strict_json_loads
     if len(sys.argv) < 2:
         raise SystemExit("Expected proxy, cli, hook or service")
     mode = sys.argv[1]
     with (CONFIG / ("service.json" if mode == "service" else "proxy.json")).open() as stream:
-        config = json.load(stream)
+        config = strict_json_loads(stream.read())
     if mode == "proxy" and len(sys.argv) == 3:
-        owner_uid = json.loads((CONFIG / "service.json").read_text())["owner_uid"]
+        owner_uid = strict_json_loads((CONFIG / "service.json").read_text())["owner_uid"]
         if owner_uid <= 0 or os.getuid() != owner_uid:
             raise SystemExit("AresOS MCP proxy requires the configured assistant user.")
         from aresos_control.proxy import main as proxy_main

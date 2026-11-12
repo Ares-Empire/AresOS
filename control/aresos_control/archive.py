@@ -1,0 +1,139 @@
+"""Owner-requested export and SQLite compaction; never rewrites the restore fence."""
+import hashlib
+import os
+import time
+import uuid
+
+from . import retention
+from .common import storage_stream, Refused, canonical, cleanup
+from .storage import sync_directory
+
+
+def archive(store, before, mail=None):
+    store.ensure_writable()
+    if store.locked:
+        raise Refused('restore_required', 'Confirm the restored log before archiving history.')
+    if before >= time.time():
+        raise Refused('invalid_input', 'Archive cutoff must be in the past (Unix seconds).')
+    closed, protected = {}, set()
+    # A refused reopening leaves yesterday's clean result intact. After a
+    # crash it cannot certify today's mailbox: recheck before removing it.
+    operations = store.items('op:')
+    candidates = {op['id'] for key, op in operations if op['state'] in {'done', 'failed', 'refused'}
+                  and store.retained_at(key) < before}
+    unchecked = None
+    if mail:
+        # These commits are part of owner compaction, which must still work
+        # when ordinary retained-history admission is already full.
+        store.archiving = True
+        try:
+            unchecked = {n['untrusted_content']['operation_id'] for n in mail.resolve_sent_checks(candidates)}
+        finally:
+            store.archiving = False
+    operations = store.items('op:')
+    dependencies = {op.get('repair_of') for _, op in operations if op['state'] in retention.OPEN}
+    for key, op in operations:
+        if (op['id'] not in dependencies and op['state'] in {'done', 'failed', 'refused'} and
+                (not op.get('sent_copy_check') and not op.get('payload', {}).get('composition') or
+                 unchecked is not None and op['id'] not in unchecked and
+                 op.get('sent_copy_check', {}).get('state') == 'checked') and
+                (not op.get('notice') or op.get('ack'))):
+            if store.retained_at(key) < before and len(closed) < 100:
+                closed[key] = op
+        else:
+            protected.add(key)
+    for key, notice in store.items('notice:'):
+        if not notice.get('ack'):
+            intent_key = notice.get('source_key') or notice.get('untrusted_content', {}).get('intent_key')
+            if intent_key:
+                protected.add(intent_key)
+            operation_id = notice.get('untrusted_content', {}).get('operation_id')
+            if operation_id:
+                closed.pop('op:' + operation_id, None)
+                protected.add('op:' + operation_id)
+            protected.update((key, 'mail:filing:' + notice['id'], 'mail:rename:' + notice['id'],
+                              'mail:filing-locations:' + notice['id'] + ':'))
+    for prefix in ('mail:filing:', 'mail:rename:'):
+        for key, intent in store.items(prefix):
+            notice = store.get('notice:' + intent['id'])
+            if (intent.get('check_open') or intent.get('state') not in {'done', 'partial'} or
+                    intent.get('state') == 'partial' and not (notice and notice.get('ack'))):
+                protected.add(key)
+                protected.add('mail:filing-locations:' + intent['id'] + ':')
+    for key, account in store.items('mail:account:'):
+        if not account.get('onboarded', account.get('ready', False)):
+            protected.add(key)
+
+    def eligible(event):
+        keys = set(event['set']) | {'op:' + op['id'] for op in event['record']['operations']}
+        return (event['time'] < before and event['seq'] not in legacy_sources and
+                not any(key.startswith(p) for key in keys for p in protected))
+
+    # Calculate space before making an export. Recovery can use the physical
+    # reserve ordinary work leaves untouched; the private export is never public.
+    estimate = store.db.execute('SELECT coalesce(sum(length(CAST(value AS BLOB)) + 128),0) FROM events').fetchone()[0]
+    estimate += sum(retention.size(v) + 128 for v in closed.values()) + 65536
+    # Include the export, its audit transaction and VACUUM's temporary database.
+    store.ledger.admit(estimate + store.history_size() * 2 + 256 * 1024)
+    # An older unfinished action may have no separate intent row, and a full
+    # notice table may still need its audit row as the only warning source.
+    from .recovery import unfinished
+    legacy_sources = {int(key.rsplit(':', 1)[1]) for key, notice_id, _, _ in unfinished(store)
+                      if key.startswith('legacy-intent:') and
+                      not (store.get('notice:' + notice_id) or {}).get('ack')}
+    directory = store.evidence_dir / 'archives'
+    directory.mkdir(mode=0o700, exist_ok=True)
+    name = 'history-' + uuid.uuid4().hex + '.jsonl'
+    temporary, destination = directory / (name + '.partial'), directory / name
+    checksum, sequences = hashlib.sha256(), []
+    head = store.events[-1]
+    try:
+        fd = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+        with storage_stream(os.fdopen(fd, 'wb')) as stream:
+            def emit(value):
+                encoded = (canonical(value) + '\n').encode()
+                stream.write(encoded)
+                checksum.update(encoded)
+            emit({'format': 'aresos-history-1', 'before': before, 'head': {'seq': head['seq'], 'hash': head['hash']}})
+            for event in store.iter_audit():
+                if eligible(event):
+                    emit({'event': event})
+                    sequences.append(event['seq'])
+            for key, value in closed.items():
+                emit({'key': key, 'value': value})
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.rename(temporary, destination)
+        sync_directory(directory)
+        sync_directory(store.evidence_dir)
+        store.checkpoint('archive_exported')
+        # The independent journal retains every compact operation record and
+        # commit. Tombstones distinguish intentional archival from missing data.
+        next_seq = len(store.events) + 1
+        changes = {key: None for key in closed}
+        changes.update({'archived:' + key[3:]: {'seq': next_seq} for key in closed})
+        manifest = {'path': str(destination), 'sha256': checksum.hexdigest(), 'before': before,
+                    'events': len(sequences), 'operations': len(closed), 'head': head['hash']}
+        changes['archive:' + name] = manifest
+        # Export is durable before any source row is removed. Permit temporary
+        # quota excess here so a pre-upgrade full store can also be compacted.
+        store.archiving = True
+        try:
+            store.write(changes, 'control_archive', 'owner exported finished history before compaction')
+        finally:
+            store.archiving = False
+        with store.db:
+            store.ledger.admit(store.history_size() + 65536)
+            for offset in range(0, len(sequences), 500):
+                batch = sequences[offset:offset + 500]
+                store.db.execute('DELETE FROM events WHERE seq IN (' + ','.join('?' for _ in batch) + ')', batch)
+        store.checkpoint('archive_pruned')
+        store.ledger.admit(store.history_size() * 2 + 65536)
+        store.db.execute('VACUUM')
+        sync_directory(store.state_dir)
+        store.checkpoint('archive_compacted')
+        return {**manifest, 'history_bytes': store.history_size(), 'independent_record_retained': True,
+                'read_with': 'sudo cat ' + str(destination)}
+    finally:
+        with cleanup('archive temporary unlink'):
+            temporary.unlink(missing_ok=True)

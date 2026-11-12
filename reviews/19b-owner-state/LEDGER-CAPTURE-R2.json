@@ -1,0 +1,243 @@
+{
+  "artifacts": [
+    {
+      "assertions": 2,
+      "bytes": 346,
+      "file": "base/control-base-42687524469-1/owner-gaps-channel-0-0.json.gz",
+      "sha256": "4e8a523d9eadc6979ea8491d3c3ab6d019f68aa2bca1c9674cf57026d6be462f"
+    },
+    {
+      "assertions": 1,
+      "bytes": 224,
+      "file": "mail-suite/control-mail-42687523943-1/owner-gaps-G22-evidence-0-0.json.gz",
+      "sha256": "b1cf86f9bde967233d72be930aeed9ad188afc6c2fe3d1d76f587c02ea0992ae"
+    },
+    {
+      "assertions": 1,
+      "bytes": 221,
+      "file": "mail-suite/control-mail-42687523943-1/owner-gaps-G22-latch-0-0.json.gz",
+      "sha256": "e0410224472e491845ac467c016ddec55105d56707724795afdbc3c26962512c"
+    },
+    {
+      "assertions": 1,
+      "bytes": 215,
+      "file": "mail-suite/control-mail-42687523943-1/owner-gaps-G22-rename-0-0.json.gz",
+      "sha256": "bcc9c28dea3ac08690127a770dfb15e5b8c250e0b1b091c286e2a2870e2526f0"
+    },
+    {
+      "assertions": 372,
+      "bytes": 4954,
+      "file": "mail-suite/control-mail-42687523943-1/owner-gaps-contract-0-0.json.gz",
+      "sha256": "e60463df5f85413372781b3a8a6d9034a130e2ff0fc16391e8806315bb4034fc"
+    },
+    {
+      "assertions": 126908,
+      "bytes": 601850,
+      "file": "shard-0/control-mail-sweep-0-42687523943-1/owner-gaps-sweep-0-0.json.gz",
+      "sha256": "c75b76fde0f351611cfd1903f8b333d910fb8a731b4fb092ba6f8e1a200e2000"
+    },
+    {
+      "assertions": 140981,
+      "bytes": 649644,
+      "file": "shard-0/control-mail-sweep-0-42687523943-1/owner-gaps-sweep-0-1.json.gz",
+      "sha256": "a896275108ad5498fcfe591d8a886af2afbf350837377f968e23496e18ccd562"
+    },
+    {
+      "assertions": 140661,
+      "bytes": 657529,
+      "file": "shard-0/control-mail-sweep-0-42687523943-1/owner-gaps-sweep-0-2.json.gz",
+      "sha256": "831b4651abebf43aed5f55a3fe8ec6f088b27b44ac06c7534d510896f2c11445"
+    },
+    {
+      "assertions": 126014,
+      "bytes": 595410,
+      "file": "shard-1/control-mail-sweep-1-42687523943-1/owner-gaps-sweep-1-0.json.gz",
+      "sha256": "c74978ecc3f44da2e0bb3282f885f71bc061dcda2ca6e61209fa64d909fe6fc2"
+    },
+    {
+      "assertions": 138504,
+      "bytes": 646727,
+      "file": "shard-1/control-mail-sweep-1-42687523943-1/owner-gaps-sweep-1-1.json.gz",
+      "sha256": "2061a165d35db223ea4c5a7305b76a131894040f224795b32eaec3780fedbcf9"
+    },
+    {
+      "assertions": 129970,
+      "bytes": 619856,
+      "file": "shard-1/control-mail-sweep-1-42687523943-1/owner-gaps-sweep-1-2.json.gz",
+      "sha256": "cb076854e12f09c7ee5736c920f4869e38b48b562a351dbfb8bc6bdca2c9585f"
+    },
+    {
+      "assertions": 146750,
+      "bytes": 688401,
+      "file": "shard-2/control-mail-sweep-2-42687523943-1/owner-gaps-sweep-2-0.json.gz",
+      "sha256": "c2f8b981b7055ea90f48eea8299966f7a807b6112ab797cbcb251cdfa3eaf561"
+    },
+    {
+      "assertions": 132221,
+      "bytes": 616634,
+      "file": "shard-2/control-mail-sweep-2-42687523943-1/owner-gaps-sweep-2-1.json.gz",
+      "sha256": "fdcf3f497ae94b6e1cd40e76073fd9cda773ea8172678cab5bdbcaeb2a3436cd"
+    },
+    {
+      "assertions": 131040,
+      "bytes": 610114,
+      "file": "shard-2/control-mail-sweep-2-42687523943-1/owner-gaps-sweep-2-2.json.gz",
+      "sha256": "5c80f119905f3979e0ca70a56a2dff4f7db796a4210e27511312276e789195d5"
+    },
+    {
+      "assertions": 137098,
+      "bytes": 634452,
+      "file": "shard-3/control-mail-sweep-3-42687523943-1/owner-gaps-sweep-3-0.json.gz",
+      "sha256": "d715aec9b13470b850012301dd35ce43480b48a954cf10a69af6de4b37bf2856"
+    },
+    {
+      "assertions": 146190,
+      "bytes": 675358,
+      "file": "shard-3/control-mail-sweep-3-42687523943-1/owner-gaps-sweep-3-1.json.gz",
+      "sha256": "66d5121163a131eb77f5b21d8f15a35ca74c9feb5a526abe0adb57b5eb0218e9"
+    },
+    {
+      "assertions": 133769,
+      "bytes": 633606,
+      "file": "shard-3/control-mail-sweep-3-42687523943-1/owner-gaps-sweep-3-2.json.gz",
+      "sha256": "b54d3b1050578b85d9a15856c1b5de85541569736ad1ed4ecd9ede900ce221d4"
+    }
+  ],
+  "assertions": 1629889,
+  "bytes": 868337,
+  "capture": {
+    "base": "42687524469",
+    "mail": "42687523943"
+  },
+  "groups": 1716,
+  "per_suite": {
+    "G22-evidence": {
+      "3": 1
+    },
+    "G22-latch": {
+      "3": 1
+    },
+    "G22-rename": {
+      "3": 1
+    },
+    "archive": {
+      "3": 56152
+    },
+    "attachment_export": {
+      "3": 67394
+    },
+    "cancel": {
+      "3": 10224
+    },
+    "channel": {
+      "3": 2
+    },
+    "contract": {
+      "2": 16,
+      "3": 356
+    },
+    "delete_permanent": {
+      "2": 3131,
+      "3": 65766
+    },
+    "delete_trash": {
+      "2": 1879,
+      "3": 42564
+    },
+    "draft_append": {
+      "2": 629,
+      "3": 8137
+    },
+    "expiry": {
+      "3": 12211
+    },
+    "export_rollback": {
+      "3": 75238
+    },
+    "filing_copy": {
+      "3": 67721
+    },
+    "filing_move": {
+      "3": 67721
+    },
+    "filing_rename": {
+      "2": 1134,
+      "3": 32508
+    },
+    "flag": {
+      "2": 594,
+      "3": 7721
+    },
+    "folder_create": {
+      "2": 594,
+      "3": 7721
+    },
+    "folder_delete": {
+      "2": 1234,
+      "3": 30819
+    },
+    "folder_review": {
+      "2": 889,
+      "3": 14281
+    },
+    "maintenance": {
+      "3": 6303
+    },
+    "onboarding": {
+      "2": 19883,
+      "3": 334922
+    },
+    "password": {
+      "2": 1,
+      "3": 1961
+    },
+    "repair": {
+      "2": 1908,
+      "3": 82460
+    },
+    "restore": {
+      "3": 17287
+    },
+    "send": {
+      "2": 4865,
+      "3": 160393
+    },
+    "settings": {
+      "2": 924,
+      "3": 14281
+    },
+    "settlement": {
+      "3": 31777
+    },
+    "status": {
+      "3": 22587
+    },
+    "testapp_config": {
+      "2": 721,
+      "3": 7844
+    },
+    "testapp_delete": {
+      "3": 39100
+    },
+    "testapp_export": {
+      "3": 20227
+    },
+    "testapp_send": {
+      "3": 58118
+    },
+    "unsubscribe_https": {
+      "2": 1253,
+      "3": 54165
+    },
+    "unsubscribe_mailto": {
+      "2": 5202,
+      "3": 167068
+    }
+  },
+  "sha256": "c6d26c983ca808bca1597cdcb48d4dbe2b41a7a3b2ad932a66667d7c726b9f98",
+  "source": "72d3ac77375594f867f0127a7939388c63121159",
+  "stages": {
+    "2": 44857,
+    "3": 1585032
+  }
+}

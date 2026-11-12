@@ -7,6 +7,10 @@ import stat
 import subprocess
 import sys
 
+sys.path.insert(0, '/opt/aresos-control')
+from aresos_control.boundary import Boundary
+from aresos_control.common import Refused
+
 ROOT = Path('/opt/aresos-control')
 FILTER = ROOT / 'node_modules/@anthropic-ai/sandbox-runtime/vendor/seccomp/x64/apply-seccomp'
 NATIVE = ROOT / 'node_modules/@anthropic-ai/claude-code-linux-x64/claude'
@@ -22,6 +26,8 @@ def trusted(path):
 
 
 def main():
+    # Use the service's complete policy-source check before launching the CLI.
+    Boundary().require()
     for path in (ROOT, Path(__file__), FILTER, CLAUDE, NATIVE, ROOT / 'pins.json',
                  ROOT / 'run.mjs', ROOT / 'seccomp-canary.py',
                  Path('/usr/local/bin/node'), Path('/usr/bin/python3'),
@@ -62,6 +68,6 @@ def main():
 if __name__ == '__main__':
     try:
         main()
-    except (OSError, ValueError, subprocess.TimeoutExpired) as error:
+    except (OSError, ValueError, Refused, subprocess.TimeoutExpired) as error:
         print('REFUSE: ' + str(error), file=sys.stderr)
         sys.exit(78)

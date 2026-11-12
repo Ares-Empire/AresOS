@@ -277,7 +277,7 @@ class Operations(EngineCase):
         result = self.call("testapp_file_import", {"path": "/fixture/never-opened"})
         self.assertEqual(result["error"]["code"], "proxy_required")
         first, second = self.reserve(), self.reserve()
-        self.assertFalse(self.call("testapp_send", {"operation_id": second["operation_id"], "description": first["description"]})["ok"])
+        self.assertFalse(self.call("testapp_send", {"question": second["question"], "operation_id": second["operation_id"], "description": first["description"]})["ok"])
         self.assertEqual(self.engine.receiver.evidence(first["operation_id"])["arrivals"], [])
         self.assertEqual(self.engine.receiver.evidence(second["operation_id"])["arrivals"], [])
 

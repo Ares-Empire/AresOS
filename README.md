@@ -21,7 +21,9 @@ terminal; the game and the apps aren't in it yet.
   the emergency card and the install tools. Graphics, the network, sound and the touchpad work there; brightness and
   the power button don't yet.
 - **The control layer** (apps as tools for a Claude Code session): the base service is merged and tested with a
-  made-up test app. Mail is in review. The Chrome tool is designed, not built.
+  made-up test app. Mail is merged: Claude can read, search, sort and send mail, and every send, delete and
+  unsubscribe asks first. It is tested against test mail servers, not yet with a real account. The Chrome tool is
+  built and in review.
 
 Not done yet: Minecraft inside the image, opening apps on Linux (the mod waits for a helper in the OS), and the first
 update of the installed laptop to a new release, which is the next step.

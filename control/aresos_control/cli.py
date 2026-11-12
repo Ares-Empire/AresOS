@@ -2,7 +2,7 @@ import argparse
 import json
 from pathlib import Path
 
-from .common import Refused, canonical
+from .common import JSONInputError, Refused, display_json, strict_json_loads
 from .definitions import BY_NAME
 from .proxy import Proxy
 
@@ -36,11 +36,30 @@ def main(config, argv=None):
         command = command[1:]
     if command == ["log"]:
         command = ["control", "log"]
+    if command == ["mail", "account", "add"]:
+        command = ["mail", "account_add"]
     if len(command) != 2:
         root.error("expected [admin] <app> <action>, or log")
     try:
-        result = Proxy(command[0], config, admin).call(command[1], json.loads(args.input))
+        if admin and command == ["mail", "account_add"]:
+            import getpass
+            import sys
+            if not sys.stdin.isatty():
+                raise Refused("terminal_required", "Account password must be entered at the owner terminal.")
+            from .common import validate
+            from .mail.definitions import ACCOUNT_CONFIG
+            arguments = strict_json_loads(args.input)
+            validate(arguments, ACCOUNT_CONFIG)
+            proxy = Proxy("mail", config, admin=True)
+            password = getpass.getpass("Mail password (service only): ")
+            result = proxy.client.request({"method": "mail_account_add", "arguments": arguments, "password": password})
+            del password
+        else:
+            arguments = strict_json_loads(args.input)
+            result = Proxy(command[0], config, admin).call(command[1], arguments)
     except (Refused, ValueError) as exc:
+        if isinstance(exc, JSONInputError):
+            exc.for_actions(["_".join(command)])
         result = {"ok": False, "error": {"code": getattr(exc, "code", "invalid_input"), "message": str(exc)}, "pending": {}}
-    print(canonical(result))
+    print(display_json(result))
     return 0 if result["ok"] else 1
