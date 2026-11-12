@@ -21,7 +21,7 @@ The parts are built and tested on their own. AresOS is not installed on real har
 - **The control layer** (apps as tools for a Claude Code session): the base service is merged and tested with a
   made-up test app. Mail is merged: Claude can read, search, sort and send mail, and every send, delete and
   unsubscribe asks first. It is tested against test mail servers, not yet with a real account. The Chrome tool is
-  built and in its last review.
+  built and in review.
 
 Not done yet: Minecraft inside the image, opening apps on Linux (the mod waits for a helper in the OS), and the first
 install on real hardware, which is the next step.
