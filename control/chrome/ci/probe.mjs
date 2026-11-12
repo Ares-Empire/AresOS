@@ -25,7 +25,7 @@ try{
   const until=Date.now()+60000;while(Date.now()<until&&!complete())await delay(100);
   if(!reports.some(value=>value.phase==='first-page-script'))throw Error('No first-script result; injection mechanism unproven');
   if(reports.find(value=>value.phase==='first-page-script').preloadMarker!=='boolean')throw Error('Root document preload marker did not run');
-  if(!reports.some(value=>value.phase==='popup-first-script')||!reports.some(value=>value.phase==='popup-observation'))throw Error('No popup diagnostic result');
   for(const mode of ['open','closed']){const row=reports.find(value=>value.phase==='native-borrowed-'+mode);if(!row||row.handlers!==0)throw Error('Native entry did not capture borrowed '+mode+' dispatch: '+JSON.stringify(row));}
+  if(!reports.some(value=>value.phase==='popup-first-script')||!reports.some(value=>value.phase==='popup-observation'))throw Error('No popup diagnostic result');
   console.log('DIAGNOSTIC ONLY: no acceptance result is produced.');
 }finally{browser.kill('SIGTERM');await delay(500);if(browser.exitCode===null)browser.kill('SIGKILL');server.close();fs.rmSync(profile,{recursive:true,force:true});}
