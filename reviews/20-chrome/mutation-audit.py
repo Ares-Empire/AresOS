@@ -161,6 +161,8 @@ case('recheck-owner-held-key',O,"row.phase==='held'&&row.key==='Enter'&&!row.in_
 case('recheck-owner-held-flight',O,"row.phase==='held'&&row.key==='Enter'&&!row.in_flight","row.phase==='held'&&row.key==='Enter'",node('owner-evidence','recheck owner evidence'))
 case('recheck-owner-consumed',O,"row.phase==='pass'&&row.consumed===true","row.phase==='pass'",node('owner-evidence','recheck owner evidence'))
 case('recheck-owner-pass-token',O,"row.token===pass.token&&row.input===pass.input","row.input===pass.input",node('owner-evidence','recheck owner evidence'))
+case('recheck-search-query-content',P,"if k != 'value' or not target.get('editable')",'', 'test_policy.RecheckSearch.test_explicit_search_submitters_ask_and_ordinary_search_stays_free',True)
+case('recheck-compose-draft-content',P,"if k != 'value' or not target.get('editable')",'', 'test_questions.Questions.test_recheck_editable_payment_words_keep_the_complete_send_draft_binding',True)
 
 def command(row):
     if row['python']:return ['python3','-B','-m','unittest',row['test'],'-v']

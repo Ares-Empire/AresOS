@@ -135,4 +135,6 @@ recheck-owner-held-key MUTATION REJECTED
 recheck-owner-held-flight MUTATION REJECTED
 recheck-owner-consumed MUTATION REJECTED
 recheck-owner-pass-token MUTATION REJECTED
-137 mutations rejected; every baseline passed
+recheck-search-query-content MUTATION REJECTED
+recheck-compose-draft-content MUTATION REJECTED
+139 mutations rejected; every baseline passed

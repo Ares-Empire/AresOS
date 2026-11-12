@@ -26,6 +26,11 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
       assert.equal(receiverEvidence(id,'script handler stopped').count,0);assert.ok(result.followups?.some(row=>row.stopped));
       await approval(await call('click',await target(variant==='pay'?'Pay':'Delete')),id);
     }
+    for(const [index,query] of ['Pay for lunch','Delete old notes','Send a letter'].entries()){
+      const id='recheck-query-'+index;await nav('review-page&mode=ordinary-search&id='+id+'&query='+encodeURIComponent(query));
+      const result=await call('press',{...await target('Query'),key:'Enter'});assert.ok(!result.approval&&!result.followups?.some(row=>row.approval),JSON.stringify(result));
+      await eventually(()=>counts(id)===1,'ordinary GET search stays free');const evidence=receiverEvidence(id,'ordinary search is free');assert.equal(evidence.count,1);assert.equal(evidence.arrivals[0].method,'GET');assert.equal(new URL(evidence.arrivals[0].url,'http://fixture.test').searchParams.get('q'),query);
+    }
   });
   await check('GROUP 4 REVIEW ordinary native dialogs from Claude owner and page tasks keep working',async()=>{
     for(const kind of ['alert','confirm','prompt'])for(const origin of ['claude','owner','task'])for(const accept of kind==='alert'?[true]:[false,true]){
@@ -170,18 +175,19 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
     }
   });
   await check('GROUP 3 REVIEW item confirmation file rich text and title mutations refuse',async()=>{
-    for(const [mode,variant,label]of [['binding','listitem','Delete'],['binding','row','Delete'],['binding','article','Delete'],['binding','region','Delete'],['binding','section','Delete'],['binding','unsubscribe','Unsubscribe'],['binding','abbestellen','Abbestellen'],['confirmation','','OK'],['confirmation','form','OK'],['confirmation','submit','OK'],['confirmation','submit-send','Send'],...['li-open','li-closed','row-open','row-closed'].map(variant=>['shadow-binding',variant,'Delete']),['file','','Submit'],['rich','','Send'],['title','','Send']]){
+    for(const [mode,variant,label]of [['binding','listitem','Delete'],['binding','row','Delete'],['binding','article','Delete'],['binding','region','Delete'],['binding','section','Delete'],['binding','unsubscribe','Unsubscribe'],['binding','abbestellen','Abbestellen'],['confirmation','','OK'],['confirmation','form','OK'],['confirmation','submit','OK'],['confirmation','submit-send','Send'],['compose-key','','Message'],...['li-open','li-closed','row-open','row-closed'].map(variant=>['shadow-binding',variant,'Delete']),['file','','Submit'],['rich','','Send'],['title','','Send']]){
       const id='review-bind-'+mode+'-'+variant;await nav('review-page&mode='+mode+'&variant='+variant+'&id='+id);
-      const prepared=await call('click',await target(label));assert.ok(prepared.approval,JSON.stringify(prepared));
+      const prepare=async()=>mode==='compose-key'?call('press',{...await target(label),key:'Enter'}):call('click',await target(label));
+      const prepared=await prepare();assert.ok(prepared.approval,JSON.stringify(prepared));
       if(mode==='shadow-binding')assert.match(JSON.stringify(prepared.approval),/Invoice A/);
-      if(mode==='confirmation')assert.match(JSON.stringify(prepared.approval),/Approved draft/);
+      if(['confirmation','compose-key'].includes(mode))assert.match(JSON.stringify(prepared.approval),/Approved draft/);
       await fixture.mutate(id,'review-change');const result=await rpc('submit',prepared.approval);
       assert.ok(!result.ok||result.data.operation.state==='failed',JSON.stringify(result));assert.equal(receiverEvidence(id,'changed approval refused').count,0);
-      const fresh=await call('click',await target(label));
+      const fresh=await prepare();
       if(mode==='shadow-binding')assert.match(JSON.stringify(fresh.approval),/Invoice B/);
-      if(mode==='confirmation')assert.match(JSON.stringify(fresh.approval),/Different draft/);
+      if(['confirmation','compose-key'].includes(mode))assert.match(JSON.stringify(fresh.approval),/Different draft/);
       await approval(fresh,id);
-      if(['shadow-binding','confirmation'].includes(mode))assert.equal(fixture.arrivals.find(row=>new URL(row.url,'http://fixture.test').searchParams.get('case')===id).body,mode==='confirmation'?'Different draft':'Invoice B');
+      if(['shadow-binding','confirmation','compose-key'].includes(mode))assert.equal(fixture.arrivals.find(row=>new URL(row.url,'http://fixture.test').searchParams.get('case')===id).body,mode==='shadow-binding'?'Invoice B':'Different draft');
       console.log('REVIEW P10 P11 P12 P13 P14 P22 RECEIVER0/1/1',id);
     }
   });

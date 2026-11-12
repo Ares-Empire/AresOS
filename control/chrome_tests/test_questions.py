@@ -99,6 +99,20 @@ class Questions(unittest.TestCase):
                 with self.assertRaises(Refused):binding(self.browser.facts,{'frame':0},'confirmation',None)
                 self.browser.facts.pop('uncovered')
 
+    def test_recheck_editable_payment_words_keep_the_complete_send_draft_binding(self):
+        from aresos_control.chrome.adapter import binding
+        frame=self.browser.facts['frames'][0]
+        frame['target'].update(name='Message',label='Message',role='textbox',editable=True,value='Pay for lunch')
+        frame['editable']=[{'element':'e1','value':'Pay for lunch'},{'element':'other','value':'Approved draft'}]
+        prepared=self.call('press',{**self.target(),'key':'Enter'})
+        self.assertTrue(prepared['ok'],prepared)
+        state=prepared['data']['approval']['description']['untrusted_content']['page_state']
+        self.assertIsNotNone(state['editable'])
+        self.assertIn('Approved draft',str(state['editable']))
+        before=copy.deepcopy(binding(self.browser.facts,{'frame':0},'send',None))
+        frame['editable'][1]['value']='Different draft'
+        self.assertNotEqual(before,binding(self.browser.facts,{'frame':0},'send',None))
+
     def test_p11_confirmation_without_a_draft_keeps_the_feature_and_binds_absence(self):
         frame=self.browser.facts['frames'][0]
         frame['target'].update(name='OK',page_dialog={'kind':'dialog','text':'Send this message?'})

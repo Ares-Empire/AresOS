@@ -105,7 +105,8 @@ def canonical_key(value):
 
 def explicit_effect(facts):
     target = facts.get('target', {})
-    words = listed(' '.join(str(target.get(k, '')) for k in ('name', 'label', 'title', 'value', 'role')) +
+    # Editable values are query/message content, not activation labels.
+    words = listed(' '.join(str(target.get(k, '')) for k in ('name', 'label', 'title', 'value', 'role') if k != 'value' or not target.get('editable')) +
                    ' ' + unquote((facts.get('form') or {}).get('action', '')) + ' ' + (target.get('page_dialog') or {}).get('text', ''))
     return 'delete' if words & DELETE else 'pay' if words & PAY else 'item' if words & ITEM else 'send' if words else None
 
@@ -154,6 +155,4 @@ def classify(verb, arguments, facts, *, conservative=False, readonly=False, adap
         if form and form.get('search') and form.get('method','').lower()=='get' and not evidence:
             return 'form' if conservative else None
         return 'form'
-    words = listed(' '.join(str(target.get(k, '')) for k in ('name', 'label', 'title', 'value', 'role')) +
-                   ' ' + unquote((form or {}).get('action', '')) + ' ' + (target.get('page_dialog') or {}).get('text',''))
-    return 'delete' if words & DELETE else 'pay' if words & PAY else 'send' if words else 'activation' if conservative else None
+    return evidence or ('activation' if conservative else None)

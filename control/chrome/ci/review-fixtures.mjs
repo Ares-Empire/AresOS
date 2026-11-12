@@ -31,6 +31,11 @@ export function reviewPage(url){
     const label=variant==='delete'?'Delete':'Pay';
     body='<button type="button" id="continue">Continue</button><form role="search" method="get" action="/query" target="sink"><input type="search" name="q"><button type="submit" id="asking">'+label+'</button></form>'+sink;
     script=`document.querySelector('#asking').onclick=event=>{event.preventDefault();${send};};document.querySelector('#continue').onclick=()=>document.querySelector('#asking').click();`;
+  }else if(mode==='ordinary-search'){
+    body='<form role="search" method="get" action="/receive" target="sink"><input type="hidden" name="case" value="'+id+'"><input type="search" aria-label="Query" name="q" value="'+url.searchParams.get('query')+'"><button>Search</button></form>'+sink;
+  }else if(mode==='compose-key'){
+    body='<textarea aria-label="Message">Pay for lunch</textarea><textarea id="other" aria-label="Other draft">Approved draft</textarea>';
+    script=`document.querySelector('textarea').onkeydown=event=>{if(event.key==='Enter'){event.preventDefault();fetch(${JSON.stringify(receive)},{method:'POST',body:document.querySelector('#other').value});}};globalThis.reviewChange=()=>document.querySelector('#other').value='Different draft';`;
   }else if(mode==='owner-overlap'){
     // Queue an overdue timer behind real owner input, without changing private
     // mark lifetime. Focus first so Tab cannot consume the queued input slot.

@@ -133,3 +133,10 @@ class RecheckSearch(unittest.TestCase):
             facts={'target':{'name':label,'submit':True},'form':{'search':True,'method':'get','action':'https://fixture.test/query'}}
             for verb,args in [('click',{}),('press',{'key':'Enter'}),('press',{'key':'Space'})]:
                 self.assertEqual(classify(verb,args,facts),expected,(label,verb))
+
+        for value in ['Pay for lunch','Delete old notes','Send a letter']:
+            query={'target':{'name':'Search','editable':True,'search':True,'value':value},'form':{'search':True,'method':'get','action':'https://fixture.test/query'}}
+            self.assertIsNone(classify('press',{'key':'Enter'},query))
+            self.assertIsNone(classify('click',{},query))
+            self.assertIsNone(classify('click',{}, {'target':{'name':'Message','editable':True,'value':value}}))
+            self.assertEqual(classify('press',{'key':'Enter'},{'target':{'name':'Message','editable':True,'value':value}}),'send')

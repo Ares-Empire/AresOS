@@ -7,7 +7,8 @@ for the changes requested by `briefs/20-recheck-fixes.md`. PR #27 stays draft an
 
 - `guard.js`: explicit asking cues precede GET-search exemptions in script activation, native form calls,
   submit-event capture and private relay/foreign-document dispatch. Submitter labels also prevent a form-level
-  exemption. Ordinary GET searches retain their positive regression.
+  exemption. Editable query/message values are content rather than activation labels: listed words in a query stay
+  free, and compose Enter still binds every generic draft. Ordinary GET searches have independent receiver regressions.
 - `reader.js`: the smallest affected container is resolved through composed ancestry, including shadow hosts
   and assigned slots. Its identifying text includes open/closed component content while retaining password exclusion.
 - `adapter.py`, `policy.py`, `background.js`: generic send confirmations bind every eligible document's draft set
@@ -34,7 +35,7 @@ for the changes requested by `briefs/20-recheck-fixes.md`. PR #27 stays draft an
 **Run, before source freeze:** the two full Python runs passed **221 tests / 590.744 s** and
 **222 tests / 546.167 s** (the second adds explicit-search service coverage). These are not final-source acceptance:
 classification/observation checks were completed while they ran. Node passes **251/251**, zero failures/cancellations/
-skips. The page audit rejects **137 mutations**, every baseline passing, including all four owner checks and the
+skips. The page audit rejects **139 mutations**, every baseline passing, including all four owner checks and the
 independent overlap/admission oracle checks. [Retained local outputs and hashes](records/recheck/local-summary.json) identify them.
 Generated artifacts were regenerated and checked without drift. A new complete local run begins on the frozen
 commit before its Linux acceptance runs; browser/receiver acceptance is pending.
@@ -62,6 +63,17 @@ current textarea text to the receiver. Shadow item fixtures deliver the current 
 must arrive zero times; fresh questions and actual receiver bodies must match the changed draft/item.
 Base `43120293916`, qualification `43120293941`, boundary `43120293892` and Mail `43120294032` completed successfully
 on the diagnostic source. They do not replace the mandatory double acceptance on the final source.
+
+**Run/read — related search/content reproduction:** production classification returned `pay` for both a plain GET
+query and a generic compose Enter whose text was “Pay for lunch”. That misclassified data as a control label and
+could omit the other generic editors from a send binding. `explicit_effect()` now excludes editable values and the
+final classification uses that same evidence. Actual Pay/Delete submitter labels still win. The service tests require
+free focus/GET searches for Pay/Delete/Send query text and a complete changed-second-editor binding for compose Enter.
+Linux's same named search matrix additionally requires three real GET query receipts with their exact query text;
+the changed-draft matrix adds compose Enter whose stale approval must deliver zero and whose fresh receiver body
+must equal the approved second draft. The independent auditor requires all three query receipts. Removing the
+editable-value distinction fails both the search and complete-draft regressions. This supports the requested
+ordinary-search behaviour and whole-question bar; no feature is removed.
 
 ## Not verified / boundaries
 
