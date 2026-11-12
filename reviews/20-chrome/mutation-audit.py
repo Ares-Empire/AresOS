@@ -153,7 +153,7 @@ case('recheck-search-service',P,"form.get('method','').lower()=='get' and not ev
 case('recheck-shadow-setter-cleanup',M,"key=item.setter?'set':'value'","key='value'",node('page','recheck native roots'))
 case('recheck-shadow-page-getter',M,'item.setter?options({...current,set:item.previous.set}):item.previous','item.previous',node('page','recheck native roots'))
 case('recheck-owner-overlap-oracle','control/chrome/ci/owner-evidence.mjs',"assert(set.time<=timer.time&&timer.time<=held.time&&held.time<=ended.time,'the real timer fires inside the private mark interval');",'',node('owner-evidence','recheck owner evidence'))
-case('recheck-owner-pass-oracle','control/chrome/ci/owner-evidence.mjs',"assert(pass,'the immediate native owner submission must consume a private Enter allowance');",'',node('owner-evidence','recheck owner evidence'))
+case('recheck-owner-pass-oracle','control/chrome/ci/owner-evidence.mjs',"assert(entering&&pass&&passSet,'the immediate native owner submission must consume its private input allowance');",'',node('owner-evidence','recheck owner evidence'))
 
 def command(row):
     if row['python']:return ['python3','-B','-m','unittest',row['test'],'-v']

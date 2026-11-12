@@ -39,6 +39,30 @@ new overlap-oracle checks. [Retained local outputs and hashes](records/recheck/l
 Generated artifacts were regenerated and checked without drift. A new complete local run begins on the frozen
 commit before its Linux acceptance runs; browser/receiver acceptance is pending.
 
+**Run — partial Linux diagnostic, not acceptance:** the superseded PR run
+[43120293929](https://github.com/Ares-Empire/AresOS/actions/runs/43120293929), source `9c47556f`, was cancelled
+by this build after the final-source corrections. External retained 46 named passes and policy 39, including all
+four requested fix matrices (browser PASS lines 46, 53/70 and 95) and the new owner timer (line 101). Neither
+incomplete artifact qualifies. [Independent raw owner audit](records/recheck/initial-owner-diagnostic.json) matches
+the page/receiver rows and private ingress observations, including Chrome's implicit trusted submitter click.
+The stricter observer initially expected that default click to carry a keyboard key; the real trace established
+its native click mark instead. The corrected oracle requires a private Enter start, the consumed native input
+mark within the Enter/submit interval, the complete timer/mark interval, and the immediate receiver arrival;
+missing/changed observations still fail. The four production owner-check removals remain unchanged.
+
+| Diagnostic install | Private Enter-mark interval (epoch ms) | Timer fired (epoch ms) | Owner receiver delay |
+|---|---|---|---|
+| External | 1794440451776.5999–1794440451779.4 | 1794440451777.5 | 6.9 ms |
+| Policy | 1794440848192.1–1794440848194.7002 | 1794440848193 | 5.3 ms |
+
+The owner receiver body is `draft=Saved`; the timer's other form stays at zero until its own approval. The final
+fixture focuses the draft first and dispatches only native Enter, preserving the mark lifetime. Confirmation
+fixtures now use real HTML dialogs containing forms, cover both OK and Send submit buttons, and deliver the exact
+current textarea text to the receiver. Shadow item fixtures deliver the current invoice name. Stale approvals
+must arrive zero times; fresh questions and actual receiver bodies must match the changed draft/item.
+Base `43120293916`, qualification `43120293941`, boundary `43120293892` and Mail `43120294032` completed successfully
+on the diagnostic source. They do not replace the mandatory double acceptance on the final source.
+
 ## Not verified / boundaries
 
 Owner Enter remains **passes in CI, panel to confirm** until the required new overlap evidence exists and the

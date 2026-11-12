@@ -18,8 +18,12 @@ export function assertOwnerOverlap(id,arrivals,traces){
   const phase=name=>{const matching=rows.filter(row=>row.phase===name);assert.equal(matching.length,1,name);return matching[0];};
   const entered=phase('owner-enter'),submitted=phase('owner-submit'),timer=phase('timer-fire');
   assert(entered.time<=submitted.time&&submitted.time<=timer.time,'owner Enter submits before the timer callback');
-  const pass=traces.find(row=>row.id===id&&row.phase==='pass'&&row.key==='Enter'&&!row.in_flight&&row.time<=submitted.time);
-  assert(pass,'the immediate native owner submission must consume a private Enter allowance');
+  const entering=traces.find(row=>row.id===id&&row.phase==='set'&&row.key==='Enter'&&row.input==='keydown'&&!row.in_flight&&row.time<=entered.time);
+  // Chrome's implicit Enter submission generates a trusted submitter click.
+  // That click has its own exact owner mark rather than a keyboard key.
+  const pass=traces.find(row=>row.id===id&&row.phase==='pass'&&row.consumed===true&&!row.in_flight&&row.time>=entered.time&&row.time<=submitted.time&&(row.input==='click'||row.key==='Enter'&&['keydown','keypress'].includes(row.input)));
+  const passSet=pass&&traces.find(row=>row.id===id&&row.phase==='set'&&row.token===pass.token&&row.input===pass.input&&!row.in_flight&&row.time<=pass.time);
+  assert(entering&&pass&&passSet,'the immediate native owner submission must consume its private input allowance');
   const held=traces.find(row=>row.id===id&&row.phase==='held'&&row.key==='Enter'&&!row.in_flight);
   assert(held,'the private Enter mark must still exist when the timer submission is held');
   const set=traces.find(row=>row.id===id&&row.phase==='set'&&row.token===held.token);
@@ -29,5 +33,5 @@ export function assertOwnerOverlap(id,arrivals,traces){
   const owner=arrivals.filter(row=>new URL(row.url,'http://fixture.test').searchParams.get('case')==='owner-'+id);
   assert.equal(owner.length,1,'his own Enter reaches the receiver once without approval');
   assert(owner[0].time>=submitted.time-1&&owner[0].time-submitted.time<200,'his Enter is delivered immediately');
-  return {id,page:rows,mark:{set,held,ended},owner_pass:pass,owner_arrival:owner[0]};
+  return {id,page:rows,mark:{set,held,ended},owner_enter:entering,owner_pass:pass,owner_arrival:owner[0]};
 }
