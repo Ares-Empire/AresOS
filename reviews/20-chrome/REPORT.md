@@ -1,4 +1,4 @@
-# Recheck fixes 2c — code complete, final Linux verification pending
+# Recheck fixes 2c — browser proof complete, final CI budget correction pending
 
 The lead decided both stops in `briefs/20-recheck-fixes-2b.md` and `-2c.md`. The all-borrowed-native path is an
 accepted autonomous-page limit. **Every Claude click grants user activation**, as normal owner clicks do. The
@@ -8,7 +8,8 @@ unmerged. No branch has been merged into this one; no design document has been c
 
 ## Done
 
-- MAIN-world Clipboard `write` and `writeText` wrappers observe successful native completion, and isolated capture
+- While a document's guard is active, MAIN-world Clipboard `write` and `writeText` wrappers observe successful native
+  completion, and isolated capture
   observes trusted `copy` events for `execCommand`. The native calls still run once with the same arguments and
   success/error values; the copy listener neither cancels nor changes propagation. Cached wrappers become native
   after release. No clipboard value, preview or hash is collected; no `clipboardRead` permission is added.
@@ -29,11 +30,13 @@ unmerged. No branch has been merged into this one; no design document has been c
 
 ## Verified / Not verified
 
-**Run:** all 287 browser-free Node tests pass, with zero failures/cancellations/skips. All 186 removal mutations are rejected with every baseline passing, including each clipboard route, reporting after
-navigation, the description warning and exact owner navigation. The full Python suite is running; its exact final
-result and the final Linux pair will replace this pending status.
-The first full Python invocation omitted `PYTHONPATH`, so `test_bridge` failed to import (220 tests, one error);
-it is rerunning with `PYTHONPATH=control:control/chrome_tests`. This is not a passing run.
+**Run:** all **287 Node tests** pass with zero failures/cancellations/skips; **230 Python tests in 576.850 s / OK**;
+all **186 removal mutations rejected, every baseline passing**; five artifact-stream reader tests and four transport
+tests pass. The removals cover each clipboard route, reporting after navigation, the description warning and exact
+owner navigation. Generated files match definitions, and `git diff --check` passes.
+[Commands, output tails and hashes](records/recheck2c/local-summary.json), [removal evidence](records/recheck2c/mutations.json).
+The first Python invocation omitted `PYTHONPATH` and failed to import `test_bridge` (220 tests, one error); the full
+corrected invocation above passed. The final Linux acceptance pair remains pending after the batch-timeout correction below.
 No local browser/profile, container, Java or Gradle process is used. Browser evidence comes only from GitHub Linux
 containers in `control-chrome.yml`, with synthetic fixture hosts and no real accounts.
 
@@ -45,13 +48,36 @@ accepted on the click without clicking Allow. Downloads reached the receiver bot
 payment probe was rejected both ways (NotSupportedError autonomously; SecurityError on its second call after the
 click). This is no evidence that a real payment sheet is safe. Earlier measurements in both installs already showed
 the activation increase and popup behavior; final runs repeat all ten probes and the independent receipt audit.
+[Retained raw observations and receiver rows](records/recheck2c/activation-probes-initial.json).
 The original click's result reports dispatch with delivery unproven and the untrusted page notice; it does not report
 the hidden step as stopped/unknown or claim nothing happened.
 
-**Run:** base `43258192418`, Mail `43258727273` (including all four fault shards), boundary `43258196952`, and
-qualification `43258202559` passed on the preceding `db11b94b` source. They will repeat twice for the final clipboard
-source; these earlier runs do not qualify the new build. Local full base discovery lacked `jsonschema` (23 errors);
-the focused four transport tests passed. No local dependencies were installed.
+**Run, implementation source `5f0b568194a68a82a5b235fe5b396d69290d1892`, runtime
+`837b537f0c78d9fb2e1f2bd695e3657f1f0618d192c6215a9d8529d973c81b0a`:** all four browser jobs
+completed all **89 named cases**. Three jobs completed the full subsequent Python sweep and pass the independent
+artifact audit: both policy jobs and repeat `43270268166`'s external job. Each audited dataset has **1,277 page and
+139 adapter receiver 0/1/1 sequences**, four clipboard cases, 230 Python tests, 287 Node tests, and no password
+sentinel or forbidden Runtime value events. The navigation variant reports its clipboard fact on the new document.
+[Three complete dataset audits](records/recheck2c/browser-audit-partial.json).
+
+Push `43270186321`'s external job completed all 89 browser cases, then hit the **240-minute container limit** during
+`test_chrome_storage_single_persistent_cleanup_pairs_crash_restart_space_restored`. It is **not a green run**.
+Repeat `43270268166` completed both modes; its external job took **3h56m3s**. The container limit is now 300 minutes
+and the job limit 310, allowing the unchanged mandatory Python sweep to finish on slower runners. All shipped
+runtime and test/assertion bytes are unchanged. Full verification will repeat on this workflow-only correction.
+[Timeout metadata, output tail and hashes](records/recheck2c/timeout-43270186321.json).
+
+| Workflow on implementation source | Runs | Result |
+|---|---|---|
+| Chrome | 43270186321 / 43270268166 | First hit the Python-sweep batch limit; repeat passes both installs; all four browser matrices 89/89 |
+| Base | 43270272776 / 43271116470 | Both pass, 146 tests each |
+| Mail | 43270288363 / 43274963177 | Both pass; 146 base + 309 Mail and all four fault shards each |
+| Boundary | 43270278039 / 43271001440 | Both pass; 127 attacks per seccomp mode, zero hostile connections; absent-mode VSOCK transport explicitly unqualified |
+| Qualification | 43270283908 / 43271006209 | Both pass, 47 Python + 287 Node and the real attestation/delivery verifier checks |
+
+[Eight shared-artifact checks and SHA-256 records](records/recheck2c/initial-shared-audit.json). No production
+qualification/data branch is published from this package branch. Local full base discovery lacked `jsonschema`
+(23 errors); complete base CI passes as above. No local dependencies were installed.
 
 **Read:** after `git fetch origin main`, specification files were read with `git show origin/main:<path>`; latest
 read is `d6df3ee3`. Briefs 2/2b/2c override the older residual wording in CONTROL section 6. Group 12 and the slim
@@ -74,9 +100,10 @@ oracle. The chooser bootstrap now waits for its native cancel event and browser 
 Each harness/transport correction has a focused regression and removal probe; no passing assertion was removed.
 
 Opening ledger for this resumption: **195 control-chrome IDs / 196 executions**. Six further runs have completed
-(`43253386438`, `43254424374`, `43254591612`, `43257735216`, `43257858791`, `43260816675`): current total **201 IDs /
-202 executions**. They exposed measurement-envelope, pending-permission and exact-navigation harness failures; they
-are not acceptance evidence. The clipboard/default/compose batch will use one code push and a repeated full run.
+(`43253386438`, `43254424374`, `43254591612`, `43257735216`, `43257858791`, `43260816675`): total before this code push **201 IDs /
+202 executions**; the new push and repeat bring it to **203 IDs / 204 executions**. They exposed measurement-envelope, pending-permission and exact-navigation harness failures; they
+are not acceptance evidence. The clipboard/default/compose batch used one code push and a repeated full run. A workflow-only push corrects the
+observed batch-time budget and repeats full verification; it changes no shipped code or tests.
 The budget is about 235, with a mandatory report before passing 245. Report-only pushes use `[skip ci]`; each CI run
 has one blocking watcher. The earlier cancelled-log parser missed lines ending in `PASS`; corrected retained
 progress confirms `43237751838` passed the new cases before cancellation and did not finish the suite.

@@ -1,0 +1,7 @@
+{
+  "regular_files": 12582,
+  "bytes": 6733770027,
+  "over_500_MB": [],
+  "browser_profiles_exported": false,
+  "note": "CI exports /out logs, JSON evidence and PNGs only; browser profiles stay in the Linux containers. No ISO or image layer was downloaded locally."
+}

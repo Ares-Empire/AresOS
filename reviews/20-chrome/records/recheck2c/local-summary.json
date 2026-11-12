@@ -13,7 +13,13 @@
     "rejected": 186,
     "every_baseline_passed": true
   },
-  "python": "First invocation failed import because PYTHONPATH was omitted; corrected full run is pending.",
+  "python": {
+    "command": "PYTHONPATH=control:control/chrome_tests PYTHONDONTWRITEBYTECODE=1 python3 -B -m unittest discover -s control/chrome_tests -v",
+    "tests": 230,
+    "seconds": 576.85,
+    "result": "OK",
+    "prior_import_only_failure_recorded": true
+  },
   "audit_streams_tests": 5,
   "host_transport_tests": 4,
   "generated_check": "Generated artifacts match definitions",
@@ -46,7 +52,14 @@
       "file": "recheck2c-python.txt",
       "bytes": 43048,
       "sha256": "7d028fe5dbc1fc867b021b63b01e9b8de348fee6be93f1663b8bf62414e1bd1c",
-      "tail": "t_commits_reload_before_staling (test_storage.Storage.test_taken_read_preserves_document_and_first_input_commits_reload_before_staling) ... ok\ntest_taken_reload_warning_requires_explicit_repeat_and_readonly_never_reloads (test_storage.Storage.test_taken_reload_warning_requires_explicit_repeat_and_readonly_never_reloads) ... ok\ntest_warning_occurrences_bind_source_document_and_do_not_inherit_old_acknowledgement (test_storage.Storage.test_warning_occurrences_bind_source_document_and_do_not_inherit_old_acknowledgement) ... ok\ntest_service_sandbox_and_launch_are_exact (test_unit.InstalledUnit.test_service_sandbox_and_launch_are_exact) ... ok\n\n======================================================================\nERROR: test_bridge (unittest.loader._FailedTest.test_bridge)\n----------------------------------------------------------------------\nImportError: Failed to import test module: test_bridge\nTraceback (most recent call last):\n  File \"/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/unittest/loader.py\", line 426, in _find_test_path\n    module = self._get_module_from_name(name)\n  File \"/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/unittest/loader.py\", line 367, in _get_module_from_name\n    __import__(name)\n    ~~~~~~~~~~^^^^^^\n  File \"/Users/pab/AresOS-20-chrome/control/chrome_tests/test_bridge.py\", line 7, in <module>\n    from aresos_control.chrome.bridge import Bridge\nModuleNotFoundError: No module named 'aresos_control'\n\n\n----------------------------------------------------------------------\nRan 220 tests in 603.839s\n\nFAILED (errors=1)\n"
+      "tail": "t_commits_reload_before_staling (test_storage.Storage.test_taken_read_preserves_document_and_first_input_commits_reload_before_staling) ... ok\ntest_taken_reload_warning_requires_explicit_repeat_and_readonly_never_reloads (test_storage.Storage.test_taken_reload_warning_requires_explicit_repeat_and_readonly_never_reloads) ... ok\ntest_warning_occurrences_bind_source_document_and_do_not_inherit_old_acknowledgement (test_storage.Storage.test_warning_occurrences_bind_source_document_and_do_not_inherit_old_acknowledgement) ... ok\ntest_service_sandbox_and_launch_are_exact (test_unit.InstalledUnit.test_service_sandbox_and_launch_are_exact) ... ok\n\n======================================================================\nERROR: test_bridge (unittest.loader._FailedTest.test_bridge)\n----------------------------------------------------------------------\nImportError: Failed to import test module: test_bridge\nTraceback (most recent call last):\n  File \"/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/unittest/loader.py\", line 426, in _find_test_path\n    module = self._get_module_from_name(name)\n  File \"/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/unittest/loader.py\", line 367, in _get_module_from_name\n    __import__(name)\n    ~~~~~~~~~~^^^^^^\n  File \"<worktree>/control/chrome_tests/test_bridge.py\", line 7, in <module>\n    from aresos_control.chrome.bridge import Bridge\nModuleNotFoundError: No module named 'aresos_control'\n\n\n----------------------------------------------------------------------\nRan 220 tests in 603.839s\n\nFAILED (errors=1)\n"
+    },
+    {
+      "file": "recheck2c-python-final.txt",
+      "bytes": 44100,
+      "sha256": "6efcb9575ee105a606a0f0a1cd9a7fc3e406196da8df7021183be36df56dddab",
+      "tail": "ut) ... ok\ntest_r2_created_tab_identity_commits_before_navigation (test_storage.Storage.test_r2_created_tab_identity_commits_before_navigation) ... ok\ntest_r2_free_input_has_committed_context_before_dispatch (test_storage.Storage.test_r2_free_input_has_committed_context_before_dispatch) ... ok\ntest_review1_password_failure_refuses_before_any_binding_read (test_storage.Storage.test_review1_password_failure_refuses_before_any_binding_read) ... ok\ntest_review1_readonly_added_after_prepare_refuses_all_dispatch_kinds (test_storage.Storage.test_review1_readonly_added_after_prepare_refuses_all_dispatch_kinds) ... ok\ntest_storage_admission_refusal_recovers_without_restart_and_prevents_dispatch (test_storage.Storage.test_storage_admission_refusal_recovers_without_restart_and_prevents_dispatch) ... ok\ntest_taken_read_preserves_document_and_first_input_commits_reload_before_staling (test_storage.Storage.test_taken_read_preserves_document_and_first_input_commits_reload_before_staling) ... ok\ntest_taken_reload_warning_requires_explicit_repeat_and_readonly_never_reloads (test_storage.Storage.test_taken_reload_warning_requires_explicit_repeat_and_readonly_never_reloads) ... ok\ntest_warning_occurrences_bind_source_document_and_do_not_inherit_old_acknowledgement (test_storage.Storage.test_warning_occurrences_bind_source_document_and_do_not_inherit_old_acknowledgement) ... ok\ntest_service_sandbox_and_launch_are_exact (test_unit.InstalledUnit.test_service_sandbox_and_launch_are_exact) ... ok\n\n----------------------------------------------------------------------\nRan 230 tests in 576.850s\n\nOK\n"
     }
-  ]
+  ],
+  "source": "5f0b568194a68a82a5b235fe5b396d69290d1892"
 }
