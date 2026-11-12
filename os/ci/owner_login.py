@@ -38,7 +38,9 @@ def login_version(tool, text):
     # Exactly the reviewed releases. login.c and agetty.c are byte-identical in
     # util-linux v2.41.5 and v2.41.6, and Fedora's login patches are unchanged
     # (package 27), so the timeout default, CTRL-U and CTRL-D hold for both.
-    found = re.match(re.escape(tool) + r' from util-linux ([0-9]+(?:\.[0-9]+)+)(?![0-9.])', text)
+    # The whole line: the version token, then only agetty's "(feature, ...)" list (review 1:
+    # 2.41.6-rc1 or 2.41.6-custom are other builds).
+    found = re.fullmatch(re.escape(tool) + r' from util-linux ([0-9]+(?:\.[0-9]+)+)(?: \([a-z0-9., -]+\))?', text)
     assert found and found.group(1) in ('2.41.5', '2.41.6'), 'Unverified login/getty version'
     return found.group(1)
 

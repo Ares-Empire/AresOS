@@ -225,7 +225,12 @@ class UtilLinuxVersionTest(unittest.TestCase):
                           ('login','login from util-linux 2.41.5.1'),('login','login from util-linux 12.41.5'),
                           ('agetty','agetty from util-linux 2.41.7'+self.AGETTY),('login','login from util-linux'),
                           ('login','login from shadow-utils 2.41.6'),('login','agetty from util-linux 2.41.6'),
-                          ('agetty','login from util-linux 2.41.6'),('login','')):
+                          ('agetty','login from util-linux 2.41.6'),('login',''),
+                          # Review 1: a suffixed or extended token is another build.
+                          ('login','login from util-linux 2.41.6-rc1'),('login','login from util-linux 2.41.6-custom'),
+                          ('agetty','agetty from util-linux 2.41.5-rc2'+self.AGETTY),('login','login from util-linux 2.41.6+git'),
+                          ('login','login from util-linux 2.41.6 extra'),('agetty','agetty from util-linux 2.41.6 (a) (b)'),
+                          ('agetty','agetty from util-linux 2.41.6'+self.AGETTY+' trailing'),('login','login from util-linux 2.41.6\nx')):
             with self.subTest(text=text),self.assertRaisesRegex(AssertionError,'Unverified login/getty version'):
                 login.login_version(tool,text)
 
