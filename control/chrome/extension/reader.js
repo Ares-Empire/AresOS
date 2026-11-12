@@ -17,6 +17,14 @@
   const formProperty=(form,key)=>formGetters[key]?formGetters[key].call(form):form[key];
   const formQuery=(form,selector)=>Element.prototype.querySelector?Element.prototype.querySelector.call(form,selector):form.querySelector(selector);
   const shadow=element=>element instanceof HTMLElement ? chrome.dom.openOrClosedShadowRoot(element):null;
+  function composedParent(element) {
+    if(element.assignedSlot)return element.assignedSlot;
+    // assignedSlot hides a closed root. Its native slots still expose their
+    // assigned nodes through the extension's privileged root reference.
+    const assignedRoot=shadow(element.parentElement);
+    if(assignedRoot)for(const slot of assignedRoot.querySelectorAll('slot'))if(typeof slot.assignedNodes==='function'&&slot.assignedNodes().includes(element))return slot;
+    return element.parentElement || element.getRootNode().host;
+  }
   function roots(root = document) {
     const found = [root];
     for (const element of root.querySelectorAll('*')) {
@@ -218,7 +226,7 @@
   function itemText(element) {
     const selector='li,tr,article,[role=listitem],[role=row],[role=article],section[aria-label],section[aria-labelledby],form,dialog,[role=dialog],[role=alertdialog],[role=region]';
     // closest() stops at a shadow root; a component can act on its outer row.
-    for(let node=element;node;node=node.assignedSlot || node.parentElement || node.getRootNode().host){
+    for(let node=element;node;node=composedParent(node)){
       if(node.matches(selector))return text(node,false,true).replace(/\s+/g, ' ').trim();
     }
     return text(element).replace(/\s+/g, ' ').trim();

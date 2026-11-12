@@ -219,3 +219,14 @@ test('recheck affected items cross open closed nested and slotted shadow ancestr
     assert.match(f.command({command:'facts',element:'e1'}).data.item,/Shadow invoice C/);
   }
 });
+test('recheck slotted affected items include native rows hidden by closed-slot ancestry',()=>{
+  for(const mode of ['open','closed'])for(const selector of ['li','[role=row]']){
+    const f=fixture([{tagName:'BUTTON',type:'button',childNodes:[{nodeType:3,textContent:'Delete'}]}]),button=f.nodes[0];f.generic(button);button.matches=()=>false;
+    const host=new f.Element({tagName:'DIV'}),label={nodeType:3,textContent:'Invoice A'},row=new f.Element({tagName:selector==='li'?'LI':'DIV'}),slot=new f.Element({tagName:'SLOT',parentElement:row});
+    const root={host,childNodes:[row],querySelectorAll:query=>query==='slot'?[slot]:[row,slot]};host.fixtureShadow=root;
+    row.childNodes=[label,slot];row.matches=query=>query.split(',').includes(selector);row.getRootNode=()=>root;slot.matches=()=>false;slot.getRootNode=()=>root;slot.assignedNodes=()=>[button];button.parentElement=host;
+    Object.defineProperty(button,'assignedSlot',{get(){return mode==='closed'?null:slot;}});
+    f.read();const before=f.command({command:'facts',element:'e1'}).data.item;assert.match(before,/Invoice A/);
+    label.textContent='Invoice B';assert.match(f.command({command:'facts',element:'e1'}).data.item,/Invoice B/);
+  }
+});

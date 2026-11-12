@@ -175,11 +175,11 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
     }
   });
   await check('GROUP 3 REVIEW item confirmation file rich text and title mutations refuse',async()=>{
-    for(const [mode,variant,label]of [['binding','listitem','Delete'],['binding','row','Delete'],['binding','article','Delete'],['binding','region','Delete'],['binding','section','Delete'],['binding','unsubscribe','Unsubscribe'],['binding','abbestellen','Abbestellen'],['confirmation','','OK'],['confirmation','form','OK'],['confirmation','submit','OK'],['confirmation','submit-send','Send'],['compose-key','','Message'],...['li-open','li-closed','row-open','row-closed'].map(variant=>['shadow-binding',variant,'Delete']),['file','','Submit'],['rich','','Send'],['title','','Send']]){
+    for(const [mode,variant,label]of [['binding','listitem','Delete'],['binding','row','Delete'],['binding','article','Delete'],['binding','region','Delete'],['binding','section','Delete'],['binding','unsubscribe','Unsubscribe'],['binding','abbestellen','Abbestellen'],['confirmation','','OK'],['confirmation','form','OK'],['confirmation','submit','OK'],['confirmation','submit-send','Send'],['compose-key','','Message'],...['li-open','li-closed','row-open','row-closed','slot-li-open','slot-li-closed','slot-row-open','slot-row-closed'].map(variant=>['shadow-binding',variant,'Delete']),['file','','Submit'],['rich','','Send'],['title','','Send']]){
       const id='review-bind-'+mode+'-'+variant;await nav('review-page&mode='+mode+'&variant='+variant+'&id='+id);
       const prepare=async()=>mode==='compose-key'?call('press',{...await target(label),key:'Enter'}):call('click',await target(label));
       const prepared=await prepare();assert.ok(prepared.approval,JSON.stringify(prepared));
-      if(mode==='shadow-binding')assert.match(JSON.stringify(prepared.approval),/Invoice A/);
+      if(mode==='shadow-binding'){assert.match(JSON.stringify(prepared.approval),/Invoice A/);if(variant.startsWith('slot-')){await eventually(()=>counts('slot-probe-'+id)===1,'native slot visibility probe');const probe=JSON.parse(receiverEvidence('slot-probe-'+id,'native closed-slot visibility').arrivals[0].body);assert.deepEqual(probe,{closed:variant.endsWith('closed'),public_slot:!variant.endsWith('closed')});}}
       if(['confirmation','compose-key'].includes(mode))assert.match(JSON.stringify(prepared.approval),/Approved draft/);
       await fixture.mutate(id,'review-change');const result=await rpc('submit',prepared.approval);
       assert.ok(!result.ok||result.data.operation.state==='failed',JSON.stringify(result));assert.equal(receiverEvidence(id,'changed approval refused').count,0);

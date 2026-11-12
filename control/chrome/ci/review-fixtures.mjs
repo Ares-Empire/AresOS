@@ -66,9 +66,10 @@ export function reviewPage(url){
     body='<'+container+'><span id="item-label">Quarterly report</span><button type="button">'+(variant==='unsubscribe'?'Unsubscribe':variant==='abbestellen'?'Abbestellen':'Delete')+'</button></'+container.split(' ')[0]+'>';
     script=`document.querySelector('button').onclick=()=>${send};globalThis.reviewChange=()=>document.querySelector('#item-label').textContent='Different report';`;
   }else if(mode==='shadow-binding'){
-    const native=variant.startsWith('li-'),tag=native?'li':'div role="row"';
-    body='<'+tag+'><span id="item-label">Invoice A</span><div id="host"></div></'+tag.split(' ')[0]+'>';
-    script=`const root=document.querySelector('#host').attachShadow({mode:${JSON.stringify(variant.endsWith('closed')?'closed':'open')}});root.innerHTML='<button type="button">Delete</button>';root.querySelector('button').onclick=()=>fetch(${JSON.stringify(receive)},{method:'POST',body:document.querySelector('#item-label').textContent});globalThis.reviewChange=()=>document.querySelector('#item-label').textContent='Invoice B';`;
+    const slotted=variant.startsWith('slot-'),native=variant.includes('li-'),tag=native?'li':'div role="row"',closed=variant.endsWith('closed');
+    body=slotted?'<div id="host"><button type="button" slot="action">Delete</button></div>':'<'+tag+'><span id="item-label">Invoice A</span><div id="host"></div></'+tag.split(' ')[0]+'>';
+    const content=slotted?'<'+tag+'><span id="item-label">Invoice A</span><slot name="action"></slot></'+tag.split(' ')[0]+'>':'<button type="button">Delete</button>';
+    script=`const root=document.querySelector('#host').attachShadow({mode:${JSON.stringify(closed?'closed':'open')}});root.innerHTML=${JSON.stringify(content)};const button=${slotted?"document.querySelector('button')":"root.querySelector('button')"},label=()=>${slotted?"root.querySelector('#item-label')":"document.querySelector('#item-label')"};button.onclick=()=>fetch(${JSON.stringify(receive)},{method:'POST',body:label().textContent});globalThis.reviewChange=()=>label().textContent='Invoice B';${slotted?`fetch('/receive?case=slot-probe-'+${JSON.stringify(id)},{method:'POST',body:JSON.stringify({closed:${closed},public_slot:button.assignedSlot!==null})});`:''}`;
   }else if(mode==='confirmation'){
     const submit=variant==='submit'||variant==='submit-send',label=variant==='submit-send'?'Send':'OK';
     body='<textarea aria-label="Draft">Approved draft</textarea>'+(variant?'<dialog open><form method="dialog">':'<div role="dialog" aria-modal="true">')+'<p>Send this message?</p><button type="'+(submit?'submit':'button')+'">'+label+'</button>'+(variant?'</form></dialog>':'</div>');
