@@ -848,3 +848,266 @@ no oracle pin, design/plan, README/STATE/HANDOFF, OS/mod/install, or reviewer-
 authored file was edited. No merge, force-push, hook bypass, system installation,
 host setting or disk change. No Gradle ran. Storage audit before the report:
 `Remaining .work files over 500 MB: []`.
+
+## Main merge fixes, round 3
+
+**Done:** fixes the two FIX findings in `PACKAGE-REVIEW-5.md`, with changes
+confined to `control/mail_tests/sweep_scripts.py`,
+`control/mail_tests/test_review23_sweep.py` and the one Scenario-backed clock
+jump in `test_review29_lifecycle.py`. No production, oracle, selection,
+workflow, design/plan or reviewer-authored file changes.
+
+`Chronology` owns one integer nanosecond counter per inherited Scenario. Each
+ambient time read advances it by **10,000 ns**; float seconds are derived from
+that integer. This step exceeds floating-point rounding at the fixture epoch
+and remains far below approval/quiet-period deadlines. Explicit archive ageing
+adds two seconds, expiry advances past `expires_at`, and maintenance adds
+86,401 seconds. A temporary jump leaves the chronology at its advanced position
+when its scope ends; subsequent float, nanosecond and calendar reads keep
+advancing there. The Scenario-backed lifecycle expiry uses this same seam.
+The owner-oracle subclass retains its independent existing clock/ID script.
+
+Calendar wrappers cover implicit `localtime`, `gmtime`, `strftime`,
+`email.utils.formatdate` and its adapter alias, `datetime.now/utcnow/today` and
+`date.today`, including the preimported service aliases. Implicit calendar
+views use UTC so replay values do not depend on the worker's timezone. Explicit
+calendar inputs do not read or advance the current clock. UUIDs, MIME
+boundaries and eight-character PID-isolated temporary names remain scripted.
+
+The timestamp seam preserves real stat metadata (inode, size, owner, mode,
+link count). Only time attributes, including tuple positions and
+`os.path.getmtime/getctime`, need chronology provenance. `Blobs.put_stream`
+runs unchanged, then registers the published data/origin inodes, including
+survivors of failed publication/cleanup, with their logical creation time.
+Time-attribute reads advance the chronology while returning that immutable
+file's recorded age. A native modification-time fingerprint validates the
+registration; kernel timestamps never become service values. Recovery may
+unlink an old upload hardlink and thereby change ctime without changing the
+blob's modification age. The registration therefore follows inode and native
+mtime, rather than rejecting that legitimate hardlink cleanup.
+
+The independent Driver's three snapshot-cache paths (main SQLite database,
+its rollback journal and the operations log) receive a fresh logical revision
+on each timestamp read. This forces real decoding even after same-size writes;
+it never freezes a cached snapshot. Other unregistered or modified file
+objects fail. No expiry unlink, sync, write, SQLite I/O or fault site is stubbed.
+
+**Source audit (production is read-only):**
+
+| Source | Production locations | Fixture treatment |
+| --- | --- | --- |
+| Float time | `storage.py:207,246,248,591,645`; `engine.py:157,172,176,219,242,346,392,424`; `retention.py:74`; `archive.py:16`; `mail/adapter.py:520,967,972,985`; `mail/dkim.py:177` | One chronology; DKIM network path not consumed by these remote fixtures |
+| Nanoseconds | `engine.py:138`; `warnings.py:36`; `mail/filing.py:413` | Same integer chronology |
+| Float-backed recovery notice time | `recovery.py:94,100,106` (retained creation to nanoseconds) | Retained float comes from the same advancing chronology |
+| Implicit calendar / explicit conversions | `engine.py:455,461,289`; `mail/adapter.py:529,223,227`; `files.py:120`; `mail/codec.py:414`; `mail/questions.py:51` | Script implicit reads; allow explicit supplied times/dates |
+| Blob age | `blobs.py:142`, reached by `retention.py:123` | Registered immutable file age from chronology |
+| Import metadata / stability | `files.py:113,120` | Guard timestamp attributes; inherited flows export rather than import caller files, so no ambient import timestamp is allowed |
+| Oracle snapshot invalidation | `owner_state_oracle/driver.py:55` | Three explicit paths get chronology revisions when a Driver reuses Scenario |
+
+No other service `st_mtime`, `st_ctime`, `getmtime` or `getctime` consumer was
+found. Other stat/fstat calls inspect real size, mode, ownership, inode or link
+count. The round-2 UUID audit remains applicable: `storage.py`, `engine.py`,
+`testapp.py`, `exports.py`, `results.py`, `warnings.py`, and
+`mail/{adapter,filing,onboarding}.py` use `uuid4`; transport/blob staging uses
+`tempfile.mkstemp`; stdlib MIME serialization uses `random.randrange`.
+`mail/dkim.py:80` has unused-in-these-flows DNS randomness. No inherited flow
+uses `make_msgid`, `uuid1`, unseeded private RNG, `secrets` or `os.urandom`.
+The exact audit is saved in `.work/18d-main-merge-fixes-3/source-audit.txt`.
+
+**Guard and mutation checks:** the independent outer guard raises
+`AmbientRead` (a BaseException, with an independent rejection ledger so a
+cleanup finally cannot hide it) for unscripted float/nanosecond time; implicit local/gmtime,
+strftime/ctime/asctime; realtime clock_gettime variants; datetime/date current
+time; all stat/lstat/fstat time attributes and tuple positions; UUID/random/
+secrets/OS entropy; implicit email dates/message IDs; and tempfile names.
+Explicit dates, explicit calendar conversions, seeded private RNGs and real
+non-time stat fields remain usable. Monotonic timing measures test duration
+only and never feeds service state.
+
+Clean replay mutations close one actual component patch at a time, exposing
+the guard underneath, independently in setup, call and recovery. **145**
+consuming phase/component combinations reject omission: clock 57,
+nanoseconds 6, formatdate 14, timestamps 3, IDs 33, MIME 3, paths 29.
+Implicit localtime/gmtime/strftime/datetime/date are not consumed by these
+healthy flows; the per-flow chronology-view test nevertheless verifies their
+single-step reads and each omitted wrapper for all 23 flows.
+
+The complete sweep records source consumption separately during each faulted
+call and its recovery. Whenever it discovers a new flow/component/phase in
+single, persistent or cleanup-pair mode, it replays that actual witness with
+only that component removed, and requires `AmbientRead`. No primary point,
+mode, cleanup enumeration, trace-prefix comparison or recovery assertion was
+removed. The original full-sweep loops and 12 protected assertion/recovery
+methods are AST-identical to the starting head.
+
+**Ordering and expiry regressions:** for every flow the ordering test drives
+production `warnings.check_result`, retained intent writes, `recover_intents`
+and the real paginated `notice_page`. It creates a checked warning, a later
+recovery source and another checked warning; repeats them across a 90,000-second
+jump; and creates recovery/checked warnings after the jump scope exits. All
+eight timestamps must strictly increase, and every page together must return
+the exact newest-first order. The separate chronology-view test verifies all
+clock/calendar interfaces, rejects unknown/modified file timestamps, and
+requires real blob expiry unlinks and directory fsync after an explicit TTL
+jump. The original constant-clock precision counterexample remains isolated
+and still demonstrates the SQLite page-boundary mechanism.
+
+**Verified / local:** commands use Python 3.14.6 from the pre-existing
+`.work/18d-review/venv/bin/python`, `-B` and
+`PYTHONPATH=control:control/mail_tests`, unless stated otherwise. Reproduction
+wrappers and exact stdout/stderr are under `.work/18d-main-merge-fixes-3/`.
+
+- `python3 control/generate.py --check`: `Generated artifacts match definitions`.
+- Native `python -B -m unittest -v
+  test_review23_sweep.FaultSweep23.test_inherited_guard_rejects_ambient_sources`:
+  **1 test / OK**, `0.001s`, `local-native-guard.txt`.
+- Native three-replay test: **FAILED (failures=14)** at
+  `boundary_not_installed` because macOS `/etc` is a symlink. No host policy was
+  changed. The following local storage diagnostics substitute only
+  `Boundary.read` with generated `managed_settings()`; Linux CI is the evidence
+  for the real settings path.
+- `local_focused.py`: **11 tests / OK**, `4.899s`,
+  `local-focused-final.txt`: ambient guard, clean omissions, three-replay
+  determinism for all 23 flows, production ordering, chronology/file-age probes,
+  archive determinism, precision mechanism, recovery/completion counterexamples
+  and real SQLite main/index VFS faults. The precision probe still prints
+  index **300**, `sqlite.main.fsync vs sqlite.main.write; points=[788, 788]`.
+- `local_tests.py` with ordering plus the complete lifecycle module, repeated
+  three times in one invocation: **36 tests / OK**, `4.790s`,
+  `local-order-lifecycle-repeated.txt`.
+- `local_consumers.py`: the six Scenario consumer modules' required selection
+  passes twice: **41 tests / OK**, `3.410 / 6.193s`,
+  `local-consumers-{1,2}.txt`. Modules: `test_review26_sweep`,
+  `test_review27_checks`, `test_review28_filing`, `test_review29_lifecycle`,
+  `test_owner_state_regressions`, `test_owner_state_sweep`. The complete
+  `test_owner_state_regressions` also passes: **6 tests / OK**, `0.361s`,
+  `local-regressions.txt`, including the three optional named regressions.
+  After the rejection-latch fix, the required consumers pass again (**41 /
+  OK**, `7.138s`) and the complete named regressions plus three more
+  ordering/lifecycle passes are **42 / OK**, `5.623s`,
+  `local-regressions-lifecycle-final.txt`.
+- `PYTHONPATH=control:control/tests python -B -m unittest -v
+  test_mail_ci_selection`: **6 tests / OK**, `0.201s`, `local-selection.txt`.
+  Required sweep selection now includes all **12** tests (two added).
+- AST invariants: `12 protected methods unchanged; FLOWS and all full-sweep
+  loops unchanged`. No production or forbidden paths changed. Python syntax
+  and `git diff --check` pass.
+
+The first local prototype ordering check correctly failed when it attempted
+writes in the restore-locked/closed restart fixture before completing that
+flow's startup action. The test now calls the production action first.
+The first full-sweep attempt exposed the overly strict native ctime
+fingerprint on upload-hardlink cleanup; all four diagnostic shards were
+stopped, the provenance key was corrected, and the complete sweep restarted.
+The optional named-regression module also exposed the Driver snapshot cache's
+native timestamp reads; the explicit logical revision seam above fixed that
+fixture integration. These are harness fixes, with all original assertions
+retained; failed/stopped prototype logs are not passing evidence.
+The next full sweep passed three shards but failed three nanosecond omission
+checks at send_duplicate's point 551 (single/persistent/cleanup pair). Its
+production `sent_copy` finally calls `require_storage`, which can replace the
+guard's BaseException with the existing storage refusal. The guard now latches
+all rejected reads and raises again at scope exit. A dedicated displaced-error
+regression and all three actual point-551 mutations pass; the complete sweep
+was restarted on that guard. Production storage-error preservation is unchanged.
+
+
+- Full sweep on the strengthened guard: `MAIL_SWEEP_SHARDS=4
+  MAIL_SWEEP_SHARD=N ... local_tests.py
+  test_review23_sweep.FaultSweep23.test_review23_enospc_at_every_discovered_durable_write`
+  for N=0–3: **all four / OK**, **447.509 / 322.776 / 400.601 / 180.161s**,
+  `local-sweep-{0,1,2,3}.txt`. **23 flows; 6,518 per-flow points; 6,259 single,
+  6,259 persistent and 15,979 cleanup-pair cases (28,497 fault cases)**.
+  All per-flow counts match round 2's Mac baseline exactly. **306 actual
+  fault/recovery omitted-component witnesses** reject: single, persistent and
+  cleanup-pair modes, including nanoseconds replaced by a storage finally.
+  Linux counts are recorded separately below; Mac counts are not used as
+  installed-policy or Linux publication/VACUUM evidence.
+
+**Count table and final Linux acceptance addendum:** the saved before and
+round-1 Linux attempts independently agree in every row. This table records
+that acceptance floor and the round-3 Mac run; the observed final Linux
+attempt-1/attempt-2 columns and all eight job durations per attempt are
+recorded in [PR #25](https://github.com/Ares-Empire/AresOS/pull/25) after
+the single final push. Keeping post-push evidence there preserves the exact
+twice-tested head rather than creating a new report commit/push. The local
+machine-readable final ledger is
+`.work/18d-main-merge-fixes-3/FINAL-VERIFICATION.json`.
+
+| Flow | Before = round-1 Linux points | Linux S / P / C | Round-3 Mac points | Mac S / P / C |
+| --- | ---: | --- | ---: | --- |
+| delete_permanent | 395 | 379 / 379 / 711 | 391 | 379 / 379 / 711 |
+| settlement | 148 | 144 / 144 / 275 | 148 | 144 / 144 / 275 |
+| testapp_export | 144 | 117 / 117 / 534 | 128 | 118 / 118 / 598 |
+| filing_rename | 227 | 219 / 219 / 419 | 227 | 219 / 219 / 419 |
+| restart_tail | 33 | 22 / 22 / 68 | 29 | 22 / 22 / 68 |
+| delete_trash | 265 | 253 / 253 / 475 | 261 | 253 / 253 / 475 |
+| status | 147 | 143 / 143 / 272 | 147 | 143 / 143 / 272 |
+| attachment_export | 277 | 242 / 242 / 1593 | 261 | 243 / 243 / 1662 |
+| filing_copy | 351 | 339 / 339 / 654 | 351 | 339 / 339 / 654 |
+| restart_index | 31 | 20 / 20 / 62 | 27 | 20 / 20 / 62 |
+| send_duplicate | 912 | 877 / 877 / 1720 | 908 | 877 / 877 / 1720 |
+| send | 830 | 797 / 797 / 1567 | 826 | 797 / 797 / 1567 |
+| unsubscribe_mailto | 832 | 799 / 799 / 1573 | 828 | 799 / 799 / 1573 |
+| cancel | 65 | 63 / 63 / 118 | 65 | 63 / 63 / 118 |
+| password | 129 | 119 / 119 / 226 | 125 | 119 / 119 / 226 |
+| expiry | 65 | 63 / 63 / 111 | 65 | 63 / 63 / 111 |
+| export_rollback | 277 | 246 / 246 / 1765 | 267 | 247 / 247 / 1834 |
+| repair | 345 | 334 / 334 / 632 | 345 | 334 / 334 / 632 |
+| unsubscribe_https | 329 | 315 / 315 / 590 | 325 | 315 / 315 / 590 |
+| restore | 68 | 66 / 66 / 122 | 68 | 66 / 66 / 122 |
+| filing_move | 350 | 338 / 338 / 650 | 350 | 338 / 338 / 650 |
+| maintenance | 62 | 60 / 60 / 108 | 62 | 60 / 60 / 108 |
+| archive | 360 | 347 / 347 / 1670 | 314 | 301 / 301 / 1532 |
+| **Total** | **6,642** | **6,302 / 6,302 / 15,915** | **6,518** | **6,259 / 6,259 / 15,979** |
+
+Linux acceptance requires no drop in any per-flow column in either final
+attempt. The two delayed restart `journal.close` events explain the two-point
+difference between per-flow totals and the pre-recovery mechanism summary,
+as in round 2. No close is promoted to a primary fault site.
+
+**Every required Mail job has a 35-minute limit:** `containers (0–3)` and
+`sweep (0–3)`. The final addendum records the whole-job duration of each of
+these eight jobs independently in attempts 1 and 2, checked against 35:00.
+The final report manifest verifies all 23 flows and each mode against both
+Linux baselines, identical counts across attempts, all eight Mail jobs
+passing per attempt, and the exact final source SHA.
+
+
+- `OWNER_PERTURB_SHARDS=4 OWNER_PERTURB_SHARD=N ... local_tests.py
+  test_owner_state_perturb` for N=0–3: **all four / OK**,
+  **1573.373 / 1356.250 / 1483.389 / 1370.508s**. **98 recordings / 110
+  partitions / 2,081,423 alterations**, all `slipped=0`; same corpus and counts
+  as round 2. One printed regression label represents two separate Driver
+  recordings. These long-running workers loaded the chronology revision before
+  the latch-only follow-up; the affected complete named regressions and
+  lifecycle consumers were rerun with that final guard, as recorded above.
+  No oracle/evaluator/expectation/pin was edited. Logs:
+  `local-perturb-{0,1,2,3}.txt`; aggregate check: `FINAL-LOCAL.json`.
+
+**Final-head CI / execution accounting:** commit this report locally, then
+push exactly once, including the local brief/reviews commit `3615e4a4` and the
+two fixture commits. Require Control base, all eight Control Mail jobs, and
+Control boundary to pass; request exactly one whole-run `gh run rerun <id>`
+for each same run. No optional oracle workflow. The final source SHA, run IDs,
+both attempts, all 23 observed Linux count rows and all sixteen Mail job
+durations are the post-push acceptance addendum in
+[PR #25](https://github.com/Ares-Empire/AresOS/pull/25), with exact logs and
+`FINAL-VERIFICATION.json` under `.work/18d-main-merge-fixes-3/`. No post-CI
+source/report push is planned; those results must cover this exact head.
+
+**Not verified:** real accounts, interactive owner use and laptop installation
+remain outside this fixture-only run. Local policy-read substitution is only
+diagnostic; real managed-policy/ownership checks require the Linux workflows.
+
+**JUDGMENT-CALL:** none affecting product behavior or an owner decision. UTC
+calendar views, a 10-microsecond step and logical inode age are reversible
+fixture choices; no real user clock, timestamp or timezone is changed.
+
+**PLAN-GAP / open questions:** no new production defect or blocking question.
+The pre-existing optional owner-oracle strict-pin migration limit remains
+unchanged. Post-push CI counts/durations live in the PR acceptance addendum so
+recording them cannot invalidate the sole final push's tested head. No merge,
+force-push, hook bypass, system installation, host-setting or disk changes;
+no Gradle ran. The closing storage audit printed
+`Remaining .work files over 500 MB: []`.
