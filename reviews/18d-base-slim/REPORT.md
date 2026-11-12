@@ -500,3 +500,123 @@ laptop installation and interactive terminal/phone checks remain outside this
 synthetic integration run. No reviewer-written file, design/plan, OS, mod,
 install, README, STATE or HANDOFF was edited. No merge, force-push or hook
 bypass is authorized. No open question blocks this integration check.
+
+## Main merge fixes, round 1
+
+**Done / mechanism:** followed `briefs/18d-main-merge-fixes.md` from local
+`42506c5d`, retaining local review commit `14a2ff43`. The fault harness, rather
+than production storage, allowed clean discovery and fault replay to use
+different timestamp lengths. Reproduced this deterministically before changing
+the fixture: run `send_duplicate` with the same scripted UUID sequence and
+fixed clocks **1794225600.0** / **1794225600.1234567** (12 / 18 JSON characters).
+Both clean calls succeed, both recover, and both have **908** local write
+points, but their traces first differ at zero-based index **361**:
+`sqlite.main.fsync` versus `sqlite.main.write`, with no fault injected. The sixth
+transaction ends at point **410** / **411**, and its database has **21** / **22**
+pages. Later transactions converge again; equal mechanism totals do not imply
+equal fault positions. This demonstrates the reported pre-fault page-boundary
+failure mechanism, without relying on a rare failing rerun or claiming the
+historical wall-clock samples were recorded.
+
+**Done / source audit:** checked each ambient clock/random source used by the
+inherited flows:
+
+- `storage.py` embeds the float clock in journal records and prepared events,
+  retained-row dates, repair/APPEND restart timestamps; `engine.py` uses it for
+  approval expiry and repair completion; Mail uses it for composition creation
+  and `sent_append_started_at` / `sent_append_ended_at`. JSON float widths vary.
+- `engine.py`, `warnings.py` and `mail/filing.py` store nanosecond notice dates.
+  Implicit `localtime()` also controls the engine's daily-history selection;
+  outgoing MIME Date follows the effective clock. The existing scripted
+  calendar supplies implicit local time and nanoseconds from that same clock.
+- Generation/composition/operation/repair/filing/intent/export/archive IDs and
+  observation tokens come from `uuid.uuid4()`: hex IDs always have 32 digits
+  (generation-prefixed operation IDs have 65 characters). Their widths do not
+  vary, but their values can change recovery ordering. Reuse the existing
+  per-flow scripted UUID generator.
+- Temporary paths have fixed-width names; generated MIME boundaries have
+  fixed-width random digits and their hashes have fixed widths. They do not
+  explain variable JSON lengths here. The inherited export flows do not import
+  file modification metadata; that separate import path explicitly formats
+  microseconds. Filesystem timestamps are not substituted by this fix.
+
+**Done / fix:** `control/mail_tests/test_review23_sweep.py` now scripts clock,
+calendar and UUIDs for every direct `Scenario`, with seed `inherited-<flow>`.
+The 22 previously uncontrolled flows use **1794225600.1234567**, preserving
+realistic timestamp precision: a diagnostic using `.0` lost one discovered
+`repair` page write; full precision preserved its **345** points. Archive keeps
+its existing `.0` clock, `inherited-archive` seed and deterministic two-second
+advance. Expiry and maintenance retain their existing expiry-plus-one-second
+and plus-86401-second clock steps. Scripts cover setup, execution, faults and
+recovery, and close afterward. The `type(self) is Scenario` guard leaves the
+owner oracle's independent clock/ID script unchanged. No production code changed.
+
+**Done / required regressions:** added a two-clock SQLite trace test and a
+three-clean-replay comparison for **each of all 23 flows**. The latter installs
+failing ambient time/UUID functions outside each fixture: accidentally dropping
+either script fails every run, even when ambient float lengths happen to agree.
+All three traces must match exactly; every replay also runs the existing
+recovery/completion checks. Both tests are in the inherited module already
+selected by every required Mail sweep job. The existing archive regression and
+every fault/prefix/recovery assertion remain. AST comparison of the old/new
+entire sweep method, after hoisting the identical tuple to shared `FLOWS`,
+printed `Sweep invariant OK: same 23 flows, all fault modes, cleanup pairs and
+assertions unchanged`. No selection or workflow changed.
+
+**Verified / local:** used Python 3.14.6 in the existing worktree virtualenv,
+with `-B` and `PYTHONPATH=control:control/mail_tests`:
+
+- `python3 control/generate.py --check`: `Generated artifacts match definitions`.
+- Unmodified unittest invocation of the two new tests: `Ran 2 tests` /
+  `FAILED (failures=15)`, with `boundary_not_installed` at macOS's `/etc` symlink.
+  No protected host path or system setting was changed.
+- With only `Boundary.read` returning generated `managed_settings()`, both new
+  tests plus the existing archive/completion/recovery regressions: **5 tests /
+  OK**. The mechanism test prints `Clock precision changes SQLite trace at index
+  300: sqlite.main.fsync vs sqlite.main.write; points=[788, 788]` (SQLite-main
+  events only); all 23 flows print `replays=3` and pass exact trace equality.
+- Full inherited sweep with that same explicitly local policy-read stub:
+  **all four shards pass**, each `Ran 7 tests` / `OK` (483.538 / 361.264 /
+  445.754 / 186.519 seconds). The wrapper runs the unmodified
+  `test_review23_sweep` and `test_review24_io` modules with
+  `MAIL_SWEEP_SHARDS=4` and shards 0–3. Logs: `local-sweep-{0,1,2,3}.txt`;
+  the wrapper is `local_sweep.py`.
+- `PYTHONPATH=control:control/tests .work/18d-review/venv/bin/python -B -m unittest
+  -v test_mail_ci_selection`: **6 tests / OK**. All Control Python sources
+  AST-parse (`Python syntax OK`); `git diff --check` exits 0 without output.
+- With the same policy-read stub, the other direct-Scenario consumer,
+  `test_review26_sweep`: **3 tests / OK** (`Ran 3 tests in 7.980s`), including
+  live admission recovery, cleanup EIO precedence and unrelated-Sent rejection.
+
+**Verified / coverage accounting:** prior Linux Mail attempt 2
+`43153748879` has **23 flows, 6,640 points, 6,302 single + 6,302 persistent +
+15,915 cleanup-pair cases = 28,519 fault cases**. On this Mac with only the
+policy-read stub, before/after discovery both total **23 flows / 6,516 points**;
+full final sweeps execute **6,259 single + 6,259 persistent + 15,979 cleanup-pair
+cases = 28,497 cases**, with no failure. These local totals are not compared
+numerically to Linux acceptance: the stub removes policy closes, Mac publication
+adds an unlink, and SQLite archive/VACUUM I/O differs by platform. The Linux
+before/after comparison remains required.
+The final Linux counts, exact tested SHA, workflow run IDs and both attempts
+are recorded in [PR #25](https://github.com/Ares-Empire/AresOS/pull/25) after the
+single final push, avoiding another commit/push that would invalidate the
+tested head. Acceptance requires all three required workflows twice and all
+eight Mail jobs in both attempts; a passing rerun alone is not acceptance.
+Required sweep test count increases from **5 to 7** per job.
+
+**Not verified / PLAN-GAP / JUDGMENT-CALL:** local stubbed traces are storage
+diagnostics, not installed-policy or Linux acceptance. Real accounts, interactive
+owner use and laptop installation remain outside this run. No new owner-facing
+behavior or difficult-to-reverse decision. The optional oracle and
+`reviews/19b-owner-state/KNOWN-GAPS.json` are unchanged; its existing strict-pin
+migration PLAN-GAP remains. Pin SHA-256 is still
+`6bbcb02fb83c750e33ef370b694c13eb59c33a82c04b1540038ed99995e05ea2`.
+No oracle run is requested. No forbidden file was edited; no merge, force-push,
+hook bypass, system installation or host change. No Gradle ran. Storage audit:
+`Remaining .work files over 500 MB: []`. No open question blocks this fix.
+
+**Execution accounting:** the final-head procedure is exactly six executions:
+the three automatic PR runs and one `gh run rerun <id>` of each same run. Actual
+IDs, attempts, results and execution count are recorded in PR #25 after the
+push. Local verification logs and scripts are under
+`.work/18d-main-merge-fixes/`.
