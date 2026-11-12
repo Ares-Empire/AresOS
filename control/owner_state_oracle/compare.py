@@ -62,7 +62,10 @@ def notice_facts(notice, record, oracle):
         target = context.get('target', '')
         shown = target[:64] + ('…' if len(target) > 64 else '')
         prefix = r'inside ' if kind == 'rename' else r'(?:which is now |The target ' + re.escape(shown) + r' is now )'
-        matches = re.findall(prefix + r'((?:\\?' + role_name + r')(?:, ?\\?' + role_name + r')*)', reason)
+        # Direct SPECIAL-USE flags retain their slash, doubled by public
+        # escaping. Ancestor roles are displayed as bare names.
+        role = r'\\{0,2}' + role_name
+        matches = re.findall(prefix + r'(' + role + r'(?:, ?' + role + r')*)', reason)
         names = sorted(set(re.findall(role_name, ' '.join(matches))))
         evidence = canonical({'role': ', '.join(names) if names else 'unverified' if 'unverified role' in reason else 'ordinary'})
     result = {Fact(source, kind, occurrence, evidence)}

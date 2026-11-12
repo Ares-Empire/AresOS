@@ -367,6 +367,43 @@ class OwnerOracle(unittest.TestCase):
             with self.subTest(field=field), self.assertRaises(AssertionError):
                 oracle.compare('public context mutation', expected, notice_facts(wrong, record, oracle))
 
+    def public_role(self, kind, reason, target='Renamed'):
+        from owner_state_oracle.compare import notice_facts
+        source = 'mail:' + kind + ':example'
+        record = Record(rows={'notice:example': {'source_key': source, 'check_kind': kind}})
+        oracle = Oracle()
+        oracle.warning_contexts[source] = {'target': target}
+        notice = {'operation_id': 'example', 'app': 'mail', 'state': 'partial',
+                  'untrusted_content': {'reason': reason, 'intent_key': source, 'filing_id': 'example'}}
+        return json.loads(next(f.detail for f in notice_facts(notice, record, oracle) if f.kind == kind))['role']
+
+    def test_public_direct_special_roles_survive_visible_backslash_escaping(self):
+        from aresos_control.common import visible
+        for role in ('Sent', 'Drafts', 'Trash', 'Junk', 'Archive', 'All', 'Flagged', 'Important'):
+            with self.subTest(role=role):
+                reason = visible('Nothing was deleted. It is now Renamed, inside \\' + role + '.')
+                self.assertIn('\\\\' + role, reason)
+                self.assertEqual(self.public_role('rename', reason), role)
+        self.assertEqual(self.public_role('rename', visible(
+            r'Nothing was deleted. It is now Renamed, inside \Trash, \Junk.')), 'Junk, Trash')
+
+    def test_public_ancestor_special_roles_and_filing_wordings(self):
+        from aresos_control.common import visible
+        for kind, prefix in (('rename', 'It is now Renamed, inside '),
+                             ('filing', 'Messages are in Renamed, which is now '),
+                             ('filing', 'The target Renamed is now ')):
+            for roles, expected in (('Trash', 'Trash'), ('Drafts, Trash', 'Drafts, Trash'),
+                                    (r'\Trash', 'Trash'), (r'\Trash, \Junk', 'Junk, Trash')):
+                with self.subTest(kind=kind, prefix=prefix, roles=roles):
+                    reason = visible('Nothing was deleted. ' + prefix + roles + '.')
+                    self.assertEqual(self.public_role(kind, reason), expected)
+
+    def test_public_roles_keep_ordinary_and_unverified_distinct(self):
+        for role, expected in (('an ordinary folder', 'ordinary'), ('an unverified role', 'unverified')):
+            with self.subTest(role=role):
+                self.assertEqual(self.public_role('rename',
+                    'Nothing was deleted. It is now Trash, inside ' + role + '.', target='Trash'), expected)
+
     def test_exact_context_cannot_be_supplied_by_another_attempt_or_changed_fields(self):
         ref = {'account': 'box', 'folder': 'Source', 'uidvalidity': 4, 'uid': 7, 'message_id': '<m@mail.invalid>'}
         roles = {'Sent': ['\\Sent'], 'Drafts': ['\\Drafts'], 'Trash': ['\\Trash']}
