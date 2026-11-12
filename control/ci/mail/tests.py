@@ -55,14 +55,15 @@ def flow_partition(flows, group=0, groups=1, isolated=()):
 
 
 INHERITED = {'test_review23_sweep', 'test_review24_io'}
-OPTIONAL_MODULES = {'test_owner_state_sweep', 'test_owner_state_contracts'}
+OPTIONAL_MODULES = {'test_owner_state_contracts'}
+OWNER_SWEEP_CASE = 'test_owner_state_sweep.OwnerStateSweep.test_all_flows_all_storage_modes_independent_views'
 ALTERATIONS = {'test_owner_state_perturb', 'test_owner_state_plants'}
 OPTIONAL_CASES = {
     'test_owner_state_regressions.ReviewRegressions.' + name for name in (
         'test_review22_live_rename_trash_with_unresolved_drafts_M03_C03',
         'test_review22_refused_recovery_result_keeps_changed_evidence_M03_C03',
         'test_review22_zero_byte_journal_enospc_recovers_without_restart_M10_M13')
-}
+} | {OWNER_SWEEP_CASE}
 
 
 def select_names(selection, modules, shard=0, shards=1):
@@ -72,7 +73,7 @@ def select_names(selection, modules, shard=0, shards=1):
         raise ValueError('Invalid suite shard')
     names = [name for name in sorted(modules) if selection == 'all' or
         selection == 'sweep' and name in INHERITED or
-        selection == 'owner' and name in OPTIONAL_MODULES | {'test_owner_state_regressions'} or
+        selection == 'owner' and name in OPTIONAL_MODULES | {'test_owner_state_regressions', 'test_owner_state_sweep'} or
         selection == 'perturb' and name in ALTERATIONS or
         selection == 'suite' and name not in INHERITED | OPTIONAL_MODULES | ALTERATIONS]
     return [name for index, name in enumerate(names) if index % shards == shard] if selection == 'suite' else names
@@ -83,7 +84,7 @@ def select_cases(suite, selection):
     def include(case):
         if selection == 'suite':
             return case.id() not in OPTIONAL_CASES
-        if selection == 'owner' and case.id().startswith('test_owner_state_regressions.'):
+        if selection == 'owner' and case.id().startswith(('test_owner_state_regressions.', 'test_owner_state_sweep.')):
             return case.id() in OPTIONAL_CASES
         return True
     return unittest.TestSuite(case for case in cases(suite) if include(case))
@@ -125,7 +126,7 @@ def main(selection):
     sys.path.insert(0, str(root))
     names = select_names(selection, [p.stem for p in root.glob('test*.py')],
         int(os.environ.get('MAIL_SUITE_SHARD', '0')), int(os.environ.get('MAIL_SUITE_SHARDS', '1')))
-    parallel = 'test_owner_state_sweep' in names
+    parallel = selection in {'owner', 'all'} and 'test_owner_state_sweep' in names
     if parallel:
         names.remove('test_owner_state_sweep')
     if selection == 'owner' and (int(os.environ.get('MAIL_FLOW_GROUP', '0')) != 0 or
@@ -136,7 +137,7 @@ def main(selection):
         return unittest.TextTestRunner(verbosity=2).run(select_cases(unittest.defaultTestLoader.loadTestsFromNames(names), selection))
     if parallel:
         environment = {**os.environ, 'PYTHONPATH': str(root) + os.pathsep + os.environ.get('PYTHONPATH', '')}
-        result, good = run_workers([sys.executable, '-m', 'unittest', '-v', 'test_owner_state_sweep'], environment, run, count=int(os.environ.get('OWNER_SWEEP_WORKERS', '3')))
+        result, good = run_workers([sys.executable, '-m', 'unittest', '-v', OWNER_SWEEP_CASE if selection == 'owner' else 'test_owner_state_sweep'], environment, run, count=int(os.environ.get('OWNER_SWEEP_WORKERS', '3')))
     else:
         result, good = run(), True
     print(f'Mail selection={selection}: {result.testsRun} in-process tests; owner_workers={int(os.environ.get('OWNER_SWEEP_WORKERS', '3')) if parallel else 0}; elapsed={time.monotonic() - started:.3f}s', flush=True)

@@ -2879,7 +2879,7 @@ not the package lead's package or security review.
 **Read — optional checks:** `.github/workflows/control-owner-oracle.yml` has
 only `workflow_dispatch`. It retains every strict owner-state sweep mode, fault,
 cleanup pair, crash/restart and restored-space comparison in
-`test_owner_state_sweep`, the full `test_owner_state_perturb` corpus and planted
+`test_owner_state_sweep.OwnerStateSweep.test_all_flows_all_storage_modes_independent_views`, the full `test_owner_state_perturb` corpus and planted
 controls (`test_owner_state_plants`), the pinned matrix contracts and all-flow
 point-zero comparison in `test_owner_state_contracts`, the three pinned
 `G22-*` methods in `test_owner_state_regressions`, the installed-channel cursor
@@ -2906,7 +2906,7 @@ check. Full actual lists remain ignored downloadable CI artifacts.
 
 | Area | Required selection |
 | --- | --- |
-| Base | Every existing `control/tests/test_*.py` suite, except the installed-channel pinned case and real-ledger ownership method named above. Includes `test_owner_state_oracle` self-tests (synthetic ledger tests included), its import-independence test, `test_owner_state_fixes_s2`, and `test_mail_ci_selection`. |
+| Base | Every existing `control/tests/test_*.py` suite, except the installed-channel pinned case and real-ledger ownership method named above. Includes `test_owner_state_oracle` self-tests (synthetic ledger tests included), its import-independence test, `test_owner_state_fixes_s2`, and `test_mail_ci_selection`. The five fast non-ledger self-tests inside `test_owner_state_sweep` remain required in Mail. |
 | Mail suites | Every pre-19b Mail suite: `test_admin`, `test_changes`, `test_compose`, `test_crash`, `test_dkim`, `test_outcomes`, `test_proxy`, `test_read`, `test_unsubscribe`, and all `test_review*` modules except the separately sharded inherited sweep/IO pair. |
 | Inherited fault sweep | `test_review23_sweep` and `test_review24_io`, unchanged assertions and full modes, over four shards. |
 | Targeted 19b regressions | `test_action_context`, `test_owner_state_s2_effects`, and the passing review-20 refused-reopen/archive and review-21 acknowledged-rename/expiry and changed-warning/paging methods in `test_owner_state_regressions`. |
@@ -3014,9 +3014,10 @@ updated after the watches so the evidence update does not change the tested
 Git tree. The committed report records source/read/local-run claims above;
 remote acceptance is established by those finished-head runs, not by this
 initial cancelled run or by historical package runs. The intended closing
-account is **8 workflow IDs / 11 attempts** in this run: three initial CI runs,
-one registration marker, three final required runs each twice, and one final
-manual optional run. The registration marker and cancelled CI are excluded
+account is **12 workflow IDs / 18 attempts** in this run: three initial CI runs,
+one registration marker, the superseded `97523b0a` required runs each twice and
+its optional run, plus three corrected final required runs each twice and one
+final manual optional run. The registration marker and cancelled CI are excluded
 from acceptance. If an extra diagnosis/rerun is necessary its actual count is
 reported with the final evidence. No own package/security review is run, PR #26
 stays draft against `pkg/19-mail`, and no merge is performed.
@@ -3034,3 +3035,28 @@ acceptance. `python3 control/generate.py --check` printed
 `Generated artifacts match definitions`; the final six selector tests also
 printed `OK`. No Gradle process was started; `.work/` files larger than
 500,000,000 bytes: **[]**.
+
+
+**Read — fast sweep-harness selection correction:** five non-ledger tests in
+`test_owner_state_sweep` had initially travelled with the full matrix module.
+They remain required: last-status proof forwarding, constructor cleanup,
+ambient-identity independence, exact repeated-export deltas, and exhaustive
+shard/cleanup/crash ownership. Only
+`OwnerStateSweep.test_all_flows_all_storage_modes_independent_views` executes
+in optional workers. Selection tests assert that those five and the three
+passing named regressions are required, while the full matrix and three G22
+cases are optional, with disjoint and complete case ownership. No assertion
+is changed or removed. Required CI stays at eight Mail jobs.
+
+The complete required pair on `97523b0a` passed (base 43118846061, Mail
+43118849993, boundary 43118854247, attempts 1 and 2); Mail maxima were
+16m09s / 15m03s. Its optional run 43118841643 is superseded acceptance
+evidence because the final selection now also requires these fast tests.
+The corrected final head receives its own optional run and required pair;
+results and actual run accounting are linked from PR #26 as described above.
+
+**Run — corrected required selection without the ledger:** the same local
+ledger-unavailable check now runs **147 base-side tests / OK** and **23 Mail
+tests / OK**, including all five fast sweep-harness self-tests. The full
+fault-matrix method is excluded from required selection. No production change
+or expected-failure pin change accompanies this correction.

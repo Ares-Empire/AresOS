@@ -3,7 +3,7 @@ from pathlib import Path
 import unittest
 import ast
 
-from ci.mail.tests import select_names, select_cases, flow_partition, OPTIONAL_CASES
+from ci.mail.tests import select_names, select_cases, flow_partition, OPTIONAL_CASES, OWNER_SWEEP_CASE
 from ci.base import select as base_select, OPTIONAL as BASE_OPTIONAL
 from owner_state_oracle.gaps import owned, BUCKETS, SUITE_BUCKETS
 
@@ -17,10 +17,11 @@ class MailSelections(unittest.TestCase):
         owner = select_names('owner', modules)
         executed = [name for part in suite + [sweep, alterations, owner] for name in part]
         self.assertEqual(set(executed), modules)
-        self.assertEqual(len(executed), len(modules) + 1)
-        self.assertEqual([m for m in modules if executed.count(m) == 2], ['test_owner_state_regressions'])
+        self.assertEqual(len(executed), len(modules) + 2)
+        self.assertEqual({m for m in modules if executed.count(m) == 2},
+                         {'test_owner_state_regressions', 'test_owner_state_sweep'})
         self.assertEqual(set(sweep), {'test_review23_sweep', 'test_review24_io'})
-        self.assertNotIn('test_owner_state_sweep', {n for part in suite for n in part})
+        self.assertIn('test_owner_state_sweep', {n for part in suite for n in part})
         self.assertIn('test_owner_state_quiet', {n for part in suite for n in part})
         self.assertTrue(all(suite))
         self.assertEqual(select_names('all', modules), sorted(modules))
@@ -29,7 +30,13 @@ class MailSelections(unittest.TestCase):
         ids = OPTIONAL_CASES | {
             'test_owner_state_regressions.ReviewRegressions.test_review20_refused_reopen_then_archive',
             'test_owner_state_regressions.ReviewRegressions.test_review21_acknowledged_rename_expiry',
-            'test_owner_state_regressions.ReviewRegressions.test_review21_paging_changed_warnings'}
+            'test_owner_state_regressions.ReviewRegressions.test_review21_paging_changed_warnings'} | {
+            'test_owner_state_sweep.OwnerStateSweep.' + name for name in (
+                'test_last_status_committed_lie_is_in_same_comparisons_proof',
+                'test_constructor_failure_restores_request_and_clock',
+                'test_repeated_fault_is_independent_of_ambient_identity_order',
+                'test_export_repeated_fault_uses_same_caller_path_and_exact_delta',
+                'test_shards_cover_every_fault_and_keep_its_cleanup_and_crash_cases')}
         def suite(names):
             values = []
             for name in names:
@@ -40,6 +47,8 @@ class MailSelections(unittest.TestCase):
         required = {c.id() for c in select_cases(suite(ids), 'suite')}
         optional = {c.id() for c in select_cases(suite(ids), 'owner')}
         self.assertEqual(optional, OPTIONAL_CASES)
+        self.assertNotIn(OWNER_SWEEP_CASE, required)
+        self.assertEqual(len(required), 8)
         self.assertFalse(required & optional)
         self.assertEqual(required | optional, ids)
         base_ids = BASE_OPTIONAL | {'test_owner_state_oracle.OwnerOracle.test_expectation_imports_are_standard_library_only'}
