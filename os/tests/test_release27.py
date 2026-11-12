@@ -258,7 +258,7 @@ class GuardLedgerTest(unittest.TestCase):
         self.addCleanup(guard.configure, '11c')
 
     def test_package27_allows_its_release_checks_and_rehearsal_dispatches(self):
-        self.assertEqual(guard.SETTINGS['dispatch_caps'], {'release-27': 5, 'checks': 1, 'update': 10})
+        self.assertEqual(guard.SETTINGS['dispatch_caps'], {'release-27': 5, 'checks': 1, 'update': 11})
         self.assertEqual(guard.SETTINGS['publish_cap'], 1)
         self.assertEqual(guard.BRANCH, 'pkg/27-first-update-release')
         workflow = (ROOT / '.github/workflows/os-image.yml').read_text()
@@ -295,15 +295,15 @@ class GuardLedgerTest(unittest.TestCase):
             # integrator-approved fourth rehearsal (2026-11-11), the fifth after the
             # util-linux 2.41.6 observer fix (brief 27-rehearsal-fixes-1), the sixth
             # after the terminal PATH probe fix (integrator, 2026-11-12), the seventh, an
-            # unchanged rerun after run 6's console stall, the eighth on review 1's fixes and
-            # the ninth on review 2's (integrator, 2026-11-12). Their jobs are accounted (one
-            # hour each), so the count, not the minutes, stops an eleventh.
+            # unchanged rerun after run 6's console stall, the eighth on review 1's fixes, the
+            # ninth on review 2's and the tenth on review 3's (integrator, 2026-11-12). Their jobs
+            # are accounted (one hour each), so the count, not the minutes, stops a twelfth.
             job.update(started_at='2026-11-10T02:00:00Z', completed_at='2026-11-10T03:00:00Z',
                        steps=[dict(name='Set up job', conclusion='success', started_at='2026-11-10T02:00:00Z',
                                    completed_at='2026-11-10T03:00:00Z')])
-            for number in range(10):
+            for number in range(11):
                 runs.append(dict(base, id=10 + number, display_title='Two-disk rehearsal (update)'))
-            self.assertEqual(guard.budget(0)['dispatch_counts']['update'], 10)
+            self.assertEqual(guard.budget(0)['dispatch_counts']['update'], 11)
             runs.append(dict(base, id=20, display_title='Two-disk rehearsal (update)'))
             with self.assertRaisesRegex(AssertionError, 'update dispatch allowance exhausted'):
                 guard.budget(0)
