@@ -842,11 +842,11 @@ things worse than normal Claude Code.
   and don't ask again"; a `PreToolUse` hook or an installed mod can't turn it off either (Anthropic's permissions
   page, read 2026-11-08). An explicit ask rule still asks in skip-permissions mode (*checked*, S1). A
   `PermissionRequest` hook is different: Anthropic documents it as answering a permission prompt on the user's behalf
-  (allow or deny). Whether such a hook, managed or his own, can approve a call that matches a managed ask rule is
-  unknown until tested (*brief 18c*: a `PermissionRequest` hook returning allow for the fake send tool, at user and
-  at managed level, in normal and in skip-permissions mode). If it can, that joins the accepted residual below. In
-  either case his own `PermissionRequest` hooks must not match our asking tools, so a broad auto-approve hook of his
-  never answers for him ([`FEATURES.md`](../control/FEATURES.md)). So the switches
+  (allow or deny). Such a hook returning allow, managed or his own, does approve a call that matches a managed ask
+  rule: brief 18d measured it for the fake send tool at user and at managed level, in normal and in skip-permissions
+  print mode (Claude Code 2.1.319), and a test pins it; brief 18c checks the interactive case. That joins the
+  accepted residual below. His own `PermissionRequest` hooks must not match our asking tools, so that a broad
+  auto-approve hook of his never answers for him ([`FEATURES.md`](../control/FEATURES.md)). So the switches
   that locked everything else go: `allowManagedPermissionRulesOnly`, `allowManagedHooksOnly`, the exclusive
   `managed-mcp.json`, the plugin and marketplace locks, `--setting-sources ''`, `disableBypassPermissionsMode`, the
   forced sandbox with its network list, and the file-tool limits. *Test (base):* the managed ask on a fake send tool
@@ -876,9 +876,9 @@ things worse than normal Claude Code.
   socket, which his user can reach) with a prepared operation, and so skip the question. That is the same level as
   anything else a tricked Claude can do on a normal OS: it already acts with his user's rights. The tools add no
   route around his approval beyond that.
-- If brief 18c shows that a `PermissionRequest` hook can approve a managed ask, a hook that Claude or he writes could
-  approve our asking tools without him answering. That is the same level as calling the service directly, and is
-  accepted with it.
+- A `PermissionRequest` hook can approve a managed ask (brief 18d, print mode; 18c checks the interactive case), so a
+  hook that Claude or he writes could approve our asking tools without him answering. That is the same level as
+  calling the service directly, and is accepted with it.
 
 **Claude Code's own sandbox stays available** as a setting he can turn on. Turning it on (`sandbox.enabled`) alone
 does not keep terminal commands away from the tool service: a command that fails in the sandbox can be retried
@@ -916,12 +916,12 @@ it starts with a `question` field, one plain sentence the tool service writes, f
 1. **The truth in full:** the `question` sentence and every content field, as the service describes the operation
    (rule 4.1); an input too large to show whole is refused, never cut.
 2. **Enforced outside Claude:** Claude Code's managed ask rules hold the call until he answers (an "ask" rule still
-   asks in skip-permissions mode: *checked*), unless a `PermissionRequest` hook answers it, which 18c tests and which
-   joins the accepted residual if it can (above); the input names one operation by id and hash, and the service
+   asks in skip-permissions mode: *checked*), unless a `PermissionRequest` hook answers it, which brief 18d showed it
+   can (the accepted residual, above); the input names one operation by id and hash, and the service
    refuses anything that differs from it at run time.
 3. **Claude doesn't answer it in the session:** the prompt is his; the pages that could approve (claude.ai, Remote
    Control) can't be opened in a Claude tab (section 6). The exception is the same: a `PermissionRequest` hook that
-   Claude wrote could answer it, if 18c shows such a hook can (the accepted residual, above).
+   Claude wrote could answer it (brief 18d; the accepted residual, above).
 4. **At the laptop and on the phone:** the same prompt, in the terminal and through Remote Control.
 5. **"Don't ask again"** goes through his own channels, never through the prompt's own option.
 6. **Decided once:** one answer per tool call; the service's operation record (rule 4.3) refuses a second run, and a
@@ -935,10 +935,10 @@ improvement if he asks for it.
 1. **Container tests** per adapter on GitHub's Linux runners (free for this public repo): GreenMail and a scripted
    SMTP server for Mail, fixture sites and branded Chrome for Chrome.
 2. **The tools' own tests** (section 7): the managed ask rules still prompting against user and project allow rules,
-   "Yes, and don't ask again", a `PreToolUse` hook returning "allow", and skip-permissions mode; whether a
-   `PermissionRequest` hook returning allow, managed or his own, can approve a managed ask (unknown until tested, in
-   both modes); the `question` verified; an approval bound to one operation; the app passwords unreadable by his
-   user.
+   "Yes, and don't ask again", a `PreToolUse` hook returning "allow", and skip-permissions mode; a
+   `PermissionRequest` hook returning allow, managed or his own, approving a managed ask (measured in brief 18d in
+   normal and skip-permissions print mode, and pinned; the interactive case in 18c); the `question` verified; an
+   approval bound to one operation; the app passwords unreadable by his user.
 3. **The prompt, at the laptop and on the phone** (decision 21): every asking action's input, `question` first, is
    checked in the terminal and through Remote Control with a long mail, Bcc, attachments and odd characters, and for
    a deletion and a Chrome send. Anything not shown in full there changes rule 4.1 before Mail or Chrome relies on
@@ -960,7 +960,7 @@ improvement if he asks for it.
 | Gap (VERDICT) | Where |
 |---|---|
 | 1. Claude bypasses a tool through another route | accepted at the level of normal Claude Code (decision 24, section 7): a tricked Claude could call the tool service directly, as it could do anything his user can; owner-only actions stay behind `sudo`; Claude Code's optional sandbox narrows the route through its terminal only in the strict setup of section 7, best-effort; in Chrome, the tool asks before anything that clearly sends, and a page that sends on its own after an ordinary action isn't held (decision 25, section 6) |
-| 2. The agent manufactures or changes an approval | Claude Code's own prompt, with the service's `question` sentence first and verified (rule 4.1, section 7, decision 21); approval pages can't be opened in a Claude tab (section 6); managed ask rules that no allow rule, `PreToolUse` hook or mode turns off, with `PermissionRequest` hooks tested in brief 18c and his own kept off our asking tools (section 7); rule 4.1 makes the approval show the service's description and refuses changes; "don't ask again" only through the owner's channel (section 6) |
+| 2. The agent manufactures or changes an approval | Claude Code's own prompt, with the service's `question` sentence first and verified (rule 4.1, section 7, decision 21); approval pages can't be opened in a Claude tab (section 6); managed ask rules that no allow rule, `PreToolUse` hook or mode turns off, with `PermissionRequest` hooks measured in brief 18d (print mode; interactive in 18c) and his own kept off our asking tools (section 7); rule 4.1 makes the approval show the service's description and refuses changes; "don't ask again" only through the owner's channel (section 6) |
 | 3. Retries, cancellation and restores send twice | rule 4.3: operations recorded before they act, per stage; never retried by themselves; repairs never resubmit; expiry; the log refuses to go backwards; in Chrome, one approval runs one input once, after the page-state check (section 6) |
 | 4. Harmless-looking actions change data | effects in section 3; `BODY.PEEK`; in Chrome, submits, telling controls, Enter in message fields, Delete outside text and uploads ask, while unlabelled controls and a page's own sends stay free (section 6); before/after comparisons in every test |
 | 5. Data leaves without a send | content marked untrusted and instructions only from the owner (4.8, the managed `CLAUDE.md`); in Chrome, page text marked untrusted and the residuals named in section 6 (a page's own sends, addresses Claude writes); what a tricked Claude can do with normal Claude Code accepted by the owner (section 10, decision 24) |
@@ -1028,8 +1028,8 @@ improvement if he asks for it.
 - **Accepted residual risk, his call** (decisions 23 and 24). A Claude tricked by content can do on AresOS what it
   could do on any OS with normal Claude Code: change or delete his files, push with his `gh` login, reach the
   network, start programs; it can call the tool service directly and skip the question (the optional sandbox
-  narrows that only in its strict setup, best-effort: section 7); and if brief 18c shows that a `PermissionRequest`
-  hook can approve a managed ask, a hook can approve our asking tools. The tools still ask for every send, delete and
+  narrows that only in its strict setup, best-effort: section 7); and a `PermissionRequest` hook can approve our
+  asking tools (brief 18d). The tools still ask for every send, delete and
   submit they recognise before acting (in Chrome, a page's own sends after an ordinary action aren't held: section
   6), the app passwords AresOS holds stay with the tool service's own user, and instructions come only from him in
   the session. What remains is accepted, in his words above.
