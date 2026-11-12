@@ -158,8 +158,8 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
       setTab(await nativeDonor(getTab()));
       const id='review-fallback-'+native+'-'+mode+'-'+composed+'-'+cancel;await nav('review-page&mode=shadow-fallback&variant='+mode+'&composed='+composed+'&cancel='+cancel+'&native='+native+'&id='+id);
       const result=await call('click',await target('Continue'));assert.equal(receiverEvidence('handler-'+id,'borrowed native handler held').count,0,'borrowed native event never reaches the asking handler');
-      if(cancel){assert.equal(counts(id),0);assert.ok(result.followups.some(row=>row.stopped));await approval(await call('click',await target('Delete')),id);}
-      else{assert.ok(receiverEvidence(id,'uncancellable native default is unknown').count<=1);assert.ok(result.untrusted_content.steps.some(step=>step.kind==='activation_unknown'));assert.ok(!result.followups.some(row=>row.approval),'unknown activation never resumes');assert.equal((await call('operation_status',{operation_id:result.operation_id})).operation.state,'unknown');}
+      assert.equal(receiverEvidence(id,'native default stopped before approval').count,0);assert.ok(result.followups.some(row=>row.stopped));assert.ok(!result.followups.some(row=>row.approval),'activations never resume');
+      assert.ok(result.untrusted_content.steps.every(step=>step.kind==='activation'));await approval(await call('click',await target('Delete')),id);
       await closeNativeDonor();console.log('REVIEW P5 borrowed native',id,'receiver',counts(id),'handler',counts('handler-'+id));
     }
   });

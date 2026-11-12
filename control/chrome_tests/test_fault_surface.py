@@ -30,6 +30,15 @@ class Writers(StateViews,fixture.Operations):
             elif flow=='revoke':run=lambda:self.call('sites',{'command':'revoke','id':allowed},True)
             else:
                 second=self.prepare();run=lambda:self.call('submit_trusted',second)
+        elif flow in {'compose_reask','compose_stop'}:
+            frame=self.browser.facts['frames'][0]
+            frame['compose']={'element':'area','whole_page':False,'text':'Original preview'}
+            approval=self.prepare();frame['compose']['text']='Second preview'
+            if flow=='compose_stop':
+                approval=self.call('submit',approval)['data']['approval']
+                frame['compose']['text']='Third preview'
+            self.script.append({'kind':'compose_change','before':'Original preview','after':frame['compose']['text']})
+            run=lambda:self.call('submit',approval)
         elif flow=='readonly':run=lambda:self.call('sites',{'command':'readonly','site':'https://fixture.test/'},True)
         elif flow=='qualification':
             path=self.root/'qualification.json';path.write_text(json.dumps({'format':1,'entries':[entry(build=self.chrome.qualification.build),entry(build=self.chrome.qualification.build,version='158.0.1.0',channel='beta')]}))
@@ -154,6 +163,6 @@ class Writers(StateViews,fixture.Operations):
 
     def test_every_chrome_durable_writer_single_persistent_cleanup_pairs_restart_space_restored(self):
         flows=['readonly','allow','revoke','trusted','qualification','delivery','observation','activation','stopped','acknowledgement','release','upload_copy',
-               'drop','retirement','lost_queue','stopped_submit','restore']
+               'drop','retirement','lost_queue','stopped_submit','restore','compose_reask','compose_stop']
         counts=isolated_flows(self,flows)
         print('Chrome full writer surface',counts,flush=True)

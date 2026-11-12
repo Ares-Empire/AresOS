@@ -121,7 +121,7 @@ case('P24-designmode',R,"document.designMode?.toLowerCase()==='on'",'false',node
 case('P25',B,"if(needsNative){","if(command.name==='input'){",node('background','P25'))
 case('P25-report',B,'dispatched:!noChange,no_change:noChange','dispatched:true,no_change:false',node('background','P25'))
 case('P26',M,'const value=({method(...args){return invoke(implementation,this,args);}}).method;','const value=implementation;',node('page','P26'))
-case('P27',B,'const tabIds = [...controlled.keys()];','const tabIds = [...controlled.keys(),...releasing.keys()];',node('background','P27'))
+case('P27',B,'tabIds=[...controlled.keys()]','tabIds=[...controlled.keys(),...releasing.keys()]',node('background','P27'))
 case('P27-missing-context',B,"const gone=String(error).includes('Cannot find context with specified id');",'const gone=false;',node('background','P27 native missing-context'))
 case('P27-unknown-context',B,"const gone=String(error).includes('Cannot find context with specified id');",'const gone=true;',node('background','P27 native missing-context'))
 case('P28',B,'owner.uncertainFinish=await finishFrames(tab,armed,dispatchEpoch,inputNonce);','owner.uncertainFinish=false;',node('background','P28'))
@@ -171,6 +171,28 @@ case('recheck-item-fields-service',A,"'item_fields':frame.get('item_fields',[]) 
 case('recheck-post-page-barrier','control/chrome/ci/review-fixtures.mjs',"script=variant==='after-owner-navigation'?","script=false?",node('fixture','recheck script POST timer'))
 case('recheck-post-driver-barrier','control/chrome/ci/review-matrices.mjs',"await fixture.mutate(id,'review-change');await eventually(()=>counts(id)===1,'script POST');","await eventually(()=>counts(id)===1,'script POST');",node('fixture','recheck script POST observes'))
 case('recheck-post-document-commit','control/chrome/ci/review-matrices.mjs',"await eventually(async()=>(await allTabs(call)).items.some(row=>row.tab===tab&&row.url==='http://fixture.test:8765/post-document?case='+id),'script POST committed in the exact owner tab');",'',node('fixture','recheck script POST observes'))
+
+case('recheck2-native-created-capture',M,"function watchCreated(node){report(node,{kind:'watch_node'});return node;}","function watchCreated(node){return node;}",node('page','recheck2 native insertion'))
+case('recheck2-native-target-capture',G,'nodeRoot!==root&&root!==element','nodeRoot!==root',node('page','recheck2 native insertion'))
+case('recheck2-default-neutralization',G,'event.cancelable||stopDefault(element)','event.cancelable',node('page','recheck2 uncancellable defaults'))
+case('recheck2-owner-navigation',G,'if(!inFlight&&event.isTrusted&&owner?.event===event&&!owner.consumed)return;','',node('page','recheck2 the owners trusted click'))
+case('recheck2-network-rule',B,'if(heldTabs.length)addRules.push','if(false)addRules.push',node('background','recheck2 session default blocks'))
+case('recheck2-network-expiry',B,'networkHolds.delete(tab);rules().catch(()=>{});','rules().catch(()=>{});',node('background','recheck2 session default blocks'))
+case('recheck2-network-restart',B,'removeRuleIds:previous.map(rule=>rule.id),addRules','removeRuleIds:[],addRules',node('background','recheck2 startup reconciles'))
+case('recheck2-network-release',B,'record.promise=(async()=>{\n    await rules();','record.promise=(async()=>{',node('background','recheck2 release removes'))
+case('recheck2-compose-reader',R,'compose:element?composeText(element,nodes):null','compose:null',node('reader','recheck2 compose text'))
+case('recheck2-compose-service',A,"'compose':frame.get('compose') if not adapter and kind in {'send','confirmation','form'} else None,","'compose':None,",'test_questions.Questions.test_recheck2_changed_compose_reasks_with_exact_change_once_then_sends_once',True)
+case('recheck2-compose-reask',A,"if fresh.get('compose')!=state['compose']:","if False:",'test_questions.Questions.test_recheck2_changed_compose_reasks_with_exact_change_once_then_sends_once',True)
+case('recheck2-compose-bounded',A,"if payload.get('compose_reasked'):return result","if False:return result",'test_questions.Questions.test_recheck2_compose_second_change_stops_and_tells_owner_without_an_ask_loop',True)
+case('recheck2-compose-change-shown',A,"summary += f\"; text next to Send changed from '{changed['before']}' to '{changed['after']}'\"","summary += '; text changed'",'test_questions.Questions.test_recheck2_changed_compose_reasks_with_exact_change_once_then_sends_once',True)
+
+case('recheck2-markup-handler',M,'set onclick(handler){watchCreated(this);invoke(method,this,[handler]);}','set onclick(handler){invoke(method,this,[handler]);}',node('page','recheck2 native markup'))
+case('recheck2-single-capture',G,'if(captured.has(event))return;','',node('page','recheck2 node and ancestor'))
+case('recheck2-compose-extension',B,"compose:!adapter&&['send','confirmation','form'].includes(kind)?frame.compose||null:null,",'compose:null,',node('background','recheck2 final extension binding'))
+case('recheck2-compose-final-boundary',A,"if exc.code=='stale_approval' and payload['binding'].get('compose') is not None:",'if False:','test_questions.Questions.test_recheck2_preview_changed_at_extension_boundary_reasks_without_dispatch',True)
+
+case('recheck2-engine-reask','control/aresos_control/engine.py','if isinstance(replacement, dict):','if False:','test_questions.Questions.test_recheck2_changed_compose_reasks_with_exact_change_once_then_sends_once',True)
+case('recheck2-engine-boundary-reask','control/aresos_control/engine.py',"replacement = getattr(exc, 'replacement', None)",'replacement = None','test_questions.Questions.test_recheck2_preview_changed_at_extension_boundary_reasks_without_dispatch',True)
 
 def command(row):
     if row['python']:return ['python3','-B','-m','unittest',row['test'],'-v']

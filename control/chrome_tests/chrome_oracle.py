@@ -70,7 +70,7 @@ def expectations(script,receiver,record):
         if state in {'reserved','submitting','unknown','partial'}:
             pending[identifier]=state
         if state=='failed' and operation.get('notice') and not operation.get('ack'):
-            assert any(call['kind'] in {'release','cancel','expiry','restore'} for call in script),'Unexpected terminal warning in clean scenario'
+            assert any(call['kind'] in {'release','cancel','expiry','restore','compose_change'} for call in script),'Unexpected terminal warning in clean scenario'
             expected.add(identifier);pending[identifier]=state
         if state in {'submitting','unknown','partial'}:
             notice_key='notice:recovery-'+identifier

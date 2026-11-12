@@ -50,13 +50,15 @@ function fixture({relay=false,activate=true,link=true,browserDOM=false,nativeSha
     constructor(){super();this.ownerDocument=document;nodes.push(this);}
     get childNodes(){return [{nodeType:3,textContent:this.textContent}];}
     closest(){return this;}
-    getAttribute(name){return this[name]||null;}
+    getAttribute(name){return this[name]??null;}
+    setAttribute(name,value){this[name]=String(value);}
+    removeAttribute(name){delete this[name];}
     matches(){return false;}
     querySelector(){return null;}
     attachShadow(options={}){const root=new Node();root.root=root;root.ownerDocument=this.ownerDocument;root.host=this;root.mode=options.mode;return root;}
     appendChild(node){node.parentNode=this;this.firstElementChild??=node;return node;}
   }
-  class HTMLElement extends Element {click(){originalDispatch.call(this,new Event('click'));}}
+  class HTMLElement extends Element {click(){originalDispatch.call(this,new Event('click'));}get onclick(){return this.fixtureClick;}set onclick(handler){this.fixtureClick=handler;if(!this.fixtureClickListener){this.fixtureClickListener=event=>this.fixtureClick?.call(this,event);nativeListen.call(this,'click',this.fixtureClickListener);}}}
   class HTMLInputElement extends HTMLElement {}
   class HTMLFormElement extends HTMLElement {
     tagName='FORM'; method='post';action='/receive';valid=true;
@@ -64,14 +66,15 @@ function fixture({relay=false,activate=true,link=true,browserDOM=false,nativeSha
     requestSubmit(submitter){if(!this.valid)return;const event=new Event('submit',{submitter,isTrusted:true});if(originalDispatch.call(this,event))arrivals.push('event');}
   }
   const originalRequestSubmit=HTMLFormElement.prototype.requestSubmit,nativeAttach=Element.prototype.attachShadow,nativeListen=EventTarget.prototype.addEventListener;
-  const document=new EventTarget();document.getElementById=key=>document.labels?.[key];
-  if(relay)document.createElement=()=>{const node=new HTMLElement();node.root=node;node.ownerDocument=document;node.isConnected=false;node.parentNode=null;return node;};
+  class Document extends EventTarget {createElement(){const node=new HTMLElement();node.root=node;node.isConnected=false;node.parentNode=null;return node;}}
+  const document=new Document();document.getElementById=key=>document.labels?.[key];
+  if(!relay)document.createElement=undefined;
   const window={addEventListener(type,fn){if(!windowListeners.has(type))windowListeners.set(type,[]);windowListeners.get(type).push(fn);},removeEventListener(type,fn){windowListeners.set(type,(windowListeners.get(type)||[]).filter(value=>value!==fn));}};
   class MessageChannel {port1={close(){}};port2={postMessage:token=>setImmediate(()=>this.port1.onmessage?.({data:token})),close(){}};}
   class AbstractRange {}
   const rangeNodes=new WeakMap();class StaticRange extends AbstractRange {constructor(options){super();rangeNodes.set(this,options.startContainer);}get startContainer(){if(!rangeNodes.has(this))throw TypeError('Invalid StaticRange');return rangeNodes.get(this);}}
   class InputEvent extends Event {constructor(type,options={}){super(type,options);this.ranges=options.targetRanges?Array.from(options.targetRanges):[];}getTargetRanges(){return retarget?this.ranges.filter(range=>!range.startContainer.getRootNode().host):this.ranges;}}
-  const globals={window,document,performance:{now:()=>now},setTimeout,MessageChannel,Symbol,Event,CustomEvent,EventTarget,Node,DocumentFragment:Node,Element,HTMLElement,HTMLInputElement,HTMLFormElement,DOMException,URL,TextDecoder,Uint8Array,...(relay?{AbstractRange,StaticRange,InputEvent}:{}),...(nativeShadows?{Document:class Document{},ShadowRoot:Node,chrome:{dom:{openOrClosedShadowRoot:host=>hostShadows.get(host)}}}:browserDOM?{Document:class Document{}}:{})};
+  const globals={window,document,performance:{now:()=>now},setTimeout,MessageChannel,Symbol,Event,CustomEvent,EventTarget,Node,DocumentFragment:Node,Element,HTMLElement,HTMLInputElement,HTMLFormElement,DOMException,URL,TextDecoder,Uint8Array,...(relay?{AbstractRange,StaticRange,InputEvent}:{}),...(nativeShadows?{Document,ShadowRoot:Node,chrome:{dom:{openOrClosedShadowRoot:host=>hostShadows.get(host)}}}:browserDOM?{Document}:{})};
   const dialogCalls=[],dialogReports=[],dialogValues=[],dialogValue=value=>value===undefined?'':`${value}`;if(dialogs)Object.assign(globals,{alert:({alert(value){dialogValues.push([dialogValue(value)]);dialogCalls.push('alert');}}).alert,confirm:({confirm(value){dialogValues.push([dialogValue(value)]);dialogCalls.push('confirm');return true;}}).confirm,prompt:({prompt(value,initial){dialogValues.push([dialogValue(value),dialogValue(initial)]);dialogCalls.push('prompt');return 'native response';}}).prompt});const nativeDialogs=dialogs?{alert:globals.alert,confirm:globals.confirm,prompt:globals.prompt}:{};
   let guard;const isolated=vm.createContext({...globals,fixtureDialogPause:()=>onDialogBoundary(guard)});
   vm.runInContext(fs.readFileSync('control/chrome/extension/guard.js','utf8').replace('debugger;','fixtureDialogPause();'),isolated);
@@ -655,4 +658,51 @@ test('recheck a shadow host itself still meets window activation capture',()=>{
   f.nativeAttach.call(host,{mode:'closed'});let handlers=0;f.nativeListen.call(host,'click',()=>handlers++);f.arm(host,null);
   f.originalDispatch.call(host,new f.Event('click',{composed:true,cancelable:true}));
   assert.equal(handlers,0);assert.equal(f.reports.length,1);
+});
+
+// Neither native insertion nor dispatch passes through a MAIN wrapper.
+test('recheck2 native insertion and noncomposed events meet capture installed at creation',()=>{
+  for(const mode of ['open','closed'])for(const cancelable of [false,true]){
+    const f=fixture({relay:true,nativeShadows:true}),host=new f.HTMLElement();f.arm(host,null);
+    const root=f.nativeAttach.call(host,{mode}),button=f.document.createElement('a');
+    button.tagName='A';button.textContent='Delete';let handlers=0;
+    f.nativeListen.call(button,'click',()=>handlers++);f.nativeAppend.call(root,button);
+    f.originalDispatch.call(button,new f.Event('click',{composed:false,cancelable}));
+    assert.equal(handlers,0);assert.equal(f.reports.length,1);
+  }
+});
+test('recheck2 uncancellable defaults lose hyperlink ping and new-window authority only during native activation',async()=>{
+  for(const target of ['_blank','frame','_self'])for(const download of [false,true]){
+    const f=fixture({relay:true,nativeShadows:true}),link=f.document.createElement('a');link.root=f.document;link.tagName='A';link.textContent='Delete';link.href='https://fixture.test/delete';link.target=target;link.ping='https://fixture.test/ping';link.download=download?'proof.txt':'';
+    f.guard.arm({generation:'epoch',config:{...policy,defaultBlock:'https://aresos-hold.invalid/'},target:f.id(link)});
+    let handlers=0;f.nativeListen.call(link,'click',()=>handlers++);
+    f.originalDispatch.call(link,new f.Event('click',{cancelable:false}));
+    assert.equal(handlers,0);assert.equal(link.getAttribute('href'),null);assert.equal(link.ping,'https://aresos-hold.invalid/');assert.equal(f.reports[0].kind,'activation');
+    await new Promise(resolve=>setTimeout(resolve,5));assert.equal(link.href,'https://fixture.test/delete');assert.equal(link.ping,'https://fixture.test/ping');assert.equal(link.target,target);
+    f.cleanup();f.guard.dispose();
+  }
+});
+test('recheck2 the owners trusted click keeps its native navigation inside the hold',()=>{
+  const f=fixture({relay:true,nativeShadows:true}),link=f.document.createElement('a');link.root=f.document;link.tagName='A';link.textContent='Delete';link.href='https://fixture.test/owner';
+  f.guard.arm({generation:'epoch',config:{...policy,defaultBlock:'https://aresos-hold.invalid/'},target:f.id(link)});
+  // Finish the extension dispatch but retain its hold window.
+  f.advance(0);
+  return f.guard.finish('epoch',undefined).then(()=>{
+    f.originalDispatch.call(link,new f.Event('click',{isTrusted:true}));
+    assert.equal(link.href,'https://fixture.test/owner');assert.equal(f.reports.length,0);
+  });
+});
+
+test('recheck2 node and ancestor capture consume one approved activation only once',()=>{
+  const f=fixture({relay:true,nativeShadows:true}),button=f.document.createElement('button');button.root=f.document;button.tagName='BUTTON';button.textContent='Delete';
+  let handlers=0;f.nativeListen.call(button,'click',()=>handlers++);f.arm(button,null,'approved');
+  f.originalDispatch.call(button,new f.Event('click',{isTrusted:true}));
+  assert.equal(handlers,1);assert.equal(f.reports.length,0);
+});
+
+test('recheck2 native markup nodes meet capture when their click handler is installed',()=>{
+  const f=fixture({relay:true,nativeShadows:true}),host=new f.HTMLElement(),button=new f.HTMLElement();f.arm(host,null);
+  const root=f.nativeAttach.call(host,{mode:'closed'});button.tagName='A';button.textContent='Delete';f.nativeAppend.call(root,button);
+  let handlers=0;button.onclick=()=>handlers++;
+  f.originalDispatch.call(button,new f.Event('click',{composed:false}));assert.equal(handlers,0);assert.equal(f.reports.length,1);
 });

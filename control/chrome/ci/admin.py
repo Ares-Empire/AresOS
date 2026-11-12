@@ -11,8 +11,8 @@ if request.get('fixture'):
     import signal
     import subprocess
     command=request['fixture']
-    if command in {'popup','stop','control_status'}:
-        Path('/run/aresos-tools/fixture-'+command).write_text('open')
+    if command in {'popup','stop','control_status','network_restart'}:
+        Path('/run/aresos-tools/fixture-'+command).write_text(json.dumps(request))
         request={'action':'chrome_sites','arguments':{'command':'list'}}
         with socket.socket(socket.AF_UNIX) as connection:
             connection.connect('/run/aresos-tools/admin.sock');connection.sendall((json.dumps({'v':1,'method':'call',**request})+'\n').encode());print(connection.makefile().readline(),end='')

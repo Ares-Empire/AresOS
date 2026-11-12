@@ -2,6 +2,13 @@ import {POLICY} from './policy.js';
 
 const session = crypto.randomUUID();
 const controlled = new Map(), used = new Set(), dialogs = new Map();
+const defaultBlock='https://aresos-hold.invalid/';
+const networkHolds=new Map();let ruleUpdates=Promise.resolve();
+function holdDefaults(tab,nonce){networkHolds.set(tab,{nonce});return rules();}
+function expireDefaults(tab,nonce,delay=POLICY.holdMs){
+  const value=networkHolds.get(tab);if(value?.nonce!==nonce)return;
+  clearTimeout(value.timer);value.timer=setTimeout(()=>{if(networkHolds.get(tab)===value){networkHolds.delete(tab);rules().catch(()=>{});}},delay);
+}
 const retiredControls=new Map();
 function stepControl(tab,epoch){return controlled.get(tab)?.epoch===epoch?controlled.get(tab):releasing.get(tab)?.original.epoch===epoch?releasing.get(tab).original:retiredControls.get(JSON.stringify([tab,epoch]));}
 function stepStates(tab){return [...new Set([controlled.get(tab),releasing.get(tab)?.original,...[...retiredControls].filter(([key])=>JSON.parse(key)[0]===tab).map(([,value])=>value)].filter(Boolean))];}
@@ -308,9 +315,13 @@ function badge(){
   badgeUpdates=pending;return pending;
 }
 async function rules() {
-  const previous = await chrome.declarativeNetRequest.getSessionRules();
-  const tabIds = [...controlled.keys()];
-  await chrome.declarativeNetRequest.updateSessionRules({removeRuleIds:previous.map(rule=>rule.id),addRules:tabIds.length ? [{id:1,priority:1,action:{type:'block'},condition:{tabIds,requestDomains:(excludedHosts || POLICY.fixedHosts).flatMap(host=>[host,host+'.']),resourceTypes:['main_frame','sub_frame']}}] : []});
+  const pending=ruleUpdates.catch(()=>{}).then(async()=>{
+    const previous=await chrome.declarativeNetRequest.getSessionRules(),tabIds=[...controlled.keys()],heldTabs=[...networkHolds.keys()].filter(tab=>controlled.has(tab));
+    const addRules=tabIds.length?[{id:1,priority:1,action:{type:'block'},condition:{tabIds,requestDomains:(excludedHosts || POLICY.fixedHosts).flatMap(host=>[host,host+'.']),resourceTypes:['main_frame','sub_frame']}}]:[];
+    if(heldTabs.length)addRules.push({id:2,priority:2,action:{type:'block'},condition:{tabIds:heldTabs,urlFilter:'|'+defaultBlock,resourceTypes:['main_frame','sub_frame','ping','other']}});
+    await chrome.declarativeNetRequest.updateSessionRules({removeRuleIds:previous.map(rule=>rule.id),addRules});
+    if(recording)audit({session_network_rules:{time:Date.now(),removed:previous.map(rule=>rule.id),rules:addRules}});
+  });ruleUpdates=pending;return pending;
 }
 async function configure(hosts) {
   if(!Array.isArray(hosts) || hosts.length>128 || hosts.some(host=>typeof host!=='string' || !/^[a-z0-9][a-z0-9.-]*$/.test(host)))throw Error('refused: invalid owner-only excluded-sites setting');
@@ -428,7 +439,8 @@ async function armDialog(tab,conservative=controlled.get(tab)?.hold?.config?.con
   const dialog=dialogs.get(tab),entry=nativeDialogStarts.get(JSON.stringify([tab,dialog.browser_document]))?.at(-1);
   const source=documents.find(value=>value.doc.document===entry?.document);
   if(!entry||!entry.dialog||entry.dialog!==dialog.id||entry.kind!==dialog.kind||!source)throw Error('refused: native dialog has no authenticated return boundary; leave it to the owner');
-  const config={...POLICY,blockedHosts:excludedHosts,conservative};
+  const config={...POLICY,blockedHosts:excludedHosts,conservative,defaultBlock};
+  await holdDefaults(tab,nonce);
   owner.hold={nonce,config,inFlight:true,until:Date.now()+POLICY.holdMs,dialogToken:entry.token,hasAllowance:false};owner.inputNonce=nonce;
   let resolve,reject;const ready=new Promise((done,fail)=>{resolve=done;reject=fail;});ready.catch(()=>{});
   source.state.dialogBarrier={nonce,token:entry.token,documents,source,resolve,reject,ready};
@@ -543,6 +555,7 @@ async function release(tab) {
   const children=[...controlled].filter(([child,value])=>child!==tab&&(value.debuggee?.tabId===tab||value.parentTab===tab)).map(([child])=>child);
   if(original){const key=JSON.stringify([tab,original.epoch]);retiredControls.set(key,original);while(retiredControls.size>32)retiredControls.delete(retiredControls.keys().next().value);setTimeout(()=>{if(retiredControls.get(key)===original)retiredControls.delete(key);},900000);}
   controlled.delete(tab); dialogs.delete(tab);confirmationPlans.delete(tab);
+  clearTimeout(networkHolds.get(tab)?.timer);networkHolds.delete(tab);
   for(const key of nativeDialogStarts.keys())if(key.startsWith('['+tab+','))nativeDialogStarts.delete(key);
   for(const key of nativeDialogEnds.keys())if(key.startsWith('['+tab+','))nativeDialogEnds.delete(key);
   for(const state of preloadTargets.values())if(state.tab===tab&&state.dialogBarrier){state.dialogBarrier.reject(Error('unknown: native-dialog answer interrupted by Stop; inspect and never replay'));state.dialogBarrier=null;}
@@ -650,6 +663,7 @@ function binding(facts, reference, kind, adapter) {
   return {session,tab:facts.tab,control:facts.control,url:facts.url,title:facts.title||'',document:frame.document,frame:frame.frame,frame_url:frame.url,frame_title:frame.title||'',effective_url:frame.effective_url||frame.url,
     target:Object.fromEntries(['element','role','name','label','title','href','value','rich','password','states','editable','search','submit','page_dialog','options','implicit_submitter'].filter(key=>key in target).map(key=>[key,target[key]])),
     form:frame.form,
+    compose:!adapter&&['send','confirmation','form'].includes(kind)?frame.compose||null:null,
     selected_files:facts.frames.map(frame=>({frame:frame.frame,document:frame.document,fields:frame.selected_files||[]})),
     editable:genericDraft ? facts.frames.map(frame=>({frame:frame.frame,document:frame.document,url:frame.url,fields:frame.editable})) : null,
     item:['delete','pay','item','activation','confirmation'].includes(kind) ? frame.item : null,
@@ -714,7 +728,7 @@ async function dispatch(command) {
   if(command.name==='control_status'){
     const windows=await chrome.windows.getAll();
     const tabs=await chrome.tabs.query({});
-    return {windows:windows.map(({id,type,left,top,width,height,focused})=>({id,type,left,top,width,height,focused})),
+    return {session,network_rules:await chrome.declarativeNetRequest.getSessionRules(),windows:windows.map(({id,type,left,top,width,height,focused})=>({id,type,left,top,width,height,focused})),
       debugger_targets:(await chrome.debugger.getTargets()).map(({tabId,attached})=>({tab:tabId,attached})),
       tabs:await Promise.all(tabs.map(async({id,windowId,openerTabId})=>({tab:id,window:windowId,opener:openerTabId,badge:await chrome.action.getBadgeText({tabId:id}),title:await chrome.action.getTitle({tabId:id})}))),...await popupStatus()};
   }
@@ -768,7 +782,7 @@ async function dispatch(command) {
     let uncertain_finish;
     if(command.operation)used.add(command.operation);
     try{await cdp(tab,'Page.handleJavaScriptDialog',{accept:command.input.accept,...(command.input.text === undefined ? {}:{promptText:command.input.text})});await armed.ready;
-    }finally{uncertain_finish=await finishFrames(tab,armed.frames,dispatchEpoch,armed.nonce);if(armed.owner.hold?.nonce===armed.nonce){armed.owner.hold.inFlight=uncertain_finish;armed.owner.hold.until=Date.now()+POLICY.holdMs;}}
+    }finally{uncertain_finish=await finishFrames(tab,armed.frames,dispatchEpoch,armed.nonce);if(armed.owner.hold?.nonce===armed.nonce){armed.owner.hold.inFlight=uncertain_finish;armed.owner.hold.until=Date.now()+POLICY.holdMs;expireDefaults(tab,armed.nonce);}}
     const steps=await collectSteps(tab,dispatchEpoch);
     return {checked:true,dispatched:true,page:await observation(tab),steps,dialog:await readyDialog(tab),uncertain_finish};
   }
@@ -845,14 +859,15 @@ async function dispatch(command) {
   const keyInput=command.input?.verb==='press'?keyboard(command.input.key):null;
   if(command.input?.key_input && stable(keyInput)!==stable(command.input.key_input))throw Error('refused: classified key differs from dispatched key');
   const inputNonce=crypto.randomUUID();controlled.get(tab).inputNonce=inputNonce;
-  const owner=controlled.get(tab);owner.hold={nonce:inputNonce,until:Date.now()+POLICY.holdMs,inFlight:true,hasAllowance:command.approved===true,config:{...POLICY,blockedHosts:excludedHosts,conservative:command.conservative}};
+  const owner=controlled.get(tab);owner.hold={nonce:inputNonce,until:Date.now()+POLICY.holdMs,inFlight:true,hasAllowance:command.approved===true,config:{...POLICY,blockedHosts:excludedHosts,conservative:command.conservative,defaultBlock}};
+  await holdDefaults(tab,inputNonce);
   const armed=[];let noChange=false;
   try{
   for(const other of snapshot.frames){
     assertControl(tab);
     await content(tab,other.frame,'set_control',{generation:dispatchEpoch});
     armed.push(other);
-    await content(tab,other.frame,'arm',{config:{...POLICY,blockedHosts:excludedHosts,conservative:command.conservative},target:other.frame===reference.frame ? target.element:null,form:other.frame===reference.frame ? frame.form?.element:null,operation:command.approved && other.frame===reference.frame ? command.operation:null,generation:dispatchEpoch,dispatch_nonce:inputNonce,key_input:other.frame===reference.frame?keyInput:null,primary_submission:!!command.primary_submission && other.frame===reference.frame,implicit:other.frame===reference.frame&&command.input?.verb==='press'&&command.input.key.split('+').at(-1)==='Enter'?target.implicit_submitter:null,approved_form:command.approved&&other.frame===reference.frame?frame.form:null});
+    await content(tab,other.frame,'arm',{config:{...POLICY,blockedHosts:excludedHosts,conservative:command.conservative,defaultBlock},target:other.frame===reference.frame ? target.element:null,form:other.frame===reference.frame ? frame.form?.element:null,operation:command.approved && other.frame===reference.frame ? command.operation:null,generation:dispatchEpoch,dispatch_nonce:inputNonce,key_input:other.frame===reference.frame?keyInput:null,primary_submission:!!command.primary_submission && other.frame===reference.frame,implicit:other.frame===reference.frame&&command.input?.verb==='press'&&command.input.key.split('+').at(-1)==='Enter'?target.implicit_submitter:null,approved_form:command.approved&&other.frame===reference.frame?frame.form:null});
     armedDocument(tab,other.document,inputNonce);
   }
   // Native pointer input must address the selected tab in headed Chrome.
@@ -909,7 +924,7 @@ async function dispatch(command) {
   }finally{
     owner.uncertainFinish=await finishFrames(tab,armed,dispatchEpoch,inputNonce);
     for(const {state,context}of owner.hold?.inherited||[]){if(dialogs.has(tab))break;try{await Promise.allSettled([...state.installing||[]]);await targetCommand(state,'Runtime.evaluate',{contextId:context.id,expression:'globalThis[Symbol.for("aresos.chrome.guard.v2")].finish('+JSON.stringify(dispatchEpoch)+','+JSON.stringify(inputNonce)+')',awaitPromise:true,disableBreaks:true,returnByValue:true});}catch{owner.uncertainFinish=true;}}
-    if(owner.hold?.nonce===inputNonce){owner.hold.inFlight=owner.uncertainFinish;owner.hold.until=Date.now()+POLICY.holdMs;}
+    if(owner.hold?.nonce===inputNonce){owner.hold.inFlight=owner.uncertainFinish;owner.hold.until=Date.now()+POLICY.holdMs;expireDefaults(tab,inputNonce);}
   }
   const uncertain_finish=owner.uncertainFinish;
   const steps=await collectSteps(tab,dispatchEpoch);
@@ -920,6 +935,9 @@ async function dispatch(command) {
   return {checked:!!command.binding,dispatched:!noChange,no_change:noChange,steps,dialog:await readyDialog(tab),uncertain_finish,confirmations:confirmation?.matched || [],page:await observation(tab,reference)};
 }
 async function connect() {
+  // Session rules survive a worker restart; private holds and allowances do not.
+  // Reconcile before announcing this new extension session to the service.
+  await rules();
   port=chrome.runtime.connectNative('org.aresos.chrome');
   const entropy=await navigator.userAgentData.getHighEntropyValues(['fullVersionList']);
   const version=entropy.fullVersionList.find(item=>item.brand === 'Google Chrome')?.version;
@@ -1059,14 +1077,14 @@ chrome.debugger.onEvent.addListener(async(source,method,params)=>{
     if(matched){
       // Consume before entering the page again; a nested second dialog is a new question.
       plan.expected=null;plan.matched.push({...expected});
-      try{const armed=await armDialog(tab,undefined,true);dialogInputs.set(dialog,{epoch:input.epoch,nonce:armed.nonce,managed:true});await cdp(tab,'Page.handleJavaScriptDialog',{accept:true});await armed.ready;const uncertain=await finishFrames(tab,armed.frames,input.epoch,armed.nonce);if(armed.owner.hold?.nonce===armed.nonce){armed.owner.hold.inFlight=uncertain;armed.owner.hold.until=Date.now()+POLICY.holdMs;}}catch(error){port?.postMessage({event:'reader_error',tab,error:String(error)});}
+      try{const armed=await armDialog(tab,undefined,true);dialogInputs.set(dialog,{epoch:input.epoch,nonce:armed.nonce,managed:true});await cdp(tab,'Page.handleJavaScriptDialog',{accept:true});await armed.ready;const uncertain=await finishFrames(tab,armed.frames,input.epoch,armed.nonce);if(armed.owner.hold?.nonce===armed.nonce){armed.owner.hold.inFlight=uncertain;armed.owner.hold.until=Date.now()+POLICY.holdMs;expireDefaults(tab,armed.nonce);}}catch(error){port?.postMessage({event:'reader_error',tab,error:String(error)});}
     }
   }
   if (method === 'Page.javascriptDialogClosed') {
     const tab=source.tabId,input=dialogInputs.get(dialogs.get(tab));dialogs.delete(tab);
     // Closing a covered dialog has no separate tool call to finish its input.
     // Use the nonce captured at opening; an old close can never clear a new arm.
-    if(input&&!input.managed)try{const uncertain=await finishFrames(tab,await chrome.webNavigation.getAllFrames({tabId:tab})||[],input.epoch,input.nonce);const hold=controlled.get(tab)?.hold;if(hold?.nonce===input.nonce){hold.inFlight=uncertain;hold.until=Date.now()+POLICY.holdMs;}}catch{}finally{input.done?.();}
+    if(input&&!input.managed)try{const uncertain=await finishFrames(tab,await chrome.webNavigation.getAllFrames({tabId:tab})||[],input.epoch,input.nonce);const hold=controlled.get(tab)?.hold;if(hold?.nonce===input.nonce){hold.inFlight=uncertain;hold.until=Date.now()+POLICY.holdMs;expireDefaults(tab,input.nonce);}}catch{}finally{input.done?.();}
   }
 });
 chrome.debugger.onDetach.addListener(async source=>{

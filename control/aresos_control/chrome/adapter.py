@@ -37,6 +37,7 @@ def binding(facts, reference, kind, adapter):
     return {'session':facts['session'],'tab':facts['tab'],'control':facts.get('control'),'url':facts['url'],'title':facts.get('title', ''),'document':frame['document'],
             'frame':frame['frame'],'frame_url':frame['url'],'frame_title':frame.get('title',''),'effective_url':frame.get('effective_url',frame['url']),'target':{key:target[key] for key in keys if key in target},
             'form':frame.get('form'),
+            'compose':frame.get('compose') if not adapter and kind in {'send','confirmation','form'} else None,
             'selected_files':[{'frame':item['frame'],'document':item['document'],'fields':item.get('selected_files',[])} for item in facts['frames']],
             'editable':[{'frame':item['frame'],'document':item['document'],'url':item['url'],'fields':item['editable']} for item in facts['frames']]
                 if generic_draft else None,
@@ -272,6 +273,8 @@ class Chrome:
         description = {'action':'chrome_submit','untrusted_content':{'page_state':state,'input':payload['input'],
                        'kind':payload.get('kind'),'resume_kind':payload.get('resume_kind'),'file':payload.get('file'),
                        'confirmation':payload.get('confirmation')}}
+        if payload.get('changed_compose'):
+            description['untrusted_content']['changed_compose']=payload['changed_compose']
         # Only service recognition chooses the action; reader text cannot name a kind.
         semantic = payload.get('adapter') or {}
         description['adapter_action'] = {
@@ -352,6 +355,9 @@ class Chrome:
             if len(selected)>3:summary += f' and {len(selected)-3} more (full digests below)'
         if data.get('confirmation'):
             summary += f" and confirm '{data['confirmation']['text']}'"
+        changed=data.get('changed_compose')
+        if changed:
+            summary += f"; text next to Send changed from '{changed['before']}' to '{changed['after']}'"
         return summary + '?'
 
     def revalidate(self, operation):
@@ -367,6 +373,25 @@ class Chrome:
         if operation['payload']['binding']['session'] != self.bridge.session:
             raise Refused('stale_approval', 'Chrome session changed; read and prepare again.')
         self.check_readonly(operation['payload'])
+        state=operation['payload']['binding']
+        if state.get('compose') is not None:
+            facts=self.bridge.call('facts',reference=operation['payload']['reference'])
+            fresh=binding(facts,operation['payload']['reference'],operation['payload']['kind'],site_adapter)
+            if fresh.get('compose')!=state['compose']:
+                return self.changed_compose(operation,facts,fresh)
+
+    def changed_compose(self,operation,facts,fresh):
+        payload=operation['payload']
+        reason='The text next to Send keeps changing; nothing was sent. Ask the owner to send it himself.' if payload.get('compose_reasked') else 'Text next to Send changed; the previous approval was stopped before input.'
+        operation.update(state='failed',reason=reason,notice=True)
+        self.store.write({'op:'+operation['id']:operation},'chrome_compose_changed',reason,operation['id'])
+        result={'operation':self.engine.public_operation(operation)}
+        if payload.get('compose_reasked'):return result
+        reference={**payload['reference'],'view':view_identity(facts)}
+        replacement,_=self.payload(payload['input']['verb'],{**{key:value for key,value in payload['input'].items() if key!='verb'},'reference':reference})
+        replacement['compose_reasked']=True
+        replacement['changed_compose']={'before':payload['binding']['compose']['text'],'after':(replacement['binding'].get('compose') or {}).get('text','')}
+        return result|self.engine.reserve('chrome','submit',replacement)
 
     def check_readonly(self, payload, get=None):
         get = get or self.committed.get
@@ -419,6 +444,13 @@ class Chrome:
             reply = self.bridge.call(**command)
         except Refused as exc:
             if exc.code in {'stale_reference','stale_approval','owner_signin','refused'}:
+                if exc.code=='stale_approval' and payload['binding'].get('compose') is not None:
+                    facts=self.bridge.call('facts',reference=payload['reference'])
+                    fresh=binding(facts,payload['reference'],payload['kind'],payload.get('adapter'))
+                    if fresh.get('compose')!=payload['binding']['compose']:
+                        stopped=NothingLeft('Text next to Send changed before input; nothing was sent.')
+                        stopped.replacement=self.changed_compose(operation,facts,fresh)
+                        raise stopped from exc
                 raise NothingLeft(str(exc)) from exc
             raise
         finally:
@@ -476,7 +508,7 @@ class Chrome:
             self.allowed_url(state['form']['action'])
         if kind == 'send' and not state['form'] and not adapter:
             fields = [field for document in state['editable'] for field in document['fields']]
-            if not any(isinstance(field.get('value'),str) and field['value'] and field.get('type') not in {'checkbox','radio','select-one','select-multiple'} for field in fields):
+            if not state.get('compose') and not any(isinstance(field.get('value'),str) and field['value'] and field.get('type') not in {'checkbox','radio','select-one','select-multiple'} for field in fields):
                 raise Refused('refused', "Can't tell what this sends: no editable text. Use an adapter or the owner's own click.")
         if state.get('item') is not None and len(state['item']) > 8000:
             raise Refused('asking_input_too_large', 'The affected item is too large to show whole; use a smaller item or the owner.')
@@ -612,6 +644,7 @@ class Chrome:
                 source['reference'] = reference
                 label=visible(step.get('label') or 'an unnamed control')
                 text = f"The page activated '{label}' by itself; it may have happened. Never resume this activation." if step['kind'] == 'activation_unknown' else f"The page tried to activate '{label}' by itself; it was stopped. Act on the current control to prepare fresh asking input if wanted."
+                if step['kind']=='activation' and step.get('cancellable') is False:text += ' Its non-cancellable default was stopped before its address could be requested; the hold uses a tab-scoped session network block.'
                 changes, _ = check_result(self.store,source,key,'page_activation',step,{'reason':text,'warning':text,'reference':reference})
                 source['state'] = 'done'
                 self.store.write({key:source,**changes},'chrome_page_step','Page activation result committed',untrusted_content={'warning':text})

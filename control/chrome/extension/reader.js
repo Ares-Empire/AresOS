@@ -237,6 +237,24 @@
   function itemText(element) {
     return text(affectedItem(element),false,true).replace(/\s+/g, ' ').trim();
   }
+  function composeText(element,nodes){
+    const candidates=nodes.filter(node=>node!==element&&
+      (node instanceof HTMLTextAreaElement||node.isContentEditable||node instanceof HTMLInputElement&&!['hidden','button','submit','reset','image','file','checkbox','radio'].includes(node.type))&&
+      !password(node)&&!node.hidden&&getComputedStyle(node).display!=='none'&&getComputedStyle(node).visibility!=='hidden');
+    // A recipient input beside Send is not the message when a body editor is
+    // present farther out (including the generic sibling-editor layout).
+    const bodies=candidates.filter(node=>node instanceof HTMLTextAreaElement||node.isContentEditable);
+    const drafts=bodies.length?bodies:candidates;
+    // The activated editor is itself the draft for Enter. Start at its parent
+    // so the neighbouring Send and read-only preview participate as well.
+    if(element.isContentEditable||element instanceof HTMLTextAreaElement||element instanceof HTMLInputElement)drafts.push(element);
+    const contains=(area,node)=>{for(let parent=node;parent;parent=composedParent(parent))if(parent===area)return true;return false;};
+    for(let area=composedParent(element);area;area=composedParent(area)){
+      const content=text(area,false,true).replace(/\s+/g,' ').trim();
+      if(drafts.some(draft=>contains(area,draft))||!drafts.length&&content!==text(element,false,true).replace(/\s+/g,' ').trim())return {element:id(area),whole_page:['BODY','HTML'].includes(area.tagName),text:content};
+    }
+    return null;
+  }
   function itemFields(element,nodes) {
     const item=affectedItem(element);
     return nodes.filter(node=>{
@@ -285,7 +303,7 @@
     const editable = nodes.filter(node => node.matches('input,textarea,select,[contenteditable]') && !['hidden','button','submit','reset','image','file'].includes(node.type)).map(field);
     return {document: documentId, revision, url: location.href, origin:globalThis.origin, title: document.title, scroll: {x:scrollX,y:scrollY}, rows,
       target: element ? targetFacts(element) : null, form: element ? formFacts(element.form || (element.tagName === 'FORM' ? element : null), implicitSubmitter(element) || element) : null,
-      editable, selected_files:nodes.filter(node=>node instanceof HTMLInputElement&&node.type==='file').map(field), embeds:nodes.filter(node=>node.tagName==='IFRAME').map(embedding), item: element ? itemText(element) : '', item_fields:element?itemFields(element,nodes):[], adapter: adapterRead(nodes, element), trace: traces.splice(0)};
+      editable, compose:element?composeText(element,nodes):null, selected_files:nodes.filter(node=>node instanceof HTMLInputElement&&node.type==='file').map(field), embeds:nodes.filter(node=>node.tagName==='IFRAME').map(embedding), item: element ? itemText(element) : '', item_fields:element?itemFields(element,nodes):[], adapter: adapterRead(nodes, element), trace: traces.splice(0)};
   }
   function adapterRead(nodes, target) {
     const scope=target?.closest('form,[role=dialog],[role=region][aria-label],main,[role=main]');

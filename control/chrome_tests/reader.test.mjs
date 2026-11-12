@@ -247,3 +247,15 @@ test('recheck item quantities are bound as fields and protected item fields neve
   assert.equal(before?.find(field=>field.label==='Quantity')?.value,'1');assert.equal(before?.find(field=>field.password)?.value,undefined);
   value='2';assert.equal(f.command({command:'facts',element:key}).data.item_fields?.find(field=>field.label==='Quantity')?.value,'2');
 });
+
+test('recheck2 compose text binds the smallest common area and ignores live outside text',()=>{
+  const f=fixture([{tagName:'BUTTON',type:'button',attrs:{'aria-label':'Send'}},{tagName:'DIV',isContentEditable:true,childNodes:[{nodeType:3,textContent:'Draft'}]}]);
+  const [button,draft]=f.nodes;f.generic(button);f.generic(draft);
+  const area=new f.Element({tagName:'SECTION'}),preview=new f.Element({tagName:'P',childNodes:[{nodeType:3,textContent:'Original preview'}]}),outside=new f.Element({tagName:'P',childNodes:[{nodeType:3,textContent:'Timestamp 1 Autosaved 1 Counter 1'}]}),body=new f.Element({tagName:'BODY'});
+  area.childNodes=[draft,preview,button];area.parentElement=body;body.childNodes=[outside,area];outside.parentElement=body;for(const child of area.childNodes)child.parentElement=area;
+  f.nodes.push(area,preview,outside,body);const row=f.read().data.rows.find(row=>row.name==='Send');
+  const current=()=>f.command({command:'facts',element:row.element}).data.compose;
+  const initial=current();assert.match(initial.text,/Original preview/);assert.equal(initial.whole_page,false);
+  outside.childNodes[0].textContent='Timestamp 2 Autosaved 2 Counter 2';assert.deepEqual(current(),initial);
+  preview.childNodes[0].textContent='Changed preview';assert.notDeepEqual(current(),initial);assert.match(current().text,/Changed preview/);
+});

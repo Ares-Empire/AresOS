@@ -5,6 +5,7 @@ import {verdicts,assertComplete} from './verdicts.mjs';
 import {setTimeout as delay} from 'node:timers/promises';
 import {measureCompatibility,compareCompatibility} from './compatibility.mjs';
 import {completeIngress,protocolEvents} from './ingress-scan.mjs';
+import {recheck2Matrices} from './recheck2-matrices.mjs';
 import {reviewMatrices} from './review-matrices.mjs';
 import {popupMatrices} from './popups.mjs';
 import {collectSiteResults} from './site-results.mjs';
@@ -51,6 +52,7 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
     }
   });
   await reviewMatrices({check,nav,call,rpc,target,read,counts,eventually,approval,receiverEvidence,fixture,getTab:()=>tab,setTab:value=>{tab=value},ownerKey,ownerChooseFile,admin,ownerNavigate,ownerDismiss,nativeDonor,closeNativeDonor,lifecycle});
+  await recheck2Matrices({check,nav,call,rpc,target,approval,receiverEvidence,fixture,eventually,getTab:()=>tab,setTab:value=>{tab=value},nativeDonor,closeNativeDonor,ownerKey,lifecycle,restoreControl});
   await popupMatrices({check,call,rpc,nav,counts,eventually,getTab:()=>tab,setTab:value=>{tab=value},fixture,ownerOpenPopup,popupEvidence,popupControl,approval});
   await check('GROUP 7 native compatibility inside and outside Claude tabs',async()=>{
     await nav('native-compat&id=controlled');
@@ -175,9 +177,9 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
       tab=await nativeDonor(tab);
       const id='fresh-'+cancel;await nav('fresh-activation&id='+id+'&cancel='+cancel);
       const result=await call('click',await target('Continue'));assert.equal(counts('handler-'+id),0);
-      const held=result.followups.find(item=>cancel?item.stopped:item.unknown);assert.ok(held,JSON.stringify(result));
+      const held=result.followups.find(item=>item.stopped);assert.ok(held,JSON.stringify(result));
       assert.ok(!held.approval,'fallback activations are never resumable');
-      if(cancel)assert.equal(counts(id),0);else assert.equal((await call('operation_status',{operation_id:result.operation_id})).operation.state,'unknown');
+      assert.equal(receiverEvidence(id,'fresh native default stopped').count,0);await approval(await call('click',await target('Delete')),id);
       await closeNativeDonor();
     }
   });
@@ -203,14 +205,14 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
       await approval(await continued,id);
     }
   });
-  await check('GROUP 2 unknown activation survives navigation of its source document',async()=>{
+  await check('GROUP 2 uncancellable self navigation is stopped before its source document changes',async()=>{
     tab=await nativeDonor(tab);
     const id='fresh-self';await nav('fresh-activation&id='+id+'&cancel=false&target=self');
     const result=await call('click',await target('Continue'));
-    assert.equal(counts('handler-'+id),0);assert.ok(counts(id)<=1);
-    assert.ok(result.untrusted_content.steps.some(step=>step.kind==='activation_unknown'));
-    assert.equal((await call('operation_status',{operation_id:result.operation_id})).operation.state,'unknown');
-    assert.ok(!result.followups.some(item=>item.stopped||item.approval),'the old activation is never reported stopped or resumable');
+    assert.equal(counts('handler-'+id),0);assert.equal(receiverEvidence(id,'self default held').count,0);
+    assert.ok(result.untrusted_content.steps.some(step=>step.kind==='activation'));
+    assert.ok(result.followups.some(item=>item.stopped));assert.ok(!result.followups.some(item=>item.approval),'activation never resumes');
+    await approval(await call('click',await target('Delete')),id);
     await closeNativeDonor();
   });
   await check('GROUP 3 binding every form fact and generic sibling draft',async()=>{
@@ -337,9 +339,9 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
     }
     const opened=await call('open',{url:'http://fixture.test:8765/?case=compose'});await call('close_tab',{tab:opened.untrusted_content.tab || opened.tab});
   });
-  await check('GROUP 13 changed read-only preview is a stated residual',async()=>{
+  await check('GROUP 3 changed read-only preview reasks with its changed content',async()=>{
     await nav('binding&mode=sibling&id=preview-residual');const prepared=await call('click',await target('Send'));
-    await fixture.mutate('preview-residual','preview');await delay(100);await approval(prepared,'preview-residual');
+    await fixture.mutate('preview-residual','preview');await delay(100);const changed=await call('submit',prepared.approval);assert.equal(receiverEvidence('preview-residual','stale preview stopped').count,0);assert.match(changed.approval.question,/Original read-only preview.*Changed read-only preview/);await approval(changed,'preview-residual');
     assert.ok(fixture.arrivals.some(row=>row.body.includes('Changed read-only preview')));
   });
   await check('GROUP 8 deadline and tabs outside the group',async()=>{

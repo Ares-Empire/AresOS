@@ -1030,3 +1030,31 @@ test('recheck payment dispatch refuses a changed item quantity',async()=>{
   assert.equal(f.run('approved.item_fields[0].value'),'1');
   await assert.rejects(f.run("dispatch({name:'input',tab:7,reference:{frame:0,element:'e1'},input:{verb:'click'},kind:'pay',binding:approved})"),/page changed/);assert.equal(f.run('effects.length'),0);
 });
+
+test('recheck2 session default blocks are tab scoped cover every resource and expire exactly once',async()=>{
+  const f=fixture();f.run("controlled.set(7,{epoch:'epoch'});globalThis.timers=[];setTimeout=(fn,delay)=>{timers.push({fn,delay});return timers.length};clearTimeout=()=>{};");
+  await f.run("holdDefaults(7,'old')");await f.run("holdDefaults(7,'current')");
+  const block=f.rules.at(-1).addRules.find(rule=>rule.id===2);
+  assert.deepEqual(JSON.parse(JSON.stringify(block.condition.tabIds)),[7]);
+  assert.deepEqual(JSON.parse(JSON.stringify(block.condition.resourceTypes)),['main_frame','sub_frame','ping','other']);
+  f.run("expireDefaults(7,'old');expireDefaults(7,'current')");assert.equal(f.run('timers.length'),1);
+  assert.equal(f.run('timers[0].delay'),500);f.run('timers[0].fn()');await f.run('ruleUpdates');
+  assert.equal(f.rules.at(-1).addRules.some(rule=>rule.id===2),false);
+});
+test('recheck2 startup reconciles a surviving session block before the native handshake',async()=>{
+  const f=fixture();f.run("chrome.declarativeNetRequest.getSessionRules=async()=>[{id:1},{id:2}]");await f.run('rules()');
+  assert.deepEqual(JSON.parse(JSON.stringify(f.rules.at(-1))),{removeRuleIds:[1,2],addRules:[]});
+  const source=fs.readFileSync('control/chrome/extension/background.js','utf8');
+  const connect=source.slice(source.indexOf('async function connect()'),source.indexOf('chrome.runtime.onMessage.addListener('));
+  assert.ok(connect.indexOf('await rules()')<connect.indexOf('chrome.runtime.connectNative'));
+});
+test('recheck2 release removes a live default block before blocked wrapper cleanup',async()=>{
+  const f=lifecycleFixture();f.run("controlled.set(7,{epoch:'epoch'});preloadTargets.set('[7,null]',{tab:7,source:{tabId:7},contexts:new Map(),documents:new Map([['main',{cleanup:'handle'}]]),installing:new Set()});chrome.debugger.sendCommand=()=>new Promise(()=>{});");
+  await f.run("holdDefaults(7,'nonce')");assert.ok(f.rules.at(-1).addRules.some(rule=>rule.id===2));
+  await f.run('release(7)');assert.equal(f.rules.at(-1).addRules.some(rule=>rule.id===2),false);
+});
+
+test('recheck2 final extension binding refuses a changed compose preview before native input',async()=>{
+  const f=fixture();f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({});globalThis.effects=[];globalThis.snapshot={tab:7,frames:[{frame:0,document:'doc',target:{element:'e1',name:'Send'},form:null,editable:[{value:'Draft'}],compose:{element:'area',text:'Original preview'}}]};facts=async()=>snapshot;content=async()=>({});pointer=async()=>({x:1,y:1});chrome.tabs={get:async()=>({active:true})};chrome.webNavigation={getAllFrames:async()=>[{frameId:0}]};chrome.debugger={sendCommand:async()=>effects.push('input')};globalThis.approved=JSON.parse(JSON.stringify(binding(snapshot,{frame:0},'send',false)));snapshot.frames[0].compose.text='Changed preview';");
+  await assert.rejects(f.run("dispatch({name:'input',tab:7,reference:{frame:0,element:'e1'},input:{verb:'click'},kind:'send',binding:approved})"),/page changed/);assert.equal(f.run('effects.length'),0);
+});

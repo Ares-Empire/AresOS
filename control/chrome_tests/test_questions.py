@@ -226,3 +226,62 @@ class Questions(unittest.TestCase):
         result=self.call('submit',prepared['data']['approval']);self.assertTrue(result['ok'],result)
         stages=result['data']['operation']['stages']
         self.assertIn('unchanged',stages);self.assertNotIn('dispatched',stages)
+
+    def test_recheck2_changed_compose_reasks_with_exact_change_once_then_sends_once(self):
+        frame=self.browser.facts['frames'][0]
+        frame['compose']={'element':'area','whole_page':False,'text':'Draft Original preview Send'}
+        approval=self.prepare()
+        self.assertEqual(approval['description']['untrusted_content']['page_state']['compose'],frame['compose'])
+        frame['compose']['text']='Draft Changed preview Send'
+        reply=self.call('submit',approval)
+        self.assertTrue(reply['ok'],reply);self.assertIn('approval',reply['data'],reply);replacement=reply['data']['approval']
+        self.assertIn('Original preview',replacement['question']);self.assertIn('Changed preview',replacement['question'])
+        self.assertEqual(reply['data']['operation']['state'],'failed');self.assertEqual(self.browser.dispatched,[])
+        self.assertNotIn('approval',self.call('submit',approval)['data'])
+        self.assertTrue(self.call('submit',replacement)['ok']);self.assertEqual(len(self.browser.dispatched),1)
+        self.call('submit',replacement);self.assertEqual(len(self.browser.dispatched),1)
+
+    def test_recheck2_compose_second_change_stops_and_tells_owner_without_an_ask_loop(self):
+        frame=self.browser.facts['frames'][0]
+        frame['compose']={'element':'area','whole_page':False,'text':'Original preview'}
+        approval=self.prepare();frame['compose']['text']='Second preview'
+        replacement=self.call('submit',approval)['data']['approval']
+        frame['compose']['text']='Third preview'
+        reply=self.call('submit',replacement)
+        self.assertTrue(reply['ok'],reply);self.assertNotIn('approval',reply['data'])
+        self.assertEqual(reply['data']['operation']['state'],'failed')
+        self.assertIn('text next to Send keeps changing',reply['data']['operation']['reason'])
+        self.assertIn('owner',reply['data']['operation']['reason']);self.assertEqual(self.browser.dispatched,[])
+        self.call('submit',replacement);self.assertEqual(self.browser.dispatched,[])
+
+    def test_recheck2_live_text_outside_compose_never_reasks(self):
+        frame=self.browser.facts['frames'][0]
+        frame['compose']={'element':'area','whole_page':False,'text':'Draft and preview Send'}
+        approval=self.prepare()
+        frame['revision']+=1;frame['rows'].append({'role':'text','name':'Autosaved 12:42 counter 2'})
+        reply=self.call('submit',approval)
+        self.assertTrue(reply['ok'],reply);self.assertNotIn('approval',reply['data']);self.assertEqual(len(self.browser.dispatched),1)
+
+    def test_recheck2_readonly_preview_without_editors_still_prepares_and_binds(self):
+        frame=self.browser.facts['frames'][0];frame['editable']=[]
+        frame['compose']={'element':'area','whole_page':True,'text':'Read-only draft Send'}
+        approval=self.prepare()
+        self.assertEqual(approval['description']['untrusted_content']['page_state']['compose'],frame['compose'])
+        frame['compose']['text']='Changed read-only draft Send'
+        reply=self.call('submit',approval);self.assertTrue(reply['ok'],reply)
+        self.assertIn('Changed read-only draft',reply['data']['approval']['question']);self.assertEqual(self.browser.dispatched,[])
+
+    def test_recheck2_preview_changed_at_extension_boundary_reasks_without_dispatch(self):
+        from aresos_control.common import Refused
+        frame=self.browser.facts['frames'][0]
+        frame['compose']={'element':'area','whole_page':False,'text':'Original preview'}
+        approval=self.prepare();original=self.browser.call
+        def call(name,**args):
+            if name=='input':
+                frame['compose']['text']='Boundary preview'
+                raise Refused('stale_approval','page changed during frame setup')
+            return original(name,**args)
+        self.browser.call=call
+        reply=self.call('submit',approval)
+        self.assertTrue(reply['ok'],reply);self.assertEqual(reply['data']['operation']['state'],'failed')
+        self.assertIn('approval',reply['data'],reply);self.assertIn('Boundary preview',reply['data']['approval']['question']);self.assertEqual(self.browser.dispatched,[])

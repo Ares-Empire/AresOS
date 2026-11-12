@@ -2,8 +2,7 @@
 - Navigation and GET searches can carry data in addresses; text can leave without a send question; accepted as ordinary browser navigation under decision 25.
 - The English/German word list is a rule of thumb; disguised/unlabelled actions can stay free and harmless controls can ask unnecessarily; accepted under decision 25 as a recognition heuristic rather than a proof of page intent.
 - A page can change between the final binding check and input; the page can act on a last-instant change; accepted under decision 25 because the local check narrows but cannot eliminate that interval.
-- A fresh-frame native function can dispatch a non-cancellable activation around the wrappers; its default action may happen despite stopped handlers; accepted only with an honest `unknown` report and no resumption.
-- A generic send does not bind read-only previews or quoted text outside its editors; that text can change during approval; accepted under decision 25, with site adapters providing exact bindings where available.
+- Changed visible compose text adds one new question showing the before/after text; a second change stops the send and asks the owner to send it himself. This is the bounded cost of binding read-only previews without an ask loop; accepted by `20-recheck-fixes-2.md`.
 - `done` proves one dispatch, not delivery; a site may reject or fail the action despite that status; accepted because page observations are labelled as such and the tool does not observe the network.
 - An owner's delayed page step inside Claude's hold window is held and asked, including after an immediate submission; this adds a question to his own work; accepted by the owner's board #138 decision when task ownership is unclear.
 - A native dialog already open before take is handed back to the owner; automation waits for his answer; accepted by the lead's bounded handoff/recovery rule because Chrome cannot establish that dialog's opener and guarded continuation.

@@ -1,0 +1,175 @@
+[
+  {
+    "item": "recheck2-native-created-capture",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "recheck2 native insertion",
+      "control/chrome_tests/page.test.mjs"
+    ],
+    "output": "\u2716 recheck2 native insertion and noncomposed events meet capture installed at creation (2.695459ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 39.007458\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/page.test.mjs:664:1\n\u2716 recheck2 native insertion and noncomposed events meet capture installed at creation (2.695459ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n  \n  1 !== 0\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/page.test.mjs:671:12)\n      at Test.runInAsyncScope (node:async_hooks:226:14)\n      at Test.run (node:internal/test_runner/test:1382:25)\n      at Test.start (node:internal/test_runner/test:1242:17)\n      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: 1,\n    expected: 0,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "recheck2-native-target-capture",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "recheck2 native insertion",
+      "control/chrome_tests/page.test.mjs"
+    ],
+    "output": "\u2716 recheck2 native insertion and noncomposed events meet capture installed at creation (2.989917ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 38.990458\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/page.test.mjs:664:1\n\u2716 recheck2 native insertion and noncomposed events meet capture installed at creation (2.989917ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n  \n  1 !== 0\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/page.test.mjs:671:12)\n      at Test.runInAsyncScope (node:async_hooks:226:14)\n      at Test.run (node:internal/test_runner/test:1382:25)\n      at Test.start (node:internal/test_runner/test:1242:17)\n      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: 1,\n    expected: 0,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "recheck2-default-neutralization",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "recheck2 uncancellable defaults",
+      "control/chrome_tests/page.test.mjs"
+    ],
+    "output": "\u2716 recheck2 uncancellable defaults lose hyperlink ping and new-window authority only during native activation (3.180792ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 42.029208\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/page.test.mjs:674:1\n\u2716 recheck2 uncancellable defaults lose hyperlink ping and new-window authority only during native activation (3.180792ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n  + actual - expected\n  \n  + 'https://fixture.test/delete'\n  - null\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/page.test.mjs:680:37)\n      at Test.runInAsyncScope (node:async_hooks:226:14)\n      at Test.run (node:internal/test_runner/test:1382:25)\n      at Test.start (node:internal/test_runner/test:1242:17)\n      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: 'https://fixture.test/delete',\n    expected: null,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "recheck2-owner-navigation",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "recheck2 the owners trusted click",
+      "control/chrome_tests/page.test.mjs"
+    ],
+    "output": "\u2716 recheck2 the owners trusted click keeps its native navigation inside the hold (5.106875ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 40.833292\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/page.test.mjs:685:1\n\u2716 recheck2 the owners trusted click keeps its native navigation inside the hold (5.106875ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n  \n  1 !== 0\n  \n      at file://<mutation-worktree>/control/chrome_tests/page.test.mjs:692:65\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: 1,\n    expected: 0,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "recheck2-network-rule",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "recheck2 session default blocks",
+      "control/chrome_tests/background.test.mjs"
+    ],
+    "output": "\u2716 recheck2 session default blocks are tab scoped cover every resource and expire exactly once (2.34725ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 39.321708\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/background.test.mjs:1034:1\n\u2716 recheck2 session default blocks are tab scoped cover every resource and expire exactly once (2.34725ms)\n  TypeError: Cannot read properties of undefined (reading 'condition')\n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:1038:52)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)\n"
+  },
+  {
+    "item": "recheck2-network-expiry",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "recheck2 session default blocks",
+      "control/chrome_tests/background.test.mjs"
+    ],
+    "output": "\u2716 recheck2 session default blocks are tab scoped cover every resource and expire exactly once (2.845625ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 39.639458\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/background.test.mjs:1034:1\n\u2716 recheck2 session default blocks are tab scoped cover every resource and expire exactly once (2.845625ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n  \n  true !== false\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:1042:10)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: true,\n    expected: false,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "recheck2-network-restart",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "recheck2 startup reconciles",
+      "control/chrome_tests/background.test.mjs"
+    ],
+    "output": "\u2716 recheck2 startup reconciles a surviving session block before the native handshake (2.802917ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 40.067125\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/background.test.mjs:1044:1\n\u2716 recheck2 startup reconciles a surviving session block before the native handshake (2.802917ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:\n  + actual - expected\n  \n    {\n      addRules: [],\n  +   removeRuleIds: []\n  -   removeRuleIds: [\n  -     1,\n  -     2\n  -   ]\n    }\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:1046:10)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: { removeRuleIds: [], addRules: [] },\n    expected: { removeRuleIds: [ 1, 2 ], addRules: [] },\n    operator: 'deepStrictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "recheck2-network-release",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "recheck2 release removes",
+      "control/chrome_tests/background.test.mjs"
+    ],
+    "output": "\u2716 recheck2 release removes a live default block before blocked wrapper cleanup (1004.894583ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 1041.370791\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/background.test.mjs:1051:1\n\u2716 recheck2 release removes a live default block before blocked wrapper cleanup (1004.894583ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n  \n  true !== false\n  \n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/background.test.mjs:1054:36)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: true,\n    expected: false,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  {
+    "item": "recheck2-compose-reader",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "recheck2 compose text",
+      "control/chrome_tests/reader.test.mjs"
+    ],
+    "output": "\u2716 recheck2 compose text binds the smallest common area and ignores live outside text (2.698917ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 39.283084\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/reader.test.mjs:251:1\n\u2716 recheck2 compose text binds the smallest common area and ignores live outside text (2.698917ms)\n  TypeError: Cannot read properties of null (reading 'text')\n      at TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/reader.test.mjs:258:48)\n      at Test.runInAsyncScope (node:async_hooks:226:14)\n      at Test.run (node:internal/test_runner/test:1382:25)\n      at Test.start (node:internal/test_runner/test:1242:17)\n      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17)\n"
+  },
+  {
+    "item": "recheck2-compose-service",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "python3",
+      "-B",
+      "-m",
+      "unittest",
+      "test_questions.Questions.test_recheck2_changed_compose_reasks_with_exact_change_once_then_sends_once",
+      "-v"
+    ],
+    "output": "test_recheck2_changed_compose_reasks_with_exact_change_once_then_sends_once (test_questions.Questions.test_recheck2_changed_compose_reasks_with_exact_change_once_then_sends_once) ... FAIL\n\n======================================================================\nFAIL: test_recheck2_changed_compose_reasks_with_exact_change_once_then_sends_once (test_questions.Questions.test_recheck2_changed_compose_reasks_with_exact_change_once_then_sends_once)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"<mutation-worktree>/control/chrome_tests/test_questions.py\", line 234, in test_recheck2_changed_compose_reasks_with_exact_change_once_then_sends_once\n    self.assertEqual(approval['description']['untrusted_content']['page_state']['compose'],frame['compose'])\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: None != {'element': 'area', 'whole_page': False, 'text': 'Draft Original preview Send'}\n\n----------------------------------------------------------------------\nRan 1 test in 0.016s\n\nFAILED (failures=1)\n"
+  },
+  {
+    "item": "recheck2-compose-reask",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "python3",
+      "-B",
+      "-m",
+      "unittest",
+      "test_questions.Questions.test_recheck2_changed_compose_reasks_with_exact_change_once_then_sends_once",
+      "-v"
+    ],
+    "output": "test_recheck2_changed_compose_reasks_with_exact_change_once_then_sends_once (test_questions.Questions.test_recheck2_changed_compose_reasks_with_exact_change_once_then_sends_once) ... FAIL\n\n======================================================================\nFAIL: test_recheck2_changed_compose_reasks_with_exact_change_once_then_sends_once (test_questions.Questions.test_recheck2_changed_compose_reasks_with_exact_change_once_then_sends_once)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"<mutation-worktree>/control/chrome_tests/test_questions.py\", line 237, in test_recheck2_changed_compose_reasks_with_exact_change_once_then_sends_once\n    self.assertTrue(reply['ok'],reply);self.assertIn('approval',reply['data'],reply);replacement=reply['data']['approval']\n                                       ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 'approval' not found in {'operation': {'action': 'chrome_submit', 'app': 'chrome', 'approval': {'question': \"On https://fixture.test/, page 'Fixture', as the page shows it, send 'Send'; where the page sends this isn't visible to the tool?\", 'operation_id': '42d57bfd95904792909ae1ca0cdc3148:24688db98c264200b2bb66b12e469c67', 'description': {'action': 'chrome_submit', 'adapter_action': None, 'expires_at': 1794492375.66289, 'untrusted_content': {'confirmation': None, 'file': None, 'input': {'verb': 'click'}, 'kind': 'send', 'page_state': {'adapter': None, 'compose': {'element': 'area', 'text': 'Draft Original preview Send', 'whole_page': False}, 'control': None, 'dialog': None, 'document': 'document-1', 'editable': [{'document': 'document-1', 'fields': [{'element': 'e2', 'label': 'Body', 'value': 'Existing draft'}], 'frame': 0, 'url': 'https://fixture.test/'}], 'effective_url': 'https://fixture.test/', 'form': None, 'frame': 0, 'frame_title': 'Fixture', 'frame_url': 'https://fixture.test/', 'item': None, 'item_fields': None, 'selected_files': [{'document': 'document-1', 'fields': [], 'frame': 0}], 'session': 'fixture-session', 'tab': 1, 'target': {'editable': False, 'element': 'e1', 'href': None, 'label': 'Send', 'name': 'Send', 'role': 'button', 'search': False, 'states': {}, 'submit': False, 'title': ''}, 'title': 'Fixture', 'url': 'https://fixture.test/'}, 'resume_kind': None}}}, 'expires': 1794492375.66289, 'generation': '42d57bfd95904792909ae1ca0cdc3148', 'id': '42d57bfd95904792909ae1ca0cdc3148:24688db98c264200b2bb66b12e469c67', 'reason': 'Dispatched once, as the page shows it; this does not prove what the site did.', 'stages': {'checked': {'untrusted_content': 'Page matched the bound approval immediately before input.'}, 'dispatched': {'untrusted_content': 'Input or same-kind submission dispatched once; delivery is not proven.'}, 'page': {'untrusted_content': '{\"checked\":true,\"dispatched\":true,\"steps\":[]}'}}, 'state': 'done'}} : {'ok': True, 'data': {'operation': {'action': 'chrome_submit', 'app': 'chrome', 'approval': {'question': \"On https://fixture.test/, page 'Fixture', as the page shows it, send 'Send'; where the page sends this isn't visible to the tool?\", 'operation_id': '42d57bfd95904792909ae1ca0cdc3148:24688db98c264200b2bb66b12e469c67', 'description': {'action': 'chrome_submit', 'adapter_action': None, 'expires_at': 1794492375.66289, 'untrusted_content': {'confirmation': None, 'file': None, 'input': {'verb': 'click'}, 'kind': 'send', 'page_state': {'adapter': None, 'compose': {'element': 'area', 'text': 'Draft Original preview Send', 'whole_page': False}, 'control': None, 'dialog': None, 'document': 'document-1', 'editable': [{'document': 'document-1', 'fields': [{'element': 'e2', 'label': 'Body', 'value': 'Existing draft'}], 'frame': 0, 'url': 'https://fixture.test/'}], 'effective_url': 'https://fixture.test/', 'form': None, 'frame': 0, 'frame_title': 'Fixture', 'frame_url': 'https://fixture.test/', 'item': None, 'item_fields': None, 'selected_files': [{'document': 'document-1', 'fields': [], 'frame': 0}], 'session': 'fixture-session', 'tab': 1, 'target': {'editable': False, 'element': 'e1', 'href': None, 'label': 'Send', 'name': 'Send', 'role': 'button', 'search': False, 'states': {}, 'submit': False, 'title': ''}, 'title': 'Fixture', 'url': 'https://fixture.test/'}, 'resume_kind': None}}}, 'expires': 1794492375.66289, 'generation': '42d57bfd95904792909ae1ca0cdc3148', 'id': '42d57bfd95904792909ae1ca0cdc3148:24688db98c264200b2bb66b12e469c67', 'reason': 'Dispatched once, as the page shows it; this does not prove what the site did.', 'stages': {'checked': {'untrusted_content': 'Page matched the bound approval immediately before input.'}, 'dispatched': {'untrusted_content': 'Input or same-kind submission dispatched once; delivery is not proven.'}, 'page': {'untrusted_content': '{\"checked\":true,\"dispatched\":true,\"steps\":[]}'}}, 'state': 'done'}}, 'pending': {'items': [], 'total': 0, 'cursor': None, 'restore_required': False}}\n\n----------------------------------------------------------------------\nRan 1 test in 0.023s\n\nFAILED (failures=1)\n"
+  },
+  {
+    "item": "recheck2-compose-bounded",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "python3",
+      "-B",
+      "-m",
+      "unittest",
+      "test_questions.Questions.test_recheck2_compose_second_change_stops_and_tells_owner_without_an_ask_loop",
+      "-v"
+    ],
+    "output": "test_recheck2_compose_second_change_stops_and_tells_owner_without_an_ask_loop (test_questions.Questions.test_recheck2_compose_second_change_stops_and_tells_owner_without_an_ask_loop) ... FAIL\n\n======================================================================\nFAIL: test_recheck2_compose_second_change_stops_and_tells_owner_without_an_ask_loop (test_questions.Questions.test_recheck2_compose_second_change_stops_and_tells_owner_without_an_ask_loop)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"<mutation-worktree>/control/chrome_tests/test_questions.py\", line 251, in test_recheck2_compose_second_change_stops_and_tells_owner_without_an_ask_loop\n    self.assertTrue(reply['ok'],reply);self.assertNotIn('approval',reply['data'])\n                                       ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 'approval' unexpectedly found in {'operation': {'action': 'chrome_submit', 'app': 'chrome', 'approval': {'question': \"On https://fixture.test/, page 'Fixture', as the page shows it, send 'Send'; where the page sends this isn't visible to the tool; text next to Send changed from 'Original preview' to 'Second preview'?\", 'operation_id': 'afb9ca690dfb42eaa5c407cc49adb1ca:5328756b5e83417bbc346c7019e7a8af', 'description': {'action': 'chrome_submit', 'adapter_action': None, 'expires_at': 1794492375.942237, 'untrusted_content': {'changed_compose': {'after': 'Second preview', 'before': 'Original preview'}, 'confirmation': None, 'file': None, 'input': {'verb': 'click'}, 'kind': 'send', 'page_state': {'adapter': None, 'compose': {'element': 'area', 'text': 'Second preview', 'whole_page': False}, 'control': None, 'dialog': None, 'document': 'document-1', 'editable': [{'document': 'document-1', 'fields': [{'element': 'e2', 'label': 'Body', 'value': 'Existing draft'}], 'frame': 0, 'url': 'https://fixture.test/'}], 'effective_url': 'https://fixture.test/', 'form': None, 'frame': 0, 'frame_title': 'Fixture', 'frame_url': 'https://fixture.test/', 'item': None, 'item_fields': None, 'selected_files': [{'document': 'document-1', 'fields': [], 'frame': 0}], 'session': 'fixture-session', 'tab': 1, 'target': {'editable': False, 'element': 'e1', 'href': None, 'label': 'Send', 'name': 'Send', 'role': 'button', 'search': False, 'states': {}, 'submit': False, 'title': ''}, 'title': 'Fixture', 'url': 'https://fixture.test/'}, 'resume_kind': None}}}, 'expires': 1794492375.942237, 'generation': 'afb9ca690dfb42eaa5c407cc49adb1ca', 'id': 'afb9ca690dfb42eaa5c407cc49adb1ca:5328756b5e83417bbc346c7019e7a8af', 'reason': 'The text next to Send keeps changing; nothing was sent. Ask the owner to send it himself.', 'stages': {}, 'state': 'failed', 'notice': True}, 'approval': {'question': \"On https://fixture.test/, page 'Fixture', as the page shows it, send 'Send'; where the page sends this isn't visible to the tool; text next to Send changed from 'Second preview' to 'Third preview'?\", 'operation_id': 'afb9ca690dfb42eaa5c407cc49adb1ca:29925effcf1d416bb2b14d292440b288', 'description': {'action': 'chrome_submit', 'untrusted_content': {'page_state': {'session': 'fixture-session', 'tab': 1, 'control': None, 'url': 'https://fixture.test/', 'title': 'Fixture', 'document': 'document-1', 'frame': 0, 'frame_url': 'https://fixture.test/', 'frame_title': 'Fixture', 'effective_url': 'https://fixture.test/', 'target': {'element': 'e1', 'role': 'button', 'name': 'Send', 'label': 'Send', 'title': '', 'href': None, 'states': {}, 'editable': False, 'search': False, 'submit': False}, 'form': None, 'compose': {'element': 'area', 'whole_page': False, 'text': 'Third preview'}, 'selected_files': [{'frame': 0, 'document': 'document-1', 'fields': []}], 'editable': [{'frame': 0, 'document': 'document-1', 'url': 'https://fixture.test/', 'fields': [{'element': 'e2', 'label': 'Body', 'value': 'Existing draft'}]}], 'item': None, 'item_fields': None, 'adapter': None, 'dialog': None}, 'input': {'verb': 'click'}, 'kind': 'send', 'resume_kind': None, 'file': None, 'confirmation': None, 'changed_compose': {'before': 'Second preview', 'after': 'Third preview'}}, 'adapter_action': None, 'expires_at': 1794492375.946635}}, 'state': 'reserved'}\n\n----------------------------------------------------------------------\nRan 1 test in 0.026s\n\nFAILED (failures=1)\n"
+  },
+  {
+    "item": "recheck2-compose-change-shown",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "python3",
+      "-B",
+      "-m",
+      "unittest",
+      "test_questions.Questions.test_recheck2_changed_compose_reasks_with_exact_change_once_then_sends_once",
+      "-v"
+    ],
+    "output": "test_recheck2_changed_compose_reasks_with_exact_change_once_then_sends_once (test_questions.Questions.test_recheck2_changed_compose_reasks_with_exact_change_once_then_sends_once) ... FAIL\n\n======================================================================\nFAIL: test_recheck2_changed_compose_reasks_with_exact_change_once_then_sends_once (test_questions.Questions.test_recheck2_changed_compose_reasks_with_exact_change_once_then_sends_once)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"<mutation-worktree>/control/chrome_tests/test_questions.py\", line 238, in test_recheck2_changed_compose_reasks_with_exact_change_once_then_sends_once\n    self.assertIn('Original preview',replacement['question']);self.assertIn('Changed preview',replacement['question'])\n    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 'Original preview' not found in \"On https://fixture.test/, page 'Fixture', as the page shows it, send 'Send'; where the page sends this isn't visible to the tool; text changed?\"\n\n----------------------------------------------------------------------\nRan 1 test in 1.040s\n\nFAILED (failures=1)\n"
+  }
+]

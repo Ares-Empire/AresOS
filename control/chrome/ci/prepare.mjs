@@ -15,8 +15,14 @@ if(process.env.INJECTION_PROBE==='true'){
 if(process.env.INJECTION_PROBE!=='true'){
   const instrumented='/workspace/.work/20-instrumented-extension';fs.cpSync(extension,instrumented,{recursive:true});extension=instrumented;
   fs.writeFileSync(extension+'/guard.js',fs.readFileSync('/workspace/control/chrome/ci/password-ingress.js','utf8')+'\n'+instrumentOwnerGuard(fs.readFileSync(extension+'/guard.js','utf8')));
-  const background=fs.readFileSync(extension+'/background.js','utf8').replace("chrome.runtime.onMessage.addListener((message,sender,reply)=>{", "chrome.runtime.onMessage.addListener((message,sender,reply)=>{if(sender.id===chrome.runtime.id&&['reader_ingress','owner_trace'].includes(message?.event)){audit({[message.event]:message});reply({received:true});return;}");
-  fs.writeFileSync(extension+'/background.js',background);
+  const background=fs.readFileSync(extension+'/background.js','utf8').replace("const defaultBlock='https://aresos-hold.invalid/';","const defaultBlock='http://fixture.test:8765/receive?case=recheck2-network-fence';").replace("chrome.runtime.onMessage.addListener((message,sender,reply)=>{", "chrome.runtime.onMessage.addListener((message,sender,reply)=>{if(sender.id===chrome.runtime.id&&['reader_ingress','owner_trace'].includes(message?.event)){audit({[message.event]:message});reply({received:true});return;}");
+  fs.writeFileSync(extension+'/background.js',background.replace('async function dispatch(command) {', `async function dispatch(command) {
+    if(command.name==='fixture_network_restart'){
+      const tab=command.tab;await stop();
+      await chrome.declarativeNetRequest.updateSessionRules({addRules:[{id:2,priority:2,action:{type:'block'},condition:{tabIds:[tab],urlFilter:'|'+defaultBlock,resourceTypes:['main_frame','sub_frame','ping','other']}}]});
+      const result={session,rules:await chrome.declarativeNetRequest.getSessionRules()};setTimeout(()=>chrome.runtime.reload(),100);return result;
+    }
+  `));
 }
 const result=packageExtension(extension,'/workspace/.work/20-package',pair.privateKey.export({type:'pkcs8',format:'pem'}));
 fs.writeFileSync('/out/extension.json',JSON.stringify({id:result.id,version:result.version}));

@@ -84,6 +84,21 @@
   function activate(){
   if(closed)throw Error('The document guard was disposed');if(enabled)return;enabled=true;
   if(saved.attachShadow)install(Element.prototype,'attachShadow',function(){const result=invoke(saved.attachShadow,this,arguments);report(result,{kind:'watch_root'});return result;});
+  // Capture travels with the node even when a borrowed native inserts it into
+  // a new closed root and dispatches a non-composed event in the same stack.
+  function watchCreated(node){report(node,{kind:'watch_node'});return node;}
+  for(const [prototype,names] of [[globalThis.Document?.prototype,['createElement','createElementNS','importNode']],
+    [globalThis.Node?.prototype,['cloneNode']]])for(const name of names){
+    const method=prototype&&descriptor(prototype,name)?.value;
+    if(typeof method==='function')install(prototype,name,function(){return watchCreated(invoke(method,this,arguments));});
+  }
+  for(const prototype of [globalThis.HTMLElement?.prototype,globalThis.SVGElement?.prototype]){
+    const previous=prototype&&descriptor(prototype,'onclick');if(!previous?.set)continue;
+    const method=previous.set,value=({set onclick(handler){watchCreated(this);invoke(method,this,[handler]);}});
+    const setter=descriptor(value,'onclick').set;
+    invoke(setString,nativeStrings,[setter,invoke(nativeString,method,[])]);
+    define(prototype,'onclick',options({...previous,set:setter}));installed.push({prototype,name:'onclick',value:setter,previous,setter:true});
+  }
   // A fresh realm's native attachShadow bypasses the wrapper above. Register
   // the receiving root before content insertion or listener registration, so
   // even a non-composed event in the same handler meets isolated capture.

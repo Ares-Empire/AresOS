@@ -293,7 +293,9 @@ class Engine:
             self.adapters[op["app"]].drop(op)
             return {"operation": self.public_operation(op)}
         adapter = self.adapters[action.app]
-        adapter.revalidate(op)
+        replacement = adapter.revalidate(op)
+        if isinstance(replacement, dict):
+            return replacement
         if adapter.has_submission_evidence(op["id"]):
             op.update(state="unknown", reason="Far-side submission evidence already exists; inspect evidence, never submit again.")
             op["stages"]["preflight_evidence"] = "present"
@@ -314,11 +316,15 @@ class Engine:
             op['sent_copy_check'] = {'state': 'open'}
         self.store.write({"op:" + op["id"]: op}, action.name, "submitting", op["id"])
         self.store.checkpoint("submitting")
+        replacement = None
         try:
             state, reason = adapter.execute(op, lambda name, outcome: self.stage(op["id"], name, outcome))
         except NothingLeft as exc:
             self.store.observations.storage(exc.__cause__ or exc)
             state, reason = "failed", "Submission stopped before delivery; no mail submitted." if action.app == "mail" else str(exc)
+            replacement = getattr(exc, 'replacement', None)
+            if replacement:
+                reason = replacement['operation']['reason']
         except Exception as exc:
             self.store.observations.storage(exc)
             # Unqualified adapter errors cannot prove that the far side did nothing.
@@ -330,7 +336,7 @@ class Engine:
         self.store.checkpoint("before_outcome")
         self.store.write({"op:" + op["id"]: op}, action.name, state, op["id"])
         self.store.checkpoint("outcome")
-        return {"operation": self.public_operation(op)}
+        return {"operation": self.public_operation(op), **({key:value for key,value in replacement.items() if key!='operation'} if replacement else {})}
 
     def public_operation(self, op):
         result = {k: v for k, v in op.items() if k not in

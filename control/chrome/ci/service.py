@@ -66,6 +66,10 @@ def request(value,admin=False):
     status=Path('/run/aresos-tools/fixture-control_status')
     if status.exists():
         status.unlink();Path('/out/control-status.json').write_text(json.dumps(daemon.engine.adapters['chrome'].bridge.call('control_status')))
+    restart=Path('/run/aresos-tools/fixture-network_restart')
+    if restart.exists():
+        arguments=json.loads(restart.read_text());restart.unlink()
+        Path('/out/network-restart.json').write_text(json.dumps(daemon.engine.adapters['chrome'].bridge.call('fixture_network_restart',tab=arguments['tab'])))
     stop=Path('/run/aresos-tools/fixture-stop')
     if stop.exists():
         stop.unlink();Path('/out/stop-result.json').write_text(json.dumps(daemon.engine.adapters['chrome'].bridge.call('stop')))

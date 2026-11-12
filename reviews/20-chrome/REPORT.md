@@ -1,3 +1,66 @@
+# Recheck fixes 2 — implementation and verification in progress
+
+This section supersedes earlier acceptance of the borrowed-native non-cancellable default and changed generic
+read-only preview. `briefs/20-recheck-fixes-2.md` controls this run. No design document was edited.
+
+## Done
+
+- MAIN wrappers register native capture on created/cloned/imported nodes and click-handler installation, so borrowed
+  insertion into a native-created open/closed root cannot outrun capture. Per-event deduplication keeps a single
+  approved activation from being consumed at both the ancestor and the target. Listener bookkeeping uses weak roots.
+- During the private hold, a tab-scoped session DNR rule fences a content-free quarantine destination for
+  `main_frame`, `sub_frame`, `ping` and `other`. Non-cancellable hyperlinks lose `href` through their default
+  activation and submitters become disabled through theirs, then native attributes are restored in a later task.
+  This prevents `_blank`, named frames, ping, form defaults and downloads from escaping the source-tab rule or
+  replacing the source document. Approved input and the owner's own marked input keep normal native destinations.
+  Rules are installed before arming, retired after the hold/Stop/close, and reconciled before a restarted worker's
+  native handshake. No stopped activation resumes.
+- The reader binds visible text in the smallest ancestor containing Send and its body editor; body editors take
+  precedence over nearby recipient inputs. Without editors it binds the smallest ancestor holding additional visible
+  draft/preview text. Generic sends and confirmations include that binding in both service and extension checks.
+  A change retires the old approval and prepares one exact new question with before/after text. A further change
+  stops with the owner's-send message. The final extension check also returns that bounded re-ask after drift during
+  frame setup. The shared engine only carries that adapter result; it grants no dispatch authorization.
+- New browser cases exercise every native insertion route, both root modes, every default escape route, a real native
+  request blocked by the session fence, owner navigation during the hold, live text inside/outside compose, and
+  extension restart with a deliberately stranded session rule. Existing unknown/residual tests now require stopped
+  defaults or exact changed-content re-approval with independent receiver 0/1/1 evidence.
+- KNOWN-LIMITS removes the two harmful residuals and records the bounded question/owner-send cost. Storage fault
+  sweeps include both compose re-ask and bounded-stop writes; the independent oracle includes their explicit cause.
+
+## Verified
+
+Local verification passed: **229 Python tests / OK**, **267 Node tests / zero failures**, and **166 removal mutations rejected; every baseline passed**. Generated artifacts and `git diff --check` pass. [Exact command summaries and hashes](records/recheck2/local-summary.json). Linux verification is pending; no green claim for this head yet. All local execution is browser-free
+Python/Node. No browser, profile, container, Java or Gradle process was started on this Mac.
+Opening ledger: 186 distinct Chrome runs / 187 executions, cap about 215. PR #27 stays draft and unmerged.
+
+## Not verified
+
+Owner panel acceptance, live accounts/sites, installed OS image, and integration with current main. Group 12 still
+waits for 18d. Browser evidence will come only from GitHub Linux containers, in both install modes twice.
+
+## JUDGMENT-CALL
+
+The network fence is deliberately limited to a content-free destination; synchronous native-default neutralization
+prevents a new browsing context from escaping a source-tab-only rule. A catch-all source-tab network block would
+also block approved native submissions and the owner's Enter/navigation. Temporary attributes are restored without
+replacing later page edits. This combined design and its compatibility cost require lead review; no feature was
+removed. Changing it later requires the default/owner matrices and their removal probes to remain strict.
+
+The existing sibling-editor fixture's smallest common area is the whole body: all visible body text is bound there,
+including the recipient region, editor and preview. Pages with a smaller enclosing compose area bind that area;
+live timestamp/autosave/counter text outside it does not participate. A whole-body compose therefore also binds any
+live body text it encloses and can reach the bounded owner-send fallback.
+
+## PLAN-GAP / Open questions
+
+The branch remains separate from main, as instructed. Restart evidence deliberately strands a session rule after
+cleaning the old MAIN wrappers, then reloads the extension; it tests startup reconciliation without presenting an
+extension reload as proof that arbitrary old wrapper closures can be recovered. The final run links and inventory
+will be appended below before completion.
+
+---
+
 # Recheck fixes — 2026-11-12
 
 **Green twice on `495c0b3477e7496134028f5244b767b3f4bc7896`.** Runtime build hash:
@@ -25,8 +88,7 @@ This section supersedes the historical acceptance below for `briefs/20-recheck-f
   eight open/closed native-list/ARIA-row shadow and slot item variants, form-contained confirmations, compose Enter,
   changed quantity, and borrowed-native composed/non-composed cancellable/non-cancellable events. The receivers get
   the actual changed draft, invoice name or quantity. Stale approvals deliver zero; fresh approval delivers once;
-  repeating it adds nothing. Non-cancellable defaults retain the documented honest `unknown` outcome, with handlers
-  stopped and no resumption.
+  repeating it adds nothing. That historical non-cancellable-default acceptance is superseded by the recheck-2 fixes above; it is no longer a known limit.
 - `owner-evidence.mjs`: test-package-only observations record private mark set/pass/held/end times without changing
   marks, allowances or scheduling. A real Claude-started timer fires while the private Enter mark exists; genuine
   owner Enter submits immediately and that timer's other form stays held. The four production removal probes remain.
@@ -724,7 +786,7 @@ Cancelled/superseded runs 42734373173/42734379065 did not reach a completed nati
 |10 Adapters|All six original and expanded matrices, variants, fallback and the three unchanged strict wording cases.|
 |11 Don't ask again|Generic exact owner kind/recipients/account/revocation; complete Gmail To/Cc/Bcc/widening; exact Gemini account/revocation.|
 |12 Managed ask rule|**Not run; false.** Requires 18d's actual normal/skip-permissions precedence harness.|
-|13 Residual shown honestly|Changed generic read-only preview; autosave/after-limit; baseline ordinary-click fetch is observed, not held.|
+|13 Residual shown honestly|Autosave/after-limit; baseline ordinary-click fetch is observed, not held. Read-only previews are now bound (recheck-2 above).|
 
 | FEATURES Chrome row | Tool/path | Named coverage / limitation |
 |---|---|---|
@@ -792,7 +854,7 @@ Cancelled/superseded runs 42734373173/42734379065 did not reach a completed nati
 
 **Read — 18d:** group 12 has no real precedence harness on this branch, and stays false. Qualification remains off until that evidence is integrated. This is the staged Now boundary, not a fabricated pass.
 
-**Read — residuals stated by section 6:** direct fetch/autosave/read receipts, unlabelled local deletion, address-carried data, sends after 500 ms and generic read-only previews remain outside the hold/binding guarantee. Fresh-frame raw activations never resume and uncertainty is reported. Borrowed native form-submit from a fresh realm remains separately disclosed in the earlier report; no universal interception/impossibility claim is made here. Same-user host substitution/direct tool calls remain decision 24's accepted user capability.
+**Read — residuals stated by section 6:** direct fetch/autosave/read receipts, unlabelled local deletion, address-carried data, sends after 500 ms remain outside the hold guarantee. Generic visible compose text is now bound, and the tested borrowed-native defaults stop before sending (recheck-2 above). Activations never resume. Borrowed native form-submit from a fresh realm remains separately disclosed in the earlier report; no universal interception/impossibility claim is made here. Same-user host substitution/direct tool calls remain decision 24's accepted user capability.
 
 ## JUDGMENT-CALL
 

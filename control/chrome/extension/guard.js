@@ -6,12 +6,47 @@
     submit: HTMLFormElement.prototype.submit, requestSubmit: HTMLFormElement.prototype.requestSubmit,
     click: HTMLElement.prototype.click, dispatch: EventTarget.prototype.dispatchEvent,
   };
+  const getAttribute=Element.prototype.getAttribute,setAttribute=Element.prototype.setAttribute,removeAttribute=Element.prototype.removeAttribute;
+  const quarantined=new WeakMap();
+  const captured=new WeakSet();
+  function stopDefault(element){
+    // A non-cancellable native activation still runs its default after capture.
+    // Strip hyperlink/submitter authority synchronously; remaining defaults
+    // use only the content-free, session-blocked address.
+    // New browsing contexts cannot escape the source tab's network fence.
+    if(!config?.defaultBlock)return false;
+    if(element.form&&['BUTTON','INPUT'].includes(element.tagName)){
+      const previous=getAttribute.call(element,'disabled');setAttribute.call(element,'disabled','');
+      setTimeout(()=>{if(getAttribute.call(element,'disabled')===''){if(previous===null)removeAttribute.call(element,'disabled');else setAttribute.call(element,'disabled',previous);}},0);
+      return true;
+    }
+    const node=element.tagName==='A'?element:element.form||element;
+    if(!['A','FORM'].includes(node.tagName))return true;
+    if(quarantined.has(node))return true;
+    const names=node.tagName==='A'?['href','ping']:['action','target'];
+    const previous=names.map(name=>[name,getAttribute.call(node,name)]);
+    quarantined.set(node,previous);
+    if(node.tagName==='A'){
+      // No hyperlink remains for the uncancellable default to follow. In
+      // particular it cannot create a new browsing context outside tabIds.
+      removeAttribute.call(node,'href');
+      if(getAttribute.call(node,'ping'))setAttribute.call(node,'ping',config.defaultBlock);
+    }else{setAttribute.call(node,'action',config.defaultBlock);setAttribute.call(node,'target','_self');}
+    const blockedAddress=config.defaultBlock;
+    setTimeout(()=>{if(quarantined.get(node)!==previous)return;quarantined.delete(node);for(const [name,value]of previous){
+      const held=name==='target'?'_self':name==='href'?null:blockedAddress;
+      if(getAttribute.call(node,name)!==held)continue;
+      if(value===null)removeAttribute.call(node,name);else setAttribute.call(node,name,value);
+    }},0);
+    return true;
+  }
   const phase = Object.getOwnPropertyDescriptor(Event.prototype, 'eventPhase')?.get;
   const eventType = Object.getOwnPropertyDescriptor(Event.prototype, 'type')?.get;
   const formElements=Object.getOwnPropertyDescriptor(HTMLFormElement.prototype,'elements')?.get;
   const ownDocument=document,nativeRoot=Node.prototype?.getRootNode;
   const defaultView=globalThis.Document&&Object.getOwnPropertyDescriptor(Document.prototype,'defaultView')?.get;
-  const held = new Map(), roots = new Map(), consumed = new Set();
+  const held = new Map(), roots = new WeakMap(), rootRefs = new Set(), consumed = new Set();
+  function* watchedRoots(){for(const ref of rootRefs){const root=ref.deref();if(root)yield [root,roots.get(root)];else rootRefs.delete(ref);}}
   let reader, generation = null, dispatchNonce = null, config, until = 0, inFlight = false, mark = null, owner = null, sequence = 0;
   let endingDialog=null;
   function nativeDialogReturned(token){
@@ -133,6 +168,7 @@
     }
   }
   function captureInput(event,root) {
+    if(captured.has(event))return;
     let element=eventElement(event.composedPath()[0]);
     if(element&&nativeRoot&&nativeRoot.call(element,{composed:true})!==ownDocument)return;
     if(type(event)==='invalid'&&owner)owner.changed=true;
@@ -146,7 +182,7 @@
       if(nodeRoot!==document){watch(nodeRoot);return;}
       const shadow=globalThis.chrome?.dom?.openOrClosedShadowRoot(element);
       if(shadow)watch(shadow);
-    }else if(nodeRoot!==root)return;
+    }else if(nodeRoot!==root&&root!==element)return;
     if(type(event)==='click')element=control(element);
     if (inFlight && event.isTrusted && mark && element === mark.target) {
       if(['keydown','input','change'].includes(type(event)))mark.input=true;
@@ -154,14 +190,17 @@
       if(type(event)==='keydown'&&expected&&event.key===expected.key&&!!event.ctrlKey===!!(expected.modifiers&2)&&!!event.metaKey===!!(expected.modifiers&4)&&!!event.altKey===!!(expected.modifiers&1)&&!!event.shiftKey===!!(expected.modifiers&8))mark.keydown=true;
     }
     if (type(event) === 'submit') {
+      captured.add(event);
       if (ownerSubmission(element,event.submitter,event) || search(reader.form(element,event.submitter),event.submitter||element) || allowance(element,event,event.submitter)) return;
       event.preventDefault();event.stopImmediatePropagation();report('submit_event',element,event.submitter);
     } else if (type(event) === 'click' && asks(element)) {
-      if(!inFlight&&event.isTrusted)return;
+      captured.add(event);
+      if(!inFlight&&event.isTrusted&&owner?.event===event&&!owner.consumed)return;
       // Only the browser's trusted event for this private, approved dispatch consumes the mark.
       if (inFlight && event.isTrusted && mark && !mark.activation && (element === mark.target || mark.implicit===element&&mark.keydown&&element.form===mark.form)) { mark.input=true;mark.activation=true;return; }
       if (event.cancelable) event.preventDefault();
-      event.stopImmediatePropagation();report(event.cancelable ? 'activation' : 'activation_unknown',element,null,event.cancelable);
+      const stopped=event.cancelable||stopDefault(element);
+      event.stopImmediatePropagation();report(stopped ? 'activation' : 'activation_unknown',element,null,event.cancelable);
     }
   }
   function foreignGuard(node){
@@ -239,7 +278,7 @@
     if(root instanceof Node)ownerMutations?.observe(root,ownerMutationOptions);
     const listeners=[];
     const listen=(kind,listener,capture)=>{root.addEventListener(kind,listener,capture);listeners.push([kind,listener,capture]);};
-    roots.set(root,listeners);
+    roots.set(root,listeners);rootRefs.add(new WeakRef(root));
     if(legacyBridge){listen('aresos-page-call-v2',event=>{
       const element=event.composedPath()[0],shadow=element instanceof Element?globalThis.chrome?.dom?.openOrClosedShadowRoot(element):null;
       // A closed root hides its inner target here. Install its native listener
@@ -264,11 +303,11 @@
       const listen=(kind,listener)=>{carrier.addEventListener(kind,listener);relayListeners.push([kind,listener]);};
       const ranges=InputEvent.prototype.getTargetRanges;
       legacyBridge=false;relayControl=carrier;
-      for(const [root,listeners]of roots)for(const [kind,listener,capture]of listeners)if(kind==='aresos-page-call-v2')root.removeEventListener(kind,listener,capture);
+      for(const [root,listeners]of watchedRoots())for(const [kind,listener,capture]of listeners)if(kind==='aresos-page-call-v2')root.removeEventListener(kind,listener,capture);
       const drop=request=>{if(stack.at(-1)?.detail.request===request)stack.pop();};
       listen('aresos-relay-meta',event=>{
         const detail=event.detail;
-        if(stack.length>=32||!['native_submit','request_submit','click','dispatch','watch_root','dialog_begin','dialog_end'].includes(detail?.kind))return;
+        if(stack.length>=32||!['native_submit','request_submit','click','dispatch','watch_root','watch_node','dialog_begin','dialog_end'].includes(detail?.kind))return;
         if(!Number.isSafeInteger(detail.request))return;
         const stage={detail};stack.push(stage);
       });
@@ -291,6 +330,7 @@
         const stage=stack.at(-1);if(!stage?.target||stage.detail.request!==event.detail)return;
         // Pop before entering page handlers; nested requests get their own record.
         drop(stage.detail.request);
+        if(stage.detail.kind==='watch_node'){if(stage.target.ownerDocument===ownDocument)watch(stage.target);event.preventDefault();return;}
         if(stage.detail.kind==='watch_root'){const other=foreignGuard(stage.target.ownerDocument||stage.target);if(other?.watch)other.watch(stage.target,active()?{config}:null);else if(!other)watch(stage.target);event.preventDefault();return;}
         const other=foreignGuard(stage.target);if(other){if(other.outside)outsideCall(event,stage);else if(other.route)other.route(event,stage,active()?{config}:null);return;}
         const element=eventElement(stage.target);
@@ -322,7 +362,7 @@
       if (generation===epoch && dispatchNonce===nonce) { until=Math.max(until,performance.now()+config.holdMs);inFlight=false;mark=null; }
     },
     clear() { generation=null;until=0;inFlight=false;mark=null;owner=null;held.clear(); },
-    dispose() { let restored=true;if(relayControl){restored=!native.dispatch.call(relayControl,new Event('aresos-relay-cleanup',{cancelable:true}));for(const [kind,listener]of relayListeners)relayControl.removeEventListener(kind,listener);}relayControl=null;relayListeners.length=0;this.clear();ownerMutations?.disconnect();for(const [root,listeners] of roots)for(const [kind,listener,capture]of listeners)root.removeEventListener(kind,listener,capture);roots.clear();ownerTasks.port1.close();ownerTasks.port2.close();reader?.dispose?.();reader=null;delete globalThis[Symbol.for('aresos.chrome.guard.v2')];return restored; },
+    dispose() { let restored=true;if(relayControl){restored=!native.dispatch.call(relayControl,new Event('aresos-relay-cleanup',{cancelable:true}));for(const [kind,listener]of relayListeners)relayControl.removeEventListener(kind,listener);}relayControl=null;relayListeners.length=0;this.clear();ownerMutations?.disconnect();for(const [root,listeners] of watchedRoots())for(const [kind,listener,capture]of listeners)root.removeEventListener(kind,listener,capture);rootRefs.clear();ownerTasks.port1.close();ownerTasks.port2.close();reader?.dispose?.();reader=null;delete globalThis[Symbol.for('aresos.chrome.guard.v2')];return restored; },
     steps() { const result=[...held.values()].filter(step=>!step.reported).map(step=>{step.reported=true;return {id:step.id,kind:step.kind,document:step.document,label:step.label,element:step.element,submitter:step.submitter,cancellable:step.cancellable};});return result; },
     resume(id,operation,element,form) {
       const step=held.get(id);
