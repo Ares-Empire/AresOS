@@ -24,16 +24,25 @@ import test_review_fixes_23 as results23
 from storage_faults import OSWrites as DurableWrites
 
 
+FLOWS = ('send', 'repair', 'delete_trash', 'delete_permanent', 'unsubscribe_mailto', 'unsubscribe_https',
+         'status', 'settlement', 'cancel', 'restore', 'attachment_export', 'testapp_export',
+         'password', 'filing_move', 'filing_copy', 'filing_rename', 'expiry', 'maintenance',
+         'restart_index', 'restart_tail', 'export_rollback', 'archive', 'send_duplicate')
+
+
 class Scenario:
-    def __init__(self, flow):
+    def __init__(self, flow, *, clock=None):
         self.fixture_clock = ExitStack()
-        if type(self) is Scenario and flow == 'archive':
+        # The owner-oracle subclass supplies its own clock/identity script.
+        if type(self) is Scenario:
             from owner_state_oracle.identity import scripted_ids
             from owner_state_oracle.clock import scripted_calendar
-            self.archive_time = 1794225600.0
-            self.fixture_clock.enter_context(patch('time.time', side_effect=lambda: self.archive_time))
+            # Keep realistic float precision: shorter JSON timestamps can move
+            # SQLite page boundaries before the selected fault is reached.
+            self.fixture_time = (1794225600.0 if flow == 'archive' else 1794225600.1234567) if clock is None else clock
+            self.fixture_clock.enter_context(patch('time.time', side_effect=lambda: self.fixture_time))
             self.fixture_clock.enter_context(scripted_calendar())
-            self.fixture_clock.enter_context(scripted_ids('inherited-archive'))
+            self.fixture_clock.enter_context(scripted_ids('inherited-' + flow))
         try:
             self._prepare_fixture(flow)
         except BaseException:
@@ -41,7 +50,7 @@ class Scenario:
             raise
 
     def advance_archive_clock(self):
-        self.archive_time += 2
+        self.fixture_time += 2
 
     def _prepare_fixture(self, flow):
         self.fixture = f = results23.Results23()
@@ -590,6 +599,51 @@ class Scenario:
 
 
 class FaultSweep23(unittest.TestCase):
+    def test_timestamp_precision_changes_sqlite_write_trace(self):
+        traces = []
+        for clock in (1794225600.0, 1794225600.1234567):
+            scenario = Scenario('send_duplicate', clock=clock)
+            try:
+                fault = DurableWrites()
+                with scenario.observed(), fault.wrap(scenario.fixture.engine.store):
+                    self.assertTrue(scenario.call()['ok'])
+                self.assertTrue(all(event['time'] == clock for event in scenario.fixture.engine.store.events))
+                traces.append([point for point in fault.points if point.startswith('sqlite.main.')])
+                scenario.recover()
+            finally:
+                scenario.close()
+        self.assertTrue(traces[0])
+        self.assertNotEqual(traces[0], traces[1], 'Timestamp precision must demonstrate the SQLite page-boundary mechanism')
+        first = next(i for i, (a, b) in enumerate(zip(*traces)) if a != b)
+        print(f'Clock precision changes SQLite trace at index {first}: '
+              f'{traces[0][first]} vs {traces[1][first]}; points={list(map(len, traces))}', flush=True)
+
+    def test_inherited_replays_have_identical_write_traces(self):
+        for flow in FLOWS:
+            with self.subTest(flow=flow):
+                traces = []
+                for _ in range(3):
+                    # Losing either script must fail on every run, even when
+                    # ambient timestamps happen to have equal JSON lengths.
+                    with patch('time.time', side_effect=AssertionError('Ambient sweep clock')), \
+                            patch('uuid.uuid4', side_effect=AssertionError('Ambient sweep identity')):
+                        scenario = Scenario(flow)
+                        try:
+                            fault = DurableWrites()
+                            with scenario.observed(), fault.wrap(None if flow.startswith('restart_') else scenario.fixture.engine.store):
+                                result = scenario.call()
+                            transport_response(result)
+                            self.assertTrue(result['ok'] or flow == 'password' and result['error']['code'] == 'server_refused'
+                                            or flow == 'export_rollback' and result['error']['code'] == 'storage_limit', result)
+                            scenario.recover()
+                            traces.append(fault.points)
+                        finally:
+                            scenario.close()
+                self.assertTrue(traces[0])
+                self.assertEqual(traces[0], traces[1])
+                self.assertEqual(traces[0], traces[2])
+                print(f'Inherited deterministic traces: {flow}={len(traces[0])}, replays=3', flush=True)
+
     def test_archive_replays_have_identical_write_traces(self):
         traces = []
         for _ in range(3):
@@ -669,15 +723,11 @@ class FaultSweep23(unittest.TestCase):
             scenario.close()
 
     def test_review23_enospc_at_every_discovered_durable_write(self):
-        flows = ('send', 'repair', 'delete_trash', 'delete_permanent', 'unsubscribe_mailto', 'unsubscribe_https',
-                 'status', 'settlement', 'cancel', 'restore', 'attachment_export', 'testapp_export',
-                 'password', 'filing_move', 'filing_copy', 'filing_rename', 'expiry', 'maintenance',
-                 'restart_index', 'restart_tail', 'export_rollback', 'archive', 'send_duplicate')
         mechanisms, counts = Counter(), Counter()
         started = time.monotonic()
         shard = int(os.environ.get('MAIL_SWEEP_SHARD', '0'))
         shards = int(os.environ.get('MAIL_SWEEP_SHARDS', '1'))
-        for flow_index, flow in enumerate(flows):
+        for flow_index, flow in enumerate(FLOWS):
             flow_started = time.monotonic()
             flow_counts = Counter()
             clean = Scenario(flow)
