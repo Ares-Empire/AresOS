@@ -625,6 +625,32 @@ class OwnerWalkTest(unittest.TestCase):
         with self.assertRaises(common.owner.Stop):common.owner.keyboard_entries(prepared['state'],prepared,bls)
 
 
+class ReleaseRulesTest(unittest.TestCase):
+    """Package 21's rules on the updated system read the password hash itself (rehearsal run 9)."""
+
+    def password_set(self):
+        source = vm.RULES.split('def password_set(entry):', 1)[1].split('\nout[', 1)[0]
+        namespace = {}
+        exec('def password_set(entry):' + source, namespace)
+        return namespace['password_set']
+
+    def test_the_rules_compile_and_read_the_shadow_hash_not_a_passwd_status(self):
+        compile(vm.RULES, 'release-rules', 'exec')
+        self.assertIn("['getent','shadow','ares']", vm.RULES)
+        self.assertNotIn("'passwd','-S'", vm.RULES)
+
+    def test_only_a_crypt_hash_counts_as_a_set_password(self):
+        password_set = self.password_set()
+        for entry, expected in (('ares:$y$j9T$fixture$fixture:20404:0:99999:7:::\n', True),
+                                ('ares:$6$fixture$fixture:20404:0:99999:7:::\n', True),
+                                ('ares:!*:20404:0:99999:7:::\n', False),       # the image's locked account
+                                ('ares:!$y$j9T$fixture:20404:0:99999:7:::\n', False),  # locked again later
+                                ('ares:*:20404:0:99999:7:::\n', False),
+                                ('ares::20404:0:99999:7:::\n', False)):
+            with self.subTest(entry=entry):
+                self.assertIs(password_set(entry), expected)
+
+
 class TerminalPathTest(unittest.TestCase):
     """Rehearsal run 5 (43120759117) typed the PATH probe right after Ctrl+Alt+F1 and it never ran."""
     PATH = vm.DAILY_PATH + ':/home/linuxbrew/.linuxbrew/bin'

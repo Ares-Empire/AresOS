@@ -1260,7 +1260,12 @@ out['sudo_all_with_password']=bool(re.search(r'^\s+\(ALL\) ALL$',listing,re.M)) 
 out['sudo_keeps_no_ticket']='timestamp_timeout=0' in listing
 n=subprocess.run(['runuser','-u','ares','--','sudo','-n','true'],capture_output=True,text=True,env=env)
 out['sudo_n_refused']=n.returncode==1 and 'a password is required' in n.stderr
-out['ares_password_set']=subprocess.check_output(['passwd','-S','ares'],text=True,env=env).split()[1]=='PS'
+# The hash itself, as package 21's checks read it: `passwd -S` formats differ between the old
+# Red Hat passwd ("PS") and shadow-utils' (rehearsal run 9 on Fedora 44's shadow-utils 4.19).
+def password_set(entry):
+    hashed=entry.split(':')[1]
+    return hashed.startswith('$')
+out['ares_password_set']=password_set(subprocess.check_output(['getent','shadow','ares'],text=True,env=env))
 chrome=subprocess.run(['timeout','150','runuser','-u','ares','--','/usr/bin/env','HOME=/var/home/ares',
     '/usr/bin/google-chrome','--headless=new','--disable-gpu','--no-first-run','--no-default-browser-check',
     '--user-data-dir=/tmp/aresos-chrome-rehearsal','--dump-dom','data:text/html,<p>ARESOS_CHROME_STARTED</p>'],
