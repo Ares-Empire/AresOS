@@ -3076,3 +3076,58 @@ ledger-unavailable check now runs **147 base-side tests / OK** and **23 Mail
 tests / OK**, including all five fast sweep-harness self-tests. The full
 fault-matrix method is excluded from required selection. No production change
 or expected-failure pin change accompanies this correction.
+
+## Final fix round (2026-11-12)
+
+**Done / read:** `compare.notice_facts` now recognizes the two literal
+backslashes in public SPECIAL-USE flags, and bare ancestor roles. Three new
+self-test methods cover all eight direct roles, multiple roles, ancestor
+roles, both filing wordings, and distinct ordinary/unverified results.
+Production escaping and the separate `G22-rename` regression are unchanged.
+The re-scope section above corrects point-zero rename, qualifies storage as
+zero growth for the five measured samples, names added-context paths, and
+states the owner-accepted late Sent-copy exception precisely. The PR summary
+uses the same storage qualification.
+
+**Verified / run — local:** with `PYTHONDONTWRITEBYTECODE=1`,
+`PYTHONPATH=control:control/tests .work/venv/bin/python -B -m unittest
+test_owner_state_oracle test_mail_ci_selection` prints **125 tests / OK**
+(the oracle-only invocation prints **119 tests / OK**). Running the two
+special-role regression methods against the original parser produces **15
+expected assertion failures**; they pass with the corrected parser.
+With `PYTHONPATH=control:control/mail_tests:control/tests`, the worktree-only
+managed-policy fixture runner `.work/run-owner-tests.py
+test_owner_state_contracts test_owner_state_regressions test_owner_state_quiet`
+prints **10 tests / OK**, including all 34 point-zero flows and the unchanged
+three `G22-*` pins. The separate six named review regressions also print OK.
+`control/generate.py --check` prints `Generated artifacts match definitions`;
+`git diff --check` is clean.
+
+**Verified / run — regenerated evidence:** the worktree-only fixture capture
+`.work/19b-final-fixes/capture.py rename` executes every rename storage mode,
+cleanup pair and crash phase: **1 test / OK**, 219 single and 219 persistent
+sites, 438 crash cases, 419 cleanup pairs. Its `contracts` invocation captures
+the matrix contracts and prints **Point-zero rename gaps: 0**. Both new full
+captures strictly match the regenerated compact groups. Compared with the
+previous captures, only corrected ordinary/Trash facts change: **2,233 false
+assertions removed; 5,747 retained deltas corrected**. Other suites and `G22-*`
+stay byte-identical. Current pin: **1,966,234 stage-3 keys / 2,010 groups /
+924,221 bytes**, SHA-256
+`6bbcb02fb83c750e33ef370b694c13eb59c33a82c04b1540038ed99995e05ea2`.
+
+**CI run IDs:** the first fix push `f17bc59f` started automatic source checks
+[base 43137243820](https://github.com/Ares-Empire/AresOS/actions/runs/43137243820)
+and [Mail 43137243779](https://github.com/Ares-Empire/AresOS/actions/runs/43137243779).
+These are superseded-source checks, not finished-head acceptance. After this
+report commit, the finished head receives two complete required passes and
+one manual optional dispatch. Their run IDs, attempts, exact SHA, results and
+log evidence are recorded in the [PR #26 verification table](https://github.com/Ares-Empire/AresOS/pull/26)
+and `.work/19b-final-fixes/FINAL-VERIFICATION.json`, so recording completion
+does not change the tested head. Each run/attempt is awaited in one blocking
+`gh run watch ID --exit-status --interval 60` call, grouped in one shell loop.
+
+**Not verified / limits:** synthetic fixtures and CI provide no real-account
+or actual filesystem-crash claim. The accepted re-scope limits above remain.
+No production change, own review, merge, new judgment call or plan gap. No
+Gradle daemon was started. The closing `.work/` inventory contains no file
+over 500 MB; exact final inventory accompanies the verification manifest.

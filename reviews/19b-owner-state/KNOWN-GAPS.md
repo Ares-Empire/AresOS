@@ -21,6 +21,17 @@ The list starts with Mail review 22's three blocking cases. They remain failures
 
 `KNOWN-GAPS.json` is the compact format-3 executable ledger. Each group fixes its suite, ownership bucket, matrix row, closing stage, exact assertion count, three sample keys and SHA-256. The digest covers the sorted newline-delimited canonical JSON list of `[key, {row, stage, delta}]`; `delta` includes calls, missing/extra facts and page numbers. No full assertion list is committed. The twelve fixed buckets match four shards × three workers; point-zero cases are shared by every worker. Each suite verifies every owned group, including absent groups. A changed count, digest, row/stage, group or sample fails. Diagnostics distinguish unexpected passes/removals, unlisted additions and changed deltas where the committed summary permits.
 
+**Final escaped-role correction (2026-11-12):** regenerated the complete rename
+fault matrix and matrix contracts from comparisons with the corrected parser.
+Removed 2,213 rename and 20 contract false assertions; corrected the role in
+5,747 retained rename deltas (2,586 now classify solely as M06). Every changed
+delta was checked against the previous full captures: only the misread
+ordinary/Trash fact changes, with matching missing/extra facts cancelling.
+Other suites and all three `G22-*` pins are unchanged. Point-zero rename now
+has zero gaps; the separate quiet pin has eight affected flows. The compact
+ledger is 924,221 bytes, SHA-256
+`6bbcb02fb83c750e33ef370b694c13eb59c33a82c04b1540038ed99995e05ea2`.
+
 Each worker writes its complete actual format-2 list to `.work/mail-ci/owner-gaps-*.json.gz`, including when strict verification fails; installed-channel cases write under `.work/control-ci/`. Existing artifact steps upload those files. After downloading all artifacts into `.work/19b-round3/capture/`, regenerate the full list on demand with:
 
 ```sh
