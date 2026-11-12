@@ -140,7 +140,7 @@ case('P31-get-case',F,'target="_blank"><input type="hidden" name="case" value="\
 case('recheck-search-activation',G,"if (!target.editable && explicit(target,form)) return true;","if(form&&target.submit)return false;",node('page','recheck search labels'))
 case('recheck-search-submissions',G,"if(explicit(element?facts(element):null,form)||(form.fields||[]).some(field=>['submit','image'].includes(field.type)&&explicit(field,null)))return false;",'',node('page','recheck search labels'))
 case('recheck-item-shadow',R,'node=composedParent(node)','node=node.parentElement',node('reader','recheck affected items'))
-case('recheck-item-composed-text',R,'text(node,false,true)','text(node)',node('reader','recheck affected items'))
+case('recheck-item-composed-text',R,'text(affectedItem(element),false,true)','text(affectedItem(element))',node('reader','recheck affected items'))
 case('recheck-confirmation-service',A,"kind == 'confirmation' or kind == 'send' and not frame.get('form')","kind in {'confirmation','send'} and not frame.get('form')",'test_questions.Questions.test_recheck_confirmation_form_binds_changed_outside_draft_and_complete_coverage',True)
 case('recheck-confirmation-submitter',P,"if evidence and target.get('page_dialog')","if False and evidence and target.get('page_dialog')",'test_questions.Questions.test_recheck_confirmation_form_binds_changed_outside_draft_and_complete_coverage',True)
 case('recheck-confirmation-extension',B,"kind==='confirmation'||kind==='send'&&!frame.form","['confirmation','send'].includes(kind)&&!frame.form",node('background','recheck confirmation form'))
