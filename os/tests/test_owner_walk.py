@@ -680,8 +680,8 @@ class SerialConsolePinTest(unittest.TestCase):
                 with self.assertRaisesRegex(AssertionError, 'STOP: expected exactly one installed boot entry'):
                     vm.edit_boot_entries(folder)
 
-    def run_pin(self, types, entries=('ostree-1.conf',)):
-        calls, saved = [], {}
+    def run_pin(self, types, entries=('ostree-1.conf',), mount_fails=False):
+        calls, saved, mounts = [], {}, []
         with tempfile.TemporaryDirectory() as folder:
             work = pathlib.Path(folder)
             (work / 'target.raw').write_bytes(b'')
@@ -691,29 +691,40 @@ class SerialConsolePinTest(unittest.TestCase):
                 calls.append(list(argv))
                 return '/dev/loop7\n'
 
+            def wait(loop, image):
+                calls.append(['wait_loop_partitions', loop, str(image)])
+                return dict(status='passed', loop=loop, expected=[dict(number=int(part.rsplit('p', 1)[1]))
+                                                                  for part in types])
+
             def run(argv, **kw):
                 calls.append(list(argv))
                 if argv[0] == 'blkid':
                     return SimpleNamespace(stdout=types[argv[-1]] + '\n', returncode=0)
                 if argv[0] == 'mount':
+                    mounts.append(argv[-1])
+                    if mount_fails:
+                        raise vm.subprocess.CalledProcessError(32, argv)
                     self.boot(pathlib.Path(argv[-1]), entries)
                 if argv[0] == 'umount':
                     shutil.rmtree(pathlib.Path(argv[-1]) / 'loader')  # an unmounted mount point is empty again
                 return SimpleNamespace(stdout='', returncode=0)
             with patch.object(vm.td, 'WORK', work), patch.object(vm.subprocess, 'check_output', side_effect=check_output), \
-                    patch.object(vm.subprocess, 'run', side_effect=run), patch.object(vm.glob, 'glob', return_value=sorted(types)), \
+                    patch.object(vm.subprocess, 'run', side_effect=run), patch.object(vm, 'wait_loop_partitions', side_effect=wait), \
                     patch.object(vm.td, 'save', side_effect=lambda name, value: saved.__setitem__(name, value)):
                 try:
                     result = vm.pin_serial_console()
-                except AssertionError as error:
+                except (AssertionError, vm.subprocess.CalledProcessError) as error:
                     result = error
+            self.assertFalse(any(os.path.exists(mount) for mount in mounts))  # every mount point removed
             return result, calls, saved, work
 
     def test_the_host_attaches_only_the_target_edits_its_ext4_boot_and_cleans_up(self):
         types = {'/dev/loop7p1': 'vfat', '/dev/loop7p2': 'ext4', '/dev/loop7p3': 'btrfs'}
         result, calls, saved, work = self.run_pin(types)
-        self.assertNotIsInstance(result, AssertionError)
+        self.assertNotIsInstance(result, Exception)
         self.assertEqual(calls[0], ['losetup', '--find', '--show', '--partscan', str(work / 'target.raw')])
+        self.assertEqual(calls[1], ['wait_loop_partitions', '/dev/loop7', str(work / 'target.raw')])  # before any node is read
+        self.assertEqual([call[-1] for call in calls if call[0] == 'blkid'], sorted(types))
         self.assertFalse(any('protected.raw' in ' '.join(call) for call in calls))
         mount, = [call for call in calls if call[0] == 'mount']
         self.assertEqual(mount[:5], ['mount', '-t', 'ext4', '-o', 'nosuid,nodev,noexec'])
@@ -735,6 +746,16 @@ class SerialConsolePinTest(unittest.TestCase):
                 self.assertEqual(calls[-1], ['losetup', '--detach', '/dev/loop7'])
                 self.assertEqual('umount' in [call[0] for call in calls], 'mount' in [call[0] for call in calls])
                 self.assertNotIn('stock-serial-console', saved)
+
+    def test_a_failed_mount_is_not_unmounted_and_still_detaches_the_loop(self):
+        """Review 5: a mount that fails must not end in a failing umount that skips the detach."""
+        types = {'/dev/loop7p1': 'vfat', '/dev/loop7p2': 'ext4', '/dev/loop7p3': 'btrfs'}
+        result, calls, saved, work = self.run_pin(types, mount_fails=True)
+        self.assertIsInstance(result, vm.subprocess.CalledProcessError)
+        self.assertEqual([call[0] for call in calls[-2:]], ['mount', 'losetup'])
+        self.assertNotIn('umount', [call[0] for call in calls])
+        self.assertEqual(calls[-1], ['losetup', '--detach', '/dev/loop7'])
+        self.assertNotIn('stock-serial-console', saved)
 
 
 class ReleaseRulesTest(unittest.TestCase):

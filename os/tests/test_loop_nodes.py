@@ -96,7 +96,8 @@ class LoopNodesTest(unittest.TestCase):
 
     def test_every_partscan_caller_uses_shared_wait_before_consuming_nodes(self):
         expected={('owner_media.py','mounted'),('owner_devices.py','prove_observed'),
-                  ('owner_capabilities.py','exfat'),('prepare_two_disks.py','main')}
+                  ('owner_capabilities.py','exfat'),('prepare_two_disks.py','main'),
+                  ('owner_vm.py','pin_serial_console')}
         actual=set()
         for path in (ROOT/'os/ci').glob('*.py'):
             tree=ast.parse(path.read_text())

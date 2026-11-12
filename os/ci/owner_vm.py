@@ -1,6 +1,5 @@
 """Package14: the owner route, physical commands, unchanged disk/firmware audits."""
 import base64
-import glob
 import hashlib
 import inspect
 import itertools
@@ -32,6 +31,7 @@ import owner_login
 import owner_xhci
 from owner_keys import maps, physical_keys, at_keycodes
 from owner_media import Media, bundle_module
+from prepare_two_disks import wait_loop_partitions
 
 COMMANDS = json.loads(pathlib.Path('os/owner-tools/commands.json').read_text())
 TEXT = 'yz-/!ü'
@@ -1085,22 +1085,25 @@ def pin_serial_console(stage='stock-serial-console'):
     image = td.WORK / 'target.raw'
     assert image.is_file() and image.resolve().is_relative_to(td.WORK.resolve()), 'STOP: no target image'
     loop = subprocess.check_output(['losetup', '--find', '--show', '--partscan', str(image)], text=True, timeout=30).strip()
-    mount = None
     try:
-        subprocess.run(['udevadm', 'settle'], timeout=60, check=False)
-        parts = sorted(glob.glob(loop + 'p[0-9]*'))
+        # The shared wait: the loop is backed by this image, and exactly its GPT's partition nodes are ready.
+        ready = wait_loop_partitions(loop, image)
+        parts = [loop + 'p' + str(partition['number']) for partition in ready['expected']]
         types = {part: subprocess.run(['blkid', '-o', 'value', '-s', 'TYPE', part], capture_output=True,
                                       text=True, timeout=30).stdout.strip() for part in parts}
         boot = [part for part, kind in types.items() if kind == 'ext4']
         assert len(boot) == 1, 'STOP: expected exactly one ext4 /boot on the target, found ' + repr(types)
         mount = tempfile.mkdtemp(prefix='aresos-target-boot-')
-        subprocess.run(['mount', '-t', 'ext4', '-o', 'nosuid,nodev,noexec', boot[0], mount], check=True, timeout=60)
-        result = edit_boot_entries(mount)
+        try:
+            subprocess.run(['mount', '-t', 'ext4', '-o', 'nosuid,nodev,noexec', boot[0], mount], check=True, timeout=60)
+            try:  # unmounted only once the mount succeeded
+                result = edit_boot_entries(mount)
+            finally:
+                subprocess.run(['umount', mount], check=True, timeout=60)
+        finally:
+            os.rmdir(mount)
         result.update(partition=boot[0].removeprefix(loop), partitions=types)
     finally:
-        if mount:
-            subprocess.run(['umount', mount], check=True, timeout=60)
-            os.rmdir(mount)
         subprocess.run(['losetup', '--detach', loop], check=True, timeout=30)
     td.save(stage, dict(status='passed', image='target.raw', **result))
     return result
