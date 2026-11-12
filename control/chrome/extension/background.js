@@ -690,11 +690,20 @@ async function pointer(tab,snapshot,reference,target){
   }
   return {x,y};
 }
-async function observation(tab,reference){
-  const dialog=await readyDialog(tab);if(dialog)return {available:true,dialog};
-  try{return {available:true,...await content(tab,reference?.frame??0,'observe',{element:reference?.element})};}
-  catch{try{const current=await chrome.tabs.get(tab);return {available:false,url:current.url,title:current.title,reason:'Post-input page details are unavailable; read the current page.'};}catch{return {available:false,reason:'Post-input observation is unavailable; inspect the tab with the owner.'};}}
+function clipboardObservation(tab,epoch){
+  const owner=stepControl(tab,epoch);if(!owner?.clipboardRoutes?.size)return null;
+  const result={written:true,message:'The page wrote to the clipboard.',routes:[...owner.clipboardRoutes].sort()};owner.clipboardRoutes.clear();return result;
 }
+async function observation(tab,reference,epoch=controlled.get(tab)?.epoch){
+  const finish=value=>{
+    const clipboard=clipboardObservation(tab,epoch),routes=[...new Set([...(value.clipboard?.routes||[]),...(clipboard?.routes||[])])].sort();
+    return routes.length?{...value,clipboard:{written:true,message:'The page wrote to the clipboard.',routes}}:value;
+  };
+  const dialog=await readyDialog(tab);if(dialog)return finish({available:true,dialog});
+  try{return finish({available:true,...await content(tab,reference?.frame??0,'observe',{element:reference?.element})});}
+  catch{try{const current=await chrome.tabs.get(tab);return finish({available:false,url:current.url,title:current.title,reason:'Post-input page details are unavailable; read the current page.'});}catch{return finish({available:false,reason:'Post-input observation is unavailable; inspect the tab with the owner.'});}}
+}
+
 async function collection(command) {
   const key=stable([command.name,command.text||'']);
   let record,offset=0;
@@ -932,7 +941,7 @@ async function dispatch(command) {
     await new Promise((resolve,reject)=>{fixtureBarriers.set(command.operation,{tab,resolve,reject});port?.postMessage({event:'fixture_after_input',operation:command.operation});});
   }
   const confirmation=confirmationPlans.get(tab);confirmationPlans.delete(tab);
-  return {checked:!!command.binding,dispatched:!noChange,no_change:noChange,steps,dialog:await readyDialog(tab),uncertain_finish,confirmations:confirmation?.matched || [],page:await observation(tab,reference)};
+  return {checked:!!command.binding,dispatched:!noChange,no_change:noChange,steps,dialog:await readyDialog(tab),uncertain_finish,confirmations:confirmation?.matched || [],page:await observation(tab,reference,dispatchEpoch)};
 }
 async function connect() {
   // Session rules survive a worker restart; private holds and allowances do not.
@@ -969,6 +978,11 @@ chrome.runtime.onMessage.addListener((message,sender,reply)=>{
     const known=privacyDocuments.get(sender.documentId);
     if(known&&known!==message.document){reply({received:false});return;}
     privacyDocuments.set(sender.documentId,message.document);reply({received:true});return;
+  }
+  if(sender.id===chrome.runtime.id&&message?.event==='clipboard_write'){
+    const owner=stepControl(sender.tab?.id,message.generation),known=privacyDocuments.get(sender.documentId);
+    if(!owner||message.generation!==owner.epoch||!Number.isInteger(sender.frameId)||typeof message.document!=='string'||known&&known!==message.document||!['write','writeText','copy'].includes(message.route)){reply({received:false});return;}
+    owner.clipboardRoutes??=new Set();owner.clipboardRoutes.add(message.route);reply({received:true});return;
   }
   if(sender.id===chrome.runtime.id&&message?.event==='held_step'){reply({received:observeStep(message,sender)});return;}
   if(sender.id === chrome.runtime.id && message?.event === 'reader_error') { port?.postMessage({event:'reader_error',error:message.error,tab:sender.tab?.id,frame:sender.frameId});reply({received:true});return; }

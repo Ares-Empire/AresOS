@@ -111,7 +111,7 @@ case('P21',P,"if form and form.get('search') and form.get('method', '').lower() 
 case('P22-title-action',A,"'title':facts.get('title', '')","'title':''",'test_questions.Questions.test_p22_delete_question_names_the_action_key_item_and_bound_title',True)
 case('P22-action',A,"'delete':'delete'","'delete':'activate'",'test_questions.Questions.test_p22_delete_question_names_the_action_key_item_and_bound_title',True)
 case('P22-bounds',A,'return value if len(visible(value))<=120 else','return value if True else','test_questions.Questions.test_p22_many_recipients_and_long_names_are_bounded_without_losing_full_values',True)
-case('P23',B,'page:await observation(tab,reference)',"page:'Input dispatched once'",node('background','P23'))
+case('P23',B,'page:await observation(tab,reference,dispatchEpoch)',"page:'Input dispatched once'",node('background','P23'))
 case('P23-borrowed-dialog',B,'page:await observation(tab)}',"page:{available:true,url:current.url,notice:'Native answer dispatched'}}",node('background','P23 a borrowed dialog result'))
 case('P24-last-check',B,'if(requireClean){','if(false){',node('background','P24'))
 case('P24-audible',B,'playing=!!nativeTab.audible','playing=false',node('background','P24'),extra=[(B,"playing=!!(await chrome.tabs.get(tab)).audible","playing=false")])
@@ -207,6 +207,18 @@ case('recheck2b-pending-clipboard','control/chrome/ci/activation-evidence.mjs',"
 
 case('recheck2b-picker-leave-chooser','control/chrome/ci/compatibility.mjs','if(active===picker.window)return false;','',node('compatibility','native picker dismissal'))
 case('recheck2b-picker-browser-focus','control/chrome/ci/compatibility.mjs','return windows.includes(active);','return true;',node('compatibility','native picker dismissal'))
+
+case('recheck2c-clipboard-write',M,"for(const name of ['write','writeText'])","for(const name of ['writeText'])",node('page','2c Clipboard write reports'))
+case('recheck2c-clipboard-writeText',M,"for(const name of ['write','writeText'])","for(const name of ['write'])",node('page','2c Clipboard writeText reports'))
+case('recheck2c-copy-event',G,"listen('copy',event=>{try{if(event.isTrusted)noteClipboard('copy');}catch{}},true);",'',node('page','2c trusted copy events'))
+case('recheck2c-copy-trust',G,"if(event.isTrusted)noteClipboard('copy')","noteClipboard('copy')",node('page','2c forged copy events'))
+case('recheck2c-clipboard-reader',R,'...(clipboard?{clipboard}:{})','...{}',node('reader','2c post-input observations'))
+case('recheck2c-clipboard-navigation',B,'owner.clipboardRoutes.add(message.route);','',node('background','2c private clipboard facts'))
+case('recheck2c-clipboard-post-input',B,'return finish({available:false,url:current.url','return ({available:false,url:current.url',node('background','2c private clipboard facts'))
+case('recheck2c-clipboard-route',B,"!['write','writeText','copy'].includes(message.route)",'false',node('background','2c clipboard messages'))
+case('recheck2c-clipboard-description','control/aresos_control/chrome/definitions.py',"purpose += ' ' + CLIPBOARD_NOTICE","purpose += ''",'test_policy.ClipboardDescriptions.test_2c_click_descriptions_warn_without_changing_the_liftable_shared_block',True)
+case('recheck2c-owner-exact-url','control/chrome/ci/owner-ui.mjs',"exec('xdotool',['key','--clearmodifiers','Delete']);",'',node('owner-ui','owner navigation deletes an inline history'))
+case('recheck2b-transport-reset','control/boundary/hostile.py',', errno.ECONNRESET','', 'control.tests.test_boundary_host_transport.HostTransport.test_reset_and_timeout_are_unqualified_not_policy_denials',True)
 
 def command(row):
     if row['python']:return ['python3','-B','-m','unittest',row['test'],'-v']

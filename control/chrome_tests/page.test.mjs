@@ -6,7 +6,7 @@ import {execFileSync} from 'node:child_process';
 
 const policy=JSON.parse(fs.readFileSync('control/chrome/extension/policy.js','utf8').match(/\{[\s\S]*\}/)[0]);
 
-function fixture({relay=false,activate=true,link=true,browserDOM=false,nativeShadows=false,retarget=false,dialogs=false,nativeNodeKinds=false,onDialogBoundary=()=>{}}={}) {
+function fixture({relay=false,activate=true,link=true,browserDOM=false,nativeShadows=false,retarget=false,dialogs=false,nativeNodeKinds=false,clipboard=false,onDialogBoundary=()=>{}}={}) {
   const windowListeners=new Map(),reports=[],arrivals=[],nodes=[],bridgeDetails=[];let now=0;
   class Event {
     constructor(type,options={}) {Object.assign(this,{type,cancelable:true,defaultPrevented:false,stopped:false,eventPhase:0,isTrusted:false,...options});}
@@ -75,7 +75,14 @@ function fixture({relay=false,activate=true,link=true,browserDOM=false,nativeSha
   class AbstractRange {}
   const rangeNodes=new WeakMap();class StaticRange extends AbstractRange {constructor(options){super();if([2,10].includes(options.startContainer.fixtureKind))throw new DOMException('Invalid range node','InvalidNodeTypeError');rangeNodes.set(this,options.startContainer);}get startContainer(){if(!rangeNodes.has(this))throw TypeError('Invalid StaticRange');return rangeNodes.get(this);}}
   class InputEvent extends Event {constructor(type,options={}){super(type,options);this.ranges=options.targetRanges?Array.from(options.targetRanges):[];}getTargetRanges(){return retarget?this.ranges.filter(range=>!range.startContainer.getRootNode().host):this.ranges;}}
-  const globals={window,document,performance:{now:()=>now},setTimeout,MessageChannel,Symbol,Event,CustomEvent,EventTarget,Node,DocumentFragment:Node,Element,HTMLElement,HTMLInputElement,HTMLFormElement,DOMException,URL,TextDecoder,Uint8Array,...(relay?{AbstractRange,StaticRange,InputEvent}:{}),...(nativeShadows?{Document,ShadowRoot:Node,chrome:{dom:{openOrClosedShadowRoot:host=>hostShadows.get(host)}}}:browserDOM?{Document}:{})};
+  const clipboardCalls=[],clipboardOutcome={value:undefined,error:null,synchronous:false};
+  class Clipboard {
+    write(value){clipboardCalls.push({route:'write',receiver:this,value});if(clipboardOutcome.synchronous)throw clipboardOutcome.error;return clipboardOutcome.error?Promise.reject(clipboardOutcome.error):Promise.resolve(clipboardOutcome.value);}
+    writeText(value){clipboardCalls.push({route:'writeText',receiver:this,value});if(clipboardOutcome.synchronous)throw clipboardOutcome.error;return clipboardOutcome.error?Promise.reject(clipboardOutcome.error):Promise.resolve(clipboardOutcome.value);}
+    read(){throw Error('Clipboard read is forbidden');}readText(){throw Error('Clipboard read is forbidden');}
+  }
+  const clipboardObject=new Clipboard(),nativeClipboard={write:Clipboard.prototype.write,writeText:Clipboard.prototype.writeText};
+  const globals={window,document,...(clipboard?{Clipboard,navigator:{clipboard:clipboardObject}}:{}),performance:{now:()=>now},setTimeout,MessageChannel,Symbol,Event,CustomEvent,EventTarget,Node,DocumentFragment:Node,Element,HTMLElement,HTMLInputElement,HTMLFormElement,DOMException,URL,TextDecoder,Uint8Array,...(relay?{AbstractRange,StaticRange,InputEvent}:{}),...(nativeShadows?{Document,ShadowRoot:Node,chrome:{dom:{openOrClosedShadowRoot:host=>hostShadows.get(host)}}}:browserDOM?{Document}:{})};
   const dialogCalls=[],dialogReports=[],dialogValues=[],dialogValue=value=>value===undefined?'':`${value}`;if(dialogs)Object.assign(globals,{alert:({alert(value){dialogValues.push([dialogValue(value)]);dialogCalls.push('alert');}}).alert,confirm:({confirm(value){dialogValues.push([dialogValue(value)]);dialogCalls.push('confirm');return true;}}).confirm,prompt:({prompt(value,initial){dialogValues.push([dialogValue(value),dialogValue(initial)]);dialogCalls.push('prompt');return 'native response';}}).prompt});const nativeDialogs=dialogs?{alert:globals.alert,confirm:globals.confirm,prompt:globals.prompt}:{};
   let guard;const isolated=vm.createContext({...globals,fixtureDialogPause:()=>onDialogBoundary(guard)});
   vm.runInContext(fs.readFileSync('control/chrome/extension/guard.js','utf8').replace('debugger;','fixtureDialogPause();'),isolated);
@@ -95,7 +102,7 @@ function fixture({relay=false,activate=true,link=true,browserDOM=false,nativeSha
   assert.equal(vm.runInContext("globalThis[Symbol.for('aresos.chrome.guard.v2')]",main),undefined);
   function arm(target,form,operation=null,conservative=false){guard.arm({generation:'epoch',config:{...policy,conservative},target:id(target),form:form ? id(form):null,operation,primary_submission:false});}
   const api={...guard,resume:(id,operation)=>{const step=reports.find(item=>item.id===id);return guard.resume(id,operation,step?.submitter||step?.element,step?.element);}};
-  return {api,guard,arrivals,dialogCalls,dialogReports,dialogValues,nativeDialogs,bridgeDetails,cleanup,nativeStrings,nativeFunctions,factory:relay?installed:null,Node,EventTarget,get reports(){reports.push(...guard.steps());return reports;},document,HTMLFormElement,HTMLElement,HTMLInputElement,Event,CustomEvent,originalDispatch,originalRequestSubmit,nativeAttach,nativeAppend,nativeListen,nativeHTMLSetter,arm,main,id,advance:milliseconds=>{now+=milliseconds;}};
+  return {api,guard,clipboard:clipboardObject,nativeClipboard,clipboardCalls,clipboardOutcome,arrivals,dialogCalls,dialogReports,dialogValues,nativeDialogs,bridgeDetails,cleanup,nativeStrings,nativeFunctions,factory:relay?installed:null,Node,EventTarget,get reports(){reports.push(...guard.steps());return reports;},document,HTMLFormElement,HTMLElement,HTMLInputElement,Event,CustomEvent,originalDispatch,originalRequestSubmit,nativeAttach,nativeAppend,nativeListen,nativeHTMLSetter,arm,main,id,advance:milliseconds=>{now+=milliseconds;}};
 }
 
 test('private factory creation changes no prototype before its cleanup handle can be retained',()=>{
@@ -739,4 +746,35 @@ test('recheck2 cached creation hooks issue no private reports after release',()=
   const f=fixture({relay:true,nativeShadows:true,nativeNodeKinds:true}),node=new f.HTMLElement(),cached=node.cloneNode;let reports=0;
   f.nativeListen.call(f.factory.relay.firstElementChild,'aresos-relay-meta',()=>reports++);
   f.cleanup();cached.call(node);assert.equal(reports,0);f.guard.dispose();
+});
+
+for(const route of ['write','writeText'])test('2c Clipboard '+route+' reports success without reading or serializing content',async()=>{
+  const f=fixture({relay:true,nativeShadows:true,clipboard:true}),button=new f.HTMLElement();f.arm(button,null);
+  const value={toJSON(){throw Error('Observer serialized clipboard content');}},result={native:'result'};f.clipboardOutcome.value=result;
+  assert.equal(await f.clipboard[route](value),result);assert.equal(f.clipboardCalls.length,1);assert.equal(f.clipboardCalls[0].value,value);assert.equal(f.clipboardCalls[0].receiver,f.clipboard);
+  assert.deepEqual(JSON.parse(JSON.stringify(f.guard.clipboard())),{written:true,message:'The page wrote to the clipboard.',routes:[route]});
+  f.cleanup();f.guard.dispose();
+});
+test('2c clipboard observers preserve rejection and synchronous native failure without reporting success',async()=>{
+  const f=fixture({relay:true,nativeShadows:true,clipboard:true}),button=new f.HTMLElement();f.arm(button,null);
+  const error=Error('Native permission denied');f.clipboardOutcome.error=error;
+  await assert.rejects(f.clipboard.writeText('synthetic'),value=>value===error);assert.equal(f.guard.clipboard(),null);
+  f.clipboardOutcome.synchronous=true;assert.throws(()=>f.clipboard.write([]),value=>value===error);assert.equal(f.guard.clipboard(),null);
+  f.cleanup();f.guard.dispose();
+});
+test('2c trusted copy events are observed without cancellation propagation changes or clipboard-data reads',()=>{
+  const f=fixture({relay:true,nativeShadows:true,clipboard:true}),button=new f.HTMLElement();f.arm(button,null);let delivered=0;
+  f.nativeListen.call(button,'copy',()=>delivered++);const event=new f.Event('copy',{isTrusted:true});Object.defineProperty(event,'clipboardData',{get(){throw Error('Clipboard data was read');}});
+  assert.equal(f.originalDispatch.call(button,event),true);assert.equal(delivered,1);assert.equal(event.defaultPrevented,false);
+  assert.equal(f.guard.clipboard().routes[0],'copy');assert.equal(f.guard.clipboard(true).written,true);assert.equal(f.guard.clipboard(),null);
+  f.cleanup();f.guard.dispose();
+});
+test('2c forged copy events cannot claim a clipboard write',()=>{
+  const f=fixture({relay:true,nativeShadows:true,clipboard:true}),button=new f.HTMLElement();f.arm(button,null);
+  f.originalDispatch.call(button,new f.Event('copy'));assert.equal(f.guard.clipboard(),null);f.cleanup();f.guard.dispose();
+});
+test('2c borrowed clipboard natives remain undetected and cached wrappers become native after release',async()=>{
+  const f=fixture({relay:true,nativeShadows:true,clipboard:true}),button=new f.HTMLElement();f.arm(button,null);
+  await f.nativeClipboard.writeText.call(f.clipboard,'synthetic');assert.equal(f.guard.clipboard(),null);
+  const cached=f.clipboard.writeText;f.cleanup();await cached.call(f.clipboard,'synthetic');assert.equal(f.guard.clipboard(),null);assert.equal(f.clipboardCalls.length,2);f.guard.dispose();
 });

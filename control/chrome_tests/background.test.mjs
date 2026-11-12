@@ -1060,3 +1060,21 @@ test('recheck2 final extension binding refuses a changed compose preview before 
   const f=fixture();f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({});globalThis.effects=[];globalThis.snapshot={tab:7,frames:[{frame:0,document:'doc',target:{element:'e1',name:'Send'},form:null,editable:[{value:'Draft'}],compose:{element:'area',text:'Original preview'}}]};facts=async()=>snapshot;content=async()=>({});pointer=async()=>({x:1,y:1});chrome.tabs={get:async()=>({active:true})};chrome.webNavigation={getAllFrames:async()=>[{frameId:0}]};chrome.debugger={sendCommand:async()=>effects.push('input')};globalThis.approved=JSON.parse(JSON.stringify(binding(snapshot,{frame:0},'send',false)));snapshot.frames[0].compose.text='Changed preview';");
   await assert.rejects(f.run("dispatch({name:'input',tab:7,reference:{frame:0,element:'e1'},input:{verb:'click'},kind:'send',binding:approved})"),/page changed/);assert.equal(f.run('effects.length'),0);
 });
+
+test('2c private clipboard facts survive frame navigation and carry no written content',async()=>{
+  const f=stepFixture();
+  f.run("privacyDocuments.set('native-old','old-document');globalThis.clip=(route,generation='epoch',sender={id:'fixture-extension',tab:{id:7},frameId:2,documentId:'native-old'})=>{let result;runtimeListener({event:'clipboard_write',document:'old-document',route,generation},sender,value=>result=value);return result;}");
+  assert.equal(f.run("clip('writeText').received"),true);
+  f.run("currentDocuments.set('[7,2]','native-new');content=async()=>{throw Error('Old frame document gone')};chrome.tabs.get=async()=>({url:'http://fixture.test/new-document',title:'New page'})");
+  const report=JSON.parse(JSON.stringify(await f.run("observation(7,{frame:2},'epoch')")));
+  assert.equal(report.available,false);assert.equal(report.url,'http://fixture.test/new-document');
+  assert.deepEqual(report.clipboard,{written:true,message:'The page wrote to the clipboard.',routes:['writeText']});assert.equal(f.run("clipboardObservation(7,'epoch')"),null);
+});
+test('2c clipboard messages cannot cross sender identity control epoch or route boundaries',()=>{
+  const f=stepFixture();f.run("globalThis.clip=(message,sender)=>{let result;runtimeListener(message,sender,value=>result=value);return result;}");
+  for(const [message,sender]of [
+    [{event:'clipboard_write',document:'d',route:'writeText',generation:'epoch'},{id:'page',tab:{id:7},frameId:0}],
+    [{event:'clipboard_write',document:'d',route:'writeText',generation:'old'},{id:'fixture-extension',tab:{id:7},frameId:0}],
+    [{event:'clipboard_write',document:'d',route:'readText',generation:'epoch'},{id:'fixture-extension',tab:{id:7},frameId:0}],
+  ]){f.run(`clip(${JSON.stringify(message)},${JSON.stringify(sender)})`);assert.equal(f.run("clipboardObservation(7,'epoch')"),null);}
+});

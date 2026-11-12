@@ -10,8 +10,8 @@ function fixture(){
   const call=async name=>{if(name==='open'){state.rows.push({tab:12,index:state.rows.length,window:5,url:'http://fixture.test/backup'});state.selected=state.rows.length-1;return state.badOpen?{tab:12}:{untrusted_content:{tab:12}};}return {items:state.rows.map((row,index)=>({...row,active:index===state.selected,focused:true,cleanup_pending:row.tab===11&&state.restoring-->0}))};};
   const exec=(command,args)=>{
     state.commands.push([command,...args]);
-    if(args[0]==='key')for(const key of args){if(key==='ctrl+1')state.selected=0;if(key==='ctrl+Tab')state.selected=(state.selected+1)%state.rows.length;if(key==='Return'&&state.typed!==null)state.rows[state.selected].url=state.typed;if(key==='Return'&&state.toolbarOpen)state.popups=[];if(key==='ctrl+w'){state.rows.splice(state.selected,1);state.selected=Math.min(state.selected,state.rows.length-1);state.rows.forEach((row,index)=>row.index=index);}}
-    if(args[0]==='type')state.typed=args.at(-1);
+    if(args[0]==='key')for(const key of args){if(key==='ctrl+1')state.selected=0;if(key==='ctrl+Tab')state.selected=(state.selected+1)%state.rows.length;if(key==='Delete'&&state.inlineStart!==undefined){state.typed=state.typed.slice(0,state.inlineStart);delete state.inlineStart;}if(key==='Return'&&state.typed!==null)state.rows[state.selected].url=state.typed;if(key==='Return'&&state.toolbarOpen)state.popups=[];if(key==='ctrl+w'){state.rows.splice(state.selected,1);state.selected=Math.min(state.selected,state.rows.length-1);state.rows.forEach((row,index)=>row.index=index);}}
+    if(args[0]==='type'){state.typed=args.at(-1);if(state.inlineSuffix){state.inlineStart=state.typed.length;state.typed+=state.inlineSuffix;}}
     if(args[0]==='getactivewindow')return (state.toolbarOpen?'toolbar-popup':'normal-root')+'\n';
     if(args[0]==='search')return state.nativeWindow+'\n';
     if(args[0]==='getwindowgeometry'){state.geometry++;return 'X=-8\nY=20\nWIDTH='+(state.geometry===1?0:620)+'\nHEIGHT='+(state.geometry===1?0:514)+'\n';}
@@ -67,4 +67,11 @@ test('an invalid open result refuses before closing the opener',async()=>{
   const {state,ui}=fixture();state.badOpen=true;
   await assert.rejects(ui.closeOpener(11,'http://fixture.test/backup'),/untrusted_content/);
   assert.ok(state.rows.some(row=>row.tab===11));assert.ok(!state.commands.some(command=>command.includes('ctrl+w')));
+});
+
+test('owner navigation deletes an inline history suffix before committing the exact URL',async()=>{
+  const {state,ui}=fixture();state.inlineSuffix='&id=restored-old';
+  await ui.navigate('http://fixture.test/?case=compose');
+  assert.equal(state.rows[1].url,'http://fixture.test/?case=compose');
+  assert.equal(state.commands.filter(row=>row.includes('Return')).length,1,'never replay owner navigation');
 });

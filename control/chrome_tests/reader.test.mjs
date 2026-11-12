@@ -6,7 +6,7 @@ import vm from 'node:vm';
 import {webcrypto,createHash} from 'node:crypto';
 
 function fixture(fields,{subtle=true,NativeBlob=Blob}={}) {
-  let calls=0,fileSequence=0;const timers=[];
+  let calls=0,fileSequence=0,clipboardInfo=null;const timers=[];
   class Element {
     isConnected=true;nodeType=1;tagName='INPUT';textContent='';childNodes=[];hidden=false;type='text';isContentEditable=false;labels=[];files=[];name='';
     constructor(config={}){Object.assign(this,config);}
@@ -34,13 +34,13 @@ function fixture(fields,{subtle=true,NativeBlob=Blob}={}) {
     Element,HTMLElement:Element,HTMLInputElement,HTMLTextAreaElement,HTMLSelectElement,HTMLButtonElement,Node:{TEXT_NODE:3},CustomEvent:class{},
     atob:value=>Buffer.from(value,'base64').toString('binary'),setTimeout:fn=>timers.push(fn),
     getComputedStyle:element=>({display:['DIV','P'].includes(element.tagName)?'block':'inline',visibility:'visible',webkitTextSecurity:element.mask || 'none'}),
-    [Symbol.for('aresos.chrome.guard.v2')]:{watch(){},reader(value){readerAPI=value;},arm(){},clear(){},resume(){return {resumed:'native_submit'};},steps(){return [];}},
+    [Symbol.for('aresos.chrome.guard.v2')]:{clipboard(take){const value=clipboardInfo;if(take)clipboardInfo=null;return value;},watch(){},reader(value){readerAPI=value;},arm(){},clear(){},resume(){return {resumed:'native_submit'};},steps(){return [];}},
     origin:'https://fixture.test',location:{href:'https://fixture.test/'},scrollX:0,scrollY:0,innerWidth:100,innerHeight:100});
   vm.runInContext(fs.readFileSync('control/chrome/extension/reader.js','utf8'),context);
   function read(){let result;listener({command:'read'},{id:'fixture'},value=>result=value);assert.equal(result.ok,true,JSON.stringify(result));return result;}
   function command(message){let result;listener(message,{id:'fixture'},value=>result=value);return result;}
   const readAsync=()=>new Promise(resolve=>listener({command:'read'},{id:'fixture'},resolve));
-  return {nodes,Element,designMode:value=>{document.designMode=value},generic:node=>Object.setPrototypeOf(node,Element.prototype),reinject:()=>{readerAPI.dispose();vm.runInContext(fs.readFileSync('control/chrome/extension/reader.js','utf8'),context);},read,readAsync,command,form:(element,submitter)=>readerAPI.form(element,submitter),observationOptions,expire:()=>{for(const fn of timers.splice(0))fn();},mutations:()=>observer.records,calls:()=>calls};
+  return {nodes,Element,setClipboard:value=>{clipboardInfo=value},observeAsync:()=>new Promise(resolve=>listener({command:'observe'},{id:'fixture'},resolve)),designMode:value=>{document.designMode=value},generic:node=>Object.setPrototypeOf(node,Element.prototype),reinject:()=>{readerAPI.dispose();vm.runInContext(fs.readFileSync('control/chrome/extension/reader.js','utf8'),context);},read,readAsync,command,form:(element,submitter)=>readerAPI.form(element,submitter),observationOptions,expire:()=>{for(const fn of timers.splice(0))fn();},mutations:()=>observer.records,calls:()=>calls};
 }
 
 test('group7 protected values never reach a getter, source attribute, trace or binding',()=>{
@@ -258,4 +258,10 @@ test('recheck2 compose text binds the smallest common area and ignores live outs
   const initial=current();assert.match(initial.text,/Original preview/);assert.equal(initial.whole_page,false);
   outside.childNodes[0].textContent='Timestamp 2 Autosaved 2 Counter 2';assert.deepEqual(current(),initial);
   preview.childNodes[0].textContent='Changed preview';assert.notDeepEqual(current(),initial);assert.match(current().text,/Changed preview/);
+});
+
+test('2c post-input observations expose only the private clipboard fact and consume it once',async()=>{
+  const f=fixture([]),fact={written:true,message:'The page wrote to the clipboard.',routes:['writeText']};f.setClipboard(fact);
+  const first=await f.observeAsync();assert.equal(first.ok,true);assert.deepEqual(first.data.clipboard,fact);
+  const second=await f.observeAsync();assert.equal(second.ok,true);assert.equal(second.data.clipboard,undefined);
 });

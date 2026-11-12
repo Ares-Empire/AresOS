@@ -5,6 +5,7 @@
   'use strict';
   const dispatch=EventTarget.prototype.dispatchEvent, Report=CustomEvent;
   const invoke=Reflect.apply, define=Object.defineProperty;
+  const ownClipboard=globalThis.navigator?.clipboard,clipboardThen=Promise.prototype.then;
   const create=Object.create,keys=Object.keys,iterator=Symbol.iterator;
   const options=values=>{const result=create(null),names=keys(values);for(let index=0;index<names.length;index++)result[names[index]]=values[names[index]];return result;};
   const property=(object,key,value,enumerable=false)=>{const description=create(null);description.value=value;description.enumerable=enumerable;define(object,key,description);};
@@ -83,6 +84,19 @@
   function install(prototype,name,implementation) { const value=({method(...args){return invoke(implementation,this,args);}}).method;const previous=options(descriptor(prototype,name));invoke(setString,nativeStrings,[value,invoke(nativeString,previous.value,[])]);define(value,'name',options({value:previous.value.name,configurable:true}));define(value,'length',options({value:previous.value.length,configurable:true}));define(prototype,name,options({...previous,value}));installed.push({prototype,name,value,previous}); }
   function activate(){
   if(closed)throw Error('The document guard was disposed');if(enabled)return;enabled=true;
+  if(ownClipboard&&globalThis.Clipboard)for(const name of ['write','writeText']){
+    const method=descriptor(Clipboard.prototype,name)?.value;if(typeof method!=='function')continue;
+    install(Clipboard.prototype,name,function(){
+      const result=invoke(method,this,arguments);
+      if(!enabled||this!==ownClipboard)return result;
+      try{return invoke(clipboardThen,result,[value=>{
+        // Observe only successful completion. Arguments and clipboard contents
+        // never enter the relay; a reporting failure cannot change the write.
+        if(enabled)try{report(ownDocument,{kind:'clipboard_write',route:name});}catch{}
+        return value;
+      }]);}catch{return result;}
+    });
+  }
   if(saved.attachShadow)install(Element.prototype,'attachShadow',function(){const result=invoke(saved.attachShadow,this,arguments);report(result,{kind:'watch_root'});return result;});
   // Capture travels with the node even when a borrowed native inserts it into
   // a new closed root and dispatches a non-composed event in the same stack.

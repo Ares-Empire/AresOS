@@ -140,3 +140,12 @@ class RecheckSearch(unittest.TestCase):
             self.assertIsNone(classify('click',{},query))
             self.assertIsNone(classify('click',{}, {'target':{'name':'Message','editable':True,'value':value}}))
             self.assertEqual(classify('press',{'key':'Enter'},{'target':{'name':'Message','editable':True,'value':value}}),'send')
+
+
+class ClipboardDescriptions(unittest.TestCase):
+    def test_2c_click_descriptions_warn_without_changing_the_liftable_shared_block(self):
+        from aresos_control.definitions import BY_NAME
+        from aresos_control.chrome.definitions import CLIPBOARD_NOTICE,SHARED
+        for verb in ['click','fill','select','check','press','upload','fill_form','dialog','submit','submit_trusted']:
+            self.assertIn(CLIPBOARD_NOTICE,BY_NAME['chrome_'+verb].tool()['description'])
+        self.assertNotIn(CLIPBOARD_NOTICE,SHARED)

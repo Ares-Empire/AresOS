@@ -21,7 +21,7 @@ class HostTransport(unittest.TestCase):
         for error in [errno.ECONNRESET,errno.ETIMEDOUT]:
             with self.subTest(error=error):
                 row=self.probe('connect:vsock',error)
-                self.assertFalse(row['blocked']);self.assertTrue(row['unqualified'])
+                self.assertFalse(row['blocked']);self.assertTrue(row.get('unqualified'))
                 self.assertEqual(row['classification'],'no-qualified-host-endpoint')
 
     def test_a_successful_vsock_connect_remains_an_open_route(self):

@@ -25,7 +25,10 @@ export function ownerUI({call,currentTab,window,eventually,exec=execFileSync}){
     async navigate(url,options){
       const tab=currentTab();await select(tab,options);
       exec('xdotool',['key','--clearmodifiers','ctrl+l']);
-      exec('xdotool',['type','--clearmodifiers','--delay','1',url]);exec('xdotool',['key','Return']);
+      exec('xdotool',['type','--clearmodifiers','--delay','1',url]);
+      // Forward Delete removes only an inline-autocompleted suffix; at the end
+      // of the exact typed URL it changes nothing. Never accept a history URL.
+      exec('xdotool',['key','--clearmodifiers','Delete']);exec('xdotool',['key','--clearmodifiers','Return']);
       await eventually(async()=>(await tabInfo(tab))?.url===url,'owner navigation committed in the exact tab');
     },
     async stopPopup(tab,{openPopup,state,capture}){

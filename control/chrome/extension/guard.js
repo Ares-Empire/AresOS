@@ -59,6 +59,13 @@
   const held = new Map(), roots = new WeakMap(), rootRefs = new Set(), consumed = new Set();
   function* watchedRoots(){for(const ref of rootRefs){const root=ref.deref();if(root)yield [root,roots.get(root)];else rootRefs.delete(ref);}}
   let reader, generation = null, dispatchNonce = null, config, until = 0, inFlight = false, mark = null, owner = null, sequence = 0;
+  const clipboardRoutes=new Set();
+  function noteClipboard(route){if(generation!==null&&['write','writeText','copy'].includes(route)){clipboardRoutes.add(route);try{reader?.clipboard?.(route,generation);}catch{}}}
+  function clipboardObservation(take=false){
+    if(!clipboardRoutes.size)return null;
+    const result={written:true,message:'The page wrote to the clipboard.',routes:[...clipboardRoutes].sort()};
+    if(take)clipboardRoutes.clear();return result;
+  }
   let endingDialog=null;
   function nativeDialogReturned(token){
     endingDialog=token;
@@ -233,6 +240,7 @@
     let delivery=false;
     try {
       const detail=request?request.detail:event.detail;
+      if(detail?.kind==='clipboard_write'){if(element===ownDocument)noteClipboard(detail.route);return;}
       if(detail?.kind==='dialog_begin'){reader.dialog?.('begin',detail.token,generation,null,detail.dialog_kind);event.preventDefault();return;}
       if(detail?.kind==='dialog_end'){nativeDialogReturned(detail.token);event.preventDefault();return;}
       if(element instanceof Element)watch(element.getRootNode());
@@ -298,13 +306,15 @@
       onCall(event);
     },true);
     listen('aresos-page-call-v2',onCall,false);}
+    listen('copy',event=>{try{if(event.isTrusted)noteClipboard('copy');}catch{}},true);
     for (const kind of ['pointerdown','pointerup','pointermove','mousedown','mouseup','click','keydown','keypress','keyup','input','change','invalid','submit']) listen(kind,event=>capture(event,root),true);
   }
   watch(window);
   // This object exists only in the extension's isolated world. MAIN has no API or capability.
   globalThis[Symbol.for('aresos.chrome.guard.v2')] = {
     get ready(){return !!reader;},
-    control(epoch){generation=epoch;},
+    clipboard:clipboardObservation,
+    control(epoch){if(generation!==epoch)clipboardRoutes.clear();generation=epoch;},
     route(event,stage,hold){if(hold){config=hold.config;until=Math.max(until,performance.now()+config.holdMs);owner=null;mark=null;}if(stage.detail.kind==='click'||stage.detail.kind==='dispatch'){const node=eventElement(stage.target),name=stage.detail.kind==='click'?'click':stage.detail.event_type;if(node)watch(node.getRootNode());if(active()&&node&&(name==='click'&&asks(node)||name==='submit'&&!search(reader.form(node),node))){report('activation',control(node));return;}event.preventDefault();}else onCall(event,stage);},
     identity(){return reader?.document;},
     dialogBoundary(){return {document:reader?.document,token:endingDialog};},
@@ -318,7 +328,7 @@
       const drop=request=>{if(stack.at(-1)?.detail.request===request)stack.pop();};
       listen('aresos-relay-meta',event=>{
         const detail=event.detail;
-        if(stack.length>=32||!['native_submit','request_submit','click','dispatch','watch_root','watch_node','dialog_begin','dialog_end'].includes(detail?.kind))return;
+        if(stack.length>=32||!['native_submit','request_submit','click','dispatch','watch_root','watch_node','clipboard_write','dialog_begin','dialog_end'].includes(detail?.kind))return;
         if(!Number.isSafeInteger(detail.request))return;
         const stage={detail};stack.push(stage);
       });
@@ -341,6 +351,7 @@
         const stage=stack.at(-1);if(!stage?.target||stage.detail.request!==event.detail)return;
         // Pop before entering page handlers; nested requests get their own record.
         drop(stage.detail.request);
+        if(stage.detail.kind==='clipboard_write'){if(stage.target===ownDocument)noteClipboard(stage.detail.route);return;}
         if(stage.detail.kind==='watch_node'){if(stage.target.ownerDocument===ownDocument)watch(stage.target);event.preventDefault();return;}
         if(stage.detail.kind==='watch_root'){const other=foreignGuard(stage.target.ownerDocument||stage.target);if(other?.watch)other.watch(stage.target,active()?{config}:null);else if(!other)watch(stage.target);event.preventDefault();return;}
         const other=foreignGuard(stage.target);if(other){if(other.outside)outsideCall(event,stage);else if(other.route)other.route(event,stage,active()?{config}:null);return;}
@@ -372,7 +383,7 @@
       await new Promise(resolve=>setTimeout(resolve,0));
       if (generation===epoch && dispatchNonce===nonce) { until=Math.max(until,performance.now()+config.holdMs);inFlight=false;mark=null; }
     },
-    clear() { generation=null;until=0;inFlight=false;mark=null;owner=null;held.clear(); },
+    clear() { clipboardRoutes.clear();generation=null;until=0;inFlight=false;mark=null;owner=null;held.clear(); },
     dispose() { let restored=true;if(relayControl){restored=!native.dispatch.call(relayControl,new Event('aresos-relay-cleanup',{cancelable:true}));for(const [kind,listener]of relayListeners)relayControl.removeEventListener(kind,listener);}relayControl=null;relayListeners.length=0;this.clear();ownerMutations?.disconnect();for(const [root,listeners] of watchedRoots())for(const [kind,listener,capture]of listeners)root.removeEventListener(kind,listener,capture);rootRefs.clear();ownerTasks.port1.close();ownerTasks.port2.close();reader?.dispose?.();reader=null;delete globalThis[Symbol.for('aresos.chrome.guard.v2')];return restored; },
     steps() { const result=[...held.values()].filter(step=>!step.reported).map(step=>{step.reported=true;return {id:step.id,kind:step.kind,document:step.document,label:step.label,element:step.element,submitter:step.submitter,cancellable:step.cancellable};});return result; },
     resume(id,operation,element,form) {

@@ -15,6 +15,7 @@ export function assertNativeLimit(rows,arrivals){
       const receipt=arrivals.filter(value=>new URL(value.url,'http://fixture.test').searchParams.get('case')===id+'-'+cause);
       assert.equal(receipt.length,1,id+' '+cause+' handler must have exactly one independent receipt');
       assert.deepEqual(JSON.parse(receipt[0].body),{cause,before:observation.before,atHandler:observation.atHandler,trusted:false});
+      if(capability==='download')assert.equal(arrivals.filter(value=>new URL(value.url,'http://fixture.test').searchParams.get('case')===id+'-'+cause+'-download').length,1,'download must reach the independent receiver in both comparisons');
     }
     assert.equal(row.alone.before.active,false,'baseline must have no transient activation');
     assert.equal(row.alone.atHandler.active,false,'autonomous native dispatch must not gain activation');
@@ -22,6 +23,7 @@ export function assertNativeLimit(rows,arrivals){
     assert.equal(row.added_transient_activation,extra,'do not label new activation as harmless');if(extra)added.push(id);
     assert.equal(row.result.untrusted_content.dispatched,true);assert.deepEqual(row.result.untrusted_content.steps,[]);assert.deepEqual(row.result.followups,[]);
     assert(row.result.untrusted_content.page.notices.includes('Hostile native Delete handler ran'));
+    if(capability==='clipboard')assert.equal(row.result.untrusted_content.page.clipboard,undefined,'borrowed-native writes remain undetected; do not imply coverage');
     assert.match(row.status.operation.stages.dispatched.untrusted_content,/delivery not proven/);
     assert.match(row.status.operation.reason,/Free input dispatched once/);
     assert.doesNotMatch(row.status.operation.reason,/nothing|stopped|no input/i);

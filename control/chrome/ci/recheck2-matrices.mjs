@@ -98,6 +98,20 @@ export async function recheck2Matrices({check,nav,call,target,approval,receiverE
     fs.writeFileSync('/out/all-native-limit.json',JSON.stringify(observations,null,2));
     const audit=assertNativeLimit(observations,fixture.arrivals);fs.writeFileSync('/out/all-native-limit-audit.json',JSON.stringify(audit,null,2));
   });
+  await check('GROUP 5 RECHECK2C clipboard writes are reported without reading contents',async()=>{
+    const results=[];
+    for(const route of ['writeText','write','copy','writeText-nav']){
+      const id='recheck2c-clipboard-'+route;await nav('review-page&mode=clipboard-report&variant='+route+'&id='+id,'localhost');
+      assert.equal(receiverEvidence(id,'clipboard before click').count,0);
+      const result=await call('click',await target('Continue'));await eventually(()=>receiverEvidence(id,'clipboard accepted once').count===1,'native clipboard operation accepted');
+      assert.equal(result.untrusted_content.page.clipboard.written,true);assert.equal(result.untrusted_content.page.clipboard.message,'The page wrote to the clipboard.');
+      assert.deepEqual(result.untrusted_content.page.clipboard.routes,[route==='writeText-nav'?'writeText':route]);
+      assert.doesNotMatch(JSON.stringify(result),/SYNTHETIC_CLIPBOARD_CONTENT_2C/);
+      const status=await call('operation_status',{operation_id:result.operation_id});assert.equal(receiverEvidence(id,'clipboard status never replays').count,1);
+      results.push({id,route,result,status});
+    }
+    fs.writeFileSync('/out/clipboard-report.json',JSON.stringify(results,null,2));
+  });
   await check('GROUP 8 RECHECK2 extension restart reconciles leftover session network rules',async()=>{
     // Reproduce a lost worker timer: a session rule survives but all its private
     // state is gone. Stop first so this experiment doesn't strand MAIN wrappers.

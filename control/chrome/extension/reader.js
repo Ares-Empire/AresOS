@@ -326,7 +326,7 @@
       rich_drafts:fields.filter(node=>node.isContentEditable).map(node=>({element:id(node),...safeValue(node)})),
       attachments:fields.filter(node=>node.matches('[aria-label^="Attachment:"]')).map(node=>({label:name(node),text:text(node)})),target:target ? name(target):null};
   }
-  guard.reader({document:documentId,id,element:key=>elements.get(key),target:targetFacts,form:(element,submitter)=>formFacts(element.form || (element.tagName==='FORM' ? element:null),submitter || element),report:(step,generation)=>{chrome.runtime.sendMessage({event:'held_step',step,generation}).catch(()=>{});},dialog:(phase,token,generation,nonce,kind)=>{chrome.runtime.sendMessage({event:'native_dialog_boundary',phase,token,generation,nonce,kind,document:documentId}).catch(()=>{});},dispose:()=>{revisionObserver.disconnect();files.clear();elements.clear();traces.length=0;chrome.runtime.onMessage.removeListener(onMessage);}});
+  guard.reader({document:documentId,id,clipboard:(route,generation)=>{chrome.runtime.sendMessage({event:'clipboard_write',document:documentId,route,generation}).catch(()=>{});},element:key=>elements.get(key),target:targetFacts,form:(element,submitter)=>formFacts(element.form || (element.tagName==='FORM' ? element:null),submitter || element),report:(step,generation)=>{chrome.runtime.sendMessage({event:'held_step',step,generation}).catch(()=>{});},dialog:(phase,token,generation,nonce,kind)=>{chrome.runtime.sendMessage({event:'native_dialog_boundary',phase,token,generation,nonce,kind,document:documentId}).catch(()=>{});},dispose:()=>{revisionObserver.disconnect();files.clear();elements.clear();traces.length=0;chrome.runtime.onMessage.removeListener(onMessage);}});
   function reloadState(){
     let unsaved=document.designMode?.toLowerCase()==='on';
     for(const element of all()){
@@ -386,7 +386,9 @@
       else if(message.command==='observe'){
         const node=elements.get(message.element);
         const actual=node?.isConnected?safeValue(node):{},observed=typeof actual.value==='string'?{value:actual.value.slice(0,2048),value_more:Math.max(0,actual.value.length-2048)}:Array.isArray(actual.value)?{value:actual.value.slice(0,3),value_more:Math.max(0,actual.value.length-3)}:actual;
-        value={url:location.href,title:document.title,notices:all().filter(element=>element.matches('[role=status],[role=alert],dialog[open],[role=dialog],[role=alertdialog]')).slice(0,5).map(element=>text(element).slice(0,2048)),change:node?.isConnected?{element:id(node),name:name(node),checked:!!node.checked,selected:!!node.selected,...observed}: {element_present:false}};
+        const clipboard=guard.clipboard?.();
+        value={url:location.href,title:document.title,...(clipboard?{clipboard}:{}),notices:all().filter(element=>element.matches('[role=status],[role=alert],dialog[open],[role=dialog],[role=alertdialog]')).slice(0,5).map(element=>text(element).slice(0,2048)),change:node?.isConnected?{element:id(node),name:name(node),checked:!!node.checked,selected:!!node.selected,...observed}: {element_present:false}};
+        if(clipboard)guard.clipboard(true);
       }
       else if (message.command === 'reload_state') value=reloadState();
       else if (message.command === 'ready') value = {preload:true,document:documentId,...(message.element?{element_present:!!elements.get(message.element)?.isConnected}:{})};

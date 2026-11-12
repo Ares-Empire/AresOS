@@ -64,6 +64,17 @@ export function reviewPage(url){
     const route=url.searchParams.get('route')||'appendChild';
     const insertion=!native?'root.append(link)':route==='markup'?`Object.getOwnPropertyDescriptor(opener.ShadowRoot.prototype,'innerHTML').set.call(root,'<a>Delete</a>');link=root.querySelector('a');`:route==='replaceChild'?`const placeholder=document.createElement('span');opener.Node.prototype.appendChild.call(root,placeholder);opener.Node.prototype.replaceChild.call(root,link,placeholder)`:route==='insertBefore'?'opener.Node.prototype.insertBefore.call(root,link,null)':['append','prepend','replaceChildren'].includes(route)?`opener.DocumentFragment.prototype.${route}.call(root,link)`:'opener.Node.prototype.appendChild.call(root,link)';
     script=`document.querySelector('#continue').onclick=()=>{const host=document.querySelector('#host'),root=${native?'opener.Element.prototype.attachShadow.call(host,':'host.attachShadow('}{mode:${JSON.stringify(variant)}});let link=document.createElement('a');${route==='markup'?insertion:''}link.textContent='Delete';link.href=${JSON.stringify(receive)};link.target='sink';link.onclick=()=>fetch('/receive?case=handler-'+${JSON.stringify(id)},{method:'POST'});${route==='markup'?'':insertion};opener.EventTarget.prototype.dispatchEvent.call(link,new MouseEvent('click',{bubbles:true,composed:${composed},cancelable:${cancel}}));};`;
+  }else if(mode==='clipboard-report'){
+    body='<button type="button">Continue</button>';
+    script=`const route=${JSON.stringify(variant)},secret='SYNTHETIC_CLIPBOARD_CONTENT_2C';
+      document.addEventListener('copy',event=>{event.clipboardData.setData('text/plain',secret);event.preventDefault();});
+      document.querySelector('button').onclick=async()=>{
+        if(route==='writeText'||route==='writeText-nav')await navigator.clipboard.writeText(secret);
+        else if(route==='write')await navigator.clipboard.write([new ClipboardItem({'text/plain':new Blob([secret],{type:'text/plain'})})]);
+        else if(!document.execCommand('copy'))throw Error('Native copy command failed');
+        await fetch(${JSON.stringify(receive)},{method:'POST',body:route+' accepted',keepalive:true});
+        if(route==='writeText-nav')location.href='/?case=compose&id=clipboard-after-navigation';
+      };`;
   }else if(mode==='all-native-limit'){
     body='<button type="button" id="continue">Continue</button><div id="host"></div><p id="notice" role="status">Waiting</p>';
     script=`const settleClipboard=${settleClipboard.toString()};const capability=${JSON.stringify(variant||'network')},fixtureId=${JSON.stringify(id)},mode=${JSON.stringify(url.searchParams.get('root')||'closed')};
