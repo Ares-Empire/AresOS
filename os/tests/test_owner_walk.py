@@ -643,7 +643,17 @@ class TerminalPathTest(unittest.TestCase):
                 if isinstance(answer, BaseException): raise answer
                 return answer
             def screenshot(self, name): events.append(('screenshot', name))
-        with patch.object(vm.time, 'sleep', side_effect=lambda s: events.append(('sleep', s))), \
+        import threading
+        real_sleep, main = vm.time.sleep, threading.main_thread()
+
+        def sleep(seconds):
+            # time.sleep is the time module's: a thread left by another test (rehearsal run 8's
+            # hosted runner) keeps its real sleep and stays out of this step's order.
+            if threading.current_thread() is main:
+                events.append(('sleep', seconds))
+            else:
+                real_sleep(seconds)
+        with patch.object(vm.time, 'sleep', side_effect=sleep), \
                 patch.object(vm.td, 'save', side_effect=lambda name, value: saved.__setitem__(name, value)):
             try: result = vm.terminal_path(Guest(), 'release-27')
             except AssertionError as error: result = error
