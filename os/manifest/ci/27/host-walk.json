@@ -146,7 +146,7 @@
       "path": "os/ci/owner_read_diagnostics.py"
     },
     {
-      "sha256": "0e0188403c5492579da97ed46c9f741b18679bfb75121ecfbafa7c1b9fbd59ee",
+      "sha256": "e3e7016ec8ee8a1051f5379466a67e1f8c030e000c041e152950f7f8fc7fa715",
       "path": "os/ci/owner_vm.py"
     },
     {
@@ -166,7 +166,7 @@
       "path": "os/ci/registry_auth.py"
     },
     {
-      "sha256": "fe71cbc2734d55b71cc4db30ec20a6ccda7a44e52bff3ceb7a1ac572dc4f54c6",
+      "sha256": "9adbca610c9ba31f0ee35a2f78229e664e677a242b24bd55f0ec9d18e3e293e7",
       "path": "os/ci/rehearsal-packages.json"
     },
     {
