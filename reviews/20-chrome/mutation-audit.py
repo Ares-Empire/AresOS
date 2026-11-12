@@ -210,8 +210,9 @@ case('recheck2b-picker-browser-focus','control/chrome/ci/compatibility.mjs','ret
 
 case('recheck2c-clipboard-write',M,"for(const name of ['write','writeText'])","for(const name of ['writeText'])",node('page','2c Clipboard write reports'))
 case('recheck2c-clipboard-writeText',M,"for(const name of ['write','writeText'])","for(const name of ['write'])",node('page','2c Clipboard writeText reports'))
-case('recheck2c-copy-event',G,"listen('copy',event=>{try{if(event.isTrusted)noteClipboard('copy');}catch{}},true);",'',node('page','2c trusted copy events'))
-case('recheck2c-copy-trust',G,"if(event.isTrusted)noteClipboard('copy')","noteClipboard('copy')",node('page','2c forged copy events'))
+case('recheck2c-copy-event',G,"listen('copy',event=>{try{if(event.isTrusted&&nativeRoot.call(event.composedPath()[0],{composed:true})===ownDocument)noteClipboard('copy');}catch{}},true);",'',node('page','2c trusted copy events'))
+case('recheck2c-copy-trust',G,"event.isTrusted&&nativeRoot.call(event.composedPath()[0],{composed:true})===ownDocument","nativeRoot.call(event.composedPath()[0],{composed:true})===ownDocument",node('page','2c forged copy events'))
+case('recheck2c-copy-document',G,"&&nativeRoot.call(event.composedPath()[0],{composed:true})===ownDocument",'',node('page','2c a watched node adopted'))
 case('recheck2c-clipboard-reader',R,'...(clipboard?{clipboard}:{})','...{}',node('reader','2c post-input observations'))
 case('recheck2c-clipboard-navigation',B,'owner.clipboardRoutes.add(message.route);','',node('background','2c private clipboard facts'))
 case('recheck2c-clipboard-post-input',B,'return finish({available:false,url:current.url','return ({available:false,url:current.url',node('background','2c private clipboard facts'))

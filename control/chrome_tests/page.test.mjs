@@ -773,6 +773,15 @@ test('2c forged copy events cannot claim a clipboard write',()=>{
   const f=fixture({relay:true,nativeShadows:true,clipboard:true}),button=new f.HTMLElement();f.arm(button,null);
   f.originalDispatch.call(button,new f.Event('copy'));assert.equal(f.guard.clipboard(),null);f.cleanup();f.guard.dispose();
 });
+test('2c a watched node adopted into an ordinary document cannot report that documents copy',()=>{
+  const f=fixture({relay:true,nativeShadows:true,clipboard:true}),button=f.document.createElement('button');f.arm(button,null);
+  assert.ok(button.listeners.get('copy')?.length,'created nodes carry the synchronous capture listener');
+  const outside=new f.Node();outside.root=outside;button.ownerDocument=outside;button.root=outside;
+  let delivered=0;f.nativeListen.call(button,'copy',()=>delivered++);
+  const event=new f.Event('copy',{isTrusted:true});assert.equal(f.originalDispatch.call(button,event),true);
+  assert.equal(delivered,1);assert.equal(event.defaultPrevented,false);assert.equal(f.guard.clipboard(),null);
+  f.cleanup();f.guard.dispose();
+});
 test('2c borrowed clipboard natives remain undetected and cached wrappers become native after release',async()=>{
   const f=fixture({relay:true,nativeShadows:true,clipboard:true}),button=new f.HTMLElement();f.arm(button,null);
   await f.nativeClipboard.writeText.call(f.clipboard,'synthetic');assert.equal(f.guard.clipboard(),null);

@@ -1,4 +1,4 @@
-# Recheck fixes 2c — browser proof complete, final CI budget correction pending
+# Recheck fixes 2c — final copy-scope regression and verification pending
 
 The lead decided both stops in `briefs/20-recheck-fixes-2b.md` and `-2c.md`. The all-borrowed-native path is an
 accepted autonomous-page limit. **Every Claude click grants user activation**, as normal owner clicks do. The
@@ -10,7 +10,7 @@ unmerged. No branch has been merged into this one; no design document has been c
 
 - While a document's guard is active, MAIN-world Clipboard `write` and `writeText` wrappers observe successful native
   completion, and isolated capture
-  observes trusted `copy` events for `execCommand`. The native calls still run once with the same arguments and
+  observes trusted `copy` events for `execCommand` only when their native composed root is this controlled document. The native calls still run once with the same arguments and
   success/error values; the copy listener neither cancels nor changes propagation. Cached wrappers become native
   after release. No clipboard value, preview or hash is collected; no `clipboardRead` permission is added.
 - The post-input result includes only `page.clipboard = {written:true, message:"The page wrote to the clipboard.",
@@ -30,13 +30,13 @@ unmerged. No branch has been merged into this one; no design document has been c
 
 ## Verified / Not verified
 
-**Run:** all **287 Node tests** pass with zero failures/cancellations/skips; **230 Python tests in 576.850 s / OK**;
-all **186 removal mutations rejected, every baseline passing**; five artifact-stream reader tests and four transport
+**Run:** all **288 Node tests** pass with zero failures/cancellations/skips; the prior runtime's **230 Python tests / OK** (the scope-corrected runtime's full Python repeat is running);
+all **187 removal mutations rejected, every baseline passing**; five artifact-stream reader tests and four transport
 tests pass. The removals cover each clipboard route, reporting after navigation, the description warning and exact
 owner navigation. Generated files match definitions, and `git diff --check` passes.
 [Commands, output tails and hashes](records/recheck2c/local-summary.json), [removal evidence](records/recheck2c/mutations.json).
 The first Python invocation omitted `PYTHONPATH` and failed to import `test_bridge` (220 tests, one error); the full
-corrected invocation above passed. The final Linux acceptance pair remains pending after the batch-timeout correction below.
+corrected invocation above passed. The final Linux acceptance pair remains pending after the batch-timeout and copy-scope corrections below.
 No local browser/profile, container, Java or Gradle process is used. Browser evidence comes only from GitHub Linux
 containers in `control-chrome.yml`, with synthetic fixture hosts and no real accounts.
 
@@ -80,6 +80,14 @@ cancelled and full verification restarts with both budgets aligned. No owner or 
 [Eight shared-artifact checks and SHA-256 records](records/recheck2c/initial-shared-audit.json). No production
 qualification/data branch is published from this package branch. Local full base discovery lacked `jsonschema`
 (23 errors); complete base CI passes as above. No local dependencies were installed.
+
+**Run, final scope regression:** a node created in a controlled document retains its listeners when adopted into an
+ordinary document. The first copy observer wrongly reported that other document's trusted copy. The new browser-free
+regression reproduces the false write fact before the fix; native composed-root identity now excludes it without
+cancelling or stopping the copy event. Its removal probe fails as required. Clipboard contents were never collected.
+[Reproduction and correction](records/recheck2c/copy-document-scope.json). The owned-document browser copy case remains
+mandatory in both modes. This guard correction gives the final runtime hash
+`5a22b796fd859535227a54f27456ac4c37731f310fb4ac94bcfda88f3233f9dd`; final verification restarts on that build.
 
 **Read:** after `git fetch origin main`, specification files were read with `git show origin/main:<path>`; latest
 read is `d6df3ee3`. Briefs 2/2b/2c override the older residual wording in CONTROL section 6. Group 12 and the slim

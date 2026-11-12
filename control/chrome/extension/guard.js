@@ -306,7 +306,7 @@
       onCall(event);
     },true);
     listen('aresos-page-call-v2',onCall,false);}
-    listen('copy',event=>{try{if(event.isTrusted)noteClipboard('copy');}catch{}},true);
+    listen('copy',event=>{try{if(event.isTrusted&&nativeRoot.call(event.composedPath()[0],{composed:true})===ownDocument)noteClipboard('copy');}catch{}},true);
     for (const kind of ['pointerdown','pointerup','pointermove','mousedown','mouseup','click','keydown','keypress','keyup','input','change','invalid','submit']) listen(kind,event=>capture(event,root),true);
   }
   watch(window);

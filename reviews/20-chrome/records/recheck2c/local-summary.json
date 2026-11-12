@@ -1,24 +1,21 @@
 {
-  "runtime": "837b537f0c78d9fb2e1f2bd695e3657f1f0618d192c6215a9d8529d973c81b0a",
+  "runtime": "5a22b796fd859535227a54f27456ac4c37731f310fb4ac94bcfda88f3233f9dd",
   "node": {
     "command": "node --test control/chrome_tests/*.test.mjs",
-    "tests": 287,
-    "pass": 287,
+    "tests": 288,
+    "pass": 288,
     "fail": 0,
     "cancelled": 0,
     "skipped": 0
   },
   "mutations": {
     "command": "python3 -B reviews/20-chrome/mutation-audit.py reviews/20-chrome/records/recheck2c/mutations.json",
-    "rejected": 186,
+    "rejected": 187,
     "every_baseline_passed": true
   },
   "python": {
-    "command": "PYTHONPATH=control:control/chrome_tests PYTHONDONTWRITEBYTECODE=1 python3 -B -m unittest discover -s control/chrome_tests -v",
-    "tests": 230,
-    "seconds": 576.85,
-    "result": "OK",
-    "prior_import_only_failure_recorded": true
+    "status": "running",
+    "command": "PYTHONPATH=control:control/chrome_tests PYTHONDONTWRITEBYTECODE=1 python3 -B -m unittest discover -s control/chrome_tests -v"
   },
   "audit_streams_tests": 5,
   "host_transport_tests": 4,
@@ -59,7 +56,37 @@
       "bytes": 44100,
       "sha256": "6efcb9575ee105a606a0f0a1cd9a7fc3e406196da8df7021183be36df56dddab",
       "tail": "ut) ... ok\ntest_r2_created_tab_identity_commits_before_navigation (test_storage.Storage.test_r2_created_tab_identity_commits_before_navigation) ... ok\ntest_r2_free_input_has_committed_context_before_dispatch (test_storage.Storage.test_r2_free_input_has_committed_context_before_dispatch) ... ok\ntest_review1_password_failure_refuses_before_any_binding_read (test_storage.Storage.test_review1_password_failure_refuses_before_any_binding_read) ... ok\ntest_review1_readonly_added_after_prepare_refuses_all_dispatch_kinds (test_storage.Storage.test_review1_readonly_added_after_prepare_refuses_all_dispatch_kinds) ... ok\ntest_storage_admission_refusal_recovers_without_restart_and_prevents_dispatch (test_storage.Storage.test_storage_admission_refusal_recovers_without_restart_and_prevents_dispatch) ... ok\ntest_taken_read_preserves_document_and_first_input_commits_reload_before_staling (test_storage.Storage.test_taken_read_preserves_document_and_first_input_commits_reload_before_staling) ... ok\ntest_taken_reload_warning_requires_explicit_repeat_and_readonly_never_reloads (test_storage.Storage.test_taken_reload_warning_requires_explicit_repeat_and_readonly_never_reloads) ... ok\ntest_warning_occurrences_bind_source_document_and_do_not_inherit_old_acknowledgement (test_storage.Storage.test_warning_occurrences_bind_source_document_and_do_not_inherit_old_acknowledgement) ... ok\ntest_service_sandbox_and_launch_are_exact (test_unit.InstalledUnit.test_service_sandbox_and_launch_are_exact) ... ok\n\n----------------------------------------------------------------------\nRan 230 tests in 576.850s\n\nOK\n"
+    },
+    {
+      "file": "recheck2c-python-budget.txt",
+      "bytes": 44100,
+      "sha256": "b0dddd744d04c66462457a40dda8ea590568772d27b7b95a088493e8fa55bc15",
+      "tail": "ut) ... ok\ntest_r2_created_tab_identity_commits_before_navigation (test_storage.Storage.test_r2_created_tab_identity_commits_before_navigation) ... ok\ntest_r2_free_input_has_committed_context_before_dispatch (test_storage.Storage.test_r2_free_input_has_committed_context_before_dispatch) ... ok\ntest_review1_password_failure_refuses_before_any_binding_read (test_storage.Storage.test_review1_password_failure_refuses_before_any_binding_read) ... ok\ntest_review1_readonly_added_after_prepare_refuses_all_dispatch_kinds (test_storage.Storage.test_review1_readonly_added_after_prepare_refuses_all_dispatch_kinds) ... ok\ntest_storage_admission_refusal_recovers_without_restart_and_prevents_dispatch (test_storage.Storage.test_storage_admission_refusal_recovers_without_restart_and_prevents_dispatch) ... ok\ntest_taken_read_preserves_document_and_first_input_commits_reload_before_staling (test_storage.Storage.test_taken_read_preserves_document_and_first_input_commits_reload_before_staling) ... ok\ntest_taken_reload_warning_requires_explicit_repeat_and_readonly_never_reloads (test_storage.Storage.test_taken_reload_warning_requires_explicit_repeat_and_readonly_never_reloads) ... ok\ntest_warning_occurrences_bind_source_document_and_do_not_inherit_old_acknowledgement (test_storage.Storage.test_warning_occurrences_bind_source_document_and_do_not_inherit_old_acknowledgement) ... ok\ntest_service_sandbox_and_launch_are_exact (test_unit.InstalledUnit.test_service_sandbox_and_launch_are_exact) ... ok\n\n----------------------------------------------------------------------\nRan 230 tests in 578.540s\n\nOK\n"
+    },
+    {
+      "file": "recheck2c-node-budget.txt",
+      "bytes": 27939,
+      "sha256": "5e3b3c2be8b2c25315b2a66b876c7b4af80f9557041a02b8e636d70134f8315c",
+      "tail": "ut changing its captured rows (9.092333ms)\n\u2714 idle catalogue snapshots still expire after five minutes (2.573291ms)\n\u2714 active catalogue walks expire exactly thirty minutes after creation and must restart (3.325292ms)\n\u2714 new catalogues prune absolute expiry even when the expired snapshot was used last (1.001625ms)\n\u2714 invalid cursors cannot renew a snapshot and retained snapshots stay bounded (0.912375ms)\n\u2714 fixture tab inventory follows every public ten-row page (0.552292ms)\n\u2714 qualification never turns missing or failed named cases into passing groups (12.080417ms)\n\u2714 failed support suites and owner trust checks cannot publish adapter or core passes (0.676417ms)\n\u2714 strict owner false hold remains a failing page-script result (0.108625ms)\n\u2714 every mandatory failure reaches a recorded core or adapter switch, not only the unused group map (4.325959ms)\n\u2714 duplicate or nonboolean case evidence cannot qualify (0.123708ms)\n\u2714 unmapped additional checks fail closed until explicitly assigned to recorded groups (0.092333ms)\n\u2714 every named core popup and adapter case is in the exact required inventory (0.671541ms)\n\u2714 one adapter failure preserves all independent adapter verdicts (0.924667ms)\n\u2714 multi-adapter matrices preserve sites outside their actual fixture coverage (0.166042ms)\n\u2714 shared binding classification isolation and owner prerequisites disable dependent adapters (0.206084ms)\n\u2714 P29 runtime acceptance rejects missing duplicate failed or unknown named rows and false verdicts (0.659375ms)\n\u2139 tests 287\n\u2139 suites 0\n\u2139 pass 287\n\u2139 fail 0\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 7196.213542\n"
+    },
+    {
+      "file": "recheck2c-mutations-budget.txt",
+      "bytes": 6959,
+      "sha256": "1b4212227162b2e243218be9eb4f13af0031e89e715d36610ae6e3f3013c30e2",
+      "tail": "eck2-network-rule MUTATION REJECTED\nrecheck2-network-expiry MUTATION REJECTED\nrecheck2-network-restart MUTATION REJECTED\nrecheck2-network-release MUTATION REJECTED\nrecheck2-compose-reader MUTATION REJECTED\nrecheck2-compose-service MUTATION REJECTED\nrecheck2-compose-reask MUTATION REJECTED\nrecheck2-compose-bounded MUTATION REJECTED\nrecheck2-compose-change-shown MUTATION REJECTED\nrecheck2-markup-handler MUTATION REJECTED\nrecheck2-single-capture MUTATION REJECTED\nrecheck2-compose-extension MUTATION REJECTED\nrecheck2-compose-final-boundary MUTATION REJECTED\nrecheck2-engine-reask MUTATION REJECTED\nrecheck2-engine-boundary-reask MUTATION REJECTED\nrecheck2-event-reuse MUTATION REJECTED\nrecheck2-slot-dedup-scope MUTATION REJECTED\nrecheck2-clone-native-kinds MUTATION REJECTED\nrecheck2-cached-factory MUTATION REJECTED\nrecheck2b-activation-baseline MUTATION REJECTED\nrecheck2b-activation-receipt MUTATION REJECTED\nrecheck2b-pending-clipboard MUTATION REJECTED\nrecheck2b-picker-leave-chooser MUTATION REJECTED\nrecheck2b-picker-browser-focus MUTATION REJECTED\nrecheck2c-clipboard-write MUTATION REJECTED\nrecheck2c-clipboard-writeText MUTATION REJECTED\nrecheck2c-copy-event MUTATION REJECTED\nrecheck2c-copy-trust MUTATION REJECTED\nrecheck2c-clipboard-reader MUTATION REJECTED\nrecheck2c-clipboard-navigation MUTATION REJECTED\nrecheck2c-clipboard-post-input MUTATION REJECTED\nrecheck2c-clipboard-route MUTATION REJECTED\nrecheck2c-clipboard-description MUTATION REJECTED\nrecheck2c-owner-exact-url MUTATION REJECTED\nrecheck2b-transport-reset MUTATION REJECTED\n186 mutations rejected; every baseline passed\n"
+    },
+    {
+      "file": "recheck2c-node-scope.txt",
+      "bytes": 28044,
+      "sha256": "1a51a0c44c4ab6b00d0ada86d9bf9be94fb6b9b377449233b942b0e5cb55a56d",
+      "tail": "ithout changing its captured rows (7.000458ms)\n\u2714 idle catalogue snapshots still expire after five minutes (2.945792ms)\n\u2714 active catalogue walks expire exactly thirty minutes after creation and must restart (5.415625ms)\n\u2714 new catalogues prune absolute expiry even when the expired snapshot was used last (1.227458ms)\n\u2714 invalid cursors cannot renew a snapshot and retained snapshots stay bounded (0.686125ms)\n\u2714 fixture tab inventory follows every public ten-row page (1.123958ms)\n\u2714 qualification never turns missing or failed named cases into passing groups (12.300083ms)\n\u2714 failed support suites and owner trust checks cannot publish adapter or core passes (0.744791ms)\n\u2714 strict owner false hold remains a failing page-script result (0.239709ms)\n\u2714 every mandatory failure reaches a recorded core or adapter switch, not only the unused group map (5.229333ms)\n\u2714 duplicate or nonboolean case evidence cannot qualify (0.151167ms)\n\u2714 unmapped additional checks fail closed until explicitly assigned to recorded groups (0.09275ms)\n\u2714 every named core popup and adapter case is in the exact required inventory (0.770959ms)\n\u2714 one adapter failure preserves all independent adapter verdicts (0.935ms)\n\u2714 multi-adapter matrices preserve sites outside their actual fixture coverage (0.165792ms)\n\u2714 shared binding classification isolation and owner prerequisites disable dependent adapters (0.206583ms)\n\u2714 P29 runtime acceptance rejects missing duplicate failed or unknown named rows and false verdicts (0.634542ms)\n\u2139 tests 288\n\u2139 suites 0\n\u2139 pass 288\n\u2139 fail 0\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 7250.923334\n"
+    },
+    {
+      "file": "recheck2c-mutations-scope.txt",
+      "bytes": 7001,
+      "sha256": "77348c3e905061150ced8fe39bd6a54c47b2960ab591e6b5dc1e04d318fa51a3",
+      "tail": "k2-network-expiry MUTATION REJECTED\nrecheck2-network-restart MUTATION REJECTED\nrecheck2-network-release MUTATION REJECTED\nrecheck2-compose-reader MUTATION REJECTED\nrecheck2-compose-service MUTATION REJECTED\nrecheck2-compose-reask MUTATION REJECTED\nrecheck2-compose-bounded MUTATION REJECTED\nrecheck2-compose-change-shown MUTATION REJECTED\nrecheck2-markup-handler MUTATION REJECTED\nrecheck2-single-capture MUTATION REJECTED\nrecheck2-compose-extension MUTATION REJECTED\nrecheck2-compose-final-boundary MUTATION REJECTED\nrecheck2-engine-reask MUTATION REJECTED\nrecheck2-engine-boundary-reask MUTATION REJECTED\nrecheck2-event-reuse MUTATION REJECTED\nrecheck2-slot-dedup-scope MUTATION REJECTED\nrecheck2-clone-native-kinds MUTATION REJECTED\nrecheck2-cached-factory MUTATION REJECTED\nrecheck2b-activation-baseline MUTATION REJECTED\nrecheck2b-activation-receipt MUTATION REJECTED\nrecheck2b-pending-clipboard MUTATION REJECTED\nrecheck2b-picker-leave-chooser MUTATION REJECTED\nrecheck2b-picker-browser-focus MUTATION REJECTED\nrecheck2c-clipboard-write MUTATION REJECTED\nrecheck2c-clipboard-writeText MUTATION REJECTED\nrecheck2c-copy-event MUTATION REJECTED\nrecheck2c-copy-trust MUTATION REJECTED\nrecheck2c-copy-document MUTATION REJECTED\nrecheck2c-clipboard-reader MUTATION REJECTED\nrecheck2c-clipboard-navigation MUTATION REJECTED\nrecheck2c-clipboard-post-input MUTATION REJECTED\nrecheck2c-clipboard-route MUTATION REJECTED\nrecheck2c-clipboard-description MUTATION REJECTED\nrecheck2c-owner-exact-url MUTATION REJECTED\nrecheck2b-transport-reset MUTATION REJECTED\n187 mutations rejected; every baseline passed\n"
     }
   ],
-  "source": "5f0b568194a68a82a5b235fe5b396d69290d1892"
+  "verification_note": "Current document-scope correction; full Python repeat running. Prior complete local results are preserved separately."
 }
