@@ -149,8 +149,9 @@ acting):
     that is accepted. Claude Code runs as his normal user in his home and projects, with his own `gh` login and his own
     MCP servers, skills and plugins, added as in normal Claude Code. The tools: send, delete and submit ask in Claude
     Code's prompt through managed ask rules (which no user allow rule, `PreToolUse` hook, mod or mode turns off, so
-    the switches that locked everything else go; a `PermissionRequest` hook that returns allow does approve one, as
-    brief 18d measured, and that is accepted); the app passwords AresOS holds with the tool service's own user; the `question`, approval binding and
+    the switches that locked everything else go; a `PermissionRequest` hook that returns allow does approve one in
+    print mode, as brief 18d measured, and that is accepted; brief 18c checks the interactive case); the app passwords
+    AresOS holds with the tool service's own user; the `question`, approval binding and
     untrusted-content marking as built; the instruction-source line in the managed `CLAUDE.md`. Gone: the SELinux
     domains, set-group-id relays and registration, the program allowlist and the gates as hard switches, project
     snapshots, the GitHub App, rulesets and mirror, the git wrapper and project-folder ownership, the separate
@@ -176,7 +177,7 @@ Three places, each with one job:
 | Place | Its job | Why there |
 |---|---|---|
 | **The tools** | Know what each action really does, and give each kind its own tool: reading (`mail_search`, `chrome_read`), changing (`mail_move`), sending (`mail_send`, `chrome_submit`), deleting (`mail_delete`). In Chrome, a click or key press that clearly sends (a form submit, a control labelled send or delete, Enter in a message field, an upload) doesn't run until approved; it becomes a separate `chrome_submit` step. | Only the tool can see that a click sends something. |
-| **Claude Code's settings** (a system-wide file in the image that only the admin account can change) | Decide which tools ask first and which are free. | Claude Code enforces them: Claude can't edit that file, and doesn't answer its own prompt unless a `PermissionRequest` hook can (tested in 18c; the accepted residual of decision 24 if so). Checked 2026-11-07: an "ask" rule still asks in skip-permissions mode, and the prompt shows the whole input ([check](../../reviews/control-checks/2026-11-07-permission-prompt.md)). |
+| **Claude Code's settings** (a system-wide file in the image that only the admin account can change) | Decide which tools ask first and which are free. | Claude Code enforces them: Claude can't edit that file, and doesn't answer its own prompt, though a `PermissionRequest` hook that returns allow can (measured in brief 18d in print mode, the interactive case in 18c; the accepted residual of decision 24). Checked 2026-11-07: an "ask" rule still asks in skip-permissions mode, and the prompt shows the whole input ([check](../../reviews/control-checks/2026-11-07-permission-prompt.md)). |
 | **CLAUDE.md** | Habits: how the owner writes mails, where things get filed. | These are requests to Claude. They are never what keeps sending under control. |
 
 **Rules for every tool, so the prompt tells the truth:**
@@ -200,9 +201,9 @@ the settings):
 - The ask rules for every asking tool live in a system-wide file only the admin account can change. A user or project
   allow rule, a `PreToolUse` hook, a mod or skip-permissions mode doesn't turn a managed ask off. A
   `PermissionRequest` hook (one that answers prompts on his behalf) that returns allow does approve a managed ask:
-  brief 18d measured it at user and managed scope, in normal and skip-permissions mode (Claude Code 2.1.319), and a
-  test fails if that changes. So his own such hooks must not match our asking tools. The managed `CLAUDE.md` says instructions come
-  only from him in the session.
+  brief 18d measured it at user and managed scope, in normal and skip-permissions print mode (Claude Code 2.1.319),
+  and a test fails if that changes; brief 18c checks the interactive case. So his own such hooks must not match our
+  asking tools. The managed `CLAUDE.md` says instructions come only from him in the session.
 - Everything else is normal Claude Code: it runs as his user with his own `gh` login, MCP servers, skills and plugins.
   Chrome is his normal Chrome, reached through the light tool (decision 25, `CONTROL.md` section 6); a page that
   sends on its own after an ordinary action isn't held.
@@ -213,8 +214,9 @@ the settings):
   `allowUnsandboxedCommands: false`, no excluded commands, Unix sockets not allowed and the service's socket folder
   denied for reads, and even then best-effort (`CONTROL.md` section 7).
 - The tests check the tools themselves: the asks hold in normal and in skip-permissions mode and against user allow
-  rules and `PreToolUse` hooks, the `PermissionRequest` hook case is measured and pinned, the question and the approval binding
-  match what really happens, untrusted content is marked, and the app passwords stay with the tool service's user.
+  rules and `PreToolUse` hooks, the `PermissionRequest` hook case is measured and pinned, the question and the
+  approval binding match what really happens, untrusted content is marked, and the app passwords stay with the tool
+  service's user.
 
 ## Order of work
 
@@ -273,7 +275,8 @@ the settings):
    - *Brief 18c* (early image test): Claude Code as his own user with his own MCP servers alongside ours; the fake send
      asking through the managed ask rule in normal and in skip-permissions mode, also with a user allow rule for it and
      after "Yes, and don't ask again"; a `PermissionRequest` hook returning allow for the fake send, at user and at
-     managed level, in both modes, with the result recorded (if it approves, that joins the accepted residual); no
+     managed level, in both modes, with the result recorded (if it approves, that joins the accepted residual; brief
+     18d measured print mode on 2026-11-12, it approves, so 18c keeps the interactive case); no
      separate session or coding user, no launcher containment.
    - *The next base brief:* the managed settings reduced to the ask rules for every asking tool (generated), the
      managed `Stop` and `UserPromptSubmit` notification hooks (`CONTROL.md` rule 4.10) and the managed `CLAUDE.md`;
@@ -705,10 +708,11 @@ tasks at any time.
   On Chrome he also asked for capability over more hardening: "a better tool for AresOS that's more efficient with
   readings, navigation, free tab navigation etc." (entry above).
 - **2026-11-12:** Mail with 19b (PR #9, `25528195`) and the slim base 18d (PR #25, `9b27a2fe`) are on main. 18d
-  measured the open `PermissionRequest` case: a hook that returns allow approves a managed ask, at user and managed
-  scope, in normal and skip-permissions mode. That is decision 24's accepted residual, at the level of normal Claude
-  Code; the test pins it. Image setup installs the slim managed settings and his user-scope MCP entries
-  (`control/README.md`), and his own auto-approving hooks must not match our asking tools. Chrome (PR #27) merges
-  next, onto the slim generator. The optional owner oracle's strict pins hash exact fault positions, which 18d's
-  slimmer check shifts; every capture keeps zero stage-2 gaps and the same stage-3 total, and the pins are redone
-  once after Chrome merges.
+  measured the open `PermissionRequest` case in print mode: a hook that returns allow approves a managed ask, at user
+  and managed scope, in normal and skip-permissions mode. That is decision 24's accepted residual, at the level of
+  normal Claude Code; a test pins it, and brief 18c checks the interactive case. Image setup installs the slim
+  managed settings; he adds our user-scope MCP entries with the step in `control/README.md`, and his own
+  auto-approving hooks must not match our asking tools. Chrome (PR #27) merges next, onto the slim generator. The
+  optional owner oracle's strict pins hash exact fault positions, which 18d's slimmer check shifts. Its run
+  43153770175 found zero stage-2 gaps and, across the captures together, the same stage-3 total as the pin
+  (1,966,234); the pins are redone once after Chrome merges.

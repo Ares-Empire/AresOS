@@ -281,8 +281,8 @@ settings file becomes `managed-settings.json`). Remove the former exclusive
 
 Our MCP servers install under the owner's user scope like any other server.
 `settings/user-mcp.json` maps each server name to the complete JSON argument for
-`claude mcp add-json --scope user`. The image ships it read-only as
-`/usr/share/aresos/control/user-mcp.json` (brief 18c). The owner runs this in his
+`claude mcp add-json --scope user`. Brief 18c will ship it read-only as
+`/usr/share/aresos/control/user-mcp.json`. The owner runs this in his
 own session after installing Claude Code (`~/.local/bin/claude`). It is safe to
 repeat: each run removes our entry of the same name, if there is one, and adds it
 again from the shipped file.
@@ -301,10 +301,11 @@ for name, server in servers.items():
 INSTALL
 ```
 
-Existing unrelated MCP entries are retained; an entry of his own under one of our
-server names (`control`, `mail`, later `chrome`) would be replaced. Server names
-must stay stable: `mcp__mail__send` names the `send` tool on the installed `mail`
-server.
+Existing unrelated MCP entries are retained; a user-scope entry of his own under
+one of our server names (`control`, `mail`, later `chrome`) would be replaced. A
+local or project entry of the same name is left alone, and takes precedence over
+ours in its folder. Server names must stay stable: `mcp__mail__send` names the
+`send` tool on the installed `mail` server.
 `testapp` is served by the service, so its send/delete asks are shipped and
 required too. Only its MCP entry is omitted from `user-mcp.json`; the harness
 installs it at user scope under the name `testapp`. A generator check rejects an
